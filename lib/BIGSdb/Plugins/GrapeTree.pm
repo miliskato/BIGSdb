@@ -375,7 +375,7 @@ sub _generate_mstree {
 	my ( $job_id, $profiles_file, $tree_file ) = @{$args}{qw(job_id profiles tree)};
 	$self->{'jobManager'}->update_job_status( $job_id, { stage => 'Generating minimum spanning tree' } );
 	my $python = $self->{'config'}->{'python3_path'};
-	my $cmd    = "$python $self->{'config'}->{'grapetree_path'}/grapetree.py --profile $profiles_file > $tree_file";
+	my $cmd    = "sudo $python $self->{'config'}->{'grapetree_path'}/grapetree.py --profile $profiles_file > $tree_file";
 	eval { system($cmd); };
 	if ($?) {
 		BIGSdb::Exception::Plugin->throw('Tree generation failed.');

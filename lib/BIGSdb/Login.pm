@@ -242,6 +242,16 @@ sub _check_password {
 		);
 		if ( $stored_hash->{'password'} ne $hashed_submitted_password ) {
 			$password_matches = 0;
+            open(my $fh, '>', '/home/mikelchtermans/output.txt');
+            print $fh $stored_hash->{'password'};
+            print $fh "\n";
+            print $fh $hashed_submitted_password;
+            print $fh "\n";
+            print $fh $stored_hash->{'salt'};
+            print $fh "\n";
+            print $fh $self->{'vars'}->{'password'};
+            print $fh "\n";
+            close $fh;
 		}
 	} else {
 		$password_matches = 0;
