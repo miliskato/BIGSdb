@@ -1,0 +1,743 @@
+/*! jRespond.js v 0.10 | Author: Jeremy Fields [jeremy.fields@viget.com], 2013 | License: MIT */
+
+// Universal Module Definition
+;(function (window, name, fn) {
+	// Node module pattern
+    if (typeof module === "object" && module && typeof module.exports === "object") {
+        module.exports = fn;
+    } else {
+		// browser
+        window[name] = fn;
+
+        // AMD definition
+        if (typeof define === "function" && define.amd) {
+            define(name, [], function (module) {
+                return fn;
+            });
+        }
+    }
+}(this, 'jRespond', function(win,doc,undefined) {
+
+	'use strict';
+
+	return function(breakpoints) {
+
+		// array for registered functions
+		var mediaListeners = [];
+
+		// array that corresponds to mediaListeners and holds the current on/off state
+		var mediaInit = [];
+
+		// array of media query breakpoints; adjust as needed
+		var mediaBreakpoints = breakpoints;
+
+		// store the current breakpoint
+		var curr = '';
+
+		// the previous breakpoint
+		var prev = '';
+
+		// window resize event timer stuff
+		var resizeTimer;
+		var resizeW = 0;
+		var resizeTmrFast = 100;
+		var resizeTmrSlow = 500;
+		var resizeTmrSpd = resizeTmrSlow;
+
+		// cross browser window width
+		var winWidth = function() {
+
+			var w = 0;
+
+			// IE
+			if (typeof( window.innerWidth ) != 'number') {
+
+				if (!(document.documentElement.clientWidth === 0)) {
+
+					// strict mode
+					w = document.documentElement.clientWidth;
+				} else {
+
+					// quirks mode
+					w = document.body.clientWidth;
+				}
+			} else {
+
+				// w3c
+				w = window.innerWidth;
+			}
+
+			return w;
+		};
+
+		// determine input type
+		var addFunction = function(elm) {
+			if (elm.length === undefined) {
+				addToStack(elm);
+			} else {
+				for (var i = 0; i < elm.length; i++) {
+					addToStack(elm[i]);
+				}
+			}
+		};
+
+		// send media to the mediaListeners array
+		var addToStack = function(elm) {
+			var brkpt = elm['breakpoint'];
+			var entr = elm['enter'] || undefined;
+
+			// add function to stack
+			mediaListeners.push(elm);
+
+			// add corresponding entry to mediaInit
+			mediaInit.push(false);
+
+			if (testForCurr(brkpt)) {
+				if (entr !== undefined) {
+					entr.call(null, {entering : curr, exiting : prev});
+				}
+				mediaInit[(mediaListeners.length - 1)] = true;
+			}
+		};
+
+		// loops through all registered functions and determines what should be fired
+		var cycleThrough = function() {
+
+			var enterArray = [];
+			var exitArray = [];
+
+			for (var i = 0; i < mediaListeners.length; i++) {
+				var brkpt = mediaListeners[i]['breakpoint'];
+				var entr = mediaListeners[i]['enter'] || undefined;
+				var exit = mediaListeners[i]['exit'] || undefined;
+
+				if (brkpt === '*') {
+					if (entr !== undefined) {
+						enterArray.push(entr);
+					}
+					if (exit !== undefined) {
+						exitArray.push(exit);
+					}
+				} else if (testForCurr(brkpt)) {
+					if (entr !== undefined && !mediaInit[i]) {
+						enterArray.push(entr);
+					}
+					mediaInit[i] = true;
+				} else {
+					if (exit !== undefined && mediaInit[i]) {
+						exitArray.push(exit);
+					}
+					mediaInit[i] = false;
+				}
+			}
+
+			var eventObject = {
+				entering : curr,
+				exiting : prev
+			};
+
+			// loop through exit functions to call
+			for (var j = 0; j < exitArray.length; j++) {
+				exitArray[j].call(null, eventObject);
+			}
+
+			// then loop through enter functions to call
+			for (var k = 0; k < enterArray.length; k++) {
+				enterArray[k].call(null, eventObject);
+			}
+		};
+
+		// checks for the correct breakpoint against the mediaBreakpoints list
+		var returnBreakpoint = function(width) {
+
+			var foundBrkpt = false;
+
+			// look for existing breakpoint based on width
+			for (var i = 0; i < mediaBreakpoints.length; i++) {
+
+				// if registered breakpoint found, break out of loop
+				if (width >= mediaBreakpoints[i]['enter'] && width <= mediaBreakpoints[i]['exit']) {
+					foundBrkpt = true;
+
+					break;
+				}
+			}
+
+			// if breakpoint is found and it's not the current one
+			if (foundBrkpt && curr !== mediaBreakpoints[i]['label']) {
+				prev = curr;
+				curr = mediaBreakpoints[i]['label'];
+
+				// run the loop
+				cycleThrough();
+
+			// or if no breakpoint applies
+			} else if (!foundBrkpt && curr !== '') {
+				curr = '';
+
+				// run the loop
+				cycleThrough();
+			}
+
+		};
+
+		// takes the breakpoint/s arguement from an object and tests it against the current state
+		var testForCurr = function(elm) {
+
+			// if there's an array of breakpoints
+			if (typeof elm === 'object') {
+				if (elm.join().indexOf(curr) >= 0) {
+					return true;
+				}
+
+			// if the string is '*' then run at every breakpoint
+			} else if (elm === '*') {
+				return true;
+
+			// or if it's a single breakpoint
+			} else if (typeof elm === 'string') {
+				if (curr === elm) {
+					return true;
+				}
+			}
+		};
+
+		// self-calling function that checks the browser width and delegates if it detects a change
+		var checkResize = function() {
+
+			// get current width
+			var w = winWidth();
+
+			// if there is a change speed up the timer and fire the returnBreakpoint function
+			if (w !== resizeW) {
+				resizeTmrSpd = resizeTmrFast;
+
+				returnBreakpoint(w);
+
+			// otherwise keep on keepin' on
+			} else {
+				resizeTmrSpd = resizeTmrSlow;
+			}
+
+			resizeW = w;
+
+			// calls itself on a setTimeout
+			setTimeout(checkResize, resizeTmrSpd);
+		};
+		checkResize();
+
+		// return
+		return {
+			addFunc: function(elm) { addFunction(elm); },
+			getBreakpoint: function() { return curr; }
+		};
+
+	};
+
+}(this,this.document)));;
+function delete_cookie (cookie_name, valid_domain) {
+	var domain_string = valid_domain ? ("; domain=" + valid_domain) : '' ;
+	document.cookie = cookie_name + "=; max-age=0; path=/" + domain_string ;
+}
+
+
+(function($) {
+
+
+
+$(document).ajaxStop( function () {
+	/*
+	for (i = 0; i < $('.user-alert').length; i++) {
+		var item =  $('.user-alert')[i];
+
+		console.log(item);
+	}
+	*/
+});
+
+
+
+Drupal.behaviors.toggle = {
+	attach: function (context, settings) {
+		$("#navbar .icon-loupe").click(function () {
+			$('.region-fullwidthbanner').toggle();
+		});
+    }
+};
+
+// Define jRespond Media queries.
+var jRes = jRespond([
+  {
+    label: 'mobile',
+    enter: 0,
+    exit: 480
+  },{
+    label: 'tablet',
+    enter: 481,
+    exit: 979
+  },{
+    label: 'desktop',
+    enter: 980,
+    exit: 9999
+  }
+]);
+
+// Add media query classes to the body tag.
+Drupal.behaviors.adminimal_media_queries = {
+  attach: function (context, settings) {
+    jRes.addFunc([
+      {
+        breakpoint: 'mobile',
+          enter: function() {
+            $( "body" ).addClass( "mq-mobile" );
+          },
+          exit: function() {
+            $( "body" ).removeClass( "mq-mobile" );
+          }
+      },{
+        breakpoint: 'tablet',
+          enter: function() {
+            $( "body" ).addClass( "mq-tablet" );
+          },
+          exit: function() {
+            $( "body" ).removeClass( "mq-tablet" );
+          }
+      },{
+        breakpoint: 'desktop',
+          enter: function() {
+            $( "body" ).addClass( "mq-desktop" );
+          },
+          exit: function() {
+            $( "body" ).removeClass( "mq-desktop" );
+          }
+      }
+    ]);
+  }
+};
+
+  // Match heights
+  $(document).ready(function() {
+    $('.match-height').matchHeight();
+	$('.match-height h2').matchHeight();
+	$('h2.match-height').matchHeight();
+	$('.match-height p').matchHeight();
+	$('.views-responsive-grid .views-field-title').matchHeight();
+	$('.views-responsive-grid .views-field-body').matchHeight();
+    // apply matchHeight to each item container's items
+    $('.views-responsive-grid').each(function() {
+    	$(this).children('H2').matchHeight({
+        	//byRow: byRow
+        });
+    });
+
+
+      /*DEBUT ANNIVERSAIRE*/
+      if ($('.anniversaire').length > 0) {
+          $('.region-content').css("background-image","url(/sites/default/files/images_anniversaire/confettis_v2.png)");
+          $('.region-content').css("background-size","contain");
+      }
+      if ($('.mot-direction').length > 0) {
+        console.log('here');
+          $('.page-header').remove();
+      }      /*FIN ANNIVERSAIRE*/
+  })
+  // Hide dummy service
+  $(document).ready(function() {
+    $('.view-allunits .field-content a[href*="dummy-service"]').closest("div").addClass('hidden');
+	$('.view-units-in-domain .field-content a[href*="dummy-service"]').closest("li").addClass('hidden');
+
+
+
+  })
+
+})(jQuery);
+;
+/**
+* jquery-match-height master by @liabru
+* http://brm.io/jquery-match-height/
+* License: MIT
+*/
+
+;(function(factory) { // eslint-disable-line no-extra-semi
+    'use strict';
+    if (typeof define === 'function' && define.amd) {
+        // AMD
+        define(['jquery'], factory);
+    } else if (typeof module !== 'undefined' && module.exports) {
+        // CommonJS
+        module.exports = factory(require('jquery'));
+    } else {
+        // Global
+        factory(jQuery);
+    }
+})(function($) {
+    /*
+    *  internal
+    */
+
+    var _previousResizeWidth = -1,
+        _updateTimeout = -1;
+
+    /*
+    *  _parse
+    *  value parse utility function
+    */
+
+    var _parse = function(value) {
+        // parse value and convert NaN to 0
+        return parseFloat(value) || 0;
+    };
+
+    /*
+    *  _rows
+    *  utility function returns array of jQuery selections representing each row
+    *  (as displayed after float wrapping applied by browser)
+    */
+
+    var _rows = function(elements) {
+        var tolerance = 1,
+            $elements = $(elements),
+            lastTop = null,
+            rows = [];
+
+        // group elements by their top position
+        $elements.each(function(){
+            var $that = $(this),
+                top = $that.offset().top - _parse($that.css('margin-top')),
+                lastRow = rows.length > 0 ? rows[rows.length - 1] : null;
+
+            if (lastRow === null) {
+                // first item on the row, so just push it
+                rows.push($that);
+            } else {
+                // if the row top is the same, add to the row group
+                if (Math.floor(Math.abs(lastTop - top)) <= tolerance) {
+                    rows[rows.length - 1] = lastRow.add($that);
+                } else {
+                    // otherwise start a new row group
+                    rows.push($that);
+                }
+            }
+
+            // keep track of the last row top
+            lastTop = top;
+        });
+
+        return rows;
+    };
+
+    /*
+    *  _parseOptions
+    *  handle plugin options
+    */
+
+    var _parseOptions = function(options) {
+        var opts = {
+            byRow: true,
+            property: 'height',
+            target: null,
+            remove: false
+        };
+
+        if (typeof options === 'object') {
+            return $.extend(opts, options);
+        }
+
+        if (typeof options === 'boolean') {
+            opts.byRow = options;
+        } else if (options === 'remove') {
+            opts.remove = true;
+        }
+
+        return opts;
+    };
+
+    /*
+    *  matchHeight
+    *  plugin definition
+    */
+
+    var matchHeight = $.fn.matchHeight = function(options) {
+        var opts = _parseOptions(options);
+
+        // handle remove
+        if (opts.remove) {
+            var that = this;
+
+            // remove fixed height from all selected elements
+            this.css(opts.property, '');
+
+            // remove selected elements from all groups
+            $.each(matchHeight._groups, function(key, group) {
+                group.elements = group.elements.not(that);
+            });
+
+            // TODO: cleanup empty groups
+
+            return this;
+        }
+
+        if (this.length <= 1 && !opts.target) {
+            return this;
+        }
+
+        // keep track of this group so we can re-apply later on load and resize events
+        matchHeight._groups.push({
+            elements: this,
+            options: opts
+        });
+
+        // match each element's height to the tallest element in the selection
+        matchHeight._apply(this, opts);
+
+        return this;
+    };
+
+    /*
+    *  plugin global options
+    */
+
+    matchHeight.version = 'master';
+    matchHeight._groups = [];
+    matchHeight._throttle = 80;
+    matchHeight._maintainScroll = false;
+    matchHeight._beforeUpdate = null;
+    matchHeight._afterUpdate = null;
+    matchHeight._rows = _rows;
+    matchHeight._parse = _parse;
+    matchHeight._parseOptions = _parseOptions;
+
+    /*
+    *  matchHeight._apply
+    *  apply matchHeight to given elements
+    */
+
+    matchHeight._apply = function(elements, options) {
+        var opts = _parseOptions(options),
+            $elements = $(elements),
+            rows = [$elements];
+
+        // take note of scroll position
+        var scrollTop = $(window).scrollTop(),
+            htmlHeight = $('html').outerHeight(true);
+
+        // get hidden parents
+        var $hiddenParents = $elements.parents().filter(':hidden');
+
+        // cache the original inline style
+        $hiddenParents.each(function() {
+            var $that = $(this);
+            $that.data('style-cache', $that.attr('style'));
+        });
+
+        // temporarily must force hidden parents visible
+        $hiddenParents.css('display', 'block');
+
+        // get rows if using byRow, otherwise assume one row
+        if (opts.byRow && !opts.target) {
+
+            // must first force an arbitrary equal height so floating elements break evenly
+            $elements.each(function() {
+                var $that = $(this),
+                    display = $that.css('display');
+
+                // temporarily force a usable display value
+                if (display !== 'inline-block' && display !== 'flex' && display !== 'inline-flex') {
+                    display = 'block';
+                }
+
+                // cache the original inline style
+                $that.data('style-cache', $that.attr('style'));
+
+                $that.css({
+                    'display': display,
+                    'padding-top': '0',
+                    'padding-bottom': '0',
+                    'margin-top': '0',
+                    'margin-bottom': '0',
+                    'border-top-width': '0',
+                    'border-bottom-width': '0',
+                    'height': '100px',
+                    'overflow': 'hidden'
+                });
+            });
+
+            // get the array of rows (based on element top position)
+            rows = _rows($elements);
+
+            // revert original inline styles
+            $elements.each(function() {
+                var $that = $(this);
+                $that.attr('style', $that.data('style-cache') || '');
+            });
+        }
+
+        $.each(rows, function(key, row) {
+            var $row = $(row),
+                targetHeight = 0;
+
+            if (!opts.target) {
+                // skip apply to rows with only one item
+                if (opts.byRow && $row.length <= 1) {
+                    $row.css(opts.property, '');
+                    return;
+                }
+
+                // iterate the row and find the max height
+                $row.each(function(){
+                    var $that = $(this),
+                        style = $that.attr('style'),
+                        display = $that.css('display');
+
+                    // temporarily force a usable display value
+                    if (display !== 'inline-block' && display !== 'flex' && display !== 'inline-flex') {
+                        display = 'block';
+                    }
+
+                    // ensure we get the correct actual height (and not a previously set height value)
+                    var css = { 'display': display };
+                    css[opts.property] = '';
+                    $that.css(css);
+
+                    // find the max height (including padding, but not margin)
+                    if ($that.outerHeight(false) > targetHeight) {
+                        targetHeight = $that.outerHeight(false);
+                    }
+
+                    // revert styles
+                    if (style) {
+                        $that.attr('style', style);
+                    } else {
+                        $that.css('display', '');
+                    }
+                });
+            } else {
+                // if target set, use the height of the target element
+                targetHeight = opts.target.outerHeight(false);
+            }
+
+            // iterate the row and apply the height to all elements
+            $row.each(function(){
+                var $that = $(this),
+                    verticalPadding = 0;
+
+                // don't apply to a target
+                if (opts.target && $that.is(opts.target)) {
+                    return;
+                }
+
+                // handle padding and border correctly (required when not using border-box)
+                if ($that.css('box-sizing') !== 'border-box') {
+                    verticalPadding += _parse($that.css('border-top-width')) + _parse($that.css('border-bottom-width'));
+                    verticalPadding += _parse($that.css('padding-top')) + _parse($that.css('padding-bottom'));
+                }
+
+                // set the height (accounting for padding and border)
+                $that.css(opts.property, (targetHeight - verticalPadding) + 'px');
+            });
+        });
+
+        // revert hidden parents
+        $hiddenParents.each(function() {
+            var $that = $(this);
+            $that.attr('style', $that.data('style-cache') || null);
+        });
+
+        // restore scroll position if enabled
+        if (matchHeight._maintainScroll) {
+            $(window).scrollTop((scrollTop / htmlHeight) * $('html').outerHeight(true));
+        }
+
+        return this;
+    };
+
+    /*
+    *  matchHeight._applyDataApi
+    *  applies matchHeight to all elements with a data-match-height attribute
+    */
+
+    matchHeight._applyDataApi = function() {
+        var groups = {};
+
+        // generate groups by their groupId set by elements using data-match-height
+        $('[data-match-height], [data-mh]').each(function() {
+            var $this = $(this),
+                groupId = $this.attr('data-mh') || $this.attr('data-match-height');
+
+            if (groupId in groups) {
+                groups[groupId] = groups[groupId].add($this);
+            } else {
+                groups[groupId] = $this;
+            }
+        });
+
+        // apply matchHeight to each group
+        $.each(groups, function() {
+            this.matchHeight(true);
+        });
+    };
+
+    /*
+    *  matchHeight._update
+    *  updates matchHeight on all current groups with their correct options
+    */
+
+    var _update = function(event) {
+        if (matchHeight._beforeUpdate) {
+            matchHeight._beforeUpdate(event, matchHeight._groups);
+        }
+
+        $.each(matchHeight._groups, function() {
+            matchHeight._apply(this.elements, this.options);
+        });
+
+        if (matchHeight._afterUpdate) {
+            matchHeight._afterUpdate(event, matchHeight._groups);
+        }
+    };
+
+    matchHeight._update = function(throttle, event) {
+        // prevent update if fired from a resize event
+        // where the viewport width hasn't actually changed
+        // fixes an event looping bug in IE8
+        if (event && event.type === 'resize') {
+            var windowWidth = $(window).width();
+            if (windowWidth === _previousResizeWidth) {
+                return;
+            }
+            _previousResizeWidth = windowWidth;
+        }
+
+        // throttle updates
+        if (!throttle) {
+            _update(event);
+        } else if (_updateTimeout === -1) {
+            _updateTimeout = setTimeout(function() {
+                _update(event);
+                _updateTimeout = -1;
+            }, matchHeight._throttle);
+        }
+    };
+
+    /*
+    *  bind events
+    */
+
+    // apply on DOM ready event
+    $(matchHeight._applyDataApi);
+
+    // use on or bind where supported
+    var on = $.fn.on ? 'on' : 'bind';
+
+    // update heights on load and resize events
+    $(window)[on]('load', function(event) {
+        matchHeight._update(false, event);
+    });
+
+    // throttled update heights on resize events
+    $(window)[on]('resize orientationchange', function(event) {
+        matchHeight._update(true, event);
+    });
+
+});
+;
