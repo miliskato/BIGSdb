@@ -25,7 +25,6 @@ isolate_name = args.isolatename
 
 # todo get sample/isolate name
 # todo change curator/sender to NRC (all the 1s in inserts and updates)
-# todo think about additional columns: country not very useful as it will be Belgium, but maybe commune and sample date useful
 
 outputtsvdict = {}
 handle = open(tsvfilepath, 'r').readlines()

@@ -1,7 +1,6 @@
 #issue: max(allele_id) != len(allele_id); some alleles are missing in db, need to take count and can not use len!
 #But on the other side; allele sequences under Max should not be updated, so i can only start looking from max(db)
 
-# todo add profiles aswell, but only for mlst so maybe separate script because this can be used for all db
 # todo maybe add reverse check aswell to see if sequences are not retired, but why would they retire?
 
 

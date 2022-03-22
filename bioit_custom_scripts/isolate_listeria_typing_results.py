@@ -57,7 +57,6 @@ isolate_name = args.isolatename
 
 # todo get sample/isolate name
 # todo change curator/sender to NRC (all the 1s in inserts and updates)
-# todo think about additional columns: country not very useful as it will be Belgium, but maybe commune and sample date useful
 
 outputtsvdict = {}
 handle = open(tsvfilepath, 'r').readlines()
@@ -71,78 +70,88 @@ con.autocommit = True
 cur = con.cursor()
 
 #main
-# def insert_typing_results():
-#     dirlist = [] #dirlist serves to not insert duplicates (creates error in sql), for Listeria e.g. prs and prfA are included in two schemes
-#     for scheme in schemedict:
-#         dirs = next(os.walk(schemedict[scheme]['dirdb']))[1]
-#         for dir in dirs:
-#             if not dir.startswith('.') and dir not in dirlist:
-#                 dirlist.append(dir)
-#                 result = outputtsvdict['-'.join([schemedict[scheme]['tsvname'],dir])].split(',')
-#                 if result[2] == '100.00' and result[3] != '-' and eval(result[3]) == 1.0:
-#                     allele_id = int(result[1])
-#                     cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
-#                                 f"allele_id, status, method, sender, "
-#                                 f"curator, date_entered, datestamp) "
-#                                 f"VALUES('{dir}', (SELECT id FROM isolates WHERE isolate='{isolate_name}'), "
-#                                 f"'{allele_id}', 'confirmed', 'automatic', 1, "
-#                                 f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
-#
-#                 # the elif below is specific to Listeria pcr serogroup where 0's are included in the profiles
-#                 # (absent loci are required to define profiles)
-#                 # Bigsdb creates a null allele itself in the seqdef database
-#                 elif result[2] == '-' and result[3] == '-' and dir in next(os.walk(schemedict['listeria_serogroup']['dirdb']))[1]:
-#                     allele_id = 0
-#                     cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
-#                                 f"allele_id, status, method, sender, "
-#                                 f"curator, date_entered, datestamp) "
-#                                 f"VALUES('{dir}', (SELECT id FROM isolates WHERE isolate='{isolate_name}'), "
-#                                 f"'{allele_id}', 'confirmed', 'automatic', 1, "
-#                                 f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
-#
-#                 else:
-#                     continue
-#
-#     cur.execute(f"INSERT INTO history(isolate_id, timestamp, action, curator)"
-#                 f"VALUES((SELECT id FROM isolates WHERE isolate = '{isolate_name}'),(SELECT NOW()::TIMESTAMP), 'Typing results inserted', 1)")
-#
-# # check whether sample exists
-# cur.execute(f"SELECT COUNT(*) FROM isolates WHERE isolate='{isolate_name}'")
-# sample_presence = cur.fetchall()
-# if sample_presence[0][0] == 0:
-#     # sample does not exist yet, but check first if any sample exists
-#     cur.execute(f"INSERT INTO isolates(id, "
-#                 f"isolate, sender, curator, date_entered, datestamp)"
-#                 f"VALUES((SELECT CASE WHEN (SELECT(SELECT MAX(id) FROM isolates)+1) IS NULL THEN 1 ELSE (SELECT(SELECT MAX(id) FROM isolates)+1) END), "
-#                 f"'{isolate_name}', 1, 1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
-#     cur.execute(f"INSERT INTO history(isolate_id, timestamp, action, curator)"
-#                 f"VALUES((SELECT id FROM isolates WHERE isolate = '{isolate_name}'),(SELECT NOW()::TIMESTAMP), 'Isolate record added', 1)")
-#     insert_typing_results()
-#
-# elif sample_presence[0][0] == 1:
-#     # sample exists: check whether typing results or not (we do not bother checking for all schemes separately
-#     cur.execute(f"SELECT COUNT(*) FROM allele_designations WHERE isolate_id = (SELECT id FROM isolates WHERE isolate='{isolate_name}')")
-#     alleles_presence = cur.fetchall()
-#     if alleles_presence[0][0] == 0:
-#         # no allele designations are present so we insert them
-#         insert_typing_results()
-#     elif sample_presence[0][0] >= 1:
-#         sys.exit("This sample already contains typing results")
-#
-# elif sample_presence[0][0] >= 1:
-#     # multiple samples with same isolate name are present, that means that there are multiple versions of the same sample
-#     # check newest version
-#     cur.execute(f"SELECT COUNT(*) FROM allele_designations WHERE "
-#                 f"isolate_id = (SELECT id FROM isolates WHERE isolate='{isolate_name}') ORDER BY date_entered DESC LIMIT 1")
-#     alleles_presence = cur.fetchall()
-#     if alleles_presence[0][0] == 0:
-#         # no allele designations are present so we insert them
-#         insert_typing_results()
-#     elif sample_presence[0][0] >= 1:
-#         sys.exit("This sample already contains typing results")
+def insert_typing_results():
+    dirlist = [] #dirlist serves to not insert duplicates (creates error in sql), for Listeria e.g. prs and prfA are included in two schemes
+    for scheme in schemedict:
+        dirs = next(os.walk(schemedict[scheme]['dirdb']))[1]
+        for dir in dirs:
+            if not dir.startswith('.') and dir not in dirlist:
+                dirlist.append(dir)
+                result = outputtsvdict['-'.join([schemedict[scheme]['tsvname'],dir])].split(',')
+                if result[2] == '100.00' and result[3] != '-' and eval(result[3]) == 1.0:
+                    allele_id = int(result[1])
+                    cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
+                                f"allele_id, status, method, sender, "
+                                f"curator, date_entered, datestamp) "
+                                f"VALUES('{dir}', (SELECT id FROM isolates WHERE isolate='{isolate_name}'), "
+                                f"'{allele_id}', 'confirmed', 'automatic', 1, "
+                                f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+
+                # the elif below is specific to Listeria pcr serogroup where 0's are included in the profiles
+                # (absent loci are required to define profiles)
+                # Bigsdb creates a null allele itself in the seqdef database
+                elif result[2] == '-' and result[3] == '-' and dir in next(os.walk(schemedict['listeria_serogroup']['dirdb']))[1]:
+                    allele_id = 0
+                    cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
+                                f"allele_id, status, method, sender, "
+                                f"curator, date_entered, datestamp) "
+                                f"VALUES('{dir}', (SELECT id FROM isolates WHERE isolate='{isolate_name}'), "
+                                f"'{allele_id}', 'confirmed', 'automatic', 1, "
+                                f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+
+                else:
+                    continue
+
+    cur.execute(f"INSERT INTO history(isolate_id, timestamp, action, curator)"
+                f"VALUES((SELECT id FROM isolates WHERE isolate = '{isolate_name}'),(SELECT NOW()::TIMESTAMP), 'Typing results inserted', 1)")
+
+# check whether sample exists
+cur.execute(f"SELECT COUNT(*) FROM isolates WHERE isolate='{isolate_name}'")
+sample_presence = cur.fetchall()
+if sample_presence[0][0] == 0:
+    # sample does not exist yet, but check first if any sample exists
+    cur.execute(f"INSERT INTO isolates(id, "
+                f"isolate, sender, curator, date_entered, datestamp)"
+                f"VALUES((SELECT CASE WHEN (SELECT(SELECT MAX(id) FROM isolates)+1) IS NULL THEN 1 ELSE (SELECT(SELECT MAX(id) FROM isolates)+1) END), "
+                f"'{isolate_name}', 1, 1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+    html = ''.join(['<p><a href="/galaxyreports/listeria/', isolate_name, '/report.html"> html report</a></p>'])
+    cur.execute(f"INSERT INTO eav_text(isolate_id, "
+                f"field, value)"
+                f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
+                f"'html', '{html}'")
+    tsv = ''.join(['<p><a href="/galaxyreports/listeria/', isolate_name, '/report.tsv"> tsv report</a></p>'])
+    cur.execute(f"INSERT INTO eav_text(isolate_id, "
+                f"field, value)"
+                f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
+                f"'tsv', '{tsv}'")
+    cur.execute(f"INSERT INTO history(isolate_id, timestamp, action, curator)"
+                f"VALUES((SELECT id FROM isolates WHERE isolate = '{isolate_name}'),(SELECT NOW()::TIMESTAMP), 'Isolate record added', 1)")
+    insert_typing_results()
+
+elif sample_presence[0][0] == 1:
+    # sample exists: check whether typing results or not (we do not bother checking for all schemes separately
+    cur.execute(f"SELECT COUNT(*) FROM allele_designations WHERE isolate_id = (SELECT id FROM isolates WHERE isolate='{isolate_name}')")
+    alleles_presence = cur.fetchall()
+    if alleles_presence[0][0] == 0:
+        # no allele designations are present so we insert them
+        insert_typing_results()
+    elif sample_presence[0][0] >= 1:
+        sys.exit("This sample already contains typing results")
+
+elif sample_presence[0][0] >= 1:
+    # multiple samples with same isolate name are present, that means that there are multiple versions of the same sample
+    # check newest version
+    cur.execute(f"SELECT COUNT(*) FROM allele_designations WHERE "
+                f"isolate_id = (SELECT id FROM isolates WHERE isolate='{isolate_name}') ORDER BY date_entered DESC LIMIT 1")
+    alleles_presence = cur.fetchall()
+    if alleles_presence[0][0] == 0:
+        # no allele designations are present so we insert them
+        insert_typing_results()
+    elif sample_presence[0][0] >= 1:
+        sys.exit("This sample already contains typing results")
 
 for scheme in genedetectiondict:
-    # todo check whether contains gene detection allele designations already
+    # todo check whether contains gene detection allele designations already, but already does this in function above
     # first create a cluster content list
     sequencefile = json.load(open(Path(genedetectiondict[scheme]['metadatafile']), 'r'))
     sequencenamedict = {}
@@ -187,12 +196,12 @@ for scheme in genedetectiondict:
             eavhtmltable= eavhtmltable + ''.join(['<tr><td>', ''.join(['Cluster', clusterhit.split('Cluster')[1]]), '</td>'])
             # append Locus
             eavhtmltable= eavhtmltable + ''.join(['<td><a href="/galaxyreports/listeria/', isolate_name, '/report.html#', genedetectiondict[scheme]['schemename_html'], '" target="_blank">', (json.loads(listofhits))[y][1], '</a></td></tr>'])
-            # cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
-            #             f"allele_id, status, method, sender, "
-            #             f"curator, date_entered, datestamp) "
-            #             f"VALUES('{clusterhit}', (SELECT id FROM isolates WHERE isolate='{isolate_name}'), "
-            #             f"1, 'confirmed', 'automatic', 1, "
-            #             f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+            cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
+                        f"allele_id, status, method, sender, "
+                        f"curator, date_entered, datestamp) "
+                        f"VALUES('{clusterhit}', (SELECT id FROM isolates WHERE isolate='{isolate_name}'), "
+                        f"1, 'confirmed', 'automatic', 1, "
+                        f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
             y += 1
         eavhtmltable= eavhtmltable + '</table>'
         cur.execute(f"INSERT INTO eav_text(isolate_id, "
