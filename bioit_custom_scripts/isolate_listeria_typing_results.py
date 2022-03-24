@@ -71,6 +71,15 @@ cur = con.cursor()
 
 #main
 def insert_typing_results():
+    reportlink =f'<p><a href="/galaxyreports/listeria/{isolate_name}/report.html"> html report</a></p>'
+    cur.execute(f"INSERT INTO eav_text(isolate_id, "
+                f"field, value)"
+                f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
+                f"'html', '{reportlink}') ")
+    cur.execute(f"INSERT INTO eav_text(isolate_id, "
+                f"field, value)"
+                f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
+                f"'tsv', '{reportlink.replace('html', 'tsv')}') ")
     dirlist = [] #dirlist serves to not insert duplicates (creates error in sql), for Listeria e.g. prs and prfA are included in two schemes
     for scheme in schemedict:
         dirs = next(os.walk(schemedict[scheme]['dirdb']))[1]
@@ -185,7 +194,7 @@ for scheme in genedetectiondict:
                     f"field, value)"
                     f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
                     f"'{genedetectiondict[scheme]['schemename_bigsdb']}', '{listofhits}') ")
-        eavhtmltable= '<table class="data"><tr><th>Cluster</th><th>Locus</th></tr>'
+        eavhtmltable= '<table class="data"><tr><th>GeneCluster</th><th>Locus</th></tr>'
         y = 0
         while y <= (len((json.loads(listofhits)))-1):
             # todo add clusterhitlist in case loci that were in different clusters at some point get in the same cluster, and then check whether cluster hit in clusterhitlist before inserting
@@ -193,9 +202,13 @@ for scheme in genedetectiondict:
             hit = '_'.join([(json.loads(listofhits))[y][-1], (json.loads(listofhits))[y][1]])
             clusterhit = clusterdict[hit]
             # append Cluster
-            eavhtmltable= eavhtmltable + ''.join(['<tr><td>', ''.join(['Cluster', clusterhit.split('Cluster')[1]]), '</td>'])
+            eavhtmltable= eavhtmltable + ''.join(['<tr><td>', ''.join(['GeneCluster', clusterhit.split('Cluster')[1]]), '</td>'])
             # append Locus
-            eavhtmltable= eavhtmltable + ''.join(['<td><a href="/galaxyreports/listeria/', isolate_name, '/report.html#', genedetectiondict[scheme]['schemename_html'], '" target="_blank">', (json.loads(listofhits))[y][1], '</a></td></tr>'])
+            if scheme != 'listeria_vfdbcore':
+                eavhtmltable = eavhtmltable + ''.join(['<td><a href="/galaxyreports/listeria/', isolate_name, '/report.html#', genedetectiondict[scheme]['schemename_html'], '" target="_blank">', (json.loads(listofhits))[y][1], '</a></td></tr>'])
+            else:
+                eavhtmltable = eavhtmltable + ''.join(['<td><a href="/galaxyreports/listeria/', isolate_name, '/report.html#', genedetectiondict[scheme]['schemename_html'], '" target="_blank">', (json.loads(listofhits))[y][-2], '</a></td></tr>'])
+
             cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
                         f"allele_id, status, method, sender, "
                         f"curator, date_entered, datestamp) "

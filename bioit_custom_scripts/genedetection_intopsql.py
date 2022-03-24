@@ -10,23 +10,29 @@ import json
 
 schemedict = {'listeria_ndaro':           {'clusteredfasta': '/db/gene_detection/NCBI_AMR/ncbi_amr_upd-clustered_80.fasta',
                                            'metadatafile': '/db/gene_detection/NCBI_AMR/mapping_full.json',
-                                           'schemename_bigsdb': 'NCBI_AMR'},
+                                           'schemename_bigsdb': 'NCBI_AMR',
+                                           'schemename_html': 'NCBI AMR genes'},
               'listeria_resfinder':       {'clusteredfasta': '/db/gene_detection/ResFinder/resfinder-clustered_80.fasta',
                                            'metadatafile': '/db/gene_detection/ResFinder/mapping_full.json',
-                                           'schemename_bigsdb': 'ResFinder'},
+                                           'schemename_bigsdb': 'ResFinder',
+                                           'schemename_html': 'ResFinder'},
               'listeria_virulencefinder': {'clusteredfasta': '/db/gene_detection/VirulenceFinder-Listeria/virulencefinder-listeria-clustered_80.fasta',
                                            'metadatafile': '/db/gene_detection/VirulenceFinder-Listeria/mapping_full.json',
-                                           'schemename_bigsdb': 'VirulenceFinder_Listeria'},
-              'listeria_vfdbcore': {'clusteredfasta': '/db/gene_detection/VFDB_core/vfdb_core-clustered_80.fasta',
-                                    'metadatafile': '/db/gene_detection/VFDB_core/mapping_full.json',
-                                    'schemename_bigsdb': 'VFDB_core'},
+                                           'schemename_bigsdb': 'VirulenceFinder_Listeria',
+                                           'schemename_html': 'VirulenceFinder - <i>Listeria</i>'},
+              'listeria_vfdbcore':        {'clusteredfasta': '/db/gene_detection/VFDB_core/vfdb_core-clustered_80.fasta',
+                                           'metadatafile': '/db/gene_detection/VFDB_core/mapping_full.json',
+                                           'schemename_bigsdb': 'VFDB_core',
+                                           'schemename_html': 'Virulence Factor DB - Core'},
               'listeria_plasmidfinder':   {'clusteredfasta': '/db/gene_detection/PlasmidFinder-entero/plasmidfinder-entero-clustered_80.fasta',
                                            'metadatafile': '/db/gene_detection/PlasmidFinder-entero/mapping_full.json',
-                                           'schemename_bigsdb': 'PlasmidFinder_entero'}
+                                           'schemename_bigsdb': 'PlasmidFinder_entero',
+                                           'schemename_html': 'PlasmidFinder - Gram positive'}
               }
 
 isolatedb = 'bigsdb_listeria_isolates'
 seqdefdb = 'bigsdb_listeria_seqdef'
+species = 'listeria'
 
 
 for scheme in schemedict:
@@ -36,7 +42,7 @@ for scheme in schemedict:
     for line in clusterfile:
         # line looks like this: >0__Cluster_0__seq_4648__seq_4648
         if line.startswith('>'):
-            clusterlist.append('_'.join([schemedict[scheme]['schemename_bigsdb'],line.split('__')[1]]))
+            clusterlist.append('_'.join([schemedict[scheme]['schemename_bigsdb'], line.split('__')[1]]))
     for cluster in clusterlist:
         con = psycopg2.connect(database=f"{seqdefdb}", user="apache", password="remote",
                                host="127.0.0.1", port="")
@@ -74,18 +80,25 @@ for scheme in schemedict:
             continue
 
     #Part 2 removing and updating all allele designations (clusters) for all isolates containing data for that gene detection cluster.
+
+    # initiate Cluster dict with description (= genes) in list format by creating empty lists
+    descriptiondict = {}
+    for cluster in clusterlist:
+        descriptiondict[cluster] = []
+
     # first create a cluster content list
     sequencefile = json.load(open(Path(schemedict[scheme]['metadatafile']), 'r'))
     sequencenamedict = {}
     print(scheme)
     for x in list(sequencefile):
-        # sequencename becomes accession concatenated with allele because in e.g. Resfinder, multiple accessions are not unique.
+        # sequencename becomes accession concatenated with allele because in e.g. Resfinder, multiple accessions are not unique. Also allele is in every mapping_full.json, but not gene
         # sequencefile looks like this: {'seq_0': {'accession': 'NG_047553.1', 'antibiotic': 'Bleomycin', 'allele': '1567214_ble', 'gene': '1567214_ble', 'product': 'BLMA family bleomycin binding protein', 'header_orig': 'NG_047553.1_1567214_ble', 'cluster': 'Cluster_881'}, 'seq_1': {'accession': 'NG_047554.1', 'antibiotic': 'Bleomycin', 'allele': '1567214_ble', 'gene': '1567214_ble', 'product': 'BLMA family bleomycin binding protein', 'header_orig': 'NG_047554.1_1567214_ble', 'cluster': 'Cluster_881'}, 'seq_2': {'accession': 'NG_056058.1', 'antibiotic': 'Carbapenem', 'allele': 'BcII', 'gene': 'BcII', 'product': 'BcII family subclass B1 metallo-beta-lactamase', 'header_orig': 'NG_056058.1_BcII', 'cluster': 'Cluster_561'}, 'seq_3': {'accession': 'NG_047221.1', 'antibiotic': 'Carbapenem', 'allele': 'BcII', 'gene': 'BcII', 'product': 'BcII family subclass B1 metallo-beta-lactamase', 'header_orig': 'NG_047221.1_BcII', 'cluster': 'Cluster_561'}}
         # in VFDB, there are accessions with name "null", this breaks the script, therefore an empty space is added, and the allele should be enough to find.
         if sequencefile[x]['accession'] is None:
             sequencefile[x]['accession'] = ""
             print(sequencefile[x]['accession'])
         sequencenamedict[x] = '_'.join([(sequencefile[x]['accession']), (sequencefile[x]['allele'])])
+        descriptiondict['_'.join([schemedict[scheme]['schemename_bigsdb'], (sequencefile[x]['cluster'])])].append((sequencefile[x]['allele']).replace("'",""))
 
     clusterfile = open(Path(schemedict[scheme]['clusteredfasta']), 'r').readlines()
     clusterdict = {}
@@ -95,6 +108,21 @@ for scheme in schemedict:
             # key is sequencename from previous dict, value is cluster
             clusterdict[sequencenamedict[line.split('__')[2]]] = '_'.join([schemedict[scheme]['schemename_bigsdb'], line.split('__')[1]])
             # e.g. sequencenamedict['NG_047553.11567214_ble'] = 'Cluster_0'
+
+
+    # set the descriptions of the loci, comma separated list of all genes
+    con = psycopg2.connect(database=f"{seqdefdb}", user="apache", password="remote",
+                           host="127.0.0.1", port="")
+    cur = con.cursor()
+    con.autocommit = True
+    cur.execute(f"DELETE FROM locus_descriptions WHERE locus LIKE '{schemedict[scheme]['schemename_bigsdb']}_Cluster%'")
+    for cluster, description in descriptiondict.items():
+        # convert list to more meaningfull and aesthatically pleasing string
+        descriptionstring = ' '.join(['Contains genes:', ', '.join([x for x in description])])
+        cur.execute(f"INSERT INTO locus_descriptions(locus, description, datestamp, curator) "
+                    f"VALUES('{cluster}', '{descriptionstring}' ,(SELECT CURRENT_DATE), 1)")
+    con.close()
+
 
     con = psycopg2.connect(database=f"{isolatedb}", user="apache", password="remote",
                            host="127.0.0.1", port="")
@@ -108,6 +136,9 @@ for scheme in schemedict:
     if len(listofsamplesandhits) != 0:
         while x <= (len(listofsamplesandhits) - 1):
             isolate_id = listofsamplesandhits[x][0]
+            cur.execute(f"SELECT isolate FROM isolates WHERE id ='{isolate_id}'")
+            isolate_name = cur.fetchall()[0][0]
+            eavhtmltable = '<table class="data"><tr><th>GeneCluster</th><th>Locus</th></tr>'
             y = 0
             while y <= (len(json.loads(listofsamplesandhits[x][1])) - 1):
                 # allele is always position 1 and accession is always last position (-1)
@@ -119,7 +150,20 @@ for scheme in schemedict:
                             f"VALUES('{clusterhit}','{isolate_id}', "
                             f"1, 'confirmed', 'automatic', 1, "
                             f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                # append Cluster
+                eavhtmltable = eavhtmltable + ''.join(['<tr><td>', ''.join(['GeneCluster', clusterhit.split('Cluster')[1]]), '</td>'])
+                # append Locus
+                if scheme != 'vfdb_core':
+                    eavhtmltable = eavhtmltable + ''.join(['<td><a href="/galaxyreports/', species, '/', isolate_name, '/report.html#', schemedict[scheme]['schemename_html'], '" target="_blank">', (json.loads(listofsamplesandhits[x][1]))[y][1], '</a></td></tr>'])
+                else:
+                    eavhtmltable = eavhtmltable + ''.join(['<td><a href="/galaxyreports/', species, '/', isolate_name, '/report.html#', schemedict[scheme]['schemename_html'], '" target="_blank">', (json.loads(listofsamplesandhits[x][1]))[y][-2], '</a></td></tr>'])
                 y += 1
+            eavhtmltable = eavhtmltable + '</table>'
+            cur.execute(f"DELETE FROM eav_text WHERE isolate_id = '{isolate_id}' AND field ='{schemedict[scheme]['schemename_bigsdb']}'")
+            cur.execute(f"INSERT INTO eav_text(isolate_id, "
+                        f"field, value)"
+                        f"VALUES('{isolate_id}',"
+                        f"'{schemedict[scheme]['schemename_bigsdb']}', '{eavhtmltable}') ")
             x += 1
             cur.execute(f"INSERT INTO history(isolate_id, timestamp, action, curator)"
                         f"VALUES('{isolate_id}',(SELECT NOW()::TIMESTAMP), 'Gene detection results reevaluated after database update', 1)")

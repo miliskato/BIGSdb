@@ -3,6 +3,7 @@ import sys
 import psycopg2
 import argparse
 from pathlib import Path
+import re
 
 #leave dirdb empty for atypic typing schemes
 schemedict = {'mycobacterium_mlst': {'dirdb': '/db/sequence_typing/mycobacterium/mlst', 'tsvname': 'mlst'},
@@ -43,6 +44,39 @@ def insert_typing_results():
                            host='127.0.0.1', port='')
     con.autocommit = True
     cur = con.cursor()
+    reportlink =f'<p><a href="/galaxyreports/mycobacterium/{isolate_name}/report.html"> html report</a></p>'
+    cur.execute(f"INSERT INTO eav_text(isolate_id, "
+                f"field, value)"
+                f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
+                f"'html', '{reportlink}') ")
+    cur.execute(f"INSERT INTO eav_text(isolate_id, "
+                f"field, value)"
+                f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
+                f"'tsv', '{reportlink.replace('html', 'tsv')}') ")
+    cur.execute(f"INSERT INTO eav_text(isolate_id, "
+                f"field, value)"
+                f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
+                f"'gyrB_group', '{outputtsvdict['51SNP-gyrB_group']}') ")
+    cur.execute(f"INSERT INTO eav_text(isolate_id, "
+                f"field, value)"
+                f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
+                f"'Genetic_group', '{outputtsvdict['51SNP-genetic_group']}') ")
+    cur.execute(f"INSERT INTO eav_text(isolate_id, "
+                f"field, value)"
+                f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
+                f"'SCG', '{outputtsvdict['51SNP-scg']}') ")
+    cur.execute(f"INSERT INTO eav_text(isolate_id, "
+                f"field, value)"
+                f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
+                f"'snpit_species', '{outputtsvdict['snpit_species']}') ")
+    cur.execute(f"INSERT INTO eav_text(isolate_id, "
+                f"field, value)"
+                f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
+                f"'snpit_lineage', '{outputtsvdict['snpit_lineage']}') ")
+    cur.execute(f"INSERT INTO eav_text(isolate_id, "
+                f"field, value)"
+                f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
+                f"'snpit_sublineage', '{outputtsvdict['snpit_sublineage']}') ")
     dirlist = [] #dirlist serves to not insert duplicates (creates error in sql), for Listeria e.g. prs and prfA are included in two schemes
     for scheme in schemedict:
         if schemedict[scheme]['dirdb'] != '':
@@ -73,40 +107,45 @@ def insert_typing_results():
                                 f"VALUES('{locus}', (SELECT id FROM isolates WHERE isolate='{isolate_name}'), "
                                 f"'{allele_id}', 'confirmed', 'automatic', 1, "
                                 f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
-            elif schemedict[scheme]['tsvname'] == '51SNP':
-                x = 1
-                while x < 52:
-                    locustsv = ''.join(['51SNP-SNP', str(x).zfill(2)])
-                    allele_sequence = outputtsvdict[locustsv].strip('*')
-                    locus = locustsv.replace('-', '_')
-                    if allele_sequence != '-':
-                        con2 = psycopg2.connect(database=f"{seqdefdb}", user='apache', password='remote',
-                                               host='127.0.0.1', port='')
-                        cur2 = con2.cursor()
-                        cur2.execute(f"SELECT allele_id FROM sequences WHERE sequence = '{allele_sequence}' AND locus = '{locus}'")
-                        allele_id = cur2.fetchall()[0][0]
-                        if allele_id != '2':
-                            sys.exit(f"This allele ({locus}: {allele_sequence}) was not found in the alleles in the seqdef database")
-                        con2.close()
-                        cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
-                                    f"allele_id, status, method, sender, "
-                                    f"curator, date_entered, datestamp) "
-                                    f"VALUES('{locus}', (SELECT id FROM isolates WHERE isolate='{isolate_name}'), "
-                                    f"'{allele_id}', 'confirmed', 'automatic', 1, "
-                                    f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
-                    elif allele_sequence == '-':
-                        allele_id = 1
-                        cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
-                                    f"allele_id, status, method, sender, "
-                                    f"curator, date_entered, datestamp) "
-                                    f"VALUES('{locus}', (SELECT id FROM isolates WHERE isolate='{isolate_name}'), "
-                                    f"'{allele_id}', 'confirmed', 'automatic', 1, "
-                                    f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
-                    x += 1
-                # cur.execute(f"INSERT INTO eav_text(isolate_id, "
-                #             f"field, value)"
-                #             f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
-                #             f"'SCG', '{outputtsvdict['51SNP-scg']}') ")
+                cur.execute(f"INSERT INTO eav_text(isolate_id, "
+                            f"field, value)"
+                            f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
+                            f"'spoligotype_binary', '{outputtsvdict['spoligotype_binary']}') ")
+                cur.execute(f"INSERT INTO eav_text(isolate_id, "
+                            f"field, value)"
+                            f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
+                            f"'spoligotype_octal', '{outputtsvdict['spoligotype_octal']}') ")
+            # elif schemedict[scheme]['tsvname'] == '51SNP':
+                ## removed because unneccesary according to meeting
+                # x = 1
+                # while x < 52:
+                #     locustsv = ''.join(['51SNP-SNP', str(x).zfill(2)])
+                #     allele_sequence = outputtsvdict[locustsv].strip('*')
+                #     locus = locustsv.replace('-', '_')
+                #     if allele_sequence != '-':
+                #         con2 = psycopg2.connect(database=f"{seqdefdb}", user='apache', password='remote',
+                #                                host='127.0.0.1', port='')
+                #         cur2 = con2.cursor()
+                #         cur2.execute(f"SELECT allele_id FROM sequences WHERE sequence = '{allele_sequence}' AND locus = '{locus}'")
+                #         allele_id = cur2.fetchall()[0][0]
+                #         if allele_id != '2':
+                #             sys.exit(f"This allele ({locus}: {allele_sequence}) was not found in the alleles in the seqdef database")
+                #         con2.close()
+                #         cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
+                #                     f"allele_id, status, method, sender, "
+                #                     f"curator, date_entered, datestamp) "
+                #                     f"VALUES('{locus}', (SELECT id FROM isolates WHERE isolate='{isolate_name}'), "
+                #                     f"'{allele_id}', 'confirmed', 'automatic', 1, "
+                #                     f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                #     elif allele_sequence == '-':
+                #         allele_id = 1
+                #         cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
+                #                     f"allele_id, status, method, sender, "
+                #                     f"curator, date_entered, datestamp) "
+                #                     f"VALUES('{locus}', (SELECT id FROM isolates WHERE isolate='{isolate_name}'), "
+                #                     f"'{allele_id}', 'confirmed', 'automatic', 1, "
+                #                     f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                #     x += 1
             elif scheme == 'mycobacterium_csbrd':
                 for record in ['csb_detected', 'RD1_detected', 'RD9_detected']:
                     locus = record.rstrip('_detected') # need to be careful with rstrip and strip but in this case no issue
@@ -132,11 +171,11 @@ def insert_typing_results():
                         amr_metadata_fields_tsv[field[0]] = field[0]
                     else:
                         amr_metadata_fields_tsv[field[0]] = ''.join(['amr_pheno_',field[0].split('_')[-1]])
-                # for bigsdbname, tsvname in amr_metadata_fields_tsv.items():
-                #     cur.execute(f"INSERT INTO eav_text(isolate_id, "
-                #                 f"field, value)"
-                #                 f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
-                #                 f"'{bigsdbname}', '{outputtsvdict[tsvname]}') ")
+                for bigsdbname, tsvname in amr_metadata_fields_tsv.items():
+                    cur.execute(f"INSERT INTO eav_text(isolate_id, "
+                                f"field, value)"
+                                f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
+                                f"'{bigsdbname}', '{outputtsvdict[tsvname]}') ")
                 # AMR results
                 cur.execute(f"SELECT locus FROM scheme_members WHERE scheme_id = (SELECT id FROM schemes WHERE name = 'AMR_detection_WHO')")
                 loci = cur.fetchall()
@@ -145,11 +184,39 @@ def insert_typing_results():
                     print(outputtsvdict[tsvname])
                     if outputtsvdict[tsvname] != '-':
                         for variant in outputtsvdict[tsvname].split(', '):
+                            con2 = psycopg2.connect(database=f"{seqdefdb}", user='apache', password='remote',
+                                                    host='127.0.0.1', port='')
+                            cur2 = con2.cursor()
+                            lastpartoflikequery = re.sub(r"([0-9]+(\.[0-9]+)?)",r"_\1_", variant.split('_')[-1].replace('(', '').replace(')', ''))
+                            likequery = ''.join([variant.split('_')[-2],'%',lastpartoflikequery.replace('-_', '_-')])
+                            likequeryabsolute = likequery.replace('-','')
+                            # Bert explained that if the change is found in promotor, then it can change signs
+                            # And also honestly the db is really discrepant, e.g. how likely is this:
+                            # Rv1979c AA G_107_A Rv1979c_AA_G_107_A Uncertain significance CFZ CFZ_Uncertain_significance
+                            # Rv1979c PROM g_-107_a Rv1979c_PROM_g_-107_a Uncertain significance CFZ CFZ_Uncertain_significance
+                            # + there are really just duplicates in the db so I limit to 1, then its always the same.
+                            cur2.execute(f"SELECT allele_id FROM sequences WHERE (allele_id LIKE '{likequery}' OR allele_id LIKE '{likequeryabsolute}') AND locus = '{locus[0]}' LIMIT 1")
+                            present = cur2.fetchall()
+
+                            #Sometimes not only the sign changes when its in a promotor, but also the location, easiest solution is just to insert.. Because sequences need to be unique for a locus, I take the longest sequence and add TAG
+                            if likequery != likequeryabsolute and present == []:
+                                cur2.execute(f"SELECT sequence FROM sequences WHERE locus = '{locus[0]}' ORDER BY sequence DESC LIMIT 1")
+                                dummysequence = ''.join([cur2.fetchall()[0][0], 'TAG'])
+                                cur2.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status,sender,curator, date_entered, datestamp) \
+                                               VALUES('{locus[0]}','{likequery.replace('%','_PROM_')}','{dummysequence}','unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                                cur2.execute(f"SELECT allele_id FROM sequences WHERE (allele_id LIKE '{likequery}' OR allele_id LIKE '{likequeryabsolute}') AND locus = '{locus[0]}' LIMIT 1")
+                                present = cur2.fetchall()
+                            allele_id = present[0][0]
+                            print(allele_id)
+                            con2.close()
+                            # todo this is wrong : to test
+                            # ETHAssociated_with_R_int  prom_inhA_g(-154)a should be
+                            # ETH_Associated_with_R_int	inhA_PROM_g_-154_a
                             cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
                                         f"allele_id, status, method, sender, "
                                         f"curator, date_entered, datestamp) "
                                         f"VALUES('{locus[0]}', (SELECT id FROM isolates WHERE isolate='{isolate_name}'), "
-                                        f"'{variant}', 'confirmed', 'automatic', 1, "
+                                        f"'{allele_id}', 'confirmed', 'automatic', 1, "
                                         f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
 
 
