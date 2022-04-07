@@ -54,8 +54,6 @@ args = argument_parser.parse_args()
 tsvfilepath = Path(args.tsvfilepath)
 isolate_name = args.isolatename
 
-
-# todo get sample/isolate name
 # todo change curator/sender to NRC (all the 1s in inserts and updates)
 
 outputtsvdict = {}
@@ -160,7 +158,7 @@ elif sample_presence[0][0] >= 1:
         sys.exit("This sample already contains typing results")
 
 for scheme in genedetectiondict:
-    # todo check whether contains gene detection allele designations already, but already does this in function above
+    # todo check whether contains gene detection allele designations already, but already does this in function above, so would only be useful if this for loop secifically is run
     # first create a cluster content list
     sequencefile = json.load(open(Path(genedetectiondict[scheme]['metadatafile']), 'r'))
     sequencenamedict = {}
@@ -195,9 +193,9 @@ for scheme in genedetectiondict:
                     f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
                     f"'{genedetectiondict[scheme]['schemename_bigsdb']}', '{listofhits}') ")
         eavhtmltable= '<table class="data"><tr><th>GeneCluster</th><th>Locus</th></tr>'
+        clusterhitlist = []  # in case loci that were in different clusters at some point get in the same cluster
         y = 0
         while y <= (len((json.loads(listofhits)))-1):
-            # todo add clusterhitlist in case loci that were in different clusters at some point get in the same cluster, and then check whether cluster hit in clusterhitlist before inserting
             # allele is always position 1 and accession is always last position (-1)
             hit = '_'.join([(json.loads(listofhits))[y][-1], (json.loads(listofhits))[y][1]])
             clusterhit = clusterdict[hit]
@@ -209,12 +207,14 @@ for scheme in genedetectiondict:
             else:
                 eavhtmltable = eavhtmltable + ''.join(['<td><a href="/galaxyreports/listeria/', isolate_name, '/report.html#', genedetectiondict[scheme]['schemename_html'], '" target="_blank">', (json.loads(listofhits))[y][-2], '</a></td></tr>'])
 
-            cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
-                        f"allele_id, status, method, sender, "
-                        f"curator, date_entered, datestamp) "
-                        f"VALUES('{clusterhit}', (SELECT id FROM isolates WHERE isolate='{isolate_name}'), "
-                        f"1, 'confirmed', 'automatic', 1, "
-                        f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+            if clusterhit not in clusterhitlist:
+                cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
+                            f"allele_id, status, method, sender, "
+                            f"curator, date_entered, datestamp) "
+                            f"VALUES('{clusterhit}', (SELECT id FROM isolates WHERE isolate='{isolate_name}'), "
+                            f"1, 'confirmed', 'automatic', 1, "
+                            f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+            clusterhitlist.append(clusterhit)
             y += 1
         eavhtmltable= eavhtmltable + '</table>'
         cur.execute(f"INSERT INTO eav_text(isolate_id, "

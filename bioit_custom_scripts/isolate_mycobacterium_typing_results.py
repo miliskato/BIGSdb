@@ -4,6 +4,7 @@ import psycopg2
 import argparse
 from pathlib import Path
 import re
+import json
 
 #leave dirdb empty for atypic typing schemes
 schemedict = {'mycobacterium_mlst': {'dirdb': '/db/sequence_typing/mycobacterium/mlst', 'tsvname': 'mlst'},
@@ -11,7 +12,10 @@ schemedict = {'mycobacterium_mlst': {'dirdb': '/db/sequence_typing/mycobacterium
               'mycobacterium_spoligotyping': {'dirdb': '', 'tsvname': 'spoligotype_binary'},
               'mycobacterium_51SNPassay': {'dirdb': '', 'tsvname': '51SNP'},
               'mycobacterium_csbrd': {'dirdb': '', 'tsvname': ''},
-              'mycobacterium_amrdetection': {'dirdb': '', 'tsvname': ''}
+              'mycobacterium_amrdetection': {'dirdb': '', 'tsvname': ''},
+              'mycobacterium_hsp65': {'dirdb': '', 'tsvname': 'hits_hsp65'},
+              'mycobacterium_pointfinder': {'dirdb': '', 'tsvname': 'pointfinder_mutations', 'schemename_html': 'PointFinder'},
+              'mycobacterium_ncbi16s': {'dirdb': '', 'tsvname': 'hits_ncbi_16s'}
               }
 isolatedb = 'bigsdb_mycobacterium_isolates'
 seqdefdb ='bigsdb_mycobacterium_seqdef'
@@ -24,7 +28,7 @@ tsvfilepath = Path(args.tsvfilepath)
 isolate_name = args.isolatename
 
 
-# todo get sample/isolate name
+
 # todo change curator/sender to NRC (all the 1s in inserts and updates)
 
 outputtsvdict = {}
@@ -160,11 +164,9 @@ def insert_typing_results():
                                 f"'{allele_id}', 'confirmed', 'automatic', 1, "
                                 f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
             elif scheme == 'mycobacterium_amrdetection':
-                print('amr_detection')
                 # make a dict with field and tsv names to be able to insert
                 cur.execute(f"SELECT field FROM eav_fields WHERE category='AMR detection'")
                 fields = cur.fetchall()
-                print(fields)
                 amr_metadata_fields_tsv = {}
                 for field in fields:
                     if field[0].startswith('amr'):
@@ -209,16 +211,105 @@ def insert_typing_results():
                             allele_id = present[0][0]
                             print(allele_id)
                             con2.close()
-                            # todo this is wrong : to test
-                            # ETHAssociated_with_R_int  prom_inhA_g(-154)a should be
-                            # ETH_Associated_with_R_int	inhA_PROM_g_-154_a
                             cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
                                         f"allele_id, status, method, sender, "
                                         f"curator, date_entered, datestamp) "
                                         f"VALUES('{locus[0]}', (SELECT id FROM isolates WHERE isolate='{isolate_name}'), "
                                         f"'{allele_id}', 'confirmed', 'automatic', 1, "
                                         f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+            elif scheme == 'mycobacterium_hsp65':
+                listofhits = outputtsvdict[schemedict[scheme]['tsvname']]
+                # this might look something like this currently: [["Cluster_0", "seq_132", "100.00", "401/401", "NODE_2_length_176306_cov_25.596655", "48299..48699", "M. tuberculosis", "ATCC 27294, H37Rv(T)"], ["Cluster_0", "seq_19", "100.00", "401/401", "NODE_2_length_176306_cov_25.596655", "48299..48699", "M. bovis", "CIP 105234(T)"], ["Cluster_0", "seq_23", "100.00", "401/401", "NODE_2_length_176306_cov_25.596655", "48299..48699", "M. caprae", "CIP 105776(T)"], ["Cluster_0", "seq_81", "100.00", "401/401", "NODE_2_length_176306_cov_25.596655", "48299..48699", "M. microti", "CIP 104256, ATCC 19422(T)"]]
 
+                if listofhits != '[]':
+                    y = 0
+                    while y <= (len((json.loads(listofhits))) - 1):
+                        hit = '_'.join(['hsp65', (json.loads(listofhits))[y][-2].strip('"').replace(' ', '_').replace('.', '')])
+                        print(hit)
+                        cur.execute(f"INSERT INTO eav_boolean(isolate_id, "
+                                    f"field, value)"
+                                    f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
+                                    f"'{hit}', 't') ")
+                        y+=1
+
+            elif scheme == 'mycobacterium_pointfinder':
+                # for pointfinder, only hits that infer resistance are of importance, other hits dont give any information.
+                listofhits = outputtsvdict[schemedict[scheme]['tsvname']]
+                # this might look like this: [["drrA p.H309D", "CAC -> GAC", "H -> D", "Unknown", "-"], ["embA p.P958Q", "CCG -> CAG", "P -> Q", "Unknown", "-"], ["embB p.N13S", "AAT -> AGT", "N -> S", "Unknown", "-"], ["embB p.E378A", "GAG -> GCG", "E -> A", "Unknown", "-"], ["embC p.T270I", "ACC -> ATC", "T -> I", "Unknown", "-"], ["gyrA p.E21Q", "GAG -> CAG", "E -> Q", "Unknown", "-"], ["gyrA p.S95T", "AGC -> ACC", "S -> T", "Unknown", "-"], ["gyrA p.D639A", "GAC -> GCC", "D -> A", "Unknown", "-"], ["gyrA p.G668D", "GGC -> GAC", "G -> D", "Unknown", "-"], ["gyrB p.A403S", "GCG -> TCG", "A -> S", "Unknown", "-"], ["iniA p.N88S", "AAT -> AGT", "N -> S", "Unknown", "-"], ["iniA p.H481Q", "CAT -> CAG", "H -> Q", "Unknown", "-"], ["katG p.R463L", "CGG -> CTG", "R -> L", "Unknown", "-"], ["nuoA n.-95T>G", "T -> G", "Promoter mutations", "Unknown", "-"], ["pncA p.H57D", "CAC -> GAC", "H -> D", "PYRAZINAMIDE", "19209951"], ["rpsA p.A440T", "GCG -> ACG", "A -> T", "Unknown", "-"], ["ubiA p.E149D", "GAA -> GAC", "E -> D", "Unknown", "-"]]
+                if listofhits != '[]':
+                    eavhtmltable = '<table class="data"><tr><th>Hit</th><th>Antibiotic</th></tr>'
+                    y = 0
+                    con2 = psycopg2.connect(database=f"{seqdefdb}", user='apache', password='remote',
+                                            host='127.0.0.1', port='')
+                    cur2 = con2.cursor()
+                    con2.autocommit = True
+                    while y <= (len((json.loads(listofhits))) - 1):
+                        hit = (json.loads(listofhits))[y]
+                        if hit[-2] != "Unknown":
+                            # Seeing as the allele db of pointfinder is empty at the beginning because the db is too hard to understand, we gradually add alleles.
+                            # sometimes a mutation will give resistance to more than 1 AB
+                            antibiotics = hit[-2].split(',')
+                            for antibiotic in antibiotics:
+                                antibiotic_reformatted = '_'.join(['POINTFINDER', antibiotic.replace('-', '_').replace(' ', '_').upper()])
+                                print(antibiotic)
+                                print(antibiotic_reformatted)
+                                mutation = hit[0].replace('.', '_').replace(' ', '_')
+                                eavhtmltable = eavhtmltable + ''.join(
+                                    ['<tr><td><a href="/galaxyreports/mycobacterium/', isolate_name, '/report.html#',
+                                     schemedict[scheme]['schemename_html'], '" target="_blank">',
+                                     hit[0], '</a></td>'])
+                                eavhtmltable = eavhtmltable + ''.join(['<td>', antibiotic, '</td></tr>'])
+                                cur2.execute(f"SELECT allele_id FROM sequences WHERE allele_id = '{mutation}' and locus = '{antibiotic_reformatted}'")
+                                present = cur2.fetchall()
+                                if present == []:
+                                    cur2.execute(f"SELECT sequence FROM sequences WHERE locus  ='{antibiotic_reformatted}' ORDER BY CHAR_LENGTH(sequence) LIMIT 1")
+                                    longest_dummy_sequence = cur2.fetchall()
+                                    if longest_dummy_sequence == []:
+                                        dummysequence = 'TAG'
+                                    else:
+                                        dummysequence = ''.join([longest_dummy_sequence[0][0], 'TAG'])
+                                    cur2.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status,sender,curator, date_entered, datestamp) \
+                                                                                   VALUES('{antibiotic_reformatted}','{mutation}','{dummysequence}','unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                                cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
+                                            f"allele_id, status, method, sender, "
+                                            f"curator, date_entered, datestamp) "
+                                            f"VALUES('{antibiotic_reformatted}', (SELECT id FROM isolates WHERE isolate='{isolate_name}'), "
+                                            f"'{mutation}', 'confirmed', 'automatic', 1, "
+                                            f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                        y += 1
+                    eavhtmltable = eavhtmltable + '</table>'
+                    cur.execute(f"INSERT INTO eav_text(isolate_id, "
+                                f"field, value)"
+                                f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
+                                f"'pointfinder_hits', '{eavhtmltable}') ")
+                    con2.close()
+            elif scheme == 'mycobacterium_ncbi16s':
+                # ncbi 16s contains duplicate species
+                listofhits = outputtsvdict[schemedict[scheme]['tsvname']]
+                # this might look like this: [["Cluster_24", "NR_044826.2", "100.00", "1532/1532", "NODE_59_length_20721_cov_23.830436", "2360..3891", "Mycobacterium tuberculosis strain H37Rv 16S ribosomal RNA, complete sequence", "NR_044826.2"], ["Cluster_24", "NR_102810.2", "100.00", "1532/1532", "NODE_59_length_20721_cov_23.830436", "2360..3891", "Mycobacterium tuberculosis strain H37Rv 16S ribosomal RNA, complete sequence", "NR_102810.2"]]
+                speciesandstrainhits = []
+                if listofhits != '[]':
+                    for hit in json.loads(listofhits):
+                        speciesname = '_'.join([hit[-2].split(' ')[0], hit[-2].split(' ')[1]])
+                        print(speciesname)
+                        if speciesname not in speciesandstrainhits:
+                            speciesandstrainhits.append(speciesname)
+                        strainname = '_'.join([hit[-2].split(' ')[0], hit[-2].split(' ')[1], hit[-2].split(' ')[2], hit[-2].split(' ')[3]])
+                        print(strainname)
+                        if strainname not in speciesandstrainhits:
+                            speciesandstrainhits.append(strainname)
+                print(speciesandstrainhits)
+                for hit in speciesandstrainhits:
+                    hit_formatted = '_'.join(['ncbi16s', hit])
+                    # check whether already exists in eav
+                    cur.execute(f"SELECT count(*) FROM eav_fields WHERE category='NCBI 16S' AND field = '{hit_formatted}'")
+                    eav_exists = cur.fetchall()
+                    if eav_exists[0][0] == 0:
+                        cur.execute(f"INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('{hit_formatted}', 'boolean', 'NCBI 16S', '', 't', 't', (SELECT CURRENT_DATE), 1)")
+                    cur.execute(f"INSERT INTO eav_boolean(isolate_id, "
+                                f"field, value)"
+                                f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
+                                f"'{hit_formatted}', 't') ")
 
     cur.execute(f"INSERT INTO history(isolate_id, timestamp, action, curator)"
                 f"VALUES((SELECT id FROM isolates WHERE isolate = '{isolate_name}'),(SELECT NOW()::TIMESTAMP), 'Typing results inserted', 1)")
