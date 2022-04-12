@@ -188,25 +188,27 @@ def insert_typing_results():
                         for variant in outputtsvdict[tsvname].split(', '):
                             con2 = psycopg2.connect(database=f"{seqdefdb}", user='apache', password='remote',
                                                     host='127.0.0.1', port='')
+                            con2.autocommit = True
                             cur2 = con2.cursor()
-                            lastpartoflikequery = re.sub(r"([0-9]+(\.[0-9]+)?)",r"_\1_", variant.split('_')[-1].replace('(', '').replace(')', ''))
-                            likequery = ''.join([variant.split('_')[-2],'%',lastpartoflikequery.replace('-_', '_-')])
-                            likequeryabsolute = likequery.replace('-','')
+                            variantreformatted = variant.replace('(', '').replace(')', '')
                             # Bert explained that if the change is found in promotor, then it can change signs
                             # And also honestly the db is really discrepant, e.g. how likely is this:
                             # Rv1979c AA G_107_A Rv1979c_AA_G_107_A Uncertain significance CFZ CFZ_Uncertain_significance
                             # Rv1979c PROM g_-107_a Rv1979c_PROM_g_-107_a Uncertain significance CFZ CFZ_Uncertain_significance
                             # + there are really just duplicates in the db so I limit to 1, then its always the same.
-                            cur2.execute(f"SELECT allele_id FROM sequences WHERE (allele_id LIKE '{likequery}' OR allele_id LIKE '{likequeryabsolute}') AND locus = '{locus[0]}' LIMIT 1")
+                            cur2.execute(f"SELECT allele_id FROM sequences WHERE allele_id = '{variantreformatted}' AND locus = '{locus[0]}' LIMIT 1")
                             present = cur2.fetchall()
-
-                            #Sometimes not only the sign changes when its in a promotor, but also the location, easiest solution is just to insert.. Because sequences need to be unique for a locus, I take the longest sequence and add TAG
-                            if likequery != likequeryabsolute and present == []:
+                            #Sometimes not only the sign changes when its in a promotor, but also the location, easiest solution is just to insert after it is found. Because sequences need to be unique for a locus, I take the longest sequence and add TAG
+                            if present == []:
                                 cur2.execute(f"SELECT sequence FROM sequences WHERE locus = '{locus[0]}' ORDER BY sequence DESC LIMIT 1")
-                                dummysequence = ''.join([cur2.fetchall()[0][0], 'TAG'])
+                                possiblelongestdummypresent = cur2.fetchall()
+                                if possiblelongestdummypresent == []:
+                                    dummysequence = 'TAG'
+                                else:
+                                    dummysequence = ''.join([possiblelongestdummypresent[0][0], 'TAG'])
                                 cur2.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status,sender,curator, date_entered, datestamp) \
-                                               VALUES('{locus[0]}','{likequery.replace('%','_PROM_')}','{dummysequence}','unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
-                                cur2.execute(f"SELECT allele_id FROM sequences WHERE (allele_id LIKE '{likequery}' OR allele_id LIKE '{likequeryabsolute}') AND locus = '{locus[0]}' LIMIT 1")
+                                               VALUES('{locus[0]}','{variantreformatted}','{dummysequence}','unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                                cur2.execute(f"SELECT allele_id FROM sequences WHERE allele_id LIKE '{variantreformatted}' AND locus = '{locus[0]}' LIMIT 1")
                                 present = cur2.fetchall()
                             allele_id = present[0][0]
                             print(allele_id)
