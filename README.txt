@@ -1,3 +1,9 @@
+v1.35.0: *Adds support for alternative codon tables.
+v1.34.2: *LINcode bug fixes.
+         *Option to allow batch upload of profiles that are identical except
+          for missing data.
+v1.34.1: *Include EAV fields and classification schemes in ITOL output.
+         *LINcode bug fixes.
 v1.34.0: *Support for LINcodes based on cgMLST schemes.
 v1.33.0: *Data explorer page linked to dashboard. This offers an interactive
           decomposition tree based on selected fields with links directly to

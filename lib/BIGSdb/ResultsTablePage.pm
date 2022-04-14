@@ -902,12 +902,11 @@ sub _print_isolate_table_header {
 		$fieldtype_header .= q(<th rowspan="2">New version</th>)
 		  if $self->{'system'}->{'view'} eq 'isolates' || $self->{'system'}->{'view'} eq 'temp_view';
 	}
-	$fieldtype_header .= qq(<th colspan="$col_count">Isolate fields);
-	$fieldtype_header .= $self->get_tooltip(
-		q(Isolate fields - You can select the isolate fields )
-		  . q(that are displayed here by going to the options page.),
-		{ style => 'color:white' }
-	);
+	$fieldtype_header .=
+	    qq(<th colspan="$col_count">Isolate fields <a target="_blank" )
+	  . qq(href="$self->{'system'}->{'script_name'}?db=$self->{'instance'}&amp;page=options" )
+	  . q(title="Options - Select which isolate fields are displayed here.">)
+	  . q(<span class="fas fa-wrench"></span></a>);
 	$fieldtype_header .= q(</th>);
 	my %pref_fields = (
 		display_seqbin_main  => 'Seqbin size (bp)',
@@ -1162,10 +1161,12 @@ sub _get_lincode_values {
 		  $pk_type eq 'integer'
 		  ? "CAST(s.$pk AS text)"
 		  : "s.$pk";
-		my $lincodes =
-		  $self->{'datastore'}->run_query(
-			"SELECT l.lincode FROM $lincode_table l JOIN $scheme_field_table s ON l.profile_id=$pk_cast WHERE id=?",
-			$isolate_id, { cache => 'ResultsTablePage::print_lincode_value', fetch => 'col_arrayref' } );
+		my $lincodes = $self->{'datastore'}->run_query(
+			"SELECT DISTINCT(l.lincode) FROM $lincode_table l JOIN $scheme_field_table s ON "
+			  . "l.profile_id=$pk_cast WHERE id=? ORDER BY l.lincode",
+			$isolate_id,
+			{ cache => 'ResultsTablePage::print_lincode_value', fetch => 'col_arrayref' }
+		);
 		my $values = [];
 		my %used;
 		foreach my $lincode (@$lincodes) {
@@ -1354,7 +1355,7 @@ sub _print_profile_table {
 			print qq(<td>@$lincode</td>);
 			my $join_table =
 			    q[lincodes LEFT JOIN lincode_prefixes ON lincodes.scheme_id=lincode_prefixes.scheme_id AND (]
-			  . q[array_to_string(lincodes.lincode,'_') LIKE (REPLACE(lincode_prefixes.prefix,'_','\_') || E'\_' || '%') ]
+			  . q[array_to_string(lincodes.lincode,'_') LIKE (REPLACE(lincode_prefixes.prefix,'_',E'\\\_') || E'\\\_' || '%') ]
 			  . q[OR array_to_string(lincodes.lincode,'_') = lincode_prefixes.prefix)];
 			foreach my $field (@$lincode_fields) {
 				my $type =
@@ -1362,7 +1363,8 @@ sub _print_profile_table {
 					[ $scheme_id, $field ] );
 				my $order = $type eq 'integer' ? 'CAST(value AS integer)' : 'value';
 				my $values = $self->{'datastore'}->run_query(
-					"SELECT value FROM $join_table WHERE (lincodes.scheme_id,lincode_prefixes.field,lincodes.lincode)="
+					"SELECT DISTINCT(value) FROM $join_table WHERE "
+					  . '(lincodes.scheme_id,lincode_prefixes.field,lincodes.lincode)='
 					  . "(?,?,?) ORDER BY $order",
 					[ $scheme_id, $field, $lincode ],
 					{ fetch => 'col_arrayref' }

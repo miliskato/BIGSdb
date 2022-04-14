@@ -221,7 +221,7 @@ sub _get_html5_args {
 	$html5_args{'required'} = 'required' if $att->{'required'};
 	if ( !$att->{'dropdown_query'} && !$att->{'optlist'} ) {
 		if ( $att->{'type'} eq 'int' ) {
-			@html5_args{qw(type min step)} = qw(number 0 1);
+			@html5_args{qw(type step)} = qw(number 1);
 		}
 		if ( $att->{'type'} eq 'float' ) {
 			@html5_args{qw(type step)} = qw(number any);
@@ -453,7 +453,8 @@ sub _get_optlist_field {
 	}
 	my $single_value = @optlist == 1 ? $optlist[0] : undef;
 	unshift @optlist, '';
-	my $labels = { '' => ' ' };    #Required for HTML5 validation
+	my $labels = $att->{'labels'} // {};
+	$labels->{''} = ' ';    #Required for HTML5 validation
 	my $q = $self->{'cgi'};
 	my $default =
 	  defined $att->{'default'} && $att->{'default'} ne q() ? $att->{'default'} : $single_value;

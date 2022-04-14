@@ -1,5 +1,5 @@
 #Written by Keith Jolley
-#Copyright (c) 2010-2021, University of Oxford
+#Copyright (c) 2010-2022, University of Oxford
 #E-mail: keith.jolley@zoo.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
@@ -24,6 +24,7 @@ use Digest::MD5 qw(md5);
 use List::MoreUtils qw(any none uniq);
 use parent qw(BIGSdb::CurateAddPage);
 use Log::Log4perl qw(get_logger);
+use Bio::Tools::CodonTable;
 use BIGSdb::Constants qw(:submissions :interface :limits);
 use BIGSdb::Utils;
 use BIGSdb::Offline::BatchUploader;
@@ -671,7 +672,8 @@ sub _isolate_record_further_checks {
 	}
 
 	#Check if aliases list has commas in it
-	if ( defined $args->{'file_header_pos'}->{'aliases'} && $data->[ $args->{'file_header_pos'}->{'aliases'} ] =~ /,/x )
+	if ( defined $args->{'file_header_pos'}->{'aliases'}
+		&& ( $data->[ $args->{'file_header_pos'}->{'aliases'} ] // q() ) =~ /,/x )
 	{
 		$advisories->{$pk_combination} .= 'Alias list should be separated by semi-colons (;). '
 		  . 'Commas included in this field will be assumed to be part of an alias name.';
@@ -770,10 +772,8 @@ sub _check_lincode_prefix_values {
 	my ( $data, $file_header_pos ) = ( $args->{'data'}, $args->{'file_header_pos'} );
 	my $type = $self->{'datastore'}->run_query( 'SELECT type FROM lincode_fields WHERE (scheme_id,field)=(?,?)',
 		[ $data->[ $file_header_pos->{'scheme_id'} ], $data->[ $file_header_pos->{'field'} ] ] );
-	if (
-		$type eq 'integer'
-		&& !BIGSdb::Utils::is_int( $data->[ $file_header_pos->{'value'} ] )
-	  )
+	if ( $type eq 'integer'
+		&& !BIGSdb::Utils::is_int( $data->[ $file_header_pos->{'value'} ] ) )
 	{
 		$problems->{$pk_combination} .= "$data->[$file_header_pos->{'field'}] must be an integer.";
 	}
@@ -873,6 +873,7 @@ sub _run_table_specific_field_checks {
 		},
 		isolates => sub {
 			$self->_check_data_refs($new_args);
+			$self->_check_data_codon_table($new_args);
 			$self->_check_data_aliases($new_args);
 			$self->_check_isolate_id_not_retired($new_args);
 		},
@@ -1227,6 +1228,27 @@ sub _check_data_aliases {
 	return;
 }
 
+sub _check_data_codon_table {
+	my ( $self, $arg_ref ) = @_;
+	return if ( $self->{'system'}->{'alternative_codon_tables'} // q() ) ne 'yes';
+	my $field          = $arg_ref->{'field'};
+	my $value          = ${ $arg_ref->{'value'} };
+	my $pk_combination = $arg_ref->{'pk_combination'};
+	return if $field ne 'codon_table';
+	return if !defined $value || $value eq q();
+	my $tables  = Bio::Tools::CodonTable->tables;
+	my @allowed = sort { $a <=> $b } keys %$tables;
+	my %allowed = map { $_ => 1 } @allowed;
+
+	if ( !$allowed{$value} ) {
+		local $" = q(, );
+		my $problem_text = "Allowed codon tables are: @allowed.<br />";
+		$arg_ref->{'problems'}->{$pk_combination} .= $problem_text;
+		${ $arg_ref->{'special_problem'} } = 1;
+	}
+	return;
+}
+
 sub _check_data_isolate_aliases {
 
 	#special case to check that isolate aliases don't duplicate isolate name or consist of null values
@@ -1302,7 +1324,7 @@ sub _check_data_primary_key {
 		}
 		my ($exists) = $self->{'sql'}->{'primary_key_check'}->fetchrow_array;
 		if ($exists) {
-			my %warn_tables = map { $_ => 1 } qw(project_members refs isolate_aliases locus_aliases);
+			my %warn_tables = map { $_ => 1 } qw(codon_tables project_members refs isolate_aliases locus_aliases);
 			if ( $warn_tables{ $arg_ref->{'table'} } ) {
 				my $warning_text = 'Primary key already exists in the database - upload will be skipped.<br />';
 				if ( !defined $arg_ref->{'problems'}->{$pk_combination}
@@ -1797,6 +1819,9 @@ sub _get_fields_in_order {
 			push @fields, $field;
 			if ( $field eq $self->{'system'}->{'labelfield'} ) {
 				push @fields, 'aliases';
+				if ( ( $self->{'system'}->{'alternative_codon_tables'} // q() ) eq 'yes' ) {
+					push @fields, 'codon_table';
+				}
 				push @fields, 'references';
 			}
 		}
@@ -1841,6 +1866,9 @@ sub _get_field_table_header {
 			push @headers, $field;
 			if ( $field eq $self->{'system'}->{'labelfield'} ) {
 				push @headers, 'aliases';
+				if ( ( $self->{'system'}->{'alternative_codon_tables'} // q() ) eq 'yes' ) {
+					push @headers, 'codon_table';
+				}
 				push @headers, 'references';
 			}
 		}
