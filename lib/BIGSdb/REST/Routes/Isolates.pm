@@ -366,11 +366,13 @@ sub _get_extended_attributes {
 	return;
 }
 
+
+# MK: 14 april 22 added eav_text_hidden: this table then needs to be added to every isolate db. Because it is loaded before eav_text, eav_text will overwrite if same fields= good
 sub _get_phenotypic_values {
 	my ($isolate_id) = @_;
 	my $self         = setting('self');
 	my $values       = {};
-	foreach my $table (qw(eav_int eav_float eav_text eav_date eav_boolean)) {
+	foreach my $table (qw(eav_int eav_float eav_text_hidden eav_text eav_date eav_boolean)) {
 		my $table_values = $self->{'datastore'}->run_query( "SELECT field,value FROM $table WHERE isolate_id=?",
 			$isolate_id, { fetch => 'all_arrayref', slice => {} } );
 		$values->{ $_->{'field'} } = $_->{'value'} foreach @$table_values;

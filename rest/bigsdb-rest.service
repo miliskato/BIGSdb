@@ -1,0 +1,11 @@
+[Unit]
+Description=BIGSdb REST interface
+After=network.target
+
+[Service]
+User=bigsdb
+ExecStart=/usr/bin/plackup -a /var/rest/bigsrest.pl -s Starman -E deployment
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

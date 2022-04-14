@@ -4,8 +4,8 @@ import psycopg2
 # It is important to keep in mind that ST do not neccesarily follow each other up continuosly, there can be gaps
 
 # the first element in the fields list should be an integer/primary_key
-schemedict = {#'listeria_mlst': {'seqdefdb': 'bigsdb_listeria_seqdef', 'dirdb': '/db/sequence_typing/listeria/mlst', 'fields': ['ST', 'CC', 'Lineage'], 'schemename_bigsdb': 'MLST'},
-              #'listeria_serogroup': {'seqdefdb': 'bigsdb_listeria_seqdef', 'dirdb': '/db/sequence_typing/listeria/serogroup', 'fields': ['profile_id', 'serogroup'], 'schemename_bigsdb': 'PCR serogroup'}#,
+schemedict = {'listeria_mlst': {'seqdefdb': 'bigsdb_listeria_seqdef', 'dirdb': '/db/sequence_typing/listeria/mlst', 'fields': ['ST', 'CC', 'Lineage'], 'schemename_bigsdb': 'MLST'},
+              'listeria_serogroup': {'seqdefdb': 'bigsdb_listeria_seqdef', 'dirdb': '/db/sequence_typing/listeria/serogroup', 'fields': ['profile_id', 'serogroup'], 'schemename_bigsdb': 'PCR serogroup'},
               'mycobacterium_mlst': {'seqdefdb': 'bigsdb_mycobacterium_seqdef', 'dirdb': '/db/sequence_typing/mycobacterium/mlst', 'fields': ['ST'], 'schemename_bigsdb': 'MLST'}
              }
 

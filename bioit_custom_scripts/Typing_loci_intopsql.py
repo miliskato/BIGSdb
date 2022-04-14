@@ -7,41 +7,24 @@
 import os
 import psycopg2
 
-###
-#Listeria
-###
-
 # capitalisation in schemename_bigsdb is important
-schemedict = {'listeria_mlst': {'dirdb': '/db/sequence_typing/listeria/mlst', 'schemename_bigsdb': 'MLST'},
-              'listeria_cgmlst': {'dirdb': '/db/sequence_typing/listeria/cgmlst', 'schemename_bigsdb': 'cgMLST'},
-              'listeria_serogroup': {'dirdb': '/db/sequence_typing/listeria/serogroup', 'schemename_bigsdb': 'PCR serogroup'},
-              'listeria_metal_detergent_resistance': {'dirdb': '/db/sequence_typing/listeria/metal_detergent_resistance', 'schemename_bigsdb': 'Metal and detergent resistance'},
-              'listeria_typing_virulence': {'dirdb': '/db/sequence_typing/listeria/virulence', 'schemename_bigsdb': 'Virulence'},
-              'listeria_antibiotic_resistance': {'dirdb': '/db/sequence_typing/listeria/antibiotic_resistance', 'schemename_bigsdb': 'Antibiotic resistance'},
-              'listeria_species_confirmation': {'dirdb': '/db/sequence_typing/listeria/species_confirmation', 'schemename_bigsdb': 'Species confirmation'}
+schemedict = {'listeria_mlst': {'dirdb': '/db/sequence_typing/listeria/mlst', 'schemename_bigsdb': 'MLST', 'seqdefdb': 'bigsdb_listeria_seqdef', 'isolatedb': 'bigsdb_listeria_isolates'},
+              'listeria_cgmlst': {'dirdb': '/db/sequence_typing/listeria/cgmlst', 'schemename_bigsdb': 'cgMLST', 'seqdefdb': 'bigsdb_listeria_seqdef', 'isolatedb': 'bigsdb_listeria_isolates'},
+              'listeria_serogroup': {'dirdb': '/db/sequence_typing/listeria/serogroup', 'schemename_bigsdb': 'PCR serogroup', 'seqdefdb': 'bigsdb_listeria_seqdef', 'isolatedb': 'bigsdb_listeria_isolates'},
+              'listeria_metal_detergent_resistance': {'dirdb': '/db/sequence_typing/listeria/metal_detergent_resistance', 'schemename_bigsdb': 'Metal and detergent resistance', 'seqdefdb': 'bigsdb_listeria_seqdef', 'isolatedb': 'bigsdb_listeria_isolates'},
+              'listeria_typing_virulence': {'dirdb': '/db/sequence_typing/listeria/virulence', 'schemename_bigsdb': 'Virulence', 'seqdefdb': 'bigsdb_listeria_seqdef', 'isolatedb': 'bigsdb_listeria_isolates'},
+              'listeria_antibiotic_resistance': {'dirdb': '/db/sequence_typing/listeria/antibiotic_resistance', 'schemename_bigsdb': 'Antibiotic resistance', 'seqdefdb': 'bigsdb_listeria_seqdef', 'isolatedb': 'bigsdb_listeria_isolates'},
+              'listeria_species_confirmation': {'dirdb': '/db/sequence_typing/listeria/species_confirmation', 'schemename_bigsdb': 'Species confirmation', 'seqdefdb': 'bigsdb_listeria_seqdef', 'isolatedb': 'bigsdb_listeria_isolates'},
+              'mycobacterium_mlst': {'dirdb': '/db/sequence_typing/mycobacterium/mlst', 'schemename_bigsdb': 'MLST', 'seqdefdb': 'bigsdb_mycobacterium_seqdef', 'isolatedb': 'bigsdb_mycobacterium_isolates'},
+              'mycobacterium_cgmlst': {'dirdb': '/db/sequence_typing/mycobacterium/cgmlst', 'schemename_bigsdb': 'cgMLST', 'seqdefdb': 'bigsdb_mycobacterium_seqdef', 'isolatedb': 'bigsdb_mycobacterium_isolates'}
              }
 
-isolatedb = 'bigsdb_listeria_isolates'
-seqdefdb = 'bigsdb_listeria_seqdef'
-
-# ###
-# #Mycobacterium
-# ###
-#
-# # capitalisation in schemename_bigsdb is important
-# # spoligotyping is inserted in a different way
-# schemedict = {'mycobacterium_mlst': {'dirdb': '/db/sequence_typing/mycobacterium/mlst', 'schemename_bigsdb': 'MLST'},
-#               'mycobacterium_cgmlst': {'dirdb': '/db/sequence_typing/mycobacterium/cgmlst', 'schemename_bigsdb': 'cgMLST'},
-#            }
-#
-# isolatedb = 'bigsdb_mycobacterium_isolates'
-# seqdefdb = 'bigsdb_mycobacterium_seqdef'
 
 for scheme in schemedict:
     dirs = next(os.walk(schemedict[scheme]['dirdb']))[1]
     for dir in dirs:
         if not dir.startswith('.'):
-            con = psycopg2.connect(database=f"{seqdefdb}", user="apache", password="remote", host="127.0.0.1", port="")
+            con = psycopg2.connect(database=f"{schemedict[scheme]['seqdefdb']}", user="apache", password="remote", host="127.0.0.1", port="")
             print("Database opened successfully")
             cur = con.cursor()
             cur.execute(f"SELECT COUNT(*) FROM loci WHERE id='{dir}'")
@@ -58,14 +41,14 @@ for scheme in schemedict:
                 con.commit()
                 # If it doesnt exist in seqdef loci, then normally not in isolate loci aswell
                 con.close()
-                con = psycopg2.connect(database=f"{isolatedb}", user="apache", password="remote", host="127.0.0.1", port="")
+                con = psycopg2.connect(database=f"{schemedict[scheme]['isolatedb']}", user="apache", password="remote", host="127.0.0.1", port="")
                 print("Database opened successfully")
                 cur = con.cursor()
-                dbaseurl=''.join(['/cgi-bin/bigsdb/bigsdb.pl?db=',f"{seqdefdb}", '&page=alleleInfo&locus=',f"{dir}",'&allele_id=[?]'])
+                dbaseurl=''.join(['/cgi-bin/bigsdb/bigsdb.pl?db=',f"{schemedict[scheme]['seqdefdb']}", '&page=alleleInfo&locus=',f"{dir}",'&allele_id=[?]'])
                 cur.execute(f"INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, dbase_name, dbase_id, "
                             f"url, isolate_display, main_display, query_field, analysis, submission_template, "
                             f"curator, date_entered, datestamp) \
-                                  VALUES('{dir}','DNA','text', 't', 't', '{seqdefdb}', '{dir}', "
+                                  VALUES('{dir}','DNA','text', 't', 't', '{schemedict[scheme]['seqdefdb']}', '{dir}', "
                             f"'{dbaseurl}', 'allele_only', 'f', 't', 't', 'f',"
                             f" 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE))")
                 con.commit()
@@ -84,7 +67,7 @@ for scheme in schemedict:
                                       VALUES((SELECT id FROM schemes WHERE name='{schemedict[scheme]['schemename_bigsdb']}'), '{dir}', 1, (SELECT CURRENT_DATE))")
                     con.commit()
                     con.close()
-                    con = psycopg2.connect(database=f"{isolatedb}", user="apache", password="remote", host="127.0.0.1",
+                    con = psycopg2.connect(database=f"{schemedict[scheme]['isolatedb']}", user="apache", password="remote", host="127.0.0.1",
                                            port="")
                     print("Database opened successfully")
                     cur = con.cursor()
