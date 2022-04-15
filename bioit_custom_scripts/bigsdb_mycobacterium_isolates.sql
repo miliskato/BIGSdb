@@ -1,4 +1,3 @@
-psql bigsdb_mycobacterium_isolates
 INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, curator, date_entered, datestamp, isolate_display, main_display, query_field, query_status, analysis, recommended, quality_metric, dbase_name, dbase_id) VALUES(1, 'MLST', 'MLST scheme downloaded and updated weekly from pubMLST.', 't', 1, 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE), 't', 't', 't', 'f', 't', 't', 'f', 'bigsdb_mycobacterium_seqdef', 1);
 INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, curator, date_entered, datestamp, isolate_display, main_display, query_field, query_status, analysis, recommended, quality_metric, dbase_name, dbase_id) VALUES(2, 'cgMLST', 'cgMLST scheme downloaded and updated weekly from pubMLST.', 't', 2, 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE), 't', 't', 't', 'f', 't', 't', 'f', 'bigsdb_mycobacterium_seqdef', 2);
 INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, curator, date_entered, datestamp, isolate_display, main_display, query_field, query_status, analysis, recommended, quality_metric, dbase_name, dbase_id) VALUES(3, 'Spoligotyping', 'Spoligotyping scheme containing 43 loci with 1 allele (spacer) each, if it is found then it receives the value of 1, else the value of 0.', 't', 3, 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE), 't', 't', 't', 'f', 't', 't', 'f', 'bigsdb_mycobacterium_seqdef', 3);
@@ -160,7 +159,6 @@ INSERT INTO eav_fields(field, value_format, category, description, no_curate, no
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('snpit_sublineage', 'text', 'snpit', 'snpit sublineage', 't', 't', (SELECT CURRENT_DATE), 1);
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('pointfinder_hits', 'text', 'pointfinder', '', 't', 't', (SELECT CURRENT_DATE), 1);
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('html', 'text', 'galaxy report', 'galaxy html report', 't', 't', (SELECT CURRENT_DATE), 1);
-
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator, field_order) VALUES('amr_type', 'text', 'AMR detection', '', 't', 't', (SELECT CURRENT_DATE), 1,'1');
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator, field_order) VALUES('amr_first_line_resistant', 'text', 'AMR detection', '', 't', 't', (SELECT CURRENT_DATE), 1,'2');
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator, field_order) VALUES('amr_second_line_group_a_resistant', 'text', 'AMR detection', '', 't', 't', (SELECT CURRENT_DATE), 1,'3');
@@ -345,4 +343,5 @@ CREATE TABLE eav_text_hidden AS (SELECT * FROM eav_text) WITH NO DATA;
 ALTER TABLE eav_text_hidden ADD PRIMARY KEY(isolate_id, field);
 ALTER TABLE eav_text_hidden ADD CONSTRAINT eavt_field FOREIGN KEY (field) REFERENCES eav_fields(field) ON UPDATE CASCADE ON DELETE CASCADE;
 ALTER TABLE eav_text_hidden ADD CONSTRAINT eavt_isolate FOREIGN KEY (isolate_id) REFERENCES isolates(id) ON UPDATE CASCADE ON DELETE CASCADE;
-INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('hash_fastq_md5', 'text', '', '', 't', 't', (SELECT CURRENT_DATE), 1);
+INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('hash_fastq_md5_forward', 'text', '', '', 't', 't', (SELECT CURRENT_DATE), 1);
+INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('hash_fastq_md5_reverse', 'text', '', '', 't', 't', (SELECT CURRENT_DATE), 1);

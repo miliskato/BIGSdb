@@ -1,4 +1,3 @@
-psql bigsdb_mycobacterium_seqdef
 INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no_submissions, disable, curator, date_entered, datestamp) VALUES(1, 'MLST', 'MLST scheme downloaded and updated weekly from pubMLST.', 't', 1, 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
 INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no_submissions, disable, curator, date_entered, datestamp) VALUES(2, 'cgMLST', 'cgMLST scheme downloaded and updated weekly from pubMLST.', 't', 2, 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
 INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no_submissions, disable, curator, date_entered, datestamp) VALUES(3, 'Spoligotyping', 'Spoligotyping scheme containing 43 loci with 1 allele (spacer) each, if it is found then it receives the value of 1, else the value of 0.', 't', 3, 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));

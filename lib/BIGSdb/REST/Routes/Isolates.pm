@@ -372,7 +372,8 @@ sub _get_phenotypic_values {
 	my ($isolate_id) = @_;
 	my $self         = setting('self');
 	my $values       = {};
-	foreach my $table (qw(eav_int eav_float eav_text_hidden eav_text eav_date eav_boolean)) {
+#	foreach my $table (qw(eav_int eav_float eav_text_hidden eav_text eav_date eav_boolean)) {
+	foreach my $table (qw(eav_text_hidden)) {
 		my $table_values = $self->{'datastore'}->run_query( "SELECT field,value FROM $table WHERE isolate_id=?",
 			$isolate_id, { fetch => 'all_arrayref', slice => {} } );
 		$values->{ $_->{'field'} } = $_->{'value'} foreach @$table_values;
