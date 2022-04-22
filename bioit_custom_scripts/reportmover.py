@@ -15,7 +15,7 @@ if not reportdirectory.endswith('/'):
     samplename = reportdirectory.split('/')[-1]
 elif reportdirectory.endswith('/'):
     samplename = reportdirectory.split('/')[-2]
-    reportdirectory = reportdirectory[0:-2]
+    reportdirectory = reportdirectory[0:-1]
 print(samplename)
 
 bashCommand = f"sudo mv {reportdirectory} /reports/{species}/"
