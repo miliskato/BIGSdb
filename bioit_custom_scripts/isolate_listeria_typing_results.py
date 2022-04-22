@@ -121,16 +121,6 @@ if sample_presence[0][0] == 0:
                 f"isolate, sender, curator, date_entered, datestamp)"
                 f"VALUES((SELECT CASE WHEN (SELECT(SELECT MAX(id) FROM isolates)+1) IS NULL THEN 1 ELSE (SELECT(SELECT MAX(id) FROM isolates)+1) END), "
                 f"'{isolate_name}', 1, 1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
-    html = ''.join(['<p><a href="/galaxyreports/listeria/', isolate_name, '/report.html"> html report</a></p>'])
-    cur.execute(f"INSERT INTO eav_text(isolate_id, "
-                f"field, value)"
-                f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
-                f"'html', '{html}'")
-    tsv = ''.join(['<p><a href="/galaxyreports/listeria/', isolate_name, '/report.tsv"> tsv report</a></p>'])
-    cur.execute(f"INSERT INTO eav_text(isolate_id, "
-                f"field, value)"
-                f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
-                f"'tsv', '{tsv}'")
     cur.execute(f"INSERT INTO history(isolate_id, timestamp, action, curator)"
                 f"VALUES((SELECT id FROM isolates WHERE isolate = '{isolate_name}'),(SELECT NOW()::TIMESTAMP), 'Isolate record added', 1)")
     insert_typing_results()
