@@ -26,7 +26,7 @@ if present[0][0] == 1:
 else:
     sys.exit("please insert isolate/isolate results first")
 
-cur.execute(f"SELECT count(*) FROM sequence_bin WHERE id = (SELECT id FROM isolates WHERE isolate='{isolate_name}')")
+cur.execute(f"SELECT count(*) FROM sequence_bin WHERE isolate_id = (SELECT id FROM isolates WHERE isolate='{isolate_name}')")
 presentcontigs = cur.fetchall()
 if presentcontigs[0][0] == 0:
     # Make dict of fasta file while accounting for possible multiline sequences
@@ -49,19 +49,19 @@ if presentcontigs[0][0] == 0:
         x += 2
     ###
 
-# insert into database
-for sequencename, sequence in fastadict.items():
-    cur.execute(f"INSERT INTO sequence_bin(id, "
-                f"isolate_id, "
-                f"remote_contig, sequence, original_designation, sender, "
-                f"curator, date_entered, datestamp) "
-                f"VALUES((SELECT CASE WHEN (SELECT(SELECT MAX(id) FROM sequence_bin)+1) IS NULL THEN 1 ELSE (SELECT(SELECT MAX(id) FROM sequence_bin)+1) END), "
-                f"(SELECT id FROM isolates WHERE isolate='{isolate_name}'), "
-                f"'f', '{sequence}', '{sequencename}', 1, "
-                f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+    # insert into database
+    for sequencename, sequence in fastadict.items():
+        cur.execute(f"INSERT INTO sequence_bin(id, "
+                    f"isolate_id, "
+                    f"remote_contig, sequence, original_designation, sender, "
+                    f"curator, date_entered, datestamp) "
+                    f"VALUES((SELECT CASE WHEN (SELECT(SELECT MAX(id) FROM sequence_bin)+1) IS NULL THEN 1 ELSE (SELECT(SELECT MAX(id) FROM sequence_bin)+1) END), "
+                    f"(SELECT id FROM isolates WHERE isolate='{isolate_name}'), "
+                    f"'f', '{sequence}', '{sequencename}', 1, "
+                    f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
 
-    # remove the file
-    os.remove(Path(fastafile))
+        # remove the file
+        os.remove(Path(fastafile))
 
 else:
     sys.exit(f"isolate {isolate_name} already contains assembly records!")
