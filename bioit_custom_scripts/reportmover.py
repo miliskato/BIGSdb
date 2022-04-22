@@ -23,7 +23,8 @@ print(bashCommand)
 process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
 output, error = process.communicate()
 
-bashCommand = f"sudo ln -s /reports/{species}/{samplename} /var/www/html/galaxyreports/{species}/"
-print(bashCommand)
-process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
-output, error = process.communicate()
+## Symlinks happen automatically now I think
+# bashCommand = f"sudo ln -s /reports/{species}/{samplename} /var/www/html/galaxyreports/{species}/"
+# print(bashCommand)
+# process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
+# output, error = process.communicate()
