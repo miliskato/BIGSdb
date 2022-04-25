@@ -13,7 +13,7 @@ else
 fi
 
 cd /scratch/galaxy/temp
-rm list_of_isolates.txt
+rm -f list_of_isolates.txt
 # get species from tsv, two step process to be sure to have right line
 speciesline=$(cat $1 | awk '{print $1}' | grep -n pipeline_name | awk -F ':' '{print $1}')
 species=$(cat $1 |  sed -n ${speciesline}p | awk '{print $2}' | tr '[:upper:]' '[:lower:]')

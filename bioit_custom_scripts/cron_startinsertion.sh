@@ -11,3 +11,5 @@ do
 done
 
 # should probably add an if statement for the assembly inserter because paths may vary
+
+# */1 *   * * *   root    bash /home/BIGSdb/bioit_custom_scripts/cron_startinsertion.sh
