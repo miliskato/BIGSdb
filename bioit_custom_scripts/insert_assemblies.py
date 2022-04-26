@@ -21,7 +21,7 @@ cur = con.cursor()
 con.autocommit = True
 cur.execute(f"SELECT id FROM isolates WHERE isolate='{isolate_name}'")
 present = cur.fetchall()
-if present[0][0] == 1:
+if present[0][0] != []:
     pass
 else:
     sys.exit("please insert isolate/isolate results first")
