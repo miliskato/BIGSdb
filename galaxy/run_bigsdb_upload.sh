@@ -49,12 +49,14 @@ cp $1 ./$sample_name/report.tsv
 cp $htmlfilename ./$sample_name/report.html
 cp -r $htmlfilefolder/* ./$sample_name/
 touch ./$sample_name/info.txt
-echo "{'sample_name': '${sample_name}', 'species': '${species}', 'user': '$2'}" >> ./$sample_name/info.txt
+echo "{'sample_name': '${sample_name}', 'species': '${species}', 'user': '$2'}" > ./$sample_name/info.txt
+tar -cf $sample_name.tar ./$sample_name/
+md5sum $sample_name.tar > ${sample_name}_md5.txt
 
-
-scp -i /home/galaxy/.ssh/id_rsa_bigsdb -r ./$sample_name galaxy@bioit-bigs-test:/home/galaxy
+scp -i /home/galaxy/.ssh/id_rsa_bigsdb -r ./$sample_name.tar galaxy@bioit-bigs-test:/home/galaxy
+scp -i /home/galaxy/.ssh/id_rsa_bigsdb -r ./${sample_name}_md5.txt galaxy@bioit-bigs-test:/home/galaxy
 
 echo "{user_mail: $2, sample_name: $sample_name, species: $species}" > $3
 # todo need a check for pipeline name in tsv
 
-rm -r $sample_name
+rm -r $sample_name ${sample_name}_md5.txt $sample_name.tar
