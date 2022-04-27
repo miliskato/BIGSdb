@@ -6,7 +6,7 @@
 # $3 output file
 # $5 fastq-hash (can be in tsv) # not done yet
 
-if grep -q $2 /home/galaxy/galaxy/tools/bigsdb_upload/0.1/approved_users.txt; then :
+if grep -q $2 /db/galaxy_bigsdb_access/approved_users.txt; then :
 else
   printf '%s\n' "${2} is not an approved user" >&2
   exit
@@ -30,7 +30,7 @@ sample_name=$(cat $1 |  sed -n ${nameline}p | awk '{print $2}')
 
 touch list_of_isolates.txt
 
-for f in `curl http://bioit-bigs-test.sciensano.be:5000/db/bigsdb_${species}_isolates/isolates | grep -oP '(?<="http://bioit-bigs-test.sciensano.be:5000/db/bigsdb_'${species}'_isolates/isolates/)[^"]*'`; do curl http://bioit-bigs-test.sciensano.be:5000/db/bigsdb_${species}_isolates/isolates/$f | grep -oP '(?<="isolate":")[^"]*' >> list_of_isolates.txt; done
+for f in `curl -s http://bioit-bigs-test.sciensano.be:5000/db/bigsdb_${species}_isolates/isolates | grep -oP '(?<="http://bioit-bigs-test.sciensano.be:5000/db/bigsdb_'${species}'_isolates/isolates/)[^"]*'`; do curl -s http://bioit-bigs-test.sciensano.be:5000/db/bigsdb_${species}_isolates/isolates/$f | grep -oP '(?<="isolate":")[^"]*' >> list_of_isolates.txt; done
 
 if grep -q $sample_name list_of_isolates.txt; then
   printf '%s\n' "${sample_name} already exists in ${species} BIGSdb" >&2
