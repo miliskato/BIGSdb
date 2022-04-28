@@ -41,6 +41,11 @@ fi
 tsvfilenumber=$(basename "$1" .dat | awk -F '_' '{print $2}')
 htmlfilenumber=$(( $tsvfilenumber - 1 ))
 htmlfilename=$(echo $1 | sed "s/$tsvfilenumber/$htmlfilenumber/g")
+if [ $(echo $htmlfilenumber | grep -o '...$') == 999 ]; then
+  directorytsv="$(echo ${tsvfilenumber} |awk '{print substr($0,1, length($0)-3)}'| awk '{printf "%03d\n", $0;}')"
+  directoryhtml=$(( directorytsv - 1 ))
+  htmlfilename=$(echo $1 | sed "s/$tsvfilenumber/$htmlfilenumber/g" | sed "s\/$directorytsv/\/$directoryhtml/\g")
+fi
 htmlfilefolder=$(echo $htmlfilename | sed 's/\.dat/_files/g')
 
 mkdir $sample_name
