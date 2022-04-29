@@ -1,5 +1,8 @@
 #!/bin/bash
 
+
+DTAPVM=
+
 # will make a shell script with positional arguments
 # $1 tsvpath
 # $2 user mail
@@ -30,7 +33,7 @@ sample_name=$(cat $1 |  sed -n ${nameline}p | awk '{print $2}')
 
 touch list_of_isolates.txt
 
-for f in `curl -s http://bioit-bigs-test.sciensano.be:5000/db/bigsdb_${species}_isolates/isolates | grep -oP '(?<="http://bioit-bigs-test.sciensano.be:5000/db/bigsdb_'${species}'_isolates/isolates/)[^"]*'`; do curl -s http://bioit-bigs-test.sciensano.be:5000/db/bigsdb_${species}_isolates/isolates/$f | grep -oP '(?<="isolate":")[^"]*' >> list_of_isolates.txt; done
+for f in `curl -s http://bioit-bigs-${DTAPVM}.sciensano.be:5000/db/bigsdb_${species}_isolates/isolates | grep -oP '(?<="http://bioit-bigs-'${DTAPVM}'.sciensano.be:5000/db/bigsdb_'${species}'_isolates/isolates/)[^"]*'`; do curl -s http://bioit-bigs-${DTAPVM}.sciensano.be:5000/db/bigsdb_${species}_isolates/isolates/$f | grep -oP '(?<="isolate":")[^"]*' >> list_of_isolates.txt; done
 
 if grep -q $sample_name list_of_isolates.txt; then
   printf '%s\n' "${sample_name} already exists in ${species} BIGSdb" >&2
@@ -58,10 +61,11 @@ echo "{'sample_name': '${sample_name}', 'species': '${species}', 'user': '$2'}" 
 tar -cf $sample_name.tar ./$sample_name/
 md5sum $sample_name.tar > ${sample_name}_md5.txt
 
-scp -i /home/galaxy/.ssh/id_rsa_bigsdb -r ./$sample_name.tar galaxy@bioit-bigs-test:/home/galaxy
-scp -i /home/galaxy/.ssh/id_rsa_bigsdb -r ./${sample_name}_md5.txt galaxy@bioit-bigs-test:/home/galaxy
+scp -i /home/galaxy/.ssh/id_rsa_bigsdb -r ./$sample_name.tar galaxy@bioit-bigs-${DTAPVM}:/home/galaxy
+scp -i /home/galaxy/.ssh/id_rsa_bigsdb -r ./${sample_name}_md5.txt galaxy@bioit-bigs-${DTAPVM}:/home/galaxy
 
 echo "{user_mail: $2, sample_name: $sample_name, species: $species}" > $3
+
 # todo need a check for pipeline name in tsv
 
 rm -r $sample_name ${sample_name}_md5.txt $sample_name.tar
