@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="ISO-8859-1" ?>
 <db>
 <system
- db="bigsdb_mycobacterium_seqdef"
+ db="bigsdb_neisseria_seqdef"
  dbtype="sequences"
- webroot="/mycobacterium.html"
+ webroot="/neisseria.html"
  indexpage=""
  script_path_includes="/bigsdb/"
  curate_path_includes="/bigsdb/"
- description="Mycobacterium Seqdef"
+ description="Neisseria Seqdef"
  locus_superscript_prefix="yes"
  authentication="builtin"
  read_access="public"
