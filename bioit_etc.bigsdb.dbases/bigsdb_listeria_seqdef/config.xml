@@ -3,7 +3,7 @@
 <system
  db="bigsdb_listeria_seqdef"
  dbtype="sequences"
- webroot="/listeria"
+ webroot="/listeria.html"
  indexpage=""
  script_path_includes="/bigsdb/"
  curate_path_includes="/bigsdb/"

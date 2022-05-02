@@ -3,7 +3,7 @@
 <system
  db="bigsdb_mycobacterium_seqdef"
  dbtype="sequences"
- webroot=""
+ webroot="/mycobacterium.html"
  indexpage=""
  script_path_includes="/bigsdb/"
  curate_path_includes="/bigsdb/"
