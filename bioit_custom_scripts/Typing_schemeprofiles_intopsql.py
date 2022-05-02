@@ -101,6 +101,8 @@ for scheme in schemedict:
     x = 0
     indexdict = {}
     for item in header:
+        if item =="'rplF":
+            item == 'rplF'
         indexdict[item] = x
         x += 1
     print(indexdict.items())
