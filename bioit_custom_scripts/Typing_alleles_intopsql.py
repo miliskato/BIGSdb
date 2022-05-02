@@ -30,8 +30,8 @@ schemedict = {'listeria_mlst': {'seqdefdb': 'bigsdb_listeria_seqdef', 'dirdb': '
               'neisseria_feta': {'dirdb': '/db/sequence_typing/neisseria/feta', 'seqdefdb': 'bigsdb_neisseria_seqdef'},
               'neisseria_resistancegenes': {'dirdb': '/db/sequence_typing/neisseria/resistance_genes', 'seqdefdb': 'bigsdb_neisseria_seqdef'},
               'neisseria_vaccinetargets': {'dirdb': '/db/sequence_typing/neisseria/vaccine_targets', 'seqdefdb': 'bigsdb_neisseria_seqdef'},
-              'neisseria_fhbpnucl': {'dirdb': '/db/sequence_typing/neisseria/fhbp', 'seqdefdb': 'bigsdb_neisseria_seqdef'},
-              'neisseria_fhbppept': {'dirdb': '/db/sequence_typing/neisseria/fhbp', 'seqdefdb': 'bigsdb_neisseria_seqdef'}
+              'neisseria_fhbpnucl': {'dirdb': '/db/sequence_typing/neisseria/fhbp', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'schemename_bigsdb': 'fHbp_nucl'},
+              'neisseria_fhbppept': {'dirdb': '/db/sequence_typing/neisseria/fhbp', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'schemename_bigsdb': 'fHbp_pept'}
               }
 
 for scheme in schemedict:
