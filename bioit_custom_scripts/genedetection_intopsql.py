@@ -11,28 +11,53 @@ import json
 schemedict = {'listeria_ndaro':           {'clusteredfasta': '/db/gene_detection/NCBI_AMR/ncbi_amr_upd-clustered_80.fasta',
                                            'metadatafile': '/db/gene_detection/NCBI_AMR/mapping_full.json',
                                            'schemename_bigsdb': 'NCBI_AMR',
-                                           'schemename_html': 'NCBI AMR genes'},
+                                           'schemename_html': 'NCBI AMR genes',
+                                           'isolatedb': 'bigsdb_listeria_isolates',
+                                           'seqdefdb': 'bigsdb_listeria_seqdef',
+                                           'species': 'listeria'},
               'listeria_resfinder':       {'clusteredfasta': '/db/gene_detection/ResFinder/resfinder-clustered_80.fasta',
                                            'metadatafile': '/db/gene_detection/ResFinder/mapping_full.json',
                                            'schemename_bigsdb': 'ResFinder',
-                                           'schemename_html': 'ResFinder'},
+                                           'schemename_html': 'ResFinder',
+                                           'isolatedb': 'bigsdb_listeria_isolates',
+                                           'seqdefdb': 'bigsdb_listeria_seqdef',
+                                           'species': 'listeria'},
               'listeria_virulencefinder': {'clusteredfasta': '/db/gene_detection/VirulenceFinder-Listeria/virulencefinder-listeria-clustered_80.fasta',
                                            'metadatafile': '/db/gene_detection/VirulenceFinder-Listeria/mapping_full.json',
                                            'schemename_bigsdb': 'VirulenceFinder_Listeria',
-                                           'schemename_html': 'VirulenceFinder - <i>Listeria</i>'},
+                                           'schemename_html': 'VirulenceFinder - <i>Listeria</i>',
+                                           'isolatedb': 'bigsdb_listeria_isolates',
+                                           'seqdefdb': 'bigsdb_listeria_seqdef',
+                                           'species': 'listeria'},
               'listeria_vfdbcore':        {'clusteredfasta': '/db/gene_detection/VFDB_core/vfdb_core-clustered_80.fasta',
                                            'metadatafile': '/db/gene_detection/VFDB_core/mapping_full.json',
                                            'schemename_bigsdb': 'VFDB_core',
-                                           'schemename_html': 'Virulence Factor DB - Core'},
+                                           'schemename_html': 'Virulence Factor DB - Core',
+                                           'isolatedb': 'bigsdb_listeria_isolates',
+                                           'seqdefdb': 'bigsdb_listeria_seqdef',
+                                           'species': 'listeria'},
               'listeria_plasmidfinder':   {'clusteredfasta': '/db/gene_detection/PlasmidFinder-entero/plasmidfinder-entero-clustered_80.fasta',
                                            'metadatafile': '/db/gene_detection/PlasmidFinder-entero/mapping_full.json',
                                            'schemename_bigsdb': 'PlasmidFinder_entero',
-                                           'schemename_html': 'PlasmidFinder - Gram positive'}
+                                           'schemename_html': 'PlasmidFinder - Gram positive',
+                                           'isolatedb': 'bigsdb_listeria_isolates',
+                                           'seqdefdb': 'bigsdb_listeria_seqdef',
+                                           'species': 'listeria'},
+              'neisseria_ndaro':           {'clusteredfasta': '/db/gene_detection/NCBI_AMR/ncbi_amr_upd-clustered_80.fasta',
+                                           'metadatafile': '/db/gene_detection/NCBI_AMR/mapping_full.json',
+                                           'schemename_bigsdb': 'NCBI_AMR',
+                                           'schemename_html': 'NCBI AMR genes',
+                                           'isolatedb': 'bigsdb_neisseria_isolates',
+                                           'seqdefdb': 'bigsdb_neisseria_seqdef',
+                                           'species': 'neisseria'},
+              'neisseria_resfinder':       {'clusteredfasta': '/db/gene_detection/ResFinder/resfinder-clustered_80.fasta',
+                                           'metadatafile': '/db/gene_detection/ResFinder/mapping_full.json',
+                                           'schemename_bigsdb': 'ResFinder',
+                                           'schemename_html': 'ResFinder',
+                                           'isolatedb': 'bigsdb_neisseria_isolates',
+                                           'seqdefdb': 'bigsdb_neisseria_seqdef',
+                                           'species': 'neisseria'},
               }
-
-isolatedb = 'bigsdb_listeria_isolates'
-seqdefdb = 'bigsdb_listeria_seqdef'
-species = 'listeria'
 
 
 for scheme in schemedict:
@@ -44,7 +69,7 @@ for scheme in schemedict:
         if line.startswith('>'):
             clusterlist.append('_'.join([schemedict[scheme]['schemename_bigsdb'], line.split('__')[1]]))
     for cluster in clusterlist:
-        con = psycopg2.connect(database=f"{seqdefdb}", user="apache", password="remote",
+        con = psycopg2.connect(database=f"{schemedict[scheme]['seqdefdb']}", user="apache", password="remote",
                                host="127.0.0.1", port="")
         cur = con.cursor()
         con.autocommit = True
@@ -60,17 +85,17 @@ for scheme in schemedict:
             cur.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status, sender,curator, date_entered, datestamp) \
                           VALUES('{cluster}',0, 'null allele', '',0,0,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
             con.close()
-            con = psycopg2.connect(database=f"{isolatedb}", user="apache", password="remote",
+            con = psycopg2.connect(database=f"{schemedict[scheme]['isolatedb']}", user="apache", password="remote",
                                    host="127.0.0.1", port="")
             cur = con.cursor()
             con.autocommit = True
             dbaseurl = ''.join(
-                ['/cgi-bin/bigsdb/bigsdb.pl?db=', f"{seqdefdb}", '&page=alleleInfo&locus=', f"{cluster}", '&allele_id=[?]'])
+                ['/cgi-bin/bigsdb/bigsdb.pl?db=', f"{schemedict[scheme]['seqdefdb']}", '&page=alleleInfo&locus=', f"{cluster}", '&allele_id=[?]'])
             cur.execute(
                 f"INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, dbase_name, dbase_id, "
                 f"url, isolate_display, main_display, query_field, analysis, submission_template, "
                 f"curator, date_entered, datestamp) \
-                              VALUES('{cluster}','DNA','text', 't', 't', '{seqdefdb}', '{cluster}', "
+                              VALUES('{cluster}','DNA','text', 't', 't', '{schemedict[scheme]['seqdefdb']}', '{cluster}', "
                 f"'{dbaseurl}', 'allele_only', 'f', 't', 't', 'f',"
                 f" 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE))")
             cur.execute(f"INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) \
@@ -111,7 +136,7 @@ for scheme in schemedict:
 
 
     # set the descriptions of the loci, comma separated list of all genes
-    con = psycopg2.connect(database=f"{seqdefdb}", user="apache", password="remote",
+    con = psycopg2.connect(database=f"{schemedict[scheme]['seqdefdb']}", user="apache", password="remote",
                            host="127.0.0.1", port="")
     cur = con.cursor()
     con.autocommit = True
@@ -124,7 +149,7 @@ for scheme in schemedict:
     con.close()
 
 
-    con = psycopg2.connect(database=f"{isolatedb}", user="apache", password="remote",
+    con = psycopg2.connect(database=f"{schemedict[scheme]['isolatedb']}", user="apache", password="remote",
                            host="127.0.0.1", port="")
     cur = con.cursor()
     con.autocommit = True
@@ -154,9 +179,9 @@ for scheme in schemedict:
                 eavhtmltable = eavhtmltable + ''.join(['<tr><td>', ''.join(['GeneCluster', clusterhit.split('Cluster')[1]]), '</td>'])
                 # append Locus
                 if scheme != 'vfdb_core':
-                    eavhtmltable = eavhtmltable + ''.join(['<td><a href="/galaxyreports/', species, '/', isolate_name, '/report.html#', schemedict[scheme]['schemename_html'], '" target="_blank">', (json.loads(listofsamplesandhits[x][1]))[y][1], '</a></td></tr>'])
+                    eavhtmltable = eavhtmltable + ''.join(['<td><a href="/galaxyreports/', schemedict[scheme]['species'], '/', isolate_name, '/report.html#', schemedict[scheme]['schemename_html'], '" target="_blank">', (json.loads(listofsamplesandhits[x][1]))[y][1], '</a></td></tr>'])
                 else:
-                    eavhtmltable = eavhtmltable + ''.join(['<td><a href="/galaxyreports/', species, '/', isolate_name, '/report.html#', schemedict[scheme]['schemename_html'], '" target="_blank">', (json.loads(listofsamplesandhits[x][1]))[y][-2], '</a></td></tr>'])
+                    eavhtmltable = eavhtmltable + ''.join(['<td><a href="/galaxyreports/', schemedict[scheme]['species'], '/', isolate_name, '/report.html#', schemedict[scheme]['schemename_html'], '" target="_blank">', (json.loads(listofsamplesandhits[x][1]))[y][-2], '</a></td></tr>'])
                 y += 1
             eavhtmltable = eavhtmltable + '</table>'
             cur.execute(f"DELETE FROM eav_text WHERE isolate_id = '{isolate_id}' AND field ='{schemedict[scheme]['schemename_bigsdb']}'")

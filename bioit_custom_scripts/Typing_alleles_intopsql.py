@@ -20,13 +20,24 @@ schemedict = {'listeria_mlst': {'seqdefdb': 'bigsdb_listeria_seqdef', 'dirdb': '
               'listeria_antibiotic_resistance': {'seqdefdb': 'bigsdb_listeria_seqdef', 'dirdb': '/db/sequence_typing/listeria/antibiotic_resistance'},
               'listeria_species_confirmation': {'seqdefdb': 'bigsdb_listeria_seqdef', 'dirdb': '/db/sequence_typing/listeria/species_confirmation'},
               'mycobacterium_mlst': {'seqdefdb': 'bigsdb_mycobacterium_seqdef', 'dirdb': '/db/sequence_typing/mycobacterium/mlst'},
-              'mycobacterium_cgmlst': {'seqdefdb': 'bigsdb_mycobacterium_seqdef', 'dirdb': '/db/sequence_typing/mycobacterium/cgmlst'}
+              'mycobacterium_cgmlst': {'seqdefdb': 'bigsdb_mycobacterium_seqdef', 'dirdb': '/db/sequence_typing/mycobacterium/cgmlst'},
+              'neisseria_mlst': {'dirdb': '/db/sequence_typing/neisseria/mlst', 'seqdefdb': 'bigsdb_neisseria_seqdef'},
+              'neisseria_cgmlst': {'dirdb': '/db/sequence_typing/neisseria/cgmlst', 'seqdefdb': 'bigsdb_neisseria_seqdef'},
+              'neisseria_rplf': {'dirdb': '/db/sequence_typing/neisseria/rplf', 'seqdefdb': 'bigsdb_neisseria_seqdef'},
+              'neisseria_bast': {'dirdb': '/db/sequence_typing/neisseria/bast', 'seqdefdb': 'bigsdb_neisseria_seqdef'},
+              'neisseria_pora': {'dirdb': '/db/sequence_typing/neisseria/pora', 'seqdefdb': 'bigsdb_neisseria_seqdef'},
+              'neisseria_porb': {'dirdb': '/db/sequence_typing/neisseria/porb', 'seqdefdb': 'bigsdb_neisseria_seqdef'},
+              'neisseria_feta': {'dirdb': '/db/sequence_typing/neisseria/feta', 'seqdefdb': 'bigsdb_neisseria_seqdef'},
+              'neisseria_resistancegenes': {'dirdb': '/db/sequence_typing/neisseria/resistance_genes', 'seqdefdb': 'bigsdb_neisseria_seqdef'},
+              'neisseria_vaccinetargets': {'dirdb': '/db/sequence_typing/neisseria/vaccine_targets', 'seqdefdb': 'bigsdb_neisseria_seqdef'},
+              'neisseria_fhbpnucl': {'dirdb': '/db/sequence_typing/neisseria/fhbp', 'seqdefdb': 'bigsdb_neisseria_seqdef'},
+              'neisseria_fhbppept': {'dirdb': '/db/sequence_typing/neisseria/fhbp', 'seqdefdb': 'bigsdb_neisseria_seqdef'}
               }
 
 for scheme in schemedict:
     dirs = next(os.walk(schemedict[scheme]['dirdb']))[1]
     for dir in dirs:
-        if not dir.startswith('.'):
+        if not dir.startswith('.') and not (schemedict[scheme]['schemename_bigsdb'] == 'fHbp_nucl' and (dir != 'fHbp_allele' or dir != 'fHbp_DNAfrag_Pasteur')) and not (schemedict[scheme]['schemename_bigsdb'] == 'fHbp_pept' and (dir == 'fHbp_allele' or dir == 'fHbp_DNAfrag_Pasteur')):
 
             #Part 1: Python component
             # Make dict of fasta file
