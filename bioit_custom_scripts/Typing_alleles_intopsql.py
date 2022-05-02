@@ -30,14 +30,14 @@ schemedict = {'listeria_mlst': {'seqdefdb': 'bigsdb_listeria_seqdef', 'dirdb': '
               'neisseria_feta': {'dirdb': '/db/sequence_typing/neisseria/feta', 'seqdefdb': 'bigsdb_neisseria_seqdef'},
               'neisseria_resistancegenes': {'dirdb': '/db/sequence_typing/neisseria/resistance_genes', 'seqdefdb': 'bigsdb_neisseria_seqdef'},
               'neisseria_vaccinetargets': {'dirdb': '/db/sequence_typing/neisseria/vaccine_targets', 'seqdefdb': 'bigsdb_neisseria_seqdef'},
-              'neisseria_fhbpnucl': {'dirdb': '/db/sequence_typing/neisseria/fhbp', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'schemename_bigsdb': 'fHbp_nucl'},
-              'neisseria_fhbppept': {'dirdb': '/db/sequence_typing/neisseria/fhbp', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'schemename_bigsdb': 'fHbp_pept'}
+              'neisseria_fhbpnucl': {'dirdb': '/db/sequence_typing/neisseria/fhbp', 'seqdefdb': 'bigsdb_neisseria_seqdef'},
+              'neisseria_fhbppept': {'dirdb': '/db/sequence_typing/neisseria/fhbp', 'seqdefdb': 'bigsdb_neisseria_seqdef'}
               }
 
 for scheme in schemedict:
     dirs = next(os.walk(schemedict[scheme]['dirdb']))[1]
     for dir in dirs:
-        if not dir.startswith('.') and not (schemedict[scheme]['schemename_bigsdb'] == 'fHbp_nucl' and (dir != 'fHbp_allele' or dir != 'fHbp_DNAfrag_Pasteur')) and not (schemedict[scheme]['schemename_bigsdb'] == 'fHbp_pept' and (dir == 'fHbp_allele' or dir == 'fHbp_DNAfrag_Pasteur')):
+        if not dir.startswith('.') and not (scheme == 'neisseria_fhbpnucl' and (dir != 'fHbp_allele' or dir != 'fHbp_DNAfrag_Pasteur')) and not (scheme == 'neisseria_fhbppept' and (dir == 'fHbp_allele' or dir == 'fHbp_DNAfrag_Pasteur')):
 
             #Part 1: Python component
             # Make dict of fasta file
