@@ -37,14 +37,13 @@ schemedict = {'listeria_mlst': {'seqdefdb': 'bigsdb_listeria_seqdef', 'dirdb': '
 for scheme in schemedict:
     dirs = next(os.walk(schemedict[scheme]['dirdb']))[1]
     for dir in dirs:
-        if not dir.startswith('.') and not (scheme == 'neisseria_fhbpnucl' and (dir != 'fHbp_allele' or dir != 'fHbp_DNAfrag_Pasteur')) and not (scheme == 'neisseria_fhbppept' and (dir == 'fHbp_allele' or dir == 'fHbp_DNAfrag_Pasteur')):
-
+        if not dir.startswith('.') and not (scheme == 'neisseria_fhbpnucl' and (dir != 'fHbp_allele' and dir != 'fHbp_DNAfrag_Pasteur')) and not (scheme == 'neisseria_fhbppept' and (dir == 'fHbp_allele' or dir == 'fHbp_DNAfrag_Pasteur')):
             #Part 1: Python component
             # Make dict of fasta file
             handle = open(Path(schemedict[scheme]['dirdb']) / dir / ''.join([dir.lower(), '.fasta']), 'r').readlines()
             fastadict = {}
             x = 0
-            if len(handle) > 2 and not handle[2].startswith(">"): # one file had this fasta format where the sequence was on different lines
+            if (len(handle) > 2 and not handle[2].startswith(">")) or scheme == 'neisseria_feta': # one file had this fasta format where the sequence was on different lines
                 pathcopytempfile = Path('/tmp') / ''.join([dir.lower(), '.fasta'])
                 shutil.copyfile((Path(schemedict[scheme]['dirdb']) / dir / ''.join([dir.lower(), '.fasta'])), pathcopytempfile)
                 with open(pathcopytempfile, 'r') as file:
@@ -55,8 +54,18 @@ for scheme in schemedict:
                 os.remove(pathcopytempfile)
 
             while x < len(handle):
-                fastadict[handle[x].rstrip().replace(f">{dir}","").strip("-_")] = handle[x + 1].rstrip()
-                x += 2
+                if dir == 'rplF' or dir == 'fHbp':
+                    fastadict[handle[x].rstrip().replace(f">'{dir}", "").strip("-_")] = handle[x + 1].rstrip()
+                    x += 2
+                elif dir == 'fHbp_allele':
+                    fastadict[handle[x].rstrip().replace(f">'fHbp", "").strip("-_")] = handle[x + 1].rstrip()
+                    x += 2
+                elif dir == 'FetA':
+                    fastadict[handle[x].rstrip().replace(f">{dir}_VR", "").strip("-_")] = handle[x + 1].rstrip()
+                    x += 2
+                else:
+                    fastadict[handle[x].rstrip().replace(f">{dir}","").strip("-_")] = handle[x + 1].rstrip()
+                    x += 2
             #print(list(fastadict.keys())) # I want to compare fasta allele id list with sql allele id list
 
             #Part 2: PSQL component

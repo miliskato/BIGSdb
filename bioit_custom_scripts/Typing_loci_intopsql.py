@@ -34,7 +34,7 @@ schemedict = {'listeria_mlst': {'dirdb': '/db/sequence_typing/listeria/mlst', 's
 for scheme in schemedict:
     dirs = next(os.walk(schemedict[scheme]['dirdb']))[1]
     for dir in dirs:
-        if not dir.startswith('.') and not (schemedict[scheme]['schemename_bigsdb'] == 'fHbp_nucl' and (dir != 'fHbp_allele' or dir != 'fHbp_DNAfrag_Pasteur')) and not (schemedict[scheme]['schemename_bigsdb'] == 'fHbp_pept' and (dir == 'fHbp_allele' or dir == 'fHbp_DNAfrag_Pasteur')):
+        if not dir.startswith('.') and not (schemedict[scheme]['schemename_bigsdb'] == 'fHbp_nucl' and (dir != 'fHbp_allele' and dir != 'fHbp_DNAfrag_Pasteur')) and not (schemedict[scheme]['schemename_bigsdb'] == 'fHbp_pept' and (dir == 'fHbp_allele' or dir == 'fHbp_DNAfrag_Pasteur')):
             con = psycopg2.connect(database=f"{schemedict[scheme]['seqdefdb']}", user="apache", password="remote", host="127.0.0.1", port="")
             print("Database opened successfully")
             cur = con.cursor()

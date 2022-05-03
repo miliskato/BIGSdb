@@ -4,6 +4,7 @@ import psycopg2
 import argparse
 from pathlib import Path
 import json
+import requests
 
 schemedict = {'neisseria_mlst': {'dirdb': '/db/sequence_typing/neisseria/mlst', 'tsvname': 'mlst'},
               'neisseria_cgmlst': {'dirdb': '/db/sequence_typing/neisseria/cgmlst', 'tsvname': 'cgmlst'},
@@ -14,7 +15,8 @@ schemedict = {'neisseria_mlst': {'dirdb': '/db/sequence_typing/neisseria/mlst', 
               'neisseria_feta': {'dirdb': '/db/sequence_typing/neisseria/feta', 'tsvname': 'feta'},
               'neisseria_resistancegenes': {'dirdb': '/db/sequence_typing/neisseria/resistance_genes', 'tsvname': 'resistance_genes'},
               'neisseria_vaccinetargets': {'dirdb': '/db/sequence_typing/neisseria/vaccine_targets', 'tsvname': 'vaccine_targets'},
-              'neisseria_fhbp': {'dirdb': '/db/sequence_typing/neisseria/fhbp', 'tsvname': 'fhbp'}
+              'neisseria_fhbpnucl': {'dirdb': '/db/sequence_typing/neisseria/fhbp', 'tsvname': 'fhbp'},
+              'neisseria_fhbppept': {'dirdb': '/db/sequence_typing/neisseria/fhbp', 'tsvname': 'Fhbp'}
               }
 
 
@@ -68,12 +70,16 @@ def insert_typing_results():
         dirs = next(os.walk(schemedict[scheme]['dirdb']))[1]
         for dir in dirs:
             if not dir.startswith('.') and dir not in dirlist:
-                dirlist.append(dir)
-                if dir == 'rplF':
+                if dir == "rplF":
                     dir = "'rplF"
+                dirlist.append(dir)
+                print(dir)
                 result = outputtsvdict['-'.join([schemedict[scheme]['tsvname'],dir])].split(',')
+                if dir == "'rplF":
+                    dir = "rplF"
                 if result[2] == '100.00' and result[3] != '-' and eval(result[3]) == 1.0:
-                    allele_id = int(result[1])
+                    allele_id = result[1]
+                    #allele_id = int(result[1])
                     cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
                                 f"allele_id, status, method, sender, "
                                 f"curator, date_entered, datestamp) "
@@ -83,6 +89,34 @@ def insert_typing_results():
 
                 else:
                     continue
+
+        if schemedict[scheme]['tsvname'] == 'resistance_genes':
+            for dir in ['penA', 'rpoB']:
+                result = outputtsvdict['-'.join([schemedict[scheme]['tsvname'],dir])].split(',')
+                if result[2] == '100.00' and result[3] != '-' and eval(result[3]) == 1.0:
+                    allele_id = int(result[1])
+                    response = requests.get(f"https://rest.pubmlst.org/db/pubmlst_neisseria_seqdef/loci/{dir}/alleles/{allele_id}")
+                    json_data = response.json()
+                    if json_data['status'] != '404':
+                        if 'PubMLST isolates' in json_data['linked_data']:
+                            for antibiotic in ['rifampicin_SIR', 'penicillin_SIR']:
+                                if antibiotic in json_data['linked_data']['PubMLST isolates']:
+                                    for record in json_data['linked_data']['PubMLST isolates'][antibiotic]:
+                                        if record['value'] == 'S':
+                                            cur.execute(f"INSERT INTO eav_text(isolate_id, "
+                                                        f"field, value)"
+                                                        f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
+                                                        f"'{'_'.join([antibiotic, 'S', 'frequency'])}', '{record['frequency']}') ")
+                                        elif record['value'] == 'R':
+                                            cur.execute(f"INSERT INTO eav_text(isolate_id, "
+                                                        f"field, value)"
+                                                        f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
+                                                        f"'{'_'.join([antibiotic, 'R', 'frequency'])}', '{record['frequency']}') ")
+
+    cur.execute(f"INSERT INTO eav_text(isolate_id, "
+                f"field, value)"
+                f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
+                f"'Serogroup', '{outputtsvdict['detected_serogroup']}') ")
 
     cur.execute(f"INSERT INTO history(isolate_id, timestamp, action, curator)"
                 f"VALUES((SELECT id FROM isolates WHERE isolate = '{isolate_name}'),(SELECT NOW()::TIMESTAMP), 'Typing results inserted', 1)")

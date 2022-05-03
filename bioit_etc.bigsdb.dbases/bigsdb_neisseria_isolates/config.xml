@@ -14,7 +14,7 @@
  all_plugins="yes"
  tblastx_tagging="yes"
  field_groups="Curation history|fas fa-history"
- eav_groups="Gene detection|fas fa-search ,galaxy report|fas fa-file-medical-alt,Antibiotic resistance|fas fa-angle-right"
+ eav_groups="Gene detection|fas fa-search ,galaxy report|fas fa-file-medical-alt,Antibiotic resistance|fas fa-angle-right,Serotyping|fas fa-angle-right"
 >
 </system>
 <field type="int" required="yes" length="5" maindisplay="yes" comments="primary key">id</field>

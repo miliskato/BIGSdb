@@ -5,10 +5,11 @@ import psycopg2
 
 # the first element in the fields list should be an integer/primary_key
 schemedict = {'listeria_mlst': {'seqdefdb': 'bigsdb_listeria_seqdef', 'dirdb': '/db/sequence_typing/listeria/mlst', 'fields': ['ST', 'CC', 'Lineage'], 'schemename_bigsdb': 'MLST'},
-              'listeria_serogroup': {'seqdefdb': 'bigsdb_listeria_seqdef', 'dirdb': '/db/sequence_typing/listeria/serogroup', 'fields': ['profile_id', 'serogroup'], 'schemename_bigsdb': 'PCR serogroup'},
-              'mycobacterium_mlst': {'seqdefdb': 'bigsdb_mycobacterium_seqdef', 'dirdb': '/db/sequence_typing/mycobacterium/mlst', 'fields': ['ST'], 'schemename_bigsdb': 'MLST'},
+              # 'listeria_serogroup': {'seqdefdb': 'bigsdb_listeria_seqdef', 'dirdb': '/db/sequence_typing/listeria/serogroup', 'fields': ['profile_id', 'serogroup'], 'schemename_bigsdb': 'PCR serogroup'},
+              # 'mycobacterium_mlst': {'seqdefdb': 'bigsdb_mycobacterium_seqdef', 'dirdb': '/db/sequence_typing/mycobacterium/mlst', 'fields': ['ST'], 'schemename_bigsdb': 'MLST'},
+              'neisseria_mlst': {'dirdb': '/db/sequence_typing/neisseria/mlst', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'fields': ['ST'], 'schemename_bigsdb': 'MLST'},
               'neisseria_rplf': {'dirdb': '/db/sequence_typing/neisseria/rplf', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'fields': ['rplF_id', 'genospecies'], 'schemename_bigsdb': 'rplF'},
-              'neisseria_bast': {'dirdb': '/db/sequence_typing/neisseria/bast', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'fields': ['BAST', 'MenDeVAR_Bexsero_reactivity','MenDeVAR_Trumenba_reactivity'], 'schemename_bigsdb': 'BAST'}
+              'neisseria_bast': {'dirdb': '/db/sequence_typing/neisseria/bast', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'fields': ['BAST', 'MenDeVAR_Bexsero_reactivity', 'MenDeVAR_Trumenba_reactivity'], 'schemename_bigsdb': 'BAST'}
              }
 
 profile_file = 'profiles.tsv'
@@ -58,19 +59,28 @@ def insert_profiles(scheme, indexdict):
         handle = open('/'.join([schemedict[scheme]['dirdb'], profile_file]), 'r').readlines()
         for field in schemedict[scheme]['fields']:
             for line in handle[1:-1]:
+                line = line.replace('? ','').replace('Neisseria ', 'Neisseria_') # this is added because rflp profiles are malformatted
                 if " ".join(line.split()).split(' ')[0] == profile:
                     fieldvalue = " ".join(line.split()).split(' ')[indexdict[field]]
+            print(f"INSERT INTO profile_fields(scheme_id, "
+                        f"scheme_field, profile_id, value, "
+                        f"curator, datestamp) "
+                        f"VALUES((SELECT id FROM schemes WHERE name = '{schemedict[scheme]['schemename_bigsdb']}'),"
+                        f"'{field}', '{profile}', '{fieldvalue.replace('_',' ')}', "
+                        f"1,(SELECT CURRENT_DATE))")
             cur.execute(f"INSERT INTO profile_fields(scheme_id, "
                         f"scheme_field, profile_id, value, "
                         f"curator, datestamp) "
                         f"VALUES((SELECT id FROM schemes WHERE name = '{schemedict[scheme]['schemename_bigsdb']}'),"
-                        f"'{field}', '{profile}', '{fieldvalue}', "
+                        f"'{field}', '{profile}', '{fieldvalue.replace('_',' ')}', "
                         f"1,(SELECT CURRENT_DATE))")
         # third table (profile members):
         # Loci are saved from dir to be able to know which columns to search for in profiles.tsv
         loci = next(os.walk(schemedict[scheme]['dirdb']))[1]
         for locus in loci:
             if not locus.startswith('.'): # to exclude hidden folders like .git
+                if locus == "'rplF":
+                    locus = 'rplF'
                 for line in handle[1:-1]:
                     if " ".join(line.split()).split(' ')[0] == profile:
                         locusvalue = " ".join(line.split()).split(' ')[indexdict[locus]]
@@ -101,8 +111,9 @@ for scheme in schemedict:
     x = 0
     indexdict = {}
     for item in header:
+        print(item)
         if item =="'rplF":
-            item == 'rplF'
+            item = 'rplF'
         indexdict[item] = x
         x += 1
     print(indexdict.items())
