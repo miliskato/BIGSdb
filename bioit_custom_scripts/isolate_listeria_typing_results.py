@@ -212,8 +212,8 @@ for scheme in genedetectiondict:
                     f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
                     f"'{genedetectiondict[scheme]['schemename_bigsdb']}', '{eavhtmltable}') ")
 
-    cur.execute(f"INSERT INTO history(isolate_id, timestamp, action, curator)"
-                f"VALUES((SELECT id FROM isolates WHERE isolate = '{isolate_name}'),(SELECT NOW()::TIMESTAMP), 'Gene detection results uploaded', 1)")
+cur.execute(f"INSERT INTO history(isolate_id, timestamp, action, curator)"
+            f"VALUES((SELECT id FROM isolates WHERE isolate = '{isolate_name}'),(SELECT NOW()::TIMESTAMP), 'Gene detection results inserted', 1)")
 
 # close db connection
 con.close()

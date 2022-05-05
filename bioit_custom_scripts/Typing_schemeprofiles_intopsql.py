@@ -62,12 +62,6 @@ def insert_profiles(scheme, indexdict):
                 line = line.replace('? ','').replace('Neisseria ', 'Neisseria_') # this is added because rflp profiles are malformatted
                 if " ".join(line.split()).split(' ')[0] == profile:
                     fieldvalue = " ".join(line.split()).split(' ')[indexdict[field]]
-            print(f"INSERT INTO profile_fields(scheme_id, "
-                        f"scheme_field, profile_id, value, "
-                        f"curator, datestamp) "
-                        f"VALUES((SELECT id FROM schemes WHERE name = '{schemedict[scheme]['schemename_bigsdb']}'),"
-                        f"'{field}', '{profile}', '{fieldvalue.replace('_',' ')}', "
-                        f"1,(SELECT CURRENT_DATE))")
             cur.execute(f"INSERT INTO profile_fields(scheme_id, "
                         f"scheme_field, profile_id, value, "
                         f"curator, datestamp) "
