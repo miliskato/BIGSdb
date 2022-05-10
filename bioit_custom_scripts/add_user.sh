@@ -4,6 +4,7 @@
 # arguments to be passed:
 # $1 first name
 # $2 last name
+# $3 password
 
 # This script inserts a user into the global user database,
 # its password in bigsdb_auth,
@@ -11,7 +12,8 @@
 
 firstname=$(echo ${1:0:2})
 username=$firstname$2
-password=($(echo -n 'mikelchtermans' | md5sum))
+password=$3
+#password=($(echo -n 'mikelchtermans' | md5sum))
 echo $username $password
 
 perl /home/BIGSdb/scripts/maintenance/add_user.pl -a -d global_bigsdb_users -n $username -p $password

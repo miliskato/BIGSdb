@@ -13,7 +13,7 @@
     </command>
     <inputs>
         <section name="section_input" title="Input" expanded="True">
-            <param name="tsv_file_path" type="data" format="tabular" label="TSV file"/>
+            <param name="tsv_file_path" type="data" format="tabular" label="TSV file(s)"/>
         </section>
     </inputs>
     <outputs>
