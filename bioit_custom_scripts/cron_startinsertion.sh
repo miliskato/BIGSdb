@@ -3,9 +3,9 @@
 for file in /home/galaxy/*_md5.txt
 do
   file_name=$(basename $file _md5.txt)
-  if [ $(md5sum $file_name.tar | awk '{print $1}') == $(cat $file | awk '{print $1}') ]; then
-    tar -xf $file_name.tar # else wait until md5sum same
-    rm $file_name.tar
+  if [ $(md5sum /home/galaxy/$file_name.tar | awk '{print $1}') == $(cat $file | awk '{print $1}') ]; then
+    tar -xf /home/galaxy/$file_name.tar # else wait until md5sum same
+    rm /home/galaxy/$file_name.tar
     rm $file
   fi
 done
