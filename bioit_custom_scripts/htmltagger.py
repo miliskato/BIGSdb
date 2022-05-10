@@ -14,7 +14,9 @@ schemedict = {'listeria_ndaro':              {'schemename_html': 'NCBI AMR genes
               'listeria_virulencefinder':    {'schemename_html': 'VirulenceFinder - <i>Listeria</i>'},
               'listeria_vfdbcore':           {'schemename_html': 'Virulence Factor DB - Core'},
               'listeria_plasmidfinder':      {'schemename_html': 'PlasmidFinder - Gram positive'},
-              'mycobacterium_pointfinder':   {'schemename_html': 'PointFinder'}
+              'mycobacterium_pointfinder':   {'schemename_html': 'PointFinder'},
+              'neisseria_ndaro':              {'schemename_html': 'NCBI AMR genes'},
+              'neisseria_resfinder':          {'schemename_html': 'ResFinder'}
               }
 
 
