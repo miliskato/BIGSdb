@@ -164,17 +164,12 @@ for scheme in schemedict:
             cur.execute(f"SELECT isolate FROM isolates WHERE id ='{isolate_id}'")
             isolate_name = cur.fetchall()[0][0]
             eavhtmltable = '<table class="data"><tr><th>GeneCluster</th><th>Locus</th></tr>'
+            clusterhitlist = []  # in case loci that were in different clusters at some point get in the same cluster
             y = 0
             while y <= (len(json.loads(listofsamplesandhits[x][1])) - 1):
                 # allele is always position 1 and accession is always last position (-1)
                 hit = '_'.join([(json.loads(listofsamplesandhits[x][1]))[y][-1], (json.loads(listofsamplesandhits[x][1]))[y][1]])
                 clusterhit = clusterdict[hit]
-                cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
-                            f"allele_id, status, method, sender, "
-                            f"curator, date_entered, datestamp) "
-                            f"VALUES('{clusterhit}','{isolate_id}', "
-                            f"1, 'confirmed', 'automatic', 1, "
-                            f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
                 # append Cluster
                 eavhtmltable = eavhtmltable + ''.join(['<tr><td>', ''.join(['GeneCluster', clusterhit.split('Cluster')[1]]), '</td>'])
                 # append Locus
@@ -182,6 +177,15 @@ for scheme in schemedict:
                     eavhtmltable = eavhtmltable + ''.join(['<td><a href="/galaxyreports/', schemedict[scheme]['species'], '/', isolate_name, '/report.html#', schemedict[scheme]['schemename_html'], '" target="_blank">', (json.loads(listofsamplesandhits[x][1]))[y][1], '</a></td></tr>'])
                 else:
                     eavhtmltable = eavhtmltable + ''.join(['<td><a href="/galaxyreports/', schemedict[scheme]['species'], '/', isolate_name, '/report.html#', schemedict[scheme]['schemename_html'], '" target="_blank">', (json.loads(listofsamplesandhits[x][1]))[y][-2], '</a></td></tr>'])
+
+                if clusterhit not in clusterhitlist:
+                    cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
+                                f"allele_id, status, method, sender, "
+                                f"curator, date_entered, datestamp) "
+                                f"VALUES('{clusterhit}', (SELECT id FROM isolates WHERE isolate='{isolate_name}'), "
+                                f"1, 'confirmed', 'automatic', 1, "
+                                f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                clusterhitlist.append(clusterhit)
                 y += 1
             eavhtmltable = eavhtmltable + '</table>'
             cur.execute(f"DELETE FROM eav_text WHERE isolate_id = '{isolate_id}' AND field ='{schemedict[scheme]['schemename_bigsdb']}'")
