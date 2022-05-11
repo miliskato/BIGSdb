@@ -36,7 +36,7 @@ schemedict = {'listeria_ndaro':           {'clusteredfasta': '/db/gene_detection
                                            'isolatedb': 'bigsdb_listeria_isolates',
                                            'seqdefdb': 'bigsdb_listeria_seqdef',
                                            'species': 'listeria'},
-              'listeria_plasmidfinder':   {'clusteredfasta': '/db/gene_detection/PlasmidFinder-gram_positive/PlasmidFinder-gram_positive-clustered_80.fasta',
+              'listeria_plasmidfinder':   {'clusteredfasta': '/db/gene_detection/PlasmidFinder-gram_positive/plasmidfinder-gram_positive-clustered_80.fasta',
                                            'metadatafile': '/db/gene_detection/PlasmidFinder-gram_positive/mapping_full.json',
                                            'schemename_bigsdb': 'PlasmidFinder_grampositive',
                                            'schemename_html': 'PlasmidFinder - Gram positive',
