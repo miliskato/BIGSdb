@@ -144,8 +144,8 @@ for scheme in schemedict:
     for cluster, description in descriptiondict.items():
         # convert list to more meaningfull and aesthatically pleasing string
         descriptionstring = ' '.join(['Contains genes:', ', '.join([x for x in description])])
-        cur.execute(f"INSERT INTO locus_descriptions(locus, description, datestamp, curator) "
-                    f"VALUES('{cluster}', '{descriptionstring}' ,(SELECT CURRENT_DATE), 1)")
+        cur.execute(f"INSERT INTO locus_descriptions(locus, product, description, datestamp, curator) "
+                    f"VALUES('{cluster}', '{descriptionstring.replace('Contains genes:','')}', '{descriptionstring}' ,(SELECT CURRENT_DATE), 1)")
     con.close()
 
 

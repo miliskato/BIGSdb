@@ -1,5 +1,7 @@
 #!/bin/bash
 
+cd /home/galaxy
+
 for file in /home/galaxy/*_md5.txt
 do
   file_name=$(basename $file _md5.txt)
