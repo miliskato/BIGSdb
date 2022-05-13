@@ -366,6 +366,8 @@
         - bigsdb_mycobacterium_isolates
         - bigsdb_neisseria_seqdef
         - bigsdb_neisseria_isolates
+        - bigsdb_stec_seqdef
+        - bigsdb_stec_isolates
       become_user: postgres
 
     - name: Check if table in bigsdb_listeria_seqdef exists
