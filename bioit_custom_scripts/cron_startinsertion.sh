@@ -23,8 +23,8 @@ do
     /home/BIGSdb/3.9PythonVenv/bin/python3.9 /home/BIGSdb/bioit_custom_scripts/htmltagger.py --htmlfilepath /reports/$species/$sample_name/report.html
     /home/BIGSdb/3.9PythonVenv/bin/python3.9 /home/BIGSdb/bioit_custom_scripts/isolate_${species}_typing_results.py --tsvfilepath /reports/$species/$sample_name/report.tsv --isolatename $sample_name
     /home/BIGSdb/3.9PythonVenv/bin/python3.9 /home/BIGSdb/bioit_custom_scripts/insert_assemblies.py --fastafilepath /reports/$species/$sample_name/assembly/${sample_name}_contigs.fasta --isolatename $sample_name --species $species
-  } 2>&1 | tee /home/galaxy/$sample_name.log
-  mv /home/galaxy/$sample_name.log /reports/$species/$sample_name/
+  } 2>&1 | tee /home/galaxy/$sample_name.bigsdb_insertion.log
+  mv /home/galaxy/$sample_name.bigsdb_insertion.log /reports/$species/$sample_name/
 done
 # should probably add an if statement for the assembly inserter because paths may vary
 
