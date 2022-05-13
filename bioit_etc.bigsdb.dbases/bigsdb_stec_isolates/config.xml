@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="ISO-8859-1" ?>
 <db>
 <system
- db="bigsdb_mycobacterium_isolates"
+ db="bigsdb_stec_isolates"
  dbtype="isolates"
- webroot="/mycobacterium.html"
+ webroot="/stec.html"
  indexpage=""
  view="isolates"
  maindisplay_aliases="yes"
- description="Mycobacterium isolates"
+ description="STEC isolates"
  locus_superscript_prefix="yes"
  authentication="builtin"
  read_access="public"
  all_plugins="yes"
  tblastx_tagging="yes"
- eav_groups="Gene detection|fas fa-search,galaxy report|fas fa-file-medical-alt,51SNP assay|fas fa-angle-right,AMR detection|fas fa-angle-right,spoligotyping|fas fa-angle-right,snpit|fas fa-angle-right,hsp65|fas fa-angle-right,pointfinder|fas fa-angle-right,NCBI 16S|fas fa-angle-right"
+ eav_groups="Gene detection|fas fa-search,galaxy report|fas fa-file-medical-alt,Serotyping|fas fa-angle-right,pointfinder|fas fa-angle-right"
  field_groups="Curation history|fas fa-history"
  user_projects="yes"
 >
