@@ -36,27 +36,62 @@ schemedict = {'listeria_ndaro':           {'clusteredfasta': '/db/gene_detection
                                            'isolatedb': 'bigsdb_listeria_isolates',
                                            'seqdefdb': 'bigsdb_listeria_seqdef',
                                            'species': 'listeria'},
-              'listeria_plasmidfinder':   {'clusteredfasta': '/db/gene_detection/PlasmidFinder-entero/plasmidfinder-entero-clustered_80.fasta',
-                                           'metadatafile': '/db/gene_detection/PlasmidFinder-entero/mapping_full.json',
-                                           'schemename_bigsdb': 'PlasmidFinder_entero',
+              'listeria_plasmidfinder':   {'clusteredfasta': '/db/gene_detection/PlasmidFinder-gram_positive/plasmidfinder-gram_positive-clustered_80.fasta',
+                                           'metadatafile': '/db/gene_detection/PlasmidFinder-gram_positive/mapping_full.json',
+                                           'schemename_bigsdb': 'PlasmidFinder_grampositive',
                                            'schemename_html': 'PlasmidFinder - Gram positive',
                                            'isolatedb': 'bigsdb_listeria_isolates',
                                            'seqdefdb': 'bigsdb_listeria_seqdef',
                                            'species': 'listeria'},
               'neisseria_ndaro':           {'clusteredfasta': '/db/gene_detection/NCBI_AMR/ncbi_amr_upd-clustered_80.fasta',
-                                           'metadatafile': '/db/gene_detection/NCBI_AMR/mapping_full.json',
-                                           'schemename_bigsdb': 'NCBI_AMR',
-                                           'schemename_html': 'NCBI AMR genes',
-                                           'isolatedb': 'bigsdb_neisseria_isolates',
-                                           'seqdefdb': 'bigsdb_neisseria_seqdef',
-                                           'species': 'neisseria'},
+                                            'metadatafile': '/db/gene_detection/NCBI_AMR/mapping_full.json',
+                                            'schemename_bigsdb': 'NCBI_AMR',
+                                            'schemename_html': 'NCBI AMR genes',
+                                            'isolatedb': 'bigsdb_neisseria_isolates',
+                                            'seqdefdb': 'bigsdb_neisseria_seqdef',
+                                            'species': 'neisseria'},
               'neisseria_resfinder':       {'clusteredfasta': '/db/gene_detection/ResFinder/resfinder-clustered_80.fasta',
-                                           'metadatafile': '/db/gene_detection/ResFinder/mapping_full.json',
-                                           'schemename_bigsdb': 'ResFinder',
-                                           'schemename_html': 'ResFinder',
-                                           'isolatedb': 'bigsdb_neisseria_isolates',
-                                           'seqdefdb': 'bigsdb_neisseria_seqdef',
-                                           'species': 'neisseria'},
+                                            'metadatafile': '/db/gene_detection/ResFinder/mapping_full.json',
+                                            'schemename_bigsdb': 'ResFinder',
+                                            'schemename_html': 'ResFinder',
+                                            'isolatedb': 'bigsdb_neisseria_isolates',
+                                            'seqdefdb': 'bigsdb_neisseria_seqdef',
+                                            'species': 'neisseria'},
+              'stec_ndaro':                {'clusteredfasta': '/db/gene_detection/NCBI_AMR/ncbi_amr_upd-clustered_80.fasta',
+                                            'metadatafile': '/db/gene_detection/NCBI_AMR/mapping_full.json',
+                                            'schemename_bigsdb': 'NCBI_AMR',
+                                            'schemename_html': 'NCBI AMR genes',
+                                            'isolatedb': 'bigsdb_stec_isolates',
+                                            'seqdefdb': 'bigsdb_stec_seqdef',
+                                            'species': 'stec'},
+              'stec_resfinder':            {'clusteredfasta': '/db/gene_detection/ResFinder/resfinder-clustered_80.fasta',
+                                            'metadatafile': '/db/gene_detection/ResFinder/mapping_full.json',
+                                            'schemename_bigsdb': 'ResFinder',
+                                            'schemename_html': 'ResFinder',
+                                            'isolatedb': 'bigsdb_stec_isolates',
+                                            'seqdefdb': 'bigsdb_stec_seqdef',
+                                            'species': 'stec'},
+              'stec_plasmidfinder':        {'clusteredfasta': '/db/gene_detection/PlasmidFinder-entero/plasmidfinder-entero-clustered_80.fasta',
+                                            'metadatafile': '/db/gene_detection/PlasmidFinder-entero/mapping_full.json',
+                                            'schemename_bigsdb': 'PlasmidFinder_entero',
+                                            'schemename_html': 'PlasmidFinder - Enterobacteriaceae',
+                                            'isolatedb': 'bigsdb_stec_isolates',
+                                            'seqdefdb': 'bigsdb_stec_seqdef',
+                                            'species': 'stec'},
+              'stec_virulencefinder_ecoli': {'clusteredfasta': '/db/gene_detection/VirulenceFinder-Ecoli/virulencefinder-ecoli-clustered_80.fasta',
+                                             'metadatafile': '/db/gene_detection/VirulenceFinder-Ecoli/mapping_full.json',
+                                             'schemename_bigsdb': 'VirulenceFinder_Ecoli',
+                                             'schemename_html': 'VirulenceFinder - <i>E. coli</i>',
+                                             'isolatedb': 'bigsdb_stec_isolates',
+                                             'seqdefdb': 'bigsdb_stec_seqdef',
+                                             'species': 'stec'},
+              'stec_virulencefinder_shiga': {'clusteredfasta': '/db/gene_detection/VirulenceFinder-Shiga/virulencefinder-shiga-clustered_80.fasta',
+                                             'metadatafile': '/db/gene_detection/VirulenceFinder-Shiga/mapping_full.json',
+                                             'schemename_bigsdb': 'VirulenceFinder_Shiga',
+                                             'schemename_html': 'VirulenceFinder - Shiga-toxin genes',
+                                             'isolatedb': 'bigsdb_stec_isolates',
+                                             'seqdefdb': 'bigsdb_stec_seqdef',
+                                             'species': 'stec'}
               }
 
 
@@ -144,8 +179,8 @@ for scheme in schemedict:
     for cluster, description in descriptiondict.items():
         # convert list to more meaningfull and aesthatically pleasing string
         descriptionstring = ' '.join(['Contains genes:', ', '.join([x for x in description])])
-        cur.execute(f"INSERT INTO locus_descriptions(locus, description, datestamp, curator) "
-                    f"VALUES('{cluster}', '{descriptionstring}' ,(SELECT CURRENT_DATE), 1)")
+        cur.execute(f"INSERT INTO locus_descriptions(locus, product, description, datestamp, curator) "
+                    f"VALUES('{cluster}', '{descriptionstring.replace('Contains genes:','')}', '{descriptionstring}' ,(SELECT CURRENT_DATE), 1)")
     con.close()
 
 
@@ -164,17 +199,12 @@ for scheme in schemedict:
             cur.execute(f"SELECT isolate FROM isolates WHERE id ='{isolate_id}'")
             isolate_name = cur.fetchall()[0][0]
             eavhtmltable = '<table class="data"><tr><th>GeneCluster</th><th>Locus</th></tr>'
+            clusterhitlist = []  # in case loci that were in different clusters at some point get in the same cluster
             y = 0
             while y <= (len(json.loads(listofsamplesandhits[x][1])) - 1):
                 # allele is always position 1 and accession is always last position (-1)
                 hit = '_'.join([(json.loads(listofsamplesandhits[x][1]))[y][-1], (json.loads(listofsamplesandhits[x][1]))[y][1]])
                 clusterhit = clusterdict[hit]
-                cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
-                            f"allele_id, status, method, sender, "
-                            f"curator, date_entered, datestamp) "
-                            f"VALUES('{clusterhit}','{isolate_id}', "
-                            f"1, 'confirmed', 'automatic', 1, "
-                            f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
                 # append Cluster
                 eavhtmltable = eavhtmltable + ''.join(['<tr><td>', ''.join(['GeneCluster', clusterhit.split('Cluster')[1]]), '</td>'])
                 # append Locus
@@ -182,6 +212,15 @@ for scheme in schemedict:
                     eavhtmltable = eavhtmltable + ''.join(['<td><a href="/galaxyreports/', schemedict[scheme]['species'], '/', isolate_name, '/report.html#', schemedict[scheme]['schemename_html'], '" target="_blank">', (json.loads(listofsamplesandhits[x][1]))[y][1], '</a></td></tr>'])
                 else:
                     eavhtmltable = eavhtmltable + ''.join(['<td><a href="/galaxyreports/', schemedict[scheme]['species'], '/', isolate_name, '/report.html#', schemedict[scheme]['schemename_html'], '" target="_blank">', (json.loads(listofsamplesandhits[x][1]))[y][-2], '</a></td></tr>'])
+
+                if clusterhit not in clusterhitlist:
+                    cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
+                                f"allele_id, status, method, sender, "
+                                f"curator, date_entered, datestamp) "
+                                f"VALUES('{clusterhit}', (SELECT id FROM isolates WHERE isolate='{isolate_name}'), "
+                                f"1, 'confirmed', 'automatic', 1, "
+                                f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                clusterhitlist.append(clusterhit)
                 y += 1
             eavhtmltable = eavhtmltable + '</table>'
             cur.execute(f"DELETE FROM eav_text WHERE isolate_id = '{isolate_id}' AND field ='{schemedict[scheme]['schemename_bigsdb']}'")

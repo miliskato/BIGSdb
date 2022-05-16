@@ -1,0 +1,889 @@
+---
+# src parameter: If path is a directory, it is copied recursively. In this case, if path ends with "/", only inside contents of that directory are copied to destination. Otherwise, if it does not end with "/", the directory itself with all contents is copied.
+
+- name: install git package
+  apt:
+    name: git
+
+- name: Get updated files from git repository
+  git:
+    repo: "https://biot_ro:{{ secret_bioit_git_ro_password }}@git.sciensano.be/bioit/BIGSdb.git"
+    dest: "{{ bioit_bigs_home }}"
+
+# bij host_vars staat postgresql user wachtwoord https://bioit.sciensano.be/wiki/ansible-vault: postgresql_postgres_user_password: "olqYDY3f8RPHwOjlr4hH"
+# /etc/ansible/group_vars/bioit$ cat git.yml
+
+# todo need python aswell for executing the scripts and then also some packages in a venv <- python in focal.yml? dont remember installing it on bioit-bigs-dev myself
+# todo check if perl is installed
+## perl 5 is installed on Ubuntu by default.
+
+- name: Install packages
+  apt:
+    name: "{{ packages }}"
+    state: latest
+  vars:
+    packages:
+      - apache2
+      - libapache2-mod-perl2
+      - xvfb
+      - liblog-log4perl-perl
+      - libexcel-writer-xlsx-perl
+      - libjson-perl
+      - libnet-oauth-perl
+      - libdata-random-perl
+      - libemail-sender-perl
+      - libemail-mime-perl
+      - libemail-valid-perl
+      - libfile-type-perl
+      - libconfig-tiny-perl
+      - libterm-prompt-perl
+      - libdigest-bcrypt-perl
+      - libparallel-forkmanager-perl
+      - libbio-procedural-perl
+      - libbio-tools-run-remoteblast-perl
+      - libtime-duration-perl
+      - libarchive-zip-perl
+      - libbio-primerdesigner-perl
+      - libcgi-pm-perl
+      - libdata-uuid-libuuid-perl
+      - libdbd-pg-perl
+      - libdbi-perl
+      - libexception-class-perl
+      - libfile-map-perl
+      - libio-string-perl
+      - liblist-moreutils-perl
+      - liblog-dispatch-filerotate-perl
+      - libtest-lwp-useragent-perl
+#      - libpadre-plugin-pdl-perl
+      - pdl
+      - libtoml-perl
+      - libtoml-parser-perl
+      - libtry-tiny-perl
+      - libxml-parser-perl
+      - libdancer2-perl
+      - starman
+#      - python3-Psycopg2
+      - libpq-dev
+      - acl
+
+- name: Enable the Apache2 module cgid
+  community.general.apache2_module:
+    state: present
+    name: cgid
+
+- name: remove bad configuration file that disables js
+  ansible.builtin.file:
+    path: /etc/apache2/conf-enabled/javascript-common.conf
+    state: absent
+
+- name: Restart service apache2
+  ansible.builtin.systemd:
+    state: restarted
+    daemon_reload: yes
+    name: apache2
+
+- name: Add pg_ident configuration
+  lineinfile:
+    path: "/etc/postgresql/12/main/pg_ident.conf"
+    insertafter: '# MAPNAME       SYSTEM-USERNAME         PG-USERNAME'
+    line: "{{ item }}"
+  loop:
+    - "  mymap       postgres           postgres"
+    - "  mymap       webmaster          postgres"
+    - "  mymap       www-data           apache"
+    - "  mymap       bigsdb             bigsdb"
+    - "  mymap       bigsdb             apache"
+
+# - name: Install Perl packages 2
+#  shell:  "cpan BioPerl"
+
+- name: Install bio perl package
+  community.general.cpanm:
+    name: BioPerl
+
+- name: create dirs
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - /usr/lib/cgi-bin/bigsdb/
+    - /var/www/html/cgi-bin/bigsdb/
+    - /usr/lib/cgi-bin/private/bigsdb/
+    - /var/www/html/cgi-bin/private/bigsdb/
+
+- name: Move files
+  ansible.builtin.copy:
+    src: "{{ bioit_bigs_home }}/{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "u=rwx,g=rwx,o=rx"
+    remote_src: yes
+  loop: "{{ move_list|flatten(levels=1) }}"
+  vars:
+    move_list:
+      - { src: bigsdb.pl, dest: /usr/lib/cgi-bin/bigsdb/ }
+      - { src: bigsdb.pl, dest: /var/www/html/cgi-bin/bigsdb/ }
+      - { src: bigscurate.pl, dest: /usr/lib/cgi-bin/private/bigsdb/ }
+      - { src: bigscurate.pl, dest: /var/www/html/cgi-bin/private/bigsdb/ }
+      - { src: lib/BIGSdb, dest: /usr/local/lib/ }
+      - { src: javascript, dest: /var/www/html/ }
+      - { src: css, dest: /var/www/html/ }
+      - { src: webfonts, dest: /var/www/html/ }
+      - { src: images, dest: /var/www/html/ }
+      - { src: conf/, dest: /etc/bigsdb }
+      - { src: bioit_etc.bigsdb.dbases/, dest: /etc/bigsdb/dbases }
+      - { src: headers/, dest: /var/www/html/ }
+      - { src: bioit_website_varwwwhtml/, dest: /var/www/html/ }
+
+- name: setup core db's 1
+  block:
+    - name: create apache user
+      postgresql_user:
+        login_user: postgres
+        name: apache
+        password: remote
+      become_user: postgres
+      # check documentation if pass clear text or hash <- doesnt need to hashed https://docs.w3cub.com/ansible~2.9/modules/postgresql_user_module
+      # todo change apache password
+
+    - name: create core db
+      community.postgresql.postgresql_db:
+        login_user: postgres
+        name: "{{ item }}"
+      loop:
+        - bigsdb_auth
+        - bigsdb_prefs
+        - bigsdb_refs
+      become_user: postgres
+
+- name: setup core db's 2
+  block:
+    - name: Check if table in bigsdb_auth exists
+      postgresql_query:
+        db: bigsdb_auth
+        login_user: postgres
+        query: SELECT EXISTS ( SELECT FROM information_schema.tables WHERE table_schema LIKE 'public' AND table_type LIKE 'BASE TABLE' AND table_name = 'users' )
+      register: query_result_auth
+      become_user: postgres
+
+    - debug:
+        var: query_result_auth.query_result[0]['exists']
+
+    - name: Format core db
+      postgresql_query:
+        db: "{{ item.db }}"
+        login_user: postgres
+        path_to_script: "{{ item.script }}"
+      loop: "{{ script_list|flatten(levels=1) }}"
+      vars:
+        script_list:
+          - { db: bigsdb_auth, script: "{{ bioit_bigs_home }}/sql/auth.sql" }
+          - { db: bigsdb_prefs, script: "{{ bioit_bigs_home }}/sql/prefs.sql" }
+          - { db: bigsdb_refs, script: "{{ bioit_bigs_home }}/sql/refs.sql" }
+      when: query_result_auth.query_result[0]['exists'] == false
+      become_user: postgres
+
+- name: setup temporary dir
+  block:
+    - name: create tmp dir
+      ansible.builtin.file:
+        path: /var/www/tmp
+        state: directory
+        mode: "u=rwx,g=rwx,o=rwx"
+        owner: www-data
+
+    - name: symlink tmp dir
+      ansible.builtin.file:
+        src: /var/www/tmp
+        dest: /var/www/html/tmp
+        state: link
+        remote_src: yes
+
+    - name: Touch bigsdb log
+      ansible.builtin.file:
+        path: /var/log/bigsdb.log
+        state: touch
+        mode: "u=rwx,g=rwx,o=rwx"
+        owner: www-data
+
+- name: setup offline jobs
+  block:
+    - name: create bigsdb unix user
+      ansible.builtin.user:
+        name: bigsdb
+        shell: /bin/sh
+        group: www-data
+
+    - name: create bigsdb sql user
+      community.postgresql.postgresql_user:
+        login_user: postgres
+        name: bigsdb
+      become_user: postgres
+
+    - name: create jobs db
+      community.postgresql.postgresql_db:
+        login_user: postgres
+        name: bigsdb_jobs
+      become_user: postgres
+
+    - name: Check if table in bigsdb_jobs exists
+      postgresql_query:
+        db: bigsdb_jobs
+        login_user: postgres
+        query: SELECT EXISTS ( SELECT FROM information_schema.tables WHERE table_schema LIKE 'public' AND table_type LIKE 'BASE TABLE' AND table_name = 'jobs' )
+      register: query_result_jobs
+      become_user: postgres
+
+    - name: Format bigsdb_jobs
+      postgresql_query:
+        db: bigsdb_jobs
+        login_user: postgres
+        path_to_script: "{{ bioit_bigs_home }}/sql/jobs.sql"
+      when: query_result_jobs.query_result[0]['exists'] == false
+      become_user: postgres
+
+    - name: move bigsjobs.pl
+      ansible.builtin.copy:
+        src: "{{ bioit_bigs_home }}/bigsjobs.pl"
+        dest: /usr/local/bin/bigsjobs.pl
+        owner: root
+        group: root
+        mode: "u=rwx,g=rwx,o=rx"
+        remote_src: yes
+
+    - name: Touch bigsdb jobs log
+      ansible.builtin.file:
+        path: /var/log/bigsdb_jobs.log
+        state: touch
+        mode: "u=rwx,g=rwx,o=rwx"
+        owner: bigsdb
+# todo when
+
+- name: setup submission system
+  block:
+    - name: create submission dir
+      ansible.builtin.file:
+        path: /var/submissions
+        state: directory
+        mode: "u=rwx,g=rwx,o=rx"
+        owner: www-data
+        group: www-data
+
+#    - name: adding existing user www-data to group bigsdb
+#      user:
+#        name: www-data
+#        groups: bigsdb
+#        append: yes
+
+    - name: symlink submissions dir
+      ansible.builtin.file:
+        src: /var/submissions
+        dest: /var/www/submissions
+        state: link
+        remote_src: yes
+
+- name: setup cron
+  block:
+    - name: Add crontrab entry for bigsjobs
+      cron:
+        name: "bigsjobs.pl"
+        minute: '*/1'        # every minute
+        hour: '*'
+        weekday: '*'
+        job: 'xvfb-run -a /usr/local/bin/bigsjobs.pl'
+        user: 'bigsdb'
+        cron_file: bigsdb_jobs
+
+    - name: Add crontrab entry for galaxy tool output into BIGSdb
+      cron:
+        name: "cron_startinsertion.sh"
+        minute: '*/1'         # every minute
+        hour: '*'
+        weekday: '*'
+        job: 'bash /home/BIGSdb/bioit_custom_scripts/cron_startinsertion.sh'
+        user: 'root'
+        cron_file: bigsdb_galaxy
+
+    - name: Add crontrab entry for global db
+      cron:
+        name: "sync_user_dbase_users.pl"
+        minute: '*/5'       # every 5 minutes
+        hour: '*'
+        weekday: '*'
+        job: 'perl /usr/local/bin/sync_user_dbase_users.pl --user_database pubmlst_bigsdb_users'
+        user: 'bigsdb'
+        cron_file: sync_globalbigsdbusers
+
+    - name: Add crontrab entry for database updates
+      cron:
+        name: "crontab for weekly database updates"
+        minute: '0'
+        hour: '6'
+        weekday: '1'       # monday morning
+        job: "{{ item.command }}"
+        user: 'bigsdb'
+        cron_file: "{{ item.filename }}"
+      loop: "{{ list_cron|flatten(levels=1) }}"
+      vars:
+        list_cron:
+          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 /home/BIGSdb/bioit_custom_scripts/Typing_loci_intopsql.py", filename: loci_intopsql }
+          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_custom_scripts/Typing_alleles_intopsql.py", filename: alleles_intopsql }
+          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_custom_scripts/Typing_schemeprofiles_intopsql.py", filename: schemeprofiles_intopsql }
+          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_custom_scripts/genedetection_intopsql.py", filename: genedetection_intopsql }
+
+    - name: add daily cronjob
+      ansible.builtin.copy:
+        src: "{{ bioit_bigs_home }}/cron/cron.daily/periodically_remove_temporary_files"
+        dest: /etc/cron.daily/
+        owner: root
+        group: root
+        remote_src: yes
+
+- name: setup GrapeTree
+  block:
+    - name: create GrapeTree html dir
+      ansible.builtin.file:
+        path: /var/www/html/GrapeTree
+        state: directory
+
+    - name: copy  GrapeTree files to html for web usage
+      ansible.builtin.copy:
+        src: /usr/local/bin/lmod/grapetree/1.5/venv/lib/python2.7/site-packages/grapetree/
+        dest: /var/www/html/GrapeTree
+        remote_src: yes
+
+- name: Create actual data db
+  block:
+    - name: create species databases
+      community.postgresql.postgresql_db:
+        login_user: postgres
+        name: "{{ item }}"
+      loop:
+        - bigsdb_listeria_seqdef
+        - bigsdb_listeria_isolates
+        - bigsdb_mycobacterium_seqdef
+        - bigsdb_mycobacterium_isolates
+        - bigsdb_neisseria_seqdef
+        - bigsdb_neisseria_isolates
+        - bigsdb_stec_seqdef
+        - bigsdb_stec_isolates
+      become_user: postgres
+
+    - name: Check if table in bigsdb_listeria_seqdef exists
+      postgresql_query:
+        db: bigsdb_listeria_seqdef
+        login_user: postgres
+        query: SELECT EXISTS ( SELECT FROM information_schema.tables WHERE table_schema LIKE 'public' AND table_type LIKE 'BASE TABLE' AND table_name = 'sequences' )
+      register: query_result_listeria_seqdef
+      become_user: postgres
+
+    - name: Check if table in bigsdb_mycobacterium_seqdef exists
+      postgresql_query:
+        db: bigsdb_mycobacterium_seqdef
+        login_user: postgres
+        query: SELECT EXISTS ( SELECT FROM information_schema.tables WHERE table_schema LIKE 'public' AND table_type LIKE 'BASE TABLE' AND table_name = 'sequences' )
+      register: query_result_mycobacterium_seqdef
+      become_user: postgres
+
+    - name: Check if table in bigsdb_stec_seqdef exists
+      postgresql_query:
+        db: bigsdb_stec_seqdef
+        login_user: postgres
+        query: SELECT EXISTS ( SELECT FROM information_schema.tables WHERE table_schema LIKE 'public' AND table_type LIKE 'BASE TABLE' AND table_name = 'sequences' )
+      register: query_result_stec_seqdef
+      become_user: postgres
+
+    - name: Check if table in bigsdb_neisseria_seqdef exists
+      postgresql_query:
+        db: bigsdb_neisseria_seqdef
+        login_user: postgres
+        query: SELECT EXISTS ( SELECT FROM information_schema.tables WHERE table_schema LIKE 'public' AND table_type LIKE 'BASE TABLE' AND table_name = 'sequences' )
+      register: query_result_neisseria_seqdef
+      become_user: postgres
+
+    - name: Format listeria databases
+      postgresql_query:
+        db: "{{ item.db }}"
+        login_user: postgres
+        path_to_script: "{{ item.script }}"
+      loop: "{{ script_list|flatten(levels=1) }}"
+      vars:
+        script_list:
+          - { db: bigsdb_listeria_seqdef, script: "{{ bioit_bigs_home }}/sql/seqdef.sql" }
+          - { db: bigsdb_listeria_isolates, script: "{{ bioit_bigs_home }}/sql/isolatedb.sql" }
+          - { db: bigsdb_mycobacterium_seqdef, script: "{{ bioit_bigs_home }}/sql/seqdef.sql" }
+          - { db: bigsdb_mycobacterium_isolates, script: "{{ bioit_bigs_home }}/sql/isolatedb.sql" }
+      when: query_result_listeria_seqdef.query_result[0]['exists'] == false
+      become_user: postgres
+
+    - name: Format mycobacterium databases
+      postgresql_query:
+        db: "{{ item.db }}"
+        login_user: postgres
+        path_to_script: "{{ item.script }}"
+      loop: "{{ script_list|flatten(levels=1) }}"
+      vars:
+        script_list:
+          - { db: bigsdb_mycobacterium_seqdef, script: "{{ bioit_bigs_home }}/sql/seqdef.sql" }
+          - { db: bigsdb_mycobacterium_isolates, script: "{{ bioit_bigs_home }}/sql/isolatedb.sql" }
+      when: query_result_mycobacterium_seqdef.query_result[0]['exists'] == false
+      become_user: postgres
+
+    - name: Format neisseria databases
+      postgresql_query:
+        db: "{{ item.db }}"
+        login_user: postgres
+        path_to_script: "{{ item.script }}"
+      loop: "{{ script_list|flatten(levels=1) }}"
+      vars:
+        script_list:
+          - { db: bigsdb_neisseria_seqdef, script: "{{ bioit_bigs_home }}/sql/seqdef.sql" }
+          - { db: bigsdb_neisseria_isolates, script: "{{ bioit_bigs_home }}/sql/isolatedb.sql" }
+      when: query_result_neisseria_seqdef.query_result[0]['exists'] == false
+      become_user: postgres
+
+    - name: Format stec databases
+      postgresql_query:
+        db: "{{ item.db }}"
+        login_user: postgres
+        path_to_script: "{{ item.script }}"
+      loop: "{{ script_list|flatten(levels=1) }}"
+      vars:
+        script_list:
+          - { db: bigsdb_stec_seqdef, script: "{{ bioit_bigs_home }}/sql/seqdef.sql" }
+          - { db: bigsdb_stec_isolates, script: "{{ bioit_bigs_home }}/sql/isolatedb.sql" }
+      when: query_result_stec_seqdef.query_result[0]['exists'] == false
+      become_user: postgres
+
+- name: create global user database
+  block:
+    - name: create global bigsdb user db
+      community.postgresql.postgresql_db:
+        login_user: postgres
+        name: global_bigsdb_users
+      become_user: postgres
+
+    - name: Check if table in bigsdb_users exists
+      postgresql_query:
+        db: global_bigsdb_users
+        login_user: postgres
+        query: SELECT EXISTS ( SELECT FROM information_schema.tables WHERE table_schema LIKE 'public' AND table_type LIKE 'BASE TABLE' AND table_name = 'users' )
+      register: query_result_users
+      become_user: postgres
+
+    - name: Format global_bigsdb_users
+      postgresql_query:
+        db: global_bigsdb_users
+        login_user: postgres
+        path_to_script: "{{ bioit_bigs_home }}/sql/users.sql"
+      when: query_result_users.query_result[0]['exists'] == false
+      become_user: postgres
+
+    - name: create bioit user
+      postgresql_query:
+        db: global_bigsdb_users
+        login_user: postgres
+        query: INSERT INTO users (user_name,surname,first_name,email,affiliation,date_entered,datestamp,status) VALUES ('bioit','Sciensano','Bioit', 'bioit@sciensano.be','Sciensano','now','now', 'validated')
+      become_user: postgres
+      when: query_result_users.query_result[0]['exists'] == false
+
+    - name: add user password with perl script with bcrypt
+      shell: "perl {{ bioit_bigs_home }}/scripts/maintenance/add_user.pl -a -d global_bigsdb_users -n bioit -p {{ secret_bioit_bigsdb_gui_password }}"
+      when: query_result_users.query_result[0]['exists'] == false
+
+    - name: permissions
+      postgresql_query:
+        db: global_bigsdb_users
+        login_user: postgres
+        query: INSERT INTO permissions (user_name,permission,curator,datestamp) VALUES ('bioit','import_dbase_configs','bioit','now'), ('bioit','set_site_user_passwords','bioit','now'), ('bioit','merge_users','bioit','now'), ('bioit','modify_users','bioit','now')
+      become_user: postgres
+      when: query_result_users.query_result[0]['exists'] == false
+
+    - name: add bioit user to all species db
+      postgresql_query:
+        db: "{{ item }}"
+        login_user: postgres
+        query: INSERT INTO users (id, user_name, surname, first_name, email, affiliation, status, date_entered, datestamp, curator) VALUES (1,'bioit','Sciensano','Bioit', 'bioit@sciensano.be','Sciensano','admin','now','now', 1)
+      loop:
+        - bigsdb_listeria_seqdef
+        - bigsdb_listeria_isolates
+        - bigsdb_mycobacterium_seqdef
+        - bigsdb_mycobacterium_isolates
+        - bigsdb_neisseria_seqdef
+        - bigsdb_neisseria_isolates
+        - bigsdb_stec_seqdef
+        - bigsdb_stec_isolates
+      when: query_result_users.query_result[0]['exists'] == false
+      become_user: postgres
+        # this when could be changed but should not matter too much
+
+    - name: add bioit user to all neisseria species db
+      postgresql_query:
+        db: "{{ item }}"
+        login_user: postgres
+        query: INSERT INTO users (id, user_name, surname, first_name, email, affiliation, status, date_entered, datestamp, curator) VALUES (1,'bioit','Sciensano','Bioit', 'bioit@sciensano.be','Sciensano','admin','now','now', 1)
+      loop:
+        - bigsdb_neisseria_seqdef
+        - bigsdb_neisseria_isolates
+      when: query_result_neisseria_seqdef.query_result[0]['exists'] == false
+      become_user: postgres
+      # this when should be changed but will work when adding new db
+
+    - name: add bioit user to all stec species db
+      postgresql_query:
+        db: "{{ item }}"
+        login_user: postgres
+        query: INSERT INTO users (id, user_name, surname, first_name, email, affiliation, status, date_entered, datestamp, curator) VALUES (1,'bioit','Sciensano','Bioit', 'bioit@sciensano.be','Sciensano','admin','now','now', 1)
+      loop:
+        - bigsdb_stec_seqdef
+        - bigsdb_stec_isolates
+      when: query_result_stec_seqdef.query_result[0]['exists'] == false
+      become_user: postgres
+      # this when should be changed but will work when adding new db
+
+    - name: add user db to species db
+      postgresql_query:
+        db: "{{ item }}"
+        login_user: postgres
+        query: INSERT INTO user_dbases (id, name, dbase_name, curator, datestamp) VALUES (1, '', 'global_bigsdb_users', 1, 'now')
+      loop:
+        - bigsdb_listeria_seqdef
+        - bigsdb_listeria_isolates
+        - bigsdb_mycobacterium_seqdef
+        - bigsdb_mycobacterium_isolates
+      when: query_result_users.query_result[0]['exists'] == false
+      become_user: postgres
+        # this should be other when but doesnt matter for now
+
+    - name: add user db to neisseria species db
+      postgresql_query:
+        db: "{{ item }}"
+        login_user: postgres
+        query: INSERT INTO user_dbases (id, name, dbase_name, curator, datestamp) VALUES (1, '', 'global_bigsdb_users', 1, 'now')
+      loop:
+        - bigsdb_neisseria_seqdef
+        - bigsdb_neisseria_isolates
+      when: query_result_neisseria_seqdef.query_result[0]['exists'] == false
+      become_user: postgres
+      # this when should be changed but will work when adding new db
+
+    - name: add user db to stec species db
+      postgresql_query:
+        db: "{{ item }}"
+        login_user: postgres
+        query: INSERT INTO user_dbases (id, name, dbase_name, curator, datestamp) VALUES (1, '', 'global_bigsdb_users', 1, 'now')
+      loop:
+        - bigsdb_stec_seqdef
+        - bigsdb_stec_isolates
+      when: query_result_stec_seqdef.query_result[0]['exists'] == false
+      become_user: postgres
+      # this when should be changed but will work when adding new db
+
+    - name: update users to be from user_db, this order is required because else fails due to keys
+      postgresql_query:
+        db: "{{ item }}"
+        login_user: postgres
+        query: UPDATE users SET user_db=1 WHERE user_name='bioit'
+      loop:
+        - bigsdb_listeria_seqdef
+        - bigsdb_listeria_isolates
+        - bigsdb_mycobacterium_seqdef
+        - bigsdb_mycobacterium_isolates
+      when: query_result_users.query_result[0]['exists'] == false
+      become_user: postgres
+        # this when could be changed but should not matter too much
+
+    - name: update users to be from user_db, this order is required because else fails due to keys
+      postgresql_query:
+        db: "{{ item }}"
+        login_user: postgres
+        query: UPDATE users SET user_db=1 WHERE user_name='bioit'
+      loop:
+        - bigsdb_neisseria_seqdef
+        - bigsdb_neisseria_isolates
+      when: query_result_neisseria_seqdef.query_result[0]['exists'] == false
+      become_user: postgres
+      # this when should be changed but will work when adding new db
+
+    - name: update users to be from user_db, this order is required because else fails due to keys
+      postgresql_query:
+        db: "{{ item }}"
+        login_user: postgres
+        query: UPDATE users SET user_db=1 WHERE user_name='bioit'
+      loop:
+        - bigsdb_stec_seqdef
+        - bigsdb_stec_isolates
+      when: query_result_stec_seqdef.query_result[0]['exists'] == false
+      become_user: postgres
+      # this when should be changed but will work when adding new db
+
+- name: setup REST API
+  block:
+    - name: Touch bigsdb rest log
+      ansible.builtin.file:
+        path: /var/log/bigsdb_rest.log
+        state: touch
+        mode: "u=rwx,g=rwx,o=rwx"
+        owner: bigsdb
+
+    - name: create rest db
+      community.postgresql.postgresql_db:
+        login_user: postgres
+        name: bigsdb_rest
+      become_user: postgres
+
+    - name: Check if table in bigsdb_rest exists
+      postgresql_query:
+        db: bigsdb_rest
+        login_user: postgres
+        query: SELECT EXISTS ( SELECT FROM information_schema.tables WHERE table_schema LIKE 'public' AND table_type LIKE 'BASE TABLE' AND table_name = 'groups' )
+      register: query_result_rest
+      become_user: postgres
+
+    - name: Format bigsdb_rest
+      postgresql_query:
+        db: bigsdb_rest
+        login_user: postgres
+        path_to_script: "{{ bioit_bigs_home }}/sql/rest.sql"
+      when: query_result_rest.query_result[0]['exists'] == false
+      become_user: postgres
+
+    - name: create rest dir
+      ansible.builtin.file:
+        path: /var/rest
+        state: directory
+        owner: root
+
+    - name: copy perl script
+      ansible.builtin.copy:
+        src: "{{ bioit_bigs_home }}/bigsrest.pl"
+        dest: /var/rest/bigsrest.pl
+        owner: root
+        group: root
+        remote_src: yes
+
+    - name: add system service
+      ansible.builtin.copy:
+        src: "{{ bioit_bigs_home }}/rest/bigsdb-rest.service"
+        dest: /etc/systemd/system/bigsdb-rest.service
+        owner: root
+        group: root
+        remote_src: yes
+
+      # todo the following inserts need to be updated whenever a new species is added
+    - name: insert db to be shown in rest
+      postgresql_query:
+        db: bigsdb_rest
+        login_user: postgres
+        query: "{{ item }}"
+      loop:
+        - INSERT INTO resources (dbase_config,description) VALUES ('bigsdb_listeria_seqdef','listeria sequence/profile definitions'), ('bigsdb_listeria_isolates','listeria isolates'), ('bigsdb_mycobacterium_seqdef','mycobacterium sequence/profile definitions'), ('bigsdb_mycobacterium_isolates','mycobacterium isolates')
+        - INSERT INTO groups (name,description) VALUES ('listeria','listeria'), ('mycobacterium','mycobacterium')
+        - INSERT INTO group_resources (group_name,dbase_config) VALUES ('listeria','bigsdb_listeria_seqdef'), ('listeria','bigsdb_listeria_isolates'), ('mycobacterium','bigsdb_mycobacterium_seqdef'), ('mycobacterium','bigsdb_mycobacterium_isolates')
+      when: query_result_rest.query_result[0]['exists'] == false
+      become_user: postgres
+       # this when should be changed but doesnt matter for now
+
+    - name: insert db neisseria to be shown in rest
+      postgresql_query:
+        db: bigsdb_rest
+        login_user: postgres
+        query: "{{ item }}"
+      loop:
+        - INSERT INTO resources (dbase_config,description) VALUES ('bigsdb_neisseria_seqdef','neisseria sequence/profile definitions'), ('bigsdb_neisseria_isolates','neisseria isolates')
+        - INSERT INTO groups (name,description) VALUES ('neisseria','neisseria')
+        - INSERT INTO group_resources (group_name,dbase_config) VALUES ('neisseria','bigsdb_neisseria_seqdef'), ('neisseria','bigsdb_neisseria_isolates')
+      when: query_result_neisseria_seqdef.query_result[0]['exists'] == false
+      become_user: postgres
+      # this when should be changed but will work when adding new db
+
+    - name: insert db stec to be shown in rest
+      postgresql_query:
+        db: bigsdb_rest
+        login_user: postgres
+        query: "{{ item }}"
+      loop:
+        - INSERT INTO resources (dbase_config,description) VALUES ('bigsdb_stec_seqdef','stec sequence/profile definitions'), ('bigsdb_stec_isolates','stec isolates')
+        - INSERT INTO groups (name,description) VALUES ('stec','stec')
+        - INSERT INTO group_resources (group_name,dbase_config) VALUES ('stec','bigsdb_stec_seqdef'), ('stec','bigsdb_stec_isolates')
+      when: query_result_stec_seqdef.query_result[0]['exists'] == false
+      become_user: postgres
+      # this when should be changed but will work when adding new db
+
+    - name: Restart service rest
+      ansible.builtin.systemd:
+        state: restarted
+        daemon_reload: yes
+        name: bigsdb-rest.service
+        enabled: yes
+
+- name: populate databases
+  block:
+    - name: Check if table that is created in sql files below exists
+      postgresql_query:
+        db: bigsdb_listeria_isolates
+        login_user: postgres
+        query: SELECT EXISTS ( SELECT FROM information_schema.tables WHERE table_schema LIKE 'public' AND table_type LIKE 'BASE TABLE' AND table_name = 'eav_text_hidden' )
+      register: query_result_eavtexthidden
+      become_user: postgres
+
+    - name: Check if table that is created in sql files below exists
+      postgresql_query:
+        db: bigsdb_neisseria_isolates
+        login_user: postgres
+        query: SELECT EXISTS ( SELECT FROM information_schema.tables WHERE table_schema LIKE 'public' AND table_type LIKE 'BASE TABLE' AND table_name = 'eav_text_hidden' )
+      register: query_result_eavtexthiddenneisseria
+      become_user: postgres
+
+    - name: Check if table that is created in sql files below exists
+      postgresql_query:
+        db: bigsdb_stec_isolates
+        login_user: postgres
+        query: SELECT EXISTS ( SELECT FROM information_schema.tables WHERE table_schema LIKE 'public' AND table_type LIKE 'BASE TABLE' AND table_name = 'eav_text_hidden' )
+      register: query_result_eavtexthiddenstec
+      become_user: postgres
+
+    - debug: msg="{{ query_result_eavtexthidden }}"
+
+    - name: Format species databases
+      postgresql_query:
+        login_user: postgres
+        db: "{{ item.db }}"
+        path_to_script: "{{ item.script }}"
+      loop: "{{ list_script|flatten(levels=1) }}"
+      vars:
+        list_script:
+          - { db: bigsdb_listeria_seqdef, script: "{{ bioit_bigs_home }}/bioit_custom_scripts/bigsdb_listeria_seqdef.sql" }
+          - { db: bigsdb_listeria_isolates, script: "{{ bioit_bigs_home }}/bioit_custom_scripts/bigsdb_listeria_isolates.sql" }
+          - { db: bigsdb_mycobacterium_seqdef, script: "{{ bioit_bigs_home }}/bioit_custom_scripts/bigsdb_mycobacterium_seqdef.sql" }
+          - { db: bigsdb_mycobacterium_isolates, script: "{{ bioit_bigs_home }}/bioit_custom_scripts/bigsdb_mycobacterium_isolates.sql" }
+      when: query_result_eavtexthidden.query_result[0]['exists'] == false
+      become_user: postgres
+
+    - name: Format neisseria species databases
+      postgresql_query:
+        login_user: postgres
+        db: "{{ item.db }}"
+        path_to_script: "{{ item.script }}"
+      loop: "{{ list_script|flatten(levels=1) }}"
+      vars:
+        list_script:
+          - { db: bigsdb_neisseria_seqdef, script: "{{ bioit_bigs_home }}/bioit_custom_scripts/bigsdb_neisseria_seqdef.sql" }
+          - { db: bigsdb_neisseria_isolates, script: "{{ bioit_bigs_home }}/bioit_custom_scripts/bigsdb_neisseria_isolates.sql" }
+      when: query_result_eavtexthiddenneisseria.query_result[0]['exists'] == false
+      become_user: postgres
+
+    - name: Format stec species databases
+      postgresql_query:
+        login_user: postgres
+        db: "{{ item.db }}"
+        path_to_script: "{{ item.script }}"
+      loop: "{{ list_script|flatten(levels=1) }}"
+      vars:
+        list_script:
+          - { db: bigsdb_stec_seqdef, script: "{{ bioit_bigs_home }}/bioit_custom_scripts/bigsdb_stec_seqdef.sql" }
+          - { db: bigsdb_stec_isolates, script: "{{ bioit_bigs_home }}/bioit_custom_scripts/bigsdb_stec_isolates.sql" }
+      when: query_result_eavtexthiddenstec.query_result[0]['exists'] == false
+      become_user: postgres
+
+    - name: populate db with python sql scripts
+      block:
+        - name: Install requirements
+          pip:
+            requirements: "{{ bioit_bigs_home }}/bioit_custom_scripts/requirements.txt"
+            virtualenv: "{{ bioit_bigs_home }}/3.9PythonVenv"
+            virtualenv_python: python3.9
+
+        # checks are present in the scripts
+        - name: insert loci, alleles, profiles, gene detection
+          shell: "{{ item }}"
+          loop:
+            - "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_custom_scripts/Typing_loci_intopsql.py"
+            - "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_custom_scripts/Typing_alleles_intopsql.py"
+            - "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_custom_scripts/Typing_schemeprofiles_intopsql.py"
+            - "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_custom_scripts/genedetection_intopsql.py"
+
+- name: setup reports and symlinks
+  block:
+    - name: create listeria dir
+      ansible.builtin.file:
+        path: /reports/listeria
+        state: directory
+        mode: "u=rwx,g=rwx,o=rx"
+        owner: www-data
+
+    - name: create mycobacterium dir
+      ansible.builtin.file:
+        path: /reports/mycobacterium
+        state: directory
+        mode: "u=rwx,g=rwx,o=rx"
+        owner: www-data
+
+    - name: create neisseria dir
+      ansible.builtin.file:
+        path: /reports/neisseria
+        state: directory
+        mode: "u=rwx,g=rwx,o=rx"
+        owner: www-data
+
+    - name: create stec dir
+      ansible.builtin.file:
+        path: /reports/stec
+        state: directory
+        mode: "u=rwx,g=rwx,o=rx"
+        owner: www-data
+
+    - name: symlink reports
+      ansible.builtin.file:
+        src: /reports
+        dest: /var/www/html/galaxyreports
+        state: link
+        remote_src: yes
+
+- name: Restart service rest after all other steps
+  ansible.builtin.systemd:
+    state: restarted
+    daemon_reload: yes
+    name: bigsdb-rest.service
+    enabled: yes
+
+- name: create galaxy user
+  block:
+    - name: Setup user without UID (You have to create key manually because format error)
+      user:
+        name: galaxy
+        state: "present"
+        append: no
+
+# manually:
+#    sudo su galaxy
+#    mkdir -p /home/galaxy/.ssh
+#    chmod 0700 /home/galaxy/.ssh
+#    ssh-keygen -t rsa
+#    cat /home/galaxy/.ssh/id_rsa.pub > /home/galaxy/.ssh/authorized_keys
+#    chmod 0640 /home/galaxy/.ssh/authorized_keys
+#    # cp private key to id_rsa_bigsdb on galaxy, chmod 0600 it
+
+# DOESNT WORK
+#    - name: generate SSH key galaxy user
+#      user:
+#        name: galaxy
+#        generate_ssh_key: yes
+#        ssh_key_type: rsa
+#        ssh_key_bits: 4096
+#        ssh_key_file: .ssh/id_rsa
+#        force: no
+
+    - name: copy ssh key to authenticated users (intentional fail (file doesnt exist) to prompt manual keygen)
+      ansible.builtin.copy:
+        src: /home/galaxy/.ssh/id_rsa.pub
+        dest: /home/galaxy/.ssh/authorized_keys
+        owner: galaxy
+        group: galaxy
+        mode: '0640'
+        remote_src: yes
+
+# todo, add key file to remote (galaxy-dev currently)
+
+...

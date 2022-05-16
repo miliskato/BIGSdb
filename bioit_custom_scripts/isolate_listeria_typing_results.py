@@ -38,10 +38,10 @@ genedetectiondict = {'listeria_ndaro':
                          'schemename_bigsdb': 'VFDB_core',
                          'schemename_html': 'Virulence Factor DB - Core'},
                      'listeria_plasmidfinder': {
-                         'clusteredfasta': '/db/gene_detection/PlasmidFinder-entero/plasmidfinder-entero-clustered_80.fasta',
-                         'metadatafile': '/db/gene_detection/PlasmidFinder-entero/mapping_full.json',
+                         'clusteredfasta': '/db/gene_detection/PlasmidFinder-gram_positive/plasmidfinder-gram_positive-clustered_80.fasta',
+                         'metadatafile': '/db/gene_detection/PlasmidFinder-gram_positive/mapping_full.json',
                          'tsvname': 'hits_plasmidfinder',
-                         'schemename_bigsdb': 'PlasmidFinder_entero',
+                         'schemename_bigsdb': 'PlasmidFinder_grampositive',
                          'schemename_html': 'PlasmidFinder - Gram positive'}
                      }
 

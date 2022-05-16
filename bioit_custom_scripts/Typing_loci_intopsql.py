@@ -8,30 +8,29 @@ import os
 import psycopg2
 
 # capitalisation in schemename_bigsdb is important
-schemedict  = { 'salmonella_mlst': {'dirdb': '/db/sequence_typing/salmonella/mlst', 'schemename_bigsdb': 'MLST', 'seqdefdb': 'bigsdb_salmonella_seqdef', 'isolatedb': 'bigsdb_salmonella_isolates'},
-                'salmonella_cgmlst': {'dirdb': '/db/sequence_typing/salmonella/cgmlst', 'schemename_bigsdb': 'cgMLST', 'seqdefdb': 'bigsdb_salmonella_seqdef', 'isolatedb': 'bigsdb_salmonella_isolates'}
-#               'listeria_cgmlst': {'dirdb': '/db/sequence_typing/listeria/cgmlst', 'schemename_bigsdb': 'cgMLST', 'seqdefdb': 'bigsdb_listeria_seqdef', 'isolatedb': 'bigsdb_listeria_isolates'},
-#               'listeria_cgmlst': {'dirdb': '/db/sequence_typing/listeria/cgmlst', 'schemename_bigsdb': 'cgMLST', 'seqdefdb': 'bigsdb_listeria_seqdef', 'isolatedb': 'bigsdb_listeria_isolates'},
-#               'listeria_mlst': {'dirdb': '/db/sequence_typing/listeria/mlst', 'schemename_bigsdb': 'MLST', 'seqdefdb': 'bigsdb_listeria_seqdef', 'isolatedb': 'bigsdb_listeria_isolates'},
-#               'listeria_cgmlst': {'dirdb': '/db/sequence_typing/listeria/cgmlst', 'schemename_bigsdb': 'cgMLST', 'seqdefdb': 'bigsdb_listeria_seqdef', 'isolatedb': 'bigsdb_listeria_isolates'},
-#               'listeria_serogroup': {'dirdb': '/db/sequence_typing/listeria/serogroup', 'schemename_bigsdb': 'PCR serogroup', 'seqdefdb': 'bigsdb_listeria_seqdef', 'isolatedb': 'bigsdb_listeria_isolates'},
-#               'listeria_metal_detergent_resistance': {'dirdb': '/db/sequence_typing/listeria/metal_detergent_resistance', 'schemename_bigsdb': 'Metal and detergent resistance', 'seqdefdb': 'bigsdb_listeria_seqdef', 'isolatedb': 'bigsdb_listeria_isolates'},
-#               'listeria_typing_virulence': {'dirdb': '/db/sequence_typing/listeria/virulence', 'schemename_bigsdb': 'Virulence', 'seqdefdb': 'bigsdb_listeria_seqdef', 'isolatedb': 'bigsdb_listeria_isolates'},
-#               'listeria_antibiotic_resistance': {'dirdb': '/db/sequence_typing/listeria/antibiotic_resistance', 'schemename_bigsdb': 'Antibiotic resistance', 'seqdefdb': 'bigsdb_listeria_seqdef', 'isolatedb': 'bigsdb_listeria_isolates'},
-#               'listeria_species_confirmation': {'dirdb': '/db/sequence_typing/listeria/species_confirmation', 'schemename_bigsdb': 'Species confirmation', 'seqdefdb': 'bigsdb_listeria_seqdef', 'isolatedb': 'bigsdb_listeria_isolates'},
-#               'mycobacterium_mlst': {'dirdb': '/db/sequence_typing/mycobacterium/mlst', 'schemename_bigsdb': 'MLST', 'seqdefdb': 'bigsdb_mycobacterium_seqdef', 'isolatedb': 'bigsdb_mycobacterium_isolates'},
-#               'mycobacterium_cgmlst': {'dirdb': '/db/sequence_typing/mycobacterium/cgmlst', 'schemename_bigsdb': 'cgMLST', 'seqdefdb': 'bigsdb_mycobacterium_seqdef', 'isolatedb': 'bigsdb_mycobacterium_isolates'},
-#               'neisseria_mlst': {'dirdb': '/db/sequence_typing/neisseria/mlst', 'schemename_bigsdb': 'MLST', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'isolatedb': 'bigsdb_neisseria_isolates'},
-#               'neisseria_cgmlst': {'dirdb': '/db/sequence_typing/neisseria/cgmlst', 'schemename_bigsdb': 'cgMLST', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'isolatedb': 'bigsdb_neisseria_isolates'},
-#               'neisseria_rplf': {'dirdb': '/db/sequence_typing/neisseria/rplf', 'schemename_bigsdb': 'rplF', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'isolatedb': 'bigsdb_neisseria_isolates'},
-#               'neisseria_bast': {'dirdb': '/db/sequence_typing/neisseria/bast', 'schemename_bigsdb': 'BAST', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'isolatedb': 'bigsdb_neisseria_isolates'},
-#               'neisseria_pora': {'dirdb': '/db/sequence_typing/neisseria/pora', 'schemename_bigsdb': 'porA', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'isolatedb': 'bigsdb_neisseria_isolates'},
-#               'neisseria_porb': {'dirdb': '/db/sequence_typing/neisseria/porb', 'schemename_bigsdb': 'porB', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'isolatedb': 'bigsdb_neisseria_isolates'},
-#               'neisseria_feta': {'dirdb': '/db/sequence_typing/neisseria/feta', 'schemename_bigsdb': 'FetA', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'isolatedb': 'bigsdb_neisseria_isolates'},
-#               'neisseria_resistancegenes': {'dirdb': '/db/sequence_typing/neisseria/resistance_genes', 'schemename_bigsdb': 'Antibiotic_resistance', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'isolatedb': 'bigsdb_neisseria_isolates'},
-#               'neisseria_vaccinetargets': {'dirdb': '/db/sequence_typing/neisseria/vaccine_targets', 'schemename_bigsdb': 'Vaccine_targets', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'isolatedb': 'bigsdb_neisseria_isolates'},
-#               'neisseria_fhbpnucl': {'dirdb': '/db/sequence_typing/neisseria/fhbp', 'schemename_bigsdb': 'fHbp_nucl', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'isolatedb': 'bigsdb_neisseria_isolates'},
-#               'neisseria_fhbppept': {'dirdb': '/db/sequence_typing/neisseria/fhbp', 'schemename_bigsdb': 'fHbp_pept', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'isolatedb': 'bigsdb_neisseria_isolates'}
+schemedict = {'listeria_mlst': {'dirdb': '/db/sequence_typing/listeria/mlst', 'schemename_bigsdb': 'MLST', 'seqdefdb': 'bigsdb_listeria_seqdef', 'isolatedb': 'bigsdb_listeria_isolates'},
+              'listeria_cgmlst': {'dirdb': '/db/sequence_typing/listeria/cgmlst', 'schemename_bigsdb': 'cgMLST', 'seqdefdb': 'bigsdb_listeria_seqdef', 'isolatedb': 'bigsdb_listeria_isolates'},
+              'listeria_serogroup': {'dirdb': '/db/sequence_typing/listeria/serogroup', 'schemename_bigsdb': 'PCR serogroup', 'seqdefdb': 'bigsdb_listeria_seqdef', 'isolatedb': 'bigsdb_listeria_isolates'},
+              'listeria_metal_detergent_resistance': {'dirdb': '/db/sequence_typing/listeria/metal_detergent_resistance', 'schemename_bigsdb': 'Metal and detergent resistance', 'seqdefdb': 'bigsdb_listeria_seqdef', 'isolatedb': 'bigsdb_listeria_isolates'},
+              'listeria_typing_virulence': {'dirdb': '/db/sequence_typing/listeria/virulence', 'schemename_bigsdb': 'Virulence', 'seqdefdb': 'bigsdb_listeria_seqdef', 'isolatedb': 'bigsdb_listeria_isolates'},
+              'listeria_antibiotic_resistance': {'dirdb': '/db/sequence_typing/listeria/antibiotic_resistance', 'schemename_bigsdb': 'Antibiotic resistance', 'seqdefdb': 'bigsdb_listeria_seqdef', 'isolatedb': 'bigsdb_listeria_isolates'},
+              'listeria_species_confirmation': {'dirdb': '/db/sequence_typing/listeria/species_confirmation', 'schemename_bigsdb': 'Species confirmation', 'seqdefdb': 'bigsdb_listeria_seqdef', 'isolatedb': 'bigsdb_listeria_isolates'},
+              'mycobacterium_mlst': {'dirdb': '/db/sequence_typing/mycobacterium/mlst', 'schemename_bigsdb': 'MLST', 'seqdefdb': 'bigsdb_mycobacterium_seqdef', 'isolatedb': 'bigsdb_mycobacterium_isolates'},
+              'mycobacterium_cgmlst': {'dirdb': '/db/sequence_typing/mycobacterium/cgmlst', 'schemename_bigsdb': 'cgMLST', 'seqdefdb': 'bigsdb_mycobacterium_seqdef', 'isolatedb': 'bigsdb_mycobacterium_isolates'},
+              'neisseria_mlst': {'dirdb': '/db/sequence_typing/neisseria/mlst', 'schemename_bigsdb': 'MLST', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'isolatedb': 'bigsdb_neisseria_isolates'},
+              'neisseria_cgmlst': {'dirdb': '/db/sequence_typing/neisseria/cgmlst', 'schemename_bigsdb': 'cgMLST', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'isolatedb': 'bigsdb_neisseria_isolates'},
+              'neisseria_rplf': {'dirdb': '/db/sequence_typing/neisseria/rplf', 'schemename_bigsdb': 'rplF', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'isolatedb': 'bigsdb_neisseria_isolates'},
+              'neisseria_bast': {'dirdb': '/db/sequence_typing/neisseria/bast', 'schemename_bigsdb': 'BAST', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'isolatedb': 'bigsdb_neisseria_isolates'},
+              'neisseria_pora': {'dirdb': '/db/sequence_typing/neisseria/pora', 'schemename_bigsdb': 'porA', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'isolatedb': 'bigsdb_neisseria_isolates'},
+              'neisseria_porb': {'dirdb': '/db/sequence_typing/neisseria/porb', 'schemename_bigsdb': 'porB', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'isolatedb': 'bigsdb_neisseria_isolates'},
+              'neisseria_feta': {'dirdb': '/db/sequence_typing/neisseria/feta', 'schemename_bigsdb': 'FetA', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'isolatedb': 'bigsdb_neisseria_isolates'},
+              'neisseria_resistancegenes': {'dirdb': '/db/sequence_typing/neisseria/resistance_genes', 'schemename_bigsdb': 'Antibiotic_resistance', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'isolatedb': 'bigsdb_neisseria_isolates'},
+              'neisseria_vaccinetargets': {'dirdb': '/db/sequence_typing/neisseria/vaccine_targets', 'schemename_bigsdb': 'Vaccine_targets', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'isolatedb': 'bigsdb_neisseria_isolates'},
+              'neisseria_fhbpnucl': {'dirdb': '/db/sequence_typing/neisseria/fhbp', 'schemename_bigsdb': 'fHbp_nucl', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'isolatedb': 'bigsdb_neisseria_isolates'},
+              'neisseria_fhbppept': {'dirdb': '/db/sequence_typing/neisseria/fhbp', 'schemename_bigsdb': 'fHbp_pept', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'isolatedb': 'bigsdb_neisseria_isolates'},
+              'stec_mlst_warwick': {'dirdb': '/db/sequence_typing/ecoli/mlst-warwick', 'schemename_bigsdb': 'MLST_Warwick', 'seqdefdb': 'bigsdb_stec_seqdef', 'isolatedb': 'bigsdb_stec_isolates'},
+              'stec_mlst_pasteur': {'dirdb': '/db/sequence_typing/ecoli/mlst-pasteur', 'schemename_bigsdb': 'MLST_Pasteur', 'seqdefdb': 'bigsdb_stec_seqdef', 'isolatedb': 'bigsdb_stec_isolates'},
+              'stec_cgmlst': {'dirdb': '/db/sequence_typing/ecoli/cgmlst', 'schemename_bigsdb': 'cgMLST', 'seqdefdb': 'bigsdb_stec_seqdef', 'isolatedb': 'bigsdb_stec_isolates'}
               }
 
 
