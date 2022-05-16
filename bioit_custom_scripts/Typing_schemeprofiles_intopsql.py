@@ -4,12 +4,13 @@ import psycopg2
 # It is important to keep in mind that ST do not neccesarily follow each other up continuosly, there can be gaps
 
 # the first element in the fields list should be an integer/primary_key
-schemedict = {'listeria_mlst': {'seqdefdb': 'bigsdb_listeria_seqdef', 'dirdb': '/db/sequence_typing/listeria/mlst', 'fields': ['ST', 'CC', 'Lineage'], 'schemename_bigsdb': 'MLST'},
-              'listeria_serogroup': {'seqdefdb': 'bigsdb_listeria_seqdef', 'dirdb': '/db/sequence_typing/listeria/serogroup', 'fields': ['profile_id', 'serogroup'], 'schemename_bigsdb': 'PCR serogroup'},
-              'mycobacterium_mlst': {'seqdefdb': 'bigsdb_mycobacterium_seqdef', 'dirdb': '/db/sequence_typing/mycobacterium/mlst', 'fields': ['ST'], 'schemename_bigsdb': 'MLST'},
-              'neisseria_mlst': {'dirdb': '/db/sequence_typing/neisseria/mlst', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'fields': ['ST'], 'schemename_bigsdb': 'MLST'},
-              'neisseria_rplf': {'dirdb': '/db/sequence_typing/neisseria/rplf', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'fields': ['rplF_id', 'genospecies'], 'schemename_bigsdb': 'rplF'},
-              'neisseria_bast': {'dirdb': '/db/sequence_typing/neisseria/bast', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'fields': ['BAST', 'MenDeVAR_Bexsero_reactivity', 'MenDeVAR_Trumenba_reactivity'], 'schemename_bigsdb': 'BAST'}
+schemedict = { 'salmonella_mlst': {'seqdefdb': 'bigsdb_salmonella_seqdef', 'dirdb': '/db/sequence_typing/salmonella/mlst', 'fields': ['ST'], 'schemename_bigsdb': 'MLST'},
+              # 'listeria_mlst': {'seqdefdb': 'bigsdb_listeria_seqdef', 'dirdb': '/db/sequence_typing/listeria/mlst', 'fields': ['ST', 'CC', 'Lineage'], 'schemename_bigsdb': 'MLST'},
+              # 'listeria_serogroup': {'seqdefdb': 'bigsdb_listeria_seqdef', 'dirdb': '/db/sequence_typing/listeria/serogroup', 'fields': ['profile_id', 'serogroup'], 'schemename_bigsdb': 'PCR serogroup'},
+              # 'mycobacterium_mlst': {'seqdefdb': 'bigsdb_mycobacterium_seqdef', 'dirdb': '/db/sequence_typing/mycobacterium/mlst', 'fields': ['ST'], 'schemename_bigsdb': 'MLST'},
+              # 'neisseria_mlst': {'dirdb': '/db/sequence_typing/neisseria/mlst', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'fields': ['ST'], 'schemename_bigsdb': 'MLST'},
+              # 'neisseria_rplf': {'dirdb': '/db/sequence_typing/neisseria/rplf', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'fields': ['rplF_id', 'genospecies'], 'schemename_bigsdb': 'rplF'},
+              # 'neisseria_bast': {'dirdb': '/db/sequence_typing/neisseria/bast', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'fields': ['BAST', 'MenDeVAR_Bexsero_reactivity', 'MenDeVAR_Trumenba_reactivity'], 'schemename_bigsdb': 'BAST'}
              }
 
 profile_file = 'profiles.tsv'

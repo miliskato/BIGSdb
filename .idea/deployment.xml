@@ -1,21 +1,36 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" remoteFilesAllowedToDisappearOnAutoupload="false">
+  <component name="PublishConfigData" autoUpload="Always" serverName="bioit-bigs-dev" remoteFilesAllowedToDisappearOnAutoupload="false">
     <serverData>
-      <paths name="bioit-bigs-dev">
-        <serverdata>
-          <mappings>
-            <mapping deploy="/home/mikelchtermans/BIGSdb" local="$PROJECT_DIR$" web="/" />
-          </mappings>
-        </serverdata>
-      </paths>
-      <paths name="mikelchtermans@bioit-vdi-12:22">
+      <paths name="bebergk@bioit-hulk:22 key">
         <serverdata>
           <mappings>
             <mapping local="$PROJECT_DIR$" web="/" />
           </mappings>
         </serverdata>
       </paths>
+      <paths name="bebergk@bioit-vdi-10:22 key">
+        <serverdata>
+          <mappings>
+            <mapping local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="bebergk@bioit-vdi-19:22 key">
+        <serverdata>
+          <mappings>
+            <mapping local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="bioit-bigs-dev">
+        <serverdata>
+          <mappings>
+            <mapping deploy="BIGSdb" local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
     </serverData>
+    <option name="myAutoUpload" value="ALWAYS" />
   </component>
 </project>
