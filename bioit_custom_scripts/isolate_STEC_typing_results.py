@@ -62,7 +62,7 @@ cur = con.cursor()
 
 #main
 def insert_typing_results():
-    reportlink =f'<p><a href="/galaxyreports/stec/{isolate_name}/report.html"> html report</a></p>'
+    reportlink =f'<p><a href="/galaxyreports/stec/{isolate_name}/report.html" target="_blank"> html report</a></p>'
     cur.execute(f"INSERT INTO eav_text(isolate_id, "
                 f"field, value)"
                 f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
