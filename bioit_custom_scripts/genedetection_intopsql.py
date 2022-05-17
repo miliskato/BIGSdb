@@ -115,6 +115,8 @@ for scheme in schemedict:
                               VALUES('{cluster}','DNA','text', 't', 't', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE))")
             cur.execute(f"INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) \
                               VALUES((SELECT id FROM schemes WHERE name='{schemedict[scheme]['schemename_bigsdb']}'), '{cluster}', 1, (SELECT CURRENT_DATE))")
+            cur.execute(f"INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) \
+                              VALUES(1, '{cluster}', 1, (SELECT CURRENT_DATE))")
             cur.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status,sender,curator, date_entered, datestamp) \
                           VALUES('{cluster}',1,'TAG','unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
             cur.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status, sender,curator, date_entered, datestamp) \

@@ -53,6 +53,9 @@ for scheme in schemedict:
                 cur.execute(f"INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) \
                                   VALUES((SELECT id FROM schemes WHERE name='{schemedict[scheme]['schemename_bigsdb']}'), '{dir}', 1, (SELECT CURRENT_DATE))")
                 con.commit()
+                cur.execute(f"INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) \
+                                  VALUES(1, '{dir}', 1, (SELECT CURRENT_DATE))")
+                con.commit()
                 # If it doesnt exist in seqdef loci, then normally not in isolate loci aswell
                 con.close()
                 con = psycopg2.connect(database=f"{schemedict[scheme]['isolatedb']}", user="apache", password="remote", host="127.0.0.1", port="")
