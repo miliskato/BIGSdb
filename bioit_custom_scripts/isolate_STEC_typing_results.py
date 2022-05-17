@@ -10,7 +10,7 @@ schemedict = {'stec_mlst_warwick': {'dirdb': '/db/sequence_typing/ecoli/mlst-war
               'stec_cgmlst': {'dirdb': '/db/sequence_typing/ecoli/cgmlst', 'tsvname': 'cgmlst'},
               'stec_pointfinder': {'dirdb': '', 'tsvname': 'pointfinder_mutations', 'schemename_html': 'PointFinder'}
               }
-genedetectiondict = {'stec_ndaro': {'clusteredfasta': '/db/gene_detection/NCBI_AMR/ncbi_amr_upd-clustered_80.fasta',
+genedetectiondict = {'stec_ndaro': {'clusteredfasta': '/db/gene_detection/NCBI_AMR/ncbi_amr-clustered_80.fasta',
                                     'metadatafile': '/db/gene_detection/NCBI_AMR/mapping_full.json',
                                     'schemename_bigsdb': 'NCBI_AMR',
                                     'schemename_html': 'NCBI AMR genes',

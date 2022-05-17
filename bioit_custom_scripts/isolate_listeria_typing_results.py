@@ -14,7 +14,7 @@ schemedict = {'listeria_mlst': {'dirdb': '/db/sequence_typing/listeria/mlst', 't
               'listeria_species_confirmation': {'dirdb': '/db/sequence_typing/listeria/species_confirmation', 'tsvname': 'species_confirmation'}
               }
 genedetectiondict = {'listeria_ndaro':
-                         {'clusteredfasta': '/db/gene_detection/NCBI_AMR/ncbi_amr_upd-clustered_80.fasta',
+                         {'clusteredfasta': '/db/gene_detection/NCBI_AMR/ncbi_amr-clustered_80.fasta',
                           'metadatafile': '/db/gene_detection/NCBI_AMR/mapping_full.json',
                           'tsvname': 'hits_ncbi_amr',
                           'schemename_bigsdb': 'NCBI_AMR',

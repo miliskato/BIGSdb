@@ -21,7 +21,7 @@ schemedict = {'neisseria_mlst': {'dirdb': '/db/sequence_typing/neisseria/mlst', 
 
 
 genedetectiondict = {'neisseria_ndaro':
-                         {'clusteredfasta': '/db/gene_detection/NCBI_AMR/ncbi_amr_upd-clustered_80.fasta',
+                         {'clusteredfasta': '/db/gene_detection/NCBI_AMR/ncbi_amr-clustered_80.fasta',
                           'metadatafile': '/db/gene_detection/NCBI_AMR/mapping_full.json',
                           'tsvname': 'hits_ncbi_amr',
                           'schemename_bigsdb': 'NCBI_AMR',

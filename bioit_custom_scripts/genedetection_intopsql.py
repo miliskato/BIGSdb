@@ -8,7 +8,7 @@ import psycopg2
 from pathlib import Path
 import json
 
-schemedict = {'listeria_ndaro':           {'clusteredfasta': '/db/gene_detection/NCBI_AMR/ncbi_amr_upd-clustered_80.fasta',
+schemedict = {'listeria_ndaro':           {'clusteredfasta': '/db/gene_detection/NCBI_AMR/ncbi_amr-clustered_80.fasta',
                                            'metadatafile': '/db/gene_detection/NCBI_AMR/mapping_full.json',
                                            'schemename_bigsdb': 'NCBI_AMR',
                                            'schemename_html': 'NCBI AMR genes',
@@ -43,7 +43,7 @@ schemedict = {'listeria_ndaro':           {'clusteredfasta': '/db/gene_detection
                                            'isolatedb': 'bigsdb_listeria_isolates',
                                            'seqdefdb': 'bigsdb_listeria_seqdef',
                                            'species': 'listeria'},
-              'neisseria_ndaro':           {'clusteredfasta': '/db/gene_detection/NCBI_AMR/ncbi_amr_upd-clustered_80.fasta',
+              'neisseria_ndaro':           {'clusteredfasta': '/db/gene_detection/NCBI_AMR/ncbi_amr-clustered_80.fasta',
                                             'metadatafile': '/db/gene_detection/NCBI_AMR/mapping_full.json',
                                             'schemename_bigsdb': 'NCBI_AMR',
                                             'schemename_html': 'NCBI AMR genes',
@@ -57,7 +57,7 @@ schemedict = {'listeria_ndaro':           {'clusteredfasta': '/db/gene_detection
                                             'isolatedb': 'bigsdb_neisseria_isolates',
                                             'seqdefdb': 'bigsdb_neisseria_seqdef',
                                             'species': 'neisseria'},
-              'stec_ndaro':                {'clusteredfasta': '/db/gene_detection/NCBI_AMR/ncbi_amr_upd-clustered_80.fasta',
+              'stec_ndaro':                {'clusteredfasta': '/db/gene_detection/NCBI_AMR/ncbi_amr-clustered_80.fasta',
                                             'metadatafile': '/db/gene_detection/NCBI_AMR/mapping_full.json',
                                             'schemename_bigsdb': 'NCBI_AMR',
                                             'schemename_html': 'NCBI AMR genes',
