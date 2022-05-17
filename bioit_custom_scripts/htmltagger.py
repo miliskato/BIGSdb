@@ -6,17 +6,25 @@ from os import fdopen, remove
 
 argument_parser = argparse.ArgumentParser()
 argument_parser.add_argument('--htmlfilepath', required=True, type=Path)
+argument_parser.add_argument('--species', required=True, type=str, choices=['mycobacterium', 'listeria', 'neisseria', 'stec'])
 args = argument_parser.parse_args()
 htmlfilepath = Path(args.htmlfilepath)
+species = args.species
 
-schemedict = {'listeria_ndaro':              {'schemename_html': 'NCBI AMR genes'},
-              'listeria_resfinder':          {'schemename_html': 'ResFinder'},
-              'listeria_virulencefinder':    {'schemename_html': 'VirulenceFinder - <i>Listeria</i>'},
-              'listeria_vfdbcore':           {'schemename_html': 'Virulence Factor DB - Core'},
-              'listeria_plasmidfinder':      {'schemename_html': 'PlasmidFinder - Gram positive'},
-              'mycobacterium_pointfinder':   {'schemename_html': 'PointFinder'},
-              'neisseria_ndaro':              {'schemename_html': 'NCBI AMR genes'},
-              'neisseria_resfinder':          {'schemename_html': 'ResFinder'}
+schemedict = {'listeria':        {'listeria_ndaro':              {'schemename_html': 'NCBI AMR genes'},
+                                  'listeria_resfinder':          {'schemename_html': 'ResFinder'},
+                                  'listeria_virulencefinder':    {'schemename_html': 'VirulenceFinder - <i>Listeria</i>'},
+                                  'listeria_vfdbcore':           {'schemename_html': 'Virulence Factor DB - Core'},
+                                  'listeria_plasmidfinder':      {'schemename_html': 'PlasmidFinder - Gram positive'}},
+              'mycobacterium':   {'mycobacterium_pointfinder':   {'schemename_html': 'PointFinder'}},
+              'neisseria':       {'neisseria_ndaro':             {'schemename_html': 'NCBI AMR genes'},
+                                  'neisseria_resfinder':         {'schemename_html': 'ResFinder'}},
+              'stec':            {'stec_pointfinder':            {'schemename_html': 'PointFinder'},
+                                  'stec_ndaro':                  {'schemename_html': 'NCBI AMR genes'},
+                                  'stec_resfinder':              {'schemename_html': 'ResFinder'},
+                                  'stec_virulencefinder_ecoli':  {'schemename_html': 'VirulenceFinder - <i>E. coli</i>'},
+                                  'stec_virulencefinder_shiga':  {'schemename_html': 'VirulenceFinder - Shiga-toxin genes'},
+                                  'stec_plasmidfinder':          {'schemename_html': 'PlasmidFinder - Enterobacteriaceae'}}
               }
 
 
@@ -39,5 +47,5 @@ def tagger(htmlname):
     #Move new file
     move(abs_path, htmlfilepath)
 
-for scheme in schemedict:
-    tagger(schemedict[scheme]['schemename_html'])
+for scheme in schemedict[species]:
+    tagger(schemedict[species][scheme]['schemename_html'])
