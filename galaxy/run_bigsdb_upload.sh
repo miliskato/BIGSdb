@@ -18,7 +18,7 @@ fi
 cd /scratch/galaxy/temp
 rm -f list_of_isolates.txt
 # get species from tsv, two step process to be sure to have right line
-speciesline=$(cat $1 | awk '{print $1}' | grep -n pipeline_name | awk -F ':' '{print $1}')
+speciesline=$(cat $1 | awk '{print $1}' | grep -nw pipeline_name | awk -F ':' '{print $1}')
 species=$(cat $1 |  sed -n ${speciesline}p | awk '{print $2}' | tr '[:upper:]' '[:lower:]')
 
 if [ $species == "mycobacterium" ] || [ $species == "listeria" ] || [ $species == "neisseria" ] || [ $species == "stec" ]; then :
@@ -28,7 +28,7 @@ else
 fi
 
 # get sample_name from tsv, two step process to be sure to have right line
-nameline=$(cat $1 | awk '{print $1}' | grep -n sample | awk -F ':' '{print $1}')
+nameline=$(cat $1 | awk '{print $1}' | grep -nw sample | awk -F ':' '{print $1}')
 sample_name=$(cat $1 |  sed -n ${nameline}p | awk '{print $2}')
 
 touch list_of_isolates.txt
