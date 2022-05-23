@@ -419,4 +419,5 @@ INSERT INTO eav_fields(field, value_format, description, no_curate, no_submissio
 INSERT INTO eav_fields(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('cgMLST_differences_5', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1);
 INSERT INTO eav_fields(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('cgMLST_differences_6-10', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1);
 INSERT INTO eav_fields(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('cgMLST_differences_11-15', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1);
-INSERT INTO eav_fields(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('cgMLST_differences_15-20', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1);
+INSERT INTO eav_fields(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('cgMLST_differences_16-20', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1);
+ALTER TABLE isolates ADD uploader text;

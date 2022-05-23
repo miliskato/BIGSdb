@@ -43,9 +43,11 @@ seqdefdb = 'bigsdb_stec_seqdef'
 argument_parser = argparse.ArgumentParser()
 argument_parser.add_argument('--tsvfilepath', required=True, type=Path)
 argument_parser.add_argument('--isolatename', required=True, type=str)
+argument_parser.add_argument('--uploadermailadress', required=True, type=str)
 args = argument_parser.parse_args()
 tsvfilepath = Path(args.tsvfilepath)
 isolate_name = args.isolatename
+uploadermailadress=args.uploadermailadress
 
 # todo change curator/sender to NRC (all the 1s in inserts and updates)
 
@@ -155,9 +157,9 @@ sample_presence = cur.fetchall()
 if sample_presence[0][0] == 0:
     # sample does not exist yet, but check first if any sample exists
     cur.execute(f"INSERT INTO isolates(id, "
-                f"isolate, sender, curator, date_entered, datestamp)"
+                f"isolate, sender, curator, date_entered, datestamp, uploader)"
                 f"VALUES((SELECT CASE WHEN (SELECT(SELECT MAX(id) FROM isolates)+1) IS NULL THEN 1 ELSE (SELECT(SELECT MAX(id) FROM isolates)+1) END), "
-                f"'{isolate_name}', 1, 1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                f"'{isolate_name}', 1, 1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE), '{uploadermailadress}')")
     cur.execute(f"INSERT INTO history(isolate_id, timestamp, action, curator)"
                 f"VALUES((SELECT id FROM isolates WHERE isolate = '{isolate_name}'),(SELECT NOW()::TIMESTAMP), 'Isolate record added', 1)")
     insert_typing_results()

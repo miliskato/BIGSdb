@@ -1,7 +1,7 @@
 #!/bin/bash
 
 
-DTAPVM=
+DTAPVM='test'
 
 # will make a shell script with positional arguments
 # $1 tsvpath
