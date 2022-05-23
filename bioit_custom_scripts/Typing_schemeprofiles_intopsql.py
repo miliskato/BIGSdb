@@ -11,7 +11,8 @@ schemedict = {'listeria_mlst': {'seqdefdb': 'bigsdb_listeria_seqdef', 'dirdb': '
               'neisseria_rplf': {'dirdb': '/db/sequence_typing/neisseria/rplf', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'fields': ['rplF_id', 'genospecies'], 'schemename_bigsdb': 'rplF'},
               'neisseria_bast': {'dirdb': '/db/sequence_typing/neisseria/bast', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'fields': ['BAST', 'MenDeVAR_Bexsero_reactivity', 'MenDeVAR_Trumenba_reactivity'], 'schemename_bigsdb': 'BAST'},
               'stec_mlst_warwick': {'dirdb': '/db/sequence_typing/ecoli/mlst-warwick', 'fields': ['ST'], 'schemename_bigsdb': 'MLST_Warwick', 'seqdefdb': 'bigsdb_stec_seqdef'},
-              'stec_mlst_pasteur': {'dirdb': '/db/sequence_typing/ecoli/mlst-pasteur', 'fields': ['ST'], 'schemename_bigsdb': 'MLST_Pasteur', 'seqdefdb': 'bigsdb_stec_seqdef'}
+              'stec_mlst_pasteur': {'dirdb': '/db/sequence_typing/ecoli/mlst-pasteur', 'fields': ['ST'], 'schemename_bigsdb': 'MLST_Pasteur', 'seqdefdb': 'bigsdb_stec_seqdef'},
+              'salmonella_mlst': {'dirdb': '/db/sequence_typing/salmonella/mlst', 'fields': ['ST'], 'schemename_bigsdb': 'MLST', 'seqdefdb': 'bigsdb_salmonella_seqdef'}
               }
 
 profile_file = 'profiles.tsv'
