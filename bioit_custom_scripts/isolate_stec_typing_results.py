@@ -5,48 +5,40 @@ import argparse
 from pathlib import Path
 import json
 
-schemedict = {'listeria_mlst': {'dirdb': '/db/sequence_typing/listeria/mlst', 'tsvname': 'mlst'},
-              'listeria_cgmlst': {'dirdb': '/db/sequence_typing/listeria/cgmlst', 'tsvname': 'cgmlst'},
-              'listeria_serogroup': {'dirdb': '/db/sequence_typing/listeria/serogroup', 'tsvname': 'pcr_serogroup'},
-              'listeria_metal_detergent_resistance': {'dirdb': '/db/sequence_typing/listeria/metal_detergent_resistance', 'tsvname': 'metal_detergent'},
-              'listeria_typing_virulence': {'dirdb': '/db/sequence_typing/listeria/virulence', 'tsvname': 'typing_virulence'},
-              'listeria_antibiotic_resistance': {'dirdb': '/db/sequence_typing/listeria/antibiotic_resistance', 'tsvname': 'typing_amr'},
-              'listeria_species_confirmation': {'dirdb': '/db/sequence_typing/listeria/species_confirmation', 'tsvname': 'species_confirmation'}
+schemedict = {'stec_mlst_warwick': {'dirdb': '/db/sequence_typing/ecoli/mlst-warwick', 'tsvname': 'mlst_warwick'},
+              'stec_mlst_pasteur': {'dirdb': '/db/sequence_typing/ecoli/mlst-pasteur', 'tsvname': 'mlst_pasteur'},
+              'stec_cgmlst': {'dirdb': '/db/sequence_typing/ecoli/cgmlst', 'tsvname': 'cgmlst'},
+              'stec_pointfinder': {'dirdb': '', 'tsvname': 'pointfinder_mutations', 'schemename_html': 'PointFinder'}
               }
-genedetectiondict = {'listeria_ndaro':
-                         {'clusteredfasta': '/db/gene_detection/NCBI_AMR/ncbi_amr-clustered_80.fasta',
-                          'metadatafile': '/db/gene_detection/NCBI_AMR/mapping_full.json',
-                          'tsvname': 'hits_ncbi_amr',
-                          'schemename_bigsdb': 'NCBI_AMR',
-                          'schemename_html': 'NCBI AMR genes'},
-                     'listeria_resfinder': {
-                         'clusteredfasta': '/db/gene_detection/ResFinder/resfinder-clustered_80.fasta',
-                         'metadatafile': '/db/gene_detection/ResFinder/mapping_full.json',
-                         'tsvname': 'hits_resfinder',
-                         'schemename_bigsdb': 'ResFinder',
-                         'schemename_html': 'ResFinder'},
-                     'listeria_virulencefinder': {
-                         'clusteredfasta': '/db/gene_detection/VirulenceFinder-Listeria/virulencefinder-listeria-clustered_80.fasta',
-                         'metadatafile': '/db/gene_detection/VirulenceFinder-Listeria/mapping_full.json',
-                         'tsvname': 'hits_virulencefinder',
-                         'schemename_bigsdb': 'VirulenceFinder_Listeria',
-                         'schemename_html': 'VirulenceFinder - <i>Listeria</i>'},
-                     'listeria_vfdbcore': {
-                         'clusteredfasta': '/db/gene_detection/VFDB_core/vfdb_core-clustered_80.fasta',
-                         'metadatafile': '/db/gene_detection/VFDB_core/mapping_full.json',
-                         'tsvname': 'hits_vfdb_core',
-                         'schemename_bigsdb': 'VFDB_core',
-                         'schemename_html': 'Virulence Factor DB - Core'},
-                     'listeria_plasmidfinder': {
-                         'clusteredfasta': '/db/gene_detection/PlasmidFinder-gram_positive/plasmidfinder-gram_positive-clustered_80.fasta',
-                         'metadatafile': '/db/gene_detection/PlasmidFinder-gram_positive/mapping_full.json',
-                         'tsvname': 'hits_plasmidfinder',
-                         'schemename_bigsdb': 'PlasmidFinder_grampositive',
-                         'schemename_html': 'PlasmidFinder - Gram positive'}
+genedetectiondict = {'stec_ndaro': {'clusteredfasta': '/db/gene_detection/NCBI_AMR/ncbi_amr-clustered_80.fasta',
+                                    'metadatafile': '/db/gene_detection/NCBI_AMR/mapping_full.json',
+                                    'schemename_bigsdb': 'NCBI_AMR',
+                                    'schemename_html': 'NCBI AMR genes',
+                                    'tsvname': 'hits_ncbi_amr'},
+                     'stec_resfinder': {'clusteredfasta': '/db/gene_detection/ResFinder/resfinder-clustered_80.fasta',
+                                        'metadatafile': '/db/gene_detection/ResFinder/mapping_full.json',
+                                        'schemename_bigsdb': 'ResFinder',
+                                        'schemename_html': 'ResFinder',
+                                        'tsvname': 'hits_resfinder'},
+                    'stec_plasmidfinder': {'clusteredfasta': '/db/gene_detection/PlasmidFinder-entero/plasmidfinder-entero-clustered_80.fasta',
+                                           'metadatafile': '/db/gene_detection/PlasmidFinder-entero/mapping_full.json',
+                                           'schemename_bigsdb': 'PlasmidFinder_entero',
+                                           'schemename_html': 'PlasmidFinder - Enterobacteriaceae',
+                                           'tsvname': 'hits_plasmidfinder'},
+                    'stec_virulencefinder_ecoli': {'clusteredfasta': '/db/gene_detection/VirulenceFinder-Ecoli/virulencefinder-ecoli-clustered_80.fasta',
+                                                   'metadatafile': '/db/gene_detection/VirulenceFinder-Ecoli/mapping_full.json',
+                                                   'schemename_bigsdb': 'VirulenceFinder_Ecoli',
+                                                   'schemename_html': 'VirulenceFinder - <i>E. coli</i>',
+                                                   'tsvname': 'hits_virulencefinder'},
+                    'stec_virulencefinder_shiga': {'clusteredfasta': '/db/gene_detection/VirulenceFinder-Shiga/virulencefinder-shiga-clustered_80.fasta',
+                                                   'metadatafile': '/db/gene_detection/VirulenceFinder-Shiga/mapping_full.json',
+                                                   'schemename_bigsdb': 'VirulenceFinder_Shiga',
+                                                   'schemename_html': 'VirulenceFinder - Shiga-toxin genes',
+                                                   'tsvname': 'hits_virulencefinder_shiga'}
                      }
 
-isolatedb = 'bigsdb_listeria_isolates'
-seqdefdb= 'bigsdb_listeria_seqdef'
+isolatedb = 'bigsdb_stec_isolates'
+seqdefdb = 'bigsdb_stec_seqdef'
 
 argument_parser = argparse.ArgumentParser()
 argument_parser.add_argument('--tsvfilepath', required=True, type=Path)
@@ -72,7 +64,7 @@ cur = con.cursor()
 
 #main
 def insert_typing_results():
-    reportlink =f'<p><a href="/galaxyreports/listeria/{isolate_name}/report.html" target="_blank"> html report</a></p>'
+    reportlink =f'<p><a href="/galaxyreports/stec/{isolate_name}/report.html" target="_blank"> html report</a></p>'
     cur.execute(f"INSERT INTO eav_text(isolate_id, "
                 f"field, value)"
                 f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
@@ -81,36 +73,80 @@ def insert_typing_results():
                 f"field, value)"
                 f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
                 f"'tsv', '{reportlink.replace('html', 'tsv')}') ")
+    cur.execute(f"INSERT INTO eav_text(isolate_id, "
+                f"field, value)"
+                f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
+                f"'Serotype', '{outputtsvdict['serotype']}') ")
     dirlist = [] #dirlist serves to not insert duplicates (creates error in sql), for Listeria e.g. prs and prfA are included in two schemes
     for scheme in schemedict:
-        dirs = next(os.walk(schemedict[scheme]['dirdb']))[1]
-        for dir in dirs:
-            if not dir.startswith('.') and dir not in dirlist:
-                dirlist.append(dir)
-                result = outputtsvdict['-'.join([schemedict[scheme]['tsvname'],dir])].split(',')
-                if result[2] == '100.00' and result[3] != '-' and eval(result[3]) == 1.0:
-                    allele_id = int(result[1])
-                    cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
-                                f"allele_id, status, method, sender, "
-                                f"curator, date_entered, datestamp) "
-                                f"VALUES('{dir}', (SELECT id FROM isolates WHERE isolate='{isolate_name}'), "
-                                f"'{allele_id}', 'confirmed', 'automatic', 1, "
-                                f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
-
-                # the elif below is specific to Listeria pcr serogroup where 0's are included in the profiles
-                # (absent loci are required to define profiles)
-                # Bigsdb creates a null allele itself in the seqdef database
-                elif result[2] == '-' and result[3] == '-' and dir in next(os.walk(schemedict['listeria_serogroup']['dirdb']))[1]:
-                    allele_id = 0
-                    cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
-                                f"allele_id, status, method, sender, "
-                                f"curator, date_entered, datestamp) "
-                                f"VALUES('{dir}', (SELECT id FROM isolates WHERE isolate='{isolate_name}'), "
-                                f"'{allele_id}', 'confirmed', 'automatic', 1, "
-                                f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
-
-                else:
-                    continue
+        if schemedict[scheme]['dirdb'] != '':
+            dirs = next(os.walk(schemedict[scheme]['dirdb']))[1]
+            for dir in dirs:
+                if not dir.startswith('.') and dir not in dirlist:
+                    dirlist.append(dir)
+                    result = outputtsvdict['-'.join([schemedict[scheme]['tsvname'],dir])].split(',')
+                    if result[2] == '100.00' and result[3] != '-' and eval(result[3]) == 1.0:
+                        allele_id = int(result[1])
+                        cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
+                                    f"allele_id, status, method, sender, "
+                                    f"curator, date_entered, datestamp) "
+                                    f"VALUES('{dir}', (SELECT id FROM isolates WHERE isolate='{isolate_name}'), "
+                                    f"'{allele_id}', 'confirmed', 'automatic', 1, "
+                                    f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                    else:
+                        continue
+        elif schemedict[scheme]['dirdb'] == '':
+            if scheme == 'stec_pointfinder':
+                # for pointfinder, only hits that infer resistance are of importance, other hits dont give any information.
+                listofhits = outputtsvdict[schemedict[scheme]['tsvname']]
+                # this might look like this: [["drrA p.H309D", "CAC -> GAC", "H -> D", "Unknown", "-"], ["embA p.P958Q", "CCG -> CAG", "P -> Q", "Unknown", "-"], ["embB p.N13S", "AAT -> AGT", "N -> S", "Unknown", "-"], ["embB p.E378A", "GAG -> GCG", "E -> A", "Unknown", "-"], ["embC p.T270I", "ACC -> ATC", "T -> I", "Unknown", "-"], ["gyrA p.E21Q", "GAG -> CAG", "E -> Q", "Unknown", "-"], ["gyrA p.S95T", "AGC -> ACC", "S -> T", "Unknown", "-"], ["gyrA p.D639A", "GAC -> GCC", "D -> A", "Unknown", "-"], ["gyrA p.G668D", "GGC -> GAC", "G -> D", "Unknown", "-"], ["gyrB p.A403S", "GCG -> TCG", "A -> S", "Unknown", "-"], ["iniA p.N88S", "AAT -> AGT", "N -> S", "Unknown", "-"], ["iniA p.H481Q", "CAT -> CAG", "H -> Q", "Unknown", "-"], ["katG p.R463L", "CGG -> CTG", "R -> L", "Unknown", "-"], ["nuoA n.-95T>G", "T -> G", "Promoter mutations", "Unknown", "-"], ["pncA p.H57D", "CAC -> GAC", "H -> D", "PYRAZINAMIDE", "19209951"], ["rpsA p.A440T", "GCG -> ACG", "A -> T", "Unknown", "-"], ["ubiA p.E149D", "GAA -> GAC", "E -> D", "Unknown", "-"]]
+                if listofhits != '[]':
+                    eavhtmltable = '<table class="data"><tr><th>Hit</th><th>Antibiotic</th></tr>'
+                    y = 0
+                    con2 = psycopg2.connect(database=f"{seqdefdb}", user='apache', password='remote',
+                                            host='127.0.0.1', port='')
+                    cur2 = con2.cursor()
+                    con2.autocommit = True
+                    while y <= (len((json.loads(listofhits))) - 1):
+                        hit = (json.loads(listofhits))[y]
+                        if hit[-2] != "Unknown":
+                            # Seeing as the allele db of pointfinder is empty at the beginning because the db is too hard to understand, we gradually add alleles.
+                            # sometimes a mutation will give resistance to more than 1 AB
+                            antibiotics = hit[-2].split(',')
+                            for antibiotic in antibiotics:
+                                antibiotic_reformatted = '_'.join(['POINTFINDER', antibiotic.replace('-', '_').replace(' ', '_').upper()])
+                                print(antibiotic)
+                                print(antibiotic_reformatted)
+                                mutation = hit[0].replace('.', '_').replace(' ', '_')
+                                eavhtmltable = eavhtmltable + ''.join(
+                                    ['<tr><td><a href="/galaxyreports/stec/', isolate_name, '/report.html#',
+                                     schemedict[scheme]['schemename_html'], '" target="_blank">',
+                                     hit[0], '</a></td>'])
+                                eavhtmltable = eavhtmltable + ''.join(['<td>', antibiotic, '</td></tr>'])
+                                cur2.execute(f"SELECT allele_id FROM sequences WHERE allele_id = '{mutation}' and locus = '{antibiotic_reformatted}'")
+                                present = cur2.fetchall()
+                                if present == []:
+                                    cur2.execute(f"SELECT sequence FROM sequences WHERE locus  ='{antibiotic_reformatted}' ORDER BY CHAR_LENGTH(sequence) LIMIT 1")
+                                    longest_dummy_sequence = cur2.fetchall()
+                                    if longest_dummy_sequence == []:
+                                        dummysequence = 'TAG'
+                                    else:
+                                        dummysequence = ''.join([longest_dummy_sequence[0][0], 'TAG'])
+                                    cur2.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status,sender,curator, date_entered, datestamp) \
+                                                                                   VALUES('{antibiotic_reformatted}','{mutation}','{dummysequence}','unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                                cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
+                                            f"allele_id, status, method, sender, "
+                                            f"curator, date_entered, datestamp) "
+                                            f"VALUES('{antibiotic_reformatted}', (SELECT id FROM isolates WHERE isolate='{isolate_name}'), "
+                                            f"'{mutation}', 'confirmed', 'automatic', 1, "
+                                            f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                        y += 1
+                    eavhtmltable = eavhtmltable + '</table>'
+                    cur.execute(f"INSERT INTO eav_text(isolate_id, "
+                                f"field, value)"
+                                f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
+                                f"'pointfinder_hits', '{eavhtmltable}') ")
+                    con2.close()
 
     cur.execute(f"INSERT INTO history(isolate_id, timestamp, action, curator)"
                 f"VALUES((SELECT id FROM isolates WHERE isolate = '{isolate_name}'),(SELECT NOW()::TIMESTAMP), 'Typing results inserted', 1)")
@@ -174,7 +210,7 @@ for scheme in genedetectiondict:
         if line.startswith('>'):
             # key is sequencename from previous dict, value is cluster
             clusterdict[sequencenamedict[line.split('__')[2]]] = '_'.join([genedetectiondict[scheme]['schemename_bigsdb'], line.split('__')[1]])
-            # e.g. sequencenamedict['NG_047553.11567214_ble'] = 'NCBI_AMR_Cluster_0'
+            # e.g. sequencenamedict['NG_047553.11567214_ble'] = 'NCBIAMR_Cluster_0'
 
     con = psycopg2.connect(database=f"{isolatedb}", user="apache", password="remote",
                            host="127.0.0.1", port="")
@@ -203,10 +239,7 @@ for scheme in genedetectiondict:
             # append Cluster
             eavhtmltable= eavhtmltable + ''.join(['<tr><td>', ''.join(['GeneCluster', clusterhit.split('Cluster')[1]]), '</td>'])
             # append Locus
-            if scheme != 'listeria_vfdbcore':
-                eavhtmltable = eavhtmltable + ''.join(['<td><a href="/galaxyreports/listeria/', isolate_name, '/report.html#', genedetectiondict[scheme]['schemename_html'], '" target="_blank">', (json.loads(listofhits))[y][1], '</a></td></tr>'])
-            else:
-                eavhtmltable = eavhtmltable + ''.join(['<td><a href="/galaxyreports/listeria/', isolate_name, '/report.html#', genedetectiondict[scheme]['schemename_html'], '" target="_blank">', (json.loads(listofhits))[y][-2], '</a></td></tr>'])
+            eavhtmltable = eavhtmltable + ''.join(['<td><a href="/galaxyreports/stec/', isolate_name, '/report.html#', genedetectiondict[scheme]['schemename_html'], '" target="_blank">', (json.loads(listofhits))[y][1], '</a></td></tr>'])
 
             if clusterhit not in clusterhitlist:
                 cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
@@ -216,7 +249,6 @@ for scheme in genedetectiondict:
                             f"1, 'confirmed', 'automatic', 1, "
                             f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
             clusterhitlist.append(clusterhit)
-
             # Part 2 for the AB schemes
             if genedetectiondict[scheme]['schemename_bigsdb'] == 'NCBI_AMR':
                     ncbi_class = ncbi_ab_class_dict[hit]
@@ -434,7 +466,7 @@ for scheme in genedetectiondict:
                                     f"'{genehit}', 'confirmed', 'automatic', 1, "
                                     f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
             y += 1
-        eavhtmltable = eavhtmltable + '</table>'
+        eavhtmltable= eavhtmltable + '</table>'
         cur.execute(f"INSERT INTO eav_text(isolate_id, "
                     f"field, value)"
                     f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
@@ -442,6 +474,7 @@ for scheme in genedetectiondict:
         con2.close()
 cur.execute(f"INSERT INTO history(isolate_id, timestamp, action, curator)"
             f"VALUES((SELECT id FROM isolates WHERE isolate = '{isolate_name}'),(SELECT NOW()::TIMESTAMP), 'Gene detection results inserted', 1)")
+
 
 # close db connection
 con.close()
