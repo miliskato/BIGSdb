@@ -180,7 +180,7 @@ for scheme in genedetectiondict:
         # line looks like this: >0__Cluster_0__seq_4648__seq_4648
         if line.startswith('>'):
             # key is sequencename from previous dict, value is cluster
-            clusterdict[sequencenamedict[line.split('__')[2]]] = '_'.join([genedetectiondict[scheme]['schemename_bigsdb'], line.split('__')[1]])
+            clusterdict[sequencenamedict[line.split('__')[2]]] = '_'.join([genedetectiondict[scheme]['schemename_bigsdb'], ''.join(['Gene', line.split('__')[1]])])
             # e.g. sequencenamedict['NG_047553.11567214_ble'] = 'NCBIAMR_Cluster_0'
 
     con = psycopg2.connect(database=f"{isolatedb}", user="apache", password="remote",
