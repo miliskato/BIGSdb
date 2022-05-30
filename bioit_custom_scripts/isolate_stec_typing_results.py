@@ -153,12 +153,10 @@ def insert_typing_results():
                                         host='127.0.0.1', port='')
                 cur2 = con2.cursor()
                 con2.autocommit = True
-
-                con2.close()
                 serotypedict = {}
                 serotypedict['O_antigen'] = outputtsvdict['serotype'].split(':')[0]
                 serotypedict['H_antigen'] = outputtsvdict['serotype'].split(':')[1]
-                for antigen, antigen_allele in serotypedict:
+                for antigen, antigen_allele in serotypedict.items():
                     if antigen_allele != '-':
                         cur2.execute(f"SELECT allele_id FROM sequences WHERE allele_id = '{antigen_allele}' and locus = '{antigen}'")
                         present = cur2.fetchall()
@@ -177,6 +175,7 @@ def insert_typing_results():
                                     f"VALUES('{antigen}', (SELECT id FROM isolates WHERE isolate='{isolate_name}'), "
                                     f"'{antigen_allele}', 'confirmed', 'automatic', 1, "
                                     f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                con2.close()
 
     cur.execute(f"INSERT INTO history(isolate_id, timestamp, action, curator)"
                 f"VALUES((SELECT id FROM isolates WHERE isolate = '{isolate_name}'),(SELECT NOW()::TIMESTAMP), 'Typing results inserted', 1)")
