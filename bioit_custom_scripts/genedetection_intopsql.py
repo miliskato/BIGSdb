@@ -160,7 +160,7 @@ for scheme in schemedict:
             sequencefile[x]['accession'] = ""
             print(sequencefile[x]['accession'])
         sequencenamedict[x] = '_'.join([(sequencefile[x]['accession']), (sequencefile[x]['allele'])])
-        if scheme != 'vfdb_core':
+        if schemedict[scheme]['schemename_bigsdb'] != 'VFDB_core':
             descriptiondict['_'.join([schemedict[scheme]['schemename_bigsdb'], (''.join(['Gene', sequencefile[x]['cluster']]))])].append((sequencefile[x]['allele']).replace("'",""))
         else:
             descriptiondict['_'.join([schemedict[scheme]['schemename_bigsdb'], (''.join(['Gene',sequencefile[x]['cluster']]))])].append((sequencefile[x]['gene']).replace("'", ""))
