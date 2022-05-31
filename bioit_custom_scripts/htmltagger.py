@@ -11,16 +11,16 @@ args = argument_parser.parse_args()
 htmlfilepath = Path(args.htmlfilepath)
 species = args.species
 
-schemedict = {'listeria':        {'listeria_ndaro':              {'schemename_html': 'NCBI AMR genes'},
+schemedict = {'listeria':        {'listeria_ndaro':              {'schemename_html': 'NCBI AMR genes (NDARO)'},
                                   'listeria_resfinder':          {'schemename_html': 'ResFinder'},
                                   'listeria_virulencefinder':    {'schemename_html': 'VirulenceFinder - <i>Listeria</i>'},
                                   'listeria_vfdbcore':           {'schemename_html': 'Virulence Factor DB - Core'},
                                   'listeria_plasmidfinder':      {'schemename_html': 'PlasmidFinder - Gram positive'}},
               'mycobacterium':   {'mycobacterium_pointfinder':   {'schemename_html': 'PointFinder'}},
-              'neisseria':       {'neisseria_ndaro':             {'schemename_html': 'NCBI AMR genes'},
+              'neisseria':       {'neisseria_ndaro':             {'schemename_html': 'NCBI AMR genes (NDARO)'},
                                   'neisseria_resfinder':         {'schemename_html': 'ResFinder'}},
               'stec':            {'stec_pointfinder':            {'schemename_html': 'PointFinder'},
-                                  'stec_ndaro':                  {'schemename_html': 'NCBI AMR genes'},
+                                  'stec_ndaro':                  {'schemename_html': 'NCBI AMR genes (NDARO)'},
                                   'stec_resfinder':              {'schemename_html': 'ResFinder'},
                                   'stec_virulencefinder_ecoli':  {'schemename_html': 'VirulenceFinder - <i>E. coli</i>'},
                                   'stec_virulencefinder_shiga':  {'schemename_html': 'VirulenceFinder - Shiga-toxin genes'},
