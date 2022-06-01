@@ -24,5 +24,5 @@
 <field type="int" required="yes" length="4" maindisplay="no" group ="Curation history" comments="curator who entered data,link to users">curator</field>
 <field type="date" required="yes" length="10" maindisplay="no" group ="Curation history" comments="date first entered">date_entered</field>
 <field type="date" required="yes" length="10" maindisplay="no" group ="Curation history" comments="date last modified">datestamp</field>
-    <field type="text" required="yes" length="20" maindisplay="no" group ="Curation history" comments="uploader through Galaxy">uploader</field>
+<field type="text" required="yes" length="20" maindisplay="no" group ="Curation history" comments="uploader through Galaxy">uploader</field>
 </db>

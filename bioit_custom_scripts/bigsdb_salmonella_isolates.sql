@@ -222,14 +222,18 @@ INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT 
 INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name=''), 'SEQSERO2_KMERREAD_H1_ANTIGEN', 1, (SELECT CURRENT_DATE));
 INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name=''), 'SEQSERO2_KMERREAD_H2_ANTIGEN', 1, (SELECT CURRENT_DATE));
 --cgMLST
-INSERT INTO eav_fields(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('cgMLST_differences_0', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1);
-INSERT INTO eav_fields(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('cgMLST_differences_1', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1);
-INSERT INTO eav_fields(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('cgMLST_differences_2', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1);
-INSERT INTO eav_fields(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('cgMLST_differences_3', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1);
-INSERT INTO eav_fields(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('cgMLST_differences_4', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1);
-INSERT INTO eav_fields(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('cgMLST_differences_5', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1);
-INSERT INTO eav_fields(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('cgMLST_differences_6-10', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1);
-INSERT INTO eav_fields(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('cgMLST_differences_11-15', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1);
-INSERT INTO eav_fields(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('cgMLST_differences_15-20', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1);
+-- INSERT INTO eav_fields(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('cgMLST_differences_0', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1);
+-- INSERT INTO eav_fields(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('cgMLST_differences_1', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1);
+-- INSERT INTO eav_fields(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('cgMLST_differences_2', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1);
+-- INSERT INTO eav_fields(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('cgMLST_differences_3', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1);
+-- INSERT INTO eav_fields(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('cgMLST_differences_4', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1);
+-- INSERT INTO eav_fields(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('cgMLST_differences_5', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1);
+-- INSERT INTO eav_fields(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('cgMLST_differences_6-10', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1);
+-- INSERT INTO eav_fields(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('cgMLST_differences_11-15', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1);
+-- INSERT INTO eav_fields(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('cgMLST_differences_15-20', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1);
 --uploader
 ALTER TABLE isolates ADD uploader text;
+-- AMR new fields
+INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, curator, date_entered, datestamp, isolate_display, main_display, query_field, query_status, analysis, recommended, quality_metric, dbase_name, dbase_id) VALUES(15, 'NCBI_AMR_AB_CLASS', 'NDARO AMR database AB classes, https://www.ncbi.nlm.nih.gov/pathogens/refgene/#type:AMR', 't', 15, 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE), 't', 't', 't', 'f', 't', 't', 'f', 'bigsdb_listeria_seqdef', 15);
+INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, curator, date_entered, datestamp, isolate_display, main_display, query_field, query_status, analysis, recommended, quality_metric, dbase_name, dbase_id) VALUES(16, 'NCBI_AMR_AB', 'NDARO AMR database AB subclasses, https://www.ncbi.nlm.nih.gov/pathogens/refgene/#type:AMR', 't', 16, 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE), 't', 't', 't', 'f', 't', 't', 'f', 'bigsdb_listeria_seqdef', 16);
+INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, curator, date_entered, datestamp, isolate_display, main_display, query_field, query_status, analysis, recommended, quality_metric, dbase_name, dbase_id) VALUES(17, 'ResFinder_AB', 'ResFinder database', 't', 17, 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE), 't', 't', 't', 'f', 't', 't', 'f', 'bigsdb_listeria_seqdef', 17);

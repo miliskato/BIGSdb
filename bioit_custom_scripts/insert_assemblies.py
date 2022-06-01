@@ -8,7 +8,7 @@ import os
 
 argument_parser = argparse.ArgumentParser()
 argument_parser.add_argument('--fastafilepath', required=True, type=str)
-argument_parser.add_argument('--species', required=True, type=str, choices=['mycobacterium', 'listeria', 'neisseria', 'stec'])
+argument_parser.add_argument('--species', required=True, type=str, choices=['mycobacterium', 'listeria', 'neisseria', 'stec', 'salmonella'])
 argument_parser.add_argument('--isolatename', required=True, type=str)
 args = argument_parser.parse_args()
 fastafile = args.fastafilepath

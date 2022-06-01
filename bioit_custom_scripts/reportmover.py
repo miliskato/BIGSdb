@@ -6,7 +6,7 @@ import subprocess
 
 argument_parser = argparse.ArgumentParser()
 argument_parser.add_argument('--reportdirectory', required=True, type=str)
-argument_parser.add_argument('--species', required=True, type=str, choices=['mycobacterium', 'listeria', 'neisseria', 'stec'])
+argument_parser.add_argument('--species', required=True, type=str, choices=['mycobacterium', 'listeria', 'neisseria', 'stec', 'salmonella'])
 args = argument_parser.parse_args()
 reportdirectory = args.reportdirectory
 species = args.species

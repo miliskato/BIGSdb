@@ -9,6 +9,7 @@
   git:
     repo: "https://biot_ro:{{ secret_bioit_git_ro_password }}@git.sciensano.be/bioit/BIGSdb.git"
     dest: "{{ bioit_bigs_home }}"
+    version: "Bigs-dev"
 
 # bij host_vars staat postgresql user wachtwoord https://bioit.sciensano.be/wiki/ansible-vault: postgresql_postgres_user_password: "olqYDY3f8RPHwOjlr4hH"
 # /etc/ansible/group_vars/bioit$ cat git.yml
@@ -368,6 +369,8 @@
         - bigsdb_neisseria_isolates
         - bigsdb_stec_seqdef
         - bigsdb_stec_isolates
+        - bigsdb_salmonella_seqdef
+        - bigsdb_salmonella_isolates
       become_user: postgres
 
     - name: Check if table in bigsdb_listeria_seqdef exists
@@ -401,6 +404,14 @@
         query: SELECT EXISTS ( SELECT FROM information_schema.tables WHERE table_schema LIKE 'public' AND table_type LIKE 'BASE TABLE' AND table_name = 'sequences' )
       register: query_result_neisseria_seqdef
       become_user: postgres
+
+    - name: Check if table in bigsdb_salmonella_seqdef exists
+        postgresql_query:
+          db: bigsdb_salmonella_seqdef
+          login_user: postgres
+          query: SELECT EXISTS ( SELECT FROM information_schema.tables WHERE table_schema LIKE 'public' AND table_type LIKE 'BASE TABLE' AND table_name = 'sequences' )
+        register: query_result_salmonella_seqdef
+        become_user: postgres
 
     - name: Format listeria databases
       postgresql_query:
@@ -442,6 +453,19 @@
           - { db: bigsdb_neisseria_isolates, script: "{{ bioit_bigs_home }}/sql/isolatedb.sql" }
       when: query_result_neisseria_seqdef.query_result[0]['exists'] == false
       become_user: postgres
+
+    - name: Format salmonella databases
+        postgresql_query:
+          db: "{{ item.db }}"
+          login_user: postgres
+          path_to_script: "{{ item.script }}"
+        loop: "{{ script_list|flatten(levels=1) }}"
+        vars:
+          script_list:
+            - { db: bigsdb_salmonella_seqdef, script: "{{ bioit_bigs_home }}/sql/seqdef.sql" }
+            - { db: bigsdb_salmonella_isolates, script: "{{ bioit_bigs_home }}/sql/isolatedb.sql" }
+        when: query_result_salmonella_seqdef.query_result[0]['exists'] == false
+        become_user: postgres
 
     - name: Format stec databases
       postgresql_query:
@@ -514,6 +538,8 @@
         - bigsdb_neisseria_isolates
         - bigsdb_stec_seqdef
         - bigsdb_stec_isolates
+        - bigsdb_salmonella_seqdef
+        - bigsdb_salmonella_isolates
       when: query_result_users.query_result[0]['exists'] == false
       become_user: postgres
         # this when could be changed but should not matter too much
@@ -529,6 +555,18 @@
       when: query_result_neisseria_seqdef.query_result[0]['exists'] == false
       become_user: postgres
       # this when should be changed but will work when adding new db
+
+    - name: add bioit user to all salmonella species db
+        postgresql_query:
+          db: "{{ item }}"
+          login_user: postgres
+          query: INSERT INTO users (id, user_name, surname, first_name, email, affiliation, status, date_entered, datestamp, curator) VALUES (1,'bioit','Sciensano','Bioit', 'bioit@sciensano.be','Sciensano','admin','now','now', 1)
+        loop:
+          - bigsdb_salmonella_seqdef
+          - bigsdb_salmonella_isolates
+        when: query_result_salmonella_seqdef.query_result[0]['exists'] == false
+        become_user: postgres
+        # this when should be changed but will work when adding new db
 
     - name: add bioit user to all stec species db
       postgresql_query:
@@ -568,6 +606,18 @@
       become_user: postgres
       # this when should be changed but will work when adding new db
 
+    - name: add user db to salmonella species db
+        postgresql_query:
+          db: "{{ item }}"
+          login_user: postgres
+          query: INSERT INTO user_dbases (id, name, dbase_name, curator, datestamp) VALUES (1, '', 'global_bigsdb_users', 1, 'now')
+        loop:
+          - bigsdb_salmonella_seqdef
+          - bigsdb_salmonella_isolates
+        when: query_result_salmonella_seqdef.query_result[0]['exists'] == false
+        become_user: postgres
+        # this when should be changed but will work when adding new db
+
     - name: add user db to stec species db
       postgresql_query:
         db: "{{ item }}"
@@ -605,6 +655,18 @@
       when: query_result_neisseria_seqdef.query_result[0]['exists'] == false
       become_user: postgres
       # this when should be changed but will work when adding new db
+
+    - name: update users to be from user_db, this order is required because else fails due to keys
+        postgresql_query:
+          db: "{{ item }}"
+          login_user: postgres
+          query: UPDATE users SET user_db=1 WHERE user_name='bioit'
+        loop:
+          - bigsdb_salmonella_seqdef
+          - bigsdb_salmonella_isolates
+        when: query_result_salmonella_seqdef.query_result[0]['exists'] == false
+        become_user: postgres
+        # this when should be changed but will work when adding new db
 
     - name: update users to be from user_db, this order is required because else fails due to keys
       postgresql_query:
@@ -698,6 +760,19 @@
       become_user: postgres
       # this when should be changed but will work when adding new db
 
+    - name: insert db salmonella to be shown in rest
+        postgresql_query:
+          db: bigsdb_rest
+          login_user: postgres
+          query: "{{ item }}"
+        loop:
+          - INSERT INTO resources (dbase_config,description) VALUES ('bigsdb_salmonella_seqdef','salmonella sequence/profile definitions'), ('bigsdb_salmonella_isolates','salmonella isolates')
+          - INSERT INTO groups (name,description) VALUES ('salmonella','salmonella')
+          - INSERT INTO group_resources (group_name,dbase_config) VALUES ('salmonella','bigsdb_salmonella_seqdef'), ('salmonella','bigsdb_salmonella_isolates')
+        when: query_result_nsalmonella_seqdef.query_result[0]['exists'] == false
+        become_user: postgres
+        # this when should be changed but will work when adding new db
+
     - name: insert db stec to be shown in rest
       postgresql_query:
         db: bigsdb_rest
@@ -737,6 +812,14 @@
       become_user: postgres
 
     - name: Check if table that is created in sql files below exists
+        postgresql_query:
+          db: bigsdb_salmonella_isolates
+          login_user: postgres
+          query: SELECT EXISTS ( SELECT FROM information_schema.tables WHERE table_schema LIKE 'public' AND table_type LIKE 'BASE TABLE' AND table_name = 'eav_text_hidden' )
+        register: query_result_eavtexthiddensalmonella
+        become_user: postgres
+
+    - name: Check if table that is created in sql files below exists
       postgresql_query:
         db: bigsdb_stec_isolates
         login_user: postgres
@@ -773,6 +856,19 @@
           - { db: bigsdb_neisseria_isolates, script: "{{ bioit_bigs_home }}/bioit_custom_scripts/bigsdb_neisseria_isolates.sql" }
       when: query_result_eavtexthiddenneisseria.query_result[0]['exists'] == false
       become_user: postgres
+
+    - name: Format salmonella species databases
+        postgresql_query:
+          login_user: postgres
+          db: "{{ item.db }}"
+          path_to_script: "{{ item.script }}"
+        loop: "{{ list_script|flatten(levels=1) }}"
+        vars:
+          list_script:
+            - { db: bigsdb_salmonella_seqdef, script: "{{ bioit_bigs_home }}/bioit_custom_scripts/bigsdb_salmonella_seqdef.sql" }
+            - { db: bigsdb_salmonella_isolates, script: "{{ bioit_bigs_home }}/bioit_custom_scripts/bigsdb_salmonella_isolates.sql" }
+        when: query_result_eavtexthiddennsalmonella.query_result[0]['exists'] == false
+        become_user: postgres
 
     - name: Format stec species databases
       postgresql_query:
@@ -826,6 +922,13 @@
         state: directory
         mode: "u=rwx,g=rwx,o=rx"
         owner: www-data
+
+    - name: create salmonella dir
+        ansible.builtin.file:
+          path: /reports/salmonella
+          state: directory
+          mode: "u=rwx,g=rwx,o=rx"
+          owner: www-data
 
     - name: create stec dir
       ansible.builtin.file:
