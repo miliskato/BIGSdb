@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="a7ad27cf-a054-4fdb-92ad-7a3d528574ba" name="bioit-bigs-dev">
+        <fileTransfer rootFolder="/home/bebergk" accessType="SFTP" host="bioit-bigs-dev" port="22" sshConfigId="d12f0a2d-2c99-4886-a940-b99861d40d00" sshConfig="bebergk@bioit-bigs-dev:22 key" keyPair="true">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" keepAliveTimeout="0" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>
