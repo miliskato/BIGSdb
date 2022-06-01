@@ -173,8 +173,8 @@ for scheme in genedetectiondict:
         # line looks like this: >0__Cluster_0__seq_4648__seq_4648
         if line.startswith('>'):
             # key is sequencename from previous dict, value is cluster
-            clusterdict[sequencenamedict[line.split('__')[2]]] = '_'.join([genedetectiondict[scheme]['schemename_bigsdb'], line.split('__')[1]])
-            # e.g. sequencenamedict['NG_047553.11567214_ble'] = 'NCBI_AMR_Cluster_0'
+            clusterdict[sequencenamedict[line.split('__')[2]]] = '_'.join([genedetectiondict[scheme]['schemename_bigsdb'], ''.join(['Gene', line.split('__')[1]])])
+            # e.g. sequencenamedict['NG_047553.11567214_ble'] = 'NCBI_AMR_GeneCluster_0'
 
     con = psycopg2.connect(database=f"{isolatedb}", user="apache", password="remote",
                            host="127.0.0.1", port="")
@@ -237,7 +237,7 @@ for scheme in genedetectiondict:
                         allelepresent = cur2.fetchall()
                         if allelepresent[0][0] == 0:
                             cur2.execute(
-                                f"SELECT sequence FROM sequences WHERE locus='{ncbi_class}' ORDER BY CHAR_LENGTH(sequence) LIMIT 1")
+                                f"SELECT sequence FROM sequences WHERE locus='{ncbi_class}' ORDER BY CHAR_LENGTH(sequence) DESC LIMIT 1")
                             longest_dummy_sequence = cur2.fetchall()
                             if longest_dummy_sequence == []:
                                 dummysequence = 'TAG'
@@ -301,7 +301,7 @@ for scheme in genedetectiondict:
                             allelepresent = cur2.fetchall()
                             if allelepresent[0][0] == 0:
                                 cur2.execute(
-                                    f"SELECT sequence FROM sequences WHERE locus='{ABhit}' ORDER BY CHAR_LENGTH(sequence) LIMIT 1")
+                                    f"SELECT sequence FROM sequences WHERE locus='{ABhit}' ORDER BY CHAR_LENGTH(sequence) DESC LIMIT 1")
                                 longest_dummy_sequence = cur2.fetchall()
                                 if longest_dummy_sequence == []:
                                     dummysequence = 'TAG'
@@ -380,7 +380,7 @@ for scheme in genedetectiondict:
                         allelepresent = cur2.fetchall()
                         if allelepresent[0][0] == 0:
                             cur2.execute(
-                                f"SELECT sequence FROM sequences WHERE locus='{ABhit}' ORDER BY CHAR_LENGTH(sequence) LIMIT 1")
+                                f"SELECT sequence FROM sequences WHERE locus='{ABhit}' ORDER BY CHAR_LENGTH(sequence) DESC LIMIT 1")
                             longest_dummy_sequence = cur2.fetchall()
                             if longest_dummy_sequence == []:
                                 dummysequence = 'TAG'

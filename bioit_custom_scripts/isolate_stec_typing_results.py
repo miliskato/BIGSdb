@@ -8,7 +8,8 @@ import json
 schemedict = {'stec_mlst_warwick': {'dirdb': '/db/sequence_typing/ecoli/mlst-warwick', 'tsvname': 'mlst_warwick'},
               'stec_mlst_pasteur': {'dirdb': '/db/sequence_typing/ecoli/mlst-pasteur', 'tsvname': 'mlst_pasteur'},
               'stec_cgmlst': {'dirdb': '/db/sequence_typing/ecoli/cgmlst', 'tsvname': 'cgmlst'},
-              'stec_pointfinder': {'dirdb': '', 'tsvname': 'pointfinder_mutations', 'schemename_html': 'PointFinder'}
+              'stec_pointfinder': {'dirdb': '', 'tsvname': 'pointfinder_mutations', 'schemename_html': 'PointFinder'},
+              'stec_serotype': {'dirdb': '', 'tsvname': 'serotype'}
               }
 genedetectiondict = {'stec_ndaro': {'clusteredfasta': '/db/gene_detection/NCBI_AMR/ncbi_amr-clustered_80.fasta',
                                     'metadatafile': '/db/gene_detection/NCBI_AMR/mapping_full.json',
@@ -126,7 +127,7 @@ def insert_typing_results():
                                 cur2.execute(f"SELECT allele_id FROM sequences WHERE allele_id = '{mutation}' and locus = '{antibiotic_reformatted}'")
                                 present = cur2.fetchall()
                                 if present == []:
-                                    cur2.execute(f"SELECT sequence FROM sequences WHERE locus  ='{antibiotic_reformatted}' ORDER BY CHAR_LENGTH(sequence) LIMIT 1")
+                                    cur2.execute(f"SELECT sequence FROM sequences WHERE locus  ='{antibiotic_reformatted}' ORDER BY CHAR_LENGTH(sequence) DESC LIMIT 1")
                                     longest_dummy_sequence = cur2.fetchall()
                                     if longest_dummy_sequence == []:
                                         dummysequence = 'TAG'
@@ -147,6 +148,34 @@ def insert_typing_results():
                                 f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
                                 f"'pointfinder_hits', '{eavhtmltable}') ")
                     con2.close()
+            elif scheme == 'stec_serotype':
+                con2 = psycopg2.connect(database=f"{seqdefdb}", user='apache', password='remote',
+                                        host='127.0.0.1', port='')
+                cur2 = con2.cursor()
+                con2.autocommit = True
+                serotypedict = {}
+                serotypedict['O_antigen'] = outputtsvdict['serotype'].split(':')[0]
+                serotypedict['H_antigen'] = outputtsvdict['serotype'].split(':')[1]
+                for antigen, antigen_allele in serotypedict.items():
+                    if antigen_allele != '-':
+                        cur2.execute(f"SELECT allele_id FROM sequences WHERE allele_id = '{antigen_allele}' and locus = '{antigen}'")
+                        present = cur2.fetchall()
+                        if present == []:
+                            cur2.execute(f"SELECT sequence FROM sequences WHERE locus  ='{antigen}' ORDER BY CHAR_LENGTH(sequence) DESC LIMIT 1")
+                            longest_dummy_sequence = cur2.fetchall()
+                            if longest_dummy_sequence == []:
+                                dummysequence = 'TAG'
+                            else:
+                                dummysequence = ''.join([longest_dummy_sequence[0][0], 'TAG'])
+                            cur2.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status,sender,curator, date_entered, datestamp) \
+                                                                           VALUES('{antigen}','{antigen_allele}','{dummysequence}','unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                        cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
+                                    f"allele_id, status, method, sender, "
+                                    f"curator, date_entered, datestamp) "
+                                    f"VALUES('{antigen}', (SELECT id FROM isolates WHERE isolate='{isolate_name}'), "
+                                    f"'{antigen_allele}', 'confirmed', 'automatic', 1, "
+                                    f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                con2.close()
 
     cur.execute(f"INSERT INTO history(isolate_id, timestamp, action, curator)"
                 f"VALUES((SELECT id FROM isolates WHERE isolate = '{isolate_name}'),(SELECT NOW()::TIMESTAMP), 'Typing results inserted', 1)")
@@ -209,7 +238,7 @@ for scheme in genedetectiondict:
         # line looks like this: >0__Cluster_0__seq_4648__seq_4648
         if line.startswith('>'):
             # key is sequencename from previous dict, value is cluster
-            clusterdict[sequencenamedict[line.split('__')[2]]] = '_'.join([genedetectiondict[scheme]['schemename_bigsdb'], line.split('__')[1]])
+            clusterdict[sequencenamedict[line.split('__')[2]]] = '_'.join([genedetectiondict[scheme]['schemename_bigsdb'], ''.join(['Gene', line.split('__')[1]])])
             # e.g. sequencenamedict['NG_047553.11567214_ble'] = 'NCBIAMR_Cluster_0'
 
     con = psycopg2.connect(database=f"{isolatedb}", user="apache", password="remote",
@@ -269,7 +298,7 @@ for scheme in genedetectiondict:
                         allelepresent = cur2.fetchall()
                         if allelepresent[0][0] == 0:
                             cur2.execute(
-                                f"SELECT sequence FROM sequences WHERE locus='{ncbi_class}' ORDER BY CHAR_LENGTH(sequence) LIMIT 1")
+                                f"SELECT sequence FROM sequences WHERE locus='{ncbi_class}' ORDER BY CHAR_LENGTH(sequence) DESC LIMIT 1")
                             longest_dummy_sequence = cur2.fetchall()
                             if longest_dummy_sequence == []:
                                 dummysequence = 'TAG'
@@ -333,7 +362,7 @@ for scheme in genedetectiondict:
                             allelepresent = cur2.fetchall()
                             if allelepresent[0][0] == 0:
                                 cur2.execute(
-                                    f"SELECT sequence FROM sequences WHERE locus='{ABhit}' ORDER BY CHAR_LENGTH(sequence) LIMIT 1")
+                                    f"SELECT sequence FROM sequences WHERE locus='{ABhit}' ORDER BY CHAR_LENGTH(sequence) DESC LIMIT 1")
                                 longest_dummy_sequence = cur2.fetchall()
                                 if longest_dummy_sequence == []:
                                     dummysequence = 'TAG'
@@ -412,7 +441,7 @@ for scheme in genedetectiondict:
                         allelepresent = cur2.fetchall()
                         if allelepresent[0][0] == 0:
                             cur2.execute(
-                                f"SELECT sequence FROM sequences WHERE locus='{ABhit}' ORDER BY CHAR_LENGTH(sequence) LIMIT 1")
+                                f"SELECT sequence FROM sequences WHERE locus='{ABhit}' ORDER BY CHAR_LENGTH(sequence) DESC LIMIT 1")
                             longest_dummy_sequence = cur2.fetchall()
                             if longest_dummy_sequence == []:
                                 dummysequence = 'TAG'
