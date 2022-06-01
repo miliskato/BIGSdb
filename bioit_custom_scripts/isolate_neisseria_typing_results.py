@@ -49,7 +49,7 @@ outputtsvdict = {}
 handle = open(tsvfilepath, 'r').readlines()
 for line in handle:
     outputtsvdict[line.split('\t')[0]] = line.split('\t')[1].strip('\n')
-# open db connection
+# open db connection.
 # since we only need one db, it can stay open during the entire script
 con = psycopg2.connect(database=f"{isolatedb}", user='apache', password='remote',
                        host='127.0.0.1', port='')
