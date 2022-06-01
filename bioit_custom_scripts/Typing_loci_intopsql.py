@@ -30,7 +30,10 @@ schemedict = {'listeria_mlst': {'dirdb': '/db/sequence_typing/listeria/mlst', 's
               'neisseria_fhbppept': {'dirdb': '/db/sequence_typing/neisseria/fhbp', 'schemename_bigsdb': 'fHbp_pept', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'isolatedb': 'bigsdb_neisseria_isolates'},
               'stec_mlst_warwick': {'dirdb': '/db/sequence_typing/ecoli/mlst-warwick', 'schemename_bigsdb': 'MLST_Warwick', 'seqdefdb': 'bigsdb_stec_seqdef', 'isolatedb': 'bigsdb_stec_isolates'},
               'stec_mlst_pasteur': {'dirdb': '/db/sequence_typing/ecoli/mlst-pasteur', 'schemename_bigsdb': 'MLST_Pasteur', 'seqdefdb': 'bigsdb_stec_seqdef', 'isolatedb': 'bigsdb_stec_isolates'},
-              'stec_cgmlst': {'dirdb': '/db/sequence_typing/ecoli/cgmlst', 'schemename_bigsdb': 'cgMLST', 'seqdefdb': 'bigsdb_stec_seqdef', 'isolatedb': 'bigsdb_stec_isolates'}
+              'stec_cgmlst': {'dirdb': '/db/sequence_typing/ecoli/cgmlst', 'schemename_bigsdb': 'cgMLST', 'seqdefdb': 'bigsdb_stec_seqdef', 'isolatedb': 'bigsdb_stec_isolates'},
+              'salmonella_mlst': {'dirdb': '/db/sequence_typing/salmonella/mlst', 'schemename_bigsdb': 'MLST', 'seqdefdb': 'bigsdb_salmonella_seqdef', 'isolatedb': 'bigsdb_salmonella_isolates'},
+              'salmonella_cgmlst': {'dirdb': '/db/sequence_typing/salmonella/cgmlst', 'schemename_bigsdb': 'cgMLST', 'seqdefdb': 'bigsdb_salmonella_seqdef', 'isolatedb': 'bigsdb_salmonella_isolates'}
+
               }
 
 
