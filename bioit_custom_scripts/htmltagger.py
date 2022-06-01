@@ -6,7 +6,7 @@ from os import fdopen, remove
 
 argument_parser = argparse.ArgumentParser()
 argument_parser.add_argument('--htmlfilepath', required=True, type=Path)
-argument_parser.add_argument('--species', required=True, type=str, choices=['mycobacterium', 'listeria', 'neisseria', 'stec', 'salmonella'])
+argument_parser.add_argument('--species', required=True, type=str, choices=['mycobacterium', 'listeria', 'neisseria', 'stec'])
 args = argument_parser.parse_args()
 htmlfilepath = Path(args.htmlfilepath)
 species = args.species
@@ -24,18 +24,12 @@ schemedict = {'listeria':        {'listeria_ndaro':              {'schemename_ht
                                   'stec_resfinder':              {'schemename_html': 'ResFinder'},
                                   'stec_virulencefinder_ecoli':  {'schemename_html': 'VirulenceFinder - <i>E. coli</i>'},
                                   'stec_virulencefinder_shiga':  {'schemename_html': 'VirulenceFinder - Shiga-toxin genes'},
-                                  'stec_plasmidfinder':          {'schemename_html': 'PlasmidFinder - Enterobacteriaceae'}},
-              'salmonella':      {'salmonella_spifinder':          {'schemename_html': 'SPIFinder'},
-                                  'salmonella_pointfinder':        {'schemename_html': 'PointFinder'},
-                                  'salmonella_ndaro':              {'schemename_html': 'NCBI AMR genes'},
-                                  'salmonella_resfinder':          {'schemename_html': 'ResFinder'},
-                                  'salmonella_vfdbcore':           {'schemename_html': 'Virulence Factor DB - Core'},
-                                  'salmonella_plasmidfinder':      {'schemename_html': 'PlasmidFinder - Enterobacteriaceae'}},
+                                  'stec_plasmidfinder':          {'schemename_html': 'PlasmidFinder - Enterobacteriaceae'}}
               }
 
 
 def tagger(htmlname):
-    if htmlname == 'PointFinder' or htmlname == 'SPIFinder':
+    if htmlname == 'PointFinder':
         htmlreport = ''.join(['<div class="report_section"><h2>', htmlname, ' <small'])
     else:
         htmlreport = ''.join(['<div class="report_section"><h3>', htmlname, '</h3>'])
