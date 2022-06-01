@@ -15,6 +15,7 @@
  tblastx_tagging="yes"
  eav_groups="Gene detection|fas fa-search,galaxy report|fas fa-file-medical-alt,Antibiotic resistance|fas fa-angle-right,Serotyping|fas fa-angle-right, Genotyphi|fas fa-angle-right, SPIFinder|fas fa-angle-right "
  field_groups="Curation history|fas fa-history"
+ user_projects="yes"
 >
 </system>
 <field type="int" required="yes" length="5" maindisplay="yes" comments="primary key">id</field>
@@ -23,4 +24,5 @@
 <field type="int" required="yes" length="4" maindisplay="no" group ="Curation history" comments="curator who entered data,link to users">curator</field>
 <field type="date" required="yes" length="10" maindisplay="no" group ="Curation history" comments="date first entered">date_entered</field>
 <field type="date" required="yes" length="10" maindisplay="no" group ="Curation history" comments="date last modified">datestamp</field>
+    <field type="text" required="yes" length="20" maindisplay="no" group ="Curation history" comments="uploader through Galaxy">uploader</field>
 </db>

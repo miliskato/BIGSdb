@@ -4,10 +4,15 @@ import psycopg2
 import argparse
 from pathlib import Path
 import json
+import re
+import ast
 
 schemedict = {'salmonella_mlst': {'dirdb': '/db/sequence_typing/salmonella/mlst', 'tsvname': 'mlst'},
               'salmonella_cgmlst': {'dirdb': '/db/sequence_typing/salmonella/cgmlst', 'tsvname': 'cgmlst'},
-              'salmonella_pointfinder': {'dirdb': '', 'tsvname': 'pointfinder_mutations', 'schemename_html': 'PointFinder'}
+              'salmonella_pointfinder': {'dirdb': '', 'tsvname': 'pointfinder_mutations', 'schemename_html': 'PointFinder'},
+              'salmonella_genotyphi': {'dirdb': '', 'tsvname': 'genotyphi'},
+              'salmonella_serotyping': {'dirdb': '', 'tsvname': 'serotyping'},
+              'salmonella_spifinder' : {'dirdb': '', 'tsvname': 'spifinder'}
               }
 genedetectiondict = {'salmonella_ndaro':
                          {'clusteredfasta': '/db/gene_detection/NCBI_AMR/ncbi_amr-clustered_80.fasta',
@@ -118,7 +123,7 @@ def insert_typing_results():
                                 cur2.execute(f"SELECT allele_id FROM sequences WHERE allele_id = '{mutation}' and locus = '{antibiotic_reformatted}'")
                                 present = cur2.fetchall()
                                 if present == []:
-                                    cur2.execute(f"SELECT sequence FROM sequences WHERE locus  ='{antibiotic_reformatted}' ORDER BY CHAR_LENGTH(sequence) LIMIT 1")
+                                    cur2.execute(f"SELECT sequence FROM sequences WHERE locus  ='{antibiotic_reformatted}' ORDER BY CHAR_LENGTH(sequence) DESC LIMIT 1")
                                     longest_dummy_sequence = cur2.fetchall()
                                     if longest_dummy_sequence == []:
                                         dummysequence = 'TAG'
@@ -140,10 +145,140 @@ def insert_typing_results():
                                 f"field, value)"
                                 f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
                                 f"'pointfinder_hits', '{eavhtmltable}') ")
-                    con2.close()
+
+            elif scheme == 'salmonella_genotyphi':
+                cur.execute(f"SELECT field FROM eav_fields WHERE field like 'genotyphi%'")
+                genotyphi_susc_list = cur.fetchall()
+                for item in genotyphi_susc_list:
+                    susceptibility = outputtsvdict[item[0]]
+                    cur.execute(f"INSERT INTO eav_text(isolate_id, field, value) VALUES ((SELECT id FROM isolates WHERE isolate='{isolate_name}'),'{item[0]}','{susceptibility}')")
+                    #insert new alleles
+                    variant = item[0].replace('susceptibility', 'variants')
+                    gene = item[0].replace('susceptibility', 'genes')
+                    genotyphi_field = item[0].replace('_susceptibility', '').upper()
+                    #get the genes and variants
+                    future_alleles = outputtsvdict[variant].split(';') + outputtsvdict[gene].split(';')
+                    for i in range(0,len(future_alleles)):
+                        if future_alleles[i] != '-':
+                            cur2.execute(f"SELECT allele_id FROM sequences WHERE allele_id = '{future_alleles[i]}' and locus = '{genotyphi_field}'")
+                            present_genotyphi = cur2.fetchall()
+                            if present_genotyphi == []:
+                                cur2.execute(
+                                    f"SELECT sequence FROM sequences WHERE locus  ='{genotyphi_field}' ORDER BY CHAR_LENGTH(sequence) DESC LIMIT 1")
+                                longest_dummy_sequence = cur2.fetchall()
+                                if longest_dummy_sequence == []:
+                                    dummysequence = 'TAG'
+                                else:
+                                    dummysequence = ''.join([longest_dummy_sequence[0][0], 'TAG'])
+                                print(f"INSERT INTO sequences(locus, allele_id, sequence, status,sender,curator, date_entered, datestamp) \
+                                                                            VALUES('{genotyphi_field}','{future_alleles[i]}','{dummysequence}','unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                                cur2.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status,sender,curator, date_entered, datestamp) \
+                                                                             VALUES('{genotyphi_field}','{future_alleles[i]}','{dummysequence}','unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                            cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
+                                        f"allele_id, status, method, sender, "
+                                        f"curator, date_entered, datestamp) "
+                                        f"VALUES('{genotyphi_field}', (SELECT id FROM isolates WHERE isolate='{isolate_name}'), "
+                                        f"'{future_alleles[i]}', 'confirmed', 'automatic', 1, "
+                                        f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+            elif scheme == 'salmonella_serotyping':
+                cur.execute(f"SELECT field FROM eav_fields WHERE category = 'Serotyping' ")
+                serotyping_list = cur.fetchall()
+                for sero in serotyping_list:
+                    tool = re.sub('_[a-z]*$','', sero[0])
+                    field_type = sero[0].split('_')[len(sero[0].split('_'))-1]
+                    # class for serotyping formula processing.
+                    class formula:
+                        def __init__(self,rawFormula,tool,isolate_name):
+                            self.antigens={ "O_antigen" : rawFormula.split(':')[0].split(','),
+                                            "H1_antigen" : rawFormula.split(':')[1].split(','),
+                                             "H2_antigen" : rawFormula.split(':')[2].split(',')}
+                            self.tool = tool
+                            self.isolate_name = isolate_name
+                        def __check_if_exist_in_seqdef(self, field, entry):
+                            cur2.execute(
+                                f"SELECT allele_id FROM sequences WHERE allele_id = '{entry}' and locus = '{field}'")
+                            return(cur2.fetchall())
+
+                        def __generate_dummy_sequence(self, field):
+                            cur2.execute(
+                                f"SELECT sequence FROM sequences WHERE locus  ='{field}' ORDER BY CHAR_LENGTH(sequence) DESC LIMIT 1")
+                            longest_dummy_sequence = cur2.fetchall()
+                            if longest_dummy_sequence == []:
+                                dummysequence = 'TAG'
+                            else:
+                                dummysequence = ''.join([longest_dummy_sequence[0][0], 'TAG'])
+                            return dummysequence
+
+                        def insert_antigens_into_db(self):
+                            antigens=["O_antigen","H1_antigen" ,"H2_antigen"]
+                            for antigen in antigens:
+                                field = (f'{self.tool}_{antigen}').upper()
+                                entries = self.antigens[antigen]
+                                for entry in entries:
+                                    presence = self.__check_if_exist_in_seqdef(field, entry)
+                                    if presence == []:
+                                        dummysequence = self.__generate_dummy_sequence(field)
+                                        cur2.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status,sender,curator, date_entered, datestamp) \
+                                                                                                                 VALUES('{field}','{entry}','{dummysequence}','unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                                    cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
+                                                f"allele_id, status, method, sender, "
+                                                f"curator, date_entered, datestamp) "
+                                                f"VALUES('{field}', (SELECT id FROM isolates WHERE isolate='{self.isolate_name}'), "
+                                                f"'{entry}', 'confirmed', 'automatic', 1, "
+                                                f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+
+                    if tool == 'sistr':
+                        if field_type == 'formula':
+                            if f'{tool}_serotype_antigenic_formula' in outputtsvdict:
+                                serotypingInsert = outputtsvdict[f'{tool}_serotype_antigenic_formula']
+                                sistr_formula = formula(serotypingInsert, tool, isolate_name)
+                                sistr_formula.insert_antigens_into_db()
+                        elif field_type == 'serotype':
+                            if f'{tool}_serotype_concensus' in outputtsvdict:
+                                serotypingInsert = outputtsvdict[f'{tool}_serotype_concensus']
+                    else:
+                        if field_type == 'formula':
+                            serotypingInsert = outputtsvdict[f'{tool} Predicted antigenic profile:']
+                            seqsero_formula = formula(serotypingInsert, tool, isolate_name)
+                            seqsero_formula.insert_antigens_into_db()
+                        elif field_type == 'serotype':
+                            serotypingInsert = outputtsvdict[f'{tool} Predicted serotype:']
+                    cur.execute(
+                        f"INSERT INTO eav_text(isolate_id, field, value) VALUES ((SELECT id FROM isolates WHERE isolate='{isolate_name}'),'{sero[0]}','{serotypingInsert}')")
+            elif scheme == 'salmonella_spifinder':
+                schemes_spifinder=['spifinder_fastq','spifinder_fasta']
+                for scheme in schemes_spifinder:
+                    hits = outputtsvdict[scheme]
+                    hits = ast.literal_eval(hits)
+                    for l in range(0,len(hits)):
+                        spifinder_entry = f"CatFunc{hits[l]['category_function']}__{hits[l]['accession']}"
+                        spifinder_field = (f"{scheme}_{hits[l]['SPI']}").upper()
+                        cur2.execute(f"SELECT allele_id FROM sequences WHERE allele_id = '{spifinder_entry}' and locus = '{spifinder_field}'")
+                        present_spifinder = cur2.fetchall()
+                        if present_spifinder == []:
+                            cur2.execute(
+                                f"SELECT sequence FROM sequences WHERE locus  ='{spifinder_field}' ORDER BY CHAR_LENGTH(sequence) DESC LIMIT 1")
+                            longest_dummy_sequence = cur2.fetchall()
+                            if longest_dummy_sequence == []:
+                                dummysequence = 'TAG'
+                            else:
+                                dummysequence = ''.join([longest_dummy_sequence[0][0], 'TAG'])
+                            print(f"INSERT INTO sequences(locus, allele_id, sequence, status,sender,curator, date_entered, datestamp) VALUES('{spifinder_field}','{spifinder_entry}','{dummysequence}','unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                            cur2.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status,sender,curator, date_entered, datestamp) \
+                            VALUES('{spifinder_field}','{spifinder_entry}','{dummysequence}','unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                        cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
+                                    f"allele_id, status, method, sender, "
+                                    f"curator, date_entered, datestamp) "
+                                    f"VALUES('{spifinder_field}', (SELECT id FROM isolates WHERE isolate='{isolate_name}'), "
+                                    f"'{spifinder_entry}', 'confirmed', 'automatic', 1, "
+                                    f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+
+                con2.close() #close seqdef database
+
 
     cur.execute(f"INSERT INTO history(isolate_id, timestamp, action, curator)"
                 f"VALUES((SELECT id FROM isolates WHERE isolate = '{isolate_name}'),(SELECT NOW()::TIMESTAMP), 'Typing results inserted', 1)")
+
 
 # check whether sample exists
 cur.execute(f"SELECT COUNT(*) FROM isolates WHERE isolate='{isolate_name}'")

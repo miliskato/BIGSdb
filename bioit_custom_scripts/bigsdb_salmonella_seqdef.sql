@@ -1,16 +1,106 @@
--- INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no_submissions, disable, curator, date_entered, datestamp)
--- VALUES(1, 'MLST', 'MLST scheme downloaded and updated weekly from the Pasteur-institute Bigsdb-interface.', 't', 1, 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
--- INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no_submissions, disable, curator, date_entered, datestamp)
--- VALUES(2, 'cgMLST', 'cgMLST scheme downloaded and updated weekly from the Pasteur-institute Bigsdb-interface.', 't', 2, 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
--- INSERT INTO scheme_fields(scheme_id, field, type, description, field_order, dropdown, primary_key, curator, datestamp)
---  VALUES(1, 'ST', 'integer', 'Sequence Type', 1, 'f', 't', 1, (SELECT CURRENT_DATE));
+INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no_submissions, disable, curator, date_entered, datestamp)
+VALUES(1, 'MLST', 'MLST scheme downloaded and updated weekly from the Pasteur-institute Bigsdb-interface.', 't', 1, 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no_submissions, disable, curator, date_entered, datestamp)
+VALUES(2, 'cgMLST', 'cgMLST scheme downloaded and updated weekly from the Pasteur-institute Bigsdb-interface.', 't', 2, 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO scheme_fields(scheme_id, field, type, description, field_order, dropdown, primary_key, curator, datestamp)
+ VALUES(1, 'ST', 'integer', 'Sequence Type', 1, 'f', 't', 1, (SELECT CURRENT_DATE));
 -- amr
 INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no_submissions, disable, curator, date_entered, datestamp) VALUES(3, 'NCBI_AMR', 'NDARO AMR database', 't', 3, 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
 INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no_submissions, disable, curator, date_entered, datestamp) VALUES(4, 'ResFinder', 'ResFinder database', 't', 4, 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
 -- other genedetection
 INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no_submissions, disable, curator, date_entered, datestamp) VALUES(5, 'PlasmidFinder_entero', 'PlasmidFinder enterobacteriaceae', 't', 5, 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
 INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no_submissions, disable, curator, date_entered, datestamp) VALUES(6, 'VFDB_core', 'VirulenceFactor core database', 't', 6, 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+--spifinder-fastq
+INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no_submissions, disable, curator, date_entered, datestamp) VALUES(7,'spifinder_fastq', 'SPIFinder carried out on fastq with kma', 't', 7, 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('SPIFINDER_FASTQ_SPI-1','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('SPIFINDER_FASTQ_SPI-2','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('SPIFINDER_FASTQ_SPI-3','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('SPIFINDER_FASTQ_SPI-4','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('SPIFINDER_FASTQ_SPI-5','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('SPIFINDER_FASTQ_HPI','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('SPIFINDER_FASTQ_SESS-LEE','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('SPIFINDER_FASTQ_SGI1','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('SPIFINDER_FASTQ_SGI2','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('SPIFINDER_FASTQ_SPI-10','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('SPIFINDER_FASTQ_SPI-11','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('SPIFINDER_FASTQ_SPI-12','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('SPIFINDER_FASTQ_SPI-13','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('SPIFINDER_FASTQ_SPI-14','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('SPIFINDER_FASTQ_SPI-6','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('SPIFINDER_FASTQ_SPI-7','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('SPIFINDER_FASTQ_SPI-8','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('SPIFINDER_FASTQ_SPI-9','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('SPIFINDER_FASTQ_C63PI','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('SPIFINDER_FASTQ_CS54_ISLAND','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('SPIFINDER_FASTQ_NOT_NAMED','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='spifinder_fastq'), 'SPIFINDER_FASTQ_SPI-1', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='spifinder_fastq'), 'SPIFINDER_FASTQ_SPI-2', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='spifinder_fastq'), 'SPIFINDER_FASTQ_SPI-3', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='spifinder_fastq'), 'SPIFINDER_FASTQ_SPI-4', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='spifinder_fastq'), 'SPIFINDER_FASTQ_SPI-5', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='spifinder_fastq'), 'SPIFINDER_FASTQ_HPI', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='spifinder_fastq'), 'SPIFINDER_FASTQ_SESS-LEE', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='spifinder_fastq'), 'SPIFINDER_FASTQ_SGI1', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='spifinder_fastq'), 'SPIFINDER_FASTQ_SGI2', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='spifinder_fastq'), 'SPIFINDER_FASTQ_SPI-10', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='spifinder_fastq'), 'SPIFINDER_FASTQ_SPI-11', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='spifinder_fastq'), 'SPIFINDER_FASTQ_SPI-12', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='spifinder_fastq'), 'SPIFINDER_FASTQ_SPI-13', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='spifinder_fastq'), 'SPIFINDER_FASTQ_SPI-14', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='spifinder_fastq'), 'SPIFINDER_FASTQ_SPI-6', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='spifinder_fastq'), 'SPIFINDER_FASTQ_SPI-7', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='spifinder_fastq'), 'SPIFINDER_FASTQ_SPI-8', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='spifinder_fastq'), 'SPIFINDER_FASTQ_SPI-9', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='spifinder_fastq'), 'SPIFINDER_FASTQ_C63PI', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='spifinder_fastq'), 'SPIFINDER_FASTQ_CS54_ISLAND', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='spifinder_fastq'), 'SPIFINDER_FASTQ_NOT_NAMED', 1, (SELECT CURRENT_DATE));
+
+--spifinder-fasta
+INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no_submissions, disable, curator, date_entered, datestamp) VALUES(8,'spifinder_fasta', 'SPIFinder carried out on fasta with blast', 't', 8, 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('SPIFINDER_FASTA_SPI-1','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('SPIFINDER_FASTA_SPI-2','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('SPIFINDER_FASTA_SPI-3','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('SPIFINDER_FASTA_SPI-4','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('SPIFINDER_FASTA_SPI-5','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('SPIFINDER_FASTA_HPI','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('SPIFINDER_FASTA_SESS-LEE','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('SPIFINDER_FASTA_SGI1','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('SPIFINDER_FASTA_SGI2','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('SPIFINDER_FASTA_SPI-10','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('SPIFINDER_FASTA_SPI-11','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('SPIFINDER_FASTA_SPI-12','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('SPIFINDER_FASTA_SPI-13','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('SPIFINDER_FASTA_SPI-14','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('SPIFINDER_FASTA_SPI-6','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('SPIFINDER_FASTA_SPI-7','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('SPIFINDER_FASTA_SPI-8','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('SPIFINDER_FASTA_SPI-9','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('SPIFINDER_FASTA_C63PI','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('SPIFINDER_FASTA_CS54_ISLAND','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('SPIFINDER_FASTA_NOT_NAMED','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='spifinder_fasta'), 'SPIFINDER_FASTA_SPI-1', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='spifinder_fasta'), 'SPIFINDER_FASTA_SPI-2', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='spifinder_fasta'), 'SPIFINDER_FASTA_SPI-3', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='spifinder_fasta'), 'SPIFINDER_FASTA_SPI-4', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='spifinder_fasta'), 'SPIFINDER_FASTA_SPI-5', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='spifinder_fasta'), 'SPIFINDER_FASTA_HPI', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='spifinder_fasta'), 'SPIFINDER_FASTA_SESS-LEE', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='spifinder_fasta'), 'SPIFINDER_FASTA_SGI1', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='spifinder_fasta'), 'SPIFINDER_FASTA_SGI2', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='spifinder_fasta'), 'SPIFINDER_FASTA_SPI-10', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='spifinder_fasta'), 'SPIFINDER_FASTA_SPI-11', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='spifinder_fasta'), 'SPIFINDER_FASTA_SPI-12', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='spifinder_fasta'), 'SPIFINDER_FASTA_SPI-13', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='spifinder_fasta'), 'SPIFINDER_FASTA_SPI-14', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='spifinder_fasta'), 'SPIFINDER_FASTA_SPI-6', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='spifinder_fasta'), 'SPIFINDER_FASTA_SPI-7', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='spifinder_fasta'), 'SPIFINDER_FASTA_SPI-8', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='spifinder_fasta'), 'SPIFINDER_FASTA_SPI-9', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='spifinder_fasta'), 'SPIFINDER_FASTA_C63PI', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='spifinder_fasta'), 'SPIFINDER_FASTA_CS54_ISLAND', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='spifinder_fasta'), 'SPIFINDER_FASTA_NOT_NAMED', 1, (SELECT CURRENT_DATE));
 --pointfinder
+INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no_submissions, disable, curator, date_entered, datestamp) VALUES(9, 'Pointfinder', 'pointfinder mutation giving resistance to antibiotic', 't', 9, 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
 INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('POINTFINDER_SPECTINOMYCIN','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
 INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('POINTFINDER_CIPROFLOXACIN','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
 INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('POINTFINDER_COLISTIN','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
@@ -21,15 +111,72 @@ INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT 
 INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Pointfinder'), 'POINTFINDER_COLISTIN', 1, (SELECT CURRENT_DATE));
 INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Pointfinder'), 'POINTFINDER_NALIDIXIC_ACID', 1, (SELECT CURRENT_DATE));
 INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Pointfinder'), 'POINTFINDER_UNKNOWN', 1, (SELECT CURRENT_DATE));
---spifinder
-INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no_submissions, disable, curator, date_entered, datestamp) VALUES(7, 'spifinder_fasta', 'SPIFinder with assembly', 't', 7, 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
-INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no_submissions, disable, curator, date_entered, datestamp) VALUES(8, 'spifinder_fastq', 'SPIFinder with raw reads', 't', 8, 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+--client dbase
+INSERT INTO client_dbases(id, name, description, dbase_name, dbase_config_name, dbase_view, url, curator, datestamp) VALUES(1, 'bigsdb_salmonella_isolates', 'Other isolates containing this allele:', 'bigsdb_salmonella_isolates', 'bigsdb_salmonella_isolates', 'isolates', '/cgi-bin/bigsdb/bigsdb.pl', 1, (SELECT CURRENT_DATE));
+--Genotyphi
+INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no_submissions, disable, curator, date_entered, datestamp) VALUES(10,'Genotyphi', 'genotyphi genes and variants for antibiotic resistance', 't', 10, 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('GENOTYPHI_ESBLS','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('GENOTYPHI_INCFIAHI1','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('GENOTYPHI_INCHI1A','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('GENOTYPHI_INCHI1BR27','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('GENOTYPHI_INCY','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('GENOTYPHI_AMINOGLYCOSIDES','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('GENOTYPHI_AZITHROMYCIN','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('GENOTYPHI_BETA-LACTAMASES','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('GENOTYPHI_MACROLIDES','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('GENOTYPHI_PST','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('GENOTYPHI_PHENICOLS','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('GENOTYPHI_QUINOLONES','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('GENOTYPHI_SULFONAMIDES','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('GENOTYPHI_TETRACYCLINES','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('GENOTYPHI_TRIMETHOPRIMS','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('GENOTYPHI_Z66','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Genotyphi'), 'GENOTYPHI_ESBLS', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Genotyphi'), 'GENOTYPHI_INCFIAHI1', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Genotyphi'), 'GENOTYPHI_INCHI1A', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Genotyphi'), 'GENOTYPHI_INCHI1BR27', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Genotyphi'), 'GENOTYPHI_INCY', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Genotyphi'), 'GENOTYPHI_AMINOGLYCOSIDES', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Genotyphi'), 'GENOTYPHI_AZITHROMYCIN', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Genotyphi'), 'GENOTYPHI_BETA-LACTAMASES', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Genotyphi'), 'GENOTYPHI_MACROLIDES', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Genotyphi'), 'GENOTYPHI_PST', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Genotyphi'), 'GENOTYPHI_PHENICOLS', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Genotyphi'), 'GENOTYPHI_QUINOLONES', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Genotyphi'), 'GENOTYPHI_SULFONAMIDES', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Genotyphi'), 'GENOTYPHI_TETRACYCLINES', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Genotyphi'), 'GENOTYPHI_TRIMETHOPRIMS', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Genotyphi'), 'GENOTYPHI_Z66', 1, (SELECT CURRENT_DATE));
 --serotyping
 --sistr
-INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no_submissions, disable, curator, date_entered, datestamp) VALUES(9,'sistr', 'SISTR ', 't', 9, 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no_submissions, disable, curator, date_entered, datestamp) VALUES(11,'sistr', 'SISTR serotyping', 't', 11, 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('SISTR_O_ANTIGEN','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('SISTR_H1_ANTIGEN','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('SISTR_H2_ANTIGEN','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='sistr'), 'SISTR_O_ANTIGEN', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='sistr'), 'SISTR_H1_ANTIGEN', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='sistr'), 'SISTR_H2_ANTIGEN', 1, (SELECT CURRENT_DATE));
 --seqsero2 allele
-INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no_submissions, disable, curator, date_entered, datestamp) VALUES(11,'seqsero2', 'SeqSero2 allele ', 't', 11, 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no_submissions, disable, curator, date_entered, datestamp) VALUES(12,'seqsero2_allele', 'SeqSero2 allele serotyping', 't', 12, 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('SEQSERO2_ALLELE_O_ANTIGEN','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('SEQSERO2_ALLELE_H1_ANTIGEN','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('SEQSERO2_ALLELE_H2_ANTIGEN','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='seqsero2_allele'), 'SEQSERO2_ALLELE_O_ANTIGEN', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='seqsero2_allele'), 'SEQSERO2_ALLELE_H1_ANTIGEN', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='seqsero2_allele'), 'SEQSERO2_ALLELE_H2_ANTIGEN', 1, (SELECT CURRENT_DATE));
 --seqsero2 kmer
-INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no_submissions, disable, curator, date_entered, datestamp) VALUES(13,'seqsero2_kmer', 'SeqSero2 kmer ', 't', 13, 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no_submissions, disable, curator, date_entered, datestamp) VALUES(13,'seqsero2_kmer', 'SeqSero2 kmer serotyping', 't', 13, 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('SEQSERO2_KMER_O_ANTIGEN','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('SEQSERO2_KMER_H1_ANTIGEN','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('SEQSERO2_KMER_H2_ANTIGEN','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='seqsero2_kmer'), 'SEQSERO2_KMER_O_ANTIGEN', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='seqsero2_kmer'), 'SEQSERO2_KMER_H1_ANTIGEN', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='seqsero2_kmer'), 'SEQSERO2_KMER_H2_ANTIGEN', 1, (SELECT CURRENT_DATE));
 --seqsero2 kmerread
-INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no_submissions, disable, curator, date_entered, datestamp) VALUES(15,'seqsero2_kmerread', 'SeqSero2 kmerread ', 't', 15, 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no_submissions, disable, curator, date_entered, datestamp) VALUES(14,'seqsero2_kmerread', 'SeqSero2 kmerread serotyping', 't', 14, 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('SEQSERO2_KMERREAD_O_ANTIGEN','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('SEQSERO2_KMERREAD_H1_ANTIGEN','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('SEQSERO2_KMERREAD_H2_ANTIGEN','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='seqsero2_kmerread'), 'SEQSERO2_KMERREAD_O_ANTIGEN', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='seqsero2_kmerread'), 'SEQSERO2_KMERREAD_H1_ANTIGEN', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='seqsero2_kmerread'), 'SEQSERO2_KMERREAD_H2_ANTIGEN', 1, (SELECT CURRENT_DATE));
