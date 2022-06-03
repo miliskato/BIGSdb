@@ -24,7 +24,14 @@ schemedict = {'listeria':        {'listeria_ndaro':              {'schemename_ht
                                   'stec_resfinder':              {'schemename_html': 'ResFinder'},
                                   'stec_virulencefinder_ecoli':  {'schemename_html': 'VirulenceFinder - <i>E. coli</i>'},
                                   'stec_virulencefinder_shiga':  {'schemename_html': 'VirulenceFinder - Shiga-toxin genes'},
-                                  'stec_plasmidfinder':          {'schemename_html': 'PlasmidFinder - Enterobacteriaceae'}}
+                                  'stec_plasmidfinder':          {'schemename_html': 'PlasmidFinder - Enterobacteriaceae'}},
+              'salmonella':      {'salmonella_spifinder':          {'schemename_html': 'SPIFinder'},
+                                  'salmonella_pointfinder':        {'schemename_html': 'PointFinder'},
+                                  'salmonella_ndaro':              {'schemename_html': 'NCBI AMR genes'},
+                                  'salmonella_resfinder':          {'schemename_html': 'ResFinder'},
+                                  'salmonella_vfdbcore':           {'schemename_html': 'Virulence Factor DB - Core'},
+                                  'salmonella_plasmidfinder':      {'schemename_html': 'PlasmidFinder - Enterobacteriaceae'}},
+
               }
 
 
