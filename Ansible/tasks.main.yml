@@ -867,7 +867,7 @@
         list_script:
           - { db: bigsdb_salmonella_seqdef, script: "{{ bioit_bigs_home }}/bioit_custom_scripts/bigsdb_salmonella_seqdef.sql" }
           - { db: bigsdb_salmonella_isolates, script: "{{ bioit_bigs_home }}/bioit_custom_scripts/bigsdb_salmonella_isolates.sql" }
-      when: query_result_eavtexthiddennsalmonella.query_result[0]['exists'] == false
+      when: query_result_eavtexthiddensalmonella.query_result[0]['exists'] == false
       become_user: postgres
 
     - name: Format stec species databases
