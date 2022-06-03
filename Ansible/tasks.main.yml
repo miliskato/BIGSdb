@@ -607,16 +607,16 @@
       # this when should be changed but will work when adding new db
 
     - name: add user db to salmonella species db
-        postgresql_query:
-          db: "{{ item }}"
-          login_user: postgres
-          query: INSERT INTO user_dbases (id, name, dbase_name, curator, datestamp) VALUES (1, '', 'global_bigsdb_users', 1, 'now')
-        loop:
-          - bigsdb_salmonella_seqdef
-          - bigsdb_salmonella_isolates
-        when: query_result_salmonella_seqdef.query_result[0]['exists'] == false
-        become_user: postgres
-        # this when should be changed but will work when adding new db
+      postgresql_query:
+        db: "{{ item }}"
+        login_user: postgres
+        query: INSERT INTO user_dbases (id, name, dbase_name, curator, datestamp) VALUES (1, '', 'global_bigsdb_users', 1, 'now')
+      loop:
+        - bigsdb_salmonella_seqdef
+        - bigsdb_salmonella_isolates
+      when: query_result_salmonella_seqdef.query_result[0]['exists'] == false
+      become_user: postgres
+      # this when should be changed but will work when adding new db
 
     - name: add user db to stec species db
       postgresql_query:
