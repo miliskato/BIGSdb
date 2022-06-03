@@ -769,7 +769,7 @@
         - INSERT INTO resources (dbase_config,description) VALUES ('bigsdb_salmonella_seqdef','salmonella sequence/profile definitions'), ('bigsdb_salmonella_isolates','salmonella isolates')
         - INSERT INTO groups (name,description) VALUES ('salmonella','salmonella')
         - INSERT INTO group_resources (group_name,dbase_config) VALUES ('salmonella','bigsdb_salmonella_seqdef'), ('salmonella','bigsdb_salmonella_isolates')
-      when: query_result_nsalmonella_seqdef.query_result[0]['exists'] == false
+      when: query_result_salmonella_seqdef.query_result[0]['exists'] == false
       become_user: postgres
       # this when should be changed but will work when adding new db
 
