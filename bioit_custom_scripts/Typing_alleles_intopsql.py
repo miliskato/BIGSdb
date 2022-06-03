@@ -34,9 +34,7 @@ schemedict = {'listeria_mlst': {'seqdefdb': 'bigsdb_listeria_seqdef', 'dirdb': '
               'neisseria_fhbppept': {'dirdb': '/db/sequence_typing/neisseria/fhbp', 'seqdefdb': 'bigsdb_neisseria_seqdef'},
               'stec_mlst_warwick': {'dirdb': '/db/sequence_typing/ecoli/mlst-warwick', 'seqdefdb': 'bigsdb_stec_seqdef'},
               'stec_mlst_pasteur': {'dirdb': '/db/sequence_typing/ecoli/mlst-pasteur', 'seqdefdb': 'bigsdb_stec_seqdef'},
-              'stec_cgmlst': {'dirdb': '/db/sequence_typing/ecoli/cgmlst', 'seqdefdb': 'bigsdb_stec_seqdef'},
-              'salmonella_mlst': {'dirdb': '/db/sequence_typing/salmonella/mlst','seqdefdb': 'bigsdb_salmonella_seqdef'},
-              'salmonella_cgmlst': {'dirdb': '/db/sequence_typing/salmonella/cgmlst', 'seqdefdb': 'bigsdb_salmonella_seqdef'}
+              'stec_cgmlst': {'dirdb': '/db/sequence_typing/ecoli/cgmlst', 'seqdefdb': 'bigsdb_stec_seqdef'}
               }
 
 for scheme in schemedict:

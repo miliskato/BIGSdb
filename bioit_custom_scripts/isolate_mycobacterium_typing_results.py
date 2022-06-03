@@ -265,7 +265,7 @@ def insert_typing_results():
                                 cur2.execute(f"SELECT allele_id FROM sequences WHERE allele_id = '{mutation}' and locus = '{antibiotic_reformatted}'")
                                 present = cur2.fetchall()
                                 if present == []:
-                                    cur2.execute(f"SELECT sequence FROM sequences WHERE locus  ='{antibiotic_reformatted}' ORDER BY CHAR_LENGTH(sequence) LIMIT 1")
+                                    cur2.execute(f"SELECT sequence FROM sequences WHERE locus  ='{antibiotic_reformatted}' ORDER BY CHAR_LENGTH(sequence) DESC LIMIT 1")
                                     longest_dummy_sequence = cur2.fetchall()
                                     if longest_dummy_sequence == []:
                                         dummysequence = 'TAG'
