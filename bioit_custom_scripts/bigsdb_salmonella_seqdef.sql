@@ -188,7 +188,7 @@ INSERT INTO client_dbases(id, name, description, dbase_name, dbase_config_name, 
 INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) VALUES(1, 'POINTFINDER_SPECTINOMYCIN', 1, (SELECT CURRENT_DATE));
 INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) VALUES(1, 'POINTFINDER_CIPROFLOXACIN ', 1, (SELECT CURRENT_DATE));
 INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) VALUES(1, 'POINTFINDER_COLISTIN', 1, (SELECT CURRENT_DATE));
-INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) VALUES(1, 'POINTFINDER_NALIDIXIC ACID', 1, (SELECT CURRENT_DATE));
+INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) VALUES(1, 'POINTFINDER_NALIDIXIC_ACID', 1, (SELECT CURRENT_DATE));
 INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) VALUES(1, 'POINTFINDER_UNKNOWN', 1, (SELECT CURRENT_DATE));
 --client db: serotyping
 INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) VALUES(1, 'SISTR_O_ANTIGEN', 1, (SELECT CURRENT_DATE));
