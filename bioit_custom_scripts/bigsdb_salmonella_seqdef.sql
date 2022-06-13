@@ -186,7 +186,7 @@ INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no
 INSERT INTO client_dbases(id, name, description, dbase_name, dbase_config_name, dbase_view, url, curator, datestamp) VALUES(1, 'bigsdb_salmonella_isolates', 'Other isolates containing this allele:', 'bigsdb_salmonella_isolates', 'bigsdb_salmonella_isolates', 'isolates', '/cgi-bin/bigsdb/bigsdb.pl', 1, (SELECT CURRENT_DATE));
 --client db: pointfinder
 INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) VALUES(1, 'POINTFINDER_SPECTINOMYCIN', 1, (SELECT CURRENT_DATE));
-INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) VALUES(1, 'POINTFINDER_CIPROFLOXACIN ', 1, (SELECT CURRENT_DATE));
+INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) VALUES(1, 'POINTFINDER_CIPROFLOXACIN', 1, (SELECT CURRENT_DATE));
 INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) VALUES(1, 'POINTFINDER_COLISTIN', 1, (SELECT CURRENT_DATE));
 INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) VALUES(1, 'POINTFINDER_NALIDIXIC_ACID', 1, (SELECT CURRENT_DATE));
 INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) VALUES(1, 'POINTFINDER_UNKNOWN', 1, (SELECT CURRENT_DATE));
