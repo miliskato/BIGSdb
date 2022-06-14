@@ -228,24 +228,32 @@ def insert_typing_results():
                                                 f"'{entry}', 'confirmed', 'automatic', 1, "
                                                 f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
 
+
                     if tool == 'sistr':
                         if field_type == 'formula':
                             if f'{tool}_serotype_antigenic_formula' in outputtsvdict:
                                 serotypingInsert = outputtsvdict[f'{tool}_serotype_antigenic_formula']
                                 sistr_formula = formula(serotypingInsert, tool, isolate_name)
                                 sistr_formula.insert_antigens_into_db()
+                                cur.execute(
+                                    f"INSERT INTO eav_text(isolate_id, field, value) VALUES ((SELECT id FROM isolates WHERE isolate='{isolate_name}'),'{sero[0]}','{serotypingInsert}')")
                         elif field_type == 'serotype':
                             if f'{tool}_serotype_concensus' in outputtsvdict:
                                 serotypingInsert = outputtsvdict[f'{tool}_serotype_concensus']
+                                cur.execute(
+                                    f"INSERT INTO eav_text(isolate_id, field, value) VALUES ((SELECT id FROM isolates WHERE isolate='{isolate_name}'),'{sero[0]}','{serotypingInsert}')")
                     else:
                         if field_type == 'formula':
                             serotypingInsert = outputtsvdict[f'{tool} Predicted antigenic profile:']
                             seqsero_formula = formula(serotypingInsert, tool, isolate_name)
                             seqsero_formula.insert_antigens_into_db()
+                            cur.execute(
+                                f"INSERT INTO eav_text(isolate_id, field, value) VALUES ((SELECT id FROM isolates WHERE isolate='{isolate_name}'),'{sero[0]}','{serotypingInsert}')")
                         elif field_type == 'serotype':
                             serotypingInsert = outputtsvdict[f'{tool} Predicted serotype:']
-                    cur.execute(
-                        f"INSERT INTO eav_text(isolate_id, field, value) VALUES ((SELECT id FROM isolates WHERE isolate='{isolate_name}'),'{sero[0]}','{serotypingInsert}')")
+                            cur.execute(
+                                f"INSERT INTO eav_text(isolate_id, field, value) VALUES ((SELECT id FROM isolates WHERE isolate='{isolate_name}'),'{sero[0]}','{serotypingInsert}')")
+
             elif scheme == 'salmonella_spifinder':
                 schemes_spifinder=['spifinder_fastq','spifinder_fasta']
                 for scheme in schemes_spifinder:
@@ -327,9 +335,9 @@ for scheme in genedetectiondict:
         if sequencefile[x]['accession'] is None:
             sequencefile[x]['accession'] = ""
             print(sequencefile[x]['accession'])
-        sequencenamedict[x] = '_'.join([(sequencefile[x]['accession']), (sequencefile[x]['allele'])])
+        sequencenamedict[x] = '_'.join([(sequencefile[x]['accession']), (sequencefile[x]['allele']).replace("'","")])
         if genedetectiondict[scheme]['schemename_bigsdb'] == 'NCBI_AMR':
-            ncbi_ab_class_dict['_'.join([(sequencefile[x]['accession']), (sequencefile[x]['allele'])])] = '_'.join(['NCBI_AMR', sequencefile[x]['class'].upper().replace(' ','_')])
+            ncbi_ab_class_dict['_'.join([(sequencefile[x]['accession']), (sequencefile[x]['allele']).replace("'","")])] = '_'.join(['NCBI_AMR', sequencefile[x]['class'].upper().replace(' ','_')])
 
 
     clusterfile = open(Path(genedetectiondict[scheme]['clusteredfasta']), 'r').readlines()
@@ -345,7 +353,7 @@ for scheme in genedetectiondict:
                            host="127.0.0.1", port="")
     cur = con.cursor()
     con.autocommit = True
-    listofhits = outputtsvdict[genedetectiondict[scheme]['tsvname']]
+    listofhits = outputtsvdict[genedetectiondict[scheme]['tsvname']].replace("'","")
     #this might look something like this currently: [["Cluster_15", "ActA_1", "94.20", "1915/1920", "NODE_24_length_29899_cov_7.347474", "26015..27929", "NC_003210.1"], ["Cluster_59", "AgrA_1", "98.90", "729/729", "NODE_2_length_347775_cov_7.239843", "324619..325347", "NC_003210.1"], ["Cluster_67", "clpp_1", "96.82", "597/597", "NODE_5_length_187626_cov_7.284412", "124253..124849", "NC_003210.1"], ["Cluster_55", "codY_1", "95.26", "780/780", "NODE_14_length_77047_cov_5.065224", "15699..16478", "NC_003210.1"], ["Cluster_28", "ctaP_1", "97.91", "1575/1575", "NODE_8_length_111969_cov_7.509254", "4180..5754", "NC_003210.1"], ["Cluster_72", "ctsR_1", "96.95", "459/459", "NODE_3_length_239115_cov_6.610227", "396..854", "NC_003210.1"], ["Cluster_40", "dal_1", "92.32", "1107/1107", "NODE_13_length_82610_cov_5.507547", "35258..36364", "NC_003210.1"], ["Cluster_61", "degU_1", "98.84", "687/687", "NODE_5_length_187626_cov_7.284412", "72335..73021", "NC_003210.1"], ["Cluster_29", "dltA_1", "96.02", "1533/1533", "NODE_18_length_59308_cov_5.458390", "50475..52007", "NC_003210.1"]]
 
     if listofhits != '[]':
@@ -353,6 +361,7 @@ for scheme in genedetectiondict:
                     f"field, value)"
                     f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
                     f"'{genedetectiondict[scheme]['schemename_bigsdb']}', '{listofhits}') ")
+
         eavhtmltable= '<table class="data"><tr><th>GeneCluster</th><th>Locus</th></tr>'
         clusterhitlist = []  # in case loci that were in different clusters at some point get in the same cluster
         y = 0

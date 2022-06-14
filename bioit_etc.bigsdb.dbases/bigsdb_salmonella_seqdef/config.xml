@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<db>
+<system
+ db="bigsdb_salmonella_seqdef"
+ dbtype="sequences"
+ webroot="/salmonella.html"
+ indexpage=""
+ script_path_includes="/bigsdb/"
+ curate_path_includes="/bigsdb/"
+ description="salmonella Seqdef"
+ locus_superscript_prefix="yes"
+ authentication="builtin"
+ read_access="public"
+ disable_seq_downloads="no"
+>
+</system>
+</db>
