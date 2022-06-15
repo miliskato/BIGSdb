@@ -159,7 +159,7 @@ for scheme in schemedict:
         if sequencefile[x]['accession'] is None:
             sequencefile[x]['accession'] = ""
             print(sequencefile[x]['accession'])
-        sequencenamedict[x] = '_'.join([(sequencefile[x]['accession']), (sequencefile[x]['allele'])])
+        sequencenamedict[x] = '_'.join([(sequencefile[x]['accession']), (sequencefile[x]['allele']).replace("'","")])
         if schemedict[scheme]['schemename_bigsdb'] != 'VFDB_core':
             descriptiondict['_'.join([schemedict[scheme]['schemename_bigsdb'], (''.join(['Gene', sequencefile[x]['cluster']]))])].append((sequencefile[x]['allele']).replace("'",""))
         else:
