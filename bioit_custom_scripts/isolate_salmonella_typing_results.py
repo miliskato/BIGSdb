@@ -64,6 +64,11 @@ con = psycopg2.connect(database=f"{isolatedb}", user='apache', password='remote'
 con.autocommit = True
 cur = con.cursor()
 
+con2 = psycopg2.connect(database=f"{seqdefdb}", user='apache', password='remote',
+                                            host='127.0.0.1', port='')
+cur2 = con2.cursor()
+con2.autocommit = True
+
 #main
 def insert_typing_results():
     reportlink =f'<p><a href="/galaxyreports/listeria/{isolate_name}/report.html" target="_blank"> html report</a></p>'
@@ -102,10 +107,6 @@ def insert_typing_results():
                 if listofhits != '[]':
                     eavhtmltable = '<table class="data"><tr><th>Hit</th><th>Antibiotic</th></tr>'
                     y = 0
-                    con2 = psycopg2.connect(database=f"{seqdefdb}", user='apache', password='remote',
-                                            host='127.0.0.1', port='')
-                    cur2 = con2.cursor()
-                    con2.autocommit = True
                     while y <= (len((json.loads(listofhits))) - 1):
                         hit = (json.loads(listofhits))[y]
                         if hit[-2] != "Unknown":
@@ -207,15 +208,15 @@ def insert_typing_results():
                         def insert_antigens_into_db(self):
                             antigens=["O_antigen","H1_antigen" ,"H2_antigen"]
                             for antigen in antigens:
-                                if antigen != '-':
-                                    field = (f'{self.tool}_{antigen}').upper()
-                                    entries = self.antigens[antigen]
-                                    for entry in entries:
+                                field = (f'{self.tool}_{antigen}').upper()
+                                entries = self.antigens[antigen]
+                                for entry in entries:
+                                    if entry != '-':
                                         presence = self.__check_if_exist_in_seqdef(field, entry)
                                         if presence == []:
                                             dummysequence = self.__generate_dummy_sequence(field)
                                             cur2.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status,sender,curator, date_entered, datestamp) \
-                                                                                                                                                     VALUES('{field}','{entry}','{dummysequence}','unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                                                                                                                                      VALUES('{field}','{entry}','{dummysequence}','unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
                                         cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
                                                     f"allele_id, status, method, sender, "
                                                     f"curator, date_entered, datestamp) "
@@ -223,15 +224,13 @@ def insert_typing_results():
                                                     f"'{entry}', 'confirmed', 'automatic', 1, "
                                                     f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
 
-
-
                     if tool == 'sistr':
                         if field_type == 'formula':
                             if f'{tool}_serotype_antigenic_formula' in outputtsvdict:
                                 serotypingInsert = outputtsvdict[f'{tool}_serotype_antigenic_formula']
-                                sistr_formula = formula(serotypingInsert, tool, isolate_name)
-                                sistr_formula.insert_antigens_into_db()
                                 if serotypingInsert != '-':
+                                    sistr_formula = formula(serotypingInsert, tool, isolate_name)
+                                    sistr_formula.insert_antigens_into_db()
                                     cur.execute(
                                     f"INSERT INTO eav_text(isolate_id, field, value) VALUES ((SELECT id FROM isolates WHERE isolate='{isolate_name}'),'{sero[0]}','{serotypingInsert}')")
                         elif field_type == 'serotype':
@@ -250,7 +249,7 @@ def insert_typing_results():
                                 f"INSERT INTO eav_text(isolate_id, field, value) VALUES ((SELECT id FROM isolates WHERE isolate='{isolate_name}'),'{sero[0]}','{serotypingInsert}')")
                         elif field_type == 'serotype':
                             serotypingInsert = outputtsvdict[f'{tool} Predicted serotype:']
-                            if serotypingInsert != '- -:-:-:':
+                            if serotypingInsert != '- -:-:-':
                                 cur.execute(
                                 f"INSERT INTO eav_text(isolate_id, field, value) VALUES ((SELECT id FROM isolates WHERE isolate='{isolate_name}'),'{sero[0]}','{serotypingInsert}')")
 
