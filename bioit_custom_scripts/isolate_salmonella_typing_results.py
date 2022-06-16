@@ -207,20 +207,22 @@ def insert_typing_results():
                         def insert_antigens_into_db(self):
                             antigens=["O_antigen","H1_antigen" ,"H2_antigen"]
                             for antigen in antigens:
-                                field = (f'{self.tool}_{antigen}').upper()
-                                entries = self.antigens[antigen]
-                                for entry in entries:
-                                    presence = self.__check_if_exist_in_seqdef(field, entry)
-                                    if presence == []:
-                                        dummysequence = self.__generate_dummy_sequence(field)
-                                        cur2.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status,sender,curator, date_entered, datestamp) \
-                                                                                                                 VALUES('{field}','{entry}','{dummysequence}','unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
-                                    cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
-                                                f"allele_id, status, method, sender, "
-                                                f"curator, date_entered, datestamp) "
-                                                f"VALUES('{field}', (SELECT id FROM isolates WHERE isolate='{self.isolate_name}'), "
-                                                f"'{entry}', 'confirmed', 'automatic', 1, "
-                                                f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                                if antigen != '-':
+                                    field = (f'{self.tool}_{antigen}').upper()
+                                    entries = self.antigens[antigen]
+                                    for entry in entries:
+                                        presence = self.__check_if_exist_in_seqdef(field, entry)
+                                        if presence == []:
+                                            dummysequence = self.__generate_dummy_sequence(field)
+                                            cur2.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status,sender,curator, date_entered, datestamp) \
+                                                                                                                                                     VALUES('{field}','{entry}','{dummysequence}','unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                                        cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
+                                                    f"allele_id, status, method, sender, "
+                                                    f"curator, date_entered, datestamp) "
+                                                    f"VALUES('{field}', (SELECT id FROM isolates WHERE isolate='{self.isolate_name}'), "
+                                                    f"'{entry}', 'confirmed', 'automatic', 1, "
+                                                    f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+
 
 
                     if tool == 'sistr':
@@ -229,23 +231,27 @@ def insert_typing_results():
                                 serotypingInsert = outputtsvdict[f'{tool}_serotype_antigenic_formula']
                                 sistr_formula = formula(serotypingInsert, tool, isolate_name)
                                 sistr_formula.insert_antigens_into_db()
-                                cur.execute(
+                                if serotypingInsert != '-':
+                                    cur.execute(
                                     f"INSERT INTO eav_text(isolate_id, field, value) VALUES ((SELECT id FROM isolates WHERE isolate='{isolate_name}'),'{sero[0]}','{serotypingInsert}')")
                         elif field_type == 'serotype':
                             if f'{tool}_serotype_concensus' in outputtsvdict:
                                 serotypingInsert = outputtsvdict[f'{tool}_serotype_concensus']
-                                cur.execute(
+                                if serotypingInsert != '-':
+                                    cur.execute(
                                     f"INSERT INTO eav_text(isolate_id, field, value) VALUES ((SELECT id FROM isolates WHERE isolate='{isolate_name}'),'{sero[0]}','{serotypingInsert}')")
                     else:
                         if field_type == 'formula':
                             serotypingInsert = outputtsvdict[f'{tool} Predicted antigenic profile:']
                             seqsero_formula = formula(serotypingInsert, tool, isolate_name)
                             seqsero_formula.insert_antigens_into_db()
-                            cur.execute(
+                            if serotypingInsert != '-:-:-':
+                                cur.execute(
                                 f"INSERT INTO eav_text(isolate_id, field, value) VALUES ((SELECT id FROM isolates WHERE isolate='{isolate_name}'),'{sero[0]}','{serotypingInsert}')")
                         elif field_type == 'serotype':
                             serotypingInsert = outputtsvdict[f'{tool} Predicted serotype:']
-                            cur.execute(
+                            if serotypingInsert != '- -:-:-:':
+                                cur.execute(
                                 f"INSERT INTO eav_text(isolate_id, field, value) VALUES ((SELECT id FROM isolates WHERE isolate='{isolate_name}'),'{sero[0]}','{serotypingInsert}')")
 
             elif scheme == 'salmonella_spifinder':
