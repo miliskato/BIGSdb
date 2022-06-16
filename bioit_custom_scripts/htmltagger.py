@@ -6,7 +6,7 @@ from os import fdopen, remove
 
 argument_parser = argparse.ArgumentParser()
 argument_parser.add_argument('--htmlfilepath', required=True, type=Path)
-argument_parser.add_argument('--species', required=True, type=str, choices=['mycobacterium', 'listeria', 'neisseria', 'stec'])
+argument_parser.add_argument('--species', required=True, type=str, choices=['mycobacterium', 'listeria', 'neisseria', 'stec' , 'salmonella'])
 args = argument_parser.parse_args()
 htmlfilepath = Path(args.htmlfilepath)
 species = args.species
