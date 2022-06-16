@@ -114,8 +114,6 @@ def insert_typing_results():
                             antibiotics = hit[-2].split(',')
                             for antibiotic in antibiotics:
                                 antibiotic_reformatted = '_'.join(['POINTFINDER', antibiotic.replace('-', '_').replace(' ', '_').upper()])
-                                print(antibiotic)
-                                print(antibiotic_reformatted)
                                 mutation = hit[0].replace('.', '_').replace(' ', '_')
                                 eavhtmltable = eavhtmltable + ''.join(
                                     ['<tr><td><a href="/galaxyreports/salmonella/', isolate_name, '/report.html#',
@@ -131,8 +129,6 @@ def insert_typing_results():
                                         dummysequence = 'TAG'
                                     else:
                                         dummysequence = ''.join([longest_dummy_sequence[0][0], 'TAG'])
-                                    print(f"INSERT INTO sequences(locus, allele_id, sequence, status,sender,curator, date_entered, datestamp) \
-                                                                                   VALUES('{antibiotic_reformatted}','{mutation}','{dummysequence}','unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
                                     cur2.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status,sender,curator, date_entered, datestamp) \
                                                                                    VALUES('{antibiotic_reformatted}','{mutation}','{dummysequence}','unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
                                 cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
@@ -171,8 +167,6 @@ def insert_typing_results():
                                     dummysequence = 'TAG'
                                 else:
                                     dummysequence = ''.join([longest_dummy_sequence[0][0], 'TAG'])
-                                print(f"INSERT INTO sequences(locus, allele_id, sequence, status,sender,curator, date_entered, datestamp) \
-                                                                            VALUES('{genotyphi_field}','{future_alleles[i]}','{dummysequence}','unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
                                 cur2.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status,sender,curator, date_entered, datestamp) \
                                                                              VALUES('{genotyphi_field}','{future_alleles[i]}','{dummysequence}','unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
                             cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
@@ -258,29 +252,31 @@ def insert_typing_results():
                 schemes_spifinder=['spifinder_fastq','spifinder_fasta']
                 for scheme in schemes_spifinder:
                     hits = outputtsvdict[scheme]
-                    hits = ast.literal_eval(hits)
-                    for l in range(0,len(hits)):
-                        spifinder_entry = f"CatFunc{hits[l]['category_function']}__{hits[l]['accession']}"
-                        spifinder_field = (f"{scheme}_{hits[l]['SPI']}").upper()
-                        cur2.execute(f"SELECT allele_id FROM sequences WHERE allele_id = '{spifinder_entry}' and locus = '{spifinder_field}'")
-                        present_spifinder = cur2.fetchall()
-                        if present_spifinder == []:
+                    if hits != '[]':
+                        hits = ast.literal_eval(hits)
+                        for l in range(0, len(hits)):
+                            spifinder_entry = f"CatFunc{hits[l]['category_function']}__{hits[l]['accession']}"
+                            spifinder_field = (f"{scheme}_{hits[l]['SPI']}").upper()
                             cur2.execute(
-                                f"SELECT sequence FROM sequences WHERE locus  ='{spifinder_field}' ORDER BY CHAR_LENGTH(sequence) DESC LIMIT 1")
-                            longest_dummy_sequence = cur2.fetchall()
-                            if longest_dummy_sequence == []:
-                                dummysequence = 'TAG'
-                            else:
-                                dummysequence = ''.join([longest_dummy_sequence[0][0], 'TAG'])
-                            print(f"INSERT INTO sequences(locus, allele_id, sequence, status,sender,curator, date_entered, datestamp) VALUES('{spifinder_field}','{spifinder_entry}','{dummysequence}','unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
-                            cur2.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status,sender,curator, date_entered, datestamp) \
-                            VALUES('{spifinder_field}','{spifinder_entry}','{dummysequence}','unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
-                        cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
-                                    f"allele_id, status, method, sender, "
-                                    f"curator, date_entered, datestamp) "
-                                    f"VALUES('{spifinder_field}', (SELECT id FROM isolates WHERE isolate='{isolate_name}'), "
-                                    f"'{spifinder_entry}', 'confirmed', 'automatic', 1, "
-                                    f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                                f"SELECT allele_id FROM sequences WHERE allele_id = '{spifinder_entry}' and locus = '{spifinder_field}'")
+                            present_spifinder = cur2.fetchall()
+                            if present_spifinder == []:
+                                cur2.execute(
+                                    f"SELECT sequence FROM sequences WHERE locus  ='{spifinder_field}' ORDER BY CHAR_LENGTH(sequence) DESC LIMIT 1")
+                                longest_dummy_sequence = cur2.fetchall()
+                                if longest_dummy_sequence == []:
+                                    dummysequence = 'TAG'
+                                else:
+                                    dummysequence = ''.join([longest_dummy_sequence[0][0], 'TAG'])
+                                cur2.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status,sender,curator, date_entered, datestamp) \
+                                                    VALUES('{spifinder_field}','{spifinder_entry}','{dummysequence}','unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                            cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
+                                        f"allele_id, status, method, sender, "
+                                        f"curator, date_entered, datestamp) "
+                                        f"VALUES('{spifinder_field}', (SELECT id FROM isolates WHERE isolate='{isolate_name}'), "
+                                        f"'{spifinder_entry}', 'confirmed', 'automatic', 1, "
+                                        f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+
 
                 con2.close() #close seqdef database
 
@@ -334,7 +330,6 @@ for scheme in genedetectiondict:
         # in VFDB, there are accessions with name "null", this breaks the script, therefore an empty space is added, and the allele should be enough to find.
         if sequencefile[x]['accession'] is None:
             sequencefile[x]['accession'] = ""
-            print(sequencefile[x]['accession'])
         sequencenamedict[x] = '_'.join([(sequencefile[x]['accession']), (sequencefile[x]['allele']).replace("'","")])
         if genedetectiondict[scheme]['schemename_bigsdb'] == 'NCBI_AMR':
             ncbi_ab_class_dict['_'.join([(sequencefile[x]['accession']), (sequencefile[x]['allele']).replace("'","")])] = '_'.join(['NCBI_AMR', sequencefile[x]['class'].upper().replace(' ','_')])
@@ -394,13 +389,10 @@ for scheme in genedetectiondict:
             # Part 2 for the AB schemes
             if genedetectiondict[scheme]['schemename_bigsdb'] == 'NCBI_AMR':
                     ncbi_class = ncbi_ab_class_dict[hit]
-                    print(ncbi_class)
                     # gene or allele is always position 1
                     genehit = (json.loads(listofhits))[y][1].replace('.', '_').replace(' ', '_')
-                    print(genehit)
                     # AB from hit is always position -2
                     ABhit_s = '_'.join(['NCBI_AMR',(json.loads(listofhits))[y][-2].upper().replace(' ','_')])
-                    print(ABhit_s)
                     cur2.execute(f"SELECT COUNT(*) FROM loci WHERE "
                                 f"id='{ncbi_class}'")
                     classpresent = cur2.fetchall()
@@ -539,10 +531,8 @@ for scheme in genedetectiondict:
             elif genedetectiondict[scheme]['schemename_bigsdb'] == 'ResFinder':
                 # gene or allele is always position 1
                 genehit = (json.loads(listofhits))[y][1].replace('.', '_').replace(' ', '_')
-                print(genehit)
                 # AB from hit is always position -2
                 ABhit_s = '_'.join(['ResFinder', (json.loads(listofhits))[y][-2].upper().replace(' ', '_')])
-                print(ABhit_s)
                 for ABhit in ABhit_s.split('/'):
                     cur2.execute(f"SELECT COUNT(*) FROM loci WHERE "
                                 f"id='{ABhit}'")
