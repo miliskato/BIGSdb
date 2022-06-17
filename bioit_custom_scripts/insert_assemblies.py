@@ -35,7 +35,7 @@ if presentcontigs[0][0] == 0:
     x = 0
     if len(handle) > 2 and not handle[2].startswith(
             ">"):  # one file had this fasta format where the sequence was on different lines
-        pathcopytempfile = Path('/tmp') / ''.join([dir.lower(), '.fasta'])
+        pathcopytempfile = Path('/tmp') / ''.join([isolate_name.lower(), '.fasta'])
         shutil.copyfile((Path(fastafile)), pathcopytempfile)
         with open(pathcopytempfile, 'r') as file:
             handle2 = file.read()
@@ -45,7 +45,8 @@ if presentcontigs[0][0] == 0:
         os.remove(pathcopytempfile)
 
     while x < len(handle):
-        fastadict[handle[x].rstrip().replace(f">{dir}", "").strip("-_")] = handle[x + 1].rstrip()
+        if handle[x].startswith(">"):
+            fastadict[handle[x].rstrip().replace(f">{isolate_name}", "").strip("-_")] = handle[x + 1].rstrip()
         x += 2
     ###
 
