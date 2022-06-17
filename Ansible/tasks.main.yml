@@ -9,7 +9,7 @@
   git:
     repo: "https://biot_ro:{{ secret_bioit_git_ro_password }}@git.sciensano.be/bioit/BIGSdb.git"
     dest: "{{ bioit_bigs_home }}"
-    version: "Bigs-dev"
+    version: "master"
 
 # bij host_vars staat postgresql user wachtwoord https://bioit.sciensano.be/wiki/ansible-vault: postgresql_postgres_user_password: "olqYDY3f8RPHwOjlr4hH"
 # /etc/ansible/group_vars/bioit$ cat git.yml
@@ -968,17 +968,16 @@
 #    chmod 0640 /home/galaxy/.ssh/authorized_keys
 #    # cp private key to id_rsa_bigsdb on galaxy, chmod 0600 it
 
-# DOESNT WORK
-#    - name: generate SSH key galaxy user
-#      user:
-#        name: galaxy
-#        generate_ssh_key: yes
-#        ssh_key_type: rsa
-#        ssh_key_bits: 4096
-#        ssh_key_file: .ssh/id_rsa
-#        force: no
+    - name: generate SSH key galaxy user
+      user:
+        name: galaxy
+        generate_ssh_key: yes
+        ssh_key_type: rsa
+        ssh_key_bits: 4096
+        ssh_key_file: .ssh/id_rsa
+        force: no
 
-    - name: copy ssh key to authenticated users (intentional fail (file doesnt exist) to prompt manual keygen)
+    - name: copy ssh key to authenticated users
       ansible.builtin.copy:
         src: /home/galaxy/.ssh/id_rsa.pub
         dest: /home/galaxy/.ssh/authorized_keys
@@ -986,6 +985,24 @@
         group: galaxy
         mode: '0640'
         remote_src: yes
+
+# Doesnt work
+#     - name: Fetch the file from the bigs-
+#       run_once: yes
+#       fetch: src=/home/galaxy/.ssh/id_rsa dest=buffer/ flat=yes
+#
+#     - name: Copy the file to galaxy-
+#       copy: src=buffer/id_rsa dest=/home/galaxy/.ssh/id_rsa_bigsdb
+#       when: "{{ inventory_hostname == 'mwiapp02' }}"
+
+    - name: This rule will sadly somehow never finish, copy the private key to the right galaxy host manually !
+      tags: sync-pull
+      synchronize:
+        src: /home/galaxy/.ssh/id_rsa
+        dest: /home/galaxy/.ssh/id_rsa_bigsdb
+        mode: pull
+      delegate_to: bioit-galaxy-"{{ bioit_host_type }}"
+      run_once: true
 
 # todo, add key file to remote (galaxy-dev currently)
 
