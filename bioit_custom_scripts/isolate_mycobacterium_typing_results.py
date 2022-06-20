@@ -58,18 +58,19 @@ def insert_typing_results():
                 f"field, value)"
                 f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'),"
                 f"'tsv', '{reportlink.replace('html', 'tsv')}') ")
-    cur.execute(f"INSERT INTO eav_text(isolate_id, "
-                f"field, value)"
-                f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'),"
-                f"'gyrB_group', '{outputtsvdict['51SNP-gyrB_group']}') ")
-    cur.execute(f"INSERT INTO eav_text(isolate_id, "
-                f"field, value)"
-                f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'),"
-                f"'Genetic_group', '{outputtsvdict['51SNP-genetic_group']}') ")
-    cur.execute(f"INSERT INTO eav_text(isolate_id, "
-                f"field, value)"
-                f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'),"
-                f"'SCG', '{outputtsvdict['51SNP-scg']}') ")
+    if '51SNP-gyrB_group' in outputtsvdict:
+        cur.execute(f"INSERT INTO eav_text(isolate_id, "
+                    f"field, value)"
+                    f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'),"
+                    f"'gyrB_group', '{outputtsvdict['51SNP-gyrB_group']}') ")
+        cur.execute(f"INSERT INTO eav_text(isolate_id, "
+                    f"field, value)"
+                    f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'),"
+                    f"'Genetic_group', '{outputtsvdict['51SNP-genetic_group']}') ")
+        cur.execute(f"INSERT INTO eav_text(isolate_id, "
+                    f"field, value)"
+                    f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'),"
+                    f"'SCG', '{outputtsvdict['51SNP-scg']}') ")
     cur.execute(f"INSERT INTO eav_text(isolate_id, "
                 f"field, value)"
                 f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'),"
@@ -101,9 +102,9 @@ def insert_typing_results():
                     else:
                         continue
         elif schemedict[scheme]['dirdb'] == '':
-            if schemedict[scheme]['tsvname'] == 'spoligotype_binary':
+            if schemedict[scheme]['tsvname'] == 'spoligotype_binary' and schemedict[scheme]['tsvname'] in outputtsvdict:
                 x = 1
-                for allele_id in list(outputtsvdict['spoligotype_binary']):
+                for allele_id in list(outputtsvdict[schemedict[scheme]['tsvname']]):
                     locus = ''.join(['Spacer', str(x).zfill(2)])
                     x += 1
                     cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
@@ -151,7 +152,7 @@ def insert_typing_results():
                 #                     f"'{allele_id}', 'confirmed', 'automatic', 1, "
                 #                     f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
                 #     x += 1
-            elif scheme == 'mycobacterium_csbrd':
+            elif scheme == 'mycobacterium_csbrd' and 'csb_detected' in outputtsvdict:
                 for record in ['csb_detected', 'RD1_detected', 'RD9_detected']:
                     locus = record.rstrip('_detected') # need to be careful with rstrip and strip but in this case no issue
                     if outputtsvdict[record] == 'False':

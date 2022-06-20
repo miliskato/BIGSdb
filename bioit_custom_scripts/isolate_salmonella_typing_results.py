@@ -144,7 +144,7 @@ def insert_typing_results():
                                 f"field, value)"
                                 f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'),"
                                 f"'pointfinder_hits', '{eavhtmltable}') ")
-            elif scheme == 'salmonella_genotyphi':
+            elif scheme == 'salmonella_genotyphi' and 'genotyphi_lineage' in outputtsvdict:
                 cur.execute(f"SELECT field FROM eav_fields WHERE field like 'genotyphi%'")
                 genotyphi_susc_list = cur.fetchall()
                 for item in genotyphi_susc_list:
