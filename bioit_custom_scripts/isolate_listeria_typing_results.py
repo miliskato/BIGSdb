@@ -113,7 +113,7 @@ def insert_typing_results():
                     continue
 
     cur.execute(f"INSERT INTO history(isolate_id, timestamp, action, curator)"
-                f"VALUES(SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'),(SELECT NOW()::TIMESTAMP), 'Typing results inserted', 1)")
+                f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'),(SELECT NOW()::TIMESTAMP), 'Typing results inserted', 1)")
 
 # check whether sample exists
 cur.execute(f"SELECT COUNT(*) FROM isolates WHERE isolate='{isolate_name}'")

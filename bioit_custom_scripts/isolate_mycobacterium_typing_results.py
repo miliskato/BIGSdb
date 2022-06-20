@@ -52,35 +52,35 @@ def insert_typing_results():
     reportlink =f'<p><a href="/galaxyreports/mycobacterium/{isolate_name}/report.html" target="_blank"> html report</a></p>'
     cur.execute(f"INSERT INTO eav_text(isolate_id, "
                 f"field, value)"
-                f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
+                f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'),"
                 f"'html', '{reportlink}') ")
     cur.execute(f"INSERT INTO eav_text(isolate_id, "
                 f"field, value)"
-                f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
+                f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'),"
                 f"'tsv', '{reportlink.replace('html', 'tsv')}') ")
     cur.execute(f"INSERT INTO eav_text(isolate_id, "
                 f"field, value)"
-                f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
+                f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'),"
                 f"'gyrB_group', '{outputtsvdict['51SNP-gyrB_group']}') ")
     cur.execute(f"INSERT INTO eav_text(isolate_id, "
                 f"field, value)"
-                f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
+                f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'),"
                 f"'Genetic_group', '{outputtsvdict['51SNP-genetic_group']}') ")
     cur.execute(f"INSERT INTO eav_text(isolate_id, "
                 f"field, value)"
-                f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
+                f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'),"
                 f"'SCG', '{outputtsvdict['51SNP-scg']}') ")
     cur.execute(f"INSERT INTO eav_text(isolate_id, "
                 f"field, value)"
-                f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
+                f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'),"
                 f"'snpit_species', '{outputtsvdict['snpit_species']}') ")
     cur.execute(f"INSERT INTO eav_text(isolate_id, "
                 f"field, value)"
-                f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
+                f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'),"
                 f"'snpit_lineage', '{outputtsvdict['snpit_lineage']}') ")
     cur.execute(f"INSERT INTO eav_text(isolate_id, "
                 f"field, value)"
-                f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
+                f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'),"
                 f"'snpit_sublineage', '{outputtsvdict['snpit_sublineage']}') ")
     dirlist = [] #dirlist serves to not insert duplicates (creates error in sql), for Listeria e.g. prs and prfA are included in two schemes
     for scheme in schemedict:
@@ -95,7 +95,7 @@ def insert_typing_results():
                         cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
                                     f"allele_id, status, method, sender, "
                                     f"curator, date_entered, datestamp) "
-                                    f"VALUES('{dir}', (SELECT id FROM isolates WHERE isolate='{isolate_name}'), "
+                                    f"VALUES('{dir}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'), "
                                     f"'{allele_id}', 'confirmed', 'automatic', 1, "
                                     f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
                     else:
@@ -109,16 +109,16 @@ def insert_typing_results():
                     cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
                                 f"allele_id, status, method, sender, "
                                 f"curator, date_entered, datestamp) "
-                                f"VALUES('{locus}', (SELECT id FROM isolates WHERE isolate='{isolate_name}'), "
+                                f"VALUES('{locus}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'), "
                                 f"'{allele_id}', 'confirmed', 'automatic', 1, "
                                 f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
                 cur.execute(f"INSERT INTO eav_text(isolate_id, "
                             f"field, value)"
-                            f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
+                            f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'),"
                             f"'spoligotype_binary', '{outputtsvdict['spoligotype_binary']}') ")
                 cur.execute(f"INSERT INTO eav_text(isolate_id, "
                             f"field, value)"
-                            f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
+                            f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'),"
                             f"'spoligotype_octal', '{outputtsvdict['spoligotype_octal']}') ")
             # elif schemedict[scheme]['tsvname'] == '51SNP':
                 ## removed because unneccesary according to meeting
@@ -139,7 +139,7 @@ def insert_typing_results():
                 #         cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
                 #                     f"allele_id, status, method, sender, "
                 #                     f"curator, date_entered, datestamp) "
-                #                     f"VALUES('{locus}', (SELECT id FROM isolates WHERE isolate='{isolate_name}'), "
+                #                     f"VALUES('{locus}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'), "
                 #                     f"'{allele_id}', 'confirmed', 'automatic', 1, "
                 #                     f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
                 #     elif allele_sequence == '-':
@@ -147,7 +147,7 @@ def insert_typing_results():
                 #         cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
                 #                     f"allele_id, status, method, sender, "
                 #                     f"curator, date_entered, datestamp) "
-                #                     f"VALUES('{locus}', (SELECT id FROM isolates WHERE isolate='{isolate_name}'), "
+                #                     f"VALUES('{locus}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'), "
                 #                     f"'{allele_id}', 'confirmed', 'automatic', 1, "
                 #                     f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
                 #     x += 1
@@ -161,7 +161,7 @@ def insert_typing_results():
                     cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
                                 f"allele_id, status, method, sender, "
                                 f"curator, date_entered, datestamp) "
-                                f"VALUES('{locus}', (SELECT id FROM isolates WHERE isolate='{isolate_name}'), "
+                                f"VALUES('{locus}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'), "
                                 f"'{allele_id}', 'confirmed', 'automatic', 1, "
                                 f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
             elif scheme == 'mycobacterium_amrdetection':
@@ -177,7 +177,7 @@ def insert_typing_results():
                 for bigsdbname, tsvname in amr_metadata_fields_tsv.items():
                     cur.execute(f"INSERT INTO eav_text(isolate_id, "
                                 f"field, value)"
-                                f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
+                                f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'),"
                                 f"'{bigsdbname}', '{outputtsvdict[tsvname]}') ")
                 # AMR results
                 cur.execute(f"SELECT locus FROM scheme_members WHERE scheme_id = (SELECT id FROM schemes WHERE name = 'AMR_detection_WHO')")
@@ -217,7 +217,7 @@ def insert_typing_results():
                             cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
                                         f"allele_id, status, method, sender, "
                                         f"curator, date_entered, datestamp) "
-                                        f"VALUES('{locus[0]}', (SELECT id FROM isolates WHERE isolate='{isolate_name}'), "
+                                        f"VALUES('{locus[0]}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'), "
                                         f"'{allele_id}', 'confirmed', 'automatic', 1, "
                                         f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
             elif scheme == 'mycobacterium_hsp65':
@@ -231,7 +231,7 @@ def insert_typing_results():
                         print(hit)
                         cur.execute(f"INSERT INTO eav_boolean(isolate_id, "
                                     f"field, value)"
-                                    f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
+                                    f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'),"
                                     f"'{hit}', 't') ")
                         y+=1
 
@@ -276,14 +276,14 @@ def insert_typing_results():
                                 cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
                                             f"allele_id, status, method, sender, "
                                             f"curator, date_entered, datestamp) "
-                                            f"VALUES('{antibiotic_reformatted}', (SELECT id FROM isolates WHERE isolate='{isolate_name}'), "
+                                            f"VALUES('{antibiotic_reformatted}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'), "
                                             f"'{mutation}', 'confirmed', 'automatic', 1, "
                                             f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
                         y += 1
                     eavhtmltable = eavhtmltable + '</table>'
                     cur.execute(f"INSERT INTO eav_text(isolate_id, "
                                 f"field, value)"
-                                f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
+                                f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'),"
                                 f"'pointfinder_hits', '{eavhtmltable}') ")
                     con2.close()
             elif scheme == 'mycobacterium_ncbi16s':
@@ -311,11 +311,11 @@ def insert_typing_results():
                         cur.execute(f"INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('{hit_formatted}', 'boolean', 'NCBI 16S', '', 't', 't', (SELECT CURRENT_DATE), 1)")
                     cur.execute(f"INSERT INTO eav_boolean(isolate_id, "
                                 f"field, value)"
-                                f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
+                                f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'),"
                                 f"'{hit_formatted}', 't') ")
 
     cur.execute(f"INSERT INTO history(isolate_id, timestamp, action, curator)"
-                f"VALUES((SELECT id FROM isolates WHERE isolate = '{isolate_name}'),(SELECT NOW()::TIMESTAMP), 'Typing results inserted', 1)")
+                f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate = '{isolate_name}'),(SELECT NOW()::TIMESTAMP), 'Typing results inserted', 1)")
 
 # check whether sample exists
 cur.execute(f"SELECT COUNT(*) FROM isolates WHERE isolate='{isolate_name}'")
@@ -327,12 +327,12 @@ if sample_presence[0][0] == 0:
                 f"VALUES((SELECT CASE WHEN (SELECT(SELECT MAX(id) FROM isolates)+1) IS NULL THEN 1 ELSE (SELECT(SELECT MAX(id) FROM isolates)+1) END), "
                 f"'{isolate_name}', 1, 1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE), '{uploadermailadress}')")
     cur.execute(f"INSERT INTO history(isolate_id, timestamp, action, curator)"
-                f"VALUES((SELECT id FROM isolates WHERE isolate = '{isolate_name}'),(SELECT NOW()::TIMESTAMP), 'Isolate record added', 1)")
+                f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate = '{isolate_name}'),(SELECT NOW()::TIMESTAMP), 'Isolate record added', 1)")
     insert_typing_results()
 
 elif sample_presence[0][0] == 1:
     # sample exists: check whether typing results or not (we do not bother checking for all schemes separately
-    cur.execute(f"SELECT COUNT(*) FROM allele_designations WHERE isolate_id = (SELECT id FROM isolates WHERE isolate='{isolate_name}')")
+    cur.execute(f"SELECT COUNT(*) FROM allele_designations WHERE isolate_id = (SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}')")
     alleles_presence = cur.fetchall()
     if alleles_presence[0][0] == 0:
         # no allele designations are present so we insert them
@@ -344,7 +344,7 @@ elif sample_presence[0][0] >= 1:
     # multiple samples with same isolate name are present, that means that there are multiple versions of the same sample
     # check newest version
     cur.execute(f"SELECT COUNT(*) FROM allele_designations WHERE "
-                f"isolate_id = (SELECT id FROM isolates WHERE isolate='{isolate_name}') ORDER BY date_entered DESC LIMIT 1")
+                f"isolate_id = (SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}') ORDER BY date_entered DESC LIMIT 1")
     alleles_presence = cur.fetchall()
     if alleles_presence[0][0] == 0:
         # no allele designations are present so we insert them

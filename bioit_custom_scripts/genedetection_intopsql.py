@@ -251,7 +251,7 @@ for scheme in schemedict:
                     cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
                                 f"allele_id, status, method, sender, "
                                 f"curator, date_entered, datestamp) "
-                                f"VALUES('{clusterhit}', (SELECT id FROM isolates WHERE isolate='{isolate_name}'), "
+                                f"VALUES('{clusterhit}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'), "
                                 f"1, 'confirmed', 'automatic', 1, "
                                 f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
                 clusterhitlist.append(clusterhit)

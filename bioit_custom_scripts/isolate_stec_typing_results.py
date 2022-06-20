@@ -68,15 +68,15 @@ def insert_typing_results():
     reportlink =f'<p><a href="/galaxyreports/stec/{isolate_name}/report.html" target="_blank"> html report</a></p>'
     cur.execute(f"INSERT INTO eav_text(isolate_id, "
                 f"field, value)"
-                f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
+                f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'),"
                 f"'html', '{reportlink}') ")
     cur.execute(f"INSERT INTO eav_text(isolate_id, "
                 f"field, value)"
-                f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
+                f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'),"
                 f"'tsv', '{reportlink.replace('html', 'tsv')}') ")
     cur.execute(f"INSERT INTO eav_text(isolate_id, "
                 f"field, value)"
-                f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
+                f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'),"
                 f"'Serotype', '{outputtsvdict['serotype']}') ")
     dirlist = [] #dirlist serves to not insert duplicates (creates error in sql), for Listeria e.g. prs and prfA are included in two schemes
     for scheme in schemedict:
@@ -91,7 +91,7 @@ def insert_typing_results():
                         cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
                                     f"allele_id, status, method, sender, "
                                     f"curator, date_entered, datestamp) "
-                                    f"VALUES('{dir}', (SELECT id FROM isolates WHERE isolate='{isolate_name}'), "
+                                    f"VALUES('{dir}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'), "
                                     f"'{allele_id}', 'confirmed', 'automatic', 1, "
                                     f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
                     else:
@@ -138,14 +138,14 @@ def insert_typing_results():
                                 cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
                                             f"allele_id, status, method, sender, "
                                             f"curator, date_entered, datestamp) "
-                                            f"VALUES('{antibiotic_reformatted}', (SELECT id FROM isolates WHERE isolate='{isolate_name}'), "
+                                            f"VALUES('{antibiotic_reformatted}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'), "
                                             f"'{mutation}', 'confirmed', 'automatic', 1, "
                                             f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
                         y += 1
                     eavhtmltable = eavhtmltable + '</table>'
                     cur.execute(f"INSERT INTO eav_text(isolate_id, "
                                 f"field, value)"
-                                f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
+                                f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'),"
                                 f"'pointfinder_hits', '{eavhtmltable}') ")
                     con2.close()
             elif scheme == 'stec_serotype':
@@ -172,13 +172,13 @@ def insert_typing_results():
                         cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
                                     f"allele_id, status, method, sender, "
                                     f"curator, date_entered, datestamp) "
-                                    f"VALUES('{antigen}', (SELECT id FROM isolates WHERE isolate='{isolate_name}'), "
+                                    f"VALUES('{antigen}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'), "
                                     f"'{antigen_allele}', 'confirmed', 'automatic', 1, "
                                     f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
                 con2.close()
 
     cur.execute(f"INSERT INTO history(isolate_id, timestamp, action, curator)"
-                f"VALUES((SELECT id FROM isolates WHERE isolate = '{isolate_name}'),(SELECT NOW()::TIMESTAMP), 'Typing results inserted', 1)")
+                f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate = '{isolate_name}'),(SELECT NOW()::TIMESTAMP), 'Typing results inserted', 1)")
 
 # check whether sample exists
 cur.execute(f"SELECT COUNT(*) FROM isolates WHERE isolate='{isolate_name}'")
@@ -190,12 +190,12 @@ if sample_presence[0][0] == 0:
                 f"VALUES((SELECT CASE WHEN (SELECT(SELECT MAX(id) FROM isolates)+1) IS NULL THEN 1 ELSE (SELECT(SELECT MAX(id) FROM isolates)+1) END), "
                 f"'{isolate_name}', 1, 1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE), '{uploadermailadress}')")
     cur.execute(f"INSERT INTO history(isolate_id, timestamp, action, curator)"
-                f"VALUES((SELECT id FROM isolates WHERE isolate = '{isolate_name}'),(SELECT NOW()::TIMESTAMP), 'Isolate record added', 1)")
+                f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate = '{isolate_name}'),(SELECT NOW()::TIMESTAMP), 'Isolate record added', 1)")
     insert_typing_results()
 
 elif sample_presence[0][0] == 1:
     # sample exists: check whether typing results or not (we do not bother checking for all schemes separately
-    cur.execute(f"SELECT COUNT(*) FROM allele_designations WHERE isolate_id = (SELECT id FROM isolates WHERE isolate='{isolate_name}')")
+    cur.execute(f"SELECT COUNT(*) FROM allele_designations WHERE isolate_id = (SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}')")
     alleles_presence = cur.fetchall()
     if alleles_presence[0][0] == 0:
         # no allele designations are present so we insert them
@@ -207,7 +207,7 @@ elif sample_presence[0][0] >= 1:
     # multiple samples with same isolate name are present, that means that there are multiple versions of the same sample
     # check newest version
     cur.execute(f"SELECT COUNT(*) FROM allele_designations WHERE "
-                f"isolate_id = (SELECT id FROM isolates WHERE isolate='{isolate_name}') ORDER BY date_entered DESC LIMIT 1")
+                f"isolate_id = (SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}') ORDER BY date_entered DESC LIMIT 1")
     alleles_presence = cur.fetchall()
     if alleles_presence[0][0] == 0:
         # no allele designations are present so we insert them
@@ -251,7 +251,7 @@ for scheme in genedetectiondict:
     if listofhits != '[]':
         cur.execute(f"INSERT INTO eav_text_hidden(isolate_id, "
                     f"field, value)"
-                    f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
+                    f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'),"
                     f"'{genedetectiondict[scheme]['schemename_bigsdb']}', '{listofhits}') ")
         eavhtmltable= '<table class="data"><tr><th>GeneCluster</th><th>Locus</th></tr>'
         clusterhitlist = []  # in case loci that were in different clusters at some point get in the same cluster
@@ -274,7 +274,7 @@ for scheme in genedetectiondict:
                 cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
                             f"allele_id, status, method, sender, "
                             f"curator, date_entered, datestamp) "
-                            f"VALUES('{clusterhit}', (SELECT id FROM isolates WHERE isolate='{isolate_name}'), "
+                            f"VALUES('{clusterhit}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'), "
                             f"1, 'confirmed', 'automatic', 1, "
                             f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
             clusterhitlist.append(clusterhit)
@@ -309,18 +309,18 @@ for scheme in genedetectiondict:
                             cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
                                         f"allele_id, status, method, sender, "
                                         f"curator, date_entered, datestamp) "
-                                        f"VALUES('{ncbi_class}', (SELECT id FROM isolates WHERE isolate='{isolate_name}'), "
+                                        f"VALUES('{ncbi_class}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'), "
                                         f"'{genehit}', 'confirmed', 'automatic', 1, "
                                         f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
                         elif allelepresent[0][0] == 1:
                             cur.execute(f"SELECT COUNT(*) FROM allele_designations WHERE "
-                                         f"locus='{ncbi_class}' AND allele_id='{genehit}' AND isolate_id=(SELECT id FROM isolates WHERE isolate='{isolate_name}')")
+                                         f"locus='{ncbi_class}' AND allele_id='{genehit}' AND isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}')")
                             designationpresent = cur.fetchall()
                             if designationpresent[0][0] == 0:
                                 cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
                                             f"allele_id, status, method, sender, "
                                             f"curator, date_entered, datestamp) "
-                                            f"VALUES('{ncbi_class}', (SELECT id FROM isolates WHERE isolate='{isolate_name}'), "
+                                            f"VALUES('{ncbi_class}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'), "
                                             f"'{genehit}', 'confirmed', 'automatic', 1, "
                                             f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
                     # else not exists; add into
@@ -348,7 +348,7 @@ for scheme in genedetectiondict:
                         cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
                                     f"allele_id, status, method, sender, "
                                     f"curator, date_entered, datestamp) "
-                                    f"VALUES('{ncbi_class}', (SELECT id FROM isolates WHERE isolate='{isolate_name}'), "
+                                    f"VALUES('{ncbi_class}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'), "
                                     f"'{genehit}', 'confirmed', 'automatic', 1, "
                                     f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
                     for ABhit in ABhit_s.split('/'):
@@ -373,18 +373,18 @@ for scheme in genedetectiondict:
                                 cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
                                             f"allele_id, status, method, sender, "
                                             f"curator, date_entered, datestamp) "
-                                            f"VALUES('{ABhit}', (SELECT id FROM isolates WHERE isolate='{isolate_name}'), "
+                                            f"VALUES('{ABhit}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'), "
                                             f"'{genehit}', 'confirmed', 'automatic', 1, "
                                             f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
                             elif allelepresent[0][0] == 1:
                                 cur.execute(f"SELECT COUNT(*) FROM allele_designations WHERE "
-                                             f"locus='{ABhit}' AND allele_id='{genehit}' AND isolate_id=(SELECT id FROM isolates WHERE isolate='{isolate_name}')")
+                                             f"locus='{ABhit}' AND allele_id='{genehit}' AND isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}')")
                                 designationpresent = cur.fetchall()
                                 if designationpresent[0][0] == 0:
                                     cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
                                                 f"allele_id, status, method, sender, "
                                                 f"curator, date_entered, datestamp) "
-                                                f"VALUES('{ABhit}', (SELECT id FROM isolates WHERE isolate='{isolate_name}'), "
+                                                f"VALUES('{ABhit}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'), "
                                                 f"'{genehit}', 'confirmed', 'automatic', 1, "
                                                 f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
                             cur2.execute(f"SELECT COUNT(*) FROM scheme_members WHERE "
@@ -420,7 +420,7 @@ for scheme in genedetectiondict:
                             cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
                                         f"allele_id, status, method, sender, "
                                         f"curator, date_entered, datestamp) "
-                                        f"VALUES('{ABhit}', (SELECT id FROM isolates WHERE isolate='{isolate_name}'), "
+                                        f"VALUES('{ABhit}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'), "
                                         f"'{genehit}', 'confirmed', 'automatic', 1, "
                                         f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
             elif genedetectiondict[scheme]['schemename_bigsdb'] == 'ResFinder':
@@ -452,18 +452,18 @@ for scheme in genedetectiondict:
                             cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
                                         f"allele_id, status, method, sender, "
                                         f"curator, date_entered, datestamp) "
-                                        f"VALUES('{ABhit}', (SELECT id FROM isolates WHERE isolate='{isolate_name}'), "
+                                        f"VALUES('{ABhit}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'), "
                                         f"'{genehit}', 'confirmed', 'automatic', 1, "
                                         f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
                         elif allelepresent[0][0] == 1:
                             cur.execute(f"SELECT COUNT(*) FROM allele_designations WHERE "
-                                         f"locus='{ABhit}' AND allele_id='{genehit}' AND isolate_id=(SELECT id FROM isolates WHERE isolate='{isolate_name}')")
+                                         f"locus='{ABhit}' AND allele_id='{genehit}' AND isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}')")
                             designationpresent = cur.fetchall()
                             if designationpresent[0][0] == 0:
                                 cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
                                             f"allele_id, status, method, sender, "
                                             f"curator, date_entered, datestamp) "
-                                            f"VALUES('{ABhit}', (SELECT id FROM isolates WHERE isolate='{isolate_name}'), "
+                                            f"VALUES('{ABhit}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'), "
                                             f"'{genehit}', 'confirmed', 'automatic', 1, "
                                             f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
                     # else not exists; add into
@@ -491,18 +491,18 @@ for scheme in genedetectiondict:
                         cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
                                     f"allele_id, status, method, sender, "
                                     f"curator, date_entered, datestamp) "
-                                    f"VALUES('{ABhit}', (SELECT id FROM isolates WHERE isolate='{isolate_name}'), "
+                                    f"VALUES('{ABhit}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'), "
                                     f"'{genehit}', 'confirmed', 'automatic', 1, "
                                     f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
             y += 1
         eavhtmltable= eavhtmltable + '</table>'
         cur.execute(f"INSERT INTO eav_text(isolate_id, "
                     f"field, value)"
-                    f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
+                    f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'),"
                     f"'{genedetectiondict[scheme]['schemename_bigsdb']}', '{eavhtmltable}') ")
         con2.close()
 cur.execute(f"INSERT INTO history(isolate_id, timestamp, action, curator)"
-            f"VALUES((SELECT id FROM isolates WHERE isolate = '{isolate_name}'),(SELECT NOW()::TIMESTAMP), 'Gene detection results inserted', 1)")
+            f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate = '{isolate_name}'),(SELECT NOW()::TIMESTAMP), 'Gene detection results inserted', 1)")
 
 
 # close db connection
