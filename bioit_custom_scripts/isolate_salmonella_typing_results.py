@@ -240,14 +240,14 @@ def insert_typing_results():
                                     cur.execute(
                                     f"INSERT INTO eav_text(isolate_id, field, value) VALUES ((SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'),'{sero[0]}','{serotypingInsert}')")
                     else:
-                        if field_type == 'formula':
+                        if field_type == 'formula' and f'{tool} Predicted antigenic profile:' in outputtsvdict:
                             serotypingInsert = outputtsvdict[f'{tool} Predicted antigenic profile:']
                             seqsero_formula = formula(serotypingInsert, tool, isolate_name)
                             seqsero_formula.insert_antigens_into_db()
                             if serotypingInsert != '-:-:-':
                                 cur.execute(
                                 f"INSERT INTO eav_text(isolate_id, field, value) VALUES ((SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'),'{sero[0]}','{serotypingInsert}')")
-                        elif field_type == 'serotype':
+                        elif field_type == 'serotype' and f'{tool} Predicted serotype:' in outputtsvdict:
                             serotypingInsert = outputtsvdict[f'{tool} Predicted serotype:']
                             if serotypingInsert != '- -:-:-':
                                 cur.execute(
