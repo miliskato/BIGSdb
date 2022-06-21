@@ -256,31 +256,32 @@ def insert_typing_results():
             elif scheme == 'salmonella_spifinder':
                 schemes_spifinder=['spifinder_fastq','spifinder_fasta']
                 for scheme in schemes_spifinder:
-                    hits = outputtsvdict[scheme]
-                    if hits != '[]':
-                        hits = ast.literal_eval(hits)
-                        for l in range(0, len(hits)):
-                            spifinder_entry = f"CatFunc{hits[l]['category_function']}__{hits[l]['accession']}"
-                            spifinder_field = (f"{scheme}_{hits[l]['SPI']}").upper()
-                            cur2.execute(
-                                f"SELECT allele_id FROM sequences WHERE allele_id = '{spifinder_entry}' and locus = '{spifinder_field}'")
-                            present_spifinder = cur2.fetchall()
-                            if present_spifinder == []:
+                    if 'spifinder_fastq' in outputtsvdict:
+                        hits = outputtsvdict[scheme]
+                        if hits != '[]':
+                            hits = ast.literal_eval(hits)
+                            for l in range(0, len(hits)):
+                                spifinder_entry = f"CatFunc{hits[l]['category_function']}__{hits[l]['accession']}"
+                                spifinder_field = (f"{scheme}_{hits[l]['SPI']}").upper()
                                 cur2.execute(
-                                    f"SELECT sequence FROM sequences WHERE locus  ='{spifinder_field}' ORDER BY CHAR_LENGTH(sequence) DESC LIMIT 1")
-                                longest_dummy_sequence = cur2.fetchall()
-                                if longest_dummy_sequence == []:
-                                    dummysequence = 'TAG'
-                                else:
-                                    dummysequence = ''.join([longest_dummy_sequence[0][0], 'TAG'])
-                                cur2.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status,sender,curator, date_entered, datestamp) \
-                                                    VALUES('{spifinder_field}','{spifinder_entry}','{dummysequence}','unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
-                            cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
-                                        f"allele_id, status, method, sender, "
-                                        f"curator, date_entered, datestamp) "
-                                        f"VALUES('{spifinder_field}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'), "
-                                        f"'{spifinder_entry}', 'confirmed', 'automatic', 1, "
-                                        f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                                    f"SELECT allele_id FROM sequences WHERE allele_id = '{spifinder_entry}' and locus = '{spifinder_field}'")
+                                present_spifinder = cur2.fetchall()
+                                if present_spifinder == []:
+                                    cur2.execute(
+                                        f"SELECT sequence FROM sequences WHERE locus  ='{spifinder_field}' ORDER BY CHAR_LENGTH(sequence) DESC LIMIT 1")
+                                    longest_dummy_sequence = cur2.fetchall()
+                                    if longest_dummy_sequence == []:
+                                        dummysequence = 'TAG'
+                                    else:
+                                        dummysequence = ''.join([longest_dummy_sequence[0][0], 'TAG'])
+                                    cur2.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status,sender,curator, date_entered, datestamp) \
+                                                        VALUES('{spifinder_field}','{spifinder_entry}','{dummysequence}','unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                                cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
+                                            f"allele_id, status, method, sender, "
+                                            f"curator, date_entered, datestamp) "
+                                            f"VALUES('{spifinder_field}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'), "
+                                            f"'{spifinder_entry}', 'confirmed', 'automatic', 1, "
+                                            f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
 
 
                 con2.close() #close seqdef database
