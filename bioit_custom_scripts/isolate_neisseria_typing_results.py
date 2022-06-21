@@ -149,7 +149,7 @@ elif sample_presence[0][0] >= 1:
     # multiple samples with same isolate name are present, that means that there are multiple versions of the same sample
     # check newest version
     cur.execute(f"SELECT COUNT(*) FROM allele_designations WHERE "
-                f"isolate_id = (SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}') ORDER BY date_entered DESC LIMIT 1")
+                f"isolate_id = (SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}')")
     alleles_presence = cur.fetchall()
     if alleles_presence[0][0] == 0:
         # no allele designations are present so we insert them
