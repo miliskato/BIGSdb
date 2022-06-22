@@ -1,22 +1,29 @@
 import os
 import psycopg2
+import smtplib
+from email.message import EmailMessage
+import socket
 # For this script I am assuming that profiles do not retire.
 # It is important to keep in mind that ST do not neccesarily follow each other up continuosly, there can be gaps
 
 # the first element in the fields list should be an integer/primary_key
 schemedict = {
-              # # 'listeria_mlst': {'seqdefdb': 'bigsdb_listeria_seqdef', 'dirdb': '/db/sequence_typing/listeria/mlst', 'fields': ['ST', 'CC', 'Lineage'], 'schemename_bigsdb': 'MLST'},
-              # # 'listeria_serogroup': {'seqdefdb': 'bigsdb_listeria_seqdef', 'dirdb': '/db/sequence_typing/listeria/serogroup', 'fields': ['profile_id', 'serogroup'], 'schemename_bigsdb': 'PCR serogroup'},
-              # # 'mycobacterium_mlst': {'seqdefdb': 'bigsdb_mycobacterium_seqdef', 'dirdb': '/db/sequence_typing/mycobacterium/mlst', 'fields': ['ST'], 'schemename_bigsdb': 'MLST'},
-              # # 'neisseria_mlst': {'dirdb': '/db/sequence_typing/neisseria/mlst', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'fields': ['ST'], 'schemename_bigsdb': 'MLST'},
-              # # 'neisseria_rplf': {'dirdb': '/db/sequence_typing/neisseria/rplf', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'fields': ['rplF_id', 'genospecies'], 'schemename_bigsdb': 'rplF'},
-              # # 'neisseria_bast': {'dirdb': '/db/sequence_typing/neisseria/bast', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'fields': ['BAST', 'MenDeVAR_Bexsero_reactivity', 'MenDeVAR_Trumenba_reactivity'], 'schemename_bigsdb': 'BAST'},
-              # # 'stec_mlst_warwick': {'dirdb': '/db/sequence_typing/ecoli/mlst-warwick', 'fields': ['ST'], 'schemename_bigsdb': 'MLST_Warwick', 'seqdefdb': 'bigsdb_stec_seqdef'},
-              # # 'stec_mlst_pasteur': {'dirdb': '/db/sequence_typing/ecoli/mlst-pasteur', 'fields': ['ST'], 'schemename_bigsdb': 'MLST_Pasteur', 'seqdefdb': 'bigsdb_stec_seqdef'},
-              # 'salmonella_mlst': {'seqdefdb': 'bigsdb_salmonella_seqdef', 'dirdb': '/db/sequence_typing/salmonella/mlst', 'fields': ['ST'], 'schemename_bigsdb': 'MLST'}
+              'listeria_mlst': {'seqdefdb': 'bigsdb_listeria_seqdef', 'dirdb': '/db/sequence_typing/listeria/mlst', 'fields': ['ST', 'CC', 'Lineage'], 'schemename_bigsdb': 'MLST'},
+              'listeria_serogroup': {'seqdefdb': 'bigsdb_listeria_seqdef', 'dirdb': '/db/sequence_typing/listeria/serogroup', 'fields': ['profile_id', 'serogroup'], 'schemename_bigsdb': 'PCR serogroup'},
+              'mycobacterium_mlst': {'seqdefdb': 'bigsdb_mycobacterium_seqdef', 'dirdb': '/db/sequence_typing/mycobacterium/mlst', 'fields': ['ST'], 'schemename_bigsdb': 'MLST'},
+              'neisseria_mlst': {'dirdb': '/db/sequence_typing/neisseria/mlst', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'fields': ['ST'], 'schemename_bigsdb': 'MLST'},
+              'neisseria_rplf': {'dirdb': '/db/sequence_typing/neisseria/rplf', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'fields': ['rplF_id', 'genospecies'], 'schemename_bigsdb': 'rplF'},
+              'neisseria_bast': {'dirdb': '/db/sequence_typing/neisseria/bast', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'fields': ['BAST', 'MenDeVAR_Bexsero_reactivity', 'MenDeVAR_Trumenba_reactivity'], 'schemename_bigsdb': 'BAST'},
+              'stec_mlst_warwick': {'dirdb': '/db/sequence_typing/ecoli/mlst-warwick', 'fields': ['ST'], 'schemename_bigsdb': 'MLST_Warwick', 'seqdefdb': 'bigsdb_stec_seqdef'},
+              'stec_mlst_pasteur': {'dirdb': '/db/sequence_typing/ecoli/mlst-pasteur', 'fields': ['ST'], 'schemename_bigsdb': 'MLST_Pasteur', 'seqdefdb': 'bigsdb_stec_seqdef'},
+              'salmonella_mlst': {'seqdefdb': 'bigsdb_salmonella_seqdef', 'dirdb': '/db/sequence_typing/salmonella/mlst', 'fields': ['ST'], 'schemename_bigsdb': 'MLST'}
               }
 
 profile_file = 'profiles.tsv'
+
+emaildict = {"from": "bioit-dev1@wiv-isp.be",
+    "to": "michael.kelchtermans@sciensano.be, benoit.bergkpinto@sciensano.be",
+    "host": "smtp.wiv-isp.be"}
 
 # three tables are important:
 
@@ -43,7 +50,7 @@ profile_file = 'profiles.tsv'
 #          1 | thrA  | 1          | 4         |       1 | 2022-03-03
 #
 
-def insert_profiles(scheme, indexdict):
+def insert_profiles(scheme, indexdict, list_to_be_inserted):
     # since we only need one db per scheme, it can stay open during the entire definition
     con = psycopg2.connect(database=f"{schemedict[scheme]['seqdefdb']}", user='apache', password='remote',
                            host='127.0.0.1', port='')
@@ -101,43 +108,65 @@ def insert_profiles(scheme, indexdict):
                             f"1,(SELECT CURRENT_DATE))")
     con.close()
 
-for scheme in schemedict:
-    handle = open('/'.join([schemedict[scheme]['dirdb'] , profile_file]),'r').readlines()
-    # multiple whitespaces need to be replaced by single whitespace
-    header = " ".join(handle[0].split()).split(' ')
-    print(header)
-    x = 0
-    indexdict = {}
-    for item in header:
-        print(item)
-        if item =="'rplF":
-            item = 'rplF'
-        indexdict[item] = x
-        x += 1
-    print(indexdict.items())
+def insert_all_profiles():
+    for scheme in schemedict:
+        handle = open('/'.join([schemedict[scheme]['dirdb'] , profile_file]),'r').readlines()
+        # multiple whitespaces need to be replaced by single whitespace
+        header = " ".join(handle[0].split()).split(' ')
+        print(header)
+        x = 0
+        indexdict = {}
+        for item in header:
+            print(item)
+            if item =="'rplF":
+                item = 'rplF'
+            indexdict[item] = x
+            x += 1
+        print(indexdict.items())
 
-    #check whether fields[0] is max or not, if not then all value above max will be inserted in all three tables
-    con = psycopg2.connect(database=f"{schemedict[scheme]['seqdefdb']}", user="apache", password="remote",
-                           host="127.0.0.1", port="")
-    cur = con.cursor()
-    cur.execute(f"SELECT MAX(profile_id) FROM profiles WHERE "
-                f"scheme_id = (SELECT id FROM schemes WHERE name = '{schemedict[scheme]['schemename_bigsdb']}')")
-    max_primary_field = cur.fetchall()
-    list_to_be_inserted =[]
-    if max_primary_field[0][0] is None:
-        # table is empty, so all need to be inserted
-        for line in handle[1:-1]:
-            list_to_be_inserted.append(" ".join(line.split()).split(' ')[0])
-        insert_profiles(scheme, indexdict)
-    elif max_primary_field[0][0] == " ".join(handle[-1].split()).split(' ')[0]:
-        # table is up to date
-        continue
-    elif max_primary_field[0][0] < " ".join(handle[-1].split()).split(' ')[0]:
-        # table needs to be updated
-        for line in handle[1:-1]:
-            if " ".join(line.split()).split(' ')[0] > max_primary_field[0][0]:
+        #check whether fields[0] is max or not, if not then all value above max will be inserted in all three tables
+        con = psycopg2.connect(database=f"{schemedict[scheme]['seqdefdb']}", user="apache", password="remote",
+                               host="127.0.0.1", port="")
+        cur = con.cursor()
+        cur.execute(f"SELECT MAX(profile_id) FROM profiles WHERE "
+                    f"scheme_id = (SELECT id FROM schemes WHERE name = '{schemedict[scheme]['schemename_bigsdb']}')")
+        max_primary_field = cur.fetchall()
+        list_to_be_inserted = []
+        if max_primary_field[0][0] is None:
+            # table is empty, so all need to be inserted
+            for line in handle[1:-1]:
                 list_to_be_inserted.append(" ".join(line.split()).split(' ')[0])
-            else:
-                continue
-        insert_profiles(scheme, indexdict)
+            insert_profiles(scheme, indexdict, list_to_be_inserted)
+        elif max_primary_field[0][0] == " ".join(handle[-1].split()).split(' ')[0]:
+            # table is up to date
+            continue
+        elif max_primary_field[0][0] < " ".join(handle[-1].split()).split(' ')[0]:
+            # table needs to be updated
+            for line in handle[1:-1]:
+                if " ".join(line.split()).split(' ')[0] > max_primary_field[0][0]:
+                    list_to_be_inserted.append(" ".join(line.split()).split(' ')[0])
+                else:
+                    continue
+            insert_profiles(scheme, indexdict, list_to_be_inserted)
 
+def send_email(subject: str, content: str, config: dict) -> None:
+    """
+    Sends an email.
+    :param subject: Mail subject
+    :param content: Content of the message
+    :return: None
+    """
+    message = EmailMessage()
+    message['Subject'] = subject
+    message['From'] = config['from']
+    message['To'] = config['to']
+    message.set_content(content)
+    with smtplib.SMTP(config['host']) as s:
+        s.send_message(message)
+
+try:
+    insert_all_profiles()
+except Exception as exceptionmessage:
+    send_email(
+        f'(automated weekly) profiles db update in BIGSdb failed on host {socket.gethostname()}',
+        f"{exceptionmessage}", emaildict)
