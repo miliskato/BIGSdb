@@ -5,6 +5,9 @@ import argparse
 from pathlib import Path
 import re
 import json
+import smtplib
+from email.message import EmailMessage
+import socket
 
 #leave dirdb empty for atypic typing schemes
 schemedict = {'mycobacterium_mlst': {'dirdb': '/db/sequence_typing/mycobacterium/mlst', 'tsvname': 'mlst'},
@@ -17,6 +20,11 @@ schemedict = {'mycobacterium_mlst': {'dirdb': '/db/sequence_typing/mycobacterium
               'mycobacterium_pointfinder': {'dirdb': '', 'tsvname': 'pointfinder_mutations', 'schemename_html': 'PointFinder'},
               'mycobacterium_ncbi16s': {'dirdb': '', 'tsvname': 'hits_ncbi_16s'}
               }
+
+emaildict = {"from": "bioit-dev1@wiv-isp.be",
+    "to": "michael.kelchtermans@sciensano.be, benoit.bergkpinto@sciensano.be",
+    "host": "smtp.wiv-isp.be"}
+
 isolatedb = 'bigsdb_mycobacterium_isolates'
 seqdefdb ='bigsdb_mycobacterium_seqdef'
 
@@ -318,6 +326,21 @@ def insert_typing_results():
     cur.execute(f"INSERT INTO history(isolate_id, timestamp, action, curator)"
                 f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate = '{isolate_name}'),(SELECT NOW()::TIMESTAMP), 'Typing results inserted', 1)")
 
+def send_email(subject: str, content: str, config: dict) -> None:
+    """
+    Sends an email.
+    :param subject: Mail subject
+    :param content: Content of the message
+    :return: None
+    """
+    message = EmailMessage()
+    message['Subject'] = subject
+    message['From'] = config['from']
+    message['To'] = config['to']
+    message.set_content(content)
+    with smtplib.SMTP(config['host']) as s:
+        s.send_message(message)
+
 # check whether sample exists
 cur.execute(f"SELECT COUNT(*) FROM isolates WHERE isolate='{isolate_name}'")
 sample_presence = cur.fetchall()
@@ -329,7 +352,12 @@ if sample_presence[0][0] == 0:
                 f"'{isolate_name}', 1, 1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE), '{uploadermailadress}')")
     cur.execute(f"INSERT INTO history(isolate_id, timestamp, action, curator)"
                 f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate = '{isolate_name}'),(SELECT NOW()::TIMESTAMP), 'Isolate record added', 1)")
-    insert_typing_results()
+    try:
+        insert_typing_results()
+    except Exception as exceptionmessage:
+        send_email(
+            f'Error inserting output of mycobacterium pipeline to bigsdb for sample {isolate_name} on host {socket.gethostname()}',
+            f"{exceptionmessage}", emaildict)
 
 elif sample_presence[0][0] == 1:
     # sample exists: check whether typing results or not (we do not bother checking for all schemes separately
@@ -337,7 +365,12 @@ elif sample_presence[0][0] == 1:
     alleles_presence = cur.fetchall()
     if alleles_presence[0][0] == 0:
         # no allele designations are present so we insert them
-        insert_typing_results()
+        try:
+            insert_typing_results()
+        except Exception as exceptionmessage:
+            send_email(
+                f'Error inserting output of mycobacterium pipeline to bigsdb for sample {isolate_name} on host {socket.gethostname()}',
+                f"{exceptionmessage}", emaildict)
     elif sample_presence[0][0] >= 1:
         sys.exit("This sample already contains typing results")
 
@@ -349,11 +382,14 @@ elif sample_presence[0][0] >= 1:
     alleles_presence = cur.fetchall()
     if alleles_presence[0][0] == 0:
         # no allele designations are present so we insert them
-        insert_typing_results()
+        try:
+            insert_typing_results()
+        except Exception as exceptionmessage:
+            send_email(
+                f'Error inserting output of mycobacterium pipeline to bigsdb for sample {isolate_name} on host {socket.gethostname()}',
+                f"{exceptionmessage}", emaildict)
     elif sample_presence[0][0] >= 1:
         sys.exit("This sample already contains typing results")
-
-
 
 # close db connection
 con.close()
