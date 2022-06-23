@@ -188,12 +188,12 @@ def insert_typing_results():
                 # append Locus
                 if scheme != 'listeria_vfdbcore':
                     eavhtmltable = eavhtmltable + ''.join(
-                        ['<td><a href="/galaxyreports/listeria/', isolate_name, '/report.html#',
+                        ['<td><a href="/galaxyreports/neisseria/', isolate_name, '/report.html#',
                          genedetectiondict[scheme]['schemename_html'], '" target="_blank">',
                          (json.loads(listofhits))[y][1], '</a></td></tr>'])
                 else:
                     eavhtmltable = eavhtmltable + ''.join(
-                        ['<td><a href="/galaxyreports/listeria/', isolate_name, '/report.html#',
+                        ['<td><a href="/galaxyreports/neisseria/', isolate_name, '/report.html#',
                          genedetectiondict[scheme]['schemename_html'], '" target="_blank">',
                          (json.loads(listofhits))[y][-2], '</a></td></tr>'])
 
