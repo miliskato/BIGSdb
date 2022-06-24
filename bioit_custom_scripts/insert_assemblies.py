@@ -58,7 +58,7 @@ if presentcontigs[0][0] == 0:
                     f"curator, date_entered, datestamp) "
                     f"VALUES((SELECT CASE WHEN (SELECT(SELECT MAX(id) FROM sequence_bin)+1) IS NULL THEN 1 ELSE (SELECT(SELECT MAX(id) FROM sequence_bin)+1) END), "
                     f"(SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'), "
-                    f"'f', '{sequence}', '{sequencename}', 1, "
+                    f"'f', '{sequence}', '{sequencename.strip('>')}', 1, "
                     f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
 
     # remove the file
