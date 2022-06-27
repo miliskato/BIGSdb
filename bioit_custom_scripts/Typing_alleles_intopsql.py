@@ -76,6 +76,12 @@ def insert_alleles():
                     elif dir == 'FetA':
                         fastadict[handle[x].rstrip().replace(f">{dir}_VR", "").strip("-_")] = handle[x + 1].rstrip()
                         x += 2
+                    elif dir == 'porB':
+                        fastadict[handle[x].rstrip().replace(f">NEIS2020_", "").strip("-_")] = handle[x + 1].rstrip()
+                        x += 2
+                    elif dir == 'nhba':
+                        fastadict[handle[x].rstrip().replace(f">NEIS2109_", "").strip("-_")] = handle[x + 1].rstrip()
+                        x += 2
                     else:
                         fastadict[handle[x].rstrip().replace(f">{dir}","").strip("-_")] = handle[x + 1].rstrip()
                         x += 2
