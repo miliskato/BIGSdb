@@ -71,13 +71,17 @@ con = psycopg2.connect(database=f"{isolatedb}", user='apache', password='remote'
 con.autocommit = True
 cur = con.cursor()
 
-con2 = psycopg2.connect(database=f"{seqdefdb}", user='apache', password='remote',
-                                            host='127.0.0.1', port='')
-cur2 = con2.cursor()
-con2.autocommit = True
 
 #main
 def insert_typing_results():
+    con = psycopg2.connect(database=f"{isolatedb}", user='apache', password='remote',
+                           host='127.0.0.1', port='')
+    con.autocommit = True
+    cur = con.cursor()
+    con2 = psycopg2.connect(database=f"{seqdefdb}", user='apache', password='remote',
+                            host='127.0.0.1', port='')
+    cur2 = con2.cursor()
+    con2.autocommit = True
     reportlink =f'<p><a href="/galaxyreports/salmonella/{isolate_name}/report.html" target="_blank"> html report</a></p>'
     cur.execute(f"INSERT INTO eav_text(isolate_id, "
                 f"field, value)"
