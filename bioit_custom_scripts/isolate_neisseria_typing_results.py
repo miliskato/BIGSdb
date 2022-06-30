@@ -107,7 +107,7 @@ def insert_typing_results():
                     response = requests.get(f"https://rest.pubmlst.org/db/pubmlst_neisseria_seqdef/loci/{dir}/alleles/{allele_id}")
                     json_data = response.json()
                     if json_data['status'] != '404':
-                        try:
+                        if json_data.get('linked_data'):
                             if 'PubMLST isolates' in json_data['linked_data']:
                                 for antibiotic in ['rifampicin_SIR', 'penicillin_SIR']:
                                     if antibiotic in json_data['linked_data']['PubMLST isolates']:
@@ -122,8 +122,7 @@ def insert_typing_results():
                                                             f"field, value)"
                                                             f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'),"
                                                             f"'{'_'.join([antibiotic, 'R', 'frequency'])}', '{record['frequency']}') ")
-                        except:
-                            print('no linked data')
+
 
     cur.execute(f"INSERT INTO eav_text(isolate_id, "
                 f"field, value)"
