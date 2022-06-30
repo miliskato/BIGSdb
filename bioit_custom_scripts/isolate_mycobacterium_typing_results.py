@@ -238,7 +238,8 @@ def insert_typing_results():
                     while y <= (len((json.loads(listofhits))) - 1):
                         hit = '_'.join(['hsp65', (json.loads(listofhits))[y][-2].strip('"').replace(' ', '_').replace('.', '')])
                         print(hit)
-                        cur.execute(f"INSERT INTO eav_boolean(isolate_id, "
+                        try:
+                            cur.execute(f"INSERT INTO eav_boolean(isolate_id, "
                                     f"field, value)"
                                     f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'),"
                                     f"'{hit}', 't') ")
