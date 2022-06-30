@@ -243,6 +243,8 @@ def insert_typing_results():
                                     f"field, value)"
                                     f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'),"
                                     f"'{hit}', 't') ")
+                        except:
+                            print('hit identical to a previously inserted one')
                         y+=1
 
             elif scheme == 'mycobacterium_pointfinder':
