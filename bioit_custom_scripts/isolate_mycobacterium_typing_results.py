@@ -243,13 +243,14 @@ def insert_typing_results():
                     while y <= (len((json.loads(listofhits))) - 1):
                         hit = '_'.join(['hsp65', (json.loads(listofhits))[y][-2].strip('"').replace(' ', '_').replace('.', '')])
                         print(hit)
-                        try:
+                        cur.execute(f"SELECT FROM eav_boolean WHERE isolate_id = (SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}')"
+                                    f" AND field = '{hit}'")
+                        presence_hsp65 = cur.fetchall()
+                        if presence_hsp65 == []:
                             cur.execute(f"INSERT INTO eav_boolean(isolate_id, "
                                     f"field, value)"
                                     f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'),"
                                     f"'{hit}', 't') ")
-                        except:
-                            print('hit identical to a previously inserted one')
                         y+=1
 
             elif scheme == 'mycobacterium_pointfinder':
