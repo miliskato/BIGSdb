@@ -120,10 +120,10 @@ def insert_typing_results():
                     y = 0
                     while y <= (len((json.loads(listofhits))) - 1):
                         hit = (json.loads(listofhits))[y]
-                        if hit[-2] != "Unknown":
+                        if hit[3] != "Unknown":
                             # Seeing as the allele db of pointfinder is empty at the beginning because the db is too hard to understand, we gradually add alleles.
                             # sometimes a mutation will give resistance to more than 1 AB
-                            antibiotics = hit[-2].split(',')
+                            antibiotics = hit[3].split(',')
                             for antibiotic in antibiotics:
                                 antibiotic_reformatted = '_'.join(['POINTFINDER', antibiotic.replace('-', '_').replace(' ', '_').upper()])
                                 mutation = hit[0].replace('.', '_').replace(' ', '_')
