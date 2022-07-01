@@ -287,15 +287,17 @@ def insert_typing_results():
                                         dummysequence = ''.join([longest_dummy_sequence[0][0], 'TAG'])
                                     cur2.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status,sender,curator, date_entered, datestamp) \
                                                         VALUES('{spifinder_field}','{spifinder_entry}','{dummysequence}','unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
-                                try:
+                                cur.execute(f"SELECT FROM allele_designations WHERE locus = '{spifinder_field}' AND "
+                                            f" isolate_id = (SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}')"
+                                            f" AND allele_id = '{spifinder_entry}'")
+                                presence_allele_designation = cur.fetchall()
+                                if presence_allele_designation == []:
                                     cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
                                             f"allele_id, status, method, sender, "
                                             f"curator, date_entered, datestamp) "
                                             f"VALUES('{spifinder_field}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'), "
                                             f"'{spifinder_entry}', 'confirmed', 'automatic', 1, "
                                             f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
-                                except:
-                                    print('hit already reported')
 
 
                 con2.close() #close seqdef database
