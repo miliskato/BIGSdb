@@ -223,9 +223,9 @@ def insert_typing_results():
                             allele_id = present[0][0]
                             print(allele_id)
                             con2.close()
-                            cur.execute(f"SELECT FROM allele_designations WHERE locus = '{locus[0]}' AND"
-                                        f"isolate_id = (SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}') AND"
-                                        f"allele_id = '{allele_id}'")
+                            cur.execute(f"SELECT FROM allele_designations WHERE locus = '{locus[0]}' AND "
+                                        f"isolate_id = (SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}') AND" 
+                                        f" allele_id = '{allele_id}'")
                             allele_designation_presence = cur.fetchall()
                             if allele_designation_presence == []:
                                 cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
