@@ -313,6 +313,7 @@ INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence
 INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('POINTFINDER_D_CYCLOSERINE' ,'DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
 INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('POINTFINDER_XDR_TB' ,'DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
 INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('POINTFINDER_CLOFAZIMINE' ,'DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('POINTFINDER_BEDAQUILINE' ,'DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
 INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Pointfinder'), 'POINTFINDER_AMIKACIN', 1, (SELECT CURRENT_DATE));
 INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Pointfinder'), 'POINTFINDER_STREPTOMYCIN', 1, (SELECT CURRENT_DATE));
 INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Pointfinder'), 'POINTFINDER_CAPREOMYCIN', 1, (SELECT CURRENT_DATE));
@@ -328,6 +329,7 @@ INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT 
 INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Pointfinder'), 'POINTFINDER_D_CYCLOSERINE', 1, (SELECT CURRENT_DATE));
 INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Pointfinder'), 'POINTFINDER_XDR_TB', 1, (SELECT CURRENT_DATE));
 INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Pointfinder'), 'POINTFINDER_CLOFAZIMINE', 1, (SELECT CURRENT_DATE));
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Pointfinder'), 'POINTFINDER_BEDAQUILINE', 1, (SELECT CURRENT_DATE));
 INSERT INTO client_dbases(id, name, description, dbase_name, dbase_config_name, dbase_view, url, curator, datestamp) VALUES(1, 'bigsdb_mycobacterium_isolates', 'Other isolates containing this allele:', 'bigsdb_mycobacterium_isolates', 'bigsdb_mycobacterium_isolates', 'isolates', '/cgi-bin/bigsdb/bigsdb.pl', 1, (SELECT CURRENT_DATE));
 INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) VALUES(1, 'POINTFINDER_AMIKACIN', 1, (SELECT CURRENT_DATE));
 INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) VALUES(1, 'POINTFINDER_STREPTOMYCIN', 1, (SELECT CURRENT_DATE));
@@ -344,6 +346,7 @@ INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) VALUES
 INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) VALUES(1, 'POINTFINDER_D_CYCLOSERINE', 1, (SELECT CURRENT_DATE));
 INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) VALUES(1, 'POINTFINDER_XDR_TB', 1, (SELECT CURRENT_DATE));
 INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) VALUES(1, 'POINTFINDER_CLOFAZIMINE', 1, (SELECT CURRENT_DATE));
+INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) VALUES(1, 'POINTFINDER_BEDAQUILINE', 1, (SELECT CURRENT_DATE));
 INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) VALUES(1, 'AMI_Associated_with_R', 1, (SELECT CURRENT_DATE));
 INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) VALUES(1, 'AMI_Associated_with_R_int', 1, (SELECT CURRENT_DATE));
 INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) VALUES(1, 'AMI_Uncertain_significance', 1, (SELECT CURRENT_DATE));
