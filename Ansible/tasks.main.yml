@@ -11,11 +11,11 @@
     dest: "{{ bioit_bigs_home }}"
     version: "master"
 
-- name: Get updated files from git repository
-  git:
-    repo: "https://biot_ro:{{ secret_bioit_git_ro_password }}@git.sciensano.be/bioit/camel_3.0.git"
-    dest: "{{ bioit_bigs_home }}/automated-reanalysis"
-    version: "bb-re_analysis"
+#- name: Get updated files from git repository
+#  git:
+#    repo: "https://biot_ro:{{ secret_bioit_git_ro_password }}@git.sciensano.be/bioit/camel_3.0.git"
+#    dest: "{{ bioit_bigs_home }}/automated-reanalysis"
+#    version: "bb-re_analysis"
 
 # bij host_vars staat postgresql user wachtwoord https://bioit.sciensano.be/wiki/ansible-vault: postgresql_postgres_user_password: "olqYDY3f8RPHwOjlr4hH"
 # /etc/ansible/group_vars/bioit$ cat git.yml
@@ -142,8 +142,8 @@
       - { src: bioit_etc.bigsdb.dbases/, dest: /etc/bigsdb/dbases }
       - { src: headers/, dest: /var/www/html/ }
       - { src: bioit_website_varwwwhtml/, dest: /var/www/html/ }
-      - { src: automated_reanalysis/camel/config/config.yml.sample, dest: automated_reanalysis/camel/config/config.yml }
-      - { src: automated_reanalysis/camel/scripts/reanalysis/config.yml.sample, dest: automated_reanalysis/camel/scripts/reanalysis/config.yml }
+#      - { src: automated_reanalysis/camel/config/config.yml.sample, dest: automated_reanalysis/camel/config/config.yml }
+#      - { src: automated_reanalysis/camel/scripts/reanalysis/config.yml.sample, dest: automated_reanalysis/camel/scripts/reanalysis/config.yml }
 
 - name: setup core db's 1
   block:
@@ -341,15 +341,15 @@
           - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_custom_scripts/Typing_schemeprofiles_intopsql.py", filename: schemeprofiles_intopsql }
           - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_custom_scripts/genedetection_intopsql.py", filename: genedetection_intopsql }
 
-    - name: Add crontrab entry for database updates
-      cron:
-        name: "crontab for weekly database updates"
-        minute: '0'
-        hour: '22'
-        weekday: '1'       # monday night
-        job: "bash {{ bioit_bigs_home }}/bioit_custom_scripts/automaticreanalysis.sh"
-        user: 'root'
-        cron_file: "automated-reanalysis"
+#    - name: Add crontrab entry for database updates
+#      cron:
+#        name: "crontab for weekly database updates"
+#        minute: '0'
+#        hour: '22'
+#        weekday: '1'       # monday night
+#        job: "bash {{ bioit_bigs_home }}/bioit_custom_scripts/automaticreanalysis.sh"
+#        user: 'root'
+#        cron_file: "automated-reanalysis"
 
     - name: add daily cronjob
       ansible.builtin.copy:
@@ -548,14 +548,14 @@
         login_user: postgres
         query: INSERT INTO users (id, user_name, surname, first_name, email, affiliation, status, date_entered, datestamp, curator) VALUES (1,'bioit','Sciensano','Bioit', 'bioit@sciensano.be','Sciensano','admin','now','now', 1)
       loop:
-#        - bigsdb_listeria_seqdef
-#        - bigsdb_listeria_isolates
-#        - bigsdb_mycobacterium_seqdef
-#        - bigsdb_mycobacterium_isolates
-#        - bigsdb_neisseria_seqdef
-#        - bigsdb_neisseria_isolates
-#        - bigsdb_stec_seqdef
-#        - bigsdb_stec_isolates
+        - bigsdb_listeria_seqdef
+        - bigsdb_listeria_isolates
+        - bigsdb_mycobacterium_seqdef
+        - bigsdb_mycobacterium_isolates
+        - bigsdb_neisseria_seqdef
+        - bigsdb_neisseria_isolates
+        - bigsdb_stec_seqdef
+        - bigsdb_stec_isolates
         - bigsdb_salmonella_seqdef
         - bigsdb_salmonella_isolates
       when: query_result_users.query_result[0]['exists'] == false
@@ -598,19 +598,19 @@
       become_user: postgres
       # this when should be changed but will work when adding new db
 
-#    - name: add user db to species db
-#      postgresql_query:
-#        db: "{{ item }}"
-#        login_user: postgres
-#        query: INSERT INTO user_dbases (id, name, dbase_name, curator, datestamp) VALUES (1, '', 'global_bigsdb_users', 1, 'now')
-#      loop:
-#        - bigsdb_listeria_seqdef
-#        - bigsdb_listeria_isolates
-#        - bigsdb_mycobacterium_seqdef
-#        - bigsdb_mycobacterium_isolates
-#      when: query_result_users.query_result[0]['exists'] == false
-#      become_user: postgres
-#        # this should be other when but doesnt matter for now
+    - name: add user db to species db
+      postgresql_query:
+        db: "{{ item }}"
+        login_user: postgres
+        query: INSERT INTO user_dbases (id, name, dbase_name, curator, datestamp) VALUES (1, '', 'global_bigsdb_users', 1, 'now')
+      loop:
+        - bigsdb_listeria_seqdef
+        - bigsdb_listeria_isolates
+        - bigsdb_mycobacterium_seqdef
+        - bigsdb_mycobacterium_isolates
+      when: query_result_users.query_result[0]['exists'] == false
+      become_user: postgres
+        # this should be other when but doesnt matter for now
 
     - name: add user db to neisseria species db
       postgresql_query:
@@ -648,19 +648,19 @@
       become_user: postgres
       # this when should be changed but will work when adding new db
 
-#    - name: update users to be from user_db, this order is required because else fails due to keys
-#      postgresql_query:
-#        db: "{{ item }}"
-#        login_user: postgres
-#        query: UPDATE users SET user_db=1 WHERE user_name='bioit'
-#      loop:
-#        - bigsdb_listeria_seqdef
-#        - bigsdb_listeria_isolates
-#        - bigsdb_mycobacterium_seqdef
-#        - bigsdb_mycobacterium_isolates
-#      when: query_result_users.query_result[0]['exists'] == false
-#      become_user: postgres
-#        # this when could be changed but should not matter too much
+    - name: update users to be from user_db, this order is required because else fails due to keys
+      postgresql_query:
+        db: "{{ item }}"
+        login_user: postgres
+        query: UPDATE users SET user_db=1 WHERE user_name='bioit'
+      loop:
+        - bigsdb_listeria_seqdef
+        - bigsdb_listeria_isolates
+        - bigsdb_mycobacterium_seqdef
+        - bigsdb_mycobacterium_isolates
+      when: query_result_users.query_result[0]['exists'] == false
+      become_user: postgres
+        # this when could be changed but should not matter too much
 
     - name: update users to be from user_db, this order is required because else fails due to keys
       postgresql_query:
