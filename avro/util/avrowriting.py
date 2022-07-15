@@ -57,6 +57,7 @@ class Avrowriting(Avro_superclass):
                 pass # todo
         else:
             logging.error(f"Species '{species}' not in supported species")
+            raise RuntimeError(f"Species '{species}' not in supported species")
 
         return records
 
@@ -64,7 +65,8 @@ class Avrowriting(Avro_superclass):
     def _avro_input_commontsvoutput(self, outputtsvdict, commontsvoutputoption : str):
         common_tsv_output_dict = {}
         if commontsvoutputoption not in self._common_output_arguments.keys():
-            logging.error("option does not exist in tsv_output dictionary in this function in this script")
+            logging.error(f"option {commontsvoutputoption} does not exist in tsv_output dictionary in this function in this script")
+            raise RuntimeError(f"option {commontsvoutputoption} does not exist in tsv_output dictionary in this function in this script")
         else:
             common_tsv_output_dict[commontsvoutputoption] = {variable: outputtsvdict[variable] for variable in self._common_output_arguments[commontsvoutputoption]}
         return common_tsv_output_dict[commontsvoutputoption]
@@ -108,6 +110,7 @@ class Avrowriting(Avro_superclass):
         dirscheme = f"/db/sequence_typing/{species}/{schemedirname}"
         if os.path.isdir(dirscheme) is False:
             logging.error(f"scheme {schemedirname} was not found at {dirscheme}")
+            raise RuntimeError(f"scheme {schemedirname} was not found at {dirscheme}")
         dirs = next(os.walk(dirscheme))[1]
         for dir in dirs:
             # todo  check schemename below with these special neisseria schemes
