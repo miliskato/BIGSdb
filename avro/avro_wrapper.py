@@ -51,12 +51,9 @@ if __name__ == '__main__':
     outputtsvdict = {}
     handle = open(args.tsvfilepath, "r").readlines()
     for line in handle:
+        print(line.split("\t"))
         outputtsvdict[line.split("\t")[0]] = line.split("\t")[1].strip("\n")
     logging.info(f'Treating sample : {outputtsvdict["sample"]}')
-
-    avroschema = avroschema.Avroschema()
-    avroschema_species = avroschema.create_schema(args.species)
-    schema_parsed = parse_schema(avroschema_species)
 
     avrowriting = avrowriting.Avrowriting()
     records = avrowriting.parse_output(args.species, outputtsvdict)
@@ -75,6 +72,11 @@ if __name__ == '__main__':
                 logging.warning(f"isolate already in avro file {avro_filelocation}, skipping..")
     else:
         logging.warning(f"file {avro_filelocation} does not exists, creating new file")
+
+        avroschema = avroschema.Avroschema()
+        avroschema_species = avroschema.create_schema(args.species)
+        schema_parsed = parse_schema(avroschema_species)
+
         with open(avro_filelocation, "wb") as handle:
             writer(handle, schema_parsed, records)
 #

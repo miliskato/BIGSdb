@@ -25,9 +25,14 @@ class Avro_superclass(object, metaclass=abc.ABCMeta):
             "qc_cgmlst": ['qc_cgmlst_status', 'qc_cgmlst_value'],
             "qc_assembly": ['qc_cov_assembly_status', 'qc_cov_assembly_value', 'qc_map_rate_assembly_status',
                             'qc_map_rate_assembly_value'],
+            "qc_reference": ['qc_cov_ref_status', 'qc_cov_ref_value', 'qc_map_rate_ref_status', 'qc_map_rate_ref_value'],
             "qc_kraken": ['qc_kraken_status', 'qc_kraken_value'],
             "kraken": ['kraken2_expected_species', 'kraken2_expected_species_occurrence', 'kraken2_contaminants_warn',
-                       'kraken2_contaminants_fail']
+                       'kraken2_contaminants_fail'],
+            "variant_calling": ['vc-mapping_rate', 'vc-median_depth'],
+            "variant_filtering": ['filt-depth-in', 'filt-depth-out', 'filt-distance-in', 'filt-distance-out',
+                                  'filt-mapping_qual-in', 'filt-mapping_qual-out', 'filt-region-in', 'filt-region-out',
+                                  'filt-snp_qual-in', 'filt-snp_qual-out', 'filt-zscore-in', 'filt-zscore-out']
         }
 
     def _make_int_if_possible(self, value):

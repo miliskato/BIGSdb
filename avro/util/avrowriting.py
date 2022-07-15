@@ -30,27 +30,84 @@ class Avrowriting(Avro_superclass):
                             "qc_assembly": self._avro_input_commontsvoutput(outputtsvdict, "qc_assembly"),
                             "qc_kraken": self._avro_input_commontsvoutput(outputtsvdict, "qc_kraken"),
                             "kraken": self._avro_input_commontsvoutput(outputtsvdict, "kraken"),
-                            "mlst": self._avro_input_typingschema("listeria", "mlst", "mlst", outputtsvdict),
-                            "cgmlst": self._avro_input_typingschema("listeria", "cgmlst", "cgmlst", outputtsvdict),
-                            "pcr_serogroup": self._avro_input_typingschema("listeria", "pcr_serogroup", "serogroup", outputtsvdict),
-                            'typing_virulence': self._avro_input_typingschema('listeria', 'typing_virulence', 'virulence', outputtsvdict),
-                            'typing_amr': self._avro_input_typingschema('listeria', 'typing_amr', 'antibiotic_resistance', outputtsvdict),
-                            'species_confirmation': self._avro_input_typingschema('listeria', 'species_confirmation',
+                            "mlst": self._avro_input_typingschema(species, "mlst", "mlst", outputtsvdict),
+                            "cgmlst": self._avro_input_typingschema(species, "cgmlst", "cgmlst", outputtsvdict),
+                            "pcr_serogroup": self._avro_input_typingschema(species, "pcr_serogroup", "serogroup", outputtsvdict),
+                            'typing_virulence': self._avro_input_typingschema(species, 'typing_virulence', 'virulence', outputtsvdict),
+                            'typing_amr': self._avro_input_typingschema(species, 'typing_amr', 'antibiotic_resistance', outputtsvdict),
+                            'species_confirmation': self._avro_input_typingschema(species, 'species_confirmation',
                                                               'species_confirmation', outputtsvdict),
-                            'metal_detergent': self._avro_input_typingschema('listeria', 'metal_detergent',
+                            'metal_detergent': self._avro_input_typingschema(species, 'metal_detergent',
                                                               'metal_detergent_resistance', outputtsvdict),
-                            "hits_argannot": outputtsvdict["hits_argannot"],
-                            "hits_card": outputtsvdict["hits_card"],
                             "hits_ncbi_amr": outputtsvdict["hits_ncbi_amr"],
                             "hits_resfinder": outputtsvdict["hits_resfinder"],
                             "hits_virulencefinder": outputtsvdict["hits_virulencefinder"],
                             "hits_plasmidfinder": outputtsvdict["hits_plasmidfinder"]
                             }
                            ]
+
             elif species == "mycobacterium":
-                pass # todo
+                self._common_output_arguments["csb_rd"] = ['csb_detected', 'RD1_detected', 'RD9_detected']
+                self._common_output_arguments["51SNP"] = ['51SNP-positive_control', '51SNP-gyrB_group', '51SNP-genetic_group', '51SNP-scg', '51SNP-st', '51SNP-matching_snps', '51SNP-SNP01', '51SNP-SNP02', '51SNP-SNP03', '51SNP-SNP04', '51SNP-SNP05', '51SNP-SNP06', '51SNP-SNP07', '51SNP-SNP08', '51SNP-SNP09', '51SNP-SNP10', '51SNP-SNP11', '51SNP-SNP12', '51SNP-SNP13', '51SNP-SNP14', '51SNP-SNP15', '51SNP-SNP16', '51SNP-SNP17', '51SNP-SNP18', '51SNP-SNP19', '51SNP-SNP20', '51SNP-SNP21', '51SNP-SNP22', '51SNP-SNP23', '51SNP-SNP24', '51SNP-SNP25', '51SNP-SNP26', '51SNP-SNP27', '51SNP-SNP28', '51SNP-SNP29', '51SNP-SNP30', '51SNP-SNP31', '51SNP-SNP32', '51SNP-SNP33', '51SNP-SNP34', '51SNP-SNP35', '51SNP-SNP36', '51SNP-SNP37', '51SNP-SNP38', '51SNP-SNP39', '51SNP-SNP40', '51SNP-SNP41', '51SNP-SNP42', '51SNP-SNP43', '51SNP-SNP44', '51SNP-SNP45', '51SNP-SNP46', '51SNP-SNP47', '51SNP-SNP48', '51SNP-SNP49', '51SNP-SNP50', '51SNP-SNP51']
+                self._common_output_arguments["snpit"] = ['snpit_species', 'snpit_lineage', 'snpit_sublineage', 'snpit_percent_matched']
+                self._common_output_arguments["spoligotyping"] = ['spoligotype_binary', 'spoligotype_octal', 'sit_number']
+                self._common_output_arguments["snp_lineage"] = ['snp_lineages']
+                self._common_output_arguments["amr_who"] = ['amr_type', 'amr_first_line_resistant', 'amr_second_line_group_a_resistant', 'amr_second_line_group_b_resistant', 'amr_pheno_INH', 'amr_mutations_INH_Associated_with_R', 'amr_mutations_INH_Associated_with_R_(int.)', 'amr_mutations_INH_Not_associated_with_R', 'amr_mutations_INH_Not_associated_with_R_(int.)', 'amr_mutations_INH_Uncertain_significance', 'amr_mutations_INH_Not_in_db.', 'amr_pheno_RIF', 'amr_mutations_RIF_Associated_with_R', 'amr_mutations_RIF_Associated_with_R_(int.)', 'amr_mutations_RIF_Not_associated_with_R', 'amr_mutations_RIF_Not_associated_with_R_(int.)', 'amr_mutations_RIF_Uncertain_significance', 'amr_mutations_RIF_Not_in_db.', 'amr_pheno_LEV', 'amr_mutations_LEV_Associated_with_R', 'amr_mutations_LEV_Associated_with_R_(int.)', 'amr_mutations_LEV_Not_associated_with_R', 'amr_mutations_LEV_Not_associated_with_R_(int.)', 'amr_mutations_LEV_Uncertain_significance', 'amr_mutations_LEV_Not_in_db.', 'amr_pheno_MXF', 'amr_mutations_MXF_Associated_with_R', 'amr_mutations_MXF_Associated_with_R_(int.)', 'amr_mutations_MXF_Not_associated_with_R', 'amr_mutations_MXF_Not_associated_with_R_(int.)', 'amr_mutations_MXF_Uncertain_significance', 'amr_mutations_MXF_Not_in_db.', 'amr_pheno_AMI', 'amr_mutations_AMI_Associated_with_R', 'amr_mutations_AMI_Associated_with_R_(int.)', 'amr_mutations_AMI_Not_associated_with_R', 'amr_mutations_AMI_Not_associated_with_R_(int.)', 'amr_mutations_AMI_Uncertain_significance', 'amr_mutations_AMI_Not_in_db.', 'amr_pheno_CAP', 'amr_mutations_CAP_Associated_with_R', 'amr_mutations_CAP_Associated_with_R_(int.)', 'amr_mutations_CAP_Not_associated_with_R', 'amr_mutations_CAP_Not_associated_with_R_(int.)', 'amr_mutations_CAP_Uncertain_significance', 'amr_mutations_CAP_Not_in_db.', 'amr_pheno_KAN', 'amr_mutations_KAN_Associated_with_R', 'amr_mutations_KAN_Associated_with_R_(int.)', 'amr_mutations_KAN_Not_associated_with_R', 'amr_mutations_KAN_Not_associated_with_R_(int.)', 'amr_mutations_KAN_Uncertain_significance', 'amr_mutations_KAN_Not_in_db.', 'amr_pheno_STM', 'amr_mutations_STM_Associated_with_R', 'amr_mutations_STM_Associated_with_R_(int.)', 'amr_mutations_STM_Not_associated_with_R', 'amr_mutations_STM_Not_associated_with_R_(int.)', 'amr_mutations_STM_Uncertain_significance', 'amr_mutations_STM_Not_in_db.', 'amr_pheno_ETH', 'amr_mutations_ETH_Associated_with_R', 'amr_mutations_ETH_Associated_with_R_(int.)', 'amr_mutations_ETH_Not_associated_with_R', 'amr_mutations_ETH_Not_associated_with_R_(int.)', 'amr_mutations_ETH_Uncertain_significance', 'amr_mutations_ETH_Not_in_db.', 'amr_pheno_PZA', 'amr_mutations_PZA_Associated_with_R', 'amr_mutations_PZA_Associated_with_R_(int.)', 'amr_mutations_PZA_Not_associated_with_R', 'amr_mutations_PZA_Not_associated_with_R_(int.)', 'amr_mutations_PZA_Uncertain_significance', 'amr_mutations_PZA_Not_in_db.', 'amr_pheno_BDQ', 'amr_mutations_BDQ_Associated_with_R', 'amr_mutations_BDQ_Associated_with_R_(int.)', 'amr_mutations_BDQ_Not_associated_with_R', 'amr_mutations_BDQ_Not_associated_with_R_(int.)', 'amr_mutations_BDQ_Uncertain_significance', 'amr_mutations_BDQ_Not_in_db.', 'amr_pheno_CFZ', 'amr_mutations_CFZ_Associated_with_R', 'amr_mutations_CFZ_Associated_with_R_(int.)', 'amr_mutations_CFZ_Not_associated_with_R', 'amr_mutations_CFZ_Not_associated_with_R_(int.)', 'amr_mutations_CFZ_Uncertain_significance', 'amr_mutations_CFZ_Not_in_db.', 'amr_pheno_DLM', 'amr_mutations_DLM_Associated_with_R', 'amr_mutations_DLM_Associated_with_R_(int.)', 'amr_mutations_DLM_Not_associated_with_R', 'amr_mutations_DLM_Not_associated_with_R_(int.)', 'amr_mutations_DLM_Uncertain_significance', 'amr_mutations_DLM_Not_in_db.', 'amr_pheno_EMB', 'amr_mutations_EMB_Associated_with_R', 'amr_mutations_EMB_Associated_with_R_(int.)', 'amr_mutations_EMB_Not_associated_with_R', 'amr_mutations_EMB_Not_associated_with_R_(int.)', 'amr_mutations_EMB_Uncertain_significance', 'amr_mutations_EMB_Not_in_db.', 'amr_pheno_LZD', 'amr_mutations_LZD_Associated_with_R', 'amr_mutations_LZD_Associated_with_R_(int.)', 'amr_mutations_LZD_Not_associated_with_R', 'amr_mutations_LZD_Not_associated_with_R_(int.)', 'amr_mutations_LZD_Uncertain_significance', 'amr_mutations_LZD_Not_in_db.', 'amr_pheno_DCS', 'amr_mutations_DCS_Associated_with_R', 'amr_mutations_DCS_Associated_with_R_(int.)', 'amr_mutations_DCS_Not_associated_with_R', 'amr_mutations_DCS_Not_associated_with_R_(int.)', 'amr_mutations_DCS_Uncertain_significance', 'amr_mutations_DCS_Not_in_db.', 'amr_pheno_EFF', 'amr_mutations_EFF_Associated_with_R', 'amr_mutations_EFF_Associated_with_R_(int.)', 'amr_mutations_EFF_Not_associated_with_R', 'amr_mutations_EFF_Not_associated_with_R_(int.)', 'amr_mutations_EFF_Uncertain_significance', 'amr_mutations_EFF_Not_in_db.', 'amr_pheno_PAS', 'amr_mutations_PAS_Associated_with_R', 'amr_mutations_PAS_Associated_with_R_(int.)', 'amr_mutations_PAS_Not_associated_with_R', 'amr_mutations_PAS_Not_associated_with_R_(int.)', 'amr_mutations_PAS_Uncertain_significance', 'amr_mutations_PAS_Not_in_db.', 'amr_pheno_RBT', 'amr_mutations_RBT_Associated_with_R', 'amr_mutations_RBT_Associated_with_R_(int.)', 'amr_mutations_RBT_Not_associated_with_R', 'amr_mutations_RBT_Not_associated_with_R_(int.)', 'amr_mutations_RBT_Uncertain_significance', 'amr_mutations_RBT_Not_in_db.']
+                records = [{"isolate": outputtsvdict["sample"],
+                            "pipeline_version": float(outputtsvdict["pipeline_version"]),
+                            "downsampling": self._avro_input_commontsvoutput(outputtsvdict, "downsampling"),
+                            "trimming": self._avro_input_commontsvoutput(outputtsvdict, "trimming"),
+                            "assembly": self._avro_input_commontsvoutput(outputtsvdict, "assembly"),
+                            "qc_fastqc": self._avro_input_commontsvoutput(outputtsvdict, "qc_fastqc"),
+                            "qc_cgmlst": self._avro_input_commontsvoutput(outputtsvdict, "qc_cgmlst"),
+                            "qc_reference": self._avro_input_commontsvoutput(outputtsvdict, "qc_reference"),
+                            "qc_kraken": self._avro_input_commontsvoutput(outputtsvdict, "qc_kraken"),
+                            "kraken": self._avro_input_commontsvoutput(outputtsvdict, "kraken"),
+                            "variant_calling": self._avro_input_commontsvoutput(outputtsvdict, "variant_calling"),
+                            "variant_filtering": self._avro_input_commontsvoutput(outputtsvdict, "variant_filtering"),
+                            "csb_rd": self._avro_input_commontsvoutput(outputtsvdict, "csb_rd"),
+                            "51SNP": self._avro_input_commontsvoutput(outputtsvdict, "51SNP"),
+                            "snpit": self._avro_input_commontsvoutput(outputtsvdict, "snpit"),
+                            "spoligotyping": self._avro_input_commontsvoutput(outputtsvdict, "spoligotyping"),
+                            "snp_lineage": self._avro_input_commontsvoutput(outputtsvdict, "snp_lineage"),
+                            "amr_who": self._avro_input_commontsvoutput(outputtsvdict, "amr_who"),
+                            "mlst": self._avro_input_typingschema(species, "mlst", "mlst", outputtsvdict),
+                            "cgmlst": self._avro_input_typingschema(species, "cgmlst", "cgmlst", outputtsvdict),
+                            "hits_ncbi_16s": outputtsvdict["hits_ncbi_16s"],
+                            "hits_hsp65": outputtsvdict["hits_hsp65"],
+                            "pointfinder_mutations": outputtsvdict["pointfinder_mutations"]
+                            }
+                           ]
+
             elif species == "neisseria":
-                pass # todo
+                self._common_output_arguments["serogroup"] = ['detected_serogroup', 'serogroup_nb_hits',
+                                                              'serogroup_nb_hits_perfect', 'serogroup_total_loci']
+                outputtsvdict['rplf-rplF'] = outputtsvdict["rplf-'rplF"].replace("'rplF", "rplF")
+                records = [{"isolate": outputtsvdict["sample"],
+                            "pipeline_version": float(outputtsvdict["pipeline_version"]),
+                            "downsampling": self._avro_input_commontsvoutput(outputtsvdict, "downsampling"),
+                            "trimming": self._avro_input_commontsvoutput(outputtsvdict, "trimming"),
+                            "assembly": self._avro_input_commontsvoutput(outputtsvdict, "assembly"),
+                            "qc_fastqc": self._avro_input_commontsvoutput(outputtsvdict, "qc_fastqc"),
+                            "qc_cgmlst": self._avro_input_commontsvoutput(outputtsvdict, "qc_cgmlst"),
+                            "qc_assembly": self._avro_input_commontsvoutput(outputtsvdict, "qc_assembly"),
+                            "qc_kraken": self._avro_input_commontsvoutput(outputtsvdict, "qc_kraken"),
+                            "kraken": self._avro_input_commontsvoutput(outputtsvdict, "kraken"),
+                            "mlst": self._avro_input_typingschema(species, "mlst", "mlst", outputtsvdict),
+                            "cgmlst": self._avro_input_typingschema(species, "cgmlst", "cgmlst", outputtsvdict),
+                            "rplf": self._avro_input_typingschema(species, 'rplf', 'rplf', outputtsvdict),
+                            "bast": self._avro_input_typingschema(species, 'bast', 'bast', outputtsvdict),
+                            "pora": self._avro_input_typingschema(species, 'pora', 'pora', outputtsvdict),
+                            "porb": self._avro_input_typingschema(species, 'porb', 'porb', outputtsvdict),
+                            "feta": self._avro_input_typingschema(species, 'feta', 'feta', outputtsvdict),
+                            "resistance_genes": self._avro_input_typingschema(species, 'resistance_genes', 'resistance_genes', outputtsvdict),
+                            "vaccine_targets": self._avro_input_typingschema(species, 'vaccine_targets', 'vaccine_targets', outputtsvdict),
+                            "fhbp": self._avro_input_typingschema(species, 'fhbp', 'fhbp', outputtsvdict),
+                            "hits_ncbi_amr": outputtsvdict["hits_ncbi_amr"],
+                            "hits_resfinder": outputtsvdict["hits_resfinder"]
+                            }
+                           ]
+
             elif species == "stec":
                 pass # todo
             elif species == "salmonella":
@@ -98,7 +155,7 @@ class Avrowriting(Avro_superclass):
             scheme_fields["pcr_serogroup-profile_id"] = self._make_int_if_possible(outputtsvdict["pcr_serogroup-profile_id"])
             scheme_fields["pcr_serogroup-serogroup"] = outputtsvdict["pcr_serogroup-serogroup"]
         elif schemename == 'rplf':
-            scheme_fields["rplf-rplF-id"] = self._make_int_if_possible(outputtsvdict["rplf-rplF-id"])
+            scheme_fields["rplf-rplF_id"] = self._make_int_if_possible(outputtsvdict["rplf-rplF_id"])
             scheme_fields["rplf-genospecies"] = outputtsvdict["rplf-genospecies"]
         elif schemename == 'bast':
             scheme_fields["bast-BAST"] = self._make_int_if_possible(outputtsvdict["bast-BAST"])
