@@ -159,34 +159,38 @@ def insert_typing_results():
                 cur.execute(f"SELECT field FROM eav_fields WHERE field like 'genotyphi%'")
                 genotyphi_susc_list = cur.fetchall()
                 for item in genotyphi_susc_list:
-                    susceptibility = outputtsvdict[item[0]]
-                    cur.execute(f"INSERT INTO eav_text(isolate_id, field, value) VALUES ((SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'),'{item[0]}','{susceptibility}')")
-                    #insert new alleles
-                    variant = item[0].replace('susceptibility', 'variants')
-                    gene = item[0].replace('susceptibility', 'genes')
-                    genotyphi_field = item[0].replace('_susceptibility', '').upper()
-                    #get the genes and variants
-                    future_alleles = outputtsvdict[variant].split(';') + outputtsvdict[gene].split(';')
-                    for i in range(0,len(future_alleles)):
-                        if future_alleles[i] != '-':
-                            cur2.execute(f"SELECT allele_id FROM sequences WHERE allele_id = '{future_alleles[i]}' and locus = '{genotyphi_field}'")
-                            present_genotyphi = cur2.fetchall()
-                            if present_genotyphi == []:
+                    if outputtsvdict[item[0]]:
+                        susceptibility = outputtsvdict[item[0]]
+                        cur.execute(
+                            f"INSERT INTO eav_text(isolate_id, field, value) VALUES ((SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'),'{item[0]}','{susceptibility}')")
+                        # insert new alleles
+                        variant = item[0].replace('susceptibility', 'variants')
+                        gene = item[0].replace('susceptibility', 'genes')
+                        genotyphi_field = item[0].replace('_susceptibility', '').upper()
+                        # get the genes and variants
+                        future_alleles = outputtsvdict[variant].split(';') + outputtsvdict[gene].split(';')
+                        for i in range(0, len(future_alleles)):
+                            if future_alleles[i] != '-':
                                 cur2.execute(
-                                    f"SELECT sequence FROM sequences WHERE locus  ='{genotyphi_field}' ORDER BY CHAR_LENGTH(sequence) DESC LIMIT 1")
-                                longest_dummy_sequence = cur2.fetchall()
-                                if longest_dummy_sequence == []:
-                                    dummysequence = 'TAG'
-                                else:
-                                    dummysequence = ''.join([longest_dummy_sequence[0][0], 'TAG'])
-                                cur2.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status,sender,curator, date_entered, datestamp) \
-                                                                             VALUES('{genotyphi_field}','{future_alleles[i]}','{dummysequence}','unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
-                            cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
-                                        f"allele_id, status, method, sender, "
-                                        f"curator, date_entered, datestamp) "
-                                        f"VALUES('{genotyphi_field}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'), "
-                                        f"'{future_alleles[i]}', 'confirmed', 'automatic', 1, "
-                                        f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                                    f"SELECT allele_id FROM sequences WHERE allele_id = '{future_alleles[i]}' and locus = '{genotyphi_field}'")
+                                present_genotyphi = cur2.fetchall()
+                                if present_genotyphi == []:
+                                    cur2.execute(
+                                        f"SELECT sequence FROM sequences WHERE locus  ='{genotyphi_field}' ORDER BY CHAR_LENGTH(sequence) DESC LIMIT 1")
+                                    longest_dummy_sequence = cur2.fetchall()
+                                    if longest_dummy_sequence == []:
+                                        dummysequence = 'TAG'
+                                    else:
+                                        dummysequence = ''.join([longest_dummy_sequence[0][0], 'TAG'])
+                                    cur2.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status,sender,curator, date_entered, datestamp) \
+                                                                                                                         VALUES('{genotyphi_field}','{future_alleles[i]}','{dummysequence}','unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                                cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
+                                            f"allele_id, status, method, sender, "
+                                            f"curator, date_entered, datestamp) "
+                                            f"VALUES('{genotyphi_field}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'), "
+                                            f"'{future_alleles[i]}', 'confirmed', 'automatic', 1, "
+                                            f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+
             elif scheme == 'salmonella_serotyping':
                 cur.execute(f"SELECT field FROM eav_fields WHERE category = 'Serotyping' ")
                 serotyping_list = cur.fetchall()
