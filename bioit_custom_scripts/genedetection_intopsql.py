@@ -195,7 +195,6 @@ def gene_detection_insertion_recalcultation():
             # in VFDB, there are accessions with name "null", this breaks the script, therefore an empty space is added, and the allele should be enough to find.
             if sequencefile[x]['accession'] is None:
                 sequencefile[x]['accession'] = "-"
-                print(sequencefile[x]['accession'])
             sequencenamedict[x] = '_'.join([(sequencefile[x]['accession']), (sequencefile[x]['allele']).replace("'","")])
             if schemedict[scheme]['schemename_bigsdb'] != 'VFDB_core':
                 descriptiondict['_'.join([schemedict[scheme]['schemename_bigsdb'], (''.join(['Gene', sequencefile[x]['cluster']]))])].append((sequencefile[x]['allele']).replace("'",""))
@@ -258,7 +257,7 @@ def gene_detection_insertion_recalcultation():
                         cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
                                     f"allele_id, status, method, sender, "
                                     f"curator, date_entered, datestamp) "
-                                    f"VALUES('{clusterhit}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'), "
+                                    f"VALUES('{clusterhit}', {isolate_id}, "
                                     f"1, 'confirmed', 'automatic', 1, "
                                     f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
                     clusterhitlist.append(clusterhit)
