@@ -7,13 +7,13 @@
 
 - name: Get updated files from git repository
   git:
-    repo: "https://biot_ro:{{ secret_bioit_git_ro_password }}@git.sciensano.be/bioit/BIGSdb.git"
+    repo: "https://bioit_ro:{{ secret_bioit_git_ro_password }}@git.sciensano.be/bioit/BIGSdb.git"
     dest: "{{ bioit_bigs_home }}"
     version: "master"
 
 - name: Get updated files from git repository
   git:
-    repo: "https://biot_ro:{{ secret_bioit_git_ro_password }}@git.sciensano.be/bioit/camel_3.0.git"
+    repo: "https://bioit_ro:{{ secret_bioit_git_ro_password }}@git.sciensano.be/bioit/camel_3.0.git"
     dest: "{{ bioit_bigs_home }}/automated-reanalysis"
     version: "bb-re_analysis"
 
@@ -142,8 +142,8 @@
       - { src: bioit_etc.bigsdb.dbases/, dest: /etc/bigsdb/dbases }
       - { src: headers/, dest: /var/www/html/ }
       - { src: bioit_website_varwwwhtml/, dest: /var/www/html/ }
-      - { src: automated_reanalysis/camel/config/config.yml.sample, dest: automated_reanalysis/camel/config/config.yml }
-      - { src: automated_reanalysis/camel/scripts/reanalysis/config.yml.sample, dest: automated_reanalysis/camel/scripts/reanalysis/config.yml }
+      - { src: automated-reanalysis/camel/config/main.yml.sample, dest: "{{ bioit_bigs_home }}/automated-reanalysis/camel/config/main.yml" }
+      - { src: automated-reanalysis/camel/scripts/reanalysis/config.yml.sample, dest: "{{ bioit_bigs_home }}/automated-reanalysis/camel/scripts/reanalysis/config.yml" }
 
 - name: setup core db's 1
   block:
@@ -441,8 +441,6 @@
         script_list:
           - { db: bigsdb_listeria_seqdef, script: "{{ bioit_bigs_home }}/sql/seqdef.sql" }
           - { db: bigsdb_listeria_isolates, script: "{{ bioit_bigs_home }}/sql/isolatedb.sql" }
-          - { db: bigsdb_mycobacterium_seqdef, script: "{{ bioit_bigs_home }}/sql/seqdef.sql" }
-          - { db: bigsdb_mycobacterium_isolates, script: "{{ bioit_bigs_home }}/sql/isolatedb.sql" }
       when: query_result_listeria_seqdef.query_result[0]['exists'] == false
       become_user: postgres
 
@@ -548,69 +546,69 @@
         login_user: postgres
         query: INSERT INTO users (id, user_name, surname, first_name, email, affiliation, status, date_entered, datestamp, curator) VALUES (1,'bioit','Sciensano','Bioit', 'bioit@sciensano.be','Sciensano','admin','now','now', 1)
       loop:
-#        - bigsdb_listeria_seqdef
-#        - bigsdb_listeria_isolates
-#        - bigsdb_mycobacterium_seqdef
-#        - bigsdb_mycobacterium_isolates
-#        - bigsdb_neisseria_seqdef
-#        - bigsdb_neisseria_isolates
-#        - bigsdb_stec_seqdef
-#        - bigsdb_stec_isolates
+        - bigsdb_listeria_seqdef
+        - bigsdb_listeria_isolates
+        - bigsdb_mycobacterium_seqdef
+        - bigsdb_mycobacterium_isolates
+        - bigsdb_neisseria_seqdef
+        - bigsdb_neisseria_isolates
+        - bigsdb_stec_seqdef
+        - bigsdb_stec_isolates
         - bigsdb_salmonella_seqdef
         - bigsdb_salmonella_isolates
       when: query_result_users.query_result[0]['exists'] == false
       become_user: postgres
         # this when could be changed but should not matter too much
 
-    - name: add bioit user to all neisseria species db
-      postgresql_query:
-        db: "{{ item }}"
-        login_user: postgres
-        query: INSERT INTO users (id, user_name, surname, first_name, email, affiliation, status, date_entered, datestamp, curator) VALUES (1,'bioit','Sciensano','Bioit', 'bioit@sciensano.be','Sciensano','admin','now','now', 1)
-      loop:
-        - bigsdb_neisseria_seqdef
-        - bigsdb_neisseria_isolates
-      when: query_result_neisseria_seqdef.query_result[0]['exists'] == false
-      become_user: postgres
-      # this when should be changed but will work when adding new db
-
-    - name: add bioit user to all salmonella species db
-      postgresql_query:
-        db: "{{ item }}"
-        login_user: postgres
-        query: INSERT INTO users (id, user_name, surname, first_name, email, affiliation, status, date_entered, datestamp, curator) VALUES (1,'bioit','Sciensano','Bioit', 'bioit@sciensano.be','Sciensano','admin','now','now', 1)
-      loop:
-        - bigsdb_salmonella_seqdef
-        - bigsdb_salmonella_isolates
-      when: query_result_salmonella_seqdef.query_result[0]['exists'] == false
-      become_user: postgres
-      # this when should be changed but will work when adding new db
-
-    - name: add bioit user to all stec species db
-      postgresql_query:
-        db: "{{ item }}"
-        login_user: postgres
-        query: INSERT INTO users (id, user_name, surname, first_name, email, affiliation, status, date_entered, datestamp, curator) VALUES (1,'bioit','Sciensano','Bioit', 'bioit@sciensano.be','Sciensano','admin','now','now', 1)
-      loop:
-        - bigsdb_stec_seqdef
-        - bigsdb_stec_isolates
-      when: query_result_stec_seqdef.query_result[0]['exists'] == false
-      become_user: postgres
-      # this when should be changed but will work when adding new db
-
-#    - name: add user db to species db
+#    - name: add bioit user to all neisseria species db
 #      postgresql_query:
 #        db: "{{ item }}"
 #        login_user: postgres
-#        query: INSERT INTO user_dbases (id, name, dbase_name, curator, datestamp) VALUES (1, '', 'global_bigsdb_users', 1, 'now')
+#        query: INSERT INTO users (id, user_name, surname, first_name, email, affiliation, status, date_entered, datestamp, curator) VALUES (1,'bioit','Sciensano','Bioit', 'bioit@sciensano.be','Sciensano','admin','now','now', 1)
 #      loop:
-#        - bigsdb_listeria_seqdef
-#        - bigsdb_listeria_isolates
-#        - bigsdb_mycobacterium_seqdef
-#        - bigsdb_mycobacterium_isolates
-#      when: query_result_users.query_result[0]['exists'] == false
+#        - bigsdb_neisseria_seqdef
+#        - bigsdb_neisseria_isolates
+#      when: query_result_neisseria_seqdef.query_result[0]['exists'] == false
 #      become_user: postgres
-#        # this should be other when but doesnt matter for now
+#      # this when should be changed but will work when adding new db
+#
+#    - name: add bioit user to all salmonella species db
+#      postgresql_query:
+#        db: "{{ item }}"
+#        login_user: postgres
+#        query: INSERT INTO users (id, user_name, surname, first_name, email, affiliation, status, date_entered, datestamp, curator) VALUES (1,'bioit','Sciensano','Bioit', 'bioit@sciensano.be','Sciensano','admin','now','now', 1)
+#      loop:
+#        - bigsdb_salmonella_seqdef
+#        - bigsdb_salmonella_isolates
+#      when: query_result_salmonella_seqdef.query_result[0]['exists'] == false
+#      become_user: postgres
+#      # this when should be changed but will work when adding new db
+#
+#    - name: add bioit user to all stec species db
+#      postgresql_query:
+#        db: "{{ item }}"
+#        login_user: postgres
+#        query: INSERT INTO users (id, user_name, surname, first_name, email, affiliation, status, date_entered, datestamp, curator) VALUES (1,'bioit','Sciensano','Bioit', 'bioit@sciensano.be','Sciensano','admin','now','now', 1)
+#      loop:
+#        - bigsdb_stec_seqdef
+#        - bigsdb_stec_isolates
+#      when: query_result_stec_seqdef.query_result[0]['exists'] == false
+#      become_user: postgres
+#      # this when should be changed but will work when adding new db
+
+    - name: add user db to species db
+      postgresql_query:
+        db: "{{ item }}"
+        login_user: postgres
+        query: INSERT INTO user_dbases (id, name, dbase_name, curator, datestamp) VALUES (1, '', 'global_bigsdb_users', 1, 'now')
+      loop:
+        - bigsdb_listeria_seqdef
+        - bigsdb_listeria_isolates
+        - bigsdb_mycobacterium_seqdef
+        - bigsdb_mycobacterium_isolates
+      when: query_result_users.query_result[0]['exists'] == false
+      become_user: postgres
+        # this should be other when but doesnt matter for now
 
     - name: add user db to neisseria species db
       postgresql_query:
@@ -648,19 +646,19 @@
       become_user: postgres
       # this when should be changed but will work when adding new db
 
-#    - name: update users to be from user_db, this order is required because else fails due to keys
-#      postgresql_query:
-#        db: "{{ item }}"
-#        login_user: postgres
-#        query: UPDATE users SET user_db=1 WHERE user_name='bioit'
-#      loop:
-#        - bigsdb_listeria_seqdef
-#        - bigsdb_listeria_isolates
-#        - bigsdb_mycobacterium_seqdef
-#        - bigsdb_mycobacterium_isolates
-#      when: query_result_users.query_result[0]['exists'] == false
-#      become_user: postgres
-#        # this when could be changed but should not matter too much
+    - name: update users to be from user_db, this order is required because else fails due to keys
+      postgresql_query:
+        db: "{{ item }}"
+        login_user: postgres
+        query: UPDATE users SET user_db=1 WHERE user_name='bioit'
+      loop:
+        - bigsdb_listeria_seqdef
+        - bigsdb_listeria_isolates
+        - bigsdb_mycobacterium_seqdef
+        - bigsdb_mycobacterium_isolates
+      when: query_result_users.query_result[0]['exists'] == false
+      become_user: postgres
+        # this when could be changed but should not matter too much
 
     - name: update users to be from user_db, this order is required because else fails due to keys
       postgresql_query:
