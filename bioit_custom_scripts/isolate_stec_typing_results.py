@@ -7,6 +7,7 @@ import json
 import smtplib
 from email.message import EmailMessage
 import socket
+import traceback
 
 schemedict = {'stec_mlst_warwick': {'dirdb': '/db/sequence_typing/ecoli/mlst-warwick', 'tsvname': 'mlst_warwick'},
               'stec_mlst_pasteur': {'dirdb': '/db/sequence_typing/ecoli/mlst-pasteur', 'tsvname': 'mlst_pasteur'},
@@ -546,7 +547,7 @@ elif sample_presence[0][0] >= 1:
         except Exception as exceptionmessage:
             send_email(
                 f'Error inserting output of stec pipeline to bigsdb for sample {isolate_name} on host {socket.gethostname()}',
-                f"{exceptionmessage}", emaildict)
+                f"{exceptionmessage}\n{traceback.format_exc()}", emaildict)
     elif sample_presence[0][0] >= 1:
         sys.exit("This sample already contains typing results")
 

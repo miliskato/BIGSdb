@@ -10,6 +10,7 @@ import json
 import smtplib
 from email.message import EmailMessage
 import socket
+import traceback
 
 schemedict = {
               'listeria_ndaro':           {'clusteredfasta': '/db/gene_detection/NCBI_AMR/ncbi_amr-clustered_80.fasta',
@@ -293,4 +294,4 @@ try:
 except Exception as exceptionmessage:
     send_email(
         f'(automated weekly) gene detection db update in BIGSdb failed on host {socket.gethostname()}',
-        f"{exceptionmessage}", emaildict)
+        f"{exceptionmessage}\n{traceback.format_exc()}", emaildict)
