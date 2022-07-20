@@ -481,7 +481,7 @@ elif sample_presence[0][0] == 1:
         except Exception as exceptionmessage:
             send_email(
                 f'Error inserting output of neisseria pipeline to bigsdb for sample {isolate_name} on host {socket.gethostname()}',
-                f"{exceptionmessage}", emaildict)
+                f"{exceptionmessage}\n{traceback.format_exc()}", emaildict)
     elif sample_presence[0][0] >= 1:
         sys.exit("This sample already contains typing results")
 
