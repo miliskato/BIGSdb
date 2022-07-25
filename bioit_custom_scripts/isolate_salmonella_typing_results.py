@@ -159,7 +159,7 @@ def insert_typing_results():
                 cur.execute(f"SELECT field FROM eav_fields WHERE field like 'genotyphi%'")
                 genotyphi_susc_list = cur.fetchall()
                 for item in genotyphi_susc_list:
-                    if outputtsvdict[item[0]]:
+                    if item[0] in outputtsvdict:
                         susceptibility = outputtsvdict[item[0]]
                         cur.execute(
                             f"INSERT INTO eav_text(isolate_id, field, value) VALUES ((SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}'),'{item[0]}','{susceptibility}')")
