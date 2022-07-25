@@ -3,6 +3,7 @@ import psycopg2
 import smtplib
 from email.message import EmailMessage
 import socket
+import traceback
 # For this script I am assuming that profiles do not retire.
 # It is important to keep in mind that ST do not neccesarily follow each other up continuosly, there can be gaps
 
@@ -69,7 +70,7 @@ def insert_profiles(scheme, indexdict, list_to_be_inserted):
         # second table (profile fields):
         handle = open('/'.join([schemedict[scheme]['dirdb'], profile_file]), 'r').readlines()
         for field in schemedict[scheme]['fields']:
-            for line in handle[1:-1]:
+            for line in handle[1:]:
                 line = line.replace('? ','').replace('Neisseria ', 'Neisseria_') # this is added because rflp profiles are malformatted
                 if " ".join(line.split()).split(' ')[0] == profile:
                     fieldvalue = " ".join(line.split()).split(' ')[indexdict[field]]
@@ -84,9 +85,10 @@ def insert_profiles(scheme, indexdict, list_to_be_inserted):
         loci = next(os.walk(schemedict[scheme]['dirdb']))[1]
         for locus in loci:
             if not locus.startswith('.'): # to exclude hidden folders like .git
+                locusvalue = ''
                 if locus == "'rplF":
                     locus = 'rplF'
-                for line in handle[1:-1]:
+                for line in handle[1:]:
                     if " ".join(line.split()).split(' ')[0] == profile:
                         locusvalue = " ".join(line.split()).split(' ')[indexdict[locus]]
                         if locusvalue == '0': # this will create a ForeignKeyViolation error so we prevent this by inserting a null allele if not yet present
@@ -100,12 +102,12 @@ def insert_profiles(scheme, indexdict, list_to_be_inserted):
                         # print(" ".join(line.split()).split(' '))
                         # print(indexdict[locus])
                         # print(locusvalue)
-                cur.execute(f"INSERT INTO profile_members(scheme_id, "
-                            f"locus, profile_id, allele_id, "
-                            f"curator, datestamp) "
-                            f"VALUES((SELECT id FROM schemes WHERE name = '{schemedict[scheme]['schemename_bigsdb']}'),"
-                            f"'{locus}', '{profile}', '{locusvalue}', "
-                            f"1,(SELECT CURRENT_DATE))")
+                        cur.execute(f"INSERT INTO profile_members(scheme_id, "
+                                    f"locus, profile_id, allele_id, "
+                                    f"curator, datestamp) "
+                                    f"VALUES((SELECT id FROM schemes WHERE name = '{schemedict[scheme]['schemename_bigsdb']}'),"
+                                    f"'{locus}', '{profile}', '{locusvalue}', "
+                                    f"1,(SELECT CURRENT_DATE))")
     con.close()
 
 def insert_all_profiles():
@@ -129,21 +131,22 @@ def insert_all_profiles():
                                host="127.0.0.1", port="")
         cur = con.cursor()
         cur.execute(f"SELECT MAX(profile_id) FROM profiles WHERE "
-                    f"scheme_id = (SELECT id FROM schemes WHERE name = '{schemedict[scheme]['schemename_bigsdb']}')")
+                    f"scheme_id = (SELECT id FROM schemes WHERE name = '{schemedict[scheme]['schemename_bigsdb']}') AND "
+                    f"LENGTH(profile_id) = (SELECT MAX(LENGTH(profile_id)) FROM profiles WHERE scheme_id = (SELECT id FROM schemes WHERE name = '{schemedict[scheme]['schemename_bigsdb']}'))")
         max_primary_field = cur.fetchall()
         list_to_be_inserted = []
         if max_primary_field[0][0] is None:
             # table is empty, so all need to be inserted
-            for line in handle[1:-1]:
+            for line in handle[1:]:
                 list_to_be_inserted.append(" ".join(line.split()).split(' ')[0])
             insert_profiles(scheme, indexdict, list_to_be_inserted)
         elif max_primary_field[0][0] == " ".join(handle[-1].split()).split(' ')[0]:
             # table is up to date
             continue
-        elif max_primary_field[0][0] < " ".join(handle[-1].split()).split(' ')[0]:
+        elif int(max_primary_field[0][0]) < int(" ".join(handle[-1].split()).split(' ')[0]):
             # table needs to be updated
-            for line in handle[1:-1]:
-                if " ".join(line.split()).split(' ')[0] > max_primary_field[0][0]:
+            for line in handle[1:]:
+                if int(" ".join(line.split()).split(' ')[0]) > int(max_primary_field[0][0]):
                     list_to_be_inserted.append(" ".join(line.split()).split(' ')[0])
                 else:
                     continue
@@ -169,4 +172,4 @@ try:
 except Exception as exceptionmessage:
     send_email(
         f'(automated weekly) profiles db update in BIGSdb failed on host {socket.gethostname()}',
-        f"{exceptionmessage}", emaildict)
+        f"{exceptionmessage}\n{traceback.format_exc()}", emaildict)

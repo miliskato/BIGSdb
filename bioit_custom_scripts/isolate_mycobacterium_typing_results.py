@@ -8,6 +8,7 @@ import json
 import smtplib
 from email.message import EmailMessage
 import socket
+import traceback
 
 #leave dirdb empty for atypic typing schemes
 schemedict = {'mycobacterium_mlst': {'dirdb': '/db/sequence_typing/mycobacterium/mlst', 'tsvname': 'mlst'},
@@ -379,7 +380,7 @@ elif sample_presence[0][0] == 1:
         except Exception as exceptionmessage:
             send_email(
                 f'Error inserting output of mycobacterium pipeline to bigsdb for sample {isolate_name} on host {socket.gethostname()}',
-                f"{exceptionmessage}", emaildict)
+                f"{exceptionmessage}\n{traceback.format_exc()}", emaildict)
     elif sample_presence[0][0] >= 1:
         sys.exit("This sample already contains typing results")
 
@@ -396,7 +397,7 @@ elif sample_presence[0][0] >= 1:
         except Exception as exceptionmessage:
             send_email(
                 f'Error inserting output of mycobacterium pipeline to bigsdb for sample {isolate_name} on host {socket.gethostname()}',
-                f"{exceptionmessage}", emaildict)
+                f"{exceptionmessage}\n{traceback.format_exc()}", emaildict)
     elif sample_presence[0][0] >= 1:
         sys.exit("This sample already contains typing results")
 

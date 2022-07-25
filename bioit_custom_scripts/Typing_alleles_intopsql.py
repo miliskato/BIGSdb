@@ -12,6 +12,7 @@ import re
 import smtplib
 from email.message import EmailMessage
 import socket
+import traceback
 
 
 schemedict = {
@@ -144,4 +145,4 @@ try:
 except Exception as exceptionmessage:
     send_email(
         f'(automated weekly) alleles db update in BIGSdb failed on host {socket.gethostname()}',
-        f"{exceptionmessage}", emaildict)
+        f"{exceptionmessage}\n{traceback.format_exc()}", emaildict)
