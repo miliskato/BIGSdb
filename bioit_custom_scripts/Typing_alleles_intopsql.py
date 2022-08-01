@@ -16,31 +16,31 @@ import traceback
 
 
 schemedict = {
-              'listeria_mlst': {'seqdefdb': 'bigsdb_listeria_seqdef', 'dirdb': '/db/sequence_typing/listeria/mlst'},
-              'listeria_cgmlst': {'seqdefdb': 'bigsdb_listeria_seqdef', 'dirdb': '/db/sequence_typing/listeria/cgmlst'},
-              'listeria_serogroup': {'seqdefdb': 'bigsdb_listeria_seqdef', 'dirdb': '/db/sequence_typing/listeria/serogroup'},
-              'listeria_metal_detergent_resistance': {'seqdefdb': 'bigsdb_listeria_seqdef', 'dirdb': '/db/sequence_typing/listeria/metal_detergent_resistance'},
-              'listeria_typing_virulence': {'seqdefdb': 'bigsdb_listeria_seqdef', 'dirdb': '/db/sequence_typing/listeria/virulence'},
-              'listeria_antibiotic_resistance': {'seqdefdb': 'bigsdb_listeria_seqdef', 'dirdb': '/db/sequence_typing/listeria/antibiotic_resistance'},
-              'listeria_species_confirmation': {'seqdefdb': 'bigsdb_listeria_seqdef', 'dirdb': '/db/sequence_typing/listeria/species_confirmation'},
-              'mycobacterium_mlst': {'seqdefdb': 'bigsdb_mycobacterium_seqdef', 'dirdb': '/db/sequence_typing/mycobacterium/mlst'},
-              'mycobacterium_cgmlst': {'seqdefdb': 'bigsdb_mycobacterium_seqdef', 'dirdb': '/db/sequence_typing/mycobacterium/cgmlst'},
-              'neisseria_mlst': {'dirdb': '/db/sequence_typing/neisseria/mlst', 'seqdefdb': 'bigsdb_neisseria_seqdef'},
-              'neisseria_cgmlst': {'dirdb': '/db/sequence_typing/neisseria/cgmlst', 'seqdefdb': 'bigsdb_neisseria_seqdef'},
-              'neisseria_rplf': {'dirdb': '/db/sequence_typing/neisseria/rplf', 'seqdefdb': 'bigsdb_neisseria_seqdef'},
-              'neisseria_bast': {'dirdb': '/db/sequence_typing/neisseria/bast', 'seqdefdb': 'bigsdb_neisseria_seqdef'},
-              'neisseria_pora': {'dirdb': '/db/sequence_typing/neisseria/pora', 'seqdefdb': 'bigsdb_neisseria_seqdef'},
-              'neisseria_porb': {'dirdb': '/db/sequence_typing/neisseria/porb', 'seqdefdb': 'bigsdb_neisseria_seqdef'},
-              'neisseria_feta': {'dirdb': '/db/sequence_typing/neisseria/feta', 'seqdefdb': 'bigsdb_neisseria_seqdef'},
-              'neisseria_resistancegenes': {'dirdb': '/db/sequence_typing/neisseria/resistance_genes', 'seqdefdb': 'bigsdb_neisseria_seqdef'},
-              'neisseria_vaccinetargets': {'dirdb': '/db/sequence_typing/neisseria/vaccine_targets', 'seqdefdb': 'bigsdb_neisseria_seqdef'},
-              'neisseria_fhbpnucl': {'dirdb': '/db/sequence_typing/neisseria/fhbp', 'seqdefdb': 'bigsdb_neisseria_seqdef'},
-              'neisseria_fhbppept': {'dirdb': '/db/sequence_typing/neisseria/fhbp', 'seqdefdb': 'bigsdb_neisseria_seqdef'},
-              'stec_mlst_warwick': {'dirdb': '/db/sequence_typing/ecoli/mlst-warwick', 'seqdefdb': 'bigsdb_stec_seqdef'},
-              'stec_mlst_pasteur': {'dirdb': '/db/sequence_typing/ecoli/mlst-pasteur', 'seqdefdb': 'bigsdb_stec_seqdef'},
-              'stec_cgmlst': {'dirdb': '/db/sequence_typing/ecoli/cgmlst', 'seqdefdb': 'bigsdb_stec_seqdef'},
-              'salmonella_mlst': {'seqdefdb': 'bigsdb_salmonella_seqdef', 'dirdb': '/db/sequence_typing/salmonella/mlst'},
-              'salmonella_cgmlst': {'seqdefdb': 'bigsdb_salmonella_seqdef', 'dirdb': '/db/sequence_typing/salmonella/cgmlst'}
+              'listeria_mlst': {'seqdefdb': 'bigsdb_listeria_seqdef', 'dirdb': '/db/sequence_typing/listeria/mlst', 'isolatedb': 'bigsdb_listeria_isolates'},
+              'listeria_cgmlst': {'seqdefdb': 'bigsdb_listeria_seqdef', 'dirdb': '/db/sequence_typing/listeria/cgmlst', 'isolatedb': 'bigsdb_listeria_isolates'},
+              'listeria_serogroup': {'seqdefdb': 'bigsdb_listeria_seqdef', 'dirdb': '/db/sequence_typing/listeria/serogroup', 'isolatedb': 'bigsdb_listeria_isolates'},
+              'listeria_metal_detergent_resistance': {'seqdefdb': 'bigsdb_listeria_seqdef', 'dirdb': '/db/sequence_typing/listeria/metal_detergent_resistance', 'isolatedb': 'bigsdb_listeria_isolates'},
+              'listeria_typing_virulence': {'seqdefdb': 'bigsdb_listeria_seqdef', 'dirdb': '/db/sequence_typing/listeria/virulence', 'isolatedb': 'bigsdb_listeria_isolates'},
+              'listeria_antibiotic_resistance': {'seqdefdb': 'bigsdb_listeria_seqdef', 'dirdb': '/db/sequence_typing/listeria/antibiotic_resistance', 'isolatedb': 'bigsdb_listeria_isolates'},
+              'listeria_species_confirmation': {'seqdefdb': 'bigsdb_listeria_seqdef', 'dirdb': '/db/sequence_typing/listeria/species_confirmation', 'isolatedb': 'bigsdb_listeria_isolates'},
+              'mycobacterium_mlst': {'seqdefdb': 'bigsdb_mycobacterium_seqdef', 'dirdb': '/db/sequence_typing/mycobacterium/mlst', 'isolatedb': 'bigsdb_mycobacterium_isolates'},
+              'mycobacterium_cgmlst': {'seqdefdb': 'bigsdb_mycobacterium_seqdef', 'dirdb': '/db/sequence_typing/mycobacterium/cgmlst', 'isolatedb': 'bigsdb_mycobacterium_isolates'},
+              'neisseria_mlst': {'dirdb': '/db/sequence_typing/neisseria/mlst', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'isolatedb': 'bigsdb_neisseria_isolates'},
+              'neisseria_cgmlst': {'dirdb': '/db/sequence_typing/neisseria/cgmlst', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'isolatedb': 'bigsdb_neisseria_isolates'},
+              'neisseria_rplf': {'dirdb': '/db/sequence_typing/neisseria/rplf', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'isolatedb': 'bigsdb_neisseria_isolates'},
+              'neisseria_bast': {'dirdb': '/db/sequence_typing/neisseria/bast', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'isolatedb': 'bigsdb_neisseria_isolates'},
+              'neisseria_pora': {'dirdb': '/db/sequence_typing/neisseria/pora', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'isolatedb': 'bigsdb_neisseria_isolates'},
+              'neisseria_porb': {'dirdb': '/db/sequence_typing/neisseria/porb', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'isolatedb': 'bigsdb_neisseria_isolates'},
+              'neisseria_feta': {'dirdb': '/db/sequence_typing/neisseria/feta', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'isolatedb': 'bigsdb_neisseria_isolates'},
+              'neisseria_resistancegenes': {'dirdb': '/db/sequence_typing/neisseria/resistance_genes', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'isolatedb': 'bigsdb_neisseria_isolates'},
+              'neisseria_vaccinetargets': {'dirdb': '/db/sequence_typing/neisseria/vaccine_targets', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'isolatedb': 'bigsdb_neisseria_isolates'},
+              'neisseria_fhbpnucl': {'dirdb': '/db/sequence_typing/neisseria/fhbp', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'isolatedb': 'bigsdb_neisseria_isolates'},
+              'neisseria_fhbppept': {'dirdb': '/db/sequence_typing/neisseria/fhbp', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'isolatedb': 'bigsdb_neisseria_isolates'},
+              'stec_mlst_warwick': {'dirdb': '/db/sequence_typing/ecoli/mlst-warwick', 'seqdefdb': 'bigsdb_stec_seqdef', 'isolatedb': 'bigsdb_stec_isolates'},
+              'stec_mlst_pasteur': {'dirdb': '/db/sequence_typing/ecoli/mlst-pasteur', 'seqdefdb': 'bigsdb_stec_seqdef', 'isolatedb': 'bigsdb_stec_isolates'},
+              'stec_cgmlst': {'dirdb': '/db/sequence_typing/ecoli/cgmlst', 'seqdefdb': 'bigsdb_stec_seqdef', 'isolatedb': 'bigsdb_stec_isolates'},
+              'salmonella_mlst': {'seqdefdb': 'bigsdb_salmonella_seqdef', 'dirdb': '/db/sequence_typing/salmonella/mlst', 'isolatedb': 'bigsdb_salmonella_isolates'},
+              'salmonella_cgmlst': {'seqdefdb': 'bigsdb_salmonella_seqdef', 'dirdb': '/db/sequence_typing/salmonella/cgmlst', 'isolatedb': 'bigsdb_salmonella_isolates'}
               }
 
 emaildict = {"from": "bioit-dev1@wiv-isp.be",
@@ -49,6 +49,10 @@ emaildict = {"from": "bioit-dev1@wiv-isp.be",
 
 def insert_alleles():
     for scheme in schemedict:
+        con = psycopg2.connect(database=f"{schemedict[scheme]['seqdefdb']}", user="apache", password="remote",
+                               host="127.0.0.1", port="")
+        con.autocommit = True
+        cur = con.cursor()
         dirs = next(os.walk(schemedict[scheme]['dirdb']))[1]
         for dir in dirs:
             if not dir.startswith('.') and not (scheme == 'neisseria_fhbpnucl' and (dir != 'fHbp_allele' and dir != 'fHbp_DNAfrag_Pasteur')) and not (scheme == 'neisseria_fhbppept' and (dir == 'fHbp_allele' or dir == 'fHbp_DNAfrag_Pasteur')):
@@ -92,11 +96,8 @@ def insert_alleles():
                 #print(list(fastadict.keys())) # I want to compare fasta allele id list with sql allele id list
 
                 #Part 2: PSQL component
-                con = psycopg2.connect(database=f"{schemedict[scheme]['seqdefdb']}", user="apache", password="remote", host="127.0.0.1", port="")
-                cur = con.cursor()
                 cur.execute(f"SELECT allele_id FROM sequences WHERE locus='{dir}'")
                 rows = cur.fetchall()
-                con.close()
                 list_alleleid = []
                 for item in rows:
                     list_alleleid.append(item[0])
@@ -115,15 +116,34 @@ def insert_alleles():
                 print(ids_to_be_inserted)
 
                 #Part_4: insert missing allele sequences into psql db
-                con = psycopg2.connect(database=f"{schemedict[scheme]['seqdefdb']}", user="apache", password="remote", host="127.0.0.1", port="")
-                cur = con.cursor()
                 print(scheme, dir)
                 for id in ids_to_be_inserted:
-                    cur.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status,sender,curator, date_entered, datestamp) \
-                                  VALUES('{dir}','{id}','{fastadict[id]}','unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
-                    con.commit()
-                    print(f"id {id} inserted into locus {dir}")
-                con.close()
+                    try:
+                        """
+                        Sometimes alleles retire for seemingly no reason, and are added immediately after as a new allele id,
+                        The observed ids that went through this were not in any profile or any allele designation in the isolate db
+                        """
+                        cur.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status,sender,curator, date_entered, datestamp) \
+                                      VALUES('{dir}','{id}','{fastadict[id]}','unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                        print(f"id {id} inserted into locus {dir}")
+                    except:
+                        """
+                        Profiles are located in the seqdef db and will automatically update when the sequence db is updated through a rule.
+                        Allele designations in the isolate db on the other hand will not, moreover, allele designations in the allele db 
+                        do not need to be referring to a real allele in the seqdef db.
+                        """
+                        cur.execute(f"SELECT allele_id FROM sequences WHERE locus = '{dir}' AND sequence = '{fastadict[id]}'")
+                        old_id = cur.fetchall()[0][0] # If empty then it will be a simple empty list '[]' and taking the index twice will throw an error
+                        cur.execute(f"UPDATE sequences SET allele_id = '{id}' WHERE locus = '{dir}' AND \
+                                      allele_id = '{old_id}'")
+                        con2 = psycopg2.connect(database=f"{schemedict[scheme]['isolatedb']}", user="apache",
+                                               password="remote",
+                                               host="127.0.0.1", port="")
+                        con2.autocommit = True
+                        cur2 = con2.cursor()
+                        cur2.execute(f"UPDATE allele_designations SET allele_id ='{id}' WHERE allele_id ='{old_id}' AND locus = '{dir}'")
+                        cur2.close()
+        con.close()
 
 def send_email(subject: str, content: str, config: dict) -> None:
     """
