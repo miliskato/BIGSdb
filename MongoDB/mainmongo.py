@@ -4,6 +4,8 @@ import yaml
 import argparse
 from pathlib import Path
 import logging
+from datetime import datetime
+import sys
 
 from util.mongo_results import Mongoresults
 from util.mongo_querying import Mongoquerying
@@ -29,8 +31,23 @@ def _write_document(opened_collection, json_input: dict):
     logging.debug(f"Writing {collection_write.inserted_id} in collection {opened_collection}")
     return collection_write.inserted_id
 
+def _new_isolate(technical_id: str, vcffilepath: str, fastafilepath: str, isolateresults_collection, results: dict) -> dict:
+    """
+    Initialises new isolate dictionary including its results
+    :param technical_id:
+    :param vcffilepath:
+    :param fastafilepath:
+    :param isolateresults_collection:
+    :param results:
+    :return:
+    """
+    new_isolate_dict = {"_id": technical_id,
+                        "vcf_path": vcffilepath,
+                        "fasta_path": fastafilepath,
+                        "latest_results_version": _write_document(isolateresults_collection, results),
+                        "datetime": datetime.strftime(datetime.today(), '%d/%m/%Y - %X')}
+    return new_isolate_dict
 if __name__ == '__main__':
-
     # Parse arguments
     args = _parse_arguments()
 
@@ -38,29 +55,28 @@ if __name__ == '__main__':
     with open(MONGO_CONFIG, encoding='utf-8') as handle:
         config_data = yaml.safe_load(handle)
 
+    # Configure stdout logging
+    logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
+
     # Open collections
     mongoinit = Mongoinitialisation()
     isolates_collection, isolateresults_collection = mongoinit._initialise_collections(config_data, args.species)
     mongoquerying = Mongoquerying()
-    # _query_list_of_all_values(isolates_collection)
-    # _query_list_of_all_values(species_database, "isolate_results")
-    print(mongoquerying._query_list_of_all_values(isolates_collection, "vcf_path"))
-    # print(_query_collection(isolates_collection))
-    print(mongoquerying._query_results_by_technicalids(isolates_collection, isolateresults_collection, ['technical_test_new', 'technical_id_test_165hhh']))
 
     # If statement for reanalysis or new
-    args.technical_id = "technical_test_dqqdsqs54"
+    args.technical_id = "technical_test_dqqdsssqs54"
     if args.results_type == "new_isolate":
-        if args.technical_id in mongoquerying._query_list_of_all_values(isolates_collection, "_id"):
+        if args.technical_id in mongoquerying._query_list_of_all_distinct_values(isolates_collection, "_id"):
             raise RuntimeError('This technical id is already present in the isolates collection')
         else:
             mongoresults = Mongoresults()
             records = mongoresults.parse_output(args.species, args.tsvfilepath)
             records["isolates_id"] = args.technical_id
-            _write_document(isolates_collection, {"_id": args.technical_id, "vcf_path": args.vcffilepath, "fasta_path": args.fastafilepath, "latest_results_version": _write_document(isolateresults_collection, records)})
+            _write_document(isolates_collection, _new_isolate(args.technical_id, args.vcffilepath, args.fastafilepath, isolateresults_collection, records))
+            logging.info(f"Wrote new isolate {args.technical_id} and its result to {args.species} database")
     elif args.results_type == "reanalysis":
         mongoresults = Mongoresults()
         records = mongoresults.parse_output(args.species, args.tsvfilepath)
         records["isolates_id"] = args.technical_id
         isolates_collection.update_one({"_id": args.technical_id}, { "$set": {"latest_results_version": _write_document(isolateresults_collection, records)}})
-
+        logging.info(f"Wrote new results and linked to isolate {args.technical_id} in {args.species}")

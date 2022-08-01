@@ -40,6 +40,12 @@ class Mongoresults(object, metaclass=abc.ABCMeta):
         logging.info("Mongosresults initialised")
 
     def parse_output(self, species: str, outputtsvfile: Path) -> dict:
+        """
+        Parses the tsv ouputfile into a dict
+        :param species: species will decide the schema to be used to parse the outputfile
+        :param outputtsvfile: path to the file
+        :return: dictionary of the tsv's values
+        """
         # Parse output
         outputtsvdict = {}
         handle = open(outputtsvfile, "r").readlines()
@@ -49,7 +55,13 @@ class Mongoresults(object, metaclass=abc.ABCMeta):
 
         return self._species_selection(species, outputtsvdict)
 
-    def _species_selection(self, species, outputtsvdict):
+    def _species_selection(self, species: str, outputtsvdict: dict) -> dict:
+        """
+        Parses the outputtsv according to species
+        :param species: species
+        :param outputtsvdict: dict
+        :return: Reformatted dict
+        """
         records = []
         species = str(species)
         if species in self._species_options:
@@ -216,7 +228,12 @@ class Mongoresults(object, metaclass=abc.ABCMeta):
         return records
 
 
-    def _avro_input_commontsvoutput(self, outputtsvdict, commontsvoutputoption : str):
+    def _avro_input_commontsvoutput(self, outputtsvdict: dict, commontsvoutputoption: str) -> dict:
+        """
+        :param outputtsvdict: The full outputdict
+        :param commontsvoutputoption: string that is a key in self._common_output_arguments
+        :return: a subset of the outputtsvdict in a dict with only 1 key, the commontsvoutputoption
+        """
         common_tsv_output_dict = {}
         if commontsvoutputoption not in self._common_output_arguments.keys():
             logging.error(f"option {commontsvoutputoption} does not exist in tsv_output dictionary in this function in this script")
