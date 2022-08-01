@@ -16,7 +16,10 @@ class Mongoinitialisation(object, metaclass=abc.ABCMeta):
         :param species:
         :return:
         """
-        client = MongoClient(config_data["CONNECTION_STRING_BASE"])
+        try:
+            client = MongoClient(config_data["CONNECTION_STRING_BASE"])
+        except:
+            raise RuntimeError(f"Could not connect to {config_data['CONNECTION_STRING_BASE']}")
         # todo change the test
         return client[f"{species}_test"]
 
