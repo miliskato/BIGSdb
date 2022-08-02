@@ -6,3 +6,5 @@ pyyaml==5.3.1
 soupsieve==2.0.1
 urllib3==1.25.10
 fastavro==1.5.2
+pymongo==4.2.0
+dnspython==2.2.1
