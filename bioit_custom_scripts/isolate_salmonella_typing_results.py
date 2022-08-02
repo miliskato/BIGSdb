@@ -285,9 +285,9 @@ def insert_typing_results():
                             hits = ast.literal_eval(hits)
                             for l in range(0, len(hits)):
                                 if scheme == 'spifinder_fastq':
-                                    spifinder_entry = f"CatFunc{hits[l][6]}__{hits[l][4]}"
+                                    spifinder_entry = f"CatFunc{hits[l][5]}__{hits[l][3]}"
                                 else:
-                                    spifinder_entry = f"CatFunc{hits[l][8]}__{hits[l][6]}"
+                                    spifinder_entry = f"CatFunc{hits[l][7]}__{hits[l][5]}"
                                 spifinder_field = f"{scheme}_{hits[l][0]}".upper()
                                 cur2.execute(
                                     f"SELECT allele_id FROM sequences WHERE allele_id = '{spifinder_entry}' and locus = '{spifinder_field}'")
@@ -654,7 +654,7 @@ if sample_presence[0][0] == 0:
     except Exception as exceptionmessage:
         send_email(
             f'Error inserting output of salmonella pipeline to bigsdb for sample {isolate_name} on host {socket.gethostname()}',
-            f"{exceptionmessage}", emaildict)
+            f"{exceptionmessage}\n{traceback.format_exc()}", emaildict)
 
 elif sample_presence[0][0] == 1:
     # sample exists: check whether typing results or not (we do not bother checking for all schemes separately
