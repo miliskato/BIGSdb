@@ -25,7 +25,12 @@ if __name__ == '__main__':
     # Open collections
     mongoinit = Mongoinitialisation()
     isolates_collection, isolateresults_collection = mongoinit._initialise_collections(config_data, args.species)
+    # isolates_collection.drop()
+    # isolateresults_collection.drop()
     mongoquerying = Mongoquerying()
+    for result in mongoquerying._query_results_by_technicalids(isolates_collection, isolateresults_collection, mongoquerying._query_list_of_all_distinct_values(isolates_collection, "_id")):
+        if 'testiffail' in result.keys():
+            print(result['isolates_id'],result['testiffail'])
     # print(mongoquerying._query_list_of_all_distinct_values(isolates_collection, "_id"))
     # print(mongoquerying._query_list_of_all_distinct_values(isolates_collection, "isolate_results"))
     # print(mongoquerying._query_list_of_all_distinct_values(isolates_collection, "vcf_path"))
@@ -33,4 +38,4 @@ if __name__ == '__main__':
     # print(mongoquerying._query_results_by_technicalids(isolates_collection, isolateresults_collection, ['technical_test_new', 'technical_id_test_165hhh']))
     # print(mongoquerying._query_results_by_technicalids(isolates_collection, isolateresults_collection, mongoquerying._query_list_of_all_distinct_values(isolates_collection, "_id")))
 
-    print(mongoquerying._query_typing_results_by_technicalids_and_scheme(isolates_collection, isolateresults_collection))
+    print(mongoquerying._query_typing_results_by_technicalids_and_scheme(isolates_collection, isolateresults_collection, scheme="cgmlst"))

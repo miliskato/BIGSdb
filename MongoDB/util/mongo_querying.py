@@ -46,7 +46,7 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         return self._query_docs_by_ids(opened_isolateresults_collection,
                                        [doc['latest_results_version'] for doc in self._query_docs_by_ids(opened_isolates_collection,
                                                                                                          technicalids)])
-    def _query_typing_results_by_technicalids_and_scheme(self, opened_isolates_collection, opened_isolateresults_collection, technicalids: list = ['emptylist'], scheme: str = 'cgmlst'):
+    def _query_typing_results_by_technicalids_and_scheme(self, opened_isolates_collection, opened_isolateresults_collection, scheme: str = 'cgmlst', technicalids: list = ['emptylist']):
         """
         Returns a list of lists wherein the first list is the header [isolate, locus1, locus2, ..] and the subsequent lists are the results of all isolates in technical ids
         :param opened_isolates_collection: mongo opened isolate collection
@@ -58,19 +58,17 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         if technicalids == ['emptylist']:
             technicalids = self._query_list_of_all_distinct_values(opened_isolates_collection, "_id")
         listofresultlists = []
-        for result_index, result in enumerate( self._query_results_by_technicalids(opened_isolates_collection, opened_isolateresults_collection, technicalids)):
+        for result_index, result in enumerate(self._query_results_by_technicalids(opened_isolates_collection, opened_isolateresults_collection, technicalids)):
             if result_index == 0:
                 header = ["isolate_id"]
                 for locus in result[scheme]['loci']:
                     header.append(locus['Locus'])
                 listofresultlists.append(header)
-            # todo change this
-            # resultlist = [result['isolates_id']]
-            resultlist = [result['_id']]
+            resultlist = [result['isolates_id']]
             for locus in result[scheme]['loci']:
                 # todo check logic
                 allele_id = locus['Allele_designation']
-                if int(allele_id) and locus['Percentage_identity'] == 100.00 and eval(locus['Coverage']) == 1.0:
+                if isinstance(allele_id, int) and locus['Percentage_identity'] == 100.00 and eval(locus['Coverage']) == 1.0:
                     resultlist.append(allele_id)
                 else:
                     resultlist.append(0)
