@@ -47,6 +47,7 @@ def _new_isolate(technical_id: str, vcffilepath: str, fastafilepath: str, isolat
                         "latest_results_version": _write_document(isolateresults_collection, results),
                         "datetime": datetime.strftime(datetime.today(), '%d/%m/%Y - %X')}
     return new_isolate_dict
+
 if __name__ == '__main__':
     # Parse arguments
     args = _parse_arguments()
@@ -64,11 +65,11 @@ if __name__ == '__main__':
     mongoquerying = Mongoquerying()
 
     # If statement for reanalysis or new
-    args.technical_id = "technical_test_dqqdsssqs54"
     if args.results_type == "new_isolate":
         if args.technical_id in mongoquerying._query_list_of_all_distinct_values(isolates_collection, "_id"):
             raise RuntimeError('This technical id is already present in the isolates collection')
         else:
+            # todo check if fasta path and vcf path are real?
             mongoresults = Mongoresults()
             records = mongoresults.parse_output(args.species, args.tsvfilepath)
             records["isolates_id"] = args.technical_id
