@@ -60,7 +60,7 @@ class Mongoresults(object, metaclass=abc.ABCMeta):
 
         return self._species_selection(species, outputtsvdict)
 
-    def _parse_date_to_iso(str_date: str):
+    def _parse_date_to_iso(self, str_date: str):
         split_date = re.split('/|-|:', str_date.replace(' ', ''))
         split_date = [int(i) for i in split_date]
         new_date = datetime(split_date[2], split_date[1], split_date[0], split_date[3], split_date[4], split_date[5])
