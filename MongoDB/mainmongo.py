@@ -74,6 +74,8 @@ if __name__ == '__main__':
             mongoresults = Mongoresults()
             records = mongoresults.parse_output(args.species, args.tsvfilepath)
             records["isolates_id"] = args.technical_id
+            isolates_collection.update_one({"_id": args.technical_id}, {
+                "$set": {"latest_analysis_date": records["analysis_date"]}})
             _write_document(isolates_collection, _new_isolate(args.technical_id, args.vcffilepath, args.fastafilepath, isolateresults_collection, records))
             logging.info(f"Wrote new isolate {args.technical_id} and its result to {args.species} database")
     elif args.results_type == "reanalysis":

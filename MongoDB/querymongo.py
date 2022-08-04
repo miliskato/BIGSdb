@@ -5,6 +5,8 @@ from util.mongo_querying import Mongoquerying
 from util.mongo_initialisation import Mongoinitialisation
 from config import MONGO_CONFIG
 from datetime import datetime
+import pprint
+
 
 def _parse_arguments() -> argparse.Namespace:
     """
@@ -12,8 +14,10 @@ def _parse_arguments() -> argparse.Namespace:
     :return: Parsed arguments
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("--species", required=True, type=str, choices=['mycobacterium', 'listeria', 'neisseria', 'stec', 'salmonella'])
+    parser.add_argument("--species", required=True, type=str,
+                        choices=['mycobacterium', 'listeria', 'neisseria', 'stec', 'salmonella'])
     return parser.parse_args()
+
 
 if __name__ == '__main__':
     # Parse arguments
@@ -29,9 +33,11 @@ if __name__ == '__main__':
     # isolates_collection.drop()
     # isolateresults_collection.drop()
     mongoquerying = Mongoquerying()
-    for result in mongoquerying._query_results_by_technicalids(isolates_collection, isolateresults_collection, mongoquerying._query_list_of_all_distinct_values(isolates_collection, "_id")):
+    for result in mongoquerying._query_results_by_technicalids(isolates_collection, isolateresults_collection,
+                                                               mongoquerying._query_list_of_all_distinct_values(
+                                                                       isolates_collection, "_id")):
         if 'testiffail' in result.keys():
-            print(result['isolates_id'],result['testiffail'])
+            print(result['isolates_id'], result['testiffail'])
     # print(mongoquerying._query_list_of_all_distinct_values(isolates_collection, "_id"))
     # print(mongoquerying._query_list_of_all_distinct_values(isolates_collection, "isolate_results"))
     # print(mongoquerying._query_list_of_all_distinct_values(isolates_collection, "vcf_path"))
@@ -39,4 +45,15 @@ if __name__ == '__main__':
     # print(mongoquerying._query_results_by_technicalids(isolates_collection, isolateresults_collection, ['technical_test_new', 'technical_id_test_165hhh']))
     # print(mongoquerying._query_results_by_technicalids(isolates_collection, isolateresults_collection, mongoquerying._query_list_of_all_distinct_values(isolates_collection, "_id")))
 
-    print(mongoquerying._query_typing_results_by_technicalids_and_scheme(isolates_collection, isolateresults_collection, scheme="cgmlst"))
+    # print(mongoquerying._query_typing_results_by_technicalids_and_scheme(isolates_collection,
+    # isolateresults_collection, scheme="cgmlst"))
+
+    # pprint.pprint(isolates_collection.distinct('latest_analysis_date'))
+    start = datetime(2022, 6, 24, 7, 51, 4)
+    end = datetime(2022, 10, 24, 7, 52, 4)
+    print(start)
+    # print(isolates_collection.find_one({'latest_analysis_date': {'$lt': end, '$gte': start}, 'porta': 'A0'}))
+    # print(isolates_collection.find_one({'latest_analysis_date': {'$lt': end}}))
+    # print(isolates_collection.find_one({'latest_analysis_date': {'$gte': start}}))
+    print(isolates_collection.find_one({'latest_analysis_date': {'$gte': start, '$lt': end}}))
+
