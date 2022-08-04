@@ -4,6 +4,7 @@ import yaml
 from util.mongo_querying import Mongoquerying
 from util.mongo_initialisation import Mongoinitialisation
 from config import MONGO_CONFIG
+from datetime import datetime
 
 def _parse_arguments() -> argparse.Namespace:
     """

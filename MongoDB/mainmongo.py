@@ -45,7 +45,8 @@ def _new_isolate(technical_id: str, vcffilepath: str, fastafilepath: str, isolat
                         "vcf_path": vcffilepath,
                         "fasta_path": fastafilepath,
                         "latest_results_version": _write_document(isolateresults_collection, results),
-                        "datetime": datetime.strftime(datetime.today(), '%d/%m/%Y - %X')}
+                        "creation_date": datetime.utcnow(),
+                        "latest_analysis_date": datetime.utcnow()}
     return new_isolate_dict
 
 if __name__ == '__main__':
@@ -80,4 +81,6 @@ if __name__ == '__main__':
         records = mongoresults.parse_output(args.species, args.tsvfilepath)
         records["isolates_id"] = args.technical_id
         isolates_collection.update_one({"_id": args.technical_id}, { "$set": {"latest_results_version": _write_document(isolateresults_collection, records)}})
+        isolates_collection.update_one({"_id": args.technical_id}, {
+            "$set": {"latest_analysis_date": records["analysis_date"]}})
         logging.info(f"Wrote new results and linked to isolate {args.technical_id} in {args.species}")
