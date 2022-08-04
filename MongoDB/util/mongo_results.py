@@ -81,7 +81,7 @@ class Mongoresults(object, metaclass=abc.ABCMeta):
                 # records needs to be a list for fastavro (even though only one sample at a time in our case)
                 records = {"isolate": outputtsvdict["sample"],
                            "pipeline_version": outputtsvdict["pipeline_version"],
-                           "analysis_date": Mongoresults._parse_date_to_iso(outputtsvdict["analysis_date"]),
+                           "analysis_date": self._parse_date_to_iso(outputtsvdict["analysis_date"]),
                            "downsampling": self._avro_input_commontsvoutput(outputtsvdict, "downsampling"),
                            "trimming": self._avro_input_commontsvoutput(outputtsvdict, "trimming"),
                            "assembly": self._avro_input_commontsvoutput(outputtsvdict, "assembly"),
@@ -252,7 +252,7 @@ class Mongoresults(object, metaclass=abc.ABCMeta):
                                                             'amr_mutations_RBT_Not_in_db.']
                 records = {"isolate": outputtsvdict["sample"],
                            "pipeline_version": outputtsvdict["pipeline_version"],
-                           "analysis_date": Mongoresults._parse_date_to_iso(outputtsvdict["analysis_date"]),
+                           "analysis_date": self._parse_date_to_iso(outputtsvdict["analysis_date"]),
                            "downsampling": self._avro_input_commontsvoutput(outputtsvdict, "downsampling"),
                            "trimming": self._avro_input_commontsvoutput(outputtsvdict, "trimming"),
                            "assembly": self._avro_input_commontsvoutput(outputtsvdict, "assembly"),
@@ -282,7 +282,7 @@ class Mongoresults(object, metaclass=abc.ABCMeta):
                 outputtsvdict['rplf-rplF'] = outputtsvdict["rplf-'rplF"].replace("'rplF", "rplF")
                 records = {"isolate": outputtsvdict["sample"],
                            "pipeline_version": outputtsvdict["pipeline_version"],
-                           "analysis_date": Mongoresults._parse_date_to_iso(outputtsvdict["analysis_date"]),
+                           "analysis_date": self._parse_date_to_iso(outputtsvdict["analysis_date"]),
                            "downsampling": self._avro_input_commontsvoutput(outputtsvdict, "downsampling"),
                            "trimming": self._avro_input_commontsvoutput(outputtsvdict, "trimming"),
                            "assembly": self._avro_input_commontsvoutput(outputtsvdict, "assembly"),
@@ -311,7 +311,7 @@ class Mongoresults(object, metaclass=abc.ABCMeta):
                 species = "ecoli"
                 records = {"isolate": outputtsvdict["sample"],
                            "pipeline_version": outputtsvdict["pipeline_version"],
-                           "analysis_date": Mongoresults._parse_date_to_iso(outputtsvdict["analysis_date"]),
+                           "analysis_date": self._parse_date_to_iso(outputtsvdict["analysis_date"]),
                            "downsampling": self._avro_input_commontsvoutput(outputtsvdict, "downsampling"),
                            "trimming": self._avro_input_commontsvoutput(outputtsvdict, "trimming"),
                            "assembly": self._avro_input_commontsvoutput(outputtsvdict, "assembly"),
@@ -412,7 +412,7 @@ class Mongoresults(object, metaclass=abc.ABCMeta):
                                                                       'seqsero2_kmerread_Predicted_serotype']
                 records = {"isolate": outputtsvdict["sample"],
                            "pipeline_version": outputtsvdict["pipeline_version"],
-                           "analysis_date": Mongoresults._parse_date_to_iso(outputtsvdict["analysis_date"]),
+                           "analysis_date": self._parse_date_to_iso(outputtsvdict["analysis_date"]),
                            "downsampling": self._avro_input_commontsvoutput(outputtsvdict, "downsampling"),
                            "trimming": self._avro_input_commontsvoutput(outputtsvdict, "trimming"),
                            "assembly": self._avro_input_commontsvoutput(outputtsvdict, "assembly"),

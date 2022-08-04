@@ -55,5 +55,5 @@ if __name__ == '__main__':
     # print(isolates_collection.find_one({'latest_analysis_date': {'$lt': end, '$gte': start}, 'porta': 'A0'}))
     # print(isolates_collection.find_one({'latest_analysis_date': {'$lt': end}}))
     # print(isolates_collection.find_one({'latest_analysis_date': {'$gte': start}}))
-    print(isolates_collection.find_one({'latest_analysis_date': {'$gte': start, '$lt': end}}))
+    #print(isolates_collection.find_one({'latest_analysis_date': {'$gte': start, '$lt': end}}))
 
