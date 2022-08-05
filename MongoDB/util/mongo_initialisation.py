@@ -2,7 +2,7 @@ import abc
 from pymongo import MongoClient
 import logging
 
-class Mongoinitialisation(object, metaclass=abc.ABCMeta):
+class Mongoinitialisation:
     """
     Class containing all queries for Mongo
     """
@@ -31,7 +31,7 @@ class Mongoinitialisation(object, metaclass=abc.ABCMeta):
         :return: opened collection
         """
         # MongoDB creates collections on the fly while inserting any Documents, we do not want to allow unwanted collections to be created, therefore this check:
-        if collection in ["isolates", "isolate_results"]:
+        if collection in ["isolates", "isolate_results", "sequence_types", "hiercc_results"]:
             opened_collection = opened_database[collection]
             logging.debug(f"opened collection {collection}")
             return opened_collection
@@ -52,3 +52,15 @@ class Mongoinitialisation(object, metaclass=abc.ABCMeta):
         # open isolate_results collection
         isolateresults_collection = self._open_mongo_collection(species_database, "isolate_results")
         return isolates_collection, isolateresults_collection
+
+    def _initialise_hiercc_collections(self, config_data: dict, species: str):
+        """
+        Initialises database and collections for interaction
+        :param config_data: config data to connect to Cloud Cluster
+        :param species: string that is the database name
+        :return: opened sequence_type and  for a given species
+        """
+        species_database = self._open_mongo_database(config_data, species)
+        st_collection = self._open_mongo_collection(species_database, "sequence_types")
+        hiercc_results_collection = self._open_mongo_collection(species_database, "hiercc_results")
+        return st_collection, hiercc_results_collection

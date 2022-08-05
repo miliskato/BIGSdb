@@ -74,3 +74,14 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
                     resultlist.append(0)
             listofresultlists.append(resultlist)
         return listofresultlists
+
+    def _write_document(opened_collection, json_input: dict):
+        """
+        write a document into a collection.
+        :param opened_collection: the collection where the document needs to be saved
+        :param json_input: the document to store into the collecteion
+        :return:
+        """
+        collection_write = opened_collection.insert_one(json_input)
+        logging.debug(f"Writing {collection_write.inserted_id} in collection {opened_collection}")
+        return collection_write.inserted_id
