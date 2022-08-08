@@ -17,3 +17,4 @@ class MongoHierCCClustering:
     def __retrieve_hiercc_result(self):
         pass
     def __add_new_hiercc_numbers(self):
+        pass

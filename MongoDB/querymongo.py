@@ -30,6 +30,7 @@ if __name__ == '__main__':
     # Open collections
     mongoinit = Mongoinitialisation()
     isolates_collection, isolateresults_collection = mongoinit._initialise_collections(config_data, args.species)
+    st_collection, hiercc_results_collection = mongoinit._initialise_hiercc_collections(config_data, 'listeria')
     # isolates_collection.drop()
     # isolateresults_collection.drop()
     mongoquerying = Mongoquerying()
@@ -45,15 +46,16 @@ if __name__ == '__main__':
     # print(mongoquerying._query_results_by_technicalids(isolates_collection, isolateresults_collection, ['technical_test_new', 'technical_id_test_165hhh']))
     # print(mongoquerying._query_results_by_technicalids(isolates_collection, isolateresults_collection, mongoquerying._query_list_of_all_distinct_values(isolates_collection, "_id")))
 
-    test = mongoquerying._query_typing_results_by_technicalids_and_scheme(isolates_collection,
-    isolateresults_collection, scheme="cgmlst", technicalids=["S14BD00001"])
-    print(test[1][1:len(test[1])])
-    print(test[1][len(test[1])-2])
+    # test = mongoquerying._query_typing_results_by_technicalids_and_scheme(isolates_collection,
+    # isolateresults_collection, scheme="cgmlst", technicalids=["S14BD00001"])
+    # print(test[1][1:len(test[1])])
+    # print(test[1][len(test[1])-2])
     # pprint.pprint(isolates_collection.distinct('latest_analysis_date'))
-    start = datetime(2022, 7, 13, 7, 56, 4)
-    end = datetime(2022, 10, 24, 7, 52, 4)
+    # start = datetime(2022, 7, 13, 7, 56, 4)
+    # end = datetime(2022, 10, 24, 7, 52, 4)
     # print(isolates_collection.find_one({'latest_analysis_date': {'$lt': end, '$gte': start}, 'porta': 'A0'}))
     # print(isolates_collection.find_one({'latest_analysis_date': {'$lt': end}}))
     # print(isolates_collection.find_one({'latest_analysis_date': {'$gte': start}}))
     #pprint.pprint(isolates_collection.find_one({'latest_analysis_date': {'$gte': start, '$lt': end}}))
+    db.things.find_one(sort=[("uid", -1)])
 
