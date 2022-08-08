@@ -1,16 +1,8 @@
-from pymongo import MongoClient
-# import dnspython
 import yaml
-import argparse
-from pathlib import Path
 import logging
-from datetime import datetime
 import sys
-
-from util.mongo_results import Mongoresults
 from util.mongo_querying import Mongoquerying
 from util.mongo_initialisation import Mongoinitialisation
-from util.mongo_hiercc_clustering import MongoHierCCClustering
 from config import MONGO_CONFIG
 from config import HIERCC_CONFIG
 from util.hiercc_data import HierCCData
@@ -18,7 +10,7 @@ from util.hiercc_cgmlst_profile import HierCCCgMLSTProfile
 from util.hiercc_numbers_profile import HierCCNumbersProfile
 
 def write_headers(headers: list, collection) -> None:
-    document = {'ST': 'headers', 'headers': headers}
+    document = {'ID': 'headers', 'headers': headers}
     Mongoquerying.write_document(collection, document)
 
 def write_st_data(data: list, collection) -> None:

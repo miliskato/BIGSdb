@@ -1,12 +1,11 @@
 import argparse
 import yaml
-
+import pprint
+import pymongo
 from util.mongo_querying import Mongoquerying
 from util.mongo_initialisation import Mongoinitialisation
 from config import MONGO_CONFIG
-from datetime import datetime
-import pprint
-
+from util.mongo_hiercc_clustering import MongoHierCCClustering
 
 def _parse_arguments() -> argparse.Namespace:
     """
@@ -48,8 +47,7 @@ if __name__ == '__main__':
 
     # test = mongoquerying._query_typing_results_by_technicalids_and_scheme(isolates_collection,
     # isolateresults_collection, scheme="cgmlst", technicalids=["S14BD00001"])
-    # print(test[1][1:len(test[1])])
-    # print(test[1][len(test[1])-2])
+    # print(test[1])
     # pprint.pprint(isolates_collection.distinct('latest_analysis_date'))
     # start = datetime(2022, 7, 13, 7, 56, 4)
     # end = datetime(2022, 10, 24, 7, 52, 4)
@@ -57,5 +55,11 @@ if __name__ == '__main__':
     # print(isolates_collection.find_one({'latest_analysis_date': {'$lt': end}}))
     # print(isolates_collection.find_one({'latest_analysis_date': {'$gte': start}}))
     #pprint.pprint(isolates_collection.find_one({'latest_analysis_date': {'$gte': start, '$lt': end}}))
-    db.things.find_one(sort=[("uid", -1)])
+    test = st_collection.find_one(sort=[("ST", -1)])
+    input_data = test['cgMLST'].split(',')
+    input_data = [test['ST']] + input_data
+    headers = st_collection.find_one({'ID': 'headers'})['headers']
+    print(headers)
+    hcc = MongoHierCCClustering(headers, input_data,'listeria')
+
 

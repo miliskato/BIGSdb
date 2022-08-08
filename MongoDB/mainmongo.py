@@ -91,7 +91,7 @@ if __name__ == '__main__':
                                                                                           technicalids=records[
                                                                                               "isolates_id"])
             #initialize an object to enter data in the HierCC collections and do the clustering
-            hiercc_clustering = MongoHierCCClustering(hiercc_input, args.species)
+            hiercc_clustering = MongoHierCCClustering(hiercc_input[0], hiercc_input[1], args.species)
             
 
     elif args.results_type == "reanalysis":

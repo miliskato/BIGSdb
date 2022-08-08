@@ -8,5 +8,5 @@ class HierCCNumbersProfile:
     def get_hiercc_results_collection_entries(self):
         collection_entries = []
         for (hcnumber, hcc) in zip(self.hcnumbers, self.hcc):
-            collection_entries.append({'ST': self.st, 'HC': hcc, 'HC_number': hcnumber})
+            collection_entries.append({'ST': int(self.st), 'HC': hcc, 'HC_number': int(hcnumber)})
         return collection_entries
