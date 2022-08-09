@@ -55,11 +55,10 @@ if __name__ == '__main__':
     # print(isolates_collection.find_one({'latest_analysis_date': {'$lt': end}}))
     # print(isolates_collection.find_one({'latest_analysis_date': {'$gte': start}}))
     #pprint.pprint(isolates_collection.find_one({'latest_analysis_date': {'$gte': start, '$lt': end}}))
-    test = st_collection.find_one(sort=[("ST", -1)])
-    input_data = test['cgMLST'].split(',')
-    input_data = [test['ST']] + input_data
     headers = st_collection.find_one({'ID': 'headers'})['headers']
-    print(headers)
+    input_data = ['0'] * (len(headers)-1600)
+    input_data = input_data + (['1'] * 1600)
     hcc = MongoHierCCClustering(headers, input_data,'listeria')
-
+    result = hcc.run_hiercc_clustering(st_collection, hiercc_results_collection)
+    print(result)
 

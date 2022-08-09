@@ -38,7 +38,7 @@ class Mongoinitialisation:
         else:
             raise RuntimeError(f"Collection '{collection}' not in supported collections")
 
-    def _initialise_collections(self, config_data: dict, species: str) -> None:
+    def _initialise_collections(self, config_data: dict, species: str):
         """
         Initialises database and collections for interaction
         :param config_data: config data to connect to Cloud Cluster
