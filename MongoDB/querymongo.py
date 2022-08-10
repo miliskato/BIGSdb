@@ -31,8 +31,8 @@ if __name__ == '__main__':
     isolates_collection, isolateresults_collection = mongoinit._initialise_collections(config_data, args.species)
     st_collection, hiercc_results_collection, distance_matrix_collection = \
         mongoinit.initialise_hiercc_collections(config_data, args.species)
-    # isolates_collection.drop()
-    # isolateresults_collection.drop()
+    isolates_collection.drop()
+    isolateresults_collection.drop()
     mongoquerying = Mongoquerying()
     for result in mongoquerying._query_results_by_technicalids(isolates_collection, isolateresults_collection,
                                                                mongoquerying._query_list_of_all_distinct_values(

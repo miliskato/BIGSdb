@@ -30,6 +30,8 @@ class MongoHierCCClustering:
         :return:
         """
         logging.getLogger().setLevel(logging.INFO)
+        logging.info("Check order of the cgMLST profile")
+        self.__check_order_of_cgmlst_profile(st_collection)
         logging.info(f"Query sequence type collection for {self.species}")
         self.cgmlst_profile.st = self.__query_sequence_types(st_collection)
         if self.cgmlst_profile.st:
@@ -54,6 +56,18 @@ class MongoHierCCClustering:
             else:
                 logging.info(f"Test for missing data failed: cgMLST profile will not be clustered!")
                 return None
+
+    def __check_order_of_cgmlst_profile(self, st_collection) -> None:
+        db_headers = st_collection.find_one({'ID': 'headers'})['headers']
+        if self.cgmlst_profile.loci != db_headers[1:len(db_headers)]:
+            bad_headers_map = {}
+            for i,b in enumerate(self.cgmlst_profile.loci):
+                bad_headers_map[b] = i
+            good_indices = [bad_headers_map[a] for a in db_headers[1:len(db_headers)]]
+            self.cgmlst_profile.loci = [self.cgmlst_profile.loci[i] for i in good_indices]
+            self.cgmlst_profile.cgmlst = [self.cgmlst_profile.cgmlst[j] for j in good_indices]
+            if self.cgmlst_profile.loci != db_headers[1:len(db_headers)]:
+                raise ValueError('Impossible to get the same cgmlst, issue in the cgmlst profile')
 
 
     def __query_sequence_types(self, st_collection) -> int:
@@ -91,20 +105,9 @@ class MongoHierCCClustering:
         """
         latest_st = st_collection.find_one(sort=[("ST", -1)])
         self.cgmlst_profile.st = latest_st['ST'] + 1
-        db_headers = st_collection.find_one({'ID': 'headers'})['headers']
-        if self.cgmlst_profile.loci != db_headers[1:len(db_headers)]:
-            bad_headers_map = {}
-            for i,b in enumerate(self.cgmlst_profile.loci):
-                bad_headers_map[b] = i
-            good_indices = [bad_headers_map[a] for a in db_headers[1:len(db_headers)]]
-            self.cgmlst_profile.loci = [self.cgmlst_profile.loci[i] for i in good_indices]
-            self.cgmlst_profile.cgmlst = [self.cgmlst_profile.cgmlst[j] for j in good_indices]
-            if self.cgmlst_profile.loci != db_headers[1:len(db_headers)]:
-                raise ValueError('Impossible to get the same cgmlst, issue in the cgmlst profile')
-            else:
-                Mongoquerying.write_document(st_collection, self.cgmlst_profile.get_st_collection_entry())
-                with gzip.open(HIERCC_CONFIG[self.species]['running_st'], 'at') as f:
-                    f.write(f'{self.cgmlst_profile.get_st_line_for_hiercc_input()}\n')
+        Mongoquerying.write_document(st_collection, self.cgmlst_profile.get_st_collection_entry())
+        with gzip.open(HIERCC_CONFIG[self.species]['running_st'], 'at') as f:
+            f.write(f'{self.cgmlst_profile.get_st_line_for_hiercc_input()}\n')
 
     def __compute_distance_matrix(self, st_collection, distance_matrix_collection):
         distance_matrix = DistanceMatrixComputer(st_collection, distance_matrix_collection)
