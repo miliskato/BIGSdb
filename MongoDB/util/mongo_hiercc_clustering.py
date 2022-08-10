@@ -122,7 +122,7 @@ class MongoHierCCClustering:
         command = f"module load phiercc;" \
                   f" pHierCC -p {HIERCC_CONFIG[self.species]['running_st']} " \
                   f"-a {HIERCC_CONFIG[self.species]['npz_file']} " \
-                  f"-o {HIERCC_CONFIG[self.species]['running_clustering']} "
+                  f"-o {HIERCC_CONFIG[self.species]['running_clustering'].replace('.HierCC.gz','')} "
         out = subprocess.run(
             command,
             shell=True,
