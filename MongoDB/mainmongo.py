@@ -71,7 +71,8 @@ if __name__ == '__main__':
     # Open collections
     mongoinit = Mongoinitialisation()
     isolates_collection, isolateresults_collection = mongoinit._initialise_collections(config_data, args.species)
-    st_collection, hiercc_results_collection = mongoinit._initialise_hiercc_collections(config_data, args.species)
+    st_collection, hiercc_results_collection, distance_matrix_collection = \
+        mongoinit.initialise_hiercc_collections(config_data, args.species)
     mongoquerying = Mongoquerying()
 
     # If statement for reanalysis or new
@@ -94,7 +95,8 @@ if __name__ == '__main__':
             #initialize an object to enter data in the HierCC collections and do the clustering
             hiercc_clustering = MongoHierCCClustering(hiercc_input[0], hiercc_input[1], args.species)
             logging.info(f"Running the clustering for the isolate {args.technical_id}")
-            sequence_type = hiercc_clustering.run_hiercc_clustering(st_collection, hiercc_results_collection)
+            sequence_type = hiercc_clustering.run_hiercc_clustering(st_collection, hiercc_results_collection,
+                                                                    distance_matrix_collection)
             isolates_collection.find_one_and_update({"_id": records["isolates_id"]},
                                                     {"$set": {"HierCC_ST": sequence_type}})
             

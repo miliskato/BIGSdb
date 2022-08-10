@@ -32,5 +32,5 @@ class HierCCCgMLSTProfile:
         Concatenates the st + all the cgmlst into one string to write it into the input file for HierCC
         :return:
         """
-        return '\t'.join([str(self.st), '\t'.join(self.cgmlst)])
+        return '\t'.join([str(self.st), '\t'.join(map(str, self.cgmlst))])
 

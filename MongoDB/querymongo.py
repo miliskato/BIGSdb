@@ -29,7 +29,8 @@ if __name__ == '__main__':
     # Open collections
     mongoinit = Mongoinitialisation()
     isolates_collection, isolateresults_collection = mongoinit._initialise_collections(config_data, args.species)
-    st_collection, hiercc_results_collection = mongoinit._initialise_hiercc_collections(config_data, 'listeria')
+    st_collection, hiercc_results_collection, distance_matrix_collection = \
+        mongoinit.initialise_hiercc_collections(config_data, args.species)
     # isolates_collection.drop()
     # isolateresults_collection.drop()
     mongoquerying = Mongoquerying()
@@ -55,10 +56,10 @@ if __name__ == '__main__':
     # print(isolates_collection.find_one({'latest_analysis_date': {'$lt': end}}))
     # print(isolates_collection.find_one({'latest_analysis_date': {'$gte': start}}))
     #pprint.pprint(isolates_collection.find_one({'latest_analysis_date': {'$gte': start, '$lt': end}}))
-    headers = st_collection.find_one({'ID': 'headers'})['headers']
-    input_data = ['0'] * (len(headers)-1600)
-    input_data = input_data + (['1'] * 1600)
-    hcc = MongoHierCCClustering(headers, input_data,'listeria')
-    result = hcc.run_hiercc_clustering(st_collection, hiercc_results_collection)
-    print(result)
+    # headers = st_collection.find_one({'ID': 'headers'})['headers']
+    # input_data = ['0'] * (len(headers)-1600)
+    # input_data = input_data + (['1'] * 1600)
+    # hcc = MongoHierCCClustering(headers, input_data,'listeria')
+    # result = hcc.run_hiercc_clustering(st_collection, hiercc_results_collection)
+    # print(result)
 

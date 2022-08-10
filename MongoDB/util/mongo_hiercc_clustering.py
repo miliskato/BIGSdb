@@ -1,7 +1,9 @@
+from pymongo import MongoClient
 from MongoDB.util.hiercc_cgmlst_profile import HierCCCgMLSTProfile
 from MongoDB.util.hiercc_numbers_profile import HierCCNumbersProfile
-from MongoDB.util.mongo_querying import Mongoquerying
+from MongoDB.util.distance_matrix_computer import DistanceMatrixComputer
 from MongoDB.config import HIERCC_CONFIG
+from MongoDB.util.mongo_querying import Mongoquerying
 import gzip
 import subprocess
 import logging
@@ -19,11 +21,12 @@ class MongoHierCCClustering:
         self.hc_results = None
         self.species = species
 
-    def run_hiercc_clustering(self, st_collection, hiercc_results_collection) -> str:
+    def run_hiercc_clustering(self, st_collection, hiercc_results_collection, distance_matrix_collection) -> int:
         """
         Main function to run the whole clustering using HierCC and storing data in mongoDB
         :param st_collection: the collection of sequence types from mongoDB.
         :param hiercc_results_collection: the collection of hiercc results from mongoDB.
+        :param distance_matrix_collection: the collection containing the distance matrix in mongoDB
         :return:
         """
         logging.getLogger().setLevel(logging.INFO)
@@ -39,6 +42,8 @@ class MongoHierCCClustering:
                 logging.info(f"Test succeeded: the cgMLST profile will be integrated to the sequence type collection "
                              f"from {self.species}")
                 self.__add_new_sequence_type(st_collection)
+                logging.info(f"Start to process cgmlst profiles for distance computing")
+                self.__compute_distance_matrix(st_collection, distance_matrix_collection)
                 logging.info(f"Running HierCC tool for clustering")
                 self.__run_hiercc()
                 logging.info(f"Retrieving results from HierCC")
@@ -47,7 +52,7 @@ class MongoHierCCClustering:
                 self.__add_new_hiercc_numbers(hiercc_results_collection)
                 return self.cgmlst_profile.st
             else:
-                logging.info(f"Test for missing data failled: cgMLST profile will not be clustered!")
+                logging.info(f"Test for missing data failed: cgMLST profile will not be clustered!")
                 return None
 
 
@@ -65,7 +70,7 @@ class MongoHierCCClustering:
 
     def __check_missing_data(self) -> str:
         """
-        Check if the number of missing alleles is not higher than the thershold in order to do the clustering and
+        Check if the number of missing alleles is not higher than the threshold in order to do the clustering and
         incorporate the results in the database.
         :return:
         """
@@ -87,12 +92,24 @@ class MongoHierCCClustering:
         latest_st = st_collection.find_one(sort=[("ST", -1)])
         self.cgmlst_profile.st = latest_st['ST'] + 1
         db_headers = st_collection.find_one({'ID': 'headers'})['headers']
-        if self.cgmlst_profile.loci == db_headers[1:len(db_headers)]:
-            Mongoquerying.write_document(st_collection, self.cgmlst_profile.get_st_collection_entry())
-            with gzip.open(HIERCC_CONFIG[self.species]['running_st'], 'at') as f:
-                f.write(f'{self.cgmlst_profile.get_st_line_for_hiercc_input()}\n')
-        else:
-            print('not the same cgmlst order')
+        if self.cgmlst_profile.loci != db_headers[1:len(db_headers)]:
+            bad_headers_map = {}
+            for i,b in enumerate(self.cgmlst_profile.loci):
+                bad_headers_map[b] = i
+            good_indices = [bad_headers_map[a] for a in db_headers[1:len(db_headers)]]
+            self.cgmlst_profile.loci = [self.cgmlst_profile.loci[i] for i in good_indices]
+            self.cgmlst_profile.cgmlst = [self.cgmlst_profile.cgmlst[j] for j in good_indices]
+            if self.cgmlst_profile.loci != db_headers[1:len(db_headers)]:
+                raise ValueError('Impossible to get the same cgmlst, issue in the cgmlst profile')
+            else:
+                Mongoquerying.write_document(st_collection, self.cgmlst_profile.get_st_collection_entry())
+                with gzip.open(HIERCC_CONFIG[self.species]['running_st'], 'at') as f:
+                    f.write(f'{self.cgmlst_profile.get_st_line_for_hiercc_input()}\n')
+
+    def __compute_distance_matrix(self, st_collection, distance_matrix_collection):
+        distance_matrix = DistanceMatrixComputer(st_collection, distance_matrix_collection)
+        distance_matrix.compute_hamming_distances('last_st')
+        distance_matrix.insert_hamming_distances_in_mongo()
 
     def __run_hiercc(self) -> None:
         """
@@ -125,7 +142,7 @@ class MongoHierCCClustering:
         hc_headers = hiercc_results_collection.find_one({'ID': 'headers'})['headers']
         self.hc_results = HierCCNumbersProfile(self.hc_results, hc_headers)
         results_to_write = self.hc_results.get_hiercc_results_collection_entries()
-        for result in results_to_write:
-            Mongoquerying.write_document(hiercc_results_collection, result)
+        hiercc_results_collection.insert_many(results_to_write)
+
 
 

@@ -2,14 +2,16 @@ import abc
 from pymongo import MongoClient
 import logging
 
+
 class Mongoinitialisation:
     """
     Class containing all queries for Mongo
     """
+
     def __init__(self):
         pass
 
-    def _open_mongo_database(self, config_data, species) -> None:
+    def _open_mongo_database(self, config_data, species):
         """
         Connects to the mongo Cloud Cluster specified in the config file and opens the database
         :param config_data:
@@ -23,7 +25,7 @@ class Mongoinitialisation:
         # todo change the test
         return client[f"{species}_test"]
 
-    def _open_mongo_collection(self, opened_database, collection: str) -> None:
+    def _open_mongo_collection(self, opened_database, collection: str):
         """
         Opens a mongo collection in an opened database
         :param opened_database: mongo opened database
@@ -31,7 +33,7 @@ class Mongoinitialisation:
         :return: opened collection
         """
         # MongoDB creates collections on the fly while inserting any Documents, we do not want to allow unwanted collections to be created, therefore this check:
-        if collection in ["isolates", "isolate_results", "sequence_types", "hiercc_results"]:
+        if collection in ["isolates", "isolate_results", "sequence_types", "hiercc_results", "distance_matrix"]:
             opened_collection = opened_database[collection]
             logging.debug(f"opened collection {collection}")
             return opened_collection
@@ -53,7 +55,7 @@ class Mongoinitialisation:
         isolateresults_collection = self._open_mongo_collection(species_database, "isolate_results")
         return isolates_collection, isolateresults_collection
 
-    def _initialise_hiercc_collections(self, config_data: dict, species: str):
+    def initialise_hiercc_collections(self, config_data: dict, species: str):
         """
         Initialises database and collections for interaction
         :param config_data: config data to connect to Cloud Cluster
@@ -63,4 +65,5 @@ class Mongoinitialisation:
         species_database = self._open_mongo_database(config_data, species)
         st_collection = self._open_mongo_collection(species_database, "sequence_types")
         hiercc_results_collection = self._open_mongo_collection(species_database, "hiercc_results")
-        return st_collection, hiercc_results_collection
+        distance_matrix_collection = self._open_mongo_collection(species_database, "distance_matrix")
+        return st_collection, hiercc_results_collection, distance_matrix_collection
