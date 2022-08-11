@@ -2,6 +2,8 @@ import abc
 import pymongo
 import logging
 import sys
+from MongoDB.util.distance_matrix_query import DistanceMatrixQuery
+
 class Mongoquerying(object, metaclass=abc.ABCMeta):
     """
     Class containing all queries for Mongo
@@ -87,3 +89,14 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         collection_write = opened_collection.insert_one(json_input)
         logging.debug(f"Writing {collection_write.inserted_id} in collection {opened_collection}")
         return collection_write.inserted_id
+
+    def find_isolates_cgmlst_distance(self, isolate_id: str, distance_threshold: int, isolate_collection, distance_matrix_collection) ->list:
+        isolate_sequence_type = isolate_collection.find_one({"_id": isolate_id})['HierCC_ST']
+        distance_query = DistanceMatrixQuery(isolate_id, isolate_sequence_type, distance_threshold, distance_matrix_collection)
+        st_under_thershold = distance_query.run_distance_query()
+        sample_id_below_threshold = []
+        for st in st_under_thershold:
+            query = isolate_collection.find({'HierCC_ST': st})
+            for result in query:
+                sample_id_below_threshold.append(result['_id'])
+        return sample_id_below_threshold
