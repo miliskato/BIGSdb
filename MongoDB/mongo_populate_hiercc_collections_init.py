@@ -15,16 +15,17 @@ def write_headers(headers: list, collection) -> None:
     Mongoquerying.write_document(collection, document)
 
 def write_st_data(data: list, collection) -> None:
+    st_entries = []
     for entry in data:
         cgmlst_profile = HierCCCgMLSTProfile(entry)
-        Mongoquerying.write_document(collection, cgmlst_profile.get_st_collection_entry())
+        st_entries.append(cgmlst_profile.get_st_collection_entry())
+    DistanceMatrixComputer.insert_a_lot(st_entries, collection)
 
 def write_hc_data(data: list, headers: list, collection) -> None:
     for hc_entry in data:
         hc_profile = HierCCNumbersProfile(hc_entry, headers)
         hc_docs = hc_profile.get_hiercc_results_collection_entries()
-        for doc in hc_docs:
-            Mongoquerying.write_document(collection, doc)
+        collection.insert_many(hc_docs)
 
 if __name__ == '__main__':
     # Parse config
@@ -41,13 +42,13 @@ if __name__ == '__main__':
     st_collection, hiercc_results_collection, distance_matrix_collection =\
         mongoinit.initialise_hiercc_collections(config_data, 'listeria')
     #enter st collection
-    # listeria_st_data = HierCCData(HIERCC_CONFIG['listeria']['initial_st'])
-    # write_headers(listeria_st_data.header, st_collection)
-    # write_st_data(listeria_st_data.data, st_collection)
+    listeria_st_data = HierCCData(HIERCC_CONFIG['listeria']['initial_st'])
+    write_headers(listeria_st_data.header, st_collection)
+    write_st_data(listeria_st_data.data, st_collection)
     #compute distances from the cgmlst profiles
-    listeria_dist_mat = DistanceMatrixComputer(st_collection, distance_matrix_collection)
-    listeria_dist_mat.compute_hamming_distances('full')
-    listeria_dist_mat.insert_hamming_distances_in_mongo()
+    # listeria_dist_mat = DistanceMatrixComputer(st_collection, distance_matrix_collection)
+    # listeria_dist_mat.compute_hamming_distances('full')
+    # listeria_dist_mat.insert_hamming_distances_in_mongo()
     # enter hiercc results collection
     # listeria_hc_data = HierCCData(HIERCC_CONFIG['listeria']['initial_clustering'])
     # write_headers(listeria_hc_data.header, hiercc_results_collection)

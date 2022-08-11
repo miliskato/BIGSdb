@@ -1,6 +1,6 @@
 from pymongo import MongoClient
-from MongoDB.util.mongo_querying import Mongoquerying
 import logging
+
 
 class DistanceMatrixComputer:
     """
@@ -48,7 +48,7 @@ class DistanceMatrixComputer:
         zip_list = zip(self.sequence_types, self.cgmlst_profiles)
         sorted_pairs = sorted(zip_list, reverse=False)
         tuples = zip(*sorted_pairs)
-        self.sequence_types,  self.cgmlst_profiles = [list(tuple1) for tuple1 in tuples]
+        self.sequence_types, self.cgmlst_profiles = [list(tuple1) for tuple1 in tuples]
 
     def __get_missing_alleles(self) -> None:
         """
@@ -61,12 +61,18 @@ class DistanceMatrixComputer:
             self.missing_alleles.append(zeros)
 
     def compute_hamming_distances(self, mode: str) -> None:
+        """
+        Compute the hamming distances between sequence types
+        :param mode: full is to compute all the distances against all the cgmlst in the db while
+        last_st computes only for the last sequence types entered in the db.
+        :return:
+        """
         logging.info(f"Starting to compute hamming distances in mode {mode}")
         for i in range(len(self.sequence_types)):
             if mode == 'full':
                 range_j = range(i, len(self.sequence_types))
             elif mode == 'last_st':
-                range_j = [len(self.sequence_types)-1]
+                range_j = [len(self.sequence_types) - 1]
             else:
                 raise ValueError('The mode must be in the allowed values: full or last_st')
             for j in range_j:
@@ -83,9 +89,27 @@ class DistanceMatrixComputer:
         logging.info(f"Hamming distances computed!")
 
     def insert_hamming_distances_in_mongo(self):
+        """
+        inserts the computed hamming distances into mongo Db
+        :return:
+        """
         if len(self.hamming_distances) == 0:
             print('No distances to insert into the database!')
         else:
             logging.info(f"Inserting distances into the database")
-            self.matrix_collection.insert_many(self.hamming_distances)
+            self.insert_a_lot(self.hamming_distances, self.matrix_collection)
             logging.info("Insertion of distances into the database finished!")
+
+    @staticmethod
+    def insert_a_lot(insertion_docs: list, collection) -> None:
+        """
+        In order to avoid having the bug of too many elements in the insertion, this function takes the list of
+        elements to insert into mongo db and creates smaller batches of insertion that will be inserted into mongoDB
+        :param insertion_docs: the list of all the docs to insert into mongoDB
+        :param collection: the collection of MongoDB where to insert the docs.
+        :return:
+        """
+        n = 1000  # batch size of the insert
+        batch_list = [insertion_docs[i:i + n] for i in range(0, len(insertion_docs), n)]
+        for batch in batch_list:
+            collection.insert_many(batch)

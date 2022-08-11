@@ -3,7 +3,6 @@ from MongoDB.util.hiercc_cgmlst_profile import HierCCCgMLSTProfile
 from MongoDB.util.hiercc_numbers_profile import HierCCNumbersProfile
 from MongoDB.util.distance_matrix_computer import DistanceMatrixComputer
 from MongoDB.config import HIERCC_CONFIG
-from MongoDB.util.mongo_querying import Mongoquerying
 import gzip
 import subprocess
 import logging
@@ -105,7 +104,7 @@ class MongoHierCCClustering:
         """
         latest_st = st_collection.find_one(sort=[("ST", -1)])
         self.cgmlst_profile.st = latest_st['ST'] + 1
-        Mongoquerying.write_document(st_collection, self.cgmlst_profile.get_st_collection_entry())
+        st_collection.insert_one(self.cgmlst_profile.get_st_collection_entry())
         with gzip.open(HIERCC_CONFIG[self.species]['running_st'], 'at') as f:
             f.write(f'{self.cgmlst_profile.get_st_line_for_hiercc_input()}\n')
 
