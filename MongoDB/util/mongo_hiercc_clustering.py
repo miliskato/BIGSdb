@@ -6,6 +6,8 @@ from MongoDB.config import HIERCC_CONFIG
 import gzip
 import subprocess
 import logging
+import hashlib
+
 
 class MongoHierCCClustering:
     def __init__(self, headers: list, data: list, species: str):
@@ -60,14 +62,13 @@ class MongoHierCCClustering:
         db_headers = st_collection.find_one({'ID': 'headers'})['headers']
         if self.cgmlst_profile.loci != db_headers[1:len(db_headers)]:
             bad_headers_map = {}
-            for i,b in enumerate(self.cgmlst_profile.loci):
+            for i, b in enumerate(self.cgmlst_profile.loci):
                 bad_headers_map[b] = i
             good_indices = [bad_headers_map[a] for a in db_headers[1:len(db_headers)]]
             self.cgmlst_profile.loci = [self.cgmlst_profile.loci[i] for i in good_indices]
             self.cgmlst_profile.cgmlst = [self.cgmlst_profile.cgmlst[j] for j in good_indices]
             if self.cgmlst_profile.loci != db_headers[1:len(db_headers)]:
                 raise ValueError('Impossible to get the same cgmlst, issue in the cgmlst profile')
-
 
     def __query_sequence_types(self, st_collection) -> int:
         """
@@ -118,14 +119,18 @@ class MongoHierCCClustering:
         Runs the HierCC clustering tool in command line.
         :return:
         """
+        check_file_before_run = hashlib.md5(open(HIERCC_CONFIG[self.species]['npz_file'], 'rb').read()).hexdigest()
         command = f"module load phiercc;" \
                   f" pHierCC -p {HIERCC_CONFIG[self.species]['running_st']} " \
                   f"-a {HIERCC_CONFIG[self.species]['npz_file']} " \
-                  f"-o {HIERCC_CONFIG[self.species]['running_clustering'].replace('.HierCC.gz','')} "
+                  f"-o {HIERCC_CONFIG[self.species]['running_clustering'].replace('.HierCC.gz', '')} "
         out = subprocess.run(
             command,
             shell=True,
             executable='/bin/bash')
+        check_file_after_run = hashlib.md5(open(HIERCC_CONFIG[self.species]['npz_file'], 'rb').read()).hexdigest()
+        if check_file_before_run == check_file_after_run:
+            raise RuntimeError("HierCC doesn't seem to have run as the npz file is not changed. Check for exceptions!")
 
     def __retrieve_hiercc_result(self) -> list:
         """
@@ -133,7 +138,7 @@ class MongoHierCCClustering:
         :return:
         """
         with gzip.open(HIERCC_CONFIG[self.species]['running_clustering'], 'rt') as f:
-            return f.readlines()[-1].replace('\n','').split('\t')
+            return f.readlines()[-1].replace('\n', '').split('\t')
 
     def __add_new_hiercc_numbers(self, hiercc_results_collection) -> None:
         """
@@ -145,6 +150,3 @@ class MongoHierCCClustering:
         self.hc_results = HierCCNumbersProfile(self.hc_results, hc_headers)
         results_to_write = self.hc_results.get_hiercc_results_collection_entries()
         hiercc_results_collection.insert_many(results_to_write)
-
-
-

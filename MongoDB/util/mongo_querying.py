@@ -93,9 +93,9 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
     def find_isolates_cgmlst_distance(self, isolate_id: str, distance_threshold: int, isolate_collection, distance_matrix_collection) ->list:
         isolate_sequence_type = isolate_collection.find_one({"_id": isolate_id})['HierCC_ST']
         distance_query = DistanceMatrixQuery(isolate_id, isolate_sequence_type, distance_threshold, distance_matrix_collection)
-        st_under_thershold = distance_query.run_distance_query()
+        st_under_threshold = distance_query.run_distance_query()
         sample_id_below_threshold = []
-        for st in st_under_thershold:
+        for st in st_under_threshold:
             query = isolate_collection.find({'HierCC_ST': st})
             for result in query:
                 sample_id_below_threshold.append(result['_id'])
