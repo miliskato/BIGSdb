@@ -291,7 +291,6 @@ class Mongoresults(object, metaclass=abc.ABCMeta):
                            "qc_assembly": self._avro_input_commontsvoutput(outputtsvdict, "qc_assembly"),
                            "qc_kraken": self._avro_input_commontsvoutput(outputtsvdict, "qc_kraken"),
                            "kraken": self._avro_input_commontsvoutput(outputtsvdict, "kraken"),
-                           "serogroup": self._avro_input_commontsvoutput(outputtsvdict, "serogroup"),
                            "mlst": self._avro_input_typingschema(species, "mlst", "mlst", outputtsvdict),
                            "cgmlst": self._avro_input_typingschema(species, "cgmlst", "cgmlst", outputtsvdict),
                            "rplf": self._avro_input_typingschema(species, 'rplf', 'rplf', outputtsvdict),
