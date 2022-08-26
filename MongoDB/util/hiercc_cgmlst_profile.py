@@ -33,4 +33,3 @@ class HierCCCgMLSTProfile:
         :return:
         """
         return '\t'.join([str(self.st), '\t'.join(map(str, self.cgmlst))])
-
