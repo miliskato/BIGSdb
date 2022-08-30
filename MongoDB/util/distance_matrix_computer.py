@@ -1,6 +1,7 @@
 from pymongo import MongoClient
 import logging
-
+import numpy as np
+from MongoDB.util.hamming_distance import hamming_distance
 
 class DistanceMatrixComputer:
     """
@@ -37,7 +38,7 @@ class DistanceMatrixComputer:
         query_all_data = self.st_collection.find({})
         for doc in query_all_data:
             if 'ST' in doc:
-                self.cgmlst_profiles.append(doc['cgMLST'].split(','))
+                self.cgmlst_profiles.append(np.array(doc['cgMLST'].split(','), dtype=np.uint32))
                 self.sequence_types.append(doc['ST'])
 
     def __sorting_cgmlst_profiles(self) -> None:
@@ -76,12 +77,16 @@ class DistanceMatrixComputer:
             else:
                 raise ValueError('The mode must be in the allowed values: full or last_st')
             for j in range_j:
+                print('I',i,'J',j)
                 hamming_dist = 0
-                range_hamming = set(range(len(self.cgmlst_profiles[i]))) - set(self.missing_alleles[i]) \
-                                - set(self.missing_alleles[j])
-                for h in range_hamming:
-                    if self.cgmlst_profiles[i][h] != self.cgmlst_profiles[j][h]:
-                        hamming_dist += 1
+                range_hamming = list(set(range(len(self.cgmlst_profiles[i]))) - set(self.missing_alleles[i]) \
+                                - set(self.missing_alleles[j]))
+                cgmlst_i = self.cgmlst_profiles[i][range_hamming]
+                cgmlst_j = self.cgmlst_profiles[j][range_hamming]
+                hamming_dist = hamming_distance(cgmlst_i, cgmlst_j)
+        #         for h in range_hamming:
+        #             if self.cgmlst_profiles[i][h] != self.cgmlst_profiles[j][h]:
+        #                 hamming_dist += 1
                 hamming_dist_entry = {'I': self.sequence_types[i],
                                       'J': self.sequence_types[j],
                                       'Hamming_distance': hamming_dist}
