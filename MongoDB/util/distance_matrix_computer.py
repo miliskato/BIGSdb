@@ -1,4 +1,3 @@
-from pymongo import MongoClient
 import logging
 import numpy as np
 from MongoDB.util.hamming_distance import hamming_distance

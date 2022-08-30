@@ -1,5 +1,7 @@
 from pathlib import Path
 import gzip
+
+
 class HierCCData:
     """
     Class to import data of sequence types and HierCC numbers from HierCC.
@@ -20,5 +22,6 @@ class HierCCData:
                     self.header[0] = self.header[0].replace("#", "")
                 else:
                     self.data.append(self.__line_splitter(line))
+
     def __line_splitter(self, raw_line: str) -> list:
         return raw_line.replace('\n','').split('\t')
