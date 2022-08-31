@@ -2,7 +2,7 @@ import abc
 import pymongo
 import logging
 import sys
-from MongoDB.util.distance_matrix_query import DistanceMatrixQuery
+from .distance_matrix_query import DistanceMatrixQuery
 
 class Mongoquerying(object, metaclass=abc.ABCMeta):
     """
@@ -37,7 +37,7 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         """
         return [doc for doc in opened_collection.find({"_id": {"$in": ids}})]
 
-    def _query_results_by_technicalids(self, opened_isolates_collection, opened_isolateresults_collection,
+    def _query_previous_latest_results_by_technicalids(self, opened_isolates_collection, opened_isolateresults_collection,
                                        technicalids: list) -> list:
         """
         Retrieves all latest results for a given set of technical ids in the isolate collection
@@ -47,7 +47,7 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         :return: list of lists of latest results of given technical ids
         """
         return self._query_docs_by_ids(opened_isolateresults_collection,
-                                       [doc['latest_results_version'] for doc in self._query_docs_by_ids(opened_isolates_collection,
+                                       [doc['previous_latest_results_version'] for doc in self._query_docs_by_ids(opened_isolates_collection,
                                                                                                          technicalids)])
     def _query_typing_results_by_technicalids_and_scheme(self, opened_isolates_collection, opened_isolateresults_collection, scheme: str = 'cgmlst', technicalids: list = ['emptylist']):
         """
@@ -61,7 +61,7 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         if technicalids == ['emptylist']:
             technicalids = self._query_list_of_all_distinct_values(opened_isolates_collection, "_id")
         listofresultlists = []
-        for result_index, result in enumerate(self._query_results_by_technicalids(opened_isolates_collection, opened_isolateresults_collection, technicalids)):
+        for result_index, result in enumerate(self._query_previous_latest_results_by_technicalids(opened_isolates_collection, opened_isolateresults_collection, technicalids)):
             if result_index == 0:
                 header = ["isolate_id"]
                 for locus in result[scheme]['loci']:

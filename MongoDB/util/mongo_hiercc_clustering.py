@@ -1,7 +1,7 @@
 from pymongo import MongoClient
-from MongoDB.util.hiercc_cgmlst_profile import HierCCCgMLSTProfile
-from MongoDB.util.hiercc_numbers_profile import HierCCNumbersProfile
-from MongoDB.util.distance_matrix_computer import DistanceMatrixComputer
+from .hiercc_cgmlst_profile import HierCCCgMLSTProfile
+from .hiercc_numbers_profile import HierCCNumbersProfile
+from .distance_matrix_computer import DistanceMatrixComputer
 from MongoDB.config import HIERCC_CONFIG
 import gzip
 import subprocess

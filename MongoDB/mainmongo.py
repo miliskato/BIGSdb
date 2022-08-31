@@ -36,7 +36,7 @@ def _write_document(opened_collection, json_input: dict):
     return collection_write.inserted_id
 
 
-def _new_isolate(technical_id: str, vcffilepath: str, fastafilepath: str, isolateresults_collection,
+def _new_isolate(technical_id: str, vcffilepath: str, fastafilepath: str,
                  results: dict) -> dict:
     """
     Initialises new isolate dictionary including its results
@@ -50,9 +50,10 @@ def _new_isolate(technical_id: str, vcffilepath: str, fastafilepath: str, isolat
     new_isolate_dict = {"_id": technical_id,
                         "vcf_path": vcffilepath,
                         "fasta_path": fastafilepath,
-                        "latest_results_version": _write_document(isolateresults_collection, results),
+                        "previous_latest_results_version": "", #_write_document(isolateresults_collection, results)
                         "creation_date": datetime.utcnow(),
                         "latest_analysis_date": results["analysis_date"],
+                        "results": results,
                         "HierCC_ST": None}
     return new_isolate_dict
 
@@ -85,7 +86,7 @@ if __name__ == '__main__':
             records = mongoresults.parse_output(args.species, args.tsvfilepath)
             records["isolates_id"] = args.technical_id
             _write_document(isolates_collection, _new_isolate(args.technical_id, args.vcffilepath, args.fastafilepath,
-                                                              isolateresults_collection, records))
+                                                              records))
             logging.info(f"Wrote new isolate {args.technical_id} and its result to {args.species} database")
             hiercc_input = mongoquerying._query_typing_results_by_technicalids_and_scheme(isolates_collection,
                                                                                           isolateresults_collection,
@@ -103,10 +104,17 @@ if __name__ == '__main__':
 
     elif args.results_type == "reanalysis":
         mongoresults = Mongoresults()
-        records = mongoresults.parse_output(args.species, args.tsvfilepath)
-        records["isolates_id"] = args.technical_id
+        new_results = mongoresults.parse_output(args.species, args.tsvfilepath)
+        new_results["isolates_id"] = args.technical_id
+        old_results = mongoquerying._query_docs_by_ids(isolates_collection, [args.technical_id])[0]['results']
+        # Order is important
+        # Write old results to archive and save object id to isolates collection
         isolates_collection.update_one({"_id": args.technical_id}, {
-            "$set": {"latest_results_version": _write_document(isolateresults_collection, records)}})
+            "$set": {"previous_latest_results_version": _write_document(isolateresults_collection, old_results)}})
+        # Overwrite old results with new results in isolate collection: behaviour to be checked
         isolates_collection.update_one({"_id": args.technical_id}, {
-            "$set": {"latest_analysis_date": records["analysis_date"]}})
+            "$set": {"results": new_results}})
+        # Update the latest analysis date
+        isolates_collection.update_one({"_id": args.technical_id}, {
+            "$set": {"latest_analysis_date": new_results["analysis_date"]}})
         logging.info(f"Wrote new results and linked to isolate {args.technical_id} in {args.species}")

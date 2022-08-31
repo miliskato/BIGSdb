@@ -1,6 +1,6 @@
 import logging
 import numpy as np
-from MongoDB.util.hamming_distance import hamming_distance
+from .hamming_distance import hamming_distance
 
 class DistanceMatrixComputer:
     """
