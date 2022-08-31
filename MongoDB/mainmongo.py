@@ -6,6 +6,7 @@ from pathlib import Path
 import logging
 from datetime import datetime
 import sys
+from flatten_dict import flatten
 
 from util.mongo_results import Mongoresults
 from util.mongo_querying import Mongoquerying
@@ -113,7 +114,7 @@ if __name__ == '__main__':
             "$set": {"previous_latest_results_version": _write_document(isolateresults_collection, old_results)}})
         # Overwrite old results with new results in isolate collection: behaviour to be checked
         isolates_collection.update_one({"_id": args.technical_id}, {
-            "$set": {"results": new_results}})
+            "$set": {"results": flatten(new_results, reducer="dot")}})
         # Update the latest analysis date
         isolates_collection.update_one({"_id": args.technical_id}, {
             "$set": {"latest_analysis_date": new_results["analysis_date"]}})
