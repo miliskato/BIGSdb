@@ -3,11 +3,14 @@ import pymongo
 import logging
 import sys
 from MongoDB.util.distance_matrix_query import DistanceMatrixQuery
+from MongoDB.util.hcnumbers_data import HCNumbersData
+
 
 class Mongoquerying(object, metaclass=abc.ABCMeta):
     """
     Class containing all queries for Mongo
     """
+
     def __init__(self):
         pass
 
@@ -47,9 +50,13 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         :return: list of lists of latest results of given technical ids
         """
         return self._query_docs_by_ids(opened_isolateresults_collection,
-                                       [doc['latest_results_version'] for doc in self._query_docs_by_ids(opened_isolates_collection,
-                                                                                                         technicalids)])
-    def _query_typing_results_by_technicalids_and_scheme(self, opened_isolates_collection, opened_isolateresults_collection, scheme: str = 'cgmlst', technicalids: list = ['emptylist']):
+                                       [doc['latest_results_version'] for doc in
+                                        self._query_docs_by_ids(opened_isolates_collection,
+                                                                technicalids)])
+
+    def _query_typing_results_by_technicalids_and_scheme(self, opened_isolates_collection,
+                                                         opened_isolateresults_collection, scheme: str = 'cgmlst',
+                                                         technicalids: list = ['emptylist']):
         """
         Returns a list of lists wherein the first list is the header [isolate, locus1, locus2, ..] and the subsequent lists are the results of all isolates in technical ids
         :param opened_isolates_collection: mongo opened isolate collection
@@ -61,7 +68,9 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         if technicalids == ['emptylist']:
             technicalids = self._query_list_of_all_distinct_values(opened_isolates_collection, "_id")
         listofresultlists = []
-        for result_index, result in enumerate(self._query_results_by_technicalids(opened_isolates_collection, opened_isolateresults_collection, technicalids)):
+        for result_index, result in enumerate(
+                self._query_results_by_technicalids(opened_isolates_collection, opened_isolateresults_collection,
+                                                    technicalids)):
             if result_index == 0:
                 header = ["isolate_id"]
                 for locus in result[scheme]['loci']:
@@ -71,7 +80,8 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
             for locus in result[scheme]['loci']:
                 # todo check logic
                 allele_id = locus['Allele_designation']
-                if isinstance(allele_id, int) and locus['Percentage_identity'] == 100.00 and eval(locus['Coverage']) == 1.0:
+                if isinstance(allele_id, int) and locus['Percentage_identity'] == 100.00 and eval(
+                        locus['Coverage']) == 1.0:
                     resultlist.append(allele_id)
                 else:
                     resultlist.append(0)
@@ -90,9 +100,11 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         logging.debug(f"Writing {collection_write.inserted_id} in collection {opened_collection}")
         return collection_write.inserted_id
 
-    def find_isolates_cgmlst_distance(self, isolate_id: str, distance_threshold: int, isolate_collection, distance_matrix_collection) ->list:
+    def find_isolates_cgmlst_distance(self, isolate_id: str, distance_threshold: int, isolate_collection,
+                                      distance_matrix_collection) -> list:
         isolate_sequence_type = isolate_collection.find_one({"_id": isolate_id})['HierCC_ST']
-        distance_query = DistanceMatrixQuery(isolate_id, isolate_sequence_type, distance_threshold, distance_matrix_collection)
+        distance_query = DistanceMatrixQuery(isolate_id, isolate_sequence_type, distance_threshold,
+                                             distance_matrix_collection)
         st_under_threshold = distance_query.run_distance_query()
         sample_id_below_threshold = []
         for st in st_under_threshold:
@@ -100,3 +112,18 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
             for result in query:
                 sample_id_below_threshold.append(result['_id'])
         return sample_id_below_threshold
+
+    def find_HC_numbers_for_isolate(self, isolate_id: str, isolate_collection, hiercc_collection,
+                                    hc_number: str) -> int:
+        """
+        query to retrieve a specific hc number from an isolate
+        :param isolate_id: the id from the desired isolate
+        :param isolate_collection: the mongo db collection of isolates
+        :param hiercc_collection:  the mongo db collection of hiercc results
+        :param hc_number: the hc number (starting with HC..) to be retrieved
+        :return: the hc number of the cluster where the isolates is located.
+        """
+        isolate_sequence_type = isolate_collection.find_one({"_id": isolate_id})['HierCC_ST']
+        hc_numbers = hiercc_collection.find({"ST": isolate_sequence_type})
+        hc_data = HCNumbersData(isolate_sequence_type, hc_numbers)
+        return hc_data.get_hc_number(hc_number)
