@@ -6,7 +6,6 @@ from pathlib import Path
 import logging
 from datetime import datetime
 import sys
-from flatten_dict import flatten
 
 from util.mongo_results import Mongoresults
 from util.mongo_querying import Mongoquerying
@@ -55,9 +54,21 @@ def _new_isolate(technical_id: str, vcffilepath: str, fastafilepath: str,
                         "creation_date": datetime.utcnow(),
                         "latest_analysis_date": results["analysis_date"],
                         "results": results,
-                        "HierCC_ST": None}
+                        "HierCC_cgST": None}
     return new_isolate_dict
 
+def prepend_string_dot_to_dict_keys(input_dictionary, prepending: str = 'results'):
+    """
+    This function is designed to update only results that have been reanalyzed; by using dot notation in the dicts only the relevant assays/metadata are updated upon reanalysis.
+    The function can of course serve other purposes
+    :param input_dictionary:
+    :param prepending: string to prepend to dictionary keys separated by dot
+    :return: dict with prepended string joined with dot
+    """
+    keydict = {}
+    for key in input_dictionary.keys():
+        keydict[key] = '.'.join([prepending, key])
+    return dict((keydict[key], value) for (key, value) in input_dictionary.items())
 
 if __name__ == '__main__':
     # Parse arguments
@@ -90,7 +101,6 @@ if __name__ == '__main__':
                                                               records))
             logging.info(f"Wrote new isolate {args.technical_id} and its result to {args.species} database")
             hiercc_input = mongoquerying._query_typing_results_by_technicalids_and_scheme(isolates_collection,
-                                                                                          isolateresults_collection,
                                                                                           scheme="cgmlst",
                                                                                           technicalids=
                                                                                           [args.technical_id])
@@ -99,23 +109,30 @@ if __name__ == '__main__':
             logging.info(f"Running the clustering for the isolate {args.technical_id}")
             sequence_type = hiercc_clustering.run_hiercc_clustering(st_collection, hiercc_results_collection,
                                                                     distance_matrix_collection)
-            isolates_collection.find_one_and_update({"_id": records["isolates_id"]},
-                                                    {"$set": {"HierCC_ST": sequence_type}})
+            isolates_collection.update_one({"_id": records["isolates_id"]},
+                                                    {"$set": {"results.HierCC_cgST": sequence_type}})
             
 
     elif args.results_type == "reanalysis":
+        # todo the current implementation moves the old results to the archive BUT seeing as results are possibly fractional
+        #  from different reanalysis steps it is never sure when which results were updated.
+        #  Maybe the newest results should also be written to a separate collection in order to easily know what actually changed?
+        #  Current dot notation only covers the assay headers, so within assays everything is overwritten, no matter if the number of fields differs.
         mongoresults = Mongoresults()
-        new_results = mongoresults.parse_output(args.species, args.tsvfilepath)
-        new_results["isolates_id"] = args.technical_id
+        new_results = prepend_string_dot_to_dict_keys(mongoresults.parse_output(args.species, args.tsvfilepath))
+        new_results["results.isolates_id"] = args.technical_id
         old_results = mongoquerying._query_docs_by_ids(isolates_collection, [args.technical_id])[0]['results']
         # Order is important
         # Write old results to archive and save object id to isolates collection
         isolates_collection.update_one({"_id": args.technical_id}, {
             "$set": {"previous_latest_results_version": _write_document(isolateresults_collection, old_results)}})
         # Overwrite old results with new results in isolate collection: behaviour to be checked
-        isolates_collection.update_one({"_id": args.technical_id}, {
-            "$set": {"results": flatten(new_results, reducer="dot")}})
+        # import sys
+        # sys.exit()
+        print(new_results)
+        isolates_collection.update_one({"_id": args.technical_id}, {"$set": new_results})
         # Update the latest analysis date
         isolates_collection.update_one({"_id": args.technical_id}, {
-            "$set": {"latest_analysis_date": new_results["analysis_date"]}})
+            "$set": {"latest_analysis_date": new_results["results.analysis_date"]}})
         logging.info(f"Wrote new results and linked to isolate {args.technical_id} in {args.species}")
+        # todo recalculate HierCC_cgST

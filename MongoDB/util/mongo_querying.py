@@ -61,7 +61,7 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         if technicalids == ['emptylist']:
             technicalids = self._query_list_of_all_distinct_values(opened_isolates_collection, "_id")
         listofresultlists = []
-        for doc_index, doc in enumerate(self.mongoquerying._query_docs_by_ids(opened_isolates_collection, technicalids)):
+        for doc_index, doc in enumerate(self._query_docs_by_ids(opened_isolates_collection, technicalids)):
             if doc_index == 0:
                 header = ["isolate_id"]
                 for locus in doc['results'][scheme]['loci']:
@@ -91,12 +91,12 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         return collection_write.inserted_id
 
     def find_isolates_cgmlst_distance(self, isolate_id: str, distance_threshold: int, isolate_collection, distance_matrix_collection) ->list:
-        isolate_sequence_type = isolate_collection.find_one({"_id": isolate_id})['HierCC_ST']
+        isolate_sequence_type = isolate_collection.find_one({"_id": isolate_id})['HierCC_cgST']
         distance_query = DistanceMatrixQuery(isolate_id, isolate_sequence_type, distance_threshold, distance_matrix_collection)
         st_under_threshold = distance_query.run_distance_query()
         sample_id_below_threshold = []
         for st in st_under_threshold:
-            query = isolate_collection.find({'HierCC_ST': st})
+            query = isolate_collection.find({'HierCC_cgST': st})
             for result in query:
                 sample_id_below_threshold.append(result['_id'])
         return sample_id_below_threshold
