@@ -39,7 +39,7 @@ if __name__ == '__main__':
                                                                        isolates_collection, "_id")):
         if 'testiffail' in result.keys():
             print(result['isolates_id'], result['testiffail'])
-    print((mongoquerying._query_docs_by_ids(isolates_collection, ['S14BD00001']))[0]['fasta_path'])
+    print((mongoquerying._query_docs_by_ids(isolates_collection, ['technical_id_test_fqsdad']))[0].results)
     print('test')
     # print(mongoquerying._query_list_of_all_distinct_values(isolates_collection, "_id"))
     # print(mongoquerying._query_list_of_all_distinct_values(isolates_collection, "isolate_results"))

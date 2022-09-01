@@ -49,7 +49,7 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         return self._query_docs_by_ids(opened_isolateresults_collection,
                                        [doc['previous_latest_results_version'] for doc in self._query_docs_by_ids(opened_isolates_collection,
                                                                                                          technicalids)])
-    def _query_typing_results_by_technicalids_and_scheme(self, opened_isolates_collection, opened_isolateresults_collection, scheme: str = 'cgmlst', technicalids: list = ['emptylist']):
+    def _query_typing_results_by_technicalids_and_scheme(self, opened_isolates_collection, scheme: str = 'cgmlst', technicalids: list = ['emptylist']):
         """
         Returns a list of lists wherein the first list is the header [isolate, locus1, locus2, ..] and the subsequent lists are the results of all isolates in technical ids
         :param opened_isolates_collection: mongo opened isolate collection
@@ -61,14 +61,14 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         if technicalids == ['emptylist']:
             technicalids = self._query_list_of_all_distinct_values(opened_isolates_collection, "_id")
         listofresultlists = []
-        for result_index, result in enumerate(self._query_previous_latest_results_by_technicalids(opened_isolates_collection, opened_isolateresults_collection, technicalids)):
-            if result_index == 0:
+        for doc_index, doc in enumerate(self._query_docs_by_ids(opened_isolates_collection, technicalids)):
+            if doc_index == 0:
                 header = ["isolate_id"]
-                for locus in result[scheme]['loci']:
+                for locus in doc['results'][scheme]['loci']:
                     header.append(locus['Locus'])
                 listofresultlists.append(header)
-            resultlist = [result['isolates_id']]
-            for locus in result[scheme]['loci']:
+            resultlist = [doc['_id']]
+            for locus in doc['results'][scheme]['loci']:
                 # todo check logic
                 allele_id = locus['Allele_designation']
                 if isinstance(allele_id, int) and locus['Percentage_identity'] == 100.00 and eval(locus['Coverage']) == 1.0:
@@ -91,12 +91,12 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         return collection_write.inserted_id
 
     def find_isolates_cgmlst_distance(self, isolate_id: str, distance_threshold: int, isolate_collection, distance_matrix_collection) ->list:
-        isolate_sequence_type = isolate_collection.find_one({"_id": isolate_id})['HierCC_ST']
+        isolate_sequence_type = isolate_collection.find_one({"_id": isolate_id})['HierCC_cgST']
         distance_query = DistanceMatrixQuery(isolate_id, isolate_sequence_type, distance_threshold, distance_matrix_collection)
         st_under_threshold = distance_query.run_distance_query()
         sample_id_below_threshold = []
         for st in st_under_threshold:
-            query = isolate_collection.find({'HierCC_ST': st})
+            query = isolate_collection.find({'HierCC_cgST': st})
             for result in query:
                 sample_id_below_threshold.append(result['_id'])
         return sample_id_below_threshold
