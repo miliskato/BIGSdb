@@ -53,8 +53,7 @@ def _new_isolate(technical_id: str, vcffilepath: str, fastafilepath: str,
                         "previous_latest_results_version": "", #_write_document(isolateresults_collection, results)
                         "creation_date": datetime.utcnow(),
                         "latest_analysis_date": results["analysis_date"],
-                        "results": results,
-                        "HierCC_cgST": None}
+                        "results": results}
     return new_isolate_dict
 
 def prepend_string_dot_to_dict_keys(input_dictionary, prepending: str = 'results'):
