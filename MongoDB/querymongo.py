@@ -34,19 +34,20 @@ if __name__ == '__main__':
     # isolates_collection.drop()
     # isolateresults_collection.drop()
     mongoquerying = Mongoquerying()
-    for result in mongoquerying._query_previous_latest_results_by_technicalids(isolates_collection, isolateresults_collection,
-                                                               mongoquerying._query_list_of_all_distinct_values(
-                                                                       isolates_collection, "_id")):
-        if 'testiffail' in result.keys():
-            print(result['isolates_id'], result['testiffail'])
-    print((mongoquerying._query_docs_by_ids(isolates_collection, ['technical_id_test_fqsdad']))[0].results)
-    print('test')
-    # print(mongoquerying._query_list_of_all_distinct_values(isolates_collection, "_id"))
-    # print(mongoquerying._query_list_of_all_distinct_values(isolates_collection, "isolate_results"))
-    # print(mongoquerying._query_list_of_all_distinct_values(isolates_collection, "vcf_path"))
-    # print(_query_collection(isolates_collection))
-    print(mongoquerying._query_previous_latest_results_by_technicalids(isolates_collection, isolateresults_collection, ['technical_test_new', 'technical_id_test_165hhh']))
-    print(mongoquerying._query_previous_latest_results_by_technicalids(isolates_collection, isolateresults_collection, mongoquerying._query_list_of_all_distinct_values(isolates_collection, "_id")))
+    print(mongoquerying._query_list_of_all_distinct_values(isolates_collection, '_id'))
+    # for result in mongoquerying._query_previous_latest_results_by_technicalids(isolates_collection, isolateresults_collection,
+    #                                                            mongoquerying._query_list_of_all_distinct_values(
+    #                                                                    isolates_collection, "_id")):
+    #     if 'testiffail' in result.keys():
+    #         print(result['isolates_id'], result['testiffail'])
+    # print((mongoquerying._query_docs_by_ids(isolates_collection, ['technical_id_test_fqsdad']))[0].results)
+    # print('test')
+    # # print(mongoquerying._query_list_of_all_distinct_values(isolates_collection, "_id"))
+    # # print(mongoquerying._query_list_of_all_distinct_values(isolates_collection, "isolate_results"))
+    # # print(mongoquerying._query_list_of_all_distinct_values(isolates_collection, "vcf_path"))
+    # # print(_query_collection(isolates_collection))
+    # print(mongoquerying._query_previous_latest_results_by_technicalids(isolates_collection, isolateresults_collection, ['technical_test_new', 'technical_id_test_165hhh']))
+    # print(mongoquerying._query_previous_latest_results_by_technicalids(isolates_collection, isolateresults_collection, mongoquerying._query_list_of_all_distinct_values(isolates_collection, "_id")))
 
     # test = mongoquerying._query_typing_results_by_technicalids_and_scheme(isolates_collection,
     # isolateresults_collection, scheme="cgmlst", technicalids=["S14BD00001"])
@@ -64,6 +65,6 @@ if __name__ == '__main__':
     # hcc = MongoHierCCClustering(headers, input_data,'listeria')
     # result = hcc.run_hiercc_clustering(st_collection, hiercc_results_collection)
     # print(result)
-    result = mongoquerying.find_isolates_cgmlst_distance("S14BD02863", 100, isolates_collection, distance_matrix_collection)
-    print(result)
+    # result = mongoquerying.find_isolates_cgmlst_distance("S14BD02863", 100, isolates_collection, distance_matrix_collection)
+    # print(result)
 
