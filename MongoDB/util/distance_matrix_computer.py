@@ -1,5 +1,7 @@
 import logging
 import numpy as np
+from pymongo.read_concern import ReadConcern
+
 from .hamming_distance import hamming_distance
 
 class DistanceMatrixComputer:
@@ -34,7 +36,7 @@ class DistanceMatrixComputer:
         retrieve all the cgmlst profiles as list from mongoDB st_collection
         :return:
         """
-        query_all_data = self.st_collection.find({})
+        query_all_data = self.st_collection.with_options(read_concern=ReadConcern(level="majority")).find({})
         for doc in query_all_data:
             if 'ST' in doc:
                 self.cgmlst_profiles.append(np.array(doc['cgMLST'].split(','), dtype=np.uint32))

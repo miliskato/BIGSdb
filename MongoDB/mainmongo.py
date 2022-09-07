@@ -1,4 +1,5 @@
 from pymongo import MongoClient
+from pymongo.write_concern import WriteConcern
 # import dnspython
 import yaml
 import argparse
@@ -31,7 +32,7 @@ def _parse_arguments() -> argparse.Namespace:
 
 
 def _write_document(opened_collection, json_input: dict):
-    collection_write = opened_collection.insert_one(json_input)
+    collection_write = opened_collection.with_options(write_concern=WriteConcern(w="majority")).insert_one(json_input)
     logging.debug(f"Writing {collection_write.inserted_id} in collection {opened_collection}")
     return collection_write.inserted_id
 
@@ -108,8 +109,8 @@ if __name__ == '__main__':
             logging.info(f"Running the clustering for the isolate {args.technical_id}")
             sequence_type = hiercc_clustering.run_hiercc_clustering(st_collection, hiercc_results_collection,
                                                                     distance_matrix_collection)
-            isolates_collection.update_one({"_id": records["isolates_id"]},
-                                                    {"$set": {"results.HierCC_cgST": sequence_type}})
+            isolates_collection.with_options(write_concern=WriteConcern(w="majority")).update_one({"_id": records["isolates_id"]},
+                                                        {"$set": {"results.HierCC_cgST": sequence_type}})
             
 
     elif args.results_type == "reanalysis":
@@ -123,15 +124,15 @@ if __name__ == '__main__':
         old_results = mongoquerying._query_docs_by_ids(isolates_collection, [args.technical_id])[0]['results']
         # Order is important
         # Write old results to archive and save object id to isolates collection
-        isolates_collection.update_one({"_id": args.technical_id}, {
+        isolates_collection.with_options(write_concern=WriteConcern(w="majority")).update_one({"_id": args.technical_id}, {
             "$set": {"previous_latest_results_version": _write_document(isolateresults_collection, old_results)}})
         # Overwrite old results with new results in isolate collection: behaviour to be checked
         # import sys
         # sys.exit()
         print(new_results)
-        isolates_collection.update_one({"_id": args.technical_id}, {"$set": new_results})
+        isolates_collection.with_options(write_concern=WriteConcern(w="majority")).update_one({"_id": args.technical_id}, {"$set": new_results})
         # Update the latest analysis date
-        isolates_collection.update_one({"_id": args.technical_id}, {
+        isolates_collection.with_options(write_concern=WriteConcern(w="majority")).update_one({"_id": args.technical_id}, {
             "$set": {"latest_analysis_date": new_results["results.analysis_date"]}})
         logging.info(f"Wrote new results and linked to isolate {args.technical_id} in {args.species}")
         # todo recalculate HierCC_cgST

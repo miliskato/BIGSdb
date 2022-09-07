@@ -1,13 +1,14 @@
 from pymongo import MongoClient
-from .hiercc_cgmlst_profile import HierCCCgMLSTProfile
-from .hiercc_numbers_profile import HierCCNumbersProfile
-from .distance_matrix_computer import DistanceMatrixComputer
-from MongoDB.config import HIERCC_CONFIG
 import gzip
 import subprocess
 import logging
 import hashlib
+from pymongo.read_concern import ReadConcern
 
+from .hiercc_cgmlst_profile import HierCCCgMLSTProfile
+from .hiercc_numbers_profile import HierCCNumbersProfile
+from .distance_matrix_computer import DistanceMatrixComputer
+from MongoDB.config import HIERCC_CONFIG
 
 class MongoHierCCClustering:
     def __init__(self, headers: list, data: list, species: str):
@@ -59,7 +60,7 @@ class MongoHierCCClustering:
                 return None
 
     def __check_order_of_cgmlst_profile(self, st_collection) -> None:
-        db_headers = st_collection.find_one({'ID': 'headers'})['headers']
+        db_headers = st_collection.with_options(read_concern=ReadConcern(level="majority")).find_one({'ID': 'headers'})['headers']
         if self.cgmlst_profile.loci != db_headers[1:len(db_headers)]:
             bad_headers_map = {}
             for i, b in enumerate(self.cgmlst_profile.loci):
@@ -76,7 +77,7 @@ class MongoHierCCClustering:
         :param st_collection: the sequence type collection from mongo db.
         :return: the sequence type if it exists already in the db or None if it doesn't.
         """
-        query_st = st_collection.find_one({'cgMLST': self.cgmlst_profile.get_cgmlst_profile()})
+        query_st = st_collection.with_options(read_concern=ReadConcern(level="majority")).find_one({'cgMLST': self.cgmlst_profile.get_cgmlst_profile()})
         if query_st:
             return query_st['ST']
         else:
@@ -103,7 +104,7 @@ class MongoHierCCClustering:
         :param st_collection: the sequence type collection of mongoDB.
         :return:
         """
-        latest_st = st_collection.find_one(sort=[("ST", -1)])
+        latest_st = st_collection.with_options(read_concern=ReadConcern(level="majority")).find_one(sort=[("ST", -1)])
         self.cgmlst_profile.st = latest_st['ST'] + 1
         st_collection.insert_one(self.cgmlst_profile.get_st_collection_entry())
         with gzip.open(HIERCC_CONFIG[self.species]['running_st'], 'at') as f:
@@ -146,7 +147,7 @@ class MongoHierCCClustering:
         :param hiercc_results_collection: the hiercc results collection from mongoDB.
         :return:
         """
-        hc_headers = hiercc_results_collection.find_one({'ID': 'headers'})['headers']
+        hc_headers = hiercc_results_collection.with_options(read_concern=ReadConcern(level="majority")).find_one({'ID': 'headers'})['headers']
         self.hc_results = HierCCNumbersProfile(self.hc_results, hc_headers)
         results_to_write = self.hc_results.get_hiercc_results_collection_entries()
         hiercc_results_collection.insert_many(results_to_write)

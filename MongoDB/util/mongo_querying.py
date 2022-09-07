@@ -2,6 +2,8 @@ import abc
 import pymongo
 import logging
 import sys
+from pymongo.read_concern import ReadConcern
+
 from MongoDB.util.distance_matrix_query import DistanceMatrixQuery
 from MongoDB.util.hcnumbers_data import HCNumbersData
 
@@ -29,7 +31,7 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         :param opened_collection: mongo opened collection
         :return: list of all documents/contents in the collection
         """
-        return [doc for doc in opened_collection.find()]
+        return [doc for doc in opened_collection.with_options(read_concern=ReadConcern(level="majority")).find()]
 
     def _query_docs_by_ids(self, opened_collection, ids: list) -> list:
         """
@@ -38,7 +40,7 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         :param ids: list of ids for which the full document is desired
         :return: list of all documents/contents of the in the collection
         """
-        return [doc for doc in opened_collection.find({"_id": {"$in": ids}})]
+        return [doc for doc in opened_collection.with_options(read_concern=ReadConcern(level="majority")).find({"_id": {"$in": ids}})]
 
     def _query_previous_latest_results_by_technicalids(self, opened_isolates_collection,
                                                        opened_isolateresults_collection,
@@ -100,13 +102,13 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
 
     def find_isolates_cgmlst_distance(self, isolate_id: str, distance_threshold: int, isolate_collection,
                                       distance_matrix_collection) -> list:
-        isolate_sequence_type = isolate_collection.find_one({"_id": isolate_id})['HierCC_cgST']
+        isolate_sequence_type = isolate_collection.with_options(read_concern=ReadConcern(level="majority")).find_one({"_id": isolate_id})['HierCC_cgST']
         distance_query = DistanceMatrixQuery(isolate_id, isolate_sequence_type, distance_threshold,
                                              distance_matrix_collection)
         st_under_threshold = distance_query.run_distance_query()
         sample_id_below_threshold = []
         for st in st_under_threshold:
-            query = isolate_collection.find({'HierCC_cgST': st})
+            query = isolate_collection.with_options(read_concern=ReadConcern(level="majority")).find({'HierCC_cgST': st})
             for result in query:
                 sample_id_below_threshold.append(result['_id'])
         return sample_id_below_threshold
@@ -121,7 +123,7 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         :param hc_number: the hc number (starting with HC..) to be retrieved
         :return: the hc number of the cluster where the isolates is located.
         """
-        isolate_sequence_type = isolate_collection.find_one({"_id": isolate_id})['HierCC_ST']
-        hc_numbers = hiercc_collection.find({"ST": isolate_sequence_type})
+        isolate_sequence_type = isolate_collection.with_options(read_concern=ReadConcern(level="majority")).find_one({"_id": isolate_id})['HierCC_ST']
+        hc_numbers = hiercc_collection.with_options(read_concern=ReadConcern(level="majority")).find({"ST": isolate_sequence_type})
         hc_data = HCNumbersData(isolate_sequence_type, hc_numbers)
         return hc_data.get_hc_number(hc_number)
