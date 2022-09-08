@@ -110,10 +110,10 @@ if __name__ == '__main__':
                 _write_document(isolates_collection, _new_isolate(args.technical_id, args.vcffilepath, args.fastafilepath,
                                                                   records))
                 logging.info(f"Wrote new isolate {args.technical_id} and its result to {args.species} database")
-                hiercc_input = mongoquerying._query_typing_results_by_technicalids_and_scheme(isolates_collection,
-                                                                                              scheme="cgmlst",
-                                                                                              technicalids=
-                                                                                              [args.technical_id])
+                # hiercc_input = mongoquerying._query_typing_results_by_technicalids_and_scheme(isolates_collection,
+                #                                                                               scheme="cgmlst",
+                #                                                                               technicalids=
+                #                                                                               [args.technical_id])
                 # #initialize an object to enter data in the HierCC collections and do the clustering
                 # hiercc_clustering = MongoHierCCClustering(hiercc_input[0], hiercc_input[1], args.species)
                 # logging.info(f"Running the clustering for the isolate {args.technical_id}")
@@ -122,7 +122,9 @@ if __name__ == '__main__':
                 # isolates_collection.with_options(write_concern=WriteConcern(w="majority")).update_one({"_id": records["isolates_id"]},
                 #                                             {"$set": {"results.HierCC_cgST": sequence_type}})
             else:
-                logging.warning(f"New isolate {args.technical_id} failed quality control for one or more checks. It's results are written to the 'isolates_badqc' collection in the {args.species} database")
+                _write_document(isolates_badqc_collection, _new_isolate(args.technical_id, args.vcffilepath, args.fastafilepath,
+                                                                  records))
+                logging.warning(f"New isolate {args.technical_id} failed quality control for one or more checks. It's results were written to the 'isolates_badqc' collection in the {args.species} database")
 
 
     elif args.results_type == "reanalysis":
