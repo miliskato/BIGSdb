@@ -28,7 +28,7 @@ qc_cov_assembly_status	Warning
 qc_cov_assembly_value	18.00x
 qc_map_rate_assembly_status	OK
 qc_map_rate_assembly_value	99.62%
-qc_fqc_avg_qual_fwd_status	OK
+qc_fqc_avg_qual_fwd_status	Failed
 qc_fqc_avg_qual_fwd_value	36
 qc_fqc_avg_qual_rev_status	OK
 qc_fqc_avg_qual_rev_value	35

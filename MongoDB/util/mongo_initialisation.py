@@ -33,7 +33,7 @@ class Mongoinitialisation:
         :return: opened collection
         """
         # MongoDB creates collections on the fly while inserting any Documents, we do not want to allow unwanted collections to be created, therefore this check:
-        if collection in ["isolates1", "old_isolate_results1", "sequence_types", "hiercc_results", "distance_matrix"]:
+        if collection in ["isolates", "old_isolate_results", "isolates_badqc", "sequence_types", "hiercc_results", "distance_matrix"]:
             opened_collection = opened_database[collection]
             logging.debug(f"opened collection {collection}")
             return opened_collection
@@ -50,10 +50,12 @@ class Mongoinitialisation:
         # open connection to species db
         species_database = self._open_mongo_database(config_data, species)
         # open isolates collection
-        isolates_collection = self._open_mongo_collection(species_database, "isolates1")
+        isolates_collection = self._open_mongo_collection(species_database, "isolates")
         # open isolate_results collection
-        isolateresults_collection = self._open_mongo_collection(species_database, "old_isolate_results1")
-        return isolates_collection, isolateresults_collection
+        isolateresults_collection = self._open_mongo_collection(species_database, "old_isolate_results")
+        # open isolates badqc collection
+        isolates_badqc_collection = self._open_mongo_collection(species_database, "isolates_badqc")
+        return isolates_collection, isolateresults_collection, isolates_badqc_collection
 
     def initialise_hiercc_collections(self, config_data: dict, species: str):
         """

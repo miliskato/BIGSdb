@@ -83,7 +83,7 @@ if __name__ == '__main__':
 
     # Open collections
     mongoinit = Mongoinitialisation()
-    isolates_collection, isolateresults_collection = mongoinit._initialise_collections(config_data, args.species)
+    isolates_collection, isolateresults_collection, isolates_badqc_collection = mongoinit._initialise_collections(config_data, args.species)
     st_collection, hiercc_results_collection, distance_matrix_collection = \
         mongoinit.initialise_hiercc_collections(config_data, args.species)
     mongoquerying = Mongoquerying()
@@ -97,21 +97,33 @@ if __name__ == '__main__':
             mongoresults = Mongoresults()
             records = mongoresults.parse_output(args.species, args.tsvfilepath)
             records["isolates_id"] = args.technical_id
-            _write_document(isolates_collection, _new_isolate(args.technical_id, args.vcffilepath, args.fastafilepath,
-                                                              records))
-            logging.info(f"Wrote new isolate {args.technical_id} and its result to {args.species} database")
-            hiercc_input = mongoquerying._query_typing_results_by_technicalids_and_scheme(isolates_collection,
-                                                                                          scheme="cgmlst",
-                                                                                          technicalids=
-                                                                                          [args.technical_id])
-            #initialize an object to enter data in the HierCC collections and do the clustering
-            hiercc_clustering = MongoHierCCClustering(hiercc_input[0], hiercc_input[1], args.species)
-            logging.info(f"Running the clustering for the isolate {args.technical_id}")
-            sequence_type = hiercc_clustering.run_hiercc_clustering(st_collection, hiercc_results_collection,
-                                                                    distance_matrix_collection)
-            isolates_collection.with_options(write_concern=WriteConcern(w="majority")).update_one({"_id": records["isolates_id"]},
-                                                        {"$set": {"results.HierCC_cgST": sequence_type}})
-            
+            sample_quality = 'good'
+            try:
+                for qc_type in records['qc']:
+                    for key in records['qc'][qc_type]:
+                        if key.endswith('status') and not (records['qc'][qc_type][key] == 'OK' or records['qc'][qc_type][key] == 'Warning'): # todo check logic
+                            sample_quality = 'bad'
+            except:
+                raise RuntimeError('No qc values found in the given results')
+
+            if sample_quality == 'good':
+                _write_document(isolates_collection, _new_isolate(args.technical_id, args.vcffilepath, args.fastafilepath,
+                                                                  records))
+                logging.info(f"Wrote new isolate {args.technical_id} and its result to {args.species} database")
+                hiercc_input = mongoquerying._query_typing_results_by_technicalids_and_scheme(isolates_collection,
+                                                                                              scheme="cgmlst",
+                                                                                              technicalids=
+                                                                                              [args.technical_id])
+                # #initialize an object to enter data in the HierCC collections and do the clustering
+                # hiercc_clustering = MongoHierCCClustering(hiercc_input[0], hiercc_input[1], args.species)
+                # logging.info(f"Running the clustering for the isolate {args.technical_id}")
+                # sequence_type = hiercc_clustering.run_hiercc_clustering(st_collection, hiercc_results_collection,
+                #                                                         distance_matrix_collection)
+                # isolates_collection.with_options(write_concern=WriteConcern(w="majority")).update_one({"_id": records["isolates_id"]},
+                #                                             {"$set": {"results.HierCC_cgST": sequence_type}})
+            else:
+                logging.warning(f"New isolate {args.technical_id} failed quality control for one or more checks. It's results are written to the 'isolates_badqc' collection in the {args.species} database")
+
 
     elif args.results_type == "reanalysis":
         # todo the current implementation moves the old results to the archive BUT seeing as results are possibly fractional

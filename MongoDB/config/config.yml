@@ -1,2 +1,2 @@
-CONNECTION_STRING_BASE: mongodb+srv://mikelchtermans:YMFOH4BLF1U79dDk@hera-bioit-trial.vajezh0.mongodb.net
-#CONNECTION_STRING_BASE: mongodb://admin:8T1r7nQwXnMoP3A9ubsu@bioit-mongo-d01:27017,bioit-mongo-d02:27017,bioit-mongo-d03:27017/?replicaSet=bioit-HERA-test&authSource=admin
+#CONNECTION_STRING_BASE: mongodb+srv://mikelchtermans:YMFOH4BLF1U79dDk@hera-bioit-trial.vajezh0.mongodb.net
+CONNECTION_STRING_BASE: mongodb://admin:8T1r7nQwXnMoP3A9ubsu@bioit-mongo-d01:27017,bioit-mongo-d02:27017,bioit-mongo-d03:27017/?replicaSet=bioit-HERA-test&authSource=admin
