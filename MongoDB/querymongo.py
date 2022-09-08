@@ -65,6 +65,6 @@ if __name__ == '__main__':
     #result = mongoquerying.find_isolates_cgmlst_distance("S14BD02863", 100, isolates_collection, distance_matrix_collection)
     #print(result)
 
-    hc_number = mongoquerying.find_HC_numbers_for_isolate("S14BD02863", isolates_collection, hiercc_results_collection, 'HC0')
-    print(hc_number)
+    # hc_number = mongoquerying.find_HC_numbers_for_isolate("S14BD02863", isolates_collection, hiercc_results_collection, 'HC0')
+    # print(hc_number)
 
