@@ -1,0 +1,9 @@
+---
+# ansible-playbook /etc/ansible/playbook/bioit/bioit-mongodb-test.yml -l "bioit-mongo-d01,bioit-mongo-d02,bioit-mongo-d03" --vault-password-file "/etc/ansible/vault/bioit_vault_pass"
+- hosts: "all"
+  gather_facts: True
+  become: yes
+
+  # run role
+  roles:
+    - { name: bioit.mongodb }

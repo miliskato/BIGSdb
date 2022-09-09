@@ -1,0 +1,5 @@
+keyfilebasepath: '/var/lib/mongodb/pki'
+keyfilepath: '/var/lib/mongodb/pki/Mongodb_keyfile'
+port: '27017'
+mongodb_admin_user: 'admin'
+replica_set_name: 'bioit-HERA'
