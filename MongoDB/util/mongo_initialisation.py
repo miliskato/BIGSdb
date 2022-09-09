@@ -69,3 +69,8 @@ class Mongoinitialisation:
         hiercc_results_collection = self._open_mongo_collection(species_database, "hiercc_results")
         distance_matrix_collection = self._open_mongo_collection(species_database, "distance_matrix")
         return st_collection, hiercc_results_collection, distance_matrix_collection
+
+    def initialise_hashing_collection(self, config_data: dict, species: str):
+        species_database = self._open_mongo_database(config_data, species)
+        hashed_AD_collection = self._open_mongo_collection(species_database, "sequence_types")
+        return hashed_AD_collection

@@ -127,3 +127,22 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         hc_numbers = hiercc_collection.with_options(read_concern=ReadConcern(level="majority")).find({"ST": isolate_sequence_type})
         hc_data = HCNumbersData(isolate_sequence_type, hc_numbers)
         return hc_data.get_hc_number(hc_number)
+
+    def query_failed_causes(self, isolates_badqc_collection):
+        """
+        aggregation pipeline to collect which qc check status is 'Failed' the most often
+        """
+        random_doc = isolates_badqc_collection.find_one()
+        for k in random_doc['results']['qc'].keys():
+            for key in random_doc['results']['qc'][k].keys():
+                if key.endswith('status'):
+                    keystring = f"$results.qc.{k}.{key}"
+                    status_dict = {}
+                    for x in isolates_badqc_collection.aggregate(
+                            [{"$group": {"_id": f"{keystring}", "count": {"$sum": 1}}}]):
+                        status_dict[x['_id']] = x['count']
+                    if 'Failed' in status_dict.keys():
+                        print("{}\t{}".format(key,
+                                              round((int(status_dict['Failed']) / sum(status_dict.values()) * 100), 1)))
+                    else:
+                        print("{}\t{}".format(key, 0))

@@ -1,12 +1,14 @@
 from pymongo import MongoClient
 from pymongo.write_concern import WriteConcern
-# import dnspython
+from pymongo.read_concern import ReadConcern
+# import dnspython # somehow this package is a requirement without actually needing to be imported, probably imported in pymongo
 import yaml
 import argparse
 from pathlib import Path
 import logging
 from datetime import datetime
 import sys
+import re
 
 from util.mongo_results import Mongoresults
 from util.mongo_querying import Mongoquerying
@@ -70,6 +72,26 @@ def prepend_string_dot_to_dict_keys(input_dictionary, prepending: str = 'results
         keydict[key] = '.'.join([prepending, key])
     return dict((keydict[key], value) for (key, value) in input_dictionary.items())
 
+def find_hashes_in_results_and_add_to_collection(results: dict, mongoinit: object, config_data: dict, species: str):
+    hashed_AD_collection = mongoinit.initialise_hashing_collection(config_data, species)
+    # todo add other typing schemes
+    for typing_scheme in ['mlst', 'cgmlst']:
+        if results[typing_scheme]:
+            for allele_info in results[typing_scheme]['loci']:
+                # check if allele designation is md5 hash (32 char combination of letters andor numbers)
+                if re.findall(r'(?i)(?<![a-z0-9])[a-f0-9]{32}(?![a-z0-9])', allele_info['Allele_designation']):
+                    existing_document = hashed_AD_collection.with_options(read_concern=ReadConcern(level="majority")).find_one({"scheme": typing_scheme, "locus": allele_info['Locus'], "hashed_allele": allele_info['Allele_designation']})
+                    if existing_document is None:
+                        _write_document(hashed_AD_collection, {"scheme": typing_scheme,
+                                                               "locus": allele_info['Locus'],
+                                                               "hashed_allele": allele_info['Allele_designation'],
+                                                               "encountered_count": 1,
+                                                               "resolved": 0
+                                                               })
+                    else:
+                        hashed_AD_collection.with_options(write_concern=WriteConcern(w="majority")).update_one({"_id": existing_document['_id']},
+                                                                                                               {"$inc": {"encountered_count": 1}})
+
 if __name__ == '__main__':
     # Parse arguments
     args = _parse_arguments()
@@ -90,7 +112,7 @@ if __name__ == '__main__':
 
     # If statement for reanalysis or new
     if args.results_type == "new_isolate":
-        if args.technical_id in mongoquerying._query_list_of_all_distinct_values(isolates_collection, "_id"):
+        if args.technical_id in mongoquerying._query_list_of_all_distinct_values(isolates_collection, "_id") or args.technical_id in mongoquerying._query_list_of_all_distinct_values(isolates_badqc_collection, "_id"):
             raise RuntimeError('This technical id is already present in the isolates collection')
         else:
             # todo check if fasta path and vcf path are real?
@@ -110,6 +132,7 @@ if __name__ == '__main__':
                 _write_document(isolates_collection, _new_isolate(args.technical_id, args.vcffilepath, args.fastafilepath,
                                                                   records))
                 logging.info(f"Wrote new isolate {args.technical_id} and its result to {args.species} database")
+                find_hashes_in_results_and_add_to_collection(records, mongoinit, config_data, args.species)
                 # hiercc_input = mongoquerying._query_typing_results_by_technicalids_and_scheme(isolates_collection,
                 #                                                                               scheme="cgmlst",
                 #                                                                               technicalids=

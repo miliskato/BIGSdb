@@ -28,13 +28,17 @@ if __name__ == '__main__':
 
     # Open collections
     mongoinit = Mongoinitialisation()
-    isolates_collection, isolateresults_collection = mongoinit._initialise_collections(config_data, args.species)
+    isolates_collection, isolateresults_collection, isolates_badqc_collection = mongoinit._initialise_collections(config_data, args.species)
     st_collection, hiercc_results_collection, distance_matrix_collection = \
         mongoinit.initialise_hiercc_collections(config_data, args.species)
     # isolates_collection.drop()
     # isolateresults_collection.drop()
     mongoquerying = Mongoquerying()
-    print(mongoquerying._query_list_of_all_distinct_values(isolates_collection, '_id'))
+
+    mongoquerying.query_failed_causes(isolates_badqc_collection)
+
+    # print([docs for docs in isolates_collection.find({'_id': 'S14BD00df001'})])
+    # print(mongoquerying._query_list_of_all_distinct_values(isolates_collection, '_id'))
     # for result in mongoquerying._query_previous_latest_results_by_technicalids(isolates_collection, isolateresults_collection,
     #                                                            mongoquerying._query_list_of_all_distinct_values(
     #                                                                    isolates_collection, "_id")):
