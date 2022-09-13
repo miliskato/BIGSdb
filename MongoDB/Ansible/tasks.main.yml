@@ -40,7 +40,7 @@
     mode: '0600'
 
 - name: Copy mongod config file
-  ansible.builtin.template: # use template
+  ansible.builtin.template:
     src: /etc/ansible/roles/bioit.mongodb/templates/mongod.conf.j2
     dest: /etc/mongod.conf
     owner: root
@@ -72,9 +72,9 @@
     login_password: "{{ mongodb_admin_password }}"
     replica_set: "{{ replica_set_name }}"
     members:
-    - "{{ play_hosts[0] }}:{{ port }}"
-    - "{{ play_hosts[1] }}:{{ port }}"
-    - "{{ play_hosts[2] }}:{{ port }}"
+      - "{{ play_hosts[0] }}:{{ port }}"
+      - "{{ play_hosts[1] }}:{{ port }}"
+      - "{{ play_hosts[2] }}:{{ port }}"
   when: inventory_hostname == play_hosts[0]
   register: repl
 
@@ -96,3 +96,4 @@
     password: "{{ mongodb_admin_password }}"
     roles: "root"
   when: inventory_hostname == play_hosts[0]
+...
