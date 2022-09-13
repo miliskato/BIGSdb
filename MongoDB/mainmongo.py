@@ -9,6 +9,7 @@ import logging
 from datetime import datetime
 import sys
 import re
+import json
 
 from util.mongo_results import Mongoresults
 from util.mongo_querying import Mongoquerying
@@ -23,7 +24,7 @@ def _parse_arguments() -> argparse.Namespace:
     :return: Parsed arguments
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("--tsvfilepath", required=True, type=Path)
+    parser.add_argument("--jsonfilepath", required=True, type=Path)
     parser.add_argument("--species", required=True, type=str,
                         choices=['mycobacterium', 'listeria', 'neisseria', 'stec', 'salmonella'])
     parser.add_argument("--results_type", required=True, type=str, choices=['new_isolate', 'reanalysis'])
@@ -79,12 +80,12 @@ def find_hashes_in_results_and_add_to_collection(results: dict, mongoinit: objec
         if results[typing_scheme]:
             for allele_info in results[typing_scheme]['loci']:
                 # check if allele designation is md5 hash (32 char combination of letters andor numbers)
-                if re.findall(r'(?i)(?<![a-z0-9])[a-f0-9]{32}(?![a-z0-9])', allele_info['Allele_designation']):
+                if re.findall(r'(?i)(?<![a-z0-9])[a-f0-9]{32}(?![a-z0-9])', allele_info['Allele']):
                     existing_document = hashed_AD_collection.with_options(read_concern=ReadConcern(level="majority")).find_one({"scheme": typing_scheme, "locus": allele_info['Locus'], "hashed_allele": allele_info['Allele_designation']})
                     if existing_document is None:
                         _write_document(hashed_AD_collection, {"scheme": typing_scheme,
                                                                "locus": allele_info['Locus'],
-                                                               "hashed_allele": allele_info['Allele_designation'],
+                                                               "hashed_allele": allele_info['Allele'],
                                                                "encountered_count": 1,
                                                                "resolved": 0
                                                                })
@@ -117,13 +118,13 @@ if __name__ == '__main__':
         else:
             # todo check if fasta path and vcf path are real?
             mongoresults = Mongoresults()
-            records = mongoresults.parse_output(args.species, args.tsvfilepath)
+            records = json.load(open(args.jsonfilepath, 'r'))
             records["isolates_id"] = args.technical_id
             sample_quality = 'good'
             try:
                 for qc_type in records['qc']:
                     for key in records['qc'][qc_type]:
-                        if key.endswith('status') and not (records['qc'][qc_type][key] == 'OK' or records['qc'][qc_type][key] == 'Warning'): # todo check logic
+                        if key.endswith('status') and records['qc'][qc_type][key] == 'Failed': # and not (records['qc'][qc_type][key] == 'OK' or records['qc'][qc_type][key] == 'Warning'): # todo check logic
                             sample_quality = 'bad'
             except:
                 raise RuntimeError('No qc values found in the given results')

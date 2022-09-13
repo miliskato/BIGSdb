@@ -4,8 +4,8 @@ import yaml
 from pymongo.write_concern import WriteConcern
 from pymongo.read_concern import ReadConcern
 
-from mongo_initialisation import Mongoinitialisation
-from MongoDB.config import MONGO_CONFIG
+from util.mongo_initialisation import Mongoinitialisation
+from config import MONGO_CONFIG
 
 # todo finish and polish
 def _parse_arguments() -> argparse.Namespace:

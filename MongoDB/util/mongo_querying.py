@@ -80,8 +80,8 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
             for locus in doc['results'][scheme]['loci']:
                 # todo check logic
                 allele_id = locus['Allele_designation']
-                if isinstance(allele_id, int) and locus['Percentage_identity'] == 100.00 and eval(
-                        locus['Coverage']) == 1.0:
+                if isinstance(allele_id, int) and locus['% Identity'] == 100.00 and eval(
+                        locus['HSP/Locus length']) == 1.0:
                     resultlist.append(allele_id)
                 else:
                     resultlist.append(0)

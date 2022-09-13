@@ -22,8 +22,7 @@ class Mongoinitialisation:
             client = MongoClient(config_data["CONNECTION_STRING_BASE"])
         except:
             raise RuntimeError(f"Could not connect to {config_data['CONNECTION_STRING_BASE']}")
-        # todo change the test
-        return client[f"{species}_test"]
+        return client[species]
 
     def _open_mongo_collection(self, opened_database, collection: str):
         """
