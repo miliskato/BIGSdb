@@ -3,6 +3,7 @@ import argparse
 import logging
 import sys
 import os
+from pathlib import Path
 import yaml
 import smtplib
 from email.message import EmailMessage
@@ -14,7 +15,7 @@ from MongoDB.util.mongo_initialisation import Mongoinitialisation
 from MongoDB.config import MONGO_CONFIG
 from bioit_custom_scripts.components.databaseconnection import Database_connection
 from bioit_custom_scripts.config import BIGSDB_CONFIG
-
+from MongoDB.reanalysis.command.command import Command
 
 def send_email(subject: str, content: str, config: dict) -> None:
     """
@@ -84,9 +85,22 @@ if __name__ == '__main__':
                 'curator': curator_name
             }
             #write doc to tmp
-            with open("/home/bebergk/tmp_isolate_sub.json", "w") as write_file:
-                json.dump(json_sample, write_file, indent=4)
-            command = f"mainmongo.py {}"
+            # with open("/home/bebergk/tmp_isolate_sub.json", "w") as write_file:
+            #     json.dump(json_sample, write_file, indent=4)
+            command_line = f"export MODULEPATH=/etc/lmod/modules;" \
+                           f"source /etc/profile.d/lmod.sh;" \
+                           f"ml mongo_bigs_dbs;" \
+                           f"mainmongo.py " \
+                           f"--dict {json.dumps(json_sample)} " \
+                           f"--species {species} " \
+                           f"--results_type reanalysis " \
+                           f"--fastafilepath {json_sample['fasta_path']} " \
+                           f"--vcffilepath {json_sample['vcf_path']} " \
+                           f"--technical_id {isolate_id}"
+            command = Command(command_line)
+            command.run(Path(os.getcwd()))
+
+
 
 
 
