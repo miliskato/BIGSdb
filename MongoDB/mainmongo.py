@@ -69,9 +69,16 @@ def prepend_string_dot_to_dict_keys(input_dictionary, prepending: str = 'results
     :return: dict with prepended string joined with dot
     """
     keydict = {}
+    import copy
+    input_dictionary_copy = copy.deepcopy(input_dictionary)
     for key in input_dictionary.keys():
-        keydict[key] = '.'.join([prepending, key])
-    return dict((keydict[key], value) for (key, value) in input_dictionary.items())
+        if key == 'qc':
+            for subkey in input_dictionary[key]:
+                input_dictionary_copy['.'.join([key, subkey])] = input_dictionary_copy[key][subkey]
+            input_dictionary_copy.pop('qc')
+    for key in input_dictionary_copy.keys():
+            keydict[key] = '.'.join([prepending, key])
+    return dict((keydict[key], value) for (key, value) in input_dictionary_copy.items())
 
 def find_hashes_in_results_and_add_to_collection(results: dict, mongoinit: object, config_data: dict, species: str):
     hashed_AD_collection = mongoinit.initialise_hashing_collection(config_data, species)
@@ -92,6 +99,11 @@ def find_hashes_in_results_and_add_to_collection(results: dict, mongoinit: objec
                     else:
                         hashed_AD_collection.with_options(write_concern=WriteConcern(w="majority")).update_one({"_id": existing_document['_id']},
                                                                                                                {"$inc": {"encountered_count": 1}})
+def parse_date_to_iso(str_date: str):
+    split_date = re.split('/|-|:', str_date.replace(' ', ''))
+    split_date = [int(i) for i in split_date]
+    new_date = datetime(split_date[2], split_date[1], split_date[0], split_date[3], split_date[4], split_date[5])
+    return new_date
 
 if __name__ == '__main__':
     # Parse arguments
@@ -120,11 +132,14 @@ if __name__ == '__main__':
             mongoresults = Mongoresults()
             records = json.load(open(args.jsonfilepath, 'r'))
             records["isolates_id"] = args.technical_id
+            # Change date format
+            ## to do in queries themselves because else error: TypeError: 'datetime.datetime' object is not iterable
+            # QC check for failed qc to not be integrated in main db
             sample_quality = 'good'
             try:
                 for qc_type in records['qc']:
                     for key in records['qc'][qc_type]:
-                        if key.endswith('status') and records['qc'][qc_type][key] == 'Failed': # and not (records['qc'][qc_type][key] == 'OK' or records['qc'][qc_type][key] == 'Warning'): # todo check logic
+                        if key.endswith('status') and records['qc'][qc_type][key] == 'Failed' and not key == 'analysis_date': # and not (records['qc'][qc_type][key] == 'OK' or records['qc'][qc_type][key] == 'Warning'): # todo check logic
                             sample_quality = 'bad'
             except:
                 raise RuntimeError('No qc values found in the given results')
@@ -157,14 +172,16 @@ if __name__ == '__main__':
         #  Maybe the newest results should also be written to a separate collection in order to easily know what actually changed?
         #  Current dot notation only covers the assay headers, so within assays everything is overwritten, no matter if the number of fields differs.
         mongoresults = Mongoresults()
-        new_results = prepend_string_dot_to_dict_keys(mongoresults.parse_output(args.species, args.tsvfilepath))
+        # new_results = prepend_string_dot_to_dict_keys(mongoresults.parse_output(args.species, args.tsvfilepath))
+        # new_results["results.isolates_id"] = args.technical_id
+        new_results = prepend_string_dot_to_dict_keys(json.load(open(args.jsonfilepath, 'r')))
         new_results["results.isolates_id"] = args.technical_id
         old_results = mongoquerying._query_docs_by_ids(isolates_collection, [args.technical_id])[0]['results']
         # Order is important
         # Write old results to archive and save object id to isolates collection
         isolates_collection.with_options(write_concern=WriteConcern(w="majority")).update_one({"_id": args.technical_id}, {
             "$set": {"previous_latest_results_version": _write_document(isolateresults_collection, old_results)}})
-        # Overwrite old results with new results in isolate collection: behaviour to be checked
+        # Overwrite old results with new results in isolate collection with dot notation: behaviour to be checked, especially for QC
         # import sys
         # sys.exit()
         print(new_results)
