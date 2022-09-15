@@ -32,6 +32,7 @@ def _parse_arguments() -> argparse.Namespace:
     # parser.add_argument('--dir-fastq', type=Path, required=True, help='Directory containing FASTQ files')
     parser.add_argument('--config', type=Path, required=True, help='Configuration file')
     parser.add_argument('--threads', type=int, default=8, help='Number of threads to use')
+    parser.add_argument('--analysis_arguments', nargs='+', required=False, help='analysis arguments stripped off --, e.g. "--analysis_arguments cgmlst mlst"')
     return parser.parse_args()
 
 # --host-url
@@ -79,7 +80,7 @@ if __name__ == '__main__':
     # Retrieve isolates that need to be re-analyzed
     mongoinit = Mongoinitialisation()
     isolates_collection, isolateresults_collection, isolates_badqc_collection = mongoinit._initialise_collections(mongo_config_data, args.species)
-    # todo query all the documents, maybe do a projection as were only interested in _id, fastapath, vcfpath unless we also want db updates later (can also be projected)
+    # query all the documents, # todo maybe do a projection as were only interested in _id, fastapath, vcfpath unless we also want db updates later (can also be projected)
     documents_list = [doc for doc in isolates_collection.find()]
     logging.info(f"{len(documents_list)} isolates to be reanalyzed")
 
@@ -115,6 +116,24 @@ if __name__ == '__main__':
             tsv_out = dir_out / 'report.tsv'
             html_out = dir_out / 'report.html'
 
+            # Determine the options
+            if args.analysis_arguments:
+                available_options_list = config_species['options']
+                accepted_options_list = []
+                if args.species == 'mycobacterium' and 'vcf_path' not in isolate.keys():
+                    available_options_list = config_species['options_without_vcf']
+                for option in args.analysis_arguments:
+                    option_reformatted = ''.join(['--', option])
+                    if option_reformatted in available_options_list:
+                        accepted_options_list.append(option_reformatted)
+                    else:
+                        raise RuntimeError(f'option {option_reformatted} is not a valid reanalysis option for species {args.species}')
+            # if no specific analysis arguments are given, perform all analyses
+            else:
+                accepted_options_list = config_species['options']
+                if args.species == 'mycobacterium' and 'vcf_path' not in isolate.keys():
+                    accepted_options_list = config_species['options_without_vcf']
+
             # Create the command to re-analyze the datasets
             base_command = ' '.join([
                 f"module load {config_species['lmod']};",
@@ -124,10 +143,12 @@ if __name__ == '__main__':
                 f"--output-html {html_out}",
                 f'--output-tsv {tsv_out}',
                 f'--working-dir {dir_temp}',
-                *config_species['options'],
+                *accepted_options_list,
                 f'--threads {args.threads}'
             ])
             command = Command(base_command)
+
+            # mycobacterium exception
             if args.species == 'mycobacterium':
                 # if this vcf doesnt exist then pipeline will fail during execution and send a mail just like with any other error
                 # check if vcf path exists
@@ -138,6 +159,8 @@ if __name__ == '__main__':
                 else:
                     raise RuntimeError('Invalid vcffilepath')
                 command = Command(' '.join([base_command, f'--vcf-unfiltered {isolate["vcf_path"]}']))
+
+            # run the command
             command.run(dir_temp)
             if command.returncode != 0:
                 # if pipeline fails, send mail and continue to next sample
@@ -145,6 +168,8 @@ if __name__ == '__main__':
                 # raise RuntimeError(f"Error executing pipeline: {command.stderr}")
             else:
                 logging.info(f"Re-analysis for isolate '{isolate_id}' completed")
+
+            ## debugging purposes
             # if 1+1==3:
             #     continue
             # else:
@@ -153,9 +178,7 @@ if __name__ == '__main__':
             #     uploader = 'mikeltestauto'
             #     dir_out = Path("/scratch/temp/re_analysis_pjx15wnq/S16BD02199_2022-09-14")
 
-                # Adding the new sample version to the database and
-
-                # Executing the BIGSdb python scripts to move the reports and insert all the results
+                # Adding the new sample version to the Mongo database
                 handle = open(f"{temp_new_sample_name}.log", 'w+')
                 def run_subprocess(custom_command):
                     result = subprocess.run(
@@ -180,6 +203,11 @@ if __name__ == '__main__':
                 #print([doc for doc in isolateresults_collection.find()])
 
 
+
+
+'''
+To be ignored for mongodb, leaving the code in case useful later
+'''
 ###
 # Shell script for Cron
 ###
