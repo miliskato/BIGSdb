@@ -1,6 +1,8 @@
 import logging
 import numpy as np
-from MongoDB.util.hamming_distance import hamming_distance
+from MongoDB.util.hamming_distance import getDistance, __dist_wrapper, __parallel_dist, hamming_dist
+from multiprocessing import Pool
+from datetime import datetime
 
 class DistanceMatrixComputer:
     """
@@ -25,8 +27,6 @@ class DistanceMatrixComputer:
         self.__get_cgmlst_profiles()
         logging.info("Sorting cgmlst profiles")
         self.__sorting_cgmlst_profiles()
-        logging.info("Identifying missing alleles in cgmlst profiles")
-        self.__get_missing_alleles()
         logging.info("Initialization finished!")
 
     def __get_cgmlst_profiles(self) -> None:
@@ -37,7 +37,7 @@ class DistanceMatrixComputer:
         query_all_data = self.st_collection.find({})
         for doc in query_all_data:
             if 'ST' in doc:
-                self.cgmlst_profiles.append(np.array(doc['cgMLST'].split(','), dtype=np.uint32))
+                self.cgmlst_profiles.append(np.array(doc['cgMLST'].split(','), dtype=np.int32))
                 self.sequence_types.append(doc['ST'])
 
     def __sorting_cgmlst_profiles(self) -> None:
@@ -50,16 +50,6 @@ class DistanceMatrixComputer:
         tuples = zip(*sorted_pairs)
         self.sequence_types, self.cgmlst_profiles = [list(tuple1) for tuple1 in tuples]
 
-    def __get_missing_alleles(self) -> None:
-        """
-        retrieve all the positions in the cgmlst profiles where alleles are zeros in order to skip them for the
-        hamming distances.
-        :return:
-        """
-        for cgmlst in self.cgmlst_profiles:
-            zeros = [i for i, e in enumerate(cgmlst) if e == 0]
-            self.missing_alleles.append(zeros)
-
     def compute_hamming_distances(self, mode: str) -> None:
         """
         Compute the hamming distances between sequence types
@@ -67,30 +57,14 @@ class DistanceMatrixComputer:
         last_st computes only for the last sequence types entered in the db.
         :return:
         """
-        logging.info(f"Starting to compute hamming distances in mode {mode}")
-        for i in range(len(self.sequence_types)):
-            if mode == 'full':
-                range_j = range(i, len(self.sequence_types))
-            elif mode == 'last_st':
-                range_j = [len(self.sequence_types) - 1]
-            else:
-                raise ValueError('The mode must be in the allowed values: full or last_st')
-            for j in range_j:
-                print('I',i,'J',j)
-                hamming_dist = 0
-                range_hamming = list(set(range(len(self.cgmlst_profiles[i]))) - set(self.missing_alleles[i]) \
-                                - set(self.missing_alleles[j]))
-                cgmlst_i = self.cgmlst_profiles[i][range_hamming]
-                cgmlst_j = self.cgmlst_profiles[j][range_hamming]
-                hamming_dist = hamming_distance(cgmlst_i, cgmlst_j)
-        #         for h in range_hamming:
-        #             if self.cgmlst_profiles[i][h] != self.cgmlst_profiles[j][h]:
-        #                 hamming_dist += 1
-                hamming_dist_entry = {'I': self.sequence_types[i],
-                                      'J': self.sequence_types[j],
-                                      'Hamming_distance': hamming_dist}
-                self.hamming_distances.append(hamming_dist_entry)
-        logging.info(f"Hamming distances computed!")
+        logging.info(f"{datetime.now()}: Starting to compute hamming distances in mode {mode}")
+        if mode == 'full':
+            start = 0
+        else:
+            start = len(self.cgmlst_profiles) - 1
+        pool = Pool(4)
+        self.hamming_distances = getDistance(np.array(self.cgmlst_profiles), 'hamming_dist', pool, start)
+        logging.info(f"{datetime.now()}: Hamming distances computed!")
 
     def insert_hamming_distances_in_mongo(self):
         """
@@ -100,9 +74,30 @@ class DistanceMatrixComputer:
         if len(self.hamming_distances) == 0:
             print('No distances to insert into the database!')
         else:
-            logging.info(f"Inserting distances into the database")
-            self.insert_a_lot(self.hamming_distances, self.matrix_collection)
-            logging.info("Insertion of distances into the database finished!")
+            logging.info(f"{datetime.now()}: Creating and writing distances in mongo Db")
+            self.__create_and_write_mongo_entries()
+            logging.info(f"{datetime.now()}: Insertion of distances into the database finished!")
+
+    def __create_and_write_mongo_entries(self):
+        hamming_docs_mongo = []
+        if len(self.hamming_distances) == 1:
+            mode = 'last_st'
+        else:
+            mode = 'full'
+        for i in range(len(self.hamming_distances)):
+            for j in range(i):
+                if mode == 'full':
+                    i_entry = self.sequence_types[i]
+                else:
+                    i_entry = self.sequence_types[-1]
+                hamming_dist_entry = {'I': i_entry,
+                                      'J': self.sequence_types[j],
+                                      'Hamming_distance': int(self.hamming_distances[i,j])}
+                hamming_docs_mongo.append(hamming_dist_entry)
+                if len(hamming_docs_mongo) == 100000:
+                    self.insert_a_lot(hamming_docs_mongo, self.matrix_collection)
+                    hamming_docs_mongo = [] #after writting the object is erased
+        self.insert_a_lot(hamming_docs_mongo, self.matrix_collection)
 
     @staticmethod
     def insert_a_lot(insertion_docs: list, collection) -> None:
@@ -113,7 +108,7 @@ class DistanceMatrixComputer:
         :param collection: the collection of MongoDB where to insert the docs.
         :return:
         """
-        n = 1000  # batch size of the insert
+        n = 10000  # batch size of the insert
         batch_list = [insertion_docs[i:i + n] for i in range(0, len(insertion_docs), n)]
         for batch in batch_list:
             collection.insert_many(batch)

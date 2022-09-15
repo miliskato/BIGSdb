@@ -10,11 +10,6 @@ from util.hiercc_cgmlst_profile import HierCCCgMLSTProfile
 from util.hiercc_numbers_profile import HierCCNumbersProfile
 from MongoDB.util.distance_matrix_computer import DistanceMatrixComputer
 import sys, gzip, logging, click
-import pandas as pd, numpy as np
-import numpy as np, numba as nb, os
-from tempfile import NamedTemporaryFile
-import SharedArray as sa
-from multiprocessing import Pool
 
 def write_headers(headers: list, collection) -> None:
     document = {'ID': 'headers', 'headers': headers}
@@ -62,7 +57,7 @@ if __name__ == '__main__':
     # compute distances from the cgmlst profiles
     listeria_dist_mat = DistanceMatrixComputer(st_collection, distance_matrix_collection)
     listeria_dist_mat.compute_hamming_distances('full')
-    # listeria_dist_mat.insert_hamming_distances_in_mongo()
+    listeria_dist_mat.insert_hamming_distances_in_mongo()
     # create_i_j_indexes(distance_matrix_collection)
     # enter hiercc results collection
     # listeria_hc_data = HierCCData(HIERCC_CONFIG['listeria']['initial_clustering'])
