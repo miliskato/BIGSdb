@@ -204,16 +204,15 @@ if __name__ == '__main__':
                 print([doc for doc in isolates_collection.find()])
                 #print([doc for doc in isolateresults_collection.find()])
 
+    threads_per_job = 2
     def isolate_and_threads(isolate: dict):
         dict = {
             'isolate': isolate,
-            'threads_per_job' : 3
+            'threads_per_job' : threads_per_job
         }
         return dict
-    # todo somehow it is starting up all processes at three cores although i only give a total of 8 so only 2 should be started??
-    # todo  to ask Bert
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=int(args.threads)) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=int(args.threads / threads_per_job)) as executor:
         future_to_isolate = {executor.submit(
             reanalyse_and_insert, **isolate_and_threads(isolate)):
                            isolate for isolate in documents_list}
