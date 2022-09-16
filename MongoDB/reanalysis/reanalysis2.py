@@ -4,6 +4,7 @@ import logging
 import tempfile
 from pathlib import Path
 from urllib.parse import urljoin
+import concurrent.futures
 
 import shutil
 import requests
@@ -89,7 +90,7 @@ if __name__ == '__main__':
 
     # Re-analyze the isolates (can be parallelized with a Snakemake workflow)
     # e.g. response_data['isolates'] : "isolates":["http://bioit-bigs-dev.sciensano.be:5000/db/bigsdb_listeria_isolates/isolates/3","http://bioit-bigs-dev.sciensano.be:5000/db/bigsdb_listeria_isolates/isolates/4","http://bioit-bigs-dev.sciensano.be:5000/db/bigsdb_listeria_isolates/isolates/5"]
-    for isolate in documents_list:
+    def reanalyse_and_insert(isolate: dict, threads_per_job: int = 2):
         isolate_id = isolate['_id']
         logging.info(f"Starting reanalysis for {isolate_id}")
 
@@ -144,7 +145,7 @@ if __name__ == '__main__':
                 f'--output-tsv {tsv_out}',
                 f'--working-dir {dir_temp}',
                 *accepted_options_list,
-                f'--threads {args.threads}'
+                f'--threads {threads_per_job}'
             ])
             command = Command(base_command)
 
@@ -202,6 +203,20 @@ if __name__ == '__main__':
                 ## debug
                 print([doc for doc in isolates_collection.find()])
                 #print([doc for doc in isolateresults_collection.find()])
+
+    def isolate_and_threads(isolate: dict):
+        dict = {
+            'isolate': isolate,
+            'threads_per_job' : 3
+        }
+        return dict
+    # todo somehow it is starting up all processes at three cores although i only give a total of 8 so only 2 should be started??
+    # todo  to ask Bert
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=int(args.threads)) as executor:
+        future_to_isolate = {executor.submit(
+            reanalyse_and_insert, **isolate_and_threads(isolate)):
+                           isolate for isolate in documents_list}
 
 
 
