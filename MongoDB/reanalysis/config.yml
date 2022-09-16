@@ -27,3 +27,4 @@ mail:
     host: smtp.wiv-isp.be
 
 temp_dir: /scratch/temp
+threads_per_job: 2
