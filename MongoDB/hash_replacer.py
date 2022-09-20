@@ -56,7 +56,7 @@ if __name__ == '__main__':
                 locus_hash_dict[hash_document['locus']] = [hash_document['hashed_allele']]
         for locus, hash_list in locus_hash_dict.items():
             # todo Open the fasta with seqio, get the path
-            fasta_file = Path(f"/db/sequence_typing/{args.species}/{args.scheme}/{locus}/{locus.lower()}.fasta")
+            fasta_file = Path(f"/db/sequence_typing/{args.species}/{args.scheme.replace('-','_')}/{locus}/{locus.lower()}.fasta")
             import os
             if os.path.isfile(fasta_file):
                 logging.info(f"opening fasta file: {fasta_file}")
