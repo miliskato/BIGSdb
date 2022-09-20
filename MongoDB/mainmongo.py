@@ -84,21 +84,23 @@ def find_hashes_in_results_and_add_to_collection(results: dict, mongoinit: objec
     hashed_AD_collection = mongoinit.initialise_hashing_collection(config_data, species)
     # todo add other typing schemes
     for typing_scheme in ['mlst', 'cgmlst']:
-        if results[typing_scheme]:
+        if typing_scheme in results.keys():
             for allele_info in results[typing_scheme]['loci']:
                 # check if allele designation is md5 hash (32 char combination of letters andor numbers)
                 if re.findall(r'(?i)(?<![a-z0-9])[a-f0-9]{32}(?![a-z0-9])', allele_info['Allele']):
-                    existing_document = hashed_AD_collection.with_options(read_concern=ReadConcern(level="majority")).find_one({"scheme": typing_scheme, "locus": allele_info['Locus'], "hashed_allele": allele_info['Allele_designation']})
+                    existing_document = hashed_AD_collection.with_options(read_concern=ReadConcern(level="majority")).find_one({"scheme": typing_scheme, "locus": allele_info['Locus'], "hashed_allele": allele_info['Allele']})
                     if existing_document is None:
                         _write_document(hashed_AD_collection, {"scheme": typing_scheme,
                                                                "locus": allele_info['Locus'],
                                                                "hashed_allele": allele_info['Allele'],
                                                                "encountered_count": 1,
-                                                               "resolved": 0
+                                                               "resolved_AD": 0
                                                                })
                     else:
                         hashed_AD_collection.with_options(write_concern=WriteConcern(w="majority")).update_one({"_id": existing_document['_id']},
                                                                                                                {"$inc": {"encountered_count": 1}})
+                        logging.info(f"hashed allele '{allele_info['Allele']}' encounter incremented by one")
+
 def parse_date_to_iso(str_date: str):
     split_date = re.split('/|-|:', str_date.replace(' ', ''))
     split_date = [int(i) for i in split_date]
