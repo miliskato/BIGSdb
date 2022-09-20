@@ -1,7 +1,36 @@
 allowed_missing_data_proportion: 0.05
 listeria:
-  initial_st: /home/bebergk/listeria_profiles.csv.gz
-  initial_clustering: /home/bebergk/listeria_st_clustering_initial.HierCC.gz
-  npz_file: /home/bebergk/listeria_working_clustering.npz
-  running_st: /home/bebergk/listeria_working_profiles.csv.gz
-  running_clustering: /home/bebergk/listeria_working_clustering.HierCC.gz
+  download_st: https://bigsdb.pasteur.fr/api/db/pubmlst_listeria_seqdef/schemes/3/profiles_csv
+  initial_st: /scratch/bebergk/mongo_refs/listeria_profiles.csv.gz
+  initial_clustering: /scratch/bebergk/mongo_refs/listeria_st_clustering_initial.HierCC.gz
+  npz_file: /scratch/bebergk/mongo_refs/listeria_working_clustering.npz
+  running_st: /scratch/bebergk/mongo_refs/listeria_working_profiles.csv.gz
+  running_clustering: /scratch/bebergk/mongo_refs/listeria_working_clustering.HierCC.gz
+mycobacterium:
+  download_st: https://rest.pubmlst.org/db/pubmlst_mycobacteria_seqdef/schemes/1/profiles_csv
+  initial_st: /scratch/bebergk/mongo_refs/mycobacterium_profiles.csv.gz
+  initial_clustering: /scratch/bebergk/mongo_refs/mycobacterium_st_clustering_initial.HierCC.gz
+  npz_file: /scratch/bebergk/mongo_refs/mycobacterium_working_clustering.npz
+  running_st: /scratch/bebergk/mongo_refs/mycobacterium_working_profiles.csv.gz
+  running_clustering: /scratch/bebergk/mongo_refs/mycobacterium_working_clustering.HierCC.gz
+neisseria:
+  download_st: https://rest.pubmlst.org/db/pubmlst_neisseria_seqdef/schemes/47/profiles_csv
+  initial_st: /scratch/bebergk/mongo_refs/neisseria_profiles.csv.gz
+  initial_clustering: /scratch/bebergk/mongo_refs/neisseria_st_clustering_initial.HierCC.gz
+  npz_file: /scratch/bebergk/mongo_refs/neisseria_working_clustering.npz
+  running_st: /scratch/bebergk/mongo_refs/neisseria_working_profiles.csv.gz
+  running_clustering: /scratch/bebergk/mongo_refs/neisseria_working_clustering.HierCC.gz
+salmonella:
+  download_st: https://enterobase.warwick.ac.uk/schemes/Salmonella.cgMLSTv2/profiles.list.gz
+  initial_st: /scratch/bebergk/mongo_refs/salmonella_profiles.csv.gz
+  initial_clustering: /scratch/bebergk/mongo_refs/salmonella_st_clustering_initial.HierCC.gz
+  npz_file: /scratch/bebergk/mongo_refs/salmonella_working_clustering.npz
+  running_st: /scratch/bebergk/mongo_refs/salmonella_working_profiles.csv.gz
+  running_clustering: /scratch/bebergk/mongo_refs/salmonella_working_clustering.HierCC.gz
+stec:
+  download_st: https://bigsdb.pasteur.fr/api/db/pubmlst_ecoli_seqdef/schemes/1/profiles_csv
+  initial_st: /scratch/bebergk/mongo_refs/escherichia_profiles.csv.gz
+  initial_clustering: /scratch/bebergk/mongo_refs/escherichia_st_clustering_initial.HierCC.gz
+  npz_file: /scratch/bebergk/mongo_refs/escherichia_working_clustering.npz
+  running_st: /scratch/bebergk/mongo_refs/escherichia_working_profiles.csv.gz
+  running_clustering: /scratch/bebergk/mongo_refs/escherichia_working_clustering.HierCC.gz

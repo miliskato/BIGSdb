@@ -112,3 +112,27 @@ class DistanceMatrixComputer:
         batch_list = [insertion_docs[i:i + n] for i in range(0, len(insertion_docs), n)]
         for batch in batch_list:
             collection.insert_many(batch)
+
+# import pandas as pd
+# from multiprocessing import Pool
+# from scipy.spatial import distance as ssd
+# from scipy.cluster.hierarchy import linkage
+# import scipy.cluster.hierarchy
+# import matplotlib
+# import plotly
+# import fastcluster
+# import plotly.figure_factory as ff
+# mat = pd.read_csv('/home/bebergk/subset_profiles', sep='\t', header=None, dtype=str).values
+# allele_columns = np.array([i == 0 or (not h.startswith('#')) for i, h in enumerate(mat[0])])
+# mat = mat[1:, allele_columns]
+# start = 0
+# pool = Pool(4)
+# dist = getDistance(np.array(mat, dtype=np.int32), 'hamming_dist', pool, start)
+# dist += dist.T
+# slc = linkage(ssd.squareform(dist), method='single')
+# test = fastcluster.single(ssd.squareform(dist))
+# print(test)
+# names = ['ST1','ST2','ST3','ST4','ST5','ST6','ST7','ST8']
+# fig = ff.create_dendrogram(test, orientation='left', labels=names, color_threshold=10)
+# fig.update_layout(width=800, height=500)
+# plotly.offline.plot(fig, filename='file.html')
