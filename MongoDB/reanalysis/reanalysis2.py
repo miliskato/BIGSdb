@@ -5,6 +5,8 @@ import tempfile
 from pathlib import Path
 from urllib.parse import urljoin
 import concurrent.futures
+import os
+import sys
 
 import shutil
 import requests
@@ -64,7 +66,6 @@ def send_email(subject: str, content: str, config: dict) -> None:
 
 if __name__ == '__main__':
     # Configure stdout logging
-    import sys
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
     # Parse arguments
@@ -82,7 +83,7 @@ if __name__ == '__main__':
     mongoinit = Mongoinitialisation()
     isolates_collection, isolateresults_collection, isolates_badqc_collection = mongoinit._initialise_collections(mongo_config_data, args.species)
     # query all the documents, # todo maybe do a projection as were only interested in _id, fastapath, vcfpath unless we also want db updates later (can also be projected)
-    documents_list = [doc for doc in isolates_collection.find()]
+    documents_list = [doc for doc in isolates_collection.find( {}, {"_id":1, "fasta_path":1, "vcf_path":1})]
     logging.info(f"{len(documents_list)} isolates to be reanalyzed")
 
     # ! For testing, you can specify isolates manually here
@@ -95,16 +96,16 @@ if __name__ == '__main__':
         logging.info(f"Starting reanalysis for {isolate_id}")
 
         # check if fasta path exists
-        import os
         if os.path.isfile(Path(isolate['fasta_path'])):
             logging.info(f"Fasta file is real")
-            # todo check if fasta is actually fasta or?
+            # todo check if fasta is actually fasta or not empty or?
         else:
             raise RuntimeError('Invalid fastafilepath')
 
         import datetime
         temp_new_sample_name = '_'.join([isolate_id, str(datetime.date.today())])
         logging.info(f"new sample name: {temp_new_sample_name}")
+
         # Get a temporary working directory
         with Path(tempfile.mkdtemp(None, 're_analysis_', config_data['temp_dir'])) as dir_temp:
 
@@ -153,19 +154,16 @@ if __name__ == '__main__':
             if args.species == 'mycobacterium':
                 # if this vcf doesnt exist then pipeline will fail during execution and send a mail just like with any other error
                 # check if vcf path exists
-                import os
                 # todo be sure that this vcf path is the unfiltered one
-                # todo vcf is not mandatory anymore
                 if os.path.isfile(Path(isolate['vcf_path'])):
-                    pass
+                    logging.info(f"vcf file is real")
+                    command = Command(' '.join([base_command, f'--vcf-unfiltered {isolate["vcf_path"]}']))
                 else:
-                    raise RuntimeError('Invalid vcffilepath')
-                command = Command(' '.join([base_command, f'--vcf-unfiltered {isolate["vcf_path"]}']))
-
+                    logging.info(f"No vcf file is provided, certain analyses can not be executed but will give an error if requested")
             # run the command
             command.run(dir_temp)
             if command.returncode != 0:
-                # if pipeline fails, send mail and continue to next sample
+                # if pipeline fails, send mail and continue to next sample, dont raise error
                 send_email(f'Error executing automatic reanalysis pipeline on {args.species}, {isolate_id}', command.stderr, config_data['mail'])
                 # raise RuntimeError(f"Error executing pipeline: {command.stderr}")
             else:
@@ -193,16 +191,12 @@ if __name__ == '__main__':
                         send_email(
                             f'Error handling output of automatic reanalysis pipeline on {args.species}, {isolate_id}', f"look in file /reports/{args.species}/{temp_new_sample_name}/{temp_new_sample_name}.log", config_data['mail'])
                 # moving the report
-                # todo check if fasta files are same?
+                # todo check if fasta files are same? not sure what i meant by this but it would probably be a nice idea to have the hash of the fasta file in mongo to check if sample is really new
                 run_subprocess(f"/home/mikelchtermans/PyCharmConnection/3.9PyCharmInterpreter/bin/python3.9 /home/mikelchtermans/Bigsdb_mongodb/MongoDB/mainmongo.py --results_type reanalysis --technical_id {isolate_id} --jsonfilepath {dir_out / 'report.json'} --species {args.species}")
                 #shutil.move(f"./{temp_new_sample_name}.log", f"/reports/{args.species}/{temp_new_sample_name}/{temp_new_sample_name}.log")
 
                 # Removing the temporary working dir and the remaining files that were not kept
                 # todo later shutil.rmtree(dir_temp)
-
-                ## debug
-                print([doc for doc in isolates_collection.find()])
-                #print([doc for doc in isolateresults_collection.find()])
 
     def isolate_and_threads(isolate: dict):
         dict = {

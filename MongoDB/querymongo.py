@@ -35,7 +35,8 @@ if __name__ == '__main__':
     # isolateresults_collection.drop()
     mongoquerying = Mongoquerying()
 
-    mongoquerying.query_failed_causes(isolates_badqc_collection)
+    print(isolates_collection.find_one()['results'].keys())
+    #mongoquerying.query_failed_causes(isolates_badqc_collection)
 
     # print([docs for docs in isolates_collection.find({'_id': 'S14BD00df001'})])
     # print(mongoquerying._query_list_of_all_distinct_values(isolates_collection, '_id'))
