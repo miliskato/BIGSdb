@@ -222,7 +222,6 @@ def insert_typing_results():
                                 cur2.execute(f"SELECT allele_id FROM sequences WHERE allele_id LIKE '{variantreformatted}' AND locus = '{locus[0]}' LIMIT 1")
                                 present = cur2.fetchall()
                             allele_id = present[0][0]
-                            print(allele_id)
                             con2.close()
                             cur.execute(f"SELECT FROM allele_designations WHERE locus = '{locus[0]}' AND "
                                         f"isolate_id = (SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}') AND" 

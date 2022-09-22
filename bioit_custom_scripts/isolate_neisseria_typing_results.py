@@ -189,7 +189,7 @@ def insert_typing_results():
                 eavhtmltable = eavhtmltable + ''.join(
                     ['<tr><td>', ''.join(['GeneCluster', clusterhit.split('Cluster')[1]]), '</td>'])
                 # append Locus
-                if scheme != 'listeria_vfdbcore':
+                if scheme != 'neisseria_vfdbcore':
                     eavhtmltable = eavhtmltable + ''.join(
                         ['<td><a href="/galaxyreports/neisseria/', isolate_name, '/report.html#',
                          genedetectiondict[scheme]['schemename_html'], '" target="_blank">',
