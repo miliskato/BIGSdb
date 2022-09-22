@@ -343,8 +343,8 @@
 
     - name: Add crontrab entry for database updates
       cron:
-        name: "crontab for weekly database updates, profiles 10 minutes later than sequences"
-        minute: '10'
+        name: "crontab for weekly database updates, profiles 30 minutes later than sequences"
+        minute: '30'
         hour: '6'
         weekday: '1'       # monday morning
         job: "{{ item.command }}"
