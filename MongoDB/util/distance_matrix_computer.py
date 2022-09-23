@@ -3,20 +3,24 @@ import numpy as np
 from MongoDB.util.hamming_distance import getDistance, __dist_wrapper, __parallel_dist, hamming_dist
 from multiprocessing import Pool
 from datetime import datetime
+from pathlib import Path
+import h5py
 
 class DistanceMatrixComputer:
     """
     Class to compute hamming distances and add them to the distance matrix in mongoDB
     """
 
-    def __init__(self, st_collection, distance_matrix_collection):
+    def __init__(self, st_collection, distance_matrix_collection, st_to_use: list):
         """
         Initialize the class
         :param st_collection: sequence type collection from mongoDb
         :param distance_matrix_collection:  distance matrix collection from mongoDB
+        :param st_to_use: the list of the sequence types to use or [0]if using all the st of the db
         """
         logging.getLogger().setLevel(logging.INFO)
         logging.info("Initialization of the distance matrix computer")
+        self.st_to_use = st_to_use
         self.st_collection = st_collection
         self.matrix_collection = distance_matrix_collection
         self.cgmlst_profiles = []
@@ -34,7 +38,15 @@ class DistanceMatrixComputer:
         retrieve all the cgmlst profiles as list from mongoDB st_collection
         :return:
         """
-        query_all_data = self.st_collection.find({})
+        if self.st_to_use == [0]:
+            logging.info("All cgmlst profiles from the db are being retrieved")
+            query_all_data = self.st_collection.find({})
+        else:
+            logging.info("Only the provided st are being retrieved")
+            query_or = []
+            for st in self.st_to_use:
+                query_or.append({'ST': st})
+            query_all_data = self.st_collection.find({'$or': query_or})
         for doc in query_all_data:
             if 'ST' in doc:
                 self.cgmlst_profiles.append(np.array(doc['cgMLST'].split(','), dtype=np.int32))
@@ -112,6 +124,24 @@ class DistanceMatrixComputer:
         batch_list = [insertion_docs[i:i + n] for i in range(0, len(insertion_docs), n)]
         for batch in batch_list:
             collection.insert_many(batch)
+
+    def save_as_hdf5(self, hdf_file: Path) ->None:
+
+        if len(self.hamming_distances) == 1:
+            with h5py.File(hdf_file, 'a') as file:
+                # if mode is last_st for distance computation then the result is added to the existing dataset.
+                file['distance_matrix'].resize((file['distance_matrix'].shape[0] + self.hamming_distances.shape[0]),
+                                              axis=0)
+                file['distance_matrix'][-self.hamming_distances.shape[0]:] = self.hamming_distances
+
+        else:
+            file = h5py.File(hdf_file, "w")
+            print(self.hamming_distances.shape)
+            # if full mode for the computation of the distance matrix, a new dataset is created.
+            file.create_dataset('distance_matrix', data=self.hamming_distances, maxshape=(None, self.hamming_distances.shape[1]))
+        file.close()
+        logging.info(f"{datetime.now()}: Distance matrix saved as hdf5 at the following location: {hdf_file}")
+
 
 # import pandas as pd
 # from multiprocessing import Pool

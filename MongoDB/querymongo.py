@@ -5,8 +5,9 @@ import pymongo
 from util.mongo_querying import Mongoquerying
 from util.mongo_initialisation import Mongoinitialisation
 from config import MONGO_CONFIG
-from util.mongo_hiercc_clustering import MongoHierCCClustering
-from util.clustering_maker import ClusteringMaker
+#from util.mongo_hiercc_clustering import MongoHierCCClustering
+#from util.clustering_maker import ClusteringMaker
+from MongoDB.util.distance_matrix_computer import DistanceMatrixComputer
 
 def _parse_arguments() -> argparse.Namespace:
     """
@@ -68,7 +69,10 @@ if __name__ == '__main__':
 
     # hc_number = mongoquerying.find_HC_numbers_for_isolate("S14BD02863", isolates_collection, hiercc_results_collection, 'HC0')
     # print(hc_number)
-    clusterer = ClusteringMaker(hiercc_results_collection, distance_matrix_collection, 100, 1)
-    clusterer.cluster_members = [1,5,100,110,501]
-    clusterer.retrieve_matrix_from_cluster()
-    clusterer.single_linkage_clustering('test1')
+    # clusterer = ClusteringMaker(hiercc_results_collection, distance_matrix_collection, 100, 1)
+    # clusterer.cluster_members = [1,5,100,110,501]
+    # clusterer.retrieve_matrix_from_cluster()
+    # clusterer.single_linkage_clustering('test1')
+    compute_matrix=DistanceMatrixComputer(st_collection,distance_matrix_collection,[1,3,10001])
+    compute_matrix.compute_hamming_distances('full')
+    print(compute_matrix.hamming_distances)

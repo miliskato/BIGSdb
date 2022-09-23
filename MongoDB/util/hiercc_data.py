@@ -1,6 +1,6 @@
 from pathlib import Path
 import gzip
-
+import numpy as np
 
 class HierCCData:
     """
@@ -21,7 +21,7 @@ class HierCCData:
                     self.header = self.__line_splitter(line)
                     self.header[0] = self.header[0].replace("#", "")
                 else:
-                    self.data.append(self.__line_splitter(line))
+                    self.data.append(np.array(self.__line_splitter(line)))
 
     def __line_splitter(self, raw_line: str) -> list:
         return raw_line.replace('\n','').split('\t')

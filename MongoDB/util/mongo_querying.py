@@ -82,6 +82,7 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
                 allele_id = locus['Allele_designation']
                 if isinstance(allele_id, int) and locus['Percentage_identity'] == 100.00 and eval(
                         locus['Coverage']) == 1.0:
+
                     resultlist.append(allele_id)
                 else:
                     resultlist.append(0)

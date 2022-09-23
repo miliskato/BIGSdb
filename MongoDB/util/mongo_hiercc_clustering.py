@@ -7,6 +7,7 @@ import gzip
 import subprocess
 import logging
 import hashlib
+from pathlib import Path
 
 
 class MongoHierCCClustering:
@@ -46,8 +47,8 @@ class MongoHierCCClustering:
                              f"from {self.species}")
                 self.__add_new_sequence_type(st_collection)
                 logging.info(f"Start to process cgmlst profiles for distance computing")
-                self.__compute_distance_matrix(st_collection, distance_matrix_collection)
-                logging.info(f"Running HierCC tool for clustering")
+                # self.__compute_distance_matrix(st_collection, distance_matrix_collection)
+                # logging.info(f"Running HierCC tool for clustering")
                 self.__run_hiercc()
                 logging.info(f"Retrieving results from HierCC")
                 self.hc_results = self.__retrieve_hiercc_result()
@@ -88,7 +89,7 @@ class MongoHierCCClustering:
         incorporate the results in the database.
         :return:
         """
-        missing_alleles = self.cgmlst_profile.cgmlst.count('0')
+        missing_alleles = self.cgmlst_profile.cgmlst.count(0)
         proportion_of_missing_alleles = missing_alleles / len(self.cgmlst_profile.cgmlst)
         logging.info(f"Proportion of missing allele is {proportion_of_missing_alleles}")
         if proportion_of_missing_alleles > HIERCC_CONFIG["allowed_missing_data_proportion"]:
@@ -112,7 +113,7 @@ class MongoHierCCClustering:
     def __compute_distance_matrix(self, st_collection, distance_matrix_collection):
         distance_matrix = DistanceMatrixComputer(st_collection, distance_matrix_collection)
         distance_matrix.compute_hamming_distances('last_st')
-        distance_matrix.insert_hamming_distances_in_mongo()
+        distance_matrix.save_as_hdf5(HIERCC_CONFIG[self.species]["distance_matrix"])
 
     def __run_hiercc(self) -> None:
         """
