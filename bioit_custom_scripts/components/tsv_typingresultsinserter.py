@@ -5,7 +5,7 @@ import re
 import ast
 import logging
 
-class TypingResultsInserter:
+class TsvTypingResultsInserter:
     """
     Class containing all queries for Mongo
     """
@@ -40,8 +40,8 @@ class TypingResultsInserter:
                         # the elif below is specific to Listeria pcr serogroup where 0's are included in the profiles
                         # (absent loci are required to define profiles)
                         # Bigsdb creates a null allele itself in the seqdef database
-                        elif result[2] == '-' and result[3] == '-' and 'listeria_serogroup' in schemedict.keys() and directory in \
-                                next(os.walk(schemedict['listeria_serogroup']['dirdb']))[1]:
+                        elif result[2] == '-' and result[3] == '-' and (('listeria_serogroup' in schemedict.keys() and directory in \
+                                next(os.walk(schemedict['listeria_serogroup']['dirdb']))[1]) or directory == 'NadA_peptide'):
                             allele_id = 0
                             cur_isolates.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
                                         f"allele_id, status, method, sender, "
@@ -392,7 +392,7 @@ class TypingResultsInserter:
                     elif scheme == 'salmonella_spifinder':
                         schemes_spifinder = ['spifinder_fastq', 'spifinder_fasta']
                         for scheme in schemes_spifinder:
-                            if 'spifinder_fastq' in outputtsvdict:
+                            if scheme in outputtsvdict:
                                 hits = outputtsvdict[scheme]
                                 if hits != '[]':
                                     hits = ast.literal_eval(hits)

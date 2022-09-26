@@ -13,6 +13,8 @@ import smtplib
 from email.message import EmailMessage
 import socket
 import traceback
+import sys
+import logging
 
 
 schemedict = {
@@ -46,6 +48,8 @@ schemedict = {
 emaildict = {"from": "bioit-dev1@wiv-isp.be",
     "to": "michael.kelchtermans@sciensano.be, benoit.bergkpinto@sciensano.be",
     "host": "smtp.wiv-isp.be"}
+
+logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
 def insert_alleles():
     for scheme in schemedict:
@@ -159,6 +163,7 @@ def send_email(subject: str, content: str, config: dict) -> None:
     message.set_content(content)
     with smtplib.SMTP(config['host']) as s:
         s.send_message(message)
+    logging.info(content)
 
 try:
     insert_alleles()

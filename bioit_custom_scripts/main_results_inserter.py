@@ -1,17 +1,9 @@
 import argparse
 import json
 import logging
-import tempfile
 from pathlib import Path
-from urllib.parse import urljoin
-import concurrent.futures
-import os
 import sys
-import shutil
-import requests
 import yaml
-import psycopg2
-import subprocess
 import smtplib
 from email.message import EmailMessage
 import socket
@@ -20,8 +12,10 @@ import traceback
 from config import CONFIG
 from components.databaseconnection import Database_connection
 from components.maininserter import MainInserter
-from components.tsv_typingresultsinserter import TypingResultsInserter
-from components.tsv_genedetectionresultsinserter import GeneDetectionResultsInserter
+from components.tsv_typingresultsinserter import TsvTypingResultsInserter
+from components.tsv_genedetectionresultsinserter import TsvGeneDetectionResultsInserter
+from components.json_typingresultsinserter import JsonTypingResultsInserter
+from components.json_genedetectionresultsinserter import JsonGeneDetectionResultsInserter
 
 def _parse_arguments() -> argparse.Namespace:
     """
@@ -29,7 +23,9 @@ def _parse_arguments() -> argparse.Namespace:
     :return: Parsed arguments
     """
     argument_parser = argparse.ArgumentParser()
-    argument_parser.add_argument('--tsvfilepath', required=True, type=Path)
+    mutually_exclusive_group = argument_parser.add_mutually_exclusive_group(required=True)
+    mutually_exclusive_group.add_argument('--tsvfilepath', type=Path)
+    mutually_exclusive_group.add_argument('--jsonfilepath', type=Path)
     argument_parser.add_argument('--isolatename', required=True, type=str)
     argument_parser.add_argument('--uploadermailadress', required=True, type=str)
     argument_parser.add_argument('--species', required=True, type=str,
@@ -50,6 +46,7 @@ def send_email(subject: str, content: str, config: dict) -> None:
     message.set_content(content)
     with smtplib.SMTP(config['host']) as s:
         s.send_message(message)
+    logging.info(content)
 
 if __name__ == '__main__':
     # Configure stdout logging
@@ -63,10 +60,17 @@ if __name__ == '__main__':
         config_data = yaml.safe_load(handle)
 
     # parse output
-    outputtsvdict = {}
-    handle = open(args.tsvfilepath, 'r').readlines()
-    for line in handle:
-        outputtsvdict[line.split('\t')[0]] = line.split('\t')[1].strip('\n')
+    if args.tsvfilepath:
+        outputtsvdict = {}
+        handle = open(args.tsvfilepath, 'r').readlines()
+        for line in handle:
+            outputtsvdict[line.split('\t')[0]] = line.split('\t')[1].strip('\n')
+    elif args.jsonfilepath:
+        records = json.load(open(args.jsonfilepath, 'r'))
+        if 'results' in records.keys():
+            outputjsondict = records['results']
+        else:
+            outputjsondict = records
 
     #Connect to db and create cursor
     cur_isolates, cur_seqdef = Database_connection().open_database_connections(args.species)
@@ -83,10 +87,14 @@ if __name__ == '__main__':
         cur_isolates.execute(f"INSERT INTO history(isolate_id, timestamp, action, curator)"
                     f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{args.isolatename}'),(SELECT NOW()::TIMESTAMP), 'Isolate record added', 1)")
         try:
-            MainInserter().insert_main(args.isolatename, args.species, cur_isolates, outputtsvdict)
-            TypingResultsInserter().insert_typing_results(args.isolatename, args.species, config_data['species'][args.species]['typing_schemes'], outputtsvdict, cur_isolates, cur_seqdef)
-            if config_data['species'][args.species]['genedetection_schemes'] is not None:
-                GeneDetectionResultsInserter().insert_genedetection_results(args.isolatename, args.species, config_data['species'][args.species]['genedetection_schemes'], outputtsvdict, cur_isolates, cur_seqdef)
+            if args.tsvfilepath:
+                MainInserter(args.isolatename, args.species, cur_isolates, cur_seqdef, outputtsvdict).insert_main()
+                TsvTypingResultsInserter().insert_typing_results(args.isolatename, args.species, config_data['species'][args.species]['typing_schemes'], outputtsvdict, cur_isolates, cur_seqdef)
+                TsvGeneDetectionResultsInserter().insert_genedetection_results(args.isolatename, args.species, config_data['species'][args.species]['genedetection_schemes'], outputtsvdict, cur_isolates, cur_seqdef)
+            elif args.jsonfilepath:
+                MainInserter(args.isolatename, args.species, cur_isolates, cur_seqdef, outputjsondict).insert_main()
+                JsonTypingResultsInserter(args.isolatename, args.species, cur_isolates, cur_seqdef, outputjsondict).insert_typing_results(config_data['species_json'][args.species]['typing_schemes'])
+                JsonGeneDetectionResultsInserter(args.isolatename, args.species, cur_isolates, cur_seqdef, outputjsondict).insert_genedetection_results(config_data['species_json'][args.species]['genedetection_schemes'])
             logging.info('Finished inserting results')
         except Exception as exceptionmessage:
             cur_isolates.execute(f"DELETE FROM isolates WHERE isolate='{args.isolatename}'")
@@ -102,10 +110,14 @@ if __name__ == '__main__':
         if alleles_presence[0][0] == 0:
             # no allele designations are present so we insert them
             try:
-                MainInserter().insert_main(args.isolatename, args.species, cur_isolates, outputtsvdict)
-                TypingResultsInserter().insert_typing_results(args.isolatename, args.species, config_data['species'][args.species]['typing_schemes'], outputtsvdict, cur_isolates, cur_seqdef)
-                if config_data['species'][args.species]['genedetection_schemes'] is not None:
-                    GeneDetectionResultsInserter().insert_genedetection_results(args.isolatename, args.species, config_data['species'][args.species]['genedetection_schemes'], outputtsvdict, cur_isolates, cur_seqdef)
+                if args.tsvfilepath:
+                    MainInserter(args.isolatename, args.species, cur_isolates, cur_seqdef, outputtsvdict).insert_main()
+                    TsvTypingResultsInserter().insert_typing_results(args.isolatename, args.species, config_data['species'][args.species]['typing_schemes'], outputtsvdict, cur_isolates, cur_seqdef)
+                    TsvGeneDetectionResultsInserter().insert_genedetection_results(args.isolatename, args.species, config_data['species'][args.species]['genedetection_schemes'], outputtsvdict, cur_isolates, cur_seqdef)
+                elif args.jsonfilepath:
+                    MainInserter(args.isolatename, args.species, cur_isolates, cur_seqdef, outputjsondict).insert_main()
+                    JsonTypingResultsInserter(args.isolatename, args.species, cur_isolates, cur_seqdef, outputjsondict).insert_typing_results(config_data['species_json'][args.species]['typing_schemes'])
+                    JsonGeneDetectionResultsInserter(args.isolatename, args.species, cur_isolates, cur_seqdef, outputjsondict).insert_genedetection_results(config_data['species_json'][args.species]['genedetection_schemes'])
                 logging.info('Finished inserting results')
             except Exception as exceptionmessage:
                 send_email(
@@ -123,10 +135,14 @@ if __name__ == '__main__':
         if alleles_presence[0][0] == 0:
             # no allele designations are present so we insert them
             try:
-                MainInserter().insert_main(args.isolatename, args.species, cur_isolates, outputtsvdict)
-                TypingResultsInserter().insert_typing_results(args.isolatename, args.species, config_data['species'][args.species]['typing_schemes'], outputtsvdict, cur_isolates, cur_seqdef)
-                if config_data['species'][args.species]['genedetection_schemes'] is not None:
-                    GeneDetectionResultsInserter().insert_genedetection_results(args.isolatename, args.species, config_data['species'][args.species]['genedetection_schemes'], outputtsvdict, cur_isolates, cur_seqdef)
+                if args.tsvfilepath:
+                    MainInserter(args.isolatename, args.species, cur_isolates, cur_seqdef, outputtsvdict).insert_main()
+                    TsvTypingResultsInserter().insert_typing_results(args.isolatename, args.species, config_data['species'][args.species]['typing_schemes'], outputtsvdict, cur_isolates, cur_seqdef)
+                    TsvGeneDetectionResultsInserter().insert_genedetection_results(args.isolatename, args.species, config_data['species'][args.species]['genedetection_schemes'], outputtsvdict, cur_isolates, cur_seqdef)
+                elif args.jsonfilepath:
+                    MainInserter(args.isolatename, args.species, cur_isolates, cur_seqdef, outputjsondict).insert_main()
+                    JsonTypingResultsInserter(args.isolatename, args.species, cur_isolates, cur_seqdef, outputjsondict).insert_typing_results(config_data['species_json'][args.species]['typing_schemes'])
+                    JsonGeneDetectionResultsInserter(args.isolatename, args.species, cur_isolates, cur_seqdef, outputjsondict).insert_genedetection_results(config_data['species_json'][args.species]['genedetection_schemes'])
                 logging.info('Finished inserting results')
             except Exception as exceptionmessage:
                 send_email(

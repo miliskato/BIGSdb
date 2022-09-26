@@ -235,3 +235,191 @@ species:
         tsvname: hits_plasmidfinder
         schemename_bigsdb: PlasmidFinder_entero
         schemename_html: PlasmidFinder - Enterobacteriaceae
+
+species_json:
+  listeria:
+    typing_schemes:
+      mlst:
+        type: regular
+      cgmlst:
+        type: regular
+      pcr_serogroup:
+        type: regular
+      metal_detergent:
+        type: regular
+      typing_virulence:
+        type: regular
+      typing_amr:
+        type: regular
+      species_confirmation:
+        type: regular
+    genedetection_schemes:
+      ncbi_amr:
+        clusteredfasta: /db/gene_detection/NCBI_AMR/ncbi_amr-clustered_80.fasta
+        metadatafile: /db/gene_detection/NCBI_AMR/mapping_full.json
+        schemename_bigsdb: NCBI_AMR
+        schemename_html: NCBI AMR genes
+      resfinder:
+        clusteredfasta: /db/gene_detection/ResFinder/resfinder-clustered_80.fasta
+        metadatafile: /db/gene_detection/ResFinder/mapping_full.json
+        schemename_bigsdb: ResFinder
+        schemename_html: ResFinder
+      virulencefinder:
+        clusteredfasta: /db/gene_detection/VirulenceFinder-Listeria/virulencefinder-listeria-clustered_80.fasta
+        metadatafile: /db/gene_detection/VirulenceFinder-Listeria/mapping_full.json
+        schemename_bigsdb: VirulenceFinder_Listeria
+        schemename_html: VirulenceFinder - <i>Listeria</i>
+      vfdb_core:
+        clusteredfasta: /db/gene_detection/VFDB_core/vfdb_core-clustered_80.fasta
+        metadatafile: /db/gene_detection/VFDB_core/mapping_full.json
+        schemename_bigsdb: VFDB_core
+        schemename_html: Virulence Factor DB - Core
+      plasmidfinder:
+        clusteredfasta: /db/gene_detection/PlasmidFinder-gram_positive/plasmidfinder-gram_positive-clustered_80.fasta
+        metadatafile: /db/gene_detection/PlasmidFinder-gram_positive/mapping_full.json
+        schemename_bigsdb: PlasmidFinder_grampositive
+        schemename_html: PlasmidFinder - Gram positive
+  mycobacterium:
+    typing_schemes:
+      mlst:
+        type: regular
+      cgmlst:
+        type: regular
+      spoligotyping:
+        type: irregular
+      51SNP:
+        type: irregular
+      csb_rd:
+        type: irregular
+      amr_who:
+        type: irregular
+      hsp65:
+        type: irregular
+      pointfinder:
+        type: irregular
+        schemename_html: PointFinder
+      ncbi_16s:
+        type: irregular
+    genedetection_schemes: null
+  neisseria:
+    typing_schemes:
+      mlst:
+        type: regular
+      cgmlst:
+        type: regular
+      rplf:
+        type: regular
+      bast:
+        type: regular
+      pora:
+        type: regular
+      porb:
+        type: regular
+      feta:
+        type: regular
+      resistance_genes:
+        type: regular
+      vaccine_targets:
+        type: regular
+      fhbp:
+        type: regular
+#      neisseria_fhbppept:
+#        dirdb: /db/sequence_typing/neisseria/fhbp
+#        tsvname: Fhbp
+    genedetection_schemes:
+      ncbi_amr:
+        clusteredfasta: /db/gene_detection/NCBI_AMR/ncbi_amr-clustered_80.fasta
+        metadatafile: /db/gene_detection/NCBI_AMR/mapping_full.json
+        schemename_bigsdb: NCBI_AMR
+        schemename_html: NCBI AMR genes
+      resfinder:
+        clusteredfasta: /db/gene_detection/ResFinder/resfinder-clustered_80.fasta
+        metadatafile: /db/gene_detection/ResFinder/mapping_full.json
+        schemename_bigsdb: ResFinder
+        schemename_html: ResFinder
+  stec:
+    typing_schemes:
+      mlst_warwick:
+        type: regular
+      mlst_pasteur:
+        type: regular
+      cgmlst:
+        type: regular
+      pointfinder:
+        type: irregular
+        schemename_html: PointFinder
+      serotype:
+        type: irregular
+    genedetection_schemes:
+      ncbi_amr:
+        clusteredfasta: /db/gene_detection/NCBI_AMR/ncbi_amr-clustered_80.fasta
+        metadatafile: /db/gene_detection/NCBI_AMR/mapping_full.json
+        schemename_bigsdb: NCBI_AMR
+        schemename_html: NCBI AMR genes
+      resfinder:
+        clusteredfasta: /db/gene_detection/ResFinder/resfinder-clustered_80.fasta
+        metadatafile: /db/gene_detection/ResFinder/mapping_full.json
+        schemename_bigsdb: ResFinder
+        schemename_html: ResFinder
+      plasmidfinder:
+        clusteredfasta: >-
+          /db/gene_detection/PlasmidFinder-entero/plasmidfinder-entero-clustered_80.fasta
+        metadatafile: /db/gene_detection/PlasmidFinder-entero/mapping_full.json
+        schemename_bigsdb: PlasmidFinder_entero
+        schemename_html: PlasmidFinder - Enterobacteriaceae
+      virulencefinder:
+        clusteredfasta: >-
+          /db/gene_detection/VirulenceFinder-Ecoli/virulencefinder-ecoli-clustered_80.fasta
+        metadatafile: /db/gene_detection/VirulenceFinder-Ecoli/mapping_full.json
+        schemename_bigsdb: VirulenceFinder_Ecoli
+        schemename_html: VirulenceFinder - <i>E. coli</i>
+      virulencefinder_shiga:
+        clusteredfasta: >-
+          /db/gene_detection/VirulenceFinder-Shiga/virulencefinder-shiga-clustered_80.fasta
+        metadatafile: /db/gene_detection/VirulenceFinder-Shiga/mapping_full.json
+        schemename_bigsdb: VirulenceFinder_Shiga
+        schemename_html: VirulenceFinder - Shiga-toxin genes
+  salmonella:
+    typing_schemes:
+      mlst:
+        type: regular
+      cgmlst:
+        type: regular
+      pointfinder:
+        type: irregular
+        schemename_html: PointFinder
+      genotyphi:
+        type: irregular
+      sistr:
+        type: irregular
+      seqsero2_kmer:
+        type: irregular
+      seqsero2_allele:
+        type: irregular
+      seqsero2_kmerread:
+        type: irregular
+      spifinder_fastq:
+        type: irregular
+      spifinder_fasta:
+        type: irregular
+    genedetection_schemes:
+      ncbi_amr:
+        clusteredfasta: /db/gene_detection/NCBI_AMR/ncbi_amr-clustered_80.fasta
+        metadatafile: /db/gene_detection/NCBI_AMR/mapping_full.json
+        schemename_bigsdb: NCBI_AMR
+        schemename_html: NCBI AMR genes
+      resfinder:
+        clusteredfasta: /db/gene_detection/ResFinder/resfinder-clustered_80.fasta
+        metadatafile: /db/gene_detection/ResFinder/mapping_full.json
+        schemename_bigsdb: ResFinder
+        schemename_html: ResFinder
+      vfdb_core:
+        clusteredfasta: /db/gene_detection/VFDB_core/vfdb_core-clustered_80.fasta
+        metadatafile: /db/gene_detection/VFDB_core/mapping_full.json
+        schemename_bigsdb: VFDB_core
+        schemename_html: Virulence Factor DB - Core
+      plasmidfinder:
+        clusteredfasta: /db/gene_detection/PlasmidFinder-entero/plasmidfinder-entero-clustered_80.fasta
+        metadatafile: /db/gene_detection/PlasmidFinder-entero/mapping_full.json
+        schemename_bigsdb: PlasmidFinder_entero
+        schemename_html: PlasmidFinder - Enterobacteriaceae

@@ -11,6 +11,8 @@ import smtplib
 from email.message import EmailMessage
 import socket
 import traceback
+import sys
+import logging
 
 schemedict = {
               'listeria_ndaro':           {'clusteredfasta': '/db/gene_detection/NCBI_AMR/ncbi_amr-clustered_80.fasta',
@@ -129,8 +131,10 @@ schemedict = {
               }
 
 emaildict = {"from": "bioit-dev1@wiv-isp.be",
-    "to": "michael.kelchtermans@sciensano.be, benoit.bergkpinto@sciensano.be",
+    "to": "michael.kelchtermans@sciensano.be",
     "host": "smtp.wiv-isp.be"}
+
+logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
 def gene_detection_insertion_recalcultation():
     for scheme in schemedict:
@@ -141,43 +145,43 @@ def gene_detection_insertion_recalcultation():
             # line looks like this: >0__Cluster_0__seq_4648__seq_4648
             if line.startswith('>'):
                 clusterlist.append('_'.join([schemedict[scheme]['schemename_bigsdb'], ''.join(['Gene', line.split('__')[1]])]))
-        for cluster in clusterlist:
-            con = psycopg2.connect(database=f"{schemedict[scheme]['seqdefdb']}", user="apache", password="remote",
-                                   host="127.0.0.1", port="")
-            cur = con.cursor()
-            con.autocommit = True
-            cur.execute(f"SELECT count(*) FROM loci WHERE id='{cluster}'")
-            present = cur.fetchall()
-            if present[0][0] == 0:
-                cur.execute(f"INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, curator, date_entered, datestamp) \
-                                  VALUES('{cluster}','DNA','text', 't', 't', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE))")
-                cur.execute(f"INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) \
-                                  VALUES((SELECT id FROM schemes WHERE name='{schemedict[scheme]['schemename_bigsdb']}'), '{cluster}', 1, (SELECT CURRENT_DATE))")
-                cur.execute(f"INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) \
-                                  VALUES(1, '{cluster}', 1, (SELECT CURRENT_DATE))")
-                cur.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status,sender,curator, date_entered, datestamp) \
-                              VALUES('{cluster}',1,'TAG','unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
-                cur.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status, sender,curator, date_entered, datestamp) \
-                              VALUES('{cluster}',0, 'null allele', '',0,0,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
-                con.close()
-                con = psycopg2.connect(database=f"{schemedict[scheme]['isolatedb']}", user="apache", password="remote",
-                                       host="127.0.0.1", port="")
-                cur = con.cursor()
-                con.autocommit = True
-                dbaseurl = ''.join(
-                    ['/cgi-bin/bigsdb/bigsdb.pl?db=', f"{schemedict[scheme]['seqdefdb']}", '&page=alleleInfo&locus=', f"{cluster}", '&allele_id=[?]'])
-                cur.execute(
-                    f"INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, dbase_name, dbase_id, "
-                    f"url, isolate_display, main_display, query_field, analysis, submission_template, "
-                    f"curator, date_entered, datestamp) \
-                                  VALUES('{cluster}','DNA','text', 't', 't', '{schemedict[scheme]['seqdefdb']}', '{cluster}', "
-                    f"'{dbaseurl}', 'allele_only', 'f', 't', 't', 'f',"
-                    f" 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE))")
-                cur.execute(f"INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) \
-                                  VALUES((SELECT id FROM schemes WHERE name='{schemedict[scheme]['schemename_bigsdb']}'), '{cluster}', 1, (SELECT CURRENT_DATE))")
-                con.close()
-            else:
-                continue
+        # for cluster in clusterlist:
+        #     con = psycopg2.connect(database=f"{schemedict[scheme]['seqdefdb']}", user="apache", password="remote",
+        #                            host="127.0.0.1", port="")
+        #     cur = con.cursor()
+        #     con.autocommit = True
+        #     cur.execute(f"SELECT count(*) FROM loci WHERE id='{cluster}'")
+        #     present = cur.fetchall()
+        #     if present[0][0] == 0:
+        #         cur.execute(f"INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, curator, date_entered, datestamp) \
+        #                           VALUES('{cluster}','DNA','text', 't', 't', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE))")
+        #         cur.execute(f"INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) \
+        #                           VALUES((SELECT id FROM schemes WHERE name='{schemedict[scheme]['schemename_bigsdb']}'), '{cluster}', 1, (SELECT CURRENT_DATE))")
+        #         cur.execute(f"INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) \
+        #                           VALUES(1, '{cluster}', 1, (SELECT CURRENT_DATE))")
+        #         cur.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status,sender,curator, date_entered, datestamp) \
+        #                       VALUES('{cluster}',1,'TAG','unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+        #         cur.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status, sender,curator, date_entered, datestamp) \
+        #                       VALUES('{cluster}',0, 'null allele', '',0,0,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+        #         con.close()
+        #         con = psycopg2.connect(database=f"{schemedict[scheme]['isolatedb']}", user="apache", password="remote",
+        #                                host="127.0.0.1", port="")
+        #         cur = con.cursor()
+        #         con.autocommit = True
+        #         dbaseurl = ''.join(
+        #             ['/cgi-bin/bigsdb/bigsdb.pl?db=', f"{schemedict[scheme]['seqdefdb']}", '&page=alleleInfo&locus=', f"{cluster}", '&allele_id=[?]'])
+        #         cur.execute(
+        #             f"INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, dbase_name, dbase_id, "
+        #             f"url, isolate_display, main_display, query_field, analysis, submission_template, "
+        #             f"curator, date_entered, datestamp) \
+        #                           VALUES('{cluster}','DNA','text', 't', 't', '{schemedict[scheme]['seqdefdb']}', '{cluster}', "
+        #             f"'{dbaseurl}', 'allele_only', 'f', 't', 't', 'f',"
+        #             f" 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE))")
+        #         cur.execute(f"INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) \
+        #                           VALUES((SELECT id FROM schemes WHERE name='{schemedict[scheme]['schemename_bigsdb']}'), '{cluster}', 1, (SELECT CURRENT_DATE))")
+        #         con.close()
+        #     else:
+        #         continue
 
         #Part 2 removing and updating all allele designations (clusters) for all isolates containing data for that gene detection cluster.
 
@@ -241,37 +245,63 @@ def gene_detection_insertion_recalcultation():
                 isolate_name = cur.fetchall()[0][0]
                 eavhtmltable = '<table class="data"><tr><th>GeneCluster</th><th>Locus</th></tr>'
                 clusterhitlist = []  # in case loci that were in different clusters at some point get in the same cluster
-                y = 0
-                while y <= (len(json.loads(listofsamplesandhits[x][1])) - 1):
-                    # allele is always position 1 and accession is always last position (-1)
-                    hit = '_'.join([(json.loads(listofsamplesandhits[x][1]))[y][-1], (json.loads(listofsamplesandhits[x][1]))[y][1]])
-                    clusterhit = clusterdict[hit]
-                    # append Cluster
-                    eavhtmltable = eavhtmltable + ''.join(['<tr><td>', ''.join(['GeneCluster', clusterhit.split('Cluster')[1]]), '</td>'])
-                    # append Locus
-                    if scheme != 'vfdb_core':
-                        eavhtmltable = eavhtmltable + ''.join(['<td><a href="/galaxyreports/', schemedict[scheme]['species'], '/', isolate_name, '/report.html#', schemedict[scheme]['schemename_html'], '" target="_blank">', (json.loads(listofsamplesandhits[x][1]))[y][1], '</a></td></tr>'])
-                    else:
-                        eavhtmltable = eavhtmltable + ''.join(['<td><a href="/galaxyreports/', schemedict[scheme]['species'], '/', isolate_name, '/report.html#', schemedict[scheme]['schemename_html'], '" target="_blank">', (json.loads(listofsamplesandhits[x][1]))[y][-2], '</a></td></tr>'])
+                if json.loads(listofsamplesandhits[x][1]) != []:
+                    for y in range(len(json.loads(listofsamplesandhits[x][1]))):
+                        if isinstance(json.loads(listofsamplesandhits[x][1])[y], list):
+                            # allele is always position 1 and accession is always last position (-1)
+                            hit = '_'.join([(json.loads(listofsamplesandhits[x][1]))[y][-1], (json.loads(listofsamplesandhits[x][1]))[y][1]])
+                            clusterhit = clusterdict[hit]
+                            # append Cluster
+                            eavhtmltable = eavhtmltable + ''.join(
+                                ['<tr><td>', ''.join(['GeneCluster', clusterhit.split('Cluster')[1]]), '</td>'])
+                            # append Locus
+                            if scheme != 'vfdb_core':
+                                eavhtmltable = eavhtmltable + ''.join(
+                                    ['<td><a href="/galaxyreports/', schemedict[scheme]['species'], '/', isolate_name,
+                                     '/report.html#', schemedict[scheme]['schemename_html'], '" target="_blank">',
+                                     (json.loads(listofsamplesandhits[x][1]))[y][1], '</a></td></tr>'])
+                            else:
+                                eavhtmltable = eavhtmltable + ''.join(
+                                    ['<td><a href="/galaxyreports/', schemedict[scheme]['species'], '/', isolate_name,
+                                     '/report.html#', schemedict[scheme]['schemename_html'], '" target="_blank">',
+                                     (json.loads(listofsamplesandhits[x][1]))[y][-2], '</a></td></tr>'])
 
-                    if clusterhit not in clusterhitlist:
-                        cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
-                                    f"allele_id, status, method, sender, "
-                                    f"curator, date_entered, datestamp) "
-                                    f"VALUES('{clusterhit}', {isolate_id}, "
-                                    f"1, 'confirmed', 'automatic', 1, "
-                                    f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
-                    clusterhitlist.append(clusterhit)
-                    y += 1
-                eavhtmltable = eavhtmltable + '</table>'
-                cur.execute(f"DELETE FROM eav_text WHERE isolate_id = '{isolate_id}' AND field ='{schemedict[scheme]['schemename_bigsdb']}'")
-                cur.execute(f"INSERT INTO eav_text(isolate_id, "
-                            f"field, value)"
-                            f"VALUES('{isolate_id}',"
-                            f"'{schemedict[scheme]['schemename_bigsdb']}', '{eavhtmltable}') ")
-                x += 1
-                cur.execute(f"INSERT INTO history(isolate_id, timestamp, action, curator)"
-                            f"VALUES('{isolate_id}',(SELECT NOW()::TIMESTAMP), 'Gene detection results reevaluated after database update', 1)")
+                        elif isinstance(json.loads(listofsamplesandhits[x][1])[y], dict):
+                            hit = '_'.join([(json.loads(listofsamplesandhits[x][1]))[y]['Accession'],
+                                            (json.loads(listofsamplesandhits[x][1]))[y]['Locus']])
+                            clusterhit = clusterdict[hit]
+                            # append Cluster
+                            eavhtmltable = eavhtmltable + ''.join(
+                                ['<tr><td>', ''.join(['GeneCluster', clusterhit.split('Cluster')[1]]), '</td>'])
+                            # append Locus
+                            if scheme != 'vfdb_core':
+                                eavhtmltable = eavhtmltable + ''.join(
+                                    ['<td><a href="/galaxyreports/', schemedict[scheme]['species'], '/', isolate_name,
+                                     '/report.html#', schemedict[scheme]['schemename_html'], '" target="_blank">',
+                                     (json.loads(listofsamplesandhits[x][1]))[y]['Locus'], '</a></td></tr>'])
+                            else:
+                                eavhtmltable = eavhtmltable + ''.join(
+                                    ['<td><a href="/galaxyreports/', schemedict[scheme]['species'], '/', isolate_name,
+                                     '/report.html#', schemedict[scheme]['schemename_html'], '" target="_blank">',
+                                     (json.loads(listofsamplesandhits[x][1]))[y]['Gene'], '</a></td></tr>'])
+
+                        if clusterhit not in clusterhitlist:
+                            cur.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
+                                        f"allele_id, status, method, sender, "
+                                        f"curator, date_entered, datestamp) "
+                                        f"VALUES('{clusterhit}', {isolate_id}, "
+                                        f"1, 'confirmed', 'automatic', 1, "
+                                        f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                        clusterhitlist.append(clusterhit)
+                    eavhtmltable = eavhtmltable + '</table>'
+                    cur.execute(f"DELETE FROM eav_text WHERE isolate_id = '{isolate_id}' AND field ='{schemedict[scheme]['schemename_bigsdb']}'")
+                    cur.execute(f"INSERT INTO eav_text(isolate_id, "
+                                f"field, value)"
+                                f"VALUES('{isolate_id}',"
+                                f"'{schemedict[scheme]['schemename_bigsdb']}', '{eavhtmltable}') ")
+                    x += 1
+                    cur.execute(f"INSERT INTO history(isolate_id, timestamp, action, curator)"
+                                f"VALUES('{isolate_id}',(SELECT NOW()::TIMESTAMP), 'Gene detection results reevaluated after database update', 1)")
         con.close()
 
 def send_email(subject: str, content: str, config: dict) -> None:
@@ -288,6 +318,7 @@ def send_email(subject: str, content: str, config: dict) -> None:
     message.set_content(content)
     with smtplib.SMTP(config['host']) as s:
         s.send_message(message)
+    logging.info(content)
 
 try:
     gene_detection_insertion_recalcultation()

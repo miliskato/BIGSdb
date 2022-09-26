@@ -279,7 +279,7 @@ def insert_typing_results():
             elif scheme == 'salmonella_spifinder':
                 schemes_spifinder = ['spifinder_fastq', 'spifinder_fasta']
                 for scheme in schemes_spifinder:
-                    if 'spifinder_fastq' in outputtsvdict:
+                    if scheme in outputtsvdict:
                         hits = outputtsvdict[scheme]
                         if hits != '[]':
                             hits = ast.literal_eval(hits)

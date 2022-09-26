@@ -4,6 +4,8 @@ import smtplib
 from email.message import EmailMessage
 import socket
 import traceback
+import sys
+import logging
 # For this script I am assuming that profiles do not retire.
 # It is important to keep in mind that ST do not neccesarily follow each other up continuosly, there can be gaps
 
@@ -25,6 +27,8 @@ profile_file = 'profiles.tsv'
 emaildict = {"from": "bioit-dev1@wiv-isp.be",
     "to": "michael.kelchtermans@sciensano.be, benoit.bergkpinto@sciensano.be",
     "host": "smtp.wiv-isp.be"}
+
+logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
 # three tables are important:
 
@@ -102,12 +106,16 @@ def insert_profiles(scheme, indexdict, list_to_be_inserted):
                         # print(" ".join(line.split()).split(' '))
                         # print(indexdict[locus])
                         # print(locusvalue)
-                        cur.execute(f"INSERT INTO profile_members(scheme_id, "
-                                    f"locus, profile_id, allele_id, "
-                                    f"curator, datestamp) "
-                                    f"VALUES((SELECT id FROM schemes WHERE name = '{schemedict[scheme]['schemename_bigsdb']}'),"
-                                    f"'{locus}', '{profile}', '{locusvalue}', "
-                                    f"1,(SELECT CURRENT_DATE))")
+                        try:
+                            cur.execute(f"INSERT INTO profile_members(scheme_id, "
+                                        f"locus, profile_id, allele_id, "
+                                        f"curator, datestamp) "
+                                        f"VALUES((SELECT id FROM schemes WHERE name = '{schemedict[scheme]['schemename_bigsdb']}'),"
+                                        f"'{locus}', '{profile}', '{locusvalue}', "
+                                        f"1,(SELECT CURRENT_DATE))")
+                        except:
+                            logging.info(f"profile with field {field} and value {fieldvalue.replace('_',' ')} already exists as another field")
+                            continue
     con.close()
 
 def insert_all_profiles():
@@ -166,6 +174,7 @@ def send_email(subject: str, content: str, config: dict) -> None:
     message.set_content(content)
     with smtplib.SMTP(config['host']) as s:
         s.send_message(message)
+    logging.info(content)
 
 try:
     insert_all_profiles()
