@@ -6,6 +6,9 @@ import socket
 import traceback
 import sys
 import logging
+import yaml
+
+from config import CONFIG
 # For this script I am assuming that profiles do not retire.
 # It is important to keep in mind that ST do not neccesarily follow each other up continuosly, there can be gaps
 
@@ -24,9 +27,9 @@ schemedict = {
 
 profile_file = 'profiles.tsv'
 
-emaildict = {"from": "bioit-dev1@wiv-isp.be",
-    "to": "michael.kelchtermans@sciensano.be, benoit.bergkpinto@sciensano.be",
-    "host": "smtp.wiv-isp.be"}
+with open(CONFIG, encoding='utf-8') as handle:
+    config_data = yaml.safe_load(handle)
+emaildict = config_data['mail']
 
 logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 

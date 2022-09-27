@@ -15,6 +15,9 @@ import socket
 import traceback
 import sys
 import logging
+import yaml
+
+from config import CONFIG
 
 
 schemedict = {
@@ -45,9 +48,9 @@ schemedict = {
               'salmonella_cgmlst': {'seqdefdb': 'bigsdb_salmonella_seqdef', 'dirdb': '/db/sequence_typing/salmonella/cgmlst', 'isolatedb': 'bigsdb_salmonella_isolates'}
               }
 
-emaildict = {"from": "bioit-dev1@wiv-isp.be",
-    "to": "michael.kelchtermans@sciensano.be, benoit.bergkpinto@sciensano.be",
-    "host": "smtp.wiv-isp.be"}
+with open(CONFIG, encoding='utf-8') as handle:
+    config_data = yaml.safe_load(handle)
+emaildict = config_data['mail']
 
 logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 

@@ -1,3 +1,7 @@
+'''
+obsolete: replaced by main_results_inserter.py
+'''
+
 import os
 import sys
 import psycopg2

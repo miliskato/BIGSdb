@@ -13,6 +13,9 @@ import socket
 import traceback
 import sys
 import logging
+import yaml
+
+from config import CONFIG
 
 schemedict = {
               'listeria_ndaro':           {'clusteredfasta': '/db/gene_detection/NCBI_AMR/ncbi_amr-clustered_80.fasta',
@@ -130,9 +133,9 @@ schemedict = {
                                              'species': 'salmonella'}
               }
 
-emaildict = {"from": "bioit-dev1@wiv-isp.be",
-    "to": "michael.kelchtermans@sciensano.be",
-    "host": "smtp.wiv-isp.be"}
+with open(CONFIG, encoding='utf-8') as handle:
+    config_data = yaml.safe_load(handle)
+emaildict = config_data['mail']
 
 logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
