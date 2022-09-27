@@ -15,11 +15,11 @@ species:
 #    stec:
 #        lmod: camel/1.1
 #        main_script: mainstecpipeline.py
-#        options: ['--resfinder', '--ncbi-amr', '--virulence', '--serotype', '--plasmid', '--mlst-pasteur', '--mlst-warwick', '--cgmlst', '--pointfinder']
+#        options: ['--resfinder', '--ncbi-amr', '--virulencefinder', '--serotype', '--plasmidfinder', '--mlst-pasteur', '--mlst-warwick', '--cgmlst', '--pointfinder']
 #    salmonella:
 #        lmod: camel_salmonella/0.1
 #        main_script: mainsalmonellapipeline.py
-#        options: ['--serotype', '--spifinder', '--mlst', '--cgmlst', '--resfinder', '--ncbi-amr', '--virulencefinder', '--vfdb-core', '--plasmidfinder', '--cgmlst', '--pointfinder']
+#        options: ['--serotype', '--spifinder', '--mlst', '--cgmlst', '--resfinder', '--ncbi-amr', '--vfdb-core', '--plasmidfinder', '--cgmlst', '--pointfinder']
 
 mail:
     from: bioit-dev1@wiv-isp.be
