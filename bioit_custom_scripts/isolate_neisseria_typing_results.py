@@ -1,3 +1,7 @@
+'''
+obsolete: replaced by main_results_inserter.py
+'''
+
 import os
 import sys
 import psycopg2
@@ -189,7 +193,7 @@ def insert_typing_results():
                 eavhtmltable = eavhtmltable + ''.join(
                     ['<tr><td>', ''.join(['GeneCluster', clusterhit.split('Cluster')[1]]), '</td>'])
                 # append Locus
-                if scheme != 'listeria_vfdbcore':
+                if scheme != 'neisseria_vfdbcore':
                     eavhtmltable = eavhtmltable + ''.join(
                         ['<td><a href="/galaxyreports/neisseria/', isolate_name, '/report.html#',
                          genedetectiondict[scheme]['schemename_html'], '" target="_blank">',
@@ -468,7 +472,7 @@ if sample_presence[0][0] == 0:
     except Exception as exceptionmessage:
         send_email(
             f'Error inserting output of neisseria pipeline to bigsdb for sample {isolate_name} on host {socket.gethostname()}',
-            f"{exceptionmessage}", emaildict)
+            f"{exceptionmessage}\n{traceback.format_exc()}", emaildict)
 
 elif sample_presence[0][0] == 1:
     # sample exists: check whether typing results or not (we do not bother checking for all schemes separately

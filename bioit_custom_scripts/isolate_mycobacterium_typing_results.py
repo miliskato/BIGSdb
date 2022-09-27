@@ -1,3 +1,7 @@
+'''
+obsolete: replaced by main_results_inserter.py
+'''
+
 import os
 import sys
 import psycopg2
@@ -222,7 +226,6 @@ def insert_typing_results():
                                 cur2.execute(f"SELECT allele_id FROM sequences WHERE allele_id LIKE '{variantreformatted}' AND locus = '{locus[0]}' LIMIT 1")
                                 present = cur2.fetchall()
                             allele_id = present[0][0]
-                            print(allele_id)
                             con2.close()
                             cur.execute(f"SELECT FROM allele_designations WHERE locus = '{locus[0]}' AND "
                                         f"isolate_id = (SELECT MAX(id) FROM isolates WHERE isolate='{isolate_name}') AND" 
@@ -367,7 +370,7 @@ if sample_presence[0][0] == 0:
     except Exception as exceptionmessage:
         send_email(
             f'Error inserting output of mycobacterium pipeline to bigsdb for sample {isolate_name} on host {socket.gethostname()}',
-            f"{exceptionmessage}", emaildict)
+            f"{exceptionmessage}\n{traceback.format_exc()}", emaildict)
 
 elif sample_presence[0][0] == 1:
     # sample exists: check whether typing results or not (we do not bother checking for all schemes separately
