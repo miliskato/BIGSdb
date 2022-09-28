@@ -8,6 +8,8 @@ from config import MONGO_CONFIG
 #from util.mongo_hiercc_clustering import MongoHierCCClustering
 #from util.clustering_maker import ClusteringMaker
 from MongoDB.util.distance_matrix_computer import DistanceMatrixComputer
+from MongoDB.util.clustering_maker import ClusteringMaker
+from MongoDB.util.alternative_clustering_maker import AlternativeClusteringMaker
 
 def _parse_arguments() -> argparse.Namespace:
     """
@@ -73,6 +75,15 @@ if __name__ == '__main__':
     # clusterer.cluster_members = [1,5,100,110,501]
     # clusterer.retrieve_matrix_from_cluster()
     # clusterer.single_linkage_clustering('test1')
-    compute_matrix=DistanceMatrixComputer(st_collection,distance_matrix_collection,[1,3,10001])
-    compute_matrix.compute_hamming_distances('full')
-    print(compute_matrix.hamming_distances)
+    # compute_matrix=DistanceMatrixComputer(st_collection,distance_matrix_collection,[1,3,10001])
+    # compute_matrix.compute_hamming_distances('full')
+    # print(compute_matrix.hamming_distances)
+    clustering = ClusteringMaker(hiercc_results_collection, isolates_collection, isolateresults_collection, 11, 'S13BD00906')
+    #55 'S14BD05285'
+    #10 'S14BD04971'
+    print(clustering.hamming_distances)
+    print(clustering.cluster_members_samples)
+    clustering.single_linkage_clustering()
+    # alternative_clustering = AlternativeClusteringMaker(hiercc_results_collection, isolates_collection,
+    #                                                     isolateresults_collection, 7, 'S13BD00906', 10207)
+    # alternative_clustering.single_linkage_clustering()
