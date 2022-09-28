@@ -36,6 +36,7 @@ def _parse_arguments() -> argparse.Namespace:
     parser.add_argument('--config', type=Path, required=True, help='Configuration file')
     parser.add_argument('--threads', type=int, default=8, help='Number of threads to use')
     parser.add_argument('--analysis_arguments', nargs='+', required=False, help='analysis arguments stripped off --, e.g. "--analysis_arguments cgmlst mlst"')
+    parser.add_argument('--pyvenvpythonpath', type=Path, required=True, help='/home/BIGSdb/3.9PythonVenv/bin/python3.9')
     return parser.parse_args()
 
 # --host-url
@@ -192,7 +193,12 @@ if __name__ == '__main__':
                             f'Error handling output of automatic reanalysis pipeline on {args.species}, {isolate_id}', f"look in file /reports/{args.species}/{temp_new_sample_name}/{temp_new_sample_name}.log", config_data['mail'])
                 # moving the report
                 # todo check if fasta files are same? not sure what i meant by this but it would probably be a nice idea to have the hash of the fasta file in mongo to check if sample is really new
-                run_subprocess(f"/home/mikelchtermans/PyCharmConnection/3.9PyCharmInterpreter/bin/python3.9 /home/mikelchtermans/Bigsdb_mongodb/MongoDB/mainmongo.py --results_type reanalysis --technical_id {isolate_id} --jsonfilepath {dir_out / 'report.json'} --species {args.species}")
+                # todo change venv
+
+                source = os.path.dirname(__file__)
+                parent = os.path.join(source, '../')
+
+                run_subprocess(f"{args.pyvenvpythonpath} {os.path.join(parent, 'mainmongo.py')} --results_type reanalysis --technical_id {isolate_id} --jsonfilepath {dir_out / 'report.json'} --species {args.species}")
                 #shutil.move(f"./{temp_new_sample_name}.log", f"/reports/{args.species}/{temp_new_sample_name}/{temp_new_sample_name}.log")
 
                 # Removing the temporary working dir and the remaining files that were not kept
