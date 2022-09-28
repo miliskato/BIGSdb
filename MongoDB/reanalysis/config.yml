@@ -1,0 +1,30 @@
+species:
+    listeria:
+        lmod: camel_listeria/json
+        main_script: mainlisteriapipeline.py
+        options: ['--species-confirmation', '--mlst', '--resfinder', '--ncbi-amr', '--virulencefinder', '--vfdb-core', '--plasmidfinder', '--typing-amr', '--cgmlst', '--metal', '--pcr-serogroup', '--typing-virulence']
+#    mycobacterium:
+#        lmod: camel_mycobacterium_fasta/1.1
+#        main_script: mainmycobacteriumpipeline.py
+#        options: ['--hsp65', '--snpit', '--amr', '--ncbi-16s', '--mlst', '--cgmlst', '--snp-lineage', --pointfinder]
+#        options_without_vcf: ['--hsp65', '--ncbi-16s', '--mlst', '--cgmlst', --pointfinder]
+#    neisseria:
+#        lmod: camel/1.1
+#        main_script: mainneisseriapipeline.py
+#        options: ['-resfinder', '--ncbi-amr', '--mlst', '--rplf', '--bast', '--pora', '--porb', '--feta', '--fhbp', '--resistance-genes', '--vaccine-targets', '--cgmlst', '--serogroup']
+#    stec:
+#        lmod: camel/1.1
+#        main_script: mainstecpipeline.py
+#        options: ['--resfinder', '--ncbi-amr', '--virulencefinder', '--serotype', '--plasmidfinder', '--mlst-pasteur', '--mlst-warwick', '--cgmlst', '--pointfinder']
+#    salmonella:
+#        lmod: camel_salmonella/0.1
+#        main_script: mainsalmonellapipeline.py
+#        options: ['--serotype', '--spifinder', '--mlst', '--cgmlst', '--resfinder', '--ncbi-amr', '--vfdb-core', '--plasmidfinder', '--cgmlst', '--pointfinder']
+
+mail:
+    from: bioit-dev1@wiv-isp.be
+    to: michael.kelchtermans@sciensano.be
+    host: smtp.wiv-isp.be
+
+temp_dir: /scratch/temp
+threads_per_job: 2

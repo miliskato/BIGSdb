@@ -1,0 +1,12 @@
+---
+# ansible-playbook /etc/ansible/playbook/bioit/bioit-mongodb-test.yml -l "bioit-mongo-d01,bioit-mongo-d02,bioit-mongo-d03" --vault-password-file "/etc/ansible/vault/bioit_vault_pass"
+# Disclaimer: this role only works for exactly three replica set members provided by --limit to the playbook, if ever using more then to be defined in task "Initialise replicaset"
+- hosts: all
+  # 'all' is okay here, because the fail task will force the user to specify a limit on the command line, using -l or --limit
+  gather_facts: True
+  become: yes
+
+  # run role
+  roles:
+    - { name: bioit.mongodb }
+...

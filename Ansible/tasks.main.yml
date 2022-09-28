@@ -343,6 +343,20 @@
 
     - name: Add crontrab entry for database updates
       cron:
+        name: "crontab for weekly database updates, profiles 30 minutes later than sequences"
+        minute: '30'
+        hour: '6'
+        weekday: '1'       # monday morning
+        job: "{{ item.command }}"
+        user: 'bigsdb'
+        cron_file: "{{ item.filename }}"
+      loop: "{{ list_cron|flatten(levels=1) }}"
+      vars:
+        list_cron:
+          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_custom_scripts/Typing_schemeprofiles_intopsql.py", filename: schemeprofiles_intopsql }
+
+    - name: Add crontrab entry for database updates
+      cron:
         name: "crontab for weekly database updates"
         minute: '0'
         hour: '22'

@@ -26,8 +26,12 @@ ALTER TABLE eav_text_hidden ADD CONSTRAINT eavt_field FOREIGN KEY (field) REFERE
 ALTER TABLE eav_text_hidden ADD CONSTRAINT eavt_isolate FOREIGN KEY (isolate_id) REFERENCES isolates(id) ON UPDATE CASCADE ON DELETE CASCADE;
 GRANT SELECT, INSERT, UPDATE, DELETE ON eav_text_hidden TO apache;
 -- hash not implemented yet
-INSERT INTO eav_fields(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('hash_fastq_md5_forward', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1);
-INSERT INTO eav_fields(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('hash_fastq_md5_reverse', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1);
+CREATE TABLE eav_fields_hidden AS (SELECT * FROM eav_fields) WITH NO DATA;
+ALTER TABLE eav_fields_hidden ADD PRIMARY KEY(field);
+GRANT SELECT, INSERT, UPDATE, DELETE ON eav_fields_hidden TO apache;
+INSERT INTO eav_fields_hidden(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('hash_fastq_md5_forward', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1);
+INSERT INTO eav_fields_hidden(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('hash_fastq_md5_reverse', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1);
+INSERT INTO eav_fields_hidden(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('hash_fasta_md5', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1);
 --spifinder_fastq
 INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, curator, date_entered, datestamp, isolate_display, main_display, query_field, query_status, analysis, recommended, quality_metric, dbase_name, dbase_id) VALUES(7, 'spifinder_fastq', 'SPIFinder carried out on fastq with kma', 't', 7, 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE), 't', 't', 't', 'f', 't', 't', 'f', 'bigsdb_salmonella_seqdef', 7);
 INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, dbase_name, dbase_id, url, isolate_display, main_display, query_field, analysis, submission_template, curator, date_entered, datestamp) VALUES('SPIFINDER_FASTQ_SPI-1','DNA','text', 't', 't', 'bigsdb_salmonella_seqdef','SPIFINDER_FASTQ_SPI-1', '/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_salmonella_seqdef&page=alleleInfo&locus=SPIFINDER_FASTQ_SPI-1&allele_id=[?]', 'allele only', 'f', 't', 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));

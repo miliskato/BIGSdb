@@ -22,8 +22,7 @@ class Mongoinitialisation:
             client = MongoClient(config_data["CONNECTION_STRING_BASE"])
         except:
             raise RuntimeError(f"Could not connect to {config_data['CONNECTION_STRING_BASE']}")
-        # todo change the test
-        return client[f"{species}_test"]
+        return client[species]
 
     def _open_mongo_collection(self, opened_database, collection: str):
         """
@@ -33,7 +32,7 @@ class Mongoinitialisation:
         :return: opened collection
         """
         # MongoDB creates collections on the fly while inserting any Documents, we do not want to allow unwanted collections to be created, therefore this check:
-        if collection in ["isolates", "isolate_results", "sequence_types", "hiercc_results", "distance_matrix"]:
+        if collection in ["isolates", "old_isolate_results", "isolates_badqc", "sequence_types", "hiercc_results", "distance_matrix", "new_allele_hashes"]:
             opened_collection = opened_database[collection]
             logging.debug(f"opened collection {collection}")
             return opened_collection
@@ -52,8 +51,10 @@ class Mongoinitialisation:
         # open isolates collection
         isolates_collection = self._open_mongo_collection(species_database, "isolates")
         # open isolate_results collection
-        isolateresults_collection = self._open_mongo_collection(species_database, "isolate_results")
-        return isolates_collection, isolateresults_collection
+        isolateresults_collection = self._open_mongo_collection(species_database, "old_isolate_results")
+        # open isolates badqc collection
+        isolates_badqc_collection = self._open_mongo_collection(species_database, "isolates_badqc")
+        return isolates_collection, isolateresults_collection, isolates_badqc_collection
 
     def initialise_hiercc_collections(self, config_data: dict, species: str):
         """
@@ -67,3 +68,8 @@ class Mongoinitialisation:
         hiercc_results_collection = self._open_mongo_collection(species_database, "hiercc_results")
         distance_matrix_collection = self._open_mongo_collection(species_database, "distance_matrix")
         return st_collection, hiercc_results_collection, distance_matrix_collection
+
+    def initialise_hashing_collection(self, config_data: dict, species: str):
+        species_database = self._open_mongo_database(config_data, species)
+        hashed_AD_collection = self._open_mongo_collection(species_database, "new_allele_hashes")
+        return hashed_AD_collection
