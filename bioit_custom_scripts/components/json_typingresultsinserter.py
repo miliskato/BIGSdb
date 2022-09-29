@@ -8,17 +8,17 @@ class JsonTypingResultsInserter(JsonSuperClass):
     Class containing definition to insert typing results
     """
 
-    def __init__(self, isolatename, species, cur_isolates, cur_seqdef, outputjsondict):
-        JsonSuperClass.__init__(self, isolatename, species, cur_isolates, cur_seqdef, outputjsondict)
+    def __init__(self, isolatename, species, cur_isolates, cur_seqdef, sample_output_dict):
+        JsonSuperClass.__init__(self, isolatename, species, cur_isolates, cur_seqdef, sample_output_dict)
 
     def insert_typing_results(self, schemedict):
         Locuslist = []
         # Locuslist serves as to not insert duplicates (creates error in sql),
         # for Listeria e.g. prs and prfA are included in two schemes
         for scheme in schemedict:
-            if scheme in self.outputjsondict.keys():
+            if scheme in self.sample_output_dict.keys():
                 if schemedict[scheme]['type'] == 'regular':
-                    for Locus in self.outputjsondict[scheme]['loci']:
+                    for Locus in self.sample_output_dict[scheme]['loci']:
                         if Locus['Locus'] not in Locuslist:
                             if Locus['% Identity'] == '100.00' and Locus['HSP/Locus length'] != '-' and eval(Locus['HSP/Locus length']) == 1.0:
                                 self._insert_allele_designation(Locus['Locus'].replace("'",""), Locus['Allele'])
@@ -32,9 +32,9 @@ class JsonTypingResultsInserter(JsonSuperClass):
 
                 elif schemedict[scheme]['type'] == 'irregular':
                     if scheme == 'pointfinder':
-                        if self.outputjsondict[scheme]['results'] != '[]':
+                        if self.sample_output_dict[scheme]['results'] != '[]':
                             eavhtmltable = '<table class="data"><tr><th>Hit</th><th>Antibiotic</th></tr>'
-                            for result in self.outputjsondict[scheme]['results']:
+                            for result in self.sample_output_dict[scheme]['results']:
                                 if result['Resistance'] != "Unknown":
                                     # Seeing as the allele db of pointfinder is empty at the beginning because the db is too hard to understand, we gradually add alleles.
                                     # sometimes a mutation will give resistance to more than 1 AB
@@ -56,18 +56,18 @@ class JsonTypingResultsInserter(JsonSuperClass):
                     if self.species == 'mycobacterium':
                         if scheme == 'spoligotyping':
                             x = 1
-                            for allele_id in list(self.outputjsondict[scheme]['spoligotype_binary']):
+                            for allele_id in list(self.sample_output_dict[scheme]['spoligotype_binary']):
                                 locus = ''.join(['Spacer', str(x).zfill(2)])
                                 x += 1
                                 self._insert_allele_designation(locus, allele_id)
-                            self._insert_metadata('spoligotype_binary', self.outputjsondict[scheme]['spoligotype_binary'])
-                            self._insert_metadata('spoligotype_octal', self.outputjsondict[scheme]['spoligotype_octal'])
+                            self._insert_metadata('spoligotype_binary', self.sample_output_dict[scheme]['spoligotype_binary'])
+                            self._insert_metadata('spoligotype_octal', self.sample_output_dict[scheme]['spoligotype_octal'])
                         elif scheme == 'csb_rd':
                             for record in ['csb_detected', 'RD1_detected', 'RD9_detected']:
                                 locus = record.rstrip('_detected')  # need to be careful with rstrip and strip but in this case no issue
-                                if self.outputjsondict[scheme][record] is False:
+                                if self.sample_output_dict[scheme][record] is False:
                                     allele_id = 0
-                                elif self.outputjsondict[scheme][record] is True:
+                                elif self.sample_output_dict[scheme][record] is True:
                                     allele_id = 1
                                 self._insert_allele_designation(locus, allele_id)
                         elif scheme == 'amr_who':
@@ -81,15 +81,15 @@ class JsonTypingResultsInserter(JsonSuperClass):
                                 else:
                                     amr_metadata_fields_tsv[field[0]] = ''.join(['amr_pheno_', field[0].split('_')[-1]])
                             for bigsdbname, jsonname in amr_metadata_fields_tsv.items():
-                                self._insert_metadata(bigsdbname, self.outputjsondict[scheme][jsonname])
+                                self._insert_metadata(bigsdbname, self.sample_output_dict[scheme][jsonname])
                             # AMR results
                             self.cur_isolates.execute(
                                 f"SELECT locus FROM scheme_members WHERE scheme_id = (SELECT id FROM schemes WHERE name = 'AMR_detection_WHO')")
                             loci = self.cur_isolates.fetchall()
                             for locus in loci:
                                 jsonname = '_'.join(['amr_mutations', str(locus[0]).replace('_int', '_(int.)')])
-                                if self.outputjsondict[scheme][jsonname] != '-':
-                                    for variant in self.outputjsondict[scheme][jsonname].split(', '):
+                                if self.sample_output_dict[scheme][jsonname] != '-':
+                                    for variant in self.sample_output_dict[scheme][jsonname].split(', '):
                                         variantreformatted = variant.replace('(', '').replace(')', '')
                                         # Bert explained that if the change is found in promotor, then it can change signs
                                         # And also honestly the db is really discrepant, e.g. how likely is this:
@@ -110,8 +110,8 @@ class JsonTypingResultsInserter(JsonSuperClass):
                                         if allele_designation_presence == []:
                                             self._insert_allele_designation(locus[0], allele_id)
                         elif scheme == 'hsp65':
-                            if self.outputjsondict[scheme]['loci'] != '[]':
-                                for Locus in self.outputjsondict[scheme]['loci']:
+                            if self.sample_output_dict[scheme]['loci'] != '[]':
+                                for Locus in self.sample_output_dict[scheme]['loci']:
                                     hit = '_'.join(['hsp65', Locus['Species'].strip('"').replace(' ','_').replace('.', '')])
                                     self.cur_isolates.execute(
                                         f"SELECT FROM eav_boolean WHERE isolate_id = (SELECT MAX(id) FROM isolates WHERE isolate='{self.isolatename}')"
@@ -123,8 +123,8 @@ class JsonTypingResultsInserter(JsonSuperClass):
                             # ncbi 16s contains duplicate species
                             # looks like this in json: [{"DB_cluster": "Cluster_24", "Locus": "NR_114860.1", "% Identity": "95.50", "HSP/Locus length": "999/1077", "Contig": "NODE_353_length_1859_cov_4.154734", "Position in contig": "862..1859", "Species": "Mycobacterium peregrinum strain ATCC 14467 16S ribosomal RNA gene, partial sequence", "Accession": "NR_114860.1"}]
                             speciesandstrainhits = []
-                            if self.outputjsondict[scheme]['loci'] != '[]':
-                                for hit in self.outputjsondict[scheme]['loci']:
+                            if self.sample_output_dict[scheme]['loci'] != '[]':
+                                for hit in self.sample_output_dict[scheme]['loci']:
                                     speciesname = '_'.join([hit['Species'].split(' ')[0], hit['Species'].split(' ')[1]])
                                     if speciesname not in speciesandstrainhits:
                                         speciesandstrainhits.append(speciesname)
@@ -145,7 +145,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
                                 self._insert_metadata_bool(hit_formatted, 't')
                     elif self.species == 'neisseria':
                         if scheme == 'resistance_genes':
-                            for Locus in self.outputjsondict[scheme]['loci']:
+                            for Locus in self.sample_output_dict[scheme]['loci']:
                                 if Locus['Locus'] in ['penA', 'rpoB'] and Locus['% Identity'] == '100.00' and Locus['HSP/Locus length'] != '-' and eval(Locus['HSP/Locus length']) == 1.0:
                                     response = requests.get(
                                         f"https://rest.pubmlst.org/db/pubmlst_neisseria_seqdef/loci/{Locus['Locus']}/alleles/{Locus['Allele']}")
@@ -161,8 +161,8 @@ class JsonTypingResultsInserter(JsonSuperClass):
                     elif self.species == 'stec':
                         if scheme == 'serotype':
                             serotypedict = {}
-                            serotypedict['O_antigen'] = self.outputjsondict[scheme]['serotype'].split(':')[0]
-                            serotypedict['H_antigen'] = self.outputjsondict[scheme]['serotype'].split(':')[1]
+                            serotypedict['O_antigen'] = self.sample_output_dict[scheme]['serotype'].split(':')[0]
+                            serotypedict['H_antigen'] = self.sample_output_dict[scheme]['serotype'].split(':')[1]
                             for antigen, antigen_allele in serotypedict.items():
                                 if antigen_allele != '-':
                                     self._insert_dummy_sequence_if_needed(antigen, antigen_allele)
@@ -172,38 +172,38 @@ class JsonTypingResultsInserter(JsonSuperClass):
                             self.cur_isolates.execute(f"SELECT field FROM eav_fields WHERE field like 'genotyphi%'")
                             genotyphi_susc_list = self.cur_isolates.fetchall()
                             for item in genotyphi_susc_list:
-                                if item[0] in self.outputjsondict[scheme]['results'] and self.outputjsondict[scheme]['results'][item[0]] is not None:
-                                    susceptibility = self.outputjsondict[scheme]['results'][item[0]]
+                                if item[0] in self.sample_output_dict[scheme]['results'] and self.sample_output_dict[scheme]['results'][item[0]] is not None:
+                                    susceptibility = self.sample_output_dict[scheme]['results'][item[0]]
                                     self._insert_metadata(item[0], susceptibility)
                                     # insert new alleles
                                     variant = item[0].replace('susceptibility', 'variants')
                                     gene = item[0].replace('susceptibility', 'genes')
                                     genotyphi_field = item[0].replace('_susceptibility', '').upper()
                                     # get the genes and variants
-                                    future_alleles = self.outputjsondict[scheme]['results'][variant].split(';') + self.outputjsondict[scheme]['results'][gene].split(';')
+                                    future_alleles = self.sample_output_dict[scheme]['results'][variant].split(';') + self.sample_output_dict[scheme]['results'][gene].split(';')
                                     for i in range(0, len(future_alleles)):
                                         if future_alleles[i] != '-':
                                             self._insert_dummy_sequence_if_needed(self, genotyphi_field, future_alleles[i])
                                             self._insert_allele_designation(genotyphi_field, future_alleles[i])
                         elif scheme == 'sistr' or scheme.startswith('seqsero2'):
                             if scheme == 'sistr':
-                                serotypingInsert = self.outputjsondict[scheme]['serotype_antigenic_formula']
+                                serotypingInsert = self.sample_output_dict[scheme]['serotype_antigenic_formula']
                                 if serotypingInsert != '-':
                                     self.salmonella_insert_antigens_into_db(serotypingInsert, scheme)
                                     self._insert_metadata(f'{scheme}_formula', serotypingInsert)
-                                serotypingInsert = self.outputjsondict[scheme]['serotype_concensus']
+                                serotypingInsert = self.sample_output_dict[scheme]['serotype_concensus']
                                 if serotypingInsert != '-':
                                     self._insert_metadata(f'{scheme}_serotype', serotypingInsert)
                             else:
-                                serotypingInsert = self.outputjsondict[scheme][f'{scheme}_Predicted_antigenic_profile']
+                                serotypingInsert = self.sample_output_dict[scheme][f'{scheme}_Predicted_antigenic_profile']
                                 self.salmonella_insert_antigens_into_db(serotypingInsert, scheme)
                                 if serotypingInsert != '-:-:-':
                                     self._insert_metadata(f'{scheme}_formula', serotypingInsert)
-                                serotypingInsert = self.outputjsondict[scheme][f'{scheme}_Predicted_serotype']
+                                serotypingInsert = self.sample_output_dict[scheme][f'{scheme}_Predicted_serotype']
                                 if serotypingInsert != '- -:-:-':
                                     self._insert_metadata(f'{scheme}_serotype', serotypingInsert)
                         elif scheme.startswith('spifinder'):
-                            hits = self.outputjsondict[scheme]['results']
+                            hits = self.sample_output_dict[scheme]['results']
                             if hits != '[]':
                                 for SPI in hits:
                                     spifinder_entry = f"CatFunc{SPI['category_function']}__{SPI['accession']}"

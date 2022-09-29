@@ -9,17 +9,17 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
     Class containing definition to insert gene detection results
     """
 
-    def __init__(self, isolatename, species, cur_isolates, cur_seqdef, outputjsondict):
-        JsonSuperClass.__init__(self, isolatename, species, cur_isolates, cur_seqdef, outputjsondict)
+    def __init__(self, isolatename, species, cur_isolates, cur_seqdef, sample_output_dict):
+        JsonSuperClass.__init__(self, isolatename, species, cur_isolates, cur_seqdef, sample_output_dict)
 
     def insert_genedetection_results(self, genedetectiondict):
         if genedetectiondict is not None:
             for scheme in genedetectiondict:
-                if scheme in self.outputjsondict.keys():
+                if scheme in self.sample_output_dict.keys():
                     # create current clusterdict with names and current cluster
                     clusterdict, ncbi_ab_class_dict = self._create_clusterdict_current_db_version(scheme, genedetectiondict)
                     # Get hits
-                    listofhits = self.outputjsondict[scheme]['loci']
+                    listofhits = self.sample_output_dict[scheme]['loci']
                     # this might look something like this currently: "ncbi_amr": {"loci": [{"DB_cluster": "Cluster_973", "Locus": "fosA7.4", "% Identity": "96.07", "HSP/Locus length": "280/423", "Contig": "NODE_3_length_348793_cov_29.301727", "Position in contig": "289059..289338", "Antibiotic(s)": "Fosfomycin", "Accession": "NG_067230.1"}]
                     if listofhits != []:
                         # Storing snapshot Clusters in eav_text_hidden to be used in periodical GeneCluster recalculation
