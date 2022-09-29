@@ -80,6 +80,19 @@ def prepend_string_dot_to_dict_keys(input_dictionary, prepending: str = 'results
             keydict[key] = '.'.join([prepending, key])
     return dict((keydict[key], value) for (key, value) in input_dictionary_copy.items())
 
+def find_allele_number_new_entry(hashed_AD_collection):
+    max_np_int32 = 2147483647
+    query_hash_db = hashed_AD_collection.find({"scheme": 'cgmlst'})
+    query_list = [document for document in query_hash_db]
+    if query_list == []:
+        return max_np_int32
+    else:
+        allele_numbers = []
+        for doc in query_list:
+            allele_numbers.append(doc["allele_number"])
+        return min(allele_numbers)-1
+
+
 def find_hashes_in_results_and_add_to_collection(results: dict, mongoinit: object, config_data: dict, species: str):
     hashed_AD_collection = mongoinit.initialise_hashing_collection(config_data, species)
     # todo add other typing schemes
@@ -94,7 +107,8 @@ def find_hashes_in_results_and_add_to_collection(results: dict, mongoinit: objec
                                                                "locus": allele_info['Locus'],
                                                                "hashed_allele": allele_info['Allele'],
                                                                "encountered_count": 1,
-                                                               "resolved_AD": 0
+                                                               "resolved_AD": 0,
+                                                               "allele_number": find_allele_number_new_entry(hashed_AD_collection)
                                                                })
                     else:
                         hashed_AD_collection.with_options(write_concern=WriteConcern(w="majority")).update_one({"_id": existing_document['_id']},
@@ -151,10 +165,13 @@ if __name__ == '__main__':
                                                                   records))
                 logging.info(f"Wrote new isolate {args.technical_id} and its result to {args.species} database")
                 find_hashes_in_results_and_add_to_collection(records, mongoinit, config_data, args.species)
-                # hiercc_input = mongoquerying._query_typing_results_by_technicalids_and_scheme(isolates_collection,
-                #                                                                               scheme="cgmlst",
-                #                                                                               technicalids=
-                #                                                                               [args.technical_id])
+                hashed_AD_collection = mongoinit.initialise_hashing_collection(config_data, args.species)
+                hiercc_input = mongoquerying._query_typing_results_by_technicalids_and_scheme(isolates_collection,
+                                                                                              hashed_AD_collection,
+                                                                                              scheme="cgmlst",
+                                                                                              technicalids=
+                                                                                              [args.technical_id])
+                print(hiercc_input)
                 # #initialize an object to enter data in the HierCC collections and do the clustering
                 # hiercc_clustering = MongoHierCCClustering(hiercc_input[0], hiercc_input[1], args.species)
                 # logging.info(f"Running the clustering for the isolate {args.technical_id}")

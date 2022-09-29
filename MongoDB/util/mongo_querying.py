@@ -57,8 +57,8 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
                                         self._query_docs_by_ids(opened_isolates_collection,
                                                                 technicalids)])
 
-    def _query_typing_results_by_technicalids_and_scheme(self, opened_isolates_collection,
-                                                          scheme: str = 'cgmlst',
+    def _query_typing_results_by_technicalids_and_scheme(self, opened_isolates_collection, hashed_allele_collection,
+                                                         scheme: str = 'cgmlst',
                                                          technicalids: list = ['emptylist']):
         """
         Returns a list of lists wherein the first list is the header [isolate, locus1, locus2, ..] and the subsequent lists are the results of all isolates in technical ids
@@ -71,9 +71,7 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         if technicalids == ['emptylist']:
             technicalids = self._query_list_of_all_distinct_values(opened_isolates_collection, "_id")
         listofresultlists = []
-        for doc_index, doc in enumerate(
-                self._query_docs_by_ids(opened_isolates_collection,
-                                                    technicalids)):
+        for doc_index, doc in enumerate(self._query_docs_by_ids(opened_isolates_collection, technicalids)):
             if doc_index == 0:
                 header = ["isolate_id"]
                 for locus in doc['results'][scheme]['loci']:
@@ -82,10 +80,16 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
             resultlist = [doc['_id']]
             for locus in doc['results'][scheme]['loci']:
                 # todo check logic
-                allele_id = locus['Allele_designation']
-                if isinstance(allele_id, int) and locus['% Identity'] == 100.00 and eval(
-                        locus['HSP/Locus length']) == 1.0:
-                    resultlist.append(allele_id)
+                allele_id = locus['Allele']
+                if locus['% Identity'] == '100.00' and eval(locus['HSP/Locus length']) == 1.0:
+                    print('evaltuation works')
+                    if len(allele_id) < 32:
+                        resultlist.append(int(allele_id))
+                    else:
+                        print('hashed')
+                        allele_number = hashed_allele_collection.find_one({"scheme": scheme, "locus": locus['Locus'],
+                                                                          "hashed_allele": allele_id})["allele_number"]
+                        resultlist.append(int(allele_number))
                 else:
                     resultlist.append(0)
             listofresultlists.append(resultlist)
