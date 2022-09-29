@@ -200,7 +200,8 @@ if __name__ == '__main__':
                         logging.info(f"{mainkey} not in old results")
                         some_result_changed = True
                     elif subkey == 'loci' or subkey == 'results' or subkey.startswith('hits'):
-                        if subkey not in old_results.keys() or new_results_handle[mainkey][subkey] != old_results[mainkey][subkey]:
+                        if subkey not in old_results[mainkey].keys() or new_results_handle[mainkey][subkey] != old_results[mainkey][subkey]:
+                            # keep in mind that loci is a list: it seems as if loci are always outputted in the same order though so that is allright
                             logging.info(f"{mainkey}{subkey} different or not in old")
                             some_result_changed = True
         if some_result_changed is True:
