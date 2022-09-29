@@ -2,7 +2,7 @@ species:
     listeria:
         lmod: camel_listeria/json
         main_script: mainlisteriapipeline.py
-        options: ['--species-confirmation', '--mlst', '--resfinder', '--ncbi-amr', '--virulencefinder', '--vfdb-core', '--plasmidfinder', '--typing-amr', '--cgmlst', '--metal', '--pcr-serogroup', '--typing-virulence']
+        options: ['--species-confirmation', '--mlst', '--resfinder', '--ncbi-amr', '--virulencefinder', '--vfdb-core', '--plasmidfinder', '--typing-amr', '--cgmlst', '--metal-detergent', '--pcr-serogroup', '--typing-virulence']
 #    mycobacterium:
 #        lmod: camel_mycobacterium_fasta/1.1
 #        main_script: mainmycobacteriumpipeline.py

@@ -11,7 +11,7 @@ import traceback
 import os
 import datetime
 
-from config import CONFIG
+from config import BIGSDB_CONFIG
 from components.databaseconnection import Database_connection
 from components.maininserter import MainInserter
 from components.tsv_typingresultsinserter import TsvTypingResultsInserter
@@ -98,7 +98,7 @@ if __name__ == '__main__':
     args = _parse_arguments()
 
     # Read the global config
-    with open(CONFIG, encoding='utf-8') as handle:
+    with open(BIGSDB_CONFIG, encoding='utf-8') as handle:
         config_data = yaml.safe_load(handle)
 
     # parse output

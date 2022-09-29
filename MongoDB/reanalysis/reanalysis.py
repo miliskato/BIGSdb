@@ -1,3 +1,5 @@
+# export PYTHONPATH=/home/mikelchtermans/Bigsdb_mongodb/BIGSdb
+# /home/mikelchtermans/3.9PythonVenv/bin/python3.9 /home/mikelchtermans/Bigsdb_mongodb/BIGSdb/MongoDB/reanalysis/reanalysis.py --species listeria --config /home/mikelchtermans/Bigsdb_mongodb/BIGSdb/MongoDB/reanalysis/config.yml --threads 30 --pyvenvpythonpath /home/mikelchtermans/3.9PythonVenv/bin/python3.9
 import argparse
 import json
 import logging
@@ -7,12 +9,14 @@ from urllib.parse import urljoin
 import concurrent.futures
 import os
 import sys
+import socket
 
 import shutil
 import requests
 import yaml
 import psycopg2
 import subprocess
+import datetime
 
 from pymongo.write_concern import WriteConcern
 from pymongo.read_concern import ReadConcern
@@ -32,7 +36,6 @@ def _parse_arguments() -> argparse.Namespace:
     """
     parser = argparse.ArgumentParser()
     parser.add_argument('--species', type=str, required=True, help='Species to re-analyze')
-    # parser.add_argument('--dir-fastq', type=Path, required=True, help='Directory containing FASTQ files')
     parser.add_argument('--config', type=Path, required=True, help='Configuration file')
     parser.add_argument('--threads', type=int, default=8, help='Number of threads to use')
     parser.add_argument('--analysis_arguments', nargs='+', required=False, help='analysis arguments stripped off --, e.g. "--analysis_arguments cgmlst mlst"')
@@ -50,7 +53,7 @@ def _parse_arguments() -> argparse.Namespace:
 # --threads
 # 4
 
-def send_email(subject: str, content: str, config: dict) -> None:
+def _send_email(subject: str, content: str, config: dict) -> None:
     """
     Sends an email.
     :param subject: Mail subject
@@ -101,9 +104,10 @@ if __name__ == '__main__':
             logging.info(f"Fasta file is real")
             # todo check if fasta is actually fasta or not empty or?
         else:
-            raise RuntimeError('Invalid fastafilepath')
+            logging.error('Invalid fastafilepath')
+            _send_email(f"reanalysis fail on host {socket.gethostname()} because {isolate_id}'s fasta path is invalid: {isolate['fasta_path']}", "", config_data['mail'])
+            sys.exit()
 
-        import datetime
         temp_new_sample_name = '_'.join([isolate_id, str(datetime.date.today())])
         logging.info(f"new sample name: {temp_new_sample_name}")
 
@@ -147,7 +151,8 @@ if __name__ == '__main__':
                 f'--output-tsv {tsv_out}',
                 f'--working-dir {dir_temp}',
                 *accepted_options_list,
-                f'--threads {threads_per_job}'
+                f'--threads {threads_per_job}',
+                f'--sample-name {isolate_id}'
             ])
             command = Command(base_command)
 
@@ -165,7 +170,7 @@ if __name__ == '__main__':
             command.run(dir_temp)
             if command.returncode != 0:
                 # if pipeline fails, send mail and continue to next sample, dont raise error
-                send_email(f'Error executing automatic reanalysis pipeline on {args.species}, {isolate_id}', command.stderr, config_data['mail'])
+                _send_email(f'Error executing automatic reanalysis pipeline on {args.species}, {isolate_id}', command.stderr, config_data['mail'])
                 # raise RuntimeError(f"Error executing pipeline: {command.stderr}")
             else:
                 logging.info(f"Re-analysis for isolate '{isolate_id}' completed")
@@ -189,7 +194,7 @@ if __name__ == '__main__':
                             shell=True,
                             executable='/bin/bash')
                     if result.returncode != 0:
-                        send_email(
+                        _send_email(
                             f'Error handling output of automatic reanalysis pipeline on {args.species}, {isolate_id}', f"look in file /reports/{args.species}/{temp_new_sample_name}/{temp_new_sample_name}.log", config_data['mail'])
                 # moving the report
                 # todo check if fasta files are same? not sure what i meant by this but it would probably be a nice idea to have the hash of the fasta file in mongo to check if sample is really new
@@ -202,7 +207,7 @@ if __name__ == '__main__':
                 #shutil.move(f"./{temp_new_sample_name}.log", f"/reports/{args.species}/{temp_new_sample_name}/{temp_new_sample_name}.log")
 
                 # Removing the temporary working dir and the remaining files that were not kept
-                # todo later shutil.rmtree(dir_temp)
+                # todo later shutil.rmtree(dir_temp) # 09-29 should i remove this though? we need the report html and tsv for bigsdb
 
     def isolate_and_threads(isolate: dict):
         dict = {

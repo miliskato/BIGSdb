@@ -1,5 +1,7 @@
 import logging
 import datetime
+import sys
+import socket
 
 from .json_superclass import JsonSuperClass
 
@@ -22,8 +24,6 @@ class MainInserter(JsonSuperClass):
             self.cur_isolates.execute(f"INSERT INTO history(isolate_id, timestamp, action, curator)"
                                  f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{self.isolatename}'),(SELECT NOW()::TIMESTAMP), 'Isolate record added', 1)")
         else:
-            import sys
-            import socket
             raise RuntimeError(f"isolatename {self.isolatename} of {self.species} already exists on host {socket.gethostname()}")
 
     def insert_new_isolate_version(self):

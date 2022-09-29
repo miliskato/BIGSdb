@@ -35,10 +35,13 @@ if __name__ == '__main__':
     # isolateresults_collection.drop()
     mongoquerying = Mongoquerying()
 
-    print(isolates_collection.find_one()['results'].keys())
+    #print(isolates_collection.find_one()['results'].keys())
     #mongoquerying.query_failed_causes(isolates_badqc_collection)
-
-    # print([docs for docs in isolates_collection.find({'_id': 'S14BD00df001'})])
+    list_of_lists = [docs['results']['typing_amr']['loci'] for docs in isolates_collection.find()]
+    import itertools
+    list_all = list(itertools.chain.from_iterable(list_of_lists))
+    print([':'.join([locus['Locus'], locus['Allele']]) for locus in list_all])
+    print([docs for docs in isolates_collection.find({},{'_id': 1})])
     # print(mongoquerying._query_list_of_all_distinct_values(isolates_collection, '_id'))
     # for result in mongoquerying._query_previous_latest_results_by_technicalids(isolates_collection, isolateresults_collection,
     #                                                            mongoquerying._query_list_of_all_distinct_values(

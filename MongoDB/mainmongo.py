@@ -174,22 +174,48 @@ if __name__ == '__main__':
         #  Maybe the newest results should also be written to a separate collection in order to easily know what actually changed?
         #  Current dot notation only covers the assay headers, so within assays everything is overwritten, no matter if the number of fields differs.
         mongoresults = Mongoresults()
-        # new_results = prepend_string_dot_to_dict_keys(mongoresults.parse_output(args.species, args.tsvfilepath))
-        # new_results["results.isolates_id"] = args.technical_id
-        new_results = prepend_string_dot_to_dict_keys(json.load(open(args.jsonfilepath, 'r')))
+        new_results_handle = json.load(open(args.jsonfilepath, 'r'))
+        new_results = prepend_string_dot_to_dict_keys(new_results_handle)
         new_results["results.isolates_id"] = args.technical_id
         old_results = mongoquerying._query_docs_by_ids(isolates_collection, [args.technical_id])[0]['results']
         # Order is important
-        # Write old results to archive and save object id to isolates collection
-        isolates_collection.with_options(write_concern=WriteConcern(w="majority")).update_one({"_id": args.technical_id}, {
-            "$set": {"previous_latest_results_version": _write_document(isolateresults_collection, old_results)}})
-        # Overwrite old results with new results in isolate collection with dot notation: behaviour to be checked, especially for QC
-        # import sys
-        # sys.exit()
-        print(new_results)
-        isolates_collection.with_options(write_concern=WriteConcern(w="majority")).update_one({"_id": args.technical_id}, {"$set": new_results})
-        # Update the latest analysis date
-        isolates_collection.with_options(write_concern=WriteConcern(w="majority")).update_one({"_id": args.technical_id}, {
-            "$set": {"latest_analysis_date": new_results["results.analysis_date"]}})
-        logging.info(f"Wrote new results and linked to isolate {args.technical_id} in {args.species}")
+        # # Write old results to archive and save object id to isolates collection
+        # isolates_collection.with_options(write_concern=WriteConcern(w="majority")).update_one({"_id": args.technical_id}, {
+        #     "$set": {"previous_latest_results_version": _write_document(isolateresults_collection, old_results)}})
+        # # Overwrite old results with new results in isolate collection with dot notation: behaviour to be checked, especially for QC
+        # # import sys
+        # # sys.exit()
+        # isolates_collection.with_options(write_concern=WriteConcern(w="majority")).update_one({"_id": args.technical_id}, {"$set": new_results})
+        # # Update the latest analysis date
+        # isolates_collection.with_options(write_concern=WriteConcern(w="majority")).update_one({"_id": args.technical_id}, {
+        #     "$set": {"latest_analysis_date": new_results["results.analysis_date"]}})
+        #
+
+        # todo check if anything changed except informs (so pop informs keys) or instead of popping, only look at loci and results keys
+        some_result_changed = False
+        for mainkey in new_results_handle.keys():
+            if isinstance(new_results_handle[mainkey], dict):
+                for subkey in new_results_handle[mainkey].keys():
+                    if mainkey not in old_results.keys():
+                        logging.info(f"{mainkey} not in old results")
+                        some_result_changed = True
+                    elif subkey == 'loci' or subkey == 'results' or subkey.startswith('hits'):
+                        if subkey not in old_results.keys() or new_results_handle[mainkey][subkey] != old_results[mainkey][subkey]:
+                            logging.info(f"{mainkey}{subkey} different or not in old")
+                            some_result_changed = True
+        if some_result_changed is True:
+            isolates_collection.with_options(write_concern=WriteConcern(w="majority")).update_one({"_id": args.technical_id}, {
+                "$set": {**new_results,
+                         "results_changed_since_last": True,
+                         "latest_analysis_date": new_results["results.analysis_date"],
+                         "previous_latest_results_version": _write_document(isolateresults_collection, old_results)}})
+            logging.info(f"Wrote new results and linked to isolate {args.technical_id} in {args.species}")
+        else:
+            # new results still needs to be added because it modifies the analysis dates, db dates and also tool versions if these changed
+            isolates_collection.with_options(write_concern=WriteConcern(w="majority")).update_one({"_id": args.technical_id}, {
+                "$set": {**new_results,
+                         "results_changed_since_last": False,
+                         "latest_analysis_date": new_results["results.analysis_date"]}})
+            logging.info(f"New results were not different from old results for {args.technical_id} in {args.species}, updated analysis dates and db versions.")
+
         # todo recalculate HierCC_cgST

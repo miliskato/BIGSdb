@@ -8,7 +8,7 @@ import sys
 import logging
 import yaml
 
-from config import CONFIG
+from config import BIGSDB_CONFIG
 # For this script I am assuming that profiles do not retire.
 # It is important to keep in mind that ST do not neccesarily follow each other up continuosly, there can be gaps
 
@@ -27,7 +27,7 @@ schemedict = {
 
 profile_file = 'profiles.tsv'
 
-with open(CONFIG, encoding='utf-8') as handle:
+with open(BIGSDB_CONFIG, encoding='utf-8') as handle:
     config_data = yaml.safe_load(handle)
 emaildict = config_data['mail']
 
