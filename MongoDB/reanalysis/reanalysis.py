@@ -142,10 +142,10 @@ if __name__ == '__main__':
         with Path(tempfile.mkdtemp(None, 're_analysis_',reanalysis_config['temp_dir'])) as dir_temp:
 
             # initialise fail-safe mechanism
-            _fail_safe_mechanism(isolate_id, reanalysis_config, dir_temp)
+            _fail_safe_mechanism(isolate_id, reanalysis_config, str(dir_temp))
 
             # Get the species-specific configuration
-            config_species =reanalysis_config['species'][args.species]
+            config_species = reanalysis_config['species'][args.species]
 
             # Determine the output file paths
             dir_out = dir_temp / temp_new_sample_name
@@ -227,10 +227,11 @@ if __name__ == '__main__':
                         _send_email(
                             f'Error handling output of automatic reanalysis pipeline on {args.species}, {isolate_id}', f"look in file /reports/{args.species}/{temp_new_sample_name}/{temp_new_sample_name}.log",reanalysis_config['mail'])
 
+                _delete_flagfile(isolate_id, reanalysis_config)
+
                 source = os.path.dirname(__file__)
                 parent = os.path.join(source, '../')
 
-                _delete_flagfile(isolate_id, reanalysis_config)
                 run_subprocess(f"{args.pyvenvpythonpath} {os.path.join(parent, 'mainmongo.py')} --results_type reanalysis --technical_id {isolate_id} --jsonfilepath {dir_out / 'report.json'} --species {args.species}")
                 #shutil.move(f"./{temp_new_sample_name}.log", f"/reports/{args.species}/{temp_new_sample_name}/{temp_new_sample_name}.log")
 
