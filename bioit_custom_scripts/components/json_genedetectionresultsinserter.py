@@ -27,10 +27,7 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                             for k,v in hit.items():
                                 listofhits[index][k] = v.replace("'","")
                         listofhits_json = json.dumps(listofhits)
-                        self.cur_isolates.execute(f"INSERT INTO eav_text_hidden(isolate_id, "
-                                             f"field, value)"
-                                             f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{self.isolatename}'),"
-                                             f"'{genedetectiondict[scheme]['schemename_bigsdb']}', '{listofhits_json}') ")
+                        self._insert_metadata_hidden(genedetectiondict[scheme]['schemename_bigsdb'], listofhits_json)
                         eavhtmltable = '<table class="data"><tr><th>GeneCluster</th><th>Locus</th></tr>'
                         clusterhitlist = []  # in case loci that were in different clusters at some point get in the same cluster
                         for hit in listofhits:

@@ -455,6 +455,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON eav_fields_hidden TO apache;
 INSERT INTO eav_fields_hidden(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('hash_fastq_md5_forward', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1);
 INSERT INTO eav_fields_hidden(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('hash_fastq_md5_reverse', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1);
 INSERT INTO eav_fields_hidden(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('hash_fasta_md5', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1);
+INSERT INTO eav_fields_hidden(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('mongo_results_version', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1);
 CREATE TABLE eav_text_hidden AS (SELECT * FROM eav_text) WITH NO DATA;
 ALTER TABLE eav_text_hidden ADD PRIMARY KEY(isolate_id, field);
 ALTER TABLE eav_text_hidden ADD CONSTRAINT eavt_field FOREIGN KEY (field) REFERENCES eav_fields(field) ON UPDATE CASCADE ON DELETE CASCADE;

@@ -9,14 +9,15 @@ INSERT INTO eav_fields(field, value_format, category, description, no_curate, no
 CREATE TABLE eav_fields_hidden AS (SELECT * FROM eav_fields) WITH NO DATA;
 ALTER TABLE eav_fields_hidden ADD PRIMARY KEY(field);
 GRANT SELECT, INSERT, UPDATE, DELETE ON eav_fields_hidden TO apache;
-INSERT INTO eav_fields_hidden(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('hash_fastq_md5_forward', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1);
-INSERT INTO eav_fields_hidden(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('hash_fastq_md5_reverse', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1);
-INSERT INTO eav_fields_hidden(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('hash_fasta_md5', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1);
 CREATE TABLE eav_text_hidden AS (SELECT * FROM eav_text) WITH NO DATA;
 ALTER TABLE eav_text_hidden ADD PRIMARY KEY(isolate_id, field);
 ALTER TABLE eav_text_hidden ADD CONSTRAINT eavt_field FOREIGN KEY (field) REFERENCES eav_fields(field) ON UPDATE CASCADE ON DELETE CASCADE;
 ALTER TABLE eav_text_hidden ADD CONSTRAINT eavt_isolate FOREIGN KEY (isolate_id) REFERENCES isolates(id) ON UPDATE CASCADE ON DELETE CASCADE;
 GRANT SELECT, INSERT, UPDATE, DELETE ON eav_text_hidden TO apache;
+INSERT INTO eav_fields_hidden(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('hash_fastq_md5_forward', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1);
+INSERT INTO eav_fields_hidden(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('hash_fastq_md5_reverse', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1);
+INSERT INTO eav_fields_hidden(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('hash_fasta_md5', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1);
+INSERT INTO eav_fields_hidden(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('mongo_results_version', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1);
 INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, curator, date_entered, datestamp, isolate_display, main_display, query_field, query_status, analysis, recommended, quality_metric, dbase_name, dbase_id) VALUES(5, 'NCBI_AMR', 'NDARO AMR database', 't', 5, 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE), 't', 't', 't', 'f', 't', 't', 'f', 'bigsdb_stec_seqdef', 5);
 INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, curator, date_entered, datestamp, isolate_display, main_display, query_field, query_status, analysis, recommended, quality_metric, dbase_name, dbase_id) VALUES(6, 'ResFinder', 'ResFinder database', 't', 6, 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE), 't', 't', 't', 'f', 't', 't', 'f', 'bigsdb_stec_seqdef', 6);
 INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, curator, date_entered, datestamp, isolate_display, main_display, query_field, query_status, analysis, recommended, quality_metric, dbase_name, dbase_id) VALUES(7, 'VirulenceFinder_Ecoli', 'VirulenceFinder database', 't', 7, 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE), 't', 't', 't', 'f', 't', 't', 'f', 'bigsdb_listeria_seqdef', 7);

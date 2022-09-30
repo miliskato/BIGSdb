@@ -30,6 +30,12 @@ class JsonSuperClass:
                                   f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{self.isolatename}'),"
                                   f"'{field}', '{value}') ")
 
+    def _insert_metadata_hidden(self, field, value):
+        self.cur_isolates.execute(f"INSERT INTO eav_text(isolate_id, "
+                                  f"field, value)"
+                                  f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{self.isolatename}'),"
+                                  f"'{field}', '{value}') ")
+
     def _insert_metadata_bool(self, field, value):
         self.cur_isolates.execute(f"INSERT INTO eav_boolean(isolate_id, "
                                   f"field, value)"
