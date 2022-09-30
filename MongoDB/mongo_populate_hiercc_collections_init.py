@@ -53,24 +53,25 @@ if __name__ == '__main__':
     mongoinit = Mongoinitialisation()
     mongoquerying = Mongoquerying()
     for sp in species:
-        st_collection, hiercc_results_collection, distance_matrix_collection = \
+        st_collection, hiercc_results_collection, cluster_membership_collection = \
             mongoinit.initialise_hiercc_collections(config_data, sp)
-        # #initialize the profile file for hiercc
+        #initialize the profile file for hiercc
         # CgMLSTProfilesDownloader.download_cgmlst_profiles(HIERCC_CONFIG[sp]['download_st'],
         #                                                   HIERCC_CONFIG[sp]['initial_st'])
         # CgMLSTProfilesDownloader.format_profile_gz(HIERCC_CONFIG[sp]['initial_st'])
-        # # enter st collection
+        # enter st collection
         # species_st_data = HierCCData(Path(HIERCC_CONFIG[sp]['initial_st']))
         # write_headers(species_st_data.header, st_collection)
         # write_st_data(species_st_data.data, st_collection)
         # compute distances from the cgmlst profiles
-        # species_dist_mat = DistanceMatrixComputer(st_collection, distance_matrix_collection, [0])
-        # species_dist_mat.compute_hamming_distances('full')
-        # species_dist_mat.save_as_hdf5(Path(HIERCC_CONFIG[sp]['distance_matrix']))
-        #carry out the initial hiercc clustering
-        hiercc_init = MongoInitHierCCClustering(sp)
-        hiercc_init.run_initial_clustering()
-        # enter hiercc results collection
-        species_hc_data = HierCCData(HIERCC_CONFIG[sp]['initial_clustering'])
-        write_headers(species_hc_data.header, hiercc_results_collection)
-        write_hc_data(species_hc_data.data, species_hc_data.header, hiercc_results_collection)
+        species_dist_mat = DistanceMatrixComputer(st_collection, cluster_membership_collection, [0])
+        species_dist_mat.compute_hamming_distances('full')
+        species_dist_mat.init_clustering_and_cluster_membership([7, 15])
+        #species_dist_mat.save_as_hdf5(Path(HIERCC_CONFIG[sp]['distance_matrix']))
+        # carry out the initial hiercc clustering
+        # hiercc_init = MongoInitHierCCClustering(sp)
+        # hiercc_init.run_initial_clustering()
+        # # enter hiercc results collection
+        # species_hc_data = HierCCData(HIERCC_CONFIG[sp]['initial_clustering'])
+        # write_headers(species_hc_data.header, hiercc_results_collection)
+        # write_hc_data(species_hc_data.data, species_hc_data.header, hiercc_results_collection)

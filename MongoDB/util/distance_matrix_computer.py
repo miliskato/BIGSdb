@@ -5,13 +5,17 @@ from multiprocessing import Pool
 from datetime import datetime
 from pathlib import Path
 import h5py
+import fastcluster
+from scipy.spatial import distance as ssd
+import scipy.cluster.hierarchy as hcluster
+
 
 class DistanceMatrixComputer:
     """
     Class to compute hamming distances and add them to the distance matrix in mongoDB
     """
 
-    def __init__(self, st_collection, distance_matrix_collection, st_to_use: list):
+    def __init__(self, st_collection, cluster_membership_collection, st_to_use: list):  # distance_matrix_collection,
         """
         Initialize the class
         :param st_collection: sequence type collection from mongoDb
@@ -22,7 +26,8 @@ class DistanceMatrixComputer:
         logging.info("Initialization of the distance matrix computer")
         self.st_to_use = st_to_use
         self.st_collection = st_collection
-        self.matrix_collection = distance_matrix_collection
+        # self.matrix_collection = distance_matrix_collection
+        self.cluster_membership_collection = cluster_membership_collection
         self.cgmlst_profiles = []
         self.sequence_types = []
         self.missing_alleles = []
@@ -78,6 +83,38 @@ class DistanceMatrixComputer:
         self.hamming_distances = getDistance(np.array(self.cgmlst_profiles), 'hamming_dist', pool, start)
         logging.info(f"{datetime.now()}: Hamming distances computed!")
 
+    def init_clustering_and_cluster_membership(self, cluster_thresholds: list) -> None:
+        logging.info(f"{datetime.now()}: Starting initial clustering and clustering membership encoding")
+        self.hamming_distances += self.hamming_distances.T
+        slc = fastcluster.single(ssd.squareform(self.hamming_distances))
+        for thresh in cluster_thresholds:
+            cluster_membership = hcluster.fcluster(slc, thresh, criterion='distance')
+            documents = []
+            for entry in range(len(cluster_membership)):
+                doc = {'ST': self.sequence_types[entry],
+                       'Threshold': thresh,
+                       'Clustering_membership': [int(cluster_membership[entry])]}
+                documents.append(doc)
+            self.insert_a_lot(documents, self.cluster_membership_collection)
+            logging.info(f"{datetime.now()}: Clustering membership finished for threshold {thresh}")
+        logging.info(f"{datetime.now()}: Clustering and clustering membership finished")
+
+    def new_st_cluster_membership(self, cluster_thresholds: list) -> None:
+        for thresh in cluster_thresholds:
+            membership = []
+            for it in range(len(self.hamming_distances[0])):
+                if self.hamming_distances[0][it] <= thresh and self.hamming_distances[0][it] > 0:
+                    print("found one")
+                    membership = membership + self.cluster_membership_collection.find_one({'ST': self.sequence_types[it],
+                                                                               'Threshold': thresh})[
+                        'Clustering_membership']
+            if len(membership) == 0:
+                membership.append(self.sequence_types[-1])
+            entry = {'ST': self.sequence_types[-1],
+                     'Threshold': thresh,
+                     'Clustering_membership': membership}
+            self.cluster_membership_collection.insert_one(entry)
+
     def insert_hamming_distances_in_mongo(self):
         """
         inserts the computed hamming distances into mongo Db
@@ -104,11 +141,11 @@ class DistanceMatrixComputer:
                     i_entry = self.sequence_types[-1]
                 hamming_dist_entry = {'I': i_entry,
                                       'J': self.sequence_types[j],
-                                      'Hamming_distance': int(self.hamming_distances[i,j])}
+                                      'Hamming_distance': int(self.hamming_distances[i, j])}
                 hamming_docs_mongo.append(hamming_dist_entry)
                 if len(hamming_docs_mongo) == 100000:
                     self.insert_a_lot(hamming_docs_mongo, self.matrix_collection)
-                    hamming_docs_mongo = [] #after writting the object is erased
+                    hamming_docs_mongo = []  # after writting the object is erased
         self.insert_a_lot(hamming_docs_mongo, self.matrix_collection)
 
     @staticmethod
@@ -125,23 +162,23 @@ class DistanceMatrixComputer:
         for batch in batch_list:
             collection.insert_many(batch)
 
-    def save_as_hdf5(self, hdf_file: Path) ->None:
+    def save_as_hdf5(self, hdf_file: Path) -> None:
 
         if len(self.hamming_distances) == 1:
             with h5py.File(hdf_file, 'a') as file:
                 # if mode is last_st for distance computation then the result is added to the existing dataset.
                 file['distance_matrix'].resize((file['distance_matrix'].shape[0] + self.hamming_distances.shape[0]),
-                                              axis=0)
+                                               axis=0)
                 file['distance_matrix'][-self.hamming_distances.shape[0]:] = self.hamming_distances
 
         else:
             file = h5py.File(hdf_file, "w")
             print(self.hamming_distances.shape)
             # if full mode for the computation of the distance matrix, a new dataset is created.
-            file.create_dataset('distance_matrix', data=self.hamming_distances, maxshape=(None, self.hamming_distances.shape[1]))
+            file.create_dataset('distance_matrix', data=self.hamming_distances,
+                                maxshape=(None, self.hamming_distances.shape[1]))
         file.close()
         logging.info(f"{datetime.now()}: Distance matrix saved as hdf5 at the following location: {hdf_file}")
-
 
 # import pandas as pd
 # from multiprocessing import Pool
