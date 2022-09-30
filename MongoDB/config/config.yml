@@ -3,5 +3,5 @@ CONNECTION_STRING_BASE: mongodb://admin:8T1r7nQwXnMoP3A9ubsu@bioit-mongo-d01:270
 
 mail:
     from: bioit-dev1@wiv-isp.be
-    to: michael.kelchtermans@sciensano.be, benoit
+    to: michael.kelchtermans@sciensano.be, benoit.bergkpinto@sciensano.be
     host: smtp.wiv-isp.be
