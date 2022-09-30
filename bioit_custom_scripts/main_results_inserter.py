@@ -81,7 +81,7 @@ def _fail_safe_mechanism(isolatename: str, species: str, config: dict, analysis_
             flagfilepath.touch()
             logging.info(f"flagfilepath {flagfilepath}")
     except Exception as exceptionmessage:
-        _send_email(f"fail safe mechanism fail on host {socket.gethostname()}", f"{exceptionmessage}\n{traceback.format_exc()}", config['mail'])
+        _send_email(f"bigsdb upload fail safe mechanism fail on host {socket.gethostname()}", f"{exceptionmessage}\n{traceback.format_exc()}", config['mail'])
 
 def _delete_flagfile(isolatename: str, config: dict):
     flagfilepath = __make_flagfilepath(isolatename, config)
@@ -121,11 +121,11 @@ if __name__ == '__main__':
     # Logic
     try:
         maininserter = MainInserter(args.isolatename, args.species, cur_isolates, cur_seqdef, sample_output_dict)
+        _fail_safe_mechanism(args.isolatename, args.species, config_data, sample_output_dict['analysis_date'])
         if args.results_type == 'new_isolate':
             maininserter.insert_new_isolate(args.uploadermailadress)
         elif args.results_type == 'reanalysis':
             maininserter.insert_new_isolate_version()
-        _fail_safe_mechanism(args.isolatename, args.species, config_data, sample_output_dict['analysis_date'])
         try:
             maininserter.insert_main_metadata()
             if args.tsvfilepath:

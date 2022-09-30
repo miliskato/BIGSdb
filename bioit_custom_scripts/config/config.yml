@@ -4,8 +4,8 @@ mail:
     host: smtp.wiv-isp.be
 
 failsafe:
-  flag_dir: /scratch/flags
-  flag_append: start_flag
+  flag_dir: /scratch/temp/flags
+  flag_append: bigsupload_start_flag
 
 species:
   listeria:

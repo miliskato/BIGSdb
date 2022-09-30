@@ -10,13 +10,13 @@ import concurrent.futures
 import os
 import sys
 import socket
-
 import shutil
 import requests
 import yaml
 import psycopg2
 import subprocess
 import datetime
+import traceback
 
 from pymongo.write_concern import WriteConcern
 from pymongo.read_concern import ReadConcern
@@ -68,6 +68,33 @@ def _send_email(subject: str, content: str, config: dict) -> None:
     with smtplib.SMTP(config['host']) as s:
         s.send_message(message)
 
+def __make_flagfilepath(isolatename: str, config: dict):
+    return Path(config['failsafe']['flag_dir']) / '.'.join([isolatename, config['failsafe']['flag_append']])
+
+def _fail_safe_mechanism(isolatename: str, config: dict, tmp_dir: str):
+    try:
+        if not os.path.isdir(Path(config['failsafe']['flag_dir'])):
+            os.makedirs(Path(config['failsafe']['flag_dir']), exist_ok=True)
+        flagfilepath = __make_flagfilepath(isolatename, config)
+        if os.path.isfile(flagfilepath):
+            tmp_dir_fail = Path(open(flagfilepath).readlines()[0])
+            logging.warning(f"fail safe mechanism detects that the reanalysis for sample {isolatename} was started but didnt finish. Removing tmp_dir {tmp_dir_fail}.")
+            shutil.rmtree(tmp_dir_fail)
+        else:
+            with open(flagfilepath, 'w') as handle:
+                handle.write(tmp_dir)
+            logging.info(f"flagfilepath {flagfilepath}")
+    except Exception as exceptionmessage:
+        _send_email(f"reanalysis fail safe mechanism fail on host {socket.gethostname()}", f"{exceptionmessage}\n{traceback.format_exc()}", config['mail'])
+
+def _delete_flagfile(isolatename: str, config: dict):
+    flagfilepath = __make_flagfilepath(isolatename, config)
+    try:
+        os.remove(flagfilepath)
+    except Exception as exceptionmessage:
+        _send_email(f"Could not remove flag file {flagfilepath} on host {socket.gethostname()}", f"{exceptionmessage}\n{traceback.format_exc()}", config['mail'])
+
+
 if __name__ == '__main__':
     # Configure stdout logging
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
@@ -77,7 +104,7 @@ if __name__ == '__main__':
 
     # Read the reanalysis config
     with open(args.config, encoding='utf-8') as handle:
-        config_data = yaml.safe_load(handle)
+       reanalysis_config = yaml.safe_load(handle)
 
     # Parse config
     with open(MONGO_CONFIG, encoding='utf-8') as handle:
@@ -105,17 +132,20 @@ if __name__ == '__main__':
             # todo check if fasta is actually fasta or not empty or?
         else:
             logging.error('Invalid fastafilepath')
-            _send_email(f"reanalysis fail on host {socket.gethostname()} because {isolate_id}'s fasta path is invalid: {isolate['fasta_path']}", "", config_data['mail'])
+            _send_email(f"reanalysis fail on host {socket.gethostname()} because {isolate_id}'s fasta path is invalid: {isolate['fasta_path']}", "",reanalysis_config['mail'])
             sys.exit()
 
         temp_new_sample_name = '_'.join([isolate_id, str(datetime.date.today())])
         logging.info(f"new sample name: {temp_new_sample_name}")
 
         # Get a temporary working directory
-        with Path(tempfile.mkdtemp(None, 're_analysis_', config_data['temp_dir'])) as dir_temp:
+        with Path(tempfile.mkdtemp(None, 're_analysis_',reanalysis_config['temp_dir'])) as dir_temp:
+
+            # initialise fail-safe mechanism
+            _fail_safe_mechanism(isolate_id, reanalysis_config, dir_temp)
 
             # Get the species-specific configuration
-            config_species = config_data['species'][args.species]
+            config_species =reanalysis_config['species'][args.species]
 
             # Determine the output file paths
             dir_out = dir_temp / temp_new_sample_name
@@ -170,7 +200,7 @@ if __name__ == '__main__':
             command.run(dir_temp)
             if command.returncode != 0:
                 # if pipeline fails, send mail and continue to next sample, dont raise error
-                _send_email(f'Error executing automatic reanalysis pipeline on {args.species}, {isolate_id}', command.stderr, config_data['mail'])
+                _send_email(f'Error executing automatic reanalysis pipeline on {args.species}, {isolate_id}', command.stderr, reanalysis_config['mail'])
                 # raise RuntimeError(f"Error executing pipeline: {command.stderr}")
             else:
                 logging.info(f"Re-analysis for isolate '{isolate_id}' completed")
@@ -195,31 +225,33 @@ if __name__ == '__main__':
                             executable='/bin/bash')
                     if result.returncode != 0:
                         _send_email(
-                            f'Error handling output of automatic reanalysis pipeline on {args.species}, {isolate_id}', f"look in file /reports/{args.species}/{temp_new_sample_name}/{temp_new_sample_name}.log", config_data['mail'])
-                # moving the report
-                # todo check if fasta files are same? not sure what i meant by this but it would probably be a nice idea to have the hash of the fasta file in mongo to check if sample is really new
-                # todo change venv
+                            f'Error handling output of automatic reanalysis pipeline on {args.species}, {isolate_id}', f"look in file /reports/{args.species}/{temp_new_sample_name}/{temp_new_sample_name}.log",reanalysis_config['mail'])
 
                 source = os.path.dirname(__file__)
                 parent = os.path.join(source, '../')
 
+                _delete_flagfile(isolate_id, reanalysis_config)
                 run_subprocess(f"{args.pyvenvpythonpath} {os.path.join(parent, 'mainmongo.py')} --results_type reanalysis --technical_id {isolate_id} --jsonfilepath {dir_out / 'report.json'} --species {args.species}")
                 #shutil.move(f"./{temp_new_sample_name}.log", f"/reports/{args.species}/{temp_new_sample_name}/{temp_new_sample_name}.log")
 
                 # Removing the temporary working dir and the remaining files that were not kept
-                # todo later shutil.rmtree(dir_temp) # 09-29 should i remove this though? we need the report html and tsv for bigsdb
+                # todo later shutil.rmtree(dir_temp) # 09-09 should i remove this though? we need the report html and tsv for bigsdb # 09-30 this removal was only after the report was moved somewhere else so justified (see reportmover.py in bigs)
 
     def isolate_and_threads(isolate: dict):
         dict = {
             'isolate': isolate,
-            'threads_per_job' : config_data['threads_per_job']
+            'threads_per_job' :reanalysis_config['threads_per_job']
         }
         return dict
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=int(args.threads / config_data['threads_per_job'])) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=int(args.threads /reanalysis_config['threads_per_job'])) as executor:
         future_to_isolate = {executor.submit(
             reanalyse_and_insert, **isolate_and_threads(isolate)):
                            isolate for isolate in documents_list}
+
+
+
+
 
 
 

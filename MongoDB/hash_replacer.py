@@ -9,7 +9,7 @@ import sys
 from util.mongo_initialisation import Mongoinitialisation
 from config import MONGO_CONFIG
 
-# todo finish and polish
+
 def _parse_arguments() -> argparse.Namespace:
     """
     Parses the command line arguments.
@@ -22,7 +22,7 @@ def _parse_arguments() -> argparse.Namespace:
     return parser.parse_args()
 
 def query_hashes_of_scheme(hashed_AD_collection, scheme: str) -> list:
-    return [document for document in hashed_AD_collection.with_options(read_concern=ReadConcern(level="majority")).find({"scheme": scheme, "resolved_AD":0})]
+    return [document for document in hashed_AD_collection.with_options(read_concern=ReadConcern(level="majority")).find({"scheme": scheme, "resolved_AD": 0})]
 
 
 if __name__ == '__main__':
@@ -55,7 +55,6 @@ if __name__ == '__main__':
             else:
                 locus_hash_dict[hash_document['locus']] = [hash_document['hashed_allele']]
         for locus, hash_list in locus_hash_dict.items():
-            # todo Open the fasta with seqio, get the path
             if args.species == 'stec':
                 fasta_file = Path(f"/db/sequence_typing/ecoli/{args.scheme.replace('-','_')}/{locus}/{locus.lower()}.fasta")
             else:

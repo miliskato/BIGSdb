@@ -23,8 +23,12 @@ species:
 
 mail:
     from: bioit-dev1@wiv-isp.be
-    to: michael.kelchtermans@sciensano.be
+    to: michael.kelchtermans@sciensano.be, benoit
     host: smtp.wiv-isp.be
 
 temp_dir: /scratch/temp
 threads_per_job: 2
+
+failsafe:
+  flag_dir: /scratch/temp/flags
+  flag_append: reanalysis_start_flag
