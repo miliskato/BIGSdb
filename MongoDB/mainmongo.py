@@ -134,17 +134,17 @@ if __name__ == '__main__':
     with open(MONGO_CONFIG, encoding='utf-8') as handle:
         config_data = yaml.safe_load(handle)
 
-    # Configure stdout logging
-    logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
-
-    # Open collections
-    mongoinit = Mongoinitialisation()
-    isolates_collection, isolateresults_collection, isolates_badqc_collection = mongoinit._initialise_collections(config_data, args.species)
-    st_collection, hiercc_results_collection, distance_matrix_collection = \
-        mongoinit.initialise_hiercc_collections(config_data, args.species)
-    mongoquerying = Mongoquerying()
-
     try:
+        # Configure stdout logging
+        logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
+
+        # Open collections
+        mongoinit = Mongoinitialisation()
+        isolates_collection, isolateresults_collection, isolates_badqc_collection = mongoinit._initialise_collections(config_data, args.species)
+        st_collection, hiercc_results_collection, distance_matrix_collection = \
+            mongoinit.initialise_hiercc_collections(config_data, args.species)
+        mongoquerying = Mongoquerying()
+
         # If statement for reanalysis or new
         if args.results_type == "new_isolate":
             if args.technical_id in mongoquerying._query_list_of_all_distinct_values(isolates_collection, "_id") or args.technical_id in mongoquerying._query_list_of_all_distinct_values(isolates_badqc_collection, "_id"):
