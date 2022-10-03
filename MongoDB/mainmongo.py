@@ -35,6 +35,7 @@ def _send_email(subject: str, content: str, config: dict) -> None:
     message.set_content(content)
     with smtplib.SMTP(config['host']) as s:
         s.send_message(message)
+    logging.info(content)
 
 def _parse_arguments() -> argparse.Namespace:
     """
@@ -198,7 +199,6 @@ if __name__ == '__main__':
             new_results = prepend_string_dot_to_dict_keys(new_results_handle)
             new_results["results.isolates_id"] = args.technical_id
             old_results = mongoquerying._query_docs_by_ids(isolates_collection, [args.technical_id])[0]['results']
-            new_results["results_version"] = old_results["results_version"] + 1
             some_result_changed = False
             for mainkey in new_results_handle.keys():
                 if isinstance(new_results_handle[mainkey], dict):
@@ -212,17 +212,19 @@ if __name__ == '__main__':
                                 logging.info(f"{mainkey}{subkey} different or not in old")
                                 some_result_changed = True
             if some_result_changed is True:
+                new_results["results.results_version"] = old_results["results_version"] + 1
                 isolates_collection.with_options(write_concern=WriteConcern(w="majority")).update_one({"_id": args.technical_id}, {
                     "$set": {**new_results,
-                             "results_changed_since_last_version": True,
+                             "results.results_changed_since_last_version": True,
                              "latest_analysis_date": new_results["results.analysis_date"],
                              "previous_latest_results_version": _write_document(isolateresults_collection, old_results)}})
                 logging.info(f"Wrote new results and linked to isolate {args.technical_id} in {args.species}")
             else:
+                # results version is not changed, it does not really matter how many analyses have already been performed with the same result
                 # new results still needs to be added because it modifies the analysis dates, db dates and also tool versions if these changed
                 isolates_collection.with_options(write_concern=WriteConcern(w="majority")).update_one({"_id": args.technical_id}, {
                     "$set": {**new_results,
-                             "results_changed_since_last_version": False,
+                             "results.results_changed_since_last_version": False,
                              "latest_analysis_date": new_results["results.analysis_date"]}})
                 logging.info(f"New results were not different from old results for {args.technical_id} in {args.species}, updated analysis dates and db versions.")
 

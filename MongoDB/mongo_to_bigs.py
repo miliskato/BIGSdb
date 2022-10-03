@@ -47,6 +47,7 @@ def _send_email(subject: str, content: str, config: dict) -> None:
     message.set_content(content)
     with smtplib.SMTP(config['host']) as s:
         s.send_message(message)
+    logging.info(content)
 
 def _return_datetimeobj_from_YMDhms(datetimestring: str):
     return datetime.datetime.strptime(datetimestring, '%d/%m/%Y - %X').date()
@@ -93,19 +94,25 @@ if __name__ == '__main__':
                 latest_analysis_date_bigs = cur_isolates.fetchall()[0][0] # this appearently is a datetime object
                 cur_isolates.execute(f"SELECT value FROM eav_text_hidden WHERE field='mongo_results_version'")
                 mongo_results_version_bigs_query = cur_isolates.fetchall()
+                print(mongo_results_version_bigs_query)
                 if mongo_results_version_bigs_query == []:
                     mongo_results_version_bigs = 1
                 else:
                     mongo_results_version_bigs = mongo_results_version_bigs_query[0][0]
                 if _return_datetimeobj_from_YMDhms(document['results']['analysis_date']) > latest_analysis_date_bigs:
                     new_results = document['results']
+                    print(new_results['results_version'], mongo_results_version_bigs + 1)
+                    print(new_results["results_changed_since_last_version"])
                     if new_results['results_version'] == mongo_results_version_bigs + 1 and new_results["results_changed_since_last_version"] is False:
+
                         # results are same so do nothing
                         logging.info(f"different version (1 diff) but results same in mongodb and bigsdb for {document['results']['isolates_id']}")
                         continue
                     else:
                         old_results = old_isolateresults_collection.with_options(read_concern=ReadConcern(level="majority")).find_one({'isolates_id': new_results['isolates_id'], 'results_version': mongo_results_version_bigs})
                         if old_results is None:
+                            # what if bigs has version 1, but mongo has version 3, but version 3 is no different from 1 and 2?
+                            # Then need to look at the first at the first version higher, if None then this means that there were no changes
                             _send_email(f"Can not find document in old isolate results collection for isolate {new_results['isolates_id']} and results version {mongo_results_version_bigs}", "", bigsdb_config['mail'])
                             continue
                         some_result_changed = False
@@ -150,5 +157,5 @@ if __name__ == '__main__':
             logging.info(f"wrote new results version for {document['results']['isolates_id']} to bigsdb")
 
     except Exception as exceptionmessage:
-        _send_email(f"reanalysis fail on host {socket.gethostname()}",
+        _send_email(f"mongo to bigs fail on host {socket.gethostname()}",
                     f"{exceptionmessage}\n{traceback.format_exc()}", bigsdb_config['mail'])

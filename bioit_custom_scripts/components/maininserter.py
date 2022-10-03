@@ -44,7 +44,7 @@ class MainInserter(JsonSuperClass):
         self._insert_metadata('html', reportlink)
         self._insert_metadata('tsv', reportlink.replace('html', 'tsv'))
         self._insert_species_specific_metadata()
-        if 'mongo_results_version' in self.sample_output_dict.keys():
+        if 'results_version' in self.sample_output_dict.keys():
             self._insert_metadata_hidden('mongo_results_version', self.sample_output_dict['mongo_results_version'])
         logging.info('Metadata insertion succesful')
     
