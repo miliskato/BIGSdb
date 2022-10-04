@@ -22,27 +22,138 @@ species:
       dirdb: /db/sequence_typing/listeria/species_confirmation
       cmd_argument: species-confirmation
     ncbi_amr:
-      clusteredfasta: /db/gene_detection/NCBI_AMR/ncbi_amr-clustered_80.fasta
-      metadatafile: /db/gene_detection/NCBI_AMR/mapping_full.json
-      cmd_argument: ncbi-amr
       dirdb: /db/gene_detection/NCBI_AMR
+      cmd_argument: ncbi-amr
     resfinder:
-      clusteredfasta: /db/gene_detection/ResFinder/resfinder-clustered_80.fasta
-      metadatafile: /db/gene_detection/ResFinder/mapping_full.json
-      cmd_argument: resfinder
       dirdb: /db/gene_detection/ResFinder
+      cmd_argument: resfinder
     virulencefinder:
-      clusteredfasta: /db/gene_detection/VirulenceFinder-Listeria/virulencefinder-listeria-clustered_80.fasta
-      metadatafile: /db/gene_detection/VirulenceFinder-Listeria/mapping_full.json
-      cmd_argument: virulencefinder
       dirdb: /db/gene_detection/VirulenceFinder-Listeria
+      cmd_argument: virulencefinder
     vfdb_core:
-      clusteredfasta: /db/gene_detection/VFDB_core/vfdb_core-clustered_80.fasta
-      metadatafile: /db/gene_detection/VFDB_core/mapping_full.json
-      cmd_argument: vfdb-core
       dirdb: /db/gene_detection/VFDB_core
+      cmd_argument: vfdb-core
     plasmidfinder:
-      clusteredfasta: /db/gene_detection/PlasmidFinder-gram_positive/plasmidfinder-gram_positive-clustered_80.fasta
-      metadatafile: /db/gene_detection/PlasmidFinder-gram_positive/mapping_full.json
-      cmd_argument: plasmidfinder
       dirdb: /db/gene_detection/PlasmidFinder-gram_positive
+      cmd_argument: plasmidfinder
+  mycobacterium:
+    mlst:
+      dirdb: /db/sequence_typing/mycobacterium/mlst
+      cmd_argument: mlst
+    cgmlst:
+      dirdb: /db/sequence_typing/mycobacterium/cgmlst
+      cmd_argument: cgmlst
+# all not updated automatically and no git repo
+# also distinction with vcf and without vcf...
+#    51SNP:
+#      cmd_argument: 51snp
+#    csb_rd:
+#      cmd_argument: csb_rd
+#    amr_who:
+#      cmd_argument: amr_who
+#    hsp65:
+#      cmd_argument: hsp65
+#    pointfinder:
+#      cmd_argument: pointfinder
+#    ncbi_16s:
+#      cmd_argument: ncbi_16s
+#    snp_lineage:
+#      cmd_argument: snp-lineage
+  neisseria:
+    mlst:
+      dirdb: /db/sequence_typing/neisseria/mlst
+      cmd_argument: mlst
+    cgmlst:
+      dirdb: /db/sequence_typing/neisseria/cgmlst
+      cmd_argument: cgmlst
+    rplf:
+      dirdb: /db/sequence_typing/neisseria/rplf
+      cmd_argument: rplf
+    bast:
+      dirdb: /db/sequence_typing/neisseria/bast
+      cmd_argument: bast
+    pora:
+      dirdb: /db/sequence_typing/neisseria/pora
+      cmd_argument: pora
+    porb:
+      dirdb: /db/sequence_typing/neisseria/porb
+      cmd_argument: porb
+    feta:
+      dirdb: /db/sequence_typing/neisseria/feta
+      cmd_argument: feta
+    resistance_genes:
+      dirdb: /db/sequence_typing/neisseria/resistance_genes
+      cmd_argument: resistance_genes
+    vaccine_targets:
+      dirdb: /db/sequence_typing/neisseria/vaccine_targets
+      cmd_argument: vaccine_targets
+    fhbp:
+      dirdb: /db/sequence_typing/neisseria/fhbp
+      cmd_argument: fhbp
+    ncbi_amr:
+      dirdb: /db/gene_detection/NCBI_AMR
+      cmd_argument: ncbi-amr
+    resfinder:
+      dirdb: /db/gene_detection/ResFinder
+      cmd_argument: resfinder
+  stec:
+    mlst_warwick:
+      dirdb: /db/sequence_typing/ecoli/mlst-warwick
+      cmd_argument: mlst_warwick
+    mlst_pasteur:
+      dirdb: /db/sequence_typing/ecoli/mlst-pasteur
+      cmd_argument: mlst_pasteur
+    cgmlst:
+      dirdb: /db/sequence_typing/ecoli/cgmlst
+      cmd_argument: cgmlst
+#    pointfinder:
+#      cmd_argument: pointfinder
+#    serotype:
+#      cmd_argument: serotype
+    ncbi_amr:
+      dirdb: /db/gene_detection/NCBI_AMR
+      cmd_argument: ncbi-amr
+    resfinder:
+      dirdb: /db/gene_detection/ResFinder
+      cmd_argument: resfinder
+    plasmidfinder:
+      dirdb: /db/gene_detection/PlasmidFinder-entero
+      cmd_argument: plasmidfinder
+## having the same argparse argument twice does not seem to affect anything
+    virulencefinder:
+      dirdb: /db/gene_detection/VirulenceFinder-Ecoli
+      cmd_argument: virulencefinder
+    virulencefinder_shiga:
+      dirdb: /db/gene_detection/VirulenceFinder-Shiga
+      cmd_argument: virulencefinder
+  salmonella:
+    mlst:
+      dirdb: /db/sequence_typing/salmonella/mlst
+      cmd_argument: mlst
+    cgmlst:
+      dirdb: /db/sequence_typing/salmonella/cgmlst
+      cmd_argument: cgmlst
+## todo spifinder and serotype paths and git repos
+#    spifinder:
+#      cmd_argument: spifinder
+## having the same argparse argument twice does not seem to affect anything
+#    serotype_sistr:
+#      dirdb: /db/SISTR
+#      cmd_argument: serotype
+#    serotype_seqsero:
+#      dirdb: /db/pipelines/salmonella/seqsero2
+#      cmd_argument: serotype
+    ncbi_amr:
+      dirdb: /db/gene_detection/NCBI_AMR
+      cmd_argument: ncbi-amr
+    resfinder:
+      dirdb: /db/gene_detection/ResFinder
+      cmd_argument: resfinder
+    plasmidfinder:
+      dirdb: /db/gene_detection/PlasmidFinder-entero
+      cmd_argument: plasmidfinder
+    vfdb_core:
+      dirdb: /db/gene_detection/VFDB_core
+      cmd_argument: vfdb-core
+    #    pointfinder:
+    #      cmd_argument: pointfinder
