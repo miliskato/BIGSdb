@@ -102,17 +102,18 @@ class DistanceMatrixComputer:
     def new_st_cluster_membership(self, cluster_thresholds: list) -> None:
         for thresh in cluster_thresholds:
             membership = []
-            for it in range(len(self.hamming_distances[0])):
-                if self.hamming_distances[0][it] <= thresh and self.hamming_distances[0][it] > 0:
-                    print("found one")
-                    membership = membership + self.cluster_membership_collection.find_one({'ST': self.sequence_types[it],
-                                                                               'Threshold': thresh})[
-                        'Clustering_membership']
+            for it in range(len(self.hamming_distances[0])-1):
+                if self.hamming_distances[0][it] <= thresh:
+                    print(f"found one at st {self.sequence_types[it]}")
+                    membership = membership + \
+                                 self.cluster_membership_collection.find_one({'ST': self.sequence_types[it],
+                                                                              'Threshold': thresh})[
+                                     'Clustering_membership']
             if len(membership) == 0:
                 membership.append(self.sequence_types[-1])
             entry = {'ST': self.sequence_types[-1],
                      'Threshold': thresh,
-                     'Clustering_membership': membership}
+                     'Clustering_membership': list(set(membership))}
             self.cluster_membership_collection.insert_one(entry)
 
     def insert_hamming_distances_in_mongo(self):
