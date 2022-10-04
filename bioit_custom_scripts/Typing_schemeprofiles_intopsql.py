@@ -117,7 +117,7 @@ def insert_profiles(scheme, indexdict, list_to_be_inserted):
                                         f"'{locus}', '{profile}', '{locusvalue}', "
                                         f"1,(SELECT CURRENT_DATE))")
                         except:
-                            logging.info(f"profile with field {field} and value {fieldvalue.replace('_',' ')} already exists as another field")
+                            logging.error(f"profile with field {field} and value {fieldvalue.replace('_',' ')} already exists as another field, either remove the entire scheme profiles or find out what the exact problem is and solve this script once and for all with delete where select profile_id where locus1 and alleleid1 intersect select ... (e.g. select profile_id from profile_members where (locus='abcZ' and allele_id='1') INTERSECT select profile_id from profile_members where (locus='bglA' and allele_id='1') INTERSECT select profile_id from profile_members where (locus='cat' and allele_id='1'))")
                             continue
     con.close()
 

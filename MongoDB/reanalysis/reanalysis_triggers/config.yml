@@ -1,0 +1,48 @@
+species:
+  listeria:
+    mlst:
+      dirdb: /db/sequence_typing/listeria/mlst
+      cmd_argument: mlst
+    cgmlst:
+      dirdb: /db/sequence_typing/listeria/cgmlst
+      cmd_argument: cgmlst
+    pcr_serogroup:
+      dirdb: /db/sequence_typing/listeria/serogroup
+      cmd_argument: pcr-serogroup
+    metal_detergent:
+      dirdb: /db/sequence_typing/listeria/metal_detergent_resistance
+      cmd_argument: metal-detergent
+    typing_virulence:
+      dirdb: /db/sequence_typing/listeria/virulence
+      cmd_argument: typing-virulence
+    typing_amr:
+      dirdb: /db/sequence_typing/listeria/antibiotic_resistance
+      cmd_argument: typing-amr
+    species_confirmation:
+      dirdb: /db/sequence_typing/listeria/species_confirmation
+      cmd_argument: species-confirmation
+    ncbi_amr:
+      clusteredfasta: /db/gene_detection/NCBI_AMR/ncbi_amr-clustered_80.fasta
+      metadatafile: /db/gene_detection/NCBI_AMR/mapping_full.json
+      cmd_argument: ncbi-amr
+      dirdb: /db/gene_detection/NCBI_AMR
+    resfinder:
+      clusteredfasta: /db/gene_detection/ResFinder/resfinder-clustered_80.fasta
+      metadatafile: /db/gene_detection/ResFinder/mapping_full.json
+      cmd_argument: resfinder
+      dirdb: /db/gene_detection/ResFinder
+    virulencefinder:
+      clusteredfasta: /db/gene_detection/VirulenceFinder-Listeria/virulencefinder-listeria-clustered_80.fasta
+      metadatafile: /db/gene_detection/VirulenceFinder-Listeria/mapping_full.json
+      cmd_argument: virulencefinder
+      dirdb: /db/gene_detection/VirulenceFinder-Listeria
+    vfdb_core:
+      clusteredfasta: /db/gene_detection/VFDB_core/vfdb_core-clustered_80.fasta
+      metadatafile: /db/gene_detection/VFDB_core/mapping_full.json
+      cmd_argument: vfdb-core
+      dirdb: /db/gene_detection/VFDB_core
+    plasmidfinder:
+      clusteredfasta: /db/gene_detection/PlasmidFinder-gram_positive/plasmidfinder-gram_positive-clustered_80.fasta
+      metadatafile: /db/gene_detection/PlasmidFinder-gram_positive/mapping_full.json
+      cmd_argument: plasmidfinder
+      dirdb: /db/gene_detection/PlasmidFinder-gram_positive

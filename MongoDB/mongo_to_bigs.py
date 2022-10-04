@@ -113,7 +113,7 @@ if __name__ == '__main__':
                         if old_results is None:
                             # what if bigs has version 1, but mongo has version 3, but version 3 is no different from 1 and 2?
                             # Then need to look at the first at the first version higher, if None then this means that there were no changes
-                            _send_email(f"Can not find document in old isolate results collection for isolate {new_results['isolates_id']} and results version {mongo_results_version_bigs}", "", bigsdb_config['mail'])
+                            _send_email(f"{os.path.basename(__file__)}: Can not find document in old isolate results collection for isolate {new_results['isolates_id']} and results version {mongo_results_version_bigs}", "", bigsdb_config['mail'])
                             continue
                         some_result_changed = False
                         for mainkey in new_results.keys():
@@ -148,7 +148,7 @@ if __name__ == '__main__':
                     executable='/bin/bash')
                 if result.returncode != 0:
                     _send_email(
-                        f"Error inserting {document['results']['isolates_id']} into bigsdb",
+                        f"{os.path.basename(__file__)}: Error inserting {document['results']['isolates_id']} into bigsdb",
                         "",
                         bigsdb_config['mail'])
             run_subprocess(f"{args.pyvenvpythonpath} {os.path.join(parent, 'bioit_custom_scripts/main_results_inserter.py')} --jsonfilepath {jsonfile} --species {args.species} --isolatename {document['results']['isolates_id']} --uploadermailadress michael --results_type {results_type}")
@@ -157,5 +157,5 @@ if __name__ == '__main__':
             logging.info(f"wrote new results version for {document['results']['isolates_id']} to bigsdb")
 
     except Exception as exceptionmessage:
-        _send_email(f"mongo to bigs fail on host {socket.gethostname()}",
+        _send_email(f"{os.path.basename(__file__)}: mongo to bigs fail on host {socket.gethostname()}",
                     f"{exceptionmessage}\n{traceback.format_exc()}", bigsdb_config['mail'])

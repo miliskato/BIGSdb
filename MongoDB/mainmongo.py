@@ -6,7 +6,7 @@ import yaml
 import argparse
 from pathlib import Path
 import logging
-from datetime import datetime
+import datetime
 import sys
 import re
 import json
@@ -75,8 +75,8 @@ def _new_isolate(technical_id: str, vcffilepath: str, fastafilepath: str,
                         "vcf_path": vcffilepath,
                         "fasta_path": fastafilepath,
                         "previous_latest_results_version": "", #_write_document(isolateresults_collection, results)
-                        "creation_date": datetime.utcnow(),
-                        "latest_analysis_date": results["analysis_date"],
+                        "creation_date": datetime.datetime.utcnow(),
+                        "latest_analysis_date": _return_YMD_from_YMDhms(results["analysis_date"]),
                         "results": results}
     return new_isolate_dict
 
@@ -121,11 +121,8 @@ def find_hashes_in_results_and_add_to_collection(results: dict, mongoinit: objec
                                                                                                                {"$inc": {"encountered_count": 1}})
                         logging.info(f"hashed allele '{allele_info['Allele']}' encounter incremented by one")
 
-def parse_date_to_iso(str_date: str):
-    split_date = re.split('/|-|:', str_date.replace(' ', ''))
-    split_date = [int(i) for i in split_date]
-    new_date = datetime(split_date[2], split_date[1], split_date[0], split_date[3], split_date[4], split_date[5])
-    return new_date
+def _return_YMD_from_YMDhms(datetimestring: str):
+    return datetime.datetime.strptime(datetimestring, '%d/%m/%Y - %X').strftime('%Y-%m-%d')
 
 if __name__ == '__main__':
     # Parse arguments
@@ -216,7 +213,7 @@ if __name__ == '__main__':
                 isolates_collection.with_options(write_concern=WriteConcern(w="majority")).update_one({"_id": args.technical_id}, {
                     "$set": {**new_results,
                              "results.results_changed_since_last_version": True,
-                             "latest_analysis_date": new_results["results.analysis_date"],
+                             "latest_analysis_date": _return_YMD_from_YMDhms(new_results["results.analysis_date"]),
                              "previous_latest_results_version": _write_document(isolateresults_collection, old_results)}})
                 logging.info(f"Wrote new results and linked to isolate {args.technical_id} in {args.species}")
             else:
@@ -225,11 +222,11 @@ if __name__ == '__main__':
                 isolates_collection.with_options(write_concern=WriteConcern(w="majority")).update_one({"_id": args.technical_id}, {
                     "$set": {**new_results,
                              "results.results_changed_since_last_version": False,
-                             "latest_analysis_date": new_results["results.analysis_date"]}})
+                             "latest_analysis_date": _return_YMD_from_YMDhms(new_results["results.analysis_date"])}})
                 logging.info(f"New results were not different from old results for {args.technical_id} in {args.species}, updated analysis dates and db versions.")
 
             # todo recalculate HierCC_cgST
 
     except Exception as exceptionmessage:
-        _send_email(f"mongo upload fail on host {socket.gethostname()}",
+        _send_email(f"{os.path.basename(__file__)}: mongo upload fail on host {socket.gethostname()}",
                 f"{exceptionmessage}\n{traceback.format_exc()}", config_data['mail'])
