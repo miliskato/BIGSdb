@@ -1,5 +1,5 @@
 #Written by Keith Jolley
-#Copyright (c) 2010-2021, University of Oxford
+#Copyright (c) 2010-2022, University of Oxford
 #E-mail: keith.jolley@zoo.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
@@ -340,6 +340,7 @@ sub _get_isolate_links {
 	$buffer .= $self->_get_allele_designations;
 	$buffer .= $self->_get_sequence_bin;
 	$buffer .= $self->_get_allele_sequences;
+	$buffer .= $self->_get_geography_point_lookup;
 	return $buffer;
 }
 
@@ -402,6 +403,42 @@ sub _get_geocoding {
 		}
 	);
 	$buffer .= qq(</div>\n);
+	return $buffer;
+}
+
+sub _get_geography_point_lookup {
+	my ($self) = @_;
+	return q() if !$self->can_modify_table('geography_point_lookup');
+	return if ( $self->{'system'}->{'dbtype'} // q() ) ne 'isolates';
+	my $atts = $self->{'xmlHandler'}->get_all_field_attributes;
+	my $lookup_fields;
+	foreach my $field ( keys %$atts ) {
+		if ( ( $atts->{$field}->{'geography_point_lookup'} // q() ) eq 'yes' ) {
+			$lookup_fields = 1;
+			last;
+		}
+	}
+	return q() if !$lookup_fields;
+	if ( !$self->{'datastore'}->run_query(q(SELECT to_regclass('geography_point_lookup'))) ) {
+		$logger->fatal(
+			    'Your database configuration contains one or more fields with the geography_point_lookup attribute set '
+			  . 'but your database does not contain the geography_point_lookup table. You need to ensure that PostGIS '
+			  . 'is installed and run the isolatedb_geocoding.sql SQL script against the database to set this up.' );
+		undef $atts->{$_}->{'geography_point_lookup'} foreach keys %$atts;
+		return q();
+	}
+	my $buffer = q(<div class="curategroup curategroup_projects grid-item default_hide_curator" )
+	  . qq(style="display:$self->{'optional_curator_display'}"><h2>Geopoint field lookup</h2>);
+	$buffer .= $self->_get_icon_group(
+		'geography_point_lookup',
+		'globe-europe',
+		{
+			add       => 1,
+			batch_add => 1,
+			query     => 1,
+			info      => 'Geopoint lookup - Set GPS coordinates for geographic field values.'
+		}
+	);
 	return $buffer;
 }
 
@@ -2204,9 +2241,10 @@ sub _accept_publication {
 
 sub _send_email {
 	my ( $self, $user_id, $subject, $message ) = @_;
-	my $user_info = $self->{'datastore'}->get_user_info($user_id);
-	my $address   = Email::Valid->address( $user_info->{'email'} );
-	my $domain    = $self->{'config'}->{'domain'} // DEFAULT_DOMAIN;
+	my $user_info      = $self->{'datastore'}->get_user_info($user_id);
+	my $address        = Email::Valid->address( $user_info->{'email'} );
+	my $domain         = $self->{'config'}->{'domain'} // DEFAULT_DOMAIN;
+	my $sender_address = $self->{'config'}->{'automated_email_address'} // "no_reply\@$domain";
 	return if !$address;
 	my $transport = Email::Sender::Transport::SMTP->new(
 		{
@@ -2217,7 +2255,7 @@ sub _send_email {
 	my $email = Email::MIME->create(
 		header_str => [
 			To      => $address,
-			From    => "no_reply\@$domain",
+			From    => $sender_address,
 			Subject => $subject
 		],
 		attributes => {
@@ -2412,6 +2450,7 @@ sub _notify_succesful_registration {
 	my $address   = Email::Valid->address( $user_info->{'email'} );
 	my $domain    = $self->{'config'}->{'domain'} // DEFAULT_DOMAIN;
 	return if !$address;
+	my $sender_address = $self->{'config'}->{'automated_email_address'} // "no_reply\@$domain";
 	my $transport = Email::Sender::Transport::SMTP->new(
 		{
 			host => $self->{'config'}->{'smtp_server'} // 'localhost',
@@ -2421,7 +2460,7 @@ sub _notify_succesful_registration {
 	my $email = Email::MIME->create(
 		header_str => [
 			To      => $address,
-			From    => "no_reply\@$domain",
+			From    => $sender_address,
 			Subject => $subject
 		],
 		attributes => {

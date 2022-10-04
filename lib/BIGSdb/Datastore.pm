@@ -28,13 +28,16 @@ my $logger = get_logger('BIGSdb.Datastore');
 use Unicode::Collate;
 use File::Path qw(make_path);
 use Fcntl qw(:flock);
+use Memoize;
+memoize('get_geography_coordinates');
+memoize('convert_coordinates_to_geography');
 use BIGSdb::Exceptions;
 use BIGSdb::ClassificationScheme;
 use BIGSdb::ClientDB;
 use BIGSdb::Locus;
 use BIGSdb::Scheme;
 use BIGSdb::TableAttributes;
-use BIGSdb::Constants qw(:login_requirements DEFAULT_CODON_TABLE);
+use BIGSdb::Constants qw(:login_requirements DEFAULT_CODON_TABLE COUNTRIES);
 use IO::Handle;
 use Digest::MD5;
 use POSIX qw(ceil);
@@ -1390,14 +1393,16 @@ sub create_temp_scheme_table {
 	}
 	my $create = "CREATE $table_type $table (";
 	my @table_fields;
-	foreach (@$fields) {
-		my $type = $self->get_scheme_field_info( $id, $_ )->{'type'};
-		push @table_fields, "$_ $type";
+	foreach my $field (@$fields) {
+		my $type = $self->get_scheme_field_info( $id, $field )->{'type'};
+		push @table_fields, "$field $type";
 	}
+	push @table_fields, 'missing_loci int';
 	push @table_fields, 'profile text[]';
 	my $locus_indices = $scheme->get_locus_indices;
 	eval {
-		$self->{'db'}->do( 'DELETE FROM scheme_warehouse_indices WHERE scheme_id=?', undef, $id );
+		$self->{'db'}->do( 'LOCK TABLE scheme_warehouse_indices;DELETE FROM scheme_warehouse_indices WHERE scheme_id=?',
+			undef, $id );
 		foreach my $profile_locus ( keys %$locus_indices ) {
 			my $locus_name = $self->run_query(
 				'SELECT locus FROM scheme_members WHERE profile_name=? AND scheme_id=?',
@@ -1420,9 +1425,13 @@ sub create_temp_scheme_table {
 	$create .= ')';
 	$self->{'db'}->do($create);
 	my $seqdef_scheme_id = $self->get_scheme_info($id)->{'dbase_id'};
-	my $data = $self->run_query( "SELECT @$fields,array_to_string(profile,',') FROM mv_scheme_$seqdef_scheme_id",
-		undef, { db => $scheme_db, fetch => 'all_arrayref' } );
-	eval { $self->{'db'}->do("COPY $table(@$fields,profile) FROM STDIN"); };
+	my $data             = $self->run_query(
+		"SELECT @$fields,cardinality(array_positions(profile, 'N')),array_to_string(profile,',') "
+		  . "FROM mv_scheme_$seqdef_scheme_id",
+		undef,
+		{ db => $scheme_db, fetch => 'all_arrayref' }
+	);
+	eval { $self->{'db'}->do("COPY $table(@$fields,missing_loci,profile) FROM STDIN"); };
 
 	if ($@) {
 		$logger->error('Cannot start copying data into temp table');
@@ -1509,7 +1518,9 @@ sub create_temp_scheme_status_table {
 #This should only be used to create a table of user entered values.
 #The table name is hard-coded.
 sub create_temp_list_table {
-	my ( $self, $datatype, $list_file ) = @_;
+	my ( $self, $data_type, $list_file ) = @_;
+	my $pg_data_type = $data_type;
+	$pg_data_type = 'geography(POINT, 4326)' if $data_type eq 'geography_point';
 	my $table_exists =
 	  $self->run_query( 'SELECT EXISTS(SELECT * FROM information_schema.tables WHERE table_name=?)', 'temp_list' );
 	if ($table_exists) {
@@ -1519,7 +1530,7 @@ sub create_temp_list_table {
 	my $full_path = "$self->{'config'}->{'secure_tmp_dir'}/$list_file";
 	open( my $fh, '<:encoding(utf8)', $full_path ) || $logger->logcarp("Can't open $full_path for reading");
 	eval {
-		$self->{'db'}->do("CREATE TEMP TABLE temp_list (value $datatype)");
+		$self->{'db'}->do("CREATE TEMP TABLE temp_list (value $pg_data_type)");
 		$self->{'db'}->do('COPY temp_list FROM STDIN');
 		while ( my $value = <$fh> ) {
 			chomp $value;
@@ -1537,13 +1548,15 @@ sub create_temp_list_table {
 }
 
 sub create_temp_list_table_from_array {
-	my ( $self, $datatype, $list, $options ) = @_;
+	my ( $self, $data_type, $list, $options ) = @_;
+	my $pg_data_type = $data_type;
+	$pg_data_type = 'geography(POINT, 4326)' if $data_type eq 'geography_point';
 	$options = {} if ref $options ne 'HASH';
 	my $table = $options->{'table'} // ( 'temp_list' . int( rand(99999999) ) );
 	return
 	  if $self->run_query( 'SELECT EXISTS(SELECT * FROM information_schema.tables WHERE table_name=?)', $table );
 	eval {
-		$self->{'db'}->do("CREATE TEMP TABLE $table (value $datatype)");
+		$self->{'db'}->do("CREATE TEMP TABLE $table (value $pg_data_type)");
 		$self->{'db'}->do("COPY $table FROM STDIN");
 		foreach (@$list) {
 			s/\t/    /gx;
@@ -2548,7 +2561,7 @@ sub get_tables {
 		  scheme_group_group_members pcr pcr_locus probes probe_locus sets set_loci set_schemes set_view
 		  isolates history sequence_attributes classification_schemes classification_group_fields
 		  retired_isolates user_dbases oauth_credentials eav_fields validation_rules validation_conditions
-		  validation_rule_conditions lincode_schemes lincode_fields codon_tables);
+		  validation_rule_conditions lincode_schemes lincode_fields codon_tables geography_point_lookup);
 		push @tables, $self->{'system'}->{'view'}
 		  ? $self->{'system'}->{'view'}
 		  : 'isolates';
@@ -2559,7 +2572,7 @@ sub get_tables {
 		  scheme_group_scheme_members scheme_group_group_members client_dbase_loci_fields sets set_loci set_schemes
 		  profile_history locus_aliases retired_allele_ids retired_profiles classification_schemes
 		  classification_group_fields classification_group_field_values user_dbases locus_links client_dbase_cschemes
-		  lincode_schemes lincodes lincode_fields lincode_prefixes);
+		  lincode_schemes lincodes lincode_fields lincode_prefixes sequence_extended_attributes);
 	}
 	return @tables;
 }
@@ -2575,7 +2588,7 @@ sub get_tables_with_curator {
 		  projects project_members isolate_field_extended_attributes
 		  isolate_value_extended_attributes scheme_groups scheme_group_scheme_members scheme_group_group_members
 		  pcr pcr_locus probes probe_locus accession sequence_flags sequence_attributes history classification_schemes
-		  isolates eav_fields validation_rules validation_conditions validation_rule_conditions);
+		  isolates eav_fields validation_rules validation_conditions validation_rule_conditions project_users);
 		push @tables, $self->{'system'}->{'view'}
 		  if $self->{'system'}->{'view'} && $self->{'system'}->{'view'} ne 'isolates';
 	} elsif ( $dbtype eq 'sequences' ) {
@@ -2761,6 +2774,7 @@ sub initiate_view {
 		my $has_user_project =
 		  $self->run_query( 'SELECT EXISTS(SELECT * FROM merged_project_users WHERE user_id=?)', $user_info->{'id'} );
 		if ($curate) {
+			my $status = $user_info->{'status'};
 			my $method = {
 				admin => sub {
 					@user_terms = (ALL_ISOLATES);
@@ -2772,13 +2786,24 @@ sub initiate_view {
 						PRIVATE_ISOLATES_FROM_SAME_USER_GROUP
 					);
 				},
+				private_submitter => sub {
+					@user_terms = ( OWN_PRIVATE_ISOLATES, );
+				},
 				curator => sub {
 					@user_terms = ( PUBLIC_ISOLATES, OWN_PRIVATE_ISOLATES, PUBLICATION_REQUESTED );
 					push @user_terms, ISOLATES_FROM_USER_PROJECT if $has_user_project;
 				}
 			};
-			if ( $method->{ $user_info->{'status'} } ) {
-				$method->{ $user_info->{'status'} }->();
+			if ( $status eq 'submitter' ) {
+				my $only_private =
+				  $self->run_query( 'SELECT EXISTS(SELECT * FROM permissions WHERE (user_id,permission)=(?,?))',
+					[ $user_info->{'id'}, 'only_private' ] );
+				if ($only_private) {
+					$status = 'private_submitter';
+				}
+			}
+			if ( $method->{$status} ) {
+				$method->{$status}->();
 			} else {
 				return;
 			}
@@ -2796,11 +2821,9 @@ sub initiate_view {
 		my $user_term_count = () = $qry =~ /\?/gx;    #apply list context to capture
 		@args = ( $user_info->{'id'} ) x $user_term_count;
 	}
-	if ($qry) {
-		eval { $self->{'db'}->do( $qry, undef, @args ) };
-		$logger->error($@) if $@;
-		$self->{'system'}->{'view'} = 'temp_view';
-	}
+	eval { $self->{'db'}->do( $qry, undef, @args ) };
+	$logger->error($@) if $@;
+	$self->{'system'}->{'view'} = 'temp_view';
 	return;
 }
 
@@ -2852,8 +2875,11 @@ sub get_start_codons {
 		}
 	}
 	if ( $options->{'isolate_id'} ) {
-		my $isolate_codon_table =
-		  $self->run_query( 'SELECT codon_table FROM codon_tables WHERE isolate_id=?', $options->{'isolate_id'} );
+		my $isolate_codon_table = $self->run_query(
+			'SELECT codon_table FROM codon_tables WHERE isolate_id=?',
+			$options->{'isolate_id'},
+			{ cache => 'Datastore::get_start_codons::get_codon_table' }
+		);
 		if ( defined $isolate_codon_table ) {
 			my $ct = Bio::Tools::CodonTable->new( -id => $isolate_codon_table );
 			foreach my $codon (@possible_starts) {
@@ -2898,8 +2924,8 @@ sub get_stop_codons {
 sub get_codon_table {
 	my ( $self, $isolate_id ) = @_;
 	if ( ( $self->{'system'}->{'alternative_codon_tables'} // q() ) eq 'yes' && $isolate_id ) {
-		my $isolate_codon_table =
-		  $self->run_query( 'SELECT codon_table FROM codon_tables WHERE isolate_id=?', $isolate_id );
+		my $isolate_codon_table = $self->run_query( 'SELECT codon_table FROM codon_tables WHERE isolate_id=?',
+			$isolate_id, { cache => 'Datastore::get_codon_table' } );
 		if ( $self->{'system'}->{'codon_table'} ) {
 			if ( !$self->is_codon_table_valid( $self->{'system'}->{'codon_table'} ) ) {
 				$logger->error('Invalid codon table set. Using default table.');
@@ -2929,5 +2955,92 @@ sub is_codon_table_valid {
 sub are_lincodes_defined {
 	my ( $self, $scheme_id ) = @_;
 	return $self->run_query( 'SELECT EXISTS(SELECT * FROM lincode_schemes WHERE scheme_id=?)', $scheme_id );
+}
+
+sub get_geography_coordinates {
+	my ( $self, $point ) = @_;
+	my ( $long, $lat );
+	eval { ( $long, $lat ) = $self->run_query( 'SELECT ST_X(?::geometry),ST_Y(?::geometry)', [ $point, $point ] ); };
+	if ($@) {
+		$logger->error('Invalid geography coordinate passed.');
+		return {};
+	}
+	return { longitude => $long, latitude => $lat };
+}
+
+sub convert_coordinates_to_geography {
+	my ( $self, $latitude, $longitude ) = @_;
+	my $value;
+	eval { $value = $self->run_query( 'SELECT ST_MakePoint(?,?)::geography', [ $longitude, $latitude ] ); };
+	if ($@) {
+		$logger->error($@);
+		return;
+	}
+	return $value;
+}
+
+sub lookup_geography_point {
+	my ( $self, $data, $field ) = @_;
+	my $country_field = $self->{'system'}->{'country_field'} // 'country';
+	if ( !defined $data->{$country_field} ) {
+		$logger->error(
+			"Field $field has geography_point_lookup set but this requires a field for $country_field to be defined.");
+		return;
+	}
+	my $countries = COUNTRIES;
+	if ( !defined $countries->{ $data->{$country_field} }->{'iso2'} ) {
+		$logger->error("No iso2 country code defined for $data->{'country'}");
+		return;
+	}
+
+	#Match using exact lookups as well as case-insensitive. We need to be careful using just the latter due
+	#to potential issues with unicode characters.
+	my ( $long, $lat ) = $self->run_query(
+		'SELECT ST_X(location::geometry),ST_Y(location::geometry) FROM geography_point_lookup '
+		  . 'WHERE (country_code,field,value)=(?,?,?) OR (country_code,field,UPPER(value))=(?,?,UPPER(?))',
+		[
+			$countries->{ $data->{$country_field} }->{'iso2'},
+			$field, $data->{$field}, $countries->{ $data->{$country_field} }->{'iso2'},
+			$field, $data->{$field}
+		]
+	);
+	return { longitude => $long, latitude => $lat };
+}
+
+#Currently only for geography_point values.
+sub field_needs_conversion {
+	my ( $self, $field ) = @_;
+	my %conversion_types = map { $_ => 1 } qw(geography_point);
+	if ( !defined $self->{'cache'}->{'fields_needing_value_conversion'} ) {
+		$self->{'cache'}->{'fields_needing_value_conversion'} = {};
+		my $atts = $self->{'xmlHandler'}->get_all_field_attributes;
+		foreach my $field ( keys %$atts ) {
+			if ( $conversion_types{ $atts->{$field}->{'type'} } ) {
+				$self->{'cache'}->{'fields_needing_value_conversion'}->{$field} = 1;
+			}
+		}
+	}
+	return $self->{'cache'}->{'fields_needing_value_conversion'}->{$field};
+}
+
+sub convert_field_value {
+	my ( $self, $field, $value ) = @_;
+	if ( !defined $self->{'cache'}->{'field_types'} ) {
+		my $atts = $self->{'xmlHandler'}->get_all_field_attributes;
+		foreach my $field ( keys %$atts ) {
+			$self->{'cache'}->{'field_types'}->{$field} = $atts->{$field}->{'type'} // 'text';
+		}
+	}
+	my %conversion = (
+		geography_point => sub {
+			return q() if !defined $value || $value eq q();
+			my $coordinates = $self->get_geography_coordinates($value);
+			return qq($coordinates->{'latitude'}, $coordinates->{'longitude'});
+		}
+	);
+	if ( $conversion{ $self->{'cache'}->{'field_types'}->{$field} } ) {
+		return $conversion{ $self->{'cache'}->{'field_types'}->{$field} }->();
+	}
+	return $value;
 }
 1;

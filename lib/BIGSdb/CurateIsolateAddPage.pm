@@ -1,5 +1,5 @@
 #Written by Keith Jolley
-#Copyright (c) 2010-2021, University of Oxford
+#Copyright (c) 2010-2022, University of Oxford
 #E-mail: keith.jolley@zoo.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
@@ -313,6 +313,7 @@ sub _insert {
 			push @fields_with_values, $field;
 		}
 	}
+	$self->convert_geography_data($newdata);
 	my $inserts      = [];
 	my @placeholders = ('?') x @fields_with_values;
 	local $" = ',';
@@ -368,6 +369,20 @@ sub _insert {
 		);
 		$self->update_history( $newdata->{'id'}, 'Isolate record added' );
 		return SUCCESS;
+	}
+	return;
+}
+
+sub convert_geography_data {
+	my ( $self, $newdata ) = @_;
+	my $atts = $self->{'xmlHandler'}->get_all_field_attributes;
+	foreach my $field ( keys %$atts ) {
+		if ( ( $atts->{$field}->{'type'} // q() ) eq 'geography_point'
+			&& $newdata->{$field} =~ /^\s*(\-?\d+\.?\d*)\s*,\s*(\-?\d+\.?\d*)\s*$/x )
+		{
+			my ( $lat, $long ) = ( $1, $2 );
+			$newdata->{$field} = $self->{'datastore'}->convert_coordinates_to_geography( $lat, $long );
+		}
 	}
 	return;
 }
@@ -588,14 +603,15 @@ sub print_codon_table_selection {
 	my ( $self, $newdata, $options ) = @_;
 	return if ( $self->{'system'}->{'alternative_codon_tables'} // q() ) ne 'yes';
 	my $codon_table;
-	if ($options->{'update'}){
-		$codon_table = $self->{'datastore'}->run_query('SELECT codon_table FROM codon_tables WHERE isolate_id=?',$newdata->{'id'});
+	if ( $options->{'update'} ) {
+		$codon_table = $self->{'datastore'}
+		  ->run_query( 'SELECT codon_table FROM codon_tables WHERE isolate_id=?', $newdata->{'id'} );
 	}
-	my $q           = $self->{'cgi'};
+	my $q              = $self->{'cgi'};
 	my $db_codon_table = $self->{'datastore'}->get_codon_table;
-	my $tables      = Bio::Tools::CodonTable->tables;
-	my $labels      = {};
-	my @ids         = sort { $a <=> $b } keys %$tables;
+	my $tables         = Bio::Tools::CodonTable->tables;
+	my $labels         = {};
+	my @ids            = sort { $a <=> $b } keys %$tables;
 	foreach my $id (@ids) {
 		$labels->{$id} = "$id - $tables->{$id}";
 	}
@@ -731,7 +747,7 @@ sub _print_field {
 	{
 		$html5_args->{'disabled'} = 1;
 	}
-	$thisfield->{'length'} = $thisfield->{'length'} // ( $thisfield->{'type'} eq 'int' ? 15 : 50 );
+	$thisfield->{'length'} //= ( $thisfield->{'type'} eq 'int' ? 15 : 50 );
 	( my $cleaned_name = $display_name ) =~ tr/_/ /;
 	my ( $label, $title ) = $self->get_truncated_label( $cleaned_name, 25 );
 	my $title_attribute = $title ? qq( title="$title") : q();
@@ -756,12 +772,13 @@ sub _print_field {
 		curator          => '_print_curator',
 		sender_submitter => '_print_sender_when_submitting',
 		user_field       => '_print_user',
+		geography_point  => '_print_geography_point_field',
 		long_text_field  => '_print_long_text_field',
 		default_field    => '_print_default_field'
 	};
 	foreach my $condition (
 		qw(update_id optlist bool datestamp date_entered curator sender_submitter
-		user_field long_text_field default_field)
+		user_field geography_point long_text_field default_field)
 	  )
 	{
 		my $method = $methods->{$condition};
@@ -989,6 +1006,21 @@ sub _print_long_text_field {    ## no critic (ProhibitUnusedPrivateSubroutines) 
 	return 1;
 }
 
+sub _print_geography_point_field {    ## no critic (ProhibitUnusedPrivateSubroutines) #Called by dispatch table
+	my ( $self, $args ) = @_;
+	my ( $field, $newdata, $thisfield, $html5_args, $update ) =
+	  @{$args}{qw(field newdata thisfield html5_args update)};
+	my $q = $self->{'cgi'};
+	return if $thisfield->{'type'} ne 'geography_point';
+	return if !$update;
+	if ( defined $newdata->{$field} ) {
+		my $coordinates = $self->{'datastore'}->get_geography_coordinates( $newdata->{$field} );
+		$newdata->{$field} = "$coordinates->{'latitude'}, $coordinates->{'longitude'}";
+	}
+	$self->_print_default_field($args);
+	return 1;
+}
+
 sub _print_default_field {    ## no critic (ProhibitUnusedPrivateSubroutines) #Called by dispatch table
 	my ( $self, $args ) = @_;
 	my ( $field, $newdata, $thisfield, $html5_args ) =
@@ -1051,7 +1083,7 @@ sub print_sparse_field_form_elements {
 					thisfield => $thisfield
 				}
 			);
-			$field->{'length'} = $field->{'length'} // ( $field->{'value_format'} eq 'integer' ? 15 : 50 );
+			$field->{'length'} //= ( $field->{'value_format'} eq 'integer' ? 15 : 50 );
 			( my $cleaned_name = $field->{'field'} ) =~ tr/_/ /;
 			my ( $label, $title ) = $self->get_truncated_label( $cleaned_name, 25 );
 			my $title_attribute = $title ? qq( title="$title") : q();

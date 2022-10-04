@@ -137,15 +137,16 @@ sub _get_form_fields {
 			my $name = $options->{'prepend_table_name'} ? "$table\_$att->{'name'}" : $att->{'name'};
 			my $length = $att->{'length'} || ( $att->{'type'} eq 'int' ? 15 : 50 );
 			my $args = {
-				table      => $table,
-				newdata    => $newdata_ref,
-				name       => $name,
-				att        => $att,
-				options    => $options,
-				width      => $width,
-				length     => $length,
-				html5_args => $html5_args,
-				disabled   => $disabled{ $att->{'name'} }
+				table       => $table,
+				newdata     => $newdata_ref,
+				name        => $name,
+				att         => $att,
+				options     => $options,
+				width       => $width,
+				length      => $length,
+				html5_args  => $html5_args,
+				placeholder => $att->{'placeholder'},
+				disabled    => $disabled{ $att->{'name'} }
 			};
 			my $label = $self->_get_label($args);
 			$buffer .= qq(<li>$label);
@@ -334,7 +335,9 @@ sub _get_non_admin_locus_field {
 	my ( $self, $args ) = @_;
 	my ( $table, $name, $newdata, $att, $html5_args ) = @$args{qw(table name newdata att html5_args)};
 	my %seq_table =
-	  map { $_ => 1 } qw(sequences retired_allele_ids sequence_refs accession locus_descriptions locus_links);
+	  map { $_ => 1 }
+	  qw(sequences retired_allele_ids sequence_refs accession locus_descriptions locus_links
+	  sequence_extended_attributes);
 	return q() if !( $seq_table{$table} && $att->{'name'} eq 'locus' && !$self->is_admin );
 	my $set_id = $self->get_set_id;
 	my ( $values, $desc ) =
@@ -478,11 +481,12 @@ sub _get_text_field {
 		$newdata->{ $att->{'name'} } = BIGSdb::Utils::split_line( $newdata->{ $att->{'name'} } )
 		  if $att->{'name'} eq 'sequence';
 		return $q->textarea(
-			-name    => $name,
-			-id      => $name,
-			-rows    => 6,
-			-cols    => 75,
-			-default => $newdata->{ $att->{'name'} },
+			-name        => $name,
+			-id          => $name,
+			-rows        => 6,
+			-cols        => 75,
+			-default     => $newdata->{ $att->{'name'} },
+			-placeholder => $att->{'placeholder'},
 			%disabled,
 			%$html5_args
 		);
@@ -490,21 +494,23 @@ sub _get_text_field {
 		$newdata->{ $att->{'name'} } = BIGSdb::Utils::split_line( $newdata->{ $att->{'name'} } )
 		  if $att->{'name'} eq 'sequence';
 		return $q->textarea(
-			-name    => $name,
-			-id      => $name,
-			-rows    => 3,
-			-cols    => 75,
-			-default => $newdata->{ $att->{'name'} },
+			-name        => $name,
+			-id          => $name,
+			-rows        => 3,
+			-cols        => 75,
+			-default     => $newdata->{ $att->{'name'} },
+			-placeholder => $att->{'placeholder'},
 			%disabled,
 			%$html5_args
 		);
 	} else {
 		return $self->textfield(
-			name      => $name,
-			id        => $name,
-			size      => ( $length > 75 ? 75 : $length ),
-			maxlength => $length,
-			value     => $newdata->{ $att->{'name'} },
+			name        => $name,
+			id          => $name,
+			size        => ( $length > 75 ? 75 : $length ),
+			maxlength   => $length,
+			value       => $newdata->{ $att->{'name'} },
+			placeholder => $att->{'placeholder'},
 			%disabled,
 			%$html5_args
 		);
@@ -1088,6 +1094,13 @@ sub check_record {
 					$self->_check_validation_conditions_field_value( $att, $newdata );
 				}
 			},
+			{
+				table  => 'geography_point_lookup',
+				field  => 'location',
+				method => sub {
+					$self->_check_geopoint_field_value( $att, $newdata );
+				}
+			}
 		);
 		foreach my $check (@table_field_checks) {
 			if ( $table eq $check->{'table'} && $att->{'name'} eq $check->{'field'} ) {
@@ -1297,6 +1310,22 @@ sub _check_validation_conditions_field_value {
 	}
 	if ( lc($field_type) =~ /^bool/x && !BIGSdb::Utils::is_bool( $newdata->{'value'} ) ) {
 		return qq('$newdata->{'field'}' is a boolean field.);
+	}
+	return;
+}
+
+sub _check_geopoint_field_value {
+	my ( $self, $att, $newdata ) = @_;
+	if ( $newdata->{'location'} =~ /^\s*(\-?\d+\.?\d*)\s*,\s*(\-?\d+\.?\d*)\s*$/x ) {
+		my ( $lat, $long ) = ( $1, $2 );
+		if ( $lat < -90 || $lat > 90 || $long < -180 || $long > 180 ) {
+			return qq('$newdata->{'field'}' latitude must be in the range: -90 - 90; )
+			  . q(longitude must be in the range: -180 - 180 );
+		}
+		$newdata->{'location'} =
+		  $self->{'datastore'}->convert_coordinates_to_geography( $lat, $long );
+	} else {
+		return qq('$newdata->{'field'}' should be in the format '[Latitude], [Longitude]'.);
 	}
 	return;
 }

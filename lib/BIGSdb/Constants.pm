@@ -1,5 +1,5 @@
 #Written by Keith Jolley
-#Copyright (c) 2015-2021, University of Oxford
+#Copyright (c) 2015-2022, University of Oxford
 #E-mail: keith.jolley@zoo.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
@@ -510,6 +510,8 @@ use constant COUNTRIES => {
 	q(Réunion)                                     => { iso2 => q(RE), iso3 => q(REU), continent => q(Africa) },
 	q(Romania)                                      => { iso2 => q(RO), iso3 => q(ROU), continent => q(Europe) },
 	q(Russia)                                       => { iso2 => q(RU), iso3 => q(RUS), continent => q(Asia) },
+	q(Russia [Asia])                                => { iso2 => q(RU), iso3 => q(RUS), continent => q(Asia) },
+	q(Russia [Europe])                              => { iso2 => q(RU), iso3 => q(RUS), continent => q(Europe) },
 	q(Rwanda)                                       => { iso2 => q(RW), iso3 => q(RWA), continent => q(Africa) },
 	q(Saint Barthélemy)                            => { iso2 => q(BL), iso3 => q(BLM), continent => q(North America) },
 	q(Saint Helena)                                 => { iso2 => q(SH), iso3 => q(SHN), continent => q(Africa) },
@@ -591,11 +593,12 @@ use constant LOG_TO_SCREEN => qq(log4perl.category.BIGSdb.Script        = INFO, 
   . qq(log4perl.category.BIGSdb.Datastore     = WARN, Screen\n)
   . qq(log4perl.appender.Screen               = Log::Log4perl::Appender::Screen\n)
   . qq(log4perl.appender.Screen.stderr        = 1\n)
-  . qq(log4perl.appender.Screen.layout        = Log::Log4perl::Layout::SimpleLayout\n);
+  . qq(log4perl.appender.Screen.layout        = Log::Log4perl::Layout::SimpleLayout\n)
+  . qq(log4perl.appender.Screen.utf8          = 1\n);
 push @EXPORT_OK, qw (LOG_TO_SCREEN);
 
 #Dashboards
-use constant DEFAULT_DASHBOARD => [
+use constant DEFAULT_FRONTEND_DASHBOARD => [
 	{
 		display           => 'record_count',
 		name              => 'Isolate count',
@@ -668,6 +671,74 @@ use constant DEFAULT_DASHBOARD => [
 		breakdown_display => 'cumulative'
 	}
 ];
+use constant DEFAULT_QUERY_DASHBOARD => [
+	{
+		display           => 'record_count',
+		name              => 'Isolate count',
+		width             => 1,
+		background_colour => '#79cafb',
+		main_text_colour  => '#404040',
+		watermark         => 'fas fa-bacteria',
+		change_duration   => 'month'
+	},
+	{
+		display           => 'record_count',
+		name              => 'Genome count',
+		genomes           => 1,
+		width             => 1,
+		background_colour => '#7ecc66',
+		main_text_colour  => '#404040',
+		watermark         => 'fas fa-dna',
+		change_duration   => 'month'
+	},
+	{
+		display           => 'field',
+		name              => 'Continent',
+		field             => 'e_country||continent',
+		breakdown_display => 'map',
+		palette           => 'purple/blue/green',
+		width             => 2,
+		height            => 1,
+		hide_mobile       => 1
+	},
+	{
+		display           => 'field',
+		name              => 'Species',
+		field             => 'f_species',
+		breakdown_display => 'treemap',
+		height            => 1,
+		width             => 1,
+		hide_mobile       => 1
+	},
+	{
+		display           => 'field',
+		name              => 'Disease',
+		field             => 'f_disease',
+		breakdown_display => 'treemap',
+		height            => 1,
+		width             => 1,
+		hide_mobile       => 1
+	},
+	{
+		display           => 'field',
+		name              => 'Source',
+		field             => 'f_source',
+		breakdown_display => 'treemap',
+		height            => 1,
+		width             => 1,
+		hide_mobile       => 1
+	},
+	{
+		display           => 'field',
+		name              => 'Year',
+		field             => 'f_year',
+		breakdown_display => 'bar',
+		width             => 2,
+		bar_colour_type   => 'continuous',
+		chart_colour      => '#126716',
+		hide_mobile       => 1
+	}
+];
 use constant RECORD_AGE => {
 	0 => 'all time',
 	1 => 'past 5 years',
@@ -678,6 +749,6 @@ use constant RECORD_AGE => {
 	6 => 'past month',
 	7 => 'past week'
 };
-push @EXPORT_OK, qw (DEFAULT_DASHBOARD RECORD_AGE);
-$EXPORT_TAGS{'dashboard'} = [qw (DEFAULT_DASHBOARD RECORD_AGE)];
+push @EXPORT_OK, qw (DEFAULT_FRONTEND_DASHBOARD DEFAULT_QUERY_DASHBOARD RECORD_AGE);
+$EXPORT_TAGS{'dashboard'} = [qw (DEFAULT_FRONTEND_DASHBOARD DEFAULT_QUERY_DASHBOARD RECORD_AGE)];
 1;

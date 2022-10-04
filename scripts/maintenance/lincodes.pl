@@ -20,7 +20,7 @@
 #You should have received a copy of the GNU General Public License
 #along with BIGSdb.  If not, see <http://www.gnu.org/licenses/>.
 #
-#Version: 20220329
+#Version: 20220701
 use strict;
 use warnings;
 use 5.010;
@@ -54,6 +54,7 @@ GetOptions(
 	'd|database=s'  => \$opts{'d'},
 	'debug'         => \$opts{'debug'},
 	'batch_size=i'  => \$opts{'batch_size'},
+	'log=s'         => \$opts{'log'},
 	'missing=i'     => \$opts{'missing'},
 	'mmap'          => \$opts{'mmap'},
 	'q|quiet'       => \$opts{'quiet'},
@@ -81,6 +82,9 @@ my $script = BIGSdb::Offline::Script->new(
 );
 check_db();
 $opts{'batch_size'} //= 10_000;
+if ( $opts{'log'} ) {
+	initiate_log_file( $opts{'log'} );
+}
 main();
 
 sub main {
@@ -97,8 +101,64 @@ sub main {
 			return;
 		}
 		my $profiles = @$profiles_to_assign == 1 ? $profiles_to_assign : get_prim_order($profiles_to_assign);
+		if ( @{ $lincodes->{'profile_ids'} } ) {
+			$profiles = adjust_prim_order( $lincodes->{'profile_ids'}, $lincodes->{'profiles'}, $profiles );
+		}
 		assign_lincodes($profiles);
+		$lincodes = get_lincode_definitions();
 	} while @$profiles_to_assign;
+	return;
+}
+
+sub adjust_prim_order {
+	my ( $assigned_profile_ids, $assigned_profiles, $new_profiles ) = @_;
+	my $scheme_info      = $script->{'datastore'}->get_scheme_info( $opts{'scheme_id'}, { get_pk => 1 } );
+	my $pk               = $scheme_info->{'primary_key'};
+	my $loci             = $script->{'datastore'}->get_scheme_loci( $opts{'scheme_id'} );
+	my $locus_count      = @$loci;
+	my $closest_distance = 100;
+	my $closest_profile_index;
+	my $index = 0;
+	my %missing = ( N => 0 );
+
+	foreach my $profile_id (@$new_profiles) {
+		my $profile_array = $script->{'datastore'}
+		  ->run_query( "SELECT profile FROM mv_scheme_$opts{'scheme_id'} WHERE $pk=?", $profile_id );
+		$_ = $missing{$_} // $_ foreach @$profile_array;
+		my $profile = pdl($profile_array);
+		for my $i ( 0 .. @$assigned_profile_ids - 1 ) {
+			my $assigned_profile = $assigned_profiles->slice(",($i)");
+			my ($diffs) = dims(
+				where(
+					$assigned_profile, $profile,
+					( $assigned_profile != $profile ) & ( $assigned_profile != 0 ) & ( $profile != 0 )
+				)
+			);
+			my ($missing_in_either) =
+			  dims( where( $assigned_profile, $profile, ( $assigned_profile == 0 ) | ( $profile == 0 ) ) );
+			my $distance = 100 * $diffs / ( $locus_count - $missing_in_either );
+			if ( $distance < $closest_distance ) {
+				$closest_distance      = $distance;
+				$closest_profile_index = $index;
+			}
+		}
+		$index++;
+	}
+	my $reordered_profiles = [ @$new_profiles[ $closest_profile_index .. @$new_profiles - 1 ] ];
+	if ( $closest_profile_index > 0 ) {
+		push @$reordered_profiles, reverse @$new_profiles[ 0 .. $closest_profile_index - 1 ];
+	}
+	return $reordered_profiles;
+}
+
+sub initiate_log_file {
+	my ($filename) = @_;
+	my $scheme_info = $script->{'datastore'}->get_scheme_info( $opts{'scheme_id'}, { get_pk => 1 } );
+	my $pk = $scheme_info->{'primary_key'};
+	open( my $fh, '>', $filename ) || die "Cannot write to log file $filename.\n";
+	say $fh qq($pk\tclosest $pk\tcommon alleles\tmissing alleles\tmissing in either\tidentity\tdistance\t)
+	  . qq(chosen prefix\tnew LINcode);
+	close $fh;
 	return;
 }
 
@@ -169,6 +229,7 @@ sub get_new_lincode {
 	my $prof2        = $definitions->{'profiles'}->slice(",($j)");
 	my $min_distance = 100;
 	my $closest_index;
+	my $closest = {};
 
 	for my $i ( 0 .. @{ $definitions->{'profile_ids'} } - 1 ) {
 		my $prof1 = $definitions->{'profiles'}->slice(",($i)");
@@ -179,6 +240,11 @@ sub get_new_lincode {
 		if ( $distance < $min_distance ) {
 			$min_distance  = $distance;
 			$closest_index = $i;
+			if ( $opts{'log'} ) {
+				( $closest->{'common_alleles'} ) = dims( where( $prof1, $prof2, ( $prof1 == $prof2 ) ) );
+				( $closest->{'missing'} ) = dims( where( $prof2, ( $prof2 == 0 ) ) );
+				$closest->{'missing_in_either'} = $missing_in_either;
+			}
 		}
 		if ( !$diffs ) {
 			return $definitions->{'lincodes'}->[$closest_index];
@@ -194,7 +260,18 @@ sub get_new_lincode {
 		}
 		last;
 	}
-	return increment_lincode( $definitions->{'lincodes'}, $closest_index, $threshold_index );
+	my $new_lincode = increment_lincode( $definitions->{'lincodes'}, $closest_index, $threshold_index );
+	if ( $opts{'log'} ) {
+		open( my $fh, '>>', $opts{'log'} ) || die "Cannot append to $opts{'log'}.\n";
+		my @chosen_prefix =
+		  $threshold_index == 0 ? () : @{ $definitions->{'lincodes'}->[$closest_index] }[ 0 .. $threshold_index - 1 ];
+		local $" = q(_);
+		say $fh qq($profile_id\t$definitions->{'profile_ids'}->[$closest_index]\t$closest->{'common_alleles'}\t)
+		  . qq($closest->{'missing'}\t$closest->{'missing_in_either'}\t$identity\t$min_distance\t@chosen_prefix\t)
+		  . qq(@$new_lincode);
+		close $fh;
+	}
+	return $new_lincode;
 }
 
 sub increment_lincode {
@@ -210,6 +287,7 @@ sub increment_lincode {
 		my @new_lincode = ( ++$max_first, (0) x ( @{ $thresholds->{'diffs'} } - 1 ) );
 		return [@new_lincode];
 	}
+	$closest_index //= 0;
 	my $closest_lincode     = $lincodes->[$closest_index];
 	my @lincode_prefix      = @$closest_lincode[ 0 .. $threshold_index - 1 ];
 	my $max_threshold_index = 0;
@@ -263,11 +341,7 @@ sub get_profiles_without_lincodes {
 		$qry .= "AND (@filters) ";
 	}
 	$qry .= "ORDER BY $cast_pk LIMIT $opts{'batch_size'}";
-	my $profiles = $script->{'datastore'}->run_query(
-		$qry,
-		undef,
-		{ fetch => 'col_arrayref' }
-	);
+	my $profiles = $script->{'datastore'}->run_query( $qry, undef, { fetch => 'col_arrayref' } );
 	my $count = @$profiles;
 	say "$count retrieved." if !$opts{'quiet'};
 	return $profiles;
@@ -464,6 +538,9 @@ ${bold}--batch_size$norm ${under}NUMBER$norm
 
 ${bold}--database$norm ${under}DATABASE CONFIG$norm
     Database configuration name. This must be a sequence definition database.
+    
+${bold}--log$norm ${under}FILENAME$norm
+    Filename to use for debug logging.
     
 ${bold}--missing$norm ${under}NUMBER$norm
     Set the maximum number of loci that are allowed to be missing in a profile

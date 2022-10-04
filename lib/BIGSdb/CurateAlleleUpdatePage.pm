@@ -1,5 +1,5 @@
 #Written by Keith Jolley
-#Copyright (c) 2010-2020, University of Oxford
+#Copyright (c) 2010-2022, University of Oxford
 #E-mail: keith.jolley@zoo.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
@@ -33,6 +33,7 @@ sub initiate {
 		$self->{'noCache'} = 1;
 		return;
 	}
+	$self->{'ol'} = 1 if $self->need_openlayers;
 	$self->{$_} = 1 foreach qw(jQuery jQuery.jstree noCache);
 	$self->set_level1_breadcrumbs;
 	return;
@@ -239,13 +240,13 @@ sub _update {
 
 	#TODO Use placeholders for all SQL values.
 	my $existing_designation;
-	if ( $q->param('update_id') ) {                                  #Update existing allele
+	if ( $q->param('update_id') ) {    #Update existing allele
 		$existing_designation = $self->{'datastore'}->run_query(
 			'SELECT * FROM allele_designations WHERE id=?',
 			scalar $q->param('update_id'),
 			{ fetch => 'row_hashref' }
 		);
-	} else {                                                         #Add new allele
+	} else {                           #Add new allele
 		$existing_designation = $self->{'datastore'}->run_query(
 			'SELECT * FROM allele_designations WHERE (isolate_id,locus,allele_id)=(?,?,?)',
 			[ $isolate_id, $locus, $newdata->{'allele_id'} ],

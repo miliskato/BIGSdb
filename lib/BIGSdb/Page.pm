@@ -55,6 +55,19 @@ sub initiate {
 	return;
 }
 
+sub need_openlayers {
+	my ($self) = @_;
+	my $field_attributes = $self->{'xmlHandler'}->get_all_field_attributes;
+	foreach my $field ( keys %$field_attributes ) {
+		if ( $field_attributes->{$field}->{'type'} eq 'geography_point'
+			|| ( $field_attributes->{$field}->{'geography_point_lookup'} // q() ) eq 'yes' )
+		{
+			return 1;
+		}
+	}
+	return;
+}
+
 sub set_pref_requirements {
 	my ($self) = @_;
 	$self->{'pref_requirements'} =
@@ -186,7 +199,10 @@ sub _get_javascript_paths {
 			'packery'      => { src => [qw(packery.min.js)], defer => 1, version => '20210620' },
 			'muuri'        => { src => [qw(muuri.min.js)],   defer => 1, version => '20210620' },
 			'dropzone'     => { src => [qw(dropzone.js)],    defer => 0, version => '20200308' },
-			'billboard'    => {
+
+			#See https://dolmenweb.it/viewers/openlayer/doc/tutorials/custom-builds.html
+			'ol'        => { src => [qw(ol-custom.js)], defer => 0, version => '6.14.1#20220517' },
+			'billboard' => {
 				src     => [qw(d3.v6.min.js billboard.min.js jquery.ui.touch-punch.min.js)],
 				defer   => 1,
 				version => '20210510'
@@ -207,12 +223,12 @@ sub _get_javascript_paths {
 				version => '20200308'
 			},
 			'igv'              => { src => [qw(igv.min.js)],              defer => 1, version => '20200308' },
-			'bigsdb.dashboard' => { src => [qw(bigsdb.dashboard.min.js)], defer => 1, version => '20220111' },
+			'bigsdb.dashboard' => { src => [qw(bigsdb.dashboard.min.js)], defer => 1, version => '20220721' },
 			'bigsdb.dataexplorer' =>
 			  { src => [qw(bigsdb.dataexplorer.min.js d3.v6.min.js)], defer => 1, version => '20220111' }
 		};
 		if ( $self->{'pluginJS'} ) {
-			$features->{'pluginJS'} = { src => ["Plugins/$self->{'pluginJS'}"], defer => 1, version => '20210511' };
+			$features->{'pluginJS'} = { src => ["Plugins/$self->{'pluginJS'}"], defer => 1, version => '20220620' };
 		}
 		my %used;
 		foreach my $feature ( keys %$features ) {
@@ -647,7 +663,7 @@ sub _get_meta_data {
 sub _get_stylesheets {
 	my ($self)  = @_;
 	my $system  = $self->{'system'};
-	my $version = '20220207';
+	my $version = '20220713';
 	my @filenames;
 	push @filenames, q(dropzone.css)                                          if $self->{'dropzone'};
 	push @filenames, q(billboard.min.css)                                     if $self->{'billboard'};
@@ -655,6 +671,7 @@ sub _get_stylesheets {
 	push @filenames, qw(jquery.multiselect.css jquery.multiselect.filter.css) if $self->{'jQuery.multiselect'};
 	push @filenames, qw(d3.geomap.css)                                        if $self->{'geomap'};
 	push @filenames, qw(jquery.modal.min.css)                                 if $self->{'modal'};
+	push @filenames, qw(ol.css)                                               if $self->{'ol'};
 	push @filenames, qw(jquery.fonticonpicker.min.css jquery.fonticonpicker.darkgrey.min.css)
 	  if $self->{'jQuery.fonticonpicker'};
 
@@ -838,7 +855,8 @@ sub print_action_fieldset {
 		$buffer .= qq(<a href="$url" class="reset"><span>$reset_label</span></a>\n);
 	}
 	local $" = q( );
-	$buffer .= $q->submit( -name => $submit_name, -label => $submit_label, -class => 'submit' );
+	my %id = $options->{'id'} ? ( id => $options->{'id'} ) : ();
+	$buffer .= $q->submit( -name => $submit_name, -label => $submit_label, -class => 'submit', %id );
 	if ( $options->{'submit2'} ) {
 		$options->{'submit2_label'} //= $options->{'submit2'};
 		$buffer .= $q->submit(
@@ -1290,6 +1308,17 @@ sub _get_provenance_fields {
 				push @isolate_list, "f_$field ($user_attribute)";
 				( $self->{'cache'}->{'labels'}->{"f_$field ($user_attribute)"} = "$field ($user_attribute)" ) =~
 				  tr/_/ /;
+			}
+		} elsif ( ( $attributes->{$field}->{'type'} // q() ) eq 'geography_point'
+			&& !$options->{'nosplit_geography_points'} )
+		{
+			if ( $options->{'include_unsplit_geography_point'} ) {
+				push @isolate_list, "f_$field";
+				( $self->{'cache'}->{'labels'}->{"f_$field"} = $field ) =~ tr/_/ /;
+			}
+			foreach my $term (qw(latitude longitude)) {
+				push @isolate_list, "gp_${field}_$term";
+				( $self->{'cache'}->{'labels'}->{"gp_${field}_$term"} = "${field} ($term)" ) =~ tr/_/ /;
 			}
 		} else {
 			push @isolate_list, "f_$field";
@@ -1988,7 +2017,9 @@ sub get_record_name {
 		lincode_schemes                   => 'LINcode scheme',
 		lincode_fields                    => 'LINcode field',
 		lincode_prefixes                  => 'LINcode prefix nomenclature',
-		codon_tables                      => 'isolate codon table'
+		codon_tables                      => 'isolate codon table',
+		sequence_extended_attributes      => 'sequence extended attribute',
+		geography_point_lookup            => 'geography point lookup value'
 	);
 	return $names{$table};
 }
@@ -2276,7 +2307,8 @@ sub can_modify_table {
 			allele_sequences                  => $self->{'permissions'}->{'tag_sequences'},
 			isolate_field_extended_attributes => $self->{'permissions'}->{'modify_field_attributes'},
 			isolate_value_extended_attributes => $self->{'permissions'}->{'modify_value_attributes'},
-			eav_fields                        => $self->{'permissions'}->{'modify_sparse_fields'}
+			eav_fields                        => $self->{'permissions'}->{'modify_sparse_fields'},
+			geography_point_lookup            => $self->{'permissions'}->{'modify_geopoints'}
 		);
 		$isolate_permissions{$_} = $self->{'permissions'}->{'modify_isolates'}
 		  foreach qw(isolates isolate_aliases refs);
@@ -2301,7 +2333,8 @@ sub can_modify_table {
 		}
 
 		#Alleles and locus descriptions
-		my %seq_tables = map { $_ => 1 } qw (sequences locus_descriptions locus_links retired_allele_ids);
+		my %seq_tables =
+		  map { $_ => 1 } qw (sequences locus_descriptions locus_links retired_allele_ids sequence_extended_attributes);
 		if ( $seq_tables{$table} ) {
 			return 1 if !$locus;
 			return $self->{'datastore'}->is_allowed_to_modify_locus_sequences( $locus, $self->get_curator_id );
@@ -2367,6 +2400,21 @@ sub isolate_exists {
 		$id, { cache => 'Page::isolate_exists' } );
 }
 
+sub dashboard_enabled {
+	my ( $self, $options ) = @_;
+	return if !$self->{'config'}->{'enable_dashboard'} && ( $self->{'system'}->{'enable_dashboard'} // q() ) ne 'yes';
+	return if ( $self->{'system'}->{'enable_dashboard'} // q() ) eq 'no';
+	return
+	     if $options->{'query_dashboard'}
+	  && ( $self->{'config'}->{'query_dashboard'} // 1 ) == 0
+	  && ( $self->{'system'}->{'query_dashboard'} // 'no' ) eq 'no';
+	return
+	     if $options->{'query_dashboard'}
+	  && ( $self->{'config'}->{'query_dashboard'} // 1 ) == 1
+	  && ( $self->{'system'}->{'query_dashboard'} // 'yes' ) eq 'no';
+	return 1;
+}
+
 sub initiate_prefs {
 	my ($self) = @_;
 	my $q = $self->{'cgi'};
@@ -2405,29 +2453,7 @@ sub initiate_prefs {
 		$scheme_field_prefs = $self->{'prefstore'}->get_all_scheme_field_prefs( $guid, $dbname );
 		if ( $self->{'pref_requirements'}->{'general'} ) {
 			$general_prefs = $self->{'prefstore'}->get_all_general_prefs( $guid, $dbname );
-			$self->{'prefs'}->{'displayrecs'} = $general_prefs->{'displayrecs'} // 25;
-			$self->{'prefs'}->{'pagebar'}     = $general_prefs->{'pagebar'}     // 'top and bottom';
-			$self->{'prefs'}->{'alignwidth'}  = $general_prefs->{'alignwidth'}  // 100;
-			$self->{'prefs'}->{'flanking'}    = $general_prefs->{'flanking'}    // 100;
-			foreach (
-				qw(set_id submit_allele_technology submit_allele_read_length
-				submit_allele_coverage submit_allele_assembly submit_allele_software)
-			  )
-			{
-				$self->{'prefs'}->{$_} = $general_prefs->{$_};
-			}
-
-			#default off
-			foreach (qw (hyperlink_loci )) {
-				$general_prefs->{$_} //= 'off';
-				$self->{'prefs'}->{$_} = $general_prefs->{$_} eq 'on' ? 1 : 0;
-			}
-
-			#default on
-			foreach (qw (tooltips submit_email)) {
-				$general_prefs->{$_} //= 'on';
-				$self->{'prefs'}->{$_} = $general_prefs->{$_} eq 'off' ? 0 : 1;
-			}
+			$self->_initiate_general_prefs( $guid, $general_prefs );
 		}
 	}
 	if ( $self->{'system'}->{'dbtype'} eq 'isolates' ) {
@@ -2444,20 +2470,46 @@ sub initiate_prefs {
 		my $scheme_fields              = $self->{'datastore'}->get_all_scheme_fields;
 		my $scheme_field_default_prefs = $self->{'datastore'}->get_all_scheme_field_info;
 		foreach my $scheme_id (@$scheme_ids) {
-			foreach ( @{ $scheme_fields->{$scheme_id} } ) {
-				foreach my $action (qw(dropdown)) {
-					if ( defined $scheme_field_prefs->{$scheme_id}->{$_}->{$action} ) {
-						$self->{'prefs'}->{"$action\_scheme_fields"}->{$scheme_id}->{$_} =
-						  $scheme_field_prefs->{$scheme_id}->{$_}->{$action} ? 1 : 0;
-					} else {
-						$self->{'prefs'}->{"$action\_scheme_fields"}->{$scheme_id}->{$_} =
-						  $scheme_field_default_prefs->{$scheme_id}->{$_}->{$action};
-					}
+			foreach my $field ( @{ $scheme_fields->{$scheme_id} } ) {
+				if ( defined $scheme_field_prefs->{$scheme_id}->{$field}->{'dropdown'} ) {
+					$self->{'prefs'}->{'dropdown_scheme_fields'}->{$scheme_id}->{$field} =
+					  $scheme_field_prefs->{$scheme_id}->{$field}->{'dropdown'} ? 1 : 0;
+				} else {
+					$self->{'prefs'}->{'dropdown_scheme_fields'}->{$scheme_id}->{$field} =
+					  $scheme_field_default_prefs->{$scheme_id}->{$field}->{'dropdown'};
 				}
 			}
 		}
 	}
 	$self->{'datastore'}->update_prefs( $self->{'prefs'} );
+	return;
+}
+
+sub _initiate_general_prefs {
+	my ( $self, $guid, $general_prefs ) = @_;
+	$self->{'prefs'}->{'displayrecs'} = $general_prefs->{'displayrecs'} // 25;
+	$self->{'prefs'}->{'pagebar'}     = $general_prefs->{'pagebar'}     // 'top and bottom';
+	$self->{'prefs'}->{'alignwidth'}  = $general_prefs->{'alignwidth'}  // 100;
+	$self->{'prefs'}->{'flanking'}    = $general_prefs->{'flanking'}    // 100;
+	foreach (
+		qw(set_id submit_allele_technology submit_allele_read_length
+		submit_allele_coverage submit_allele_assembly submit_allele_software)
+	  )
+	{
+		$self->{'prefs'}->{$_} = $general_prefs->{$_};
+	}
+
+	#default off
+	foreach (qw (hyperlink_loci )) {
+		$general_prefs->{$_} //= 'off';
+		$self->{'prefs'}->{$_} = $general_prefs->{$_} eq 'on' ? 1 : 0;
+	}
+
+	#default on
+	foreach (qw (tooltips submit_email)) {
+		$general_prefs->{$_} //= 'on';
+		$self->{'prefs'}->{$_} = $general_prefs->{$_} eq 'off' ? 0 : 1;
+	}
 	return;
 }
 
@@ -2525,7 +2577,7 @@ sub _set_isolatedb_options {
 	foreach my $option (
 		qw ( update_details sequence_details allele_flags mark_provisional mark_provisional_main
 		sequence_details_main display_seqbin_main display_contig_count locus_alias scheme_members_alias
-		display_publications)
+		display_publications query_dashboard)
 	  )
 	{
 		$self->{'prefs'}->{$option} = $params->{$option} ? 1 : 0;
@@ -2576,7 +2628,7 @@ sub _initiate_isolatedb_general_prefs {
 	}
 
 	#default on
-	foreach my $option (qw (sequence_details mark_provisional mark_provisional_main)) {
+	foreach my $option (qw (sequence_details mark_provisional mark_provisional_main query_dashboard)) {
 		$general_prefs->{$option} //= 'on';
 		$self->{'prefs'}->{$option} = $general_prefs->{$option} eq 'off' ? 0 : 1;
 	}
@@ -3193,12 +3245,19 @@ sub get_scheme_data {
 
 sub modify_dataset_if_needed {
 	my ( $self, $table, $dataset ) = @_;
-	return if $table ne 'users';
-	foreach my $user (@$dataset) {
-		next if !defined $user->{'user_db'};
-		my $remote_user = $self->{'datastore'}->get_remote_user_info( $user->{'user_name'}, $user->{'user_db'} );
-		if ( $remote_user->{'user_name'} ) {
-			$user->{$_} = $remote_user->{$_} foreach qw(first_name surname email affiliation);
+	if ( $table eq 'users' ) {
+		foreach my $user (@$dataset) {
+			next if !defined $user->{'user_db'};
+			my $remote_user = $self->{'datastore'}->get_remote_user_info( $user->{'user_name'}, $user->{'user_db'} );
+			if ( $remote_user->{'user_name'} ) {
+				$user->{$_} = $remote_user->{$_} foreach qw(first_name surname email affiliation);
+			}
+		}
+	}
+	if ( $table eq 'geography_point_lookup' ) {
+		foreach my $record (@$dataset) {
+			my $location = $self->{'datastore'}->get_geography_coordinates( $record->{'location'} );
+			$record->{'location'} = "$location->{'latitude'}, $location->{'longitude'}";
 		}
 	}
 	return;
