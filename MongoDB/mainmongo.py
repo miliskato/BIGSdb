@@ -14,6 +14,7 @@ import smtplib
 from email.message import EmailMessage
 import socket
 import traceback
+import os
 
 from util.mongo_results import Mongoresults
 from util.mongo_querying import Mongoquerying
