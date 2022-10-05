@@ -1,3 +1,32 @@
+v1.36.7: *Option to show whether isolate is private in data exports.
+v1.36.6: *Improvement to define_profiles.pl script so that it assigns profiles
+          even when there is an existing profile that matches but has more
+          missing loci than the isolate.
+v1.36.5: *Support for GPS maps in dashboards.
+         *Introduction of query dashboards to visually summarise the results
+          of an isolate query.
+v1.36.4: *New options to reject alleles in allele_curator.pl script.
+v1.36.3: *Fix for LINcode and field duplication in exports.
+         *Prevent private submitters from deleting their own public records.
+         *Improved results header button display.
+v1.36.2: *Fix for LINcode prefix field matching in Profile Export plugin.
+v1.36.1: *Minor update to lincodes.pl script affecting order when adding new
+          batch of profiles.
+v1.36.0: *Option to link isolate field values to a lookup table containing GPS
+          coordinates to facilitate mapping by e.g. town/city.
+         *Display maps for these fields in isolate info page and in Field
+          Breakdown plugin.
+         *Script to automatically lookup GPS coordinates for towns and cities
+          from linked fields, using the Geonames database.
+         *Optionally export GPS coordinates from above in the Microreact 
+          plugin.
+v1.35.3: *Improve GPS mapping in FieldBreakdown plugin - users can dynamically
+          change pointer colour and size, and the map is automatically centred
+          and zoomed on displayed points.
+v1.35.2: *New isolate field type - geography_point that stores GPS coordinates.
+          Mapping using OpenStreetMap or Bing is now available for such fields
+          within isolate records and within the FieldBreakdown plugin.
+v1.35.1: *Minor bug fixes.
 v1.35.0: *Adds support for alternative codon tables.
 v1.34.2: *LINcode bug fixes.
          *Option to allow batch upload of profiles that are identical except

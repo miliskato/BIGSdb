@@ -1,6 +1,6 @@
 #BLAST.pm - BLAST plugin for BIGSdb
 #Written by Keith Jolley
-#Copyright (c) 2010-2021, University of Oxford
+#Copyright (c) 2010-2022, University of Oxford
 #E-mail: keith.jolley@zoo.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
@@ -115,7 +115,7 @@ sub get_attributes {
 		buttontext  => 'BLAST',
 		menutext    => 'BLAST',
 		module      => 'BLAST',
-		version     => '1.5.1',
+		version     => '1.5.3',
 		dbtype      => 'isolates',
 		section     => 'analysis,postquery',
 		input       => 'query',
@@ -189,6 +189,7 @@ sub run {
 		$q->delete('isolate_id');
 		my $params = $q->Vars;
 		$params->{'script_name'} = $self->{'system'}->{'script_name'};
+		$params->{'curate'} = 1 if $self->{'curate'};
 		my $job_id = $self->{'jobManager'}->add_job(
 			{
 				dbase_config => $self->{'instance'},
@@ -364,6 +365,7 @@ sub run_job {
 	}
 	foreach my $id (@$ids) {
 		$progress++;
+		next if !$self->isolate_exists( $id, { has_seqbin => 1 } );
 		my $complete = int( 100 * $progress / @$ids );
 		my $matches = $self->_blast( $id, \$params->{'sequence'}, $params );
 		if ( !$params->{'show_no_match'} && ( ref $matches ne 'ARRAY' || !@$matches ) ) {
@@ -536,8 +538,7 @@ sub _get_isolate_label {
 	my ( $self, $isolate_id ) = @_;
 	if ( !$self->{'cache'}->{'label'}->{$isolate_id} ) {
 		$self->{'cache'}->{'label'}->{$isolate_id} =
-		  $self->{'datastore'}
-		  ->run_query( "SELECT $self->{'system'}->{'labelfield'} FROM $self->{'system'}->{'view'} WHERE id=?",
+		  $self->{'datastore'}->run_query( "SELECT $self->{'system'}->{'labelfield'} FROM isolates WHERE id=?",
 			$isolate_id, { cache => 'BLAST::get_isolate_label' } );
 	}
 	return $self->{'cache'}->{'label'}->{$isolate_id};
@@ -601,6 +602,9 @@ sub _get_include_values {
 				$value = "@values" // q();
 			} else {
 				$value = $self->get_field_value( $include_data, $field );
+				if ( $self->{'datastore'}->field_needs_conversion($field) ) {
+					$value = $self->{'datastore'}->convert_field_value( $field, $value );
+				}
 			}
 			push @$include_values, $value;
 		}
@@ -748,7 +752,7 @@ sub _blast {
 
 	#create isolate FASTA database
 	my $qry =
-	  'SELECT DISTINCT s.id FROM sequence_bin s LEFT JOIN project_members p ON s.isolate_id = p.isolate_id '
+	    'SELECT DISTINCT s.id FROM sequence_bin s LEFT JOIN project_members p ON s.isolate_id = p.isolate_id '
 	  . 'WHERE s.isolate_id=?';
 	my @criteria = ($isolate_id);
 	my $method   = $form_params->{'seq_method_list'};

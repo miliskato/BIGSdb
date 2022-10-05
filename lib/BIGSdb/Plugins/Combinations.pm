@@ -1,6 +1,6 @@
 #Combinations.pm - Unique combinations plugin for BIGSdb
 #Written by Keith Jolley
-#Copyright (c) 2010-2020, University of Oxford
+#Copyright (c) 2010-2022, University of Oxford
 #E-mail: keith.jolley@zoo.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
@@ -59,7 +59,7 @@ sub get_attributes {
 		menutext   => 'Unique combinations',
 		module     => 'Combinations',
 		url        => "$self->{'config'}->{'doclink'}/data_analysis/unique_combinations.html",
-		version    => '1.4.5',
+		version    => '1.4.7',
 		dbtype     => 'isolates',
 		section    => 'breakdown,postquery',
 		input      => 'query',
@@ -112,6 +112,7 @@ sub run {
 	my $params = {};
 	local $" = '||';
 	$params->{'selected_fields'} = "@$selected_fields";
+	$params->{'curate'} = 1 if $self->{'curate'};
 	delete $params->{'isolate_paste_list'};
 	my $att       = $self->get_attributes;
 	my $user_info = $self->{'datastore'}->get_user_info_from_username( $self->{'username'} );
@@ -305,7 +306,11 @@ sub _get_field_value {
 		$value = '-' if !defined $value || $value eq '';
 		return $value;
 	} else {
+		my $needs_conversion = $self->{'datastore'}->field_needs_conversion($field);
 		my $value = $self->get_field_value( $data, $field );
+		if ($needs_conversion) {
+			$value = $self->{'datastore'}->convert_field_value( $field, $value );
+		}
 		$value = q(-) if $value eq q();
 		return $value;
 	}

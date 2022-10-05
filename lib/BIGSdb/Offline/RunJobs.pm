@@ -1,5 +1,5 @@
 #Written by Keith Jolley
-#Copyright (c) 2011-2020, University of Oxford
+#Copyright (c) 2011-2022, University of Oxford
 #E-mail: keith.jolley@zoo.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
@@ -80,7 +80,7 @@ sub _initiate_db {
 sub run_script {
 	my ($self) = @_;
 	my $job_id = $self->{'jobManager'}->get_next_job_id;
-	if (!$job_id){
+	if ( !$job_id ) {
 		$self->_purge;
 		exit;
 	}
@@ -95,6 +95,7 @@ sub run_script {
 	my $instance = $job->{'dbase_config'};
 	$self->_initiate_db($instance);
 	$self->{'system'}->{'set_id'} = $params->{'set_id'};
+	$self->{'curate'} = 1 if $params->{'curate'};
 	$self->initiate_view( $job->{'username'} );
 	my $plugin = $self->{'pluginManager'}->get_plugin( $job->{'module'} );
 	$self->{'jobManager'}->update_job_status( $job_id, { status => 'started', start_time => 'now', pid => $$ } );
@@ -154,6 +155,7 @@ sub _notify_user {
 	my $transport = Email::Sender::Transport::SMTP->new(
 		{ host => $self->{'config'}->{'smtp_server'} // 'localhost', port => $self->{'config'}->{'smtp_port'} // 25, }
 	);
+	my $sender_address = $self->{'config'}->{'automated_email_address'} // "no_reply\@$domain";
 	my $email = Email::MIME->create(
 		attributes => {
 			encoding => 'quoted-printable',
@@ -161,7 +163,7 @@ sub _notify_user {
 		},
 		header_str => [
 			To      => $address,
-			From    => "no_reply\@$domain",
+			From    => $sender_address,
 			Subject => $subject
 		],
 		body_str => $message
@@ -176,13 +178,13 @@ sub _notify_user {
 }
 
 #Only need to purge old jobs infrequently. This script is usually run from
-#a CRON job every minute, so we can check the time and only purge if we're 
-#on the hour. It is also only run if there is no job to run (it doesn't really 
+#a CRON job every minute, so we can check the time and only purge if we're
+#on the hour. It is also only run if there is no job to run (it doesn't really
 #matter when or how often old jobs are purged, as long as it happens occasionally).
 sub _purge {
 	my ($self) = @_;
-	my @time = localtime(time);
-	my $min = $time[1];
+	my @time   = localtime(time);
+	my $min    = $time[1];
 	return if $min != 0;
 	$self->{'jobManager'}->purge_old_jobs;
 	return;

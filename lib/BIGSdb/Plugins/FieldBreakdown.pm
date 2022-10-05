@@ -1,6 +1,6 @@
 #FieldBreakdown.pm - FieldBreakdown plugin for BIGSdb
 #Written by Keith Jolley
-#Copyright (c) 2018-2021, University of Oxford
+#Copyright (c) 2018-2022, University of Oxford
 #E-mail: keith.jolley@zoo.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
@@ -48,7 +48,7 @@ sub get_attributes {
 		buttontext => 'Fields',
 		menutext   => 'Field breakdown',
 		module     => 'FieldBreakdown',
-		version    => '2.3.1',
+		version    => '2.5.3',
 		dbtype     => 'isolates',
 		section    => 'breakdown,postquery',
 		url        => "$self->{'config'}->{'doclink'}/data_analysis/field_breakdown.html",
@@ -61,9 +61,15 @@ sub get_attributes {
 
 sub get_initiation_values {
 	my ($self) = @_;
-	my $q = $self->{'cgi'};
-	my $values =
-	  { billboard => 1, filesaver => 1, noCache => 0, 'jQuery.tablesort' => 1, pluginJS => 'FieldBreakdown.js' };
+	my $q      = $self->{'cgi'};
+	my $values = {
+		billboard          => 1,
+		filesaver          => 1,
+		noCache            => 0,
+		'jQuery.tablesort' => 1,
+		pluginJS           => 'FieldBreakdown.min.js'
+	};
+	$values->{'ol'} = 1 if $self->need_openlayers;
 	if ( $self->_has_country_optlist ) {
 		$values->{'geomap'} = 1;
 	}
@@ -136,16 +142,23 @@ sub _get_field_type {
 }
 
 sub _get_field_values {
-	my ( $self, $field ) = @_;
+	my ( $self, $field, $options ) = @_;
 	my $field_type = $self->_get_field_type($field) // q();
 	my $freqs      = [];
 	my $methods    = {
 		field => sub {
 			my $att = $self->{'xmlHandler'}->get_field_attributes($field);
-			$freqs =
-			  $self->_get_field_freqs( $field, $att->{'type'} =~ /^(?:int|float|date)/x
-				? { order => 'label ASC' }
-				: undef );
+			$freqs = $self->_get_field_freqs(
+				$field,
+				$att->{'type'} =~ /^(?:int|float|date)/x
+				? {
+					order => 'label ASC'
+				  }
+				: {
+					geography_point_lookup => ( $att->{'geography_point_lookup'} // q() ) eq 'yes'
+					  && $options->{'geography_point_lookup'} ? 1 : 0
+				}
+			);
 		},
 		eav_field => sub {
 			my $att = $self->{'datastore'}->get_eav_field($field);
@@ -328,7 +341,9 @@ sub run {
 	$self->print_loading_message;
 	say q(</div>);
 	say q(<div id="map" style="max-width:800px;margin-left:auto;margin-right:auto"></div>);
+	say q(<div id="geography" style="max-width:800px;margin-left:auto;margin-right:auto;max-height:100vw"></div>);
 	$self->_print_map_controls;
+	$self->_print_geography_controls;
 	$self->_print_pie_controls;
 	$self->_print_bar_controls;
 	$self->_print_line_controls;
@@ -406,6 +421,51 @@ sub _print_map_controls {
 	);
 	say q(</li>);
 	say q(</ul></fieldset>);
+	return;
+}
+
+sub _print_geography_controls {
+	my ($self) = @_;
+	my $bingmaps_api = $self->{'system'}->{'bingmaps_api'} // $self->{'config'}->{'bingmaps_api'};
+	my $q = $self->{'cgi'};
+	say q(<fieldset id="geography_controls" class="bb_controls" )
+	  . q(style="position:absolute;top:1em;right:1em;display:none"><legend>Controls</legend>);
+	say q(<ul>);
+	my %allowed = map { $_ => 1 } qw(Map Aerial);
+	my $guid = $self->get_guid;
+	my $style;
+	eval {
+		$style =
+		  $self->{'prefstore'}->get_plugin_attribute( $guid, $self->{'system'}->{'db'}, 'FieldBreakdown', 'map_style' );
+	};
+
+	if ( !defined $style || !$allowed{$style} ) {
+		$style = 'Map';
+	}
+	if ( defined $bingmaps_api ) {
+		say q(<li><label for="view">View:</label>);
+		say $q->radio_group(
+			-name    => 'geography_view',
+			-id      => 'geography_view',
+			-values  => [qw(Map Aerial)],
+			-default => $style
+		);
+		say q(</li>);
+	}
+	say q(<style>.marker_colour.fa-square {text-shadow: 2px 2px 2px #999;font-size:1.8em;)
+	  . q(margin-right:0.2em;cursor:pointer}</style>);
+	say q(<li><span style="float:left;margin-right:0.5em">Marker colour:</span>)
+	  . q(<div style="display:inline-block">)
+	  . q(<span id="marker_red" style="color:#ff0000" class="marker_colour fas fa-square"></span>)
+	  . q(<span id="marker_green" style="color:#0d823a" class="marker_colour fas fa-square"></span>)
+	  . q(<span id="marker_blue" style="color:#0000ff" class="marker_colour fas fa-square"></span>)
+	  . q(<span id="marker_purple" style="color:#b002fa" class="marker_colour fas fa-square"></span>)
+	  . q(<span id="marker_orange" style="color:#fa5502" class="marker_colour fas fa-square"></span>)
+	  . q(<span id="marker_yellow" style="color:#fccf03" class="marker_colour fas fa-square"></span>)
+	  . q(<span id="marker_grey" style="color:#303030" class="marker_colour fas fa-square"></span>);
+	say q(<li><li><label for="segments">Marker size:</label>);
+	say q(<div id="marker_size" style="display:inline-block;width:8em;margin-left:0.5em"></div>);
+	say q(</li></ul></fieldset>);
 	return;
 }
 
@@ -525,7 +585,8 @@ sub _get_fields_js {
 	my $field_attributes = $self->{'xmlHandler'}->get_all_field_attributes;
 	my %types = map { $field_attributes->{$_} => $field_attributes->{$_}->{'type'} } keys %$field_attributes;
 	my @type_values;
-	my %allowed_types = map { $_ => 1 } qw(integer text float date);
+	my @geography_lookup_values;
+	my %allowed_types = map { $_ => 1 } qw(integer text float date geography_point);
 	foreach my $field ( keys %$field_attributes ) {
 		my $type = lc( $field_attributes->{$field}->{'type'} );
 		$type = 'integer' if $type eq 'int';
@@ -538,6 +599,9 @@ sub _get_fields_js {
 			$type = 'text';
 		}
 		push @type_values, qq('$field':'$type');
+		if ( ( $field_attributes->{$field}->{'geography_point_lookup'} // q() ) eq 'yes' ) {
+			push @geography_lookup_values, $field;
+		}
 	}
 	local $" = qq(,\n\t);
 	my ($fields) = $self->_get_fields;
@@ -549,6 +613,12 @@ sub _get_fields_js {
 		$buffer .= qq(var map_fields = ['@map_fields'];\n);
 	} else {
 		$buffer .= qq(var map_fields = [];\n);
+	}
+	if (@geography_lookup_values) {
+		local $" = q(',');
+		$buffer .= qq(var geography_point_lookup_fields = ['@geography_lookup_values'];\n);
+	} else {
+		$buffer .= qq(var geography_point_lookup_fields = [];\n);
 	}
 	return $buffer;
 }
@@ -590,16 +660,6 @@ sub get_plugin_javascript {
 	my ($self)              = @_;
 	my $has_valid_countries = $self->_has_country_optlist;
 	my $query_params        = $self->_get_query_params;
-	my $guid                = $self->get_guid;
-	my ( $theme, $projection );
-	eval {
-		$theme =
-		  $self->{'prefstore'}->get_plugin_attribute( $guid, $self->{'system'}->{'db'}, 'FieldBreakdown', 'theme' );
-		$projection = $self->{'prefstore'}
-		  ->get_plugin_attribute( $guid, $self->{'system'}->{'db'}, 'FieldBreakdown', 'projection' );
-	};
-	$theme      //= 'theme_green';
-	$projection //= 'Natural Earth';
 	local $" = q(&);
 	my $url = qq($self->{'system'}->{'script_name'}?db=$self->{'instance'}&page=plugin&name=FieldBreakdown);
 	my $plugin_prefs_ajax_url =
@@ -607,20 +667,20 @@ sub get_plugin_javascript {
 	my $prefs_ajax_url = qq($self->{'system'}->{'script_name'}?db=$self->{'instance'}&page=ajaxPrefs);
 	my $param_string = @$query_params ? qq(&@$query_params) : q();
 	$url .= $param_string;
-	my $types_js   = $self->_get_fields_js;
-	my $loci_js    = $self->_get_loci_js;
-	my $schemes_js = $self->_get_schemes_js;
-	my $buffer     = <<"JS";
+	my $types_js     = $self->_get_fields_js;
+	my $loci_js      = $self->_get_loci_js;
+	my $schemes_js   = $self->_get_schemes_js;
+	my $bingmaps_api = $self->{'system'}->{'bingmaps_api'} // $self->{'config'}->{'bingmaps_api'};
+	my $buffer       = <<"JS";
 var height = 400;
 var segments = 20;
 var rotate = 0;
 var pie = 1;
 var line = 1;
 var fasta = 0;
-var theme = "$theme";
-var projection = "$projection";
 var url = "$url";
 var prefs_ajax_url = "$plugin_prefs_ajax_url";
+var bingmaps_api = "$bingmaps_api";
 
 $types_js	
 $loci_js
@@ -632,25 +692,55 @@ JS
 
 sub _ajax {
 	my ( $self, $field ) = @_;
-	my $q     = $self->{'cgi'};
-	my $freqs = $self->_get_field_values($field);
+	my $q       = $self->{'cgi'};
+	my $options = {};
+	$options->{'geography_point_lookup'} = 1 if $q->param('lookup_coordinates');
+	my $freqs = $self->_get_field_values( $field, $options );
 	say to_json($freqs);
 	return;
 }
 
 sub _get_field_freqs {
 	my ( $self, $field, $options ) = @_;
-	my $qry = "SELECT $field AS label,COUNT(*) AS value FROM $self->{'system'}->{'view'} v "
-	  . 'JOIN id_list i ON v.id=i.value ';
-	$qry .= 'GROUP BY label';
+	my ( $needs_conversion, $qry );
+	my $country_field = $self->{'system'}->{'country_field'} // 'country';
+	if ( $options->{'geography_point_lookup'} ) {
+		$qry = "SELECT $country_field,$field AS label,COUNT(*) AS value FROM $self->{'system'}->{'view'} v "
+		  . "JOIN id_list i ON v.id=i.value GROUP BY $country_field,label";
+	} else {
+		$needs_conversion = $self->{'datastore'}->field_needs_conversion($field);
+		$qry              = "SELECT $field AS label,COUNT(*) AS value FROM $self->{'system'}->{'view'} v "
+		  . 'JOIN id_list i ON v.id=i.value ';
+		$qry .= 'GROUP BY label';
+	}
 	my $order = $options->{'order'} ? $options->{'order'} : 'value DESC';
 	$qry .= " ORDER BY $order";
 	my $values = $self->{'datastore'}->run_query( $qry, undef, { fetch => 'all_arrayref', slice => {} } );
-	if ( $field eq 'country' ) {
+	if ( $field eq $country_field ) {
 		my $countries = dclone(COUNTRIES);
 		foreach my $value (@$values) {
 			$value->{'iso3'} = $countries->{ $value->{'label'} }->{'iso3'} // q(XXX);
 		}
+	} elsif ( $options->{'geography_point_lookup'} ) {
+		my $countries  = dclone(COUNTRIES);
+		my $new_values = [];
+		foreach my $value (@$values) {
+			next if !defined $value->{'label'};
+			my $geography =
+			  $self->{'datastore'}
+			  ->lookup_geography_point( { $country_field => $value->{'country'}, $field => $value->{'label'} },
+				$field );
+			if ( defined $geography->{'latitude'} ) {
+				push @$new_values,
+				  {
+					label => "$geography->{'latitude'}, $geography->{'longitude'}",
+					value => $value->{'value'}
+				  };
+			} else {
+				$logger->error("No geographic coordinates defined in lookup table for $field: $value->{'label'}");
+			}
+		}
+		$values = $new_values;
 	}
 	my $att = $self->{'xmlHandler'}->get_field_attributes($field);
 	if ( ( $att->{'multiple'} // q() ) eq 'yes' ) {
@@ -665,7 +755,7 @@ sub _get_field_freqs {
 			}
 		} else {
 			foreach my $value (@$values) {
-				if ( !defined $value->{'label'} ) {
+				if ( !defined $value->{'label'} || $value->{'label'} eq q() ) {
 					$value->{'label'} = ['No value'];
 				}
 				my @sorted_label =
@@ -686,6 +776,12 @@ sub _get_field_freqs {
 			  };
 		}
 		return $new_return_list;
+	}
+	if ($needs_conversion) {
+		foreach my $value (@$values) {
+			next if !defined $value->{'label'};
+			$value->{'label'} = $self->{'datastore'}->convert_field_value( $field, $value->{'label'} );
+		}
 	}
 	return $values;
 }

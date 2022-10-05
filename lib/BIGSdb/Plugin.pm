@@ -485,7 +485,7 @@ sub print_includes_fieldset {
 		if ( $field =~ /^(?:l|cn)_/x ) {
 			push @{ $group_members->{'Loci'} }, $field;
 		}
-		if ( $field =~ /^(?:f|e)_/x ) {
+		if ( $field =~ /^(?:f|e|gp)_/x ) {
 			( my $stripped_field = $field ) =~ s/^[f|e]_//x;
 			next if $skip_fields{$stripped_field};
 			$stripped_field =~ s/[\|\||\s].+$//x;
@@ -859,6 +859,32 @@ sub get_cscheme_value {
 	return $value;
 }
 
+sub get_cscheme_field_value {
+	my ( $self, $isolate_id, $cscheme_id, $scheme_field ) = @_;
+	my $table = $self->{'datastore'}->create_temp_cscheme_field_values_table($cscheme_id);
+	if ( !$self->{'cache'}->{'cscheme_field_cache_table_exists'}->{$cscheme_id} ) {
+		$self->{'cache'}->{'cscheme_field_cache_table_exists'}->{$cscheme_id} =
+		  $self->{'datastore'}->run_query( 'SELECT EXISTS(SELECT * FROM information_schema.tables WHERE table_name=?)',
+			"temp_cscheme_${cscheme_id}_field_values" );
+	}
+	my @values;
+	if ( $self->{'cache'}->{'cscheme_field_cache_table_exists'}->{$cscheme_id} ) {
+		my $cscheme_group = $self->get_cscheme_value( $isolate_id, $cscheme_id );
+		my @cscheme_groups = split /;/x, $cscheme_group;
+		foreach my $group (@cscheme_groups) {
+			my $value = $self->{'datastore'}->run_query(
+				"SELECT value FROM $table WHERE (group_id,field)=(?,?)",
+				[ $group, $scheme_field ],
+				cache => 'Plugin::get_cscheme_field_value'
+			);
+			push @values, $value if defined $value;
+		}
+	}
+	@values = uniq sort @values;
+	local $" = q(;);
+	return qq(@values);
+}
+
 sub get_lincode {
 	my ( $self, $isolate_id, $scheme_id ) = @_;
 	return if !BIGSdb::Utils::is_int($isolate_id);
@@ -872,10 +898,16 @@ sub get_lincode {
 	);
 	my $lincode_table = $self->{'datastore'}->create_temp_lincodes_table($scheme_id);
 	my $lincodes      = [];
+	my %used;
 	foreach my $profile_id (@$profile_ids) {
 		my $lincode =
 		  $self->{'datastore'}->run_query( "SELECT lincode FROM $lincode_table WHERE profile_id=?", $profile_id );
-		push @$lincodes, $lincode if $lincode;
+		if ($lincode) {
+			local $" = q(_);
+			next if $used{"@$lincode"};
+			push @$lincodes, $lincode;
+			$used{"@$lincode"} = 1;
+		}
 	}
 	return $lincodes;
 }
