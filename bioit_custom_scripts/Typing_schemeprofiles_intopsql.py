@@ -8,7 +8,7 @@ import sys
 import logging
 import yaml
 
-from config import CONFIG
+from config import BIGSDB_CONFIG
 # For this script I am assuming that profiles do not retire.
 # It is important to keep in mind that ST do not neccesarily follow each other up continuosly, there can be gaps
 
@@ -27,7 +27,7 @@ schemedict = {
 
 profile_file = 'profiles.tsv'
 
-with open(CONFIG, encoding='utf-8') as handle:
+with open(BIGSDB_CONFIG, encoding='utf-8') as handle:
     config_data = yaml.safe_load(handle)
 emaildict = config_data['mail']
 
@@ -117,7 +117,7 @@ def insert_profiles(scheme, indexdict, list_to_be_inserted):
                                         f"'{locus}', '{profile}', '{locusvalue}', "
                                         f"1,(SELECT CURRENT_DATE))")
                         except:
-                            logging.info(f"profile with field {field} and value {fieldvalue.replace('_',' ')} already exists as another field")
+                            logging.error(f"profile with field {field} and value {fieldvalue.replace('_',' ')} already exists as another field, either remove the entire scheme profiles or find out what the exact problem is and solve this script once and for all with delete where select profile_id where locus1 and alleleid1 intersect select ... (e.g. select profile_id from profile_members where (locus='abcZ' and allele_id='1') INTERSECT select profile_id from profile_members where (locus='bglA' and allele_id='1') INTERSECT select profile_id from profile_members where (locus='cat' and allele_id='1'))")
                             continue
     con.close()
 

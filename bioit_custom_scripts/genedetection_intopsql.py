@@ -15,7 +15,7 @@ import sys
 import logging
 import yaml
 
-from config import CONFIG
+from config import BIGSDB_CONFIG
 
 schemedict = {
               'listeria_ndaro':           {'clusteredfasta': '/db/gene_detection/NCBI_AMR/ncbi_amr-clustered_80.fasta',
@@ -133,7 +133,7 @@ schemedict = {
                                              'species': 'salmonella'}
               }
 
-with open(CONFIG, encoding='utf-8') as handle:
+with open(BIGSDB_CONFIG, encoding='utf-8') as handle:
     config_data = yaml.safe_load(handle)
 emaildict = config_data['mail']
 

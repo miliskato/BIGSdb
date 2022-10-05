@@ -13,7 +13,7 @@ class TsvTypingResultsInserter:
     def __init__(self):
         pass
 
-    def insert_typing_results(self, isolatename, species, schemedict, outputtsvdict, cur_isolates, cur_seqdef):
+    def insert_typing_results(self, isolatename, species, schemedict, sample_output_dict, cur_isolates, cur_seqdef):
         dirlist = []
         # dirlist serves as to not insert duplicates (creates error in sql),
         # for Listeria e.g. prs and prfA are included in two schemes
@@ -25,7 +25,7 @@ class TsvTypingResultsInserter:
                         if directory == "rplF":  # neisseria specific
                             directory = "'rplF"
                         dirlist.append(directory)
-                        result = outputtsvdict['-'.join([schemedict[scheme]['tsvname'], directory])].split(',')
+                        result = sample_output_dict['-'.join([schemedict[scheme]['tsvname'], directory])].split(',')
                         if directory == "'rplF":  # neisseria specific
                             directory = "rplF"
                         if result[2] == '100.00' and result[3] != '-' and eval(result[3]) == 1.0:
@@ -52,7 +52,7 @@ class TsvTypingResultsInserter:
             elif schemedict[scheme]['dirdb'] == '':
                 if scheme.endswith('pointfinder'):
                     # for pointfinder, only hits that infer resistance are of importance, other hits dont give any information.
-                    listofhits = outputtsvdict[schemedict[scheme]['tsvname']]
+                    listofhits = sample_output_dict[schemedict[scheme]['tsvname']]
                     # this might look like this: [["drrA p.H309D", "CAC -> GAC", "H -> D", "Unknown", "-"], ["embA p.P958Q", "CCG -> CAG", "P -> Q", "Unknown", "-"], ["embB p.N13S", "AAT -> AGT", "N -> S", "Unknown", "-"], ["embB p.E378A", "GAG -> GCG", "E -> A", "Unknown", "-"], ["embC p.T270I", "ACC -> ATC", "T -> I", "Unknown", "-"], ["gyrA p.E21Q", "GAG -> CAG", "E -> Q", "Unknown", "-"], ["gyrA p.S95T", "AGC -> ACC", "S -> T", "Unknown", "-"], ["gyrA p.D639A", "GAC -> GCC", "D -> A", "Unknown", "-"], ["gyrA p.G668D", "GGC -> GAC", "G -> D", "Unknown", "-"], ["gyrB p.A403S", "GCG -> TCG", "A -> S", "Unknown", "-"], ["iniA p.N88S", "AAT -> AGT", "N -> S", "Unknown", "-"], ["iniA p.H481Q", "CAT -> CAG", "H -> Q", "Unknown", "-"], ["katG p.R463L", "CGG -> CTG", "R -> L", "Unknown", "-"], ["nuoA n.-95T>G", "T -> G", "Promoter mutations", "Unknown", "-"], ["pncA p.H57D", "CAC -> GAC", "H -> D", "PYRAZINAMIDE", "19209951"], ["rpsA p.A440T", "GCG -> ACG", "A -> T", "Unknown", "-"], ["ubiA p.E149D", "GAA -> GAC", "E -> D", "Unknown", "-"]]
                     if listofhits != '[]':
                         eavhtmltable = '<table class="data"><tr><th>Hit</th><th>Antibiotic</th></tr>'
@@ -100,9 +100,9 @@ class TsvTypingResultsInserter:
                                     f"'pointfinder_hits', '{eavhtmltable}') ")
                 if species == 'mycobacterium':
                     if schemedict[scheme]['dirdb'] == '':
-                        if schemedict[scheme]['tsvname'] == 'spoligotype_binary' and schemedict[scheme]['tsvname'] in outputtsvdict:
+                        if schemedict[scheme]['tsvname'] == 'spoligotype_binary' and schemedict[scheme]['tsvname'] in sample_output_dict:
                             x = 1
-                            for allele_id in list(outputtsvdict[schemedict[scheme]['tsvname']]):
+                            for allele_id in list(sample_output_dict[schemedict[scheme]['tsvname']]):
                                 locus = ''.join(['Spacer', str(x).zfill(2)])
                                 x += 1
                                 cur_isolates.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
@@ -114,18 +114,18 @@ class TsvTypingResultsInserter:
                             cur_isolates.execute(f"INSERT INTO eav_text(isolate_id, "
                                         f"field, value)"
                                         f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'),"
-                                        f"'spoligotype_binary', '{outputtsvdict['spoligotype_binary']}') ")
+                                        f"'spoligotype_binary', '{sample_output_dict['spoligotype_binary']}') ")
                             cur_isolates.execute(f"INSERT INTO eav_text(isolate_id, "
                                         f"field, value)"
                                         f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'),"
-                                        f"'spoligotype_octal', '{outputtsvdict['spoligotype_octal']}') ")
-                    elif scheme == 'mycobacterium_csbrd' and 'csb_detected' in outputtsvdict:
+                                        f"'spoligotype_octal', '{sample_output_dict['spoligotype_octal']}') ")
+                    elif scheme == 'mycobacterium_csbrd' and 'csb_detected' in sample_output_dict:
                         for record in ['csb_detected', 'RD1_detected', 'RD9_detected']:
                             locus = record.rstrip(
                                 '_detected')  # need to be careful with rstrip and strip but in this case no issue
-                            if outputtsvdict[record] == 'False':
+                            if sample_output_dict[record] == 'False':
                                 allele_id = 0
-                            elif outputtsvdict[record] == 'True':
+                            elif sample_output_dict[record] == 'True':
                                 allele_id = 1
                             cur_isolates.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
                                         f"allele_id, status, method, sender, "
@@ -148,15 +148,15 @@ class TsvTypingResultsInserter:
                             cur_isolates.execute(f"INSERT INTO eav_text(isolate_id, "
                                         f"field, value)"
                                         f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'),"
-                                        f"'{bigsdbname}', '{outputtsvdict[tsvname]}') ")
+                                        f"'{bigsdbname}', '{sample_output_dict[tsvname]}') ")
                         # AMR results
                         cur_isolates.execute(
                             f"SELECT locus FROM scheme_members WHERE scheme_id = (SELECT id FROM schemes WHERE name = 'AMR_detection_WHO')")
                         loci = cur_isolates.fetchall()
                         for locus in loci:
                             tsvname = '_'.join(['amr_mutations', str(locus[0]).replace('_int', '_(int.)')])
-                            if outputtsvdict[tsvname] != '-':
-                                for variant in outputtsvdict[tsvname].split(', '):
+                            if sample_output_dict[tsvname] != '-':
+                                for variant in sample_output_dict[tsvname].split(', '):
                                     variantreformatted = variant.replace('(', '').replace(')', '')
                                     # Bert explained that if the change is found in promotor, then it can change signs
                                     # And also honestly the db is really discrepant, e.g. how likely is this:
@@ -194,7 +194,7 @@ class TsvTypingResultsInserter:
                                                     f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
 
                     elif scheme == 'mycobacterium_hsp65':
-                        listofhits = outputtsvdict[schemedict[scheme]['tsvname']]
+                        listofhits = sample_output_dict[schemedict[scheme]['tsvname']]
                         # this might look something like this currently: [["Cluster_0", "seq_132", "100.00", "401/401", "NODE_2_length_176306_cov_25.596655", "48299..48699", "M. tuberculosis", "ATCC 27294, H37Rv(T)"], ["Cluster_0", "seq_19", "100.00", "401/401", "NODE_2_length_176306_cov_25.596655", "48299..48699", "M. bovis", "CIP 105234(T)"], ["Cluster_0", "seq_23", "100.00", "401/401", "NODE_2_length_176306_cov_25.596655", "48299..48699", "M. caprae", "CIP 105776(T)"], ["Cluster_0", "seq_81", "100.00", "401/401", "NODE_2_length_176306_cov_25.596655", "48299..48699", "M. microti", "CIP 104256, ATCC 19422(T)"]]
     
                         if listofhits != '[]':
@@ -216,7 +216,7 @@ class TsvTypingResultsInserter:
 
                     elif scheme == 'mycobacterium_ncbi16s':
                         # ncbi 16s contains duplicate species
-                        listofhits = outputtsvdict[schemedict[scheme]['tsvname']]
+                        listofhits = sample_output_dict[schemedict[scheme]['tsvname']]
                         # this might look like this: [["Cluster_24", "NR_044826.2", "100.00", "1532/1532", "NODE_59_length_20721_cov_23.830436", "2360..3891", "Mycobacterium tuberculosis strain H37Rv 16S ribosomal RNA, complete sequence", "NR_044826.2"], ["Cluster_24", "NR_102810.2", "100.00", "1532/1532", "NODE_59_length_20721_cov_23.830436", "2360..3891", "Mycobacterium tuberculosis strain H37Rv 16S ribosomal RNA, complete sequence", "NR_102810.2"]]
                         speciesandstrainhits = []
                         if listofhits != '[]':
@@ -245,7 +245,7 @@ class TsvTypingResultsInserter:
                 elif species == 'neisseria':
                     if schemedict[scheme]['tsvname'] == 'resistance_genes':
                         for directory in ['penA', 'rpoB']:
-                            result = outputtsvdict['-'.join([schemedict[scheme]['tsvname'], directory])].split(',')
+                            result = sample_output_dict['-'.join([schemedict[scheme]['tsvname'], directory])].split(',')
                             if result[2] == '100.00' and result[3] != '-' and eval(result[3]) == 1.0:
                                 allele_id = int(result[1])
                                 response = requests.get(
@@ -272,14 +272,14 @@ class TsvTypingResultsInserter:
                     cur_isolates.execute(f"INSERT INTO eav_text(isolate_id, "
                                 f"field, value)"
                                 f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'),"
-                                f"'Serogroup', '{outputtsvdict['detected_serogroup']}') ")
+                                f"'Serogroup', '{sample_output_dict['detected_serogroup']}') ")
                 elif species == 'salmonella':
-                    if scheme == 'salmonella_genotyphi' and 'genotyphi_lineage' in outputtsvdict:
+                    if scheme == 'salmonella_genotyphi' and 'genotyphi_lineage' in sample_output_dict:
                         cur_isolates.execute(f"SELECT field FROM eav_fields WHERE field like 'genotyphi%'")
                         genotyphi_susc_list = cur_isolates.fetchall()
                         for item in genotyphi_susc_list:
-                            if item[0] in outputtsvdict:
-                                susceptibility = outputtsvdict[item[0]]
+                            if item[0] in sample_output_dict:
+                                susceptibility = sample_output_dict[item[0]]
                                 cur_isolates.execute(
                                     f"INSERT INTO eav_text(isolate_id, field, value) VALUES ((SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'),'{item[0]}','{susceptibility}')")
                                 # insert new alleles
@@ -287,7 +287,7 @@ class TsvTypingResultsInserter:
                                 gene = item[0].replace('susceptibility', 'genes')
                                 genotyphi_field = item[0].replace('_susceptibility', '').upper()
                                 # get the genes and variants
-                                future_alleles = outputtsvdict[variant].split(';') + outputtsvdict[gene].split(';')
+                                future_alleles = sample_output_dict[variant].split(';') + sample_output_dict[gene].split(';')
                                 for i in range(0, len(future_alleles)):
                                     if future_alleles[i] != '-':
                                         cur_seqdef.execute(
@@ -362,29 +362,29 @@ class TsvTypingResultsInserter:
 
                             if tool == 'sistr':
                                 if field_type == 'formula':
-                                    if f'{tool}_serotype_antigenic_formula' in outputtsvdict:
-                                        serotypingInsert = outputtsvdict[f'{tool}_serotype_antigenic_formula']
+                                    if f'{tool}_serotype_antigenic_formula' in sample_output_dict:
+                                        serotypingInsert = sample_output_dict[f'{tool}_serotype_antigenic_formula']
                                         if serotypingInsert != '-':
                                             sistr_formula = formula(serotypingInsert, tool, isolatename)
                                             sistr_formula.insert_antigens_into_db()
                                             cur_isolates.execute(
                                                 f"INSERT INTO eav_text(isolate_id, field, value) VALUES ((SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'),'{sero[0]}','{serotypingInsert}')")
                                 elif field_type == 'serotype':
-                                    if f'{tool}_serotype_concensus' in outputtsvdict:
-                                        serotypingInsert = outputtsvdict[f'{tool}_serotype_concensus']
+                                    if f'{tool}_serotype_concensus' in sample_output_dict:
+                                        serotypingInsert = sample_output_dict[f'{tool}_serotype_concensus']
                                         if serotypingInsert != '-':
                                             cur_isolates.execute(
                                                 f"INSERT INTO eav_text(isolate_id, field, value) VALUES ((SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'),'{sero[0]}','{serotypingInsert}')")
                             else:
-                                if field_type == 'formula' and f'{tool}_Predicted_antigenic_profile' in outputtsvdict:
-                                    serotypingInsert = outputtsvdict[f'{tool}_Predicted_antigenic_profile']
+                                if field_type == 'formula' and f'{tool}_Predicted_antigenic_profile' in sample_output_dict:
+                                    serotypingInsert = sample_output_dict[f'{tool}_Predicted_antigenic_profile']
                                     seqsero_formula = formula(serotypingInsert, tool, isolatename)
                                     seqsero_formula.insert_antigens_into_db()
                                     if serotypingInsert != '-:-:-':
                                         cur_isolates.execute(
                                             f"INSERT INTO eav_text(isolate_id, field, value) VALUES ((SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'),'{sero[0]}','{serotypingInsert}')")
-                                elif field_type == 'serotype' and f'{tool}_Predicted_serotype' in outputtsvdict:
-                                    serotypingInsert = outputtsvdict[f'{tool}_Predicted_serotype']
+                                elif field_type == 'serotype' and f'{tool}_Predicted_serotype' in sample_output_dict:
+                                    serotypingInsert = sample_output_dict[f'{tool}_Predicted_serotype']
                                     if serotypingInsert != '- -:-:-':
                                         cur_isolates.execute(
                                             f"INSERT INTO eav_text(isolate_id, field, value) VALUES ((SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'),'{sero[0]}','{serotypingInsert}')")
@@ -392,8 +392,8 @@ class TsvTypingResultsInserter:
                     elif scheme == 'salmonella_spifinder':
                         schemes_spifinder = ['spifinder_fastq', 'spifinder_fasta']
                         for scheme in schemes_spifinder:
-                            if scheme in outputtsvdict:
-                                hits = outputtsvdict[scheme]
+                            if scheme in sample_output_dict:
+                                hits = sample_output_dict[scheme]
                                 if hits != '[]':
                                     hits = ast.literal_eval(hits)
                                     for l in range(0, len(hits)):
@@ -430,8 +430,8 @@ class TsvTypingResultsInserter:
                 elif species == 'stec':
                     if scheme == 'stec_serotype':
                         serotypedict = {}
-                        serotypedict['O_antigen'] = outputtsvdict['serotype'].split(':')[0]
-                        serotypedict['H_antigen'] = outputtsvdict['serotype'].split(':')[1]
+                        serotypedict['O_antigen'] = sample_output_dict['serotype'].split(':')[0]
+                        serotypedict['H_antigen'] = sample_output_dict['serotype'].split(':')[1]
                         for antigen, antigen_allele in serotypedict.items():
                             if antigen_allele != '-':
                                 cur_seqdef.execute(
