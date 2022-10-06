@@ -5,7 +5,9 @@ from pymongo.write_concern import WriteConcern
 from pymongo.read_concern import ReadConcern
 from pathlib import Path
 import sys
+import socket
 
+from bioit_custom_scripts.components.databaseconnection import Database_connection
 from util.mongo_initialisation import Mongoinitialisation
 from config import MONGO_CONFIG
 
@@ -16,7 +18,7 @@ def _parse_arguments() -> argparse.Namespace:
     :return: Parsed arguments
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("--scheme", required=True, type=str)
+    parser.add_argument("--scheme", required=True, type=str, help='lower case scheme as in json reports/mongodb documents')
     parser.add_argument("--species", required=True, type=str,
                         choices=['mycobacterium', 'listeria', 'neisseria', 'stec', 'salmonella'])
     return parser.parse_args()
@@ -95,3 +97,10 @@ if __name__ == '__main__':
                         hashed_AD_collection.with_options(write_concern=WriteConcern(w="majority")).update_one(
                             {"scheme": args.scheme, "resolved_AD": 0, "locus": locus},
                             {"$set": {"resolved_AD": allele_id}})
+                        hash_document['resolved_AD'] = allele_id
+        hostname = socket.gethostname()
+        if 'bigs' in hostname:
+            cur_isolates, cur_seqdef = Database_connection().open_database_connections(args.species)
+            for hash_document in documents_list:
+                if hash_document['resolved_AD'] != 0:
+                    cur_isolates.execute(f"UPDATE allele_designations SET allele_id='{hash_document['resolved_AD']}' WHERE allele_id='{hash_document['hashed_allele']}' AND locus='{hash_document['locus']}'")

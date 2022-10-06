@@ -10,3 +10,4 @@ pymongo==4.2.0
 dnspython==2.2.1
 numba==0.56.0
 gitpython==3.1.27
+biopython==1.79
