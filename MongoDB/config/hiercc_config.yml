@@ -1,7 +1,0 @@
-allowed_missing_data_proportion: 0.05
-listeria:
-  initial_st: /home/bebergk/listeria_profiles.csv.gz
-  initial_clustering: /home/bebergk/listeria_st_clustering_initial.HierCC.gz
-  npz_file: /home/bebergk/listeria_working_clustering.npz
-  running_st: /home/bebergk/listeria_working_profiles.csv.gz
-  running_clustering: /home/bebergk/listeria_working_clustering.HierCC.gz

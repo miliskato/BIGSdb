@@ -56,19 +56,6 @@ class Mongoinitialisation:
         isolates_badqc_collection = self._open_mongo_collection(species_database, "isolates_badqc")
         return isolates_collection, isolateresults_collection, isolates_badqc_collection
 
-    def initialise_hiercc_collections(self, config_data: dict, species: str):
-        """
-        Initialises database and collections for interaction
-        :param config_data: config data to connect to Cloud Cluster
-        :param species: string that is the database name
-        :return: opened sequence_type and  for a given species
-        """
-        species_database = self._open_mongo_database(config_data, species)
-        st_collection = self._open_mongo_collection(species_database, "sequence_types")
-        hiercc_results_collection = self._open_mongo_collection(species_database, "hiercc_results")
-        distance_matrix_collection = self._open_mongo_collection(species_database, "distance_matrix")
-        return st_collection, hiercc_results_collection, distance_matrix_collection
-
     def initialise_hashing_collection(self, config_data: dict, species: str):
         species_database = self._open_mongo_database(config_data, species)
         hashed_AD_collection = self._open_mongo_collection(species_database, "new_allele_hashes")

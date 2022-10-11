@@ -46,14 +46,14 @@ if __name__ == '__main__':
 
     # Query the docs with hashes for this particular scheme
     documents_list = query_hashes_of_scheme(hashed_AD_collection, args.scheme)
-    logging.info(f"documents list: {documents_list}")
+    #logging.info(f"documents list: {documents_list}")
     if documents_list == []:
         pass
     else:
         locus_hash_dict = {}
         for hash_document in documents_list:
             if hash_document['locus'] in locus_hash_dict.keys():
-                locus_hash_dict[hash_document['locus']] = locus_hash_dict[hash_document['locus']].append(hash_document['hashed_allele'])
+                locus_hash_dict[hash_document['locus']].append(hash_document['hashed_allele'])
             else:
                 locus_hash_dict[hash_document['locus']] = [hash_document['hashed_allele']]
         for locus, hash_list in locus_hash_dict.items():
@@ -89,7 +89,7 @@ if __name__ == '__main__':
                             {"$set": {f"results.{args.scheme}.loci.$.Allele": allele_id}})
                         # todo think if old results collection should be updated aswell
                         isolateresults_collection.with_options(write_concern=WriteConcern(w="majority")).update_many(
-                            { f"results.{args.scheme}.loci":
+                            { f"{args.scheme}.loci":
                                   { "$elemMatch":
                                         { "Locus": locus, "Allele": hashed_allele } } },
                             {"$set": {f"{args.scheme}.loci.$.Allele": allele_id}})
@@ -97,6 +97,7 @@ if __name__ == '__main__':
                         hashed_AD_collection.with_options(write_concern=WriteConcern(w="majority")).update_one(
                             {"scheme": args.scheme, "resolved_AD": 0, "locus": locus},
                             {"$set": {"resolved_AD": allele_id}})
+                        # add allele id to hash document to not have to requery for bigsdb if bigs host
                         hash_document['resolved_AD'] = allele_id
         hostname = socket.gethostname()
         if 'bigs' in hostname:

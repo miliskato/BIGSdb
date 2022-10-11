@@ -19,7 +19,6 @@ import os
 from util.mongo_results import Mongoresults
 from util.mongo_querying import Mongoquerying
 from util.mongo_initialisation import Mongoinitialisation
-from util.mongo_hiercc_clustering import MongoHierCCClustering
 from config import MONGO_CONFIG
 
 def _send_email(subject: str, content: str, config: dict) -> None:
@@ -103,7 +102,6 @@ def prepend_string_dot_to_dict_keys(input_dictionary, prepending: str = 'results
 
 def find_hashes_in_results_and_add_to_collection(results: dict, mongoinit: object, config_data: dict, species: str):
     hashed_AD_collection = mongoinit.initialise_hashing_collection(config_data, species)
-    # todo add other typing schemes
     for typing_scheme in ['mlst', 'cgmlst']:
         if typing_scheme in results.keys():
             for allele_info in results[typing_scheme]['loci']:
@@ -170,17 +168,6 @@ if __name__ == '__main__':
                                                                       records))
                     logging.info(f"Wrote new isolate {args.technical_id} and its result to {args.species} database")
                     find_hashes_in_results_and_add_to_collection(records, mongoinit, config_data, args.species)
-                    # hiercc_input = mongoquerying._query_typing_results_by_technicalids_and_scheme(isolates_collection,
-                    #                                                                               scheme="cgmlst",
-                    #                                                                               technicalids=
-                    #                                                                               [args.technical_id])
-                    # #initialize an object to enter data in the HierCC collections and do the clustering
-                    # hiercc_clustering = MongoHierCCClustering(hiercc_input[0], hiercc_input[1], args.species)
-                    # logging.info(f"Running the clustering for the isolate {args.technical_id}")
-                    # sequence_type = hiercc_clustering.run_hiercc_clustering(st_collection, hiercc_results_collection,
-                    #                                                         distance_matrix_collection)
-                    # isolates_collection.with_options(write_concern=WriteConcern(w="majority")).update_one({"_id": records["isolates_id"]},
-                    #                                             {"$set": {"results.HierCC_cgST": sequence_type}})
                 else:
                     _write_document(isolates_badqc_collection, _new_isolate(args.technical_id, args.vcffilepath, args.fastafilepath,
                                                                       records))
@@ -225,8 +212,6 @@ if __name__ == '__main__':
                              "results.results_changed_since_last_version": False,
                              "latest_analysis_date": _return_YMD_from_YMDhms(new_results["results.analysis_date"])}})
                 logging.info(f"New results were not different from old results for {args.technical_id} in {args.species}, updated analysis dates and db versions.")
-
-            # todo recalculate HierCC_cgST
 
     except Exception as exceptionmessage:
         _send_email(f"{os.path.basename(__file__)}: mongo upload fail on host {socket.gethostname()}",
