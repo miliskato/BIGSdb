@@ -58,16 +58,15 @@ logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 #          1 | thrA  | 1          | 4         |       1 | 2022-03-03
 #
 
-def insert_profiles(scheme, indexdict, list_to_be_inserted):
+def insert_profiles(scheme, indexdict, profile_line_dict, list_to_be_inserted):
     # since we only need one db per scheme, it can stay open during the entire definition
     con = psycopg2.connect(database=f"{schemedict[scheme]['seqdefdb']}", user='apache', password='remote',
                            host='127.0.0.1', port='')
     con.autocommit = True
     cur = con.cursor()
-    #print(list_to_be_inserted)
+
     for profile in list_to_be_inserted:
         # first table (profiles):
-        print(schemedict[scheme]['schemename_bigsdb'])
         cur.execute(f"INSERT INTO profiles(scheme_id, "
                     f"profile_id, sender, curator, "
                     f"date_entered, datestamp) "
@@ -75,12 +74,10 @@ def insert_profiles(scheme, indexdict, list_to_be_inserted):
                     f"'{profile}', 1, 1, "
                     f"(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
         # second table (profile fields):
-        handle = open('/'.join([schemedict[scheme]['dirdb'], profile_file]), 'r').readlines()
         for field in schemedict[scheme]['fields']:
-            for line in handle[1:]:
-                line = line.replace('? ','').replace('Neisseria ', 'Neisseria_') # this is added because rflp profiles are malformatted
-                if " ".join(line.split()).split(' ')[0] == profile:
-                    fieldvalue = " ".join(line.split()).split(' ')[indexdict[field]]
+            line = profile_line_dict[profile]
+            line = line.replace('? ','').replace('Neisseria ', 'Neisseria_') # this is added because rflp profiles are malformatted
+            fieldvalue = " ".join(line.split()).split(' ')[indexdict[field]]
             cur.execute(f"INSERT INTO profile_fields(scheme_id, "
                         f"scheme_field, profile_id, value, "
                         f"curator, datestamp) "
@@ -92,33 +89,28 @@ def insert_profiles(scheme, indexdict, list_to_be_inserted):
         loci = next(os.walk(schemedict[scheme]['dirdb']))[1]
         for locus in loci:
             if not locus.startswith('.'): # to exclude hidden folders like .git
-                locusvalue = ''
                 if locus == "'rplF":
                     locus = 'rplF'
-                for line in handle[1:]:
-                    if " ".join(line.split()).split(' ')[0] == profile:
-                        locusvalue = " ".join(line.split()).split(' ')[indexdict[locus]]
-                        if locusvalue == '0': # this will create a ForeignKeyViolation error so we prevent this by inserting a null allele if not yet present
-                            cur.execute(f"SELECT count(*) FROM sequences WHERE "
-                                        f"locus = '{locus}' AND sequence = 'null allele'")
-                            nullpresent = cur.fetchall()
-                            if nullpresent[0][0] == 0:
-                                cur.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status, sender,curator, date_entered, datestamp) \
-                                              VALUES('{locus}',0, 'null allele', '',0,0,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
-                        # print(profile)
-                        # print(" ".join(line.split()).split(' '))
-                        # print(indexdict[locus])
-                        # print(locusvalue)
-                        try:
-                            cur.execute(f"INSERT INTO profile_members(scheme_id, "
-                                        f"locus, profile_id, allele_id, "
-                                        f"curator, datestamp) "
-                                        f"VALUES((SELECT id FROM schemes WHERE name = '{schemedict[scheme]['schemename_bigsdb']}'),"
-                                        f"'{locus}', '{profile}', '{locusvalue}', "
-                                        f"1,(SELECT CURRENT_DATE))")
-                        except:
-                            logging.error(f"profile with field {field} and value {fieldvalue.replace('_',' ')} already exists as another field, either remove the entire scheme profiles or find out what the exact problem is and solve this script once and for all with delete where select profile_id where locus1 and alleleid1 intersect select ... (e.g. select profile_id from profile_members where (locus='abcZ' and allele_id='1') INTERSECT select profile_id from profile_members where (locus='bglA' and allele_id='1') INTERSECT select profile_id from profile_members where (locus='cat' and allele_id='1'))")
-                            continue
+                line = profile_line_dict[profile]
+                locusvalue = " ".join(line.split()).split(' ')[indexdict[locus]]
+                if locusvalue == '0': # this will create a ForeignKeyViolation error so we prevent this by inserting a null allele if not yet present
+                    cur.execute(f"SELECT count(*) FROM sequences WHERE "
+                                f"locus = '{locus}' AND sequence = 'null allele'")
+                    nullpresent = cur.fetchall()
+                    if nullpresent[0][0] == 0:
+                        cur.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status, sender,curator, date_entered, datestamp) \
+                                      VALUES('{locus}',0, 'null allele', '',0,0,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+
+                try:
+                    cur.execute(f"INSERT INTO profile_members(scheme_id, "
+                                f"locus, profile_id, allele_id, "
+                                f"curator, datestamp) "
+                                f"VALUES((SELECT id FROM schemes WHERE name = '{schemedict[scheme]['schemename_bigsdb']}'),"
+                                f"'{locus}', '{profile}', '{locusvalue}', "
+                                f"1,(SELECT CURRENT_DATE))")
+                except:
+                    logging.error(f"profile with field {field} and value {fieldvalue.replace('_',' ')} already exists as another field, either remove the entire scheme profiles or find out what the exact problem is and solve this script once and for all with delete where select profile_id where locus1 and alleleid1 intersect select ... (e.g. select profile_id from profile_members where (locus='abcZ' and allele_id='1') INTERSECT select profile_id from profile_members where (locus='bglA' and allele_id='1') INTERSECT select profile_id from profile_members where (locus='cat' and allele_id='1'))")
+                    continue
     con.close()
 
 def insert_all_profiles():
@@ -136,6 +128,9 @@ def insert_all_profiles():
             indexdict[item] = x
             x += 1
         print(indexdict.items())
+        profile_line_dict = {}
+        for line in handle[1:]:
+            profile_line_dict[" ".join(line.split()).split(' ')[0]] = line
 
         #check whether fields[0] is max or not, if not then all value above max will be inserted in all three tables
         con = psycopg2.connect(database=f"{schemedict[scheme]['seqdefdb']}", user="apache", password="remote",
@@ -150,7 +145,7 @@ def insert_all_profiles():
             # table is empty, so all need to be inserted
             for line in handle[1:]:
                 list_to_be_inserted.append(" ".join(line.split()).split(' ')[0])
-            insert_profiles(scheme, indexdict, list_to_be_inserted)
+            insert_profiles(scheme, indexdict, profile_line_dict, list_to_be_inserted)
         elif max_primary_field[0][0] == " ".join(handle[-1].split()).split(' ')[0]:
             # table is up to date
             continue
@@ -161,7 +156,7 @@ def insert_all_profiles():
                     list_to_be_inserted.append(" ".join(line.split()).split(' ')[0])
                 else:
                     continue
-            insert_profiles(scheme, indexdict, list_to_be_inserted)
+            insert_profiles(scheme, indexdict, profile_line_dict, list_to_be_inserted)
 
 def send_email(subject: str, content: str, config: dict) -> None:
     """
