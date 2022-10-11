@@ -1,6 +1,6 @@
 class JsonSuperClass:
     """
-    Class containing definition to insert typing results
+    Class containing definitions to insert json typing and gene detection results
     """
     def __init__(self, isolatename, species, cur_isolates, cur_seqdef, sample_output_dict):
         self.isolatename = isolatename

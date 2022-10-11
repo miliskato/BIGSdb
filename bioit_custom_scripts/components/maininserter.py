@@ -7,7 +7,7 @@ from .json_superclass import JsonSuperClass
 
 class MainInserter(JsonSuperClass):
     """
-    Class containing all queries for Mongo
+    Class containing defintions used to insert metadata results for both json and tsv input
     """
 
     def __init__(self, isolatename, species, cur_isolates, cur_seqdef, sample_output_dict):

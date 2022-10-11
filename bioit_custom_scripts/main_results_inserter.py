@@ -52,16 +52,31 @@ def _send_email(subject: str, content: str, config: dict) -> None:
     logging.info(content)
 
 def __make_flagfilepath(isolatename: str, config: dict):
+    """
+    Returns the flag file path
+    :param isolatename: part of flagname
+    :param config: config containing the failsafe settings
+    :return: flag file path
+    """
     return Path(config['failsafe']['flag_dir']) / '.'.join([isolatename, config['failsafe']['flag_append']])
 
-def _fail_safe_mechanism(isolatename: str, species: str, config: dict, analysis_date: str):
+def _fail_safe_mechanism(isolatename: str, config: dict, analysis_date: str, cur_isolates):
+    """
+    Creates a flagfile if insertion is started and no flagfile is present.
+    else insertion is started and flag file is present: remove highest version of sample and
+     reinsert if multiple versions, if only one version, sample is reinserted in the main workflow below
+    :param isolatename:
+    :param species:
+    :param config: config containing the failsafe settings
+    :param analysis_date: analysis date needed to insert new isolate version
+    :return: flag file present
+    """
     try:
         if not os.path.isdir(Path(config['failsafe']['flag_dir'])):
             os.makedirs(Path(config['failsafe']['flag_dir']), exist_ok=True)
         flagfilepath = __make_flagfilepath(isolatename, config)
         if os.path.isfile(flagfilepath):
             logging.warning(f"fail safe mechanism detects that the bigsdb insertion for sample {isolatename} was started but didnt finish. Removing {isolatename} from Bigsdb to be able to restart inserting.")
-            cur_isolates, cur_seqdef = Database_connection().open_database_connections(species)
             cur_isolates.execute(f"SELECT COUNT(*) FROM isolates WHERE isolate='{isolatename}'")
             nr_of_versions = cur_isolates.fetchall()[0][0]
             cur_isolates.execute(f"DELETE FROM isolates WHERE isolate='{isolatename}' AND id=(SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}') ")
@@ -84,6 +99,11 @@ def _fail_safe_mechanism(isolatename: str, species: str, config: dict, analysis_
         _send_email(f"bigsdb upload fail safe mechanism fail on host {socket.gethostname()}", f"{exceptionmessage}\n{traceback.format_exc()}", config['mail'])
 
 def _delete_flagfile(isolatename: str, config: dict):
+    """
+    :param isolatename:
+    :param config: config containing the failsafe settings
+    :return: Removes flagfile
+    """
     flagfilepath = __make_flagfilepath(isolatename, config)
     try:
         os.remove(flagfilepath)
@@ -120,8 +140,9 @@ if __name__ == '__main__':
     cur_isolates, cur_seqdef = Database_connection().open_database_connections(args.species)
     # Logic
     try:
+        # fail safe mechanism is initated at the same time of the isolate insertion, but after connecting to the PSQL db's
         maininserter = MainInserter(args.isolatename, args.species, cur_isolates, cur_seqdef, sample_output_dict)
-        _fail_safe_mechanism(args.isolatename, args.species, config_data, sample_output_dict['analysis_date'])
+        _fail_safe_mechanism(args.isolatename, config_data, sample_output_dict['analysis_date'], cur_isolates)
         if args.results_type == 'new_isolate':
             maininserter.insert_new_isolate(args.uploadermailadress)
         elif args.results_type == 'reanalysis':
