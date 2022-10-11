@@ -5,7 +5,7 @@ from .json_superclass import JsonSuperClass
 
 class JsonTypingResultsInserter(JsonSuperClass):
     """
-    Class containing definition to insert typing results
+    Class containing definitions to insert typing results from json input
     """
 
     def __init__(self, isolatename, species, cur_isolates, cur_seqdef, sample_output_dict):

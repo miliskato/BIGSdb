@@ -2,7 +2,7 @@ import psycopg2
 
 class Database_connection:
     """
-    Class containing all queries for Mongo
+    Class containing defintion to open database connection
     """
 
     def __init__(self):

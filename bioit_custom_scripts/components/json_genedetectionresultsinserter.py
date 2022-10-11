@@ -6,7 +6,7 @@ from .json_superclass import JsonSuperClass
 
 class JsonGeneDetectionResultsInserter(JsonSuperClass):
     """
-    Class containing definition to insert gene detection results
+    Class containing definitions to insert gene detection results from json input
     """
 
     def __init__(self, isolatename, species, cur_isolates, cur_seqdef, sample_output_dict):

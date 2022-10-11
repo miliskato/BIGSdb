@@ -4,7 +4,7 @@ import logging
 
 class TsvGeneDetectionResultsInserter:
     """
-    Class containing all queries for Mongo
+    Class containing definitions to insert gene detection results from tsv input
     """
 
     def __init__(self):

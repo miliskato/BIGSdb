@@ -7,7 +7,7 @@ import logging
 
 class TsvTypingResultsInserter:
     """
-    Class containing all queries for Mongo
+    Class containing definitions to insert typing results from tsv input
     """
 
     def __init__(self):
