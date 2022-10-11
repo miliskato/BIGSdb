@@ -12,7 +12,7 @@ class Database_connection:
         """
         Connects to the species specific databases
         :param species:
-        :return: opened connection to isolate and seqdef db
+        :return: opened connection to isolate and seqdef db (objects)
         """
         def connection(species, db_type):
             con = psycopg2.connect(database=f"bigsdb_{species}_{db_type}", user="apache", password="remote",

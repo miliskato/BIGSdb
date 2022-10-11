@@ -9,9 +9,22 @@ class JsonTypingResultsInserter(JsonSuperClass):
     """
 
     def __init__(self, isolatename, species, cur_isolates, cur_seqdef, sample_output_dict):
+        """
+        
+        :param isolatename: 
+        :param species: 
+        :param cur_isolates: isolate database connection object
+        :param cur_seqdef: sequence definition database connection object
+        :param sample_output_dict: results of sample
+        """
         JsonSuperClass.__init__(self, isolatename, species, cur_isolates, cur_seqdef, sample_output_dict)
 
-    def insert_typing_results(self, schemedict):
+    def insert_typing_results(self, schemedict) -> None:
+        """
+        Inserts typing results into bigsdb from json
+        :param schemedict: dictionary of species specific schemes and their properties (found in config)
+        :return: 
+        """
         Locuslist = []
         # Locuslist serves as to not insert duplicates (creates error in sql),
         # for Listeria e.g. prs and prfA are included in two schemes
@@ -189,14 +202,14 @@ class JsonTypingResultsInserter(JsonSuperClass):
                             if scheme == 'sistr':
                                 serotypingInsert = self.sample_output_dict[scheme]['serotype_antigenic_formula']
                                 if serotypingInsert != '-':
-                                    self.salmonella_insert_antigens_into_db(serotypingInsert, scheme)
+                                    self._salmonella_insert_antigens_into_db(serotypingInsert, scheme)
                                     self._insert_metadata(f'{scheme}_formula', serotypingInsert)
                                 serotypingInsert = self.sample_output_dict[scheme]['serotype_concensus']
                                 if serotypingInsert != '-':
                                     self._insert_metadata(f'{scheme}_serotype', serotypingInsert)
                             else:
                                 serotypingInsert = self.sample_output_dict[scheme][f'{scheme}_Predicted_antigenic_profile']
-                                self.salmonella_insert_antigens_into_db(serotypingInsert, scheme)
+                                self._salmonella_insert_antigens_into_db(serotypingInsert, scheme)
                                 if serotypingInsert != '-:-:-':
                                     self._insert_metadata(f'{scheme}_formula', serotypingInsert)
                                 serotypingInsert = self.sample_output_dict[scheme][f'{scheme}_Predicted_serotype']
@@ -222,7 +235,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
                                   f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{self.isolatename}'),(SELECT NOW()::TIMESTAMP), 'Typing results inserted', 1)")
         logging.info('Typing results insertion succesful')
 
-    def salmonella_insert_antigens_into_db(self, rawFormula, scheme):
+    def _salmonella_insert_antigens_into_db(self, rawFormula, scheme):
         antigensdict = {"O_antigen": rawFormula.split(':')[0].split(','),
                         "H1_antigen": rawFormula.split(':')[1].split(','),
                         "H2_antigen": rawFormula.split(':')[2].split(',')}

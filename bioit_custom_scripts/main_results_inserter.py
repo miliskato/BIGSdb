@@ -60,15 +60,15 @@ def __make_flagfilepath(isolatename: str, config: dict):
     """
     return Path(config['failsafe']['flag_dir']) / '.'.join([isolatename, config['failsafe']['flag_append']])
 
-def _fail_safe_mechanism(isolatename: str, config: dict, analysis_date: str, cur_isolates):
+def _fail_safe_mechanism(isolatename: str, config: dict, analysis_date: str, cur_isolates: object):
     """
     Creates a flagfile if insertion is started and no flagfile is present.
     else insertion is started and flag file is present: remove highest version of sample and
      reinsert if multiple versions, if only one version, sample is reinserted in the main workflow below
     :param isolatename:
-    :param species:
     :param config: config containing the failsafe settings
     :param analysis_date: analysis date needed to insert new isolate version
+    :param cur_isolates: isolate database connection object
     :return: flag file present
     """
     try:

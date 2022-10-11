@@ -11,6 +11,14 @@ class MainInserter(JsonSuperClass):
     """
 
     def __init__(self, isolatename, species, cur_isolates, cur_seqdef, sample_output_dict):
+        """
+
+        :param isolatename:
+        :param species:
+        :param cur_isolates: isolate database connection object
+        :param cur_seqdef: sequence definition database connection object
+        :param sample_output_dict: results of sample
+        """
         JsonSuperClass.__init__(self, isolatename, species, cur_isolates, cur_seqdef, sample_output_dict)
     
     def insert_new_isolate(self, uploadermailadress):
