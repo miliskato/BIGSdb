@@ -10,7 +10,17 @@ class TsvGeneDetectionResultsInserter:
     def __init__(self):
         pass
 
-    def insert_genedetection_results(self, isolatename, species, genedetectiondict, sample_output_dict, cur_isolates, cur_seqdef):
+    def insert_genedetection_results(self, isolatename, species, genedetectiondict, sample_output_dict, cur_isolates, cur_seqdef) -> None:
+        """
+        Inserts genedetection results into bigsdb from tsv
+        :param isolatename:
+        :param species:
+        :param genedetectiondict: dictionary of species specific schemes and their properties (found in config)
+        :param sample_output_dict: results of sample
+        :param cur_isolates: isolate database connection object
+        :param cur_seqdef: sequence definition database connection object
+        :return:
+        """
         if genedetectiondict is not None:
             for scheme in genedetectiondict:
                 # first create a cluster content list

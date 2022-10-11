@@ -10,9 +10,21 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
     """
 
     def __init__(self, isolatename, species, cur_isolates, cur_seqdef, sample_output_dict):
+        """
+        :param isolatename:
+        :param species:
+        :param cur_isolates: isolate database connection object
+        :param cur_seqdef: sequence definition database connection object
+        :param sample_output_dict: results of sample
+        """
         JsonSuperClass.__init__(self, isolatename, species, cur_isolates, cur_seqdef, sample_output_dict)
 
-    def insert_genedetection_results(self, genedetectiondict):
+    def insert_genedetection_results(self, genedetectiondict) -> None:
+        """
+        Inserts genedetection results into bigsdb from json
+        :param genedetectiondict: dictionary of species specific schemes and their properties (found in config)
+        :return:
+        """
         if genedetectiondict is not None:
             for scheme in genedetectiondict:
                 if scheme in self.sample_output_dict.keys():
@@ -90,6 +102,12 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
             logging.info('Gene detection insertion succesful')
 
     def _create_clusterdict_current_db_version(self, scheme, genedetectiondict):
+        """
+        Clusters change over time, to be able to link old clusters to new ones, a dictionary is created with the accesion name and allele name
+        :param scheme: gene detection scheme
+        :param genedetectiondict: dictionary of species specific schemes and their properties (found in config)
+        :return:
+        """
         # first create a cluster content list
         sequencefile = json.load(open(Path(genedetectiondict[scheme]['metadatafile']), 'r'))
         sequencenamedict = {}

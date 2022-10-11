@@ -13,7 +13,18 @@ class TsvTypingResultsInserter:
     def __init__(self):
         pass
 
-    def insert_typing_results(self, isolatename, species, schemedict, sample_output_dict, cur_isolates, cur_seqdef):
+    def insert_typing_results(self, isolatename, species, schemedict, sample_output_dict, cur_isolates, cur_seqdef) -> None:
+        """
+        Inserts typing results into bigsdb from tsv
+        :param isolatename:
+        :param species:
+        :param schemedict: dictionary of species specific schemes and their properties (found in config)
+        :param sample_output_dict: results of sample
+        :param cur_isolates: isolate database connection object
+        :param cur_seqdef: sequence definition database connection object
+        :return:
+        """
+
         dirlist = []
         # dirlist serves as to not insert duplicates (creates error in sql),
         # for Listeria e.g. prs and prfA are included in two schemes
