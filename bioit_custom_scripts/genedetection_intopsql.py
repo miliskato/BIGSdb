@@ -148,43 +148,43 @@ def gene_detection_insertion_recalcultation():
             # line looks like this: >0__Cluster_0__seq_4648__seq_4648
             if line.startswith('>'):
                 clusterlist.append('_'.join([schemedict[scheme]['schemename_bigsdb'], ''.join(['Gene', line.split('__')[1]])]))
-        # for cluster in clusterlist:
-        #     con = psycopg2.connect(database=f"{schemedict[scheme]['seqdefdb']}", user="apache", password="remote",
-        #                            host="127.0.0.1", port="")
-        #     cur = con.cursor()
-        #     con.autocommit = True
-        #     cur.execute(f"SELECT count(*) FROM loci WHERE id='{cluster}'")
-        #     present = cur.fetchall()
-        #     if present[0][0] == 0:
-        #         cur.execute(f"INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, curator, date_entered, datestamp) \
-        #                           VALUES('{cluster}','DNA','text', 't', 't', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE))")
-        #         cur.execute(f"INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) \
-        #                           VALUES((SELECT id FROM schemes WHERE name='{schemedict[scheme]['schemename_bigsdb']}'), '{cluster}', 1, (SELECT CURRENT_DATE))")
-        #         cur.execute(f"INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) \
-        #                           VALUES(1, '{cluster}', 1, (SELECT CURRENT_DATE))")
-        #         cur.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status,sender,curator, date_entered, datestamp) \
-        #                       VALUES('{cluster}',1,'TAG','unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
-        #         cur.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status, sender,curator, date_entered, datestamp) \
-        #                       VALUES('{cluster}',0, 'null allele', '',0,0,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
-        #         con.close()
-        #         con = psycopg2.connect(database=f"{schemedict[scheme]['isolatedb']}", user="apache", password="remote",
-        #                                host="127.0.0.1", port="")
-        #         cur = con.cursor()
-        #         con.autocommit = True
-        #         dbaseurl = ''.join(
-        #             ['/cgi-bin/bigsdb/bigsdb.pl?db=', f"{schemedict[scheme]['seqdefdb']}", '&page=alleleInfo&locus=', f"{cluster}", '&allele_id=[?]'])
-        #         cur.execute(
-        #             f"INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, dbase_name, dbase_id, "
-        #             f"url, isolate_display, main_display, query_field, analysis, submission_template, "
-        #             f"curator, date_entered, datestamp) \
-        #                           VALUES('{cluster}','DNA','text', 't', 't', '{schemedict[scheme]['seqdefdb']}', '{cluster}', "
-        #             f"'{dbaseurl}', 'allele_only', 'f', 't', 't', 'f',"
-        #             f" 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE))")
-        #         cur.execute(f"INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) \
-        #                           VALUES((SELECT id FROM schemes WHERE name='{schemedict[scheme]['schemename_bigsdb']}'), '{cluster}', 1, (SELECT CURRENT_DATE))")
-        #         con.close()
-        #     else:
-        #         continue
+        for cluster in clusterlist:
+            con = psycopg2.connect(database=f"{schemedict[scheme]['seqdefdb']}", user="apache", password="remote",
+                                   host="127.0.0.1", port="")
+            cur = con.cursor()
+            con.autocommit = True
+            cur.execute(f"SELECT count(*) FROM loci WHERE id='{cluster}'")
+            present = cur.fetchall()
+            if present[0][0] == 0:
+                cur.execute(f"INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, curator, date_entered, datestamp) \
+                                  VALUES('{cluster}','DNA','text', 't', 't', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE))")
+                cur.execute(f"INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) \
+                                  VALUES((SELECT id FROM schemes WHERE name='{schemedict[scheme]['schemename_bigsdb']}'), '{cluster}', 1, (SELECT CURRENT_DATE))")
+                cur.execute(f"INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) \
+                                  VALUES(1, '{cluster}', 1, (SELECT CURRENT_DATE))")
+                cur.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status,sender,curator, date_entered, datestamp) \
+                              VALUES('{cluster}',1,'TAG','unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                cur.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status, sender,curator, date_entered, datestamp) \
+                              VALUES('{cluster}',0, 'null allele', '',0,0,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                con.close()
+                con = psycopg2.connect(database=f"{schemedict[scheme]['isolatedb']}", user="apache", password="remote",
+                                       host="127.0.0.1", port="")
+                cur = con.cursor()
+                con.autocommit = True
+                dbaseurl = ''.join(
+                    ['/cgi-bin/bigsdb/bigsdb.pl?db=', f"{schemedict[scheme]['seqdefdb']}", '&page=alleleInfo&locus=', f"{cluster}", '&allele_id=[?]'])
+                cur.execute(
+                    f"INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, dbase_name, dbase_id, "
+                    f"url, isolate_display, main_display, query_field, analysis, submission_template, "
+                    f"curator, date_entered, datestamp) \
+                                  VALUES('{cluster}','DNA','text', 't', 't', '{schemedict[scheme]['seqdefdb']}', '{cluster}', "
+                    f"'{dbaseurl}', 'allele_only', 'f', 't', 't', 'f',"
+                    f" 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE))")
+                cur.execute(f"INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) \
+                                  VALUES((SELECT id FROM schemes WHERE name='{schemedict[scheme]['schemename_bigsdb']}'), '{cluster}', 1, (SELECT CURRENT_DATE))")
+                con.close()
+            else:
+                continue
 
         #Part 2 removing and updating all allele designations (clusters) for all isolates containing data for that gene detection cluster.
 
