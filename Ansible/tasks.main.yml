@@ -11,11 +11,11 @@
     dest: "{{ bioit_bigs_home }}"
     version: "master"
 
-- name: Get updated files from git repository
-  git:
-    repo: "https://bioit_ro:{{ secret_bioit_git_ro_password }}@git.sciensano.be/bioit/camel_3.0.git"
-    dest: "{{ bioit_bigs_home }}/automated-reanalysis"
-    version: "bb-re_analysis"
+#- name: Get updated files from git repository
+#  git:
+#    repo: "https://bioit_ro:{{ secret_bioit_git_ro_password }}@git.sciensano.be/bioit/camel_3.0.git"
+#    dest: "{{ bioit_bigs_home }}/automated-reanalysis"
+#    version: "bb-re_analysis"
 
 # bij host_vars staat postgresql user wachtwoord https://bioit.sciensano.be/wiki/ansible-vault: postgresql_postgres_user_password: "olqYDY3f8RPHwOjlr4hH"
 # /etc/ansible/group_vars/bioit$ cat git.yml
@@ -142,8 +142,8 @@
       - { src: bioit_etc.bigsdb.dbases/, dest: /etc/bigsdb/dbases }
       - { src: headers/, dest: /var/www/html/ }
       - { src: bioit_website_varwwwhtml/, dest: /var/www/html/ }
-      - { src: automated-reanalysis/camel/config/main.yml.sample, dest: "{{ bioit_bigs_home }}/automated-reanalysis/camel/config/main.yml" }
-      - { src: automated-reanalysis/camel/scripts/reanalysis/config.yml.sample, dest: "{{ bioit_bigs_home }}/automated-reanalysis/camel/scripts/reanalysis/config.yml" }
+#      - { src: automated-reanalysis/camel/config/main.yml.sample, dest: "{{ bioit_bigs_home }}/automated-reanalysis/camel/config/main.yml" }
+#      - { src: automated-reanalysis/camel/scripts/reanalysis/config.yml.sample, dest: "{{ bioit_bigs_home }}/automated-reanalysis/camel/scripts/reanalysis/config.yml" }
 
 - name: setup core db's 1
   block:
