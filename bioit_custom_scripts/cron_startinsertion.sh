@@ -22,7 +22,7 @@ do
   {
     /home/BIGSdb/3.9PythonVenv/bin/python3.9 /home/BIGSdb/bioit_custom_scripts/reportmover.py --reportdirectory $dir --species $species
     /home/BIGSdb/3.9PythonVenv/bin/python3.9 /home/BIGSdb/bioit_custom_scripts/htmltagger.py --htmlfilepath /reports/$species/$sample_name/report.html --species $species
-    /home/BIGSdb/3.9PythonVenv/bin/python3.9 /home/BIGSdb/bioit_custom_scripts/main_results_inserter.py --tsvfilepath /reports/$species/$sample_name/report.tsv --isolatename $sample_name --uploadermailadress $uploader --species $species
+    /home/BIGSdb/3.9PythonVenv/bin/python3.9 /home/BIGSdb/bioit_custom_scripts/main_results_inserter.py --tsvfilepath /reports/$species/$sample_name/report.tsv --isolatename $sample_name --uploadermailadress $uploader --species $species --results_type new_isolate
     /home/BIGSdb/3.9PythonVenv/bin/python3.9 /home/BIGSdb/bioit_custom_scripts/insert_assemblies.py --fastafilepath /reports/$species/$sample_name/assembly/${sample_name}_contigs.fasta --isolatename $sample_name --species $species
 ##    /home/BIGSdb/3.9PythonVenv/bin/python3.9 /home/BIGSdb/bioit_custom_scripts/cgmlst_similar_isolates.py --isolatename $sample_name --species $species
   } 2>&1 | tee /home/galaxy/$sample_name.bigsdb_insertion.log
