@@ -63,6 +63,7 @@ use BIGSdb::CurateTableHeaderPage;
 use BIGSdb::CurateTagScanPage;
 use BIGSdb::CurateTagUpdatePage;
 use BIGSdb::CurateUpdatePage;
+use BIGSdb::DashboardPage;
 use BIGSdb::IDList;
 use BIGSdb::LocusInfoPage;
 use BIGSdb::JobViewerPage;
@@ -105,6 +106,7 @@ sub print_page {
 		configCheck           => 'ConfigCheckPage',
 		configRepair          => 'ConfigRepairPage',
 		curatorPermissions    => 'CuratePermissionsPage',
+		dashboard             => 'DashboardPage',
 		databankScan          => 'CurateDatabankScanPage',
 		delete                => 'CurateDeletePage',
 		deleteAll             => 'CurateDeleteAllPage',
@@ -234,6 +236,17 @@ sub print_page {
 		  || $self->{'system'}->{'disable_update_message'};
 		$page_attributes{'fatal'} = $self->{'fatal'};
 		$page = BIGSdb::ErrorPage->new(%page_attributes);
+		$page->print_page_content;
+		return;
+	}
+	if ( $self->{'page'} eq 'options'
+		&& ( $self->{'cgi'}->param('set') || $self->{'cgi'}->param('reset') ) )
+	{
+		$page = BIGSdb::OptionsPage->new(%page_attributes);
+		$page->initiate_prefs;
+		$page->set_options;
+		$self->{'page'} = 'index';
+		$self->{'cgi'}->param( page => 'index' );    #stop prefs initiating twice
 		$page->print_page_content;
 		return;
 	}

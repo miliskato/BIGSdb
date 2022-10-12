@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 #Script to cluster cgMLST profiles using classification groups
 #Written by Keith Jolley
-#Copyright (c) 2016-2020, University of Oxford
+#Copyright (c) 2016-2022, University of Oxford
 #E-mail: keith.jolley@zoo.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
@@ -19,7 +19,7 @@
 #You should have received a copy of the GNU General Public License
 #along with BIGSdb.  If not, see <http://www.gnu.org/licenses/>.
 #
-#Version: 20201120
+#Version: 20220913
 use strict;
 use warnings;
 use 5.010;
@@ -105,14 +105,30 @@ sub perform_sanity_checks {
 }
 
 sub main {
+	my $EXIT = 0;
+	local @SIG{qw (INT TERM HUP)} = ( sub { $EXIT = 1 } ) x 3;    #Mark job as finished on kill signals
 	my $profiles    = get_ungrouped_profiles();
 	my $cg_info     = get_cscheme_info();
 	my $scheme_info = $script->{'datastore'}->get_scheme_info( $cg_info->{'scheme_id'}, { get_pk => 1 } );
 	$script->{'pk'} = $scheme_info->{'primary_key'};
 	$script->{'grouped_profiles'} = { map { $_ => 1 } @{ get_grouped_profiles() } };
   ITERATION: while (1) {
+		my $i = 0;
 	  PROFILE: foreach my $profile_id (@$profiles) {
-			next PROFILE if $script->{'grouped_profiles'}->{$profile_id};
+			$i++;
+			next PROFILE   if $script->{'grouped_profiles'}->{$profile_id};
+			last ITERATION if $EXIT;
+			my $complete = int( $i * 100 / @$profiles );
+			$script->update_job(
+				$job_id,
+				{
+					temp_init => 1,
+					status    => {
+						stage            => "Processing $script->{'pk'}-$profile_id",
+						percent_complete => $complete
+					}
+				}
+			);
 			my $pg_method =
 			  $cg_info->{'use_relative_threshold'}
 			  ? 'matching_profiles_with_relative_threshold_cg'
@@ -124,6 +140,7 @@ sub main {
 				{ fetch => 'col_arrayref', cache => 'matching_profiles' }
 			);
 			if (@$possible_groups) {
+
 				if ( @$possible_groups == 1 ) {
 					add_profile_to_group( $possible_groups->[0], $profile_id );
 					next ITERATION;
@@ -293,16 +310,19 @@ sub remove_lock_file {
 sub check_if_script_already_running {
 	my $lock_file = get_lock_file();
 	if ( -e $lock_file ) {
-		open( my $fh, '<', $lock_file ) || $script->{'logger'}->error("Cannot open lock file $lock_file for reading");
+		open( my $fh, '<', $lock_file )
+		  || $script->{'logger'}->error("Cannot open lock file $lock_file for reading");
 		my $pid = <$fh>;
 		close $fh;
 		my $pid_exists = kill( 0, $pid );
 		if ( !$pid_exists ) {
-			say 'Lock file exists but process is no longer running - deleting lock.';
+			say 'Lock file exists but process is no longer running - deleting lock.'
+			  if !$opts{'quiet'};
 			unlink $lock_file;
 		} else {
 			undef $script;
-			die "Script already running with these parameters - terminating.\n";
+			say 'Script already running with these parameters - terminating.' if !$opts{'quiet'};
+			exit(1);
 		}
 	}
 	open( my $fh, '>', $lock_file ) || $script->{'logger'}->error("Cannot open lock file $lock_file for writing");

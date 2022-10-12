@@ -2,7 +2,7 @@ species:
     listeria:
         lmod: camel_listeria/json
         main_script: mainlisteriapipeline.py
-        options: ['--species-confirmation', '--mlst', '--resfinder', '--ncbi-amr', '--virulencefinder', '--vfdb-core', '--plasmidfinder', '--typing-amr', '--cgmlst', '--metal', '--pcr-serogroup', '--typing-virulence']
+        options: ['--species-confirmation', '--mlst', '--resfinder', '--ncbi-amr', '--virulencefinder', '--vfdb-core', '--plasmidfinder', '--typing-amr', '--cgmlst', '--metal-detergent', '--pcr-serogroup', '--typing-virulence']
 #    mycobacterium:
 #        lmod: camel_mycobacterium_fasta/1.1
 #        main_script: mainmycobacteriumpipeline.py
@@ -23,8 +23,12 @@ species:
 
 mail:
     from: bioit-dev1@wiv-isp.be
-    to: michael.kelchtermans@sciensano.be
+    to: michael.kelchtermans@sciensano.be, benoit.bergkpinto@sciensano.be
     host: smtp.wiv-isp.be
 
 temp_dir: /scratch/temp
 threads_per_job: 2
+
+failsafe:
+  flag_dir: /scratch/temp/flags
+  flag_append: reanalysis_start_flag

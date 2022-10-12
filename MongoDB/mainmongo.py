@@ -6,17 +6,36 @@ import yaml
 import argparse
 from pathlib import Path
 import logging
-from datetime import datetime
+import datetime
 import sys
 import re
 import json
+import smtplib
+from email.message import EmailMessage
+import socket
+import traceback
+import os
 
 from util.mongo_results import Mongoresults
 from util.mongo_querying import Mongoquerying
 from util.mongo_initialisation import Mongoinitialisation
-from util.mongo_hiercc_clustering import MongoHierCCClustering
 from config import MONGO_CONFIG
 
+def _send_email(subject: str, content: str, config: dict) -> None:
+    """
+    Sends an email.
+    :param subject: Mail subject
+    :param content: Content of the message
+    :return: None
+    """
+    message = EmailMessage()
+    message['Subject'] = subject
+    message['From'] = config['from']
+    message['To'] = config['to']
+    message.set_content(content)
+    with smtplib.SMTP(config['host']) as s:
+        s.send_message(message)
+    logging.info(content)
 
 def _parse_arguments() -> argparse.Namespace:
     """
@@ -51,12 +70,13 @@ def _new_isolate(technical_id: str, vcffilepath: str, fastafilepath: str,
     :param results:
     :return:
     """
+    results["results_version"] = 1
     new_isolate_dict = {"_id": technical_id,
                         "vcf_path": vcffilepath,
                         "fasta_path": fastafilepath,
                         "previous_latest_results_version": "", #_write_document(isolateresults_collection, results)
-                        "creation_date": datetime.utcnow(),
-                        "latest_analysis_date": results["analysis_date"],
+                        "creation_date": datetime.datetime.utcnow(),
+                        "latest_analysis_date": _return_YMD_from_YMDhms(results["analysis_date"]),
                         "results": results}
     return new_isolate_dict
 
@@ -95,7 +115,6 @@ def find_allele_number_new_entry(hashed_AD_collection):
 
 def find_hashes_in_results_and_add_to_collection(results: dict, mongoinit: object, config_data: dict, species: str):
     hashed_AD_collection = mongoinit.initialise_hashing_collection(config_data, species)
-    # todo add other typing schemes
     for typing_scheme in ['mlst', 'cgmlst']:
         if typing_scheme in results.keys():
             for allele_info in results[typing_scheme]['loci']:
@@ -107,19 +126,15 @@ def find_hashes_in_results_and_add_to_collection(results: dict, mongoinit: objec
                                                                "locus": allele_info['Locus'],
                                                                "hashed_allele": allele_info['Allele'],
                                                                "encountered_count": 1,
-                                                               "resolved_AD": 0,
-                                                               "allele_number": find_allele_number_new_entry(hashed_AD_collection)
+                                                               "resolved_AD": 0
                                                                })
                     else:
                         hashed_AD_collection.with_options(write_concern=WriteConcern(w="majority")).update_one({"_id": existing_document['_id']},
                                                                                                                {"$inc": {"encountered_count": 1}})
                         logging.info(f"hashed allele '{allele_info['Allele']}' encounter incremented by one")
 
-def parse_date_to_iso(str_date: str):
-    split_date = re.split('/|-|:', str_date.replace(' ', ''))
-    split_date = [int(i) for i in split_date]
-    new_date = datetime(split_date[2], split_date[1], split_date[0], split_date[3], split_date[4], split_date[5])
-    return new_date
+def _return_YMD_from_YMDhms(datetimestring: str):
+    return datetime.datetime.strptime(datetimestring, '%d/%m/%Y - %X').strftime('%Y-%m-%d')
 
 if __name__ == '__main__':
     # Parse arguments
@@ -129,36 +144,35 @@ if __name__ == '__main__':
     with open(MONGO_CONFIG, encoding='utf-8') as handle:
         config_data = yaml.safe_load(handle)
 
-    # Configure stdout logging
-    logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
+    try:
+        # Configure stdout logging
+        logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
-    # Open collections
-    mongoinit = Mongoinitialisation()
-    isolates_collection, isolateresults_collection, isolates_badqc_collection = mongoinit._initialise_collections(config_data, args.species)
-    st_collection, hiercc_results_collection, distance_matrix_collection = \
-        mongoinit.initialise_hiercc_collections(config_data, args.species)
-    mongoquerying = Mongoquerying()
+        # Open collections
+        mongoinit = Mongoinitialisation()
+        isolates_collection, isolateresults_collection, isolates_badqc_collection = mongoinit._initialise_collections(config_data, args.species)
+        mongoquerying = Mongoquerying()
 
-    # If statement for reanalysis or new
-    if args.results_type == "new_isolate":
-        if args.technical_id in mongoquerying._query_list_of_all_distinct_values(isolates_collection, "_id") or args.technical_id in mongoquerying._query_list_of_all_distinct_values(isolates_badqc_collection, "_id"):
-            raise RuntimeError('This technical id is already present in the isolates collection')
-        else:
-            # todo check if fasta path and vcf path are real?
-            mongoresults = Mongoresults()
-            records = json.load(open(args.jsonfilepath, 'r'))
-            records["isolates_id"] = args.technical_id
-            # Change date format
-            ## to do in queries themselves because else error: TypeError: 'datetime.datetime' object is not iterable
-            # QC check for failed qc to not be integrated in main db
-            sample_quality = 'good'
-            try:
-                for qc_type in records['qc']:
-                    for key in records['qc'][qc_type]:
-                        if key.endswith('status') and records['qc'][qc_type][key] == 'Failed' and not key == 'analysis_date': # and not (records['qc'][qc_type][key] == 'OK' or records['qc'][qc_type][key] == 'Warning'): # todo check logic
-                            sample_quality = 'bad'
-            except:
-                raise RuntimeError('No qc values found in the given results')
+        # If statement for reanalysis or new
+        if args.results_type == "new_isolate":
+            if args.technical_id in mongoquerying._query_list_of_all_distinct_values(isolates_collection, "_id") or args.technical_id in mongoquerying._query_list_of_all_distinct_values(isolates_badqc_collection, "_id"):
+                raise RuntimeError('This technical id is already present in the isolates collection')
+            else:
+                # todo check if fasta path and vcf path are real?
+                mongoresults = Mongoresults()
+                records = json.load(open(args.jsonfilepath, 'r'))
+                records["isolates_id"] = args.technical_id
+                # Change date format
+                ## to do in queries themselves because else error: TypeError: 'datetime.datetime' object is not iterable
+                # QC check for failed qc to not be integrated in main db
+                sample_quality = 'good'
+                try:
+                    for qc_type in records['qc']:
+                        for key in records['qc'][qc_type]:
+                            if key.endswith('status') and records['qc'][qc_type][key] == 'Failed' and not key == 'analysis_date': # and not (records['qc'][qc_type][key] == 'OK' or records['qc'][qc_type][key] == 'Warning'): # todo check logic
+                                sample_quality = 'bad'
+                except:
+                    raise RuntimeError('No qc values found in the given results')
 
             if sample_quality == 'good':
                 _write_document(isolates_collection, _new_isolate(args.technical_id, args.vcffilepath, args.fastafilepath,
@@ -183,30 +197,56 @@ if __name__ == '__main__':
                 _write_document(isolates_badqc_collection, _new_isolate(args.technical_id, args.vcffilepath, args.fastafilepath,
                                                                   records))
                 logging.warning(f"New isolate {args.technical_id} failed quality control for one or more checks. It's results were written to the 'isolates_badqc' collection in the {args.species} database")
+                if sample_quality == 'good':
+                    _write_document(isolates_collection, _new_isolate(args.technical_id, args.vcffilepath, args.fastafilepath,
+                                                                      records))
+                    logging.info(f"Wrote new isolate {args.technical_id} and its result to {args.species} database")
+                    find_hashes_in_results_and_add_to_collection(records, mongoinit, config_data, args.species)
+                else:
+                    _write_document(isolates_badqc_collection, _new_isolate(args.technical_id, args.vcffilepath, args.fastafilepath,
+                                                                      records))
+                    logging.warning(f"New isolate {args.technical_id} failed quality control for one or more checks. It's results were written to the 'isolates_badqc' collection in the {args.species} database")
 
 
-    elif args.results_type == "reanalysis":
-        # todo the current implementation moves the old results to the archive BUT seeing as results are possibly fractional
-        #  from different reanalysis steps it is never sure when which results were updated.
-        #  Maybe the newest results should also be written to a separate collection in order to easily know what actually changed?
-        #  Current dot notation only covers the assay headers, so within assays everything is overwritten, no matter if the number of fields differs.
-        mongoresults = Mongoresults()
-        # new_results = prepend_string_dot_to_dict_keys(mongoresults.parse_output(args.species, args.tsvfilepath))
-        # new_results["results.isolates_id"] = args.technical_id
-        new_results = prepend_string_dot_to_dict_keys(json.load(open(args.jsonfilepath, 'r')))
-        new_results["results.isolates_id"] = args.technical_id
-        old_results = mongoquerying._query_docs_by_ids(isolates_collection, [args.technical_id])[0]['results']
-        # Order is important
-        # Write old results to archive and save object id to isolates collection
-        isolates_collection.with_options(write_concern=WriteConcern(w="majority")).update_one({"_id": args.technical_id}, {
-            "$set": {"previous_latest_results_version": _write_document(isolateresults_collection, old_results)}})
-        # Overwrite old results with new results in isolate collection with dot notation: behaviour to be checked, especially for QC
-        # import sys
-        # sys.exit()
-        print(new_results)
-        isolates_collection.with_options(write_concern=WriteConcern(w="majority")).update_one({"_id": args.technical_id}, {"$set": new_results})
-        # Update the latest analysis date
-        isolates_collection.with_options(write_concern=WriteConcern(w="majority")).update_one({"_id": args.technical_id}, {
-            "$set": {"latest_analysis_date": new_results["results.analysis_date"]}})
-        logging.info(f"Wrote new results and linked to isolate {args.technical_id} in {args.species}")
-        # todo recalculate HierCC_cgST
+        elif args.results_type == "reanalysis":
+            # todo the current implementation moves the old results to the archive BUT seeing as results are possibly fractional
+            #  from different reanalysis steps it is never sure when which results were updated.
+            #  Maybe the newest results should also be written to a separate collection in order to easily know what actually changed?
+            #  Current dot notation only covers the assay headers, so within assays everything is overwritten, no matter if the number of fields differs.
+            mongoresults = Mongoresults()
+            new_results_handle = json.load(open(args.jsonfilepath, 'r'))
+            new_results = prepend_string_dot_to_dict_keys(new_results_handle)
+            new_results["results.isolates_id"] = args.technical_id
+            old_results = mongoquerying._query_docs_by_ids(isolates_collection, [args.technical_id])[0]['results']
+            some_result_changed = False
+            for mainkey in new_results_handle.keys():
+                if isinstance(new_results_handle[mainkey], dict):
+                    for subkey in new_results_handle[mainkey].keys():
+                        if mainkey not in old_results.keys():
+                            logging.info(f"{mainkey} not in old results")
+                            some_result_changed = True
+                        elif subkey == 'loci' or subkey == 'results' or subkey.startswith('hits'):
+                            if subkey not in old_results[mainkey].keys() or new_results_handle[mainkey][subkey] != old_results[mainkey][subkey]:
+                                # keep in mind that loci is a list: it seems as if loci are always outputted in the same order though so that is allright
+                                logging.info(f"{mainkey}{subkey} different or not in old")
+                                some_result_changed = True
+            if some_result_changed is True:
+                new_results["results.results_version"] = old_results["results_version"] + 1
+                isolates_collection.with_options(write_concern=WriteConcern(w="majority")).update_one({"_id": args.technical_id}, {
+                    "$set": {**new_results,
+                             "results.results_changed_since_last_version": True,
+                             "latest_analysis_date": _return_YMD_from_YMDhms(new_results["results.analysis_date"]),
+                             "previous_latest_results_version": _write_document(isolateresults_collection, old_results)}})
+                logging.info(f"Wrote new results and linked to isolate {args.technical_id} in {args.species}")
+            else:
+                # results version is not changed, it does not really matter how many analyses have already been performed with the same result
+                # new results still needs to be added because it modifies the analysis dates, db dates and also tool versions if these changed
+                isolates_collection.with_options(write_concern=WriteConcern(w="majority")).update_one({"_id": args.technical_id}, {
+                    "$set": {**new_results,
+                             "results.results_changed_since_last_version": False,
+                             "latest_analysis_date": _return_YMD_from_YMDhms(new_results["results.analysis_date"])}})
+                logging.info(f"New results were not different from old results for {args.technical_id} in {args.species}, updated analysis dates and db versions.")
+
+    except Exception as exceptionmessage:
+        _send_email(f"{os.path.basename(__file__)}: mongo upload fail on host {socket.gethostname()}",
+                f"{exceptionmessage}\n{traceback.format_exc()}", config_data['mail'])

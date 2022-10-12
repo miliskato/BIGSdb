@@ -17,7 +17,7 @@ import sys
 import logging
 import yaml
 
-from config import CONFIG
+from config import BIGSDB_CONFIG
 
 
 schemedict = {
@@ -48,7 +48,7 @@ schemedict = {
               'salmonella_cgmlst': {'seqdefdb': 'bigsdb_salmonella_seqdef', 'dirdb': '/db/sequence_typing/salmonella/cgmlst', 'isolatedb': 'bigsdb_salmonella_isolates'}
               }
 
-with open(CONFIG, encoding='utf-8') as handle:
+with open(BIGSDB_CONFIG, encoding='utf-8') as handle:
     config_data = yaml.safe_load(handle)
 emaildict = config_data['mail']
 

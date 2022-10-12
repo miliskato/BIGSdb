@@ -324,17 +324,21 @@ sub _print_project_add_function {
 		$labels->{ $project->{'id'} } = $project->{'short_description'};
 	}
 	say q(<fieldset><legend>Your projects</legend>);
+	say q(<button id="project_trigger" class="small_submit"><span class="far fa-folder">)
+	  . q(</span> Add to project</button>);
+	say q(<div id="project_section" style="margin-top:1em;display:none">);
 	my $hidden_attributes = $self->get_hidden_attributes;
 	say $q->start_form;
 	say $q->popup_menu( -id => 'project', -name => 'project', -values => $project_ids, -labels => $labels );
 	say $q->submit( -name => 'add_to_project', -label => 'Add these records', -class => 'small_submit' );
-	say qq(<span class="flash_message" style="margin-left:2em">$self->{'project_add_message'}</span>)
-	  if $self->{'project_add_message'};
 	say $q->hidden($_) foreach qw (db query_file temp_table_file table page);
 
 	#Using print instead of say prevents blank line if attribute not set.
 	print $q->hidden($_) foreach @$hidden_attributes;
 	say $q->end_form;
+	say q(</div>);
+	say qq(<span class="flash_message" style="margin-left:2em">$self->{'project_add_message'}</span>)
+	  if $self->{'project_add_message'};
 	say q(</fieldset>);
 	return;
 }
@@ -355,6 +359,9 @@ sub _print_add_bookmark_function {
 		say q(</fieldset>);
 		return;
 	}
+	say q(<button id="add_bookmark_trigger" class="small_submit">)
+	  . q(<span class="far fa-bookmark"></span> Bookmark</button>);
+	say q(<div id="bookmark_section" style="margin-top:1em;display:none">);
 	my $hidden_attributes = $self->get_hidden_attributes;
 	$q->delete('bookmark') if !$self->{'bookmark_add_message'};
 	say $q->start_form;
@@ -372,6 +379,7 @@ sub _print_add_bookmark_function {
 
 	#Using print instead of say prevents blank line if attribute not set.
 	print $q->hidden($_) foreach @$hidden_attributes;
+	say q(Bookmark name:<br />);
 	say $q->textfield(
 		-id          => 'bookmark',
 		-name        => 'bookmark',
@@ -384,6 +392,7 @@ sub _print_add_bookmark_function {
 	say qq(<span class="flash_message" style="margin-left:2em">$self->{'bookmark_add_message'}</span>)
 	  if $self->{'bookmark_add_message'};
 	say $q->end_form;
+	say q(</div>);
 	say q(</fieldset>);
 	return;
 }
@@ -404,11 +413,13 @@ sub _print_publish_function {
 		return if !@$matched && !$q->param('publish');
 	}
 	say q(<fieldset><legend>Private records</legend>);
-	my $label = $self->{'permissions'}->{'only_private'}
-	  || !$self->can_modify_table('isolates') ? 'Request publication' : 'Publish';
+	my $label =
+	  $self->{'permissions'}->{'only_private'} || !$self->can_modify_table('isolates')
+	  ? '<span class="fas fa-globe-africa"></span> Request publication'
+	  : '<span class="fas fa-globe-africa"></span> Publish';
 	my $hidden_attributes = $self->get_hidden_attributes;
 	say $q->start_form;
-	say $q->submit( -name => 'publish', -label => $label, -class => 'small_submit' );
+	say qq(<button type="submit" name="publish" value="publish" class="small_submit">$label</button>);
 	say qq(<span class="flash_message" style="margin-left:2em">$self->{'publish_message'}</span>)
 	  if $self->{'publish_message'};
 	say $q->hidden($_) foreach qw (db query_file datatype table page);
@@ -456,7 +467,8 @@ sub _print_delete_all_function {
 			say q(</li></ul>);
 		}
 	}
-	say $q->submit( -name => 'Delete ALL', -class => 'small_submit' );
+	say q(<button type="submit" name="Delete ALL" value="publish" class="small_submit">)
+	  . q(<span class="fas fa-times"></span> Delete ALL</button>);
 	say $q->end_form;
 	say q(</fieldset>);
 	return;
@@ -473,14 +485,16 @@ sub _print_export_configuration_function {
 		scheme_members scheme_groups scheme_group_scheme_members scheme_group_group_members locus_descriptions
 		scheme_curators locus_curators sequences sequence_refs profile_refs locus_extended_attributes
 		client_dbases client_dbase_loci client_dbase_schemes classification_schemes classification_group_fields
-		validation_rules validation_conditions validation_rule_conditions lincode_schemes)
+		validation_rules validation_conditions validation_rule_conditions lincode_schemes lincode_fields
+		lincode_prefixes)
 	  )
 	{
 		say q(<fieldset><legend>Database configuration</legend>);
 		say $q->start_form;
 		$q->param( page => 'exportConfig' );
 		say $q->hidden($_) foreach qw (db page table query_file list_file datatype);
-		say $q->submit( -name => 'Export configuration/data', -class => 'small_submit' );
+		say q(<button type="submit" name="Export data" value="Export data" class="small_submit">)
+		  . q(<span class="fas fa-file-export"></span> Export data</button>);
 		say $q->end_form;
 		say q(</fieldset>);
 	}
@@ -494,7 +508,8 @@ sub _print_tag_scanning_function {
 	say $q->start_form;
 	$q->param( page => 'tagScan' );
 	say $q->hidden($_) foreach qw (db page table query_file list_file datatype);
-	say $q->submit( -name => 'Scan', -class => 'small_submit' );
+	say q(<button type="submit" name="Scan" value="Scan" class="small_submit">)
+	  . q(<span class="fas fa-barcode"></span> Scan</button>);
 	say $q->end_form;
 	say q(</fieldset>);
 	return;
@@ -518,6 +533,9 @@ sub _print_modify_project_members_function {
 	}
 	if (@projects) {
 		say q(<fieldset><legend>Projects</legend>);
+		say q(<button id="project_trigger" class="small_submit"><span class="far fa-folder">)
+		  . q(</span> Add to project</button>);
+		say q(<div id="project_section" style="margin-top:1em;display:none">);
 		unshift @projects, '';
 		$labels{''} = 'Select project...';
 		say $q->start_form;
@@ -525,8 +543,9 @@ sub _print_modify_project_members_function {
 		$q->param( table => 'project_members' );
 		say $q->hidden($_) foreach qw (db page table query_file list_file datatype);
 		say $q->popup_menu( -name => 'project', -values => \@projects, -labels => \%labels );
-		say $q->submit( -name => 'Link', -class => 'small_submit' );
+		say $q->submit( -name => 'Add records', -class => 'small_submit' );
 		say $q->end_form;
+		say q(</div>);
 		say q(</fieldset>);
 	}
 	return;
@@ -539,7 +558,8 @@ sub _print_set_sequence_flags_function {
 	say $q->start_form;
 	$q->param( page => 'setAlleleFlags' );
 	say $q->hidden($_) foreach qw (db page query_file list_file datatype);
-	say $q->submit( -name => 'Batch set', -class => 'small_submit' );
+	say q(<button type="submit" name="Batch set" value="Batch set" class="small_submit">)
+	  . q(<span class="fas fa-flag"></span> Batch set</button>);
 	say $q->end_form;
 	say q(</fieldset>);
 	return;
@@ -598,58 +618,22 @@ sub _print_isolate_table {
 	$self->_print_isolate_table_header( $schemes, $qry_limit );
 	my $td = 1;
 	local $" = '=? AND ';
-	my $field_attributes = {};
-	my $optlist          = {};
-
-	foreach my $field (@$fields) {
-		$field_attributes->{$field} = $self->{'xmlHandler'}->get_field_attributes($field);
-		if ( ( $field_attributes->{$field}->{'optlist'} // q() ) eq 'yes' ) {
-			$optlist->{$field} = $self->{'xmlHandler'}->get_field_option_list($field);
-		}
-	}
 	$self->{'scheme_loci'}->{0} = $self->{'datastore'}->get_loci_in_no_scheme( { set_id => $set_id } );
 	my $field_list =
 	  $self->{'xmlHandler'}->get_field_list( { no_curate_only => !$is_curator } );
 	local $| = 1;
 	my %id_used;
+
 	while ( $limit_sql->fetchrow_arrayref ) {
 
 		#Ordering by scheme field/locus can result in multiple rows per isolate if multiple values defined.
 		next if $id_used{ $data{'id'} };
 		$id_used{ $data{'id'} } = 1;
 		my $profcomplete = 1;
-		my $id;
+		my $id           = $data{'id'};
 		print qq(<tr class="td$td">);
 		foreach my $thisfieldname (@$field_list) {
-			if ( $self->{'prefs'}->{'maindisplayfields'}->{$thisfieldname} || $thisfieldname eq 'id' ) {
-				if ( $thisfieldname eq 'id' ) {
-					$id = $data{$thisfieldname};
-					$self->_print_isolate_id_links( $id, \%data );
-				} elsif ( $thisfieldname eq 'sender'
-					|| $thisfieldname eq 'curator'
-					|| ( ( $field_attributes->{$thisfieldname}->{'userfield'} // '' ) eq 'yes' ) )
-				{
-					my $user_info = $self->{'datastore'}->get_user_info( $data{$thisfieldname} );
-					print qq(<td>$user_info->{'first_name'} $user_info->{'surname'}</td>);
-				} else {
-					if ( $optlist->{$thisfieldname} && ref $data{$thisfieldname} ) {
-						$data{$thisfieldname} =
-						  BIGSdb::Utils::arbitrary_order_list( $optlist->{$thisfieldname}, $data{$thisfieldname} );
-					} elsif ( ( $field_attributes->{$thisfieldname}->{'multiple'} // q() ) eq 'yes'
-						&& ref $data{$thisfieldname} )
-					{
-						@{ $data{$thisfieldname} } =
-						  $field_attributes->{$thisfieldname}->{'type'} eq 'text'
-						  ? sort { $a cmp $b } @{ $data{$thisfieldname} }
-						  : sort { $a <=> $b } @{ $data{$thisfieldname} };
-					}
-					local $" = q(; );
-					my $value = ref $data{$thisfieldname} ? qq(@{$data{$thisfieldname}}) : $data{$thisfieldname};
-					$value //= q();
-					$value =~ tr/\n/ /;
-					print qq(<td>$value</td>);
-				}
-			}
+			$self->_print_field_value( \%data, $thisfieldname );
 			$self->_print_isolate_extended_attributes( $id, \%data, $thisfieldname );
 			$self->_print_isolate_composite_fields( $id, \%data, $thisfieldname );
 			$self->_print_isolate_aliases($id) if $thisfieldname eq $self->{'system'}->{'labelfield'};
@@ -674,6 +658,77 @@ sub _print_isolate_table {
 	say q(</div>);
 	$sql->finish if $sql;
 	return;
+}
+
+sub _print_field_value {
+	my ( $self, $data, $thisfieldname ) = @_;
+	return if !$self->{'prefs'}->{'maindisplayfields'}->{$thisfieldname} && $thisfieldname ne 'id';
+	my $att     = $self->{'xmlHandler'}->get_field_attributes($thisfieldname);
+	my $methods = {
+		id => sub { $self->_process_id_links( $data, $thisfieldname ) },
+		users    => sub { $self->_process_user_values( $data,     $att, $thisfieldname ) },
+		location => sub { $self->_process_location_values( $data, $att, $thisfieldname ) }
+	};
+	foreach my $method (qw(id users location)) {
+		if ( $methods->{$method}->() ) {
+			return;
+		}
+	}
+	my $optlist = [];
+	if ( ( $att->{'optlist'} // q() ) eq 'yes' ) {
+		$optlist = $self->{'xmlHandler'}->get_field_option_list($thisfieldname);
+	}
+	if ( @$optlist && ref $data->{$thisfieldname} ) {
+		$data->{$thisfieldname} =
+		  BIGSdb::Utils::arbitrary_order_list( $optlist, $data->{$thisfieldname} );
+	} elsif ( ( $att->{'multiple'} // q() ) eq 'yes'
+		&& ref $data->{$thisfieldname} )
+	{
+		@{ $data->{$thisfieldname} } =
+		  $att->{'type'} eq 'text'
+		  ? sort { $a cmp $b } @{ $data->{$thisfieldname} }
+		  : sort { $a <=> $b } @{ $data->{$thisfieldname} };
+	}
+	local $" = q(; );
+	my $value = ref $data->{$thisfieldname} ? qq(@{$data->{$thisfieldname}}) : $data->{$thisfieldname};
+	$value //= q();
+	$value =~ tr/\n/ /;
+	print qq(<td>$value</td>);
+	return;
+}
+
+sub _process_id_links {
+	my ( $self, $data, $fieldname ) = @_;
+	return if $fieldname ne 'id';
+	my $id = $data->{$fieldname};
+	$self->_print_isolate_id_links( $id, $data );
+	return 1;
+}
+
+sub _process_user_values {
+	my ( $self, $data, $att, $fieldname ) = @_;
+	if (   $fieldname eq 'sender'
+		|| $fieldname eq 'curator'
+		|| ( ( $att->{'userfield'} // '' ) eq 'yes' ) )
+	{
+		my $user_info = $self->{'datastore'}->get_user_info( $data->{$fieldname} );
+		print qq(<td>$user_info->{'first_name'} $user_info->{'surname'}</td>);
+		return 1;
+	}
+	return;
+}
+
+sub _process_location_values {
+	my ( $self, $data, $att, $fieldname ) = @_;
+	return if $att->{'type'} ne 'geography_point';
+	my $point = $data->{$fieldname};
+	if ( defined $point ) {
+		my $location = $self->{'datastore'}->get_geography_coordinates($point);
+		print qq(<td>$location->{'latitude'}, $location->{'longitude'}</td>);
+	} else {
+		print q(<td></td>);
+	}
+	return 1;
 }
 
 sub _print_isolate_id_links {
@@ -1486,7 +1541,7 @@ sub _get_record_table_info {
 			$cleaned .= '*';
 			$user_variable_fields = 1;
 		}
-		if ( !$attr->{'hide_query'} ) {
+		if ( !$attr->{'hide_results'} ) {
 			push @headers, $cleaned;
 			push @headers, 'sequence length'
 			  if $q->param('page') eq 'tableQuery' && $table eq 'sequences' && $attr->{'name'} eq 'sequence';
@@ -1619,7 +1674,7 @@ sub _print_record_table {
 				$value = CGI::Util::escape($value);
 				push @query_values, "$att->{'name'}=$value";
 			}
-			$hide_field{ $att->{'name'} } = 1 if $att->{'hide_query'};
+			$hide_field{ $att->{'name'} } = 1 if $att->{'hide_results'};
 		}
 		print qq(<tr class="td$td">);
 		if ( $self->{'curate'} ) {
@@ -1884,6 +1939,12 @@ sub get_javascript {
 	  	});	    
 	  }
 	});	
+	\$("button#add_bookmark_trigger").on('click', function(){	
+		\$("div#bookmark_section").toggle(200);	
+	});
+	\$("button#project_trigger").on('click', function(){	
+		\$("div#project_section").toggle(200);	
+	});
 });
 
 END

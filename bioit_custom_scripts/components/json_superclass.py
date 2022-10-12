@@ -2,12 +2,12 @@ class JsonSuperClass:
     """
     Class containing definition to insert typing results
     """
-    def __init__(self, isolatename, species, cur_isolates, cur_seqdef, outputjsondict):
+    def __init__(self, isolatename, species, cur_isolates, cur_seqdef, sample_output_dict):
         self.isolatename = isolatename
         self.species = species
         self.cur_isolates = cur_isolates
         self.cur_seqdef = cur_seqdef
-        self.outputjsondict = outputjsondict
+        self.sample_output_dict = sample_output_dict
 
     def _insert_allele_designation(self, locus, allele_id):
         self.cur_isolates.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
@@ -26,6 +26,12 @@ class JsonSuperClass:
 
     def _insert_metadata(self, field, value):
         self.cur_isolates.execute(f"INSERT INTO eav_text(isolate_id, "
+                                  f"field, value)"
+                                  f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{self.isolatename}'),"
+                                  f"'{field}', '{value}') ")
+
+    def _insert_metadata_hidden(self, field, value):
+        self.cur_isolates.execute(f"INSERT INTO eav_text_hidden(isolate_id, "
                                   f"field, value)"
                                   f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{self.isolatename}'),"
                                   f"'{field}', '{value}') ")

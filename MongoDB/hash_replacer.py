@@ -5,24 +5,26 @@ from pymongo.write_concern import WriteConcern
 from pymongo.read_concern import ReadConcern
 from pathlib import Path
 import sys
+import socket
 
+from bioit_custom_scripts.components.databaseconnection import Database_connection
 from util.mongo_initialisation import Mongoinitialisation
 from config import MONGO_CONFIG
 
-# todo finish and polish
+
 def _parse_arguments() -> argparse.Namespace:
     """
     Parses the command line arguments.
     :return: Parsed arguments
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("--scheme", required=True, type=str)
+    parser.add_argument("--scheme", required=True, type=str, help='lower case scheme as in json reports/mongodb documents')
     parser.add_argument("--species", required=True, type=str,
                         choices=['mycobacterium', 'listeria', 'neisseria', 'stec', 'salmonella'])
     return parser.parse_args()
 
 def query_hashes_of_scheme(hashed_AD_collection, scheme: str) -> list:
-    return [document for document in hashed_AD_collection.with_options(read_concern=ReadConcern(level="majority")).find({"scheme": scheme, "resolved_AD":0})]
+    return [document for document in hashed_AD_collection.with_options(read_concern=ReadConcern(level="majority")).find({"scheme": scheme, "resolved_AD": 0})]
 
 
 if __name__ == '__main__':
@@ -44,18 +46,17 @@ if __name__ == '__main__':
 
     # Query the docs with hashes for this particular scheme
     documents_list = query_hashes_of_scheme(hashed_AD_collection, args.scheme)
-    logging.info(f"documents list: {documents_list}")
+    #logging.info(f"documents list: {documents_list}")
     if documents_list == []:
         pass
     else:
         locus_hash_dict = {}
         for hash_document in documents_list:
             if hash_document['locus'] in locus_hash_dict.keys():
-                locus_hash_dict[hash_document['locus']] = locus_hash_dict[hash_document['locus']].append(hash_document['hashed_allele'])
+                locus_hash_dict[hash_document['locus']].append(hash_document['hashed_allele'])
             else:
                 locus_hash_dict[hash_document['locus']] = [hash_document['hashed_allele']]
         for locus, hash_list in locus_hash_dict.items():
-            # todo Open the fasta with seqio, get the path
             if args.species == 'stec':
                 fasta_file = Path(f"/db/sequence_typing/ecoli/{args.scheme.replace('-','_')}/{locus}/{locus.lower()}.fasta")
             else:
@@ -88,7 +89,7 @@ if __name__ == '__main__':
                             {"$set": {f"results.{args.scheme}.loci.$.Allele": allele_id}})
                         # todo think if old results collection should be updated aswell
                         isolateresults_collection.with_options(write_concern=WriteConcern(w="majority")).update_many(
-                            { f"results.{args.scheme}.loci":
+                            { f"{args.scheme}.loci":
                                   { "$elemMatch":
                                         { "Locus": locus, "Allele": hashed_allele } } },
                             {"$set": {f"{args.scheme}.loci.$.Allele": allele_id}})
@@ -96,3 +97,11 @@ if __name__ == '__main__':
                         hashed_AD_collection.with_options(write_concern=WriteConcern(w="majority")).update_one(
                             {"scheme": args.scheme, "resolved_AD": 0, "locus": locus},
                             {"$set": {"resolved_AD": allele_id}})
+                        # add allele id to hash document to not have to requery for bigsdb if bigs host
+                        hash_document['resolved_AD'] = allele_id
+        hostname = socket.gethostname()
+        if 'bigs' in hostname:
+            cur_isolates, cur_seqdef = Database_connection().open_database_connections(args.species)
+            for hash_document in documents_list:
+                if hash_document['resolved_AD'] != 0:
+                    cur_isolates.execute(f"UPDATE allele_designations SET allele_id='{hash_document['resolved_AD']}' WHERE allele_id='{hash_document['hashed_allele']}' AND locus='{hash_document['locus']}'")

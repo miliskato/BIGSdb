@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 #Perform/update species id check and store results in isolate database.
 #Written by Keith Jolley
-#Copyright (c) 2021, University of Oxford
+#Copyright (c) 2021-2022, University of Oxford
 #E-mail: keith.jolley@zoo.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
@@ -19,7 +19,7 @@
 #You should have received a copy of the GNU General Public License
 #along with BIGSdb.  If not, see <http://www.gnu.org/licenses/>.
 #
-#Version: 20210331
+#Version: 20220913
 use strict;
 use warnings;
 use 5.010;
@@ -145,7 +145,7 @@ sub check_db {
 		$qry .= qq(AND (lr.timestamp IS NULL OR lr.timestamp < now()-interval '$opts{'last_run_days'} days') );
 	}
 	$qry .= q(ORDER BY ss.isolate_id);
-	my $agent = LWP::UserAgent->new( agent => 'BIGSdb' );
+	my $agent = LWP::UserAgent->new( agent => 'BIGSdb', timeout => 600 );
 	my $ids =
 	  $script->{'datastore'}
 	  ->run_query( $qry, [ 'RMLSTSpecies', 'RMLSTSpecies', $min_genome_size ], { fetch => 'col_arrayref' } );
@@ -269,13 +269,12 @@ sub check_if_script_already_running {
 		close $fh;
 		my $pid_exists = kill( 0, $pid );
 		if ( !$pid_exists ) {
-			$logger->error('Lock file exists but process is no longer running - deleting lock.');
+			say 'Lock file exists but process is no longer running - deleting lock.'
+			  if !$opts{'quiet'};
 			unlink $lock_file;
 		} else {
-			if ( $opts{'quiet'} ) {
-				exit(1);
-			}
-			die "Script already running - terminating.\n";
+			say 'Script already running with these parameters - terminating.' if !$opts{'quiet'};
+			exit(1);
 		}
 	}
 	open( my $fh, '>', $lock_file ) || $logger->error("Cannot open lock file $lock_file for writing");

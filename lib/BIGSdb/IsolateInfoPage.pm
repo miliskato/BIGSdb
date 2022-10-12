@@ -21,7 +21,7 @@ use strict;
 use warnings;
 use 5.010;
 use parent qw(BIGSdb::TreeViewPage);
-use BIGSdb::Constants qw(:interface :limits);
+use BIGSdb::Constants qw(:interface :limits COUNTRIES);
 use Log::Log4perl qw(get_logger);
 use Try::Tiny;
 use List::MoreUtils qw(none uniq);
@@ -54,6 +54,15 @@ sub initiate {
 		return;
 	}
 	$self->{$_} = 1 foreach qw(jQuery jQuery.jstree jQuery.columnizer);
+	my $field_attributes = $self->{'xmlHandler'}->get_all_field_attributes;
+	foreach my $field ( keys %$field_attributes ) {
+		if ( $field_attributes->{$field}->{'type'} eq 'geography_point'
+			|| ( $field_attributes->{$field}->{'geography_point_lookup'} // q() ) eq 'yes' )
+		{
+			$self->{'ol'} = 1;
+			last;
+		}
+	}
 	$self->set_level1_breadcrumbs;
 	return;
 }
@@ -960,16 +969,10 @@ sub _get_provenance_fields {
 	my $set_id     = $self->get_set_id;
 	my $is_curator = $self->is_curator;
 	my $field_list = $self->{'xmlHandler'}->get_field_list( { no_curate_only => !$is_curator } );
-	my ( %composites, %composite_display_pos );
-	my $composite_data =
-	  $self->{'datastore'}
-	  ->run_query( 'SELECT id,position_after FROM composite_fields', undef, { fetch => 'all_arrayref', slice => {} } );
-
-	foreach (@$composite_data) {
-		$composite_display_pos{ $_->{'id'} }  = $_->{'position_after'};
-		$composites{ $_->{'position_after'} } = 1;
-	}
+	my $maps       = [];
+	my ( $composites, $composite_display_pos ) = $self->_get_composites;
 	my $field_with_extended_attributes;
+
 	if ( !$summary_view ) {
 		$field_with_extended_attributes =
 		  $self->{'datastore'}->run_query( 'SELECT DISTINCT isolate_field FROM isolate_field_extended_attributes',
@@ -985,10 +988,10 @@ sub _get_provenance_fields {
 		local $" = q(; );
 		if ( !defined $data->{ lc($field) } ) {
 
-			if ( $composites{$field} ) {
-				my $composites =
-				  $self->_get_composite_field_rows( $isolate_id, $data, $field, \%composite_display_pos );
-				push @$list, @$composites if @$composites;
+			if ( $composites->{$field} ) {
+				my $composite_fields =
+				  $self->_get_composite_field_rows( $isolate_id, $data, $field, $composite_display_pos );
+				push @$list, @$composite_fields if @$composite_fields;
 			}
 			next;    #Do not print row
 		}
@@ -998,6 +1001,13 @@ sub _get_provenance_fields {
 		} else {
 			$value = $self->_get_field_value( $data, $field );
 		}
+		next if $self->_process_geography_fields(
+			{
+				data  => $data,
+				field => $field,
+				maps  => $maps
+			}
+		);
 		my %user_field = map { $_ => 1 } qw(curator sender);
 		if ( $user_field{$field} || ( $thisfield->{'userfield'} // '' ) eq 'yes' ) {
 			push @$list, $self->_get_user_field( $summary_view, $field, $displayfield, $value, $data );
@@ -1019,31 +1029,233 @@ sub _get_provenance_fields {
 			push @$list, { title => $displayfield, data => $prefix . $separator . ( $web // $value ) . $suffix }
 			  if $web || $value ne q();
 		}
-		if ( $field eq 'curator' ) {
-			my $history = $self->_get_history_field($isolate_id);
-			push @$list, $history if $history;
-		}
 		my %ext_attribute_field = map { $_ => 1 } @$field_with_extended_attributes;
 		if ( $ext_attribute_field{$field} ) {
 			my $ext_list = $self->_get_field_extended_attributes( $field, $value );
-			push @$list, @$ext_list if @$ext_list;
+			push @$list, @$ext_list;
 		}
-		if ( $field eq $self->{'system'}->{'labelfield'} ) {
-			my $aliases = $self->{'datastore'}->get_isolate_aliases($isolate_id);
-			if (@$aliases) {
-				local $" = q(; );
-				my $plural = @$aliases > 1 ? 'es' : '';
-				push @$list, { title => "alias$plural", data => "@$aliases" };
-			}
+		if ( $composites->{$field} ) {
+			my $composite_fields =
+			  $self->_get_composite_field_rows( $isolate_id, $data, $field, $composite_display_pos );
+			push @$list, @$composite_fields;
 		}
-		if ( $composites{$field} ) {
-			my $composites = $self->_get_composite_field_rows( $isolate_id, $data, $field, \%composite_display_pos );
-			push @$list, @$composites if @$composites;
-		}
+		$self->_check_curator( $isolate_id, $list, $field );
+		$self->_check_aliases( $isolate_id, $list, $field );
 	}
 	return q() if !@$list;
 	$buffer .= $self->get_list_block( $list, { columnize => 1 } );
 	$buffer .= q(</div></div>);
+	$buffer .= $self->_get_map_section($maps);
+	return $buffer;
+}
+
+sub _process_geography_fields {
+	my ( $self, $args ) = @_;
+	my ( $data, $field, $maps ) = @{$args}{qw(data field maps)};
+	my $thisfield    = $self->{'xmlHandler'}->get_field_attributes($field);
+	my $value        = $data->{$field};
+	my $displayfield = $field;
+	$displayfield =~ tr/_/ /;
+	if ( $value && $thisfield->{'type'} eq 'geography_point' ) {
+		my $geography = $self->{'datastore'}->get_geography_coordinates($value);
+		my $map       = $geography;
+		$map->{'field'} = ucfirst($displayfield);
+		push @$maps, $geography;
+		return 1;
+	}
+	if ( $value && ( $thisfield->{'geography_point_lookup'} // q() ) eq 'yes' ) {
+		my $geography = $self->{'datastore'}->lookup_geography_point( $data, $field );
+		if ( defined $geography->{'latitude'} ) {
+			my $map = $geography;
+			$map->{'field'}      = ucfirst($displayfield);
+			$map->{'show_value'} = $value;
+			$map->{'imprecise'} = 1;
+			push @$maps, $geography;
+		}
+	}
+	return;
+}
+
+sub _get_composites {
+	my ($self) = @_;
+	my ( $composites, $composite_display_pos );
+	my $composite_data =
+	  $self->{'datastore'}
+	  ->run_query( 'SELECT id,position_after FROM composite_fields', undef, { fetch => 'all_arrayref', slice => {} } );
+	foreach (@$composite_data) {
+		$composite_display_pos->{ $_->{'id'} }  = $_->{'position_after'};
+		$composites->{ $_->{'position_after'} } = 1;
+	}
+	return ( $composites, $composite_display_pos );
+}
+
+sub _check_curator {
+	my ( $self, $isolate_id, $list, $field ) = @_;
+	if ( $field eq 'curator' ) {
+		my $history = $self->_get_history_field($isolate_id);
+		push @$list, $history if $history;
+	}
+	return;
+}
+
+sub _check_aliases {
+	my ( $self, $isolate_id, $list, $field ) = @_;
+	if ( $field eq $self->{'system'}->{'labelfield'} ) {
+		my $aliases = $self->{'datastore'}->get_isolate_aliases($isolate_id);
+		if (@$aliases) {
+			local $" = q(; );
+			my $plural = @$aliases > 1 ? 'es' : '';
+			push @$list, { title => "alias$plural", data => "@$aliases" };
+		}
+	}
+	return;
+}
+
+sub _get_map_section {
+	my ( $self, $maps ) = @_;
+	return q() if !@$maps;
+	my $buffer = q(<div><span class="info_icon fa-2x fa-fw fas fa-map fa-pull-left" style="margin-top:-0.2em"></span>);
+	$buffer .= @$maps > 1 ? qq(<h2>Maps</h2>\n) : qq(<h2>$maps->[0]->{'field'}</h2>\n);
+	my $i = 1;
+	my $layers;
+	my $bingmaps_api = $self->{'system'}->{'bingmaps_api'} // $self->{'config'}->{'bingmaps_api'};
+	if ($bingmaps_api) {
+		$layers = <<"JS";
+const styles = ['RoadOnDemand','AerialWithLabelsOnDemand'];
+const layers = [];
+let i, ii;
+for (i = 0, ii = styles.length; i < ii; ++i) {
+  layers.push(
+    new ol.layer.Tile({
+      visible: i == 0 ? true : false,
+      preload: Infinity,
+      source: new ol.source.BingMaps({
+        key: '$bingmaps_api',
+        imagerySet: styles[i]
+      }),
+    })
+  );
+}		
+JS
+	} else {
+		$layers = <<"JS";
+	  const layers = [
+          new ol.layer.Tile({
+            source: new ol.source.OSM({
+            	crossOrigin: null
+            })
+          })
+        ];			
+JS
+	}
+	foreach my $map (@$maps) {
+		$buffer .= q(<div style="float:left;margin:0 1em">);
+		if ( @$maps > 1 ) {
+			if ( $map->{'show_value'} ) {
+				$buffer .=
+				  qq(<p><span class="data_title">$map->{'field'}:</span>$map->{'show_value'}</p>\n);
+			} else {
+				$buffer .=
+				  qq(<p><span class="data_title">$map->{'field'}:</span>$map->{'latitude'}, $map->{'longitude'}</p>\n);
+			}
+		} else {
+			if ( $map->{'show_value'} ) {
+				$buffer .= qq(<p>$map->{'show_value'}</p>);
+			} else {
+				$buffer .= qq(<p>$map->{'latitude'}, $map->{'longitude'}</p>);
+			}
+		}
+		$buffer .= qq(<div id="map$i" class="ol_map"></div>);
+		my $imprecise = $map->{'imprecise'} ? 1 : 0;
+		$buffer .= <<"MAP";
+
+<script>
+\$(document).ready(function() 	
+    { 
+      $layers
+      let map = new ol.Map({
+        target: 'map$i',
+        layers: layers,
+        view: new ol.View({
+          center: ol.proj.fromLonLat([$map->{'longitude'}, $map->{'latitude'}]),
+          zoom: 8 - $imprecise
+        })
+      });
+      let pointer_style;
+      if ($imprecise){
+      	pointer_style = new ol.style.Style({
+	        image: new ol.style.Circle({
+	          radius: 20,
+	          fill: new ol.style.Fill({
+	          	color: 'rgb(0,0,255,0.2)'
+	          	}),
+	          stroke: new ol.style.Stroke({
+	            color: [100,100,255], width: 2
+	          })  
+	        })
+	      });
+      } else {
+	      pointer_style = new ol.style.Style({
+	        image: new ol.style.Circle({
+	          radius: 7,
+	          stroke: new ol.style.Stroke({
+	            color: [255,0,0], width: 2
+	          })  
+	        })
+	      });
+      }
+      let layer = new ol.layer.Vector({
+        source: new ol.source.Vector({
+          features: [
+             new ol.Feature({
+                 geometry: new ol.geom.Point(ol.proj.fromLonLat([$map->{'longitude'}, $map->{'latitude'}]))
+             })
+          ]
+        }), 
+        style: pointer_style
+     });
+     map.addLayer(layer);
+     \$("a#toggle_satellite$i").click(function(event){
+     	if (layers[0].getVisible()){
+     		layers[0].setVisible(false);
+     		layers[1].setVisible(true);
+     		\$("span#satellite${i}_off").hide();
+     		\$("span#satellite${i}_on").show();
+     	} else {
+     		layers[0].setVisible(true);
+     		layers[1].setVisible(false);
+     		\$("span#satellite${i}_on").hide();
+     		\$("span#satellite${i}_off").show();
+     	}
+     });
+     \$("a#recentre$i").click(function(event){
+     	map.getView().animate({
+     		center: ol.proj.fromLonLat([$map->{'longitude'}, $map->{'latitude'}]),
+     		duration: 500
+     	});
+     });
+   });
+
+</script>
+MAP
+		$buffer .= q(<p style="margin-top:0.5em">);
+		if ( $self->{'config'}->{'bingmaps_api'} ) {
+			$buffer .=
+			    q(<span style="vertical-align:0.4em">Aerial view </span>)
+			  . qq(<a class="toggle_satellite" id="toggle_satellite$i" style="cursor:pointer;margin-right:2em">)
+			  . qq(<span class="fas fa-toggle-off toggle_icon fa-2x" id="satellite${i}_off"></span>)
+			  . qq(<span class="fas fa-toggle-on toggle_icon fa-2x" id="satellite${i}_on" style="display:none">)
+			  . q(</span></a>);
+		}
+		$buffer .=
+		    q(<span style="vertical-align:0.4em">Recentre </span>)
+		  . qq(<a class="recentre" id="recentre$i" style="cursor:pointer;margin-right:2em">)
+		  . qq(<span class="fas fa-crosshairs toggle_icon fa-2x" id="crosshairs$i"></span>)
+		  . q(</a></p>);
+		$buffer .= q(</div>);
+		$i++;
+	}
+	$buffer .= q(</div><div style="clear:both"></div>);
 	return $buffer;
 }
 
@@ -1377,7 +1589,7 @@ sub _should_display_scheme {
 
 sub _get_scheme_field_values {
 	my ( $self, $scheme_id, $designations ) = @_;
-	my %values;
+	my $values = {};
 	my $scheme_field_values =
 	  $self->{'datastore'}->get_scheme_field_values_by_designations( $scheme_id, $designations );
 	my $scheme_fields = $self->{'datastore'}->get_scheme_fields($scheme_id);
@@ -1407,14 +1619,21 @@ sub _get_scheme_field_values {
 					$formatted_value .= $value;
 				}
 				$formatted_value .= q(</span>) if $provisional;
-				push @{ $values{$field} }, $formatted_value;
+				push @{ $values->{$field}->{'formatted'} }, $formatted_value;
+				push @{ $values->{$field}->{'unformatted'} }, $value;
 			}
-			$values{$field} = ['Not defined'] if ref $values{$field} ne 'ARRAY';
+			if (ref $values->{$field}->{'formatted'} ne 'ARRAY'){
+				$values->{$field}->{'formatted'} = ['Not defined'];
+				$values->{$field}->{'unformatted'} = [];
+			} 
 		}
 	} else {
-		$values{$_} = ['Not defined'] foreach @$scheme_fields;
+		foreach my $field (@$scheme_fields){
+			$values->{$field}->{'formatted'} = ['Not defined'] ;
+			$values->{$field}->{'unformatted'} = [];
+		}
 	}
-	return \%values;
+	return $values;
 }
 
 sub _get_scheme {
@@ -1505,7 +1724,7 @@ sub _get_scheme_values {
 			  $self->get_tooltip( qq($field - $scheme_field_info->{'description'}), { style => 'color:white' } );
 		}
 		local $" = ', ';
-		my $values = qq(@{$field_values->{$field}}) // q(-);
+		my $values = qq(@{$field_values->{$field}->{'formatted'}}) // q(-);
 		if ( $args->{'no_render'} ) {
 			$buffer .= qq(<dt>$cleaned</dt><dd>$values</dd>);
 		} else {
@@ -1514,10 +1733,10 @@ sub _get_scheme_values {
 	}
 	my $scheme_info = $self->{'datastore'}->get_scheme_info( $scheme_id, { get_pk => 1 } );
 	if (   $scheme_info->{'primary_key'}
-		&& $field_values->{ $scheme_info->{'primary_key'} }
+		&& $field_values->{ $scheme_info->{'primary_key'} }->{'formatted'}
 		&& $self->{'datastore'}->are_lincodes_defined($scheme_id) )
 	{
-		my $pk_values = $field_values->{ $scheme_info->{'primary_key'} };
+		my $pk_values = $field_values->{ $scheme_info->{'primary_key'} }->{'unformatted'};
 		$buffer .= $self->_get_lincode_values( $scheme_id, $pk_values, $args );
 	}
 	$buffer .= q(</dl>) if $args->{'no_render'};
@@ -1531,12 +1750,12 @@ sub _get_lincode_values {
 	foreach my $pk_value (@$pk_values) {
 		my $lincode =
 		  $self->{'datastore'}
-		  ->run_query( "SELECT DISTINCT(lincode) FROM $lincode_table WHERE profile_id=? ORDER BY lincode", $pk_value )
-		  ;
+		  ->run_query( "SELECT DISTINCT(lincode) FROM $lincode_table WHERE profile_id=? ORDER BY lincode", $pk_value );
 		local $" = q(_);
 		push @lincodes, qq(@$lincode) if $lincode;
 	}
 	@lincodes = sort @lincodes;
+	
 	if ( @lincodes > 1 ) {
 		@lincodes = ( $lincodes[0] );
 	}

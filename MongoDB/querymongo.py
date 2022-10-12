@@ -11,6 +11,8 @@ from MongoDB.util.distance_matrix_computer import DistanceMatrixComputer
 from MongoDB.util.clustering_maker import ClusteringMaker
 from MongoDB.util.alternative_clustering_maker import AlternativeClusteringMaker
 from MongoDB.util.clustering_maker_custom import ClusteringMakerCustom
+import logging
+import sys
 
 def _parse_arguments() -> argparse.Namespace:
     """
@@ -31,6 +33,8 @@ if __name__ == '__main__':
     with open(MONGO_CONFIG, encoding='utf-8') as handle:
         config_data = yaml.safe_load(handle)
 
+    logging.basicConfig(level=logging.INFO, stream=sys.stdout)
+
     # Open collections
     mongoinit = Mongoinitialisation()
     isolates_collection, isolateresults_collection, isolates_badqc_collection = mongoinit._initialise_collections(config_data, args.species)
@@ -40,6 +44,24 @@ if __name__ == '__main__':
     # isolateresults_collection.drop()
     mongoquerying = Mongoquerying()
     # for result in mongoquerying._query_results_by_technicalids(isolates_collection, isolateresults_collection,
+
+    #print(isolates_collection.find_one()['results'].keys())
+    #mongoquerying.query_failed_causes(isolates_badqc_collection)
+    # list_of_lists = [docs['results']['species_confirmation']['loci'] for docs in isolates_collection.find()]
+    # import itertools
+    # list_all = list(itertools.chain.from_iterable(list_of_lists))
+    # print([':'.join([locus['Locus'], locus['Allele']]) for locus in list_all])
+    # for locus in list_all:
+    #     import re
+    #     if re.findall(r'(?i)(?<![a-z0-9])[a-f0-9]{32}(?![a-z0-9])', locus['Allele']):
+    #         print(':'.join([locus['Locus'], locus['Allele']]))
+    # print([docs for docs in isolates_collection.find({},{'_id': 1})])
+
+    mongoquerying.query_what_changed_compared_to_previous('S14BD00001_R1_001', isolates_collection, isolateresults_collection)
+
+
+    # print(mongoquerying._query_list_of_all_distinct_values(isolates_collection, '_id'))
+    # for result in mongoquerying._query_previous_latest_results_by_technicalids(isolates_collection, isolateresults_collection,
     #                                                            mongoquerying._query_list_of_all_distinct_values(
     #                                                                    isolates_collection, "_id")):
     #     if 'testiffail' in result.keys():

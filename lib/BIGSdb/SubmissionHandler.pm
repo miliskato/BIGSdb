@@ -891,7 +891,7 @@ sub _is_field_bad_isolates {
 		my $message = $self->$method( $fieldname, $value );
 		return $message if $message;
 	}
-	my @checks = qw(sender regex datestamp integer date float boolean optlist length optional);
+	my @checks = qw(sender regex datestamp integer date float boolean geography_point optlist length optional);
 	foreach my $check (@checks) {
 		my $method = "_check_isolate_$check";
 		my $message = $self->$method( $fieldname, $value );
@@ -1377,6 +1377,25 @@ sub _check_isolate_boolean {    ## no critic (ProhibitUnusedPrivateSubroutines) 
 	return;
 }
 
+sub _check_isolate_geography_point {    ## no critic (ProhibitUnusedPrivateSubroutines) #Called by dispatch table
+	my ( $self, $field, $value ) = @_;
+	my $thisfield = $self->{'cache'}->{'field_attributes'}->{$field};
+	$logger->error("$field attributes not cached") if !$thisfield;
+	return if $thisfield->{'type'} ne 'geography_point';
+	if ( $value =~ /^\s*(\-?\d+\.?\d*)\s*,\s*(\-?\d+\.?\d*)\s*$/x ) {
+		my ( $lat, $long ) = ( $1, $2 );
+		if ( defined $lat && !defined $long ) {
+			return q(must be in the form of 'latitude, longitude');
+		}
+		if ( abs($lat) > 90 || abs($long) > 180 ) {
+			return q(latitude must be in the range: -90 - 90; longitude must be in the range: -180 - 180);
+		}
+	} else {
+		return q(must be in the form of 'latitude, longitude');
+	}
+	return;
+}
+
 sub _check_isolate_optlist {    ## no critic (ProhibitUnusedPrivateSubroutines) #Called by dispatch table
 	my ( $self, $field, $value ) = @_;
 	my $thisfield = $self->{'cache'}->{'field_attributes'}->{$field};
@@ -1690,7 +1709,7 @@ sub email {
 		$logger->logdie("No $_") if !$params->{$_};
 	}
 	my $domain     = $self->{'config'}->{'domain'} // DEFAULT_DOMAIN;
-	my $from_email = qq(no_reply\@$domain);
+	my $sender_address = $self->{'config'}->{'automated_email_address'} // "no_reply\@$domain";
 	my $sender     = $self->{'datastore'}->get_user_info( $params->{'sender'} );
 	my $recipient  = $self->{'datastore'}->get_user_info( $params->{'recipient'} );
 	foreach my $user ( $sender, $recipient ) {
@@ -1710,7 +1729,7 @@ sub email {
 	  : undef;
 	my $header_params = [
 		To      => $recipient->{'email'},
-		From    => $from_email,
+		From    => $sender_address,
 		Subject => $subject
 	];
 	push @$header_params, ( Cc => $cc ) if defined $cc;

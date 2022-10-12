@@ -499,6 +499,7 @@ sub _check_data {
 					}
 				);
 				$value //= q();
+				$self->_run_table_specific_reformatting( $table, $new_args );
 				if ( defined $file_header_pos->{$field} || ( $field eq 'id' ) ) {
 					$checked_record .= qq($value\t);
 				}
@@ -566,6 +567,11 @@ sub _check_data {
 					$self->_check_corresponding_sequence_exists( $pk_values_ref, $problems, $pk_combination );
 					$self->check_permissions( $locus, $new_args, $problems, $pk_combination );
 				},
+				sequence_extended_attributes => sub {
+					$self->_check_corresponding_sequence_exists( [ $pk_values_ref->[0], $pk_values_ref->[2] ],
+						$problems, $pk_combination );
+					$self->check_permissions( $locus, $new_args, $problems, $pk_combination );
+				},
 				loci => sub {
 					$self->_check_data_loci($new_args);
 				},
@@ -592,6 +598,9 @@ sub _check_data {
 				},
 				lincode_prefixes => sub {
 					$self->_check_lincode_prefix_values( $new_args, $problems, $pk_combination );
+				},
+				geography_point_lookup => sub {
+					$self->_check_geography_point_values( $new_args, $problems, $pk_combination );
 				}
 			);
 			$record_checks{$table}->() if $record_checks{$table};
@@ -780,6 +789,22 @@ sub _check_lincode_prefix_values {
 	return;
 }
 
+sub _check_geography_point_values {
+	my ( $self, $args, $problems, $pk_combination ) = @_;
+	my ( $data, $file_header_pos ) = ( $args->{'data'}, $args->{'file_header_pos'} );
+	my $location = $data->[ $file_header_pos->{'location'} ] ;
+	if ( $location =~ /^\s*(\-?\d+\.?\d*)\s*,\s*(\-?\d+\.?\d*)\s*$/x ) {
+		my ( $lat, $long ) = ( $1, $2 );
+		if ( $lat < -90 || $lat > 90 || $long < -180 || $long > 180 ) {
+			$problems->{$pk_combination} .= qq('$data->[$file_header_pos->{'field'}]' latitude must be in the )
+			. q(range: -90 - 90; longitude must be in the range: -180 - 180 );
+		}
+	} else {
+		$problems->{$pk_combination} .= "$data->[$file_header_pos->{'field'}] should be in the format '[Latitude], [Longitude]'.";
+	}
+	return;
+}
+
 sub _check_validation_conditions {
 	my ( $self, $args, $problems, $pk_combination ) = @_;
 	my ( $data, $file_header_pos ) = ( $args->{'data'}, $args->{'file_header_pos'} );
@@ -844,6 +869,8 @@ sub check_permissions {
 sub _check_corresponding_sequence_exists {
 	my ( $self, $pk_values_ref, $problems, $pk_combination ) = @_;
 	return if $self->{'system'}->{'dbtype'} ne 'sequences';
+	return if !defined $pk_values_ref->[0];
+	return if !defined $pk_values_ref->[1];
 	if ( !$self->{'datastore'}->sequence_exists(@$pk_values_ref) ) {
 		$problems->{$pk_combination} .= "Sequence $pk_values_ref->[0]-$pk_values_ref->[1] does not exist. ";
 	}
@@ -898,6 +925,42 @@ sub _run_table_specific_field_checks {
 	);
 	$further_checks{$table}->() if $further_checks{$table};
 	return;
+}
+
+sub _run_table_specific_reformatting {
+	my ( $self, $table, $new_args ) = @_;
+	my %methods = (
+		isolates => sub {
+			$self->_rewrite_geography_point_data($new_args);
+		}
+	);
+	$methods{$table}->() if $methods{$table};
+	return;
+}
+
+sub _rewrite_geography_point_data {
+	my ( $self,  $args )  = @_;
+	my ( $field, $value ) = @{$args}{qw(field value)};
+	my $geo_fields = $self->_get_geography_point_fields;
+	return if !$geo_fields->{$field};
+	if ( $$value =~ /^\s*(\-?\d+\.?\d*)\s*,\s*(\-?\d+\.?\d*)\s*$/x ) {
+		$$value = $self->{'datastore'}->convert_coordinates_to_geography( $1, $2 );
+	}
+	return;
+}
+
+sub _get_geography_point_fields {
+	my ($self) = @_;
+	if ( !defined $self->{'cache'}->{'geography_point_fields'} ) {
+		$self->{'cache'}->{'geography_point_fields'} = {};
+		my $atts = $self->{'xmlHandler'}->get_all_field_attributes;
+		foreach my $field ( keys %$atts ) {
+			if ( ( $atts->{$field}->{'type'} // q() ) eq 'geography_point' ) {
+				$self->{'cache'}->{'geography_point_fields'}->{$field} = 1;
+			}
+		}
+	}
+	return $self->{'cache'}->{'geography_point_fields'};
 }
 
 sub _get_existing_label_field_values {
@@ -1629,7 +1692,7 @@ sub _get_polling_javascript {
 	my $error         = $self->print_bad_status(
 		{
 			message  => 'Could not find results file',
-			detail   => 'Please try re-uploading sequences.',
+			detail   => 'Please try re-uploading records.',
 			get_only => 1
 		}
 	);

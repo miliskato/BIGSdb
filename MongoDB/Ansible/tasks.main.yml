@@ -47,10 +47,12 @@
     group: root
     mode: '0644'
 
+# enabled: Whether the unit should start on boot.
 - name: Start Mongod service
   ansible.builtin.systemd:
     state: started
     name: mongod
+    enabled: yes
 
 - name: ansible debug; trial to get a list of hostnames for the replicaset members
   ansible.builtin.debug:

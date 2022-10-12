@@ -1,6 +1,6 @@
 #Microreact.pm - Phylogenetic tree/data visualization plugin for BIGSdb
 #Written by Keith Jolley
-#Copyright (c) 2017-2021, University of Oxford
+#Copyright (c) 2017-2022, University of Oxford
 #E-mail: keith.jolley@zoo.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
@@ -65,7 +65,7 @@ sub get_attributes {
 		buttontext => 'Microreact',
 		menutext   => 'Microreact',
 		module     => 'Microreact',
-		version    => '1.1.3',
+		version    => '1.3.0',
 		dbtype     => 'isolates',
 		section    => 'third_party,postquery',
 		input      => 'query',
@@ -73,7 +73,7 @@ sub get_attributes {
 		requires   => 'aligner,offline_jobs,js_tree,clustalw,microreact_token',
 		order      => 40,
 		min        => 2,
-		max => $self->{'system'}->{'microreact_record_limit'} // $self->{'config'}->{'microreact_record_limit'}
+		max        => $self->{'system'}->{'microreact_record_limit'} // $self->{'config'}->{'microreact_record_limit'}
 		  // MAX_RECORDS,
 		url                 => "$self->{'config'}->{'doclink'}/data_analysis/microreact.html",
 		system_flag         => 'Microreact',
@@ -96,7 +96,8 @@ sub run_job {
 
 sub _get_country_field {
 	my ($self) = @_;
-	my $country_field = $self->{'system'}->{'microreact_country_field'} // 'country';
+	my $country_field = $self->{'system'}->{'microreact_country_field'} // $self->{'system'}->{'country_field'}
+	  // 'country';
 	return $self->{'xmlHandler'}->is_field($country_field) ? $country_field : undef;
 }
 
@@ -142,12 +143,22 @@ sub _microreact_upload {
 	my $microreact_json = $converter_response->decoded_content;
 	my $microreact_data = decode_json($microreact_json);
 	my $country_field   = $self->_get_country_field;
-	if ( defined $country_field ) {
+	my $geo_field       = $self->_get_geo_field($params);
+	if ( defined $geo_field ) {
+		$microreact_data->{'maps'}->{'map-1'} = {
+			dataType       => 'geographic-coordinates',
+			title          => 'Map',
+			latitudeField  => '__latitude',
+			longitudeField => '__longitude'
+		};
+	} elsif ( defined $country_field ) {
 		$country_field =~ s/_/ /gx;
 		$microreact_data->{'maps'}->{'map-1'} = {
-			dataType     => 'iso-3166-codes',
-			iso3166Field => 'iso3166',
-			title        => 'Map'
+			dataType       => 'iso-3166-codes',
+			iso3166Field   => 'iso3166',
+			title          => 'Map',
+			latitudeField  => '__latitude',
+			longitudeField => '__longitude'
 		};
 	}
 	my $year_field = $self->_get_year_field;
@@ -226,6 +237,13 @@ sub _create_tsv_file {
 		}
 	}
 	push @header_fields, 'iso3166' if defined $country_field;
+	my $geo_field = $self->_get_geo_field($params);
+	my $lookup_field;
+	if ($geo_field) {
+		my $att = $self->{'xmlHandler'}->get_field_attributes($geo_field);
+		$lookup_field = ( $att->{'geography_point_lookup'} // q() ) eq 'yes';
+	}
+	push @header_fields, qw(__latitude __longitude) if $geo_field;
 	local $" = qq(\t);
 	say $fh "@header_fields";
 	my $iso_lookup = dclone(COUNTRIES);
@@ -241,6 +259,9 @@ sub _create_tsv_file {
 		my @record_values;
 		foreach my $field (@$prov_fields) {
 			my $field_value = $self->get_field_value( $record, $field );
+			if ( $self->{'datastore'}->field_needs_conversion($field) ) {
+				$field_value = $self->{'datastore'}->convert_field_value( $field, $field_value );
+			}
 			push @record_values, $field_value if $include_fields{"f_$field"};
 			my $extatt = $extended->{$field};
 			if ( ref $extatt eq 'ARRAY' ) {
@@ -267,10 +288,48 @@ sub _create_tsv_file {
 			}
 		}
 		push @record_values, $iso2 if defined $country_field;
+		if ($geo_field) {
+			my $coordinate_values = $self->_process_geo_field( $iso2, $record, $geo_field, $lookup_field );
+			push @record_values, @$coordinate_values;
+		}
 		say $fh "@record_values";
 	}
 	close $fh;
 	return $tsv_file;
+}
+
+sub _process_geo_field {
+	my ( $self, $iso2, $record, $geo_field, $lookup_field ) = @_;
+	my $values = [];
+	if ( defined $record->{$geo_field} ) {
+		if ($lookup_field) {
+			my $lookup =
+			  $self->{'datastore'}
+			  ->run_query( 'SELECT location FROM geography_point_lookup WHERE (country_code,field,value)=(?,?,?)',
+				[ $iso2, $geo_field, $record->{$geo_field} ] );
+			if ( defined $lookup ) {
+				my $coordinates = $self->{'datastore'}->get_geography_coordinates($lookup);
+				@$values = ( $coordinates->{'latitude'}, $coordinates->{'longitude'} );
+			} else {
+				@$values = ( q(), q() );
+			}
+		} else {
+			my $coordinates = $self->{'datastore'}->get_geography_coordinates( $record->{$geo_field} );
+			@$values = ( $coordinates->{'latitude'}, $coordinates->{'longitude'} );
+		}
+	} else {
+		@$values = ( q(), q() );
+	}
+	return $values;
+}
+
+sub _get_geo_field {
+	my ( $self, $params ) = @_;
+	return if !defined $params->{'geo_field'};
+	my $geo_field;
+	my $country_field = $self->_get_country_field;
+	$geo_field = $params->{'geo_field'} if !defined $country_field || $params->{'geo_field'} ne $country_field;
+	return $geo_field;
 }
 
 sub print_extra_form_elements {
@@ -295,17 +354,40 @@ sub print_extra_form_elements {
 		  . qq(Note that $self->{'system'}->{'labelfield'}, country and year are always included.) );
 	$self->print_includes_fieldset(
 		{
-			description         => qq(Select additional fields to include. $tooltip),
-			isolate_fields      => 1,
-			extended_attributes => 1,
-			scheme_fields       => 1,
-			hide                => "f_$self->{'system'}->{'labelfield'},f_country,f_year"
+			description              => qq(Select additional fields to include. $tooltip),
+			isolate_fields           => 1,
+			nosplit_geography_points => 1,
+			extended_attributes      => 1,
+			scheme_fields            => 1,
+			hide                     => "f_$self->{'system'}->{'labelfield'},f_country,f_year"
 		}
 	);
 
 	if ( $self->{'config'}->{'domain'} ) {
 		my $http = $q->https ? 'https' : 'http';
 		say $q->hidden( website => "$http://$self->{'config'}->{'domain'}$self->{'system'}->{'webroot'}" );
+	}
+	my $geo_fields = [];
+	my $fields     = $self->{'xmlHandler'}->get_field_list;
+	foreach my $field (@$fields) {
+		my $att = $self->{'xmlHandler'}->get_field_attributes($field);
+		if ( ( $att->{'type'} // q() ) eq 'geography_point' || ( $att->{'geography_point_lookup'} // q() ) eq 'yes' ) {
+			push @$geo_fields, $field;
+		}
+	}
+	if (@$geo_fields) {
+		my $country_field = $self->_get_country_field;
+		unshift @$geo_fields, $country_field if defined $country_field;
+		say q(<fieldset style="float:left"><legend>Geographic field</legend>);
+		say q(<p>Select field to use for mapping.</p>);
+		say q(<label for="geofield">Field: </label>);
+		my $labels = {};
+		foreach my $field (@$geo_fields) {
+			( my $label = $field ) =~ tr/_/ /;
+			$labels->{$field} = $label;
+		}
+		say $q->popup_menu( -id => 'geo_field', -name => 'geo_field', values => $geo_fields, labels => $labels );
+		say q(</fieldset>);
 	}
 	return;
 }

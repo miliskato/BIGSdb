@@ -3,6 +3,10 @@ mail:
     to: michael.kelchtermans@sciensano.be, benoit.bergkpinto@sciensano.be
     host: smtp.wiv-isp.be
 
+failsafe:
+  flag_dir: /scratch/temp/flags
+  flag_append: bigsupload_start_flag
+
 species:
   listeria:
     typing_schemes:

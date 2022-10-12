@@ -1,6 +1,6 @@
 #PCR.pm - In silico PCR plugin for BIGSdb
 #Written by Keith Jolley
-#Copyright (c) 2019-2020, University of Oxford
+#Copyright (c) 2019-2022, University of Oxford
 #E-mail: keith.jolley@zoo.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
@@ -38,7 +38,7 @@ my $logger = get_logger('BIGSdb.Plugins');
 sub get_attributes {
 	my ($self) = @_;
 	my %att = (
-		name             => 'PCR',
+		name    => 'PCR',
 		authors => [
 			{
 				name        => 'Keith Jolley',
@@ -57,7 +57,7 @@ sub get_attributes {
 		buttontext  => 'PCR',
 		menutext    => 'In silico PCR',
 		module      => 'PCR',
-		version     => '1.0.8',
+		version     => '1.0.10',
 		dbtype      => 'isolates',
 		section     => 'isolate_info,analysis,postquery',
 		input       => 'query',
@@ -353,7 +353,7 @@ sub run_job {
 	my $progress = 0;
 	my @fields   = (
 		'id', $self->{'system'}->{'labelfield'},
-		'PCR +ve', 'products', 'contig', 'length', 'start', 'end', 'description'
+		'PCR +ve', 'products', 'contig', 'length', 'start', 'end', 'direction'
 	);
 	local $" = q(</th><th>);
 	my $table_header = qq(<table class="resultstable"><tr><th>@fields</th></tr>);
@@ -396,17 +396,17 @@ sub run_job {
 			$row_buffer .=
 			  qq(<tr class="td$td"><td>$id</td><td>$label</td><td>$bad</td><td>0</td><td colspan="5"></td></tr>);
 		} elsif ( $num_results == 1 ) {
-			my @values = @{ $results->[0] }{qw(seqbin_id length start end description)};
+			my @values = @{ $results->[0] }{qw(seqbin_id length start end direction)};
 			$row_buffer .=
 			  qq(<tr class="td$td"><td>$id</td><td>$label</td><td>$good</td><td>1</td><td>@values</td></tr>);
 		} else {
-			my @values = @{ $results->[0] }{qw(seqbin_id length start end description)};
+			my @values = @{ $results->[0] }{qw(seqbin_id length start end direction)};
 			$row_buffer .=
 			    qq(<tr class="td$td"><td rowspan="$num_results">$id</td>)
 			  . qq(<td rowspan="$num_results">$label</td><td rowspan="$num_results">$good</td>)
 			  . qq(<td rowspan="$num_results">$num_results</td><td>@values</td></tr>);
 			for my $i ( 1 .. $num_results - 1 ) {
-				@values = @{ $results->[$i] }{qw(seqbin_id length start end description)};
+				@values = @{ $results->[$i] }{qw(seqbin_id length start end direction)};
 				$row_buffer .= qq(<tr class="td$td"><td>@values</td></tr>);
 			}
 		}
@@ -425,7 +425,7 @@ sub run_job {
 				push @$export_seqs,
 				  {
 					id => qq(id:${id}_$j|$product->{'seqbin_id'}|)
-					  . qq($product->{'start'}-$product->{'end'}|$product->{'description'}),
+					  . qq($product->{'start'}-$product->{'end'}|$product->{'direction'}),
 					seq => $seqs->{'seq'}
 				  };
 				weaken($seqs);
@@ -495,11 +495,11 @@ sub _parse_results {
 		next if $line !~ /^ipcress:/x;
 		my @values = split /\s/x, $line;
 		my $product = {
-			seqbin_id   => $values[1],
-			length      => $values[3],
-			start       => $values[5] + 1,
-			end         => $values[8],
-			description => $desc->{ $values[10] }
+			seqbin_id => $values[1],
+			length    => $values[3],
+			start     => $values[5] + 1,
+			end       => $values[8],
+			direction => $desc->{ $values[10] }
 		};
 		$product->{'seqbin_id'} =~ s/:.*//x;
 		$product->{'end'} += ( $values[7] eq 'A' ) ? length( $params->{'primer1'} ) : length( $params->{'primer2'} );
@@ -588,7 +588,7 @@ sub _extract_seqs {
 			seqbin_id => $product->{'seqbin_id'},
 			start     => $product->{'start'},
 			end       => $product->{'end'},
-			reverse   => ( $product->{'description'} eq 'forward' ) ? 0 : 1
+			reverse   => ( $product->{'direction'} eq 'forward' ) ? 0 : 1
 		}
 	);
 	my $primer1 = substr( $seq->{'seq'}, 0, length( $params->{'primer1'} ) );
