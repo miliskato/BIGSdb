@@ -4,8 +4,6 @@ import logging
 import sys
 from pymongo.read_concern import ReadConcern
 
-from MongoDB.util.distance_matrix_query import DistanceMatrixQuery
-from MongoDB.util.hcnumbers_data import HCNumbersData
 
 
 class Mongoquerying(object, metaclass=abc.ABCMeta):
@@ -100,33 +98,33 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         logging.debug(f"Writing {collection_write.inserted_id} in collection {opened_collection}")
         return collection_write.inserted_id
 
-    def find_isolates_cgmlst_distance(self, isolate_id: str, distance_threshold: int, isolate_collection,
-                                      distance_matrix_collection) -> list:
-        isolate_sequence_type = isolate_collection.with_options(read_concern=ReadConcern(level="majority")).find_one({"_id": isolate_id})['HierCC_cgST']
-        distance_query = DistanceMatrixQuery(isolate_id, isolate_sequence_type, distance_threshold,
-                                             distance_matrix_collection)
-        st_under_threshold = distance_query.run_distance_query()
-        sample_id_below_threshold = []
-        for st in st_under_threshold:
-            query = isolate_collection.with_options(read_concern=ReadConcern(level="majority")).find({'HierCC_cgST': st})
-            for result in query:
-                sample_id_below_threshold.append(result['_id'])
-        return sample_id_below_threshold
-
-    def find_HC_numbers_for_isolate(self, isolate_id: str, isolate_collection, hiercc_collection,
-                                    hc_number: str) -> int:
-        """
-        query to retrieve a specific hc number from an isolate
-        :param isolate_id: the id from the desired isolate
-        :param isolate_collection: the mongo db collection of isolates
-        :param hiercc_collection:  the mongo db collection of hiercc results
-        :param hc_number: the hc number (starting with HC..) to be retrieved
-        :return: the hc number of the cluster where the isolates is located.
-        """
-        isolate_sequence_type = isolate_collection.with_options(read_concern=ReadConcern(level="majority")).find_one({"_id": isolate_id})['HierCC_ST']
-        hc_numbers = hiercc_collection.with_options(read_concern=ReadConcern(level="majority")).find({"ST": isolate_sequence_type})
-        hc_data = HCNumbersData(isolate_sequence_type, hc_numbers)
-        return hc_data.get_hc_number(hc_number)
+    # def find_isolates_cgmlst_distance(self, isolate_id: str, distance_threshold: int, isolate_collection,
+    #                                   distance_matrix_collection) -> list:
+    #     isolate_sequence_type = isolate_collection.with_options(read_concern=ReadConcern(level="majority")).find_one({"_id": isolate_id})['HierCC_cgST']
+    #     distance_query = DistanceMatrixQuery(isolate_id, isolate_sequence_type, distance_threshold,
+    #                                          distance_matrix_collection)
+    #     st_under_threshold = distance_query.run_distance_query()
+    #     sample_id_below_threshold = []
+    #     for st in st_under_threshold:
+    #         query = isolate_collection.with_options(read_concern=ReadConcern(level="majority")).find({'HierCC_cgST': st})
+    #         for result in query:
+    #             sample_id_below_threshold.append(result['_id'])
+    #     return sample_id_below_threshold
+    #
+    # def find_HC_numbers_for_isolate(self, isolate_id: str, isolate_collection, hiercc_collection,
+    #                                 hc_number: str) -> int:
+    #     """
+    #     query to retrieve a specific hc number from an isolate
+    #     :param isolate_id: the id from the desired isolate
+    #     :param isolate_collection: the mongo db collection of isolates
+    #     :param hiercc_collection:  the mongo db collection of hiercc results
+    #     :param hc_number: the hc number (starting with HC..) to be retrieved
+    #     :return: the hc number of the cluster where the isolates is located.
+    #     """
+    #     isolate_sequence_type = isolate_collection.with_options(read_concern=ReadConcern(level="majority")).find_one({"_id": isolate_id})['HierCC_ST']
+    #     hc_numbers = hiercc_collection.with_options(read_concern=ReadConcern(level="majority")).find({"ST": isolate_sequence_type})
+    #     hc_data = HCNumbersData(isolate_sequence_type, hc_numbers)
+    #     return hc_data.get_hc_number(hc_number)
 
     def query_failed_causes(self, isolates_badqc_collection):
         """
@@ -146,3 +144,19 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
                                               round((int(status_dict['Failed']) / sum(status_dict.values()) * 100), 1)))
                     else:
                         print("{}\t{}".format(key, 0))
+
+    def query_what_changed_compared_to_previous(self, isolate_id, isolates_collection, isolateresults_collection):
+        # no checks are done to see if exists
+        new_results = isolates_collection.find_one({'results.isolates_id': isolate_id})['results']
+        old_results = isolateresults_collection.find_one({'isolates_id': isolate_id, 'results_version': new_results['results_version'] - 1})
+        for mainkey in new_results.keys():
+            if isinstance(new_results[mainkey], dict):
+                for subkey in new_results[mainkey].keys():
+                    if mainkey not in old_results.keys():
+                        logging.info(f"{mainkey} not in old results")
+                    elif subkey == 'loci' or subkey == 'results' or subkey.startswith('hits'):
+                        if subkey not in old_results[mainkey].keys() or new_results[mainkey][subkey] != \
+                                old_results[mainkey][subkey]:
+                            # keep in mind that loci is a list: it seems as if loci are always outputted in the same order though so that is allright
+                            logging.info(f"{mainkey}{subkey} different or not in old")
+                            logging.info(f"from old '{[x for x in old_results[mainkey][subkey] if x not in new_results[mainkey][subkey]]}' was/were removed or changed to '{[x for x in new_results[mainkey][subkey] if x not in old_results[mainkey][subkey]]}'")

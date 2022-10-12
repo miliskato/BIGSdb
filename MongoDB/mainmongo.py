@@ -138,8 +138,6 @@ if __name__ == '__main__':
         # Open collections
         mongoinit = Mongoinitialisation()
         isolates_collection, isolateresults_collection, isolates_badqc_collection = mongoinit._initialise_collections(config_data, args.species)
-        st_collection, hiercc_results_collection, distance_matrix_collection = \
-            mongoinit.initialise_hiercc_collections(config_data, args.species)
         mongoquerying = Mongoquerying()
 
         # If statement for reanalysis or new
