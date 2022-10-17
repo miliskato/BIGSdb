@@ -50,8 +50,8 @@ def hamming_dist(mat, s, e):
         for j in range(i) :
             hamming = 0
             for k in range(n_loci) :
-                if mat[j, k] != 0 :
-                    if mat[i, k] != 0 :
+                if mat[j, k] != '0' :
+                    if mat[i, k] != '0' :
                         if mat[i, k] != mat[j, k]:
                             hamming += 1
             dist[i - s, j] = int(hamming)

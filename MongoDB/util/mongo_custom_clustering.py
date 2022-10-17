@@ -59,14 +59,14 @@ class MongoCustomClustering:
             st_collection.insert_one({'ID':'headers',
                                       'headers': self.cgmlst_profile.loci})
             db_headers = st_collection.find_one({'ID': 'headers'})['headers']
-        if self.cgmlst_profile.loci != db_headers[1:len(db_headers)]:
+        if self.cgmlst_profile.loci != db_headers:
             bad_headers_map = {}
             for i, b in enumerate(self.cgmlst_profile.loci):
                 bad_headers_map[b] = i
-            good_indices = [bad_headers_map[a] for a in db_headers[1:len(db_headers)]]
+            good_indices = [bad_headers_map[a] for a in db_headers]
             self.cgmlst_profile.loci = [self.cgmlst_profile.loci[i] for i in good_indices]
             self.cgmlst_profile.cgmlst = [self.cgmlst_profile.cgmlst[j] for j in good_indices]
-            if self.cgmlst_profile.loci != db_headers[1:len(db_headers)]:
+            if self.cgmlst_profile.loci != db_headers:
                 raise ValueError('Impossible to get the same cgmlst, issue in the cgmlst profile')
 
     def __query_sequence_types(self, st_collection) -> int:
