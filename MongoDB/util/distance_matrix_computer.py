@@ -54,7 +54,7 @@ class DistanceMatrixComputer:
             query_all_data = self.st_collection.find({'$or': query_or})
         for doc in query_all_data:
             if 'ST' in doc:
-                self.cgmlst_profiles.append(np.array(doc['cgMLST'].split(','), dtype=np.int32))
+                self.cgmlst_profiles.append(np.array(doc['cgMLST'].split(',')))
                 self.sequence_types.append(doc['ST'])
 
     def __sorting_cgmlst_profiles(self) -> None:
@@ -99,21 +99,38 @@ class DistanceMatrixComputer:
             logging.info(f"{datetime.now()}: Clustering membership finished for threshold {thresh}")
         logging.info(f"{datetime.now()}: Clustering and clustering membership finished")
 
+    def _merge_clusters(self, memberships: list, threshold: int) -> int:
+        cluster_sizes = []
+        print(f'merging clusters {memberships}')
+        memberships.sort()
+        for cluster in memberships:
+            cluster_sizes.append(self.cluster_membership_collection.count_documents({'Threshold': threshold,
+                                                                                     'Clustering_membership': cluster}))
+        biggest_cluster = max(cluster_sizes)
+        max_index = cluster_sizes.index(biggest_cluster)
+        new_cluster_name = memberships[max_index]
+        clusters_to_rename = [x for i, x in enumerate(memberships) if i != max_index]
+        for cl in clusters_to_rename:
+            query = {'Threshold': threshold,
+                     'Clustering_membership': cl}
+            update = {'$set': {'Clustering_membership': new_cluster_name}}
+            self.cluster_membership_collection.update_many(query, update)
+        return new_cluster_name
+
     def new_st_cluster_membership(self, cluster_thresholds: list) -> None:
         for thresh in cluster_thresholds:
             membership = []
-            for it in range(len(self.hamming_distances[0])-1):
+            for it in range(len(self.hamming_distances[0]) - 1):
                 if self.hamming_distances[0][it] <= thresh:
-                    print(f"found one at st {self.sequence_types[it]}")
-                    membership = membership + \
-                                 self.cluster_membership_collection.find_one({'ST': self.sequence_types[it],
-                                                                              'Threshold': thresh})[
-                                     'Clustering_membership']
+                    membership.append(self.cluster_membership_collection.find_one({'ST': self.sequence_types[it], 'Threshold': thresh})['Clustering_membership'])
+            membership = list(set(membership))
+            if len(membership) > 1:
+                membership = [self._merge_clusters(membership, thresh)]
             if len(membership) == 0:
                 membership.append(self.sequence_types[-1])
             entry = {'ST': self.sequence_types[-1],
                      'Threshold': thresh,
-                     'Clustering_membership': list(set(membership))}
+                     'Clustering_membership': membership[0]}
             self.cluster_membership_collection.insert_one(entry)
 
     def insert_hamming_distances_in_mongo(self):

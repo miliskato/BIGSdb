@@ -83,11 +83,16 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
                 allele_id = locus['Allele']
                 if locus['% Identity'] == '100.00' and eval(locus['HSP/Locus length']) == 1.0:
                     if len(allele_id) < 32:
-                        resultlist.append(int(allele_id))
+                        if allele_id != '?' and allele_id != '-':
+                            resultlist.append(int(allele_id))
+                        else:
+                            print('weird case of interrogation 100 percent')
+                            resultlist.append(0)
+
                     else:
                         allele_number = hashed_allele_collection.find_one({"scheme": scheme, "locus": locus['Locus'],
                                                                           "hashed_allele": allele_id})["allele_number"]
-                        resultlist.append(int(allele_number))
+                        resultlist.append(allele_number)
                 else:
                     resultlist.append(0)
             listofresultlists.append(resultlist)

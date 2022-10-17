@@ -32,7 +32,7 @@ class Mongoinitialisation:
         :return: opened collection object
         """
         # MongoDB creates collections on the fly while inserting any Documents, we do not want to allow unwanted collections to be created, therefore this check:
-        if collection in ["isolates", "old_isolate_results", "isolates_badqc", "sequence_types", "hiercc_results", "cluster_membership", "new_allele_hashes"]:
+        if collection in ["isolates", "old_isolate_results", "isolates_badqc", "sequence_types", "new_allele_hashes", "cluster_membership", "new_allele_hashes"]:
             opened_collection = opened_database[collection]
             logging.debug(f"opened collection {collection}")
             return opened_collection
@@ -56,19 +56,24 @@ class Mongoinitialisation:
         isolates_badqc_collection = self._open_mongo_collection(species_database, "isolates_badqc")
         return isolates_collection, isolateresults_collection, isolates_badqc_collection
 
+    def initialise_clustering_collections(self, config_data: dict, species: str):
+        """
+        Initialises database and collections for interaction
+        :param config_data: config data to connect to Cloud Cluster
+        :param species: string that is the database name
+        :return: opened sequence_type and  for a given species
+        """
+        species_database = self._open_mongo_database(config_data, species)
+        st_collection = self._open_mongo_collection(species_database, "sequence_types")
+        cluster_membership_collection = self._open_mongo_collection(species_database, "cluster_membership")
+        return st_collection,  cluster_membership_collection
+
     def initialise_hashing_collection(self, config_data: dict, species: str) -> object:
         """
         :param config_data:
         :param species:
         :return: Opened hashing collection
         """
-        species_database = self._open_mongo_database(config_data, species)
-        st_collection = self._open_mongo_collection(species_database, "sequence_types")
-        hiercc_results_collection = self._open_mongo_collection(species_database, "hiercc_results")
-        cluster_membership_collection = self._open_mongo_collection(species_database, "cluster_membership")
-        return st_collection, hiercc_results_collection, cluster_membership_collection
-
-    def initialise_hashing_collection(self, config_data: dict, species: str):
         species_database = self._open_mongo_database(config_data, species)
         hashed_AD_collection = self._open_mongo_collection(species_database, "new_allele_hashes")
         return hashed_AD_collection

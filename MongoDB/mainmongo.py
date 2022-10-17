@@ -15,10 +15,10 @@ from email.message import EmailMessage
 import socket
 import traceback
 import os
-
 from util.mongo_results import Mongoresults
 from util.mongo_querying import Mongoquerying
 from util.mongo_initialisation import Mongoinitialisation
+from util.mongo_custom_clustering import MongoCustomClustering
 from config import MONGO_CONFIG
 
 def _send_email(subject: str, content: str, config: dict) -> None:
@@ -45,7 +45,7 @@ def _parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--jsonfilepath", required=True, type=Path)
     parser.add_argument("--species", required=True, type=str,
-                        choices=['mycobacterium', 'listeria', 'neisseria', 'stec', 'salmonella'])
+                        choices=['mycobacterium', 'listeria', 'neisseria', 'stec', 'salmonella','listeria_test'])
     parser.add_argument("--results_type", required=True, type=str, choices=['new_isolate', 'reanalysis'])
     parser.add_argument("--fastafilepath", required=False, type=str)
     parser.add_argument("--vcffilepath", required=False, type=str)
@@ -66,7 +66,6 @@ def _new_isolate(technical_id: str, vcffilepath: str, fastafilepath: str,
     :param technical_id:
     :param vcffilepath:
     :param fastafilepath:
-    :param isolateresults_collection:
     :param results:
     :return:
     """
@@ -101,16 +100,11 @@ def prepend_string_dot_to_dict_keys(input_dictionary, prepending: str = 'results
     return dict((keydict[key], value) for (key, value) in input_dictionary_copy.items())
 
 def find_allele_number_new_entry(hashed_AD_collection):
-    max_np_int32 = 2147483647
-    query_hash_db = hashed_AD_collection.find({"scheme": 'cgmlst'})
-    query_list = [document for document in query_hash_db]
-    if query_list == []:
-        return max_np_int32
+    query_hash_db_size = hashed_AD_collection.count_documents({"scheme": 'cgmlst'})
+    if query_hash_db_size == 0:
+        return 'Temp_1'
     else:
-        allele_numbers = []
-        for doc in query_list:
-            allele_numbers.append(doc["allele_number"])
-        return min(allele_numbers)-1
+        return f'Temp_{query_hash_db_size + 1}'
 
 
 def find_hashes_in_results_and_add_to_collection(results: dict, mongoinit: object, config_data: dict, species: str):
@@ -126,7 +120,8 @@ def find_hashes_in_results_and_add_to_collection(results: dict, mongoinit: objec
                                                                "locus": allele_info['Locus'],
                                                                "hashed_allele": allele_info['Allele'],
                                                                "encountered_count": 1,
-                                                               "resolved_AD": 0
+                                                               "resolved_AD": 0,
+                                                               "allele_number": find_allele_number_new_entry(hashed_AD_collection)
                                                                })
                     else:
                         hashed_AD_collection.with_options(write_concern=WriteConcern(w="majority")).update_one({"_id": existing_document['_id']},
@@ -151,6 +146,8 @@ if __name__ == '__main__':
         # Open collections
         mongoinit = Mongoinitialisation()
         isolates_collection, isolateresults_collection, isolates_badqc_collection = mongoinit._initialise_collections(config_data, args.species)
+        st_collection, cluster_membership_collection = \
+            mongoinit.initialise_clustering_collections(config_data, args.species)
         mongoquerying = Mongoquerying()
 
         # If statement for reanalysis or new
@@ -180,19 +177,17 @@ if __name__ == '__main__':
                 logging.info(f"Wrote new isolate {args.technical_id} and its result to {args.species} database")
                 find_hashes_in_results_and_add_to_collection(records, mongoinit, config_data, args.species)
                 hashed_AD_collection = mongoinit.initialise_hashing_collection(config_data, args.species)
-                hiercc_input = mongoquerying._query_typing_results_by_technicalids_and_scheme(isolates_collection,
-                                                                                              hashed_AD_collection,
-                                                                                              scheme="cgmlst",
-                                                                                              technicalids=
+                clustering_input = mongoquerying._query_typing_results_by_technicalids_and_scheme(isolates_collection,
+                                                                                                  hashed_AD_collection,
+                                                                                                  scheme="cgmlst",
+                                                                                                  technicalids=
                                                                                               [args.technical_id])
-                print(hiercc_input)
-                # #initialize an object to enter data in the HierCC collections and do the clustering
-                # hiercc_clustering = MongoHierCCClustering(hiercc_input[0], hiercc_input[1], args.species)
-                # logging.info(f"Running the clustering for the isolate {args.technical_id}")
-                # sequence_type = hiercc_clustering.run_hiercc_clustering(st_collection, hiercc_results_collection,
-                #                                                         distance_matrix_collection)
-                # isolates_collection.with_options(write_concern=WriteConcern(w="majority")).update_one({"_id": records["isolates_id"]},
-                #                                             {"$set": {"results.HierCC_cgST": sequence_type}})
+                custom_clustering = MongoCustomClustering(clustering_input[0], clustering_input[1], args.species)
+                logging.info(f"Running the clustering for the isolate {args.technical_id}")
+                sequence_type = custom_clustering.run_custom_clustering(st_collection,
+                                                                        cluster_membership_collection, [1])
+                isolates_collection.find_one_and_update({"_id": records["isolates_id"]},
+                                                        {"$set": {"ST": sequence_type}})
             else:
                 _write_document(isolates_badqc_collection, _new_isolate(args.technical_id, args.vcffilepath, args.fastafilepath,
                                                                   records))

@@ -53,7 +53,12 @@ class MongoCustomClustering:
                 return None
 
     def __check_order_of_cgmlst_profile(self, st_collection) -> None:
-        db_headers = st_collection.find_one({'ID': 'headers'})['headers']
+        try :
+            db_headers = st_collection.find_one({'ID': 'headers'})['headers']
+        except:
+            st_collection.insert_one({'ID':'headers',
+                                      'headers': self.cgmlst_profile.loci})
+            db_headers = st_collection.find_one({'ID': 'headers'})['headers']
         if self.cgmlst_profile.loci != db_headers[1:len(db_headers)]:
             bad_headers_map = {}
             for i, b in enumerate(self.cgmlst_profile.loci):
@@ -98,10 +103,11 @@ class MongoCustomClustering:
         :return:
         """
         latest_st = st_collection.find_one(sort=[("ST", -1)])
-        self.cgmlst_profile.st = latest_st['ST'] + 1
+        try:
+            self.cgmlst_profile.st = latest_st['ST'] + 1
+        except:
+            self.cgmlst_profile.st = 1
         st_collection.insert_one(self.cgmlst_profile.get_st_collection_entry())
-        with gzip.open(HIERCC_CONFIG[self.species]['running_st'], 'at') as f:
-            f.write(f'{self.cgmlst_profile.get_st_line_for_hiercc_input()}\n')
 
     def __compute_cluster_membership(self, st_collection, cluster_membership_collection, cluster_threshold: list) ->None:
         distance_matrix = DistanceMatrixComputer(st_collection, cluster_membership_collection, [0])
