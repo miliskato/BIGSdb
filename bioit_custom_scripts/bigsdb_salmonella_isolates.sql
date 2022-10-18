@@ -9,6 +9,9 @@ INSERT INTO eav_fields(field, value_format, category, description, no_curate, no
                 VALUES('html', 'text', 'galaxy report', 'galaxy html report', 't', 't', (SELECT CURRENT_DATE), 1);
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator)
                 VALUES('tsv', 'text', 'galaxy report', 'galaxy tsv report', 't', 't', (SELECT CURRENT_DATE), 1);
+INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('assembly', 'text', 'galaxy report', '', 't', 't', (SELECT CURRENT_DATE), 1);
+INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('VCF_unfiltered', 'text', 'galaxy report', '', 't', 't', (SELECT CURRENT_DATE), 1);
+INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('VCF_filtered', 'text', 'galaxy report', '', 't', 't', (SELECT CURRENT_DATE), 1);
 -- AMR
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('NCBI_AMR', 'text', 'Gene detection', '', 't', 't', (SELECT CURRENT_DATE), 1);
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('ResFinder', 'text', 'Gene detection', '', 't', 't', (SELECT CURRENT_DATE), 1);

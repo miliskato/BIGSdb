@@ -29,6 +29,9 @@ ALTER TABLE eav_text_hidden ADD CONSTRAINT eavt_isolate FOREIGN KEY (isolate_id)
 GRANT SELECT, INSERT, UPDATE, DELETE ON eav_text_hidden TO apache;
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('html', 'text', 'galaxy report', 'galaxy html report', 't', 't', (SELECT CURRENT_DATE), 1);
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('tsv', 'text', 'galaxy report', 'galaxy tsv report', 't', 't', (SELECT CURRENT_DATE), 1);
+INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('assembly', 'text', 'galaxy report', '', 't', 't', (SELECT CURRENT_DATE), 1);
+INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('VCF_unfiltered', 'text', 'galaxy report', '', 't', 't', (SELECT CURRENT_DATE), 1);
+INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('VCF_filtered', 'text', 'galaxy report', '', 't', 't', (SELECT CURRENT_DATE), 1);
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('NCBI_AMR', 'text', 'Gene detection', '', 't', 't', (SELECT CURRENT_DATE), 1);
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('ResFinder', 'text', 'Gene detection', '', 't', 't', (SELECT CURRENT_DATE), 1);
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('penicillin_SIR_S_frequency', 'text', 'Antibiotic resistance', 'Number of Penicillin susceptible isolates in PubMLST', 't', 't', (SELECT CURRENT_DATE), 1);

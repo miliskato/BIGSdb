@@ -17,6 +17,9 @@ INSERT INTO eav_fields(field, value_format, category, description, no_curate, no
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('VFDB_core', 'text', 'Gene detection', '', 't', 't', (SELECT CURRENT_DATE), 1);
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('VirulenceFinder_Listeria', 'text', 'Gene detection', '', 't', 't', (SELECT CURRENT_DATE), 1);
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('PlasmidFinder_grampositive', 'text', 'Gene detection', '', 't', 't', (SELECT CURRENT_DATE), 1);
+INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('assembly', 'text', 'galaxy report', '', 't', 't', (SELECT CURRENT_DATE), 1);
+INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('VCF_unfiltered', 'text', 'galaxy report', '', 't', 't', (SELECT CURRENT_DATE), 1);
+INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('VCF_filtered', 'text', 'galaxy report', '', 't', 't', (SELECT CURRENT_DATE), 1);
 CREATE TABLE eav_fields_hidden AS (SELECT * FROM eav_fields) WITH NO DATA;
 ALTER TABLE eav_fields_hidden ADD PRIMARY KEY(field);
 GRANT SELECT, INSERT, UPDATE, DELETE ON eav_fields_hidden TO apache;

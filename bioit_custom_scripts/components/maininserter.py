@@ -2,6 +2,7 @@ import logging
 import datetime
 import sys
 import socket
+from urllib.parse import urljoin
 
 from .json_superclass import JsonSuperClass
 
@@ -51,6 +52,13 @@ class MainInserter(JsonSuperClass):
         reportlink = f'<p><a href="/galaxyreports/{self.species}/{self.isolatename}/report.html" target="_blank"> html report</a></p>'
         self._insert_metadata('html', reportlink)
         self._insert_metadata('tsv', reportlink.replace('html', 'tsv'))
+        vcflink_unfiltered = f'<p><a href="/galaxyreports/{self.species}/{self.isolatename}/variant_calling/variants-{self.isolatename}-all.vcf" target="_blank">VCF unfiltered</a></p>'
+        self._insert_metadata('VCF_unfiltered', vcflink_unfiltered)
+        vcflink_filtered = f'<p><a href="/galaxyreports/{self.species}/{self.isolatename}/variant_calling/variants-{self.isolatename}-filtered.vcf" target="_blank">VCF filtered</a></p>'
+        self._insert_metadata('VCF_filtered', vcflink_filtered)
+        isolate_id = self.cur_isolates.execute(f"SELECT MAX(id) FROM isolates WHERE isolate='{self.isolatename}'")[0][0]
+        assemblylink = f'<p><a href="/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_{self.species}_isolates&page=plugin&name=Contigs&format=text&isolate_id={isolate_id}&match=1&pc_untagged=0&min_length=&header=1</a></p>'
+        self._insert_metadata('assembly', assemblylink)
         self._insert_species_specific_metadata()
         if 'results_version' in self.sample_output_dict.keys():
             self._insert_metadata_hidden('mongo_results_version', self.sample_output_dict['mongo_results_version'])
