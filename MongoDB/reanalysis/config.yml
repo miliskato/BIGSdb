@@ -21,13 +21,7 @@ species:
 #        main_script: mainsalmonellapipeline.py
 #        options: ['--serotype', '--spifinder', '--mlst', '--cgmlst', '--resfinder', '--ncbi-amr', '--vfdb-core', '--plasmidfinder', '--cgmlst', '--pointfinder']
 
-mail:
-    from: bioit-dev1@wiv-isp.be
-    to: michael.kelchtermans@sciensano.be, benoit.bergkpinto@sciensano.be
-    host: smtp.wiv-isp.be
-
 temp_dir: /scratch/temp
-threads_per_job: 2
 
 failsafe:
   flag_dir: /scratch/temp/flags

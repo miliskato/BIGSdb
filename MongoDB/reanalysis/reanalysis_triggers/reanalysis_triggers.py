@@ -14,10 +14,12 @@ import re
 import concurrent.futures
 import socket
 import traceback
+import json
 
 from MongoDB.reanalysis.reanalysis_triggers import TRIGGER_CONFIG
 from MongoDB.util.mongo_initialisation import Mongoinitialisation
 from MongoDB.config import MONGO_CONFIG
+from MongoDB.reanalysis.command.command import Command
 
 # https://stackoverflow.com/questions/5685007/making-git-log-ignore-changes-for-certain-paths
 # git log --date=short -- . ':(exclude)db_metadata.txt'
@@ -29,10 +31,9 @@ def _parse_arguments() -> argparse.Namespace:
     """
     parser = argparse.ArgumentParser()
     parser.add_argument('--species', type=str, required=True, help='Species to re-analyze')
-    # parser.add_argument('--config', type=Path, required=True, help='Configuration file')
-    parser.add_argument('--threads', type=int, default=8, help='Number of threads to use')
-    # parser.add_argument('--analysis_arguments', nargs='+', required=False, help='analysis arguments stripped off --, e.g. "--analysis_arguments cgmlst mlst"')
+    parser.add_argument('--threads', type=int, default=8, help='Number of threads to use in total')
     parser.add_argument('--pyvenvpythonpath', type=Path, required=True, help='/home/BIGSdb/3.9PythonVenv/bin/python3.9')
+    parser.add_argument('--slurm', action='store_true', help='Run reanalyses using slurm, dont include to not use slurm')
     return parser.parse_args()
 
 def _send_email(subject: str, content: str, config: dict) -> None:
@@ -75,14 +76,6 @@ if __name__ == '__main__':
         isolates_collection, isolateresults_collection, isolates_badqc_collection = mongoinit._initialise_collections(
             mongo_config_data, args.species)
 
-        # keeping this commented here because although code is not needed here, it is a useful query
-        # earliest_analysis_date_document = isolates_collection.with_options(
-        #     read_concern=ReadConcern(level="majority")).find_one(
-        #     {},
-        #     sort=[('latest_analysis_date', 1)])
-        # earliest_analysis_date = _return_datetimeobj_from_YMDhms(earliest_analysis_date_document['latest_analysis_date'])
-        # logging.debug(f"earliest analysis date: {earliest_analysis_date}")
-
         # Part 1: Query scheme last update dates and sort schemes by last update date
         date_scheme_dict = {}
         for scheme in trigger_config['species'][args.species]:
@@ -107,28 +100,43 @@ if __name__ == '__main__':
         # e.g. date_args_dict: {'2019-03-04': 'vfdb-core virulencefinder plasmidfinder resfinder ncbi-amr mlst cgmlst pcr-serogroup metal-detergent typing-virulence typing-amr species-confirmation', '2020-06-24': 'virulencefinder plasmidfinder resfinder ncbi-amr mlst cgmlst pcr-serogroup metal-detergent typing-virulence typing-amr species-confirmation', '2022-07-03': 'resfinder ncbi-amr mlst cgmlst pcr-serogroup metal-detergent typing-virulence typing-amr species-confirmation', '2022-08-14': 'ncbi-amr mlst cgmlst pcr-serogroup metal-detergent typing-virulence typing-amr species-confirmation', '2022-10-02': 'mlst cgmlst pcr-serogroup metal-detergent typing-virulence typing-amr species-confirmation'}
 
         # Part 3: run reanalysis
+        source = os.path.dirname(__file__)
+        parent = os.path.join(source, '../')
         def run_reanalysis(date, date_args_dict):
-            source = os.path.dirname(__file__)
-            parent = os.path.join(source, '../')
             logging.info(f"running reanalysis on samples older than {date} with arguments: {date_args_dict[date]}")
-            subprocess.run(
-                f"{args.pyvenvpythonpath} {os.path.join(parent, 'reanalysis.py')} --species {args.species} --threads {args.threads} --maximal_analysis_date {date} --analysis_arguments {date_args_dict[date]} --pyvenvpythonpath {args.pyvenvpythonpath}", shell=True)
+            base_command = ' '.join([
+                f"{args.pyvenvpythonpath}",
+                f"{os.path.join(parent, 'reanalysis.py')}" if args.slurm is False else f"{os.path.join(parent, 'reanalysis_slurm_submitter.py')}",
+                f'--species {args.species}',
+                f'--maximal_analysis_date {date}'
+                f' --analysis_arguments {date_args_dict[date]}',
+                f'--pyvenvpythonpath {args.pyvenvpythonpath}',
+                f"--threads {args.threads}" if args.slurm is False else f"--threads_per_job 1",
+            ])
+            command = Command(base_command)
+            command.run(os.getcwd())
+            if command.returncode != 0:
+                # if pipeline fails, send mail and continue to next sample, dont raise error
+                _send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
+                            f"{exceptionmessage}\n{traceback.format_exc()}", mongo_config_data['mail'])
+                # raise RuntimeError(f"Error executing pipeline: {command.stderr}")
+            else:
+                logging.info(f"Reanalysis for samples older than {date} with arguments: {date_args_dict[date]} completed")
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1 if args.slurm is False else 5) as executor:
             #testing purposes
             # date_args_dict = {
             #     '2019-03-04': 'vfdb-core virulencefinder plasmidfinder resfinder ncbi-amr mlst cgmlst pcr-serogroup metal-detergent typing-virulence typing-amr species-confirmation',
             #     '2020-06-24': 'virulencefinder plasmidfinder resfinder ncbi-amr mlst cgmlst pcr-serogroup metal-detergent typing-virulence typing-amr species-confirmation',
             #     '2022-07-03': 'resfinder ncbi-amr mlst cgmlst pcr-serogroup metal-detergent typing-virulence typing-amr species-confirmation',
             #     '2022-08-14': 'ncbi-amr mlst cgmlst pcr-serogroup metal-detergent typing-virulence typing-amr species-confirmation',
-            #     '2022-10-02': 'mlst cgmlst pcr-serogroup metal-detergent typing-virulence typing-amr species-confirmation',
+            #     # '2024-10-02': 'cgmlst mlst',
             #     '2025-10-04': 'mlst'}
             future_to_isolate = {executor.submit(
                 run_reanalysis, **{"date": date, "date_args_dict": date_args_dict}):
                                date for date in date_args_dict.keys()}
-            logging.info(f"submitted reanalysis for species {args.species}")
+            logging.info(f"finished submitting reanalysis for species {args.species}")
 
     except Exception as exceptionmessage:
         _send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
                 f"{exceptionmessage}\n{traceback.format_exc()}", mongo_config_data['mail'])
-

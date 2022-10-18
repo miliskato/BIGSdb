@@ -37,7 +37,7 @@ def _parse_arguments() -> argparse.Namespace:
     """
     parser = argparse.ArgumentParser()
     parser.add_argument('--species', type=str, required=True, help='Species to re-analyze')
-    parser.add_argument('--threads', type=int, default=8, help='Number of threads to use')
+    parser.add_argument('--threads', type=int, default=8, help='Number of threads to use in total')
     parser.add_argument('--analysis_arguments', nargs='+', required=False, help='analysis arguments stripped off --, e.g. "--analysis_arguments cgmlst mlst"')
     parser.add_argument('--pyvenvpythonpath', type=Path, required=True, help='/home/BIGSdb/3.9PythonVenv/bin/python3.9')
     parser.add_argument('--maximal_analysis_date', type=str, required=True, help='YYYY-MM-DD')
@@ -73,7 +73,7 @@ def _send_email(subject: str, content: str, config: dict) -> None:
 def __make_flagfilepath(isolatename: str, config: dict):
     return Path(config['failsafe']['flag_dir']) / '.'.join([isolatename, config['failsafe']['flag_append']])
 
-def _fail_safe_mechanism(isolatename: str, config: dict, tmp_dir: str):
+def _fail_safe_mechanism(isolatename: str, config: dict, mailconfig: dict, tmp_dir: str):
     try:
         if not os.path.isdir(Path(config['failsafe']['flag_dir'])):
             os.makedirs(Path(config['failsafe']['flag_dir']), exist_ok=True)
@@ -90,7 +90,7 @@ def _fail_safe_mechanism(isolatename: str, config: dict, tmp_dir: str):
     except Exception as exceptionmessage:
         _send_email(f"{os.path.basename(__file__)}: reanalysis fail safe mechanism fail on host {socket.gethostname()}", f"{exceptionmessage}\n{traceback.format_exc()}", config['mail'])
 
-def _delete_flagfile(isolatename: str, config: dict):
+def _delete_flagfile(isolatename: str, config: dict, mailconfig: dict):
     flagfilepath = __make_flagfilepath(isolatename, config)
     try:
         os.remove(flagfilepath)
@@ -148,7 +148,7 @@ if __name__ == '__main__':
             with Path(tempfile.mkdtemp(None, 're_analysis_',reanalysis_config['temp_dir'])) as dir_temp:
 
                 # initialise fail-safe mechanism
-                _fail_safe_mechanism(isolate_id, reanalysis_config, str(dir_temp))
+                _fail_safe_mechanism(isolate_id, reanalysis_config, mongo_config_data, str(dir_temp))
 
                 # Get the species-specific configuration
                 config_species = reanalysis_config['species'][args.species]
@@ -233,12 +233,31 @@ if __name__ == '__main__':
                             _send_email(
                                 f'{os.path.basename(__file__)}: Error handling output of automatic reanalysis pipeline on {args.species}, {isolate_id}', f"look in file /reports/{args.species}/{temp_new_sample_name}/{temp_new_sample_name}.log", mongo_config_data['mail'])
 
-                    _delete_flagfile(isolate_id, reanalysis_config)
+                    _delete_flagfile(isolate_id, reanalysis_config, mongo_config_data)
 
+                    # Create command insertion MongoDB
                     source = os.path.dirname(__file__)
                     parent = os.path.join(source, '../')
+                    base_command = ' '.join([
+                        f"{args.pyvenvpythonpath}",
+                        f"{os.path.join(parent, 'mainmongo.py')}",
+                        f'--results_type reanalysis',
+                        f'--technical_id {isolate_id}',
+                        f"--jsonfilepath {dir_out / 'report.json'}",
+                        f"--species {args.species}"
+                    ])
+                    command = Command(base_command)
+                    # run the command
+                    command.run(dir_out)
+                    if command.returncode != 0:
+                        # if pipeline fails, send mail and continue to next sample, dont raise error
+                        _send_email(
+                            f'{os.path.basename(__file__)}: Error inserting json into mongodb for automatic reanalysis pipeline on {args.species}, {isolate_id}',
+                            command.stderr, mongo_config_data['mail'])
+                        # raise RuntimeError(f"Error executing pipeline: {command.stderr}")
+                    else:
+                        logging.info(f"Mongodb insertion for isolate '{isolate_id}' completed")
 
-                    run_subprocess(f"{args.pyvenvpythonpath} {os.path.join(parent, 'mainmongo.py')} --results_type reanalysis --technical_id {isolate_id} --jsonfilepath {dir_out / 'report.json'} --species {args.species}")
                     #shutil.move(f"./{temp_new_sample_name}.log", f"/reports/{args.species}/{temp_new_sample_name}/{temp_new_sample_name}.log")
 
                     # Removing the temporary working dir and the remaining files that were not kept
@@ -247,7 +266,7 @@ if __name__ == '__main__':
         def isolate_and_threads(isolate: dict):
             dict = {
                 'isolate': isolate,
-                'threads_per_job' :reanalysis_config['threads_per_job']
+                'threads_per_job': 1
             }
             return dict
 
