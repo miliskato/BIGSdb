@@ -6,7 +6,9 @@ from pymongo.read_concern import ReadConcern
 from pathlib import Path
 import sys
 import socket
-
+from Bio import SeqIO
+import hashlib
+import os
 from bioit_custom_scripts.components.databaseconnection import Database_connection
 from util.mongo_initialisation import Mongoinitialisation
 from config import MONGO_CONFIG
@@ -43,6 +45,8 @@ if __name__ == '__main__':
     isolates_collection, isolateresults_collection, isolates_badqc_collection = mongoinit._initialise_collections(
         config_data, args.species)
     hashed_AD_collection = mongoinit.initialise_hashing_collection(config_data, args.species)
+    st_collection, cluster_membership_collection = \
+        mongoinit.initialise_clustering_collections(config_data, args.species)
 
     # Query the docs with hashes for this particular scheme
     documents_list = query_hashes_of_scheme(hashed_AD_collection, args.scheme)
@@ -51,29 +55,33 @@ if __name__ == '__main__':
         pass
     else:
         locus_hash_dict = {}
+        locus_tm_name_dict = {}
         for hash_document in documents_list:
             if hash_document['locus'] in locus_hash_dict.keys():
+                #if multiple alleles for one locus
                 locus_hash_dict[hash_document['locus']].append(hash_document['hashed_allele'])
+                locus_tm_name_dict[hash_document['locus']].append(hash_document['allele_number'])
             else:
                 locus_hash_dict[hash_document['locus']] = [hash_document['hashed_allele']]
+                locus_tm_name_dict[hash_document['locus']] = [hash_document['allele_number']]
         for locus, hash_list in locus_hash_dict.items():
+            locus_tm_names = locus_tm_name_dict[locus]
             if args.species == 'stec':
                 fasta_file = Path(f"/db/sequence_typing/ecoli/{args.scheme.replace('-','_')}/{locus}/{locus.lower()}.fasta")
             else:
                 fasta_file = Path(f"/db/sequence_typing/{args.species}/{args.scheme.replace('-', '_')}/{locus}/{locus.lower()}.fasta")
-            import os
             if os.path.isfile(fasta_file):
                 logging.info(f"opening fasta file: {fasta_file}")
             else:
                 raise RuntimeError(f"Fasta file path for locus {locus} does not seem to adhere to the normal fasta path syntax")
             logging.info(f"hash list: {hash_list} for locus {locus}")
             with fasta_file.open() as handle:
-                from Bio import SeqIO
                 alleles = list(SeqIO.parse(handle, 'fasta'))
                 for allele in alleles:
-                    import hashlib
                     hashed_allele = hashlib.md5((allele.seq).encode()).hexdigest()
                     if hashed_allele in hash_list:
+                        index_match = hash_list.index(hashed_allele)
+                        name_allele = locus_tm_names[index_match]
                         allele_id = allele.id.split('_')[-1]
                         # Update collections
                         logging.debug(f"replacing {hashed_allele} by {allele_id} for locus {locus}")
@@ -99,6 +107,16 @@ if __name__ == '__main__':
                             {"$set": {"resolved_AD": allele_id}})
                         # add allele id to hash document to not have to requery for bigsdb if bigs host
                         hash_document['resolved_AD'] = allele_id
+                        #replace in all the cgST the old temp allele by the new id
+                        all_st = st_collection.find({'ST':{'$gt':0}})
+                        for st in all_st:
+                            profile = st['cgMLST'].split(',')
+                            if name_allele in profile:
+                                profile = [allele_id if x == name_allele else x for x in profile]
+                                cgmlst = ','.join([str(i) for i in profile])
+                                st_collection.find_one_and_update({"ST": st["ST"]},
+                                                        {"$set": {"cgMLST": cgmlst}})
+
         hostname = socket.gethostname()
         if 'bigs' in hostname:
             cur_isolates, cur_seqdef = Database_connection().open_database_connections(args.species)
