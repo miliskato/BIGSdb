@@ -79,8 +79,11 @@ def _fail_safe_mechanism(isolatename: str, config: dict, analysis_date: str, cur
             logging.warning(f"fail safe mechanism detects that the bigsdb insertion for sample {isolatename} was started but didnt finish. Removing {isolatename} from Bigsdb to be able to restart inserting.")
             cur_isolates.execute(f"SELECT COUNT(*) FROM isolates WHERE isolate='{isolatename}'")
             nr_of_versions = cur_isolates.fetchall()[0][0]
-            cur_isolates.execute(f"DELETE FROM isolates WHERE isolate='{isolatename}' AND id=(SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}') ")
             if nr_of_versions > 1:
+                cur_isolates.execute(
+                    f"UPDATE isolates SET new_version=NULL WHERE id=(SELECT MIN(id) FROM isolates WHERE id in (SELECT id FROM isolates WHERE isolate='{self.isolatename}' ORDER BY id DESC LIMIT 2))")
+                cur_isolates.execute(
+                    f"DELETE FROM isolates WHERE isolate='{isolatename}' AND id=(SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}') ")
                 cur_isolates.execute(
                             f"INSERT INTO isolates(id, isolate, sender, curator, date_entered, datestamp, uploader, latest_analyis_date) "
                             f"VALUES((SELECT CASE WHEN (SELECT(SELECT MAX(id) FROM isolates)+1) IS NULL THEN 1 "
@@ -92,6 +95,9 @@ def _fail_safe_mechanism(isolatename: str, config: dict, analysis_date: str, cur
                     f"UPDATE isolates SET new_version=(SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}') "
                     f"WHERE isolate='{isolatename}' AND new_version IS NULL AND id!=(SELECT MAX(id) "
                     f"FROM isolates WHERE isolate='{isolatename}')")
+            else:
+                cur_isolates.execute(
+                    f"DELETE FROM isolates WHERE isolate='{isolatename}' AND id=(SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}') ")
         else:
             flagfilepath.touch()
             logging.info(f"flagfilepath {flagfilepath}")
