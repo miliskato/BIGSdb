@@ -41,13 +41,19 @@ class MainInserter(JsonSuperClass):
             f"VALUES((SELECT CASE WHEN (SELECT(SELECT MAX(id) FROM isolates)+1) IS NULL THEN 1 "
             f"ELSE (SELECT(SELECT MAX(id) FROM isolates)+1) END), '{self.isolatename}', 1, 1, "
             f"(SELECT CURRENT_DATE),(SELECT CURRENT_DATE), "
-            f"SELECT uploader FROM isolates WHERE isolate='{self.isolatename}' AND id=(SELECT MAX(id) FROM isolates WHERE isolate='{self.isolatename}'),"
+            f"(SELECT uploader FROM isolates WHERE isolate='{self.isolatename}' AND id=(SELECT MAX(id) FROM isolates WHERE isolate='{self.isolatename}')),"
             f"'{datetime.datetime.strptime(self.sample_output_dict['analysis_date'], '%d/%m/%Y - %X').strftime('%Y-%m-%d')}')")
         self.cur_isolates.execute(
             f"UPDATE isolates SET new_version=(SELECT MAX(id) FROM isolates WHERE isolate='{self.isolatename}') "
-            f"WHERE isolate='{self.isolatename}' AND new_version IS NULL AND id!=(SELECT MAX(id) "
-            f"FROM isolates WHERE isolate='{self.isolatename}')")
-    
+            f"WHERE isolate='{self.isolatename}' AND new_version IS NULL AND "
+            f"id!=(SELECT MAX(id) FROM isolates WHERE isolate='{self.isolatename}')")
+        self.cur_isolates.execute(
+            f"UPDATE sequence_bin SET isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate='{self.isolatename}')"
+            f"WHERE isolate_id=(SELECT MIN(id) FROM isolates WHERE id in (SELECT id FROM isolates WHERE isolate='{self.isolatename}' ORDER BY id DESC LIMIT 2))")
+        self.cur_isolates.execute(
+            f"UPDATE seqbin_stats SET isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate='{self.isolatename}')"
+            f"WHERE isolate_id=(SELECT MIN(id) FROM isolates WHERE id in (SELECT id FROM isolates WHERE isolate='{self.isolatename}' ORDER BY id DESC LIMIT 2))")
+
     def insert_main_metadata(self):
         reportlink = f'<p><a href="/galaxyreports/{self.species}/{self.isolatename}/report.html" target="_blank"> html report</a></p>'
         self._insert_metadata('html', reportlink)
@@ -56,8 +62,9 @@ class MainInserter(JsonSuperClass):
         self._insert_metadata('VCF_unfiltered', vcflink_unfiltered)
         vcflink_filtered = f'<p><a href="/galaxyreports/{self.species}/{self.isolatename}/variant_calling/variants-{self.isolatename}-filtered.vcf" target="_blank">VCF filtered</a></p>'
         self._insert_metadata('VCF_filtered', vcflink_filtered)
-        isolate_id = self.cur_isolates.execute(f"SELECT MAX(id) FROM isolates WHERE isolate='{self.isolatename}'")[0][0]
-        assemblylink = f'<p><a href="/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_{self.species}_isolates&page=plugin&name=Contigs&format=text&isolate_id={isolate_id}&match=1&pc_untagged=0&min_length=&header=1</a></p>'
+        self.cur_isolates.execute(f"SELECT MAX(id) FROM isolates WHERE isolate='{self.isolatename}'")
+        isolate_id = self.cur_isolates.fetchall()[0][0]
+        assemblylink = f'<p><a href="/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_{self.species}_isolates&page=plugin&name=Contigs&format=text&isolate_id={isolate_id}&match=1&pc_untagged=0&min_length=&header=1l" target="_blank">assembly</a></p>'
         self._insert_metadata('assembly', assemblylink)
         self._insert_species_specific_metadata()
         if 'results_version' in self.sample_output_dict.keys():
