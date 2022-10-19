@@ -989,6 +989,12 @@
         state: "present"
         append: no
 
+    - name: create galaxy mongo dir
+      ansible.builtin.file:
+        path: /home/galaxy/mongo
+        state: directory
+        owner: galaxy
+
 # manually:
 #    sudo su galaxy
 #    mkdir -p /home/galaxy/.ssh

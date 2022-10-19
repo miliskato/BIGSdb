@@ -15,6 +15,7 @@ from email.message import EmailMessage
 import socket
 import traceback
 import os
+import shutil
 
 from util.mongo_results import Mongoresults
 from util.mongo_querying import Mongoquerying
@@ -50,10 +51,12 @@ def _parse_arguments() -> argparse.Namespace:
     parser.add_argument("--fastafilepath", required=False, type=str)
     parser.add_argument("--vcffilepath", required=False, type=str)
     parser.add_argument("--technical_id", required=True, type=str)
+    parser.add_argument('--bigs', action='store_true',
+                        help='Prepare and send folder over to Bigs for automated insert (+assembly), html tagging and report moving')
     return parser.parse_args()
 
 
-def _write_document(opened_collection, json_input: dict):
+def _write_document(opened_collection: object, json_input: dict) -> None:
     collection_write = opened_collection.with_options(write_concern=WriteConcern(w="majority")).insert_one(json_input)
     logging.debug(f"Writing {collection_write.inserted_id} in collection {opened_collection}")
     return collection_write.inserted_id
@@ -80,7 +83,7 @@ def _new_isolate(technical_id: str, vcffilepath: str, fastafilepath: str,
                         "results": results}
     return new_isolate_dict
 
-def prepend_string_dot_to_dict_keys(input_dictionary, prepending: str = 'results'):
+def prepend_string_dot_to_dict_keys(input_dictionary: dict, prepending: str = 'results') -> dict:
     """
     This function is designed to update only results that have been reanalyzed; by using dot notation in the dicts only the relevant assays/metadata are updated upon reanalysis.
     The function can of course serve other purposes
@@ -100,7 +103,16 @@ def prepend_string_dot_to_dict_keys(input_dictionary, prepending: str = 'results
             keydict[key] = '.'.join([prepending, key])
     return dict((keydict[key], value) for (key, value) in input_dictionary_copy.items())
 
-def find_hashes_in_results_and_add_to_collection(results: dict, mongoinit: object, config_data: dict, species: str):
+def find_hashes_in_results_and_add_to_collection(results: dict, mongoinit: object, config_data: dict, species: str) -> None:
+    """
+    finds hashes in json output report for multilocus sequence typing schemes and adds these hashes and alleles to a separate colelction: new_allele_hashes.
+    Also replace the hashes by temporary allele identifiers and purges the sequences to save space
+    :param results: results dictionary
+    :param mongoinit: Mongointitialisation object to initialise collection connections
+    :param config_data: Mongo config data
+    :param species:
+    :return: None
+    """
     hashed_AD_collection = mongoinit.initialise_hashing_collection(config_data, species)
     for typing_scheme in ['mlst', 'cgmlst']:
         if typing_scheme in results.keys():
@@ -122,8 +134,25 @@ def find_hashes_in_results_and_add_to_collection(results: dict, mongoinit: objec
                         logging.info(f"hashed allele '{allele_info['Allele']}' encounter incremented by one")
                     results[typing_scheme]['loci'][locus_index].pop('Allele_sequence')
 
-def _return_YMD_from_YMDhms(datetimestring: str):
+def _return_YMD_from_YMDhms(datetimestring: str) -> str:
+    """
+    Converts between from long to short datetime string format
+    :param datetimestring:
+    :return: Short datetime string format
+    """
     return datetime.datetime.strptime(datetimestring, '%d/%m/%Y - %X').strftime('%Y-%m-%d')
+
+def parameter_compatibility_checks(args: argparse.Namespace) -> None:
+    """
+    Checks compatibility of argparse arguments
+    :param args: argparse arguments namespace
+    :return:
+    """
+    if args.results_type == 'reanalysis' and args.bigs is True:
+        raise Exception('Bigs upload only available for new isolates')
+
+# def prepare_reports_for_bigs(jsonfilepath: Path, results_changed: dict) -> None:
+# todo later; replace json file by json file from mongo with extra information
 
 if __name__ == '__main__':
     # Parse arguments
@@ -134,6 +163,9 @@ if __name__ == '__main__':
         config_data = yaml.safe_load(handle)
 
     try:
+        # Parameter compatibility checks
+        parameter_compatibility_checks(args)
+
         # Configure stdout logging
         logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
@@ -172,7 +204,6 @@ if __name__ == '__main__':
                     _write_document(isolates_badqc_collection, _new_isolate(args.technical_id, args.vcffilepath, args.fastafilepath,
                                                                       records))
                     logging.warning(f"New isolate {args.technical_id} failed quality control for one or more checks. It's results were written to the 'isolates_badqc' collection in the {args.species} database")
-
 
         elif args.results_type == "reanalysis":
             # todo the current implementation moves the old results to the archive BUT seeing as results are possibly fractional
