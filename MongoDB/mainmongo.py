@@ -116,19 +116,24 @@ def find_hashes_in_results_and_add_to_collection(results: dict, mongoinit: objec
                 if re.findall(r'(?i)(?<![a-z0-9])[a-f0-9]{32}(?![a-z0-9])', allele_info['Allele']):
                     existing_document = hashed_AD_collection.with_options(read_concern=ReadConcern(level="majority")).find_one({"scheme": typing_scheme, "locus": allele_info['Locus'], "hashed_allele": allele_info['Allele']})
                     if existing_document is None:
+                        temp_allele = find_allele_number_new_entry(hashed_AD_collection)
                         _write_document(hashed_AD_collection, {"scheme": typing_scheme,
                                                                "locus": allele_info['Locus'],
                                                                "hashed_allele": allele_info['Allele'],
                                                                "allele_sequence" : allele_info['Allele_sequence'],
                                                                "encountered_count": 1,
                                                                "resolved_AD": 0,
-                                                               "allele_number": find_allele_number_new_entry(hashed_AD_collection)
+                                                               "allele_number": temp_allele,
+                                                               "insertion_date": datetime.datetime.utcnow()
                                                                })
                     else:
+                        temp_allele = existing_document["allele_number"]
                         hashed_AD_collection.with_options(write_concern=WriteConcern(w="majority")).update_one({"_id": existing_document['_id']},
                                                                                                                {"$inc": {"encountered_count": 1}})
                         logging.info(f"hashed allele '{allele_info['Allele']}' encounter incremented by one")
                     results[typing_scheme]['loci'][locus_index].pop('Allele_sequence')
+                    results[typing_scheme]['loci'][locus_index]['Allele'] = temp_allele #replace in the results the name of the allele (no hash anymore)
+                    return results
 
 def _return_YMD_from_YMDhms(datetimestring: str):
     return datetime.datetime.strptime(datetimestring, '%d/%m/%Y - %X').strftime('%Y-%m-%d')
@@ -174,10 +179,10 @@ if __name__ == '__main__':
                     raise RuntimeError('No qc values found in the given results')
 
             if sample_quality == 'good':
+                records = find_hashes_in_results_and_add_to_collection(records, mongoinit, config_data, args.species)
                 _write_document(isolates_collection, _new_isolate(args.technical_id, args.vcffilepath, args.fastafilepath,
                                                                   records))
                 logging.info(f"Wrote new isolate {args.technical_id} and its result to {args.species} database")
-                find_hashes_in_results_and_add_to_collection(records, mongoinit, config_data, args.species)
                 hashed_AD_collection = mongoinit.initialise_hashing_collection(config_data, args.species)
                 clustering_input = mongoquerying._query_typing_results_by_technicalids_and_scheme(isolates_collection,
                                                                                                   hashed_AD_collection,
@@ -195,7 +200,7 @@ if __name__ == '__main__':
                                                                   records))
                 logging.warning(f"New isolate {args.technical_id} failed quality control for one or more checks. It's results were written to the 'isolates_badqc' collection in the {args.species} database")
                 if sample_quality == 'good':
-                    find_hashes_in_results_and_add_to_collection(records, mongoinit, config_data, args.species)
+                    records = find_hashes_in_results_and_add_to_collection(records, mongoinit, config_data, args.species)
                     _write_document(isolates_collection, _new_isolate(args.technical_id, args.vcffilepath, args.fastafilepath,
                                                                       records))
                     logging.info(f"Wrote new isolate {args.technical_id} and its result to {args.species} database")

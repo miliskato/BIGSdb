@@ -22,7 +22,7 @@ def _parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--scheme", required=True, type=str, help='lower case scheme as in json reports/mongodb documents')
     parser.add_argument("--species", required=True, type=str,
-                        choices=['mycobacterium', 'listeria', 'neisseria', 'stec', 'salmonella'])
+                        choices=['mycobacterium', 'listeria', 'listeria_test', 'neisseria', 'stec', 'salmonella'])
     return parser.parse_args()
 
 def query_hashes_of_scheme(hashed_AD_collection, scheme: str) -> list:
@@ -47,7 +47,6 @@ if __name__ == '__main__':
     hashed_AD_collection = mongoinit.initialise_hashing_collection(config_data, args.species)
     st_collection, cluster_membership_collection = \
         mongoinit.initialise_clustering_collections(config_data, args.species)
-
     # Query the docs with hashes for this particular scheme
     documents_list = query_hashes_of_scheme(hashed_AD_collection, args.scheme)
     #logging.info(f"documents list: {documents_list}")

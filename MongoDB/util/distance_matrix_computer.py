@@ -113,7 +113,7 @@ class DistanceMatrixComputer:
         for cl in clusters_to_rename:
             query = {'Threshold': threshold,
                      'Clustering_membership': cl}
-            update = {'$set': {'Clustering_membership': new_cluster_name}}
+            update = {'$set': {'Clustering_membership': new_cluster_name, 'insertion_date': datetime.datetime.utcnow()}}
             self.cluster_membership_collection.update_many(query, update)
         return new_cluster_name
 
@@ -129,6 +129,7 @@ class DistanceMatrixComputer:
             if len(membership) == 0:
                 membership.append(self.sequence_types[-1])
             entry = {'ST': self.sequence_types[-1],
+                     'insertion_date': datetime.datetime.utcnow(),
                      'Threshold': thresh,
                      'Clustering_membership': membership[0]}
             self.cluster_membership_collection.insert_one(entry)

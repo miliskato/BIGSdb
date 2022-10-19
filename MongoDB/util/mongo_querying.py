@@ -82,7 +82,7 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
                 # todo check logic
                 allele_id = locus['Allele']
                 if locus['% Identity'] == '100.00' and eval(locus['HSP/Locus length']) == 1.0:
-                    if len(allele_id) < 32:
+                    if 'Temp_' not in allele_id:
                         if allele_id != '?' and allele_id != '-':
                             resultlist.append(int(allele_id))
                         else:
@@ -90,9 +90,7 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
                             resultlist.append(0)
 
                     else:
-                        allele_number = hashed_allele_collection.find_one({"scheme": scheme, "locus": locus['Locus'],
-                                                                          "hashed_allele": allele_id})["allele_number"]
-                        resultlist.append(allele_number)
+                        resultlist.append(allele_id)
                 else:
                     resultlist.append(0)
             listofresultlists.append(resultlist)
