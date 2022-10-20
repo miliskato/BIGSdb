@@ -8,6 +8,7 @@ import subprocess
 import logging
 import hashlib
 from pathlib import Path
+from pymongo.write_concern import WriteConcern
 
 
 class MongoCustomClustering:
@@ -56,7 +57,7 @@ class MongoCustomClustering:
         try :
             db_headers = st_collection.find_one({'ID': 'headers'})['headers']
         except:
-            st_collection.insert_one({'ID':'headers',
+            st_collection.with_options(write_concern=WriteConcern(w="majority")).insert_one({'ID':'headers',
                                       'headers': self.cgmlst_profile.loci})
             db_headers = st_collection.find_one({'ID': 'headers'})['headers']
         if self.cgmlst_profile.loci != db_headers:
@@ -107,7 +108,7 @@ class MongoCustomClustering:
             self.cgmlst_profile.st = latest_st['ST'] + 1
         except:
             self.cgmlst_profile.st = 1
-        st_collection.insert_one(self.cgmlst_profile.get_st_collection_entry())
+        st_collection.with_options(write_concern=WriteConcern(w="majority")).insert_one(self.cgmlst_profile.get_st_collection_entry())
 
     def __compute_cluster_membership(self, st_collection, cluster_membership_collection, cluster_threshold: list) ->None:
         distance_matrix = DistanceMatrixComputer(st_collection, cluster_membership_collection, [0])

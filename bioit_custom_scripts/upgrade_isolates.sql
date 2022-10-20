@@ -1,10 +1,1 @@
-CREATE TABLE eav_fields_hidden AS (SELECT * FROM eav_fields) WITH NO DATA;
-ALTER TABLE eav_fields_hidden ADD PRIMARY KEY(field);
-GRANT SELECT, INSERT, UPDATE, DELETE ON eav_fields_hidden TO apache;
-INSERT INTO eav_fields_hidden(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('hash_fastq_md5_forward', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1);
-INSERT INTO eav_fields_hidden(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('hash_fastq_md5_reverse', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1);
-INSERT INTO eav_fields_hidden(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('hash_fasta_md5', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1);
-INSERT INTO eav_fields_hidden(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('mongo_results_version', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1);
-DELETE FROM eav_fields WHERE field LIKE 'hash_fastq_md5_%';
-ALTER TABLE isolates ADD latest_analysis_date date;
-UPDATE isolates SET latest_analysis_date='2022-08-01';
+INSERT INTO scheme_fields(scheme_id, field, type, description, field_order, dropdown, primary_key, curator, datestamp, isolate_display, main_display, query_field) VALUES(2, 'cgST', 'integer', 'Sequence Type (cgMLST)', 1, 'f', 't', 1, (SELECT CURRENT_DATE), 't', 't', 't');

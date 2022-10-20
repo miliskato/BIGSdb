@@ -2,12 +2,13 @@ import logging
 import numpy as np
 from MongoDB.util.hamming_distance import getDistance, __dist_wrapper, __parallel_dist, hamming_dist
 from multiprocessing import Pool
-from datetime import datetime
+import datetime
 from pathlib import Path
 import h5py
 import fastcluster
 from scipy.spatial import distance as ssd
 import scipy.cluster.hierarchy as hcluster
+from pymongo.write_concern import WriteConcern
 
 
 class DistanceMatrixComputer:
@@ -74,17 +75,17 @@ class DistanceMatrixComputer:
         last_st computes only for the last sequence types entered in the db.
         :return:
         """
-        logging.info(f"{datetime.now()}: Starting to compute hamming distances in mode {mode}")
+        logging.info(f"{datetime.datetime.now()}: Starting to compute hamming distances in mode {mode}")
         if mode == 'full':
             start = 0
         else:
             start = len(self.cgmlst_profiles) - 1
         pool = Pool(4)
         self.hamming_distances = getDistance(np.array(self.cgmlst_profiles), 'hamming_dist', pool, start)
-        logging.info(f"{datetime.now()}: Hamming distances computed!")
+        logging.info(f"{datetime.datetime.now()}: Hamming distances computed!")
 
     def init_clustering_and_cluster_membership(self, cluster_thresholds: list) -> None:
-        logging.info(f"{datetime.now()}: Starting initial clustering and clustering membership encoding")
+        logging.info(f"{datetime.datetime.now()}: Starting initial clustering and clustering membership encoding")
         self.hamming_distances += self.hamming_distances.T
         slc = fastcluster.single(ssd.squareform(self.hamming_distances))
         for thresh in cluster_thresholds:
@@ -96,8 +97,8 @@ class DistanceMatrixComputer:
                        'Clustering_membership': [int(cluster_membership[entry])]}
                 documents.append(doc)
             self.insert_a_lot(documents, self.cluster_membership_collection)
-            logging.info(f"{datetime.now()}: Clustering membership finished for threshold {thresh}")
-        logging.info(f"{datetime.now()}: Clustering and clustering membership finished")
+            logging.info(f"{datetime.datetime.now()}: Clustering membership finished for threshold {thresh}")
+        logging.info(f"{datetime.datetime.now()}: Clustering and clustering membership finished")
 
     def _merge_clusters(self, memberships: list, threshold: int) -> int:
         cluster_sizes = []
@@ -132,7 +133,7 @@ class DistanceMatrixComputer:
                      'insertion_date': datetime.datetime.utcnow(),
                      'Threshold': thresh,
                      'Clustering_membership': membership[0]}
-            self.cluster_membership_collection.insert_one(entry)
+            self.cluster_membership_collection.with_options(write_concern=WriteConcern(w="majority")).insert_one(entry)
 
     def insert_hamming_distances_in_mongo(self):
         """
@@ -142,9 +143,9 @@ class DistanceMatrixComputer:
         if len(self.hamming_distances) == 0:
             print('No distances to insert into the database!')
         else:
-            logging.info(f"{datetime.now()}: Creating and writing distances in mongo Db")
+            logging.info(f"{datetime.datetime.now()}: Creating and writing distances in mongo Db")
             self.__create_and_write_mongo_entries()
-            logging.info(f"{datetime.now()}: Insertion of distances into the database finished!")
+            logging.info(f"{datetime.datetime.now()}: Insertion of distances into the database finished!")
 
     def __create_and_write_mongo_entries(self):
         hamming_docs_mongo = []
@@ -197,7 +198,7 @@ class DistanceMatrixComputer:
             file.create_dataset('distance_matrix', data=self.hamming_distances,
                                 maxshape=(None, self.hamming_distances.shape[1]))
         file.close()
-        logging.info(f"{datetime.now()}: Distance matrix saved as hdf5 at the following location: {hdf_file}")
+        logging.info(f"{datetime.datetime.now()}: Distance matrix saved as hdf5 at the following location: {hdf_file}")
 
 # import pandas as pd
 # from multiprocessing import Pool

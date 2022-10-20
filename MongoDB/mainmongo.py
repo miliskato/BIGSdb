@@ -20,6 +20,7 @@ from util.mongo_querying import Mongoquerying
 from util.mongo_initialisation import Mongoinitialisation
 from util.mongo_custom_clustering import MongoCustomClustering
 from config import MONGO_CONFIG
+from MongoDB.config import HIERCC_CONFIG
 
 def _send_email(subject: str, content: str, config: dict) -> None:
     """
@@ -109,7 +110,7 @@ def find_allele_number_new_entry(hashed_AD_collection):
 
 def find_hashes_in_results_and_add_to_collection(results: dict, mongoinit: object, config_data: dict, species: str):
     hashed_AD_collection = mongoinit.initialise_hashing_collection(config_data, species)
-    for typing_scheme in ['mlst', 'cgmlst']:
+    for typing_scheme in ['mlst', 'cgmlst', 'mlst_warwick', 'mlst_pasteur']:
         if typing_scheme in results.keys():
             for locus_index, allele_info in enumerate(results[typing_scheme]['loci']):
                 # check if allele designation is md5 hash (32 char combination of letters andor numbers)
@@ -192,7 +193,7 @@ if __name__ == '__main__':
                 custom_clustering = MongoCustomClustering(clustering_input[0], clustering_input[1], args.species)
                 logging.info(f"Running the clustering for the isolate {args.technical_id}")
                 sequence_type = custom_clustering.run_custom_clustering(st_collection,
-                                                                        cluster_membership_collection, [1])
+                                                                        cluster_membership_collection, HIERCC_CONFIG["clustering_thresholds"])
                 isolates_collection.find_one_and_update({"_id": records["isolates_id"]},
                                                         {"$set": {"ST": sequence_type}})
             else:

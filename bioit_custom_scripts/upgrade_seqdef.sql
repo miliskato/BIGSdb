@@ -1,0 +1,1 @@
+INSERT INTO scheme_fields(scheme_id, field, type, description, field_order, dropdown, primary_key, curator, datestamp) VALUES(2, 'cgST', 'integer', 'Sequence Type (cgMLST)', 1, 'f', 't', 1, (SELECT CURRENT_DATE));
