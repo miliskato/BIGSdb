@@ -25,7 +25,7 @@ INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, cu
 -- counstraints for copying tables
 CREATE TABLE eav_text_hidden AS (SELECT * FROM eav_text) WITH NO DATA;
 ALTER TABLE eav_text_hidden ADD PRIMARY KEY(isolate_id, field);
-ALTER TABLE eav_text_hidden ADD CONSTRAINT eavt_field FOREIGN KEY (field) REFERENCES eav_fields(field) ON UPDATE CASCADE ON DELETE CASCADE;
+ALTER TABLE eav_text_hidden ADD CONSTRAINT eavt_field FOREIGN KEY (field) REFERENCES eav_fields_hidden(field) ON UPDATE CASCADE ON DELETE CASCADE;
 ALTER TABLE eav_text_hidden ADD CONSTRAINT eavt_isolate FOREIGN KEY (isolate_id) REFERENCES isolates(id) ON UPDATE CASCADE ON DELETE CASCADE;
 GRANT SELECT, INSERT, UPDATE, DELETE ON eav_text_hidden TO apache;
 -- hash not implemented yet
@@ -36,6 +36,10 @@ INSERT INTO eav_fields_hidden(field, value_format, description, no_curate, no_su
 INSERT INTO eav_fields_hidden(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('hash_fastq_md5_reverse', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1);
 INSERT INTO eav_fields_hidden(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('hash_fasta_md5', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1);
 INSERT INTO eav_fields_hidden(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('mongo_results_version', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1);
+INSERT INTO eav_fields_hidden(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('NCBI_AMR', 'text', 'Gene detection', '', 't', 't', (SELECT CURRENT_DATE), 1);
+INSERT INTO eav_fields_hidden(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('ResFinder', 'text', 'Gene detection', '', 't', 't', (SELECT CURRENT_DATE), 1);
+INSERT INTO eav_fields_hidden(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('VFDB_core', 'text', 'Gene detection', '', 't', 't', (SELECT CURRENT_DATE), 1);
+INSERT INTO eav_fields_hidden(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('PlasmidFinder_entero', 'text', 'Gene detection', '', 't', 't', (SELECT CURRENT_DATE), 1);
 --spifinder_fastq
 INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, curator, date_entered, datestamp, isolate_display, main_display, query_field, query_status, analysis, recommended, quality_metric, dbase_name, dbase_id) VALUES(7, 'spifinder_fastq', 'SPIFinder carried out on fastq with kma', 't', 7, 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE), 't', 't', 't', 'f', 't', 't', 'f', 'bigsdb_salmonella_seqdef', 7);
 INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, dbase_name, dbase_id, url, isolate_display, main_display, query_field, analysis, submission_template, curator, date_entered, datestamp) VALUES('SPIFINDER_FASTQ_SPI-1','DNA','text', 't', 't', 'bigsdb_salmonella_seqdef','SPIFINDER_FASTQ_SPI-1', '/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_salmonella_seqdef&page=alleleInfo&locus=SPIFINDER_FASTQ_SPI-1&allele_id=[?]', 'allele only', 'f', 't', 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
@@ -80,7 +84,6 @@ INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT 
 INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='spifinder_fastq'), 'SPIFINDER_FASTQ_C63PI', 1, (SELECT CURRENT_DATE));
 INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='spifinder_fastq'), 'SPIFINDER_FASTQ_CS54_ISLAND', 1, (SELECT CURRENT_DATE));
 INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='spifinder_fastq'), 'SPIFINDER_FASTQ_NOT_NAMED', 1, (SELECT CURRENT_DATE));
-
 --spifinder_fasta
 INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, curator, date_entered, datestamp, isolate_display, main_display, query_field, query_status, analysis, recommended, quality_metric, dbase_name, dbase_id) VALUES(8, 'spifinder_fasta', 'SPIFinder carried out on fasta with blast', 't', 8, 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE), 't', 't', 't', 'f', 't', 't', 'f', 'bigsdb_salmonella_seqdef', 8);
 INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, dbase_name, dbase_id, url, isolate_display, main_display, query_field, analysis, submission_template, curator, date_entered, datestamp) VALUES('SPIFINDER_FASTA_SPI-1','DNA','text', 't', 't', 'bigsdb_salmonella_seqdef','SPIFINDER_FASTA_SPI-1', '/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_salmonella_seqdef&page=alleleInfo&locus=SPIFINDER_FASTA_SPI-1&allele_id=[?]', 'allele only', 'f', 't', 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));

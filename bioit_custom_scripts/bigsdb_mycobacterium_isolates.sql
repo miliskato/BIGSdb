@@ -461,7 +461,7 @@ INSERT INTO eav_fields_hidden(field, value_format, description, no_curate, no_su
 INSERT INTO eav_fields_hidden(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('mongo_results_version', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1);
 CREATE TABLE eav_text_hidden AS (SELECT * FROM eav_text) WITH NO DATA;
 ALTER TABLE eav_text_hidden ADD PRIMARY KEY(isolate_id, field);
-ALTER TABLE eav_text_hidden ADD CONSTRAINT eavt_field FOREIGN KEY (field) REFERENCES eav_fields(field) ON UPDATE CASCADE ON DELETE CASCADE;
+ALTER TABLE eav_text_hidden ADD CONSTRAINT eavt_field FOREIGN KEY (field) REFERENCES eav_fields_hidden(field) ON UPDATE CASCADE ON DELETE CASCADE;
 ALTER TABLE eav_text_hidden ADD CONSTRAINT eavt_isolate FOREIGN KEY (isolate_id) REFERENCES isolates(id) ON UPDATE CASCADE ON DELETE CASCADE;
 GRANT SELECT, INSERT, UPDATE, DELETE ON eav_text_hidden TO apache;
 -- INSERT INTO eav_fields(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('cgMLST_differences_0', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1);
