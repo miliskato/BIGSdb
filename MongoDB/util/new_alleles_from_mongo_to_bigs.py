@@ -71,8 +71,10 @@ class NewAllelesFromMongoToBigs:
         if len(self.new_st) > 0:
             print('new sequence types are being inserted')
             self._insert_sequence_types()
-
-        # self._update_last_update_date()
+        if len(self.new_cluster_membership) > 0:
+            print('new clustering membership are being inserted')
+            self._insert_or_update_clustering()
+        self._update_last_update_date()
 
     def _insert_new_alleles(self) -> None:
         ordered_by_scheme_dict = self._order_sequences_by_locus()
@@ -122,6 +124,7 @@ class NewAllelesFromMongoToBigs:
             max_st_in_bigs = 0
         for st in self.new_st:
             if int(st['ST']) > int(max_st_in_bigs):
+                print(f"start insert of {st['ST']}")
                 st_id = st['ST']
                 # insertion of the st id into the profiles table
                 self.cur_seqdef.execute(f"INSERT INTO profiles(scheme_id, "
@@ -169,29 +172,35 @@ class NewAllelesFromMongoToBigs:
             group_id = cl_membership['Clustering_membership']
             self.cur_seqdef.execute(f"SELECT * FROM classification_groups WHERE (cg_scheme_id = '{cg_scheme_id}' and group_id = '{group_id}')")
             test_group_exist = self.cur_seqdef.fetchall()
-            if test_group_exist[0][0] is None:
+            if not test_group_exist:
                 self.cur_seqdef.execute(f"INSERT INTO classification_groups (cg_scheme_id, group_id, active, curator, datestamp)"
                                         f"VALUES ('{cg_scheme_id}', '{group_id}', true, 1, (SELECT CURRENT_DATE))")
             # group exists so now need to check if clustering membership already present
             self.cur_seqdef.execute(
                 f"SELECT group_id FROM classification_group_profiles WHERE (cg_scheme_id = '{cg_scheme_id}' and profile_id = '{profile_id}')")
             test_group_profile_exist = self.cur_seqdef.fetchall()
-            print(test_group_profile_exist[0][0])
-            if test_group_profile_exist[0][0] is None:
+            previous_group = test_group_profile_exist
+            if not previous_group:
                 self.cur_seqdef.execute(f"INSERT INTO classification_group_profiles (cg_scheme_id, group_id, profile_id, scheme_id, curator, datestamp)"
                                         f"VALUES ('{cg_scheme_id}', '{group_id}','{profile_id}', (SELECT id FROM schemes WHERE name = 'cgMLST'), 1, (SELECT CURRENT_DATE))")
-            else:
-                groups_merged.append(test_group_profile_exist[0][0])
+            elif previous_group[0][0] != group_id:
                 self.cur_seqdef.execute(f"UPDATE classification_group_profiles SET group_id = '{group_id}' WHERE cg_scheme_id = '{cg_scheme_id}' AND \
                                       profile_id = '{profile_id}'")
-        groups_merged = list(set(groups_merged))
-        #todo : change the value of the group to false in the end and add in the history table (classification_group_profile_history) the change of group that happened
-
+                self.cur_seqdef.execute(
+                    f"INSERT INTO classification_group_profile_history (timestamp, scheme_id, profile_id, cg_scheme_id, previous_group, comment)"
+                    f" VALUES ((SELECT CURRENT_DATE), (SELECT id FROM schemes WHERE name = 'cgMLST'), '{profile_id}', '{cg_scheme_id}', '{previous_group[0][0]}', 'n.c.')")
+                if previous_group[0][0] not in groups_merged:
+                    print(f'group {previous_group[0][0]} is merged into {group_id}')
+                    groups_merged.append(previous_group[0][0])
+                    #update group table
+                    self.cur_seqdef.execute(
+                        f"UPDATE classification_groups SET active = false WHERE cg_scheme_id = '{cg_scheme_id}' AND \
+                                                          group_id = '{previous_group[0][0]}'")
 
     def _check_for_classification_schemes(self):
         self.cur_seqdef.execute(f"SELECT id from classification_schemes")
-        query_res = self.cur_seqdef.fetchall()[0][0]
-        if query_res is None:
+        query_res = self.cur_seqdef.fetchall()
+        if not query_res:
             #no classification schemes, create them.
             for idx, threshold in enumerate(self.clustering_thresholds):
                 name = f"cgMLST_{threshold}_diffs_clustering"
@@ -201,7 +210,7 @@ class NewAllelesFromMongoToBigs:
                                         f"VALUES ('{idx+1}', (SELECT id FROM schemes WHERE name = 'cgMLST'), '{name}', '{description}', '{threshold}', false, '{idx+1}', 'experimental',1, (SELECT CURRENT_DATE) )")
                 #initialize in isolates
                 self.cur_isolates.execute(
-                    f"INSERT INTO classification_schemes (id, scheme_id, name, description, inclusion_threshold, use_relative_threshold, seqdef_scheme_id, display_order, status, curator, datestamp)"
+                    f"INSERT INTO classification_schemes (id, scheme_id, name, description, inclusion_threshold, use_relative_threshold, seqdef_cscheme_id, display_order, status, curator, datestamp)"
                     f"VALUES ('{idx + 1}', (SELECT id FROM schemes WHERE name = 'cgMLST'), '{name}', '{description}', '{threshold}', false, '{idx + 1}','{idx + 1}', 'experimental',1, (SELECT CURRENT_DATE) )")
         else:
             print('No initialization is required')
@@ -219,7 +228,7 @@ def parse_arguments() -> argparse.Namespace:
     """
     parser = argparse.ArgumentParser()
     parser.add_argument("--species", required=True, type=str,
-                        choices=['mycobacterium', 'listeria', 'listeria_test', 'neisseria', 'stec', 'salmonella'])
+                        choices=['mycobacterium', 'listeria', 'neisseria', 'stec', 'salmonella'])
     return parser.parse_args()
 
 

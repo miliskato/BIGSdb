@@ -18,7 +18,7 @@ if __name__ == '__main__':
     # Configure stdout logging
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
     #species = ['listeria', 'mycobacterium', 'neisseria', 'salmonella', 'stec']
-    species = ['listeria_test']
+    species = ['listeria']
     # Open collections
     mongoinit = Mongoinitialisation()
     mongoquerying = Mongoquerying()

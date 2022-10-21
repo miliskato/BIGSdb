@@ -46,7 +46,7 @@ def _parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--jsonfilepath", required=True, type=Path)
     parser.add_argument("--species", required=True, type=str,
-                        choices=['mycobacterium', 'listeria', 'neisseria', 'stec', 'salmonella','listeria_test'])
+                        choices=['mycobacterium', 'listeria', 'neisseria', 'stec', 'salmonella'])
     parser.add_argument("--results_type", required=True, type=str, choices=['new_isolate', 'reanalysis'])
     parser.add_argument("--fastafilepath", required=False, type=str)
     parser.add_argument("--vcffilepath", required=False, type=str)
