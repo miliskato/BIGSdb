@@ -9,17 +9,16 @@ import scipy.cluster.hierarchy as hcluster
 from pymongo.write_concern import WriteConcern
 
 
-class DistanceMatrixComputer:
+class DistanceAndClusterComputer:
     """
-    Class to compute hamming distances and add them to the distance matrix in mongoDB
+    Class to compute hamming distances and determine the cluster membership to store in mongoDB.
     """
 
     def __init__(self, st_collection, cluster_membership_collection, st_to_use: list):  # distance_matrix_collection,
         """
-        Initialize the class
-        :param st_collection: sequence type collection from mongoDb
-        :param distance_matrix_collection:  distance matrix collection from mongoDB
-        :param st_to_use: the list of the sequence types to use or [0]if using all the st of the db
+        Initializes the class.
+        :param st_collection: sequence types collection from mongoDb.
+        :param cluster_membership_collection:  the cluster membership collection from mongoDB.
         """
         logging.getLogger().setLevel(logging.INFO)
         logging.info("Initialization of the distance matrix computer")
@@ -39,7 +38,7 @@ class DistanceMatrixComputer:
 
     def __get_cgmlst_profiles(self) -> None:
         """
-        retrieve all the cgmlst profiles as list from mongoDB st_collection
+        Retrieves all the cgmlst profiles as list from mongoDB st_collection.
         :return:
         """
         if self.st_to_use == [0]:
@@ -58,7 +57,7 @@ class DistanceMatrixComputer:
 
     def __sorting_cgmlst_profiles(self) -> None:
         """
-        sort by ascending order the cgmlst profiles and sequence types
+        Sorts by ascending order the cgmlst profiles and sequence types.
         :return:
         """
         zip_list = zip(self.sequence_types, self.cgmlst_profiles)
@@ -68,9 +67,9 @@ class DistanceMatrixComputer:
 
     def compute_hamming_distances(self, mode: str) -> None:
         """
-        Compute the hamming distances between sequence types
+        Computes the hamming distances between sequence types
         :param mode: full is to compute all the distances against all the cgmlst in the db while
-        last_st computes only for the last sequence types entered in the db.
+        last_st computes only for the last sequence type entered in the db.
         :return:
         """
         logging.info(f"{datetime.datetime.now()}: Starting to compute hamming distances in mode {mode}")
@@ -83,6 +82,14 @@ class DistanceMatrixComputer:
         logging.info(f"{datetime.datetime.now()}: Hamming distances computed!")
 
     def init_clustering_and_cluster_membership(self, cluster_thresholds: list) -> None:
+        """
+        This function is used when initializing the clustering from more than one sequence type. It will use the
+        distance matrix to cluster the different st and determine their cluster membership at the different cluster
+        thresholds.
+        :param cluster_thresholds: the list of cluster thresholds to be used to determine the cluster membership of
+        the different st.
+        :return:
+        """
         logging.info(f"{datetime.datetime.now()}: Starting initial clustering and clustering membership encoding")
         self.hamming_distances += self.hamming_distances.T
         slc = fastcluster.single(ssd.squareform(self.hamming_distances))
@@ -92,13 +99,22 @@ class DistanceMatrixComputer:
             for entry in range(len(cluster_membership)):
                 doc = {'ST': self.sequence_types[entry],
                        'Threshold': thresh,
-                       'Clustering_membership': [int(cluster_membership[entry])]}
+                       'Clustering_membership': int(cluster_membership[entry])}
                 documents.append(doc)
             self.insert_a_lot(documents, self.cluster_membership_collection)
             logging.info(f"{datetime.datetime.now()}: Clustering membership finished for threshold {thresh}")
         logging.info(f"{datetime.datetime.now()}: Clustering and clustering membership finished")
 
     def _merge_clusters(self, memberships: list, threshold: int) -> int:
+        """
+        A function used to merge clusters and recompute the cluster memberships from the st of the older clusters that
+        were merged.
+        :param memberships: a list of the cluster membership of the st that belong to more than one cluster (merging
+        of the clusters is thus required).
+        :param threshold: The threshold of clustering for which those memberships belong to. (e.g. clustering was
+        carried out at 7 alleles of difference => threshold is 7).
+        :return:
+        """
         cluster_sizes = []
         print(f'merging clusters {memberships}')
         memberships.sort()
@@ -117,6 +133,11 @@ class DistanceMatrixComputer:
         return new_cluster_name
 
     def new_st_cluster_membership(self, cluster_thresholds: list) -> None:
+        """
+        Determines the cluster membership of the new st which is being clustered and stores it into mongoDB.
+        :param cluster_thresholds: The list of thresholds to be used for the clustering.
+        :return:
+        """
         for thresh in cluster_thresholds:
             membership = []
             for it in range(len(self.hamming_distances[0]) - 1):
@@ -125,7 +146,7 @@ class DistanceMatrixComputer:
             membership = list(set(membership))
             if len(membership) > 1:
                 membership = [self._merge_clusters(membership, thresh)]
-            if len(membership) == 0:
+            elif len(membership) == 0:
                 membership.append(self.sequence_types[-1])
             entry = {'ST': self.sequence_types[-1],
                      'insertion_date': datetime.datetime.utcnow(),

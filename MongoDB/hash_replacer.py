@@ -122,3 +122,4 @@ if __name__ == '__main__':
             for hash_document in documents_list:
                 if hash_document['resolved_AD'] != 0:
                     cur_isolates.execute(f"UPDATE allele_designations SET allele_id='{hash_document['resolved_AD']}' WHERE allele_id='{hash_document['hashed_allele']}' AND locus='{hash_document['locus']}'")
+                    cur_seqdef.execute(f"UPDATE sequences SET allele_id='{hash_document['resolved_AD']}' WHERE allele_id='{hash_document['hashed_allele']}'  AND locus='{hash_document['locus']}'")

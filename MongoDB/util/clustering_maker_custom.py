@@ -7,20 +7,18 @@ from scipy.spatial import distance as ssd
 import scipy.cluster.hierarchy as hcluster
 import matplotlib.pyplot as plt
 from MongoDB.util.mongo_querying_old import Mongoquerying
-from MongoDB.util.distance_matrix_computer import DistanceMatrixComputer
+from MongoDB.util.distance_and_cluster_computer import DistanceAndClusterComputer
 from MongoDB.util.hamming_distance import getDistance
 from multiprocessing import Pool
 
-class ClusteringMakerCustom(DistanceMatrixComputer):
-    def __init__(self, cluster_membership_collection, isolates_collection, isolate_results_collection, threshold: int, sample: str, mode: str):
+class ClusteringMakerCustom(DistanceAndClusterComputer):
+    def __init__(self, cluster_membership_collection, isolates_collection, threshold: int, sample: str):
         self.cluster_membership_collection = cluster_membership_collection
         self.isolates_collection = isolates_collection
-        self.isolate_results_collection = isolate_results_collection
         self.sample = sample
         self.sample_st = self._retrieve_sample_st()
         print(self.sample_st)
         self.threshold = threshold
-        self.mode = mode
         self.cluster_membership = self.__retrieve_cluster_membership()
         self.cluster_members_st = []
         self._retrieve_cluster_members_st()
@@ -32,27 +30,10 @@ class ClusteringMakerCustom(DistanceMatrixComputer):
         self.hamming_distances = [matrix + matrix.T for matrix in self.hamming_distances]
 
     def _retrieve_sample_st(self) -> int:
-        return self.isolates_collection.find_one({'_id': self.sample})['HierCC_ST']
+        return self.isolates_collection.find_one({'_id': self.sample})['ST']
 
-    def __retrieve_cluster_membership(self) -> list:
-        initial_membership = self.cluster_membership_collection.find_one({'ST': self.sample_st, 'Threshold': self.threshold})['Clustering_membership']
-        if self.mode == 'split_cluster':
-            return initial_membership
-        elif self.mode == 'extended_cluster':
-            found_clusters = []
-            previous_clusters = list(set(initial_membership))
-            init = 0
-            while set(found_clusters) != set(previous_clusters):
-                if init != 0:
-                    previous_clusters = found_clusters
-                find_all_memberships = self.cluster_membership_collection.find({'Threshold': self.threshold, 'Clustering_membership':{'$in': previous_clusters}})
-                found_clusters = []
-                for result in find_all_memberships:
-                    found_clusters = found_clusters + result['Clustering_membership']
-                init = 1
-            return list(set(found_clusters))
-        else:
-            raise ValueError('mode is not in the range of allowed values. Please choose either split_cluster or extended_cluster')
+    def __retrieve_cluster_membership(self) -> int:
+        return self.cluster_membership_collection.find_one({'ST': self.sample_st, 'Threshold': self.threshold})['Clustering_membership']
 
     def _retrieve_cluster_members_st(self) -> None:
         if self.mode == 'split_cluster':
@@ -77,7 +58,7 @@ class ClusteringMakerCustom(DistanceMatrixComputer):
             cgmlst_collection = []
             sample_collection = []
             for st in st_collection:
-                query_samples = self.isolates_collection.find({'HierCC_ST': st})
+                query_samples = self.isolates_collection.find({'ST': st})
                 for res in query_samples:
                     sample_id = res['_id']
                     mongoquerying = Mongoquerying()

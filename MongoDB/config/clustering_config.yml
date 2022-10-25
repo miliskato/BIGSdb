@@ -1,0 +1,6 @@
+allowed_missing_data_proportion: 0.05
+clustering_thresholds_listeria: [1,5]
+clustering_thresholds_mycobacterium: [1,5]
+clustering_thresholds_neisseria: [1,5]
+clustering_thresholds_salmonella: [1,5]
+clustering_thresholds_stec: [1,5]

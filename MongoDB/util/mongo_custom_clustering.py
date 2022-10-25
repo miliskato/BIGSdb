@@ -1,13 +1,8 @@
 from pymongo import MongoClient
 from MongoDB.util.hiercc_cgmlst_profile import HierCCCgMLSTProfile
-from MongoDB.util.hiercc_numbers_profile import HierCCNumbersProfile
-from MongoDB.util.distance_matrix_computer import DistanceMatrixComputer
-from MongoDB.config import HIERCC_CONFIG
-import gzip
-import subprocess
+from MongoDB.util.distance_and_cluster_computer import DistanceAndClusterComputer
+from MongoDB.config import CLUSTERING_CONFIG
 import logging
-import hashlib
-from pathlib import Path
 from pymongo.write_concern import WriteConcern
 
 
@@ -26,7 +21,8 @@ class MongoCustomClustering:
 
     def run_custom_clustering(self, st_collection, cluster_membership_collection, cluster_threshold: list) -> int:
         """
-        Main function to run the whole clustering using HierCC and storing data in mongoDB
+        Main function to run the whole clustering and storing data in mongoDB
+        :param cluster_threshold: the thresholds for clustering membership to be used for the clustering
         :param st_collection: the collection of sequence types from mongoDB.
         :param cluster_membership_collection: the collection containing the cluster memberships in mongoDB
         :return:
@@ -54,6 +50,12 @@ class MongoCustomClustering:
                 return None
 
     def __check_order_of_cgmlst_profile(self, st_collection) -> None:
+        """
+        Checks if the order of the loci in the st to be added are the same as the one in the st_collection. If not, the,
+        it reorder the new st loci to correspond to the order of the st collection.
+        :param st_collection: the sequence types collection from mongoDB
+        :return:
+        """
         try :
             db_headers = st_collection.find_one({'ID': 'headers'})['headers']
         except:
@@ -72,7 +74,7 @@ class MongoCustomClustering:
 
     def __query_sequence_types(self, st_collection) -> int:
         """
-        Check if the cgmlst profile from the isolate is already stored in the sequence type collection
+        Check if the cgmlst profile from the isolate is already stored in the sequence types collection
         :param st_collection: the sequence type collection from mongo db.
         :return: the sequence type if it exists already in the db or None if it doesn't.
         """
@@ -84,22 +86,21 @@ class MongoCustomClustering:
 
     def __check_missing_data(self) -> str:
         """
-        Check if the number of missing alleles is not higher than the threshold in order to do the clustering and
+        Checks if the number of missing alleles is not higher than the threshold in order to do the clustering and
         incorporate the results in the database.
         :return:
         """
         missing_alleles = self.cgmlst_profile.cgmlst.count(0)
         proportion_of_missing_alleles = missing_alleles / len(self.cgmlst_profile.cgmlst)
         logging.info(f"Proportion of missing allele is {proportion_of_missing_alleles}")
-        if proportion_of_missing_alleles > HIERCC_CONFIG["allowed_missing_data_proportion"]:
+        if proportion_of_missing_alleles > CLUSTERING_CONFIG["allowed_missing_data_proportion"]:
             return 'Fail'
         else:
             return 'OK'
 
     def __add_new_sequence_type(self, st_collection) -> None:
         """
-        Add the new sequence type into the sequence type collection and adds also the st to the input file for
-        clustering with HierCC.
+        Adds the new sequence type into the sequence types collection.
         :param st_collection: the sequence type collection of mongoDB.
         :return:
         """
@@ -111,7 +112,15 @@ class MongoCustomClustering:
         st_collection.with_options(write_concern=WriteConcern(w="majority")).insert_one(self.cgmlst_profile.get_st_collection_entry())
 
     def __compute_cluster_membership(self, st_collection, cluster_membership_collection, cluster_threshold: list) ->None:
-        distance_matrix = DistanceMatrixComputer(st_collection, cluster_membership_collection, [0])
-        distance_matrix.compute_hamming_distances('last_st')
-        distance_matrix.new_st_cluster_membership(cluster_threshold)
+        """
+        Computes the cluster membership for the new sequence added to the st_collection.
+        :param st_collection: the sequence types collection from mongoDB.
+        :param cluster_membership_collection: the cluster membership collection from mongoDB.
+        :param cluster_threshold: The list of thresholds to be applied when clustering the new st and determine its
+        clustering membership.
+        :return:
+        """
+        distance_cluster = DistanceAndClusterComputer(st_collection, cluster_membership_collection, [0])
+        distance_cluster.compute_hamming_distances('last_st')
+        distance_cluster.new_st_cluster_membership(cluster_threshold)
 
