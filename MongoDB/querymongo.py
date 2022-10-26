@@ -37,9 +37,9 @@ if __name__ == '__main__':
 
     # Open collections
     mongoinit = Mongoinitialisation()
-    isolates_collection, isolateresults_collection, isolates_badqc_collection = mongoinit._initialise_collections(config_data, args.species)
-    st_collection, hiercc_results_collection, cluster_membership_collection = \
-        mongoinit.initialise_hiercc_collections(config_data, args.species)
+    isolates_collection, old_isolates_collection, isolates_badqc_collection = mongoinit._initialise_collections(config_data, args.species)
+    st_collection, cluster_membership_collection = \
+        mongoinit.initialise_clustering_collections(config_data, args.species)
     # isolates_collection.drop()
     # isolateresults_collection.drop()
     mongoquerying = Mongoquerying()
@@ -57,7 +57,6 @@ if __name__ == '__main__':
     #         print(':'.join([locus['Locus'], locus['Allele']]))
     # print([docs for docs in isolates_collection.find({},{'_id': 1})])
 
-    mongoquerying.query_what_changed_compared_to_previous('S14BD00001_R1_001', isolates_collection, isolateresults_collection)
 
 
     # print(mongoquerying._query_list_of_all_distinct_values(isolates_collection, '_id'))
@@ -111,5 +110,5 @@ if __name__ == '__main__':
     # alternative_clustering = AlternativeClusteringMaker(hiercc_results_collection, isolates_collection,
     #                                                     isolateresults_collection, 7, 'S13BD00906', 10207)
     # alternative_clustering.single_linkage_clustering()
-    clustering = ClusteringMakerCustom(cluster_membership_collection,isolates_collection,isolateresults_collection, 7, 'S14BD03397', 'extended_cluster') #extended_cluster split_cluster
+    clustering = ClusteringMakerCustom(cluster_membership_collection,isolates_collection, st_collection, 1, 'test1')
     clustering.single_linkage_clustering()

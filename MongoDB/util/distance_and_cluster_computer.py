@@ -21,7 +21,7 @@ class DistanceAndClusterComputer:
         :param cluster_membership_collection:  the cluster membership collection from mongoDB.
         """
         logging.getLogger().setLevel(logging.INFO)
-        logging.info("Initialization of the distance matrix computer")
+        logging.info("Initialization of the distance and cluster computer")
         self.st_to_use = st_to_use
         self.st_collection = st_collection
         # self.matrix_collection = distance_matrix_collection
@@ -31,12 +31,12 @@ class DistanceAndClusterComputer:
         self.missing_alleles = []
         self.hamming_distances = []
         logging.info("Retrieving cgmlst profiles from the database")
-        self.__get_cgmlst_profiles()
+        self._get_cgmlst_profiles()
         logging.info("Sorting cgmlst profiles")
-        self.__sorting_cgmlst_profiles()
+        self._sorting_cgmlst_profiles()
         logging.info("Initialization finished!")
 
-    def __get_cgmlst_profiles(self) -> None:
+    def _get_cgmlst_profiles(self) -> None:
         """
         Retrieves all the cgmlst profiles as list from mongoDB st_collection.
         :return:
@@ -55,7 +55,7 @@ class DistanceAndClusterComputer:
                 self.cgmlst_profiles.append(np.array(doc['cgMLST'].split(',')))
                 self.sequence_types.append(doc['ST'])
 
-    def __sorting_cgmlst_profiles(self) -> None:
+    def _sorting_cgmlst_profiles(self) -> None:
         """
         Sorts by ascending order the cgmlst profiles and sequence types.
         :return:
