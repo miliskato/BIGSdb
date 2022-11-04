@@ -24,6 +24,7 @@ from MongoDB.reanalysis.command.command import Command
 # https://stackoverflow.com/questions/5685007/making-git-log-ignore-changes-for-certain-paths
 # git log --date=short -- . ':(exclude)db_metadata.txt'
 
+
 def _parse_arguments() -> argparse.Namespace:
     """
     Parses the command line arguments.
@@ -32,9 +33,10 @@ def _parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument('--species', type=str, required=True, help='Species to re-analyze')
     parser.add_argument('--threads', type=int, default=8, help='Number of threads to use in total')
-    parser.add_argument('--pyvenvpythonpath', type=Path, required=True, help='/home/BIGSdb/3.9PythonVenv/bin/python3.9')
+    parser.add_argument('--pyvenvpythonpath', type=Path, required=True, help='eg /home/BIGSdb/3.9PythonVenv/bin/python3.9')
     parser.add_argument('--slurm', action='store_true', help='Run reanalyses using slurm, dont include to not use slurm')
     return parser.parse_args()
+
 
 def _send_email(subject: str, content: str, config: dict) -> None:
     """
@@ -52,8 +54,6 @@ def _send_email(subject: str, content: str, config: dict) -> None:
         s.send_message(message)
     logging.info(content)
 
-def _return_datetimeobj_from_YMDhms(datetimestring: str):
-    return datetime.datetime.strptime(datetimestring, '%d/%m/%Y - %X').date()
 
 if __name__ == '__main__':
 
@@ -62,7 +62,7 @@ if __name__ == '__main__':
 
     # Read the trigger config
     with open(TRIGGER_CONFIG, encoding='utf-8') as handle:
-       trigger_config = yaml.safe_load(handle)
+        trigger_config = yaml.safe_load(handle)
 
     # Parse config
     with open(MONGO_CONFIG, encoding='utf-8') as handle:
@@ -73,7 +73,7 @@ if __name__ == '__main__':
 
     try:
         mongoinit = Mongoinitialisation()
-        isolates_collection, isolateresults_collection, isolates_badqc_collection = mongoinit._initialise_collections(
+        isolates_collection, isolateresults_collection, isolates_badqc_collection = mongoinit.initialise_collections(
             mongo_config_data, args.species)
 
         # Part 1: Query scheme last update dates and sort schemes by last update date
@@ -102,7 +102,13 @@ if __name__ == '__main__':
         # Part 3: run reanalysis
         source = os.path.dirname(__file__)
         parent = os.path.join(source, '../')
-        def run_reanalysis(date, date_args_dict):
+        def run_reanalysis(date: str, date_args_dict: dict) -> None:
+            """
+            Runs reanalysis.py on samples with last analysis date older than assay db updates
+            :param date: datetimestring 'YYYY-MM-DD', key in date_args_dict
+            :param date_args_dict: key (date): args(str) dict e.g. {'2019-03-04': 'vfdb-core virulencefinder'}
+            :return: None
+            """
             logging.info(f"running reanalysis on samples older than {date} with arguments: {date_args_dict[date]}")
             base_command = ' '.join([
                 f"{args.pyvenvpythonpath}",
@@ -114,7 +120,7 @@ if __name__ == '__main__':
                 f"--threads {args.threads}" if args.slurm is False else f"--threads_per_job 1",
             ])
             command = Command(base_command)
-            command.run(os.getcwd())
+            command.run(Path(os.getcwd()))
             if command.returncode != 0:
                 # if pipeline fails, send mail and continue to next sample, dont raise error
                 _send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
@@ -139,4 +145,4 @@ if __name__ == '__main__':
 
     except Exception as exceptionmessage:
         _send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
-                f"{exceptionmessage}\n{traceback.format_exc()}", mongo_config_data['mail'])
+                    f"{exceptionmessage}\n{traceback.format_exc()}", mongo_config_data['mail'])

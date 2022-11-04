@@ -8,6 +8,7 @@ from config import MONGO_CONFIG
 import logging
 import sys
 
+
 def _parse_arguments() -> argparse.Namespace:
     """
     Parses the command line arguments.
@@ -31,13 +32,13 @@ if __name__ == '__main__':
 
     # Open collections
     mongoinit = Mongoinitialisation()
-    isolates_collection, isolateresults_collection, isolates_badqc_collection = mongoinit._initialise_collections(config_data, args.species)
+    isolates_collection, isolateresults_collection, isolates_badqc_collection = mongoinit.initialise_collections(config_data, args.species)
     # isolates_collection.drop()
     # isolateresults_collection.drop()
     mongoquerying = Mongoquerying()
 
-    #print(isolates_collection.find_one()['results'].keys())
-    #mongoquerying.query_failed_causes(isolates_badqc_collection)
+    # print(isolates_collection.find_one()['results'].keys())
+    # mongoquerying.query_failed_causes(isolates_badqc_collection)
     # list_of_lists = [docs['results']['species_confirmation']['loci'] for docs in isolates_collection.find()]
     # import itertools
     # list_all = list(itertools.chain.from_iterable(list_of_lists))
@@ -49,7 +50,6 @@ if __name__ == '__main__':
     # print([docs for docs in isolates_collection.find({},{'_id': 1})])
 
     mongoquerying.query_what_changed_compared_to_previous('S14BD00001_R1_001', isolates_collection, isolateresults_collection)
-
 
     # print(mongoquerying._query_list_of_all_distinct_values(isolates_collection, '_id'))
     # for result in mongoquerying._query_previous_latest_results_by_technicalids(isolates_collection, isolateresults_collection,
@@ -75,7 +75,7 @@ if __name__ == '__main__':
     # print(isolates_collection.find_one({'latest_analysis_date': {'$lt': end, '$gte': start}, 'porta': 'A0'}))
     # print(isolates_collection.find_one({'latest_analysis_date': {'$lt': end}}))
     # print(isolates_collection.find_one({'latest_analysis_date': {'$gte': start}}))
-    #pprint.pprint(isolates_collection.find_one({'latest_analysis_date': {'$gte': start, '$lt': end}}))
+    # pprint.pprint(isolates_collection.find_one({'latest_analysis_date': {'$gte': start, '$lt': end}}))
     # headers = st_collection.find_one({'ID': 'headers'})['headers']
     # input_data = ['0'] * (len(headers)-1600)
     # input_data = input_data + (['1'] * 1600)
@@ -84,4 +84,3 @@ if __name__ == '__main__':
     # print(result)
     # result = mongoquerying.find_isolates_cgmlst_distance("S14BD02863", 100, isolates_collection, distance_matrix_collection)
     # print(result)
-

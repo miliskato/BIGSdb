@@ -30,6 +30,7 @@ from MongoDB.util.mongo_initialisation import Mongoinitialisation
 from MongoDB.config import MONGO_CONFIG
 from MongoDB.reanalysis import MONGO_REANALYSIS_CONFIG
 
+
 def _parse_arguments() -> argparse.Namespace:
     """
     Parses the command line arguments.
@@ -39,7 +40,7 @@ def _parse_arguments() -> argparse.Namespace:
     parser.add_argument('--species', type=str, required=True, help='Species to re-analyze')
     parser.add_argument('--threads', type=int, default=8, help='Number of threads to use in total')
     parser.add_argument('--analysis_arguments', nargs='+', required=False, help='analysis arguments stripped off --, e.g. "--analysis_arguments cgmlst mlst"')
-    parser.add_argument('--pyvenvpythonpath', type=Path, required=True, help='/home/BIGSdb/3.9PythonVenv/bin/python3.9')
+    parser.add_argument('--pyvenvpythonpath', type=Path, required=True, help='eg /home/BIGSdb/3.9PythonVenv/bin/python3.9')
     parser.add_argument('--maximal_analysis_date', type=str, required=True, help='YYYY-MM-DD')
     return parser.parse_args()
 
@@ -53,6 +54,7 @@ def _parse_arguments() -> argparse.Namespace:
 # /home/bebogaerts/PycharmProjects/CamelTemp/camel/scripts/reanalysis/config.yml
 # --threads
 # 4
+
 
 def _send_email(subject: str, content: str, config: dict) -> None:
     """
@@ -70,10 +72,26 @@ def _send_email(subject: str, content: str, config: dict) -> None:
         s.send_message(message)
     logging.info(content)
 
-def __make_flagfilepath(isolatename: str, config: dict):
+
+def __make_flagfilepath(isolatename: str, config: dict) -> Path:
+    """
+    Returns the flagfile path based on the isolate name
+    :param isolatename: name of the isolate
+    :param config: config containing the flagfile directory path
+    :return: Path
+    """
     return Path(config['failsafe']['flag_dir']) / '.'.join([isolatename, config['failsafe']['flag_append']])
 
-def _fail_safe_mechanism(isolatename: str, config: dict, mailconfig: dict, tmp_dir: str):
+
+def _fail_safe_mechanism(isolatename: str, config: dict, mailconfig: dict, tmp_dir: str) -> None:
+    """
+    Creates a flagfile containing the temporary dictionary if the file doesnt exist, if it does, remove the previous temporary directory, the file, and recreate the file
+    :param isolatename: name of the isolate
+    :param config: config containing the flagfile directory path
+    :param mailconfig: config containging the mailing dictionary
+    :param tmp_dir: temporary working dir
+    :return: None
+    """
     try:
         if not os.path.isdir(Path(config['failsafe']['flag_dir'])):
             os.makedirs(Path(config['failsafe']['flag_dir']), exist_ok=True)
@@ -88,14 +106,22 @@ def _fail_safe_mechanism(isolatename: str, config: dict, mailconfig: dict, tmp_d
             handle.write(tmp_dir)
         logging.info(f"flagfilepath {flagfilepath}")
     except Exception as exceptionmessage:
-        _send_email(f"{os.path.basename(__file__)}: reanalysis fail safe mechanism fail on host {socket.gethostname()}", f"{exceptionmessage}\n{traceback.format_exc()}", config['mail'])
+        _send_email(f"{os.path.basename(__file__)}: reanalysis fail safe mechanism fail on host {socket.gethostname()}", f"{exceptionmessage}\n{traceback.format_exc()}", mailconfig['mail'])
 
-def _delete_flagfile(isolatename: str, config: dict, mailconfig: dict):
+
+def _delete_flagfile(isolatename: str, config: dict, mailconfig: dict) -> None:
+    """
+    Removes the flagfile
+    :param isolatename: name of the isolate
+    :param config: config containing the flagfile directory path
+    :param mailconfig: config containging the mailing dictionary
+    :return: None
+    """
     flagfilepath = __make_flagfilepath(isolatename, config)
     try:
         os.remove(flagfilepath)
     except Exception as exceptionmessage:
-        _send_email(f"{os.path.basename(__file__)}: Could not remove flag file {flagfilepath} on host {socket.gethostname()}", f"{exceptionmessage}\n{traceback.format_exc()}", config['mail'])
+        _send_email(f"{os.path.basename(__file__)}: Could not remove flag file {flagfilepath} on host {socket.gethostname()}", f"{exceptionmessage}\n{traceback.format_exc()}", mailconfig['mail'])
 
 
 if __name__ == '__main__':
@@ -105,7 +131,7 @@ if __name__ == '__main__':
 
     # Read the reanalysis config
     with open(MONGO_REANALYSIS_CONFIG, encoding='utf-8') as handle:
-       reanalysis_config = yaml.safe_load(handle)
+        reanalysis_config = yaml.safe_load(handle)
 
     try:
         # Configure stdout logging
@@ -117,10 +143,10 @@ if __name__ == '__main__':
 
         # Retrieve isolates that need to be re-analyzed
         mongoinit = Mongoinitialisation()
-        isolates_collection, isolateresults_collection, isolates_badqc_collection = mongoinit._initialise_collections(mongo_config_data, args.species)
+        isolates_collection, isolateresults_collection, isolates_badqc_collection = mongoinit.initialise_collections(mongo_config_data, args.species)
         # query all the documents, # todo maybe do a projection as were only interested in _id, fastapath, vcfpath unless we also want db updates later (can also be projected)
 
-        documents_list = [doc for doc in isolates_collection.find( {'latest_analysis_date': {"$lt": args.maximal_analysis_date}}, {"_id": 1, "fasta_path": 1, "vcf_path": 1, "latest_analysis_date" : 1})]
+        documents_list = [doc for doc in isolates_collection.find({'latest_analysis_date': {"$lt": args.maximal_analysis_date}}, {"_id": 1, "fasta_path": 1, "vcf_path": 1, "latest_analysis_date": 1})]
         logging.info(f"{len(documents_list)} isolates to be reanalyzed")
 
         # ! For testing, you can specify isolates manually here
@@ -128,7 +154,13 @@ if __name__ == '__main__':
 
         # Re-analyze the isolates (can be parallelized with a Snakemake workflow)
         # e.g. response_data['isolates'] : "isolates":["http://bioit-bigs-dev.sciensano.be:5000/db/bigsdb_listeria_isolates/isolates/3","http://bioit-bigs-dev.sciensano.be:5000/db/bigsdb_listeria_isolates/isolates/4","http://bioit-bigs-dev.sciensano.be:5000/db/bigsdb_listeria_isolates/isolates/5"]
-        def reanalyse_and_insert(isolate: dict, threads_per_job: int = 2):
+        def reanalyse_and_insert(isolate: dict, threads_per_job: int = 2) -> None:
+            """
+            Reanalyzes a given isolate dict (document from MongoDB)
+            :param isolate: isolate dictionary from MongoDB
+            :param threads_per_job: threads per sample
+            :return: None
+            """
             isolate_id = isolate['_id']
             logging.info(f"Starting reanalysis for {isolate_id}")
 
@@ -138,14 +170,14 @@ if __name__ == '__main__':
                 # todo check if fasta is actually fasta or not empty or?
             else:
                 logging.error('Invalid fastafilepath')
-                _send_email(f"{os.path.basename(__file__)}: reanalysis fail on host {socket.gethostname()} because {isolate_id}'s fasta path is invalid: {isolate['fasta_path']}", "",mongo_config_data['mail'])
+                _send_email(f"{os.path.basename(__file__)}: reanalysis fail on host {socket.gethostname()} because {isolate_id}'s fasta path is invalid: {isolate['fasta_path']}", "", mongo_config_data['mail'])
                 sys.exit()
 
             temp_new_sample_name = '_'.join([isolate_id, str(datetime.date.today())])
             logging.info(f"new sample name: {temp_new_sample_name}")
 
             # Get a temporary working directory
-            with Path(tempfile.mkdtemp(None, 're_analysis_',reanalysis_config['temp_dir'])) as dir_temp:
+            with Path(tempfile.mkdtemp(None, 're_analysis_', reanalysis_config['temp_dir'])) as dir_temp:
 
                 # initialise fail-safe mechanism
                 _fail_safe_mechanism(isolate_id, reanalysis_config, mongo_config_data, str(dir_temp))
@@ -211,7 +243,7 @@ if __name__ == '__main__':
                 else:
                     logging.info(f"Re-analysis for isolate '{isolate_id}' completed")
 
-                ## debugging purposes
+                # # debugging purposes
                 # if 1+1==3:
                 #     continue
                 # else:
@@ -221,18 +253,6 @@ if __name__ == '__main__':
                 #     dir_out = Path("/scratch/temp/re_analysis_pjx15wnq/S16BD02199_2022-09-14")
 
                     # Adding the new sample version to the Mongo database
-                    handle = open(f"{temp_new_sample_name}.log", 'w+')
-                    def run_subprocess(custom_command):
-                        result = subprocess.run(
-                                custom_command,
-                                stdout=handle,
-                                stderr=handle,
-                                shell=True,
-                                executable='/bin/bash')
-                        if result.returncode != 0:
-                            _send_email(
-                                f'{os.path.basename(__file__)}: Error handling output of automatic reanalysis pipeline on {args.species}, {isolate_id}', f"look in file /reports/{args.species}/{temp_new_sample_name}/{temp_new_sample_name}.log", mongo_config_data['mail'])
-
                     _delete_flagfile(isolate_id, reanalysis_config, mongo_config_data)
 
                     # Create command insertion MongoDB
@@ -258,32 +278,20 @@ if __name__ == '__main__':
                     else:
                         logging.info(f"Mongodb insertion for isolate '{isolate_id}' completed")
 
-                    #shutil.move(f"./{temp_new_sample_name}.log", f"/reports/{args.species}/{temp_new_sample_name}/{temp_new_sample_name}.log")
+                    # todo
+                    # shutil.move(f"./{temp_new_sample_name}.log", f"/reports/{args.species}/{temp_new_sample_name}/{temp_new_sample_name}.log")
 
                     # Removing the temporary working dir and the remaining files that were not kept
                     # todo later shutil.rmtree(dir_temp) # 09-09 should i remove this though? we need the report html and tsv for bigsdb # 09-30 this removal was only after the report was moved somewhere else so justified (see reportmover.py in bigs)
 
-        def isolate_and_threads(isolate: dict):
-            dict = {
-                'isolate': isolate,
-                'threads_per_job': 1
-            }
-            return dict
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=int(args.threads /reanalysis_config['threads_per_job'])) as executor:
             future_to_isolate = {executor.submit(
-                reanalyse_and_insert, **isolate_and_threads(isolate)):
+                reanalyse_and_insert, **{'isolate': isolate, 'threads_per_job': 1}):
                                isolate for isolate in documents_list}
     except Exception as exceptionmessage:
         _send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
                     f"{exceptionmessage}\n{traceback.format_exc()}", mongo_config_data['mail'])
-
-
-
-
-
-
-
 
 
 '''

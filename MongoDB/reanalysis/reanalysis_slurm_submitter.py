@@ -30,6 +30,7 @@ from MongoDB.util.mongo_initialisation import Mongoinitialisation
 from MongoDB.config import MONGO_CONFIG
 from MongoDB.reanalysis import MONGO_REANALYSIS_CONFIG
 
+
 def _parse_arguments() -> argparse.Namespace:
     """
     Parses the command line arguments.
@@ -40,9 +41,10 @@ def _parse_arguments() -> argparse.Namespace:
     parser.add_argument('--threads_per_job', type=int, default=1, help='Number of threads to use, should be lower than the machines maximum')
     parser.add_argument('--analysis_arguments', nargs='+', required=False,
                         help='analysis arguments stripped off --, e.g. "--analysis_arguments cgmlst mlst"')
-    parser.add_argument('--pyvenvpythonpath', type=Path, required=True, help='/home/BIGSdb/3.9PythonVenv/bin/python3.9')
+    parser.add_argument('--pyvenvpythonpath', type=Path, required=True, help='eg /home/BIGSdb/3.9PythonVenv/bin/python3.9')
     parser.add_argument('--maximal_analysis_date', type=str, required=True, help='YYYY-MM-DD')
     return parser.parse_args()
+
 
 def _send_email(subject: str, content: str, config: dict) -> None:
     """
@@ -59,6 +61,7 @@ def _send_email(subject: str, content: str, config: dict) -> None:
     with smtplib.SMTP(config['host']) as s:
         s.send_message(message)
     logging.info(content)
+
 
 if __name__ == '__main__':
 
@@ -80,13 +83,13 @@ if __name__ == '__main__':
         # Check if slurm installed:
         base_command = "sinfo -V"
         command = Command(base_command)
-        command.run(os.getcwd())
+        command.run(Path(os.getcwd()))
         if command.returncode != 0:
             raise RuntimeError(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}: Slurm not installed")
 
         # Retrieve isolates that need to be re-analyzed
         mongoinit = Mongoinitialisation()
-        isolates_collection, isolateresults_collection, isolates_badqc_collection = mongoinit._initialise_collections(
+        isolates_collection, isolateresults_collection, isolates_badqc_collection = mongoinit.initialise_collections(
             mongo_config_data, args.species)
         # query all the documents as a projection
         documents_list = [doc for doc in
@@ -98,7 +101,12 @@ if __name__ == '__main__':
         source = os.path.dirname(__file__)
 
         # approach threadpoolexecutor
-        def run_reanalysis(isolate):
+        def run_reanalysis(isolate: dict) -> None:
+            """
+            Creates command, runs command, and checks if command completes
+            :param isolate: isolate dictionary from MongoDB
+            :return: None
+            """
             base_command = ' '.join([
                 f"srun "
                 f"{args.pyvenvpythonpath}",
@@ -110,7 +118,7 @@ if __name__ == '__main__':
                 f"--isolate '{json.dumps(isolate)}'"
             ])
             command = Command(base_command)
-            command.run(os.getcwd())
+            command.run(Path(os.getcwd()))
             if command.returncode != 0:
                 # if pipeline fails, send mail and continue to next sample, dont raise error
                 _send_email(

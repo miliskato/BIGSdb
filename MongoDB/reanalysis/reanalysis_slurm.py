@@ -41,7 +41,7 @@ def _parse_arguments() -> argparse.Namespace:
     parser.add_argument('--threads', type=int, default=8, help='Number of threads to use')
     parser.add_argument('--analysis_arguments', nargs='+', required=False,
                         help='analysis arguments stripped off --, e.g. "--analysis_arguments cgmlst mlst"')
-    parser.add_argument('--pyvenvpythonpath', type=Path, required=True, help='/home/BIGSdb/3.9PythonVenv/bin/python3.9')
+    parser.add_argument('--pyvenvpythonpath', type=Path, required=True, help='eg /home/BIGSdb/3.9PythonVenv/bin/python3.9')
     parser.add_argument('--isolate', type=json.loads, required=True)
     return parser.parse_args()
 
@@ -74,11 +74,25 @@ def _send_email(subject: str, content: str, config: dict) -> None:
     logging.info(content)
 
 
-def __make_flagfilepath(isolatename: str, config: dict):
+def __make_flagfilepath(isolatename: str, config: dict) -> Path:
+    """
+    Returns the flagfile path based on the isolate name
+    :param isolatename: name of the isolate
+    :param config: config containing the flagfile directory path
+    :return: Path
+    """
     return Path(config['failsafe']['flag_dir']) / '.'.join([isolatename, config['failsafe']['flag_append']])
 
 
-def _fail_safe_mechanism(isolatename: str, config: dict, mailconfig: dict, tmp_dir: str):
+def _fail_safe_mechanism(isolatename: str, config: dict, mailconfig: dict, tmp_dir: str) -> None:
+    """
+    Creates a flagfile containing the temporary dictionary if the file doesnt exist, if it does, remove the previous temporary directory, the file, and recreate the file
+    :param isolatename: name of the isolate
+    :param config: config containing the flagfile directory path
+    :param mailconfig: config containging the mailing dictionary
+    :param tmp_dir: temporary working dir
+    :return: None
+    """
     try:
         if not os.path.isdir(Path(config['failsafe']['flag_dir'])):
             os.makedirs(Path(config['failsafe']['flag_dir']), exist_ok=True)
@@ -98,7 +112,14 @@ def _fail_safe_mechanism(isolatename: str, config: dict, mailconfig: dict, tmp_d
                     f"{exceptionmessage}\n{traceback.format_exc()}", mailconfig['mail'])
 
 
-def _delete_flagfile(isolatename: str, config: dict, mailconfig: dict):
+def _delete_flagfile(isolatename: str, config: dict, mailconfig: dict) -> None:
+    """
+    Removes the flagfile
+    :param isolatename: name of the isolate
+    :param config: config containing the flagfile directory path
+    :param mailconfig: config containging the mailing dictionary
+    :return: None
+    """
     flagfilepath = __make_flagfilepath(isolatename, config)
     try:
         os.remove(flagfilepath)
@@ -218,7 +239,7 @@ if __name__ == '__main__':
             else:
                 logging.info(f"Re-analysis for isolate '{isolate_id}' completed")
 
-                ## debugging purposes
+                # # debugging purposes
                 # if 1+1==3:
                 #     continue
                 # else:
@@ -226,22 +247,6 @@ if __name__ == '__main__':
                 #     new_sample_name = 'S16BD02199_2022-09-14'
                 #     uploader = 'mikeltestauto'
                 #     dir_out = Path("/scratch/temp/re_analysis_pjx15wnq/S16BD02199_2022-09-14")
-
-                # Adding the new sample version to the Mongo database
-                handle = open(f"{temp_new_sample_name}.log", 'w+')
-
-                def run_subprocess(custom_command):
-                    result = subprocess.run(
-                        custom_command,
-                        stdout=handle,
-                        stderr=handle,
-                        shell=True,
-                        executable='/bin/bash')
-                    if result.returncode != 0:
-                        _send_email(
-                            f'{os.path.basename(__file__)}: Error handling output of automatic reanalysis pipeline on {args.species}, {isolate_id}',
-                            f"look in file /reports/{args.species}/{temp_new_sample_name}/{temp_new_sample_name}.log",
-                            mongo_config_data['mail'])
 
                 _delete_flagfile(isolate_id, reanalysis_config, mongo_config_data)
 
@@ -264,10 +269,10 @@ if __name__ == '__main__':
                     _send_email(
                         f'{os.path.basename(__file__)}: Error inserting json into mongodb for automatic reanalysis pipeline on {args.species}, {isolate_id}',
                         command.stderr, mongo_config_data['mail'])
-                    # raise RuntimeError(f"Error executing pipeline: {command.stderr}")
                 else:
                     logging.info(f"Mongodb insertion for isolate '{isolate_id}' completed")
 
+                # todo
                 # shutil.move(f"./{temp_new_sample_name}.log", f"/reports/{args.species}/{temp_new_sample_name}/{temp_new_sample_name}.log")
 
                 # Removing the temporary working dir and the remaining files that were not kept

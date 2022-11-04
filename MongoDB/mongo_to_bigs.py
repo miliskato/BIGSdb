@@ -22,6 +22,7 @@ from config import MONGO_CONFIG
 from bioit_custom_scripts.components.databaseconnection import Database_connection
 from bioit_custom_scripts.config import BIGSDB_CONFIG
 
+
 def _parse_arguments() -> argparse.Namespace:
     """
     Parses the command line arguments.
@@ -32,6 +33,7 @@ def _parse_arguments() -> argparse.Namespace:
                                  choices=['mycobacterium', 'listeria', 'neisseria', 'stec', 'salmonella'])
     argument_parser.add_argument('--pyvenvpythonpath', type=Path, required=True, help='/home/BIGSdb/3.9PythonVenv/bin/python3.9')
     return argument_parser.parse_args()
+
 
 def _send_email(subject: str, content: str, config: dict) -> None:
     """
@@ -49,11 +51,24 @@ def _send_email(subject: str, content: str, config: dict) -> None:
         s.send_message(message)
     logging.info(content)
 
-def _return_datetimeobj_from_YMDhms(datetimestring: str):
+
+def _return_datetimeobj_from_DMYhms(datetimestring: str) -> object:
+    """
+    return datetime object from Bert's custom datetime notation in Camel
+    :param datetimestring: datetime sting in '%d/%m/%Y - %X' format
+    :return: datetime.datetime object
+    """
     return datetime.datetime.strptime(datetimestring, '%d/%m/%Y - %X').date()
 
-def _return_datetimestr_from_YMD_to_YMDhms(datetimestring: str):
-    datetime.datetime.strptime(datetimestring, '%Y-%m-%d').strftime('%d/%m/%Y - %X')
+
+def _return_datetimestr_from_YMD_to_DMYhms(datetimestring: str) -> str:
+    """
+    Revert SQL or other YMD to Bert's custom datetime notation in Camel
+    :param datetimestring: datetime string in '%Y-%m-%d'
+    :return: str
+    """
+    return datetime.datetime.strptime(datetimestring, '%Y-%m-%d').strftime('%d/%m/%Y - %X')
+
 
 if __name__ == '__main__':
     # Configure stdout logging
@@ -72,7 +87,7 @@ if __name__ == '__main__':
 
         # Open collections
         mongoinit = Mongoinitialisation()
-        isolates_collection, old_isolateresults_collection, isolates_badqc_collection = mongoinit._initialise_collections(config_data, args.species)
+        isolates_collection, old_isolateresults_collection, isolates_badqc_collection = mongoinit.initialise_collections(config_data, args.species)
 
         # gather script path because not in same parent directory
         source = os.path.dirname(__file__)
@@ -93,15 +108,15 @@ if __name__ == '__main__':
             else:
                 results_type = "reanalysis"
                 cur_isolates.execute(f"SELECT latest_analysis_date FROM isolates WHERE isolate='{document['results']['isolates_id']}'")
-                latest_analysis_date_bigs = cur_isolates.fetchall()[0][0] # this appearently is a datetime object
+                latest_analysis_date_bigs = cur_isolates.fetchall()[0][0]  # this appearently is a datetime object
                 cur_isolates.execute(f"SELECT value FROM eav_text_hidden WHERE field='mongo_results_version'")
                 mongo_results_version_bigs_query = cur_isolates.fetchall()
                 if mongo_results_version_bigs_query == []:
                     mongo_results_version_bigs = 1
                 else:
                     mongo_results_version_bigs = mongo_results_version_bigs_query[0][0]
-                if _return_datetimeobj_from_YMDhms(document['results']['analysis_date']) > latest_analysis_date_bigs:
-                    new_results = document['results'] # this field is the same as 'mongo_results_version' in bigs
+                if _return_datetimeobj_from_DMYhms(document['results']['analysis_date']) > latest_analysis_date_bigs:
+                    new_results = document['results']  # this field is the same as 'mongo_results_version' in bigs
                     if new_results['results_version'] == mongo_results_version_bigs + 1 and new_results["results_changed_since_last_version"] is False:
                         # results are same so do nothing
                         logging.info(f"different version (1 diff) but results same in mongodb and bigsdb for {document['results']['isolates_id']}")
@@ -139,7 +154,13 @@ if __name__ == '__main__':
             jsonfile = f"{document['results']['isolates_id']}_temp.json"
             with open(f"{document['results']['isolates_id']}_temp.json", 'w') as handle:
                 handle.write(json.dumps(document['results']))
-            def run_subprocess(custom_command):
+
+            def run_subprocess(custom_command: str) -> None:
+                """
+                Uploads samples results to bigsdb
+                :param custom_command: string containing command line command
+                :return: None
+                """
                 result = subprocess.run(
                     custom_command,
                     stdout=sys.stdout,
