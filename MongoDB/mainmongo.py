@@ -120,6 +120,7 @@ def find_hashes_in_results_and_add_to_collection(results: dict, mongoinit: objec
             for locus_index, allele_info in enumerate(results[typing_scheme]['loci']):
                 # check if allele designation is md5 hash (32 char combination of letters andor numbers)
                 if re.findall(r'(?i)(?<![a-z0-9])[a-f0-9]{32}(?![a-z0-9])', allele_info['Allele']):
+                    print('new allele detected')
                     existing_document = hashed_AD_collection.with_options(
                         read_concern=ReadConcern(level="majority")).find_one(
                         {"scheme": typing_scheme, "locus": allele_info['Locus'],
@@ -152,7 +153,7 @@ def find_hashes_in_results_and_add_to_collection(results: dict, mongoinit: objec
                     results[typing_scheme]['loci'][locus_index].pop('Allele_sequence')
                     results[typing_scheme]['loci'][locus_index][
                         'Allele'] = temp_allele  # replace in the results the name of the allele (no hash anymore)
-                    return results
+    return results
 
 
 def _return_YMD_from_YMDhms(datetimestring: str):
