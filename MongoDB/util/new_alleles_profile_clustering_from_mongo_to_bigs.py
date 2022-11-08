@@ -280,11 +280,14 @@ class NewAllelesProfileClusteringFromMongoToBigs:
         Check if the classification schemes are already into BIGSdb. if not, insert them.
         :return:
         """
-        self.cur_seqdef.execute(f"SELECT id from classification_schemes")
+        self.cur_seqdef.execute(f"SELECT id,inclusion_threshold from classification_schemes")
         query_res = self.cur_seqdef.fetchall()
-        if not query_res:
-            # no classification schemes, create them.
-            for idx, threshold in enumerate(self.clustering_thresholds):
+        if query_res[0][0] is not None:
+            thresholds_presents = [x[1] for x in query_res]
+        else:
+            thresholds_presents = []
+        for idx, threshold in enumerate(self.clustering_thresholds):
+            if threshold not in thresholds_presents:
                 name = f"cgMLST_{threshold}_diffs_clustering"
                 description = f"Clustering of the cgMLST profiles at {threshold} alleles of differences"
                 # initialize in seqdef
@@ -299,8 +302,9 @@ class NewAllelesProfileClusteringFromMongoToBigs:
                     f"use_relative_threshold, seqdef_cscheme_id, display_order, status, curator, datestamp) "
                     f"VALUES ('{idx + 1}', (SELECT id FROM schemes WHERE name = 'cgMLST'), '{name}', '{description}',"
                     f" '{threshold}', false, '{idx + 1}','{idx + 1}', 'experimental',1, (SELECT CURRENT_DATE) )")
-        else:
-            print('No initialization is required')
+            else:
+                print(f"Threshold {threshold} already present")
+
 
     def _update_last_update_date(self) -> None:
         """

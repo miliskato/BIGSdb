@@ -98,6 +98,7 @@ class DistanceAndClusterComputer:
             documents = []
             for entry in range(len(cluster_membership)):
                 doc = {'ST': self.sequence_types[entry],
+                       'insertion_date': datetime.datetime.utcnow(),
                        'Threshold': thresh,
                        'Clustering_membership': int(cluster_membership[entry])}
                 documents.append(doc)
