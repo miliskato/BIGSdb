@@ -1,5 +1,5 @@
-#issue: max(allele_id) != len(allele_id); some alleles are missing in db, need to take count and can not use len!
-#But on the other side; allele sequences under Max should not be updated, so i can only start looking from max(db)
+# issue: max(allele_id) != len(allele_id); some alleles are missing in db, need to take count and can not use len!
+# But on the other side; allele sequences under Max should not be updated, so i can only start looking from max(db)
 
 # todo maybe add reverse check aswell to see if sequences are not retired, but why would they retire?
 
@@ -54,6 +54,7 @@ emaildict = config_data['mail']
 
 logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
+
 def insert_alleles():
     for scheme in schemedict:
         con = psycopg2.connect(database=f"{schemedict[scheme]['seqdefdb']}", user="apache", password="remote",
@@ -63,12 +64,12 @@ def insert_alleles():
         dirs = next(os.walk(schemedict[scheme]['dirdb']))[1]
         for dir in dirs:
             if not dir.startswith('.') and not (scheme == 'neisseria_fhbpnucl' and (dir != 'fHbp_allele' and dir != 'fHbp_DNAfrag_Pasteur')) and not (scheme == 'neisseria_fhbppept' and (dir == 'fHbp_allele' or dir == 'fHbp_DNAfrag_Pasteur')):
-                #Part 1: Python component
+                # Part 1: Python component
                 # Make dict of fasta file
                 handle = open(Path(schemedict[scheme]['dirdb']) / dir / ''.join([dir.lower(), '.fasta']), 'r').readlines()
                 fastadict = {}
                 x = 0
-                if (len(handle) > 2 and not handle[2].startswith(">")) or scheme == 'neisseria_feta': # one file had this fasta format where the sequence was on different lines
+                if (len(handle) > 2 and not handle[2].startswith(">")) or scheme == 'neisseria_feta':  # one file had this fasta format where the sequence was on different lines
                     pathcopytempfile = Path('/tmp') / ''.join([dir.lower(), '.fasta'])
                     shutil.copyfile((Path(schemedict[scheme]['dirdb']) / dir / ''.join([dir.lower(), '.fasta'])), pathcopytempfile)
                     with open(pathcopytempfile, 'r') as file:
@@ -98,21 +99,19 @@ def insert_alleles():
                         fastadict[handle[x].rstrip().replace(f">NEIS1969_", "").strip("-_")] = handle[x + 1].rstrip()
                         x += 2
                     else:
-                        fastadict[handle[x].rstrip().replace(f">{dir}","").strip("-_")] = handle[x + 1].rstrip()
+                        fastadict[handle[x].rstrip().replace(f">{dir}", "").strip("-_")] = handle[x + 1].rstrip()
                         x += 2
-                #print(list(fastadict.keys())) # I want to compare fasta allele id list with sql allele id list
 
-                #Part 2: PSQL component
+                # Part 2: PSQL component
                 cur.execute(f"SELECT allele_id FROM sequences WHERE locus='{dir}'")
                 rows = cur.fetchall()
                 list_alleleid = []
                 for item in rows:
                     list_alleleid.append(item[0])
-                #print(list_alleleid)
 
-                #Part_3: Compare the two lists
+                # Part_3: Compare the two lists
                 ids_to_be_inserted = []
-                if len(list_alleleid): #not necessary but makes it slightly more elegant for new locus allele sequences
+                if len(list_alleleid):  # not necessary but makes it slightly more elegant for new locus allele sequences
                     for id in list(fastadict.keys()):
                         if id not in list_alleleid:
                             ids_to_be_inserted.append(id)
@@ -122,7 +121,7 @@ def insert_alleles():
                     ids_to_be_inserted = list(fastadict.keys())
                 print(ids_to_be_inserted)
 
-                #Part_4: insert missing allele sequences into psql db
+                # Part_4: insert missing allele sequences into psql db
                 print(scheme, dir)
                 for id in ids_to_be_inserted:
                     try:
@@ -133,30 +132,32 @@ def insert_alleles():
                         cur.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status,sender,curator, date_entered, datestamp) \
                                       VALUES('{dir}','{id}','{fastadict[id]}','unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
                         print(f"id {id} inserted into locus {dir}")
-                    except:
+                    except Exception:
                         """
                         Profiles are located in the seqdef db and will automatically update when the sequence db is updated through a rule.
                         Allele designations in the isolate db on the other hand will not, moreover, allele designations in the allele db 
                         do not need to be referring to a real allele in the seqdef db.
                         """
                         cur.execute(f"SELECT allele_id FROM sequences WHERE locus = '{dir}' AND sequence = '{fastadict[id]}'")
-                        old_id = cur.fetchall()[0][0] # If empty then it will be a simple empty list '[]' and taking the index twice will throw an error
+                        old_id = cur.fetchall()[0][0]  # If empty then it will be a simple empty list '[]' and taking the index twice will throw an error
                         cur.execute(f"UPDATE sequences SET allele_id = '{id}' WHERE locus = '{dir}' AND \
                                       allele_id = '{old_id}'")
                         con2 = psycopg2.connect(database=f"{schemedict[scheme]['isolatedb']}", user="apache",
-                                               password="remote",
-                                               host="127.0.0.1", port="")
+                                                password="remote",
+                                                host="127.0.0.1", port="")
                         con2.autocommit = True
                         cur2 = con2.cursor()
                         cur2.execute(f"UPDATE allele_designations SET allele_id ='{id}' WHERE allele_id ='{old_id}' AND locus = '{dir}'")
                         cur2.close()
         con.close()
 
+
 def send_email(subject: str, content: str, config: dict) -> None:
     """
     Sends an email.
     :param subject: Mail subject
     :param content: Content of the message
+    :param config: Config containing the maildict
     :return: None
     """
     message = EmailMessage()
@@ -167,6 +168,7 @@ def send_email(subject: str, content: str, config: dict) -> None:
     with smtplib.SMTP(config['host']) as s:
         s.send_message(message)
     logging.info(content)
+
 
 try:
     insert_alleles()

@@ -19,7 +19,7 @@ import traceback
 
 from util.mongo_initialisation import Mongoinitialisation
 from config import MONGO_CONFIG
-from bioit_custom_scripts.components.databaseconnection import Database_connection
+from bioit_custom_scripts.components.databaseconnection import DatabaseConnection
 from bioit_custom_scripts.config import BIGSDB_CONFIG
 
 
@@ -94,7 +94,7 @@ if __name__ == '__main__':
         parent = os.path.join(source, '../')
 
         # Connect to db and create cursor
-        cur_isolates, cur_seqdef = Database_connection().open_database_connections(args.species)
+        cur_isolates, cur_seqdef = DatabaseConnection().open_database_connections(args.species)
 
         for document in isolates_collection.find():
             cur_isolates.execute(f"SELECT COUNT(*) FROM isolates WHERE isolate='{document['results']['isolates_id']}'")

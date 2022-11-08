@@ -64,7 +64,7 @@ for scheme in schemedict:
                 con = psycopg2.connect(database=f"{schemedict[scheme]['isolatedb']}", user="apache", password="remote", host="127.0.0.1", port="")
                 print("Database opened successfully")
                 cur = con.cursor()
-                dbaseurl=''.join(['/cgi-bin/bigsdb/bigsdb.pl?db=',f"{schemedict[scheme]['seqdefdb']}", '&page=alleleInfo&locus=',f"{dir}",'&allele_id=[?]'])
+                dbaseurl = ''.join(['/cgi-bin/bigsdb/bigsdb.pl?db=', f"{schemedict[scheme]['seqdefdb']}", '&page=alleleInfo&locus=', f"{dir}", '&allele_id=[?]'])
                 cur.execute(f"INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, dbase_name, dbase_id, "
                             f"url, isolate_display, main_display, query_field, analysis, submission_template, "
                             f"curator, date_entered, datestamp) \
@@ -100,4 +100,3 @@ for scheme in schemedict:
             else:
                 continue
             con.close()
-

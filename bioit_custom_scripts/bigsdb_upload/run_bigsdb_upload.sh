@@ -1,6 +1,6 @@
 #!/bin/bash
 
-
+# This variable is replaced in the Ansible galaxy tools deployment
 DTAPVM=
 
 # will make a shell script with positional arguments
