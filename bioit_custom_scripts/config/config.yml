@@ -327,9 +327,6 @@ species_json:
         type: regular
       fhbp:
         type: regular
-#      neisseria_fhbppept:
-#        dirdb: /db/sequence_typing/neisseria/fhbp
-#        tsvname: Fhbp
     genedetection_schemes:
       ncbi_amr:
         clusteredfasta: /db/gene_detection/NCBI_AMR/ncbi_amr-clustered_80.fasta

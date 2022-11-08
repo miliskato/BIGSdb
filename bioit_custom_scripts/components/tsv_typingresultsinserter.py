@@ -5,15 +5,16 @@ import re
 import ast
 import logging
 
+
 class TsvTypingResultsInserter:
     """
     Class containing definitions to insert typing results from tsv input
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         pass
 
-    def insert_typing_results(self, isolatename, species, schemedict, sample_output_dict, cur_isolates, cur_seqdef) -> None:
+    def insert_typing_results(self, isolatename: str, species: str, schemedict: dict, sample_output_dict: dict, cur_isolates: object, cur_seqdef: object) -> None:
         """
         Inserts typing results into bigsdb from tsv
         :param isolatename:
@@ -22,7 +23,7 @@ class TsvTypingResultsInserter:
         :param sample_output_dict: results of sample
         :param cur_isolates: isolate database connection object
         :param cur_seqdef: sequence definition database connection object
-        :return:
+        :return: None
         """
 
         dirlist = []
@@ -51,15 +52,15 @@ class TsvTypingResultsInserter:
                         # the elif below is specific to Listeria pcr serogroup where 0's are included in the profiles
                         # (absent loci are required to define profiles)
                         # Bigsdb creates a null allele itself in the seqdef database
-                        elif result[2] == '-' and result[3] == '-' and (('listeria_serogroup' in schemedict.keys() and directory in \
-                                next(os.walk(schemedict['listeria_serogroup']['dirdb']))[1]) or directory == 'NadA_peptide'):
+                        elif result[2] == '-' and result[3] == '-' and (('listeria_serogroup' in schemedict.keys() and directory in
+                                                                         next(os.walk(schemedict['listeria_serogroup']['dirdb']))[1]) or directory == 'NadA_peptide'):
                             allele_id = 0
                             cur_isolates.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
-                                        f"allele_id, status, method, sender, "
-                                        f"curator, date_entered, datestamp) "
-                                        f"VALUES('{directory}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'), "
-                                        f"'{allele_id}', 'confirmed', 'automatic', 1, "
-                                        f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                                                 f"allele_id, status, method, sender, "
+                                                 f"curator, date_entered, datestamp) "
+                                                 f"VALUES('{directory}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'), "
+                                                 f"'{allele_id}', 'confirmed', 'automatic', 1, "
+                                                 f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
             elif schemedict[scheme]['dirdb'] == '':
                 if scheme.endswith('pointfinder'):
                     # for pointfinder, only hits that infer resistance are of importance, other hits dont give any information.
@@ -98,17 +99,17 @@ class TsvTypingResultsInserter:
                                         cur_seqdef.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status,sender,curator, date_entered, datestamp) \
                                                                                        VALUES('{antibiotic_reformatted}','{mutation}','{dummysequence}','unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
                                     cur_isolates.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
-                                                f"allele_id, status, method, sender, "
-                                                f"curator, date_entered, datestamp) "
-                                                f"VALUES('{antibiotic_reformatted}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'), "
-                                                f"'{mutation}', 'confirmed', 'automatic', 1, "
-                                                f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                                                         f"allele_id, status, method, sender, "
+                                                         f"curator, date_entered, datestamp) "
+                                                         f"VALUES('{antibiotic_reformatted}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'), "
+                                                         f"'{mutation}', 'confirmed', 'automatic', 1, "
+                                                         f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
                             y += 1
                         eavhtmltable = eavhtmltable + '</table>'
                         cur_isolates.execute(f"INSERT INTO eav_text(isolate_id, "
-                                    f"field, value)"
-                                    f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'),"
-                                    f"'pointfinder_hits', '{eavhtmltable}') ")
+                                             f"field, value)"
+                                             f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'),"
+                                             f"'pointfinder_hits', '{eavhtmltable}') ")
                 if species == 'mycobacterium':
                     if schemedict[scheme]['dirdb'] == '':
                         if schemedict[scheme]['tsvname'] == 'spoligotype_binary' and schemedict[scheme]['tsvname'] in sample_output_dict:
@@ -117,19 +118,19 @@ class TsvTypingResultsInserter:
                                 locus = ''.join(['Spacer', str(x).zfill(2)])
                                 x += 1
                                 cur_isolates.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
-                                            f"allele_id, status, method, sender, "
-                                            f"curator, date_entered, datestamp) "
-                                            f"VALUES('{locus}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'), "
-                                            f"'{allele_id}', 'confirmed', 'automatic', 1, "
-                                            f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                                                     f"allele_id, status, method, sender, "
+                                                     f"curator, date_entered, datestamp) "
+                                                     f"VALUES('{locus}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'), "
+                                                     f"'{allele_id}', 'confirmed', 'automatic', 1, "
+                                                     f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
                             cur_isolates.execute(f"INSERT INTO eav_text(isolate_id, "
-                                        f"field, value)"
-                                        f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'),"
-                                        f"'spoligotype_binary', '{sample_output_dict['spoligotype_binary']}') ")
+                                                 f"field, value)"
+                                                 f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'),"
+                                                 f"'spoligotype_binary', '{sample_output_dict['spoligotype_binary']}') ")
                             cur_isolates.execute(f"INSERT INTO eav_text(isolate_id, "
-                                        f"field, value)"
-                                        f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'),"
-                                        f"'spoligotype_octal', '{sample_output_dict['spoligotype_octal']}') ")
+                                                 f"field, value)"
+                                                 f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'),"
+                                                 f"'spoligotype_octal', '{sample_output_dict['spoligotype_octal']}') ")
                     elif scheme == 'mycobacterium_csbrd' and 'csb_detected' in sample_output_dict:
                         for record in ['csb_detected', 'RD1_detected', 'RD9_detected']:
                             locus = record.rstrip(
@@ -139,11 +140,11 @@ class TsvTypingResultsInserter:
                             elif sample_output_dict[record] == 'True':
                                 allele_id = 1
                             cur_isolates.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
-                                        f"allele_id, status, method, sender, "
-                                        f"curator, date_entered, datestamp) "
-                                        f"VALUES('{locus}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'), "
-                                        f"'{allele_id}', 'confirmed', 'automatic', 1, "
-                                        f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                                                 f"allele_id, status, method, sender, "
+                                                 f"curator, date_entered, datestamp) "
+                                                 f"VALUES('{locus}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'), "
+                                                 f"'{allele_id}', 'confirmed', 'automatic', 1, "
+                                                 f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
 
                     elif scheme == 'mycobacterium_amrdetection':
                         # make a dict with field and tsv names to be able to insert
@@ -157,9 +158,9 @@ class TsvTypingResultsInserter:
                                 amr_metadata_fields_tsv[field[0]] = ''.join(['amr_pheno_', field[0].split('_')[-1]])
                         for bigsdbname, tsvname in amr_metadata_fields_tsv.items():
                             cur_isolates.execute(f"INSERT INTO eav_text(isolate_id, "
-                                        f"field, value)"
-                                        f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'),"
-                                        f"'{bigsdbname}', '{sample_output_dict[tsvname]}') ")
+                                                 f"field, value)"
+                                                 f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'),"
+                                                 f"'{bigsdbname}', '{sample_output_dict[tsvname]}') ")
                         # AMR results
                         cur_isolates.execute(
                             f"SELECT locus FROM scheme_members WHERE scheme_id = (SELECT id FROM schemes WHERE name = 'AMR_detection_WHO')")
@@ -187,22 +188,22 @@ class TsvTypingResultsInserter:
                                         else:
                                             dummysequence = ''.join([possiblelongestdummypresent[0][0], 'TAG'])
                                         cur_seqdef.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status,sender,curator, date_entered, datestamp) \
-                                                       VALUES('{locus[0]}','{variantreformatted}','{dummysequence}','unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                                                             VALUES('{locus[0]}','{variantreformatted}','{dummysequence}','unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
                                         cur_seqdef.execute(
                                             f"SELECT allele_id FROM sequences WHERE allele_id LIKE '{variantreformatted}' AND locus = '{locus[0]}' LIMIT 1")
                                         present = cur_seqdef.fetchall()
                                     allele_id = present[0][0]
                                     cur_isolates.execute(f"SELECT FROM allele_designations WHERE locus = '{locus[0]}' AND "
-                                                f"isolate_id = (SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}') AND"
-                                                f" allele_id = '{allele_id}'")
+                                                         f"isolate_id = (SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}') AND"
+                                                         f" allele_id = '{allele_id}'")
                                     allele_designation_presence = cur_isolates.fetchall()
                                     if allele_designation_presence == []:
                                         cur_isolates.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
-                                                    f"allele_id, status, method, sender, "
-                                                    f"curator, date_entered, datestamp) "
-                                                    f"VALUES('{locus[0]}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'), "
-                                                    f"'{allele_id}', 'confirmed', 'automatic', 1, "
-                                                    f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                                                             f"allele_id, status, method, sender, "
+                                                             f"curator, date_entered, datestamp) "
+                                                             f"VALUES('{locus[0]}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'), "
+                                                             f"'{allele_id}', 'confirmed', 'automatic', 1, "
+                                                             f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
 
                     elif scheme == 'mycobacterium_hsp65':
                         listofhits = sample_output_dict[schemedict[scheme]['tsvname']]
@@ -220,9 +221,9 @@ class TsvTypingResultsInserter:
                                 presence_hsp65 = cur_isolates.fetchall()
                                 if presence_hsp65 == []:
                                     cur_isolates.execute(f"INSERT INTO eav_boolean(isolate_id, "
-                                                f"field, value)"
-                                                f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'),"
-                                                f"'{hit}', 't') ")
+                                                         f"field, value)"
+                                                         f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'),"
+                                                         f"'{hit}', 't') ")
                                 y += 1
 
                     elif scheme == 'mycobacterium_ncbi16s':
@@ -232,12 +233,11 @@ class TsvTypingResultsInserter:
                         speciesandstrainhits = []
                         if listofhits != '[]':
                             for hit in json.loads(listofhits):
-                                speciesname = '_'.join([hit[-2].split(' ')[0], hit[-2].split(' ')[1]])
+                                speciesname = '_'.join(hit[-2].split(' ')[0:1])
                                 if speciesname not in speciesandstrainhits:
                                     speciesandstrainhits.append(speciesname)
                                 strainname = '_'.join(
-                                    [hit[-2].split(' ')[0], hit[-2].split(' ')[1], hit[-2].split(' ')[2],
-                                     hit[-2].split(' ')[3]])
+                                    hit[-2].split(' ')[0:3])
                                 if strainname not in speciesandstrainhits:
                                     speciesandstrainhits.append(strainname)
                         for hit in speciesandstrainhits:
@@ -250,9 +250,9 @@ class TsvTypingResultsInserter:
                                 cur_isolates.execute(
                                     f"INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('{hit_formatted}', 'boolean', 'NCBI 16S', '', 't', 't', (SELECT CURRENT_DATE), 1)")
                             cur_isolates.execute(f"INSERT INTO eav_boolean(isolate_id, "
-                                        f"field, value)"
-                                        f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'),"
-                                        f"'{hit_formatted}', 't') ")
+                                                 f"field, value)"
+                                                 f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'),"
+                                                 f"'{hit_formatted}', 't') ")
                 elif species == 'neisseria':
                     if schemedict[scheme]['tsvname'] == 'resistance_genes':
                         for directory in ['penA', 'rpoB']:
@@ -267,23 +267,22 @@ class TsvTypingResultsInserter:
                                         if 'PubMLST isolates' in json_data['linked_data']:
                                             for antibiotic in ['rifampicin_SIR', 'penicillin_SIR']:
                                                 if antibiotic in json_data['linked_data']['PubMLST isolates']:
-                                                    for record in json_data['linked_data']['PubMLST isolates'][
-                                                        antibiotic]:
+                                                    for record in json_data['linked_data']['PubMLST isolates'][antibiotic]:
                                                         if record['value'] == 'S':
                                                             cur_isolates.execute(f"INSERT INTO eav_text(isolate_id, "
-                                                                        f"field, value)"
-                                                                        f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'),"
-                                                                        f"'{'_'.join([antibiotic, 'S', 'frequency'])}', '{record['frequency']}') ")
+                                                                                 f"field, value)"
+                                                                                 f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'),"
+                                                                                 f"'{'_'.join([antibiotic, 'S', 'frequency'])}', '{record['frequency']}') ")
                                                         elif record['value'] == 'R':
                                                             cur_isolates.execute(f"INSERT INTO eav_text(isolate_id, "
-                                                                        f"field, value)"
-                                                                        f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'),"
-                                                                        f"'{'_'.join([antibiotic, 'R', 'frequency'])}', '{record['frequency']}') ")
+                                                                                 f"field, value)"
+                                                                                 f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'),"
+                                                                                 f"'{'_'.join([antibiotic, 'R', 'frequency'])}', '{record['frequency']}') ")
     
                     cur_isolates.execute(f"INSERT INTO eav_text(isolate_id, "
-                                f"field, value)"
-                                f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'),"
-                                f"'Serogroup', '{sample_output_dict['detected_serogroup']}') ")
+                                         f"field, value)"
+                                         f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'),"
+                                         f"'Serogroup', '{sample_output_dict['detected_serogroup']}') ")
                 elif species == 'salmonella':
                     if scheme == 'salmonella_genotyphi' and 'genotyphi_lineage' in sample_output_dict:
                         cur_isolates.execute(f"SELECT field FROM eav_fields WHERE field like 'genotyphi%'")
@@ -315,11 +314,11 @@ class TsvTypingResultsInserter:
                                             cur_seqdef.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status,sender,curator, date_entered, datestamp) \
                                                                                                                                              VALUES('{genotyphi_field}','{future_alleles[i]}','{dummysequence}','unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
                                         cur_isolates.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
-                                                    f"allele_id, status, method, sender, "
-                                                    f"curator, date_entered, datestamp) "
-                                                    f"VALUES('{genotyphi_field}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'), "
-                                                    f"'{future_alleles[i]}', 'confirmed', 'automatic', 1, "
-                                                    f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                                                             f"allele_id, status, method, sender, "
+                                                             f"curator, date_entered, datestamp) "
+                                                             f"VALUES('{genotyphi_field}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'), "
+                                                             f"'{future_alleles[i]}', 'confirmed', 'automatic', 1, "
+                                                             f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
 
                     elif scheme == 'salmonella_serotyping':
                         cur_isolates.execute(f"SELECT field FROM eav_fields WHERE category = 'Serotyping' ")
@@ -329,20 +328,20 @@ class TsvTypingResultsInserter:
                             field_type = sero[0].split('_')[len(sero[0].split('_')) - 1]
 
                             # class for serotyping formula processing.
-                            class formula:
-                                def __init__(self, rawFormula, tool, isolatename):
-                                    self.antigens = {"O_antigen": rawFormula.split(':')[0].split(','),
-                                                     "H1_antigen": rawFormula.split(':')[1].split(','),
-                                                     "H2_antigen": rawFormula.split(':')[2].split(',')}
+                            class Formula:
+                                def __init__(self, rawformula: str, tool: str, isolatename: str) -> None:
+                                    self.antigens = {"O_antigen": rawformula.split(':')[0].split(','),
+                                                     "H1_antigen": rawformula.split(':')[1].split(','),
+                                                     "H2_antigen": rawformula.split(':')[2].split(',')}
                                     self.tool = tool
                                     self.isolatename = isolatename
 
-                                def __check_if_exist_in_seqdef(self, field, entry):
+                                def __check_if_exist_in_seqdef(self, field: str, entry: str) -> list:
                                     cur_seqdef.execute(
                                         f"SELECT allele_id FROM sequences WHERE allele_id = '{entry}' and locus = '{field}'")
-                                    return (cur_seqdef.fetchall())
+                                    return cur_seqdef.fetchall()
 
-                                def __generate_dummy_sequence(self, field):
+                                def __generate_dummy_sequence(self, field: str) -> str:
                                     cur_seqdef.execute(
                                         f"SELECT sequence FROM sequences WHERE locus  ='{field}' ORDER BY CHAR_LENGTH(sequence) DESC LIMIT 1")
                                     longest_dummy_sequence = cur_seqdef.fetchall()
@@ -352,10 +351,10 @@ class TsvTypingResultsInserter:
                                         dummysequence = ''.join([longest_dummy_sequence[0][0], 'TAG'])
                                     return dummysequence
 
-                                def insert_antigens_into_db(self):
+                                def insert_antigens_into_db(self) -> None:
                                     antigens = ["O_antigen", "H1_antigen", "H2_antigen"]
                                     for antigen in antigens:
-                                        field = (f'{self.tool}_{antigen}').upper()
+                                        field = f'{self.tool}_{antigen}'.upper()
                                         entries = self.antigens[antigen]
                                         for entry in entries:
                                             if entry != '-':
@@ -365,54 +364,54 @@ class TsvTypingResultsInserter:
                                                     cur_seqdef.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status,sender,curator, date_entered, datestamp) \
                                                                                                                                                           VALUES('{field}','{entry}','{dummysequence}','unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
                                                 cur_isolates.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
-                                                            f"allele_id, status, method, sender, "
-                                                            f"curator, date_entered, datestamp) "
-                                                            f"VALUES('{field}', (SELECT MAX(id) FROM isolates WHERE isolate='{self.isolatename}'), "
-                                                            f"'{entry}', 'confirmed', 'automatic', 1, "
-                                                            f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                                                                     f"allele_id, status, method, sender, "
+                                                                     f"curator, date_entered, datestamp) "
+                                                                     f"VALUES('{field}', (SELECT MAX(id) FROM isolates WHERE isolate='{self.isolatename}'), "
+                                                                     f"'{entry}', 'confirmed', 'automatic', 1, "
+                                                                     f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
 
                             if tool == 'sistr':
                                 if field_type == 'formula':
                                     if f'{tool}_serotype_antigenic_formula' in sample_output_dict:
-                                        serotypingInsert = sample_output_dict[f'{tool}_serotype_antigenic_formula']
-                                        if serotypingInsert != '-':
-                                            sistr_formula = formula(serotypingInsert, tool, isolatename)
+                                        serotyping_insert = sample_output_dict[f'{tool}_serotype_antigenic_formula']
+                                        if serotyping_insert != '-':
+                                            sistr_formula = Formula(serotyping_insert, tool, isolatename)
                                             sistr_formula.insert_antigens_into_db()
                                             cur_isolates.execute(
-                                                f"INSERT INTO eav_text(isolate_id, field, value) VALUES ((SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'),'{sero[0]}','{serotypingInsert}')")
+                                                f"INSERT INTO eav_text(isolate_id, field, value) VALUES ((SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'),'{sero[0]}','{serotyping_insert}')")
                                 elif field_type == 'serotype':
                                     if f'{tool}_serotype_concensus' in sample_output_dict:
-                                        serotypingInsert = sample_output_dict[f'{tool}_serotype_concensus']
-                                        if serotypingInsert != '-':
+                                        serotyping_insert = sample_output_dict[f'{tool}_serotype_concensus']
+                                        if serotyping_insert != '-':
                                             cur_isolates.execute(
-                                                f"INSERT INTO eav_text(isolate_id, field, value) VALUES ((SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'),'{sero[0]}','{serotypingInsert}')")
+                                                f"INSERT INTO eav_text(isolate_id, field, value) VALUES ((SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'),'{sero[0]}','{serotyping_insert}')")
                             else:
                                 if field_type == 'formula' and f'{tool}_Predicted_antigenic_profile' in sample_output_dict:
-                                    serotypingInsert = sample_output_dict[f'{tool}_Predicted_antigenic_profile']
-                                    seqsero_formula = formula(serotypingInsert, tool, isolatename)
+                                    serotyping_insert = sample_output_dict[f'{tool}_Predicted_antigenic_profile']
+                                    seqsero_formula = Formula(serotyping_insert, tool, isolatename)
                                     seqsero_formula.insert_antigens_into_db()
-                                    if serotypingInsert != '-:-:-':
+                                    if serotyping_insert != '-:-:-':
                                         cur_isolates.execute(
-                                            f"INSERT INTO eav_text(isolate_id, field, value) VALUES ((SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'),'{sero[0]}','{serotypingInsert}')")
+                                            f"INSERT INTO eav_text(isolate_id, field, value) VALUES ((SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'),'{sero[0]}','{serotyping_insert}')")
                                 elif field_type == 'serotype' and f'{tool}_Predicted_serotype' in sample_output_dict:
-                                    serotypingInsert = sample_output_dict[f'{tool}_Predicted_serotype']
-                                    if serotypingInsert != '- -:-:-':
+                                    serotyping_insert = sample_output_dict[f'{tool}_Predicted_serotype']
+                                    if serotyping_insert != '- -:-:-':
                                         cur_isolates.execute(
-                                            f"INSERT INTO eav_text(isolate_id, field, value) VALUES ((SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'),'{sero[0]}','{serotypingInsert}')")
+                                            f"INSERT INTO eav_text(isolate_id, field, value) VALUES ((SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'),'{sero[0]}','{serotyping_insert}')")
 
                     elif scheme == 'salmonella_spifinder':
                         schemes_spifinder = ['spifinder_fastq', 'spifinder_fasta']
-                        for scheme in schemes_spifinder:
-                            if scheme in sample_output_dict:
+                        for subscheme in schemes_spifinder:
+                            if subscheme in sample_output_dict:
                                 hits = sample_output_dict[scheme]
                                 if hits != '[]':
                                     hits = ast.literal_eval(hits)
                                     for l in range(0, len(hits)):
-                                        if scheme == 'spifinder_fastq':
+                                        if subscheme == 'spifinder_fastq':
                                             spifinder_entry = f"CatFunc{hits[l][5]}__{hits[l][3]}"
                                         else:
                                             spifinder_entry = f"CatFunc{hits[l][7]}__{hits[l][5]}"
-                                        spifinder_field = f"{scheme}_{hits[l][0]}".upper()
+                                        spifinder_field = f"{subscheme}_{hits[l][0]}".upper()
                                         cur_seqdef.execute(
                                             f"SELECT allele_id FROM sequences WHERE allele_id = '{spifinder_entry}' and locus = '{spifinder_field}'")
                                         present_spifinder = cur_seqdef.fetchall()
@@ -433,11 +432,11 @@ class TsvTypingResultsInserter:
                                         presence_allele_designation = cur_isolates.fetchall()
                                         if presence_allele_designation == []:
                                             cur_isolates.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
-                                                        f"allele_id, status, method, sender, "
-                                                        f"curator, date_entered, datestamp) "
-                                                        f"VALUES('{spifinder_field}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'), "
-                                                        f"'{spifinder_entry}', 'confirmed', 'automatic', 1, "
-                                                        f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                                                                 f"allele_id, status, method, sender, "
+                                                                 f"curator, date_entered, datestamp) "
+                                                                 f"VALUES('{spifinder_field}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'), "
+                                                                 f"'{spifinder_entry}', 'confirmed', 'automatic', 1, "
+                                                                 f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
                 elif species == 'stec':
                     if scheme == 'stec_serotype':
                         serotypedict = {}
@@ -459,14 +458,14 @@ class TsvTypingResultsInserter:
                                     cur_seqdef.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status,sender,curator, date_entered, datestamp) \
                                                                                                VALUES('{antigen}','{antigen_allele}','{dummysequence}','unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
                                 cur_isolates.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
-                                            f"allele_id, status, method, sender, "
-                                            f"curator, date_entered, datestamp) "
-                                            f"VALUES('{antigen}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'), "
-                                            f"'{antigen_allele}', 'confirmed', 'automatic', 1, "
-                                            f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                                                     f"allele_id, status, method, sender, "
+                                                     f"curator, date_entered, datestamp) "
+                                                     f"VALUES('{antigen}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'), "
+                                                     f"'{antigen_allele}', 'confirmed', 'automatic', 1, "
+                                                     f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
             else:
                 continue
         
         cur_isolates.execute(f"INSERT INTO history(isolate_id, timestamp, action, curator)"
-                    f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'),(SELECT NOW()::TIMESTAMP), 'Typing results inserted', 1)")
+                             f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'),(SELECT NOW()::TIMESTAMP), 'Typing results inserted', 1)")
         logging.info('Typing results insertion succesful')

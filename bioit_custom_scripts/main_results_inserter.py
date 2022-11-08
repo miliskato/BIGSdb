@@ -12,12 +12,13 @@ import os
 import datetime
 
 from config import BIGSDB_CONFIG
-from components.databaseconnection import Database_connection
+from components.databaseconnection import DatabaseConnection
 from components.maininserter import MainInserter
 from components.tsv_typingresultsinserter import TsvTypingResultsInserter
 from components.tsv_genedetectionresultsinserter import TsvGeneDetectionResultsInserter
 from components.json_typingresultsinserter import JsonTypingResultsInserter
 from components.json_genedetectionresultsinserter import JsonGeneDetectionResultsInserter
+
 
 def _parse_arguments() -> argparse.Namespace:
     """
@@ -35,6 +36,7 @@ def _parse_arguments() -> argparse.Namespace:
     argument_parser.add_argument("--results_type", required=True, type=str, choices=['new_isolate', 'reanalysis'])
     return argument_parser.parse_args()
 
+
 def _send_email(subject: str, content: str, config: dict) -> None:
     """
     Sends an email.
@@ -51,6 +53,7 @@ def _send_email(subject: str, content: str, config: dict) -> None:
         s.send_message(message)
     logging.info(content)
 
+
 def __make_flagfilepath(isolatename: str, config: dict):
     """
     Returns the flag file path
@@ -59,6 +62,7 @@ def __make_flagfilepath(isolatename: str, config: dict):
     :return: flag file path
     """
     return Path(config['failsafe']['flag_dir']) / '.'.join([isolatename, config['failsafe']['flag_append']])
+
 
 def _fail_safe_mechanism(isolatename: str, config: dict, analysis_date: str, cur_isolates: object):
     """
@@ -104,6 +108,7 @@ def _fail_safe_mechanism(isolatename: str, config: dict, analysis_date: str, cur
     except Exception as exceptionmessage:
         _send_email(f"bigsdb upload fail safe mechanism fail on host {socket.gethostname()}", f"{exceptionmessage}\n{traceback.format_exc()}", config['mail'])
 
+
 def _delete_flagfile(isolatename: str, config: dict):
     """
     :param isolatename:
@@ -115,6 +120,7 @@ def _delete_flagfile(isolatename: str, config: dict):
         os.remove(flagfilepath)
     except Exception as exceptionmessage:
         _send_email(f"Could not remove flag file {flagfilepath} on host {socket.gethostname()}", f"{exceptionmessage}\n{traceback.format_exc()}", config['mail'])
+
 
 if __name__ == '__main__':
     # Configure stdout logging
@@ -142,8 +148,8 @@ if __name__ == '__main__':
             # records come from the pipeline directly
             sample_output_dict = records
 
-    #Connect to db and create cursor
-    cur_isolates, cur_seqdef = Database_connection().open_database_connections(args.species)
+    # Connect to db and create cursors
+    cur_isolates, cur_seqdef = DatabaseConnection().open_database_connections(args.species)
     # Logic
     try:
         # fail safe mechanism is initated at the same time of the isolate insertion, but after connecting to the PSQL db's
@@ -166,7 +172,7 @@ if __name__ == '__main__':
             _send_email(
                 f'Error inserting output of {args.species} pipeline to bigsdb for sample {args.isolatename} on host {socket.gethostname()}.',
                 f"{exceptionmessage}\n{traceback.format_exc()}", config_data['mail'])
-            sys.exit() # super important to do this because else the flagging file is removed and the entire fail safe doesnt work
+            sys.exit()  # super important to do this because else the flagging file is removed and the entire fail safe doesnt work
         _delete_flagfile(args.isolatename, config_data)
     except Exception as exceptionmessage:
         _send_email(
@@ -174,4 +180,4 @@ if __name__ == '__main__':
             f"{exceptionmessage}\n{traceback.format_exc()}", config_data['mail'])
         sys.exit()
 
-        #todo find out if connections need to be closed
+        # todo find out if connections need to be closed

@@ -574,6 +574,7 @@
       become_user: postgres
         # this when could be changed but should not matter too much
 
+# The code below should be used when adding a new species to an existing VM, the code above should then be commented
 #    - name: add bioit user to all neisseria species db
 #      postgresql_query:
 #        db: "{{ item }}"
@@ -989,15 +990,6 @@
         state: "present"
         append: no
 
-# manually:
-#    sudo su galaxy
-#    mkdir -p /home/galaxy/.ssh
-#    chmod 0700 /home/galaxy/.ssh
-#    ssh-keygen -t rsa
-#    cat /home/galaxy/.ssh/id_rsa.pub >> /home/galaxy/.ssh/authorized_keys
-#    chmod 0640 /home/galaxy/.ssh/authorized_keys
-#    # cp private key to id_rsa_bigsdb on galaxy, chmod 0600 it
-
     - name: generate SSH key galaxy user
       user:
         name: galaxy
@@ -1016,14 +1008,8 @@
         mode: '0640'
         remote_src: yes
 
-# Doesnt work
-#     - name: Fetch the file from the bigs-
-#       run_once: yes
-#       fetch: src=/home/galaxy/.ssh/id_rsa dest=buffer/ flat=yes
-#
-#     - name: Copy the file to galaxy-
-#       copy: src=buffer/id_rsa dest=/home/galaxy/.ssh/id_rsa_bigsdb
-#       when: "{{ inventory_hostname == 'mwiapp02' }}"
+# TO DO manually:
+#    # cp private key to id_rsa_bigsdb on galaxy VM in /home/galaxy/.ssh, chmod 0600 it
 
     - name: This rule will sadly somehow never finish, copy the private key to the right galaxy host manually !
       tags: sync-pull

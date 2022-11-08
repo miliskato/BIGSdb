@@ -58,6 +58,7 @@ logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 #          1 | thrA  | 1          | 4         |       1 | 2022-03-03
 #
 
+
 def insert_profiles(scheme, indexdict, profile_line_dict, list_to_be_inserted):
     # since we only need one db per scheme, it can stay open during the entire definition
     con = psycopg2.connect(database=f"{schemedict[scheme]['seqdefdb']}", user='apache', password='remote',
@@ -76,7 +77,7 @@ def insert_profiles(scheme, indexdict, profile_line_dict, list_to_be_inserted):
         # second table (profile fields):
         for field in schemedict[scheme]['fields']:
             line = profile_line_dict[profile]
-            line = line.replace('? ','').replace('Neisseria ', 'Neisseria_') # this is added because rflp profiles are malformatted
+            line = line.replace('? ', '').replace('Neisseria ', 'Neisseria_')  # this is added because rflp profiles are malformatted
             fieldvalue = " ".join(line.split()).split(' ')[indexdict[field]]
             cur.execute(f"INSERT INTO profile_fields(scheme_id, "
                         f"scheme_field, profile_id, value, "
@@ -88,12 +89,12 @@ def insert_profiles(scheme, indexdict, profile_line_dict, list_to_be_inserted):
         # Loci are saved from dir to be able to know which columns to search for in profiles.tsv
         loci = next(os.walk(schemedict[scheme]['dirdb']))[1]
         for locus in loci:
-            if not locus.startswith('.'): # to exclude hidden folders like .git
+            if not locus.startswith('.'):  # to exclude hidden folders like .git
                 if locus == "'rplF":
                     locus = 'rplF'
                 line = profile_line_dict[profile]
                 locusvalue = " ".join(line.split()).split(' ')[indexdict[locus]]
-                if locusvalue == '0': # this will create a ForeignKeyViolation error so we prevent this by inserting a null allele if not yet present
+                if locusvalue == '0':  # this will create a ForeignKeyViolation error so we prevent this by inserting a null allele if not yet present
                     cur.execute(f"SELECT count(*) FROM sequences WHERE "
                                 f"locus = '{locus}' AND sequence = 'null allele'")
                     nullpresent = cur.fetchall()
@@ -108,14 +109,15 @@ def insert_profiles(scheme, indexdict, profile_line_dict, list_to_be_inserted):
                                 f"VALUES((SELECT id FROM schemes WHERE name = '{schemedict[scheme]['schemename_bigsdb']}'),"
                                 f"'{locus}', '{profile}', '{locusvalue}', "
                                 f"1,(SELECT CURRENT_DATE))")
-                except:
+                except Exception:
                     logging.error(f"profile with field {field} and value {fieldvalue.replace('_',' ')} already exists as another field, either remove the entire scheme profiles or find out what the exact problem is and solve this script once and for all with delete where select profile_id where locus1 and alleleid1 intersect select ... (e.g. select profile_id from profile_members where (locus='abcZ' and allele_id='1') INTERSECT select profile_id from profile_members where (locus='bglA' and allele_id='1') INTERSECT select profile_id from profile_members where (locus='cat' and allele_id='1'))")
                     continue
     con.close()
 
+
 def insert_all_profiles():
     for scheme in schemedict:
-        handle = open('/'.join([schemedict[scheme]['dirdb'] , profile_file]),'r').readlines()
+        handle = open('/'.join([schemedict[scheme]['dirdb'], profile_file]), 'r').readlines()
         # multiple whitespaces need to be replaced by single whitespace
         header = " ".join(handle[0].split()).split(' ')
         print(header)
@@ -123,7 +125,7 @@ def insert_all_profiles():
         indexdict = {}
         for item in header:
             print(item)
-            if item =="'rplF":
+            if item == "'rplF":
                 item = 'rplF'
             indexdict[item] = x
             x += 1
@@ -132,7 +134,7 @@ def insert_all_profiles():
         for line in handle[1:]:
             profile_line_dict[" ".join(line.split()).split(' ')[0]] = line
 
-        #check whether fields[0] is max or not, if not then all value above max will be inserted in all three tables
+        # check whether fields[0] is max or not, if not then all value above max will be inserted in all three tables
         con = psycopg2.connect(database=f"{schemedict[scheme]['seqdefdb']}", user="apache", password="remote",
                                host="127.0.0.1", port="")
         cur = con.cursor()
@@ -158,11 +160,13 @@ def insert_all_profiles():
                     continue
             insert_profiles(scheme, indexdict, profile_line_dict, list_to_be_inserted)
 
+
 def send_email(subject: str, content: str, config: dict) -> None:
     """
     Sends an email.
     :param subject: Mail subject
     :param content: Content of the message
+    :param config: Config containing the maildict
     :return: None
     """
     message = EmailMessage()
@@ -173,6 +177,7 @@ def send_email(subject: str, content: str, config: dict) -> None:
     with smtplib.SMTP(config['host']) as s:
         s.send_message(message)
     logging.info(content)
+
 
 try:
     insert_all_profiles()
