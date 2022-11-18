@@ -1,13 +1,9 @@
-import subprocess
+#!/usr/bin/env python
 import argparse
 import logging
 import sys
 import os
 import yaml
-import json
-from pathlib import Path
-import datetime
-from pymongo.read_concern import ReadConcern
 import smtplib
 from email.message import EmailMessage
 import socket
