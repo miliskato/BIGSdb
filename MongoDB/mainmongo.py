@@ -199,7 +199,7 @@ if __name__ == '__main__':
                     for qc_type in records['qc']:
                         for key in records['qc'][qc_type]:
                             if key.endswith('status') and records['qc'][qc_type][
-                                key] == 'Failed' and not key == 'analysis_date':  # and not (records['qc'][qc_type][key] == 'OK' or records['qc'][qc_type][key] == 'Warning'): # todo check logic
+                                key] == 'Failed' :  # and not (records['qc'][qc_type][key] == 'OK' or records['qc'][qc_type][key] == 'Warning'): # todo check logic
                                 sample_quality = 'bad'
                 except:
                     raise RuntimeError('No qc values found in the given results')
