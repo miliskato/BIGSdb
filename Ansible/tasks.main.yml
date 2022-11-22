@@ -23,6 +23,22 @@
     msg: "'branch' argument required in -e when running playbook"
   when: branch is not defined
 
+- name: Assert if dtap given
+  fail:
+    msg: "'dtap' argument required in -e when running playbook"
+  when: dtap is not defined
+
+- name: check if mongo_dtap in list
+  vars:
+    dtaplist:
+      - dev
+      - test
+      - acc
+      - prod
+  fail:
+    msg: "unsupported mongo_dtap requested, choose from {{ dtaplist }}"
+  when: mongo_dtap not in dtaplist
+
 - name: install git package
   apt:
     name: git
@@ -32,6 +48,12 @@
     repo: "https://bioit_ro:{{ secret_bioit_git_ro_password }}@git.sciensano.be/bioit/BIGSdb.git"
     dest: "{{ bioit_bigs_home }}"
     version: "{{ branch }}"
+
+- name: Add pg_ident configuration
+  lineinfile:
+    path: "{{ bioit_bigs_home }}/MongoDB/config/config.yml"
+    regexp: 'dtap: to_be_replaced_by_ansible'
+    line: "dtap: {{ mongo_dtap }}"
 
 #- name: Get updated files from git repository
 #  git:
