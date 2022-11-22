@@ -25,8 +25,8 @@
 
 - name: Assert if dtap given
   fail:
-    msg: "'dtap' argument required in -e when running playbook"
-  when: dtap is not defined
+    msg: "'mongo_dtap' argument required in -e when running playbook"
+  when: mongo_dtap is not defined
 
 - name: check if mongo_dtap in list
   vars:
@@ -48,8 +48,9 @@
     repo: "https://bioit_ro:{{ secret_bioit_git_ro_password }}@git.sciensano.be/bioit/BIGSdb.git"
     dest: "{{ bioit_bigs_home }}"
     version: "{{ branch }}"
+    force: yes
 
-- name: Add pg_ident configuration
+- name: Change Mongo dtap version in config based on playbook argument
   lineinfile:
     path: "{{ bioit_bigs_home }}/MongoDB/config/config.yml"
     regexp: 'dtap: to_be_replaced_by_ansible'
