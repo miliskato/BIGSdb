@@ -8,6 +8,7 @@ import smtplib
 from email.message import EmailMessage
 import socket
 import traceback
+import re
 
 from MongoDB.util.mongo_initialisation import Mongoinitialisation
 from MongoDB.config import MONGO_CONFIG
@@ -47,7 +48,7 @@ if __name__ == '__main__':
     # Parse arguments
     args = parse_arguments()
     print(args.db)
-    species ='listeria'
+    species = re.sub('bigsdb_|_isolates','', args.db)
     # Parse config
     with open(MONGO_CONFIG, encoding='utf-8') as handle:
         config_data = yaml.safe_load(handle)
