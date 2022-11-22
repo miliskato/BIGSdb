@@ -1,6 +1,6 @@
 mail:
     from: bioit-dev1@wiv-isp.be
-    to: michael.kelchtermans@sciensano.be, benoit.bergkpinto@sciensano.be
+    to: michael.kelchtermans@sciensano.be
     host: smtp.wiv-isp.be
 
 failsafe:
@@ -13,12 +13,21 @@ species:
       listeria_mlst:
         dirdb: /db/sequence_typing/listeria/mlst
         tsvname: mlst
+        scheme_fields: # the first element in the fields list should be an integer/primary_key
+          - ST
+          - CC
+          - Lineage
+        schemename_bigsdb: MLST
       listeria_cgmlst:
         dirdb: /db/sequence_typing/listeria/cgmlst
         tsvname: cgmlst
       listeria_serogroup:
         dirdb: /db/sequence_typing/listeria/serogroup
         tsvname: pcr_serogroup
+        scheme_fields:
+          - profile_id
+          - serogroup
+        schemename_bigsdb: PCR serogroup
       listeria_metal_detergent_resistance:
         dirdb: /db/sequence_typing/listeria/metal_detergent_resistance
         tsvname: metal_detergent
@@ -62,11 +71,16 @@ species:
         tsvname: hits_plasmidfinder
         schemename_bigsdb: PlasmidFinder_grampositive
         schemename_html: PlasmidFinder - Gram positive
+    seqdefdb: bigsdb_listeria_seqdef
+    isolatesdb: bigsdb_listeria_isolates
   mycobacterium:
     typing_schemes:
       mycobacterium_mlst:
         dirdb: /db/sequence_typing/mycobacterium/mlst
         tsvname: mlst
+        scheme_fields:
+          - ST
+        schemename_bigsdb: MLST
       mycobacterium_cgmlst:
         dirdb: /db/sequence_typing/mycobacterium/cgmlst
         tsvname: cgmlst
@@ -93,20 +107,34 @@ species:
         dirdb: ''
         tsvname: hits_ncbi_16s
     genedetection_schemes: null
+    seqdefdb: bigsdb_mycobacterium_seqdef
+    isolatesdb: bigsdb_mycobacterium_isolates
   neisseria:
     typing_schemes:
       neisseria_mlst:
         dirdb: /db/sequence_typing/neisseria/mlst
         tsvname: mlst
+        scheme_fields:
+          - ST
+        schemename_bigsdb: MLST
       neisseria_cgmlst:
         dirdb: /db/sequence_typing/neisseria/cgmlst
         tsvname: cgmlst
       neisseria_rplf:
         dirdb: /db/sequence_typing/neisseria/rplf
         tsvname: rplf
+        scheme_fields:
+          - rplF_id
+          - genospecies
+        schemename_bigsdb: rplF
       neisseria_bast:
         dirdb: /db/sequence_typing/neisseria/bast
         tsvname: bast
+        scheme_fields:
+          - BAST
+          - MenDeVAR_Bexsero_reactivity
+          - MenDeVAR_Trumenba_reactivity
+        schemename_bigsdb: BAST
       neisseria_pora:
         dirdb: /db/sequence_typing/neisseria/pora
         tsvname: pora
@@ -141,14 +169,22 @@ species:
         tsvname: hits_resfinder
         schemename_bigsdb: ResFinder
         schemename_html: ResFinder
+    seqdefdb: bigsdb_neisseria_seqdef
+    isolatesdb: bigsdb_neisseria_isolates
   stec:
     typing_schemes:
       stec_mlst_warwick:
         dirdb: /db/sequence_typing/ecoli/mlst-warwick
         tsvname: mlst_warwick
+        scheme_fields:
+          - ST
+        schemename_bigsdb: MLST_Warwick
       stec_mlst_pasteur:
         dirdb: /db/sequence_typing/ecoli/mlst-pasteur
         tsvname: mlst_pasteur
+        scheme_fields:
+          - ST
+        schemename_bigsdb: MLST_Pasteur
       stec_cgmlst:
         dirdb: /db/sequence_typing/ecoli/cgmlst
         tsvname: cgmlst
@@ -193,11 +229,16 @@ species:
         schemename_bigsdb: VirulenceFinder_Shiga
         schemename_html: VirulenceFinder - Shiga-toxin genes
         tsvname: hits_virulencefinder_shiga
+    seqdefdb: bigsdb_stec_seqdef
+    isolatesdb: bigsdb_stec_isolates
   salmonella:
     typing_schemes:
       salmonella_mlst:
         dirdb: /db/sequence_typing/salmonella/mlst
         tsvname: mlst
+        scheme_fields:
+          - ST
+        schemename_bigsdb: MLST
       salmonella_cgmlst:
         dirdb: /db/sequence_typing/salmonella/cgmlst
         tsvname: cgmlst
@@ -239,6 +280,8 @@ species:
         tsvname: hits_plasmidfinder
         schemename_bigsdb: PlasmidFinder_entero
         schemename_html: PlasmidFinder - Enterobacteriaceae
+    seqdefdb: bigsdb_salmonella_seqdef
+    isolatesdb: bigsdb_salmonella_isolates
 
 species_json:
   listeria:

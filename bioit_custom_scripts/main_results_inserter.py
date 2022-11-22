@@ -20,7 +20,7 @@ from components.json_typingresultsinserter import JsonTypingResultsInserter
 from components.json_genedetectionresultsinserter import JsonGeneDetectionResultsInserter
 
 
-def _parse_arguments() -> argparse.Namespace:
+def _parse_arguments(speciesdict) -> argparse.Namespace:
     """
     Parses the command line arguments.
     :return: Parsed arguments
@@ -32,7 +32,7 @@ def _parse_arguments() -> argparse.Namespace:
     argument_parser.add_argument('--isolatename', required=True, type=str)
     argument_parser.add_argument('--uploadermailadress', required=True, type=str)
     argument_parser.add_argument('--species', required=True, type=str,
-                                 choices=['mycobacterium', 'listeria', 'neisseria', 'stec', 'salmonella'])
+                                 choices=list(speciesdict.keys()))
     argument_parser.add_argument("--results_type", required=True, type=str, choices=['new_isolate', 'reanalysis'])
     return argument_parser.parse_args()
 
@@ -78,6 +78,7 @@ def _fail_safe_mechanism(isolatename: str, config: dict, analysis_date: str, cur
     try:
         if not os.path.isdir(Path(config['failsafe']['flag_dir'])):
             os.makedirs(Path(config['failsafe']['flag_dir']), exist_ok=True)
+            os.chmod(Path(config['failsafe']['flag_dir']), 0o777)
         flagfilepath = __make_flagfilepath(isolatename, config)
         if os.path.isfile(flagfilepath):
             logging.warning(f"fail safe mechanism detects that the bigsdb insertion for sample {isolatename} was started but didnt finish. Removing {isolatename} from Bigsdb to be able to restart inserting.")
@@ -104,6 +105,7 @@ def _fail_safe_mechanism(isolatename: str, config: dict, analysis_date: str, cur
                     f"DELETE FROM isolates WHERE isolate='{isolatename}' AND id=(SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}') ")
         else:
             flagfilepath.touch()
+            os.chmod(flagfilepath, 0o777)
             logging.info(f"flagfilepath {flagfilepath}")
     except Exception as exceptionmessage:
         _send_email(f"bigsdb upload fail safe mechanism fail on host {socket.gethostname()}", f"{exceptionmessage}\n{traceback.format_exc()}", config['mail'])
@@ -126,12 +128,12 @@ if __name__ == '__main__':
     # Configure stdout logging
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
-    # Parse arguments
-    args = _parse_arguments()
-
     # Read the global config
     with open(BIGSDB_CONFIG, encoding='utf-8') as handle:
         config_data = yaml.safe_load(handle)
+
+    # Parse arguments
+    args = _parse_arguments(config_data['species'])
 
     # parse output
     if args.tsvfilepath:

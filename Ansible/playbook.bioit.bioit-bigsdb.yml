@@ -1,0 +1,9 @@
+# ansible-playbook /etc/ansible/playbook/bioit/bioit-bigsdb.yml -e "target=bioit-bigs-test species=listeria --vault-password-file /etc/ansible/vault/bioit_vault_pass"
+- hosts: "{{ target }}"
+  gather_facts: True
+  become: yes
+
+  roles:
+    - { name: bioit.tools }
+    - { name: bioit.bigsdb }
+...

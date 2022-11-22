@@ -7,31 +7,25 @@ import traceback
 import sys
 import logging
 import yaml
+import argparse
 
 from config import BIGSDB_CONFIG
 # For this script I am assuming that profiles do not retire.
-# It is important to keep in mind that ST do not neccesarily follow each other up continuosly, there can be gaps
+# It is important to keep in mind that ST do not necessarily follow each other up continuously, there can be gaps
 
-# the first element in the fields list should be an integer/primary_key
-schemedict = {
-              'listeria_mlst': {'seqdefdb': 'bigsdb_listeria_seqdef', 'dirdb': '/db/sequence_typing/listeria/mlst', 'fields': ['ST', 'CC', 'Lineage'], 'schemename_bigsdb': 'MLST'},
-              'listeria_serogroup': {'seqdefdb': 'bigsdb_listeria_seqdef', 'dirdb': '/db/sequence_typing/listeria/serogroup', 'fields': ['profile_id', 'serogroup'], 'schemename_bigsdb': 'PCR serogroup'},
-              'mycobacterium_mlst': {'seqdefdb': 'bigsdb_mycobacterium_seqdef', 'dirdb': '/db/sequence_typing/mycobacterium/mlst', 'fields': ['ST'], 'schemename_bigsdb': 'MLST'},
-              'neisseria_mlst': {'dirdb': '/db/sequence_typing/neisseria/mlst', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'fields': ['ST'], 'schemename_bigsdb': 'MLST'},
-              'neisseria_rplf': {'dirdb': '/db/sequence_typing/neisseria/rplf', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'fields': ['rplF_id', 'genospecies'], 'schemename_bigsdb': 'rplF'},
-              'neisseria_bast': {'dirdb': '/db/sequence_typing/neisseria/bast', 'seqdefdb': 'bigsdb_neisseria_seqdef', 'fields': ['BAST', 'MenDeVAR_Bexsero_reactivity', 'MenDeVAR_Trumenba_reactivity'], 'schemename_bigsdb': 'BAST'},
-              'stec_mlst_warwick': {'dirdb': '/db/sequence_typing/ecoli/mlst-warwick', 'fields': ['ST'], 'schemename_bigsdb': 'MLST_Warwick', 'seqdefdb': 'bigsdb_stec_seqdef'},
-              'stec_mlst_pasteur': {'dirdb': '/db/sequence_typing/ecoli/mlst-pasteur', 'fields': ['ST'], 'schemename_bigsdb': 'MLST_Pasteur', 'seqdefdb': 'bigsdb_stec_seqdef'},
-              'salmonella_mlst': {'seqdefdb': 'bigsdb_salmonella_seqdef', 'dirdb': '/db/sequence_typing/salmonella/mlst', 'fields': ['ST'], 'schemename_bigsdb': 'MLST'}
-              }
 
 profile_file = 'profiles.tsv'
 
-with open(BIGSDB_CONFIG, encoding='utf-8') as handle:
-    config_data = yaml.safe_load(handle)
-emaildict = config_data['mail']
-
-logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
+def _parse_arguments(speciesdict) -> argparse.Namespace:
+    """
+    Parses the command line arguments.
+    :return: Parsed arguments
+    """
+    argument_parser = argparse.ArgumentParser()
+    argument_parser.add_argument('--species', required=False, type=str,
+                                 choices=list(speciesdict.keys()), default=list(speciesdict.keys()),
+                                 nargs='+')  # this does allow for the same species multiple times but doesnt really matter
+    return argument_parser.parse_args()
 
 # three tables are important:
 
@@ -59,27 +53,22 @@ logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 #
 
 
-def insert_profiles(scheme, indexdict, profile_line_dict, list_to_be_inserted):
+def __insert_profiles(scheme, schemedict, indexdict, profile_line_dict, list_to_be_inserted, cur_seqdef):
     # since we only need one db per scheme, it can stay open during the entire definition
-    con = psycopg2.connect(database=f"{schemedict[scheme]['seqdefdb']}", user='apache', password='remote',
-                           host='127.0.0.1', port='')
-    con.autocommit = True
-    cur = con.cursor()
-
     for profile in list_to_be_inserted:
         # first table (profiles):
-        cur.execute(f"INSERT INTO profiles(scheme_id, "
+        cur_seqdef.execute(f"INSERT INTO profiles(scheme_id, "
                     f"profile_id, sender, curator, "
                     f"date_entered, datestamp) "
                     f"VALUES((SELECT id FROM schemes WHERE name = '{schemedict[scheme]['schemename_bigsdb']}'),"
                     f"'{profile}', 1, 1, "
                     f"(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
         # second table (profile fields):
-        for field in schemedict[scheme]['fields']:
+        for field in schemedict[scheme]['scheme_fields']:
             line = profile_line_dict[profile]
             line = line.replace('? ', '').replace('Neisseria ', 'Neisseria_')  # this is added because rflp profiles are malformatted
             fieldvalue = " ".join(line.split()).split(' ')[indexdict[field]]
-            cur.execute(f"INSERT INTO profile_fields(scheme_id, "
+            cur_seqdef.execute(f"INSERT INTO profile_fields(scheme_id, "
                         f"scheme_field, profile_id, value, "
                         f"curator, datestamp) "
                         f"VALUES((SELECT id FROM schemes WHERE name = '{schemedict[scheme]['schemename_bigsdb']}'),"
@@ -95,73 +84,78 @@ def insert_profiles(scheme, indexdict, profile_line_dict, list_to_be_inserted):
                 line = profile_line_dict[profile]
                 locusvalue = " ".join(line.split()).split(' ')[indexdict[locus]]
                 if locusvalue == '0':  # this will create a ForeignKeyViolation error so we prevent this by inserting a null allele if not yet present
-                    cur.execute(f"SELECT count(*) FROM sequences WHERE "
+                    cur_seqdef.execute(f"SELECT count(*) FROM sequences WHERE "
                                 f"locus = '{locus}' AND sequence = 'null allele'")
-                    nullpresent = cur.fetchall()
+                    nullpresent = cur_seqdef.fetchall()
                     if nullpresent[0][0] == 0:
-                        cur.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status, sender,curator, date_entered, datestamp) \
+                        cur_seqdef.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status, sender,curator, date_entered, datestamp) \
                                       VALUES('{locus}',0, 'null allele', '',0,0,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
 
                 try:
-                    cur.execute(f"INSERT INTO profile_members(scheme_id, "
+                    cur_seqdef.execute(f"INSERT INTO profile_members(scheme_id, "
                                 f"locus, profile_id, allele_id, "
                                 f"curator, datestamp) "
                                 f"VALUES((SELECT id FROM schemes WHERE name = '{schemedict[scheme]['schemename_bigsdb']}'),"
                                 f"'{locus}', '{profile}', '{locusvalue}', "
                                 f"1,(SELECT CURRENT_DATE))")
-                except Exception:
-                    logging.error(f"profile with field {field} and value {fieldvalue.replace('_',' ')} already exists as another field, either remove the entire scheme profiles or find out what the exact problem is and solve this script once and for all with delete where select profile_id where locus1 and alleleid1 intersect select ... (e.g. select profile_id from profile_members where (locus='abcZ' and allele_id='1') INTERSECT select profile_id from profile_members where (locus='bglA' and allele_id='1') INTERSECT select profile_id from profile_members where (locus='cat' and allele_id='1'))")
+                except Exception as exceptionmessage:
+                    _send_email(f"profile with field {field} and value {fieldvalue.replace('_',' ')} already exists as another field, find the profile that was misinserted (not all loci have allele_id), remove it, and all above and restart this script",
+                                f"{exceptionmessage}\n{traceback.format_exc()}", emaildict)
                     continue
-    con.close()
 
 
-def insert_all_profiles():
-    for scheme in schemedict:
-        handle = open('/'.join([schemedict[scheme]['dirdb'], profile_file]), 'r').readlines()
-        # multiple whitespaces need to be replaced by single whitespace
-        header = " ".join(handle[0].split()).split(' ')
-        print(header)
-        x = 0
-        indexdict = {}
-        for item in header:
-            print(item)
-            if item == "'rplF":
-                item = 'rplF'
-            indexdict[item] = x
-            x += 1
-        print(indexdict.items())
-        profile_line_dict = {}
-        for line in handle[1:]:
-            profile_line_dict[" ".join(line.split()).split(' ')[0]] = line
+def _insert_all_profiles():
+    for species in list(set(args.species)):
+        con_seqdef = psycopg2.connect(database=f"{config_data['species'][species]['seqdefdb']}", user="apache", password="remote",
+                                      host="127.0.0.1", port="")
+        con_seqdef.autocommit = True
+        cur_seqdef = con_seqdef.cursor()
 
-        # check whether fields[0] is max or not, if not then all value above max will be inserted in all three tables
-        con = psycopg2.connect(database=f"{schemedict[scheme]['seqdefdb']}", user="apache", password="remote",
-                               host="127.0.0.1", port="")
-        cur = con.cursor()
-        cur.execute(f"SELECT MAX(profile_id) FROM profiles WHERE "
-                    f"scheme_id = (SELECT id FROM schemes WHERE name = '{schemedict[scheme]['schemename_bigsdb']}') AND "
-                    f"LENGTH(profile_id) = (SELECT MAX(LENGTH(profile_id)) FROM profiles WHERE scheme_id = (SELECT id FROM schemes WHERE name = '{schemedict[scheme]['schemename_bigsdb']}'))")
-        max_primary_field = cur.fetchall()
-        list_to_be_inserted = []
-        if max_primary_field[0][0] is None:
-            # table is empty, so all need to be inserted
-            for line in handle[1:]:
-                list_to_be_inserted.append(" ".join(line.split()).split(' ')[0])
-            insert_profiles(scheme, indexdict, profile_line_dict, list_to_be_inserted)
-        elif max_primary_field[0][0] == " ".join(handle[-1].split()).split(' ')[0]:
-            # table is up to date
-            continue
-        elif int(max_primary_field[0][0]) < int(" ".join(handle[-1].split()).split(' ')[0]):
-            # table needs to be updated
-            for line in handle[1:]:
-                if int(" ".join(line.split()).split(' ')[0]) > int(max_primary_field[0][0]):
-                    list_to_be_inserted.append(" ".join(line.split()).split(' ')[0])
-                else:
+        schemedict = config_data['species'][species]['typing_schemes']
+        for scheme in schemedict.keys():
+            if schemedict[scheme].get('scheme_fields'):
+                handle = open('/'.join([schemedict[scheme]['dirdb'], profile_file]), 'r').readlines()
+                # multiple whitespaces need to be replaced by single whitespace
+                header = " ".join(handle[0].split()).split(' ')
+                print(header)
+                x = 0
+                indexdict = {}
+                for item in header:
+                    print(item)
+                    if item == "'rplF":
+                        item = 'rplF'
+                    indexdict[item] = x
+                    x += 1
+                print(indexdict.items())
+                profile_line_dict = {}
+                for line in handle[1:]:
+                    profile_line_dict[" ".join(line.split()).split(' ')[0]] = line
+
+                # check whether fields[0] is max or not, if not then all value above max will be inserted in all three tables
+                cur_seqdef.execute(f"SELECT MAX(profile_id) FROM profiles WHERE "
+                            f"scheme_id = (SELECT id FROM schemes WHERE name = '{schemedict[scheme]['schemename_bigsdb']}') AND "
+                            f"LENGTH(profile_id) = (SELECT MAX(LENGTH(profile_id)) FROM profiles WHERE scheme_id = (SELECT id FROM schemes WHERE name = '{schemedict[scheme]['schemename_bigsdb']}'))")
+                max_primary_field = cur_seqdef.fetchall()
+                list_to_be_inserted = []
+                if max_primary_field[0][0] is None:
+                    # table is empty, so all need to be inserted
+                    for line in handle[1:]:
+                        list_to_be_inserted.append(" ".join(line.split()).split(' ')[0])
+                    __insert_profiles(scheme, schemedict, indexdict, profile_line_dict, list_to_be_inserted, cur_seqdef)
+                elif max_primary_field[0][0] == " ".join(handle[-1].split()).split(' ')[0]:
+                    # table is up to date
                     continue
-            insert_profiles(scheme, indexdict, profile_line_dict, list_to_be_inserted)
+                elif int(max_primary_field[0][0]) < int(" ".join(handle[-1].split()).split(' ')[0]):
+                    # table needs to be updated
+                    for line in handle[1:]:
+                        if int(" ".join(line.split()).split(' ')[0]) > int(max_primary_field[0][0]):
+                            list_to_be_inserted.append(" ".join(line.split()).split(' ')[0])
+                        else:
+                            continue
+                    __insert_profiles(scheme, schemedict, indexdict, profile_line_dict, list_to_be_inserted, cur_seqdef)
 
 
-def send_email(subject: str, content: str, config: dict) -> None:
+def _send_email(subject: str, content: str, config: dict) -> None:
     """
     Sends an email.
     :param subject: Mail subject
@@ -179,9 +173,22 @@ def send_email(subject: str, content: str, config: dict) -> None:
     logging.info(content)
 
 
-try:
-    insert_all_profiles()
-except Exception as exceptionmessage:
-    send_email(
-        f'(automated weekly) profiles db update in BIGSdb failed on host {socket.gethostname()}',
-        f"{exceptionmessage}\n{traceback.format_exc()}", emaildict)
+if __name__ == '__main__':
+
+    # Read the global config
+    with open(BIGSDB_CONFIG, encoding='utf-8') as handle:
+        config_data = yaml.safe_load(handle)
+    emaildict = config_data['mail']
+
+    # Configure stdout logging
+    logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
+
+    # Parse arguments
+    args = _parse_arguments(config_data['species'])
+
+    try:
+        _insert_all_profiles()
+    except Exception as exceptionmessage:
+        _send_email(
+            f'(automated weekly) profiles db update in BIGSdb failed on host {socket.gethostname()}',
+            f"{exceptionmessage}\n{traceback.format_exc()}", emaildict)
