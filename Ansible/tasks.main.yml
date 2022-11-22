@@ -18,6 +18,11 @@
     msg: "unsupported species requested, choose from {{ specieslist }}"
   when: species not in specieslist
 
+- name: Assert if branch given
+  fail:
+    msg: "'branch' argument required in -e when running playbook"
+  when: branch is not defined
+
 - name: install git package
   apt:
     name: git
@@ -26,7 +31,7 @@
   git:
     repo: "https://bioit_ro:{{ secret_bioit_git_ro_password }}@git.sciensano.be/bioit/BIGSdb.git"
     dest: "{{ bioit_bigs_home }}"
-    version: "dev"
+    version: "{{ branch }}"
 
 #- name: Get updated files from git repository
 #  git:
