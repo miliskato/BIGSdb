@@ -102,10 +102,10 @@ def prepend_string_dot_to_dict_keys(input_dictionary: dict, prepending: str = 'r
     import copy
     input_dictionary_copy = copy.deepcopy(input_dictionary)
     for key in input_dictionary.keys():
-        if key == 'qc':
+        if key == 'qc' or key == 'assembly':
             for subkey in input_dictionary[key]:
                 input_dictionary_copy['.'.join([key, subkey])] = input_dictionary_copy[key][subkey]
-            input_dictionary_copy.pop('qc')
+            input_dictionary_copy.pop(key)
     for key in input_dictionary_copy.keys():
         keydict[key] = '.'.join([prepending, key])
     return dict((keydict[key], value) for (key, value) in input_dictionary_copy.items())
