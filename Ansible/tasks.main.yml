@@ -589,7 +589,7 @@
   block:
     - name: Check if table that is created in sql files below exists
       postgresql_query:
-        db: bigsdb_listeria_isolates
+        db: "bigsdb_{{ species }}_isolates"
         login_user: postgres
         query: SELECT EXISTS ( SELECT FROM information_schema.tables WHERE table_schema LIKE 'public' AND table_type LIKE 'BASE TABLE' AND table_name = 'eav_text_hidden' )
       register: query_result_eavtexthidden
