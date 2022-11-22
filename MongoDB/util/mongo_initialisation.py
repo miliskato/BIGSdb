@@ -22,7 +22,9 @@ class Mongoinitialisation:
             client = MongoClient(config_data["CONNECTION_STRING_BASE"])
         except Exception:
             raise RuntimeError(f"Could not connect to {config_data['CONNECTION_STRING_BASE']}")
-        return client[species]
+        if config_data["dtap"] not in ['dev', 'test', 'acc', 'prod']:
+            raise NameError(f"replace dtap value in MongoDB/config/config.yml")
+        return client['_'.join([species, config_data["dtap"]])]  # e.g. listeria_dev
 
     def _open_mongo_collection(self, opened_database: object, collection: str) -> object:
         """
