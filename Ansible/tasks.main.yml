@@ -1,7 +1,23 @@
 ---
 # src parameter: If path is a directory, it is copied recursively. In this case, if path ends with "/", only inside contents of that directory are copied to destination. Otherwise, if it does not end with "/", the directory itself with all contents is copied.
 
-# todo add species check
+- name: Assert if species given
+  fail:
+    msg: "'species' argument required in -e when running playbook"
+  when: species is not defined
+
+- name: check if species in list
+  vars:
+    specieslist:
+      - listeria
+      - mycobacterium
+      - neisseria
+      - stec
+      - salmonella
+  fail:
+    msg: "unsupported species requested, choose from {{ specieslist }}"
+  when: species not in specieslist
+
 - name: install git package
   apt:
     name: git
@@ -140,7 +156,7 @@
       - { src: conf/, dest: /etc/bigsdb }
       - { src: bioit_etc.bigsdb.dbases/, dest: /etc/bigsdb/dbases }
       - { src: headers/, dest: /var/www/html/ }
-      - { src: bioit_website_varwwwhtml/, dest: /var/www/html/ }
+      - { src: "bioit_website_varwwwhtml/{{ species }}.html", dest: /var/www/html/index.html }
 #      - { src: automated-reanalysis/camel/config/main.yml.sample, dest: "{{ bioit_bigs_home }}/automated-reanalysis/camel/config/main.yml" }
 #      - { src: automated-reanalysis/camel/scripts/reanalysis/config.yml.sample, dest: "{{ bioit_bigs_home }}/automated-reanalysis/camel/scripts/reanalysis/config.yml" }
 

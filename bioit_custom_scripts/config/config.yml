@@ -21,6 +21,7 @@ species:
       listeria_cgmlst:
         dirdb: /db/sequence_typing/listeria/cgmlst
         tsvname: cgmlst
+        schemename_bigsdb: cgMLST
       listeria_serogroup:
         dirdb: /db/sequence_typing/listeria/serogroup
         tsvname: pcr_serogroup
@@ -31,15 +32,19 @@ species:
       listeria_metal_detergent_resistance:
         dirdb: /db/sequence_typing/listeria/metal_detergent_resistance
         tsvname: metal_detergent
+        schemename_bigsdb: Metal and detergent resistance
       listeria_typing_virulence:
         dirdb: /db/sequence_typing/listeria/virulence
         tsvname: typing_virulence
+        schemename_bigsdb: Virulence
       listeria_antibiotic_resistance:
         dirdb: /db/sequence_typing/listeria/antibiotic_resistance
         tsvname: typing_amr
+        schemename_bigsdb: Antibiotic resistance
       listeria_species_confirmation:
         dirdb: /db/sequence_typing/listeria/species_confirmation
         tsvname: species_confirmation
+        schemename_bigsdb: Species confirmation
     genedetection_schemes:
       listeria_ndaro:
         clusteredfasta: /db/gene_detection/NCBI_AMR/ncbi_amr-clustered_80.fasta
@@ -84,6 +89,7 @@ species:
       mycobacterium_cgmlst:
         dirdb: /db/sequence_typing/mycobacterium/cgmlst
         tsvname: cgmlst
+        schemename_bigsdb: cgMLST
       mycobacterium_spoligotyping:
         dirdb: ''
         tsvname: spoligotype_binary
@@ -120,6 +126,7 @@ species:
       neisseria_cgmlst:
         dirdb: /db/sequence_typing/neisseria/cgmlst
         tsvname: cgmlst
+        schemename_bigsdb: cgMLST
       neisseria_rplf:
         dirdb: /db/sequence_typing/neisseria/rplf
         tsvname: rplf
@@ -138,24 +145,31 @@ species:
       neisseria_pora:
         dirdb: /db/sequence_typing/neisseria/pora
         tsvname: pora
+        schemename_bigsdb: porA
       neisseria_porb:
         dirdb: /db/sequence_typing/neisseria/porb
         tsvname: porb
+        schemename_bigsdb: porB
       neisseria_feta:
         dirdb: /db/sequence_typing/neisseria/feta
         tsvname: feta
+        schemename_bigsdb: FetA
       neisseria_resistancegenes:
         dirdb: /db/sequence_typing/neisseria/resistance_genes
         tsvname: resistance_genes
+        schemename_bigsdb: Antibiotic_resistance
       neisseria_vaccinetargets:
         dirdb: /db/sequence_typing/neisseria/vaccine_targets
         tsvname: vaccine_targets
+        schemename_bigsdb: Vaccine_targets
       neisseria_fhbpnucl:
         dirdb: /db/sequence_typing/neisseria/fhbp
         tsvname: fhbp
+        schemename_bigsdb: fHbp_nucl
       neisseria_fhbppept:
         dirdb: /db/sequence_typing/neisseria/fhbp
         tsvname: Fhbp
+        schemename_bigsdb: fHbp_pept
     genedetection_schemes:
       neisseria_ndaro:
         clusteredfasta: /db/gene_detection/NCBI_AMR/ncbi_amr-clustered_80.fasta
@@ -188,6 +202,7 @@ species:
       stec_cgmlst:
         dirdb: /db/sequence_typing/ecoli/cgmlst
         tsvname: cgmlst
+        schemename_bigsdb: cgMLST
       stec_pointfinder:
         dirdb: ''
         tsvname: pointfinder_mutations
@@ -242,6 +257,7 @@ species:
       salmonella_cgmlst:
         dirdb: /db/sequence_typing/salmonella/cgmlst
         tsvname: cgmlst
+        schemename_bigsdb: cgMLST
       salmonella_pointfinder:
         dirdb: ''
         tsvname: pointfinder_mutations
