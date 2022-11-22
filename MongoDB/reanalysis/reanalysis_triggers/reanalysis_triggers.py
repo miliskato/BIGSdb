@@ -25,13 +25,13 @@ from MongoDB.reanalysis.command.command import Command
 # git log --date=short -- . ':(exclude)db_metadata.txt'
 
 
-def _parse_arguments() -> argparse.Namespace:
+def _parse_arguments(specieslist) -> argparse.Namespace:
     """
     Parses the command line arguments.
     :return: Parsed arguments
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument('--species', type=str, required=True, help='Species to re-analyze')
+    parser.add_argument('--species', type=str, required=True, choices=specieslist, help='Species to re-analyze')
     parser.add_argument('--threads', type=int, default=8, help='Number of threads to use in total')
     parser.add_argument('--pyvenvpythonpath', type=Path, required=True, help='eg /home/BIGSdb/3.9PythonVenv/bin/python3.9')
     parser.add_argument('--slurm', action='store_true', help='Run reanalyses using slurm, dont include to not use slurm')
@@ -57,12 +57,12 @@ def _send_email(subject: str, content: str, config: dict) -> None:
 
 if __name__ == '__main__':
 
-    # Parse arguments
-    args = _parse_arguments()
-
     # Read the trigger config
     with open(TRIGGER_CONFIG, encoding='utf-8') as handle:
         trigger_config = yaml.safe_load(handle)
+
+    # Parse arguments
+    args = _parse_arguments(list(trigger_config['species'].keys()))
 
     # Parse config
     with open(MONGO_CONFIG, encoding='utf-8') as handle:

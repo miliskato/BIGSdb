@@ -31,13 +31,13 @@ from MongoDB.config import MONGO_CONFIG
 from MongoDB.reanalysis import MONGO_REANALYSIS_CONFIG
 
 
-def _parse_arguments() -> argparse.Namespace:
+def _parse_arguments(specieslist) -> argparse.Namespace:
     """
     Parses the command line arguments.
     :return: Parsed arguments
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument('--species', type=str, required=True, help='Species to re-analyze')
+    parser.add_argument('--species', type=str, required=True, choices=specieslist, help='Species to re-analyze')
     parser.add_argument('--threads_per_job', type=int, default=1, help='Number of threads to use, should be lower than the machines maximum')
     parser.add_argument('--analysis_arguments', nargs='+', required=False,
                         help='analysis arguments stripped off --, e.g. "--analysis_arguments cgmlst mlst"')
@@ -65,12 +65,12 @@ def _send_email(subject: str, content: str, config: dict) -> None:
 
 if __name__ == '__main__':
 
-    # Parse arguments
-    args = _parse_arguments()
-
     # Read the reanalysis config
     with open(MONGO_REANALYSIS_CONFIG, encoding='utf-8') as handle:
         reanalysis_config = yaml.safe_load(handle)
+
+    # Parse arguments
+    args = _parse_arguments(list(reanalysis_config['species'].keys()))
 
     try:
         # Configure stdout logging

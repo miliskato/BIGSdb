@@ -39,7 +39,7 @@ def _send_email(subject: str, content: str, config: dict) -> None:
     logging.info(content)
 
 
-def _parse_arguments() -> argparse.Namespace:
+def _parse_arguments(specieslist) -> argparse.Namespace:
     """
     Parses the command line arguments.
     :return: Parsed arguments
@@ -47,7 +47,7 @@ def _parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--jsonfilepath", required=True, type=Path)
     parser.add_argument("--species", required=True, type=str,
-                        choices=['mycobacterium', 'listeria', 'neisseria', 'stec', 'salmonella'])
+                        choices=specieslist)
     parser.add_argument("--results_type", required=True, type=str, choices=['new_isolate', 'reanalysis'])
     parser.add_argument("--fastafilepath", required=False, type=str)
     parser.add_argument("--vcffilepath", required=False, type=str)
@@ -166,12 +166,13 @@ def parameter_compatibility_checks(args: argparse.Namespace) -> None:
 
 
 if __name__ == '__main__':
-    # Parse arguments
-    args = _parse_arguments()
 
     # Parse config
     with open(MONGO_CONFIG, encoding='utf-8') as handle:
         config_data = yaml.safe_load(handle)
+
+    # Parse arguments
+    args = _parse_arguments(config_data['species'])
 
     try:
         # Parameter compatibility checks
@@ -223,7 +224,10 @@ if __name__ == '__main__':
             new_results_handle = json.load(open(args.jsonfilepath, 'r'))
             new_results = prepend_string_dot_to_dict_keys(new_results_handle)
             new_results["results.isolates_id"] = args.technical_id
-            old_results = mongoquerying.query_docs_by_ids(isolates_collection, [args.technical_id])[0]['results']
+            try:
+                old_results = mongoquerying.query_docs_by_ids(isolates_collection, [args.technical_id])[0]['results']
+            except Exception:
+                raise RuntimeError('This reanalysis technical id is not present in the isolates collection')
             some_result_changed = False
             for mainkey in new_results_handle.keys():
                 if isinstance(new_results_handle[mainkey], dict):

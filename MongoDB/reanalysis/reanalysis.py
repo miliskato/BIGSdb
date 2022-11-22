@@ -31,13 +31,13 @@ from MongoDB.config import MONGO_CONFIG
 from MongoDB.reanalysis import MONGO_REANALYSIS_CONFIG
 
 
-def _parse_arguments() -> argparse.Namespace:
+def _parse_arguments(specieslist) -> argparse.Namespace:
     """
     Parses the command line arguments.
     :return: Parsed arguments
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument('--species', type=str, required=True, help='Species to re-analyze')
+    parser.add_argument('--species', type=str, required=True, choices=specieslist, help='Species to re-analyze')
     parser.add_argument('--threads', type=int, default=8, help='Number of threads to use in total')
     parser.add_argument('--analysis_arguments', nargs='+', required=False, help='analysis arguments stripped off --, e.g. "--analysis_arguments cgmlst mlst"')
     parser.add_argument('--pyvenvpythonpath', type=Path, required=True, help='eg /home/BIGSdb/3.9PythonVenv/bin/python3.9')
@@ -95,6 +95,7 @@ def _fail_safe_mechanism(isolatename: str, config: dict, mailconfig: dict, tmp_d
     try:
         if not os.path.isdir(Path(config['failsafe']['flag_dir'])):
             os.makedirs(Path(config['failsafe']['flag_dir']), exist_ok=True)
+            os.chmod(Path(config['failsafe']['flag_dir']), 0o777)
         flagfilepath = __make_flagfilepath(isolatename, config)
         if os.path.isfile(flagfilepath):
             tmp_dir_fail = Path(open(flagfilepath).readlines()[0])
@@ -104,6 +105,7 @@ def _fail_safe_mechanism(isolatename: str, config: dict, mailconfig: dict, tmp_d
             os.remove(flagfilepath)
         with open(flagfilepath, 'w') as handle:
             handle.write(tmp_dir)
+        os.chmod(flagfilepath, 0o777)
         logging.info(f"flagfilepath {flagfilepath}")
     except Exception as exceptionmessage:
         _send_email(f"{os.path.basename(__file__)}: reanalysis fail safe mechanism fail on host {socket.gethostname()}", f"{exceptionmessage}\n{traceback.format_exc()}", mailconfig['mail'])
@@ -126,12 +128,12 @@ def _delete_flagfile(isolatename: str, config: dict, mailconfig: dict) -> None:
 
 if __name__ == '__main__':
 
-    # Parse arguments
-    args = _parse_arguments()
-
     # Read the reanalysis config
     with open(MONGO_REANALYSIS_CONFIG, encoding='utf-8') as handle:
         reanalysis_config = yaml.safe_load(handle)
+
+    # Parse arguments
+    args = _parse_arguments(list(reanalysis_config['species'].keys()))
 
     try:
         # Configure stdout logging

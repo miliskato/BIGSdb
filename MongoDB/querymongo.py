@@ -9,24 +9,24 @@ import logging
 import sys
 
 
-def _parse_arguments() -> argparse.Namespace:
+def _parse_arguments(specieslist) -> argparse.Namespace:
     """
     Parses the command line arguments.
     :return: Parsed arguments
     """
     parser = argparse.ArgumentParser()
     parser.add_argument("--species", required=True, type=str,
-                        choices=['mycobacterium', 'listeria', 'neisseria', 'stec', 'salmonella'])
+                        choices=specieslist)
     return parser.parse_args()
 
 
 if __name__ == '__main__':
-    # Parse arguments
-    args = _parse_arguments()
-
     # Parse config
     with open(MONGO_CONFIG, encoding='utf-8') as handle:
         config_data = yaml.safe_load(handle)
+
+    # Parse arguments
+    args = _parse_arguments(config_data['species'])
 
     logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 

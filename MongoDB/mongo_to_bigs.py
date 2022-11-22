@@ -23,14 +23,14 @@ from bioit_custom_scripts.components.databaseconnection import DatabaseConnectio
 from bioit_custom_scripts.config import BIGSDB_CONFIG
 
 
-def _parse_arguments() -> argparse.Namespace:
+def _parse_arguments(specieslist) -> argparse.Namespace:
     """
     Parses the command line arguments.
     :return: Parsed arguments
     """
     argument_parser = argparse.ArgumentParser()
     argument_parser.add_argument('--species', required=True, type=str,
-                                 choices=['mycobacterium', 'listeria', 'neisseria', 'stec', 'salmonella'])
+                                 choices=specieslist)
     argument_parser.add_argument('--pyvenvpythonpath', type=Path, required=True, help='/home/BIGSdb/3.9PythonVenv/bin/python3.9')
     return argument_parser.parse_args()
 
@@ -74,13 +74,14 @@ if __name__ == '__main__':
     # Configure stdout logging
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
-    # Parse arguments
-    args = _parse_arguments()
-
-    # Parse config
+    # Parse Mongo config
     with open(MONGO_CONFIG, encoding='utf-8') as handle:
         config_data = yaml.safe_load(handle)
 
+    # Parse arguments
+    args = _parse_arguments(config_data['species'])
+
+    # Parse Bigsdb config
     with open(BIGSDB_CONFIG, encoding='utf-8') as handle:
         bigsdb_config = yaml.safe_load(handle)
     try:

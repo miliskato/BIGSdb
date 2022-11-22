@@ -15,7 +15,7 @@ from util.mongo_initialisation import Mongoinitialisation
 from config import MONGO_CONFIG
 
 
-def _parse_arguments() -> argparse.Namespace:
+def _parse_arguments(specieslist) -> argparse.Namespace:
     """
     Parses the command line arguments.
     :return: Parsed arguments
@@ -23,7 +23,7 @@ def _parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--scheme", required=True, type=str, help='lower case scheme as in json reports/mongodb documents')
     parser.add_argument("--species", required=True, type=str,
-                        choices=['mycobacterium', 'listeria', 'neisseria', 'stec', 'salmonella'])
+                        choices=specieslist)
     return parser.parse_args()
 
 
@@ -38,12 +38,12 @@ def query_hashes_of_scheme(hashed_ad_collection: object, scheme: str) -> list:
 
 
 if __name__ == '__main__':
-    # Parse arguments
-    args = _parse_arguments()
-
     # Parse config
     with open(MONGO_CONFIG, encoding='utf-8') as handle:
         config_data = yaml.safe_load(handle)
+
+    # Parse arguments
+    args = _parse_arguments(config_data['species'])
 
     # Configure stdout logging
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
