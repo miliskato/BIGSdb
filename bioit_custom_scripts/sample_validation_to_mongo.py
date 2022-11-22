@@ -36,7 +36,7 @@ def parse_arguments() -> argparse.Namespace:
     :return: Parsed arguments
     """
     argument_parser = argparse.ArgumentParser()
-    argument_parser.add_argument('--species', required=True, type=str,choices=['mycobacterium', 'listeria', 'neisseria', 'stec', 'salmonella'])
+    #argument_parser.add_argument('--species', required=True, type=str,choices=['mycobacterium', 'listeria', 'neisseria', 'stec', 'salmonella'])
     argument_parser.add_argument('--db', required=True, type=str)
     return argument_parser.parse_args()
 
@@ -45,7 +45,8 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
     # Parse arguments
-    #args = parse_arguments()
+    args = parse_arguments()
+    print(args.db)
     species ='listeria'
     # Parse config
     with open(MONGO_CONFIG, encoding='utf-8') as handle:
@@ -73,6 +74,7 @@ if __name__ == '__main__':
             query_isolate_id = cur_isolates.execute(f"SELECT value FROM isolate_submission_isolates WHERE submission_id='{id}' AND field='isolate_id' ")
             isolate_id = cur_isolates.fetchall()[0][0]
             cur_isolates.execute(f"UPDATE submissions SET status='validation_sent_to_bioit_platform' WHERE id='{id}'")
+
 
 
     except Exception as exceptionmessage:
