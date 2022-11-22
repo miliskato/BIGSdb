@@ -26,7 +26,7 @@ class Mongoinitialisation:
             raise NameError(f"replace dtap value in MongoDB/config/config.yml")
         return client['_'.join([species, config_data["dtap"]])]  # e.g. listeria_dev
 
-    def _open_mongo_collection(self, opened_database: object, collection: str) -> object:
+    def _open_mongo_collection(self, opened_database: object, collection: str, config_data: dict) -> object:
         """
         Opens a mongo collection in an opened database
         :param opened_database: mongo opened database
@@ -35,7 +35,7 @@ class Mongoinitialisation:
         """
         # MongoDB creates collections on the fly while inserting any Documents, we do not want to allow
         # unwanted collections to be created, therefore this check:
-        if collection in ["isolates", "old_isolate_results", "isolates_badqc", "sequence_types", "new_allele_hashes"]:
+        if collection in config_data['collections']:
             opened_collection = opened_database[collection]
             logging.debug(f"opened collection {collection}")
             return opened_collection
@@ -52,11 +52,11 @@ class Mongoinitialisation:
         # open connection to species db
         species_database = self._open_mongo_database(config_data, species)
         # open isolates collection
-        isolates_collection = self._open_mongo_collection(species_database, "isolates")
+        isolates_collection = self._open_mongo_collection(species_database, "isolates", config_data)
         # open isolate_results collection
-        isolateresults_collection = self._open_mongo_collection(species_database, "old_isolate_results")
+        isolateresults_collection = self._open_mongo_collection(species_database, "old_isolate_results", config_data)
         # open isolates badqc collection
-        isolates_badqc_collection = self._open_mongo_collection(species_database, "isolates_badqc")
+        isolates_badqc_collection = self._open_mongo_collection(species_database, "isolates_badqc", config_data)
         return isolates_collection, isolateresults_collection, isolates_badqc_collection
 
     def initialise_hashing_collection(self, config_data: dict, species: str) -> object:
@@ -66,5 +66,5 @@ class Mongoinitialisation:
         :return: Opened hashing collection
         """
         species_database = self._open_mongo_database(config_data, species)
-        hashed_ad_collection = self._open_mongo_collection(species_database, "new_allele_hashes")
+        hashed_ad_collection = self._open_mongo_collection(species_database, "new_allele_hashes", config_data)
         return hashed_ad_collection
