@@ -4,9 +4,6 @@ import logging
 import sys
 from pymongo.read_concern import ReadConcern
 
-from MongoDB.util.distance_matrix_query import DistanceMatrixQuery
-from MongoDB.util.hcnumbers_data import HCNumbersData
-
 
 class Mongoquerying(object, metaclass=abc.ABCMeta):
     """
@@ -155,20 +152,20 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
                     else:
                         print("{}\t{}".format(key, 0))
 
-    def find_HC_numbers_for_isolate(self, isolate_id: str, isolate_collection, hiercc_collection,
-                                    hc_number: str) -> int:
-        """
-        query to retrieve a specific hc number from an isolate
-        :param isolate_id: the id from the desired isolate
-        :param isolate_collection: the mongo db collection of isolates
-        :param hiercc_collection:  the mongo db collection of hiercc results
-        :param hc_number: the hc number (starting with HC..) to be retrieved
-        :return: the hc number of the cluster where the isolates is located.
-        """
-        isolate_sequence_type = isolate_collection.find_one({"_id": isolate_id})['HierCC_ST']
-        hc_numbers = hiercc_collection.find({"ST": isolate_sequence_type})
-        hc_data = HCNumbersData(isolate_sequence_type, hc_numbers)
-        return hc_data.get_hc_number(hc_number)
+    # def find_HC_numbers_for_isolate(self, isolate_id: str, isolate_collection, hiercc_collection,
+    #                                 hc_number: str) -> int:
+    #     """
+    #     query to retrieve a specific hc number from an isolate
+    #     :param isolate_id: the id from the desired isolate
+    #     :param isolate_collection: the mongo db collection of isolates
+    #     :param hiercc_collection:  the mongo db collection of hiercc results
+    #     :param hc_number: the hc number (starting with HC..) to be retrieved
+    #     :return: the hc number of the cluster where the isolates is located.
+    #     """
+    #     isolate_sequence_type = isolate_collection.find_one({"_id": isolate_id})['HierCC_ST']
+    #     hc_numbers = hiercc_collection.find({"ST": isolate_sequence_type})
+    #     hc_data = HCNumbersData(isolate_sequence_type, hc_numbers)
+    #     return hc_data.get_hc_number(hc_number)
 
     def query_what_changed_compared_to_previous(self, isolate_id, isolates_collection, isolateresults_collection):
         # no checks are done to see if exists

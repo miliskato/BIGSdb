@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 from pymongo import MongoClient
 from pymongo.write_concern import WriteConcern
 from pymongo.read_concern import ReadConcern
@@ -46,7 +47,9 @@ def _parse_arguments() -> argparse.Namespace:
     :return: Parsed arguments
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("--jsonfilepath", required=True, type=Path)
+    mutually_exclusive_group = parser.add_mutually_exclusive_group(required=True)
+    mutually_exclusive_group.add_argument('--dict', type=json.loads)
+    mutually_exclusive_group.add_argument('--jsonfilepath', type=Path)
     parser.add_argument("--species", required=True, type=str,
                         choices=['mycobacterium', 'listeria', 'neisseria', 'stec', 'salmonella'])
     parser.add_argument("--results_type", required=True, type=str, choices=['new_isolate', 'reanalysis'])
@@ -189,20 +192,27 @@ if __name__ == '__main__':
             else:
                 # todo check if fasta path and vcf path are real?
                 mongoresults = Mongoresults()
-                records = json.load(open(args.jsonfilepath, 'r'))
+                if args.jsonfilepath:
+                    records = json.load(open(args.jsonfilepath, 'r'))
+                elif args.dict:
+                    records = args.dict
                 records["isolates_id"] = args.technical_id
                 # Change date format
                 ## to do in queries themselves because else error: TypeError: 'datetime.datetime' object is not iterable
                 # QC check for failed qc to not be integrated in main db
                 sample_quality = 'good'
-                try:
-                    for qc_type in records['qc']:
-                        for key in records['qc'][qc_type]:
-                            if key.endswith('status') and records['qc'][qc_type][
-                                key] == 'Failed' :  # and not (records['qc'][qc_type][key] == 'OK' or records['qc'][qc_type][key] == 'Warning'): # todo check logic
-                                sample_quality = 'bad'
-                except:
-                    raise RuntimeError('No qc values found in the given results')
+                if 'validation' in records.keys() and records['validation']['outcome'] == "good":
+                    #date can't be added before submission as the datetimen object is not serializable to json
+                    records['validation']['date'] = datetime.datetime.utcnow()
+                else:
+                    try:
+                        for qc_type in records['qc']:
+                            for key in records['qc'][qc_type]:
+                                if key.endswith('status') and records['qc'][qc_type][
+                                    key] == 'Failed':  # and not (records['qc'][qc_type][key] == 'OK' or records['qc'][qc_type][key] == 'Warning'): # todo check logic
+                                    sample_quality = 'bad'
+                    except:
+                        raise RuntimeError('No qc values found in the given results')
 
             if sample_quality == 'good':
                 records = find_hashes_in_results_and_add_to_collection(records, mongoinit, config_data,

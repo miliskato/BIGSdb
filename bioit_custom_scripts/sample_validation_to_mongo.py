@@ -9,11 +9,12 @@ from email.message import EmailMessage
 import socket
 import traceback
 import re
-
+import json
 from MongoDB.util.mongo_initialisation import Mongoinitialisation
 from MongoDB.config import MONGO_CONFIG
 from bioit_custom_scripts.components.databaseconnection import Database_connection
 from bioit_custom_scripts.config import BIGSDB_CONFIG
+
 
 def send_email(subject: str, content: str, config: dict) -> None:
     """
@@ -37,7 +38,6 @@ def parse_arguments() -> argparse.Namespace:
     :return: Parsed arguments
     """
     argument_parser = argparse.ArgumentParser()
-    #argument_parser.add_argument('--species', required=True, type=str,choices=['mycobacterium', 'listeria', 'neisseria', 'stec', 'salmonella'])
     argument_parser.add_argument('--db', required=True, type=str)
     return argument_parser.parse_args()
 
@@ -47,7 +47,6 @@ if __name__ == '__main__':
 
     # Parse arguments
     args = parse_arguments()
-    print(args.db)
     species = re.sub('bigsdb_|_isolates','', args.db)
     # Parse config
     with open(MONGO_CONFIG, encoding='utf-8') as handle:
@@ -59,7 +58,8 @@ if __name__ == '__main__':
 
         # Open collections
         mongoinit = Mongoinitialisation()
-        isolates_collection, old_isolateresults_collection, isolates_badqc_collection = mongoinit._initialise_collections(config_data, species)
+        isolates_collection, old_isolateresults_collection, isolates_badqc_collection = \
+            mongoinit._initialise_collections(config_data, species)
 
         # Connect to db and create cursor
         cur_isolates, cur_seqdef = Database_connection().open_database_connections(species)
@@ -67,13 +67,32 @@ if __name__ == '__main__':
         cur_isolates.execute(f"SELECT id, outcome, curator FROM submissions WHERE status='closed'")
         query = cur_isolates.fetchall()
         if query:
+            #retrieve id of the isolate and curator id from BIGSdb
             id = query[0][0]
             outcome = query[0][1]
             curator_id = query[0][2]
             cur_isolates.execute(f"SELECT user_name FROM users WHERE id='{curator_id}'")
             curator_name = cur_isolates.fetchall()[0][0]
-            query_isolate_id = cur_isolates.execute(f"SELECT value FROM isolate_submission_isolates WHERE submission_id='{id}' AND field='isolate_id' ")
+            query_isolate_id = cur_isolates.execute(f"SELECT value FROM isolate_submission_isolates WHERE "
+                                                    f"submission_id='{id}' AND field='isolate_id' ")
             isolate_id = cur_isolates.fetchall()[0][0]
+            #GO into mongo DB
+            sample_doc = isolates_badqc_collection.find_one({"_id": isolate_id})
+            json_sample = sample_doc['results']
+            json_sample['validation'] = {
+                'outcome': outcome,
+                'curator': curator_name
+            }
+            #write doc to tmp
+            with open("/home/bebergk/tmp_isolate_sub.json", "w") as write_file:
+                json.dump(json_sample, write_file, indent=4)
+            command = f"mainmongo.py {}"
+
+
+
+
+
+            #update status once everything is finished
             cur_isolates.execute(f"UPDATE submissions SET status='validation_sent_to_bioit_platform' WHERE id='{id}'")
 
 

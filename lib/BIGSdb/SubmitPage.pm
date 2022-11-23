@@ -2793,7 +2793,12 @@ sub _close_submission {    ## no critic (ProhibitUnusedPrivateSubroutines) #Call
 		$self->{'db'}->commit;
 	}
         my $dbname = $self->{'datastore'}->run_query('select current_database()');
-        my $output = system("export MODULEPATH=/etc/lmod/modules;source /etc/profile.d/lmod.sh;ml load mongo_bigs_dbs;sample_validation_to_mongo.py $dbname &>>/home/BIGSdb/avro/error.txt");
+        open(BASH, "|-", "bash");
+        print BASH "export MODULEPATH=/etc/lmod/modules \n";
+        print BASH "source /etc/profile.d/lmod.sh \n";
+        print BASH "ml mongo_bigs_dbs \n";
+        print BASH "sample_validation_to_mongo.py $dbname \n";
+        close(BASH);
         $submission = $self->{'submissionHandler'}->get_submission($submission_id);
 	my $curator_info = $self->{'datastore'}->get_user_info($curator_id);
 	$self->{'submissionHandler'}->remove_submission_from_digest($submission_id);
