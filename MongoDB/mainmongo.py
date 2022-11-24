@@ -254,8 +254,6 @@ if __name__ == '__main__':
                 older_results = mongoquerying.query_old_results_and_replace_pointers(isolateresults_collection, older_results_document_with_pointers)
                 any_result_changed_old_older, unchanged_results_old_older, changed_results_old_older = _check_if_results_changed(older_results, current_results)
                 for unchanged_assay in list(set(unchanged_results_old_older)):
-                    logging.debug(unchanged_assay)
-                    logging.debug(older_results_document_with_pointers[unchanged_assay])
                     unchanged_assay_new_dict_with_pointer = {}
                     # check if document already has a pointer with same results to previous document or make pointer to document
                     if older_results_document_with_pointers[unchanged_assay].get('pointer'):
@@ -267,6 +265,7 @@ if __name__ == '__main__':
                         if current_results[unchanged_assay].get(info) and older_results[unchanged_assay][info] != current_results[unchanged_assay][info]:
                             unchanged_assay_new_dict_with_pointer[info] = current_results[unchanged_assay][info]
                     current_results[unchanged_assay] = unchanged_assay_new_dict_with_pointer
+
             # Update new results
             if any_result_changed_new_old is True:
                 new_results["results.results_version"] = current_results["results_version"] + 1

@@ -3,6 +3,7 @@ import pymongo
 import logging
 import sys
 from pymongo.read_concern import ReadConcern
+from copy import deepcopy
 
 
 class Mongoquerying(object, metaclass=abc.ABCMeta):
@@ -169,12 +170,13 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
                             logging.info(f"from old '{[x for x in old_results[mainkey][subkey] if x not in new_results[mainkey][subkey]]}' was/were removed or changed to '{[x for x in new_results[mainkey][subkey] if x not in old_results[mainkey][subkey]]}'")
 
     def query_old_results_and_replace_pointers(self, isolateresults_collection: object, old_results_doc_with_pointers: dict) -> dict:
-        if old_results_doc_with_pointers.get('results'):
+        old_results_doc_without_pointers = deepcopy(old_results_doc_with_pointers)
+        if old_results_doc_without_pointers.get('results'):
             raise Exception('Not an old results document')
         pointers_list = []
-        for key in old_results_doc_with_pointers:
-            if type(old_results_doc_with_pointers[key]) == dict and old_results_doc_with_pointers[key].get('pointer'):
-                pointers_list.append(old_results_doc_with_pointers[key]['pointer'])
+        for key in old_results_doc_without_pointers:
+            if type(old_results_doc_without_pointers[key]) == dict and old_results_doc_without_pointers[key].get('pointer'):
+                pointers_list.append(old_results_doc_without_pointers[key]['pointer'])
         pointers_list_unique = list(set(pointers_list))
         if len(pointers_list_unique) > 0:
             old_docs_containing_results_list = self.query_docs_by_ids(isolateresults_collection, pointers_list_unique)
@@ -182,11 +184,11 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
                 raise Exception('Documents are missing from the old results database')
             # transform old_docs list to dict:
             old_docs_containing_results_dict = {document['_id']:document for document in old_docs_containing_results_list}
-            for key in old_results_doc_with_pointers:
-                if type(old_results_doc_with_pointers[key]) == dict and old_results_doc_with_pointers[key].get('pointer'):
-                    results_dict = old_docs_containing_results_dict[old_results_doc_with_pointers[key]['pointer']][key]
+            for key in old_results_doc_without_pointers:
+                if type(old_results_doc_without_pointers[key]) == dict and old_results_doc_without_pointers[key].get('pointer'):
+                    results_dict = old_docs_containing_results_dict[old_results_doc_without_pointers[key]['pointer']][key]
                     # update informs_tools, informs_dbs, and analysis_date with current ones
-                    results_dict.update(old_results_doc_with_pointers[key])
-                    results_dict.pop('pointer')
-                    old_results_doc_with_pointers[key] = results_dict
-        return old_results_doc_with_pointers
+                    # results_dict.update(old_results_doc_with_pointers[key])
+                    # results_dict.pop('pointer')
+                    old_results_doc_without_pointers[key] = results_dict  # which is now without pointers
+        return old_results_doc_without_pointers  # which is now without pointers
