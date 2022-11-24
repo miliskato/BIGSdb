@@ -196,7 +196,7 @@ if __name__ == '__main__':
             if args.jsonfilepath:
                 records = json.load(open(args.jsonfilepath, 'r'))
             elif args.dict:
-                sample_doc = isolates_badqc_collection.find_one({"_id": isolate_id})
+                sample_doc = isolates_badqc_collection.find_one({"_id": args.technical_id})
                 records = sample_doc['results']
                 records['validation'] = args.dict
                 args.fastafilepath = sample_doc['fasta_path']

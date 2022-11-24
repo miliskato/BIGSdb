@@ -11,6 +11,7 @@ import socket
 import traceback
 import re
 import json
+import datetime
 from MongoDB.util.mongo_initialisation import Mongoinitialisation
 from MongoDB.config import MONGO_CONFIG
 from bioit_custom_scripts.components.databaseconnection import Database_connection
@@ -101,18 +102,8 @@ if __name__ == '__main__':
             else:
                 validation['date'] = datetime.datetime.utcnow()
                 isolates_badqc_collection.update({'_id': isolate_id}, {'$set': validation})
-
-
-
-
-
-
-
-
             #update status once everything is finished
             cur_isolates.execute(f"UPDATE submissions SET status='validation_sent_to_bioit_platform' WHERE id='{id}'")
-
-
 
     except Exception as exceptionmessage:
         send_email(f"{os.path.basename(__file__)}: mongo to bigs fail on host {socket.gethostname()}",
