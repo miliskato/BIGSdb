@@ -49,8 +49,8 @@ def _parse_arguments(specieslist) -> argparse.Namespace:
     parser.add_argument("--species", required=True, type=str,
                         choices=specieslist)
     parser.add_argument("--results_type", required=True, type=str, choices=['new_isolate', 'reanalysis'])
-    parser.add_argument("--fastafilepath", required=False, type=str)
-    parser.add_argument("--vcffilepath", required=False, type=str)
+    parser.add_argument("--fastafilepath", required=False, type=str)  # not mandatory because of reanalysis
+    parser.add_argument("--vcffilepath", required=False, type=str)  # not mandatory because of reanalysis
     parser.add_argument("--technical_id", required=True, type=str)
     parser.add_argument('--bigs', action='store_true',
                         help='Prepare and send folder over to Bigs for automated insert (+assembly), html tagging and report moving')  # todo unfinished
@@ -83,7 +83,7 @@ def _new_isolate(technical_id: str, vcffilepath: str, fastafilepath: str,
     new_isolate_dict = {"_id": technical_id,
                         "vcf_path": vcffilepath,
                         "fasta_path": fastafilepath,
-                        "previous_latest_results_version": "",  # _write_document(isolateresults_collection, results)
+                        "previous_latest_results_version": None,  # _write_document(isolateresults_collection, results)
                         "creation_date": datetime.datetime.utcnow(),
                         "latest_analysis_date": _return_YMD_from_DMYhms(results["analysis_date"]),
                         "results": results}
@@ -161,6 +161,29 @@ def parameter_compatibility_checks(args: argparse.Namespace) -> None:
     if args.results_type == 'reanalysis' and args.bigs is True:
         raise Exception('Bigs upload only available for new isolates')
 
+
+def _check_if_results_changed(current_results, new_results):
+    any_result_changed = False
+    unchanged_results = []
+    changed_results = []
+    for mainkey in new_results.keys():  # mainkey is assay
+        if isinstance(new_results[mainkey], dict):
+            for subkey in new_results[mainkey].keys():
+                if mainkey not in current_results.keys():
+                    logging.info(f"{mainkey} not in current results")
+                    any_result_changed = True
+                    changed_results.append(mainkey)
+                elif subkey == 'loci' or subkey == 'results' or subkey.startswith('hits'):
+                    if subkey not in current_results[mainkey].keys() or new_results[mainkey][subkey] != \
+                            current_results[mainkey][subkey]:
+                        # keep in mind that loci is a list: it seems as if loci are always outputted in the same order though so that is allright
+                        logging.info(f"{mainkey}{subkey} different or not in old")
+                        any_result_changed = True
+                        changed_results.append(mainkey)
+            if mainkey not in changed_results:
+                unchanged_results.append(mainkey)
+    return any_result_changed, unchanged_results, changed_results
+
 # def prepare_reports_for_bigs(jsonfilepath: Path, results_changed: dict) -> None:
 # todo later; replace json file by json file from mongo with extra information
 
@@ -189,22 +212,20 @@ if __name__ == '__main__':
         # If statement for reanalysis or new
         if args.results_type == "new_isolate":
             if args.technical_id in mongoquerying.query_list_of_all_distinct_values(isolates_collection, "_id") or args.technical_id in mongoquerying.query_list_of_all_distinct_values(isolates_badqc_collection, "_id"):
-                raise RuntimeError('This technical id is already present in the isolates collection')
+                raise Exception('This technical id is already present in the isolates collection')
             else:
                 # todo check if fasta path and vcf path are real?
                 records = json.load(open(args.jsonfilepath, 'r'))
                 records["isolates_id"] = args.technical_id
-                # Change date format
-                # todo in queries themselves because else error: TypeError: 'datetime.datetime' object is not iterable
                 # QC check for failed qc to not be integrated in main db
                 sample_quality = 'good'
                 try:
                     for qc_type in records['qc']:
                         for key in records['qc'][qc_type]:
-                            if key.endswith('status') and records['qc'][qc_type][key] == 'Failed' and not key == 'analysis_date':  # and not (records['qc'][qc_type][key] == 'OK' or records['qc'][qc_type][key] == 'Warning'): # todo check logic
+                            if key.endswith('status') and records['qc'][qc_type][key] == 'Failed':  # and not (records['qc'][qc_type][key] == 'OK' or records['qc'][qc_type][key] == 'Warning'): # todo check logic
                                 sample_quality = 'bad'
                 except Exception:
-                    raise RuntimeError('No qc values found in the given results')
+                    raise Exception('No qc values found in the given results')
 
                 if sample_quality == 'good':
                     find_hashes_in_results_and_add_to_collection(records, mongoinit, config_data, args.species)
@@ -217,45 +238,48 @@ if __name__ == '__main__':
                     logging.warning(f"New isolate {args.technical_id} failed quality control for one or more checks. It's results were written to the 'isolates_badqc' collection in the {args.species} database")
 
         elif args.results_type == "reanalysis":
-            # todo the current implementation moves the old results to the archive BUT seeing as results are possibly fractional
-            #  from different reanalysis steps it is never sure when which results were updated.
-            #  Maybe the newest results should also be written to a separate collection in order to easily know what actually changed?
-            #  Current dot notation only covers the assay headers, so within assays everything is overwritten, no matter if the number of fields differs.
             new_results_handle = json.load(open(args.jsonfilepath, 'r'))
             new_results = prepend_string_dot_to_dict_keys(new_results_handle)
             new_results["results.isolates_id"] = args.technical_id
             try:
-                old_results = mongoquerying.query_docs_by_ids(isolates_collection, [args.technical_id])[0]['results']
+                current_results_document = mongoquerying.query_docs_by_ids(isolates_collection, [args.technical_id])[0]
             except Exception:
-                raise RuntimeError('This reanalysis technical id is not present in the isolates collection')
-            some_result_changed = False
-            for mainkey in new_results_handle.keys():
-                if isinstance(new_results_handle[mainkey], dict):
-                    for subkey in new_results_handle[mainkey].keys():
-                        if mainkey not in old_results.keys():
-                            logging.info(f"{mainkey} not in old results")
-                            some_result_changed = True
-                        elif subkey == 'loci' or subkey == 'results' or subkey.startswith('hits'):
-                            if subkey not in old_results[mainkey].keys() or new_results_handle[mainkey][subkey] != old_results[mainkey][subkey]:
-                                # keep in mind that loci is a list: it seems as if loci are always outputted in the same order though so that is allright
-                                logging.info(f"{mainkey}{subkey} different or not in old")
-                                some_result_changed = True
-            if some_result_changed is True:
-                new_results["results.results_version"] = old_results["results_version"] + 1
-                isolates_collection.with_options(write_concern=WriteConcern(w="majority")).update_one({"_id": args.technical_id}, {
-                    "$set": {**new_results,
-                             "results.results_changed_since_last_version": True,
-                             "latest_analysis_date": _return_YMD_from_DMYhms(new_results["results.analysis_date"]),
-                             "previous_latest_results_version": _write_document(isolateresults_collection, old_results)}})
-                logging.info(f"Wrote new results and linked to isolate {args.technical_id} in {args.species}")
+                raise Exception('This reanalysis technical id is not present in the isolates collection')
+            current_results = current_results_document['results']
+            any_result_changed_new_old, unchanged_results_new_old, changed_results_new_old = _check_if_results_changed(current_results,
+                                                                                               new_results_handle)
+            if current_results_document['previous_latest_results_version'] is not None:
+                # Update current results
+                older_results_document_with_pointers = mongoquerying.query_docs_by_ids(isolateresults_collection, [current_results_document['previous_latest_results_version']])[0]
+                older_results = mongoquerying.query_old_results_and_replace_pointers(isolateresults_collection, older_results_document_with_pointers)
+                any_result_changed_old_older, unchanged_results_old_older, changed_results_old_older = _check_if_results_changed(older_results, current_results)
+                for unchanged_assay in list(set(unchanged_results_old_older)):
+                    logging.debug(unchanged_assay)
+                    logging.debug(older_results_document_with_pointers[unchanged_assay])
+                    unchanged_assay_new_dict_with_pointer = {}
+                    # check if document already has a pointer with same results to previous document or make pointer to document
+                    if older_results_document_with_pointers[unchanged_assay].get('pointer'):
+                        unchanged_assay_new_dict_with_pointer['pointer'] = older_results_document_with_pointers[unchanged_assay]['pointer']
+                    else:
+                        unchanged_assay_new_dict_with_pointer['pointer'] = older_results['_id']
+                    # for metadata info, check if same or different, independently of if results are different in order to be able to track when an assay was last analyzed by which tools
+                    for info in ['analysis_date', 'informs_tools', 'informs_dbs']:
+                        if current_results[unchanged_assay].get(info) and older_results[unchanged_assay][info] != current_results[unchanged_assay][info]:
+                            unchanged_assay_new_dict_with_pointer[info] = current_results[unchanged_assay][info]
+                    current_results[unchanged_assay] = unchanged_assay_new_dict_with_pointer
+            # Update new results
+            if any_result_changed_new_old is True:
+                new_results["results.results_version"] = current_results["results_version"] + 1
+                logging.info(f"Writing new changed results and linked to isolate {args.technical_id} in {args.species}")
             else:
-                # results version is not changed, it does not really matter how many analyses have already been performed with the same result
-                # new results still needs to be added because it modifies the analysis dates, db dates and also tool versions if these changed
-                isolates_collection.with_options(write_concern=WriteConcern(w="majority")).update_one({"_id": args.technical_id}, {
-                    "$set": {**new_results,
-                             "results.results_changed_since_last_version": False,
-                             "latest_analysis_date": _return_YMD_from_DMYhms(new_results["results.analysis_date"])}})
-                logging.info(f"New results were not different from old results for {args.technical_id} in {args.species}, updated analysis dates and db versions.")
+                logging.info(
+                    f"New results are not different from current results for {args.technical_id} in {args.species}, updating analysis dates and db versions.")
+            isolates_collection.with_options(write_concern=WriteConcern(w="majority")).update_one({"_id": args.technical_id}, {
+                "$set": {**new_results,
+                         "results.results_changed_since_last_version": any_result_changed_new_old,
+                         "latest_analysis_date": _return_YMD_from_DMYhms(new_results["results.analysis_date"]),
+                         "previous_latest_results_version": _write_document(isolateresults_collection, current_results)}})
+            logging.info(f"Wrote new results and linked to isolate {args.technical_id} in {args.species}")
 
     except Exception as exceptionmessage:
         _send_email(f"{os.path.basename(__file__)}: mongo upload fail on host {socket.gethostname()}",

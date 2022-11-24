@@ -10,9 +10,13 @@ from Bio import SeqIO
 import os
 import hashlib
 
+
+PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.dirname(PYTHONPATH))
+
 from bioit_custom_scripts.components.databaseconnection import Database_connection
-from util.mongo_initialisation import Mongoinitialisation
-from config import MONGO_CONFIG
+from MongoDB.util.mongo_initialisation import Mongoinitialisation
+from MongoDB.config import MONGO_CONFIG
 
 
 def _parse_arguments(specieslist) -> argparse.Namespace:
