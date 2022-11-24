@@ -129,7 +129,8 @@ if __name__ == '__main__':
             else:
                 logging.info(f"Reanalysis for samples older than {date} with arguments: {date_args_dict[date]} completed")
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=1 if args.slurm is False else 5) as executor:
+        # with concurrent.futures.ThreadPoolExecutor(max_workers=1 if args.slurm is False else 5) as executor:  # MK 24th nov 2022, i dont remember why slurm would get 5 workers because this i think would cause isolates that need to be reanalyzed in the lowest date to also be captured in the next dates
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
             #testing purposes
             # date_args_dict = {
             #     '2019-03-04': 'vfdb-core virulencefinder plasmidfinder resfinder ncbi-amr mlst cgmlst pcr-serogroup metal-detergent typing-virulence typing-amr species-confirmation',
