@@ -17,6 +17,7 @@ from MongoDB.config import MONGO_CONFIG
 from bioit_custom_scripts.components.databaseconnection import Database_connection
 from bioit_custom_scripts.config import BIGSDB_CONFIG
 from MongoDB.reanalysis.command.command import Command
+from pymongo.write_concern import WriteConcern
 
 def send_email(subject: str, content: str, config: dict) -> None:
     """
@@ -101,7 +102,8 @@ if __name__ == '__main__':
                 command.run(Path(os.getcwd()))
             else:
                 validation['date'] = datetime.datetime.utcnow()
-                isolates_badqc_collection.update({'_id': isolate_id}, {'$set': validation})
+                isolates_badqc_collection.with_options(write_concern=WriteConcern(w="majority")).find_one_and_update(
+                    {'_id': isolate_id}, {'$set': {'results.validation': validation}})
             #update status once everything is finished
             cur_isolates.execute(f"UPDATE submissions SET status='validation_sent_to_bioit_platform' WHERE id='{id}'")
 
