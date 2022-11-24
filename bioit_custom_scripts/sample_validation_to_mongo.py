@@ -78,27 +78,30 @@ if __name__ == '__main__':
                                                     f"submission_id='{id}' AND field='isolate_id' ")
             isolate_id = cur_isolates.fetchall()[0][0]
             #GO into mongo DB
-            sample_doc = isolates_badqc_collection.find_one({"_id": isolate_id})
-            json_sample = sample_doc['results']
-            json_sample['validation'] = {
+            validation = {
                 'outcome': outcome,
                 'curator': curator_name
             }
             #write doc to tmp
             # with open("/home/bebergk/tmp_isolate_sub.json", "w") as write_file:
             #     json.dump(json_sample, write_file, indent=4)
-            command_line = f"export MODULEPATH=/etc/lmod/modules;" \
-                           f"source /etc/profile.d/lmod.sh;" \
-                           f"ml mongo_bigs_dbs;" \
-                           f"mainmongo.py " \
-                           f"--dict {json.dumps(json_sample)} " \
-                           f"--species {species} " \
-                           f"--results_type reanalysis " \
-                           f"--fastafilepath {json_sample['fasta_path']} " \
-                           f"--vcffilepath {json_sample['vcf_path']} " \
-                           f"--technical_id {isolate_id}"
-            command = Command(command_line)
-            command.run(Path(os.getcwd()))
+            if outcome=='good':
+                command_line = f"export MODULEPATH=/etc/lmod/modules;" \
+                               f"source /etc/profile.d/lmod.sh;" \
+                               f"ml mongo_bigs_dbs;" \
+                               f"mainmongo.py " \
+                               f"--dict '{json.dumps(validation)}' " \
+                               f"--species {species} " \
+                               f"--results_type badqc_validated " \
+                               f"--fastafilepath na " \
+                               f"--vcffilepath na " \
+                               f"--technical_id {isolate_id}"
+                command = Command(command_line)
+                command.run(Path(os.getcwd()))
+            else:
+                validation['date'] = datetime.datetime.utcnow()
+                isolates_badqc_collection.update({'_id': isolate_id}, {'$set': validation})
+
 
 
 

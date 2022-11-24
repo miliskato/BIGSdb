@@ -52,7 +52,8 @@ def _parse_arguments() -> argparse.Namespace:
     mutually_exclusive_group.add_argument('--jsonfilepath', type=Path)
     parser.add_argument("--species", required=True, type=str,
                         choices=['mycobacterium', 'listeria', 'neisseria', 'stec', 'salmonella'])
-    parser.add_argument("--results_type", required=True, type=str, choices=['new_isolate', 'reanalysis'])
+    parser.add_argument("--results_type", required=True, type=str, choices=['new_isolate', 'reanalysis',
+                                                                            'badqc_validated'])
     parser.add_argument("--fastafilepath", required=False, type=str)
     parser.add_argument("--vcffilepath", required=False, type=str)
     parser.add_argument("--technical_id", required=True, type=str)
@@ -184,18 +185,22 @@ if __name__ == '__main__':
         mongoquerying = Mongoquerying()
 
         # If statement for reanalysis or new
-        if args.results_type == "new_isolate":
-            if args.technical_id in mongoquerying._query_list_of_all_distinct_values(isolates_collection,
+        if args.results_type == "new_isolate" or args.results_type == 'badqc_validated':
+            if args.results_type == "new_isolate":
+                if args.technical_id in mongoquerying._query_list_of_all_distinct_values(isolates_collection,
                                                                                      "_id") or args.technical_id in mongoquerying._query_list_of_all_distinct_values(
-                isolates_badqc_collection, "_id"):
-                raise RuntimeError('This technical id is already present in the isolates collection')
-            else:
+                    isolates_badqc_collection, "_id"):
+                    raise RuntimeError('This technical id is already present in the isolates collection')
                 # todo check if fasta path and vcf path are real?
                 mongoresults = Mongoresults()
                 if args.jsonfilepath:
                     records = json.load(open(args.jsonfilepath, 'r'))
                 elif args.dict:
-                    records = args.dict
+                    sample_doc = isolates_badqc_collection.find_one({"_id": isolate_id})
+                    records = sample_doc['results']
+                    records['validation'] = args.dict
+                    args.fastafilepath = sample_doc['fasta_path']
+                    args.vcffilepath = sample_doc['vcf_path']
                 records["isolates_id"] = args.technical_id
                 # Change date format
                 ## to do in queries themselves because else error: TypeError: 'datetime.datetime' object is not iterable
@@ -238,6 +243,8 @@ if __name__ == '__main__':
                     isolates_collection.with_options(write_concern=WriteConcern(w="majority")).find_one_and_update(
                         {"_id": records["isolates_id"]},
                         {"$set": {"ST": sequence_type}})
+                    if args.results_type == 'badqc_validated':
+                        isolates_badqc_collection.delete_one({'_id': records["isolates_id"]})
             else:
                 _write_document(isolates_badqc_collection,
                                 _new_isolate(args.technical_id, args.vcffilepath, args.fastafilepath,
