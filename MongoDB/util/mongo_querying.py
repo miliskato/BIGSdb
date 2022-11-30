@@ -51,7 +51,7 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         :return: list of lists of latest results of given technical ids
         """
         return self.query_docs_by_ids(opened_isolateresults_collection,
-                                      [doc['previous_latest_results_version'] for doc in
+                                      [doc['previous_latest_results_document'] for doc in
                                        self.query_docs_by_ids(opened_isolates_collection,
                                                               technicalids)])
 
@@ -156,7 +156,7 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         """
         # no checks are done to see if exists
         new_results = isolates_collection.find_one({'results.isolates_id': isolate_id})['results']
-        old_results = isolateresults_collection.find_one({'isolates_id': isolate_id, 'results_version': new_results['results_version'] - 1})
+        old_results = isolateresults_collection.find_one({'isolates_id': isolate_id, 'changed_version': new_results['changed_version'] - 1})
         for mainkey in new_results.keys():
             if isinstance(new_results[mainkey], dict):
                 for subkey in new_results[mainkey].keys():

@@ -21,6 +21,7 @@ PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(PYTHONPATH))
 
 from MongoDB.util.mongo_initialisation import Mongoinitialisation
+from MongoDB.util.mongo_querying import Mongoquerying
 from MongoDB.config import MONGO_CONFIG
 from bioit_custom_scripts.components.databaseconnection import DatabaseConnection
 from bioit_custom_scripts.config import BIGSDB_CONFIG
@@ -121,17 +122,21 @@ if __name__ == '__main__':
                     mongo_results_version_bigs = mongo_results_version_bigs_query[0][0]
                 if _return_datetimeobj_from_DMYhms(document['results']['analysis_date']) > latest_analysis_date_bigs:
                     new_results = document['results']  # this field is the same as 'mongo_results_version' in bigs
-                    if new_results['results_version'] == mongo_results_version_bigs + 1 and new_results["results_changed_since_last_version"] is False:
+                    if new_results['changed_version'] == mongo_results_version_bigs + 1 and new_results["results_changed_since_last_version"] is False:
                         # results are same so do nothing
                         logging.info(f"different version (1 diff) but results same in mongodb and bigsdb for {document['results']['isolates_id']}")
                         continue
                     else:
-                        old_results = old_isolateresults_collection.with_options(read_concern=ReadConcern(level="majority")).find_one({'isolates_id': new_results['isolates_id'], 'results_version': mongo_results_version_bigs})
-                        if old_results is None:
+                        old_results_withpointers = old_isolateresults_collection.with_options(read_concern=ReadConcern(level="majority")).find_one({'isolates_id': new_results['isolates_id'], 'changed_version': mongo_results_version_bigs})
+                        if old_results_withpointers is None:
                             # what if bigs has version 1, but mongo has version 3, but version 3 is no different from 1 and 2?
                             # Currently new versions are only created if there were changes so in case more than 2 versions different and missing then should send error.
                             _send_email(f"{os.path.basename(__file__)}: Can not find document in old isolate results collection for isolate {new_results['isolates_id']} and results version {mongo_results_version_bigs}", "", bigsdb_config['mail'])
                             continue
+                        else:
+                            # replace the pointers in the old results by their actual contents
+                            mongoquerying = Mongoquerying()
+                            old_results = mongoquerying.query_old_results_and_replace_pointers(old_isolateresults_collection, old_results_withpointers)
                         some_result_changed = False
                         for mainkey in new_results.keys():
                             if isinstance(new_results[mainkey], dict):
@@ -149,6 +154,7 @@ if __name__ == '__main__':
                             # results didnt change
                             logging.info(f"different version (more than 1 diff) but results same in mongodb and bigsdb {document['results']['isolates_id']}")
                             continue
+                        # else if results changed, the for loop is continued and results are inserted into bigsdb as reanalysis
                 else:
                     logging.info(f"results version same in mongodb and bigsdb for sample {document['results']['isolates_id']}")
                     continue

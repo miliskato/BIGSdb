@@ -49,6 +49,7 @@ def _parse_arguments(specieslist) -> argparse.Namespace:
     parser.add_argument("--species", required=True, type=str,
                         choices=specieslist)
     parser.add_argument("--results_type", required=True, type=str, choices=['new_isolate', 'reanalysis'])
+    parser.add_argument("--reportdirectorypath", required=False, type=str)  # not mandatory because of reanalysis
     parser.add_argument("--fastafilepath", required=False, type=str)  # not mandatory because of reanalysis
     parser.add_argument("--vcffilepath", required=False, type=str)  # not mandatory because of reanalysis
     parser.add_argument("--technical_id", required=True, type=str)
@@ -69,7 +70,7 @@ def _write_document(opened_collection: object, json_input: dict) -> str:
     return collection_write.inserted_id
 
 
-def _new_isolate(technical_id: str, vcffilepath: str, fastafilepath: str,
+def _new_isolate(technical_id: str, reportdirectorypath: str, vcffilepath: str, fastafilepath: str,
                  results: dict) -> dict:
     """
     Initialises new isolate dictionary including its results
@@ -79,11 +80,13 @@ def _new_isolate(technical_id: str, vcffilepath: str, fastafilepath: str,
     :param results:
     :return:
     """
-    results["results_version"] = 1
+    results["results_version"] = 1  # this version always increments
+    results["changed_version"] = 1  # this version only increments whenever something actually changed
     new_isolate_dict = {"_id": technical_id,
+                        "report_directory": reportdirectorypath,
                         "vcf_path": vcffilepath,
                         "fasta_path": fastafilepath,
-                        "previous_latest_results_version": None,  # _write_document(isolateresults_collection, results)
+                        "previous_latest_results_document": None,  # _write_document(isolateresults_collection, results)
                         "creation_date": datetime.datetime.utcnow(),
                         "latest_analysis_date": _return_YMD_from_DMYhms(results["analysis_date"]),
                         "results": results}
@@ -229,7 +232,7 @@ if __name__ == '__main__':
 
                 if sample_quality == 'good':
                     find_hashes_in_results_and_add_to_collection(records, mongoinit, config_data, args.species)
-                    _write_document(isolates_collection, _new_isolate(args.technical_id, args.vcffilepath, args.fastafilepath,
+                    _write_document(isolates_collection, _new_isolate(args.technical_id, args.reportdirectorypath, args.vcffilepath, args.fastafilepath,
                                                                       records))
                     logging.info(f"Wrote new isolate {args.technical_id} and its result to {args.species} database")
                 else:
@@ -245,12 +248,16 @@ if __name__ == '__main__':
                 current_results_document = mongoquerying.query_docs_by_ids(isolates_collection, [args.technical_id])[0]
             except Exception:
                 raise Exception('This reanalysis technical id is not present in the isolates collection')
+            if new_results["results.analysis_date"] == current_results_document["analysis_date"]:
+                raise Exception('This is not a reanalysis but the same results')
+            elif _return_YMD_from_DMYhms(new_results["results.analysis_date"]) < _return_YMD_from_DMYhms(current_results_document["analysis_date"]):
+                raise Exception('These results seem to be older than the current results')
             current_results = current_results_document['results']
             any_result_changed_new_old, unchanged_results_new_old, changed_results_new_old = _check_if_results_changed(current_results,
                                                                                                new_results_handle)
-            if current_results_document['previous_latest_results_version'] is not None:
+            if current_results_document['previous_latest_results_document'] is not None:
                 # Update current results
-                older_results_document_with_pointers = mongoquerying.query_docs_by_ids(isolateresults_collection, [current_results_document['previous_latest_results_version']])[0]
+                older_results_document_with_pointers = mongoquerying.query_docs_by_ids(isolateresults_collection, [current_results_document['previous_latest_results_document']])[0]
                 older_results = mongoquerying.query_old_results_and_replace_pointers(isolateresults_collection, older_results_document_with_pointers)
                 any_result_changed_old_older, unchanged_results_old_older, changed_results_old_older = _check_if_results_changed(older_results, current_results)
                 for unchanged_assay in list(set(unchanged_results_old_older)):
@@ -267,8 +274,9 @@ if __name__ == '__main__':
                     current_results[unchanged_assay] = unchanged_assay_new_dict_with_pointer
 
             # Update new results
+            new_results["results.results_version"] = current_results["results_version"] + 1
             if any_result_changed_new_old is True:
-                new_results["results.results_version"] = current_results["results_version"] + 1
+                new_results["results.changed_version"] = current_results["changed_version"] + 1
                 logging.info(f"Writing new changed results and linked to isolate {args.technical_id} in {args.species}")
             else:
                 logging.info(
@@ -277,7 +285,7 @@ if __name__ == '__main__':
                 "$set": {**new_results,
                          "results.results_changed_since_last_version": any_result_changed_new_old,
                          "latest_analysis_date": _return_YMD_from_DMYhms(new_results["results.analysis_date"]),
-                         "previous_latest_results_version": _write_document(isolateresults_collection, current_results)}})
+                         "previous_latest_results_document": _write_document(isolateresults_collection, current_results)}})
             logging.info(f"Wrote new results and linked to isolate {args.technical_id} in {args.species}")
 
     except Exception as exceptionmessage:
