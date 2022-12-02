@@ -103,7 +103,7 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                                       f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{self.isolatename}'),(SELECT NOW()::TIMESTAMP), 'Gene detection results inserted', 1)")
             logging.info('Gene detection insertion succesful')
 
-    def _create_clusterdict_current_db_version(self, scheme, genedetectiondict):
+    def _create_clusterdict_current_db_version(self, scheme: str, genedetectiondict: dict) -> (dict, dict):
         """
         Clusters change over time, to be able to link old clusters to new ones, a dictionary is created with the accesion name and allele name
         :param scheme: gene detection scheme

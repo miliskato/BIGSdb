@@ -3,6 +3,13 @@ class JsonSuperClass:
     Class containing definitions to insert json typing and gene detection results
     """
     def __init__(self, isolatename: str, species: str, cur_isolates: object, cur_seqdef: object, sample_output_dict: dict) -> None:
+        """
+        :param isolatename:
+        :param species:
+        :param cur_isolates: isolate database connection object
+        :param cur_seqdef: sequence definition database connection object
+        :param sample_output_dict: results of sample
+        """
         self.isolatename = isolatename
         self.species = species
         self.cur_isolates = cur_isolates
