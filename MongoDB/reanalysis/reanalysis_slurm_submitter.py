@@ -24,7 +24,10 @@ import datetime
 from pymongo.write_concern import WriteConcern
 from pymongo.read_concern import ReadConcern
 
-from command.command import Command
+PYTHONPATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.dirname(PYTHONPATH))
+
+from MongoDB.reanalysis.command.command import Command
 from MongoDB.util.mongo_querying import Mongoquerying
 from MongoDB.util.mongo_initialisation import Mongoinitialisation
 from MongoDB.config import MONGO_CONFIG

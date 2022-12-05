@@ -2,12 +2,16 @@ import argparse
 import yaml
 import pprint
 import pymongo
-from util.mongo_querying import Mongoquerying
-from util.mongo_initialisation import Mongoinitialisation
-from config import MONGO_CONFIG
 import logging
 import sys
+import os
 
+PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.dirname(PYTHONPATH))
+
+from MongoDB.util.mongo_querying import Mongoquerying
+from MongoDB.util.mongo_initialisation import Mongoinitialisation
+from MongoDB.config import MONGO_CONFIG
 
 def _parse_arguments(specieslist) -> argparse.Namespace:
     """

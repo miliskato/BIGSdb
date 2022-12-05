@@ -24,7 +24,10 @@ import datetime
 from pymongo.write_concern import WriteConcern
 from pymongo.read_concern import ReadConcern
 
-from command.command import Command
+PYTHONPATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.dirname(PYTHONPATH))
+
+from MongoDB.reanalysis.command.command import Command
 from MongoDB.util.mongo_querying import Mongoquerying
 from MongoDB.util.mongo_initialisation import Mongoinitialisation
 from MongoDB.config import MONGO_CONFIG
@@ -42,6 +45,7 @@ def _parse_arguments(specieslist) -> argparse.Namespace:
     parser.add_argument('--analysis_arguments', nargs='+', required=False, help='analysis arguments stripped off --, e.g. "--analysis_arguments cgmlst mlst"')
     parser.add_argument('--pyvenvpythonpath', type=Path, required=True, help='eg /home/BIGSdb/3.9PythonVenv/bin/python3.9')
     parser.add_argument('--maximal_analysis_date', type=str, required=True, help='YYYY-MM-DD')
+    parser.add_argument('--alternate_connection_string', type=str, help=argparse.SUPPRESS)
     return parser.parse_args()
 
 # --host-url
@@ -142,6 +146,9 @@ if __name__ == '__main__':
         # Parse config
         with open(MONGO_CONFIG, encoding='utf-8') as handle:
             mongo_config_data = yaml.safe_load(handle)
+
+        if args.alternate_connection_string:
+            mongo_config_data['CONNECTION_STRING_BASE'] = 'mongodb+srv://mikelchtermans:YMFOH4BLF1U79dDk@hera-bioit-trial.vajezh0.mongodb.net'
 
         # Retrieve isolates that need to be re-analyzed
         mongoinit = Mongoinitialisation()
@@ -266,8 +273,10 @@ if __name__ == '__main__':
                         f'--results_type reanalysis',
                         f'--technical_id {isolate_id}',
                         f"--jsonfilepath {dir_out / 'report.json'}",
-                        f"--species {args.species}"
+                        f"--species {args.species}",
                     ])
+                    if args.alternate_connection_string:
+                        base_command += f" --alternate_connection_string {args.alternate_connection_string}"
                     command = Command(base_command)
                     # run the command
                     command.run(dir_out)

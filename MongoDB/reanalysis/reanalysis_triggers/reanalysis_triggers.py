@@ -16,6 +16,9 @@ import socket
 import traceback
 import json
 
+PYTHONPATH = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(os.path.dirname(PYTHONPATH))
+
 from MongoDB.reanalysis.reanalysis_triggers import TRIGGER_CONFIG
 from MongoDB.util.mongo_initialisation import Mongoinitialisation
 from MongoDB.config import MONGO_CONFIG

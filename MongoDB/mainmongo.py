@@ -17,9 +17,12 @@ import traceback
 import os
 import shutil
 
-from util.mongo_querying import Mongoquerying
-from util.mongo_initialisation import Mongoinitialisation
-from config import MONGO_CONFIG
+PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.dirname(PYTHONPATH))
+
+from MongoDB.util.mongo_querying import Mongoquerying
+from MongoDB.util.mongo_initialisation import Mongoinitialisation
+from MongoDB.config import MONGO_CONFIG
 
 
 def _send_email(subject: str, content: str, config: dict) -> None:
@@ -55,6 +58,7 @@ def _parse_arguments(specieslist) -> argparse.Namespace:
     parser.add_argument("--technical_id", required=True, type=str)
     parser.add_argument('--bigs', action='store_true',
                         help='Prepare and send folder over to Bigs for automated insert (+assembly), html tagging and report moving')  # todo unfinished
+    parser.add_argument('--alternate_connection_string', type=str, help=argparse.SUPPRESS) # will replace connection string, only for small testing purposes
     return parser.parse_args()
 
 
@@ -200,6 +204,10 @@ if __name__ == '__main__':
     # Parse arguments
     args = _parse_arguments(config_data['species'])
 
+    # if testing purposes; replace connection string by testing connection string
+    if args.alternate_connection_string:
+        config_data['CONNECTION_STRING_BASE'] = 'mongodb+srv://mikelchtermans:YMFOH4BLF1U79dDk@hera-bioit-trial.vajezh0.mongodb.net'
+
     try:
         # Parameter compatibility checks
         parameter_compatibility_checks(args)
@@ -248,11 +256,11 @@ if __name__ == '__main__':
                 current_results_document = mongoquerying.query_docs_by_ids(isolates_collection, [args.technical_id])[0]
             except Exception:
                 raise Exception('This reanalysis technical id is not present in the isolates collection')
-            if new_results["results.analysis_date"] == current_results_document["analysis_date"]:
-                raise Exception('This is not a reanalysis but the same results')
-            elif _return_YMD_from_DMYhms(new_results["results.analysis_date"]) < _return_YMD_from_DMYhms(current_results_document["analysis_date"]):
-                raise Exception('These results seem to be older than the current results')
             current_results = current_results_document['results']
+            if new_results["results.analysis_date"] == current_results["analysis_date"]:
+                raise Exception('This is not a reanalysis but the same results')
+            elif _return_YMD_from_DMYhms(new_results["results.analysis_date"]) < _return_YMD_from_DMYhms(current_results["analysis_date"]):
+                raise Exception('These results seem to be older than the current results')
             any_result_changed_new_old, unchanged_results_new_old, changed_results_new_old = _check_if_results_changed(current_results,
                                                                                                new_results_handle)
             if current_results_document['previous_latest_results_document'] is not None:
