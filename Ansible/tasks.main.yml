@@ -357,7 +357,6 @@
         list_cron:
           - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}//bioit_custom_scripts/Typing_loci_intopsql.py --species {{ species }}", filename: "{{ species }}_loci_intopsql" }
           - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_custom_scripts/Typing_alleles_intopsql.py --species {{ species }}", filename: "{{ species }}_alleles_intopsql" }
-          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_custom_scripts/Typing_schemeprofiles_intopsql.py --species {{ species }}", filename: "{{ species }}_schemeprofiles_intopsql" }
           - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_custom_scripts/genedetection_intopsql.py --species {{ species }}", filename: "{{ species }}_genedetection_intopsql" }
 
     - name: Add crontrab entry for database updates
@@ -372,7 +371,7 @@
       loop: "{{ list_cron|flatten(levels=1) }}"
       vars:
         list_cron:
-          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_custom_scripts/Typing_schemeprofiles_intopsql.py", filename: schemeprofiles_intopsql }
+          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_custom_scripts/Typing_schemeprofiles_intopsql.py --species {{ species }}", filename: "{{ species }}_schemeprofiles_intopsql" }
 
 #    - name: Add crontrab entry for database updates
 #      cron:
