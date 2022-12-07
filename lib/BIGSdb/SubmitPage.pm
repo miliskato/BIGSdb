@@ -264,8 +264,8 @@ sub print_content {
 		say q(<div class="box resultstable" id="closed" style="display:none"><div class="scrollable">);
 		say q(<h2>Closed submissions for which you had curator rights</h2>);
 		my $days = $self->get_submission_days;
-		say q(<p>The following submissions are now closed - they will remain here until removed by the submitter or )
-		  . qq(for $days days.);
+		say q(<p>The following submissions are now closed);
+		#  . qq(for $days days.);
 		say $closed_buffer;
 		say q(</div></div>);
 	}
@@ -547,12 +547,14 @@ sub _get_own_submissions {
 				my %style = FACE_STYLE;
 				$table_buffer .= qq(<td><span $style{$submission->{'outcome'}}></span></td>);
 			}
+=begin
 			if ( $options->{'allow_remove'} ) {
 				$table_buffer .=
 				    qq(<td><a href="$self->{'system'}->{'script_name'}?db=$self->{'instance'}&amp;)
 				  . qq(page=submit&amp;submission_id=$submission->{'id'}&amp;remove=1">)
 				  . q(<span class="fas fa-lg fa-times"></span></a></td>);
 			}
+=cut
 			$table_buffer .= q(</tr>);
 			$td = $td == 1 ? 2 : 1;
 		}
@@ -560,7 +562,7 @@ sub _get_own_submissions {
 			$buffer .= q(<table class="resultstable"><tr><th>Submission id</th><th>Submitted</th><th>Updated</th>)
 			  . q(<th>Type</th><th>Details</th>);
 			$buffer .= q(<th>Outcome</th>) if $options->{'show_outcome'};
-			$buffer .= q(<th>Remove</th>)  if $options->{'allow_remove'};
+			#$buffer .= q(<th>Remove</th>)  if $options->{'allow_remove'};
 			$buffer .= q(</tr>);
 			$buffer .= $table_buffer;
 			$buffer .= q(</table>);
@@ -761,9 +763,11 @@ sub _print_closed_submissions {
 	if ($buffer) {
 		say q(<h2>Recently closed submissions</h2>);
 		my $days = $self->get_submission_days;
-		say q(<p>You have submitted the following submissions which are now closed - they can be removed once )
+		say q(<p>You have submitted the following submissions which are now closed);
+=begin
 		  . q(you have recorded the results.  Alternatively they will be removed automatically after )
 		  . qq($days days.</p>);
+=cut
 		say $buffer;
 	}
 	return;
@@ -1230,7 +1234,7 @@ sub _print_isolate_table_fieldset {
 	$self->_print_update_button( { record_status => 1 } ) if $options->{'curate'};
 	say $q->hidden($_) foreach qw(db page submission_id curate);
 	say $q->end_form;
-
+=begin
 	if ( $options->{'curate'} && !$submission->{'outcome'} && !$self->{'contigs_missing'} ) {
 		say $q->start_form( -action => $self->{'system'}->{'curate_script'} );
 		say $q->submit( -name => 'Batch curate', -class => 'submit', -style => 'margin-top:0.5em' );
@@ -1244,6 +1248,7 @@ sub _print_isolate_table_fieldset {
 		#Restore value
 		$q->param( page => $page );
 	}
+=cut
 	say q(</fieldset>);
 	say q(<div id="dialog"></div>);
 	$self->{'all_assigned_or_rejected'} = $submission->{'outcome'} ? 1 : 0;
@@ -1661,6 +1666,7 @@ sub _update_isolate_submission_isolate_status {
 	my $q = $self->{'cgi'};
 	my %outcome = ( accepted => 'good', rejected => 'bad' );
 	$self->{'submissionHandler'}->update_submission_outcome( $submission_id, $outcome{ $q->param('record_status') } );
+=begin
 	if ( $q->param('record_status') eq 'accepted' ) {
 		say q[<script>$(function(){]
 		  . q[$("#dialog").html("<p>Please note that changing the status of an isolate submission to ]
@@ -1669,6 +1675,7 @@ sub _update_isolate_submission_isolate_status {
 		  . q[to re-enable the 'Batch curate' button.</p>");$("#dialog").dialog({title:"Uploading isolates"});]
 		  . q[});</script>];
 	}
+=cut
 	return;
 }
 
@@ -2490,10 +2497,11 @@ sub _print_close_submission_fieldset {
 	$q->param( close => 1 );
 	say $q->hidden($_) foreach qw( db page submission_id close );
 	$self->print_action_fieldset( { no_reset => 1, submit_label => 'Close submission' } );
-	say $q->end_form;
+        say $q->end_form;
 	return;
 }
 
+=begin
 sub _print_reopen_submission_fieldset {
 	my ( $self, $submission_id ) = @_;
 	my $q = $self->{'cgi'};
@@ -2504,6 +2512,7 @@ sub _print_reopen_submission_fieldset {
 	say $q->end_form;
 	return;
 }
+=cut
 
 sub _print_submission_file_table {
 	my ( $self, $submission_id, $options ) = @_;
@@ -2773,7 +2782,7 @@ sub _close_submission {    ## no critic (ProhibitUnusedPrivateSubroutines) #Call
 	my $submission = $self->{'submissionHandler'}->get_submission($submission_id);
 	return if !$submission || $submission->{'status'} eq 'closed';    #Prevent refresh from re-sending E-mail
 	my $curator_id = $self->get_curator_id;
-	eval {
+        eval {
 		$self->{'db'}->do( 'UPDATE submissions SET (status,datestamp,curator)=(?,?,?) WHERE id=?',
 			undef, 'closed', 'now', $curator_id, $submission_id );
 	};
@@ -2783,7 +2792,9 @@ sub _close_submission {    ## no critic (ProhibitUnusedPrivateSubroutines) #Call
 	} else {
 		$self->{'db'}->commit;
 	}
-	$submission = $self->{'submissionHandler'}->get_submission($submission_id);
+        my $dbname = $self->{'datastore'}->run_query('select current_database()');
+        my $output = system("export MODULEPATH=/etc/lmod/modules;source /etc/profile.d/lmod.sh;ml load mongo_bigs_dbs;sample_validation_to_mongo.py $dbname &>>/home/BIGSdb/avro/error.txt");
+        $submission = $self->{'submissionHandler'}->get_submission($submission_id);
 	my $curator_info = $self->{'datastore'}->get_user_info($curator_id);
 	$self->{'submissionHandler'}->remove_submission_from_digest($submission_id);
 	if ( $submission->{'email'} ) {
@@ -2800,15 +2811,18 @@ sub _close_submission {    ## no critic (ProhibitUnusedPrivateSubroutines) #Call
 			}
 		);
 	}
+        my $output = system("bash /home/bebergk/test.sh &> /home/BIGSdb/avro/error.txt"); 
 	return;
 }
 
+=begin
 sub _remove_submission {    ## no critic (ProhibitUnusedPrivateSubroutines) #Called by dispatch table
 	my ( $self, $submission_id ) = @_;
 	return if !$self->_is_submission_valid( $submission_id, { no_message => 1, user_owns => 1 } );
 	$self->{'submissionHandler'}->delete_submission($submission_id);
 	return;
 }
+=cut
 
 sub _cancel_submission {    ## no critic (ProhibitUnusedPrivateSubroutines) #Called by dispatch table
 	my ( $self, $submission_id ) = @_;

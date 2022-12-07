@@ -2,15 +2,26 @@ from pathlib import Path
 import json
 import logging
 
+
 class TsvGeneDetectionResultsInserter:
     """
-    Class containing all queries for Mongo
+    Class containing definitions to insert gene detection results from tsv input
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         pass
 
-    def insert_genedetection_results(self, isolatename, species, genedetectiondict, sample_output_dict, cur_isolates, cur_seqdef):
+    def insert_genedetection_results(self, isolatename: str, species: str, genedetectiondict: dict, sample_output_dict: dict, cur_isolates: object, cur_seqdef: object) -> None:
+        """
+        Inserts genedetection results into bigsdb from tsv
+        :param isolatename:
+        :param species:
+        :param genedetectiondict: dictionary of species specific schemes and their properties (found in config)
+        :param sample_output_dict: results of sample
+        :param cur_isolates: isolate database connection object
+        :param cur_seqdef: sequence definition database connection object
+        :return: None
+        """
         if genedetectiondict is not None:
             for scheme in genedetectiondict:
                 # first create a cluster content list
@@ -45,9 +56,9 @@ class TsvGeneDetectionResultsInserter:
 
                 if listofhits != '[]':
                     cur_isolates.execute(f"INSERT INTO eav_text_hidden(isolate_id, "
-                                f"field, value)"
-                                f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'),"
-                                f"'{genedetectiondict[scheme]['schemename_bigsdb']}', '{listofhits}') ")
+                                         f"field, value)"
+                                         f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'),"
+                                         f"'{genedetectiondict[scheme]['schemename_bigsdb']}', '{listofhits}') ")
                     eavhtmltable = '<table class="data"><tr><th>GeneCluster</th><th>Locus</th></tr>'
                     clusterhitlist = []  # in case loci that were in different clusters at some point get in the same cluster
                     y = 0
@@ -72,11 +83,11 @@ class TsvGeneDetectionResultsInserter:
 
                         if clusterhit not in clusterhitlist:
                             cur_isolates.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
-                                        f"allele_id, status, method, sender, "
-                                        f"curator, date_entered, datestamp) "
-                                        f"VALUES('{clusterhit}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'), "
-                                        f"1, 'confirmed', 'automatic', 1, "
-                                        f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                                                 f"allele_id, status, method, sender, "
+                                                 f"curator, date_entered, datestamp) "
+                                                 f"VALUES('{clusterhit}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'), "
+                                                 f"1, 'confirmed', 'automatic', 1, "
+                                                 f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
                         clusterhitlist.append(clusterhit)
 
                         # Part 2 for the AB schemes
@@ -85,14 +96,14 @@ class TsvGeneDetectionResultsInserter:
                             # gene or allele is always position 1
                             genehit = (json.loads(listofhits))[y][1].replace('.', '_').replace(' ', '_')
                             # AB from hit is always position -2
-                            ABhit_s = '_'.join(['NCBI_AMR', (json.loads(listofhits))[y][-2].upper().replace(' ', '_')])
+                            ab_hits = '_'.join(['NCBI_AMR', (json.loads(listofhits))[y][-2].upper().replace(' ', '_')])
                             cur_seqdef.execute(f"SELECT COUNT(*) FROM loci WHERE "
-                                         f"id='{ncbi_class}'")
+                                               f"id='{ncbi_class}'")
                             classpresent = cur_seqdef.fetchall()
                             # if locus exists (then it always exists in class because first, but not necesarily in subclass (=AB))
                             if classpresent[0][0] == 1:
                                 cur_seqdef.execute(f"SELECT COUNT(*) FROM sequences WHERE "
-                                             f"locus='{ncbi_class}' AND allele_id='{genehit}'")
+                                                   f"locus='{ncbi_class}' AND allele_id='{genehit}'")
                                 allelepresent = cur_seqdef.fetchall()
                                 if allelepresent[0][0] == 0:
                                     cur_seqdef.execute(
@@ -105,22 +116,22 @@ class TsvGeneDetectionResultsInserter:
                                     cur_seqdef.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status,sender,curator, date_entered, datestamp) \
                                                                                                                            VALUES('{ncbi_class}','{genehit}','{dummysequence}','unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
                                     cur_isolates.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
-                                                f"allele_id, status, method, sender, "
-                                                f"curator, date_entered, datestamp) "
-                                                f"VALUES('{ncbi_class}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'), "
-                                                f"'{genehit}', 'confirmed', 'automatic', 1, "
-                                                f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                                                         f"allele_id, status, method, sender, "
+                                                         f"curator, date_entered, datestamp) "
+                                                         f"VALUES('{ncbi_class}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'), "
+                                                         f"'{genehit}', 'confirmed', 'automatic', 1, "
+                                                         f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
                                 elif allelepresent[0][0] == 1:
                                     cur_isolates.execute(f"SELECT COUNT(*) FROM allele_designations WHERE "
-                                                f"locus='{ncbi_class}' AND allele_id='{genehit}' AND isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}')")
+                                                         f"locus='{ncbi_class}' AND allele_id='{genehit}' AND isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}')")
                                     designationpresent = cur_isolates.fetchall()
                                     if designationpresent[0][0] == 0:
                                         cur_isolates.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
-                                                    f"allele_id, status, method, sender, "
-                                                    f"curator, date_entered, datestamp) "
-                                                    f"VALUES('{ncbi_class}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'), "
-                                                    f"'{genehit}', 'confirmed', 'automatic', 1, "
-                                                    f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                                                             f"allele_id, status, method, sender, "
+                                                             f"curator, date_entered, datestamp) "
+                                                             f"VALUES('{ncbi_class}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'), "
+                                                             f"'{genehit}', 'confirmed', 'automatic', 1, "
+                                                             f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
                             # else not exists; add into
                             elif classpresent[0][0] == 0:
                                 # seqdef db
@@ -145,159 +156,159 @@ class TsvGeneDetectionResultsInserter:
                                 cur_isolates.execute(f"INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) \
                                                       VALUES((SELECT id FROM schemes WHERE name='NCBI_AMR_AB_CLASS'), '{ncbi_class}', 1, (SELECT CURRENT_DATE))")
                                 cur_isolates.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
-                                            f"allele_id, status, method, sender, "
-                                            f"curator, date_entered, datestamp) "
-                                            f"VALUES('{ncbi_class}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'), "
-                                            f"'{genehit}', 'confirmed', 'automatic', 1, "
-                                            f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
-                            for ABhit in ABhit_s.split('/'):
+                                                     f"allele_id, status, method, sender, "
+                                                     f"curator, date_entered, datestamp) "
+                                                     f"VALUES('{ncbi_class}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'), "
+                                                     f"'{genehit}', 'confirmed', 'automatic', 1, "
+                                                     f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                            for ab_hit in ab_hits.split('/'):
                                 cur_seqdef.execute(f"SELECT COUNT(*) FROM loci WHERE "
-                                             f"id='{ABhit}'")
-                                ABpresent = cur_seqdef.fetchall()
+                                                   f"id='{ab_hit}'")
+                                ab_present = cur_seqdef.fetchall()
                                 # if locus exists (then it always exists in class because first, but not necesarily in subclass (=AB))
-                                if ABpresent[0][0] == 1:
+                                if ab_present[0][0] == 1:
                                     cur_seqdef.execute(f"SELECT COUNT(*) FROM sequences WHERE "
-                                                 f"locus='{ABhit}' AND allele_id='{genehit}'")
+                                                       f"locus='{ab_hit}' AND allele_id='{genehit}'")
                                     allelepresent = cur_seqdef.fetchall()
                                     if allelepresent[0][0] == 0:
                                         cur_seqdef.execute(
-                                            f"SELECT sequence FROM sequences WHERE locus='{ABhit}' ORDER BY CHAR_LENGTH(sequence) DESC LIMIT 1")
+                                            f"SELECT sequence FROM sequences WHERE locus='{ab_hit}' ORDER BY CHAR_LENGTH(sequence) DESC LIMIT 1")
                                         longest_dummy_sequence = cur_seqdef.fetchall()
                                         if longest_dummy_sequence == []:
                                             dummysequence = 'TAG'
                                         else:
                                             dummysequence = ''.join([longest_dummy_sequence[0][0], 'TAG'])
                                         cur_seqdef.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status,sender,curator, date_entered, datestamp) \
-                                                                                                                                          VALUES('{ABhit}','{genehit}','{dummysequence}','unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                                                                                                                                          VALUES('{ab_hit}','{genehit}','{dummysequence}','unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
                                         cur_isolates.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
-                                                    f"allele_id, status, method, sender, "
-                                                    f"curator, date_entered, datestamp) "
-                                                    f"VALUES('{ABhit}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'), "
-                                                    f"'{genehit}', 'confirmed', 'automatic', 1, "
-                                                    f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                                                             f"allele_id, status, method, sender, "
+                                                             f"curator, date_entered, datestamp) "
+                                                             f"VALUES('{ab_hit}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'), "
+                                                             f"'{genehit}', 'confirmed', 'automatic', 1, "
+                                                             f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
                                     elif allelepresent[0][0] == 1:
                                         cur_isolates.execute(f"SELECT COUNT(*) FROM allele_designations WHERE "
-                                                    f"locus='{ABhit}' AND allele_id='{genehit}' AND isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}')")
+                                                             f"locus='{ab_hit}' AND allele_id='{genehit}' AND isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}')")
                                         designationpresent = cur_isolates.fetchall()
                                         if designationpresent[0][0] == 0:
                                             cur_isolates.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
-                                                        f"allele_id, status, method, sender, "
-                                                        f"curator, date_entered, datestamp) "
-                                                        f"VALUES('{ABhit}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'), "
-                                                        f"'{genehit}', 'confirmed', 'automatic', 1, "
-                                                        f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                                                                 f"allele_id, status, method, sender, "
+                                                                 f"curator, date_entered, datestamp) "
+                                                                 f"VALUES('{ab_hit}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'), "
+                                                                 f"'{genehit}', 'confirmed', 'automatic', 1, "
+                                                                 f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
                                     cur_seqdef.execute(f"SELECT COUNT(*) FROM scheme_members WHERE "
-                                                 f"locus='{ABhit}' AND scheme_id=(SELECT id FROM schemes WHERE name='NCBI_AMR_AB')")
+                                                       f"locus='{ab_hit}' AND scheme_id=(SELECT id FROM schemes WHERE name='NCBI_AMR_AB')")
                                     schemememberpresent = cur_seqdef.fetchall()
                                     if schemememberpresent[0][0] == 0:
                                         cur_seqdef.execute(f"INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) \
-                                                              VALUES((SELECT id FROM schemes WHERE name='NCBI_AMR_AB'), '{ABhit}', 1, (SELECT CURRENT_DATE))")
+                                                              VALUES((SELECT id FROM schemes WHERE name='NCBI_AMR_AB'), '{ab_hit}', 1, (SELECT CURRENT_DATE))")
                                         cur_isolates.execute(f"INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) \
-                                                              VALUES((SELECT id FROM schemes WHERE name='NCBI_AMR_AB'), '{ABhit}', 1, (SELECT CURRENT_DATE))")
-                                elif ABpresent[0][0] == 0:
+                                                              VALUES((SELECT id FROM schemes WHERE name='NCBI_AMR_AB'), '{ab_hit}', 1, (SELECT CURRENT_DATE))")
+                                elif ab_present[0][0] == 0:
                                     # seqdef db
                                     cur_seqdef.execute(f"INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, curator, date_entered, datestamp) \
-                                                          VALUES('{ABhit}','DNA','text', 't', 't', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE))")
+                                                          VALUES('{ab_hit}','DNA','text', 't', 't', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE))")
                                     cur_seqdef.execute(f"INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) \
-                                                          VALUES((SELECT id FROM schemes WHERE name='NCBI_AMR_AB'), '{ABhit}', 1, (SELECT CURRENT_DATE))")
+                                                          VALUES((SELECT id FROM schemes WHERE name='NCBI_AMR_AB'), '{ab_hit}', 1, (SELECT CURRENT_DATE))")
                                     cur_seqdef.execute(f"INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) \
-                                                          VALUES(1, '{ABhit}', 1, (SELECT CURRENT_DATE))")
+                                                          VALUES(1, '{ab_hit}', 1, (SELECT CURRENT_DATE))")
                                     cur_seqdef.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status,sender,curator, date_entered, datestamp) \
-                                                                                                                           VALUES('{ABhit}','{genehit}','TAG','unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                                                                                                                           VALUES('{ab_hit}','{genehit}','TAG','unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
                                     # isolate db
                                     dbaseurl = ''.join(['/cgi-bin/bigsdb/bigsdb.pl?db=', f'bigsdb_{species}_seqdef',
-                                                        '&page=alleleInfo&locus=', f"{ABhit}", '&allele_id=[?]'])
+                                                        '&page=alleleInfo&locus=', f"{ab_hit}", '&allele_id=[?]'])
                                     cur_isolates.execute(
                                         f"INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, dbase_name, dbase_id, "
                                         f"url, isolate_display, main_display, query_field, analysis, submission_template, "
                                         f"curator, date_entered, datestamp) \
-                                                          VALUES('{ABhit}','DNA','text', 't', 't', 'bigsdb_{species}_seqdef', '{ABhit}', "
+                                                          VALUES('{ab_hit}','DNA','text', 't', 't', 'bigsdb_{species}_seqdef', '{ab_hit}', "
                                         f"'{dbaseurl}', 'allele_only', 'f', 't', 't', 'f',"
                                         f" 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE))")
                                     cur_isolates.execute(f"INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) \
-                                                          VALUES((SELECT id FROM schemes WHERE name='NCBI_AMR_AB'), '{ABhit}', 1, (SELECT CURRENT_DATE))")
+                                                          VALUES((SELECT id FROM schemes WHERE name='NCBI_AMR_AB'), '{ab_hit}', 1, (SELECT CURRENT_DATE))")
                                     cur_isolates.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
-                                                f"allele_id, status, method, sender, "
-                                                f"curator, date_entered, datestamp) "
-                                                f"VALUES('{ABhit}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'), "
-                                                f"'{genehit}', 'confirmed', 'automatic', 1, "
-                                                f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                                                         f"allele_id, status, method, sender, "
+                                                         f"curator, date_entered, datestamp) "
+                                                         f"VALUES('{ab_hit}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'), "
+                                                         f"'{genehit}', 'confirmed', 'automatic', 1, "
+                                                         f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
                         elif genedetectiondict[scheme]['schemename_bigsdb'] == 'ResFinder':
                             # gene or allele is always position 1
                             genehit = (json.loads(listofhits))[y][1].replace('.', '_').replace(' ', '_')
                             # AB from hit is always position -2
-                            ABhit_s = '_'.join(['ResFinder', (json.loads(listofhits))[y][-2].upper().replace(' ', '_')])
-                            for ABhit in ABhit_s.split('/'):
+                            ab_hits = '_'.join(['ResFinder', (json.loads(listofhits))[y][-2].upper().replace(' ', '_')])
+                            for ab_hit in ab_hits.split('/'):
                                 cur_seqdef.execute(f"SELECT COUNT(*) FROM loci WHERE "
-                                             f"id='{ABhit}'")
+                                                   f"id='{ab_hit}'")
                                 classpresent = cur_seqdef.fetchall()
                                 # if locus exists
                                 if classpresent[0][0] == 1:
                                     cur_seqdef.execute(f"SELECT COUNT(*) FROM sequences WHERE "
-                                                 f"locus='{ABhit}' AND allele_id='{genehit}'")
+                                                       f"locus='{ab_hit}' AND allele_id='{genehit}'")
                                     allelepresent = cur_seqdef.fetchall()
                                     if allelepresent[0][0] == 0:
                                         cur_seqdef.execute(
-                                            f"SELECT sequence FROM sequences WHERE locus='{ABhit}' ORDER BY CHAR_LENGTH(sequence) DESC LIMIT 1")
+                                            f"SELECT sequence FROM sequences WHERE locus='{ab_hit}' ORDER BY CHAR_LENGTH(sequence) DESC LIMIT 1")
                                         longest_dummy_sequence = cur_seqdef.fetchall()
                                         if longest_dummy_sequence == []:
                                             dummysequence = 'TAG'
                                         else:
                                             dummysequence = ''.join([longest_dummy_sequence[0][0], 'TAG'])
                                         cur_seqdef.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status,sender,curator, date_entered, datestamp) \
-                                                                                                                           VALUES('{ABhit}','{genehit}','{dummysequence}','unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                                                                                                                           VALUES('{ab_hit}','{genehit}','{dummysequence}','unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
                                         cur_isolates.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
-                                                    f"allele_id, status, method, sender, "
-                                                    f"curator, date_entered, datestamp) "
-                                                    f"VALUES('{ABhit}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'), "
-                                                    f"'{genehit}', 'confirmed', 'automatic', 1, "
-                                                    f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                                                             f"allele_id, status, method, sender, "
+                                                             f"curator, date_entered, datestamp) "
+                                                             f"VALUES('{ab_hit}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'), "
+                                                             f"'{genehit}', 'confirmed', 'automatic', 1, "
+                                                             f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
                                     elif allelepresent[0][0] == 1:
                                         cur_isolates.execute(f"SELECT COUNT(*) FROM allele_designations WHERE "
-                                                    f"locus='{ABhit}' AND allele_id='{genehit}' AND isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}')")
+                                                             f"locus='{ab_hit}' AND allele_id='{genehit}' AND isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}')")
                                         designationpresent = cur_isolates.fetchall()
                                         if designationpresent[0][0] == 0:
                                             cur_isolates.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
-                                                        f"allele_id, status, method, sender, "
-                                                        f"curator, date_entered, datestamp) "
-                                                        f"VALUES('{ABhit}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'), "
-                                                        f"'{genehit}', 'confirmed', 'automatic', 1, "
-                                                        f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                                                                 f"allele_id, status, method, sender, "
+                                                                 f"curator, date_entered, datestamp) "
+                                                                 f"VALUES('{ab_hit}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'), "
+                                                                 f"'{genehit}', 'confirmed', 'automatic', 1, "
+                                                                 f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
                                 # else not exists; add into
                                 elif classpresent[0][0] == 0:
                                     # seqdef db
                                     cur_seqdef.execute(f"INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, curator, date_entered, datestamp) \
-                                                      VALUES('{ABhit}','DNA','text', 't', 't', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE))")
+                                                      VALUES('{ab_hit}','DNA','text', 't', 't', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE))")
                                     cur_seqdef.execute(f"INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) \
-                                                      VALUES((SELECT id FROM schemes WHERE name='ResFinder_AB'), '{ABhit}', 1, (SELECT CURRENT_DATE))")
+                                                      VALUES((SELECT id FROM schemes WHERE name='ResFinder_AB'), '{ab_hit}', 1, (SELECT CURRENT_DATE))")
                                     cur_seqdef.execute(f"INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) \
-                                                      VALUES(1, '{ABhit}', 1, (SELECT CURRENT_DATE))")
+                                                      VALUES(1, '{ab_hit}', 1, (SELECT CURRENT_DATE))")
                                     cur_seqdef.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status,sender,curator, date_entered, datestamp) \
-                                                                                                                       VALUES('{ABhit}','{genehit}','TAG','unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                                                                                                                       VALUES('{ab_hit}','{genehit}','TAG','unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
                                     # isolate db
                                     dbaseurl = ''.join(['/cgi-bin/bigsdb/bigsdb.pl?db=', f'bigsdb_{species}_seqdef',
-                                                        '&page=alleleInfo&locus=', f"{ABhit}", '&allele_id=[?]'])
+                                                        '&page=alleleInfo&locus=', f"{ab_hit}", '&allele_id=[?]'])
                                     cur_isolates.execute(
                                         f"INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, dbase_name, dbase_id, "
                                         f"url, isolate_display, main_display, query_field, analysis, submission_template, "
                                         f"curator, date_entered, datestamp) \
-                                                      VALUES('{ABhit}','DNA','text', 't', 't', 'bigsdb_{species}_seqdef', '{ABhit}', "
+                                                      VALUES('{ab_hit}','DNA','text', 't', 't', 'bigsdb_{species}_seqdef', '{ab_hit}', "
                                         f"'{dbaseurl}', 'allele_only', 'f', 't', 't', 'f',"
                                         f" 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE))")
                                     cur_isolates.execute(f"INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) \
-                                                      VALUES((SELECT id FROM schemes WHERE name='ResFinder_AB'), '{ABhit}', 1, (SELECT CURRENT_DATE))")
+                                                      VALUES((SELECT id FROM schemes WHERE name='ResFinder_AB'), '{ab_hit}', 1, (SELECT CURRENT_DATE))")
                                     cur_isolates.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
-                                                f"allele_id, status, method, sender, "
-                                                f"curator, date_entered, datestamp) "
-                                                f"VALUES('{ABhit}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'), "
-                                                f"'{genehit}', 'confirmed', 'automatic', 1, "
-                                                f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                                                         f"allele_id, status, method, sender, "
+                                                         f"curator, date_entered, datestamp) "
+                                                         f"VALUES('{ab_hit}', (SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'), "
+                                                         f"'{genehit}', 'confirmed', 'automatic', 1, "
+                                                         f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
                         y += 1
                     eavhtmltable = eavhtmltable + '</table>'
                     cur_isolates.execute(f"INSERT INTO eav_text(isolate_id, "
-                                f"field, value)"
-                                f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'),"
-                                f"'{genedetectiondict[scheme]['schemename_bigsdb']}', '{eavhtmltable}') ")
+                                         f"field, value)"
+                                         f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'),"
+                                         f"'{genedetectiondict[scheme]['schemename_bigsdb']}', '{eavhtmltable}') ")
             cur_isolates.execute(f"INSERT INTO history(isolate_id, timestamp, action, curator)"
-                        f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'),(SELECT NOW()::TIMESTAMP), 'Gene detection results inserted', 1)")
+                                 f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'),(SELECT NOW()::TIMESTAMP), 'Gene detection results inserted', 1)")
             logging.info('Gene detection insertion succesful')

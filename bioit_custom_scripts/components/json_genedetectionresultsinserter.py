@@ -1,18 +1,32 @@
 from pathlib import Path
 import json
 import logging
+import re
 
 from .json_superclass import JsonSuperClass
 
+
 class JsonGeneDetectionResultsInserter(JsonSuperClass):
     """
-    Class containing definition to insert gene detection results
+    Class containing definitions to insert gene detection results from json input
     """
 
-    def __init__(self, isolatename, species, cur_isolates, cur_seqdef, sample_output_dict):
+    def __init__(self, isolatename: str, species: str, cur_isolates: object, cur_seqdef: object, sample_output_dict: dict) -> None:
+        """
+        :param isolatename:
+        :param species:
+        :param cur_isolates: isolate database connection object
+        :param cur_seqdef: sequence definition database connection object
+        :param sample_output_dict: results of sample
+        """
         JsonSuperClass.__init__(self, isolatename, species, cur_isolates, cur_seqdef, sample_output_dict)
 
-    def insert_genedetection_results(self, genedetectiondict):
+    def insert_genedetection_results(self, genedetectiondict: dict) -> None:
+        """
+        Inserts genedetection results into bigsdb from json
+        :param genedetectiondict: dictionary of species specific schemes and their properties (found in config)
+        :return:
+        """
         if genedetectiondict is not None:
             for scheme in genedetectiondict:
                 if scheme in self.sample_output_dict.keys():
@@ -24,8 +38,8 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                     if listofhits != []:
                         # Storing snapshot Clusters in eav_text_hidden to be used in periodical GeneCluster recalculation
                         for index, hit in enumerate(listofhits):
-                            for k,v in hit.items():
-                                listofhits[index][k] = v.replace("'","")
+                            for k, v in hit.items():
+                                listofhits[index][k] = v.replace("'", "")
                         listofhits_json = json.dumps(listofhits)
                         self._insert_metadata_hidden(genedetectiondict[scheme]['schemename_bigsdb'], listofhits_json)
                         eavhtmltable = '<table class="data"><tr><th>GeneCluster</th><th>Locus</th></tr>'
@@ -36,8 +50,8 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                             hit_name = '_'.join([hit['Accession'], hit['Locus']])
                             try:
                                 clusterhit = clusterdict[hit_name]
-                            except:
-                                raise RuntimeError('provided input is probably to old compared to current database')
+                            except Exception:
+                                raise RuntimeError('provided input is probably too old compared to current database')
                             # append Cluster
                             eavhtmltable = eavhtmltable + ''.join(
                                 ['<tr><td>', ''.join(['GeneCluster', clusterhit.split('Cluster')[1]]), '</td>'])
@@ -60,36 +74,42 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                             # Part 2 for the AB schemes
                             if genedetectiondict[scheme]['schemename_bigsdb'] == 'NCBI_AMR':
                                 ncbi_class = ncbi_ab_class_dict[hit_name]
-                                genehit = hit['Locus'].replace('.', '_').replace(' ', '_')
+                                genehit = re.sub('[.]| ', '_', hit['Locus'])
                                 self._insert_locus_if_needed(ncbi_class, 'NCBI_AMR_AB_CLASS')
                                 self._assign_schememember_if_needed(ncbi_class, 'NCBI_AMR_AB_CLASS')
                                 self._insert_dummy_sequence_if_needed(ncbi_class, genehit)
                                 self._insert_AD_if_needed(ncbi_class, genehit)
 
                                 for antibiotic in hit['Antibiotic(s)'].split('/'):
-                                    ABhit = '_'.join(['NCBI_AMR', antibiotic.upper().replace(' ', '_')])
-                                    self._insert_locus_if_needed(ABhit, 'NCBI_AMR_AB')
-                                    self._assign_schememember_if_needed(ABhit, 'NCBI_AMR_AB')
-                                    self._insert_dummy_sequence_if_needed(ABhit, genehit)
-                                    self._insert_AD_if_needed(ABhit, genehit)
+                                    ab_hit = '_'.join(['NCBI_AMR', antibiotic.upper().replace(' ', '_')])
+                                    self._insert_locus_if_needed(ab_hit, 'NCBI_AMR_AB')
+                                    self._assign_schememember_if_needed(ab_hit, 'NCBI_AMR_AB')
+                                    self._insert_dummy_sequence_if_needed(ab_hit, genehit)
+                                    self._insert_AD_if_needed(ab_hit, genehit)
 
                             elif genedetectiondict[scheme]['schemename_bigsdb'] == 'ResFinder':
-                                genehit = hit['Locus'].replace('.', '_').replace(' ', '_')
+                                genehit = re.sub('[.]| ', '_', hit['Locus'])
                                 for antibiotic in hit['Antibiotic(s)'].split('/'):
-                                    ABhit = '_'.join(['ResFinder', antibiotic.upper().replace(' ', '_')])
-                                    self._insert_locus_if_needed(ABhit, 'ResFinder_AB')
-                                    self._insert_dummy_sequence_if_needed(ABhit, genehit)
-                                    self._insert_AD_if_needed(ABhit, genehit)
+                                    ab_hit = '_'.join(['ResFinder', antibiotic.upper().replace(' ', '_')])
+                                    self._insert_locus_if_needed(ab_hit, 'ResFinder_AB')
+                                    self._insert_dummy_sequence_if_needed(ab_hit, genehit)
+                                    self._insert_AD_if_needed(ab_hit, genehit)
 
                         eavhtmltable = eavhtmltable + '</table>'
                         self._insert_metadata(genedetectiondict[scheme]['schemename_bigsdb'], eavhtmltable)
                 else:
                     logging.warning(f"scheme {scheme} not present in json file")
             self.cur_isolates.execute(f"INSERT INTO history(isolate_id, timestamp, action, curator)"
-                                 f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{self.isolatename}'),(SELECT NOW()::TIMESTAMP), 'Gene detection results inserted', 1)")
+                                      f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{self.isolatename}'),(SELECT NOW()::TIMESTAMP), 'Gene detection results inserted', 1)")
             logging.info('Gene detection insertion succesful')
 
-    def _create_clusterdict_current_db_version(self, scheme, genedetectiondict):
+    def _create_clusterdict_current_db_version(self, scheme: str, genedetectiondict: dict) -> (dict, dict):
+        """
+        Clusters change over time, to be able to link old clusters to new ones, a dictionary is created with the accesion name and allele name
+        :param scheme: gene detection scheme
+        :param genedetectiondict: dictionary of species specific schemes and their properties (found in config)
+        :return:
+        """
         # first create a cluster content list
         sequencefile = json.load(open(Path(genedetectiondict[scheme]['metadatafile']), 'r'))
         sequencenamedict = {}

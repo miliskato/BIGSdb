@@ -1,0 +1,25 @@
+<tool id="bigsdb_upload" name="BIGSdb upload" version="0.1">
+	<description>todo</description>
+	<command>
+        <![CDATA[
+        $__tool_directory__/run_bigsdb_upload.sh
+        ## positional argument 1: Tsv
+        $section_input.tsv_file_path
+        ## positional argument 2: user email
+        $__user_email__
+        ## positional argument 3: logfile for Galaxy user
+        $output_log
+        ]]>
+    </command>
+    <inputs>
+        <section name="section_input" title="Input" expanded="True">
+            <param name="tsv_file_path" type="data" format="tabular" label="TSV file"/>
+        </section>
+    </inputs>
+    <outputs>
+        <data name="output_log" format="data" label="BIGSdb upload report ${section_input.tsv_file_path}" />
+    </outputs>
+    <help><![CDATA[
+        This tool uploads galaxy reports to the internal BIGSdb instance, it parses the species, sample_name and results from the output. Only users with the required permissions can succesfully execute this tool.
+    ]]></help>
+</tool>

@@ -6,7 +6,7 @@ from os import fdopen, remove
 
 argument_parser = argparse.ArgumentParser()
 argument_parser.add_argument('--htmlfilepath', required=True, type=Path)
-argument_parser.add_argument('--species', required=True, type=str, choices=['mycobacterium', 'listeria', 'neisseria', 'stec' , 'salmonella'])
+argument_parser.add_argument('--species', required=True, type=str, choices=['mycobacterium', 'listeria', 'neisseria', 'stec', 'salmonella'])
 args = argument_parser.parse_args()
 htmlfilepath = Path(args.htmlfilepath)
 species = args.species
@@ -41,18 +41,19 @@ def tagger(htmlname):
     else:
         htmlreport = ''.join(['<div class="report_section"><h3>', htmlname, '</h3>'])
     htmltag = ''.join(['<a name="', htmlname, '"></a>'])
-    #Create temp file
+    # Create temp file
     fh, abs_path = mkstemp()
-    with fdopen(fh,'w') as new_file:
+    with fdopen(fh, 'w') as new_file:
         with open(htmlfilepath) as old_file:
             for line in old_file:
                 new_file.write(line.replace(''.join([htmltag, htmlreport]), htmlreport).replace(htmlreport, ''.join([htmltag, htmlreport])))
-    #Copy the file permissions from the old file to the new file
+    # Copy the file permissions from the old file to the new file
     copymode(htmlfilepath, abs_path)
-    #Remove original file
+    # Remove original file
     remove(htmlfilepath)
-    #Move new file
+    # Move new file
     move(abs_path, htmlfilepath)
+
 
 for scheme in schemedict[species]:
     tagger(schemedict[species][scheme]['schemename_html'])

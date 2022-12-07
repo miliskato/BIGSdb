@@ -12,14 +12,15 @@ import os
 import datetime
 
 from config import BIGSDB_CONFIG
-from components.databaseconnection import Database_connection
+from components.databaseconnection import DatabaseConnection
 from components.maininserter import MainInserter
 from components.tsv_typingresultsinserter import TsvTypingResultsInserter
 from components.tsv_genedetectionresultsinserter import TsvGeneDetectionResultsInserter
 from components.json_typingresultsinserter import JsonTypingResultsInserter
 from components.json_genedetectionresultsinserter import JsonGeneDetectionResultsInserter
 
-def _parse_arguments() -> argparse.Namespace:
+
+def _parse_arguments(speciesdict) -> argparse.Namespace:
     """
     Parses the command line arguments.
     :return: Parsed arguments
@@ -31,9 +32,10 @@ def _parse_arguments() -> argparse.Namespace:
     argument_parser.add_argument('--isolatename', required=True, type=str)
     argument_parser.add_argument('--uploadermailadress', required=True, type=str)
     argument_parser.add_argument('--species', required=True, type=str,
-                                 choices=['mycobacterium', 'listeria', 'neisseria', 'stec', 'salmonella'])
+                                 choices=list(speciesdict.keys()))
     argument_parser.add_argument("--results_type", required=True, type=str, choices=['new_isolate', 'reanalysis'])
     return argument_parser.parse_args()
+
 
 def _send_email(subject: str, content: str, config: dict) -> None:
     """
@@ -51,21 +53,42 @@ def _send_email(subject: str, content: str, config: dict) -> None:
         s.send_message(message)
     logging.info(content)
 
+
 def __make_flagfilepath(isolatename: str, config: dict):
+    """
+    Returns the flag file path
+    :param isolatename: part of flagname
+    :param config: config containing the failsafe settings
+    :return: flag file path
+    """
     return Path(config['failsafe']['flag_dir']) / '.'.join([isolatename, config['failsafe']['flag_append']])
 
-def _fail_safe_mechanism(isolatename: str, species: str, config: dict, analysis_date: str):
+
+def _fail_safe_mechanism(isolatename: str, config: dict, analysis_date: str, cur_isolates: object):
+    """
+    Creates a flagfile if insertion is started and no flagfile is present.
+    else insertion is started and flag file is present: remove highest version of sample and
+     reinsert if multiple versions, if only one version, sample is reinserted in the main workflow below
+    :param isolatename:
+    :param config: config containing the failsafe settings
+    :param analysis_date: analysis date needed to insert new isolate version
+    :param cur_isolates: isolate database connection object
+    :return: flag file present
+    """
     try:
         if not os.path.isdir(Path(config['failsafe']['flag_dir'])):
             os.makedirs(Path(config['failsafe']['flag_dir']), exist_ok=True)
+            os.chmod(Path(config['failsafe']['flag_dir']), 0o777)
         flagfilepath = __make_flagfilepath(isolatename, config)
         if os.path.isfile(flagfilepath):
             logging.warning(f"fail safe mechanism detects that the bigsdb insertion for sample {isolatename} was started but didnt finish. Removing {isolatename} from Bigsdb to be able to restart inserting.")
-            cur_isolates, cur_seqdef = Database_connection().open_database_connections(species)
             cur_isolates.execute(f"SELECT COUNT(*) FROM isolates WHERE isolate='{isolatename}'")
             nr_of_versions = cur_isolates.fetchall()[0][0]
-            cur_isolates.execute(f"DELETE FROM isolates WHERE isolate='{isolatename}' AND id=(SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}') ")
             if nr_of_versions > 1:
+                cur_isolates.execute(
+                    f"UPDATE isolates SET new_version=NULL WHERE id=(SELECT MIN(id) FROM isolates WHERE id in (SELECT id FROM isolates WHERE isolate='{self.isolatename}' ORDER BY id DESC LIMIT 2))")
+                cur_isolates.execute(
+                    f"DELETE FROM isolates WHERE isolate='{isolatename}' AND id=(SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}') ")
                 cur_isolates.execute(
                             f"INSERT INTO isolates(id, isolate, sender, curator, date_entered, datestamp, uploader, latest_analyis_date) "
                             f"VALUES((SELECT CASE WHEN (SELECT(SELECT MAX(id) FROM isolates)+1) IS NULL THEN 1 "
@@ -77,29 +100,40 @@ def _fail_safe_mechanism(isolatename: str, species: str, config: dict, analysis_
                     f"UPDATE isolates SET new_version=(SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}') "
                     f"WHERE isolate='{isolatename}' AND new_version IS NULL AND id!=(SELECT MAX(id) "
                     f"FROM isolates WHERE isolate='{isolatename}')")
+            else:
+                cur_isolates.execute(
+                    f"DELETE FROM isolates WHERE isolate='{isolatename}' AND id=(SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}') ")
         else:
             flagfilepath.touch()
+            os.chmod(flagfilepath, 0o777)
             logging.info(f"flagfilepath {flagfilepath}")
     except Exception as exceptionmessage:
         _send_email(f"bigsdb upload fail safe mechanism fail on host {socket.gethostname()}", f"{exceptionmessage}\n{traceback.format_exc()}", config['mail'])
 
+
 def _delete_flagfile(isolatename: str, config: dict):
+    """
+    :param isolatename:
+    :param config: config containing the failsafe settings
+    :return: Removes flagfile
+    """
     flagfilepath = __make_flagfilepath(isolatename, config)
     try:
         os.remove(flagfilepath)
     except Exception as exceptionmessage:
         _send_email(f"Could not remove flag file {flagfilepath} on host {socket.gethostname()}", f"{exceptionmessage}\n{traceback.format_exc()}", config['mail'])
 
+
 if __name__ == '__main__':
     # Configure stdout logging
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
-    # Parse arguments
-    args = _parse_arguments()
-
     # Read the global config
     with open(BIGSDB_CONFIG, encoding='utf-8') as handle:
         config_data = yaml.safe_load(handle)
+
+    # Parse arguments
+    args = _parse_arguments(config_data['species'])
 
     # parse output
     if args.tsvfilepath:
@@ -116,12 +150,13 @@ if __name__ == '__main__':
             # records come from the pipeline directly
             sample_output_dict = records
 
-    #Connect to db and create cursor
-    cur_isolates, cur_seqdef = Database_connection().open_database_connections(args.species)
+    # Connect to db and create cursors
+    cur_isolates, cur_seqdef = DatabaseConnection().open_database_connections(args.species)
     # Logic
     try:
+        # fail safe mechanism is initated at the same time of the isolate insertion, but after connecting to the PSQL db's
         maininserter = MainInserter(args.isolatename, args.species, cur_isolates, cur_seqdef, sample_output_dict)
-        _fail_safe_mechanism(args.isolatename, args.species, config_data, sample_output_dict['analysis_date'])
+        _fail_safe_mechanism(args.isolatename, config_data, sample_output_dict['analysis_date'], cur_isolates)
         if args.results_type == 'new_isolate':
             maininserter.insert_new_isolate(args.uploadermailadress)
         elif args.results_type == 'reanalysis':
@@ -139,7 +174,7 @@ if __name__ == '__main__':
             _send_email(
                 f'Error inserting output of {args.species} pipeline to bigsdb for sample {args.isolatename} on host {socket.gethostname()}.',
                 f"{exceptionmessage}\n{traceback.format_exc()}", config_data['mail'])
-            sys.exit() # super important to do this because else the flagging file is removed and the entire fail safe doesnt work
+            sys.exit()  # super important to do this because else the flagging file is removed and the entire fail safe doesnt work
         _delete_flagfile(args.isolatename, config_data)
     except Exception as exceptionmessage:
         _send_email(
@@ -147,4 +182,4 @@ if __name__ == '__main__':
             f"{exceptionmessage}\n{traceback.format_exc()}", config_data['mail'])
         sys.exit()
 
-        #todo find out if connections need to be closed
+        # todo find out if connections need to be closed

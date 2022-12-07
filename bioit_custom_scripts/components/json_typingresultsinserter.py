@@ -1,34 +1,49 @@
 import requests
 import logging
+import re
 
 from .json_superclass import JsonSuperClass
 
+
 class JsonTypingResultsInserter(JsonSuperClass):
     """
-    Class containing definition to insert typing results
+    Class containing definitions to insert typing results from json input
     """
 
-    def __init__(self, isolatename, species, cur_isolates, cur_seqdef, sample_output_dict):
+    def __init__(self, isolatename: str, species: str, cur_isolates: object, cur_seqdef: object, sample_output_dict: dict) -> None:
+        """
+        :param isolatename: 
+        :param species: 
+        :param cur_isolates: isolate database connection object
+        :param cur_seqdef: sequence definition database connection object
+        :param sample_output_dict: results of sample
+        """
         JsonSuperClass.__init__(self, isolatename, species, cur_isolates, cur_seqdef, sample_output_dict)
 
-    def insert_typing_results(self, schemedict):
-        Locuslist = []
+    def insert_typing_results(self, schemedict: dict) -> None:
+        """
+        Inserts typing results into bigsdb from json
+        :param schemedict: dictionary of species specific schemes and their properties (found in config)
+        :return: None
+        """
+        locuslist = []
         # Locuslist serves as to not insert duplicates (creates error in sql),
         # for Listeria e.g. prs and prfA are included in two schemes
         for scheme in schemedict:
             if scheme in self.sample_output_dict.keys():
                 if schemedict[scheme]['type'] == 'regular':
-                    for Locus in self.sample_output_dict[scheme]['loci']:
-                        if Locus['Locus'] not in Locuslist:
-                            if Locus['% Identity'] == '100.00' and Locus['HSP/Locus length'] != '-' and eval(Locus['HSP/Locus length']) == 1.0:
-                                self._insert_allele_designation(Locus['Locus'].replace("'",""), Locus['Allele'])
-                                Locuslist.append(Locus['Locus'])
+                    for locus in self.sample_output_dict[scheme]['loci']:
+                        if locus['Locus'] not in locuslist:
+                            if locus['% Identity'] == '100.00' and locus['HSP/Locus length'] != '-' and eval(locus['HSP/Locus length']) == 1.0:
+                                self._insert_allele_designation(locus['Locus'].replace("'", ""), locus['Allele'])
+                                locuslist.append(locus['Locus'])
                             # the elif below is specific to Listeria pcr serogroup where 0's are included in the profiles
                             # (absent loci are required to define profiles)
                             # Bigsdb creates a null allele itself in the seqdef database
-                            elif (scheme == 'pcr_serogroup' or (scheme == 'bast' and Locus['Locus'] == 'NadA_peptide')) and Locus['% Identity'] == '-' and Locus['HSP/Locus length'] == '-':
-                                self._insert_allele_designation(Locus['Locus'], 0)
-                                Locuslist.append(Locus['Locus'])
+                            elif (scheme == 'pcr_serogroup' or (scheme == 'bast' and locus['Locus'] == 'NadA_peptide')) \
+                                    and locus['% Identity'] == '-' and locus['HSP/Locus length'] == '-':
+                                self._insert_allele_designation(locus['Locus'], 0)
+                                locuslist.append(locus['Locus'])
 
                 elif schemedict[scheme]['type'] == 'irregular':
                     if scheme == 'pointfinder':
@@ -41,8 +56,8 @@ class JsonTypingResultsInserter(JsonSuperClass):
                                     antibiotics = result['Resistance'].split(',')
                                     for antibiotic in antibiotics:
                                         antibiotic_reformatted = '_'.join(
-                                            ['POINTFINDER', antibiotic.replace('-', '_').replace(' ', '_').upper()])
-                                        mutation = result['Mutation'].replace('.', '_').replace(' ', '_')
+                                            ['POINTFINDER', re.sub('-| ', '_', antibiotic).upper()])
+                                        mutation = re.sub('[.]| ', '_', result['Mutation'])
                                         eavhtmltable = eavhtmltable + ''.join(
                                             [f'<tr><td><a href="/galaxyreports/{self.species}/', self.isolatename,
                                              '/report.html#',
@@ -90,7 +105,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
                                 jsonname = '_'.join(['amr_mutations', str(locus[0]).replace('_int', '_(int.)')])
                                 if self.sample_output_dict[scheme][jsonname] != '-':
                                     for variant in self.sample_output_dict[scheme][jsonname].split(', '):
-                                        variantreformatted = variant.replace('(', '').replace(')', '')
+                                        variantreformatted = re.sub('[(]|[)]', '_', variant)
                                         # Bert explained that if the change is found in promotor, then it can change signs
                                         # And also honestly the db is really discrepant, e.g. how likely is this:
                                         # Rv1979c AA G_107_A Rv1979c_AA_G_107_A Uncertain significance CFZ CFZ_Uncertain_significance
@@ -111,8 +126,8 @@ class JsonTypingResultsInserter(JsonSuperClass):
                                             self._insert_allele_designation(locus[0], allele_id)
                         elif scheme == 'hsp65':
                             if self.sample_output_dict[scheme]['loci'] != '[]':
-                                for Locus in self.sample_output_dict[scheme]['loci']:
-                                    hit = '_'.join(['hsp65', Locus['Species'].strip('"').replace(' ','_').replace('.', '')])
+                                for locus in self.sample_output_dict[scheme]['loci']:
+                                    hit = '_'.join(['hsp65', re.sub('[.]| ', '_', locus['Species'])])
                                     self.cur_isolates.execute(
                                         f"SELECT FROM eav_boolean WHERE isolate_id = (SELECT MAX(id) FROM isolates WHERE isolate='{self.isolatename}')"
                                         f" AND field = '{hit}'")
@@ -145,10 +160,10 @@ class JsonTypingResultsInserter(JsonSuperClass):
                                 self._insert_metadata_bool(hit_formatted, 't')
                     elif self.species == 'neisseria':
                         if scheme == 'resistance_genes':
-                            for Locus in self.sample_output_dict[scheme]['loci']:
-                                if Locus['Locus'] in ['penA', 'rpoB'] and Locus['% Identity'] == '100.00' and Locus['HSP/Locus length'] != '-' and eval(Locus['HSP/Locus length']) == 1.0:
+                            for locus in self.sample_output_dict[scheme]['loci']:
+                                if locus['Locus'] in ['penA', 'rpoB'] and locus['% Identity'] == '100.00' and locus['HSP/Locus length'] != '-' and eval(locus['HSP/Locus length']) == 1.0:
                                     response = requests.get(
-                                        f"https://rest.pubmlst.org/db/pubmlst_neisseria_seqdef/loci/{Locus['Locus']}/alleles/{Locus['Allele']}")
+                                        f"https://rest.pubmlst.org/db/pubmlst_neisseria_seqdef/loci/{locus['Locus']}/alleles/{locus['Allele']}")
                                     json_data = response.json()
                                     if json_data['status'] != '404' and json_data.get('linked_data') and 'PubMLST isolates' in json_data['linked_data']:
                                         for antibiotic in ['rifampicin_SIR', 'penicillin_SIR']:
@@ -181,27 +196,27 @@ class JsonTypingResultsInserter(JsonSuperClass):
                                     genotyphi_field = item[0].replace('_susceptibility', '').upper()
                                     # get the genes and variants
                                     future_alleles = self.sample_output_dict[scheme]['results'][variant].split(';') + self.sample_output_dict[scheme]['results'][gene].split(';')
-                                    for i in range(0, len(future_alleles)):
-                                        if future_alleles[i] != '-':
-                                            self._insert_dummy_sequence_if_needed(self, genotyphi_field, future_alleles[i])
-                                            self._insert_allele_designation(genotyphi_field, future_alleles[i])
+                                    for value in future_alleles:
+                                        if value != '-':
+                                            self._insert_dummy_sequence_if_needed(genotyphi_field, value)
+                                            self._insert_allele_designation(genotyphi_field, value)
                         elif scheme == 'sistr' or scheme.startswith('seqsero2'):
                             if scheme == 'sistr':
-                                serotypingInsert = self.sample_output_dict[scheme]['serotype_antigenic_formula']
-                                if serotypingInsert != '-':
-                                    self.salmonella_insert_antigens_into_db(serotypingInsert, scheme)
-                                    self._insert_metadata(f'{scheme}_formula', serotypingInsert)
-                                serotypingInsert = self.sample_output_dict[scheme]['serotype_concensus']
-                                if serotypingInsert != '-':
-                                    self._insert_metadata(f'{scheme}_serotype', serotypingInsert)
+                                serotyping_insert = self.sample_output_dict[scheme]['serotype_antigenic_formula']
+                                if serotyping_insert != '-':
+                                    self._salmonella_insert_antigens_into_db(serotyping_insert, scheme)
+                                    self._insert_metadata(f'{scheme}_formula', serotyping_insert)
+                                serotyping_insert = self.sample_output_dict[scheme]['serotype_concensus']
+                                if serotyping_insert != '-':
+                                    self._insert_metadata(f'{scheme}_serotype', serotyping_insert)
                             else:
-                                serotypingInsert = self.sample_output_dict[scheme][f'{scheme}_Predicted_antigenic_profile']
-                                self.salmonella_insert_antigens_into_db(serotypingInsert, scheme)
-                                if serotypingInsert != '-:-:-':
-                                    self._insert_metadata(f'{scheme}_formula', serotypingInsert)
-                                serotypingInsert = self.sample_output_dict[scheme][f'{scheme}_Predicted_serotype']
-                                if serotypingInsert != '- -:-:-':
-                                    self._insert_metadata(f'{scheme}_serotype', serotypingInsert)
+                                serotyping_insert = self.sample_output_dict[scheme][f'{scheme}_Predicted_antigenic_profile']
+                                self._salmonella_insert_antigens_into_db(serotyping_insert, scheme)
+                                if serotyping_insert != '-:-:-':
+                                    self._insert_metadata(f'{scheme}_formula', serotyping_insert)
+                                serotyping_insert = self.sample_output_dict[scheme][f'{scheme}_Predicted_serotype']
+                                if serotyping_insert != '- -:-:-':
+                                    self._insert_metadata(f'{scheme}_serotype', serotyping_insert)
                         elif scheme.startswith('spifinder'):
                             hits = self.sample_output_dict[scheme]['results']
                             if hits != '[]':
@@ -222,13 +237,19 @@ class JsonTypingResultsInserter(JsonSuperClass):
                                   f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{self.isolatename}'),(SELECT NOW()::TIMESTAMP), 'Typing results inserted', 1)")
         logging.info('Typing results insertion succesful')
 
-    def salmonella_insert_antigens_into_db(self, rawFormula, scheme):
-        antigensdict = {"O_antigen": rawFormula.split(':')[0].split(','),
-                        "H1_antigen": rawFormula.split(':')[1].split(','),
-                        "H2_antigen": rawFormula.split(':')[2].split(',')}
+    def _salmonella_insert_antigens_into_db(self, raw_formula: str, scheme: str) -> None:
+        """
+        Inserts antigens separately from the formula
+        :param raw_formula: serotype formula O:H1:H2
+        :param scheme: schemename
+        :return: None
+        """
+        antigensdict = {"O_antigen": raw_formula.split(':')[0].split(','),
+                        "H1_antigen": raw_formula.split(':')[1].split(','),
+                        "H2_antigen": raw_formula.split(':')[2].split(',')}
         antigens = ["O_antigen", "H1_antigen", "H2_antigen"]
         for antigen in antigens:
-            field = (f'{scheme}_{antigen}').upper()
+            field = f'{scheme}_{antigen}'.upper()
             entries = antigensdict[antigen]
             for entry in entries:
                 if entry != '-':

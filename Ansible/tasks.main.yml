@@ -1,6 +1,44 @@
 ---
 # src parameter: If path is a directory, it is copied recursively. In this case, if path ends with "/", only inside contents of that directory are copied to destination. Otherwise, if it does not end with "/", the directory itself with all contents is copied.
 
+- name: Assert if species given
+  fail:
+    msg: "'species' argument required in -e when running playbook"
+  when: species is not defined
+
+- name: check if species in list
+  vars:
+    specieslist:
+      - listeria
+      - mycobacterium
+      - neisseria
+      - stec
+      - salmonella
+  fail:
+    msg: "unsupported species requested, choose from {{ specieslist }}"
+  when: species not in specieslist
+
+- name: Assert if branch given
+  fail:
+    msg: "'branch' argument required in -e when running playbook"
+  when: branch is not defined
+
+- name: Assert if dtap given
+  fail:
+    msg: "'mongo_dtap' argument required in -e when running playbook"
+  when: mongo_dtap is not defined
+
+- name: check if mongo_dtap in list
+  vars:
+    dtaplist:
+      - dev
+      - test
+      - acc
+      - prod
+  fail:
+    msg: "unsupported mongo_dtap requested, choose from {{ dtaplist }}"
+  when: mongo_dtap not in dtaplist
+
 - name: install git package
   apt:
     name: git
@@ -9,19 +47,24 @@
   git:
     repo: "https://bioit_ro:{{ secret_bioit_git_ro_password }}@git.sciensano.be/bioit/BIGSdb.git"
     dest: "{{ bioit_bigs_home }}"
-    version: "master"
+    version: "{{ branch }}"
+    force: yes
 
-- name: Get updated files from git repository
-  git:
-    repo: "https://bioit_ro:{{ secret_bioit_git_ro_password }}@git.sciensano.be/bioit/camel_3.0.git"
-    dest: "{{ bioit_bigs_home }}/automated-reanalysis"
-    version: "bb-re_analysis"
+- name: Change Mongo dtap version in config based on playbook argument
+  lineinfile:
+    path: "{{ bioit_bigs_home }}/MongoDB/config/config.yml"
+    regexp: 'dtap: to_be_replaced_by_ansible'
+    line: "dtap: {{ mongo_dtap }}"
+
+#- name: Get updated files from git repository
+#  git:
+#    repo: "https://bioit_ro:{{ secret_bioit_git_ro_password }}@git.sciensano.be/bioit/camel_3.0.git"
+#    dest: "{{ bioit_bigs_home }}/automated-reanalysis"
+#    version: "bb-re_analysis"
 
 # bij host_vars staat postgresql user wachtwoord https://bioit.sciensano.be/wiki/ansible-vault: postgresql_postgres_user_password: "olqYDY3f8RPHwOjlr4hH"
 # /etc/ansible/group_vars/bioit$ cat git.yml
 
-# todo need python aswell for executing the scripts and then also some packages in a venv <- python in focal.yml? dont remember installing it on bioit-bigs-dev myself
-# todo check if perl is installed
 ## perl 5 is installed on Ubuntu by default.
 
 - name: Install packages
@@ -141,9 +184,9 @@
       - { src: conf/, dest: /etc/bigsdb }
       - { src: bioit_etc.bigsdb.dbases/, dest: /etc/bigsdb/dbases }
       - { src: headers/, dest: /var/www/html/ }
-      - { src: bioit_website_varwwwhtml/, dest: /var/www/html/ }
-      - { src: automated-reanalysis/camel/config/main.yml.sample, dest: "{{ bioit_bigs_home }}/automated-reanalysis/camel/config/main.yml" }
-      - { src: automated-reanalysis/camel/scripts/reanalysis/config.yml.sample, dest: "{{ bioit_bigs_home }}/automated-reanalysis/camel/scripts/reanalysis/config.yml" }
+      - { src: "bioit_website_varwwwhtml/{{ species }}.html", dest: /var/www/html/index.html }
+#      - { src: automated-reanalysis/camel/config/main.yml.sample, dest: "{{ bioit_bigs_home }}/automated-reanalysis/camel/config/main.yml" }
+#      - { src: automated-reanalysis/camel/scripts/reanalysis/config.yml.sample, dest: "{{ bioit_bigs_home }}/automated-reanalysis/camel/scripts/reanalysis/config.yml" }
 
 - name: setup core db's 1
   block:
@@ -267,7 +310,6 @@
         state: touch
         mode: "u=rwx,g=rwx,o=rwx"
         owner: bigsdb
-# todo when
 
 - name: setup submission system
   block:
@@ -336,10 +378,10 @@
       loop: "{{ list_cron|flatten(levels=1) }}"
       vars:
         list_cron:
-          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 /home/BIGSdb/bioit_custom_scripts/Typing_loci_intopsql.py", filename: loci_intopsql }
-          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_custom_scripts/Typing_alleles_intopsql.py", filename: alleles_intopsql }
-          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_custom_scripts/Typing_schemeprofiles_intopsql.py", filename: schemeprofiles_intopsql }
-          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_custom_scripts/genedetection_intopsql.py", filename: genedetection_intopsql }
+          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}//bioit_custom_scripts/Typing_loci_intopsql.py --species {{ species }}", filename: "{{ species }}_loci_intopsql" }
+          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_custom_scripts/Typing_alleles_intopsql.py --species {{ species }}", filename: "{{ species }}_alleles_intopsql" }
+          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_custom_scripts/Typing_schemeprofiles_intopsql.py --species {{ species }}", filename: "{{ species }}_schemeprofiles_intopsql" }
+          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_custom_scripts/genedetection_intopsql.py --species {{ species }}", filename: "{{ species }}_genedetection_intopsql" }
 
     - name: Add crontrab entry for database updates
       cron:
@@ -355,15 +397,15 @@
         list_cron:
           - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_custom_scripts/Typing_schemeprofiles_intopsql.py", filename: schemeprofiles_intopsql }
 
-    - name: Add crontrab entry for database updates
-      cron:
-        name: "crontab for weekly database updates"
-        minute: '0'
-        hour: '22'
-        weekday: '1'       # monday night
-        job: "bash {{ bioit_bigs_home }}/bioit_custom_scripts/automaticreanalysis.sh"
-        user: 'root'
-        cron_file: "automated-reanalysis"
+#    - name: Add crontrab entry for database updates
+#      cron:
+#        name: "crontab for automated reanalysis"
+#        minute: '0'
+#        hour: '22'
+#        weekday: '1'       # monday night
+#        job: "bash {{ bioit_bigs_home }}/bioit_custom_scripts/automaticreanalysis.sh"
+#        user: 'root'
+#        cron_file: "automated-reanalysis"
 
     - name: add daily cronjob
       ansible.builtin.copy:
@@ -393,59 +435,19 @@
         login_user: postgres
         name: "{{ item }}"
       loop:
-        - bigsdb_listeria_seqdef
-        - bigsdb_listeria_isolates
-        - bigsdb_mycobacterium_seqdef
-        - bigsdb_mycobacterium_isolates
-        - bigsdb_neisseria_seqdef
-        - bigsdb_neisseria_isolates
-        - bigsdb_stec_seqdef
-        - bigsdb_stec_isolates
-        - bigsdb_salmonella_seqdef
-        - bigsdb_salmonella_isolates
+        - "bigsdb_{{ species }}_seqdef"
+        - "bigsdb_{{ species }}_isolates"
       become_user: postgres
 
-    - name: Check if table in bigsdb_listeria_seqdef exists
+    - name: Check if table in "bigsdb_{{ species }}_seqdef" exists
       postgresql_query:
-        db: bigsdb_listeria_seqdef
+        db: "bigsdb_{{ species }}_seqdef"
         login_user: postgres
         query: SELECT EXISTS ( SELECT FROM information_schema.tables WHERE table_schema LIKE 'public' AND table_type LIKE 'BASE TABLE' AND table_name = 'sequences' )
-      register: query_result_listeria_seqdef
+      register: query_result_species_seqdef
       become_user: postgres
 
-    - name: Check if table in bigsdb_mycobacterium_seqdef exists
-      postgresql_query:
-        db: bigsdb_mycobacterium_seqdef
-        login_user: postgres
-        query: SELECT EXISTS ( SELECT FROM information_schema.tables WHERE table_schema LIKE 'public' AND table_type LIKE 'BASE TABLE' AND table_name = 'sequences' )
-      register: query_result_mycobacterium_seqdef
-      become_user: postgres
-
-    - name: Check if table in bigsdb_stec_seqdef exists
-      postgresql_query:
-        db: bigsdb_stec_seqdef
-        login_user: postgres
-        query: SELECT EXISTS ( SELECT FROM information_schema.tables WHERE table_schema LIKE 'public' AND table_type LIKE 'BASE TABLE' AND table_name = 'sequences' )
-      register: query_result_stec_seqdef
-      become_user: postgres
-
-    - name: Check if table in bigsdb_neisseria_seqdef exists
-      postgresql_query:
-        db: bigsdb_neisseria_seqdef
-        login_user: postgres
-        query: SELECT EXISTS ( SELECT FROM information_schema.tables WHERE table_schema LIKE 'public' AND table_type LIKE 'BASE TABLE' AND table_name = 'sequences' )
-      register: query_result_neisseria_seqdef
-      become_user: postgres
-
-    - name: Check if table in bigsdb_salmonella_seqdef exists
-      postgresql_query:
-        db: bigsdb_salmonella_seqdef
-        login_user: postgres
-        query: SELECT EXISTS ( SELECT FROM information_schema.tables WHERE table_schema LIKE 'public' AND table_type LIKE 'BASE TABLE' AND table_name = 'sequences' )
-      register: query_result_salmonella_seqdef
-      become_user: postgres
-
-    - name: Format listeria databases
+    - name: Format species databases
       postgresql_query:
         db: "{{ item.db }}"
         login_user: postgres
@@ -453,61 +455,9 @@
       loop: "{{ script_list|flatten(levels=1) }}"
       vars:
         script_list:
-          - { db: bigsdb_listeria_seqdef, script: "{{ bioit_bigs_home }}/sql/seqdef.sql" }
-          - { db: bigsdb_listeria_isolates, script: "{{ bioit_bigs_home }}/sql/isolatedb.sql" }
-      when: query_result_listeria_seqdef.query_result[0]['exists'] == false
-      become_user: postgres
-
-    - name: Format mycobacterium databases
-      postgresql_query:
-        db: "{{ item.db }}"
-        login_user: postgres
-        path_to_script: "{{ item.script }}"
-      loop: "{{ script_list|flatten(levels=1) }}"
-      vars:
-        script_list:
-          - { db: bigsdb_mycobacterium_seqdef, script: "{{ bioit_bigs_home }}/sql/seqdef.sql" }
-          - { db: bigsdb_mycobacterium_isolates, script: "{{ bioit_bigs_home }}/sql/isolatedb.sql" }
-      when: query_result_mycobacterium_seqdef.query_result[0]['exists'] == false
-      become_user: postgres
-
-    - name: Format neisseria databases
-      postgresql_query:
-        db: "{{ item.db }}"
-        login_user: postgres
-        path_to_script: "{{ item.script }}"
-      loop: "{{ script_list|flatten(levels=1) }}"
-      vars:
-        script_list:
-          - { db: bigsdb_neisseria_seqdef, script: "{{ bioit_bigs_home }}/sql/seqdef.sql" }
-          - { db: bigsdb_neisseria_isolates, script: "{{ bioit_bigs_home }}/sql/isolatedb.sql" }
-      when: query_result_neisseria_seqdef.query_result[0]['exists'] == false
-      become_user: postgres
-
-    - name: Format salmonella databases
-      postgresql_query:
-        db: "{{ item.db }}"
-        login_user: postgres
-        path_to_script: "{{ item.script }}"
-      loop: "{{ script_list|flatten(levels=1) }}"
-      vars:
-        script_list:
-          - { db: bigsdb_salmonella_seqdef, script: "{{ bioit_bigs_home }}/sql/seqdef.sql" }
-          - { db: bigsdb_salmonella_isolates, script: "{{ bioit_bigs_home }}/sql/isolatedb.sql" }
-      when: query_result_salmonella_seqdef.query_result[0]['exists'] == false
-      become_user: postgres
-
-    - name: Format stec databases
-      postgresql_query:
-        db: "{{ item.db }}"
-        login_user: postgres
-        path_to_script: "{{ item.script }}"
-      loop: "{{ script_list|flatten(levels=1) }}"
-      vars:
-        script_list:
-          - { db: bigsdb_stec_seqdef, script: "{{ bioit_bigs_home }}/sql/seqdef.sql" }
-          - { db: bigsdb_stec_isolates, script: "{{ bioit_bigs_home }}/sql/isolatedb.sql" }
-      when: query_result_stec_seqdef.query_result[0]['exists'] == false
+          - { db: "bigsdb_{{ species }}_seqdef", script: "{{ bioit_bigs_home }}/sql/seqdef.sql" }
+          - { db: "bigsdb_{{ species }}_isolates", script: "{{ bioit_bigs_home }}/sql/isolatedb.sql" }
+      when: query_result_species_seqdef.query_result[0]['exists'] == false
       become_user: postgres
 
 - name: create global user database
@@ -560,55 +510,11 @@
         login_user: postgres
         query: INSERT INTO users (id, user_name, surname, first_name, email, affiliation, status, date_entered, datestamp, curator) VALUES (1,'bioit','Sciensano','Bioit', 'bioit@sciensano.be','Sciensano','admin','now','now', 1)
       loop:
-        - bigsdb_listeria_seqdef
-        - bigsdb_listeria_isolates
-        - bigsdb_mycobacterium_seqdef
-        - bigsdb_mycobacterium_isolates
-        - bigsdb_neisseria_seqdef
-        - bigsdb_neisseria_isolates
-        - bigsdb_stec_seqdef
-        - bigsdb_stec_isolates
-        - bigsdb_salmonella_seqdef
-        - bigsdb_salmonella_isolates
+        - "bigsdb_{{ species }}_seqdef"
+        - "bigsdb_{{ species }}_isolates"
       when: query_result_users.query_result[0]['exists'] == false
       become_user: postgres
         # this when could be changed but should not matter too much
-
-#    - name: add bioit user to all neisseria species db
-#      postgresql_query:
-#        db: "{{ item }}"
-#        login_user: postgres
-#        query: INSERT INTO users (id, user_name, surname, first_name, email, affiliation, status, date_entered, datestamp, curator) VALUES (1,'bioit','Sciensano','Bioit', 'bioit@sciensano.be','Sciensano','admin','now','now', 1)
-#      loop:
-#        - bigsdb_neisseria_seqdef
-#        - bigsdb_neisseria_isolates
-#      when: query_result_neisseria_seqdef.query_result[0]['exists'] == false
-#      become_user: postgres
-#      # this when should be changed but will work when adding new db
-#
-#    - name: add bioit user to all salmonella species db
-#      postgresql_query:
-#        db: "{{ item }}"
-#        login_user: postgres
-#        query: INSERT INTO users (id, user_name, surname, first_name, email, affiliation, status, date_entered, datestamp, curator) VALUES (1,'bioit','Sciensano','Bioit', 'bioit@sciensano.be','Sciensano','admin','now','now', 1)
-#      loop:
-#        - bigsdb_salmonella_seqdef
-#        - bigsdb_salmonella_isolates
-#      when: query_result_salmonella_seqdef.query_result[0]['exists'] == false
-#      become_user: postgres
-#      # this when should be changed but will work when adding new db
-#
-#    - name: add bioit user to all stec species db
-#      postgresql_query:
-#        db: "{{ item }}"
-#        login_user: postgres
-#        query: INSERT INTO users (id, user_name, surname, first_name, email, affiliation, status, date_entered, datestamp, curator) VALUES (1,'bioit','Sciensano','Bioit', 'bioit@sciensano.be','Sciensano','admin','now','now', 1)
-#      loop:
-#        - bigsdb_stec_seqdef
-#        - bigsdb_stec_isolates
-#      when: query_result_stec_seqdef.query_result[0]['exists'] == false
-#      become_user: postgres
-#      # this when should be changed but will work when adding new db
 
     - name: add user db to species db
       postgresql_query:
@@ -616,99 +522,23 @@
         login_user: postgres
         query: INSERT INTO user_dbases (id, name, dbase_name, curator, datestamp) VALUES (1, '', 'global_bigsdb_users', 1, 'now')
       loop:
-        - bigsdb_listeria_seqdef
-        - bigsdb_listeria_isolates
-        - bigsdb_mycobacterium_seqdef
-        - bigsdb_mycobacterium_isolates
+        - "bigsdb_{{ species }}_seqdef"
+        - "bigsdb_{{ species }}_isolates"
       when: query_result_users.query_result[0]['exists'] == false
       become_user: postgres
         # this should be other when but doesnt matter for now
 
-    - name: add user db to neisseria species db
-      postgresql_query:
-        db: "{{ item }}"
-        login_user: postgres
-        query: INSERT INTO user_dbases (id, name, dbase_name, curator, datestamp) VALUES (1, '', 'global_bigsdb_users', 1, 'now')
-      loop:
-        - bigsdb_neisseria_seqdef
-        - bigsdb_neisseria_isolates
-      when: query_result_neisseria_seqdef.query_result[0]['exists'] == false
-      become_user: postgres
-      # this when should be changed but will work when adding new db
-
-    - name: add user db to salmonella species db
-      postgresql_query:
-        db: "{{ item }}"
-        login_user: postgres
-        query: INSERT INTO user_dbases (id, name, dbase_name, curator, datestamp) VALUES (1, '', 'global_bigsdb_users', 1, 'now')
-      loop:
-        - bigsdb_salmonella_seqdef
-        - bigsdb_salmonella_isolates
-      when: query_result_salmonella_seqdef.query_result[0]['exists'] == false
-      become_user: postgres
-      # this when should be changed but will work when adding new db
-
-    - name: add user db to stec species db
-      postgresql_query:
-        db: "{{ item }}"
-        login_user: postgres
-        query: INSERT INTO user_dbases (id, name, dbase_name, curator, datestamp) VALUES (1, '', 'global_bigsdb_users', 1, 'now')
-      loop:
-        - bigsdb_stec_seqdef
-        - bigsdb_stec_isolates
-      when: query_result_stec_seqdef.query_result[0]['exists'] == false
-      become_user: postgres
-      # this when should be changed but will work when adding new db
-
     - name: update users to be from user_db, this order is required because else fails due to keys
       postgresql_query:
         db: "{{ item }}"
         login_user: postgres
         query: UPDATE users SET user_db=1 WHERE user_name='bioit'
       loop:
-        - bigsdb_listeria_seqdef
-        - bigsdb_listeria_isolates
-        - bigsdb_mycobacterium_seqdef
-        - bigsdb_mycobacterium_isolates
+        - "bigsdb_{{ species }}_seqdef"
+        - "bigsdb_{{ species }}_isolates"
       when: query_result_users.query_result[0]['exists'] == false
       become_user: postgres
         # this when could be changed but should not matter too much
-
-    - name: update users to be from user_db, this order is required because else fails due to keys
-      postgresql_query:
-        db: "{{ item }}"
-        login_user: postgres
-        query: UPDATE users SET user_db=1 WHERE user_name='bioit'
-      loop:
-        - bigsdb_neisseria_seqdef
-        - bigsdb_neisseria_isolates
-      when: query_result_neisseria_seqdef.query_result[0]['exists'] == false
-      become_user: postgres
-      # this when should be changed but will work when adding new db
-
-    - name: update users to be from user_db, this order is required because else fails due to keys
-      postgresql_query:
-        db: "{{ item }}"
-        login_user: postgres
-        query: UPDATE users SET user_db=1 WHERE user_name='bioit'
-      loop:
-        - bigsdb_salmonella_seqdef
-        - bigsdb_salmonella_isolates
-      when: query_result_salmonella_seqdef.query_result[0]['exists'] == false
-      become_user: postgres
-      # this when should be changed but will work when adding new db
-
-    - name: update users to be from user_db, this order is required because else fails due to keys
-      postgresql_query:
-        db: "{{ item }}"
-        login_user: postgres
-        query: UPDATE users SET user_db=1 WHERE user_name='bioit'
-      loop:
-        - bigsdb_stec_seqdef
-        - bigsdb_stec_isolates
-      when: query_result_stec_seqdef.query_result[0]['exists'] == false
-      become_user: postgres
-      # this when should be changed but will work when adding new db
 
 - name: setup REST API
   block:
@@ -763,58 +593,18 @@
         group: root
         remote_src: yes
 
-      # todo the following inserts need to be updated whenever a new species is added
     - name: insert db to be shown in rest
       postgresql_query:
         db: bigsdb_rest
         login_user: postgres
         query: "{{ item }}"
       loop:
-        - INSERT INTO resources (dbase_config,description) VALUES ('bigsdb_listeria_seqdef','listeria sequence/profile definitions'), ('bigsdb_listeria_isolates','listeria isolates'), ('bigsdb_mycobacterium_seqdef','mycobacterium sequence/profile definitions'), ('bigsdb_mycobacterium_isolates','mycobacterium isolates')
-        - INSERT INTO groups (name,description) VALUES ('listeria','listeria'), ('mycobacterium','mycobacterium')
-        - INSERT INTO group_resources (group_name,dbase_config) VALUES ('listeria','bigsdb_listeria_seqdef'), ('listeria','bigsdb_listeria_isolates'), ('mycobacterium','bigsdb_mycobacterium_seqdef'), ('mycobacterium','bigsdb_mycobacterium_isolates')
+        - "INSERT INTO resources (dbase_config,description) VALUES ('bigsdb_{{ species }}_seqdef','{{ species }} sequence/profile definitions'), ('bigsdb_{{ species }}_isolates','{{ species }} isolates')"
+        - "INSERT INTO groups (name,description) VALUES ('{{ species }}','{{ species }}')"
+        - "INSERT INTO group_resources (group_name,dbase_config) VALUES ('{{ species }}','bigsdb_{{ species }}_seqdef'), ('{{ species }}','bigsdb_{{ species }}_isolates')"
       when: query_result_rest.query_result[0]['exists'] == false
       become_user: postgres
        # this when should be changed but doesnt matter for now
-
-    - name: insert db neisseria to be shown in rest
-      postgresql_query:
-        db: bigsdb_rest
-        login_user: postgres
-        query: "{{ item }}"
-      loop:
-        - INSERT INTO resources (dbase_config,description) VALUES ('bigsdb_neisseria_seqdef','neisseria sequence/profile definitions'), ('bigsdb_neisseria_isolates','neisseria isolates')
-        - INSERT INTO groups (name,description) VALUES ('neisseria','neisseria')
-        - INSERT INTO group_resources (group_name,dbase_config) VALUES ('neisseria','bigsdb_neisseria_seqdef'), ('neisseria','bigsdb_neisseria_isolates')
-      when: query_result_neisseria_seqdef.query_result[0]['exists'] == false
-      become_user: postgres
-      # this when should be changed but will work when adding new db
-
-    - name: insert db salmonella to be shown in rest
-      postgresql_query:
-        db: bigsdb_rest
-        login_user: postgres
-        query: "{{ item }}"
-      loop:
-        - INSERT INTO resources (dbase_config,description) VALUES ('bigsdb_salmonella_seqdef','salmonella sequence/profile definitions'), ('bigsdb_salmonella_isolates','salmonella isolates')
-        - INSERT INTO groups (name,description) VALUES ('salmonella','salmonella')
-        - INSERT INTO group_resources (group_name,dbase_config) VALUES ('salmonella','bigsdb_salmonella_seqdef'), ('salmonella','bigsdb_salmonella_isolates')
-      when: query_result_salmonella_seqdef.query_result[0]['exists'] == false
-      become_user: postgres
-      # this when should be changed but will work when adding new db
-
-    - name: insert db stec to be shown in rest
-      postgresql_query:
-        db: bigsdb_rest
-        login_user: postgres
-        query: "{{ item }}"
-      loop:
-        - INSERT INTO resources (dbase_config,description) VALUES ('bigsdb_stec_seqdef','stec sequence/profile definitions'), ('bigsdb_stec_isolates','stec isolates')
-        - INSERT INTO groups (name,description) VALUES ('stec','stec')
-        - INSERT INTO group_resources (group_name,dbase_config) VALUES ('stec','bigsdb_stec_seqdef'), ('stec','bigsdb_stec_isolates')
-      when: query_result_stec_seqdef.query_result[0]['exists'] == false
-      become_user: postgres
-      # this when should be changed but will work when adding new db
 
     - name: Restart service rest
       ansible.builtin.systemd:
@@ -827,34 +617,10 @@
   block:
     - name: Check if table that is created in sql files below exists
       postgresql_query:
-        db: bigsdb_listeria_isolates
+        db: "bigsdb_{{ species }}_isolates"
         login_user: postgres
         query: SELECT EXISTS ( SELECT FROM information_schema.tables WHERE table_schema LIKE 'public' AND table_type LIKE 'BASE TABLE' AND table_name = 'eav_text_hidden' )
       register: query_result_eavtexthidden
-      become_user: postgres
-
-    - name: Check if table that is created in sql files below exists
-      postgresql_query:
-        db: bigsdb_neisseria_isolates
-        login_user: postgres
-        query: SELECT EXISTS ( SELECT FROM information_schema.tables WHERE table_schema LIKE 'public' AND table_type LIKE 'BASE TABLE' AND table_name = 'eav_text_hidden' )
-      register: query_result_eavtexthiddenneisseria
-      become_user: postgres
-
-    - name: Check if table that is created in sql files below exists
-      postgresql_query:
-        db: bigsdb_salmonella_isolates
-        login_user: postgres
-        query: SELECT EXISTS ( SELECT FROM information_schema.tables WHERE table_schema LIKE 'public' AND table_type LIKE 'BASE TABLE' AND table_name = 'eav_text_hidden' )
-      register: query_result_eavtexthiddensalmonella
-      become_user: postgres
-
-    - name: Check if table that is created in sql files below exists
-      postgresql_query:
-        db: bigsdb_stec_isolates
-        login_user: postgres
-        query: SELECT EXISTS ( SELECT FROM information_schema.tables WHERE table_schema LIKE 'public' AND table_type LIKE 'BASE TABLE' AND table_name = 'eav_text_hidden' )
-      register: query_result_eavtexthiddenstec
       become_user: postgres
 
     - debug: msg="{{ query_result_eavtexthidden }}"
@@ -867,50 +633,9 @@
       loop: "{{ list_script|flatten(levels=1) }}"
       vars:
         list_script:
-          - { db: bigsdb_listeria_seqdef, script: "{{ bioit_bigs_home }}/bioit_custom_scripts/bigsdb_listeria_seqdef.sql" }
-          - { db: bigsdb_listeria_isolates, script: "{{ bioit_bigs_home }}/bioit_custom_scripts/bigsdb_listeria_isolates.sql" }
-          - { db: bigsdb_mycobacterium_seqdef, script: "{{ bioit_bigs_home }}/bioit_custom_scripts/bigsdb_mycobacterium_seqdef.sql" }
-          - { db: bigsdb_mycobacterium_isolates, script: "{{ bioit_bigs_home }}/bioit_custom_scripts/bigsdb_mycobacterium_isolates.sql" }
+          - { db: "bigsdb_{{ species }}_seqdef", script: "{{ bioit_bigs_home }}/bioit_custom_scripts/bigsdb_{{ species }}_seqdef.sql" }
+          - { db: "bigsdb_{{ species }}_isolates", script: "{{ bioit_bigs_home }}/bioit_custom_scripts/bigsdb_{{ species }}_isolates.sql" }
       when: query_result_eavtexthidden.query_result[0]['exists'] == false
-      become_user: postgres
-
-    - name: Format neisseria species databases
-      postgresql_query:
-        login_user: postgres
-        db: "{{ item.db }}"
-        path_to_script: "{{ item.script }}"
-      loop: "{{ list_script|flatten(levels=1) }}"
-      vars:
-        list_script:
-          - { db: bigsdb_neisseria_seqdef, script: "{{ bioit_bigs_home }}/bioit_custom_scripts/bigsdb_neisseria_seqdef.sql" }
-          - { db: bigsdb_neisseria_isolates, script: "{{ bioit_bigs_home }}/bioit_custom_scripts/bigsdb_neisseria_isolates.sql" }
-      when: query_result_eavtexthiddenneisseria.query_result[0]['exists'] == false
-      become_user: postgres
-
-    - name: Format salmonella species databases
-      postgresql_query:
-        login_user: postgres
-        db: "{{ item.db }}"
-        path_to_script: "{{ item.script }}"
-      loop: "{{ list_script|flatten(levels=1) }}"
-      vars:
-        list_script:
-          - { db: bigsdb_salmonella_seqdef, script: "{{ bioit_bigs_home }}/bioit_custom_scripts/bigsdb_salmonella_seqdef.sql" }
-          - { db: bigsdb_salmonella_isolates, script: "{{ bioit_bigs_home }}/bioit_custom_scripts/bigsdb_salmonella_isolates.sql" }
-      when: query_result_eavtexthiddensalmonella.query_result[0]['exists'] == false
-      become_user: postgres
-
-    - name: Format stec species databases
-      postgresql_query:
-        login_user: postgres
-        db: "{{ item.db }}"
-        path_to_script: "{{ item.script }}"
-      loop: "{{ list_script|flatten(levels=1) }}"
-      vars:
-        list_script:
-          - { db: bigsdb_stec_seqdef, script: "{{ bioit_bigs_home }}/bioit_custom_scripts/bigsdb_stec_seqdef.sql" }
-          - { db: bigsdb_stec_isolates, script: "{{ bioit_bigs_home }}/bioit_custom_scripts/bigsdb_stec_isolates.sql" }
-      when: query_result_eavtexthiddenstec.query_result[0]['exists'] == false
       become_user: postgres
 
     - name: populate db with python sql scripts
@@ -925,44 +650,16 @@
         - name: insert loci, alleles, profiles, gene detection
           shell: "{{ item }}"
           loop:
-            - "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_custom_scripts/Typing_loci_intopsql.py"
-            - "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_custom_scripts/Typing_alleles_intopsql.py"
-            - "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_custom_scripts/Typing_schemeprofiles_intopsql.py"
-            - "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_custom_scripts/genedetection_intopsql.py"
+            - "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_custom_scripts/Typing_loci_intopsql.py --species {{ species }}"
+            - "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_custom_scripts/Typing_alleles_intopsql.py --species {{ species }}"
+            - "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_custom_scripts/Typing_schemeprofiles_intopsql.py --species {{ species }}"
+            - "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_custom_scripts/genedetection_intopsql.py --species {{ species }}"
 
 - name: setup reports and symlinks
   block:
-    - name: create listeria dir
+    - name: create species dir
       ansible.builtin.file:
-        path: /reports/listeria
-        state: directory
-        mode: "u=rwx,g=rwx,o=rx"
-        owner: www-data
-
-    - name: create mycobacterium dir
-      ansible.builtin.file:
-        path: /reports/mycobacterium
-        state: directory
-        mode: "u=rwx,g=rwx,o=rx"
-        owner: www-data
-
-    - name: create neisseria dir
-      ansible.builtin.file:
-        path: /reports/neisseria
-        state: directory
-        mode: "u=rwx,g=rwx,o=rx"
-        owner: www-data
-
-    - name: create salmonella dir
-      ansible.builtin.file:
-        path: /reports/salmonella
-        state: directory
-        mode: "u=rwx,g=rwx,o=rx"
-        owner: www-data
-
-    - name: create stec dir
-      ansible.builtin.file:
-        path: /reports/stec
+        path: "/reports/{{ species}}"
         state: directory
         mode: "u=rwx,g=rwx,o=rx"
         owner: www-data
@@ -989,14 +686,11 @@
         state: "present"
         append: no
 
-# manually:
-#    sudo su galaxy
-#    mkdir -p /home/galaxy/.ssh
-#    chmod 0700 /home/galaxy/.ssh
-#    ssh-keygen -t rsa
-#    cat /home/galaxy/.ssh/id_rsa.pub >> /home/galaxy/.ssh/authorized_keys
-#    chmod 0640 /home/galaxy/.ssh/authorized_keys
-#    # cp private key to id_rsa_bigsdb on galaxy, chmod 0600 it
+    - name: create galaxy mongo dir
+      ansible.builtin.file:
+        path: /home/galaxy/mongo
+        state: directory
+        owner: galaxy
 
     - name: generate SSH key galaxy user
       user:
@@ -1016,14 +710,8 @@
         mode: '0640'
         remote_src: yes
 
-# Doesnt work
-#     - name: Fetch the file from the bigs-
-#       run_once: yes
-#       fetch: src=/home/galaxy/.ssh/id_rsa dest=buffer/ flat=yes
-#
-#     - name: Copy the file to galaxy-
-#       copy: src=buffer/id_rsa dest=/home/galaxy/.ssh/id_rsa_bigsdb
-#       when: "{{ inventory_hostname == 'mwiapp02' }}"
+# TO DO manually:
+#    # cp private key to id_rsa_bigsdb on galaxy VM in /home/galaxy/.ssh, chmod 0600 it
 
     - name: This rule will sadly somehow never finish, copy the private key to the right galaxy host manually !
       tags: sync-pull
