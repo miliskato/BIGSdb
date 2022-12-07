@@ -2816,7 +2816,6 @@ sub _close_submission {    ## no critic (ProhibitUnusedPrivateSubroutines) #Call
 			}
 		);
 	}
-        my $output = system("bash /home/bebergk/test.sh &> /home/BIGSdb/avro/error.txt"); 
 	return;
 }
 
