@@ -14,7 +14,7 @@ class DistanceAndClusterComputer:
     Class to compute hamming distances and determine the cluster membership to store in mongoDB.
     """
 
-    def __init__(self, st_collection, cluster_membership_collection, st_to_use: list):  # distance_matrix_collection,
+    def __init__(self, st_collection: object, cluster_membership_collection: object, st_to_use: list) -> None:
         """
         Initializes the class.
         :param st_collection: sequence types collection from mongoDb.
@@ -46,10 +46,8 @@ class DistanceAndClusterComputer:
             query_all_data = self.st_collection.find({})
         else:
             logging.info("Only the provided st are being retrieved")
-            query_or = []
-            for st in self.st_to_use:
-                query_or.append({'ST': st})
-            query_all_data = self.st_collection.find({'$or': query_or})
+            query_all_data = self.st_collection.find({'$in': self.st_to_use})
+
         for doc in query_all_data:
             if 'ST' in doc:
                 self.cgmlst_profiles.append(np.array(doc['cgMLST'].split(',')))
@@ -75,23 +73,29 @@ class DistanceAndClusterComputer:
         logging.info(f"{datetime.datetime.now()}: Starting to compute hamming distances in mode {mode}")
         if mode == 'full':
             start = 0
-        else:
+        elif mode == 'last_st':
             start = len(self.cgmlst_profiles) - 1
+        else:
+            ValueError('mode should be either full or last_st for compute_hamming_distances')
         pool = Pool(4)
         self.hamming_distances = getDistance(np.array(self.cgmlst_profiles), 'hamming_dist', pool, start)
+        if mode == 'full':
+            #when mode is full, half matrix is computed (lower triangle) so as we know that the
+            # distances are symetric we can add the transposed to retrieve the upper triangle of the matrix
+            # and get a squared distance matrix for downstream applications
+            self.hamming_distances += self.hamming_distances.T
         logging.info(f"{datetime.datetime.now()}: Hamming distances computed!")
 
     def init_clustering_and_cluster_membership(self, cluster_thresholds: list) -> None:
         """
-        This function is used when initializing the clustering from more than one sequence type. It will use the
-        distance matrix to cluster the different st and determine their cluster membership at the different cluster
-        thresholds.
+        This function is to compute the clustering from more than one sequence type. It uses the distance matrix and
+        after clustering (single-linkage) it determines for every ST the cluster membership of all the ST for every
+        distance threshold.
         :param cluster_thresholds: the list of cluster thresholds to be used to determine the cluster membership of
         the different st.
         :return:
         """
         logging.info(f"{datetime.datetime.now()}: Starting initial clustering and clustering membership encoding")
-        self.hamming_distances += self.hamming_distances.T
         slc = fastcluster.single(ssd.squareform(self.hamming_distances))
         for thresh in cluster_thresholds:
             cluster_membership = hcluster.fcluster(slc, thresh, criterion='distance')
@@ -102,7 +106,7 @@ class DistanceAndClusterComputer:
                        'Threshold': thresh,
                        'Clustering_membership': int(cluster_membership[entry])}
                 documents.append(doc)
-            self.insert_a_lot(documents, self.cluster_membership_collection)
+            self._insert_a_lot(documents, self.cluster_membership_collection)
             logging.info(f"{datetime.datetime.now()}: Clustering membership finished for threshold {thresh}")
         logging.info(f"{datetime.datetime.now()}: Clustering and clustering membership finished")
 
@@ -122,8 +126,7 @@ class DistanceAndClusterComputer:
         for cluster in memberships:
             cluster_sizes.append(self.cluster_membership_collection.count_documents({'Threshold': threshold,
                                                                                      'Clustering_membership': cluster}))
-        biggest_cluster = max(cluster_sizes)
-        max_index = cluster_sizes.index(biggest_cluster)
+        max_index = cluster_sizes.index(max(cluster_sizes))
         new_cluster_name = memberships[max_index]
         clusters_to_rename = [x for i, x in enumerate(memberships) if i != max_index]
         for cl in clusters_to_rename:
@@ -156,7 +159,7 @@ class DistanceAndClusterComputer:
             self.cluster_membership_collection.with_options(write_concern=WriteConcern(w="majority")).insert_one(entry)
 
     @staticmethod
-    def insert_a_lot(insertion_docs: list, collection) -> None:
+    def _insert_a_lot(insertion_docs: list, collection) -> None:
         """
         In order to avoid having the bug of too many elements in the insertion, this function takes the list of
         elements to insert into mongo db and creates smaller batches of insertion that will be inserted into mongoDB

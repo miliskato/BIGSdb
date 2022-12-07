@@ -1,6 +1,6 @@
 import datetime
 
-class HierCCCgMLSTProfile:
+class cgMLSTProfile:
     """
     Class used to store cgMLST profiles  and sequence type and export them into convenient formats.
     """
