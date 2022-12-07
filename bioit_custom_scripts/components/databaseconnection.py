@@ -3,7 +3,7 @@ import psycopg2
 
 class DatabaseConnection:
     """
-    Class containing defintion to open database connection
+    Class containing function to open database connections to bigsdb
     """
 
     def __init__(self) -> None:
