@@ -10,9 +10,7 @@ import matplotlib.pyplot as plt
 import logging
 from MongoDB.util.mongo_querying import Mongoquerying
 from MongoDB.util.distance_and_cluster_computer import DistanceAndClusterComputer
-from pymongo.collection import Collection
-from MongoDB.util.hamming_distance import getDistance
-from multiprocessing import Pool
+
 
 
 class ClusteringMakerCustom(DistanceAndClusterComputer):

@@ -1,5 +1,5 @@
 from pymongo import MongoClient
-from MongoDB.util.hiercc_cgmlst_profile import cgMLSTProfile
+from MongoDB.util.cgmlst_profile import cgMLSTProfile
 from MongoDB.util.distance_and_cluster_computer import DistanceAndClusterComputer
 from MongoDB.config import CLUSTERING_CONFIG
 import logging

@@ -1,18 +1,14 @@
-import subprocess
 import argparse
 import logging
 import sys
 import os
 import yaml
-import json
 from pathlib import Path
-import datetime
-from pymongo.read_concern import ReadConcern
 import smtplib
 from email.message import EmailMessage
 import socket
 import traceback
-
+import datetime
 from util.mongo_initialisation import Mongoinitialisation
 from config import MONGO_CONFIG
 from bioit_custom_scripts.components.databaseconnection import Database_connection
@@ -34,6 +30,7 @@ def send_email(subject: str, content: str, config: dict) -> None:
         s.send_message(message)
     logging.info(content)
 
+#todo add the config file to load the species from the config file when branch merged with Michaël one.
 def parse_arguments() -> argparse.Namespace:
     """
     Parses the command line arguments.
@@ -64,11 +61,17 @@ if __name__ == '__main__':
         mongoinit = Mongoinitialisation()
         isolates_collection, old_isolateresults_collection, isolates_badqc_collection = mongoinit._initialise_collections(config_data, args.species)
 
+
         # Connect to db and create cursor
         cur_isolates, cur_seqdef = Database_connection().open_database_connections(args.species)
 
         # fetch all documents in the bad samples of the species
-        mongo_query = isolates_badqc_collection.find({}) #todo: add a date for synchronization with mongo and fetch only samples older than the date of last update
+        update_collection = mongoinit.initialise_update_collection(config_data, args.species)
+        last_run_date = update_collection.find_one({'metadata': 'last_bad_samples_update'})['last_update_date']
+        if last_run_date == None:
+            last_run_date = datetime.datetime(1970, 1, 1)
+        mongo_query = isolates_badqc_collection.find({'insertion_date': {'$gt': last_run_date}})
+        #todo: add a date for synchronization with mongo and fetch only samples older than the date of last update
         bad_samples = []
         for doc in mongo_query:
             bad_samples.append(doc)
@@ -84,8 +87,11 @@ if __name__ == '__main__':
             cur_isolates.execute(f"INSERT INTO submissions  (id,type,submitter,date_submitted,datestamp,status,email)"
                                  f"VALUES ({highest_sub_id}, 'isolates', 1, (SELECT CURRENT_DATE), "
                                  f"(SELECT CURRENT_DATE), 'pending', true)")
+            #todo need to set a proper method to build links based on the sample to transfer
+            #dev code, not set yet
             html_path = str(args.html_path).replace('/reports/','/galaxyreports/')
             html_link = f'<p><a href="{html_path}" target="_blank"> html report</a></p>'
+            #end of dev code
             field = 'html_report'
             cur_isolates.execute(f"INSERT INTO isolate_submission_isolates (submission_id, index, field, value) "
                                  f"VALUES ({highest_sub_id},1, '{field}', '{html_link}')")

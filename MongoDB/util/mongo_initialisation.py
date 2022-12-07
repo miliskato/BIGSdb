@@ -32,7 +32,7 @@ class Mongoinitialisation:
         :return: opened collection object
         """
         # MongoDB creates collections on the fly while inserting any Documents, we do not want to allow unwanted collections to be created, therefore this check:
-        if collection in ["isolates", "old_isolate_results", "isolates_badqc", "sequence_types", "new_allele_hashes", "cluster_membership", "new_allele_hashes", "update_metadata"]:
+        if collection in ["isolates", "old_isolate_results", "isolates_badqc", "sequence_types", "new_allele_hashes", "cluster_membership", "update_metadata"]:
             opened_collection = opened_database[collection]
             logging.debug(f"opened collection {collection}")
             return opened_collection
