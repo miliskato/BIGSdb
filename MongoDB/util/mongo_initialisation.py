@@ -20,26 +20,29 @@ class Mongoinitialisation:
         """
         try:
             client = MongoClient(config_data["CONNECTION_STRING_BASE"])
-        except:
+        except Exception:
             raise RuntimeError(f"Could not connect to {config_data['CONNECTION_STRING_BASE']}")
-        return client[f"{species}_test"]
+        if config_data["dtap"] not in ['dev', 'test', 'acc', 'prod']:
+            raise NameError(f"replace dtap value in MongoDB/config/config.yml")
+        return client['_'.join([species, config_data["dtap"]])]  # e.g. listeria_dev
 
-    def _open_mongo_collection(self, opened_database, collection: str) -> object:
+    def _open_mongo_collection(self, opened_database: object, collection: str, config_data: dict) -> object:
         """
         Opens a mongo collection in an opened database
         :param opened_database: mongo opened database
         :param collection: mongo collection to be opened
         :return: opened collection object
         """
-        # MongoDB creates collections on the fly while inserting any Documents, we do not want to allow unwanted collections to be created, therefore this check:
-        if collection in ["isolates", "old_isolate_results", "isolates_badqc", "sequence_types", "new_allele_hashes", "cluster_membership", "update_metadata"]:
+        # MongoDB creates collections on the fly while inserting any Documents, we do not want to allow
+        # unwanted collections to be created, therefore this check:
+        if collection in config_data['collections']:
             opened_collection = opened_database[collection]
             logging.debug(f"opened collection {collection}")
             return opened_collection
         else:
             raise RuntimeError(f"Collection '{collection}' not in supported collections")
 
-    def _initialise_collections(self, config_data: dict, species: str) -> object:
+    def initialise_collections(self, config_data: dict, species: str) -> object:
         """
         Initialises database and collections for interaction
         :param config_data: config data that contains connection string connect to Cloud Cluster or local
@@ -49,11 +52,11 @@ class Mongoinitialisation:
         # open connection to species db
         species_database = self._open_mongo_database(config_data, species)
         # open isolates collection
-        isolates_collection = self._open_mongo_collection(species_database, "isolates")
+        isolates_collection = self._open_mongo_collection(species_database, "isolates", config_data)
         # open isolate_results collection
-        isolateresults_collection = self._open_mongo_collection(species_database, "old_isolate_results")
+        isolateresults_collection = self._open_mongo_collection(species_database, "old_isolate_results", config_data)
         # open isolates badqc collection
-        isolates_badqc_collection = self._open_mongo_collection(species_database, "isolates_badqc")
+        isolates_badqc_collection = self._open_mongo_collection(species_database, "isolates_badqc", config_data)
         return isolates_collection, isolateresults_collection, isolates_badqc_collection
 
     def initialise_clustering_collections(self, config_data: dict, species: str):
@@ -70,11 +73,14 @@ class Mongoinitialisation:
 
     def initialise_hashing_collection(self, config_data: dict, species: str) -> object:
         """
-        :param config_data:
-        :param species:
+        :param config_data: config data containing connection string
+        :param species: commonly used bioit species name: either genus or specific like stec
         :return: Opened hashing collection
         """
         species_database = self._open_mongo_database(config_data, species)
+        hashed_ad_collection = self._open_mongo_collection(species_database, "new_allele_hashes", config_data)
+        return hashed_ad_collection
+
         hashed_AD_collection = self._open_mongo_collection(species_database, "new_allele_hashes")
         return hashed_AD_collection
 

@@ -1,3 +1,7 @@
+'''
+obsolete: originally designed for tsv input, replaced by json input only
+'''
+
 import os
 import logging
 from pathlib import Path
@@ -60,7 +64,13 @@ class Mongoresults(object, metaclass=abc.ABCMeta):
 
         return self._species_selection(species, outputtsvdict)
 
-    def _parse_date_to_iso(self, str_date: str):
+    # todo redo using datetime strftime if to be used further
+    def _parse_date_to_iso(self, str_date: str) -> object:
+        """
+        parses
+        :param str_date:
+        :return:
+        """
         split_date = re.split('/|-|:', str_date.replace(' ', ''))
         split_date = [int(i) for i in split_date]
         new_date = datetime(split_date[2], split_date[1], split_date[0], split_date[3], split_date[4], split_date[5])
@@ -87,9 +97,9 @@ class Mongoresults(object, metaclass=abc.ABCMeta):
                            "assembly": self._avro_input_commontsvoutput(outputtsvdict, "assembly"),
                            "qc":
                                {"qc_fastqc": self._avro_input_commontsvoutput(outputtsvdict, "qc_fastqc"),
-                               "qc_cgmlst": self._avro_input_commontsvoutput(outputtsvdict, "qc_cgmlst"),
-                               "qc_assembly": self._avro_input_commontsvoutput(outputtsvdict, "qc_assembly"),
-                               "qc_kraken": self._avro_input_commontsvoutput(outputtsvdict, "qc_kraken")
+                                "qc_cgmlst": self._avro_input_commontsvoutput(outputtsvdict, "qc_cgmlst"),
+                                "qc_assembly": self._avro_input_commontsvoutput(outputtsvdict, "qc_assembly"),
+                                "qc_kraken": self._avro_input_commontsvoutput(outputtsvdict, "qc_kraken")
                                 },
                            "kraken": self._avro_input_commontsvoutput(outputtsvdict, "kraken"),
                            "mlst": self._avro_input_typingschema(species, "mlst", "mlst", outputtsvdict),
@@ -260,9 +270,9 @@ class Mongoresults(object, metaclass=abc.ABCMeta):
                            "assembly": self._avro_input_commontsvoutput(outputtsvdict, "assembly"),
                            "qc":
                                {"qc_fastqc": self._avro_input_commontsvoutput(outputtsvdict, "qc_fastqc"),
-                               "qc_cgmlst": self._avro_input_commontsvoutput(outputtsvdict, "qc_cgmlst"),
-                               "qc_reference": self._avro_input_commontsvoutput(outputtsvdict, "qc_reference"),
-                               "qc_kraken": self._avro_input_commontsvoutput(outputtsvdict, "qc_kraken")
+                                "qc_cgmlst": self._avro_input_commontsvoutput(outputtsvdict, "qc_cgmlst"),
+                                "qc_reference": self._avro_input_commontsvoutput(outputtsvdict, "qc_reference"),
+                                "qc_kraken": self._avro_input_commontsvoutput(outputtsvdict, "qc_kraken")
                                 },
                            "kraken": self._avro_input_commontsvoutput(outputtsvdict, "kraken"),
                            "variant_calling": self._avro_input_commontsvoutput(outputtsvdict, "variant_calling"),
@@ -292,9 +302,9 @@ class Mongoresults(object, metaclass=abc.ABCMeta):
                            "assembly": self._avro_input_commontsvoutput(outputtsvdict, "assembly"),
                            "qc":
                                {"qc_fastqc": self._avro_input_commontsvoutput(outputtsvdict, "qc_fastqc"),
-                               "qc_cgmlst": self._avro_input_commontsvoutput(outputtsvdict, "qc_cgmlst"),
-                               "qc_assembly": self._avro_input_commontsvoutput(outputtsvdict, "qc_assembly"),
-                               "qc_kraken": self._avro_input_commontsvoutput(outputtsvdict, "qc_kraken")
+                                "qc_cgmlst": self._avro_input_commontsvoutput(outputtsvdict, "qc_cgmlst"),
+                                "qc_assembly": self._avro_input_commontsvoutput(outputtsvdict, "qc_assembly"),
+                                "qc_kraken": self._avro_input_commontsvoutput(outputtsvdict, "qc_kraken")
                                 },
                            "kraken": self._avro_input_commontsvoutput(outputtsvdict, "kraken"),
                            "serogroup": self._avro_input_commontsvoutput(outputtsvdict, "serogroup"),
@@ -324,9 +334,9 @@ class Mongoresults(object, metaclass=abc.ABCMeta):
                            "assembly": self._avro_input_commontsvoutput(outputtsvdict, "assembly"),
                            "qc":
                                {"qc_fastqc": self._avro_input_commontsvoutput(outputtsvdict, "qc_fastqc"),
-                               "qc_cgmlst": self._avro_input_commontsvoutput(outputtsvdict, "qc_cgmlst"),
-                               "qc_assembly": self._avro_input_commontsvoutput(outputtsvdict, "qc_assembly"),
-                               "qc_kraken": self._avro_input_commontsvoutput(outputtsvdict, "qc_kraken")
+                                "qc_cgmlst": self._avro_input_commontsvoutput(outputtsvdict, "qc_cgmlst"),
+                                "qc_assembly": self._avro_input_commontsvoutput(outputtsvdict, "qc_assembly"),
+                                "qc_kraken": self._avro_input_commontsvoutput(outputtsvdict, "qc_kraken")
                                 },
                            "kraken": self._avro_input_commontsvoutput(outputtsvdict, "kraken"),
                            "variant_calling": self._avro_input_commontsvoutput(outputtsvdict, "variant_calling"),
@@ -427,9 +437,9 @@ class Mongoresults(object, metaclass=abc.ABCMeta):
                            "assembly": self._avro_input_commontsvoutput(outputtsvdict, "assembly"),
                            "qc":
                                {"qc_fastqc": self._avro_input_commontsvoutput(outputtsvdict, "qc_fastqc"),
-                               "qc_cgmlst": self._avro_input_commontsvoutput(outputtsvdict, "qc_cgmlst"),
-                               "qc_assembly": self._avro_input_commontsvoutput(outputtsvdict, "qc_assembly"),
-                               "qc_kraken": self._avro_input_commontsvoutput(outputtsvdict, "qc_kraken")
+                                "qc_cgmlst": self._avro_input_commontsvoutput(outputtsvdict, "qc_cgmlst"),
+                                "qc_assembly": self._avro_input_commontsvoutput(outputtsvdict, "qc_assembly"),
+                                "qc_kraken": self._avro_input_commontsvoutput(outputtsvdict, "qc_kraken")
                                 },
                            "kraken": self._avro_input_commontsvoutput(outputtsvdict, "kraken"),
                            "variant_calling": self._avro_input_commontsvoutput(outputtsvdict, "variant_calling"),
@@ -473,7 +483,7 @@ class Mongoresults(object, metaclass=abc.ABCMeta):
                                                              self._common_output_arguments[commontsvoutputoption]}
         return common_tsv_output_dict[commontsvoutputoption]
 
-    def _avro_input_typinglocus(self, locusname, outputtsvdict):
+    def _avro_input_typinglocus(self, locusname: str, outputtsvdict):
         """
         Creates a json string/dict to be used in a Mongo schema
         :param locusname: locusname as in tsv_output but with - replaced by _

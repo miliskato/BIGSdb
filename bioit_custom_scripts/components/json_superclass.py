@@ -1,15 +1,22 @@
 class JsonSuperClass:
     """
-    Class containing definition to insert typing results
+    Class containing definitions to insert json typing and gene detection results
     """
-    def __init__(self, isolatename, species, cur_isolates, cur_seqdef, sample_output_dict):
+    def __init__(self, isolatename: str, species: str, cur_isolates: object, cur_seqdef: object, sample_output_dict: dict) -> None:
+        """
+        :param isolatename:
+        :param species:
+        :param cur_isolates: isolate database connection object
+        :param cur_seqdef: sequence definition database connection object
+        :param sample_output_dict: results of sample
+        """
         self.isolatename = isolatename
         self.species = species
         self.cur_isolates = cur_isolates
         self.cur_seqdef = cur_seqdef
         self.sample_output_dict = sample_output_dict
 
-    def _insert_allele_designation(self, locus, allele_id):
+    def _insert_allele_designation(self, locus: str, allele_id: str) -> None:
         self.cur_isolates.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
                                   f"allele_id, status, method, sender, "
                                   f"curator, date_entered, datestamp) "
@@ -17,32 +24,32 @@ class JsonSuperClass:
                                   f"'{allele_id}', 'confirmed', 'automatic', 1, "
                                   f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
 
-    def _insert_AD_if_needed(self, locus, allele_id):
+    def _insert_AD_if_needed(self, locus: str, allele_id: str) -> None:
         self.cur_isolates.execute(f"SELECT COUNT(*) FROM allele_designations WHERE "
                                   f"locus='{locus}' AND allele_id='{allele_id}' AND isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate='{self.isolatename}')")
         designationpresent = self.cur_isolates.fetchall()
         if designationpresent[0][0] == 0:
             self._insert_allele_designation(locus, allele_id)
 
-    def _insert_metadata(self, field, value):
+    def _insert_metadata(self, field: str, value: str) -> None:
         self.cur_isolates.execute(f"INSERT INTO eav_text(isolate_id, "
                                   f"field, value)"
                                   f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{self.isolatename}'),"
                                   f"'{field}', '{value}') ")
 
-    def _insert_metadata_hidden(self, field, value):
+    def _insert_metadata_hidden(self, field: str, value: str) -> None:
         self.cur_isolates.execute(f"INSERT INTO eav_text_hidden(isolate_id, "
                                   f"field, value)"
                                   f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{self.isolatename}'),"
                                   f"'{field}', '{value}') ")
 
-    def _insert_metadata_bool(self, field, value):
+    def _insert_metadata_bool(self, field: str, value: str) -> None:
         self.cur_isolates.execute(f"INSERT INTO eav_boolean(isolate_id, "
                                   f"field, value)"
                                   f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{self.isolatename}'),"
                                   f"'{field}', '{value}') ")
 
-    def _insert_dummy_sequence_if_needed(self, locus, allele_id):
+    def _insert_dummy_sequence_if_needed(self, locus: str, allele_id: str) -> None:
         self.cur_seqdef.execute(
             f"SELECT allele_id FROM sequences WHERE allele_id = '{allele_id}' and locus = '{locus}'")
         present = self.cur_seqdef.fetchall()
@@ -58,7 +65,7 @@ class JsonSuperClass:
                                       VALUES('{locus}','{allele_id}','{dummysequence}','unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
         # could also add insert allele designation here but i prefer to keep these definitions separate for readability
 
-    def _insert_locus_if_needed(self, locus, scheme):
+    def _insert_locus_if_needed(self, locus: str, scheme: str) -> None:
         self.cur_seqdef.execute(f"SELECT id FROM loci WHERE "
                                 f"id='{locus}'")
         present = self.cur_seqdef.fetchall()
@@ -83,7 +90,7 @@ class JsonSuperClass:
             self.cur_isolates.execute(f"INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) \
                                                                       VALUES((SELECT id FROM schemes WHERE name='{scheme}'), '{locus}', 1, (SELECT CURRENT_DATE))")
 
-    def _assign_schememember_if_needed(self, locus, scheme):
+    def _assign_schememember_if_needed(self, locus: str, scheme: str) -> None:
         self.cur_seqdef.execute(f"SELECT COUNT(*) FROM scheme_members WHERE "
                                 f"locus='{locus}' AND scheme_id=(SELECT id FROM schemes WHERE name='{scheme}')")
         schemememberpresent = self.cur_seqdef.fetchall()
@@ -92,5 +99,3 @@ class JsonSuperClass:
                                       VALUES((SELECT id FROM schemes WHERE name='{scheme}'), '{locus}', 1, (SELECT CURRENT_DATE))")
             self.cur_isolates.execute(f"INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) \
                                         VALUES((SELECT id FROM schemes WHERE name='{scheme}'), '{locus}', 1, (SELECT CURRENT_DATE))")
-
-

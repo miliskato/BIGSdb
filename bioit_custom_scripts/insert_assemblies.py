@@ -61,8 +61,8 @@ if presentcontigs[0][0] == 0:
                     f"'f', '{sequence}', '{sequencename.strip('>')}', 1, "
                     f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
 
-    # remove the file
-    os.remove(Path(fastafile))
+    # # remove the file
+    # os.remove(Path(fastafile))
 
 else:
     sys.exit(f"isolate {isolate_name} already contains assembly records!")

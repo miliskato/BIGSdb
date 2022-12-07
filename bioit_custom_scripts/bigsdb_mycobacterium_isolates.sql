@@ -270,6 +270,9 @@ INSERT INTO eav_fields(field, value_format, category, description, no_curate, no
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('pointfinder_hits', 'text', 'pointfinder', '', 't', 't', (SELECT CURRENT_DATE), 1);
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('html', 'text', 'galaxy report', 'galaxy html report', 't', 't', (SELECT CURRENT_DATE), 1);
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('tsv', 'text', 'galaxy report', 'galaxy tsv report', 't', 't', (SELECT CURRENT_DATE), 1);
+INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('assembly', 'text', 'galaxy report', '', 't', 't', (SELECT CURRENT_DATE), 1);
+INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('VCF_unfiltered', 'text', 'galaxy report', '', 't', 't', (SELECT CURRENT_DATE), 1);
+INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('VCF_filtered', 'text', 'galaxy report', '', 't', 't', (SELECT CURRENT_DATE), 1);
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator, field_order) VALUES('amr_type', 'text', 'AMR detection', '', 't', 't', (SELECT CURRENT_DATE), 1,'1');
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator, field_order) VALUES('amr_first_line_resistant', 'text', 'AMR detection', '', 't', 't', (SELECT CURRENT_DATE), 1,'2');
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator, field_order) VALUES('amr_second_line_group_a_resistant', 'text', 'AMR detection', '', 't', 't', (SELECT CURRENT_DATE), 1,'3');
@@ -459,7 +462,7 @@ INSERT INTO eav_fields_hidden(field, value_format, description, no_curate, no_su
 INSERT INTO eav_fields_hidden(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('mongo_results_version', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1);
 CREATE TABLE eav_text_hidden AS (SELECT * FROM eav_text) WITH NO DATA;
 ALTER TABLE eav_text_hidden ADD PRIMARY KEY(isolate_id, field);
-ALTER TABLE eav_text_hidden ADD CONSTRAINT eavt_field FOREIGN KEY (field) REFERENCES eav_fields(field) ON UPDATE CASCADE ON DELETE CASCADE;
+ALTER TABLE eav_text_hidden ADD CONSTRAINT eavt_field FOREIGN KEY (field) REFERENCES eav_fields_hidden(field) ON UPDATE CASCADE ON DELETE CASCADE;
 ALTER TABLE eav_text_hidden ADD CONSTRAINT eavt_isolate FOREIGN KEY (isolate_id) REFERENCES isolates(id) ON UPDATE CASCADE ON DELETE CASCADE;
 GRANT SELECT, INSERT, UPDATE, DELETE ON eav_text_hidden TO apache;
 -- INSERT INTO eav_fields(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('cgMLST_differences_0', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1);
