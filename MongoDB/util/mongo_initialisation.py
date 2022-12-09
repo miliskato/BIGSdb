@@ -88,5 +88,5 @@ class Mongoinitialisation:
         :return: Opened hashing collection
         """
         species_database = self._open_mongo_database(config_data, species)
-        update_collection = self._open_mongo_collection(species_database, "update_metadata")
+        update_collection = self._open_mongo_collection(species_database, "update_metadata", config_data)
         return update_collection

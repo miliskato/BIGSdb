@@ -5,7 +5,7 @@ import logging
 from pymongo.write_concern import WriteConcern
 import datetime
 from datetime import date
-from bioit_custom_scripts.components.databaseconnection import Database_connection
+from bioit_custom_scripts.components.databaseconnection import DatabaseConnection
 from MongoDB.util.mongo_initialisation import Mongoinitialisation
 from MongoDB.config import MONGO_CONFIG
 from MongoDB.config import CLUSTERING_CONFIG
@@ -54,7 +54,7 @@ class NewAllelesProfileClusteringFromMongoToBigs:
         self.hashed_AD_collection = hashed_AD_collection
         self.cluster_membership_collection = cluster_membership_collection
         self.update_metadata_collection = update_metadata_collection
-        self.cur_isolates, self.cur_seqdef = Database_connection().open_database_connections(self.species)
+        self.cur_isolates, self.cur_seqdef = DatabaseConnection().open_database_connections(self.species)
         self.clustering_thresholds = CLUSTERING_CONFIG[f"clustering_thresholds_{self.species}"]
         self.current_update_date = datetime.datetime.utcnow()
         self.last_date_of_update = self._get_last_date_of_update()
@@ -70,7 +70,11 @@ class NewAllelesProfileClusteringFromMongoToBigs:
         Retrieve in mongo db the date of the last update.
         :return: a date in iso UTC format
         """
-        return self.update_metadata_collection.find_one({'metadata': 'last_update'})['last_update_date']
+        query = self.update_metadata_collection.find_one({'metadata': 'last_update'})
+        if query:
+            return query['last_update_date']
+        else:
+            return query
 
     def _get_new_sequence(self) -> list:
         """
@@ -313,24 +317,25 @@ class NewAllelesProfileClusteringFromMongoToBigs:
                 "$set": {'last_update_date': self.current_update_date}})
 
 # todo modify this to load the species option from the config after merging with Michaël branch
-def parse_arguments() -> argparse.Namespace:
+def parse_arguments(specieslist) -> argparse.Namespace:
     """
     Parses the command line arguments.
     :return: Parsed arguments
     """
     parser = argparse.ArgumentParser()
     parser.add_argument("--species", required=True, type=str,
-                        choices=['mycobacterium', 'listeria', 'neisseria', 'stec', 'salmonella'])
+                        choices=specieslist)
     return parser.parse_args()
 
 
 if __name__ == '__main__':
-    # Parse arguments
-    args = parse_arguments()
 
     # Parse config
     with open(MONGO_CONFIG, encoding='utf-8') as handle:
         config_data = yaml.safe_load(handle)
+
+    # Parse arguments
+    args = parse_arguments(config_data['species'])
 
     # Configure stdout logging
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)

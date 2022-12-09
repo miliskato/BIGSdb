@@ -22,3 +22,4 @@ collections:
     - sequence_types
     - new_allele_hashes
     - cluster_membership
+    - update_metadata
