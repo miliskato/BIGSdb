@@ -8,14 +8,14 @@ from pathlib import Path
 
 
 
-def parse_arguments() -> argparse.Namespace:
+def parse_arguments(specieslist) -> argparse.Namespace:
     """
     Parses the command line arguments.
     :return: Parsed arguments
     """
     parser = argparse.ArgumentParser()
     parser.add_argument("--species", required=True, type=str,
-                        choices=['mycobacterium', 'listeria', 'neisseria', 'stec', 'salmonella'])
+                        choices=specieslist)
     parser.add_argument("--new_cl_thresh", required=True, type=str,  help='list writen without spaces between brackets')
     parser.add_argument("--cl_config", required=True, type=Path)
     return parser.parse_args()
@@ -23,13 +23,13 @@ def parse_arguments() -> argparse.Namespace:
 
 
 if __name__ == '__main__':
-    # Parse arguments
-    args = parse_arguments()
 
     # Parse config
     with open(MONGO_CONFIG, encoding='utf-8') as handle:
         config_data = yaml.safe_load(handle)
 
+    # Parse arguments
+    args = parse_arguments(config_data['species'])
     # Open collections
     mongoinit = Mongoinitialisation()
     st_collection, cluster_membership_collection = \

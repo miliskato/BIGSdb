@@ -11,7 +11,7 @@ import traceback
 import datetime
 from util.mongo_initialisation import Mongoinitialisation
 from config import MONGO_CONFIG
-from bioit_custom_scripts.components.databaseconnection import Database_connection
+from bioit_custom_scripts.components.databaseconnection import DatabaseConnection
 from bioit_custom_scripts.config import BIGSDB_CONFIG
 
 def send_email(subject: str, content: str, config: dict) -> None:
@@ -30,15 +30,15 @@ def send_email(subject: str, content: str, config: dict) -> None:
         s.send_message(message)
     logging.info(content)
 
-#todo add the config file to load the species from the config file when branch merged with Michaël one.
-def parse_arguments() -> argparse.Namespace:
+
+def parse_arguments(specieslist) -> argparse.Namespace:
     """
     Parses the command line arguments.
     :return: Parsed arguments
     """
     argument_parser = argparse.ArgumentParser()
     argument_parser.add_argument('--species', required=True, type=str,
-                                 choices=['mycobacterium', 'listeria', 'neisseria', 'stec', 'salmonella'])
+                                 choices=specieslist)
     argument_parser.add_argument('--html_path', type=Path, required=True)
     return argument_parser.parse_args()
 
@@ -46,12 +46,12 @@ if __name__ == '__main__':
     # Configure stdout logging
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
-    # Parse arguments
-    args = parse_arguments()
-
     # Parse config
     with open(MONGO_CONFIG, encoding='utf-8') as handle:
         config_data = yaml.safe_load(handle)
+
+    # Parse arguments
+    args = parse_arguments(config_data['species'])
 
     with open(BIGSDB_CONFIG, encoding='utf-8') as handle:
         bigsdb_config = yaml.safe_load(handle)
@@ -59,15 +59,19 @@ if __name__ == '__main__':
 
         # Open collections
         mongoinit = Mongoinitialisation()
-        isolates_collection, old_isolateresults_collection, isolates_badqc_collection = mongoinit._initialise_collections(config_data, args.species)
+        isolates_collection, old_isolateresults_collection, isolates_badqc_collection = mongoinit.initialise_collections(config_data, args.species)
 
 
         # Connect to db and create cursor
-        cur_isolates, cur_seqdef = Database_connection().open_database_connections(args.species)
+        cur_isolates, cur_seqdef = DatabaseConnection().open_database_connections(args.species)
 
         # fetch all documents in the bad samples of the species
         update_collection = mongoinit.initialise_update_collection(config_data, args.species)
-        last_run_date = update_collection.find_one({'metadata': 'last_bad_samples_update'})['last_update_date']
+        query = update_collection.find_one({'metadata': 'last_bad_samples_update'})
+        if query:
+            last_run_date = ['last_update_date']
+        else:
+            last_run_date = datetime.datetime(1970, 1, 1)
         if last_run_date == None:
             last_run_date = datetime.datetime(1970, 1, 1)
         mongo_query = isolates_badqc_collection.find({'insertion_date': {'$gt': last_run_date}})
