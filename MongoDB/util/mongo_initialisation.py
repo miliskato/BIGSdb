@@ -11,11 +11,11 @@ class Mongoinitialisation:
     def __init__(self):
         pass
 
-    def _open_mongo_database(self, config_data, species) -> object:
+    def _open_mongo_database(self, config_data: dict, species: str) -> object:
         """
         Connects to the mongo Cloud Cluster specified in the config file and opens the database
-        :param config_data:
-        :param species:
+        :param config_data: config data containing connection string
+        :param species: commonly used bioit species name: either genus or specific like stec
         :return: opened database object
         """
         try:
@@ -67,8 +67,8 @@ class Mongoinitialisation:
         :return: opened sequence_type and  for a given species
         """
         species_database = self._open_mongo_database(config_data, species)
-        st_collection = self._open_mongo_collection(species_database, "sequence_types")
-        cluster_membership_collection = self._open_mongo_collection(species_database, "cluster_membership")
+        st_collection = self._open_mongo_collection(species_database, "sequence_types", config_data)
+        cluster_membership_collection = self._open_mongo_collection(species_database, "cluster_membership",config_data)
         return st_collection,  cluster_membership_collection
 
     def initialise_hashing_collection(self, config_data: dict, species: str) -> object:
@@ -80,9 +80,6 @@ class Mongoinitialisation:
         species_database = self._open_mongo_database(config_data, species)
         hashed_ad_collection = self._open_mongo_collection(species_database, "new_allele_hashes", config_data)
         return hashed_ad_collection
-
-        hashed_AD_collection = self._open_mongo_collection(species_database, "new_allele_hashes")
-        return hashed_AD_collection
 
     def initialise_update_collection(self, config_data: dict, species: str) -> object:
         """

@@ -16,7 +16,7 @@ from email.message import EmailMessage
 import socket
 import traceback
 import os
-import shutil
+from util.mongo_results import Mongoresults
 
 PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(PYTHONPATH))
@@ -55,7 +55,7 @@ def _parse_arguments(specieslist) -> argparse.Namespace:
     mutually_exclusive_group.add_argument('--jsonfilepath', type=Path)
     parser.add_argument("--species", required=True, type=str,
                         choices=specieslist)
-    parser.add_argument("--results_type", required=True, type=str, choices=['new_isolate', 'reanalysis', 'badqc_validated''])
+    parser.add_argument("--results_type", required=True, type=str, choices=['new_isolate', 'reanalysis', 'badqc_validated'])
     parser.add_argument("--reportdirectorypath", required=False, type=str)  # not mandatory because of reanalysis
     parser.add_argument("--fastafilepath", required=False, type=str)  # not mandatory because of reanalysis
     parser.add_argument("--vcffilepath", required=False, type=str)  # not mandatory because of reanalysis
@@ -91,6 +91,7 @@ def _new_isolate(technical_id: str, reportdirectorypath: str, vcffilepath: str, 
     results["results_version"] = 1  # this version always increments
     results["changed_version"] = 1  # this version only increments whenever something actually changed
     new_isolate_dict = {"_id": technical_id,
+                        "report_directory": reportdirectorypath,
                         "vcf_path": vcffilepath,
                         "fasta_path": fastafilepath,
                         "previous_latest_results_document": None,  # _write_document(isolateresults_collection, results)
@@ -121,7 +122,12 @@ def prepend_string_dot_to_dict_keys(input_dictionary: dict, prepending: str = 'r
     return dict((keydict[key], value) for (key, value) in input_dictionary_copy.items())
 
 
-def find_allele_number_new_entry(hashed_AD_collection):
+def find_allele_number_new_entry(hashed_AD_collection) -> str:
+    """
+    Find the last temporary name for an hashed allele and returns a new id for the new allele to add.
+    :param hashed_AD_collection: hashed allele collection from mongo db
+    :return: the name for the new temporary allele.
+    """
     query_hash_db_size = hashed_AD_collection.count_documents({"scheme": 'cgmlst'})
     if query_hash_db_size == 0:
         return 'Temp_1'
@@ -129,14 +135,9 @@ def find_allele_number_new_entry(hashed_AD_collection):
         return f'Temp_{query_hash_db_size + 1}'
 
 
-def find_hashes_in_results_and_add_to_collection(results: dict, mongoinit: object, config_data: dict, species: str,
-                                                 mode: str):
-    hashed_AD_collection = mongoinit.initialise_hashing_collection(config_data, species)
-    for typing_scheme in ['mlst', 'cgmlst', 'mlst_warwick', 'mlst_pasteur']:
-
-def find_hashes_in_results_and_add_to_collection(results: dict, mongoinit: object, config_data: dict, species: str) -> None:
+def find_hashes_in_results_and_add_to_collection(results: dict, mongoinit: object, config_data: dict, species: str, mode:str) -> None:
     """
-    finds hashes in json output report for multilocus sequence typing schemes and adds these hashes and alleles to a separate colelction: new_allele_hashes.
+    finds hashes in json output report for multilocus sequence typing schemes and adds these hashes and alleles to a separate collection: new_allele_hashes.
     Also replace the hashes by temporary allele identifiers and purges the sequences to save space
     :param results: results dictionary
     :param mongoinit: Mongointitialisation object to initialise collection connections
@@ -145,7 +146,7 @@ def find_hashes_in_results_and_add_to_collection(results: dict, mongoinit: objec
     :return: None
     """
     hashed_ad_collection = mongoinit.initialise_hashing_collection(config_data, species)
-    for typing_scheme in ['mlst', 'cgmlst']:
+    for typing_scheme in ['mlst', 'cgmlst',  'mlst_warwick', 'mlst_pasteur']:
         if typing_scheme in results.keys():
             for locus_index, allele_info in enumerate(results[typing_scheme]['loci']):
                 # check if allele designation is md5 hash (32 char combination of letters andor numbers)
@@ -156,7 +157,7 @@ def find_hashes_in_results_and_add_to_collection(results: dict, mongoinit: objec
                         {"scheme": typing_scheme, "locus": allele_info['Locus'],
                          "hashed_allele": allele_info['Allele']})
                     if existing_document is None:
-                        temp_allele = find_allele_number_new_entry(hashed_AD_collection)
+                        temp_allele = find_allele_number_new_entry(hashed_ad_collection)
                         _write_document(hashed_ad_collection, {"scheme": typing_scheme,
                                                                "locus": allele_info['Locus'],
                                                                "hashed_allele": allele_info['Allele'],
@@ -176,13 +177,10 @@ def find_hashes_in_results_and_add_to_collection(results: dict, mongoinit: objec
                             else:
                                 already_present = False
                         if mode == 'new_isolate' or mode == 'reanalysis' and not already_present:
-                            hashed_AD_collection.with_options(write_concern=WriteConcern(w="majority")).update_one(
+                            hashed_ad_collection.with_options(write_concern=WriteConcern(w="majority")).update_one(
                                 {"_id": existing_document['_id']},
                                 {"$inc": {"encountered_count": 1}})
                             logging.info(f"hashed allele '{allele_info['Allele']}' encounter incremented by one")
-                        hashed_ad_collection.with_options(write_concern=WriteConcern(w="majority")).update_one({"_id": existing_document['_id']},
-                                                                                                               {"$inc": {"encountered_count": 1}})
-                        logging.info(f"hashed allele '{allele_info['Allele']}' encounter incremented by one")
                     results[typing_scheme]['loci'][locus_index].pop('Allele_sequence')
                     results[typing_scheme]['loci'][locus_index][
                         'Allele'] = temp_allele  # replace in the results the name of the allele (no hash anymore)
@@ -236,8 +234,6 @@ def _check_if_results_changed(current_results, new_results):
 
 
 if __name__ == '__main__':
-    # Parse arguments
-    args = _parse_arguments()
 
     # Parse config
     with open(MONGO_CONFIG, encoding='utf-8') as handle:
@@ -268,22 +264,14 @@ if __name__ == '__main__':
         # If statement for reanalysis or new
         if args.results_type == "new_isolate" or args.results_type == 'badqc_validated':
             if args.results_type == "new_isolate":
-                if args.technical_id in mongoquerying._query_list_of_all_distinct_values(isolates_collection,
-                                                                                         "_id") or args.technical_id in mongoquerying._query_list_of_all_distinct_values(
+                if args.technical_id in mongoquerying.query_list_of_all_distinct_values(isolates_collection,
+                                                                                         "_id") or args.technical_id in mongoquerying.query_list_of_all_distinct_values(
                     isolates_badqc_collection, "_id"):
                     raise RuntimeError('This technical id is already present in the isolates collection')
                     # todo check if fasta path and vcf path are real?
             mongoresults = Mongoresults()
             if args.jsonfilepath:
-        if args.results_type == "new_isolate":
-            if args.technical_id in mongoquerying.query_list_of_all_distinct_values(isolates_collection, "_id") or args.technical_id in mongoquerying.query_list_of_all_distinct_values(isolates_badqc_collection, "_id"):
-                raise Exception('This technical id is already present in the isolates collection')
-            else:
-                # todo check if fasta path and vcf path are real?
                 records = json.load(open(args.jsonfilepath, 'r'))
-                records["isolates_id"] = args.technical_id
-                # QC check for failed qc to not be integrated in main db
-                sample_quality = 'good'
             elif args.dict:
                 sample_doc = isolates_badqc_collection.find_one({"_id": args.technical_id})
                 records = sample_doc['results']
@@ -302,40 +290,30 @@ if __name__ == '__main__':
                 try:
                     for qc_type in records['qc']:
                         for key in records['qc'][qc_type]:
-                            if key.endswith('status') and records['qc'][qc_type][key] == 'Failed':  # and not (records['qc'][qc_type][key] == 'OK' or records['qc'][qc_type][key] == 'Warning'): # todo check logic
                             if key.endswith('status') and records['qc'][qc_type][
                                 key] == 'Failed':  # and not (records['qc'][qc_type][key] == 'OK' or records['qc'][qc_type][key] == 'Warning'): # todo check logic
                                 sample_quality = 'bad'
                 except Exception:
                     raise Exception('No qc values found in the given results')
 
-                if sample_quality == 'good':
-                    find_hashes_in_results_and_add_to_collection(records, mongoinit, config_data, args.species)
-                    _write_document(isolates_collection, _new_isolate(args.technical_id, args.reportdirectorypath, args.vcffilepath, args.fastafilepath,
-                                                                      records))
-                    logging.info(f"Wrote new isolate {args.technical_id} and its result to {args.species} database")
-                else:
-                    _write_document(isolates_badqc_collection, _new_isolate(args.technical_id, args.vcffilepath, args.fastafilepath,
-                                                                            records))
-                    logging.warning(f"New isolate {args.technical_id} failed quality control for one or more checks. It's results were written to the 'isolates_badqc' collection in the {args.species} database")
             if sample_quality == 'good':
                 records = find_hashes_in_results_and_add_to_collection(records, mongoinit, config_data,
                                                                        args.species, args.results_type)
                 _write_document(isolates_collection,
-                                _new_isolate(args.technical_id, args.vcffilepath, args.fastafilepath,
+                                _new_isolate(args.technical_id, args.reportdirectorypath, args.vcffilepath, args.fastafilepath,
                                              records))
                 logging.info(f"Wrote new isolate {args.technical_id} and its result to {args.species} database")
                 if 'cgmlst' in records.keys():
                     hashed_AD_collection = mongoinit.initialise_hashing_collection(config_data, args.species,)
                     clustering_input = mongoquerying._query_typing_results_by_technicalids_and_scheme(
                         isolates_collection,
-                        hashed_AD_collection,
                         scheme="cgmlst",
                         technicalids=
                         [args.technical_id])
                     custom_clustering = MongoCustomClustering(clustering_input[0], clustering_input[1], args.species)
                     logging.info(f"Running the clustering for the isolate {args.technical_id}")
                     sp_thresholds = f"clustering_thresholds_{args.species}"
+                    print(CLUSTERING_CONFIG[sp_thresholds])
                     sequence_type = custom_clustering.run_custom_clustering(st_collection,
                                                                             cluster_membership_collection,
                                                                             CLUSTERING_CONFIG[sp_thresholds])
@@ -362,17 +340,35 @@ if __name__ == '__main__':
             except Exception:
                 raise Exception('This reanalysis technical id is not present in the isolates collection')
             current_results = current_results_document['results']
-            if new_results["results.analysis_date"] == current_results["analysis_date"]:
-                raise Exception('This is not a reanalysis but the same results')
-            elif _return_YMD_from_DMYhms(new_results["results.analysis_date"]) < _return_YMD_from_DMYhms(current_results["analysis_date"]):
-                raise Exception('These results seem to be older than the current results')
+            # if new_results["results.analysis_date"] == current_results["analysis_date"]:
+            #     raise Exception('This is not a reanalysis but the same results')
+            # elif _return_YMD_from_DMYhms(new_results["results.analysis_date"]) < _return_YMD_from_DMYhms(current_results["analysis_date"]):
+            #     raise Exception('These results seem to be older than the current results')
             any_result_changed_new_old, unchanged_results_new_old, changed_results_new_old = _check_if_results_changed(current_results,
                                                                                                new_results_handle)
+            if 'cgmlst' in changed_results_new_old:
+                hashed_AD_collection = mongoinit.initialise_hashing_collection(config_data, args.species)
+                clustering_input = mongoquerying._query_typing_results_by_technicalids_and_scheme(
+                    isolates_collection,
+                    scheme="cgmlst",
+                    technicalids=
+                    [args.technical_id])
+                custom_clustering = MongoCustomClustering(clustering_input[0], clustering_input[1],
+                                                          args.species)
+                logging.info(f"Running the clustering for the isolate {args.technical_id}")
+                sp_thresholds = f"clustering_thresholds_{args.species}"
+                sequence_type = custom_clustering.run_custom_clustering(st_collection,
+                                                                        cluster_membership_collection,
+                                                                        CLUSTERING_CONFIG[sp_thresholds])
+                isolates_collection.with_options(write_concern=WriteConcern(w="majority")).find_one_and_update(
+                    {"_id": args.technical_id},
+                    {"$set": {"ST": sequence_type}})
             if current_results_document['previous_latest_results_document'] is not None:
                 # Update current results
                 older_results_document_with_pointers = mongoquerying.query_docs_by_ids(isolateresults_collection, [current_results_document['previous_latest_results_document']])[0]
                 older_results = mongoquerying.query_old_results_and_replace_pointers(isolateresults_collection, older_results_document_with_pointers)
                 any_result_changed_old_older, unchanged_results_old_older, changed_results_old_older = _check_if_results_changed(older_results, current_results)
+
                 for unchanged_assay in list(set(unchanged_results_old_older)):
                     unchanged_assay_new_dict_with_pointer = {}
                     # check if document already has a pointer with same results to previous document or make pointer to document
@@ -391,51 +387,6 @@ if __name__ == '__main__':
             if any_result_changed_new_old is True:
                 new_results["results.changed_version"] = current_results["changed_version"] + 1
                 logging.info(f"Writing new changed results and linked to isolate {args.technical_id} in {args.species}")
-            old_results = mongoquerying._query_docs_by_ids(isolates_collection, [args.technical_id])[0]['results']
-            some_result_changed = False
-            cgmlst_results_changed = False
-            for mainkey in new_results_handle.keys():
-                if isinstance(new_results_handle[mainkey], dict):
-                    for subkey in new_results_handle[mainkey].keys():
-                        if mainkey not in old_results.keys():
-                            logging.info(f"{mainkey} not in old results")
-                            some_result_changed = True
-                        elif subkey == 'loci' or subkey == 'results' or subkey.startswith('hits'):
-                            if subkey not in old_results[mainkey].keys() or new_results_handle[mainkey][subkey] != \
-                                    old_results[mainkey][subkey]:
-                                # keep in mind that loci is a list: it seems as if loci are always outputted in the same order though so that is allright
-                                logging.info(f"{mainkey}{subkey} different or not in old")
-                                some_result_changed = True
-                                if mainkey == 'cgmlst':
-                                    cgmlst_results_changed = True
-            if some_result_changed is True:
-                new_results["results.results_version"] = old_results["results_version"] + 1
-                isolates_collection.with_options(write_concern=WriteConcern(w="majority")).update_one(
-                    {"_id": args.technical_id}, {
-                        "$set": {**new_results,
-                                 "results.results_changed_since_last_version": True,
-                                 "latest_analysis_date": _return_YMD_from_YMDhms(new_results["results.analysis_date"]),
-                                 "previous_latest_results_version": _write_document(isolateresults_collection,
-                                                                                    old_results)}})
-                logging.info(f"Wrote new results and linked to isolate {args.technical_id} in {args.species}")
-                if cgmlst_results_changed == True:
-                    hashed_AD_collection = mongoinit.initialise_hashing_collection(config_data, args.species)
-                    clustering_input = mongoquerying._query_typing_results_by_technicalids_and_scheme(
-                        isolates_collection,
-                        hashed_AD_collection,
-                        scheme="cgmlst",
-                        technicalids=
-                        [args.technical_id])
-                    custom_clustering = MongoCustomClustering(clustering_input[0], clustering_input[1], args.species)
-                    logging.info(f"Running the clustering for the isolate {args.technical_id}")
-                    sp_thresholds = f"clustering_thresholds_{args.species}"
-                    sequence_type = custom_clustering.run_custom_clustering(st_collection,
-                                                                            cluster_membership_collection,
-                                                                            CLUSTERING_CONFIG[sp_thresholds])
-                    isolates_collection.with_options(write_concern=WriteConcern(w="majority")).find_one_and_update(
-                        {"_id": args.technical_id},
-                        {"$set": {"ST": sequence_type}})
-
             else:
                 logging.info(
                     f"New results are not different from current results for {args.technical_id} in {args.species}, updating analysis dates and db versions.")
@@ -445,16 +396,6 @@ if __name__ == '__main__':
                          "latest_analysis_date": _return_YMD_from_DMYhms(new_results["results.analysis_date"]),
                          "previous_latest_results_document": _write_document(isolateresults_collection, current_results)}})
             logging.info(f"Wrote new results and linked to isolate {args.technical_id} in {args.species}")
-                # results version is not changed, it does not really matter how many analyses have already been performed with the same result
-                # new results still needs to be added because it modifies the analysis dates, db dates and also tool versions if these changed
-                isolates_collection.with_options(write_concern=WriteConcern(w="majority")).update_one(
-                    {"_id": args.technical_id}, {
-                        "$set": {**new_results,
-                                 "results.results_changed_since_last_version": False,
-                                 "latest_analysis_date": _return_YMD_from_YMDhms(
-                                     new_results["results.analysis_date"])}})
-                logging.info(
-                    f"New results were not different from old results for {args.technical_id} in {args.species}, updated analysis dates and db versions.")
 
     except Exception as exceptionmessage:
         _send_email(f"{os.path.basename(__file__)}: mongo upload fail on host {socket.gethostname()}",

@@ -111,7 +111,6 @@ class MongoCustomClustering:
             self.cgmlst_profile.st = 1
         st_collection.with_options(write_concern=WriteConcern(w="majority")).insert_one(self.cgmlst_profile.get_st_collection_entry())
 
-    @staticmethod
     def _compute_cluster_membership(self, st_collection: object, cluster_membership_collection: object, cluster_threshold: list) ->None:
         """
         Computes the cluster membership for the new sequence added to the st_collection.

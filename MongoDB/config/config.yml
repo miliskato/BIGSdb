@@ -3,7 +3,7 @@ CONNECTION_STRING_BASE: mongodb://admin:8T1r7nQwXnMoP3A9ubsu@bioit-mongo-d01:270
 
 mail:
     from: bioit-dev1@wiv-isp.be
-    to: michael.kelchtermans@sciensano.be, benoit.bergkpinto@sciensano.be
+    to:  benoit.bergkpinto@sciensano.be #michael.kelchtermans@sciensano.be,
     host: smtp.wiv-isp.be
 
 species:
@@ -13,7 +13,7 @@ species:
     - stec
     - salmonella
 
-dtap: to_be_replaced_by_ansible
+dtap: test
 
 collections:
     - isolates
@@ -21,3 +21,4 @@ collections:
     - isolates_badqc
     - sequence_types
     - new_allele_hashes
+    - cluster_membership
