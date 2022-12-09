@@ -340,10 +340,10 @@ if __name__ == '__main__':
             except Exception:
                 raise Exception('This reanalysis technical id is not present in the isolates collection')
             current_results = current_results_document['results']
-            # if new_results["results.analysis_date"] == current_results["analysis_date"]:
-            #     raise Exception('This is not a reanalysis but the same results')
-            # elif _return_YMD_from_DMYhms(new_results["results.analysis_date"]) < _return_YMD_from_DMYhms(current_results["analysis_date"]):
-            #     raise Exception('These results seem to be older than the current results')
+            if new_results["results.analysis_date"] == current_results["analysis_date"]:
+                raise Exception('This is not a reanalysis but the same results')
+            elif _return_YMD_from_DMYhms(new_results["results.analysis_date"]) < _return_YMD_from_DMYhms(current_results["analysis_date"]):
+                raise Exception('These results seem to be older than the current results')
             any_result_changed_new_old, unchanged_results_new_old, changed_results_new_old = _check_if_results_changed(current_results,
                                                                                                new_results_handle)
             if 'cgmlst' in changed_results_new_old:
