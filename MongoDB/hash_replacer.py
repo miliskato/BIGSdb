@@ -14,7 +14,7 @@ import hashlib
 PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(PYTHONPATH))
 
-from bioit_custom_scripts.components.databaseconnection import Database_connection
+from bioit_custom_scripts.components.databaseconnection import DatabaseConnection
 from MongoDB.util.mongo_initialisation import Mongoinitialisation
 from MongoDB.config import MONGO_CONFIG
 
@@ -65,22 +65,15 @@ if __name__ == '__main__':
         pass
     else:
         locus_hash_dict = {}
-        for document_index, hash_document in enumerate(documents_list):
         locus_tm_name_dict = {}
-        for hash_document in documents_list:
+        for document_index, hash_document in enumerate(documents_list):
             if hash_document['locus'] in locus_hash_dict.keys():
                 locus_hash_dict[hash_document['locus']['alleles']].append(hash_document['hashed_allele'])
                 locus_hash_dict[hash_document['locus']['indexes']].append(document_index)
-                #if multiple alleles for one locus
-                locus_hash_dict[hash_document['locus']].append(hash_document['hashed_allele'])
-                locus_tm_name_dict[hash_document['locus']].append(hash_document['allele_number'])
             else:
                 locus_hash_dict[hash_document['locus']] = {'alleles': [hash_document['hashed_allele']], 'indexes': [document_index]}
         for locus, values in locus_hash_dict.items():
             hash_list = values['alleles']
-                locus_hash_dict[hash_document['locus']] = [hash_document['hashed_allele']]
-                locus_tm_name_dict[hash_document['locus']] = [hash_document['allele_number']]
-        for locus, hash_list in locus_hash_dict.items():
             locus_tm_names = locus_tm_name_dict[locus]
             if args.species == 'stec':
                 fasta_file = Path(f"/db/sequence_typing/ecoli/{args.scheme.replace('-','_')}/{locus}/{locus.lower()}.fasta")
@@ -95,7 +88,6 @@ if __name__ == '__main__':
                 alleles = list(SeqIO.parse(handle, 'fasta'))
                 for allele in alleles:
                     hashed_allele = hashlib.md5(allele.seq.encode()).hexdigest()
-                    hashed_allele = hashlib.md5((allele.seq).encode()).hexdigest()
                     if hashed_allele in hash_list:
                         index_match = hash_list.index(hashed_allele)
                         name_allele = locus_tm_names[index_match]
@@ -145,7 +137,7 @@ if __name__ == '__main__':
                                                         {"$set": {"cgMLST": cgmlst}})
         hostname = socket.gethostname()
         if 'bigs' in hostname:
-            cur_isolates, cur_seqdef = Database_connection().open_database_connections(args.species)
+            cur_isolates, cur_seqdef = DatabaseConnection().open_database_connections(args.species)
             for hash_document in documents_list:
                 if hash_document['resolved_AD'] != 0:
                     cur_isolates.execute(f"UPDATE allele_designations SET allele_id='{hash_document['resolved_AD']}' WHERE allele_id='{hash_document['hashed_allele']}' AND locus='{hash_document['locus']}'")
