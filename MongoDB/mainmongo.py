@@ -340,22 +340,6 @@ if __name__ == '__main__':
                 raise Exception('These results seem to be older than the current results')
             any_result_changed_new_old, unchanged_results_new_old, changed_results_new_old = \
                 _check_if_results_changed(current_results, new_results_handle)
-            if 'cgmlst' in changed_results_new_old:
-                hashed_AD_collection = mongoinit.initialise_hashing_collection(config_data, args.species)
-                clustering_input = mongoquerying.query_typing_results_by_technicalids_and_scheme(
-                    isolates_collection,
-                    scheme="cgmlst",
-                    technicalids=[args.technical_id])
-                custom_clustering = MongoCustomClustering(clustering_input[0], clustering_input[1],
-                                                          args.species)
-                logging.info(f"Running the clustering for the isolate {args.technical_id}")
-                sp_thresholds = f"clustering_thresholds_{args.species}"
-                sequence_type = custom_clustering.run_custom_clustering(st_collection,
-                                                                        cluster_membership_collection,
-                                                                        CLUSTERING_CONFIG[sp_thresholds])
-                isolates_collection.with_options(write_concern=WriteConcern(w="majority")).find_one_and_update(
-                    {"_id": args.technical_id},
-                    {"$set": {"results.cgST": sequence_type}})
             if current_results_document['previous_latest_results_document'] is not None:
                 # Update current results
                 older_results_document_with_pointers = mongoquerying.query_docs_by_ids(isolateresults_collection, [current_results_document['previous_latest_results_document']])[0]
@@ -388,6 +372,23 @@ if __name__ == '__main__':
                          "latest_analysis_date": _return_YMD_from_DMYhms(new_results["results.analysis_date"]),
                          "previous_latest_results_document": _write_document(isolateresults_collection, current_results)}})
             logging.info(f"Wrote new results and linked to isolate {args.technical_id} in {args.species}")
+
+            if 'cgmlst' in changed_results_new_old:
+                hashed_AD_collection = mongoinit.initialise_hashing_collection(config_data, args.species)
+                clustering_input = mongoquerying.query_typing_results_by_technicalids_and_scheme(
+                    isolates_collection,
+                    scheme="cgmlst",
+                    technicalids=[args.technical_id])
+                custom_clustering = MongoCustomClustering(clustering_input[0], clustering_input[1],
+                                                          args.species)
+                logging.info(f"Running the clustering for the isolate {args.technical_id}")
+                sp_thresholds = f"clustering_thresholds_{args.species}"
+                sequence_type = custom_clustering.run_custom_clustering(st_collection,
+                                                                        cluster_membership_collection,
+                                                                        CLUSTERING_CONFIG[sp_thresholds])
+                isolates_collection.with_options(write_concern=WriteConcern(w="majority")).find_one_and_update(
+                    {"_id": args.technical_id},
+                    {"$set": {"results.cgST": sequence_type}})
 
     except Exception as exceptionmessage:
         _send_email(f"{os.path.basename(__file__)}: mongo upload fail on host {socket.gethostname()}",
