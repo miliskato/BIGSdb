@@ -5,14 +5,19 @@ import logging
 from pymongo.write_concern import WriteConcern
 import datetime
 from datetime import date
-from bioit_custom_scripts.components.databaseconnection import DatabaseConnection
-from MongoDB.util.mongo_initialisation import Mongoinitialisation
-from MongoDB.config import MONGO_CONFIG
-from MongoDB.config import CLUSTERING_CONFIG
 import smtplib
 from email.message import EmailMessage
 import socket
 import traceback
+import os
+
+PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.dirname(PYTHONPATH))
+
+from bioit_custom_scripts.components.databaseconnection import DatabaseConnection
+from MongoDB.util.mongo_initialisation import Mongoinitialisation
+from MongoDB.config import MONGO_CONFIG
+from MongoDB.config import CLUSTERING_CONFIG
 
 def _send_email(subject: str, content: str, config: dict) -> None:
     """

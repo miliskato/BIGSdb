@@ -9,8 +9,12 @@ from email.message import EmailMessage
 import socket
 import traceback
 import datetime
-from util.mongo_initialisation import Mongoinitialisation
-from config import MONGO_CONFIG
+
+PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.dirname(PYTHONPATH))
+
+from MongoDB.util.mongo_initialisation import Mongoinitialisation
+from MongoDB.config import MONGO_CONFIG
 from bioit_custom_scripts.components.databaseconnection import DatabaseConnection
 from bioit_custom_scripts.config import BIGSDB_CONFIG
 

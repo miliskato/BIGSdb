@@ -1,12 +1,15 @@
 import yaml
+import argparse
+from pathlib import Path
+import os
+import sys
+
+PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.dirname(PYTHONPATH))
+
+from MongoDB.util.new_threshold_clustering import NewThresholdClustering
 from MongoDB.util.mongo_initialisation import Mongoinitialisation
 from MongoDB.config import MONGO_CONFIG
-import argparse
-from MongoDB.util.new_threshold_clustering import NewThresholdClustering
-from pathlib import Path
-
-
-
 
 def parse_arguments(specieslist) -> argparse.Namespace:
     """
