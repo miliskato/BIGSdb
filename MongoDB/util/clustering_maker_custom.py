@@ -48,14 +48,14 @@ class ClusteringMakerCustom(DistanceAndClusterComputer):
         Retrieve the sequence type of the sample.
         :return: the sequence type which is an int.
         """
-        return self.isolates_collection.find_one({'_id': self.sample})['ST']
+        return self.isolates_collection.find_one({'_id': self.sample})['results']['cgST']
 
     def _retrieve_cluster_membership(self) -> int:
         """
         Retrieve the cluster membership of the sample self.sample.
         :return: the cluster membership which is an int.
         """
-        return self.cluster_membership_collection.find_one({'ST': self.sample_st, 'Threshold': self.threshold})[
+        return self.cluster_membership_collection.find_one({'cgST': self.sample_st, 'Threshold': self.threshold})[
             'Clustering_membership']
 
     def _retrieve_cluster_members_st(self) -> None:
@@ -65,7 +65,7 @@ class ClusteringMakerCustom(DistanceAndClusterComputer):
         """
         cluster_st = self.cluster_membership_collection.find(
             {'Clustering_membership': self.cluster_membership, 'Threshold': self.threshold})
-        self.cluster_members_st = ClusteringMakerCustom.extract_field_in_find_query(cluster_st, 'ST')
+        self.cluster_members_st = ClusteringMakerCustom.extract_field_in_find_query(cluster_st, 'cgST')
 
     @staticmethod
     def extract_field_in_find_query(query: object, field: str) -> list:
@@ -83,12 +83,12 @@ class ClusteringMakerCustom(DistanceAndClusterComputer):
         :return:  None
         """
         for st in self.cluster_members_st:
-            query_samples = self.isolates_collection.find({'ST': st})
+            query_samples = self.isolates_collection.find({'results.cgST': st})
             for res in query_samples:
                 sample_id = res['_id']
                 if res == query_samples[0]:
                     mongoquerying = Mongoquerying()
-                    query_profile = mongoquerying._query_typing_results_by_technicalids_and_scheme(
+                    query_profile = mongoquerying.query_typing_results_by_technicalids_and_scheme(
                     self.isolates_collection,
                     self.hashed_AD_collection,
                     scheme="cgmlst",

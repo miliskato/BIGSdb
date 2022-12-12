@@ -55,8 +55,8 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
                                        self.query_docs_by_ids(opened_isolates_collection,
                                                               technicalids)])
 
-    def _query_typing_results_by_technicalids_and_scheme(self, opened_isolates_collection: object, scheme: str = 'cgmlst',
-                                                         technicalids: list = ['emptylist']) -> list:
+    def query_typing_results_by_technicalids_and_scheme(self, opened_isolates_collection: object, scheme: str = 'cgmlst',
+                                                        technicalids: list = ['emptylist']) -> list:
         """
         Returns a list of lists wherein the first list is the header [isolate, locus1, locus2, ..] and the subsequent lists are the results of all isolates in technical ids
         :param opened_isolates_collection: mongo opened isolate collection

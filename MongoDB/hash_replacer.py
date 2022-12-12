@@ -127,13 +127,13 @@ if __name__ == '__main__':
                             [hash_list.index(hashed_allele)]
                              ]['resolved_AD'] = allele_id
                         #replace in all the cgST the old temp allele by the new id
-                        all_st = st_collection.find({'ST':{'$gt':0}})
+                        all_st = st_collection.find({'cgST':{'$gt':0}})
                         for st in all_st:
                             profile = st['cgMLST'].split(',')
                             if name_allele in profile:
                                 profile = [allele_id if x == name_allele else x for x in profile]
                                 cgmlst = ','.join([str(i) for i in profile])
-                                st_collection.find_one_and_update({"ST": st["ST"]},
+                                st_collection.find_one_and_update({"cgST": st["cgST"]},
                                                         {"$set": {"cgMLST": cgmlst}})
         hostname = socket.gethostname()
         if 'bigs' in hostname:

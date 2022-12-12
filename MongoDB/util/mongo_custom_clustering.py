@@ -80,7 +80,7 @@ class MongoCustomClustering:
         """
         query_st = st_collection.find_one({'cgMLST': self.cgmlst_profile.get_cgmlst_profile()})
         if query_st:
-            return query_st['ST']
+            return query_st['cgST']
         else:
             return None
 
@@ -104,9 +104,9 @@ class MongoCustomClustering:
         :param st_collection: the sequence type collection of mongoDB.
         :return:
         """
-        latest_st = st_collection.find_one(sort=[("ST", -1)])
+        latest_st = st_collection.find_one(sort=[("cgST", -1)])
         try:
-            self.cgmlst_profile.st = latest_st['ST'] + 1
+            self.cgmlst_profile.st = latest_st['cgST'] + 1
         except:
             self.cgmlst_profile.st = 1
         st_collection.with_options(write_concern=WriteConcern(w="majority")).insert_one(self.cgmlst_profile.get_st_collection_entry())

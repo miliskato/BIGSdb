@@ -27,7 +27,7 @@ class cgMLSTProfile:
         Creates a dict containing the sequence type and the cgmlst profile to enter into the sequence type collection
         :return:
         """
-        return {'ST': int(self.st), 'cgMLST': self.get_cgmlst_profile(), 'insertion_date': datetime.datetime.utcnow()}
+        return {'cgST': int(self.st), 'cgMLST': self.get_cgmlst_profile(), 'insertion_date': datetime.datetime.utcnow()}
 
     def get_st_line_for_hiercc_input(self) -> str:
         """

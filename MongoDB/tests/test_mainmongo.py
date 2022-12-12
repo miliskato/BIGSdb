@@ -81,6 +81,9 @@ if __name__ == '__main__':
         isolates_collection, isolateresults_collection, isolates_badqc_collection = \
             mongoinit.initialise_collections(config_data, 'listeria')
         hashed_ad_collection = mongoinit.initialise_hashing_collection(config_data, 'listeria')
+        st_collection, cluster_membership_collection = \
+            mongoinit.initialise_clustering_collections(config_data, 'listeria')
+        update_collection = mongoinit.initialise_update_collection(config_data, 'listeria')
 
         # as a first step I would drop the db if query less than 5 results else raise exception
         documents_count = isolates_collection.count_documents({})
@@ -91,6 +94,9 @@ if __name__ == '__main__':
             isolateresults_collection.drop()
             isolates_badqc_collection.drop()
             hashed_ad_collection.drop()
+            st_collection.drop()
+            cluster_membership_collection.drop()
+            update_collection.drop()
 
 
         def create_mainmongo_cmd(results_type: str, filename: str) -> object:
@@ -121,7 +127,7 @@ if __name__ == '__main__':
         new_isolate_cmd = create_mainmongo_cmd('new_isolate', 'report_version_1_1.json')
         new_isolate_cmd.run(os.getcwd())
 
-        # the integers appendices of the files indicate he results version and changed version, so: resultsversion_changedversion
+        # the integers appendices of the files indicate the results version and changed version, so: resultsversion_changedversion
         for dummy_reanalysis_file in ['report_version_2_2.json', 'report_version_3_3.json', 'report_version_4_4.json', 'report_version_5_4.json']:
             new_isolate_cmd = create_mainmongo_cmd('reanalysis', dummy_reanalysis_file)
             new_isolate_cmd.run(os.getcwd())

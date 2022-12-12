@@ -188,9 +188,9 @@ class NewAllelesProfileClusteringFromMongoToBigs:
         if max_st_in_bigs is None:
             max_st_in_bigs = 0
         for st in self.new_st:
-            if int(st['ST']) > int(max_st_in_bigs):
-                print(f"start insert of {st['ST']}")
-                st_id = st['ST']
+            if int(st['cgST']) > int(max_st_in_bigs):
+                print(f"start insert of {st['cgST']}")
+                st_id = st['cgST']
                 # insertion of the st id into the profiles table
                 self.cur_seqdef.execute(f"INSERT INTO profiles(scheme_id, "
                                         f"profile_id, sender, curator, "
@@ -239,7 +239,7 @@ class NewAllelesProfileClusteringFromMongoToBigs:
         self.__check_for_classification_schemes()
         for cl_membership in self.new_cluster_membership:
             cg_scheme_id = self.clustering_thresholds.index(cl_membership['Threshold']) + 1
-            profile_id = cl_membership['ST']
+            profile_id = cl_membership['cgST']
             group_id = cl_membership['Clustering_membership']
             self.cur_seqdef.execute(
                 f"SELECT * FROM classification_groups WHERE (cg_scheme_id = '{cg_scheme_id}' and"

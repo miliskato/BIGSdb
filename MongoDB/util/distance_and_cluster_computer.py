@@ -49,9 +49,9 @@ class DistanceAndClusterComputer:
             query_all_data = self.st_collection.find({'$in': self.st_to_use})
 
         for doc in query_all_data:
-            if 'ST' in doc:
+            if 'cgST' in doc:
                 self.cgmlst_profiles.append(np.array(doc['cgMLST'].split(',')))
-                self.sequence_types.append(doc['ST'])
+                self.sequence_types.append(doc['cgST'])
 
     def _sorting_cgmlst_profiles(self) -> None:
         """
@@ -101,7 +101,7 @@ class DistanceAndClusterComputer:
             cluster_membership = hcluster.fcluster(slc, thresh, criterion='distance')
             documents = []
             for entry in range(len(cluster_membership)):
-                doc = {'ST': self.sequence_types[entry],
+                doc = {'cgST': self.sequence_types[entry],
                        'insertion_date': datetime.datetime.utcnow(),
                        'Threshold': thresh,
                        'Clustering_membership': int(cluster_membership[entry])}
@@ -146,13 +146,13 @@ class DistanceAndClusterComputer:
             membership = []
             for it in range(len(self.hamming_distances[0]) - 1):
                 if self.hamming_distances[0][it] <= thresh:
-                    membership.append(self.cluster_membership_collection.find_one({'ST': self.sequence_types[it], 'Threshold': thresh})['Clustering_membership'])
+                    membership.append(self.cluster_membership_collection.find_one({'cgST': self.sequence_types[it], 'Threshold': thresh})['Clustering_membership'])
             membership = list(set(membership))
             if len(membership) > 1:
                 membership = [self._merge_clusters(membership, thresh)]
             elif len(membership) == 0:
                 membership.append(self.sequence_types[-1])
-            entry = {'ST': self.sequence_types[-1],
+            entry = {'cgST': self.sequence_types[-1],
                      'insertion_date': datetime.datetime.utcnow(),
                      'Threshold': thresh,
                      'Clustering_membership': membership[0]}
