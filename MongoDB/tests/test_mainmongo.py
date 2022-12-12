@@ -83,7 +83,7 @@ if __name__ == '__main__':
         hashed_ad_collection = mongoinit.initialise_hashing_collection(config_data, 'listeria')
 
         # as a first step I would drop the db if query less than 5 results else raise exception
-        documents_count = isolates_collection.count()
+        documents_count = isolates_collection.count_documents({})
         if documents_count > 5:
             raise Exception('Are you sure you are looking at the right database using the right connection string?')
         else:
