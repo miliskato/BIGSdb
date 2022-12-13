@@ -28,6 +28,8 @@ def _parse_arguments(specieslist) -> argparse.Namespace:
     parser.add_argument("--scheme", required=True, type=str, help='lower case scheme as in json reports/mongodb documents')
     parser.add_argument("--species", required=True, type=str,
                         choices=specieslist)
+    parser.add_argument('--alternate_connection_string', type=str,
+                        help=argparse.SUPPRESS)  # will replace connection string, only for small testing purposes
     return parser.parse_args()
 
 
@@ -38,7 +40,7 @@ def query_hashes_of_scheme(hashed_ad_collection: object, scheme: str) -> list:
     :param scheme: scheme that unresolved hashes should be queried from
     :return: list of documents (dicts) of unresolved hashes
     """
-    return [document for document in hashed_ad_collection.with_options(read_concern=ReadConcern(level="majority")).find({"scheme": scheme, "resolved_AD": 0})]
+    return list(hashed_ad_collection.with_options(read_concern=ReadConcern(level="majority")).find({"scheme": scheme, "resolved_AD": 0}))
 
 
 if __name__ == '__main__':
@@ -48,6 +50,10 @@ if __name__ == '__main__':
 
     # Parse arguments
     args = _parse_arguments(config_data['species'])
+
+    # if testing purposes; replace connection string by testing connection string
+    if args.alternate_connection_string:
+        config_data['CONNECTION_STRING_BASE'] = 'mongodb+srv://mikelchtermans:YMFOH4BLF1U79dDk@hera-bioit-trial.vajezh0.mongodb.net'
 
     # Configure stdout logging
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
@@ -65,16 +71,16 @@ if __name__ == '__main__':
         pass
     else:
         locus_hash_dict = {}
-        locus_tm_name_dict = {}
         for document_index, hash_document in enumerate(documents_list):
             if hash_document['locus'] in locus_hash_dict.keys():
-                locus_hash_dict[hash_document['locus']['alleles']].append(hash_document['hashed_allele'])
-                locus_hash_dict[hash_document['locus']['indexes']].append(document_index)
+                locus_hash_dict[hash_document['locus']]['hashed_alleles'].append(hash_document['hashed_allele'])
+                locus_hash_dict[hash_document['locus']]['temp_alleles'].append(hash_document['temp_allele_name'])
+                locus_hash_dict[hash_document['locus']]['indexes'].append(document_index)
             else:
-                locus_hash_dict[hash_document['locus']] = {'alleles': [hash_document['hashed_allele']], 'indexes': [document_index]}
+                locus_hash_dict[hash_document['locus']] = {'hashed_alleles': [hash_document['hashed_allele']], 'indexes': [document_index], 'temp_alleles': [hash_document['temp_allele_name']]}
         for locus, values in locus_hash_dict.items():
-            hash_list = values['alleles']
-            locus_tm_names = locus_tm_name_dict[locus]
+            hash_list = values['hashed_alleles']
+            temp_alleles_list = values['temp_alleles']
             if args.species == 'stec':
                 fasta_file = Path(f"/db/sequence_typing/ecoli/{args.scheme.replace('-','_')}/{locus}/{locus.lower()}.fasta")
             else:
@@ -90,48 +96,49 @@ if __name__ == '__main__':
                     hashed_allele = hashlib.md5(allele.seq.encode()).hexdigest()
                     if hashed_allele in hash_list:
                         index_match = hash_list.index(hashed_allele)
-                        name_allele = locus_tm_names[index_match]
+                        temp_allele_name = temp_alleles_list[index_match]
                         allele_id = allele.id.split('_')[-1]
                         # Update collections
-                        logging.debug(f"replacing {hashed_allele} by {allele_id} for locus {locus}")
+                        logging.debug(f"replacing {temp_allele_name} by {allele_id} for locus {locus}")
                         isolates_collection.with_options(write_concern=WriteConcern(w="majority")).update_many(
                             {f"results.{args.scheme}.loci":
                              {"$elemMatch":
-                              {"Locus": locus, "Allele": hashed_allele}}},
+                              {"Locus": locus, "Allele": temp_allele_name}}},
                             {"$set":
                              {f"results.{args.scheme}.loci.$.Allele": allele_id}})
                         isolates_badqc_collection.with_options(write_concern=WriteConcern(w="majority")).update_many(
                             {f"results.{args.scheme}.loci":
                              {"$elemMatch":
-                              {"Locus": locus, "Allele": hashed_allele}}},
+                              {"Locus": locus, "Allele": temp_allele_name}}},
                             {"$set":
                              {f"results.{args.scheme}.loci.$.Allele": allele_id}})
                         # todo think if old results collection should be updated aswell
                         isolateresults_collection.with_options(write_concern=WriteConcern(w="majority")).update_many(
                             {f"{args.scheme}.loci":
                              {"$elemMatch":
-                              {"Locus": locus, "Allele": hashed_allele}}},
+                              {"Locus": locus, "Allele": temp_allele_name}}},
                             {"$set":
                              {f"{args.scheme}.loci.$.Allele": allele_id}})
                         # Update document but do not delete
                         hashed_AD_collection.with_options(write_concern=WriteConcern(w="majority")).update_one(
-                            {"scheme": args.scheme, "resolved_AD": 0, "locus": locus},
+                            {"scheme": args.scheme, "resolved_AD": 0, "locus": locus, "temp_allele_name": temp_allele_name},
                             {"$set": {"resolved_AD": allele_id}})
                         # add allele id to hash document to not have to requery for bigsdb if bigs host
                         # documents_list: list of all documents
-                        # values['indexes']: list of indexes of the documents belonging to the list of hashed alleles in values['alleles']
-                        # hash list: values['alleles'], list of the hashes for a locus
+                        # values['indexes']: list of indexes of the documents belonging to the list of hashed alleles in values['hashed_alleles']
+                        # hash list: values['hashed_alleles'], list of the hashes for a locus
                         # documents_list[values['indexes'][hash_list.index(hashed_allele)]]: hash document
                         documents_list[
                             values['indexes']
                             [hash_list.index(hashed_allele)]
                              ]['resolved_AD'] = allele_id
                         #replace in all the cgST the old temp allele by the new id
+                        # greater than 0 is used to exclude the header document
                         all_st = st_collection.find({'cgST':{'$gt':0}})
                         for st in all_st:
                             profile = st['cgMLST'].split(',')
-                            if name_allele in profile:
-                                profile = [allele_id if x == name_allele else x for x in profile]
+                            if temp_allele_name in profile:
+                                profile = [allele_id if x == temp_allele_name else x for x in profile]
                                 cgmlst = ','.join([str(i) for i in profile])
                                 st_collection.find_one_and_update({"cgST": st["cgST"]},
                                                         {"$set": {"cgMLST": cgmlst}})

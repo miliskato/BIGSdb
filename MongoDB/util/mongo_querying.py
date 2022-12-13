@@ -78,7 +78,7 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
                 # todo check logic
                 allele_id = locus['Allele']
                 if locus['% Identity'] == '100.00' and eval(locus['HSP/Locus length']) == 1.0:
-                    if 'Temp_' not in allele_id:
+                    if '_temp_' not in allele_id:
                         if allele_id != '?' and allele_id != '-':
                             resultlist.append(int(allele_id))
                         else:

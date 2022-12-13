@@ -148,7 +148,7 @@ if __name__ == '__main__':
             mongo_config_data = yaml.safe_load(handle)
 
         if args.alternate_connection_string:
-            mongo_config_data['CONNECTION_STRING_BASE'] = 'mongodb+srv://mikelchtermans:YMFOH4BLF1U79dDk@hera-bioit-trial.vajezh0.mongodb.net'
+            mongo_config_data['CONNECTION_STRING_BASE'] = args.alternate_connection_string
 
         # Retrieve isolates that need to be re-analyzed
         mongoinit = Mongoinitialisation()

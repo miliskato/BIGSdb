@@ -145,25 +145,25 @@ class NewAllelesProfileClusteringFromMongoToBigs:
             for item in rows:
                 list_alleleid.append(item[0])
             for new_allele in ordered_by_scheme_dict[scheme_loci]:
-                if new_allele['allele_number'] not in list_alleleid:
+                if new_allele['temp_allele_name'] not in list_alleleid:
                     try:
                         self.cur_seqdef.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status,sender,"
                                                 f"curator, date_entered, datestamp) VALUES('{locus}',"
-                                                f"'{new_allele['allele_number']}','{new_allele['allele_sequence']}',"
+                                                f"'{new_allele['temp_allele_name']}','{new_allele['allele_sequence']}',"
                                                 f"'unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
-                        print(f"id {new_allele['allele_number']} inserted into locus {locus}")
+                        print(f"id {new_allele['temp_allele_name']} inserted into locus {locus}")
                     except:
                         self.cur_seqdef.execute(
-                            f"SELECT allele_id FROM sequences WHERE allele_id='{new_allele['allele_number']}'")
+                            f"SELECT allele_id FROM sequences WHERE allele_id='{new_allele['temp_allele_name']}'")
                         test = self.cur_seqdef.fetchall()
                         test_list = []
                         for it in test:
                             test_list.append(it)
                         if len(test_list) > 0:
-                            print(f"id {new_allele['allele_number']} already inserted = no insertion required")
+                            print(f"id {new_allele['temp_allele_name']} already inserted = no insertion required")
                         else:
                             LookupError(
-                                f"id {new_allele['allele_number']} is not inserted in the db and wasn't found in the db"
+                                f"id {new_allele['temp_allele_name']} is not inserted in the db and wasn't found in the db"
                                 f". Please investigate this error further!")
 
     def _order_sequences_by_locus(self) -> dict:
@@ -243,9 +243,9 @@ class NewAllelesProfileClusteringFromMongoToBigs:
         groups_merged = []
         self.__check_for_classification_schemes()
         for cl_membership in self.new_cluster_membership:
-            cg_scheme_id = self.clustering_thresholds.index(cl_membership['Threshold']) + 1
+            cg_scheme_id = self.clustering_thresholds.index(cl_membership['threshold']) + 1
             profile_id = cl_membership['cgST']
-            group_id = cl_membership['Clustering_membership']
+            group_id = cl_membership['clustering_membership']
             self.cur_seqdef.execute(
                 f"SELECT * FROM classification_groups WHERE (cg_scheme_id = '{cg_scheme_id}' and"
                 f" group_id = '{group_id}')")

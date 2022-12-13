@@ -55,8 +55,8 @@ class ClusteringMakerCustom(DistanceAndClusterComputer):
         Retrieve the cluster membership of the sample self.sample.
         :return: the cluster membership which is an int.
         """
-        return self.cluster_membership_collection.find_one({'cgST': self.sample_st, 'Threshold': self.threshold})[
-            'Clustering_membership']
+        return self.cluster_membership_collection.find_one({'cgST': self.sample_st, 'threshold': self.threshold})[
+            'clustering_membership']
 
     def _retrieve_cluster_members_st(self) -> None:
         """
@@ -64,7 +64,7 @@ class ClusteringMakerCustom(DistanceAndClusterComputer):
         :return: None
         """
         cluster_st = self.cluster_membership_collection.find(
-            {'Clustering_membership': self.cluster_membership, 'Threshold': self.threshold})
+            {'clustering_membership': self.cluster_membership, 'threshold': self.threshold})
         self.cluster_members_st = ClusteringMakerCustom.extract_field_in_find_query(cluster_st, 'cgST')
 
     @staticmethod

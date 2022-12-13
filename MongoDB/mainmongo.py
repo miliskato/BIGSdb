@@ -121,17 +121,20 @@ def prepend_string_dot_to_dict_keys(input_dictionary: dict, prepending: str = 'r
     return dict((keydict[key], value) for (key, value) in input_dictionary_copy.items())
 
 
-def find_allele_number_new_entry(hashed_AD_collection) -> str:
+def _max_temp_allele_name_new_entry(hashed_AD_collection, locus: str, scheme: str) -> str:
     """
     Find the last temporary name for an hashed allele and returns a new id for the new allele to add.
     :param hashed_AD_collection: hashed allele collection from mongo db
+    :param locus: locus name
+    :param scheme: scheme name
     :return: the name for the new temporary allele.
     """
-    query_hash_db_size = hashed_AD_collection.count_documents({"scheme": 'cgmlst'})
-    if query_hash_db_size == 0:
-        return 'Temp_1'
+    query_max_temp_allele_name_doc = hashed_AD_collection.find_one({"scheme": scheme, "locus": locus}, sort=[('insertion_date',-1)])
+    if query_max_temp_allele_name_doc is None:
+        return f'{locus}_temp_1'
     else:
-        return f'Temp_{query_hash_db_size + 1}'
+        max_temp_allele_name = int(query_max_temp_allele_name_doc['temp_allele_name'].split('_')[-1])
+        return f'{locus}_temp_{max_temp_allele_name + 1}'
 
 
 def find_hashes_in_results_and_add_to_collection(results: dict, mongoinit: object, config_data: dict, species: str, mode: str) -> dict:
@@ -149,30 +152,30 @@ def find_hashes_in_results_and_add_to_collection(results: dict, mongoinit: objec
         if typing_scheme in results.keys():
             for locus_index, allele_info in enumerate(results[typing_scheme]['loci']):
                 # check if allele designation is md5 hash (32 char combination of letters andor numbers)
-                if re.findall(r'(?i)(?<![a-z0-9])[a-f0-9]{32}(?![a-z0-9])', allele_info['Allele']):
+                if re.findall(r'(?i)(?<![a-z0-9])[a-z0-9]{32}(?![a-z0-9])', allele_info['Allele']):
                     logging.info('new allele detected')
                     existing_document = hashed_ad_collection.with_options(
                         read_concern=ReadConcern(level="majority")).find_one(
                         {"scheme": typing_scheme, "locus": allele_info['Locus'],
                          "hashed_allele": allele_info['Allele']})
                     if existing_document is None:
-                        temp_allele = find_allele_number_new_entry(hashed_ad_collection)
+                        temp_allele = _max_temp_allele_name_new_entry(hashed_ad_collection, allele_info['Locus'], typing_scheme)
                         _write_document(hashed_ad_collection, {"scheme": typing_scheme,
                                                                "locus": allele_info['Locus'],
                                                                "hashed_allele": allele_info['Allele'],
                                                                "allele_sequence": allele_info['Allele_sequence'],
                                                                "encountered_count": 1,
                                                                "resolved_AD": 0,
-                                                               "allele_number": temp_allele,
+                                                               "temp_allele_name": temp_allele,
                                                                "insertion_date": datetime.datetime.utcnow()
                                                                })
                     else:
-                        temp_allele = existing_document["allele_number"]
+                        temp_allele = existing_document["temp_allele_name"]
                         if mode == 'reanalysis':
                             hash_old = existing_document["hashed_allele"]
                             if hash_old == allele_info['Allele']:
                                 already_present = True
-                                logging.info('already present')
+                                logging.info('hash/temp allele already present')
                             else:
                                 already_present = False
                         if mode == 'new_isolate' or mode == 'reanalysis' and not already_present:
@@ -243,7 +246,7 @@ if __name__ == '__main__':
 
     # if testing purposes; replace connection string by testing connection string
     if args.alternate_connection_string:
-        config_data['CONNECTION_STRING_BASE'] = 'mongodb+srv://mikelchtermans:YMFOH4BLF1U79dDk@hera-bioit-trial.vajezh0.mongodb.net'
+        config_data['CONNECTION_STRING_BASE'] = args.alternate_connection_string
 
     try:
         # Parameter compatibility checks

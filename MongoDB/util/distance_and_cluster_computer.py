@@ -103,8 +103,8 @@ class DistanceAndClusterComputer:
             for entry in range(len(cluster_membership)):
                 doc = {'cgST': self.sequence_types[entry],
                        'insertion_date': datetime.datetime.utcnow(),
-                       'Threshold': thresh,
-                       'Clustering_membership': int(cluster_membership[entry])}
+                       'threshold': thresh,
+                       'clustering_membership': int(cluster_membership[entry])}
                 documents.append(doc)
             self._insert_a_lot(documents, self.cluster_membership_collection)
             logging.info(f"{datetime.datetime.now()}: Clustering membership finished for threshold {thresh}")
@@ -124,15 +124,15 @@ class DistanceAndClusterComputer:
         print(f'merging clusters {memberships}')
         memberships.sort()
         for cluster in memberships:
-            cluster_sizes.append(self.cluster_membership_collection.count_documents({'Threshold': threshold,
-                                                                                     'Clustering_membership': cluster}))
+            cluster_sizes.append(self.cluster_membership_collection.count_documents({'threshold': threshold,
+                                                                                     'clustering_membership': cluster}))
         max_index = cluster_sizes.index(max(cluster_sizes))
         new_cluster_name = memberships[max_index]
         clusters_to_rename = [x for i, x in enumerate(memberships) if i != max_index]
         for cl in clusters_to_rename:
-            query = {'Threshold': threshold,
-                     'Clustering_membership': cl}
-            update = {'$set': {'Clustering_membership': new_cluster_name, 'insertion_date': datetime.datetime.utcnow()}}
+            query = {'threshold': threshold,
+                     'clustering_membership': cl}
+            update = {'$set': {'clustering_membership': new_cluster_name, 'insertion_date': datetime.datetime.utcnow()}}
             self.cluster_membership_collection.update_many(query, update)
         return new_cluster_name
 
@@ -146,7 +146,7 @@ class DistanceAndClusterComputer:
             membership = []
             for it in range(len(self.hamming_distances[0]) - 1):
                 if self.hamming_distances[0][it] <= thresh:
-                    membership.append(self.cluster_membership_collection.find_one({'cgST': self.sequence_types[it], 'Threshold': thresh})['Clustering_membership'])
+                    membership.append(self.cluster_membership_collection.find_one({'cgST': self.sequence_types[it], 'threshold': thresh})['clustering_membership'])
             membership = list(set(membership))
             if len(membership) > 1:
                 membership = [self._merge_clusters(membership, thresh)]
@@ -154,8 +154,8 @@ class DistanceAndClusterComputer:
                 membership.append(self.sequence_types[-1])
             entry = {'cgST': self.sequence_types[-1],
                      'insertion_date': datetime.datetime.utcnow(),
-                     'Threshold': thresh,
-                     'Clustering_membership': membership[0]}
+                     'threshold': thresh,
+                     'clustering_membership': membership[0]}
             self.cluster_membership_collection.with_options(write_concern=WriteConcern(w="majority")).insert_one(entry)
 
     @staticmethod

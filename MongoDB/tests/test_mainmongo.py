@@ -125,12 +125,15 @@ if __name__ == '__main__':
 
         # Add the new_isolate:
         new_isolate_cmd = create_mainmongo_cmd('new_isolate', 'report_version_1_1.json')
+        logging.info(f"new isolate command: {new_isolate_cmd._command}")
         new_isolate_cmd.run(os.getcwd())
 
+        # Add the dummy reanalysis results:
         # the integers appendices of the files indicate the results version and changed version, so: resultsversion_changedversion
         for dummy_reanalysis_file in ['report_version_2_2.json', 'report_version_3_3.json', 'report_version_4_4.json', 'report_version_5_4.json']:
-            new_isolate_cmd = create_mainmongo_cmd('reanalysis', dummy_reanalysis_file)
-            new_isolate_cmd.run(os.getcwd())
+            reanalysis_cmd = create_mainmongo_cmd('reanalysis', dummy_reanalysis_file)
+            logging.info(f"reanalysis insertion command: {reanalysis_cmd._command}")
+            reanalysis_cmd.run(os.getcwd())
 
         # test reanalysis
         source = os.path.dirname(__file__)
