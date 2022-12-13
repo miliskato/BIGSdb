@@ -92,11 +92,11 @@ if __name__ == '__main__':
             # add the date of validation (which can't be passed though the json as the date object is not serializable).
             #In addition, path to fasta and vcfile are also added.
             # If the outcome is bad, the date is added to the dict of the validation outcome and this dict is saved into the
-            # results of the badqc_isolates.
+            # results of the badqc_isolates
             if outcome=='good':
                 command_line = f"export MODULEPATH=/etc/lmod/modules;" \
                                f"source /etc/profile.d/lmod.sh;" \
-                               f"module load {config_data['module_name']}/{config_data['module_version']};" \
+                               f"module load {config_data['module_name']};" \
                                f"mainmongo.py " \
                                f"--dict '{json.dumps(validation)}' " \
                                f"--species {species} " \

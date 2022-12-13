@@ -327,7 +327,7 @@ if __name__ == '__main__':
                     isolates_badqc_collection.delete_one({'_id': records["isolates_id"]})
             else:
                 _write_document(isolates_badqc_collection,
-                                _new_isolate(args.technical_id, args.vcffilepath, args.fastafilepath,
+                                _new_isolate(args.technical_id, args.reportdirectorypath, args.vcffilepath, args.fastafilepath,
                                              records))
                 logging.warning(
                     f"New isolate {args.technical_id} failed quality control for one or more checks. It's results were written to the 'isolates_badqc' collection in the {args.species} database")

@@ -9,7 +9,7 @@ from email.message import EmailMessage
 import socket
 import traceback
 import datetime
-
+from pymongo.write_concern import WriteConcern
 PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(PYTHONPATH))
 
@@ -76,9 +76,9 @@ if __name__ == '__main__':
             last_run_date = ['last_update_date']
         else:
             last_run_date = datetime.datetime(1970, 1, 1)
-        if last_run_date == None:
-            last_run_date = datetime.datetime(1970, 1, 1)
-        mongo_query = isolates_badqc_collection.find({'insertion_date': {'$gt': last_run_date}})
+            update_collection.with_options(write_concern=WriteConcern(w="majority")).insert_one(
+                {'metadata': 'last_bad_samples_update', 'last_update_date': last_run_date})
+        mongo_query = isolates_badqc_collection.find({'creation_date': {'$gt': last_run_date}})
         #todo: add a date for synchronization with mongo and fetch only samples older than the date of last update
         bad_samples = []
         for doc in mongo_query:
@@ -110,7 +110,9 @@ if __name__ == '__main__':
                                  f"VALUES ({highest_sub_id},1, '{field2}', '{doc['_id']}')")
             cur_isolates.execute(f"INSERT INTO isolate_submission_field_order (submission_id,field,index)"
                                  f"VALUES ({highest_sub_id}, '{field2}',2)")
-
+            #update last date of update
+            update_collection.with_options(write_concern=WriteConcern(w="majority")).find_one_and_update(
+                {'metadata': 'last_bad_samples_update'}, {'$set': {'last_update_date': datetime.datetime.utcnow()}})
 
     except Exception as exceptionmessage:
         send_email(f"{os.path.basename(__file__)}: mongo to bigs fail on host {socket.gethostname()}",

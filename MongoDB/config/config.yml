@@ -13,7 +13,7 @@ species:
     - stec
     - salmonella
 
-dtap: to_be_replaced_by_ansible
+dtap: test
 
 collections:
     - isolates
@@ -25,7 +25,5 @@ collections:
     - update_metadata
 
 module_name:
-    - mongo_bigs_dbs
+    - mongo_bigs_dbs/0.1
 
-module_version:
-    - 0.1
