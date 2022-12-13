@@ -250,7 +250,7 @@ if __name__ == '__main__':
 
     try:
         # Parameter compatibility checks
-        parameter_compatibility_checks(args)
+        #parameter_compatibility_checks(args)
 
         # Configure stdout logging
         logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
