@@ -12,10 +12,9 @@ import traceback
 import re
 import json
 import datetime
-
 from MongoDB.util.mongo_initialisation import Mongoinitialisation
 from MongoDB.config import MONGO_CONFIG
-from bioit_custom_scripts.components.databaseconnection import Database_connection
+from bioit_custom_scripts.components.databaseconnection import DatabaseConnection
 from bioit_custom_scripts.config import BIGSDB_CONFIG
 from MongoDB.reanalysis.command.command import Command
 from pymongo.write_concern import WriteConcern
@@ -66,7 +65,7 @@ if __name__ == '__main__':
             mongoinit._initialise_collections(config_data, species)
 
         # Connect to db and create cursor
-        cur_isolates, cur_seqdef = Database_connection().open_database_connections(species)
+        cur_isolates, cur_seqdef = DatabaseConnection().open_database_connections(species)
 
         cur_isolates.execute(f"SELECT id, outcome, curator FROM submissions WHERE status='closed'")
         query = cur_isolates.fetchall()
@@ -77,7 +76,7 @@ if __name__ == '__main__':
             curator_id = query[0][2]
             cur_isolates.execute(f"SELECT user_name FROM users WHERE id='{curator_id}'")
             curator_name = cur_isolates.fetchall()[0][0]
-            query_isolate_id = cur_isolates.execute(f"SELECT value FROM isolate_submission_isolates WHERE "
+            cur_isolates.execute(f"SELECT value FROM isolate_submission_isolates WHERE "
                                                     f"submission_id='{id}' AND field='isolate_id' ")
             isolate_id = cur_isolates.fetchall()[0][0]
             #GO into mongo DB
@@ -85,13 +84,19 @@ if __name__ == '__main__':
                 'outcome': outcome,
                 'curator': curator_name
             }
-            #write doc to tmp
-            # with open("/home/bebergk/tmp_isolate_sub.json", "w") as write_file:
-            #     json.dump(json_sample, write_file, indent=4)
+            # Note on the behaviour of the script: This scripts runs when a sample has been validated on BIGSdb by a
+            # curator. Main steps:
+            # 1) The validation outcome is added into the results of the samples (curator name and outcome).
+            # 2) If the outcome is 'good', the script mainmongo.py is called in with specific options (see below).
+            # In this mode, the mainmongo will retrieve the sample to insert in the isolate collection. It will also
+            # add the date of validation (which can't be passed though the json as the date object is not serializable).
+            #In addition, path to fasta and vcfile are also added.
+            # If the outcome is bad, the date is added to the dict of the validation outcome and this dict is saved into the
+            # results of the badqc_isolates.
             if outcome=='good':
                 command_line = f"export MODULEPATH=/etc/lmod/modules;" \
                                f"source /etc/profile.d/lmod.sh;" \
-                               f"ml mongo_bigs_dbs;" \
+                               f"module load {config_data['module_name']}/{config_data['module_version']};" \
                                f"mainmongo.py " \
                                f"--dict '{json.dumps(validation)}' " \
                                f"--species {species} " \
@@ -115,5 +120,5 @@ if __name__ == '__main__':
 
 
     except Exception as exceptionmessage:
-        send_email(f"{os.path.basename(__file__)}: mongo to bigs fail on host {socket.gethostname()}",
+        send_email(f"{os.path.basename(__file__)}: sample validation to mongo fail on host {socket.gethostname()}",
                     f"{exceptionmessage}\n{traceback.format_exc()}", bigsdb_config['mail'])

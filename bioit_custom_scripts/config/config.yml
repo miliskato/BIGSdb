@@ -1,6 +1,6 @@
 mail:
     from: bioit-dev1@wiv-isp.be
-    to:  benoit.bergkpinto@sciensano.be #michael.kelchtermans@sciensano.be,
+    to:  benoit.bergkpinto@sciensano.be, michael.kelchtermans@sciensano.be
     host: smtp.wiv-isp.be
 
 failsafe:
