@@ -128,6 +128,19 @@ if __name__ == '__main__':
         logging.info(f"new isolate command: {new_isolate_cmd._command}")
         new_isolate_cmd.run(os.getcwd())
 
+        # test hash replacer
+        source = os.path.dirname(__file__)
+        parent = os.path.join(source, '../')
+        base_command = ' '.join([
+            f"{args.pyvenvpythonpath}",
+            f"{os.path.join(parent, 'hash_replacer.py')}",
+            f'--species listeria',
+            f'--scheme cgmlst',
+            f'--alternate_connection_string {ALTERNATE_CONNECTION_STRING}'
+        ])
+        command = Command(base_command)
+        command.run(Path(os.getcwd()))
+
         # Add the dummy reanalysis results:
         # the integers appendices of the files indicate the results version and changed version, so: resultsversion_changedversion
         for dummy_reanalysis_file in ['report_version_2_2.json', 'report_version_3_3.json', 'report_version_4_4.json', 'report_version_5_4.json']:

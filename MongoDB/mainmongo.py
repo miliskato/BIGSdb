@@ -199,14 +199,14 @@ def _return_YMD_from_DMYhms(datetimestring: str) -> str:
     return datetime.datetime.strptime(datetimestring, '%d/%m/%Y - %X').strftime('%Y-%m-%d')
 
 
-def parameter_compatibility_checks(args: argparse.Namespace) -> None:
-    """
-    Checks compatibility of argparse arguments
-    :param args: argparse arguments namespace
-    :return: None
-    """
-    if args.results_type == 'reanalysis' and args.bigs is True:
-        raise Exception('Bigs upload only available for new isolates')
+# def parameter_compatibility_checks(args: argparse.Namespace) -> None:
+#     """
+#     Checks compatibility of argparse arguments
+#     :param args: argparse arguments namespace
+#     :return: None
+#     """
+#     if args.results_type == 'reanalysis' and args.bigs is True:
+#         raise Exception('Bigs upload only available for new isolates')
 
 
 def _check_if_results_changed(current_results, new_results):
@@ -250,7 +250,7 @@ if __name__ == '__main__':
 
     try:
         # Parameter compatibility checks
-        parameter_compatibility_checks(args)
+        #parameter_compatibility_checks(args)
 
         # Configure stdout logging
         logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
@@ -268,6 +268,9 @@ if __name__ == '__main__':
             if args.results_type == "new_isolate":
                 if args.technical_id in mongoquerying.query_list_of_all_distinct_values(isolates_collection, "_id") \
                    or args.technical_id in mongoquerying.query_list_of_all_distinct_values(isolates_badqc_collection, "_id"):
+                    _send_email(f"{os.path.basename(__file__)}: mongo upload fail on host {socket.gethostname()}",
+                                f"This technical id is already present in the isolates collection\n{traceback.format_exc()}",
+                                config_data['mail'])
                     raise Exception('This technical id is already present in the isolates collection')
                     # todo check if fasta path and vcf path are real?
             if args.jsonfilepath:
@@ -293,6 +296,9 @@ if __name__ == '__main__':
                             if key.endswith('status') and records['qc'][qc_type][key] == 'Failed':
                                 sample_quality = 'bad'
                 except Exception:
+                    _send_email(f"{os.path.basename(__file__)}: mongo upload fail on host {socket.gethostname()}",
+                                f"No qc values found in the given results\n{traceback.format_exc()}",
+                                config_data['mail'])
                     raise Exception('No qc values found in the given results')
 
             if sample_quality == 'good':
@@ -338,8 +344,12 @@ if __name__ == '__main__':
                 raise Exception('This reanalysis technical id is not present in the isolates collection')
             current_results = current_results_document['results']
             if new_results["results.analysis_date"] == current_results["analysis_date"]:
+                _send_email(f"{os.path.basename(__file__)}: mongo upload fail on host {socket.gethostname()}",
+                            f"This is not a reanalysis but the same results\n{traceback.format_exc()}", config_data['mail'])
                 raise Exception('This is not a reanalysis but the same results')
             elif _return_YMD_from_DMYhms(new_results["results.analysis_date"]) < _return_YMD_from_DMYhms(current_results["analysis_date"]):
+                _send_email(f"{os.path.basename(__file__)}: mongo upload fail on host {socket.gethostname()}",
+                            f"These results seem to be older than the current results\n{traceback.format_exc()}", config_data['mail'])
                 raise Exception('These results seem to be older than the current results')
             any_result_changed_new_old, unchanged_results_new_old, changed_results_new_old = \
                 _check_if_results_changed(current_results, new_results_handle)
