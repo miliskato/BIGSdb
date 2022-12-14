@@ -62,7 +62,7 @@ if __name__ == '__main__':
         # Open collections
         mongoinit = Mongoinitialisation()
         isolates_collection, old_isolateresults_collection, isolates_badqc_collection = \
-            mongoinit._initialise_collections(config_data, species)
+            mongoinit.initialise_collections(config_data, species)
 
         # Connect to db and create cursor
         cur_isolates, cur_seqdef = DatabaseConnection().open_database_connections(species)
@@ -96,7 +96,7 @@ if __name__ == '__main__':
             if outcome=='good':
                 command_line = f"export MODULEPATH=/etc/lmod/modules;" \
                                f"source /etc/profile.d/lmod.sh;" \
-                               f"module load {config_data['module_name']};" \
+                               f"module load {config_data['module_name'][0]};" \
                                f"mainmongo.py " \
                                f"--dict '{json.dumps(validation)}' " \
                                f"--species {species} " \
