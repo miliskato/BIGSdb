@@ -36,13 +36,13 @@ def _send_email(subject: str, content: str, config: dict) -> None:
     logging.info(content)
 
 class NewAllelesProfileClusteringFromMongoToBigs:
-    def __init__(self, species: str, st_collection: object, hashed_AD_collection: object, cluster_membership_collection: object,
+    def __init__(self, species: str, st_collection: object, hashed_ad_collection: object, cluster_membership_collection: object,
                  update_metadata_collection: object) -> None:
         """
         Initialization of the class.
         :param species: the species that needs to be updated
         :param st_collection: the sequence type collection from the mongo db of the species
-        :param hashed_AD_collection: the ashed allele collection of mongo db of the species
+        :param hashed_ad_collection: the ashed allele collection of mongo db of the species
         :param cluster_membership_collection: cluster membership collection from the mongo db of the species
         :param update_metadata_collection: the update metadata collection from the mongo db of the species
         """
@@ -56,7 +56,7 @@ class NewAllelesProfileClusteringFromMongoToBigs:
             'salmonella': {'seqdefdb': 'bigsdb_salmonella_seqdef', 'isolatedb': 'bigsdb_salmonella_isolates'}
         }
         self.st_collection = st_collection
-        self.hashed_AD_collection = hashed_AD_collection
+        self.hashed_ad_collection = hashed_ad_collection
         self.cluster_membership_collection = cluster_membership_collection
         self.update_metadata_collection = update_metadata_collection
         self.cur_isolates, self.cur_seqdef = DatabaseConnection().open_database_connections(self.species)
@@ -87,7 +87,7 @@ class NewAllelesProfileClusteringFromMongoToBigs:
         date of the last update.
         :return: A list of documents containing the information about the new alleles.
         """
-        query_seq = self.hashed_AD_collection.find({'insertion_date': {'$gt': self.last_date_of_update}})
+        query_seq = self.hashed_ad_collection.find({'insertion_date': {'$gt': self.last_date_of_update}})
         results = list(query_seq)
         return results
 
@@ -321,41 +321,31 @@ class NewAllelesProfileClusteringFromMongoToBigs:
             {'metadata': 'last_update'}, {
                 "$set": {'last_update_date': self.current_update_date}})
 
-# todo modify this to load the species option from the config after merging with Michaël branch
-def parse_arguments(specieslist) -> argparse.Namespace:
+
+
+def run_upload_new_alleles_profiles_clustering_from_mongo_to_bigs(species: str) -> None:
     """
-    Parses the command line arguments.
-    :return: Parsed arguments
+    Runs the uplaod of new alleles and clustering from mongo to bigs
+    :param species: the species to which the database needs to be uploaded
+    :return: None
     """
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--species", required=True, type=str,
-                        choices=specieslist)
-    return parser.parse_args()
-
-
-if __name__ == '__main__':
-
     # Parse config
     with open(MONGO_CONFIG, encoding='utf-8') as handle:
         config_data = yaml.safe_load(handle)
-
-    # Parse arguments
-    args = parse_arguments(config_data['species'])
-
     # Configure stdout logging
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
     # Open collections
     mongoinit = Mongoinitialisation()
-    hashed_AD_collection = mongoinit.initialise_hashing_collection(config_data, args.species)
+    hashed_ad_collection = mongoinit.initialise_hashing_collection(config_data, species)
     st_collection, cluster_membership_collection = \
-        mongoinit.initialise_clustering_collections(config_data, args.species)
-    update_collection = mongoinit.initialise_update_collection(config_data, args.species)
+        mongoinit.initialise_clustering_collections(config_data, species)
+    update_collection = mongoinit.initialise_update_collection(config_data, species)
 
     # initialize the class
     try:
-        updater = NewAllelesProfileClusteringFromMongoToBigs(args.species, st_collection, hashed_AD_collection,
+        updater = NewAllelesProfileClusteringFromMongoToBigs(species, st_collection, hashed_ad_collection,
                                         cluster_membership_collection, update_collection)
         updater.insert_into_bigs()
     except Exception as exceptionmessage:
         _send_email(f"{os.path.basename(__file__)}: mongo to bigs fail on host {socket.gethostname()}",
-                    f"{exceptionmessage}\n{traceback.format_exc()}", bigsdb_config['mail'])
+                    f"{exceptionmessage}\n{traceback.format_exc()}", config_data['mail'])

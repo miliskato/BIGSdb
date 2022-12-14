@@ -109,7 +109,7 @@ if __name__ == '__main__':
             else:
                 validation['date'] = datetime.datetime.utcnow()
                 isolates_badqc_collection.with_options(write_concern=WriteConcern(w="majority")).find_one_and_update(
-                    {'_id': isolate_id}, {'$set': {'results.validation': validation}})
+                    {'_id': isolate_id}, {'$set': {'validation': validation}})
             #update status once everything is finished
             cur_isolates.execute(f"UPDATE submissions SET status='validation_sent_to_bioit_platform' WHERE id='{id}'")
 

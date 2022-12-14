@@ -278,7 +278,7 @@ if __name__ == '__main__':
             elif args.dict and args.results_type == 'badqc_validated':
                 sample_doc = isolates_badqc_collection.find_one({"_id": args.technical_id})
                 records = sample_doc['results']
-                records['validation'] = args.dict
+                validation = args.dict
                 args.fastafilepath = sample_doc['fasta_path']
                 args.vcffilepath = sample_doc['vcf_path']
             records["isolates_id"] = args.technical_id
@@ -286,9 +286,9 @@ if __name__ == '__main__':
             ## to do in queries themselves because else error: TypeError: 'datetime.datetime' object is not iterable
             # QC check for failed qc to not be integrated in main db
             sample_quality = 'good'
-            if 'validation' in records.keys() and records['validation']['outcome'] == "good":
+            if args.results_type == 'badqc_validated' and validation['outcome'] == "good":
                 # date can't be added before submission as the datetime object is not serializable to json
-                records['validation']['date'] = datetime.datetime.utcnow()
+                validation['date'] = datetime.datetime.utcnow()
             else:
                 try:
                     for qc_type in records['qc']:
@@ -324,6 +324,9 @@ if __name__ == '__main__':
                         {"_id": records["isolates_id"]},
                         {"$set": {"results.cgST": sequence_type}})
                 if args.results_type == 'badqc_validated':
+                    isolates_collection.with_options(write_concern=WriteConcern(w="majority")).find_one_and_update(
+                        {"_id": records["isolates_id"]},
+                        {'$set': {'validation': validation}})
                     isolates_badqc_collection.delete_one({'_id': records["isolates_id"]})
             else:
                 _write_document(isolates_badqc_collection,

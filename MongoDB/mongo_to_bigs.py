@@ -25,6 +25,7 @@ from MongoDB.util.mongo_querying import Mongoquerying
 from MongoDB.config import MONGO_CONFIG
 from bioit_custom_scripts.components.databaseconnection import DatabaseConnection
 from bioit_custom_scripts.config import BIGSDB_CONFIG
+from MongoDB.new_alleles_profile_clustering_from_mongo_to_bigs import run_upload_new_alleles_profiles_clustering_from_mongo_to_bigs
 
 
 def _parse_arguments(specieslist) -> argparse.Namespace:
@@ -186,6 +187,9 @@ if __name__ == '__main__':
             handle.close()
             os.remove(jsonfile)
             logging.info(f"wrote new results version for {document['results']['isolates_id']} to bigsdb")
+
+            #call the function to insert new alleles and profiles
+            run_upload_new_alleles_profiles_clustering_from_mongo_to_bigs(args.species)
 
     except Exception as exceptionmessage:
         _send_email(f"{os.path.basename(__file__)}: mongo to bigs fail on host {socket.gethostname()}",
