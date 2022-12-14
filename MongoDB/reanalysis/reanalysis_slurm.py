@@ -174,7 +174,7 @@ if __name__ == '__main__':
         logging.info(f"new sample name: {temp_new_sample_name}")
 
         # Get a temporary working directory
-        with Path(tempfile.mkdtemp(None, 're_analysis_', reanalysis_config['temp_dir'])) as dir_temp:
+        with Path(tempfile.mkdtemp(None, 're_analysis_', mongo_config_data['temp_dir'])) as dir_temp:
 
             # initialise fail-safe mechanism
             _fail_safe_mechanism(isolate_id, reanalysis_config, mongo_config_data, str(dir_temp))

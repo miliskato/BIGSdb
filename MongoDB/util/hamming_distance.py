@@ -2,6 +2,8 @@ import numpy as np, numba as nb
 from tempfile import NamedTemporaryFile
 import SharedArray as sa
 from typing import Callable
+from MongoDB.config import MONGO_CONFIG
+import yaml
 
 
 def getDistance(data: np.array, func_name:str, pool: object, start=0) -> np.array:
@@ -13,7 +15,11 @@ def getDistance(data: np.array, func_name:str, pool: object, start=0) -> np.arra
     :param start: from which cgmlst profiles do the distances need to be computed?
     :return: an array (matrix like) containing the different computed distances
     """
-    with NamedTemporaryFile(dir='.', prefix='HCC_') as file :
+    # Parse config
+    with open(MONGO_CONFIG, encoding='utf-8') as handle:
+        config_data = yaml.safe_load(handle)
+
+    with NamedTemporaryFile(dir=config_data["temp_dir"], prefix='HCC_') as file :
         prefix = 'file://{0}'.format(file.name)
         func = eval(func_name)
         mat_buf = '{0}.mat.sa'.format(prefix)

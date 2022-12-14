@@ -21,7 +21,6 @@ species:
 #        main_script: mainsalmonellapipeline.py
 #        options: ['--serotype', '--spifinder', '--mlst', '--cgmlst', '--resfinder', '--ncbi-amr', '--vfdb-core', '--plasmidfinder', '--cgmlst', '--pointfinder']
 
-temp_dir: /scratch/temp
 
 failsafe:
   flag_dir: /scratch/temp/flags

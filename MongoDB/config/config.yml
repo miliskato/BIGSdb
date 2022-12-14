@@ -27,3 +27,4 @@ collections:
 module_name:
     - mongo_bigs_dbs/0.1
 
+temp_dir: /scratch/temp
