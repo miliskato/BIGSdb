@@ -13,7 +13,7 @@ species:
     - stec
     - salmonella
 
-dtap: test
+dtap: to_be_replaced_by_ansible
 
 collections:
     - isolates
