@@ -1,0 +1,26 @@
+storage:
+  dbPath: /var/lib/mongodb
+systemLog:
+  destination: file
+  path: /var/lib/mongodb/mongod.log
+  logAppend: true #When true, mongos or mongod appends new entries to the end of the existing log file when the mongos or mongod instance restarts. Without this option, mongod will back up the existing log and create a new file.
+  component:
+    replication:
+      election:
+        verbosity: 1
+    storage:
+      recovery:
+        verbosity: 1
+#processManagement: # forking is not working
+#  fork: true # not sure if should be false after all? default is false https://www.mongodb.com/docs/manual/reference/configuration-options/#mongodb-setting-processManagement.fork
+security:
+  authorization: enabled #https://www.mongodb.com/docs/manual/core/authorization/
+  keyFile: {{ keyfilepath }} # todo
+#  clusterIpSourceWhitelist:
+#    - #Ensure security.clusterIpSourceWhitelist includes the IP address or CIDR ranges that include the IP address of each replica set member or mongos in the deployment to ensure healthy communication between cluster components.
+#	- #Ensure security.clusterIpSourceWhitelist includes the IP address or CIDR ranges that include the IP address of each replica set member or mongos in the deployment to ensure healthy communication between cluster components.
+net:
+  bindIp: localhost,{{ inventory_hostname }} #todo # https://www.mongodb.com/docs/manual/reference/configuration-options/#mongodb-setting-net.bindIp # use DNS hostnames
+  port: {{ port }} # https://www.mongodb.com/docs/manual/reference/configuration-options/#mongodb-setting-net.port
+replication:
+  replSetName: {{ replica_set_name }}

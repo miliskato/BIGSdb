@@ -1,0 +1,101 @@
+---
+# Disclaimer: this role only works for exactly three replica set members provided by --limit to the playbook, if ever using more then to be defined in task "Initialise replicaset"
+- name: Copy mongodb gpg key
+  get_url:
+    url: "{{ linux_repo }}/gpg_keys/mongodb-archive-keyring.gpg"
+    dest: /usr/share/keyrings/mongodb-archive-keyring.gpg
+    owner: root
+    group: root
+    mode: u=rw,g=r,o=r
+
+- name: Install mongodb source list
+  apt_repository:
+    repo: 'deb [arch=amd64 signed-by=/usr/share/keyrings/mongodb-archive-keyring.gpg] {{ linux_repo}}/mongodb {{ ansible_distribution_release }}/mongodb-org/6.0 multiverse'
+    filename: mongodb
+    state: present
+
+- name: install mongodb package
+  apt:
+    name: mongodb-org
+
+# I hope that if these directories exist, that their ownership is still modified
+- name: create dirs
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: mongodb
+    group: mongodb
+  loop:
+    - /var/lib/mongodb
+    - "{{ keyfilebasepath }}"
+
+# ansible-vault encrypt_string 'vpjMcMDsIA7TJf87VXn4+0Z+YXa6qHz/no3hCmT974pMUMAbvxTV/fT8kwLMGeQwAL0zyOY0DednKm6aRQkBDJ0zwKSa953cR4OYwqJjbDRHeIrwijALcwdMVo7muc85rxvT1uxXS66Nwjtn01expRz3pmOCfxvnH5y3mc7mBIRBB5Ti8t7e6Uo0fZ1BbhaQKEIPym34jZOe4OqCf1/gTWh2SPwd0dSdxOl+EruoMs8+E304jr340K2l93BZht2oFciw4vlGcyJ+Ee542WV9Pa1T7kR9mRJza4ugqW4WxsHUuyJdkZib4zxNxrfWDPb58rvuHyo+p1vxmWnEhG+Zq0VAt7TuX6OzB5YhQMXFH4mHC8PiviYq7oFulFD6VjhhJbWlboyGFUHzEHr9V7Lmg3IVrPvRqaf/SfYFNlo6fwgcBAIo8UlR5UZFWS6AnA5jrbnh78vWz97C1be0Qd4Qh5nLIbOzPYnT6y6+MsjYWHjmq3b9A75YHeMncBtFuP+gM9LOUSrQBlH5IBTgPPJFZ0lzZNTJuVoiuER+VonqZf8b/I5z43CZ6i4tx+TPRKoiiQXLAAg/LKCJv1QuqdTF77P2scB6p1+TVYVqaqyCjOib2elz6mQtUX4RXk3OIKOTiqYWNbfUebkzhjkGz4j5g67o6YlZJh2L33M1d3PBbJf2zHGpmSrklE2kXvyDXGTmiizCdus9R26oT/ATmL20dwLhE92hEA2Zq7j8dVMiirETluBmP62B4QfvegISiXt94Zh6txuhGWP88iWb8g8Z55ZlvwCUBuFCxZOEvMP4MD3hnV4+sgwF23qFfTUND4VeJs3e8pkSEDWr7LrsaognNZY+Ex/35SHA+0tPw/eIgb9n+B+Wr6i6gZDCfKtBxPxF92+xXWYEiUTC3HrOUiXd2FjmJZ5dIaVujsNxxKQs5sZEHJXvSSkD7rPB54DZDKcmILXCq/81Zw9rVqbTWUiFQeM3lkht' --name 'secret_mongodb_keystring' --vault-password-file /etc/ansible/vault/bioit_vault_pass
+# todo: in the key above the newlines were removed, to check if still works this way
+- name: Copy mongodb keyfile from vault
+  ansible.builtin.copy:
+    content: "{{ secret_mongodb_keystring }}"
+    dest: "{{ keyfilepath }}"
+    owner: mongodb
+    group: mongodb
+    mode: '0600'
+
+- name: Copy mongod config file
+  ansible.builtin.template:
+    src: /etc/ansible/roles/bioit.mongodb/templates/mongod.conf.j2
+    dest: /etc/mongod.conf
+    owner: root
+    group: root
+    mode: '0644'
+
+# enabled: Whether the unit should start on boot.
+- name: Start Mongod service
+  ansible.builtin.systemd:
+    state: started
+    name: mongod
+    enabled: yes
+
+- name: ansible debug; trial to get a list of hostnames for the replicaset members
+  ansible.builtin.debug:
+    msg: "this ({{ play_hosts[host_index] }}) is the hostname"
+  loop: "{{ range(0, play_hosts|length) | list }}"
+  loop_control:
+    loop_var: host_index
+  when: inventory_hostname == play_hosts[0]
+
+- name: Install pymongo globally
+  ansible.builtin.pip:
+    name: pymongo
+
+# ansible-galaxy collection install community.mongodb
+- name: Initialise replicaset
+  community.mongodb.mongodb_replicaset:
+    login_host: localhost
+    login_user: "{{ mongodb_admin_user }}"
+    login_password: "{{ mongodb_admin_password }}"
+    replica_set: "{{ replica_set_name }}"
+    members:
+      - "{{ play_hosts[0] }}:{{ port }}"
+      - "{{ play_hosts[1] }}:{{ port }}"
+      - "{{ play_hosts[2] }}:{{ port }}"
+  when: inventory_hostname == play_hosts[0]
+  register: repl
+
+- name: Ensure replicaset has reached a converged state
+  community.mongodb.mongodb_status:
+    replica_set: "{{ replica_set_name }}"
+    poll: 10
+    interval: 10
+  when: repl.changed == True
+
+# ansible-vault encrypt_string '8T1r7nQwXnMoP3A9ubsu' --name 'mongodb_admin_password'
+# ansible-galaxy collection install community.mongodb
+- name: Create MongoDB root user siteRootAdmin
+  community.mongodb.mongodb_user:
+    login_host: localhost
+    login_port: "{{ port }}"
+    database: "admin"
+    name: "{{ mongodb_admin_user }}"
+    password: "{{ mongodb_admin_password }}"
+    roles: "root"
+  when: inventory_hostname == play_hosts[0]
+...

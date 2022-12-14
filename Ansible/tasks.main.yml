@@ -23,6 +23,22 @@
     msg: "'branch' argument required in -e when running playbook"
   when: branch is not defined
 
+- name: Assert if dtap given
+  fail:
+    msg: "'mongo_dtap' argument required in -e when running playbook"
+  when: mongo_dtap is not defined
+
+- name: check if mongo_dtap in list
+  vars:
+    dtaplist:
+      - dev
+      - test
+      - acc
+      - prod
+  fail:
+    msg: "unsupported mongo_dtap requested, choose from {{ dtaplist }}"
+  when: mongo_dtap not in dtaplist
+
 - name: install git package
   apt:
     name: git
@@ -32,6 +48,13 @@
     repo: "https://bioit_ro:{{ secret_bioit_git_ro_password }}@git.sciensano.be/bioit/BIGSdb.git"
     dest: "{{ bioit_bigs_home }}"
     version: "{{ branch }}"
+    force: yes
+
+- name: Change Mongo dtap version in config based on playbook argument
+  lineinfile:
+    path: "{{ bioit_bigs_home }}/MongoDB/config/config.yml"
+    regexp: 'dtap: to_be_replaced_by_ansible'
+    line: "dtap: {{ mongo_dtap }}"
 
 #- name: Get updated files from git repository
 #  git:
@@ -343,11 +366,28 @@
         user: 'bigsdb'
         cron_file: sync_globalbigsdbusers
 
+- name: Add crontrab entry for hash replacer
+      cron:
+        name: "crontab for hash_replacer"
+        minute: '0'
+        hour: '6'
+        weekday: '1'       # monday morning
+        job: "{{ item.command }}"
+        user: 'bigsdb'
+        cron_file: "{{ item.filename }}"
+      loop: "{{ list_cron|flatten(levels=1) }}"
+      vars:
+        list_cron:
+          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}//MongoDB/hash_replacer.py --scheme cgmlst --species {{ species }}", filename: "{{ species }}_hash_replacer_cgmlst" }
+          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}//MongoDB/hash_replacer.py --scheme mlst --species {{ species }}", filename: "{{ species }}_hash_replacer_mlst" }
+          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}//MongoDB/hash_replacer.py --scheme mlst_warwick --species {{ species }}", filename: "{{ species }}_hash_replacer_mlst_warwick" }
+          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}//MongoDB/hash_replacer.py --scheme mlst_pasteur --species {{ species }}", filename: "{{ species }}_hash_replacer_mlst_pasteur" }
+
     - name: Add crontrab entry for database updates
       cron:
         name: "crontab for weekly database updates"
-        minute: '0'
-        hour: '6'
+        minute: '30'
+        hour: '7'
         weekday: '1'       # monday morning
         job: "{{ item.command }}"
         user: 'bigsdb'
@@ -661,6 +701,12 @@
         name: galaxy
         state: "present"
         append: no
+
+    - name: create galaxy mongo dir
+      ansible.builtin.file:
+        path: /home/galaxy/mongo
+        state: directory
+        owner: galaxy
 
     - name: generate SSH key galaxy user
       user:

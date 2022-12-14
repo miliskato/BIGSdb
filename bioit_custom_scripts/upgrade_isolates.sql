@@ -1,3 +1,1 @@
-INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('assembly', 'text', 'galaxy report', '', 't', 't', (SELECT CURRENT_DATE), 1);
-INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('VCF_unfiltered', 'text', 'galaxy report', '', 't', 't', (SELECT CURRENT_DATE), 1);
-INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('VCF_filtered', 'text', 'galaxy report', '', 't', 't', (SELECT CURRENT_DATE), 1);
+INSERT INTO scheme_fields(scheme_id, field, type, description, field_order, dropdown, primary_key, curator, datestamp, isolate_display, main_display, query_field) VALUES(2, 'cgST', 'integer', 'Sequence Type (cgMLST)', 1, 'f', 't', 1, (SELECT CURRENT_DATE), 't', 't', 't');

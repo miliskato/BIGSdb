@@ -69,7 +69,7 @@ class MainInserter(JsonSuperClass):
         self._insert_metadata('assembly', assemblylink)
         self._insert_species_specific_metadata()
         if 'results_version' in self.sample_output_dict.keys():
-            self._insert_metadata_hidden('mongo_results_version', self.sample_output_dict['mongo_results_version'])
+            self._insert_metadata_hidden('mongo_results_version', self.sample_output_dict['results_version'])
         logging.info('Metadata insertion succesful')
     
     def _insert_species_specific_metadata(self) -> None:

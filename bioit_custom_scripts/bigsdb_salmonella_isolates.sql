@@ -4,6 +4,8 @@ INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, cu
             VALUES(2, 'cgMLST', 'cgMLST scheme downloaded and updated weekly from Enterobase.', 't', 2, 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE), 't', 't', 't', 'f', 't', 't', 'f', 'bigsdb_salmonella_seqdef', 2);
 INSERT INTO scheme_fields(scheme_id, field, type, description, field_order, dropdown, primary_key, curator, datestamp, isolate_display, main_display, query_field)
             VALUES(1, 'ST', 'integer', 'Sequence Type', 1, 'f', 't', 1, (SELECT CURRENT_DATE), 't', 't', 't');
+INSERT INTO scheme_fields(scheme_id, field, type, description, field_order, dropdown, primary_key, curator, datestamp, isolate_display, main_display, query_field)
+            VALUES(2, 'cgST', 'integer', 'Sequence Type for cgMLST', 1, 'f', 't', 1, (SELECT CURRENT_DATE), 't', 't', 't');
 --reports fields
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator)
                 VALUES('html', 'text', 'galaxy report', 'galaxy html report', 't', 't', (SELECT CURRENT_DATE), 1);
