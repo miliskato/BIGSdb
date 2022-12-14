@@ -102,6 +102,9 @@ if __name__ == '__main__':
         # Connect to db and create cursor
         cur_isolates, cur_seqdef = DatabaseConnection().open_database_connections(args.species)
 
+        # call the function to insert new alleles and profiles
+        run_upload_new_alleles_profiles_clustering_from_mongo_to_bigs(args.species)
+
         for document in isolates_collection.find():
             cur_isolates.execute(f"SELECT COUNT(*) FROM isolates WHERE isolate='{document['results']['isolates_id']}'")
             sample_presence = cur_isolates.fetchall()
@@ -187,9 +190,6 @@ if __name__ == '__main__':
             handle.close()
             os.remove(jsonfile)
             logging.info(f"wrote new results version for {document['results']['isolates_id']} to bigsdb")
-
-            #call the function to insert new alleles and profiles
-            run_upload_new_alleles_profiles_clustering_from_mongo_to_bigs(args.species)
 
     except Exception as exceptionmessage:
         _send_email(f"{os.path.basename(__file__)}: mongo to bigs fail on host {socket.gethostname()}",

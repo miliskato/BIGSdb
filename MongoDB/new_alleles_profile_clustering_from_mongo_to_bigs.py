@@ -290,24 +290,27 @@ class NewAllelesProfileClusteringFromMongoToBigs:
         query_res = self.cur_seqdef.fetchall()
         if query_res[0][0] is not None:
             thresholds_presents = [x[1] for x in query_res]
+
         else:
             thresholds_presents = []
-        for idx, threshold in enumerate(self.clustering_thresholds):
+        idx_max = len(thresholds_presents)
+        for threshold in self.clustering_thresholds:
             if threshold not in thresholds_presents:
                 name = f"cgMLST_{threshold}_diffs_clustering"
                 description = f"Clustering of the cgMLST profiles at {threshold} alleles of differences"
                 # initialize in seqdef
                 self.cur_seqdef.execute(
                     f"INSERT INTO classification_schemes (id, scheme_id, name, description, inclusion_threshold,"
-                    f" use_relative_threshold, display_order, status, curator, datestamp)VALUES ('{idx + 1}', "
+                    f" use_relative_threshold, display_order, status, curator, datestamp)VALUES ('{idx_max + 1}', "
                     f"(SELECT id FROM schemes WHERE name = 'cgMLST'), '{name}', '{description}', '{threshold}',"
-                    f" false, '{idx + 1}', 'experimental',1, (SELECT CURRENT_DATE) )")
+                    f" false, '{idx_max + 1}', 'experimental',1, (SELECT CURRENT_DATE) )")
                 # initialize in isolates
                 self.cur_isolates.execute(
                     f"INSERT INTO classification_schemes (id, scheme_id, name, description, inclusion_threshold, "
                     f"use_relative_threshold, seqdef_cscheme_id, display_order, status, curator, datestamp) "
-                    f"VALUES ('{idx + 1}', (SELECT id FROM schemes WHERE name = 'cgMLST'), '{name}', '{description}',"
-                    f" '{threshold}', false, '{idx + 1}','{idx + 1}', 'experimental',1, (SELECT CURRENT_DATE) )")
+                    f"VALUES ('{idx_max + 1}', (SELECT id FROM schemes WHERE name = 'cgMLST'), '{name}', '{description}',"
+                    f" '{threshold}', false, '{idx_max + 1}','{idx_max + 1}', 'experimental',1, (SELECT CURRENT_DATE) )")
+                idx_max += 1
             else:
                 print(f"Threshold {threshold} already present")
 
