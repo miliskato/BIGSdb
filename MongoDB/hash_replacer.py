@@ -40,7 +40,7 @@ def query_hashes_of_scheme(hashed_ad_collection: object, scheme: str) -> list:
     :param scheme: scheme that unresolved hashes should be queried from
     :return: list of documents (dicts) of unresolved hashes
     """
-    return list(hashed_ad_collection.with_options(read_concern=ReadConcern(level="majority")).find({"scheme": scheme, "resolved_AD": 0}))
+    return [document for document in hashed_ad_collection.with_options(read_concern=ReadConcern(level="majority")).find({"scheme": scheme, "resolved_AD": 0})]
 
 
 if __name__ == '__main__':
