@@ -349,7 +349,7 @@
         user: 'bigsdb'
         cron_file: sync_globalbigsdbusers
 
-- name: Add crontrab entry for hash replacer
+    - name: Add crontrab entry for hash replacer
       cron:
         name: "crontab for hash_replacer"
         minute: '0'
