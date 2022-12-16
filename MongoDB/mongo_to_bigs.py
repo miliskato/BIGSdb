@@ -26,6 +26,7 @@ from MongoDB.config import MONGO_CONFIG
 from bioit_custom_scripts.components.databaseconnection import DatabaseConnection
 from bioit_custom_scripts.config import BIGSDB_CONFIG
 from MongoDB.new_alleles_profile_clustering_from_mongo_to_bigs import run_upload_new_alleles_profiles_clustering_from_mongo_to_bigs
+from MongoDB.bad_samples_to_validation_bigs import bad_samples_to_validation_bigs
 
 
 def _parse_arguments(specieslist) -> argparse.Namespace:
@@ -104,6 +105,9 @@ if __name__ == '__main__':
 
         # call the function to insert new alleles and profiles
         run_upload_new_alleles_profiles_clustering_from_mongo_to_bigs(args.species)
+
+        #send bad samples from the badqc_isolates collection to BIGSdb
+        bad_samples_to_validation_bigs(args.species)
 
         for document in isolates_collection.find():
             cur_isolates.execute(f"SELECT COUNT(*) FROM isolates WHERE isolate='{document['results']['isolates_id']}'")
