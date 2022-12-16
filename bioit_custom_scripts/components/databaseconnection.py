@@ -1,5 +1,12 @@
 import psycopg2
+import yaml
+import os
+import sys
 
+PYTHONPATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.dirname(PYTHONPATH))
+
+from bioit_custom_scripts.config import BIGSDB_CONFIG
 
 class DatabaseConnection:
     """
@@ -17,7 +24,11 @@ class DatabaseConnection:
         :param db_type: DTAP: dev, test, acc, or prod
         :return: cursor object that can be used to interact: CRUD
         """
-        con = psycopg2.connect(database=f"bigsdb_{species}_{db_type}", user="apache", password="remote",
+        # Read the global config
+        with open(BIGSDB_CONFIG, encoding='utf-8') as handle:
+            config_data = yaml.safe_load(handle)
+
+        con = psycopg2.connect(database=f"bigsdb_{species}_{db_type}", user="apache", password=config_data.get('postgresql_apache_pass'),
                                host="127.0.0.1", port="")
         con.autocommit = True
         cur = con.cursor()

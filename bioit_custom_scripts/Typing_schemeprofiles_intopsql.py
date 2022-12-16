@@ -9,7 +9,10 @@ import logging
 import yaml
 import argparse
 
-from config import BIGSDB_CONFIG
+PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.dirname(PYTHONPATH))
+
+from bioit_custom_scripts.config import BIGSDB_CONFIG
 # For this script I am assuming that profiles do not retire.
 # It is important to keep in mind that ST do not necessarily follow each other up continuously, there can be gaps
 
@@ -121,7 +124,7 @@ def _insert_all_profiles() -> None:
     :return:
     """
     for species in list(set(args.species)):
-        con_seqdef = psycopg2.connect(database=f"{config_data['species'][species]['seqdefdb']}", user="apache", password="remote",
+        con_seqdef = psycopg2.connect(database=f"{config_data['species'][species]['seqdefdb']}", user="apache", password=config_data.get('postgresql_apache_pass'),
                                       host="127.0.0.1", port="")
         con_seqdef.autocommit = True
         cur_seqdef = con_seqdef.cursor()

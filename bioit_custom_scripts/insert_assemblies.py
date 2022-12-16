@@ -5,6 +5,16 @@ import sys
 import re
 import shutil
 import os
+import yaml
+
+PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.dirname(PYTHONPATH))
+
+from bioit_custom_scripts.config import BIGSDB_CONFIG
+
+# Read the global config
+with open(BIGSDB_CONFIG, encoding='utf-8') as handle:
+    config_data = yaml.safe_load(handle)
 
 argument_parser = argparse.ArgumentParser()
 argument_parser.add_argument('--fastafilepath', required=True, type=str)
@@ -15,7 +25,7 @@ fastafile = args.fastafilepath
 species = args.species
 isolate_name = args.isolatename
 
-con = psycopg2.connect(database=f"bigsdb_{species}_isolates", user="apache", password="remote",
+con = psycopg2.connect(database=f"bigsdb_{species}_isolates", user="apache", password=config_data.get('postgresql_apache_pass'),
                        host="127.0.0.1", port="")
 cur = con.cursor()
 con.autocommit = True
