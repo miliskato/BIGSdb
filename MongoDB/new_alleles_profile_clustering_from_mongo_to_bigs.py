@@ -151,7 +151,7 @@ class NewAllelesProfileClusteringFromMongoToBigs:
                                                 f"curator, date_entered, datestamp) VALUES('{locus}',"
                                                 f"'{new_allele['temp_allele_name']}','{new_allele['allele_sequence']}',"
                                                 f"'unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
-                        print(f"id {new_allele['temp_allele_name']} inserted into locus {locus}")
+                        logging.info(f"id {new_allele['temp_allele_name']} inserted into locus {locus}")
                     except:
                         self.cur_seqdef.execute(
                             f"SELECT allele_id FROM sequences WHERE allele_id='{new_allele['temp_allele_name']}'")
@@ -160,7 +160,7 @@ class NewAllelesProfileClusteringFromMongoToBigs:
                         for it in test:
                             test_list.append(it)
                         if len(test_list) > 0:
-                            print(f"id {new_allele['temp_allele_name']} already inserted = no insertion required")
+                            logging.info(f"id {new_allele['temp_allele_name']} already inserted = no insertion required")
                         else:
                             LookupError(
                                 f"id {new_allele['temp_allele_name']} is not inserted in the db and wasn't found in the db"
@@ -194,7 +194,7 @@ class NewAllelesProfileClusteringFromMongoToBigs:
             max_st_in_bigs = 0
         for st in self.new_st:
             if int(st['cgST']) > int(max_st_in_bigs):
-                print(f"start insert of {st['cgST']}")
+                logging.info(f"start insert of {st['cgST']}")
                 st_id = st['cgST']
                 # insertion of the st id into the profiles table
                 self.cur_seqdef.execute(f"INSERT INTO profiles(scheme_id, "
@@ -271,10 +271,10 @@ class NewAllelesProfileClusteringFromMongoToBigs:
                     f" cg_scheme_id = '{cg_scheme_id}' AND profile_id = '{profile_id}'")
                 self.cur_seqdef.execute(
                     f"INSERT INTO classification_group_profile_history (timestamp, scheme_id, profile_id, cg_scheme_id,"
-                    f" previous_group, comment)VALUES ((SELECT CURRENT_DATE), (SELECT id FROM schemes WHERE"
-                    f" name = 'cgMLST'), '{profile_id}', '{cg_scheme_id}', '{previous_group[0][0]}', 'n.c.')")
+                    f" previous_group) VALUES((SELECT CURRENT_DATE), (SELECT id FROM schemes WHERE"
+                    f" name = 'cgMLST'), '{profile_id}', '{cg_scheme_id}', '{previous_group[0][0]}')")
                 if previous_group[0][0] not in groups_merged:
-                    print(f'group {previous_group[0][0]} is merged into {group_id}')
+                    logging.debug(f'group {previous_group[0][0]} is merged into {group_id}')
                     groups_merged.append(previous_group[0][0])
                     # update group table
                     self.cur_seqdef.execute(
@@ -312,7 +312,7 @@ class NewAllelesProfileClusteringFromMongoToBigs:
                     f" '{threshold}', false, '{idx_max + 1}','{idx_max + 1}', 'experimental',1, (SELECT CURRENT_DATE) )")
                 idx_max += 1
             else:
-                print(f"Threshold {threshold} already present")
+                logging.debug(f"Threshold {threshold} already present")
 
 
     def _update_last_update_date(self) -> None:

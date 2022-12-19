@@ -190,7 +190,8 @@ if __name__ == '__main__':
                         f"{os.path.basename(__file__)}: Error inserting {document['results']['isolates_id']} into bigsdb",
                         "",
                         bigsdb_config['mail'])
-            run_subprocess(f"{args.pyvenvpythonpath} {os.path.join(parent, 'bioit_custom_scripts/main_results_inserter.py')} --jsonfilepath {jsonfile} --species {args.species} --isolatename {document['results']['isolates_id']} --uploadermailadress michael --results_type {results_type}")
+            # todo change uploader
+            run_subprocess(f"{args.pyvenvpythonpath} {os.path.join(parent, 'bioit_custom_scripts/main_results_inserter.py')} --jsonfilepath {jsonfile} --species {args.species} --isolatename {document['results']['isolates_id']} --uploadermailadress bioit --results_type {results_type}")
             handle.close()
             os.remove(jsonfile)
             logging.info(f"wrote new results version for {document['results']['isolates_id']} to bigsdb")
