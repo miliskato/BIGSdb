@@ -113,7 +113,7 @@ def __insert_profiles(scheme: str, schemedict: dict, indexdict: dict, profile_li
                                 f"'{locus}', '{profile}', '{locusvalue}', "
                                 f"1,(SELECT CURRENT_DATE))")
                 except Exception as exceptionmessage:
-                    _send_email(f"profile with field {field} and value {fieldvalue.replace('_',' ')} already exists as another field, find the profile that was misinserted (not all loci have allele_id), remove it, and all above and restart this script",
+                    _send_email(f"profile with field {field} and value {fieldvalue.replace('_',' ')} already exists as another field, find the profile that was misinserted (not all loci have allele_id), remove it, and all above and restart this script (on db {cur_seqdef.name()} on host {socket.gethostname()})",
                                 f"{exceptionmessage}\n{traceback.format_exc()}", emaildict)
                     continue
 
