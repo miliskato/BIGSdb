@@ -56,6 +56,12 @@
     regexp: 'dtap: to_be_replaced_by_ansible'
     line: "dtap: {{ mongo_dtap }}"
 
+- name: Add apache psql password to bigsdb config
+  lineinfile:
+    path: "{{ bioit_bigs_home }}/conf/db.conf"
+    regexp: 'dbpassword=to_be_replaced_by_ansible'
+    line: "dbpassword={{ secret_bioit_bigs_postgresql_apache_password }}"
+
 ## perl 5 is installed on Ubuntu by default.
 - name: Install packages
   apt:
