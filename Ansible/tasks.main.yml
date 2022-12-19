@@ -714,7 +714,6 @@
         mode: '0640'
         remote_src: yes
 
-
     - debug: msg="TODO manually; copy the private key to the right galaxy host manually in /home/galaxy/.ssh, chmod 0600 it !"
 
 ...
