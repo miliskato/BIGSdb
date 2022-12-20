@@ -25,7 +25,8 @@ from MongoDB.util.mongo_querying import Mongoquerying
 from MongoDB.config import MONGO_CONFIG
 from bioit_custom_scripts.components.databaseconnection import DatabaseConnection
 from bioit_custom_scripts.config import BIGSDB_CONFIG
-from MongoDB.new_alleles_profile_clustering_from_mongo_to_bigs import run_upload_new_alleles_profiles_clustering_from_mongo_to_bigs
+from MongoDB.new_alleles_profile_clustering_from_mongo_to_bigs import \
+    run_upload_new_alleles_profiles_clustering_from_mongo_to_bigs
 from MongoDB.bad_samples_to_validation_bigs import bad_samples_to_validation_bigs
 
 
@@ -37,7 +38,9 @@ def _parse_arguments(specieslist) -> argparse.Namespace:
     argument_parser = argparse.ArgumentParser()
     argument_parser.add_argument('--species', required=True, type=str,
                                  choices=specieslist)
-    argument_parser.add_argument('--pyvenvpythonpath', type=Path, required=True, help='/home/BIGSdb/3.9PythonVenv/bin/python3.9')
+    argument_parser.add_argument('--pyvenvpythonpath', type=Path, required=True,
+                                 help='/home/BIGSdb/3.9PythonVenv/bin/python3.9')
+    argument_parser.add_argument('--single_sample', type=str, help=argparse.SUPPRESS)
     return argument_parser.parse_args()
 
 
@@ -94,7 +97,8 @@ if __name__ == '__main__':
 
         # Open collections
         mongoinit = Mongoinitialisation()
-        isolates_collection, old_isolateresults_collection, isolates_badqc_collection = mongoinit.initialise_collections(config_data, args.species)
+        isolates_collection, old_isolateresults_collection, isolates_badqc_collection = mongoinit.initialise_collections(
+            config_data, args.species)
 
         # gather script path because not in same parent directory
         source = os.path.dirname(__file__)
@@ -106,21 +110,35 @@ if __name__ == '__main__':
         # call the function to insert new alleles and profiles
         run_upload_new_alleles_profiles_clustering_from_mongo_to_bigs(args.species)
 
-        #send bad samples from the badqc_isolates collection to BIGSdb
+        # send bad samples from the badqc_isolates collection to BIGSdb
         bad_samples_to_validation_bigs(args.species)
 
-        for document in isolates_collection.find():
+        if args.single_sample:
+            query_single = isolates_collection.find_one({'_id': args.single_sample})
+            if query_single is not None:
+                listofdocuments = [query_single]
+            else:
+                _send_email(
+                    f"{os.path.basename(__file__)}: Can not find document with _id '{args.single_sample}' in isolates",
+                    "", bigsdb_config['mail'])
+                sys.exit()
+        else:
+            listofdocuments = list(isolates_collection.find())
+
+        for document in listofdocuments:
             cur_isolates.execute(f"SELECT COUNT(*) FROM isolates WHERE isolate='{document['results']['isolates_id']}'")
             sample_presence = cur_isolates.fetchall()
             if sample_presence[0][0] == 0:
                 results_type = "new_isolate"
-            elif sample_presence[0][0] == 1 and os.path.isfile(Path(bigsdb_config['failsafe']['flag_dir']) / '.'.join([document['results']['isolates_id'], bigsdb_config['failsafe']['flag_append']])):
+            elif sample_presence[0][0] == 1 and os.path.isfile(Path(bigsdb_config['failsafe']['flag_dir']) / '.'.join(
+                    [document['results']['isolates_id'], bigsdb_config['failsafe']['flag_append']])):
                 # isolate into bigsdb was started but failed during insertion.
                 # if argument "new_isolate" is passed to main_results_inserter and it finds the flag, it will remove the isolate and the flag, and then recreate the flag and start insertion again.
                 results_type = "new_isolate"
             else:
                 results_type = "reanalysis"
-                cur_isolates.execute(f"SELECT latest_analysis_date FROM isolates WHERE isolate='{document['results']['isolates_id']}'")
+                cur_isolates.execute(
+                    f"SELECT latest_analysis_date FROM isolates WHERE isolate='{document['results']['isolates_id']}'")
                 latest_analysis_date_bigs = cur_isolates.fetchall()[0][0]  # this appearently is a datetime object
                 cur_isolates.execute(f"SELECT value FROM eav_text_hidden WHERE field='mongo_results_version'")
                 mongo_results_version_bigs_query = cur_isolates.fetchall()
@@ -130,21 +148,28 @@ if __name__ == '__main__':
                     mongo_results_version_bigs = mongo_results_version_bigs_query[0][0]
                 if _return_datetimeobj_from_DMYhms(document['results']['analysis_date']) > latest_analysis_date_bigs:
                     new_results = document['results']  # this field is the same as 'mongo_results_version' in bigs
-                    if new_results['changed_version'] == mongo_results_version_bigs + 1 and new_results["results_changed_since_last_version"] is False:
+                    if new_results['changed_version'] == mongo_results_version_bigs + 1 and new_results[
+                        "results_changed_since_last_version"] is False:
                         # results are same so do nothing
-                        logging.info(f"different version (1 diff) but results same in mongodb and bigsdb for {document['results']['isolates_id']}")
+                        logging.info(
+                            f"different version (1 diff) but results same in mongodb and bigsdb for {document['results']['isolates_id']}")
                         continue
                     else:
-                        old_results_withpointers = old_isolateresults_collection.with_options(read_concern=ReadConcern(level="majority")).find_one({'isolates_id': new_results['isolates_id'], 'changed_version': mongo_results_version_bigs})
+                        old_results_withpointers = old_isolateresults_collection.with_options(
+                            read_concern=ReadConcern(level="majority")).find_one(
+                            {'isolates_id': new_results['isolates_id'], 'changed_version': mongo_results_version_bigs})
                         if old_results_withpointers is None:
                             # what if bigs has version 1, but mongo has version 3, but version 3 is no different from 1 and 2?
                             # Currently new versions are only created if there were changes so in case more than 2 versions different and missing then should send error.
-                            _send_email(f"{os.path.basename(__file__)}: Can not find document in old isolate results collection for isolate {new_results['isolates_id']} and results version {mongo_results_version_bigs}", "", bigsdb_config['mail'])
+                            _send_email(
+                                f"{os.path.basename(__file__)}: Can not find document in old isolate results collection for isolate {new_results['isolates_id']} and results version {mongo_results_version_bigs}",
+                                "", bigsdb_config['mail'])
                             continue
                         else:
                             # replace the pointers in the old results by their actual contents
                             mongoquerying = Mongoquerying()
-                            old_results = mongoquerying.query_old_results_and_replace_pointers(old_isolateresults_collection, old_results_withpointers)
+                            old_results = mongoquerying.query_old_results_and_replace_pointers(
+                                old_isolateresults_collection, old_results_withpointers)
                         some_result_changed = False
                         for mainkey in new_results.keys():
                             if isinstance(new_results[mainkey], dict):
@@ -160,11 +185,13 @@ if __name__ == '__main__':
                                             some_result_changed = True
                         if some_result_changed is False:
                             # results didnt change
-                            logging.info(f"different version (more than 1 diff) but results same in mongodb and bigsdb {document['results']['isolates_id']}")
+                            logging.info(
+                                f"different version (more than 1 diff) but results same in mongodb and bigsdb {document['results']['isolates_id']}")
                             continue
                         # else if results changed, the for loop is continued and results are inserted into bigsdb as reanalysis
                 else:
-                    logging.info(f"results version same in mongodb and bigsdb for sample {document['results']['isolates_id']}")
+                    logging.info(
+                        f"results version same in mongodb and bigsdb for sample {document['results']['isolates_id']}")
                     continue
 
             # continuation of for loop:
@@ -172,6 +199,7 @@ if __name__ == '__main__':
             jsonfile = f"{document['results']['isolates_id']}_temp.json"
             with open(f"{document['results']['isolates_id']}_temp.json", 'w') as handle:
                 handle.write(json.dumps(document['results']))
+
 
             def run_subprocess(custom_command: str) -> None:
                 """
@@ -190,8 +218,10 @@ if __name__ == '__main__':
                         f"{os.path.basename(__file__)}: Error inserting {document['results']['isolates_id']} into bigsdb",
                         "",
                         bigsdb_config['mail'])
-            # todo change uploader
-            run_subprocess(f"{args.pyvenvpythonpath} {os.path.join(parent, 'bioit_custom_scripts/main_results_inserter.py')} --jsonfilepath {jsonfile} --species {args.species} --isolatename {document['results']['isolates_id']} --uploadermailadress bioit --results_type {results_type}")
+
+
+            run_subprocess(
+                f"{args.pyvenvpythonpath} {os.path.join(parent, 'bioit_custom_scripts/main_results_inserter.py')} --jsonfilepath {jsonfile} --species {args.species} --isolatename {document['results']['isolates_id']} --uploadermailadress michael --results_type {results_type}")
             handle.close()
             os.remove(jsonfile)
             logging.info(f"wrote new results version for {document['results']['isolates_id']} to bigsdb")
