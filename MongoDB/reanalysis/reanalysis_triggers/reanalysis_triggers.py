@@ -133,8 +133,9 @@ if __name__ == '__main__':
                 logging.info(f"Reanalysis for samples older than {date} with arguments: {date_args_dict[date]} completed")
 
         # with concurrent.futures.ThreadPoolExecutor(max_workers=1 if args.slurm is False else 5) as executor:  # MK 24th nov 2022, i dont remember why slurm would get 5 workers because this i think would cause isolates that need to be reanalyzed in the lowest date to also be captured in the next dates
+        # todo if I use an additional minimal_analysis_date argument, all of this could be parallelized
         with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-            #testing purposes
+            #testing and example purposes
             # date_args_dict = {
             #     '2019-03-04': 'vfdb-core virulencefinder plasmidfinder resfinder ncbi-amr mlst cgmlst pcr-serogroup metal-detergent typing-virulence typing-amr species-confirmation',
             #     '2020-06-24': 'virulencefinder plasmidfinder resfinder ncbi-amr mlst cgmlst pcr-serogroup metal-detergent typing-virulence typing-amr species-confirmation',
@@ -146,6 +147,27 @@ if __name__ == '__main__':
                 run_reanalysis, **{"date": date, "date_args_dict": date_args_dict}):
                                date for date in date_args_dict.keys()}
             logging.info(f"finished submitting reanalysis for species {args.species}")
+
+        # After all the reanalyses, execute mongo_to_bigs.py
+        # Create command insertion MongoDB
+        source = os.path.dirname(__file__)
+        parent = os.path.join(source, '../..')
+        base_command = ' '.join([
+            f"{args.pyvenvpythonpath}",
+            f"{os.path.join(parent, 'mongo_to_bigs.py')}",
+            f"--species {args.species}"
+            f'--pyvenvpythonpath {args.pyvenvpythonpath}'
+        ])
+        command = Command(base_command)
+        command.run(os.getcwd())
+        if command.returncode != 0:
+            # if pipeline fails, send mail and continue to next sample, dont raise error
+            _send_email(
+                f'{os.path.basename(__file__)}: Error inserting json into mongodb for automatic reanalysis pipeline on {args.species}, {isolate_id}',
+                command.stderr, mongo_config_data['mail'])
+            # raise RuntimeError(f"Error executing pipeline: {command.stderr}")
+        else:
+            logging.info(f"Mongo to bigs after reanalysis completed")
 
     except Exception as exceptionmessage:
         _send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",

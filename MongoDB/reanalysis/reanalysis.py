@@ -155,7 +155,7 @@ if __name__ == '__main__':
         isolates_collection, isolateresults_collection, isolates_badqc_collection = mongoinit.initialise_collections(mongo_config_data, args.species)
         # query all the documents, # todo maybe do a projection as were only interested in _id, fastapath, vcfpath unless we also want db updates later (can also be projected)
 
-        documents_list = [doc for doc in isolates_collection.find({'latest_analysis_date': {"$lt": args.maximal_analysis_date}}, {"_id": 1, "fasta_path": 1, "vcf_path": 1, "latest_analysis_date": 1})]
+        documents_list = [doc for doc in isolates_collection.find({'latest_analysis_date': {"$lt": args.maximal_analysis_date}}, {"_id": 1, "fasta_path": 1, "vcf_path": 1, "report_directory": 1, "latest_analysis_date": 1})]
         logging.info(f"{len(documents_list)} isolates to be reanalyzed")
 
         # ! For testing, you can specify isolates manually here
@@ -288,17 +288,45 @@ if __name__ == '__main__':
                         # raise RuntimeError(f"Error executing pipeline: {command.stderr}")
                     else:
                         logging.info(f"Mongodb insertion for isolate '{isolate_id}' completed")
+                        try:
+                            # shutil doesnt throw an error, but simply stops. Therefore it has to be put inside a try except
+                            logging.info(
+                                f"executing: {dir_temp}/camel.log {isolate['report_directory']}/{temp_new_sample_name}.log")
+                            shutil.move(f"{dir_temp}/camel.log", f"{isolate['report_directory']}/{temp_new_sample_name}.log")
+                            logging.info(f"moving the camel log for isolate '{isolate_id}'")
+                        except Exception:
+                            _send_email(
+                                f"{os.path.basename(__file__)}: shutil failed to move camel log {dir_temp}/camel.log to {isolate['report_directory']}/{temp_new_sample_name}",
+                                command.stderr, mongo_config_data['mail'])
 
-                    # todo
-                    # shutil.move(f"./{temp_new_sample_name}.log", f"/reports/{args.species}/{temp_new_sample_name}/{temp_new_sample_name}.log")
-
-                    # Removing the temporary working dir and the remaining files that were not kept
-                    # todo later shutil.rmtree(dir_temp) # 09-09 should i remove this though? we need the report html and tsv for bigsdb # 09-30 this removal was only after the report was moved somewhere else so justified (see reportmover.py in bigs)
-
+                        report_dir_merging_cmd = ' '.join([
+                            "rsync -a",
+                            f"{dir_out}/",
+                            f"{isolate['report_directory']}/"
+                        ])
+                        command = Command(report_dir_merging_cmd)
+                        # run the command
+                        logging.info(' '.join([
+                            "executing: rsync -a",
+                            f"{dir_temp}/{dir_out}/",
+                            f"{isolate['report_directory']}/"
+                        ]))
+                        command.run(dir_out)
+                        logging.info(f"merging the report directories of original and reanalysis for isolate '{isolate_id}'")
+                        if command.returncode != 0:
+                            # if pipeline fails, send mail and continue to next sample, dont raise error
+                            _send_email(
+                                f'{os.path.basename(__file__)}: Error merging reanalysis directory {dir_out} into output dir {isolate["report_directory"]} for automatic reanalysis pipeline on {args.species}, {isolate_id}',
+                                command.stderr, mongo_config_data['mail'])
+                            # raise RuntimeError(f"Error executing pipeline: {command.stderr}")
+                        else:
+                            # Removing the temporary working dir and the remaining files that were not kept
+                            shutil.rmtree(dir_temp)
+                            logging.info(f"Temporary directory deletion for isolate '{isolate_id}' completed")
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=int(args.threads /reanalysis_config['threads_per_job'])) as executor:
             future_to_isolate = {executor.submit(
-                reanalyse_and_insert, **{'isolate': isolate, 'threads_per_job': 1}):
+                reanalyse_and_insert, **{'isolate': isolate, 'threads_per_job': reanalysis_config['threads_per_job']}):
                                isolate for isolate in documents_list}
     except Exception as exceptionmessage:
         _send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
