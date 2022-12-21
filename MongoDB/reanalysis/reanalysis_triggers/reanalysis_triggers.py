@@ -77,7 +77,7 @@ if __name__ == '__main__':
 
     try:
         mongoinit = Mongoinitialisation()
-        isolates_collection, isolateresults_collection, isolates_badqc_collection = mongoinit.initialise_collections(
+        isolates_collection, isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections(
             mongo_config_data, args.species)
 
         # Part 1: Query scheme last update dates and sort schemes by last update date

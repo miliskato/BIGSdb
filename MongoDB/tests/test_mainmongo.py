@@ -78,7 +78,7 @@ if __name__ == '__main__':
 
         # Open collections
         mongoinit = Mongoinitialisation()
-        isolates_collection, isolateresults_collection, isolates_badqc_collection = \
+        isolates_collection, isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = \
             mongoinit.initialise_collections(config_data, 'listeria')
         hashed_ad_collection = mongoinit.initialise_hashing_collection(config_data, 'listeria')
         st_collection, cluster_membership_collection = \

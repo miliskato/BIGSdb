@@ -98,7 +98,7 @@ if __name__ == '__main__':
 
         # Open collections
         mongoinit = Mongoinitialisation()
-        isolates_collection, old_isolateresults_collection, isolates_badqc_collection = mongoinit.initialise_collections(
+        isolates_collection, isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections(
             config_data, args.species)
 
         # gather script path because not in same parent directory

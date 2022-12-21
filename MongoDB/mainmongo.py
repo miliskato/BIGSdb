@@ -16,6 +16,7 @@ from email.message import EmailMessage
 import socket
 import traceback
 import os
+import hashlib
 
 PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(PYTHONPATH))
@@ -51,7 +52,7 @@ def _parse_arguments(specieslist: list) -> argparse.Namespace:
     """
     parser = argparse.ArgumentParser()
     mutually_exclusive_group = parser.add_mutually_exclusive_group(required=True)
-    mutually_exclusive_group.add_argument('--dict', type=json.loads)
+    mutually_exclusive_group.add_argument('--subvaldict', type=json.loads)
     mutually_exclusive_group.add_argument('--jsonfilepath', type=Path)
     parser.add_argument("--species", required=True, type=str,
                         choices=specieslist)
@@ -200,15 +201,20 @@ def _return_YMD_from_DMYhms(datetimestring: str) -> str:
     return datetime.datetime.strptime(datetimestring, '%d/%m/%Y - %X').strftime('%Y-%m-%d')
 
 
-# def parameter_compatibility_checks(args: argparse.Namespace) -> None:
-#     """
-#     Checks compatibility of argparse arguments
-#     :param args: argparse arguments namespace
-#     :return: None
-#     """
-#     if args.results_type == 'reanalysis' and args.bigs is True:
-#         raise Exception('Bigs upload only available for new isolates')
-
+def parameter_compatibility_checks(args: argparse.Namespace) -> None:
+    """
+    Checks compatibility of argparse arguments
+    :param args: argparse arguments namespace
+    :return: None
+    """
+    # if args.results_type == 'reanalysis' and args.bigs is True:
+    #     raise Exception('Bigs upload only available for new isolates')
+    if args.results_type == 'badqc_validated' and not args.subvaldict:
+        raise Exception('subvaldict necessary when using results_type badqc_validated')
+    if args.results_type == 'new_isolate' and not args.jsonfilepath:
+        raise Exception('jsonfilepath necessary when using results_type new_isolate')
+    if args.results_type == 'reanalysis' and not args.jsonfilepath:
+        raise Exception('jsonfilepath necessary when using results_type reanalysis')
 
 def _check_if_results_changed(current_results, new_results):
     any_result_changed = False
@@ -235,6 +241,98 @@ def _check_if_results_changed(current_results, new_results):
 # def prepare_reports_for_bigs(jsonfilepath: Path, results_changed: dict) -> None:
 # todo later; replace json file by json file from mongo with extra information
 
+def _new_isolate_wrapper(records: dict) -> None:
+    """
+
+    :param records: results dictionary that is modified and inserted
+    :return:
+    """
+    records["isolates_id"] = args.technical_id
+    sample_quality = 'good'
+    if args.results_type == 'new_isolate':
+        try:
+            for qc_type in records['qc']:
+                for key in records['qc'][qc_type]:
+                    if key.endswith('status') and records['qc'][qc_type][key] == 'Failed':
+                        sample_quality = 'bad'
+        except KeyError:
+            _send_email(f"{os.path.basename(__file__)}: mongo upload fail in {isolates_collection.database.name} on host {socket.gethostname()}",
+                        f"No qc values found in the given results\n{traceback.format_exc()}",
+                        config_data['mail'])
+            raise KeyError('No qc values found in the given results')
+    if sample_quality == 'good':
+        records = find_hashes_in_results_and_add_to_collection(records, mongoinit, config_data,
+                                                               args.species, args.results_type)
+        _write_document(isolates_collection,
+                        _new_isolate(args.technical_id, args.reportdirectorypath, args.vcffilepath,
+                                     args.fastafilepath, records))
+        logging.info(f"Wrote new isolate {args.technical_id} and its result to {args.species} database")
+        if 'cgmlst' in records.keys():
+            clustering_input = mongoquerying.query_typing_results_by_technicalids_and_scheme(
+                isolates_collection,
+                scheme="cgmlst",
+                technicalids=[args.technical_id])
+            custom_clustering = MongoCustomClustering(clustering_input[0], clustering_input[1], args.species)
+            logging.info(f"Running the clustering for the isolate {args.technical_id}")
+            sp_thresholds = f"clustering_thresholds_{args.species}"
+            sequence_type = custom_clustering.run_custom_clustering(st_collection,
+                                                                    cluster_membership_collection,
+                                                                    CLUSTERING_CONFIG[sp_thresholds])
+            isolates_collection.with_options(write_concern=WriteConcern(w="majority")).find_one_and_update(
+                {"_id": records["isolates_id"]},
+                {"$set": {"results.cgST": sequence_type}})
+        if args.results_type == 'badqc_validated':
+            isolates_collection.with_options(write_concern=WriteConcern(w="majority")).find_one_and_update(
+                {"_id": records["isolates_id"]},
+                {'$set': {'validation': validation}})
+            isolates_badqc_collection.delete_one({'_id': records["isolates_id"]})
+    else:
+        _write_document(isolates_badqc_collection,
+                        _new_isolate(args.technical_id, args.reportdirectorypath, args.vcffilepath,
+                                     args.fastafilepath, records))
+        logging.warning(
+            f"New isolate {args.technical_id} failed quality control for one or more checks. It's results were written to the 'isolates_badqc' collection in the {args.species} database")
+
+def _new_resequencing_workflow() -> None:
+    """
+    After an id is found in either isolates or isolates_badqc; this workflow will determine if it really is a resequencing, and if so insert it into isolates_resequencing
+    :return:
+    """
+    # 2022-12-20 Check whether resequencing; if resequencing; fasta md5sum should be different from original one. debating whether to store md5 in mongo or not
+    # resequencings should be rare so we can afford multiple finds
+    result_isolates = isolates_collection.find_one({"_id": args.technical_id})
+    document_original = result_isolates if result_isolates is not None else isolates_badqc_collection.find_one(
+        {"_id": args.technical_id})
+    md5_original = hashlib.md5(open(Path(document_original['fasta_path']), 'r').read()).hexdigest()
+    md5_new = hashlib.md5(open(Path(args.fastafilepath), 'r').read()).hexdigest()
+    if md5_original != md5_new:
+        # this is an actual resequencing because the fastafilepath is different
+        previous_resequencings = list(
+            isolates_resequencing_collection.find({'results.isolates_id': args.technical_id}, {'_id': 1, 'fasta_path':1}))
+        new_resequencing = True
+        if previous_resequencings != []:
+            # check whether fasta is different from existing previous resequencings.
+            for projection in previous_resequencings:
+                if hashlib.md5(open(Path(projection['fasta_path']), 'r').read()).hexdigest() == md5_new:
+                    new_resequencing = False
+            if new_resequencing is True:
+                # Send a warning because we are not expecting multiple resequencings for the same same sample
+                _send_email(f"{os.path.basename(__file__)}: resequencing warning on host {socket.gethostname()}",
+                            f"WARNING: a resequencing for sample {args.technical_id} was written to the isolates_resequencing while one or more resequencings were already present: '{previous_resequencings}' in {isolates_resequencing_collection.database.name} on host {socket.gethostname()}",
+                            config_data['mail'])
+        if new_resequencing is True:
+            # Writing document with auto generated id to avoid having multiple resequencings with same name (pop _id key from new isolate dict)
+            _write_document(isolates_resequencing_collection,
+                            _new_isolate(args.technical_id, args.reportdirectorypath, args.vcffilepath,
+                                         args.fastafilepath, records).pop('_id'))
+            sys.exit()
+        else:
+            _send_email(
+                f"{os.path.basename(__file__)}: mongo upload fail in {isolates_collection.database.name} on host {socket.gethostname()}",
+                f"This technical id is already present in the isolates collection\n{traceback.format_exc()}",
+                config_data['mail'])
+            raise Exception(
+                f"The technical id '{args.technical_id}' is already present in the isolates or isolates badqc collection")
 
 if __name__ == '__main__':
 
@@ -251,90 +349,38 @@ if __name__ == '__main__':
 
     try:
         # Parameter compatibility checks
-        #parameter_compatibility_checks(args)
+        parameter_compatibility_checks(args)
 
         # Configure stdout logging
         logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
         # Open collections
         mongoinit = Mongoinitialisation()
-        isolates_collection, isolateresults_collection, isolates_badqc_collection = mongoinit.initialise_collections(
+        isolates_collection, isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections(
             config_data, args.species)
         st_collection, cluster_membership_collection = \
             mongoinit.initialise_clustering_collections(config_data, args.species)
         mongoquerying = Mongoquerying()
 
         # If statement for reanalysis or new
-        if args.results_type == "new_isolate" or args.results_type == 'badqc_validated':
-            if args.results_type == "new_isolate":
-                if args.technical_id in mongoquerying.query_list_of_all_distinct_values(isolates_collection, "_id") \
-                   or args.technical_id in mongoquerying.query_list_of_all_distinct_values(isolates_badqc_collection, "_id"):
-                    _send_email(f"{os.path.basename(__file__)}: mongo upload fail on host {socket.gethostname()}",
-                                f"This technical id is already present in the isolates collection\n{traceback.format_exc()}",
-                                config_data['mail'])
-                    raise Exception('This technical id is already present in the isolates collection')
-                    # todo check if fasta path and vcf path are real?
-            if args.jsonfilepath:
-                records = json.load(open(args.jsonfilepath, 'r'))
-            elif args.dict and args.results_type == 'badqc_validated':
-                sample_doc = isolates_badqc_collection.find_one({"_id": args.technical_id})
-                records = sample_doc['results']
-                validation = args.dict
-                args.fastafilepath = sample_doc['fasta_path']
-                args.vcffilepath = sample_doc['vcf_path']
-            records["isolates_id"] = args.technical_id
-            # Change date format
-            ## to do in queries themselves because else error: TypeError: 'datetime.datetime' object is not iterable
-            # QC check for failed qc to not be integrated in main db
-            sample_quality = 'good'
-            if args.results_type == 'badqc_validated' and validation['outcome'] == "good":
+        if args.results_type == "new_isolate":
+            records = json.load(open(args.jsonfilepath, 'r'))
+            # todo check if fasta path and vcf path are real?
+            if args.technical_id in mongoquerying.query_list_of_all_distinct_values(isolates_collection, "_id") \
+               or args.technical_id in mongoquerying.query_list_of_all_distinct_values(isolates_badqc_collection, "_id"):
+                _new_resequencing_workflow()
+            else:
+                _new_isolate_wrapper(records)
+        elif args.results_type == 'badqc_validated':
+            sample_doc = isolates_badqc_collection.find_one({"_id": args.technical_id})
+            records = sample_doc['results']
+            validation = args.subvaldict
+            args.fastafilepath = sample_doc['fasta_path']
+            args.vcffilepath = sample_doc['vcf_path']
+            if validation['outcome'] == "good":
                 # date can't be added before submission as the datetime object is not serializable to json
                 validation['date'] = datetime.datetime.utcnow()
-            else:
-                try:
-                    for qc_type in records['qc']:
-                        for key in records['qc'][qc_type]:
-                            if key.endswith('status') and records['qc'][qc_type][key] == 'Failed':
-                                sample_quality = 'bad'
-                except Exception:
-                    _send_email(f"{os.path.basename(__file__)}: mongo upload fail on host {socket.gethostname()}",
-                                f"No qc values found in the given results\n{traceback.format_exc()}",
-                                config_data['mail'])
-                    raise Exception('No qc values found in the given results')
-
-            if sample_quality == 'good':
-                records = find_hashes_in_results_and_add_to_collection(records, mongoinit, config_data,
-                                                                       args.species, args.results_type)
-                _write_document(isolates_collection,
-                                _new_isolate(args.technical_id, args.reportdirectorypath, args.vcffilepath, args.fastafilepath,
-                                             records))
-                logging.info(f"Wrote new isolate {args.technical_id} and its result to {args.species} database")
-                if 'cgmlst' in records.keys():
-                    hashed_AD_collection = mongoinit.initialise_hashing_collection(config_data, args.species,)
-                    clustering_input = mongoquerying.query_typing_results_by_technicalids_and_scheme(
-                        isolates_collection,
-                        scheme="cgmlst",
-                        technicalids=[args.technical_id])
-                    custom_clustering = MongoCustomClustering(clustering_input[0], clustering_input[1], args.species)
-                    logging.info(f"Running the clustering for the isolate {args.technical_id}")
-                    sp_thresholds = f"clustering_thresholds_{args.species}"
-                    sequence_type = custom_clustering.run_custom_clustering(st_collection,
-                                                                            cluster_membership_collection,
-                                                                            CLUSTERING_CONFIG[sp_thresholds])
-                    isolates_collection.with_options(write_concern=WriteConcern(w="majority")).find_one_and_update(
-                        {"_id": records["isolates_id"]},
-                        {"$set": {"results.cgST": sequence_type}})
-                if args.results_type == 'badqc_validated':
-                    isolates_collection.with_options(write_concern=WriteConcern(w="majority")).find_one_and_update(
-                        {"_id": records["isolates_id"]},
-                        {'$set': {'validation': validation}})
-                    isolates_badqc_collection.delete_one({'_id': records["isolates_id"]})
-            else:
-                _write_document(isolates_badqc_collection,
-                                _new_isolate(args.technical_id, args.reportdirectorypath, args.vcffilepath, args.fastafilepath,
-                                             records))
-                logging.warning(
-                    f"New isolate {args.technical_id} failed quality control for one or more checks. It's results were written to the 'isolates_badqc' collection in the {args.species} database")
+            _new_isolate_wrapper(records)
 
         elif args.results_type == "reanalysis":
             new_results_handle = json.load(open(args.jsonfilepath, 'r'))
@@ -348,11 +394,11 @@ if __name__ == '__main__':
                 raise Exception('This reanalysis technical id is not present in the isolates collection')
             current_results = current_results_document['results']
             if new_results["results.analysis_date"] == current_results["analysis_date"]:
-                _send_email(f"{os.path.basename(__file__)}: mongo upload fail on host {socket.gethostname()}",
+                _send_email(f"{os.path.basename(__file__)}: mongo upload fail in {isolates_collection.database.name} on host {socket.gethostname()}",
                             f"This is not a reanalysis but the same results\n{traceback.format_exc()}", config_data['mail'])
                 raise Exception('This is not a reanalysis but the same results')
             elif _return_YMD_from_DMYhms(new_results["results.analysis_date"]) < _return_YMD_from_DMYhms(current_results["analysis_date"]):
-                _send_email(f"{os.path.basename(__file__)}: mongo upload fail on host {socket.gethostname()}",
+                _send_email(f"{os.path.basename(__file__)}: mongo upload fail in {isolates_collection.database.name} on host {socket.gethostname()}",
                             f"These results seem to be older than the current results\n{traceback.format_exc()}", config_data['mail'])
                 raise Exception('These results seem to be older than the current results')
             any_result_changed_new_old, unchanged_results_new_old, changed_results_new_old = \

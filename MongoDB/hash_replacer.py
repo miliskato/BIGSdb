@@ -61,7 +61,7 @@ if __name__ == '__main__':
 
     # Open collections
     mongoinit = Mongoinitialisation()
-    isolates_collection, isolateresults_collection, isolates_badqc_collection = mongoinit.initialise_collections(
+    isolates_collection, isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections(
         config_data, args.species)
     hashed_AD_collection = mongoinit.initialise_hashing_collection(config_data, args.species)
     st_collection, cluster_membership_collection = \

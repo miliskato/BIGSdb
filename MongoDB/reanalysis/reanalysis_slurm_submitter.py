@@ -93,7 +93,7 @@ if __name__ == '__main__':
 
         # Retrieve isolates that need to be re-analyzed
         mongoinit = Mongoinitialisation()
-        isolates_collection, isolateresults_collection, isolates_badqc_collection = mongoinit.initialise_collections(
+        isolates_collection, isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections(
             mongo_config_data, args.species)
         # query all the documents as a projection
         documents_list = [doc for doc in

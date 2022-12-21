@@ -98,7 +98,7 @@ if __name__ == '__main__':
                                f"source /etc/profile.d/lmod.sh;" \
                                f"module load {config_data['module_name'][0]};" \
                                f"mainmongo.py " \
-                               f"--dict '{json.dumps(validation)}' " \
+                               f"--subvaldict '{json.dumps(validation)}' " \
                                f"--species {species} " \
                                f"--results_type badqc_validated " \
                                f"--fastafilepath na " \

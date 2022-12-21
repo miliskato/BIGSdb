@@ -37,11 +37,15 @@ if __name__ == '__main__':
 
     # Open collections
     mongoinit = Mongoinitialisation()
-    isolates_collection, isolateresults_collection, isolates_badqc_collection = mongoinit.initialise_collections(config_data, args.species)
+    isolates_collection, isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections(config_data, args.species)
     # isolates_collection.drop()
     # isolateresults_collection.drop()
     mongoquerying = Mongoquerying()
 
+    result_isolates = isolates_collection.find_one({'_id': '11-090'})
+    print(list(isolates_collection.find({'_id': 'test'})))
+    print(isolates_badqc_collection.find_one({'_id': '11-090'}, {'fasta_path':1}) if result_isolates is None else result_isolates)
+    print(result_isolates if result_isolates is not None else isolates_badqc_collection.find_one({'_id': '11-090'},  {'fasta_path':1}))
     # print(isolates_collection.find_one()['results'].keys())
     # mongoquerying.query_failed_causes(isolates_badqc_collection)
     # list_of_lists = [docs['results']['species_confirmation']['loci'] for docs in isolates_collection.find()]
@@ -54,7 +58,7 @@ if __name__ == '__main__':
     #         print(':'.join([locus['Locus'], locus['Allele']]))
     # print([docs for docs in isolates_collection.find({},{'_id': 1})])
 
-    mongoquerying.query_what_changed_compared_to_previous('S14BD00001_R1_001', isolates_collection, isolateresults_collection)
+    # mongoquerying.query_what_changed_compared_to_previous('S14BD00001_R1_001', isolates_collection, isolateresults_collection)
 
     # print(mongoquerying._query_list_of_all_distinct_values(isolates_collection, '_id'))
     # for result in mongoquerying._query_previous_latest_results_by_technicalids(isolates_collection, isolateresults_collection,

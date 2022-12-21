@@ -57,7 +57,9 @@ class Mongoinitialisation:
         isolateresults_collection = self._open_mongo_collection(species_database, "old_isolate_results", config_data)
         # open isolates badqc collection
         isolates_badqc_collection = self._open_mongo_collection(species_database, "isolates_badqc", config_data)
-        return isolates_collection, isolateresults_collection, isolates_badqc_collection
+        # open isolates resequencing collection
+        isolates_resequencing_collection = self._open_mongo_collection(species_database, "isolates_resequencing", config_data)
+        return isolates_collection, isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection
 
     def initialise_clustering_collections(self, config_data: dict, species: str):
         """

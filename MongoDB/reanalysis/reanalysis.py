@@ -153,7 +153,7 @@ if __name__ == '__main__':
 
         # Retrieve isolates that need to be re-analyzed
         mongoinit = Mongoinitialisation()
-        isolates_collection, isolateresults_collection, isolates_badqc_collection = mongoinit.initialise_collections(mongo_config_data, args.species)
+        isolates_collection, isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections(mongo_config_data, args.species)
         # query all the documents, # todo maybe do a projection as were only interested in _id, fastapath, vcfpath unless we also want db updates later (can also be projected)
 
         documents_list = [doc for doc in isolates_collection.find({'latest_analysis_date': {"$lt": args.maximal_analysis_date}}, {"_id": 1, "fasta_path": 1, "vcf_path": 1, "report_directory": 1, "latest_analysis_date": 1})]

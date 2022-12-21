@@ -10,6 +10,7 @@ import socket
 import traceback
 import datetime
 from pymongo.write_concern import WriteConcern
+
 PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(PYTHONPATH))
 
@@ -34,7 +35,7 @@ def send_email(subject: str, content: str, config: dict) -> None:
         s.send_message(message)
     logging.info(content)
 
-def bad_samples_to_validation_bigs(species: str) ->None:
+def bad_samples_to_validation_bigs(species: str) -> None:
     """
     Send samples in the badqc_sample collection to be validated on BIGSdb
     :param species: the species of the database to send the bad samples from
