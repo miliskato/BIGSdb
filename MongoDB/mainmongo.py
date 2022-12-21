@@ -43,9 +43,10 @@ def _send_email(subject: str, content: str, config: dict) -> None:
     logging.info(content)
 
 
-def _parse_arguments(specieslist) -> argparse.Namespace:
+def _parse_arguments(specieslist: list) -> argparse.Namespace:
     """
     Parses the command line arguments.
+    :param specieslist: list of all the species choices
     :return: Parsed arguments
     """
     parser = argparse.ArgumentParser()

@@ -30,9 +30,10 @@ from MongoDB.new_alleles_profile_clustering_from_mongo_to_bigs import \
 from MongoDB.bad_samples_to_validation_bigs import bad_samples_to_validation_bigs
 
 
-def _parse_arguments(specieslist) -> argparse.Namespace:
+def _parse_arguments(specieslist: list) -> argparse.Namespace:
     """
     Parses the command line arguments.
+    :param specieslist: list of all the species choices
     :return: Parsed arguments
     """
     argument_parser = argparse.ArgumentParser()
@@ -141,28 +142,28 @@ if __name__ == '__main__':
                     f"SELECT latest_analysis_date FROM isolates WHERE isolate='{document['results']['isolates_id']}'")
                 latest_analysis_date_bigs = cur_isolates.fetchall()[0][0]  # this appearently is a datetime object
                 cur_isolates.execute(f"SELECT value FROM eav_text_hidden WHERE field='mongo_results_version'")
-                mongo_results_version_bigs_query = cur_isolates.fetchall()
-                if mongo_results_version_bigs_query == []:
-                    mongo_results_version_bigs = 1
+                # as of 2022/12/22 mongo_results_version in bigs is changed version
+                mongo_results_changed_version_bigs_query = cur_isolates.fetchall()
+                if mongo_results_changed_version_bigs_query == []:
+                    mongo_results_changed_version_bigs = 1
                 else:
-                    mongo_results_version_bigs = mongo_results_version_bigs_query[0][0]
+                    mongo_results_changed_version_bigs = mongo_results_changed_version_bigs_query[0][0]
                 if _return_datetimeobj_from_DMYhms(document['results']['analysis_date']) > latest_analysis_date_bigs:
-                    new_results = document['results']  # this field is the same as 'mongo_results_version' in bigs
-                    if new_results['changed_version'] == mongo_results_version_bigs + 1 and new_results[
-                        "results_changed_since_last_version"] is False:
+                    new_results = document['results']
+                    if new_results['changed_version'] == int(mongo_results_changed_version_bigs):
                         # results are same so do nothing
                         logging.info(
-                            f"different version (1 diff) but results same in mongodb and bigsdb for {document['results']['isolates_id']}")
+                            f"results_version might be different, but changed_version same in mongodb and bigsdb for {document['results']['isolates_id']}")
                         continue
                     else:
                         old_results_withpointers = old_isolateresults_collection.with_options(
                             read_concern=ReadConcern(level="majority")).find_one(
-                            {'isolates_id': new_results['isolates_id'], 'changed_version': mongo_results_version_bigs})
+                            {'isolates_id': new_results['isolates_id'], 'changed_version': mongo_results_changed_version_bigs})
                         if old_results_withpointers is None:
                             # what if bigs has version 1, but mongo has version 3, but version 3 is no different from 1 and 2?
                             # Currently new versions are only created if there were changes so in case more than 2 versions different and missing then should send error.
                             _send_email(
-                                f"{os.path.basename(__file__)}: Can not find document in old isolate results collection for isolate {new_results['isolates_id']} and results version {mongo_results_version_bigs}",
+                                f"{os.path.basename(__file__)}: Can not find document in old isolate results collection for isolate {new_results['isolates_id']} and results version {mongo_results_changed_version_bigs}",
                                 "", bigsdb_config['mail'])
                             continue
                         else:

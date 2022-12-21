@@ -34,9 +34,10 @@ from MongoDB.config import MONGO_CONFIG
 from MongoDB.reanalysis import MONGO_REANALYSIS_CONFIG
 
 
-def _parse_arguments(specieslist) -> argparse.Namespace:
+def _parse_arguments(specieslist: list) -> argparse.Namespace:
     """
     Parses the command line arguments.
+    :param specieslist: list of all the species choices
     :return: Parsed arguments
     """
     parser = argparse.ArgumentParser()

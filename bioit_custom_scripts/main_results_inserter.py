@@ -20,9 +20,10 @@ from components.json_typingresultsinserter import JsonTypingResultsInserter
 from components.json_genedetectionresultsinserter import JsonGeneDetectionResultsInserter
 
 
-def _parse_arguments(speciesdict) -> argparse.Namespace:
+def _parse_arguments(specieslist: list) -> argparse.Namespace:
     """
     Parses the command line arguments.
+    :param specieslist: list of all the species choices
     :return: Parsed arguments
     """
     argument_parser = argparse.ArgumentParser()
@@ -32,7 +33,7 @@ def _parse_arguments(speciesdict) -> argparse.Namespace:
     argument_parser.add_argument('--isolatename', required=True, type=str)
     argument_parser.add_argument('--uploadermailadress', required=True, type=str)
     argument_parser.add_argument('--species', required=True, type=str,
-                                 choices=list(speciesdict.keys()))
+                                 choices=specieslist)
     argument_parser.add_argument("--results_type", required=True, type=str, choices=['new_isolate', 'reanalysis'])
     return argument_parser.parse_args()
 
@@ -133,7 +134,7 @@ if __name__ == '__main__':
         config_data = yaml.safe_load(handle)
 
     # Parse arguments
-    args = _parse_arguments(config_data['species'])
+    args = _parse_arguments(list(config_data['species'].keys()))
 
     # parse output
     if args.tsvfilepath:
