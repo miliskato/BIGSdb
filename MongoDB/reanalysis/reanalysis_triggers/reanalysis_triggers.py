@@ -28,9 +28,10 @@ from MongoDB.reanalysis.command.command import Command
 # git log --date=short -- . ':(exclude)db_metadata.txt'
 
 
-def _parse_arguments(specieslist) -> argparse.Namespace:
+def _parse_arguments(specieslist: list) -> argparse.Namespace:
     """
     Parses the command line arguments.
+    :param specieslist: list of all the species choices
     :return: Parsed arguments
     """
     parser = argparse.ArgumentParser()
@@ -156,7 +157,7 @@ if __name__ == '__main__':
             f"{args.pyvenvpythonpath}",
             f"{os.path.join(parent, 'mongo_to_bigs.py')}",
             f"--species {args.species}"
-            f'--pyvenvpythonpath {args.pyvenvpythonpath}'
+            f" --pyvenvpythonpath {args.pyvenvpythonpath}"  # need a space here because else it bugs
         ])
         command = Command(base_command)
         command.run(os.getcwd())

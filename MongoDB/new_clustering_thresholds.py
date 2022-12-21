@@ -11,9 +11,10 @@ from MongoDB.util.new_threshold_clustering import NewThresholdClustering
 from MongoDB.util.mongo_initialisation import Mongoinitialisation
 from MongoDB.config import MONGO_CONFIG
 
-def parse_arguments(specieslist) -> argparse.Namespace:
+def parse_arguments(specieslist: list) -> argparse.Namespace:
     """
     Parses the command line arguments.
+    :param specieslist: list of all the species choices
     :return: Parsed arguments
     """
     parser = argparse.ArgumentParser()

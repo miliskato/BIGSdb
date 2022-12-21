@@ -22,14 +22,15 @@ sys.path.append(os.path.dirname(PYTHONPATH))
 from bioit_custom_scripts.config import BIGSDB_CONFIG
 
 
-def _parse_arguments(speciesdict) -> argparse.Namespace:
+def _parse_arguments(specieslist: list) -> argparse.Namespace:
     """
     Parses the command line arguments.
+    :param specieslist: list of all the species choices
     :return: Parsed arguments
     """
     argument_parser = argparse.ArgumentParser()
     argument_parser.add_argument('--species', required=False, type=str,
-                                 choices=list(speciesdict.keys()), default=list(speciesdict.keys()),
+                                 choices=specieslist, default=specieslist,
                                  nargs='+')  # this does allow for the same species multiple times but doesnt really matter
     return argument_parser.parse_args()
 
@@ -222,7 +223,7 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
     # Parse arguments
-    args = _parse_arguments(config_data['species'])
+    args = _parse_arguments(list(config_data['species'].keys()))
 
     try:
         _gene_detection_insertion_recalcultation()

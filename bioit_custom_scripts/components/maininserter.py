@@ -68,8 +68,8 @@ class MainInserter(JsonSuperClass):
         assemblylink = f'<p><a href="/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_{self.species}_isolates&page=plugin&name=Contigs&format=text&isolate_id={isolate_id}&match=1&pc_untagged=0&min_length=&header=1l" target="_blank">assembly</a></p>'
         self._insert_metadata('assembly', assemblylink)
         self._insert_species_specific_metadata()
-        if 'results_version' in self.sample_output_dict.keys():
-            self._insert_metadata_hidden('mongo_results_version', self.sample_output_dict['results_version'])
+        if 'changed_version' in self.sample_output_dict.keys():
+            self._insert_metadata_hidden('mongo_results_version', self.sample_output_dict['changed_version'])
         logging.info('Metadata insertion succesful')
     
     def _insert_species_specific_metadata(self) -> None:
