@@ -134,7 +134,7 @@ def _delete_flagfile(isolatename: str, config: dict, mailconfig: dict) -> None:
             f"{os.path.basename(__file__)}: Could not remove flag file {flagfilepath} on host {socket.gethostname()}",
             f"{exceptionmessage}\n{traceback.format_exc()}", mailconfig['mail'])
 
-def reanalysis_slurm(species: str, isolate: json.loads, threads: int = 8, analysis_arguments: list = None, alternate_connection_string: str = None):
+def reanalysis_slurm(species: str, isolate: json.loads, threads: int = 8, analysis_arguments: list = None, alternate_connection_string: str = None) -> None:
     """
     Main function
     See argparse function for variables and their requiredness

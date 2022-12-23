@@ -61,7 +61,7 @@ def _query_hashes_of_scheme(hashed_ad_collection: object, scheme: str) -> list:
     """
     return [document for document in hashed_ad_collection.with_options(read_concern=ReadConcern(level="majority")).find({"scheme": scheme, "resolved_AD": 0})]
 
-def tempid_replacer(scheme: str, species: str, alternate_connection_string: str = None):
+def tempid_replacer(scheme: str, species: str, alternate_connection_string: str = None) -> None:
     """
     Main function
     See argparse function for variables and their requiredness

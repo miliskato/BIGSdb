@@ -67,7 +67,7 @@ def _send_email(subject: str, content: str, config: dict) -> None:
         s.send_message(message)
     logging.info(content)
 
-def reanalysis_slurm_submitter(species: str, maximal_analysis_date: str, pyvenvpythonpath: str, threads_per_job: int = 1, analysis_arguments: list = None, alternate_connection_string: str = None):
+def reanalysis_slurm_submitter(species: str, maximal_analysis_date: str, pyvenvpythonpath: str, threads_per_job: int = 1, analysis_arguments: list = None, alternate_connection_string: str = None) -> None:
     """
     Main function
     See argparse function for variables and their requiredness

@@ -62,7 +62,7 @@ def _send_email(subject: str, content: str, config: dict) -> None:
         s.send_message(message)
     logging.info(content)
 
-def reanalysis_triggers(species: str, threads: int = 8, pyvenvpythonpath: str = None, alternate_connection_string: str = None, slurm = False):
+def reanalysis_triggers(species: str, threads: int = 8, pyvenvpythonpath: str = None, alternate_connection_string: str = None, slurm = False) -> None:
     """
     Main function
     See argparse function for variables and their requiredness
@@ -150,6 +150,7 @@ def reanalysis_triggers(species: str, threads: int = 8, pyvenvpythonpath: str = 
     except Exception as exceptionmessage:
         _send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
                     f"{exceptionmessage}\n{traceback.format_exc()}", mongo_config_data['mail'])
+
 if __name__ == '__main__':
 
     # Read the trigger config

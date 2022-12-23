@@ -23,13 +23,13 @@ sys.path.append(os.path.dirname(PYTHONPATH))
 from MongoDB.util.mongo_initialisation import Mongoinitialisation
 from MongoDB.util.mongo_querying import Mongoquerying
 from MongoDB.config import MONGO_CONFIG
-from bioit_custom_scripts.components.databaseconnection import DatabaseConnection
-from bioit_custom_scripts.config import BIGSDB_CONFIG
-from bioit_custom_scripts.main_results_inserter import main_results_inserter
 from MongoDB.new_alleles_profile_clustering_from_mongo_to_bigs import \
     run_upload_new_alleles_profiles_clustering_from_mongo_to_bigs
 from MongoDB.bad_samples_to_validation_bigs import bad_samples_to_validation_bigs
-
+from bioit_custom_scripts.components.databaseconnection import DatabaseConnection
+from bioit_custom_scripts.config import BIGSDB_CONFIG
+from bioit_custom_scripts.main_results_inserter import main_results_inserter
+from bioit_custom_scripts.insert_assembly import insert_assembly
 
 def _parse_arguments(specieslist: list) -> argparse.Namespace:
     """
@@ -42,7 +42,6 @@ def _parse_arguments(specieslist: list) -> argparse.Namespace:
                                  choices=specieslist)
     argument_parser.add_argument('--single_sample', type=str, help=argparse.SUPPRESS)
     return argument_parser.parse_args()
-
 
 def _send_email(subject: str, content: str, config: dict) -> None:
     """
@@ -59,7 +58,6 @@ def _send_email(subject: str, content: str, config: dict) -> None:
     with smtplib.SMTP(config['host']) as s:
         s.send_message(message)
     logging.info(content)
-
 
 def _return_datetimeobj_from_DMYhms(datetimestring: str) -> object:
     """
@@ -79,7 +77,7 @@ def _return_datetimestr_from_YMD_to_DMYhms(datetimestring: str) -> str:
     return datetime.datetime.strptime(datetimestring, '%Y-%m-%d').strftime('%d/%m/%Y - %X')
 
 
-def mongo_to_bigs(species: str, single_sample: str = None):
+def mongo_to_bigs(species: str, single_sample: str = None) -> None:
     """
     Main function
     See argparse function for variables and their requiredness
@@ -202,6 +200,8 @@ def mongo_to_bigs(species: str, single_sample: str = None):
             # todo modify mailadress
             main_results_inserter(document['results']['isolates_id'], 'bioit@sciensano.be', species, results_type, jsonfilepath=Path(jsonfile))
             os.remove(jsonfile)
+            if results_type == 'new_isolate':
+                insert_assembly(document['results']['isolates_id'], species, document['fasta_path'])
             logging.info(f"wrote new results version for {document['results']['isolates_id']} to bigsdb")
 
     except Exception as exceptionmessage:

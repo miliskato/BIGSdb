@@ -58,7 +58,7 @@ def _send_email(subject: str, content: str, config: dict) -> None:
     logging.info(content)
 
 
-def __make_flagfilepath(isolatename: str, config: dict):
+def __make_flagfilepath(isolatename: str, config: dict) -> Path:
     """
     Returns the flag file path
     :param isolatename: part of flagname
@@ -68,7 +68,7 @@ def __make_flagfilepath(isolatename: str, config: dict):
     return Path(config['failsafe']['flag_dir']) / '.'.join([isolatename, config['failsafe']['flag_append']])
 
 
-def _fail_safe_mechanism(isolatename: str, config: dict, analysis_date: str, cur_isolates: object):
+def _fail_safe_mechanism(isolatename: str, config: dict, analysis_date: str, cur_isolates: object) -> None:
     """
     Creates a flagfile if insertion is started and no flagfile is present.
     else insertion is started and flag file is present: remove highest version of sample and
@@ -115,7 +115,7 @@ def _fail_safe_mechanism(isolatename: str, config: dict, analysis_date: str, cur
         _send_email(f"{os.path.basename(__file__)}: bigsdb upload fail safe mechanism fail on host {socket.gethostname()}", f"{exceptionmessage}\n{traceback.format_exc()}", config['mail'])
 
 
-def _delete_flagfile(isolatename: str, config: dict):
+def _delete_flagfile(isolatename: str, config: dict) -> None:
     """
     :param isolatename:
     :param config: config containing the failsafe settings
@@ -127,8 +127,18 @@ def _delete_flagfile(isolatename: str, config: dict):
     except Exception as exceptionmessage:
         _send_email(f"{os.path.basename(__file__)}: Could not remove flag file {flagfilepath} on host {socket.gethostname()}", f"{exceptionmessage}\n{traceback.format_exc()}", config['mail'])
 
-def main_results_inserter(isolatename: str, uploadermailadress: str, species: str, results_type: str, jsonfilepath: Path = None, tsvfilepath: Path = None):
-
+def main_results_inserter(isolatename: str, uploadermailadress: str, species: str, results_type: str, jsonfilepath: Path = None, tsvfilepath: Path = None) -> None:
+    """
+    Main function
+    See argparse function for variables and their requiredness
+    :param isolatename:
+    :param uploadermailadress:
+    :param species:
+    :param results_type:
+    :param jsonfilepath:
+    :param tsvfilepath:
+    :return:
+    """
     with open(BIGSDB_CONFIG, encoding='utf-8') as handle:
         config_data = yaml.safe_load(handle)
 
@@ -198,4 +208,5 @@ if __name__ == '__main__':
     # Parse arguments
     args = _parse_arguments(list(config_data['species'].keys()))
 
+    # run main
     main_results_inserter(args.isolatename, args.uploadermailadress, args.species, args.results_type, jsonfilepath=(args.jsonfilepath if args.jsonfilepath else None), tsvfilepath=(args.tsvfilepath if args.tsvfilepath else None))

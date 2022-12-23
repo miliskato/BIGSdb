@@ -22,8 +22,9 @@ do
   {
     sudo mv $dir /reports/$species/mongo/
     /home/BIGSdb/3.9PythonVenv/bin/python3.9 /home/BIGSdb/bioit_custom_scripts/htmltagger.py --htmlfilepath /reports/$species/mongo/$sample_name/report.html --species $species
-    /home/BIGSdb/3.9PythonVenv/bin/python3.9 /home/BIGSdb/bioit_custom_scripts/main_results_inserter.py --jsonfilepath /reports/$species/$sample_name/report.json --isolatename $sample_name --uploadermailadress $uploader --species $species --results_type new_isolate
-    /home/BIGSdb/3.9PythonVenv/bin/python3.9 /home/BIGSdb/bioit_custom_scripts/insert_assemblies.py --fastafilepath /reports/$species/$sample_name/assembly/${sample_name}_contigs.fasta --isolatename $sample_name --species $species
+    # todo need mongo to bigs, put fasta upload in mongo to bigs aswell?
+    #/home/BIGSdb/3.9PythonVenv/bin/python3.9 /home/BIGSdb/bioit_custom_scripts/main_results_inserter.py --jsonfilepath /reports/$species/$sample_name/report.json --isolatename $sample_name --uploadermailadress $uploader --species $species --results_type new_isolate
+    /home/BIGSdb/3.9PythonVenv/bin/python3.9 /home/BIGSdb/bioit_custom_scripts/insert_assembly.py --fastafilepath /reports/$species/$sample_name/assembly/${sample_name}_contigs.fasta --isolatename $sample_name --species $species
 ##    /home/BIGSdb/3.9PythonVenv/bin/python3.9 /home/BIGSdb/bioit_custom_scripts/cgmlst_similar_isolates.py --isolatename $sample_name --species $species
   } 2>&1 | tee /home/galaxy/mongo/$sample_name.bigsdb_insertion.log
   mv /home/galaxy/mongo/$sample_name.bigsdb_insertion.log /reports/$species/mongo/$sample_name/

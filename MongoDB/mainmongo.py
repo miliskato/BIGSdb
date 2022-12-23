@@ -211,7 +211,7 @@ def _return_YMD_from_DMYhms(datetimestring: str) -> str:
 #         raise Exception('Bigs upload only available for new isolates')
 
 
-def _check_if_results_changed(current_results, new_results):
+def _check_if_results_changed(current_results, new_results) -> [bool, list, list]:
     any_result_changed = False
     unchanged_results = []
     changed_results = []
@@ -236,7 +236,7 @@ def _check_if_results_changed(current_results, new_results):
 # def prepare_reports_for_bigs(jsonfilepath: Path, results_changed: dict) -> None:
 # todo later; replace json file by json file from mongo with extra information
 
-def mainmongo(technical_id: str, species: str, results_type: str, jsonfilepath: Path = None, subvaldict: json.loads = None, reportdirectorypath: Path = None, fastafilepath: Path = None, vcffilepath: Path = None, alternate_connection_string: str = None):
+def mainmongo(technical_id: str, species: str, results_type: str, jsonfilepath: Path = None, subvaldict: json.loads = None, reportdirectorypath: Path = None, fastafilepath: Path = None, vcffilepath: Path = None, alternate_connection_string: str = None) -> None:
     """
     Main function
     See argparse function for variables and their requiredness
