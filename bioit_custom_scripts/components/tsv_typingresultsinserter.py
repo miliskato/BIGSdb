@@ -40,7 +40,7 @@ class TsvTypingResultsInserter:
                         result = sample_output_dict['-'.join([schemedict[scheme]['tsvname'], directory])].split(',')
                         if directory == "'rplF":  # neisseria specific
                             directory = "rplF"
-                        if result[2] == '100.00' and result[3] != '-' and eval(result[3]) == 1.0:
+                        if result[2] == '100.00' and result[3] != '-' and eval(result[3]) == 1.0 and result[1] != 0 and result[1] != '?':
                             allele_id = result[1]
                             cur_isolates.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
                                                  f"allele_id, status, method, sender, "
@@ -52,8 +52,9 @@ class TsvTypingResultsInserter:
                         # the elif below is specific to Listeria pcr serogroup where 0's are included in the profiles
                         # (absent loci are required to define profiles)
                         # Bigsdb creates a null allele itself in the seqdef database
-                        elif result[2] == '-' and result[3] == '-' and (('listeria_serogroup' in schemedict.keys() and directory in
-                                                                         next(os.walk(schemedict['listeria_serogroup']['dirdb']))[1]) or directory == 'NadA_peptide'):
+                        elif (result[2] == '-' and result[3] == '-' and (scheme == 'listeria_serogroup' or directory == 'NadA_peptide'))\
+                                or scheme.endswith('cgmlst'):
+                            # in cgmlst you can have perfect multihits (?) that are then also considered as a zero in the custom profile by Benoit, thats why its outside of the ( )
                             allele_id = 0
                             cur_isolates.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
                                                  f"allele_id, status, method, sender, "

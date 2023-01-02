@@ -34,14 +34,15 @@ class JsonTypingResultsInserter(JsonSuperClass):
                 if schemedict[scheme]['type'] == 'regular':
                     for locus in self.sample_output_dict[scheme]['loci']:
                         if locus['Locus'] not in locuslist:
-                            if locus['% Identity'] == '100.00' and locus['HSP/Locus length'] != '-' and eval(locus['HSP/Locus length']) == 1.0:
+                            if locus['% Identity'] == '100.00' and locus['HSP/Locus length'] != '-' and eval(locus['HSP/Locus length']) == 1.0 and locus['Allele'] != 0 and locus['Allele'] != '?':
                                 self._insert_allele_designation(locus['Locus'].replace("'", ""), locus['Allele'])
                                 locuslist.append(locus['Locus'])
                             # the elif below is specific to Listeria pcr serogroup where 0's are included in the profiles
                             # (absent loci are required to define profiles)
                             # Bigsdb creates a null allele itself in the seqdef database
-                            elif (scheme == 'pcr_serogroup' or (scheme == 'bast' and locus['Locus'] == 'NadA_peptide')) \
-                                    and locus['% Identity'] == '-' and locus['HSP/Locus length'] == '-':
+                            elif ((scheme == 'pcr_serogroup' or (scheme == 'bast' and locus['Locus'] == 'NadA_peptide')) \
+                                    and locus['% Identity'] == '-' and locus['HSP/Locus length'] == '-') or scheme == 'cgmlst':
+                                # in cgmlst you can have perfect multihits (?) that are then also considered as a zero in the custom profile by Benoit, thats why its outside of the ( )
                                 self._insert_allele_designation(locus['Locus'], 0)
                                 locuslist.append(locus['Locus'])
 
