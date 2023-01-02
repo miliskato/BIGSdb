@@ -140,9 +140,10 @@ def mongo_to_bigs(species: str, single_sample: str = None) -> None:
                 # as of 2022/12/22 mongo_results_version in bigs is changed version
                 mongo_results_changed_version_bigs_query = cur_isolates.fetchall()
                 if mongo_results_changed_version_bigs_query == []:
+                    # Accounting for old samples that didnt have a version yet
                     mongo_results_changed_version_bigs = 1
                 else:
-                    mongo_results_changed_version_bigs = mongo_results_changed_version_bigs_query[0][0]
+                    mongo_results_changed_version_bigs = int(mongo_results_changed_version_bigs_query[0][0])
                 if _return_datetimeobj_from_DMYhms(document['results']['analysis_date']) > latest_analysis_date_bigs:
                     new_results = document['results']
                     if new_results['changed_version'] == int(mongo_results_changed_version_bigs):
