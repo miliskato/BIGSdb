@@ -9,21 +9,25 @@ import logging
 import yaml
 import argparse
 
-from config import BIGSDB_CONFIG
+PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.dirname(PYTHONPATH))
+
+from bioit_custom_scripts.config import BIGSDB_CONFIG
 # For this script I am assuming that profiles do not retire.
 # It is important to keep in mind that ST do not necessarily follow each other up continuously, there can be gaps
 
 
 profile_file = 'profiles.tsv'
 
-def _parse_arguments(speciesdict) -> argparse.Namespace:
+def _parse_arguments(specieslist: list) -> argparse.Namespace:
     """
     Parses the command line arguments.
+    :param specieslist: list of all the species choices
     :return: Parsed arguments
     """
     argument_parser = argparse.ArgumentParser()
     argument_parser.add_argument('--species', required=False, type=str,
-                                 choices=list(speciesdict.keys()), default=list(speciesdict.keys()),
+                                 choices=specieslist, default=specieslist,
                                  nargs='+')  # this does allow for the same species multiple times but doesnt really matter
     return argument_parser.parse_args()
 
@@ -53,7 +57,17 @@ def _parse_arguments(speciesdict) -> argparse.Namespace:
 #
 
 
-def __insert_profiles(scheme, schemedict, indexdict, profile_line_dict, list_to_be_inserted, cur_seqdef):
+def __insert_profiles(scheme: str, schemedict: dict, indexdict: dict, profile_line_dict: dict, list_to_be_inserted: list, cur_seqdef: object) -> None:
+    """
+    Inserts profiles for a given scheme in a given species database (cur_seqdef)
+    :param scheme:
+    :param schemedict: dictionary containing scheme metadata
+    :param indexdict: dictionary containing profile locus indexes, and profile fields indexes in the tsv profiles file
+    :param profile_line_dict: dictionary of main numeric profile fields (often ST) and their corresponding lines in the tsv
+    :param list_to_be_inserted: list of main numeric profile fields (often ST) to be inserted
+    :param cur_seqdef: seqdef database cursor object for a certain species
+    :return:
+    """
     # since we only need one db per scheme, it can stay open during the entire definition
     for profile in list_to_be_inserted:
         # first table (profiles):
@@ -99,14 +113,18 @@ def __insert_profiles(scheme, schemedict, indexdict, profile_line_dict, list_to_
                                 f"'{locus}', '{profile}', '{locusvalue}', "
                                 f"1,(SELECT CURRENT_DATE))")
                 except Exception as exceptionmessage:
-                    _send_email(f"profile with field {field} and value {fieldvalue.replace('_',' ')} already exists as another field, find the profile that was misinserted (not all loci have allele_id), remove it, and all above and restart this script",
+                    _send_email(f"profile with field {field} and value {fieldvalue.replace('_',' ')} already exists as another field, find the profile that was misinserted (not all loci have allele_id), remove it, and all above and restart this script (on db {cur_seqdef.name()} on host {socket.gethostname()})",
                                 f"{exceptionmessage}\n{traceback.format_exc()}", emaildict)
                     continue
 
 
-def _insert_all_profiles():
+def _insert_all_profiles() -> None:
+    """
+    Main function to insert all profiles for the given species
+    :return:
+    """
     for species in list(set(args.species)):
-        con_seqdef = psycopg2.connect(database=f"{config_data['species'][species]['seqdefdb']}", user="apache", password="remote",
+        con_seqdef = psycopg2.connect(database=f"{config_data['species'][species]['seqdefdb']}", user="apache", password=config_data.get('postgresql_apache_pass'),
                                       host="127.0.0.1", port="")
         con_seqdef.autocommit = True
         cur_seqdef = con_seqdef.cursor()
@@ -184,7 +202,7 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
     # Parse arguments
-    args = _parse_arguments(config_data['species'])
+    args = _parse_arguments(list(config_data['species'].keys()))
 
     try:
         _insert_all_profiles()

@@ -18,28 +18,36 @@ import logging
 import yaml
 import argparse
 
-from config import BIGSDB_CONFIG
+PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.dirname(PYTHONPATH))
+
+from bioit_custom_scripts.config import BIGSDB_CONFIG
 
 
-def _parse_arguments(speciesdict) -> argparse.Namespace:
+def _parse_arguments(specieslist: list) -> argparse.Namespace:
     """
     Parses the command line arguments.
+    :param specieslist: list of all the species choices
     :return: Parsed arguments
     """
     argument_parser = argparse.ArgumentParser()
     argument_parser.add_argument('--species', required=False, type=str,
-                                 choices=list(speciesdict.keys()), default=list(speciesdict.keys()),
+                                 choices=specieslist, default=specieslist,
                                  nargs='+')  # this does allow for the same species multiple times but doesnt really matter
     return argument_parser.parse_args()
 
 
-def _insert_alleles():
+def _insert_alleles() -> None:
+    """
+    Main function to insert all alleles for the given species
+    :return:
+    """
     for species in list(set(args.species)):
-        con_seqdef = psycopg2.connect(database=f"{config_data['species'][species]['seqdefdb']}", user="apache", password="remote",
+        con_seqdef = psycopg2.connect(database=f"{config_data['species'][species]['seqdefdb']}", user="apache", password=config_data.get('postgresql_apache_pass'),
                                host="127.0.0.1", port="")
         con_seqdef.autocommit = True
         cur_seqdef = con_seqdef.cursor()
-        con_isolates = psycopg2.connect(database=f"{config_data['species'][species]['isolatesdb']}", user="apache", password="remote",
+        con_isolates = psycopg2.connect(database=f"{config_data['species'][species]['isolatesdb']}", user="apache", password=config_data.get('postgresql_apache_pass'),
                                         host="127.0.0.1", port="")
         con_isolates.autocommit = True
         cur_isolates = con_isolates.cursor()
@@ -174,7 +182,7 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
     # Parse arguments
-    args = _parse_arguments(config_data['species'])
+    args = _parse_arguments(list(config_data['species'].keys()))
 
     try:
         _insert_alleles()

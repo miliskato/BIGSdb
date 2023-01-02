@@ -121,7 +121,7 @@ class DistanceAndClusterComputer:
         :return:
         """
         cluster_sizes = []
-        print(f'merging clusters {memberships}')
+        logging.debug(f'merging clusters {memberships}')
         memberships.sort()
         for cluster in memberships:
             cluster_sizes.append(self.cluster_membership_collection.count_documents({'threshold': threshold,

@@ -56,17 +56,13 @@
     regexp: 'dtap: to_be_replaced_by_ansible'
     line: "dtap: {{ mongo_dtap }}"
 
-#- name: Get updated files from git repository
-#  git:
-#    repo: "https://bioit_ro:{{ secret_bioit_git_ro_password }}@git.sciensano.be/bioit/camel_3.0.git"
-#    dest: "{{ bioit_bigs_home }}/automated-reanalysis"
-#    version: "bb-re_analysis"
-
-# bij host_vars staat postgresql user wachtwoord https://bioit.sciensano.be/wiki/ansible-vault: postgresql_postgres_user_password: "olqYDY3f8RPHwOjlr4hH"
-# /etc/ansible/group_vars/bioit$ cat git.yml
+- name: Add apache psql password to bigsdb config
+  lineinfile:
+    path: "{{ bioit_bigs_home }}/conf/db.conf"
+    regexp: 'dbpassword=to_be_replaced_by_ansible'
+    line: "dbpassword={{ secret_bioit_bigs_postgresql_apache_password }}"
 
 ## perl 5 is installed on Ubuntu by default.
-
 - name: Install packages
   apt:
     name: "{{ packages }}"
@@ -104,7 +100,6 @@
       - liblist-moreutils-perl
       - liblog-dispatch-filerotate-perl
       - libtest-lwp-useragent-perl
-#      - libpadre-plugin-pdl-perl
       - pdl
       - libtoml-perl
       - libtoml-parser-perl
@@ -112,7 +107,6 @@
       - libxml-parser-perl
       - libdancer2-perl
       - starman
-#      - python3-Psycopg2
       - libpq-dev
       - acl
 
@@ -143,9 +137,6 @@
     - "  mymap       www-data           apache"
     - "  mymap       bigsdb             bigsdb"
     - "  mymap       bigsdb             apache"
-
-# - name: Install Perl packages 2
-#  shell:  "cpan BioPerl"
 
 - name: Install bio perl package
   community.general.cpanm:
@@ -185,8 +176,6 @@
       - { src: bioit_etc.bigsdb.dbases/, dest: /etc/bigsdb/dbases }
       - { src: headers/, dest: /var/www/html/ }
       - { src: "bioit_website_varwwwhtml/{{ species }}.html", dest: /var/www/html/index.html }
-#      - { src: automated-reanalysis/camel/config/main.yml.sample, dest: "{{ bioit_bigs_home }}/automated-reanalysis/camel/config/main.yml" }
-#      - { src: automated-reanalysis/camel/scripts/reanalysis/config.yml.sample, dest: "{{ bioit_bigs_home }}/automated-reanalysis/camel/scripts/reanalysis/config.yml" }
 
 - name: setup core db's 1
   block:
@@ -194,10 +183,15 @@
       postgresql_user:
         login_user: postgres
         name: apache
-        password: remote
+        password: "{{ secret_bioit_bigs_postgresql_apache_password }}"
       become_user: postgres
       # check documentation if pass clear text or hash <- doesnt need to hashed https://docs.w3cub.com/ansible~2.9/modules/postgresql_user_module
-      # todo change apache password
+
+    - name: Add apache psql password to config
+      lineinfile:
+        path: "{{ bioit_bigs_home }}/bioit_custom_scripts/config/config.yml"
+        regexp: 'postgresql_apache_pass: to_be_replaced_by_ansible'
+        line: "postgresql_apache_pass: {{ secret_bioit_bigs_postgresql_apache_password }}"
 
     - name: create core db
       community.postgresql.postgresql_db:
@@ -221,6 +215,7 @@
 
     - debug:
         var: query_result_auth.query_result[0]['exists']
+        verbosity: 1
 
     - name: Format core db
       postgresql_query:
@@ -242,7 +237,7 @@
       ansible.builtin.file:
         path: /var/www/tmp
         state: directory
-        mode: "u=rwx,g=rwx,o=rwx"
+        mode: "u=rwx,g=rwx,o=r"
         owner: www-data
 
     - name: symlink tmp dir
@@ -256,7 +251,7 @@
       ansible.builtin.file:
         path: /var/log/bigsdb.log
         state: touch
-        mode: "u=rwx,g=rwx,o=rwx"
+        mode: "u=rw,g=rw,o=r"
         owner: www-data
 
 - name: setup offline jobs
@@ -308,7 +303,7 @@
       ansible.builtin.file:
         path: /var/log/bigsdb_jobs.log
         state: touch
-        mode: "u=rwx,g=rwx,o=rwx"
+        mode: "u=rwx,g=rw,o=r"
         owner: bigsdb
 
 - name: setup submission system
@@ -317,15 +312,9 @@
       ansible.builtin.file:
         path: /var/submissions
         state: directory
-        mode: "u=rwx,g=rwx,o=rx"
+        mode: "u=rwx,g=rw,o=r"
         owner: www-data
         group: www-data
-
-#    - name: adding existing user www-data to group bigsdb
-#      user:
-#        name: www-data
-#        groups: bigsdb
-#        append: yes
 
     - name: symlink submissions dir
       ansible.builtin.file:
@@ -366,9 +355,9 @@
         user: 'bigsdb'
         cron_file: sync_globalbigsdbusers
 
-- name: Add crontrab entry for hash replacer
+    - name: Add crontrab entry for hash replacer
       cron:
-        name: "crontab for hash_replacer"
+        name: "crontab for tempid_replacer"
         minute: '0'
         hour: '6'
         weekday: '1'       # monday morning
@@ -378,14 +367,37 @@
       loop: "{{ list_cron|flatten(levels=1) }}"
       vars:
         list_cron:
-          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}//MongoDB/hash_replacer.py --scheme cgmlst --species {{ species }}", filename: "{{ species }}_hash_replacer_cgmlst" }
-          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}//MongoDB/hash_replacer.py --scheme mlst --species {{ species }}", filename: "{{ species }}_hash_replacer_mlst" }
-          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}//MongoDB/hash_replacer.py --scheme mlst_warwick --species {{ species }}", filename: "{{ species }}_hash_replacer_mlst_warwick" }
-          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}//MongoDB/hash_replacer.py --scheme mlst_pasteur --species {{ species }}", filename: "{{ species }}_hash_replacer_mlst_pasteur" }
+          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}//MongoDB/tempid_replacer.py --scheme cgmlst --species {{ species }}",
+              filename: "{{ species }}_tempid_replacer_cgmlst" }
+          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}//MongoDB/tempid_replacer.py --scheme mlst --species {{ species }}",
+              filename: "{{ species }}_tempid_replacer_mlst" }
+          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}//MongoDB/tempid_replacer.py --scheme mlst_warwick --species {{ species }}",
+              filename: "{{ species }}_tempid_replacer_mlst_warwick" }
+          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}//MongoDB/tempid_replacer.py --scheme mlst_pasteur --species {{ species }}",
+              filename: "{{ species }}_tempid_replacer_mlst_pasteur" }
 
     - name: Add crontrab entry for database updates
       cron:
         name: "crontab for weekly database updates"
+        minute: '00'
+        hour: '7'
+        weekday: '1'       # monday morning
+        job: "{{ item.command }}"
+        user: 'bigsdb'
+        cron_file: "{{ item.filename }}"
+      loop: "{{ list_cron|flatten(levels=1) }}"
+      vars:
+        list_cron:
+          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}//bioit_custom_scripts/Typing_loci_intopsql.py --species {{ species }}",
+              filename: "{{ species }}_loci_intopsql" }
+          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_custom_scripts/Typing_alleles_intopsql.py --species {{ species }}",
+              filename: "{{ species }}_alleles_intopsql" }
+          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_custom_scripts/genedetection_intopsql.py --species {{ species }}",
+              filename: "{{ species }}_genedetection_intopsql" }
+
+    - name: Add crontrab entry for database updates
+      cron:
+        name: "crontab for weekly database updates, profiles 30 minutes later than sequences"
         minute: '30'
         hour: '7'
         weekday: '1'       # monday morning
@@ -395,34 +407,8 @@
       loop: "{{ list_cron|flatten(levels=1) }}"
       vars:
         list_cron:
-          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}//bioit_custom_scripts/Typing_loci_intopsql.py --species {{ species }}", filename: "{{ species }}_loci_intopsql" }
-          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_custom_scripts/Typing_alleles_intopsql.py --species {{ species }}", filename: "{{ species }}_alleles_intopsql" }
-          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_custom_scripts/Typing_schemeprofiles_intopsql.py --species {{ species }}", filename: "{{ species }}_schemeprofiles_intopsql" }
-          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_custom_scripts/genedetection_intopsql.py --species {{ species }}", filename: "{{ species }}_genedetection_intopsql" }
-
-    - name: Add crontrab entry for database updates
-      cron:
-        name: "crontab for weekly database updates, profiles 30 minutes later than sequences"
-        minute: '30'
-        hour: '6'
-        weekday: '1'       # monday morning
-        job: "{{ item.command }}"
-        user: 'bigsdb'
-        cron_file: "{{ item.filename }}"
-      loop: "{{ list_cron|flatten(levels=1) }}"
-      vars:
-        list_cron:
-          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_custom_scripts/Typing_schemeprofiles_intopsql.py", filename: schemeprofiles_intopsql }
-
-#    - name: Add crontrab entry for database updates
-#      cron:
-#        name: "crontab for automated reanalysis"
-#        minute: '0'
-#        hour: '22'
-#        weekday: '1'       # monday night
-#        job: "bash {{ bioit_bigs_home }}/bioit_custom_scripts/automaticreanalysis.sh"
-#        user: 'root'
-#        cron_file: "automated-reanalysis"
+          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_custom_scripts/Typing_schemeprofiles_intopsql.py --species {{ species }}",
+              filename: "{{ species }}_schemeprofiles_intopsql" }
 
     - name: add daily cronjob
       ansible.builtin.copy:
@@ -531,7 +517,6 @@
         - "bigsdb_{{ species }}_isolates"
       when: query_result_users.query_result[0]['exists'] == false
       become_user: postgres
-        # this when could be changed but should not matter too much
 
     - name: add user db to species db
       postgresql_query:
@@ -555,7 +540,6 @@
         - "bigsdb_{{ species }}_isolates"
       when: query_result_users.query_result[0]['exists'] == false
       become_user: postgres
-        # this when could be changed but should not matter too much
 
 - name: setup REST API
   block:
@@ -563,7 +547,7 @@
       ansible.builtin.file:
         path: /var/log/bigsdb_rest.log
         state: touch
-        mode: "u=rwx,g=rwx,o=rwx"
+        mode: "u=rwx,g=rw,o=r"
         owner: bigsdb
 
     - name: create rest db
@@ -601,6 +585,7 @@
         owner: root
         group: root
         remote_src: yes
+        mode: "u=rwx,g=rwx,o=rx"
 
     - name: add system service
       ansible.builtin.copy:
@@ -609,6 +594,7 @@
         owner: root
         group: root
         remote_src: yes
+        mode: "u=rwx,g=rwx,o=rx"
 
     - name: insert db to be shown in rest
       postgresql_query:
@@ -621,7 +607,6 @@
         - "INSERT INTO group_resources (group_name,dbase_config) VALUES ('{{ species }}','bigsdb_{{ species }}_seqdef'), ('{{ species }}','bigsdb_{{ species }}_isolates')"
       when: query_result_rest.query_result[0]['exists'] == false
       become_user: postgres
-       # this when should be changed but doesnt matter for now
 
     - name: Restart service rest
       ansible.builtin.systemd:
@@ -640,7 +625,9 @@
       register: query_result_eavtexthidden
       become_user: postgres
 
-    - debug: msg="{{ query_result_eavtexthidden }}"
+    - debug:
+        var: query_result_eavtexthidden
+        verbosity: 1
 
     - name: Format species databases
       postgresql_query:
@@ -727,18 +714,6 @@
         mode: '0640'
         remote_src: yes
 
-# TO DO manually:
-#    # cp private key to id_rsa_bigsdb on galaxy VM in /home/galaxy/.ssh, chmod 0600 it
-
-    - name: This rule will sadly somehow never finish, copy the private key to the right galaxy host manually !
-      tags: sync-pull
-      synchronize:
-        src: /home/galaxy/.ssh/id_rsa
-        dest: /home/galaxy/.ssh/id_rsa_bigsdb
-        mode: pull
-      delegate_to: bioit-galaxy-"{{ bioit_host_type }}"
-      run_once: true
-
-# todo, add key file to remote (galaxy-dev currently)
+    - debug: msg="TODO manually; copy the private key to the right galaxy host manually in /home/galaxy/.ssh, chmod 0600 it !"
 
 ...

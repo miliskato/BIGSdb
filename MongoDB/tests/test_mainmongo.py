@@ -25,22 +25,18 @@ from pymongo.read_concern import ReadConcern
 PYTHONPATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.dirname(PYTHONPATH))
 
-from MongoDB.reanalysis.command.command import Command
+from MongoDB.util.command.command import Command
 from MongoDB.util.mongo_querying import Mongoquerying
 from MongoDB.util.mongo_initialisation import Mongoinitialisation
 from MongoDB.config import MONGO_CONFIG
 from MongoDB.reanalysis import MONGO_REANALYSIS_CONFIG
+from MongoDB.mainmongo import mainmongo
+from MongoDB.tempid_replacer import tempid_replacer
+from MongoDB.reanalysis.reanalysis_noslurm import reanalysis_noslurm
+from MongoDB.reanalysis.reanalysis_triggers.reanalysis_triggers import reanalysis_triggers
 
 ALTERNATE_CONNECTION_STRING = 'mongodb+srv://mikelchtermans:YMFOH4BLF1U79dDk@hera-bioit-trial.vajezh0.mongodb.net'  # do not change
 
-def _parse_arguments() -> argparse.Namespace:
-    """
-    Parses the command line arguments.
-    :return: Parsed arguments
-    """
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--pyvenvpythonpath', type=Path, required=True, help='eg /home/BIGSdb/3.9PythonVenv/bin/python3.9')
-    return parser.parse_args()
 
 def _send_email(subject: str, content: str, config: dict) -> None:
     """
@@ -71,8 +67,6 @@ if __name__ == '__main__':
 
     try:
 
-        args = _parse_arguments()
-
         # Configure stdout logging
         logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
@@ -99,7 +93,7 @@ if __name__ == '__main__':
             update_collection.drop()
 
 
-        def create_mainmongo_cmd(results_type: str, filename: str) -> object:
+        def create_mainmongo_arguments_dict(results_type: str, filename: str) -> dict:
             """
 
             :param results_type: either new_isolate or reanalysis
@@ -108,60 +102,35 @@ if __name__ == '__main__':
             """
             # Create command insertion MongoDB
             source = os.path.dirname(__file__)
-            parent = os.path.join(source, '../')
-            base_command = ' '.join([
-                f"{args.pyvenvpythonpath}",
-                f"{os.path.join(parent, 'mainmongo.py')}",
-                f'--results_type {results_type}',
-                f'--technical_id test_mainmongo',
-                f"--jsonfilepath {'/'.join([source, 'inputfiles', filename])}",
-                f"--species listeria",
-                f"--alternate_connection_string {ALTERNATE_CONNECTION_STRING}"
-            ])
+            arguments = {'technical_id': 'test_mainmongo',
+                         'species': 'listeria',
+                         'results_type': results_type,
+                         'jsonfilepath': '/'.join([source, 'inputfiles', filename]),
+                         'alternate_connection_string': ALTERNATE_CONNECTION_STRING}
             if results_type == 'new_isolate':
-                base_command += f" --fastafilepath {'/'.join([source, 'inputfiles', 'listeria_assembly_filtered.fasta'])}"
-            command = Command(base_command)
-            return command
+                arguments['fastafilepath'] = '/'.join([source, 'inputfiles', 'listeria_assembly_filtered.fasta'])
+            return arguments
 
         # Add the new_isolate:
-        new_isolate_cmd = create_mainmongo_cmd('new_isolate', 'report_version_1_1.json')
-        logging.info(f"new isolate command: {new_isolate_cmd._command}")
-        new_isolate_cmd.run(os.getcwd())
+        new_isolate_args = create_mainmongo_arguments_dict('new_isolate', 'report_version_1_1.json')
+        mainmongo(**new_isolate_args)
 
         # test hash replacer
-        source = os.path.dirname(__file__)
-        parent = os.path.join(source, '../')
-        base_command = ' '.join([
-            f"{args.pyvenvpythonpath}",
-            f"{os.path.join(parent, 'hash_replacer.py')}",
-            f'--species listeria',
-            f'--scheme cgmlst',
-            f'--alternate_connection_string {ALTERNATE_CONNECTION_STRING}'
-        ])
-        command = Command(base_command)
-        command.run(Path(os.getcwd()))
+        tempid_replacer('cgmlst', 'listeria', alternate_connection_string=ALTERNATE_CONNECTION_STRING)
 
         # Add the dummy reanalysis results:
         # the integers appendices of the files indicate the results version and changed version, so: resultsversion_changedversion
         for dummy_reanalysis_file in ['report_version_2_2.json', 'report_version_3_3.json', 'report_version_4_4.json', 'report_version_5_4.json']:
-            reanalysis_cmd = create_mainmongo_cmd('reanalysis', dummy_reanalysis_file)
-            logging.info(f"reanalysis insertion command: {reanalysis_cmd._command}")
-            reanalysis_cmd.run(os.getcwd())
+            reanalysis_args = create_mainmongo_arguments_dict('reanalysis', dummy_reanalysis_file)
+            mainmongo(**reanalysis_args)
+
+        # test reanalyis triggers and reanalysis
+        reanalysis_triggers('listeria', 6, alternate_connection_string=ALTERNATE_CONNECTION_STRING)
 
         # test reanalysis
-        source = os.path.dirname(__file__)
-        parent = os.path.join(source, '../')
-        base_command = ' '.join([
-            f"{args.pyvenvpythonpath}",
-            f"{os.path.join(parent, 'reanalysis', 'reanalysis.py')}",
-            f'--species listeria',
-            f'--maximal_analysis_date 2030-01-01',
-            f'--pyvenvpythonpath {args.pyvenvpythonpath}',
-            f'--alternate_connection_string {ALTERNATE_CONNECTION_STRING}'
-        ])
-        command = Command(base_command)
-        command.run(Path(os.getcwd()))
+        reanalysis_noslurm('listeria', '2030-01-01', alternate_connection_string=ALTERNATE_CONNECTION_STRING)
 
     except Exception as exceptionmessage:
         _send_email(f"{os.path.basename(__file__)}: mongo testing fail on {socket.gethostname()}",
                     f"{exceptionmessage}\n{traceback.format_exc()}", config_data['mail'])
+        raise Exception(f"{os.path.basename(__file__)}: mongo testing fail on {socket.gethostname()}")

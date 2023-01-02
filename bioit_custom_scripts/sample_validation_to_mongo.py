@@ -12,12 +12,17 @@ import traceback
 import re
 import json
 import datetime
-from MongoDB.util.mongo_initialisation import Mongoinitialisation
-from MongoDB.config import MONGO_CONFIG
+from pymongo.write_concern import WriteConcern
+
+PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.dirname(PYTHONPATH))
+
 from bioit_custom_scripts.components.databaseconnection import DatabaseConnection
 from bioit_custom_scripts.config import BIGSDB_CONFIG
-from MongoDB.reanalysis.command.command import Command
-from pymongo.write_concern import WriteConcern
+from MongoDB.util.mongo_initialisation import Mongoinitialisation
+from MongoDB.config import MONGO_CONFIG
+from MongoDB.util.command.command import Command
+from MongoDB.mainmongo import mainmongo
 
 def send_email(subject: str, content: str, config: dict) -> None:
     """
@@ -93,19 +98,8 @@ if __name__ == '__main__':
             #In addition, path to fasta and vcfile are also added.
             # If the outcome is bad, the date is added to the dict of the validation outcome and this dict is saved into the
             # results of the badqc_isolates
-            if outcome=='good':
-                command_line = f"export MODULEPATH=/etc/lmod/modules;" \
-                               f"source /etc/profile.d/lmod.sh;" \
-                               f"module load {config_data['module_name'][0]};" \
-                               f"mainmongo.py " \
-                               f"--dict '{json.dumps(validation)}' " \
-                               f"--species {species} " \
-                               f"--results_type badqc_validated " \
-                               f"--fastafilepath na " \
-                               f"--vcffilepath na " \
-                               f"--technical_id {isolate_id}"
-                command = Command(command_line)
-                command.run(Path(os.getcwd()))
+            if outcome == 'good':
+                mainmongo(isolate_id, species, 'badqc_validated', subvaldict=json.dumps(validation))
             else:
                 validation['date'] = datetime.datetime.utcnow()
                 isolates_badqc_collection.with_options(write_concern=WriteConcern(w="majority")).find_one_and_update(
@@ -117,8 +111,7 @@ if __name__ == '__main__':
             isolate_id = cur_isolates.fetchall()[0][0]
             cur_isolates.execute(f"UPDATE submissions SET status='validation_sent_to_bioit_platform' WHERE id='{id}'")
 
-
-
     except Exception as exceptionmessage:
         send_email(f"{os.path.basename(__file__)}: sample validation to mongo fail on host {socket.gethostname()}",
                     f"{exceptionmessage}\n{traceback.format_exc()}", bigsdb_config['mail'])
+        raise Exception(f"{os.path.basename(__file__)}: sample validation to mongo fail on host {socket.gethostname()}")

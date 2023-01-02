@@ -17,6 +17,12 @@ class JsonSuperClass:
         self.sample_output_dict = sample_output_dict
 
     def _insert_allele_designation(self, locus: str, allele_id: str) -> None:
+        """
+        inserts given allele designations for given loci
+        :param locus:
+        :param allele_id:
+        :return:
+        """
         self.cur_isolates.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
                                   f"allele_id, status, method, sender, "
                                   f"curator, date_entered, datestamp) "
@@ -25,6 +31,12 @@ class JsonSuperClass:
                                   f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
 
     def _insert_AD_if_needed(self, locus: str, allele_id: str) -> None:
+        """
+        Inserts given allele designations for given loci if they have not been inserted yet (especially useful for gene detection where multiple hits for the same locus can be found)
+        :param locus:
+        :param allele_id:
+        :return:
+        """
         self.cur_isolates.execute(f"SELECT COUNT(*) FROM allele_designations WHERE "
                                   f"locus='{locus}' AND allele_id='{allele_id}' AND isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate='{self.isolatename}')")
         designationpresent = self.cur_isolates.fetchall()
@@ -32,24 +44,50 @@ class JsonSuperClass:
             self._insert_allele_designation(locus, allele_id)
 
     def _insert_metadata(self, field: str, value: str) -> None:
+        """
+        Insert given metadata (value) for given text metadata fields
+        :param field:
+        :param value:
+        :return:
+        """
         self.cur_isolates.execute(f"INSERT INTO eav_text(isolate_id, "
                                   f"field, value)"
                                   f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{self.isolatename}'),"
                                   f"'{field}', '{value}') ")
 
     def _insert_metadata_hidden(self, field: str, value: str) -> None:
+        """
+        Insert given hidden metadata (value) for given hidden text metadata fields
+        :param field:
+        :param value:
+        :return:
+        """
         self.cur_isolates.execute(f"INSERT INTO eav_text_hidden(isolate_id, "
                                   f"field, value)"
                                   f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{self.isolatename}'),"
                                   f"'{field}', '{value}') ")
 
     def _insert_metadata_bool(self, field: str, value: str) -> None:
+        """
+        Insert given metadata (value) for given boolean metadata fields
+        :param field:
+        :param value:
+        :return:
+        """
         self.cur_isolates.execute(f"INSERT INTO eav_boolean(isolate_id, "
                                   f"field, value)"
                                   f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{self.isolatename}'),"
                                   f"'{field}', '{value}') ")
 
     def _insert_dummy_sequence_if_needed(self, locus: str, allele_id: str) -> None:
+        """
+        Allele designations for non existing sequences are allowed BUT when clicking on them, a not found error will be received.
+        In order to circumvent this, dummy alleles (multitudes of TAG) are inserted; this way users can still see which other samples have this allele designation
+        Mostly used in gene detection schemes and other custom non-typing schemes.
+        :param locus:
+        :param allele_id:
+        :return:
+        """
         self.cur_seqdef.execute(
             f"SELECT allele_id FROM sequences WHERE allele_id = '{allele_id}' and locus = '{locus}'")
         present = self.cur_seqdef.fetchall()
@@ -66,6 +104,12 @@ class JsonSuperClass:
         # could also add insert allele designation here but i prefer to keep these definitions separate for readability
 
     def _insert_locus_if_needed(self, locus: str, scheme: str) -> None:
+        """
+        Inserts a given locus and assigns it to a given scheme, if not yet existing
+        :param locus:
+        :param scheme:
+        :return:
+        """
         self.cur_seqdef.execute(f"SELECT id FROM loci WHERE "
                                 f"id='{locus}'")
         present = self.cur_seqdef.fetchall()
@@ -91,6 +135,12 @@ class JsonSuperClass:
                                                                       VALUES((SELECT id FROM schemes WHERE name='{scheme}'), '{locus}', 1, (SELECT CURRENT_DATE))")
 
     def _assign_schememember_if_needed(self, locus: str, scheme: str) -> None:
+        """
+        Assign given locus to given scheme if not yet in there. Necessary in case loci belong to multiple schemes (although often in that case theyll have a different name).
+        :param locus:
+        :param scheme:
+        :return:
+        """
         self.cur_seqdef.execute(f"SELECT COUNT(*) FROM scheme_members WHERE "
                                 f"locus='{locus}' AND scheme_id=(SELECT id FROM schemes WHERE name='{scheme}')")
         schemememberpresent = self.cur_seqdef.fetchall()
