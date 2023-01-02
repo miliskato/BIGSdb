@@ -93,16 +93,27 @@ def reanalysis_triggers(species: str, threads: int = 8, pyvenvpythonpath: str = 
             scheme_last_update = re.findall("[0-9]{4}-[0-9]{2}-[0-9]{2}", gitlog)[0]
             trigger_config['species'][species][scheme]["last_update"] = scheme_last_update
             if scheme_last_update in date_scheme_dict.keys():
-                date_scheme_dict[scheme_last_update] = ' '.join([date_scheme_dict[scheme_last_update], trigger_config['species'][species][scheme]['cmd_argument']])
+                date_scheme_dict[scheme_last_update].append(trigger_config['species'][species][scheme]['cmd_argument'])
             else:
-                date_scheme_dict[scheme_last_update] = trigger_config['species'][species][scheme]['cmd_argument']
-        # e.g. date_scheme_dict: {'2022-10-02': 'mlst cgmlst pcr-serogroup metal-detergent typing-virulence typing-amr species-confirmation', '2022-08-14': 'ncbi-amr', '2022-07-03': 'resfinder', '2020-06-24': 'virulencefinder plasmidfinder', '2019-03-04': 'vfdb-core'}
+                date_scheme_dict[scheme_last_update] = [trigger_config['species'][species][scheme]['cmd_argument']]
+        # e.g. date_scheme_dict: {'2022-10-02': ['mlst', 'cgmlst', 'pcr-serogroup', 'metal-detergent', 'typing-virulence', 'typing-amr', 'species-confirmation',
+        #                         '2022-08-14': ['ncbi-amr'],
+        #                         '2022-07-03': ['resfinder'],
+        #                         '2020-06-24': ['virulencefinder', 'plasmidfinder'],
+        #                         '2019-03-04': ['vfdb-core']}
 
         # Part 2: Recursively/hierarchically add all schemes with higher last update date to lower update date
-        date_args_dict = {}
+        from collections import OrderedDict
+        date_args_dict = OrderedDict()
         for index, last_update in enumerate(sorted(date_scheme_dict.keys())):
-            date_args_dict[last_update] = ' '.join([date_scheme_dict[last_update] for last_update in sorted(date_scheme_dict)[index:]])
-        # e.g. date_args_dict: {'2019-03-04': 'vfdb-core virulencefinder plasmidfinder resfinder ncbi-amr mlst cgmlst pcr-serogroup metal-detergent typing-virulence typing-amr species-confirmation', '2020-06-24': 'virulencefinder plasmidfinder resfinder ncbi-amr mlst cgmlst pcr-serogroup metal-detergent typing-virulence typing-amr species-confirmation', '2022-07-03': 'resfinder ncbi-amr mlst cgmlst pcr-serogroup metal-detergent typing-virulence typing-amr species-confirmation', '2022-08-14': 'ncbi-amr mlst cgmlst pcr-serogroup metal-detergent typing-virulence typing-amr species-confirmation', '2022-10-02': 'mlst cgmlst pcr-serogroup metal-detergent typing-virulence typing-amr species-confirmation'}
+            date_args_dict[last_update] = date_scheme_dict[last_update]
+            for last_update_later in sorted(date_scheme_dict)[index:]:
+                date_args_dict[last_update].extend(date_scheme_dict[last_update_later])
+        # e.g. date_args_dict: {'2019-03-04': ['vfdb-core', 'virulencefinder', 'plasmidfinder', 'resfinder', 'ncbi-amr', 'mlst', 'cgmlst', 'pcr-serogroup', 'metal-detergent', 'typing-virulence', 'typing-amr', 'species-confirmation'],
+        #                       '2020-06-24': ['virulencefinder', 'plasmidfinder', 'resfinder', 'ncbi-amr', 'mlst', 'cgmlst', 'pcr-serogroup', 'metal-detergent', 'typing-virulence', 'typing-amr', 'species-confirmation'],
+        #                       '2022-07-03': ['resfinder', 'ncbi-amr', 'mlst', 'cgmlst', 'pcr-serogroup', 'metal-detergent', 'typing-virulence', 'typing-amr', 'species-confirmation'],
+        #                       '2022-08-14': ['ncbi-amr', 'mlst', 'cgmlst', 'pcr-serogroup', 'metal-detergent', 'typing-virulence', 'typing-amr', 'species-confirmation'],
+        #                       '2022-10-02': ['mlst', 'cgmlst', 'pcr-serogroup', 'metal-detergent', 'typing-virulence', 'typing-amr', 'species-confirmation']}
 
         # Part 3: run reanalysis
         def run_reanalysis(date: str, date_args_dict: dict) -> None:
@@ -112,32 +123,28 @@ def reanalysis_triggers(species: str, threads: int = 8, pyvenvpythonpath: str = 
             :param date_args_dict: key (date): args(str) dict e.g. {'2019-03-04': 'vfdb-core virulencefinder'}
             :return: None
             """
-            logging.info(f"running reanalysis on samples older than {date} with arguments: {date_args_dict[date]}")
-            arguments = {'species': species,
-                         'maximal_analysis_date': date,
-                         'analysis_arguments': date_args_dict[date],
-                         'alternate_connection_string': alternate_connection_string if alternate_connection_string else None}
-            if slurm is False:
-                arguments['threads'] = threads
-                reanalysis_noslurm(**arguments)
-            else:
-                arguments['pyvenvpythonpath'] = pyvenvpythonpath
-                arguments['threads_per_job'] = 1
-                reanalysis_slurm_submitter(**arguments)
+            try:
+                logging.info(f"running reanalysis on samples older than {date} with arguments: {date_args_dict[date]}")
+                arguments = {'species': species,
+                             'maximal_analysis_date': date,
+                             'analysis_arguments': date_args_dict[date],
+                             'alternate_connection_string': alternate_connection_string if alternate_connection_string else None}
+                if slurm is False:
+                    arguments['threads'] = threads
+                    reanalysis_noslurm(**arguments)
+                else:
+                    arguments['pyvenvpythonpath'] = pyvenvpythonpath
+                    arguments['threads_per_job'] = 1
+                    reanalysis_slurm_submitter(**arguments)
 
-            logging.info(f"Reanalysis for samples older than {date} with arguments: {date_args_dict[date]} completed")
+                logging.info(f"Reanalysis for samples older than {date} with arguments: {date_args_dict[date]} completed")
+            except Exception as exceptionmessage:
+                _send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
+                            f"{exceptionmessage}\n{traceback.format_exc()}", mongo_config_data['mail'])
 
         # with concurrent.futures.ThreadPoolExecutor(max_workers=1 if slurm is False else 5) as executor:  # MK 24th nov 2022, i dont remember why slurm would get 5 workers because this i think would cause isolates that need to be reanalyzed in the lowest date to also be captured in the next dates
         # todo if I use an additional minimal_analysis_date argument, all of this could be parallelized
         with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-            #testing and example purposes
-            # date_args_dict = {
-            #     '2019-03-04': 'vfdb-core virulencefinder plasmidfinder resfinder ncbi-amr mlst cgmlst pcr-serogroup metal-detergent typing-virulence typing-amr species-confirmation',
-            #     '2020-06-24': 'virulencefinder plasmidfinder resfinder ncbi-amr mlst cgmlst pcr-serogroup metal-detergent typing-virulence typing-amr species-confirmation',
-            #     '2022-07-03': 'resfinder ncbi-amr mlst cgmlst pcr-serogroup metal-detergent typing-virulence typing-amr species-confirmation',
-            #     '2022-08-14': 'ncbi-amr mlst cgmlst pcr-serogroup metal-detergent typing-virulence typing-amr species-confirmation',
-            #     # '2024-10-02': 'cgmlst mlst',
-            #     '2025-10-04': 'mlst'}
             future_to_isolate = {executor.submit(
                 run_reanalysis, **{"date": date, "date_args_dict": date_args_dict}):
                                date for date in date_args_dict.keys()}

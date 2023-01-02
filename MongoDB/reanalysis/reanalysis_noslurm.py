@@ -175,144 +175,148 @@ def reanalysis_noslurm(species: str, maximal_analysis_date: str, threads: int = 
             :param threads_per_job: threads per sample
             :return: None
             """
-            isolate_id = isolate['_id']
-            logging.info(f"Starting reanalysis for {isolate_id}")
+            try:
+                isolate_id = isolate['_id']
+                logging.info(f"Starting reanalysis for {isolate_id}")
 
-            # check if fasta path exists
-            if os.path.isfile(Path(isolate['fasta_path'])):
-                logging.info(f"Fasta file is real")
-                # todo check if fasta is actually fasta or not empty or?
-            else:
-                logging.error('Invalid fastafilepath')
-                _send_email(f"{os.path.basename(__file__)}: reanalysis fail on host {socket.gethostname()} because {isolate_id}'s fasta path is invalid: {isolate['fasta_path']}", "", mongo_config_data['mail'])
-                sys.exit()
-
-            temp_new_sample_name = '_'.join([isolate_id, str(datetime.date.today())])
-            logging.info(f"new sample name: {temp_new_sample_name}")
-
-            # Get a temporary working directory
-            with Path(tempfile.mkdtemp(None, 're_analysis_', mongo_config_data['temp_dir'])) as dir_temp:
-
-                # initialise fail-safe mechanism
-                _fail_safe_mechanism(isolate_id, reanalysis_config, mongo_config_data, str(dir_temp))
-
-                # Get the species-specific configuration
-                config_species = reanalysis_config['species'][species]
-
-                # Determine the output file paths
-                dir_out = dir_temp / temp_new_sample_name
-                dir_out.mkdir(exist_ok=True, parents=True)
-                tsv_out = dir_out / 'report.tsv'
-                html_out = dir_out / 'report.html'
-
-                # Determine the options
-                if analysis_arguments:
-                    available_options_list = config_species['options']
-                    accepted_options_list = []
-                    if species == 'mycobacterium' and 'vcf_path' not in isolate.keys():
-                        available_options_list = config_species['options_without_vcf']
-                    for option in analysis_arguments:
-                        option_reformatted = ''.join(['--', option])
-                        if option_reformatted in available_options_list:
-                            accepted_options_list.append(option_reformatted)
-                        else:
-                            raise RuntimeError(f'option {option_reformatted} is not a valid reanalysis option for species {species}')
-                # if no specific analysis arguments are given, perform all analyses
+                # check if fasta path exists
+                if os.path.isfile(Path(isolate['fasta_path'])):
+                    logging.info(f"Fasta file is real")
+                    # todo check if fasta is actually fasta or not empty or?
                 else:
-                    accepted_options_list = config_species['options']
-                    if species == 'mycobacterium' and 'vcf_path' not in isolate.keys():
-                        accepted_options_list = config_species['options_without_vcf']
+                    logging.error('Invalid fastafilepath')
+                    _send_email(f"{os.path.basename(__file__)}: reanalysis fail on host {socket.gethostname()} because {isolate_id}'s fasta path is invalid: {isolate['fasta_path']}", "", mongo_config_data['mail'])
+                    sys.exit()
 
-                # Create the command to re-analyze the datasets
-                base_command = ' '.join([
-                    f"module load {config_species['lmod']};",
-                    f"{config_species['main_script']}",
-                    f'--fasta {isolate["fasta_path"]}',
-                    f'--output-dir {dir_out}',
-                    f"--output-html {html_out}",
-                    f'--output-tsv {tsv_out}',
-                    f'--working-dir {dir_temp}',
-                    *accepted_options_list,
-                    f'--threads {threads_per_job}',
-                    f'--sample-name {isolate_id}'
-                ])
-                command = Command(base_command)
+                temp_new_sample_name = '_'.join([isolate_id, str(datetime.date.today())])
+                logging.info(f"new sample name: {temp_new_sample_name}")
 
-                # mycobacterium exception
-                if species == 'mycobacterium':
-                    # if this vcf doesnt exist then pipeline will fail during execution and send a mail just like with any other error
-                    # check if vcf path exists
-                    # todo be sure that this vcf path is the unfiltered one
-                    if os.path.isfile(Path(isolate['vcf_path'])):
-                        logging.info(f"vcf file is real")
-                        command = Command(' '.join([base_command, f'--vcf-unfiltered {isolate["vcf_path"]}']))
+                # Get a temporary working directory
+                with Path(tempfile.mkdtemp(None, 're_analysis_', mongo_config_data['temp_dir'])) as dir_temp:
+
+                    # initialise fail-safe mechanism
+                    _fail_safe_mechanism(isolate_id, reanalysis_config, mongo_config_data, str(dir_temp))
+
+                    # Get the species-specific configuration
+                    config_species = reanalysis_config['species'][species]
+
+                    # Determine the output file paths
+                    dir_out = dir_temp / temp_new_sample_name
+                    dir_out.mkdir(exist_ok=True, parents=True)
+                    tsv_out = dir_out / 'report.tsv'
+                    html_out = dir_out / 'report.html'
+
+                    # Determine the options
+                    if analysis_arguments:
+                        available_options_list = config_species['options']
+                        accepted_options_list = []
+                        if species == 'mycobacterium' and 'vcf_path' not in isolate.keys():
+                            available_options_list = config_species['options_without_vcf']
+                        for option in analysis_arguments:
+                            option_reformatted = ''.join(['--', option])
+                            if option_reformatted in available_options_list:
+                                accepted_options_list.append(option_reformatted)
+                            else:
+                                raise RuntimeError(f'option {option_reformatted} is not a valid reanalysis option for species {species}')
+                    # if no specific analysis arguments are given, perform all analyses
                     else:
-                        logging.info(f"No vcf file is provided, certain analyses can not be executed but will give an error if requested")
-                # run the command
-                command.run(dir_temp)
-                if command.returncode != 0:
-                    # if pipeline fails, send mail and continue to next sample, dont raise error
-                    _send_email(f'{os.path.basename(__file__)}: Error executing automatic reanalysis pipeline on {species}, {isolate_id}', command.stderr, mongo_config_data['mail'])
-                    # raise RuntimeError(f"Error executing pipeline: {command.stderr}")
-                else:
-                    logging.info(f"Re-analysis for isolate '{isolate_id}' completed")
+                        accepted_options_list = config_species['options']
+                        if species == 'mycobacterium' and 'vcf_path' not in isolate.keys():
+                            accepted_options_list = config_species['options_without_vcf']
 
-                # # debugging purposes
-                # if 1+1==3:
-                #     continue
-                # else:
-                #     sample_name = 'S16BD02199'
-                #     new_sample_name = 'S16BD02199_2022-09-14'
-                #     uploader = 'mikeltestauto'
-                #     dir_out = Path("/scratch/temp/re_analysis_pjx15wnq/S16BD02199_2022-09-14")
-
-                    # Adding the new sample version to the Mongo database
-                    _delete_flagfile(isolate_id, reanalysis_config, mongo_config_data)
-
-                    # Create command insertion MongoDB
-                    arguments = {'technical_id': isolate_id,
-                                 'species': species,
-                                 'results_type': 'reanalysis',
-                                 'jsonfilepath': dir_out / 'report.json'}
-                    if alternate_connection_string:
-                        arguments['alternate_connection_string'] = alternate_connection_string
-                    # run the command
-                    mainmongo(**arguments)
-                    logging.info(f"Mongodb insertion for isolate '{isolate_id}' completed")
-                    try:
-                        # shutil doesnt throw an error, but simply stops. Therefore it has to be put inside a try except
-                        logging.info(
-                            f"executing: {dir_temp}/camel.log {isolate['report_directory']}/{temp_new_sample_name}.log")
-                        shutil.move(f"{dir_temp}/camel.log", f"{isolate['report_directory']}/{temp_new_sample_name}.log")
-                        logging.info(f"moving the camel log for isolate '{isolate_id}'")
-                    except Exception:
-                        _send_email(
-                            f"{os.path.basename(__file__)}: shutil failed to move camel log {dir_temp}/camel.log to {isolate['report_directory']}/{temp_new_sample_name}.log",
-                            command.stderr, mongo_config_data['mail'])
-
-                    report_dir_merging_cmd = ' '.join([
-                        "rsync -a",
-                        f"{dir_out}/",
-                        f"{isolate['report_directory']}/"
+                    # Create the command to re-analyze the datasets
+                    base_command = ' '.join([
+                        f"module load {config_species['lmod']};",
+                        f"{config_species['main_script']}",
+                        f'--fasta {isolate["fasta_path"]}',
+                        f'--output-dir {dir_out}',
+                        f"--output-html {html_out}",
+                        f'--output-tsv {tsv_out}',
+                        f'--working-dir {dir_temp}',
+                        *accepted_options_list,
+                        f'--threads {threads_per_job}',
+                        f'--sample-name {isolate_id}'
                     ])
-                    command = Command(report_dir_merging_cmd)
+                    command = Command(base_command)
+
+                    # mycobacterium exception
+                    if species == 'mycobacterium':
+                        # if this vcf doesnt exist then pipeline will fail during execution and send a mail just like with any other error
+                        # check if vcf path exists
+                        # todo be sure that this vcf path is the unfiltered one
+                        if os.path.isfile(Path(isolate['vcf_path'])):
+                            logging.info(f"vcf file is real")
+                            command = Command(' '.join([base_command, f'--vcf-unfiltered {isolate["vcf_path"]}']))
+                        else:
+                            logging.info(f"No vcf file is provided, certain analyses can not be executed but will give an error if requested")
                     # run the command
-                    logging.info(' '.join([
-                        "executing: rsync -a",
-                        f"{dir_temp}/{dir_out}/",
-                        f"{isolate['report_directory']}/"
-                    ]))
-                    command.run(dir_out)
-                    logging.info(f"merging the report directories of original and reanalysis for isolate '{isolate_id}'")
+                    command.run(dir_temp)
                     if command.returncode != 0:
-                        _send_email(
-                            f'{os.path.basename(__file__)}: Error merging reanalysis directory {dir_out} into output dir {isolate["report_directory"]} for automatic reanalysis pipeline on {species}, {isolate_id}',
-                            command.stderr, mongo_config_data['mail'])
-                        raise RuntimeError(f"Error merging reanalysis directory: {command.stderr}")
+                        # if pipeline fails, send mail and continue to next sample, dont raise error
+                        _send_email(f'{os.path.basename(__file__)}: Error executing automatic reanalysis pipeline on {species}, {isolate_id}', command.stderr, mongo_config_data['mail'])
+                        # raise RuntimeError(f"Error executing pipeline: {command.stderr}")
                     else:
-                        # Removing the temporary working dir and the remaining files that were not kept
-                        shutil.rmtree(dir_temp)
-                        logging.info(f"Temporary directory deletion for isolate '{isolate_id}' completed")
+                        logging.info(f"Re-analysis for isolate '{isolate_id}' completed")
+
+                    # # debugging purposes
+                    # if 1+1==3:
+                    #     continue
+                    # else:
+                    #     sample_name = 'S16BD02199'
+                    #     new_sample_name = 'S16BD02199_2022-09-14'
+                    #     uploader = 'mikeltestauto'
+                    #     dir_out = Path("/scratch/temp/re_analysis_pjx15wnq/S16BD02199_2022-09-14")
+
+                        # Adding the new sample version to the Mongo database
+                        _delete_flagfile(isolate_id, reanalysis_config, mongo_config_data)
+
+                        # Create command insertion MongoDB
+                        arguments = {'technical_id': isolate_id,
+                                     'species': species,
+                                     'results_type': 'reanalysis',
+                                     'jsonfilepath': dir_out / 'report.json'}
+                        if alternate_connection_string:
+                            arguments['alternate_connection_string'] = alternate_connection_string
+                        # run the command
+                        mainmongo(**arguments)
+                        logging.info(f"Mongodb insertion for isolate '{isolate_id}' completed")
+                        try:
+                            # shutil doesnt throw an error, but simply stops. Therefore it has to be put inside a try except
+                            logging.info(
+                                f"executing: {dir_temp}/camel.log {isolate['report_directory']}/{temp_new_sample_name}.log")
+                            shutil.move(f"{dir_temp}/camel.log", f"{isolate['report_directory']}/{temp_new_sample_name}.log")
+                            logging.info(f"moving the camel log for isolate '{isolate_id}'")
+                        except Exception:
+                            _send_email(
+                                f"{os.path.basename(__file__)}: shutil failed to move camel log {dir_temp}/camel.log to {isolate['report_directory']}/{temp_new_sample_name}.log",
+                                command.stderr, mongo_config_data['mail'])
+
+                        report_dir_merging_cmd = ' '.join([
+                            "rsync -a",
+                            f"{dir_out}/",
+                            f"{isolate['report_directory']}/"
+                        ])
+                        command = Command(report_dir_merging_cmd)
+                        # run the command
+                        logging.info(' '.join([
+                            "executing: rsync -a",
+                            f"{dir_temp}/{dir_out}/",
+                            f"{isolate['report_directory']}/"
+                        ]))
+                        command.run(dir_out)
+                        logging.info(f"merging the report directories of original and reanalysis for isolate '{isolate_id}'")
+                        if command.returncode != 0:
+                            _send_email(
+                                f'{os.path.basename(__file__)}: Error merging reanalysis directory {dir_out} into output dir {isolate["report_directory"]} for automatic reanalysis pipeline on {species}, {isolate_id}',
+                                command.stderr, mongo_config_data['mail'])
+                            raise RuntimeError(f"Error merging reanalysis directory: {command.stderr}")
+                        else:
+                            # Removing the temporary working dir and the remaining files that were not kept
+                            shutil.rmtree(dir_temp)
+                            logging.info(f"Temporary directory deletion for isolate '{isolate_id}' completed")
+            except Exception as exceptionmessage:
+                _send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
+                            f"{exceptionmessage}\n{traceback.format_exc()}", mongo_config_data['mail'])
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=int(threads /reanalysis_config['threads_per_job'])) as executor:
             future_to_isolate = {executor.submit(
