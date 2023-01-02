@@ -134,9 +134,9 @@ def mongo_to_bigs(species: str, single_sample: str = None) -> None:
             else:
                 results_type = "reanalysis"
                 cur_isolates.execute(
-                    f"SELECT latest_analysis_date FROM isolates WHERE isolate='{document['results']['isolates_id']}'")
+                    f"SELECT latest_analysis_date FROM isolates WHERE isolate='{document['results']['isolates_id']}' ORDER BY id DESC")
                 latest_analysis_date_bigs = cur_isolates.fetchall()[0][0]  # this appearently is a datetime object
-                cur_isolates.execute(f"SELECT value FROM eav_text_hidden WHERE field='mongo_results_version'")
+                cur_isolates.execute(f"SELECT value FROM eav_text_hidden WHERE field='mongo_results_version' and isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate='{document['results']['isolates_id']}')")
                 # as of 2022/12/22 mongo_results_version in bigs is changed version
                 mongo_results_changed_version_bigs_query = cur_isolates.fetchall()
                 if mongo_results_changed_version_bigs_query == []:
