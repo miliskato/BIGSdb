@@ -270,7 +270,7 @@ def reanalysis_noslurm(species: str, maximal_analysis_date: str, threads: int = 
                     _delete_flagfile(isolate_id, reanalysis_config, mongo_config_data)
 
                     # Create command insertion MongoDB
-                    arguments = {'technical_id': dir_out / 'report.json',
+                    arguments = {'technical_id': isolate_id,
                                  'species': species,
                                  'results_type': 'reanalysis',
                                  'jsonfilepath': dir_out / 'report.json'}
@@ -287,7 +287,7 @@ def reanalysis_noslurm(species: str, maximal_analysis_date: str, threads: int = 
                         logging.info(f"moving the camel log for isolate '{isolate_id}'")
                     except Exception:
                         _send_email(
-                            f"{os.path.basename(__file__)}: shutil failed to move camel log {dir_temp}/camel.log to {isolate['report_directory']}/{temp_new_sample_name}",
+                            f"{os.path.basename(__file__)}: shutil failed to move camel log {dir_temp}/camel.log to {isolate['report_directory']}/{temp_new_sample_name}.log",
                             command.stderr, mongo_config_data['mail'])
 
                     report_dir_merging_cmd = ' '.join([

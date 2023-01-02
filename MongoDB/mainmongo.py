@@ -363,7 +363,7 @@ def mainmongo(technical_id: str, species: str, results_type: str, jsonfilepath: 
                 current_results_document = \
                 mongoquerying.query_docs_by_ids(isolates_collection, [technical_id])[0]
             except Exception:
-                raise Exception('This reanalysis technical id is not present in the isolates collection')
+                raise Exception(f'This reanalysis technical id ({technical_id}) is not present in the isolates collection')
             current_results = current_results_document['results']
             if new_results["results.analysis_date"] == current_results["analysis_date"]:
                 _send_email(f"{os.path.basename(__file__)}: mongo upload fail on host {socket.gethostname()}",
