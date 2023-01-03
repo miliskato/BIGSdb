@@ -187,8 +187,9 @@ def reanalysis_noslurm(species: str, maximal_analysis_date: str, minimal_analysi
                     # todo check if fasta is actually fasta or not empty or?
                 else:
                     logging.error('Invalid fastafilepath')
-                    _send_email(f"{os.path.basename(__file__)}: reanalysis fail on host {socket.gethostname()} because {isolate_id}'s fasta path is invalid: {isolate['fasta_path']}", "", mongo_config_data['mail'])
-                    sys.exit()
+                    _send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}: reanalysis fail because {isolate_id}'s fasta path is invalid: {isolate['fasta_path']}",
+                                "", mongo_config_data['mail'])
+                    raise RuntimeError(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}: reanalysis fail because {isolate_id}'s fasta path is invalid: {isolate['fasta_path']}")
 
                 temp_new_sample_name = '_'.join([isolate_id, str(datetime.date.today())])
                 logging.info(f"new sample name: {temp_new_sample_name}")
@@ -254,9 +255,10 @@ def reanalysis_noslurm(species: str, maximal_analysis_date: str, minimal_analysi
                     # run the command
                     command.run(dir_temp)
                     if command.returncode != 0:
-                        # if pipeline fails, send mail and continue to next sample, dont raise error
-                        _send_email(f'{os.path.basename(__file__)}: Error executing automatic reanalysis pipeline on {species}, {isolate_id}', command.stderr, mongo_config_data['mail'])
-                        # raise RuntimeError(f"Error executing pipeline: {command.stderr}")
+                        # if pipeline fails, send mail and continue to next sample, dont raise error # Since the mailbomb, do raise an error
+                        _send_email(f'{os.path.basename(__file__)} fail on host {socket.gethostname()}: Error executing automatic reanalysis pipeline on {species}, {isolate_id}',
+                                    command.stderr, mongo_config_data['mail'])
+                        raise Exception(f'{os.path.basename(__file__)} fail on host {socket.gethostname()}: Error executing automatic reanalysis pipeline on {species}, {isolate_id}')
                     else:
                         logging.info(f"Re-analysis for isolate '{isolate_id}' completed")
 
@@ -290,8 +292,9 @@ def reanalysis_noslurm(species: str, maximal_analysis_date: str, minimal_analysi
                             logging.info(f"moving the camel log for isolate '{isolate_id}'")
                         except Exception:
                             _send_email(
-                                f"{os.path.basename(__file__)}: shutil failed to move camel log {dir_temp}/camel.log to {isolate['report_directory']}/{temp_new_sample_name}.log",
+                                f"{os.path.basename(__file__)} fail on host {socket.gethostname()}: shutil failed to move camel log {dir_temp}/camel.log to {isolate['report_directory']}/{temp_new_sample_name}.log",
                                 command.stderr, mongo_config_data['mail'])
+                            raise Exception(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}: shutil failed to move camel log {dir_temp}/camel.log to {isolate['report_directory']}/{temp_new_sample_name}.log")
 
                         report_dir_merging_cmd = ' '.join([
                             "rsync -a",
@@ -309,9 +312,9 @@ def reanalysis_noslurm(species: str, maximal_analysis_date: str, minimal_analysi
                         logging.info(f"merging the report directories of original and reanalysis for isolate '{isolate_id}'")
                         if command.returncode != 0:
                             _send_email(
-                                f'{os.path.basename(__file__)}: Error merging reanalysis directory {dir_out} into output dir {isolate["report_directory"]} for automatic reanalysis pipeline on {species}, {isolate_id}',
+                                f'{os.path.basename(__file__)} fail on host {socket.gethostname()}: Error merging reanalysis directory {dir_out} into output dir {isolate["report_directory"]} for automatic reanalysis pipeline on {species}, {isolate_id}',
                                 command.stderr, mongo_config_data['mail'])
-                            raise RuntimeError(f"Error merging reanalysis directory: {command.stderr}")
+                            raise Exception(f'{os.path.basename(__file__)} fail on host {socket.gethostname()}: Error merging reanalysis directory {dir_out} into output dir {isolate["report_directory"]} for automatic reanalysis pipeline on {species}, {isolate_id}')
                         else:
                             # Removing the temporary working dir and the remaining files that were not kept
                             shutil.rmtree(dir_temp)
@@ -319,15 +322,16 @@ def reanalysis_noslurm(species: str, maximal_analysis_date: str, minimal_analysi
             except Exception as exceptionmessage:
                 _send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
                             f"{exceptionmessage}\n{traceback.format_exc()}", mongo_config_data['mail'])
+                raise Exception(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}")
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=int(threads /reanalysis_config['threads_per_job'])) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=int(threads / reanalysis_config['threads_per_job'])) as executor:
             future_to_isolate = {executor.submit(
                 reanalyse_and_insert, **{'isolate': isolate, 'threads_per_job': reanalysis_config['threads_per_job']}):
                                isolate for isolate in documents_list}
     except Exception as exceptionmessage:
         _send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
                     f"{exceptionmessage}\n{traceback.format_exc()}", mongo_config_data['mail'])
-        raise RuntimeError(f"{os.path.basename(__file__)} fail")
+        raise Exception(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}")
 
 if __name__ == '__main__':
 

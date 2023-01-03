@@ -130,11 +130,11 @@ def reanalysis_slurm_submitter(species: str, maximal_analysis_date: str, minimal
             command = Command(base_command)
             command.run(Path(os.getcwd()))
             if command.returncode != 0:
-                # if pipeline fails, send mail and continue to next sample, dont raise error
+                # if pipeline fails, send mail and continue to next sample, dont raise error # Since the mailbomb, do raise an error
                 _send_email(
-                    f'{os.path.basename(__file__)}: Error submitting slurm job for {species}, {isolate["_id"]} on host {socket.gethostname()}',
+                    f'{os.path.basename(__file__)} fail on host {socket.gethostname()}: Error submitting slurm job for {species}, {isolate["_id"]}',
                     f"{exceptionmessage}\n{traceback.format_exc()}", mongo_config_data['mail'])
-                # raise RuntimeError(f"Error executing pipeline: {command.stderr}")
+                raise Exception(f'{os.path.basename(__file__)} fail on host {socket.gethostname()}: Error submitting slurm job for {species}, {isolate["_id"]}')
             else:
                 logging.info(f"Slurm submission for isolate '{isolate['_id']}' completed")
 
@@ -147,6 +147,7 @@ def reanalysis_slurm_submitter(species: str, maximal_analysis_date: str, minimal
     except Exception as exceptionmessage:
         _send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
                     f"{exceptionmessage}\n{traceback.format_exc()}", mongo_config_data['mail'])
+        raise Exception(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}")
         
 if __name__ == '__main__':
 

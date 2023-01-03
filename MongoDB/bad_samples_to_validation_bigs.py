@@ -105,5 +105,6 @@ def bad_samples_to_validation_bigs(species: str) -> None:
                 {'metadata': 'last_bad_samples_update'}, {'$set': {'last_update_date': datetime.datetime.utcnow()}})
 
     except Exception as exceptionmessage:
-        send_email(f"{os.path.basename(__file__)}: mongo to bigs fail on host {socket.gethostname()}",
+        send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
                     f"{exceptionmessage}\n{traceback.format_exc()}", bigsdb_config['mail'])
+        raise Exception(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}")

@@ -229,5 +229,6 @@ if __name__ == '__main__':
         _gene_detection_insertion_recalcultation()
     except Exception as exceptionmessage:
         _send_email(
-            f'(automated weekly) gene detection db update in BIGSdb failed on host {socket.gethostname()}',
+            f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
             f"{exceptionmessage}\n{traceback.format_exc()}", emaildict)
+        raise Exception(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}")

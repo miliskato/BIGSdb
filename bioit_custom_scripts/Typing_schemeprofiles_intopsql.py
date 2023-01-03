@@ -115,7 +115,7 @@ def __insert_profiles(scheme: str, schemedict: dict, indexdict: dict, profile_li
                 except Exception as exceptionmessage:
                     _send_email(f"profile with field {field} and value {fieldvalue.replace('_',' ')} already exists as another field, find the profile that was misinserted (not all loci have allele_id), remove it, and all above and restart this script (on db {cur_seqdef.name()} on host {socket.gethostname()})",
                                 f"{exceptionmessage}\n{traceback.format_exc()}", emaildict)
-                    continue
+                    raise Exception(f"profile with field {field} and value {fieldvalue.replace('_',' ')} already exists as another field, find the profile that was misinserted (not all loci have allele_id), remove it, and all above and restart this script (on db {cur_seqdef.name()} on host {socket.gethostname()})")
 
 
 def _insert_all_profiles() -> None:
@@ -135,16 +135,13 @@ def _insert_all_profiles() -> None:
                 handle = open('/'.join([schemedict[scheme]['dirdb'], profile_file]), 'r').readlines()
                 # multiple whitespaces need to be replaced by single whitespace
                 header = " ".join(handle[0].split()).split(' ')
-                print(header)
                 x = 0
                 indexdict = {}
                 for item in header:
-                    print(item)
                     if item == "'rplF":
                         item = 'rplF'
                     indexdict[item] = x
                     x += 1
-                print(indexdict.items())
                 profile_line_dict = {}
                 for line in handle[1:]:
                     profile_line_dict[" ".join(line.split()).split(' ')[0]] = line
@@ -208,5 +205,6 @@ if __name__ == '__main__':
         _insert_all_profiles()
     except Exception as exceptionmessage:
         _send_email(
-            f'(automated weekly) profiles db update in BIGSdb failed on host {socket.gethostname()}',
+            f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
             f"{exceptionmessage}\n{traceback.format_exc()}", emaildict)
+        raise Exception(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}")

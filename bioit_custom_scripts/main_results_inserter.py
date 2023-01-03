@@ -113,6 +113,7 @@ def _fail_safe_mechanism(isolatename: str, config: dict, analysis_date: str, cur
             logging.info(f"flagfilepath {flagfilepath}")
     except Exception as exceptionmessage:
         _send_email(f"{os.path.basename(__file__)}: bigsdb upload fail safe mechanism fail on host {socket.gethostname()}", f"{exceptionmessage}\n{traceback.format_exc()}", config['mail'])
+        raise Exception(f"{os.path.basename(__file__)}: bigsdb upload fail safe mechanism fail on host {socket.gethostname()}")
 
 
 def _delete_flagfile(isolatename: str, config: dict) -> None:
@@ -126,6 +127,7 @@ def _delete_flagfile(isolatename: str, config: dict) -> None:
         os.remove(flagfilepath)
     except Exception as exceptionmessage:
         _send_email(f"{os.path.basename(__file__)}: Could not remove flag file {flagfilepath} on host {socket.gethostname()}", f"{exceptionmessage}\n{traceback.format_exc()}", config['mail'])
+        raise Exception(f"{os.path.basename(__file__)}: Could not remove flag file {flagfilepath} on host {socket.gethostname()}")
 
 def main_results_inserter(isolatename: str, uploadermailadress: str, species: str, results_type: str, jsonfilepath: Path = None, tsvfilepath: Path = None) -> None:
     """
@@ -186,13 +188,14 @@ def main_results_inserter(isolatename: str, uploadermailadress: str, species: st
             _send_email(
                 f'{os.path.basename(__file__)}: Error inserting output of {species} pipeline to bigsdb for sample {isolatename} on host {socket.gethostname()}.',
                 f"{exceptionmessage}\n{traceback.format_exc()}", config_data['mail'])
-            sys.exit()  # super important to do this because else the flagging file is removed and the entire fail safe doesnt work
+            raise Exception(f'{os.path.basename(__file__)}: Error inserting output of {species} pipeline to bigsdb for sample {isolatename} on host {socket.gethostname()}.')
+            # super important to raise exception because else the flagging file is removed and the entire fail safe doesnt work
         _delete_flagfile(isolatename, config_data)
     except Exception as exceptionmessage:
         _send_email(
             f'{os.path.basename(__file__)}: Error inserting isolate of {species} pipeline to bigsdb for sample {isolatename} on host {socket.gethostname()}.',
             f"{exceptionmessage}\n{traceback.format_exc()}", config_data['mail'])
-        sys.exit()
+        raise Exception(f'{os.path.basename(__file__)}: Error inserting isolate of {species} pipeline to bigsdb for sample {isolatename} on host {socket.gethostname()}.')
 
         # todo find out if connections need to be closed
 

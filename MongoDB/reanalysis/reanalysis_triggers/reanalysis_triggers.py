@@ -144,9 +144,9 @@ def reanalysis_triggers(species: str, threads: int = 8, pyvenvpythonpath: str = 
             except Exception as exceptionmessage:
                 _send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
                             f"{exceptionmessage}\n{traceback.format_exc()}", mongo_config_data['mail'])
+                raise Exception(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}")
 
         # with concurrent.futures.ThreadPoolExecutor(max_workers=1 if slurm is False else 5) as executor:  # MK 24th nov 2022, i dont remember why slurm would get 5 workers because this i think would cause isolates that need to be reanalyzed in the lowest date to also be captured in the next dates
-        # todo if I use an additional minimal_analysis_date argument, all of this could be parallelized
         with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
             future_to_isolate = {executor.submit(
                 run_reanalysis, **{"date": date, "date_args_dict": date_args_dict}):
@@ -160,6 +160,7 @@ def reanalysis_triggers(species: str, threads: int = 8, pyvenvpythonpath: str = 
     except Exception as exceptionmessage:
         _send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
                     f"{exceptionmessage}\n{traceback.format_exc()}", mongo_config_data['mail'])
+        raise Exception(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}")
 
 if __name__ == '__main__':
 
