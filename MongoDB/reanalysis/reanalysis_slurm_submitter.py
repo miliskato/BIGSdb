@@ -47,6 +47,7 @@ def _parse_arguments(specieslist: list) -> argparse.Namespace:
                         help='analysis arguments stripped off --, e.g. "--analysis_arguments cgmlst mlst"')
     parser.add_argument('--pyvenvpythonpath', type=Path, required=True, help='eg /home/BIGSdb/3.9PythonVenv/bin/python3.9')
     parser.add_argument('--maximal_analysis_date', type=str, required=True, help='YYYY-MM-DD')
+    parser.add_argument('--minimal_analysis_date', type=str, required=True, help='YYYY-MM-DD')
     parser.add_argument('--alternate_connection_string', type=str, help=argparse.SUPPRESS)
     return parser.parse_args()
 
@@ -67,7 +68,7 @@ def _send_email(subject: str, content: str, config: dict) -> None:
         s.send_message(message)
     logging.info(content)
 
-def reanalysis_slurm_submitter(species: str, maximal_analysis_date: str, pyvenvpythonpath: str, threads_per_job: int = 1, analysis_arguments: list = None, alternate_connection_string: str = None) -> None:
+def reanalysis_slurm_submitter(species: str, maximal_analysis_date: str, minimal_analysis_date: str, pyvenvpythonpath: str, threads_per_job: int = 1, analysis_arguments: list = None, alternate_connection_string: str = None) -> None:
     """
     Main function
     See argparse function for variables and their requiredness
@@ -100,7 +101,7 @@ def reanalysis_slurm_submitter(species: str, maximal_analysis_date: str, pyvenvp
             mongo_config_data, species)
         # query all the documents as a projection
         documents_list = [doc for doc in
-                          isolates_collection.find({'latest_analysis_date': {"$lt": maximal_analysis_date}},
+                          isolates_collection.find({'latest_analysis_date': {"$lt": maximal_analysis_date, "$gte": minimal_analysis_date}},
                                                    {"_id": 1, "fasta_path": 1, "vcf_path": 1,
                                                     "latest_analysis_date": 1})]
         logging.info(f"{len(documents_list)} isolates to be reanalyzed")
@@ -159,6 +160,7 @@ if __name__ == '__main__':
     # run main
     reanalysis_slurm_submitter(args.species,
                                args.maximal_analysis_date,
+                               args.minimal_analysis_date,
                                args.pyvenvpythonpath,
                                threads_per_job=args.threads_per_job,
                                analysis_arguments=(args.analysis_arguments if args.analysis_arguments else None),

@@ -104,7 +104,7 @@ def reanalysis_triggers(species: str, threads: int = 8, pyvenvpythonpath: str = 
 
         # Part 2: Recursively/hierarchically add all schemes with higher last update date to lower update date
         from collections import OrderedDict
-        date_args_dict = OrderedDict()
+        date_args_dict = {}
         for index, last_update in enumerate(sorted(date_scheme_dict.keys())):
             date_args_dict[last_update] = date_scheme_dict[last_update]
             for last_update_later in sorted(date_scheme_dict)[index:]:
@@ -121,12 +121,15 @@ def reanalysis_triggers(species: str, threads: int = 8, pyvenvpythonpath: str = 
             Runs reanalysis.py on samples with last analysis date older than assay db updates
             :param date: datetimestring 'YYYY-MM-DD', key in date_args_dict
             :param date_args_dict: key (date): args(str) dict e.g. {'2019-03-04': 'vfdb-core virulencefinder'}
+            :param ordered_dates_list: ordered list of dates, used to determine minimal analysis date
             :return: None
             """
             try:
                 logging.info(f"running reanalysis on samples older than {date} with arguments: {date_args_dict[date]}")
+                ordered_dates_list = sorted(date_args_dict.keys())
                 arguments = {'species': species,
                              'maximal_analysis_date': date,
+                             'minimal_analysis_date': ordered_dates_list[ordered_dates_list.index(date) + 1],
                              'analysis_arguments': date_args_dict[date],
                              'alternate_connection_string': alternate_connection_string if alternate_connection_string else None}
                 if slurm is False:

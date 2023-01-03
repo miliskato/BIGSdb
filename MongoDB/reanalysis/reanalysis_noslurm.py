@@ -45,6 +45,7 @@ def _parse_arguments(specieslist: list) -> argparse.Namespace:
     parser.add_argument('--threads', type=int, default=8, help='Number of threads to use in total')
     parser.add_argument('--analysis_arguments', nargs='+', required=False, help='analysis arguments stripped off --, e.g. "--analysis_arguments cgmlst mlst"')
     parser.add_argument('--maximal_analysis_date', type=str, required=True, help='YYYY-MM-DD')
+    parser.add_argument('--minimal_analysis_date', type=str, required=True, help='YYYY-MM-DD')
     parser.add_argument('--alternate_connection_string', type=str, help=argparse.SUPPRESS)
     return parser.parse_args()
 
@@ -129,12 +130,13 @@ def _delete_flagfile(isolatename: str, config: dict, mailconfig: dict) -> None:
     except Exception as exceptionmessage:
         _send_email(f"{os.path.basename(__file__)}: Could not remove flag file {flagfilepath} on host {socket.gethostname()}", f"{exceptionmessage}\n{traceback.format_exc()}", mailconfig['mail'])
 
-def reanalysis_noslurm(species: str, maximal_analysis_date: str, threads: int = 8, analysis_arguments: list = None, alternate_connection_string: str = None) -> None:
+def reanalysis_noslurm(species: str, maximal_analysis_date: str, minimal_analysis_date: str, threads: int = 8, analysis_arguments: list = None, alternate_connection_string: str = None) -> None:
     """
     Main function
     See argparse function for variables and their requiredness
     :param species: 
-    :param maximal_analysis_date: 
+    :param maximal_analysis_date:
+    :param minimal_analysis_date:
     :param threads: 
     :param analysis_arguments: 
     :param alternate_connection_string: 
@@ -160,7 +162,7 @@ def reanalysis_noslurm(species: str, maximal_analysis_date: str, threads: int = 
         isolates_collection, isolateresults_collection, isolates_badqc_collection = mongoinit.initialise_collections(mongo_config_data, species)
         # query all the documents, # todo maybe do a projection as were only interested in _id, fastapath, vcfpath unless we also want db updates later (can also be projected)
 
-        documents_list = [doc for doc in isolates_collection.find({'latest_analysis_date': {"$lt": maximal_analysis_date}}, {"_id": 1, "fasta_path": 1, "vcf_path": 1, "report_directory": 1, "latest_analysis_date": 1})]
+        documents_list = [doc for doc in isolates_collection.find({'latest_analysis_date': {"$lt": maximal_analysis_date, "$gte": minimal_analysis_date}}, {"_id": 1, "fasta_path": 1, "vcf_path": 1, "report_directory": 1, "latest_analysis_date": 1})]
         logging.info(f"{len(documents_list)} isolates to be reanalyzed")
 
         # ! For testing, you can specify isolates manually here
@@ -339,6 +341,7 @@ if __name__ == '__main__':
     # run main
     reanalysis_noslurm(args.species,
                        args.maximal_analysis_date,
+                       args.minimal_analysis_date,
                        threads=args.threads,
                        analysis_arguments=(args.analysis_arguments if args.analysis_arguments else None),
                        alternate_connection_string=(args.alternate_connection_string if args.alternate_connection_string else None))
