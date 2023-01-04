@@ -63,7 +63,7 @@ def bad_samples_to_validation_bigs(species: str) ->None:
         update_collection = mongoinit.initialise_update_collection(config_data, species)
         query = update_collection.find_one({'metadata': 'last_bad_samples_update'})
         if query:
-            last_run_date = ['last_update_date']
+            last_run_date = query['last_update_date']
         else:
             last_run_date = datetime.datetime(1970, 1, 1)
             update_collection.with_options(write_concern=WriteConcern(w="majority")).insert_one(
