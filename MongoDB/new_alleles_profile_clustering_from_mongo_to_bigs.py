@@ -328,7 +328,6 @@ class NewAllelesProfileClusteringFromMongoToBigs:
                 "$set": {'last_update_date': self.current_update_date}})
 
 
-
 def run_upload_new_alleles_profiles_clustering_from_mongo_to_bigs(species: str) -> None:
     """
     Runs the uplaod of new alleles and clustering from mongo to bigs

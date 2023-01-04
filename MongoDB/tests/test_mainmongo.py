@@ -75,7 +75,7 @@ if __name__ == '__main__':
         isolates_collection, isolateresults_collection, isolates_badqc_collection = \
             mongoinit.initialise_collections(config_data, 'listeria')
         hashed_ad_collection = mongoinit.initialise_hashing_collection(config_data, 'listeria')
-        st_collection, cluster_membership_collection = \
+        st_collection, cluster_membership_collection, cluster_merging_collection = \
             mongoinit.initialise_clustering_collections(config_data, 'listeria')
         update_collection = mongoinit.initialise_update_collection(config_data, 'listeria')
 
@@ -90,6 +90,7 @@ if __name__ == '__main__':
             hashed_ad_collection.drop()
             st_collection.drop()
             cluster_membership_collection.drop()
+            cluster_merging_collection.drop()
             update_collection.drop()
 
 
