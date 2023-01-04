@@ -270,7 +270,7 @@ def mainmongo(technical_id: str, species: str, results_type: str, jsonfilepath: 
         mongoinit = Mongoinitialisation()
         isolates_collection, isolateresults_collection, isolates_badqc_collection = mongoinit.initialise_collections(
             config_data, species)
-        st_collection, cluster_membership_collection = \
+        st_collection, cluster_membership_collection, cluster_merging_collection = \
             mongoinit.initialise_clustering_collections(config_data, species)
         mongoquerying = Mongoquerying()
 
@@ -333,6 +333,7 @@ def mainmongo(technical_id: str, species: str, results_type: str, jsonfilepath: 
                     sp_thresholds = f"clustering_thresholds_{species}"
                     sequence_type = custom_clustering.run_custom_clustering(st_collection,
                                                                             cluster_membership_collection,
+                                                                            cluster_merging_collection,
                                                                             CLUSTERING_CONFIG[sp_thresholds])
                     isolates_collection.with_options(write_concern=WriteConcern(w="majority")).find_one_and_update(
                         {"_id": records["isolates_id"]},
@@ -430,6 +431,7 @@ def mainmongo(technical_id: str, species: str, results_type: str, jsonfilepath: 
                 sp_thresholds = f"clustering_thresholds_{species}"
                 sequence_type = custom_clustering.run_custom_clustering(st_collection,
                                                                         cluster_membership_collection,
+                                                                        cluster_merging_collection,
                                                                         CLUSTERING_CONFIG[sp_thresholds])
                 isolates_collection.with_options(write_concern=WriteConcern(w="majority")).find_one_and_update(
                     {"_id": technical_id},

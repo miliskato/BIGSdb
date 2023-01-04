@@ -22,6 +22,7 @@ collections:
     - sequence_types
     - new_allele_hashes
     - cluster_membership
+    - cluster_merging
     - update_metadata
 
 module_name:
