@@ -120,7 +120,7 @@ class MongoCustomClustering:
         clustering membership.
         :return:
         """
-        distance_cluster = DistanceAndClusterComputer(st_collection, cluster_membership_collection,cluster_merging_collection, [0])
+        distance_cluster = DistanceAndClusterComputer(st_collection, cluster_membership_collection, cluster_merging_collection, [0])
         distance_cluster.compute_hamming_distances('last_st')
         distance_cluster.new_st_cluster_membership(cluster_threshold)
 

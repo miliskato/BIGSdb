@@ -87,7 +87,7 @@ def tempid_replacer(scheme: str, species: str, alternate_connection_string: str 
         isolates_collection, isolateresults_collection, isolates_badqc_collection = mongoinit.initialise_collections(
             config_data, species)
         hashed_AD_collection = mongoinit.initialise_hashing_collection(config_data, species)
-        st_collection, cluster_membership_collection = \
+        st_collection, cluster_membership_collection, cluster_merging_collection = \
             mongoinit.initialise_clustering_collections(config_data, species)
         # Query the docs with hashes for this particular scheme
         documents_list = _query_hashes_of_scheme(hashed_AD_collection, scheme)
