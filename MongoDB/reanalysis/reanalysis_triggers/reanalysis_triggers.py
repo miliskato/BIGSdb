@@ -77,6 +77,10 @@ def reanalysis_triggers(species: str, threads: int = 8, pyvenvpythonpath: str = 
     with open(MONGO_CONFIG, encoding='utf-8') as handle:
         mongo_config_data = yaml.safe_load(handle)
 
+    # Read the trigger config
+    with open(TRIGGER_CONFIG, encoding='utf-8') as handle:
+        trigger_config = yaml.safe_load(handle)
+
     # Configure stdout logging
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
