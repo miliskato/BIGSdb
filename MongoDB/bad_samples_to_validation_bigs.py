@@ -72,6 +72,7 @@ def bad_samples_to_validation_bigs(species: str) ->None:
             last_run_date = datetime.datetime(1970, 1, 1)
             update_collection.with_options(write_concern=WriteConcern(w="majority")).insert_one(
                 {'metadata': 'last_bad_samples_update', 'last_update_date': last_run_date})
+        current_date = datetime.datetime.utcnow()
         mongo_query = isolates_badqc_collection.find({'creation_date': {'$gt': last_run_date}})
         #todo: add a date for synchronization with mongo and fetch only samples older than the date of last update
         bad_samples = []
@@ -106,7 +107,7 @@ def bad_samples_to_validation_bigs(species: str) ->None:
                                  f"VALUES ({highest_sub_id}, '{field2}',2)")
             #update last date of update
             update_collection.with_options(write_concern=WriteConcern(w="majority")).find_one_and_update(
-                {'metadata': 'last_bad_samples_update'}, {'$set': {'last_update_date': datetime.datetime.utcnow()}})
+                {'metadata': 'last_bad_samples_update'}, {'$set': {'last_update_date': current_date}})
 
     except Exception as exceptionmessage:
         send_email(f"{os.path.basename(__file__)}: mongo to bigs fail on host {socket.gethostname()}",
