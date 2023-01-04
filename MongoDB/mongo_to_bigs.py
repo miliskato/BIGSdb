@@ -114,10 +114,12 @@ def mongo_to_bigs(species: str, single_sample: str = None) -> None:
             if query_single is not None:
                 listofdocuments = [query_single]
             else:
-                _send_email(
-                    f"{os.path.basename(__file__)}: Can not find document with _id '{single_sample}' in isolates",
-                    "", bigsdb_config['mail'])
-                sys.exit()
+                _send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
+                            f"Can not find document with _id '{single_sample}' in isolates",
+                            bigsdb_config['mail'])
+                raise Exception(
+                    f"{os.path.basename(__file__)} fail on host {socket.gethostname()}: Can not find document with _id '{single_sample}' in isolates")
+
         else:
             listofdocuments = list(isolates_collection.find())
 
@@ -134,15 +136,16 @@ def mongo_to_bigs(species: str, single_sample: str = None) -> None:
             else:
                 results_type = "reanalysis"
                 cur_isolates.execute(
-                    f"SELECT latest_analysis_date FROM isolates WHERE isolate='{document['results']['isolates_id']}'")
+                    f"SELECT latest_analysis_date FROM isolates WHERE isolate='{document['results']['isolates_id']}' ORDER BY id DESC")
                 latest_analysis_date_bigs = cur_isolates.fetchall()[0][0]  # this appearently is a datetime object
-                cur_isolates.execute(f"SELECT value FROM eav_text_hidden WHERE field='mongo_results_version'")
+                cur_isolates.execute(f"SELECT value FROM eav_text_hidden WHERE field='mongo_results_version' and isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate='{document['results']['isolates_id']}')")
                 # as of 2022/12/22 mongo_results_version in bigs is changed version
                 mongo_results_changed_version_bigs_query = cur_isolates.fetchall()
                 if mongo_results_changed_version_bigs_query == []:
+                    # Accounting for old samples that didnt have a version yet
                     mongo_results_changed_version_bigs = 1
                 else:
-                    mongo_results_changed_version_bigs = mongo_results_changed_version_bigs_query[0][0]
+                    mongo_results_changed_version_bigs = int(mongo_results_changed_version_bigs_query[0][0])
                 if _return_datetimeobj_from_DMYhms(document['results']['analysis_date']) > latest_analysis_date_bigs:
                     new_results = document['results']
                     if new_results['changed_version'] == int(mongo_results_changed_version_bigs):
@@ -158,10 +161,10 @@ def mongo_to_bigs(species: str, single_sample: str = None) -> None:
                         if old_results_withpointers is None:
                             # what if bigs has version 1, but mongo has version 3, but version 3 is no different from 1 and 2?
                             # Currently new versions are only created if there were changes so in case more than 2 versions different and missing then should send error.
-                            _send_email(
-                                f"{os.path.basename(__file__)}: Can not find document in old isolate results collection for isolate {new_results['isolates_id']} and results version {mongo_results_changed_version_bigs}",
-                                "", bigsdb_config['mail'])
-                            continue
+                            _send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
+                                        f"Can not find document in old isolate results collection for isolate {new_results['isolates_id']} and results version {mongo_results_changed_version_bigs}",
+                                        bigsdb_config['mail'])
+                            raise Exception(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}: Can not find document in old isolate results collection for isolate {new_results['isolates_id']} and results version {mongo_results_changed_version_bigs}")
                         else:
                             # replace the pointers in the old results by their actual contents
                             mongoquerying = Mongoquerying()
@@ -205,8 +208,9 @@ def mongo_to_bigs(species: str, single_sample: str = None) -> None:
             logging.info(f"wrote new results version for {document['results']['isolates_id']} to bigsdb")
 
     except Exception as exceptionmessage:
-        _send_email(f"{os.path.basename(__file__)}: mongo to bigs fail on host {socket.gethostname()}",
+        _send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
                     f"{exceptionmessage}\n{traceback.format_exc()}", bigsdb_config['mail'])
+        raise Exception(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}")
 
 if __name__ == '__main__':
     # Configure stdout logging

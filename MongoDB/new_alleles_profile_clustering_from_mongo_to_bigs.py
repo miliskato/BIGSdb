@@ -353,5 +353,6 @@ def run_upload_new_alleles_profiles_clustering_from_mongo_to_bigs(species: str) 
                                         cluster_membership_collection, update_collection)
         updater.insert_into_bigs()
     except Exception as exceptionmessage:
-        _send_email(f"{os.path.basename(__file__)}: mongo to bigs fail on host {socket.gethostname()}",
+        _send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
                     f"{exceptionmessage}\n{traceback.format_exc()}", config_data['mail'])
+        raise Exception(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}")

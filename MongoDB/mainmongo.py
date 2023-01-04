@@ -278,12 +278,11 @@ def mainmongo(technical_id: str, species: str, results_type: str, jsonfilepath: 
         if results_type == "new_isolate" or results_type == 'badqc_validated':
             if results_type == "new_isolate":
                 if technical_id in mongoquerying.query_list_of_all_distinct_values(isolates_collection, "_id") \
-                        or technical_id in mongoquerying.query_list_of_all_distinct_values(
-                    isolates_badqc_collection, "_id"):
-                    _send_email(f"{os.path.basename(__file__)}: mongo upload fail on host {socket.gethostname()}",
+                        or technical_id in mongoquerying.query_list_of_all_distinct_values(isolates_badqc_collection, "_id"):
+                    _send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
                                 f"This technical id is already present in the isolates collection\n{traceback.format_exc()}",
                                 config_data['mail'])
-                    raise Exception('This technical id is already present in the isolates collection')
+                    raise Exception(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}: This technical id is already present in the isolates collection")
                     # todo check if fasta path and vcf path are real?
             if jsonfilepath:
                 records = json.load(open(jsonfilepath, 'r'))
@@ -307,11 +306,11 @@ def mainmongo(technical_id: str, species: str, results_type: str, jsonfilepath: 
                         for key in records['qc'][qc_type]:
                             if key.endswith('status') and records['qc'][qc_type][key] == 'Failed':
                                 sample_quality = 'bad'
-                except Exception:
-                    _send_email(f"{os.path.basename(__file__)}: mongo upload fail on host {socket.gethostname()}",
-                                f"No qc values found in the given results\n{traceback.format_exc()}",
+                except Exception as exceptionmessage:
+                    _send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}: No qc values found in the given results",
+                                f"{exceptionmessage}\n{traceback.format_exc()}",
                                 config_data['mail'])
-                    raise Exception('No qc values found in the given results')
+                    raise Exception(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}: No qc values found in the given results")
 
             if sample_quality == 'good':
                 records = find_hashes_in_results_and_add_to_collection(records, mongoinit, config_data,
@@ -363,20 +362,23 @@ def mainmongo(technical_id: str, species: str, results_type: str, jsonfilepath: 
             try:
                 current_results_document = \
                 mongoquerying.query_docs_by_ids(isolates_collection, [technical_id])[0]
-            except Exception:
-                raise Exception('This reanalysis technical id is not present in the isolates collection')
+            except Exception as exceptionmessage:
+                _send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}: This reanalysis technical id ({technical_id}) is not present in the isolates collections",
+                                f"{exceptionmessage}\n{traceback.format_exc()}",
+                                config_data['mail'])
+                raise Exception(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}: This reanalysis technical id ({technical_id}) is not present in the isolates collections")
             current_results = current_results_document['results']
             if new_results["results.analysis_date"] == current_results["analysis_date"]:
-                _send_email(f"{os.path.basename(__file__)}: mongo upload fail on host {socket.gethostname()}",
-                            f"This is not a reanalysis but the same results\n{traceback.format_exc()}",
+                _send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
+                            f"This ({technical_id}) is not a reanalysis but the same results\n{traceback.format_exc()}",
                             config_data['mail'])
-                raise Exception('This is not a reanalysis but the same results')
+                raise Exception(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}: This ({technical_id}) is not a reanalysis but the same results")
             elif _return_YMD_from_DMYhms(new_results["results.analysis_date"]) < _return_YMD_from_DMYhms(
                     current_results["analysis_date"]):
-                _send_email(f"{os.path.basename(__file__)}: mongo upload fail on host {socket.gethostname()}",
-                            f"These results seem to be older than the current results\n{traceback.format_exc()}",
+                _send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
+                            f"These ({technical_id})results seem to be older than the current results\n{traceback.format_exc()}",
                             config_data['mail'])
-                raise Exception('These results seem to be older than the current results')
+                raise Exception(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}: These ({technical_id})results seem to be older than the current results")
             any_result_changed_new_old, unchanged_results_new_old, changed_results_new_old = \
                 _check_if_results_changed(current_results, new_results_handle)
             if current_results_document['previous_latest_results_document'] is not None:
@@ -438,9 +440,9 @@ def mainmongo(technical_id: str, species: str, results_type: str, jsonfilepath: 
                     {"$set": {"results.cgST": sequence_type}})
 
     except Exception as exceptionmessage:
-        _send_email(f"{os.path.basename(__file__)}: mongo upload fail on host {socket.gethostname()}",
+        _send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
                     f"{exceptionmessage}\n{traceback.format_exc()}", config_data['mail'])
-        raise Exception(f"{os.path.basename(__file__)}: mongo upload fail on host {socket.gethostname()}")
+        raise Exception(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}")
 
 if __name__ == '__main__':
 

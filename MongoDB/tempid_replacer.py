@@ -173,10 +173,10 @@ def tempid_replacer(scheme: str, species: str, alternate_connection_string: str 
                     if hash_document['resolved_AD'] != 0:
                         cur_isolates.execute(f"UPDATE allele_designations SET allele_id='{hash_document['resolved_AD']}' WHERE allele_id='{hash_document['hashed_allele']}' AND locus='{hash_document['locus']}'")
     except Exception as exceptionmessage:
-        _send_email(f"{os.path.basename(__file__)}: tempid replacer fail on host {socket.gethostname()}",
+        _send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
                     f"{exceptionmessage}\n{traceback.format_exc()}", config_data['mail'])
         raise Exception(
-            f"{os.path.basename(__file__)}: tempid replacer fail on host {socket.gethostname()}")
+            f"{os.path.basename(__file__)} fail on host {socket.gethostname()}")
 
 if __name__ == '__main__':
     # Parse config

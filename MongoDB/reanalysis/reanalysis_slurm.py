@@ -116,6 +116,7 @@ def _fail_safe_mechanism(isolatename: str, config: dict, mailconfig: dict, tmp_d
     except Exception as exceptionmessage:
         _send_email(f"{os.path.basename(__file__)}: reanalysis fail safe mechanism fail on host {socket.gethostname()}",
                     f"{exceptionmessage}\n{traceback.format_exc()}", mailconfig['mail'])
+        raise RuntimeError(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}")
 
 
 def _delete_flagfile(isolatename: str, config: dict, mailconfig: dict) -> None:
@@ -131,8 +132,9 @@ def _delete_flagfile(isolatename: str, config: dict, mailconfig: dict) -> None:
         os.remove(flagfilepath)
     except Exception as exceptionmessage:
         _send_email(
-            f"{os.path.basename(__file__)}: Could not remove flag file {flagfilepath} on host {socket.gethostname()}",
+            f"{os.path.basename(__file__)} fail on host {socket.gethostname()}: Could not remove flag file {flagfilepath}",
             f"{exceptionmessage}\n{traceback.format_exc()}", mailconfig['mail'])
+        raise Exception(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}: Could not remove flag file {flagfilepath}")
 
 def reanalysis_slurm(species: str, isolate: json.loads, threads: int = 8, analysis_arguments: list = None, alternate_connection_string: str = None) -> None:
     """
@@ -175,9 +177,9 @@ def reanalysis_slurm(species: str, isolate: json.loads, threads: int = 8, analys
         else:
             logging.error('Invalid fastafilepath')
             _send_email(
-                f"{os.path.basename(__file__)}: reanalysis fail on host {socket.gethostname()} because {isolate_id}'s fasta path is invalid: {isolate['fasta_path']}",
+                f"{os.path.basename(__file__)} fail on host {socket.gethostname()}: reanalysis fail because {isolate_id}'s fasta path is invalid: {isolate['fasta_path']}",
                 "", mongo_config_data['mail'])
-            sys.exit()
+            raise Exception(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}: reanalysis fail because {isolate_id}'s fasta path is invalid: {isolate['fasta_path']}")
 
         temp_new_sample_name = '_'.join([isolate_id, str(datetime.date.today())])
         logging.info(f"new sample name: {temp_new_sample_name}")
@@ -208,8 +210,11 @@ def reanalysis_slurm(species: str, isolate: json.loads, threads: int = 8, analys
                     if option_reformatted in available_options_list:
                         accepted_options_list.append(option_reformatted)
                     else:
-                        raise RuntimeError(
-                            f'option {option_reformatted} is not a valid reanalysis option for species {species}')
+                        _send_email(
+                            f'{os.path.basename(__file__)} fail on host {socket.gethostname()}',
+                            f'option {option_reformatted} is not a valid reanalysis option for species {species}', mongo_config_data['mail'])
+                        raise Exception(
+                            f'{os.path.basename(__file__)} fail on host {socket.gethostname()}: option {option_reformatted} is not a valid reanalysis option for species {species}')
             # if no specific analysis arguments are given, perform all analyses
             else:
                 accepted_options_list = config_species['options']
@@ -245,11 +250,11 @@ def reanalysis_slurm(species: str, isolate: json.loads, threads: int = 8, analys
             # run the command
             command.run(dir_temp)
             if command.returncode != 0:
-                # if pipeline fails, send mail and continue to next sample, dont raise error
+                # if pipeline fails, send mail and continue to next sample, dont raise error # Since the mailbomb, do raise an error
                 _send_email(
-                    f'{os.path.basename(__file__)}: Error executing automatic reanalysis pipeline on {species}, {isolate_id}',
+                    f'{os.path.basename(__file__)} fail on host {socket.gethostname()}: Error executing automatic reanalysis pipeline on {species}, {isolate_id}',
                     command.stderr, mongo_config_data['mail'])
-                # raise RuntimeError(f"Error executing pipeline: {command.stderr}")
+                raise Exception(f'{os.path.basename(__file__)} fail on host {socket.gethostname()}: Error executing automatic reanalysis pipeline on {species}, {isolate_id}')
             else:
                 logging.info(f"Re-analysis for isolate '{isolate_id}' completed")
 
@@ -276,6 +281,7 @@ def reanalysis_slurm(species: str, isolate: json.loads, threads: int = 8, analys
     except Exception as exceptionmessage:
         _send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()} for isolate {isolate['_id']}",
                     f"{exceptionmessage}\n{traceback.format_exc()}", mongo_config_data['mail'])
+        raise Exception(f"{os.path.basename(__file__)} fail on host {socket.gethostname()} for isolate {isolate['_id']}")
 
 if __name__ == '__main__':
 

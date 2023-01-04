@@ -63,7 +63,7 @@ if __name__ == '__main__':
     if config_data.get('CONNECTION_STRING_BASE') and config_data.get('dtap'):
         config_data['CONNECTION_STRING_BASE'] = ALTERNATE_CONNECTION_STRING
     else:
-        raise Exception('has config modified?')
+        raise Exception('was config modified?')
 
     try:
 
@@ -128,9 +128,9 @@ if __name__ == '__main__':
         reanalysis_triggers('listeria', 6, alternate_connection_string=ALTERNATE_CONNECTION_STRING)
 
         # test reanalysis
-        reanalysis_noslurm('listeria', '2030-01-01', alternate_connection_string=ALTERNATE_CONNECTION_STRING)
+        reanalysis_noslurm('listeria', '2030-01-01', '2000-01-01', alternate_connection_string=ALTERNATE_CONNECTION_STRING)
 
     except Exception as exceptionmessage:
-        _send_email(f"{os.path.basename(__file__)}: mongo testing fail on {socket.gethostname()}",
+        _send_email(f"{os.path.basename(__file__)} fail on {socket.gethostname()}",
                     f"{exceptionmessage}\n{traceback.format_exc()}", config_data['mail'])
-        raise Exception(f"{os.path.basename(__file__)}: mongo testing fail on {socket.gethostname()}")
+        raise Exception(f"{os.path.basename(__file__)} fail on {socket.gethostname()}")
