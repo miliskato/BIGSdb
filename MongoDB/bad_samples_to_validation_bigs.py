@@ -42,7 +42,7 @@ def bad_samples_to_validation_bigs(species: str) ->None:
     :return: None
     """
     #for testing purposes
-    html_path = 'http://bioit-bigs-test.sciensano.be/galaxyreports/listeria/10-001/report.html'
+    html_path = 'http://bioit-bigs-dev.sciensano.be/galaxyreports/listeria/110-001_S68_L001/report.html'
 
     # Configure stdout logging
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
