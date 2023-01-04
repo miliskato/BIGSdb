@@ -65,6 +65,9 @@ class NewAllelesProfileClusteringFromMongoToBigs:
         self.last_date_of_update = self._get_last_date_of_update()
         if self.last_date_of_update == None:
             self.last_date_of_update = datetime.datetime(1970, 1, 1)
+            self.update_metadata_collection.with_options(write_concern=WriteConcern(w="majority")).insert_one(
+            {'metadata': 'last_update',
+            'last_update_date': datetime.datetime(1970, 1, 1)})
         self.new_sequences = self._get_new_sequence()
         self.new_st = self._get_new_st()
         self.st_headers = self._get_st_headers()
@@ -288,7 +291,7 @@ class NewAllelesProfileClusteringFromMongoToBigs:
         """
         self.cur_seqdef.execute(f"SELECT id,inclusion_threshold from classification_schemes")
         query_res = self.cur_seqdef.fetchall()
-        if query_res[0][0] is not None:
+        if query_res is not None:
             thresholds_presents = [x[1] for x in query_res]
 
         else:
@@ -340,7 +343,7 @@ def run_upload_new_alleles_profiles_clustering_from_mongo_to_bigs(species: str) 
     # Open collections
     mongoinit = Mongoinitialisation()
     hashed_ad_collection = mongoinit.initialise_hashing_collection(config_data, species)
-    st_collection, cluster_membership_collection = \
+    st_collection, cluster_membership_collection, cluster_merging_collection = \
         mongoinit.initialise_clustering_collections(config_data, species)
     update_collection = mongoinit.initialise_update_collection(config_data, species)
 

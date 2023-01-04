@@ -34,19 +34,12 @@ def send_email(subject: str, content: str, config: dict) -> None:
         s.send_message(message)
     logging.info(content)
 
-
-def parse_arguments(specieslist) -> argparse.Namespace:
+def bad_samples_to_validation_bigs(species: str) ->None:
     """
-    Parses the command line arguments.
-    :return: Parsed arguments
+    Send samples in the badqc_sample collection to be validated on BIGSdb
+    :param species: the species of the database to send the bad samples from
+    :return: None
     """
-    argument_parser = argparse.ArgumentParser()
-    argument_parser.add_argument('--species', required=True, type=str,
-                                 choices=specieslist)
-    argument_parser.add_argument('--html_path', type=Path, required=True)
-    return argument_parser.parse_args()
-
-if __name__ == '__main__':
     # Configure stdout logging
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
@@ -54,23 +47,20 @@ if __name__ == '__main__':
     with open(MONGO_CONFIG, encoding='utf-8') as handle:
         config_data = yaml.safe_load(handle)
 
-    # Parse arguments
-    args = parse_arguments(config_data['species'])
-
     with open(BIGSDB_CONFIG, encoding='utf-8') as handle:
         bigsdb_config = yaml.safe_load(handle)
     try:
 
         # Open collections
         mongoinit = Mongoinitialisation()
-        isolates_collection, old_isolateresults_collection, isolates_badqc_collection = mongoinit.initialise_collections(config_data, args.species)
+        isolates_collection, old_isolateresults_collection, isolates_badqc_collection = mongoinit.initialise_collections(config_data, species)
 
 
         # Connect to db and create cursor
-        cur_isolates, cur_seqdef = DatabaseConnection().open_database_connections(args.species)
+        cur_isolates, cur_seqdef = DatabaseConnection().open_database_connections(species)
 
         # fetch all documents in the bad samples of the species
-        update_collection = mongoinit.initialise_update_collection(config_data, args.species)
+        update_collection = mongoinit.initialise_update_collection(config_data, species)
         query = update_collection.find_one({'metadata': 'last_bad_samples_update'})
         if query:
             last_run_date = ['last_update_date']
