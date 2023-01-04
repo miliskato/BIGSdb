@@ -129,11 +129,13 @@ def reanalysis_triggers(species: str, threads: int = 8, pyvenvpythonpath: str = 
             :return: None
             """
             try:
-                logging.info(f"running reanalysis on samples older than {date} with arguments: {date_args_dict[date]}")
                 ordered_dates_list = sorted(date_args_dict.keys())
+                index_date_in_list = ordered_dates_list.index(date)
+                minimal_date = ordered_dates_list[index_date_in_list - 1] if index_date_in_list != 0 else '1990-01-01'
+                logging.info(f"running reanalysis on samples older than {date} and younger than {minimal_date} with arguments: {date_args_dict[date]}")
                 arguments = {'species': species,
                              'maximal_analysis_date': date,
-                             'minimal_analysis_date': ordered_dates_list[ordered_dates_list.index(date) + 1],
+                             'minimal_analysis_date': minimal_date,
                              'analysis_arguments': date_args_dict[date],
                              'alternate_connection_string': alternate_connection_string if alternate_connection_string else None}
                 if slurm is False:
@@ -157,9 +159,10 @@ def reanalysis_triggers(species: str, threads: int = 8, pyvenvpythonpath: str = 
                                date for date in date_args_dict.keys()}
             logging.info(f"finished submitting reanalysis for species {species}")
 
-        # After all the reanalyses, execute mongo_to_bigs.py
-        mongo_to_bigs(species)
-        logging.info(f"Mongo to bigs after reanalysis completed")
+        if alternate_connection_string is None:
+            # After all the reanalyses, execute mongo_to_bigs.py
+            mongo_to_bigs(species)
+            logging.info(f"Mongo to bigs after reanalysis completed")
 
     except Exception as exceptionmessage:
         _send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",

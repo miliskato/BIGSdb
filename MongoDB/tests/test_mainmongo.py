@@ -128,7 +128,7 @@ if __name__ == '__main__':
         reanalysis_triggers('listeria', 6, alternate_connection_string=ALTERNATE_CONNECTION_STRING)
 
         # test reanalysis
-        reanalysis_noslurm('listeria', '2030-01-01', alternate_connection_string=ALTERNATE_CONNECTION_STRING)
+        reanalysis_noslurm('listeria', '2030-01-01', '2000-01-01', alternate_connection_string=ALTERNATE_CONNECTION_STRING)
 
     except Exception as exceptionmessage:
         _send_email(f"{os.path.basename(__file__)} fail on {socket.gethostname()}",

@@ -177,8 +177,10 @@ def reanalysis_noslurm(species: str, maximal_analysis_date: str, minimal_analysi
             :param threads_per_job: threads per sample
             :return: None
             """
+            isolate_id = isolate['_id']
+            reanalysis_outcome_dictionary = {'Outcome': 'Success', 'Isolate': isolate_id, 'Traceback': ''}
             try:
-                isolate_id = isolate['_id']
+                isolate_id = isolate['_id'] # This line is duplicated so that it also falls in the try except
                 logging.info(f"Starting reanalysis for {isolate_id}")
 
                 # check if fasta path exists
@@ -187,9 +189,9 @@ def reanalysis_noslurm(species: str, maximal_analysis_date: str, minimal_analysi
                     # todo check if fasta is actually fasta or not empty or?
                 else:
                     logging.error('Invalid fastafilepath')
-                    _send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}: reanalysis fail because {isolate_id}'s fasta path is invalid: {isolate['fasta_path']}",
-                                "", mongo_config_data['mail'])
-                    raise RuntimeError(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}: reanalysis fail because {isolate_id}'s fasta path is invalid: {isolate['fasta_path']}")
+                    reanalysis_outcome_dictionary['Outcome'] = 'Fail'
+                    reanalysis_outcome_dictionary['Traceback'] = 'Invalid fastafilepath'
+                    return reanalysis_outcome_dictionary
 
                 temp_new_sample_name = '_'.join([isolate_id, str(datetime.date.today())])
                 logging.info(f"new sample name: {temp_new_sample_name}")
@@ -220,7 +222,9 @@ def reanalysis_noslurm(species: str, maximal_analysis_date: str, minimal_analysi
                             if option_reformatted in available_options_list:
                                 accepted_options_list.append(option_reformatted)
                             else:
-                                raise RuntimeError(f'option {option_reformatted} is not a valid reanalysis option for species {species}')
+                                reanalysis_outcome_dictionary['Outcome'] = 'Fail'
+                                reanalysis_outcome_dictionary['Traceback'] = f'option {option_reformatted} is not a valid reanalysis option for species {species}'
+                                return reanalysis_outcome_dictionary
                     # if no specific analysis arguments are given, perform all analyses
                     else:
                         accepted_options_list = config_species['options']
@@ -256,9 +260,9 @@ def reanalysis_noslurm(species: str, maximal_analysis_date: str, minimal_analysi
                     command.run(dir_temp)
                     if command.returncode != 0:
                         # if pipeline fails, send mail and continue to next sample, dont raise error # Since the mailbomb, do raise an error
-                        _send_email(f'{os.path.basename(__file__)} fail on host {socket.gethostname()}: Error executing automatic reanalysis pipeline on {species}, {isolate_id}',
-                                    command.stderr, mongo_config_data['mail'])
-                        raise Exception(f'{os.path.basename(__file__)} fail on host {socket.gethostname()}: Error executing automatic reanalysis pipeline on {species}, {isolate_id}')
+                        reanalysis_outcome_dictionary['Outcome'] = 'Fail'
+                        reanalysis_outcome_dictionary['Traceback'] = f'Error executing automatic reanalysis pipeline on {species}, {isolate_id}, stderr: {command.stderr}'
+                        return reanalysis_outcome_dictionary
                     else:
                         logging.info(f"Re-analysis for isolate '{isolate_id}' completed")
 
@@ -284,50 +288,70 @@ def reanalysis_noslurm(species: str, maximal_analysis_date: str, minimal_analysi
                         # run the command
                         mainmongo(**arguments)
                         logging.info(f"Mongodb insertion for isolate '{isolate_id}' completed")
-                        try:
-                            # shutil doesnt throw an error, but simply stops. Therefore it has to be put inside a try except
-                            logging.info(
-                                f"executing: {dir_temp}/camel.log {isolate['report_directory']}/{temp_new_sample_name}.log")
-                            shutil.move(f"{dir_temp}/camel.log", f"{isolate['report_directory']}/{temp_new_sample_name}.log")
-                            logging.info(f"moving the camel log for isolate '{isolate_id}'")
-                        except Exception:
-                            _send_email(
-                                f"{os.path.basename(__file__)} fail on host {socket.gethostname()}: shutil failed to move camel log {dir_temp}/camel.log to {isolate['report_directory']}/{temp_new_sample_name}.log",
-                                command.stderr, mongo_config_data['mail'])
-                            raise Exception(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}: shutil failed to move camel log {dir_temp}/camel.log to {isolate['report_directory']}/{temp_new_sample_name}.log")
+                        if alternate_connection_string is None:
+                            try:
+                                # shutil doesnt throw an error, but simply stops. Therefore it has to be put inside a try except
+                                logging.info(
+                                    f"executing: {dir_temp}/camel.log {isolate['report_directory']}/{temp_new_sample_name}.log")
+                                shutil.move(f"{dir_temp}/camel.log", f"{isolate['report_directory']}/{temp_new_sample_name}.log")
+                                logging.info(f"moving the camel log for isolate '{isolate_id}'")
+                            except Exception:
+                                reanalysis_outcome_dictionary['Outcome'] = 'Fail'
+                                reanalysis_outcome_dictionary['Traceback'] = f"shutil failed to move camel log {dir_temp}/camel.log to {isolate['report_directory']}/{temp_new_sample_name}.log, stderr: {command.stderr}"
+                                return reanalysis_outcome_dictionary
 
-                        report_dir_merging_cmd = ' '.join([
-                            "rsync -a",
-                            f"{dir_out}/",
-                            f"{isolate['report_directory']}/"
-                        ])
-                        command = Command(report_dir_merging_cmd)
-                        # run the command
-                        logging.info(' '.join([
-                            "executing: rsync -a",
-                            f"{dir_temp}/{dir_out}/",
-                            f"{isolate['report_directory']}/"
-                        ]))
-                        command.run(dir_out)
-                        logging.info(f"merging the report directories of original and reanalysis for isolate '{isolate_id}'")
-                        if command.returncode != 0:
-                            _send_email(
-                                f'{os.path.basename(__file__)} fail on host {socket.gethostname()}: Error merging reanalysis directory {dir_out} into output dir {isolate["report_directory"]} for automatic reanalysis pipeline on {species}, {isolate_id}',
-                                command.stderr, mongo_config_data['mail'])
-                            raise Exception(f'{os.path.basename(__file__)} fail on host {socket.gethostname()}: Error merging reanalysis directory {dir_out} into output dir {isolate["report_directory"]} for automatic reanalysis pipeline on {species}, {isolate_id}')
+                            report_dir_merging_cmd = ' '.join([
+                                "rsync -a",
+                                f"{dir_out}/",
+                                f"{isolate['report_directory']}/"
+                            ])
+                            command = Command(report_dir_merging_cmd)
+                            # run the command
+                            logging.info(' '.join([
+                                "executing: rsync -a",
+                                f"{dir_temp}/{dir_out}/",
+                                f"{isolate['report_directory']}/"
+                            ]))
+                            command.run(dir_out)
+                            logging.info(f"merging the report directories of original and reanalysis for isolate '{isolate_id}'")
+                            if command.returncode != 0:
+                                reanalysis_outcome_dictionary['Outcome'] = 'Fail'
+                                reanalysis_outcome_dictionary['Traceback'] = f'Error merging reanalysis directory {dir_out} into output dir {isolate["report_directory"]} for automatic reanalysis pipeline on {species}, {isolate_id}, stderr: {command.stderr}'
+                                return reanalysis_outcome_dictionary
+                            else:
+                                # Removing the temporary working dir and the remaining files that were not kept
+                                shutil.rmtree(dir_temp)
+                                logging.info(f"Temporary directory deletion for isolate '{isolate_id}' completed")
                         else:
-                            # Removing the temporary working dir and the remaining files that were not kept
+                            # if testing purposes skip all of the above and only remove temp dir
                             shutil.rmtree(dir_temp)
                             logging.info(f"Temporary directory deletion for isolate '{isolate_id}' completed")
             except Exception as exceptionmessage:
-                _send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
-                            f"{exceptionmessage}\n{traceback.format_exc()}", mongo_config_data['mail'])
-                raise Exception(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}")
+                reanalysis_outcome_dictionary['Outcome'] = 'Fail'
+                reanalysis_outcome_dictionary['Traceback'] = f"{exceptionmessage}\n{traceback.format_exc()}"
+                return reanalysis_outcome_dictionary
+            return reanalysis_outcome_dictionary
+        if documents_list != []:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=int(threads / reanalysis_config['threads_per_job'])) as executor:
+                futures = {executor.submit(
+                    reanalyse_and_insert, **{'isolate': isolate, 'threads_per_job': reanalysis_config['threads_per_job']}):
+                                   isolate for isolate in documents_list}
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=int(threads / reanalysis_config['threads_per_job'])) as executor:
-            future_to_isolate = {executor.submit(
-                reanalyse_and_insert, **{'isolate': isolate, 'threads_per_job': reanalysis_config['threads_per_job']}):
-                               isolate for isolate in documents_list}
+                succes_counter = 0
+                fail_counter = 0
+                fail_logs = ''
+                for future in futures:
+                    result_dict = future.result()
+                    if result_dict['Outcome'] == 'Success':
+                        succes_counter += 1
+                    else:
+                        fail_counter += 1
+                        fail_logs += f"{result_dict['Isolate']}\t{result_dict['Traceback']}\n"
+                _send_email(f"{os.path.basename(__file__)} report on host {socket.gethostname()} at {datetime.datetime.utcnow()}",
+                            f"Succes Count: {succes_counter}\nFail Count: {fail_counter}\nFail Logs: {fail_logs}", mongo_config_data['mail'])
+        else:
+            logging.info('No isolates to be reanalyzed found')
+
     except Exception as exceptionmessage:
         _send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
                     f"{exceptionmessage}\n{traceback.format_exc()}", mongo_config_data['mail'])
