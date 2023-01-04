@@ -167,7 +167,7 @@ def tempid_replacer(scheme: str, species: str, alternate_connection_string: str 
                                     st_collection.find_one_and_update({"cgST": st["cgST"]},
                                                             {"$set": {"cgMLST": cgmlst}})
             hostname = socket.gethostname()
-            if 'bigs' in hostname and alternate_connection_string is not None:
+            if 'bigs' in hostname:
                 cur_isolates, cur_seqdef = DatabaseConnection().open_database_connections(species)
                 for hash_document in documents_list:
                     if hash_document['resolved_AD'] != 0:
