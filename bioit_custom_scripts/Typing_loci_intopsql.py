@@ -58,11 +58,11 @@ def _insert_loci() -> None:
                             cur_seqdef.execute(f"INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) \
                                               VALUES(1, '{dir}', 1, (SELECT CURRENT_DATE))")
                             # If it doesnt exist in seqdef loci, then normally not in isolate loci aswell
-                            dbaseurl = ''.join(['/cgi-bin/bigsdb/bigsdb.pl?db=', f"{schemedict[scheme]['seqdefdb']}", '&page=alleleInfo&locus=', f"{dir}", '&allele_id=[?]'])
+                            dbaseurl = ''.join(['/cgi-bin/bigsdb/bigsdb.pl?db=', f"{config_data['species'][species]['seqdefdb']}", '&page=alleleInfo&locus=', f"{dir}", '&allele_id=[?]'])
                             cur_isolates.execute(f"INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, dbase_name, dbase_id, "
                                         f"url, isolate_display, main_display, query_field, analysis, submission_template, "
                                         f"curator, date_entered, datestamp) \
-                                              VALUES('{dir}','DNA','text', 't', 't', '{schemedict[scheme]['seqdefdb']}', '{dir}', "
+                                              VALUES('{dir}','DNA','text', 't', 't', '{config_data['species'][species]['seqdefdb']}', '{dir}', "
                                         f"'{dbaseurl}', 'allele_only', 'f', 't', 't', 'f',"
                                         f" 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE))")
                             # add into isolate scheme members
