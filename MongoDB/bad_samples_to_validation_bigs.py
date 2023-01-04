@@ -34,12 +34,16 @@ def send_email(subject: str, content: str, config: dict) -> None:
         s.send_message(message)
     logging.info(content)
 
+
 def bad_samples_to_validation_bigs(species: str) ->None:
     """
     Send samples in the badqc_sample collection to be validated on BIGSdb
     :param species: the species of the database to send the bad samples from
     :return: None
     """
+    #for testing purposes
+    html_path = 'http://bioit-bigs-test.sciensano.be/galaxyreports/listeria/10-001/report.html'
+
     # Configure stdout logging
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
@@ -87,7 +91,7 @@ def bad_samples_to_validation_bigs(species: str) ->None:
                                  f"(SELECT CURRENT_DATE), 'pending', true)")
             #todo need to set a proper method to build links based on the sample to transfer
             #dev code, not set yet
-            html_path = str(args.html_path).replace('/reports/','/galaxyreports/')
+            html_path = str(html_path).replace('/reports/','/galaxyreports/')
             html_link = f'<p><a href="{html_path}" target="_blank"> html report</a></p>'
             #end of dev code
             field = 'html_report'
