@@ -20,6 +20,7 @@ import traceback
 import smtplib
 from email.message import EmailMessage
 import datetime
+from typing import Optional
 
 from pymongo.write_concern import WriteConcern
 from pymongo.read_concern import ReadConcern
@@ -49,18 +50,6 @@ def _parse_arguments(specieslist: list) -> argparse.Namespace:
     parser.add_argument('--alternate_connection_string', type=str, help=argparse.SUPPRESS)
     return parser.parse_args()
 
-# --host-url
-# http://bioit-bigs-dev.sciensano.be
-# --species
-# mycobacterium
-# --dir-fastq
-# /testdata/camel/pipelines/
-# --config
-# /home/bebogaerts/PycharmProjects/CamelTemp/camel/scripts/reanalysis/config.yml
-# --threads
-# 4
-
-
 def _send_email(subject: str, content: str, config: dict) -> None:
     """
     Sends an email.
@@ -88,12 +77,12 @@ def __make_flagfilepath(isolatename: str, config: dict) -> Path:
     return Path(config['failsafe']['flag_dir']) / '.'.join([isolatename, config['failsafe']['flag_append']])
 
 
-def _fail_safe_mechanism(isolatename: str, config: dict, mailconfig: dict, tmp_dir: str) -> None:
+def _fail_safe_mechanism(isolatename: str, config: dict, reanalysis_outcome_dictionary: dict, tmp_dir: str) -> Optional[dict]:
     """
     Creates a flagfile containing the temporary dictionary if the file doesnt exist, if it does, remove the previous temporary directory, the file, and recreate the file
     :param isolatename: name of the isolate
     :param config: config containing the flagfile directory path
-    :param mailconfig: config containging the mailing dictionary
+    :param reanalysis_outcome_dictionary: config containing the reanalysis outcome
     :param tmp_dir: temporary working dir
     :return: None
     """
@@ -113,24 +102,27 @@ def _fail_safe_mechanism(isolatename: str, config: dict, mailconfig: dict, tmp_d
         os.chmod(flagfilepath, 0o777)
         logging.info(f"flagfilepath {flagfilepath}")
     except Exception as exceptionmessage:
-        _send_email(f"{os.path.basename(__file__)}: reanalysis fail safe mechanism fail on host {socket.gethostname()}", f"{exceptionmessage}\n{traceback.format_exc()}", mailconfig['mail'])
+        reanalysis_outcome_dictionary['Outcome'] = 'Fail'
+        reanalysis_outcome_dictionary['Traceback'] = f"reanalysis fail safe mechanism fail: {exceptionmessage}\n{traceback.format_exc()}"
+        return reanalysis_outcome_dictionary
 
-
-def _delete_flagfile(isolatename: str, config: dict, mailconfig: dict) -> None:
+def _delete_flagfile(isolatename: str, config: dict, reanalysis_outcome_dictionary: dict) -> Optional[dict]:
     """
     Removes the flagfile
     :param isolatename: name of the isolate
     :param config: config containing the flagfile directory path
-    :param mailconfig: config containging the mailing dictionary
+    :param reanalysis_outcome_dictionary: config containing the reanalysis outcome
     :return: None
     """
     flagfilepath = __make_flagfilepath(isolatename, config)
     try:
         os.remove(flagfilepath)
-    except Exception as exceptionmessage:
-        _send_email(f"{os.path.basename(__file__)}: Could not remove flag file {flagfilepath} on host {socket.gethostname()}", f"{exceptionmessage}\n{traceback.format_exc()}", mailconfig['mail'])
+    except Exception:
+        reanalysis_outcome_dictionary['Outcome'] = 'Fail'
+        reanalysis_outcome_dictionary['Traceback'] = f"Could not remove flag file {flagfilepath}"
+        return reanalysis_outcome_dictionary
 
-def reanalysis_noslurm(species: str, maximal_analysis_date: str, minimal_analysis_date: str, threads: int = 8, analysis_arguments: list = None, alternate_connection_string: str = None) -> None:
+def reanalysis_noslurm(species: str, maximal_analysis_date: str, minimal_analysis_date: str, threads: int = 8, analysis_arguments: list = None, alternate_connection_string: str = None) -> dict:
     """
     Main function
     See argparse function for variables and their requiredness
@@ -142,11 +134,11 @@ def reanalysis_noslurm(species: str, maximal_analysis_date: str, minimal_analysi
     :param alternate_connection_string: 
     :return: 
     """
-    # Read the reanalysis config
-    with open(MONGO_REANALYSIS_CONFIG, encoding='utf-8') as handle:
-        reanalysis_config = yaml.safe_load(handle)
-
     try:
+        # Read the reanalysis config
+        with open(MONGO_REANALYSIS_CONFIG, encoding='utf-8') as handle:
+            reanalysis_config = yaml.safe_load(handle)
+
         # Configure stdout logging
         logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
@@ -170,7 +162,7 @@ def reanalysis_noslurm(species: str, maximal_analysis_date: str, minimal_analysi
 
         # Re-analyze the isolates (can be parallelized with a Snakemake workflow)
         # e.g. response_data['isolates'] : "isolates":["http://bioit-bigs-dev.sciensano.be:5000/db/bigsdb_listeria_isolates/isolates/3","http://bioit-bigs-dev.sciensano.be:5000/db/bigsdb_listeria_isolates/isolates/4","http://bioit-bigs-dev.sciensano.be:5000/db/bigsdb_listeria_isolates/isolates/5"]
-        def reanalyse_and_insert(isolate: dict, threads_per_job: int = 2) -> None:
+        def reanalyse_and_insert(isolate: dict, threads_per_job: int = 2) -> dict:
             """
             Reanalyzes a given isolate dict (document from MongoDB)
             :param isolate: isolate dictionary from MongoDB
@@ -180,7 +172,7 @@ def reanalysis_noslurm(species: str, maximal_analysis_date: str, minimal_analysi
             isolate_id = isolate['_id']
             reanalysis_outcome_dictionary = {'Outcome': 'Success', 'Isolate': isolate_id, 'Traceback': ''}
             try:
-                isolate_id = isolate['_id'] # This line is duplicated so that it also falls in the try except
+                isolate_id = isolate['_id']  # This line is duplicated so that it also falls in the try except
                 logging.info(f"Starting reanalysis for {isolate_id}")
 
                 # check if fasta path exists
@@ -200,7 +192,7 @@ def reanalysis_noslurm(species: str, maximal_analysis_date: str, minimal_analysi
                 with Path(tempfile.mkdtemp(None, 're_analysis_', mongo_config_data['temp_dir'])) as dir_temp:
 
                     # initialise fail-safe mechanism
-                    _fail_safe_mechanism(isolate_id, reanalysis_config, mongo_config_data, str(dir_temp))
+                    _fail_safe_mechanism(isolate_id, reanalysis_config, reanalysis_outcome_dictionary, str(dir_temp))
 
                     # Get the species-specific configuration
                     config_species = reanalysis_config['species'][species]
@@ -259,7 +251,6 @@ def reanalysis_noslurm(species: str, maximal_analysis_date: str, minimal_analysi
                     # run the command
                     command.run(dir_temp)
                     if command.returncode != 0:
-                        # if pipeline fails, send mail and continue to next sample, dont raise error # Since the mailbomb, do raise an error
                         reanalysis_outcome_dictionary['Outcome'] = 'Fail'
                         reanalysis_outcome_dictionary['Traceback'] = f'Error executing automatic reanalysis pipeline on {species}, {isolate_id}, stderr: {command.stderr}'
                         return reanalysis_outcome_dictionary
@@ -276,7 +267,7 @@ def reanalysis_noslurm(species: str, maximal_analysis_date: str, minimal_analysi
                     #     dir_out = Path("/scratch/temp/re_analysis_pjx15wnq/S16BD02199_2022-09-14")
 
                         # Adding the new sample version to the Mongo database
-                        _delete_flagfile(isolate_id, reanalysis_config, mongo_config_data)
+                        _delete_flagfile(isolate_id, reanalysis_config, reanalysis_outcome_dictionary)
 
                         # Create command insertion MongoDB
                         arguments = {'technical_id': isolate_id,

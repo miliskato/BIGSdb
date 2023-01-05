@@ -128,21 +128,37 @@ def reanalysis_slurm_submitter(species: str, maximal_analysis_date: str, minimal
             if alternate_connection_string:
                 base_command += f" --alternate_connection_string {alternate_connection_string}"
             command = Command(base_command)
-            command.run(Path(os.getcwd()))
+            command_output = command.run(Path(os.getcwd()))
             if command.returncode != 0:
                 # if pipeline fails, send mail and continue to next sample, dont raise error # Since the mailbomb, do raise an error
-                _send_email(
-                    f'{os.path.basename(__file__)} fail on host {socket.gethostname()}: Error submitting slurm job for {species}, {isolate["_id"]}',
-                    f"{exceptionmessage}\n{traceback.format_exc()}", mongo_config_data['mail'])
-                raise Exception(f'{os.path.basename(__file__)} fail on host {socket.gethostname()}: Error submitting slurm job for {species}, {isolate["_id"]}')
+                reanalysis_outcome_dictionary = {'Outcome': 'Fail', 'Isolate': isolate['_id'], 'Traceback': f'Error executing automatic reanalysis pipeline on {species}, {isolate_id}, stderr: {command.stderr}'}
+                return reanalysis_outcome_dictionary
             else:
                 logging.info(f"Slurm submission for isolate '{isolate['_id']}' completed")
+                return json.loads(command_output.stdout.decode())  # This is the reanalysis_outcome_dictionary or at least it should be # todo test
 
         # Slurm can schedule up to 10000 jobs, best to max 5000: reanalysis triggers launches max 5, times 1000 below is 5000 max
-        with concurrent.futures.ThreadPoolExecutor(max_workers=1000) as executor:
-            future_to_isolate = {executor.submit(
-                run_reanalysis, isolate):
-                               isolate for isolate in documents_list}
+        if documents_list != []:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1000) as executor:
+                futures = {executor.submit(
+                    run_reanalysis, isolate):
+                                   isolate for isolate in documents_list}
+                succes_counter = 0
+                fail_counter = 0
+                fail_logs = ''
+                for future in futures:
+                    result_dict = future.result()
+                    if result_dict['Outcome'] == 'Success':
+                        succes_counter += 1
+                    else:
+                        fail_counter += 1
+                        fail_logs += f"{result_dict['Isolate']}\t{result_dict['Traceback']}\n"
+                _send_email(
+                    f"{os.path.basename(__file__)} report on host {socket.gethostname()} at {datetime.datetime.utcnow()}",
+                    f"Succes Count: {succes_counter}\nFail Count: {fail_counter}\nFail Logs: {fail_logs}",
+                    mongo_config_data['mail'])
+        else:
+            logging.info('No isolates to be reanalyzed found')
 
     except Exception as exceptionmessage:
         _send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
