@@ -18,14 +18,13 @@ class TsvTypingResultsInserter:
         """
         Inserts typing results into bigsdb from tsv
         :param isolatename:
-        :param species:
+        :param species: commonly used bioit species name: either genus or specific like stec
         :param schemedict: dictionary of species specific schemes and their properties (found in config)
         :param sample_output_dict: results of sample
         :param cur_isolates: isolate database connection object
         :param cur_seqdef: sequence definition database connection object
         :return: None
         """
-
         dirlist = []
         # dirlist serves as to not insert duplicates (creates error in sql),
         # for Listeria e.g. prs and prfA are included in two schemes

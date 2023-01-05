@@ -50,11 +50,11 @@ def insert_assembly(isolatename: str, species: str, fastafilepath: str) -> None:
     # Read the global config
     with open(BIGSDB_CONFIG, encoding='utf-8') as handle:
         config_data = yaml.safe_load(handle)
-        
-    # Connect to db and create cursors
-    cur_isolates, cur_seqdef = DatabaseConnection().open_database_connections(species)
 
     try:
+        # Connect to db and create cursors
+        con_isolates, cur_isolates, con_seqdef, cur_seqdef = DatabaseConnection().connect_to_dbs_and_create_cursors(species)
+
         cur_isolates.execute(f"SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'")
         present = cur_isolates.fetchall()
         if present[0][0] == []:
@@ -105,6 +105,8 @@ def insert_assembly(isolatename: str, species: str, fastafilepath: str) -> None:
                 f'{os.path.basename(__file__)}: Error inserting assembly of {species} pipeline to bigsdb for sample {isolatename} on host {socket.gethostname()}.',
                 f"isolate {isolatename} already contains assembly records!", config_data['mail'])
             sys.exit()
+
+        DatabaseConnection().close_connections(con_isolates, con_seqdef)
     except Exception as exceptionmessage:
         _send_email(
             f'{os.path.basename(__file__)}: Error inserting assembly of {species} pipeline to bigsdb for sample {isolatename} on host {socket.gethostname()}.',

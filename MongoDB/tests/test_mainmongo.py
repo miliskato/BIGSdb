@@ -18,6 +18,7 @@ import traceback
 import smtplib
 from email.message import EmailMessage
 import datetime
+from typing import Dict
 
 from pymongo.write_concern import WriteConcern
 from pymongo.read_concern import ReadConcern
@@ -94,7 +95,7 @@ if __name__ == '__main__':
             update_collection.drop()
 
 
-        def create_mainmongo_arguments_dict(results_type: str, filename: str) -> dict:
+        def create_mainmongo_arguments_dict(results_type: str, filename: str) -> Dict[str, str]:
             """
 
             :param results_type: either new_isolate or reanalysis

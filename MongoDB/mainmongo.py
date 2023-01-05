@@ -16,6 +16,7 @@ from email.message import EmailMessage
 import socket
 import traceback
 import os
+from typing import Dict, Union
 
 PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(PYTHONPATH))
@@ -80,7 +81,7 @@ def _write_document(opened_collection: object, json_input: dict) -> str:
 
 
 def _new_isolate(technical_id: str, reportdirectorypath: str, vcffilepath: str, fastafilepath: str,
-                 results: dict) -> dict:
+                 results: dict) -> Dict[str, Union[str, object]]:
     """
     Initialises new isolate dictionary including its results
     :param technical_id:
@@ -102,7 +103,7 @@ def _new_isolate(technical_id: str, reportdirectorypath: str, vcffilepath: str, 
     return new_isolate_dict
 
 
-def prepend_string_dot_to_dict_keys(input_dictionary: dict, prepending: str = 'results') -> dict:
+def prepend_string_dot_to_dict_keys(input_dictionary: dict, prepending: str = 'results') -> Dict[str, Union[str, object]]:
     """
     This function is designed to update only results that have been reanalyzed; by using dot notation in the dicts only the relevant assays/metadata are updated upon reanalysis.
     The function can of course serve other purposes
@@ -139,7 +140,7 @@ def _max_temp_allele_name_new_entry(hashed_AD_collection, locus: str, scheme: st
         return f'{locus}_temp_{max_temp_allele_name + 1}'
 
 
-def find_hashes_in_results_and_add_to_collection(results: dict, mongoinit: object, config_data: dict, species: str, mode: str) -> dict:
+def find_hashes_in_results_and_add_to_collection(results: dict, mongoinit: object, config_data: dict, species: str, mode: str) -> Dict[str, Union[str, object]]:
     """
     finds hashes in json output report for multilocus sequence typing schemes and adds these hashes and alleles to a separate collection: new_allele_hashes.
     Also replace the hashes by temporary allele identifiers and purges the sequences to save space

@@ -68,7 +68,7 @@ if __name__ == '__main__':
             mongoinit.initialise_collections(config_data, species)
 
         # Connect to db and create cursor
-        cur_isolates, cur_seqdef = DatabaseConnection().open_database_connections(species)
+        con_isolates, cur_isolates, con_seqdef, cur_seqdef = DatabaseConnection().connect_to_dbs_and_create_cursors(species)
 
         cur_isolates.execute(f"SELECT id, outcome, curator FROM submissions WHERE status='closed'")
         query = cur_isolates.fetchall()
@@ -108,7 +108,7 @@ if __name__ == '__main__':
             query_isolate_id = cur_isolates.execute(f"SELECT value FROM isolate_submission_isolates WHERE submission_id='{id}' AND field='isolate_id' ")
             isolate_id = cur_isolates.fetchall()[0][0]
             cur_isolates.execute(f"UPDATE submissions SET status='validation_sent_to_bioit_platform' WHERE id='{id}'")
-
+        DatabaseConnection().close_connections(con_isolates, con_seqdef)
     except Exception as exceptionmessage:
         send_email(f"{os.path.basename(__file__)}: sample validation to mongo fail on host {socket.gethostname()}",
                     f"{exceptionmessage}\n{traceback.format_exc()}", bigsdb_config['mail'])

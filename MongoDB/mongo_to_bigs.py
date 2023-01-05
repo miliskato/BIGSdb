@@ -101,7 +101,7 @@ def mongo_to_bigs(species: str, single_sample: str = None) -> None:
             config_data, species)
 
         # Connect to db and create cursor
-        cur_isolates, cur_seqdef = DatabaseConnection().open_database_connections(species)
+        con_isolates, cur_isolates, con_seqdef, cur_seqdef = DatabaseConnection().connect_to_dbs_and_create_cursors(species)
 
         # call the function to insert new alleles and profiles
         run_upload_new_alleles_profiles_clustering_from_mongo_to_bigs(species)
@@ -207,6 +207,7 @@ def mongo_to_bigs(species: str, single_sample: str = None) -> None:
                 insert_assembly(document['results']['isolates_id'], species, document['fasta_path'])
             logging.info(f"wrote new results version for {document['results']['isolates_id']} to bigsdb")
 
+        DatabaseConnection().close_connections(con_isolates, con_seqdef)
     except Exception as exceptionmessage:
         _send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
                     f"{exceptionmessage}\n{traceback.format_exc()}", bigsdb_config['mail'])

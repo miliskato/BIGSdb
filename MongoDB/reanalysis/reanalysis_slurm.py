@@ -19,7 +19,7 @@ import traceback
 import smtplib
 from email.message import EmailMessage
 import datetime
-from typing import Optional
+from typing import Optional, Dict
 
 from pymongo.write_concern import WriteConcern
 from pymongo.read_concern import ReadConcern
@@ -77,7 +77,7 @@ def __make_flagfilepath(isolatename: str, config: dict) -> Path:
     return Path(config['failsafe']['flag_dir']) / '.'.join([isolatename, config['failsafe']['flag_append']])
 
 
-def _fail_safe_mechanism(isolatename: str, config: dict, reanalysis_outcome_dictionary: dict, tmp_dir: str) -> Optional[dict]:
+def _fail_safe_mechanism(isolatename: str, config: dict, reanalysis_outcome_dictionary: dict, tmp_dir: str) -> Optional[Dict[str, str]]:
     """
     Creates a flagfile containing the temporary dictionary if the file doesnt exist, if it does, remove the previous temporary directory, the file, and recreate the file
     :param isolatename: name of the isolate
@@ -106,7 +106,7 @@ def _fail_safe_mechanism(isolatename: str, config: dict, reanalysis_outcome_dict
         reanalysis_outcome_dictionary['Traceback'] = f"reanalysis fail safe mechanism fail: {exceptionmessage}\n{traceback.format_exc()}"
         return reanalysis_outcome_dictionary
 
-def _delete_flagfile(isolatename: str, config: dict, reanalysis_outcome_dictionary: dict) -> Optional[dict]:
+def _delete_flagfile(isolatename: str, config: dict, reanalysis_outcome_dictionary: dict) -> Optional[Dict[str, str]]:
     """
     Removes the flagfile
     :param isolatename: name of the isolate
@@ -122,7 +122,7 @@ def _delete_flagfile(isolatename: str, config: dict, reanalysis_outcome_dictiona
         reanalysis_outcome_dictionary['Traceback'] = f"Could not remove flag file {flagfilepath}"
         return reanalysis_outcome_dictionary
 
-def reanalysis_slurm(species: str, isolate: json.loads, threads: int = 8, analysis_arguments: list = None, alternate_connection_string: str = None) -> dict:
+def reanalysis_slurm(species: str, isolate: json.loads, threads: int = 8, analysis_arguments: list = None, alternate_connection_string: str = None) -> Dict[str, str]:
     """
     Main function
     See argparse function for variables and their requiredness

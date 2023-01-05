@@ -168,10 +168,11 @@ def tempid_replacer(scheme: str, species: str, alternate_connection_string: str 
                                                             {"$set": {"cgMLST": cgmlst}})
             hostname = socket.gethostname()
             if 'bigs' in hostname and alternate_connection_string is None:
-                cur_isolates, cur_seqdef = DatabaseConnection().open_database_connections(species)
+                con_isolates, cur_isolates, con_seqdef, cur_seqdef = DatabaseConnection().connect_to_dbs_and_create_cursors(species)
                 for hash_document in documents_list:
                     if hash_document['resolved_AD'] != 0:
                         cur_isolates.execute(f"UPDATE allele_designations SET allele_id='{hash_document['resolved_AD']}' WHERE allele_id='{hash_document['hashed_allele']}' AND locus='{hash_document['locus']}'")
+                DatabaseConnection().close_connections(con_isolates, con_seqdef)
     except Exception as exceptionmessage:
         _send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
                     f"{exceptionmessage}\n{traceback.format_exc()}", config_data['mail'])

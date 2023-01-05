@@ -10,6 +10,7 @@ from email.message import EmailMessage
 import socket
 import traceback
 import os
+from typing import Dict
 
 PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(PYTHONPATH))
@@ -59,7 +60,7 @@ class NewAllelesProfileClusteringFromMongoToBigs:
         self.hashed_ad_collection = hashed_ad_collection
         self.cluster_membership_collection = cluster_membership_collection
         self.update_metadata_collection = update_metadata_collection
-        self.cur_isolates, self.cur_seqdef = DatabaseConnection().open_database_connections(self.species)
+        self.cur_isolates, self.cur_seqdef = DatabaseConnection().connect_to_dbs_and_create_cursors(self.species)
         self.clustering_thresholds = CLUSTERING_CONFIG[f"clustering_thresholds_{self.species}"]
         self.current_update_date = datetime.datetime.utcnow()
         self.last_date_of_update = self._get_last_date_of_update()
@@ -104,7 +105,7 @@ class NewAllelesProfileClusteringFromMongoToBigs:
         sts = list(query_st)
         return sts
 
-    def _get_st_headers(self) -> dict:
+    def _get_st_headers(self) -> Dict[str, str]:
         """
         Retrieve the sequence types headers from the sequence type collection from Mongo DB
         :return: The document (dict) containing the headers.
@@ -169,7 +170,7 @@ class NewAllelesProfileClusteringFromMongoToBigs:
                                 f"id {new_allele['temp_allele_name']} is not inserted in the db and wasn't found in the db"
                                 f". Please investigate this error further!")
 
-    def _order_sequences_by_locus(self) -> dict:
+    def _order_sequences_by_locus(self) -> Dict[str, str]:
         """
         Order the sequences by locus in order to be able to add the alleles by locus in an easy way.
         :return: None

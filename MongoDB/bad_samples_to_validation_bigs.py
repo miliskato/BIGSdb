@@ -61,7 +61,7 @@ def bad_samples_to_validation_bigs(species: str) ->None:
 
 
         # Connect to db and create cursor
-        cur_isolates, cur_seqdef = DatabaseConnection().open_database_connections(species)
+        con_isolates, cur_isolates, con_seqdef, cur_seqdef = DatabaseConnection().connect_to_dbs_and_create_cursors(species)
 
         # fetch all documents in the bad samples of the species
         update_collection = mongoinit.initialise_update_collection(config_data, species)
@@ -109,6 +109,7 @@ def bad_samples_to_validation_bigs(species: str) ->None:
             update_collection.with_options(write_concern=WriteConcern(w="majority")).find_one_and_update(
                 {'metadata': 'last_bad_samples_update'}, {'$set': {'last_update_date': current_date}})
 
+        DatabaseConnection().close_connections(con_isolates, con_seqdef)
     except Exception as exceptionmessage:
         send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
                     f"{exceptionmessage}\n{traceback.format_exc()}", bigsdb_config['mail'])

@@ -163,11 +163,11 @@ def main_results_inserter(isolatename: str, uploadermailadress: str, species: st
             f'{os.path.basename(__file__)}: Error inserting output of {species} pipeline to bigsdb for sample {isolatename} on host {socket.gethostname()}, need either jsonfilepath or tsvfilepath.',
             "", config_data['mail'])
         sys.exit()
-
-    # Connect to db and create cursors
-    cur_isolates, cur_seqdef = DatabaseConnection().open_database_connections(species)
     # Logic
     try:
+        # Connect to db and create cursors
+        con_isolates, cur_isolates, con_seqdef, cur_seqdef = DatabaseConnection().connect_to_dbs_and_create_cursors(species)
+
         # fail safe mechanism is initated at the same time of the isolate insertion, but after connecting to the PSQL db's
         maininserter = MainInserter(isolatename, species, cur_isolates, cur_seqdef, sample_output_dict)
         _fail_safe_mechanism(isolatename, config_data, sample_output_dict['analysis_date'], cur_isolates)
@@ -191,6 +191,7 @@ def main_results_inserter(isolatename: str, uploadermailadress: str, species: st
             raise Exception(f'{os.path.basename(__file__)}: Error inserting output of {species} pipeline to bigsdb for sample {isolatename} on host {socket.gethostname()}.')
             # super important to raise exception because else the flagging file is removed and the entire fail safe doesnt work
         _delete_flagfile(isolatename, config_data)
+        DatabaseConnection().close_connections(con_isolates, con_seqdef)
     except Exception as exceptionmessage:
         _send_email(
             f'{os.path.basename(__file__)}: Error inserting isolate of {species} pipeline to bigsdb for sample {isolatename} on host {socket.gethostname()}.',

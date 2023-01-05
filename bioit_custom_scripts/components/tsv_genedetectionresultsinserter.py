@@ -15,7 +15,7 @@ class TsvGeneDetectionResultsInserter:
         """
         Inserts genedetection results into bigsdb from tsv
         :param isolatename:
-        :param species:
+        :param species: commonly used bioit species name: either genus or specific like stec
         :param genedetectiondict: dictionary of species specific schemes and their properties (found in config)
         :param sample_output_dict: results of sample
         :param cur_isolates: isolate database connection object
