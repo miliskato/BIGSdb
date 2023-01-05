@@ -289,7 +289,7 @@ def mainmongo(technical_id: str, species: str, results_type: str, jsonfilepath: 
             elif subvaldict and results_type == 'badqc_validated':
                 sample_doc = isolates_badqc_collection.find_one({"_id": technical_id})
                 records = sample_doc['results']
-                validation = subvaldict
+                validation = json.loads(subvaldict)
                 fastafilepath = sample_doc['fasta_path']
                 vcffilepath = sample_doc['vcf_path']
             records["isolates_id"] = technical_id
