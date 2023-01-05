@@ -91,11 +91,11 @@ def insert_assembly(isolatename: str, species: str, fastafilepath: str) -> None:
                 cur_isolates.execute(f"INSERT INTO sequence_bin(id, "
                             f"isolate_id, "
                             f"remote_contig, sequence, original_designation, sender, "
-                            f"cur_isolatesator, date_entered, datestamp) "
+                            f"curator, date_entered, datestamp) "
                             f"VALUES((SELECT CASE WHEN (SELECT(SELECT MAX(id) FROM sequence_bin)+1) IS NULL THEN 1 ELSE (SELECT(SELECT MAX(id) FROM sequence_bin)+1) END), "
                             f"(SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'), "
                             f"'f', '{sequence}', '{sequencename.strip('>')}', 1, "
-                            f"1, (SELECT cur_isolatesRENT_DATE),(SELECT cur_isolatesRENT_DATE))")
+                            f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
 
             # # remove the file
             # os.remove(Path(fastafile))
