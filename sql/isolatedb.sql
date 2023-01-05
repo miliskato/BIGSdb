@@ -118,7 +118,6 @@ CREATE TABLE isolates (
 id integer NOT NULL UNIQUE,
 isolate text NOT NULL,
 new_version integer,
-country text NOT NULL,
 year int,
 sender integer NOT NULL,
 curator integer NOT NULL,

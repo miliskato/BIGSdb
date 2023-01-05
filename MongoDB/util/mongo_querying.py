@@ -82,7 +82,6 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
                         if allele_id != '?' and allele_id != '-':
                             resultlist.append(int(allele_id))
                         else:
-                            print('weird case of interrogation 100 percent')
                             resultlist.append(0)
 
                     else:
