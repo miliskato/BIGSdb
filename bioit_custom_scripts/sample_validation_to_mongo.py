@@ -3,7 +3,6 @@ import argparse
 import logging
 import sys
 import os
-from pathlib import Path
 import yaml
 import smtplib
 from email.message import EmailMessage
@@ -21,7 +20,6 @@ from bioit_custom_scripts.components.databaseconnection import DatabaseConnectio
 from bioit_custom_scripts.config import BIGSDB_CONFIG
 from MongoDB.util.mongo_initialisation import Mongoinitialisation
 from MongoDB.config import MONGO_CONFIG
-from MongoDB.util.command.command import Command
 from MongoDB.mainmongo import mainmongo
 
 def send_email(subject: str, content: str, config: dict) -> None:
