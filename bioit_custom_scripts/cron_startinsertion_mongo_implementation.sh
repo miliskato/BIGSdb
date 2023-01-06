@@ -19,15 +19,15 @@ do
   species=$(cat $dir/info.txt | grep -oPw "(?<='species': ')[^']*")
   sample_name=$(cat $dir/info.txt | grep -oPw "(?<='sample_name': ')[^']*")
   uploader=$(cat $dir/info.txt | grep -oPw "(?<='user': ')[^']*")
+  # todo uploader is unused here and in mainmongo atm, there is currently (6th jan 2022) a dummy in place in mainmongo: 'bioit'
   {
-    sudo mv $dir /reports/$species/mongo/
-    /home/BIGSdb/3.9PythonVenv/bin/python3.9 /home/BIGSdb/bioit_custom_scripts/htmltagger.py --htmlfilepath /reports/$species/mongo/$sample_name/report.html --species $species
-    # todo need mongo to bigs, put fasta upload in mongo to bigs aswell?
-    #/home/BIGSdb/3.9PythonVenv/bin/python3.9 /home/BIGSdb/bioit_custom_scripts/main_results_inserter.py --jsonfilepath /reports/$species/$sample_name/report.json --isolatename $sample_name --uploadermailadress $uploader --species $species --results_type new_isolate
-    /home/BIGSdb/3.9PythonVenv/bin/python3.9 /home/BIGSdb/bioit_custom_scripts/insert_assembly.py --fastafilepath /reports/$species/$sample_name/assembly/${sample_name}_contigs.fasta --isolatename $sample_name --species $species
+    sudo mv $dir /reports/$species/bigsdb_json_upload/${sample_name}
+    /home/BIGSdb/3.9PythonVenv/bin/python3.9 /home/BIGSdb/bioit_custom_scripts/htmltagger.py --htmlfilepath /reports/$species/bigsdb_json_upload/$sample_name/report.html --species $species
+    /home/BIGSdb/3.9PythonVenv/bin/python3.9 /home/BIGSdb/MongoDB/mainmongo.py --reportdirectorypath /reports/$species/bigsdb_json_upload/${sample_name} --species ${species} --jsonfilepath /reports/$species/bigsdb_json_upload/${sample_name}/report.json --technical_id ${sample_name} --fastafilepath /reports/$species/bigsdb_json_upload/${sample_name}/assembly/${sample_name}_contigs.fasta --vcffilepath  /reports/$species/bigsdb_json_upload/${sample_name}/variant_filtering/${sample_name}-all.vcf --results_type new_isolate
+    /home/BIGSdb/3.9PythonVenv/bin/python3.9 /home/BIGSdb/MongoDB/mongo_to_bigs.py --species ${species}
 ##    /home/BIGSdb/3.9PythonVenv/bin/python3.9 /home/BIGSdb/bioit_custom_scripts/cgmlst_similar_isolates.py --isolatename $sample_name --species $species
-  } 2>&1 | tee /home/galaxy/mongo/$sample_name.bigsdb_insertion.log
-  mv /home/galaxy/mongo/$sample_name.bigsdb_insertion.log /reports/$species/mongo/$sample_name/
+  } 2>&1 | tee /home/galaxy/mongo/$sample_name.mongodb_bigsdb_insertion.log
+  mv /home/galaxy/mongo/$sample_name.mongodb_bigsdb_insertion.log /reports/$species/bigsdb_json_upload/$sample_name/
 done
 # should probably add an if statement for the assembly inserter because paths may vary
 
@@ -36,4 +36,4 @@ done
 
 
 
-# */1 *   * * *   root    bash /home/BIGSdb/bioit_custom_scripts/cron_startinsertion.sh
+# */1 *   * * *   root    bash /home/BIGSdb/bioit_custom_scripts/cron_startinsertion_mongo_implementation.sh

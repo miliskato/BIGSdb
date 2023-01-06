@@ -54,6 +54,9 @@ htmlfilefolder=$(echo $htmlfilename | sed 's/\.dat/_files/g')
 mkdir $sample_name
 
 cp $1 ./$sample_name/report.tsv
+if test -f ${1}.json; then
+  cp ${1}.json ./$sample_name/report.json
+fi
 cp $htmlfilename ./$sample_name/report.html
 cp -r $htmlfilefolder/* ./$sample_name/
 touch ./$sample_name/info.txt
@@ -61,8 +64,13 @@ echo "{'sample_name': '${sample_name}', 'species': '${species}', 'user': '$2'}" 
 tar -cf $sample_name.tar ./$sample_name/
 md5sum $sample_name.tar > ${sample_name}_md5.txt
 
-scp -i /home/galaxy/.ssh/id_rsa_bigsdb -r ./$sample_name.tar galaxy@bioit-bigs-${DTAPVM}:/home/galaxy
-scp -i /home/galaxy/.ssh/id_rsa_bigsdb -r ./${sample_name}_md5.txt galaxy@bioit-bigs-${DTAPVM}:/home/galaxy
+if test -f ${1}.json; then
+  scp -i /home/galaxy/.ssh/id_rsa_bigsdb -r ./$sample_name.tar galaxy@bioit-bigs-${DTAPVM}:/home/galaxy/mongo
+  scp -i /home/galaxy/.ssh/id_rsa_bigsdb -r ./${sample_name}_md5.txt galaxy@bioit-bigs-${DTAPVM}:/home/galaxy/mongo
+else
+  scp -i /home/galaxy/.ssh/id_rsa_bigsdb -r ./$sample_name.tar galaxy@bioit-bigs-${DTAPVM}:/home/galaxy
+  scp -i /home/galaxy/.ssh/id_rsa_bigsdb -r ./${sample_name}_md5.txt galaxy@bioit-bigs-${DTAPVM}:/home/galaxy
+fi
 
 echo "{user_mail: $2, sample_name: $sample_name, species: $species}" > $3
 
