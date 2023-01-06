@@ -4,6 +4,7 @@ import logging
 import sys
 from pymongo.read_concern import ReadConcern
 from copy import deepcopy
+from typing import Dict
 
 
 class Mongoquerying(object, metaclass=abc.ABCMeta):
@@ -82,7 +83,6 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
                         if allele_id != '?' and allele_id != '-':
                             resultlist.append(int(allele_id))
                         else:
-                            print('weird case of interrogation 100 percent')
                             resultlist.append(0)
 
                     else:
@@ -176,7 +176,7 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
                             logging.info(f"{mainkey}{subkey} different or not in old")
                             logging.info(f"from old '{[x for x in old_results[mainkey][subkey] if x not in new_results[mainkey][subkey]]}' was/were removed or changed to '{[x for x in new_results[mainkey][subkey] if x not in old_results[mainkey][subkey]]}'")
 
-    def query_old_results_and_replace_pointers(self, isolateresults_collection: object, old_results_doc_with_pointers: dict) -> dict:
+    def query_old_results_and_replace_pointers(self, isolateresults_collection: object, old_results_doc_with_pointers: dict) -> Dict[str, str]:
         old_results_doc_without_pointers = deepcopy(old_results_doc_with_pointers)
         if old_results_doc_without_pointers.get('results'):
             raise Exception('Not an old results document')

@@ -10,6 +10,7 @@ from email.message import EmailMessage
 import socket
 import traceback
 import os
+from typing import Dict
 
 PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(PYTHONPATH))
@@ -59,12 +60,15 @@ class NewAllelesProfileClusteringFromMongoToBigs:
         self.hashed_ad_collection = hashed_ad_collection
         self.cluster_membership_collection = cluster_membership_collection
         self.update_metadata_collection = update_metadata_collection
-        self.cur_isolates, self.cur_seqdef = DatabaseConnection().open_database_connections(self.species)
+        self.cur_isolates, self.cur_seqdef = DatabaseConnection().connect_to_dbs_and_create_cursors(self.species)
         self.clustering_thresholds = CLUSTERING_CONFIG[f"clustering_thresholds_{self.species}"]
         self.current_update_date = datetime.datetime.utcnow()
         self.last_date_of_update = self._get_last_date_of_update()
         if self.last_date_of_update == None:
             self.last_date_of_update = datetime.datetime(1970, 1, 1)
+            self.update_metadata_collection.with_options(write_concern=WriteConcern(w="majority")).insert_one(
+            {'metadata': 'last_update',
+            'last_update_date': datetime.datetime(1970, 1, 1)})
         self.new_sequences = self._get_new_sequence()
         self.new_st = self._get_new_st()
         self.st_headers = self._get_st_headers()
@@ -101,7 +105,7 @@ class NewAllelesProfileClusteringFromMongoToBigs:
         sts = list(query_st)
         return sts
 
-    def _get_st_headers(self) -> dict:
+    def _get_st_headers(self) -> Dict[str, str]:
         """
         Retrieve the sequence types headers from the sequence type collection from Mongo DB
         :return: The document (dict) containing the headers.
@@ -151,7 +155,7 @@ class NewAllelesProfileClusteringFromMongoToBigs:
                                                 f"curator, date_entered, datestamp) VALUES('{locus}',"
                                                 f"'{new_allele['temp_allele_name']}','{new_allele['allele_sequence']}',"
                                                 f"'unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
-                        print(f"id {new_allele['temp_allele_name']} inserted into locus {locus}")
+                        logging.info(f"id {new_allele['temp_allele_name']} inserted into locus {locus}")
                     except:
                         self.cur_seqdef.execute(
                             f"SELECT allele_id FROM sequences WHERE allele_id='{new_allele['temp_allele_name']}'")
@@ -160,13 +164,13 @@ class NewAllelesProfileClusteringFromMongoToBigs:
                         for it in test:
                             test_list.append(it)
                         if len(test_list) > 0:
-                            print(f"id {new_allele['temp_allele_name']} already inserted = no insertion required")
+                            logging.info(f"id {new_allele['temp_allele_name']} already inserted = no insertion required")
                         else:
                             LookupError(
                                 f"id {new_allele['temp_allele_name']} is not inserted in the db and wasn't found in the db"
                                 f". Please investigate this error further!")
 
-    def _order_sequences_by_locus(self) -> dict:
+    def _order_sequences_by_locus(self) -> Dict[str, str]:
         """
         Order the sequences by locus in order to be able to add the alleles by locus in an easy way.
         :return: None
@@ -194,7 +198,7 @@ class NewAllelesProfileClusteringFromMongoToBigs:
             max_st_in_bigs = 0
         for st in self.new_st:
             if int(st['cgST']) > int(max_st_in_bigs):
-                print(f"start insert of {st['cgST']}")
+                logging.info(f"start insert of {st['cgST']}")
                 st_id = st['cgST']
                 # insertion of the st id into the profiles table
                 self.cur_seqdef.execute(f"INSERT INTO profiles(scheme_id, "
@@ -271,10 +275,10 @@ class NewAllelesProfileClusteringFromMongoToBigs:
                     f" cg_scheme_id = '{cg_scheme_id}' AND profile_id = '{profile_id}'")
                 self.cur_seqdef.execute(
                     f"INSERT INTO classification_group_profile_history (timestamp, scheme_id, profile_id, cg_scheme_id,"
-                    f" previous_group, comment)VALUES ((SELECT CURRENT_DATE), (SELECT id FROM schemes WHERE"
-                    f" name = 'cgMLST'), '{profile_id}', '{cg_scheme_id}', '{previous_group[0][0]}', 'n.c.')")
+                    f" previous_group) VALUES((SELECT CURRENT_DATE), (SELECT id FROM schemes WHERE"
+                    f" name = 'cgMLST'), '{profile_id}', '{cg_scheme_id}', '{previous_group[0][0]}')")
                 if previous_group[0][0] not in groups_merged:
-                    print(f'group {previous_group[0][0]} is merged into {group_id}')
+                    logging.debug(f'group {previous_group[0][0]} is merged into {group_id}')
                     groups_merged.append(previous_group[0][0])
                     # update group table
                     self.cur_seqdef.execute(
@@ -288,7 +292,7 @@ class NewAllelesProfileClusteringFromMongoToBigs:
         """
         self.cur_seqdef.execute(f"SELECT id,inclusion_threshold from classification_schemes")
         query_res = self.cur_seqdef.fetchall()
-        if query_res[0][0] is not None:
+        if query_res is not None:
             thresholds_presents = [x[1] for x in query_res]
 
         else:
@@ -312,7 +316,7 @@ class NewAllelesProfileClusteringFromMongoToBigs:
                     f" '{threshold}', false, '{idx_max + 1}','{idx_max + 1}', 'experimental',1, (SELECT CURRENT_DATE) )")
                 idx_max += 1
             else:
-                print(f"Threshold {threshold} already present")
+                logging.debug(f"Threshold {threshold} already present")
 
 
     def _update_last_update_date(self) -> None:
@@ -323,7 +327,6 @@ class NewAllelesProfileClusteringFromMongoToBigs:
         self.update_metadata_collection.with_options(write_concern=WriteConcern(w="majority")).update_one(
             {'metadata': 'last_update'}, {
                 "$set": {'last_update_date': self.current_update_date}})
-
 
 
 def run_upload_new_alleles_profiles_clustering_from_mongo_to_bigs(species: str) -> None:
@@ -340,7 +343,7 @@ def run_upload_new_alleles_profiles_clustering_from_mongo_to_bigs(species: str) 
     # Open collections
     mongoinit = Mongoinitialisation()
     hashed_ad_collection = mongoinit.initialise_hashing_collection(config_data, species)
-    st_collection, cluster_membership_collection = \
+    st_collection, cluster_membership_collection, cluster_merging_collection = \
         mongoinit.initialise_clustering_collections(config_data, species)
     update_collection = mongoinit.initialise_update_collection(config_data, species)
 
@@ -350,5 +353,6 @@ def run_upload_new_alleles_profiles_clustering_from_mongo_to_bigs(species: str) 
                                         cluster_membership_collection, update_collection)
         updater.insert_into_bigs()
     except Exception as exceptionmessage:
-        _send_email(f"{os.path.basename(__file__)}: mongo to bigs fail on host {socket.gethostname()}",
+        _send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
                     f"{exceptionmessage}\n{traceback.format_exc()}", config_data['mail'])
+        raise Exception(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}")

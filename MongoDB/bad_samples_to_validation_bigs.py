@@ -41,6 +41,9 @@ def bad_samples_to_validation_bigs(species: str) -> None:
     :param species: the species of the database to send the bad samples from
     :return: None
     """
+    #for testing purposes
+    html_path = 'http://bioit-bigs-dev.sciensano.be/galaxyreports/listeria/110-001_S68_L001/report.html'
+
     # Configure stdout logging
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
@@ -58,17 +61,18 @@ def bad_samples_to_validation_bigs(species: str) -> None:
 
 
         # Connect to db and create cursor
-        cur_isolates, cur_seqdef = DatabaseConnection().open_database_connections(species)
+        con_isolates, cur_isolates, con_seqdef, cur_seqdef = DatabaseConnection().connect_to_dbs_and_create_cursors(species)
 
         # fetch all documents in the bad samples of the species
         update_collection = mongoinit.initialise_update_collection(config_data, species)
         query = update_collection.find_one({'metadata': 'last_bad_samples_update'})
         if query:
-            last_run_date = ['last_update_date']
+            last_run_date = query['last_update_date']
         else:
             last_run_date = datetime.datetime(1970, 1, 1)
             update_collection.with_options(write_concern=WriteConcern(w="majority")).insert_one(
                 {'metadata': 'last_bad_samples_update', 'last_update_date': last_run_date})
+        current_date = datetime.datetime.utcnow()
         mongo_query = isolates_badqc_collection.find({'creation_date': {'$gt': last_run_date}})
         #todo: add a date for synchronization with mongo and fetch only samples older than the date of last update
         bad_samples = []
@@ -88,7 +92,7 @@ def bad_samples_to_validation_bigs(species: str) -> None:
                                  f"(SELECT CURRENT_DATE), 'pending', true)")
             #todo need to set a proper method to build links based on the sample to transfer
             #dev code, not set yet
-            html_path = str(args.html_path).replace('/reports/','/galaxyreports/')
+            html_path = str(html_path).replace('/reports/','/galaxyreports/')
             html_link = f'<p><a href="{html_path}" target="_blank"> html report</a></p>'
             #end of dev code
             field = 'html_report'
@@ -103,8 +107,10 @@ def bad_samples_to_validation_bigs(species: str) -> None:
                                  f"VALUES ({highest_sub_id}, '{field2}',2)")
             #update last date of update
             update_collection.with_options(write_concern=WriteConcern(w="majority")).find_one_and_update(
-                {'metadata': 'last_bad_samples_update'}, {'$set': {'last_update_date': datetime.datetime.utcnow()}})
+                {'metadata': 'last_bad_samples_update'}, {'$set': {'last_update_date': current_date}})
 
+        DatabaseConnection().close_connections(con_isolates, con_seqdef)
     except Exception as exceptionmessage:
-        send_email(f"{os.path.basename(__file__)}: mongo to bigs fail on host {socket.gethostname()}",
+        send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
                     f"{exceptionmessage}\n{traceback.format_exc()}", bigsdb_config['mail'])
+        raise Exception(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}")

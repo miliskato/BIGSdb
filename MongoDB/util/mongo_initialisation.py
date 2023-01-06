@@ -71,7 +71,8 @@ class Mongoinitialisation:
         species_database = self._open_mongo_database(config_data, species)
         st_collection = self._open_mongo_collection(species_database, "sequence_types", config_data)
         cluster_membership_collection = self._open_mongo_collection(species_database, "cluster_membership",config_data)
-        return st_collection,  cluster_membership_collection
+        cluster_merging_collection = self._open_mongo_collection(species_database, "cluster_merging", config_data)
+        return st_collection,  cluster_membership_collection, cluster_merging_collection
 
     def initialise_hashing_collection(self, config_data: dict, species: str) -> object:
         """

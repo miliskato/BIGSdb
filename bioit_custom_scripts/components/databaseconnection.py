@@ -17,7 +17,7 @@ class DatabaseConnection:
         pass
 
     @staticmethod
-    def _connection(species: str, db_type: str) -> object:
+    def _connection_and_cursor(species: str, db_type: str) -> object:
         """
         Returns cursor object for given PSQL databases
         :param species: commonly used bioit species name: either genus or specific like stec
@@ -32,15 +32,25 @@ class DatabaseConnection:
                                host="127.0.0.1", port="")
         con.autocommit = True
         cur = con.cursor()
-        return cur
+        return con, cur
 
-    def open_database_connections(self, species: str) -> object:
+    def connect_to_dbs_and_create_cursors(self, species: str) -> object:
         """
         Connects to the species specific databases
-        :param species:
+        :param species: commonly used bioit species name: either genus or specific like stec
         :return: opened connection to isolate and seqdef db (objects)
         """
         try:
-            return self._connection(species, 'isolates'), self._connection(species, 'seqdef')
+            return self._connection_and_cursor(species, 'isolates'), self._connection_and_cursor(species, 'seqdef')
         except Exception:
             raise RuntimeError(f"Could not connect to {species}'s databases")
+
+    def close_connections(self, con_isolates: object, con_seqdef: object) -> None:
+        """
+        closes the connections
+        :param con_isolates:
+        :param con_seqdef:
+        :return: None
+        """
+        con_isolates.close()
+        con_seqdef.close()

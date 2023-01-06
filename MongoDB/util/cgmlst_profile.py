@@ -1,4 +1,5 @@
 import datetime
+from typing import Union, Dict
 
 class cgMLSTProfile:
     """
@@ -22,7 +23,7 @@ class cgMLSTProfile:
         """
         return ','.join([str(i) for i in self.cgmlst])
 
-    def get_st_collection_entry(self) -> dict:
+    def get_st_collection_entry(self) -> Dict[str, Union[str, int, object]]:
         """
         Creates a dict containing the sequence type and the cgmlst profile to enter into the sequence type collection
         :return:

@@ -71,12 +71,12 @@ def _gene_detection_insertion_recalcultation():
                         cur_seqdef.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status, sender,curator, date_entered, datestamp) \
                                       VALUES('{cluster}',0, 'null allele', '',0,0,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
                         dbaseurl = ''.join(
-                            ['/cgi-bin/bigsdb/bigsdb.pl?db=', f"{schemedict[scheme]['seqdefdb']}", '&page=alleleInfo&locus=', f"{cluster}", '&allele_id=[?]'])
+                            ['/cgi-bin/bigsdb/bigsdb.pl?db=', f"{config_data['species'][species]['seqdefdb']}", '&page=alleleInfo&locus=', f"{cluster}", '&allele_id=[?]'])
                         cur_isolates.execute(
                             f"INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, dbase_name, dbase_id, "
                             f"url, isolate_display, main_display, query_field, analysis, submission_template, "
                             f"curator, date_entered, datestamp) \
-                                          VALUES('{cluster}','DNA','text', 't', 't', '{schemedict[scheme]['seqdefdb']}', '{cluster}', "
+                                          VALUES('{cluster}','DNA','text', 't', 't', '{config_data['species'][species]['seqdefdb']}', '{cluster}', "
                             f"'{dbaseurl}', 'allele_only', 'f', 't', 't', 'f',"
                             f" 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE))")
                         cur_isolates.execute(f"INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) \
@@ -229,5 +229,6 @@ if __name__ == '__main__':
         _gene_detection_insertion_recalcultation()
     except Exception as exceptionmessage:
         _send_email(
-            f'(automated weekly) gene detection db update in BIGSdb failed on host {socket.gethostname()}',
+            f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
             f"{exceptionmessage}\n{traceback.format_exc()}", emaildict)
+        raise Exception(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}")

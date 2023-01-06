@@ -16,7 +16,7 @@ class MainInserter(JsonSuperClass):
         """
 
         :param isolatename:
-        :param species:
+        :param species: commonly used bioit species name: either genus or specific like stec
         :param cur_isolates: isolate database connection object
         :param cur_seqdef: sequence definition database connection object
         :param sample_output_dict: results of sample

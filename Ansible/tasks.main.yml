@@ -357,7 +357,7 @@
 
     - name: Add crontrab entry for hash replacer
       cron:
-        name: "crontab for hash_replacer"
+        name: "crontab for tempid_replacer"
         minute: '0'
         hour: '6'
         weekday: '1'       # monday morning
@@ -367,14 +367,14 @@
       loop: "{{ list_cron|flatten(levels=1) }}"
       vars:
         list_cron:
-          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}//MongoDB/hash_replacer.py --scheme cgmlst --species {{ species }}",
-              filename: "{{ species }}_hash_replacer_cgmlst" }
-          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}//MongoDB/hash_replacer.py --scheme mlst --species {{ species }}",
-              filename: "{{ species }}_hash_replacer_mlst" }
-          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}//MongoDB/hash_replacer.py --scheme mlst_warwick --species {{ species }}",
-              filename: "{{ species }}_hash_replacer_mlst_warwick" }
-          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}//MongoDB/hash_replacer.py --scheme mlst_pasteur --species {{ species }}",
-              filename: "{{ species }}_hash_replacer_mlst_pasteur" }
+          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}//MongoDB/tempid_replacer.py --scheme cgmlst --species {{ species }}",
+              filename: "{{ species }}_tempid_replacer_cgmlst" }
+          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}//MongoDB/tempid_replacer.py --scheme mlst --species {{ species }}",
+              filename: "{{ species }}_tempid_replacer_mlst" }
+          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}//MongoDB/tempid_replacer.py --scheme mlst_warwick --species {{ species }}",
+              filename: "{{ species }}_tempid_replacer_mlst_warwick" }
+          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}//MongoDB/tempid_replacer.py --scheme mlst_pasteur --species {{ species }}",
+              filename: "{{ species }}_tempid_replacer_mlst_pasteur" }
 
     - name: Add crontrab entry for database updates
       cron:

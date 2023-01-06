@@ -122,10 +122,8 @@ def _insert_alleles() -> None:
                                     continue
                         else:
                             ids_to_be_inserted = list(fastadict.keys())
-                        print(ids_to_be_inserted)
 
                         # Part_4: insert missing allele sequences into psql db
-                        print(scheme, dir)
                         for id in ids_to_be_inserted:
                             try:
                                 """
@@ -134,7 +132,6 @@ def _insert_alleles() -> None:
                                 """
                                 cur_seqdef.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status,sender,curator, date_entered, datestamp) \
                                               VALUES('{dir}','{id}','{fastadict[id]}','unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
-                                print(f"id {id} inserted into locus {dir}")
                             except Exception:
                                 """
                                 Profiles are located in the seqdef db and will automatically update when the sequence db is updated through a rule.
@@ -188,5 +185,6 @@ if __name__ == '__main__':
         _insert_alleles()
     except Exception as exceptionmessage:
         _send_email(
-            f'(automated weekly) alleles db update in BIGSdb failed on host {socket.gethostname()}',
+            f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
             f"{exceptionmessage}\n{traceback.format_exc()}", emaildict)
+        raise Exception(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}")

@@ -14,7 +14,7 @@ class DistanceAndClusterComputer:
     Class to compute hamming distances and determine the cluster membership to store in mongoDB.
     """
 
-    def __init__(self, st_collection: object, cluster_membership_collection: object, st_to_use: list) -> None:
+    def __init__(self, st_collection: object, cluster_membership_collection: object, cluster_merging_collection:object, st_to_use: list) -> None:
         """
         Initializes the class.
         :param st_collection: sequence types collection from mongoDb.
@@ -26,6 +26,7 @@ class DistanceAndClusterComputer:
         self.st_collection = st_collection
         # self.matrix_collection = distance_matrix_collection
         self.cluster_membership_collection = cluster_membership_collection
+        self.cluster_merging_collection = cluster_merging_collection
         self.cgmlst_profiles = []
         self.sequence_types = []
         self.missing_alleles = []
@@ -121,7 +122,7 @@ class DistanceAndClusterComputer:
         :return:
         """
         cluster_sizes = []
-        print(f'merging clusters {memberships}')
+        logging.debug(f'merging clusters {memberships}')
         memberships.sort()
         for cluster in memberships:
             cluster_sizes.append(self.cluster_membership_collection.count_documents({'threshold': threshold,
@@ -132,9 +133,23 @@ class DistanceAndClusterComputer:
         for cl in clusters_to_rename:
             query = {'threshold': threshold,
                      'clustering_membership': cl}
+            self.__save_cluster_membership_in_history(query, new_cluster_name)
             update = {'$set': {'clustering_membership': new_cluster_name, 'insertion_date': datetime.datetime.utcnow()}}
             self.cluster_membership_collection.update_many(query, update)
         return new_cluster_name
+
+    def __save_cluster_membership_in_history(self, query: dict, new_cluster_name: int) -> None:
+        """
+        saves in the cluster merging collection the record of a merging of cluster for each cgST that were in the older cluster
+        :param query: the query to retrieve all the cgST from this particular cluster
+        :return: None
+        """
+        query_res = self.cluster_membership_collection.find(query)
+        for st in query_res:
+            self.cluster_merging_collection.insert_one({'cgST': st['cgST'],
+                                                        'merging_date': datetime.datetime.utcnow(),
+                                                        'old_cluster': st['clustering_membership'],
+                                                        'new_cluster': new_cluster_name})
 
     def new_st_cluster_membership(self, cluster_thresholds: list) -> None:
         """

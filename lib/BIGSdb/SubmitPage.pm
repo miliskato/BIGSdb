@@ -2797,7 +2797,7 @@ sub _close_submission {    ## no critic (ProhibitUnusedPrivateSubroutines) #Call
         print BASH "export MODULEPATH=/etc/lmod/modules \n";
         print BASH "source /etc/profile.d/lmod.sh \n";
         print BASH "ml mongo_bigs_dbs \n";
-        print BASH "sample_validation_to_mongo.py $dbname \n";
+        print BASH "sample_validation_to_mongo.py --db $dbname \n";
         close(BASH);
         $submission = $self->{'submissionHandler'}->get_submission($submission_id);
 	my $curator_info = $self->{'datastore'}->get_user_info($curator_id);

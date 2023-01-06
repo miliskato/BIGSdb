@@ -19,7 +19,7 @@ class MongoCustomClustering:
         self.hc_results = None
         self.species = species
 
-    def run_custom_clustering(self, st_collection: object, cluster_membership_collection: object, cluster_threshold: list) -> int or None:
+    def run_custom_clustering(self, st_collection: object, cluster_membership_collection: object, cluster_merging_collection: object, cluster_threshold: list) -> int or None:
         """
         Main function to run the whole clustering and storing data in mongoDB
         :param cluster_threshold: the thresholds for clustering membership to be used for the clustering
@@ -43,7 +43,7 @@ class MongoCustomClustering:
                              f"from {self.species}")
                 self._add_new_sequence_type(st_collection)
                 logging.info(f"Start to process cgmlst profiles for cluster membership computing")
-                self._compute_cluster_membership(st_collection, cluster_membership_collection, cluster_threshold)
+                self._compute_cluster_membership(st_collection, cluster_membership_collection, cluster_merging_collection,  cluster_threshold)
                 return self.cgmlst_profile.st
             else:
                 logging.info(f"Test for missing data failed: cgMLST profile will not be clustered!")
@@ -111,7 +111,7 @@ class MongoCustomClustering:
             self.cgmlst_profile.st = 1
         st_collection.with_options(write_concern=WriteConcern(w="majority")).insert_one(self.cgmlst_profile.get_st_collection_entry())
 
-    def _compute_cluster_membership(self, st_collection: object, cluster_membership_collection: object, cluster_threshold: list) ->None:
+    def _compute_cluster_membership(self, st_collection: object, cluster_membership_collection: object,cluster_merging_collection: object, cluster_threshold: list) ->None:
         """
         Computes the cluster membership for the new sequence added to the st_collection.
         :param st_collection: the sequence types collection from mongoDB.
@@ -120,7 +120,7 @@ class MongoCustomClustering:
         clustering membership.
         :return:
         """
-        distance_cluster = DistanceAndClusterComputer(st_collection, cluster_membership_collection, [0])
+        distance_cluster = DistanceAndClusterComputer(st_collection, cluster_membership_collection, cluster_merging_collection, [0])
         distance_cluster.compute_hamming_distances('last_st')
         distance_cluster.new_st_cluster_membership(cluster_threshold)
 

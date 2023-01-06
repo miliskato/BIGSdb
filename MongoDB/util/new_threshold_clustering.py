@@ -2,6 +2,7 @@ from MongoDB.util.distance_and_cluster_computer import DistanceAndClusterCompute
 from pathlib import Path
 import yaml
 import logging
+from typing import Dict, List, Union
 
 
 class NewThresholdClustering(DistanceAndClusterComputer):
@@ -49,7 +50,7 @@ class NewThresholdClustering(DistanceAndClusterComputer):
             self.init_clustering_and_cluster_membership(thresh_to_add)
             logging.info(f"New clustering completed successfully!")
 
-    def _load_config_file(self) -> dict:
+    def _load_config_file(self) -> Dict[str, Union[float, int, List[Union[int, float]]]]:
         """
         loads the clustering config file
         :return: dict with the loaded config file informations
