@@ -133,20 +133,23 @@ class DistanceAndClusterComputer:
         for cl in clusters_to_rename:
             query = {'threshold': threshold,
                      'clustering_membership': cl}
-            self.__save_cluster_membership_in_history(query, new_cluster_name)
+            self.__save_cluster_membership_in_history(query, new_cluster_name, threshold)
             update = {'$set': {'clustering_membership': new_cluster_name, 'insertion_date': datetime.datetime.utcnow()}}
             self.cluster_membership_collection.update_many(query, update)
         return new_cluster_name
 
-    def __save_cluster_membership_in_history(self, query: dict, new_cluster_name: int) -> None:
+    def __save_cluster_membership_in_history(self, query: dict, new_cluster_name: int, thresh: int) -> None:
         """
         saves in the cluster merging collection the record of a merging of cluster for each cgST that were in the older cluster
-        :param query: the query to retrieve all the cgST from this particular cluster
+        :param query: the query to retrieve all the cgST from this particular cluster.
+        :param new_cluster_name: the new cluster names that the cgST will belong to.
+        :param thresh: the threshold for which the merging occurs.
         :return: None
         """
         query_res = self.cluster_membership_collection.find(query)
         for st in query_res:
             self.cluster_merging_collection.insert_one({'cgST': st['cgST'],
+                                                        'threshold': thresh,
                                                         'merging_date': datetime.datetime.utcnow(),
                                                         'old_cluster': st['clustering_membership'],
                                                         'new_cluster': new_cluster_name})
