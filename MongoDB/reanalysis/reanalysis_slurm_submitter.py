@@ -95,6 +95,9 @@ def reanalysis_slurm_submitter(species: str, maximal_analysis_date: str, minimal
         if command.returncode != 0:
             raise RuntimeError(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}: Slurm not installed")
 
+        # capture start_time
+        start_time_reanalysis = datetime.datetime.utcnow()
+
         # Retrieve isolates that need to be re-analyzed
         mongoinit = MongoInitialisation()
         isolates_collection, old_isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections(
@@ -153,8 +156,12 @@ def reanalysis_slurm_submitter(species: str, maximal_analysis_date: str, minimal
                     else:
                         fail_counter += 1
                         fail_logs += f"{result_dict['Isolate']}\t{result_dict['Traceback']}\n"
+                # Capture end_time reanalysis
+                end_time_reanalysis = datetime.datetime.utcnow()
+                timedelta_reanalysis = end_time_reanalysis - start_time_reanalysis
                 _send_email(
                     f"{os.path.basename(__file__)} report on host {socket.gethostname()} at {datetime.datetime.utcnow()}",
+                    f"Ran from {start_time_reanalysis} to {end_time_reanalysis} for a total of {timedelta_reanalysis.days} days, {timedelta_reanalysis.seconds // 3600} hours, {(timedelta_reanalysis.seconds - (timedelta_reanalysis.seconds // 3600 * 3600)) // 60} minutes\n"
                     f"Succes Count: {succes_counter}\nFail Count: {fail_counter}\nFail Logs: {fail_logs}",
                     mongo_config_data['mail'])
         else:
