@@ -20,7 +20,7 @@ PYTHONPATH = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__f
 sys.path.append(os.path.dirname(PYTHONPATH))
 
 from MongoDB.reanalysis.reanalysis_triggers import TRIGGER_CONFIG
-from MongoDB.util.mongo_initialisation import Mongoinitialisation
+from MongoDB.util.mongo_initialisation import MongoInitialisation
 from MongoDB.config import MONGO_CONFIG
 from MongoDB.util.command.command import Command
 from MongoDB.mongo_to_bigs import mongo_to_bigs
@@ -85,10 +85,6 @@ def reanalysis_triggers(species: str, threads: int = 8, pyvenvpythonpath: str = 
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
     try:
-        mongoinit = Mongoinitialisation()
-        isolates_collection, isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections(
-            mongo_config_data, args.species)
-
         # Part 1: Query scheme last update dates and sort schemes by last update date
         date_scheme_dict = {}
         for scheme in trigger_config['species'][species]:

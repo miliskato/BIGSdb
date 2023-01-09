@@ -16,7 +16,7 @@ PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(PYTHONPATH))
 
 from bioit_custom_scripts.components.databaseconnection import DatabaseConnection
-from MongoDB.util.mongo_initialisation import Mongoinitialisation
+from MongoDB.util.mongo_initialisation import MongoInitialisation
 from MongoDB.config import MONGO_CONFIG
 from MongoDB.config import CLUSTERING_CONFIG
 
@@ -341,7 +341,7 @@ def run_upload_new_alleles_profiles_clustering_from_mongo_to_bigs(species: str) 
     # Configure stdout logging
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
     # Open collections
-    mongoinit = Mongoinitialisation()
+    mongoinit = MongoInitialisation()
     hashed_ad_collection = mongoinit.initialise_hashing_collection(config_data, species)
     st_collection, cluster_membership_collection, cluster_merging_collection = \
         mongoinit.initialise_clustering_collections(config_data, species)

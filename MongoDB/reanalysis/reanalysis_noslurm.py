@@ -30,10 +30,10 @@ sys.path.append(os.path.dirname(PYTHONPATH))
 
 from MongoDB.util.command.command import Command
 from MongoDB.util.mongo_querying import Mongoquerying
-from MongoDB.util.mongo_initialisation import Mongoinitialisation
+from MongoDB.util.mongo_initialisation import MongoInitialisation
 from MongoDB.config import MONGO_CONFIG
 from MongoDB.reanalysis import MONGO_REANALYSIS_CONFIG
-from MongoDB.mainmongo import mainmongo
+from MongoDB.mainmongo import MainMongo
 
 def _parse_arguments(specieslist: list) -> argparse.Namespace:
     """
@@ -150,8 +150,8 @@ def reanalysis_noslurm(species: str, maximal_analysis_date: str, minimal_analysi
             mongo_config_data['CONNECTION_STRING_BASE'] = alternate_connection_string
 
         # Retrieve isolates that need to be re-analyzed
-        mongoinit = Mongoinitialisation()
-        isolates_collection, isolateresults_collection, isolates_badqc_collection = mongoinit.initialise_collections(mongo_config_data, species)
+        mongoinit = MongoInitialisation()
+        isolates_collection, old_isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections(mongo_config_data, species)
         # query all the documents, # todo maybe do a projection as were only interested in _id, fastapath, vcfpath unless we also want db updates later (can also be projected)
 
         documents_list = [doc for doc in isolates_collection.find({'latest_analysis_date': {"$lt": maximal_analysis_date, "$gte": minimal_analysis_date}}, {"_id": 1, "fasta_path": 1, "vcf_path": 1, "report_directory": 1, "latest_analysis_date": 1})]
@@ -273,11 +273,12 @@ def reanalysis_noslurm(species: str, maximal_analysis_date: str, minimal_analysi
                         arguments = {'technical_id': isolate_id,
                                      'species': species,
                                      'results_type': 'reanalysis',
-                                     'jsonfilepath': dir_out / 'report.json'}
+                                     'jsonfilepath': dir_out / 'report.json',
+                                     'dont_send_email': True}
                         if alternate_connection_string:
                             arguments['alternate_connection_string'] = alternate_connection_string
                         # run the command
-                        mainmongo(**arguments)
+                        MainMongo(**arguments)
                         logging.info(f"Mongodb insertion for isolate '{isolate_id}' completed")
                         if alternate_connection_string is None:
                             try:

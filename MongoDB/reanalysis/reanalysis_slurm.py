@@ -29,10 +29,10 @@ sys.path.append(os.path.dirname(PYTHONPATH))
 
 from MongoDB.util.command.command import Command
 from MongoDB.util.mongo_querying import Mongoquerying
-from MongoDB.util.mongo_initialisation import Mongoinitialisation
+from MongoDB.util.mongo_initialisation import MongoInitialisation
 from MongoDB.config import MONGO_CONFIG
 from MongoDB.reanalysis import MONGO_REANALYSIS_CONFIG
-from MongoDB.mainmongo import mainmongo
+from MongoDB.mainmongo import MainMongo
 
 
 def _parse_arguments(specieslist: list) -> argparse.Namespace:
@@ -258,11 +258,12 @@ def reanalysis_slurm(species: str, isolate: json.loads, threads: int = 8, analys
                 arguments = {'technical_id': isolate_id,
                              'species': species,
                              'results_type': 'reanalysis',
-                             'jsonfilepath': dir_out / 'report.json'}
+                             'jsonfilepath': dir_out / 'report.json',
+                             'dont_send_email': True}
                 if alternate_connection_string:
                     arguments['alternate_connection_string'] = alternate_connection_string
                 # run the command
-                mainmongo(**arguments)
+                MainMongo(**arguments)
                 # logging.info(f"Mongodb insertion for isolate '{isolate_id}' completed")
                 if alternate_connection_string is None:
                     try:

@@ -3,7 +3,7 @@ from pymongo import MongoClient
 import logging
 
 
-class Mongoinitialisation:
+class MongoInitialisation:
     """
     Class containing all queries for Mongo
     """

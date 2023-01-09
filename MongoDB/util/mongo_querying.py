@@ -4,7 +4,7 @@ import logging
 import sys
 from pymongo.read_concern import ReadConcern
 from copy import deepcopy
-from typing import Dict
+from typing import Dict, Union
 
 
 class Mongoquerying(object, metaclass=abc.ABCMeta):
@@ -176,7 +176,7 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
                             logging.info(f"{mainkey}{subkey} different or not in old")
                             logging.info(f"from old '{[x for x in old_results[mainkey][subkey] if x not in new_results[mainkey][subkey]]}' was/were removed or changed to '{[x for x in new_results[mainkey][subkey] if x not in old_results[mainkey][subkey]]}'")
 
-    def query_old_results_and_replace_pointers(self, isolateresults_collection: object, old_results_doc_with_pointers: dict) -> Dict[str, str]:
+    def query_old_results_and_replace_pointers(self, isolateresults_collection: object, old_results_doc_with_pointers: dict) -> Dict[str, Union[str, Dict]]:
         old_results_doc_without_pointers = deepcopy(old_results_doc_with_pointers)
         if old_results_doc_without_pointers.get('results'):
             raise Exception('Not an old results document')
@@ -194,8 +194,5 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
             for key in old_results_doc_without_pointers:
                 if type(old_results_doc_without_pointers[key]) == dict and old_results_doc_without_pointers[key].get('pointer'):
                     results_dict = old_docs_containing_results_dict[old_results_doc_without_pointers[key]['pointer']][key]
-                    # update informs_tools, informs_dbs, and analysis_date with current ones
-                    # results_dict.update(old_results_doc_with_pointers[key])
-                    # results_dict.pop('pointer')
                     old_results_doc_without_pointers[key] = results_dict  # which is now without pointers
         return old_results_doc_without_pointers  # which is now without pointers

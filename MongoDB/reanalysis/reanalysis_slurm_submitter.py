@@ -29,7 +29,7 @@ sys.path.append(os.path.dirname(PYTHONPATH))
 
 from MongoDB.util.command.command import Command
 from MongoDB.util.mongo_querying import Mongoquerying
-from MongoDB.util.mongo_initialisation import Mongoinitialisation
+from MongoDB.util.mongo_initialisation import MongoInitialisation
 from MongoDB.config import MONGO_CONFIG
 from MongoDB.reanalysis import MONGO_REANALYSIS_CONFIG
 
@@ -96,8 +96,8 @@ def reanalysis_slurm_submitter(species: str, maximal_analysis_date: str, minimal
             raise RuntimeError(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}: Slurm not installed")
 
         # Retrieve isolates that need to be re-analyzed
-        mongoinit = Mongoinitialisation()
-        isolates_collection, isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections(
+        mongoinit = MongoInitialisation()
+        isolates_collection, old_isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections(
             mongo_config_data, species)
         # query all the documents as a projection
         documents_list = [doc for doc in
@@ -131,7 +131,7 @@ def reanalysis_slurm_submitter(species: str, maximal_analysis_date: str, minimal
             command_output = command.run(Path(os.getcwd()))
             if command.returncode != 0:
                 # if pipeline fails, send mail and continue to next sample, dont raise error # Since the mailbomb, do raise an error
-                reanalysis_outcome_dictionary = {'Outcome': 'Fail', 'Isolate': isolate['_id'], 'Traceback': f'Error executing automatic reanalysis pipeline on {species}, {isolate_id}, stderr: {command.stderr}'}
+                reanalysis_outcome_dictionary = {'Outcome': 'Fail', 'Isolate': isolate['_id'], 'Traceback': f"Error executing automatic reanalysis pipeline on {species}, {isolate['_id']}, stderr: {command.stderr}"}
                 return reanalysis_outcome_dictionary
             else:
                 logging.info(f"Slurm submission for isolate '{isolate['_id']}' completed")

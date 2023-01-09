@@ -10,7 +10,7 @@ PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(PYTHONPATH))
 
 from MongoDB.util.mongo_querying import Mongoquerying
-from MongoDB.util.mongo_initialisation import Mongoinitialisation
+from MongoDB.util.mongo_initialisation import MongoInitialisation
 from MongoDB.config import MONGO_CONFIG
 
 def _parse_arguments(specieslist: list) -> argparse.Namespace:
@@ -36,10 +36,10 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 
     # Open collections
-    mongoinit = Mongoinitialisation()
-    isolates_collection, isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections(config_data, args.species)
+    mongoinit = MongoInitialisation()
+    isolates_collection, old_isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections(config_data, args.species)
     # isolates_collection.drop()
-    # isolateresults_collection.drop()
+    # old_isolateresults_collection.drop()
     mongoquerying = Mongoquerying()
 
     result_isolates = isolates_collection.find_one({'_id': '11-090'})
@@ -58,10 +58,10 @@ if __name__ == '__main__':
     #         print(':'.join([locus['Locus'], locus['Allele']]))
     # print([docs for docs in isolates_collection.find({},{'_id': 1})])
 
-    # mongoquerying.query_what_changed_compared_to_previous('S14BD00001_R1_001', isolates_collection, isolateresults_collection)
+    # mongoquerying.query_what_changed_compared_to_previous('S14BD00001_R1_001', isolates_collection, old_isolateresults_collection)
 
     # print(mongoquerying._query_list_of_all_distinct_values(isolates_collection, '_id'))
-    # for result in mongoquerying._query_previous_latest_results_by_technicalids(isolates_collection, isolateresults_collection,
+    # for result in mongoquerying._query_previous_latest_results_by_technicalids(isolates_collection, old_isolateresults_collection,
     #                                                            mongoquerying._query_list_of_all_distinct_values(
     #                                                                    isolates_collection, "_id")):
     #     if 'testiffail' in result.keys():
@@ -72,11 +72,11 @@ if __name__ == '__main__':
     # # print(mongoquerying._query_list_of_all_distinct_values(isolates_collection, "isolate_results"))
     # # print(mongoquerying._query_list_of_all_distinct_values(isolates_collection, "vcf_path"))
     # # print(_query_collection(isolates_collection))
-    # print(mongoquerying._query_previous_latest_results_by_technicalids(isolates_collection, isolateresults_collection, ['technical_test_new', 'technical_id_test_165hhh']))
-    # print(mongoquerying._query_previous_latest_results_by_technicalids(isolates_collection, isolateresults_collection, mongoquerying._query_list_of_all_distinct_values(isolates_collection, "_id")))
+    # print(mongoquerying._query_previous_latest_results_by_technicalids(isolates_collection, old_isolateresults_collection, ['technical_test_new', 'technical_id_test_165hhh']))
+    # print(mongoquerying._query_previous_latest_results_by_technicalids(isolates_collection, old_isolateresults_collection, mongoquerying._query_list_of_all_distinct_values(isolates_collection, "_id")))
 
     # test = mongoquerying._query_typing_results_by_technicalids_and_scheme(isolates_collection,
-    # isolateresults_collection, scheme="cgmlst", technicalids=["S14BD00001"])
+    # old_isolateresults_collection, scheme="cgmlst", technicalids=["S14BD00001"])
     # print(test[1])
     # pprint.pprint(isolates_collection.distinct('latest_analysis_date'))
     # start = datetime(2022, 7, 13, 7, 56, 4)

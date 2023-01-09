@@ -18,7 +18,7 @@ PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(PYTHONPATH))
 
 from bioit_custom_scripts.components.databaseconnection import DatabaseConnection
-from MongoDB.util.mongo_initialisation import Mongoinitialisation
+from MongoDB.util.mongo_initialisation import MongoInitialisation
 from MongoDB.config import MONGO_CONFIG
 
 def _send_email(subject: str, content: str, config: dict) -> None:
@@ -83,8 +83,8 @@ def tempid_replacer(scheme: str, species: str, alternate_connection_string: str 
 
     try:
         # Open collections
-        mongoinit = Mongoinitialisation()
-        isolates_collection, isolateresults_collection, isolates_badqc_collection = mongoinit.initialise_collections(
+        mongoinit = MongoInitialisation()
+        isolates_collection, old_isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections(
             config_data, species)
         hashed_AD_collection = mongoinit.initialise_hashing_collection(config_data, species)
         st_collection, cluster_membership_collection, cluster_merging_collection = \
@@ -137,7 +137,7 @@ def tempid_replacer(scheme: str, species: str, alternate_connection_string: str 
                                 {"$set":
                                  {f"results.{scheme}.loci.$.Allele": allele_id}})
                             # todo think if old results collection should be updated aswell
-                            isolateresults_collection.with_options(write_concern=WriteConcern(w="majority")).update_many(
+                            old_isolateresults_collection.with_options(write_concern=WriteConcern(w="majority")).update_many(
                                 {f"{scheme}.loci":
                                  {"$elemMatch":
                                   {"Locus": locus, "Allele": temp_allele_name}}},

@@ -28,10 +28,10 @@ sys.path.append(os.path.dirname(PYTHONPATH))
 
 from MongoDB.util.command.command import Command
 from MongoDB.util.mongo_querying import Mongoquerying
-from MongoDB.util.mongo_initialisation import Mongoinitialisation
+from MongoDB.util.mongo_initialisation import MongoInitialisation
 from MongoDB.config import MONGO_CONFIG
 from MongoDB.reanalysis import MONGO_REANALYSIS_CONFIG
-from MongoDB.mainmongo import mainmongo
+from MongoDB.mainmongo import MainMongo
 from MongoDB.tempid_replacer import tempid_replacer
 from MongoDB.reanalysis.reanalysis_noslurm import reanalysis_noslurm
 from MongoDB.reanalysis.reanalysis_triggers.reanalysis_triggers import reanalysis_triggers
@@ -72,8 +72,8 @@ if __name__ == '__main__':
         logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
         # Open collections
-        mongoinit = Mongoinitialisation()
-        isolates_collection, isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = \
+        mongoinit = MongoInitialisation()
+        isolates_collection, old_isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = \
             mongoinit.initialise_collections(config_data, 'listeria')
         hashed_ad_collection = mongoinit.initialise_hashing_collection(config_data, 'listeria')
         st_collection, cluster_membership_collection, cluster_merging_collection = \
@@ -86,7 +86,7 @@ if __name__ == '__main__':
             raise Exception('Are you sure you are looking at the right database using the right connection string?')
         else:
             isolates_collection.drop()
-            isolateresults_collection.drop()
+            old_isolateresults_collection.drop()
             isolates_badqc_collection.drop()
             hashed_ad_collection.drop()
             st_collection.drop()
@@ -115,7 +115,7 @@ if __name__ == '__main__':
 
         # Add the new_isolate:
         new_isolate_args = create_mainmongo_arguments_dict('new_isolate', 'report_version_1_1.json')
-        mainmongo(**new_isolate_args)
+        MainMongo(**new_isolate_args)
 
         # test hash replacer
         tempid_replacer('cgmlst', 'listeria', alternate_connection_string=ALTERNATE_CONNECTION_STRING)
@@ -124,7 +124,7 @@ if __name__ == '__main__':
         # the integers appendices of the files indicate the results version and changed version, so: resultsversion_changedversion
         for dummy_reanalysis_file in ['report_version_2_2.json', 'report_version_3_3.json', 'report_version_4_4.json', 'report_version_5_4.json']:
             reanalysis_args = create_mainmongo_arguments_dict('reanalysis', dummy_reanalysis_file)
-            mainmongo(**reanalysis_args)
+            MainMongo(**reanalysis_args)
 
         # test reanalyis triggers and reanalysis
         reanalysis_triggers('listeria', 6, alternate_connection_string=ALTERNATE_CONNECTION_STRING)

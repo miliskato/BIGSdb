@@ -18,9 +18,9 @@ sys.path.append(os.path.dirname(PYTHONPATH))
 
 from bioit_custom_scripts.components.databaseconnection import DatabaseConnection
 from bioit_custom_scripts.config import BIGSDB_CONFIG
-from MongoDB.util.mongo_initialisation import Mongoinitialisation
+from MongoDB.util.mongo_initialisation import MongoInitialisation
 from MongoDB.config import MONGO_CONFIG
-from MongoDB.mainmongo import mainmongo
+from MongoDB.mainmongo import MainMongo
 
 def send_email(subject: str, content: str, config: dict) -> None:
     """
@@ -63,8 +63,8 @@ if __name__ == '__main__':
     try:
 
         # Open collections
-        mongoinit = Mongoinitialisation()
-        isolates_collection, old_isolateresults_collection, isolates_badqc_collection = \
+        mongoinit = MongoInitialisation()
+        isolates_collection, old_isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = \
             mongoinit.initialise_collections(config_data, species)
 
         # Connect to db and create cursor
@@ -97,7 +97,7 @@ if __name__ == '__main__':
             # If the outcome is bad, the date is added to the dict of the validation outcome and this dict is saved into the
             # results of the badqc_isolates
             if outcome == 'good':
-                mainmongo(isolate_id, species, 'badqc_validated', subvaldict=json.dumps(validation))
+                MainMongo(isolate_id, species, 'badqc_validated', subvaldict=json.dumps(validation))
             else:
                 validation['date'] = datetime.datetime.utcnow()
                 isolates_badqc_collection.with_options(write_concern=WriteConcern(w="majority")).find_one_and_update(

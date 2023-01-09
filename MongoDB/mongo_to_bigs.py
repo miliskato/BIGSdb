@@ -20,7 +20,7 @@ import traceback
 PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(PYTHONPATH))
 
-from MongoDB.util.mongo_initialisation import Mongoinitialisation
+from MongoDB.util.mongo_initialisation import MongoInitialisation
 from MongoDB.util.mongo_querying import Mongoquerying
 from MongoDB.config import MONGO_CONFIG
 from MongoDB.new_alleles_profile_clustering_from_mongo_to_bigs import \
@@ -28,9 +28,9 @@ from MongoDB.new_alleles_profile_clustering_from_mongo_to_bigs import \
 from MongoDB.bad_samples_to_validation_bigs import bad_samples_to_validation_bigs
 from bioit_custom_scripts.components.databaseconnection import DatabaseConnection
 from bioit_custom_scripts.config import BIGSDB_CONFIG
-from MongoDB.new_alleles_profile_clustering_from_mongo_to_bigs import \
-    run_upload_new_alleles_profiles_clustering_from_mongo_to_bigs
-from MongoDB.bad_samples_to_validation_bigs import bad_samples_to_validation_bigs
+from bioit_custom_scripts.main_results_inserter import main_results_inserter
+from bioit_custom_scripts.insert_assembly import insert_assembly
+
 
 def _parse_arguments(specieslist: list) -> argparse.Namespace:
     """
@@ -97,13 +97,9 @@ def mongo_to_bigs(species: str, single_sample: str = None) -> None:
     try:
 
         # Open collections
-        mongoinit = Mongoinitialisation()
-        isolates_collection, isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections(
+        mongoinit = MongoInitialisation()
+        isolates_collection, old_isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections(
             config_data, species)
-
-        # gather script path because not in same parent directory
-        source = os.path.dirname(__file__)
-        parent = os.path.join(source, '../')
 
         # Connect to db and create cursor
         con_isolates, cur_isolates, con_seqdef, cur_seqdef = DatabaseConnection().connect_to_dbs_and_create_cursors(species)

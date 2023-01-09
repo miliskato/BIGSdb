@@ -8,7 +8,7 @@ PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(PYTHONPATH))
 
 from MongoDB.util.new_threshold_clustering import NewThresholdClustering
-from MongoDB.util.mongo_initialisation import Mongoinitialisation
+from MongoDB.util.mongo_initialisation import MongoInitialisation
 from MongoDB.config import MONGO_CONFIG
 
 def parse_arguments(specieslist: list) -> argparse.Namespace:
@@ -35,7 +35,7 @@ if __name__ == '__main__':
     # Parse arguments
     args = parse_arguments(config_data['species'])
     # Open collections
-    mongoinit = Mongoinitialisation()
+    mongoinit = MongoInitialisation()
     st_collection, cluster_membership_collection = \
         mongoinit.initialise_clustering_collections(config_data, args.species)
 
