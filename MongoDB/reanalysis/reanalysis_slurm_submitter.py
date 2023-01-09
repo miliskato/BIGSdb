@@ -95,6 +95,9 @@ def reanalysis_slurm_submitter(species: str, maximal_analysis_date: str, minimal
         if command.returncode != 0:
             raise RuntimeError(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}: Slurm not installed")
 
+        # capture start_time
+        start_time_reanalysis = datetime.datetime.utcnow()
+
         # Retrieve isolates that need to be re-analyzed
         mongoinit = Mongoinitialisation()
         isolates_collection, isolateresults_collection, isolates_badqc_collection = mongoinit.initialise_collections(
@@ -131,7 +134,7 @@ def reanalysis_slurm_submitter(species: str, maximal_analysis_date: str, minimal
             command_output = command.run(Path(os.getcwd()))
             if command.returncode != 0:
                 # if pipeline fails, send mail and continue to next sample, dont raise error # Since the mailbomb, do raise an error
-                reanalysis_outcome_dictionary = {'Outcome': 'Fail', 'Isolate': isolate['_id'], 'Traceback': f'Error executing automatic reanalysis pipeline on {species}, {isolate_id}, stderr: {command.stderr}'}
+                reanalysis_outcome_dictionary = {'Outcome': 'Fail', 'Isolate': isolate['_id'], 'Traceback': f"Error executing automatic reanalysis pipeline on {species}, {isolate['_id']}, stderr: {command.stderr}"}
                 return reanalysis_outcome_dictionary
             else:
                 logging.info(f"Slurm submission for isolate '{isolate['_id']}' completed")
@@ -153,8 +156,12 @@ def reanalysis_slurm_submitter(species: str, maximal_analysis_date: str, minimal
                     else:
                         fail_counter += 1
                         fail_logs += f"{result_dict['Isolate']}\t{result_dict['Traceback']}\n"
+                # Capture end_time reanalysis
+                end_time_reanalysis = datetime.datetime.utcnow()
+                timedelta_reanalysis = end_time_reanalysis - start_time_reanalysis
                 _send_email(
                     f"{os.path.basename(__file__)} report on host {socket.gethostname()} at {datetime.datetime.utcnow()}",
+                    f"Ran from {start_time_reanalysis} to {end_time_reanalysis} for a total of {timedelta_reanalysis.days} days, {timedelta_reanalysis.seconds // 3600} hours, {(timedelta_reanalysis.seconds - (timedelta_reanalysis.seconds // 3600 * 3600)) // 60} minutes\n"
                     f"Succes Count: {succes_counter}\nFail Count: {fail_counter}\nFail Logs: {fail_logs}",
                     mongo_config_data['mail'])
         else:

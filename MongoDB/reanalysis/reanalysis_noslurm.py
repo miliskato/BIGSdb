@@ -149,6 +149,9 @@ def reanalysis_noslurm(species: str, maximal_analysis_date: str, minimal_analysi
         if alternate_connection_string:
             mongo_config_data['CONNECTION_STRING_BASE'] = alternate_connection_string
 
+        # capture start_time
+        start_time_reanalysis = datetime.datetime.utcnow()
+
         # Retrieve isolates that need to be re-analyzed
         mongoinit = Mongoinitialisation()
         isolates_collection, isolateresults_collection, isolates_badqc_collection = mongoinit.initialise_collections(mongo_config_data, species)
@@ -338,7 +341,12 @@ def reanalysis_noslurm(species: str, maximal_analysis_date: str, minimal_analysi
                     else:
                         fail_counter += 1
                         fail_logs += f"{result_dict['Isolate']}\t{result_dict['Traceback']}\n"
+
+                # Capture end_time reanalysis
+                end_time_reanalysis = datetime.datetime.utcnow()
+                timedelta_reanalysis = end_time_reanalysis - start_time_reanalysis
                 _send_email(f"{os.path.basename(__file__)} report on host {socket.gethostname()} at {datetime.datetime.utcnow()}",
+                            f"Ran from {start_time_reanalysis} to {end_time_reanalysis} for a total of {timedelta_reanalysis.days} days, {timedelta_reanalysis.seconds // 3600} hours, {(timedelta_reanalysis.seconds - (timedelta_reanalysis.seconds // 3600 * 3600)) // 60} minutes\n"
                             f"Succes Count: {succes_counter}\nFail Count: {fail_counter}\nFail Logs: {fail_logs}", mongo_config_data['mail'])
         else:
             logging.info('No isolates to be reanalyzed found')
