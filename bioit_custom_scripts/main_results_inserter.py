@@ -166,7 +166,7 @@ def main_results_inserter(isolatename: str, uploadermailadress: str, species: st
     # Logic
     try:
         # Connect to db and create cursors
-        con_isolates, cur_isolates, con_seqdef, cur_seqdef = DatabaseConnection().connect_to_dbs_and_create_cursors(species)
+        (con_isolates, cur_isolates), (con_seqdef, cur_seqdef) = DatabaseConnection().connect_to_dbs_and_create_cursors(species)
 
         # fail safe mechanism is initated at the same time of the isolate insertion, but after connecting to the PSQL db's
         maininserter = MainInserter(isolatename, species, cur_isolates, cur_seqdef, sample_output_dict)

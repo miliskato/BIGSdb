@@ -38,7 +38,7 @@ class DatabaseConnection:
         """
         Connects to the species specific databases
         :param species: commonly used bioit species name: either genus or specific like stec
-        :return: opened connection to isolate and seqdef db (objects)
+        :return: opened connections and cursors to isolate and seqdef db (objects)
         """
         try:
             return self._connection_and_cursor(species, 'isolates'), self._connection_and_cursor(species, 'seqdef')

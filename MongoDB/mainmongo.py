@@ -286,7 +286,7 @@ class MainMongo:
                 self.mongoinit.initialise_clustering_collections(self.config_data, self.species)
             self.mongoquerying = Mongoquerying()
 
-            # If statement for reanalysis or new
+            # If statement for results_type
             if self.results_type == "new_isolate":
                 new_records = json.load(open(self.jsonfilepath, 'r'))
                 # todo check if fasta path and vcf path are real?
@@ -298,6 +298,9 @@ class MainMongo:
                     isolates_badqc_findone = self.isolates_badqc_collection.find_one({"_id": self.technical_id, "validation": None})
                     if isolates_badqc_findone:
                         self._new_resequencing_arrival(new_records, dict(isolates_badqc_findone), self.isolates_badqc_collection)
+                    # todo rethink this logic when head clearer; what if badqc validated as bad and new sample also bad? collision!
+                    # elif not self.isolates_badqc_collection.find_one({"_id": self.technical_id}):
+                    #     self._new_isolate_wrapper(new_records)
                     else:
                         self._new_isolate_wrapper(new_records)
             elif self.results_type == 'badqc_validated':
@@ -392,8 +395,8 @@ class MainMongo:
         # https://git.sciensano.be/bioit/BIGSdb/src/d2a261056221056e56df6aa584563454f6bfec3a/lib/BIGSdb/SubmitPage.pm#L2800
         # 2022-12-20 Check whether resequencing; if resequencing; fasta md5sum should be different from original one. debating whether to store md5 in mongo or not
         # resequencings should be rare so we can afford multiple finds
-        md5_original = hashlib.md5(open(Path(document_original['fasta_path']), 'r').read()).hexdigest()
-        md5_new = hashlib.md5(open(Path(self.fastafilepath), 'r').read()).hexdigest()
+        md5_original = hashlib.md5(open(Path(document_original['fasta_path']), 'r').read().encode()).hexdigest()
+        md5_new = hashlib.md5(open(Path(self.fastafilepath), 'r').read().encode()).hexdigest()
         if md5_original != md5_new:
             # this is an actual resequencing because the fastafilepath is different
 
@@ -415,7 +418,7 @@ class MainMongo:
             # The commented code below was in case multiple resequencings were allowed
             #     # check whether fasta is different from existing previous resequencings.
             #     for projection in previous_resequencings:
-            #         if hashlib.md5(open(Path(projection['fasta_path']), 'r').read()).hexdigest() == md5_new:
+            #         if hashlib.md5(open(Path(projection['fasta_path']), 'r').read().encode()).hexdigest() == md5_new:
             #             new_resequencing = False
             #     if new_resequencing is True:
             #         # Send a warning because we are not expecting multiple resequencings for the same same sample
@@ -435,6 +438,7 @@ class MainMongo:
             #     raise Exception(
             #         f"The technical id '{self.technical_id}' is already present in the isolates or isolates badqc collection")
             else:
+                new_records["isolates_id"] = self.technical_id
                 _write_document(self.isolates_resequencing_collection,
                                 _new_isolate(self.technical_id, str(self.reportdirectorypath), str(self.vcffilepath),
                                              str(self.fastafilepath), new_records))
@@ -560,10 +564,10 @@ class MainMongo:
         if not self.dont_send_email:
             message = EmailMessage()
             message['Subject'] = subject
-            message['From'] = self.config_data['from']
-            message['To'] = self.config_data['to']
+            message['From'] = self.config_data['mail']['from']
+            message['To'] = self.config_data['mail']['to']
             message.set_content(content)
-            with smtplib.SMTP(self.config_data['host']) as s:
+            with smtplib.SMTP(self.config_data['mail']['host']) as s:
                 s.send_message(message)
         logging.info(content)
 

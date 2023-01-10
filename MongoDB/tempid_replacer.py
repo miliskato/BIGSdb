@@ -168,7 +168,7 @@ def tempid_replacer(scheme: str, species: str, alternate_connection_string: str 
                                                             {"$set": {"cgMLST": cgmlst}})
             hostname = socket.gethostname()
             if 'bigs' in hostname and alternate_connection_string is None:
-                con_isolates, cur_isolates, con_seqdef, cur_seqdef = DatabaseConnection().connect_to_dbs_and_create_cursors(species)
+                (con_isolates, cur_isolates), (con_seqdef, cur_seqdef) = DatabaseConnection().connect_to_dbs_and_create_cursors(species)
                 for hash_document in documents_list:
                     if hash_document['resolved_AD'] != 0:
                         cur_isolates.execute(f"UPDATE allele_designations SET allele_id='{hash_document['resolved_AD']}' WHERE allele_id='{hash_document['hashed_allele']}' AND locus='{hash_document['locus']}'")

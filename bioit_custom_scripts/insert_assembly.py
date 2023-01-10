@@ -53,7 +53,7 @@ def insert_assembly(isolatename: str, species: str, fastafilepath: str) -> None:
 
     try:
         # Connect to db and create cursors
-        con_isolates, cur_isolates, con_seqdef, cur_seqdef = DatabaseConnection().connect_to_dbs_and_create_cursors(species)
+        (con_isolates, cur_isolates), (con_seqdef, cur_seqdef) = DatabaseConnection().connect_to_dbs_and_create_cursors(species)
 
         cur_isolates.execute(f"SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}'")
         present = cur_isolates.fetchall()

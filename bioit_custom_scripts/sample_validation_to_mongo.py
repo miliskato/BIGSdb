@@ -1,3 +1,7 @@
+"""
+This script is reference by SubmitPage.pm in the lib/BIGSdb folder, if its location is modified, it needs to be modified there as well
+"""
+
 #!/usr/bin/env python
 import argparse
 import logging
@@ -69,7 +73,7 @@ if __name__ == '__main__':
             mongoinit.initialise_collections(config_data, species)
 
         # Connect to db and create cursor
-        con_isolates, cur_isolates, con_seqdef, cur_seqdef = DatabaseConnection().connect_to_dbs_and_create_cursors(species)
+        (con_isolates, cur_isolates), (con_seqdef, cur_seqdef) = DatabaseConnection().connect_to_dbs_and_create_cursors(species)
 
         cur_isolates.execute(f"SELECT id, outcome, curator, validation_type FROM submissions WHERE status='closed'")
         query = cur_isolates.fetchall()

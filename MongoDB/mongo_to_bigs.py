@@ -102,7 +102,7 @@ def mongo_to_bigs(species: str, single_sample: str = None) -> None:
             config_data, species)
 
         # Connect to db and create cursor
-        con_isolates, cur_isolates, con_seqdef, cur_seqdef = DatabaseConnection().connect_to_dbs_and_create_cursors(species)
+        (con_isolates, cur_isolates), (con_seqdef, cur_seqdef) = DatabaseConnection().connect_to_dbs_and_create_cursors(species)
 
         # call the function to insert new alleles and profiles
         run_upload_new_alleles_profiles_clustering_from_mongo_to_bigs(species)

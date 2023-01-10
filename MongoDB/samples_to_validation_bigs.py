@@ -100,7 +100,7 @@ def samples_to_validation_bigs(species: str) -> None:
         isolates_collection, old_isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections(config_data, species)
 
         # Connect to db and create cursor
-        con_isolates, cur_isolates, con_seqdef, cur_seqdef = DatabaseConnection().connect_to_dbs_and_create_cursors(species)
+        (con_isolates, cur_isolates), (con_seqdef, cur_seqdef) = DatabaseConnection().connect_to_dbs_and_create_cursors(species)
 
         # fetch all documents in the bad samples of the species
         update_collection = mongoinit.initialise_update_collection(config_data, species)
