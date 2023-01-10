@@ -56,6 +56,8 @@ def _insert_submission_bigs(cur_isolates: object, sample_docs: list[dict], valid
                              f"VALUES ({highest_sub_id}, 'isolates', 1, (SELECT CURRENT_DATE), "
                              f"(SELECT CURRENT_DATE), 'pending', true, '{validation_type}')")
         # todo need to set a proper method to build links based on the sample to transfer
+        # for testing purposes
+        html_path = 'http://bioit-bigs-dev.sciensano.be/galaxyreports/listeria/110-001_S68_L001/report.html'
         # dev code, not set yet
         html_path = str(html_path).replace('/reports/', '/galaxyreports/')
         html_link = f'<p><a href="{html_path}" target="_blank"> html report</a></p>'
@@ -81,9 +83,6 @@ def samples_to_validation_bigs(species: str) -> None:
     :param species: the species of the database to send the bad samples from
     :return: None
     """
-    #for testing purposes
-    html_path = 'http://bioit-bigs-dev.sciensano.be/galaxyreports/listeria/110-001_S68_L001/report.html'
-
     # Configure stdout logging
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
