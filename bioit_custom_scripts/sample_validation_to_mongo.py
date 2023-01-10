@@ -89,6 +89,7 @@ if __name__ == '__main__':
                 results_type = 'resequencing_validated'
             else:
                 results_type = '?'  # in order to not have issue 'variable referenced before assignment' and in order to leave possibility open
+            # todo curator name could be queried in the previous query already as a join, same for isolate_id
             cur_isolates.execute(f"SELECT user_name FROM users WHERE id='{curator_id}'")
             curator_name = cur_isolates.fetchall()[0][0]
             cur_isolates.execute(f"SELECT value FROM isolate_submission_isolates WHERE "
@@ -109,7 +110,7 @@ if __name__ == '__main__':
             # If the outcome is bad, the date is added to the dict of the validation outcome and this dict is saved into the
             # results of the badqc_isolates
             if outcome == 'good':
-                MainMongo(isolate_id, species, validation_type, subvaldict=validation)
+                MainMongo(isolate_id, species, results_type, subvaldict=validation)
             else:
                 validation['date'] = datetime.datetime.utcnow()
                 if validation_type == 'bad_quality':
