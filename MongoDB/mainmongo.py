@@ -587,7 +587,7 @@ if __name__ == '__main__':
               args.species,
               args.results_type, 
               jsonfilepath=(args.jsonfilepath if args.jsonfilepath else None), 
-              subvaldict=(json.loads(args.subvaldict) if args.subvaldict else None),
+              subvaldict=(args.subvaldict if args.subvaldict else None),
               reportdirectorypath=(args.reportdirectorypath if args.reportdirectorypath else None), 
               fastafilepath=(args.fastafilepath if args.fastafilepath else None), 
               vcffilepath=(args.vcffilepath if args.vcffilepath else None), 

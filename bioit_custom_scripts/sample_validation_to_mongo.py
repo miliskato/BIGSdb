@@ -109,7 +109,7 @@ if __name__ == '__main__':
             # If the outcome is bad, the date is added to the dict of the validation outcome and this dict is saved into the
             # results of the badqc_isolates
             if outcome == 'good':
-                MainMongo(isolate_id, species, validation_type, subvaldict=json.dumps(validation))
+                MainMongo(isolate_id, species, validation_type, subvaldict=validation)
             else:
                 validation['date'] = datetime.datetime.utcnow()
                 if validation_type == 'bad_quality':
