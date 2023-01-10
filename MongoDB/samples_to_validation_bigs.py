@@ -54,7 +54,7 @@ def _insert_submission_bigs(cur_isolates: object, sample_docs: list[dict], valid
         cur_isolates.execute(f"INSERT INTO submissions (id, type,submitter, date_submitted, "
                              f"datestamp, status, email, validation_type)"
                              f"VALUES ({highest_sub_id}, 'isolates', 1, (SELECT CURRENT_DATE), "
-                             f"(SELECT CURRENT_DATE), 'pending', true, {validation_type})")
+                             f"(SELECT CURRENT_DATE), 'pending', true, '{validation_type}')")
         # todo need to set a proper method to build links based on the sample to transfer
         # dev code, not set yet
         html_path = str(html_path).replace('/reports/', '/galaxyreports/')
@@ -72,7 +72,7 @@ def _insert_submission_bigs(cur_isolates: object, sample_docs: list[dict], valid
                              f"VALUES ({highest_sub_id}, '{field2}', 2)")
         field3 = 'validation_type'
         cur_isolates.execute(f"INSERT INTO isolate_submission_isolates (submission_id, index, field, value) "
-                             f"VALUES ({highest_sub_id},1, '{field3}', {validation_type})")
+                             f"VALUES ({highest_sub_id},1, '{field3}', '{validation_type}')")
         cur_isolates.execute(f"INSERT INTO isolate_submission_field_order (submission_id,field,index)"
                              f"VALUES ({highest_sub_id}, '{field3}', 3)")
 def samples_to_validation_bigs(species: str) -> None:
