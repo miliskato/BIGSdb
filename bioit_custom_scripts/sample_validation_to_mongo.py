@@ -12,6 +12,7 @@ import re
 import json
 import datetime
 from pymongo.write_concern import WriteConcern
+from pymongo.read_concern import ReadConcern
 
 PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(PYTHONPATH))
@@ -70,13 +71,20 @@ if __name__ == '__main__':
         # Connect to db and create cursor
         con_isolates, cur_isolates, con_seqdef, cur_seqdef = DatabaseConnection().connect_to_dbs_and_create_cursors(species)
 
-        cur_isolates.execute(f"SELECT id, outcome, curator FROM submissions WHERE status='closed'")
+        cur_isolates.execute(f"SELECT id, outcome, curator, validation_type FROM submissions WHERE status='closed'")
         query = cur_isolates.fetchall()
-        if query:
+        if query:  # todo 09/01/2023 MK I think this is a dangerous approach. If at some point no connection can be made between bigs and mongo, a delay will be acquired. I would modify this to be a for loop, combined with a flagfile to say that this script is running which also contains the start time, if the start time is longer than 10 min ago remove it and restart
             #retrieve id of the isolate and curator id from BIGSdb
             id = query[0][0]
             outcome = query[0][1]
             curator_id = query[0][2]
+            validation_type = query[0][3]
+            if validation_type == 'bad_quality':
+                results_type = 'badqc_validated'
+            elif validation_type == 'resequencing':
+                results_type = 'resequencing_validated'
+            else:
+                results_type = '?'  # in order to not have issue 'variable referenced before assignment' and in order to leave possibility open
             cur_isolates.execute(f"SELECT user_name FROM users WHERE id='{curator_id}'")
             curator_name = cur_isolates.fetchall()[0][0]
             cur_isolates.execute(f"SELECT value FROM isolate_submission_isolates WHERE "
@@ -97,11 +105,20 @@ if __name__ == '__main__':
             # If the outcome is bad, the date is added to the dict of the validation outcome and this dict is saved into the
             # results of the badqc_isolates
             if outcome == 'good':
-                MainMongo(isolate_id, species, 'badqc_validated', subvaldict=json.dumps(validation))
+                MainMongo(isolate_id, species, validation_type, subvaldict=json.dumps(validation))
             else:
                 validation['date'] = datetime.datetime.utcnow()
-                isolates_badqc_collection.with_options(write_concern=WriteConcern(w="majority")).find_one_and_update(
-                    {'_id': isolate_id}, {'$set': {'validation': validation}})
+                if validation_type == 'bad_quality':
+                    isolates_badqc_collection.with_options(write_concern=WriteConcern(w="majority")).find_one_and_update(
+                        {'_id': isolate_id}, {'$set': {'validation': validation}})
+                elif validation_type == 'resequencing':
+                    # were also replacing the '_id' field here by the auto generated one in order to allow for a new resequencing to be uploaded.
+                    # Appearently the only or easiest way to do this is to reinsert the document
+                    resequencing_document = dict(isolates_resequencing_collection.with_options(read_concern=ReadConcern(w="majority")).find_one({'_id': isolate_id}))
+                    resequencing_document['validation'] = validation
+                    resequencing_document.pop('_id')
+                    isolates_resequencing_collection.with_options(write_concern=WriteConcern(w="majority")).insert_one(resequencing_document)  # Modified doc
+                    isolates_resequencing_collection.with_options(write_concern=WriteConcern(w="majority")).delete_one({'_id': isolate_id})  # Unmodified doc
             #update status once everything is finished
             cur_isolates.execute(f"UPDATE submissions SET status='validation_sent_to_bioit_platform' WHERE id='{id}'")
 

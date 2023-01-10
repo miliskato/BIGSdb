@@ -476,3 +476,4 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON eav_text_hidden TO apache;
 -- INSERT INTO eav_fields(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('cgMLST_differences_16-20', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1);
 ALTER TABLE isolates ADD uploader text;
 ALTER TABLE isolates ADD latest_analysis_date date;
+ALTER TABLE submissions ADD validation_type text;

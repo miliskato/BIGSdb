@@ -1,0 +1,11 @@
+---
+bioit_cli_tools:
+  - { name: 'grapetree', version: '1.5' }
+  - { name: 'grapetree', version: '2.2' }
+  - { name: 'blast', version: '2.7.1' }
+  - { name: 'phyloviz', version: '2.0' }
+  - { name: 'camel_hera', version: '0.1' }
+bioit_db_tools: []
+bioit_gui_tools: []
+bioit_r_packages: []
+...

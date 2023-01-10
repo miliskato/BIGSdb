@@ -18,6 +18,7 @@ import traceback
 import os
 from typing import Dict, Union
 import hashlib
+import shutil
 
 PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(PYTHONPATH))
@@ -27,6 +28,7 @@ from MongoDB.util.mongo_initialisation import MongoInitialisation
 from MongoDB.util.mongo_custom_clustering import MongoCustomClustering
 from MongoDB.config import MONGO_CONFIG
 from MongoDB.config import CLUSTERING_CONFIG
+from MongoDB.util.command.command import Command
 
 
 def _parse_arguments(specieslist: list) -> argparse.Namespace:
@@ -42,7 +44,7 @@ def _parse_arguments(specieslist: list) -> argparse.Namespace:
     mutually_exclusive_group.add_argument('--jsonfilepath', type=Path)
     parser.add_argument("--species", required=True, type=str,
                         choices=specieslist)
-    parser.add_argument("--results_type", required=True, type=str, choices=['new_isolate', 'reanalysis', 'badqc_validated'])
+    parser.add_argument("--results_type", required=True, type=str, choices=['new_isolate', 'reanalysis', 'badqc_validated', 'resequencing_validated'])
     parser.add_argument("--reportdirectorypath", required=False, type=str)  # not mandatory because of reanalysis
     parser.add_argument("--fastafilepath", required=False, type=str)  # not mandatory because of reanalysis
     parser.add_argument("--vcffilepath", required=False, type=str)  # not mandatory because of reanalysis
@@ -196,6 +198,8 @@ def parameter_compatibility_checks(args: argparse.Namespace) -> None:
     #     raise Exception('Bigs upload only available for new isolates')
     if args.results_type == 'badqc_validated' and not args.subvaldict:
         raise Exception('subvaldict necessary when using results_type badqc_validated')
+    if args.results_type == 'resequencing_validated' and not args.subvaldict:
+        raise Exception('subvaldict necessary when using results_type badqc_validated')
     if args.results_type == 'new_isolate' and not args.jsonfilepath:
         raise Exception('jsonfilepath necessary when using results_type new_isolate')
     if args.results_type == 'reanalysis' and not args.jsonfilepath:
@@ -286,12 +290,16 @@ class MainMongo:
             if self.results_type == "new_isolate":
                 new_records = json.load(open(self.jsonfilepath, 'r'))
                 # todo check if fasta path and vcf path are real?
-                if self.technical_id in self.mongoquerying.query_list_of_all_distinct_values(self.isolates_collection, "_id") \
-                        or self.technical_id in self.mongoquerying.query_list_of_all_distinct_values(self.isolates_badqc_collection,
-                                                                                           "_id"):
-                    self._new_resequencing_workflow(new_records)
+                isolates_findone = self.isolates_collection.find_one({"_id": self.technical_id})
+                if isolates_findone:
+                    self._new_resequencing_arrival(new_records, dict(isolates_findone), self.isolates_collection)
                 else:
-                    self._new_isolate_wrapper(new_records)
+                    # Were excluding documents that were validated, additionally only documents that were validated with a negative result are still in the badqc collection
+                    isolates_badqc_findone = self.isolates_badqc_collection.find_one({"_id": self.technical_id, "validation": None})
+                    if isolates_badqc_findone:
+                        self._new_resequencing_arrival(new_records, dict(isolates_badqc_findone), self.isolates_badqc_collection)
+                    else:
+                        self._new_isolate_wrapper(new_records)
             elif self.results_type == 'badqc_validated':
                 sample_doc = self.isolates_badqc_collection.find_one({"_id": self.technical_id})
                 new_records = sample_doc['results']
@@ -302,23 +310,27 @@ class MainMongo:
                     # date can't be added before submission as the datetime object is not serializable to json
                     self.validation['date'] = datetime.datetime.utcnow()
                 self._new_isolate_wrapper(new_records)
-            elif self.results_type == "reanalysis":
+            elif self.results_type == "reanalysis" or self.results_type == 'resequencing_validated':
                 try:
                     current_results_document = \
                         self.mongoquerying.query_docs_by_ids(self.isolates_collection, [self.technical_id])[0]
-                    current_results = current_results_document['results']
                 except Exception as exceptionmessage:
                     self._send_email(
                         f"{os.path.basename(__file__)} fail on host {socket.gethostname()}: This reanalysis technical id ({self.technical_id}) is not present in the isolates collections",
                         f"{exceptionmessage}\n{traceback.format_exc()}")
                     raise Exception(
                         f"{os.path.basename(__file__)} fail on host {socket.gethostname()}: This reanalysis technical id ({self.technical_id}) is not present in the isolates collections")
-                self._new_reanalysis_wrapper(current_results)
+                if self.results_type == "reanalysis":
+                    new_results_handle = json.load(open(self.jsonfilepath, 'r'))
+                elif self.results_type == 'resequencing_validated':
+                    new_results_handle = self.isolates_resequencing_collection.find_one({"_id": self.technical_id})
+                    self.validation['date'] = datetime.datetime.utcnow()
+                self._new_reanalysis_wrapper(current_results_document, new_results_handle)
 
         except Exception as exceptionmessage:
             self._send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
                         f"{exceptionmessage}\n{traceback.format_exc()}")
-            raise Exception(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}")
+            raise Exception(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}: {exceptionmessage}\n{traceback.format_exc()}")
 
     def _new_isolate_wrapper(self, new_records: dict) -> None:
         """
@@ -359,12 +371,10 @@ class MainMongo:
                                                                         self.cluster_merging_collection,
                                                                         CLUSTERING_CONFIG[sp_thresholds])
                 self.isolates_collection.with_options(write_concern=WriteConcern(w="majority")).find_one_and_update(
-                    {"_id": new_records["isolates_id"]},
-                    {"$set": {"results.cgST": sequence_type}})
+                    {"_id": new_records["isolates_id"]}, {"$set": {"results.cgST": sequence_type}})
             if self.results_type == 'badqc_validated':
                 self.isolates_collection.with_options(write_concern=WriteConcern(w="majority")).find_one_and_update(
-                    {"_id": new_records["isolates_id"]},
-                    {'$set': {'validation': self.validation}})
+                    {"_id": new_records["isolates_id"]}, {'$set': {'validation': self.validation}})
                 self.isolates_badqc_collection.delete_one({'_id': new_records["isolates_id"]})
         else:
             _write_document(self.isolates_badqc_collection,
@@ -373,7 +383,7 @@ class MainMongo:
             logging.warning(
                 f"New isolate {self.technical_id} failed quality control for one or more checks. It's results were written to the 'isolates_badqc' collection in the {self.species} database")
 
-    def _new_resequencing_workflow(self, new_records: dict) -> None:
+    def _new_resequencing_arrival(self, new_records: Dict[str, Union[str, object]], document_original: Dict[str, Union[str, object]], collection_in: object) -> None:
         """
         After an id is found in either isolates or isolates_badqc; this workflow will determine if it really is a resequencing, and if so insert it into isolates_resequencing
         :param new_records: results dictionary that is modified and inserted
@@ -382,20 +392,24 @@ class MainMongo:
         # https://git.sciensano.be/bioit/BIGSdb/src/d2a261056221056e56df6aa584563454f6bfec3a/lib/BIGSdb/SubmitPage.pm#L2800
         # 2022-12-20 Check whether resequencing; if resequencing; fasta md5sum should be different from original one. debating whether to store md5 in mongo or not
         # resequencings should be rare so we can afford multiple finds
-        result_isolates = self.isolates_collection.find_one({"_id": self.technical_id})
-        document_original = result_isolates if result_isolates is not None else self.isolates_badqc_collection.find_one(
-            {"_id": self.technical_id})
         md5_original = hashlib.md5(open(Path(document_original['fasta_path']), 'r').read()).hexdigest()
         md5_new = hashlib.md5(open(Path(self.fastafilepath), 'r').read()).hexdigest()
         if md5_original != md5_new:
             # this is an actual resequencing because the fastafilepath is different
+
+            if collection_in == self.isolates_badqc_collection:
+                self._send_email(
+                    f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
+                    f"WARNING: a resequencing for sample {self.technical_id} was submitted to the isolates_resequencing while the sample is present in the isolates_badqc collection and has not yet been validated, validate the bad qc in bigs before trying to reupload this resequencing.")
+                raise Exception(
+                    f"WARNING: a resequencing for sample {self.technical_id} was submitted to the isolates_resequencing while the sample is present in the isolates_badqc collection and has not yet been validated, validate the bad qc in bigs before trying to reupload this resequencing.")
             previous_resequencings = list(
                 self.isolates_resequencing_collection.find({'results.isolates_id': self.technical_id},
                                                       {'_id': 1, 'fasta_path': 1}))
             # new_resequencing = True
             if previous_resequencings != []:
                 self._send_email(
-                    f"{os.path.basename(__file__)}: resequencing warning on host {socket.gethostname()}",
+                    f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
                     f"WARNING: a resequencing for sample {self.technical_id} was submitted to the isolates_resequencing while one or more resequencings were already present: '{previous_resequencings}' in {self.isolates_resequencing_collection.database.name} on host {socket.gethostname()}, validate the original resequencing in bigs before uploading new resequencings.")
                 raise Exception(f"WARNING: a resequencing for sample {self.technical_id} was submitted to the isolates_resequencing while one or more resequencings were already present: '{previous_resequencings}' in {self.isolates_resequencing_collection.database.name} on host {socket.gethostname()}, validate the original resequencing in bigs before uploading new resequencings.")
             # The commented code below was in case multiple resequencings were allowed
@@ -406,7 +420,7 @@ class MainMongo:
             #     if new_resequencing is True:
             #         # Send a warning because we are not expecting multiple resequencings for the same same sample
             #         self._send_email(
-            #             f"{os.path.basename(__file__)}: resequencing warning on host {socket.gethostname()}",
+            #             f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
             #             f"WARNING: a resequencing for sample {self.technical_id} was written to the isolates_resequencing while one or more resequencings were already present: '{previous_resequencings}' in {self.isolates_resequencing_collection.database.name} on host {socket.gethostname()}")
             # if new_resequencing is True:
             #     # Writing document with auto generated id to avoid having multiple resequencings with same name (pop _id key from new isolate dict)
@@ -416,7 +430,7 @@ class MainMongo:
             #     sys.exit()
             # else:
             #     self._send_email(
-            #         f"{os.path.basename(__file__)}: mongo upload fail in {self.isolates_collection.database.name} on host {socket.gethostname()}",
+            #         f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
             #         f"This technical id is already present in the isolates collection\n{traceback.format_exc()}")
             #     raise Exception(
             #         f"The technical id '{self.technical_id}' is already present in the isolates or isolates badqc collection")
@@ -425,18 +439,22 @@ class MainMongo:
                                 _new_isolate(self.technical_id, str(self.reportdirectorypath), str(self.vcffilepath),
                                              str(self.fastafilepath), new_records))
 
-    def _new_reanalysis_wrapper(self, current_results_document: dict) -> None:
+    def _new_reanalysis_wrapper(self, current_results_document: Dict[str, Union[str, object]], new_results_document: Dict[str, Union[str, object]]) -> None:
         """        
         :param current_results_document: the current results document dict in the Mongo collection before applying the reanalysis
+        :param new_results_document: the new results document dict, under results for reanalysis, all for resequencing
         :return: 
         """
-        new_results_handle = json.load(open(self.jsonfilepath, 'r'))
-        new_results_handle_hashes_replaced = find_hashes_in_results_and_add_to_collection(new_results_handle,
+        if self.results_type == "reanalysis":
+            new_results = new_results_document
+        elif self.results_type == 'resequencing_validated':
+            new_results = new_results_document['results']
+        new_results_handle_hashes_replaced = find_hashes_in_results_and_add_to_collection(new_results,
                                                                                           self.mongoinit,
                                                                                           self.config_data,
                                                                                           self.species,
                                                                                           self.results_type)
-        new_results = prepend_string_dot_to_dict_keys(new_results_handle_hashes_replaced)
+        new_results = prepend_string_dot_to_dict_keys(new_results_handle_hashes_replaced, 'results')
         new_results["results.isolates_id"] = self.technical_id
         current_results = current_results_document['results']
         if new_results["results.analysis_date"] == current_results["analysis_date"]:
@@ -451,7 +469,7 @@ class MainMongo:
             raise Exception(
                 f"{os.path.basename(__file__)} fail on host {socket.gethostname()}: These ({self.technical_id})results seem to be older than the current results")
         any_result_changed_new_old, unchanged_results_new_old, changed_results_new_old = \
-            _check_if_results_changed(current_results, new_results_handle)
+            _check_if_results_changed(current_results, new_results)
         if current_results_document['previous_latest_results_document'] is not None:
             # Update current results
             older_results_document_with_pointers = \
@@ -485,6 +503,27 @@ class MainMongo:
         else:
             logging.info(
                 f"New results are not different from current results for {self.technical_id} in {self.species}, updating analysis dates and db versions.")
+        if self.results_type == 'resequencing_validated':
+            new_results['validation'] = self.validation
+            report_dir_merging_cmd = ' '.join([
+                "rsync -a",
+                f"{current_results_document['report_directory']}/",
+                f"{new_results_document['report_directory']}/"
+            ])
+            command = Command(report_dir_merging_cmd)
+            # run the command
+            command.run(current_results_document['report_directory'])
+            logging.info(f"merging the report directories of original and resequencing for isolate '{self.technical_id}'")
+            if command.returncode != 0:
+                self._send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
+                                 f"Could not 'git' merge dir {new_results_document['report_directory']} into dir {current_results_document['report_directory']}")
+                raise Exception(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}: Could not 'git' merge dir {new_results_document['report_directory']} into dir {current_results_document['report_directory']}")
+            else:
+                # Removing the temporary working dir and the remaining files that were not kept
+                shutil.rmtree(new_results_document['report_directory'])
+                logging.info(f"Resequecing directory {new_results_document['report_directory']} deletion for isolate '{self.technical_id}' completed")
+            # Remove the isolate from the resequencing collection to allow for new resequencings
+            self.isolates_resequencing_collection.delete_one({'_id': self.technical_id})
         self.isolates_collection.with_options(write_concern=WriteConcern(w="majority")).update_one(
             {"_id": self.technical_id}, {
                 "$set": {**new_results,

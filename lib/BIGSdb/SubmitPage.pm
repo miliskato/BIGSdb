@@ -728,7 +728,7 @@ sub _get_isolate_submissions_for_curation {
 		    qq(<tr class="td$td"><td><a href="$self->{'system'}->{'script_name'}?db=$self->{'instance'}&amp;)
 		  . qq(page=submit&amp;submission_id=$submission->{'id'}&amp;curate=1">$submission->{'id'}</a></td>)
 		  . qq(<td>$submission->{'date_submitted'}</td><td>$submission->{'datestamp'}</td><td>$submitter_string</td>)
-		  . qq(<td>$isolate_count</td>);
+		  . qq(<td>$isolate_count</td><td>$submission->{'validation_type'}</td>);
 		if ( $status eq 'closed' ) {
 			my %style = FACE_STYLE;
 			$buffer .= qq(<td><span $style{$submission->{'outcome'}}></span></td>);
@@ -748,7 +748,7 @@ sub _get_isolate_submissions_for_curation {
 			  if -e $isolate_curate_message;
 		}
 		$return_buffer .= q(<table class="resultstable"><tr><th>Submission id</th><th>Submitted</th><th>Updated</th>)
-		  . q(<th>Submitter</th><th>Isolates</th>);
+		  . q(<th>Submitter</th><th>Isolates</th><th>Validation type</th>);
 		$return_buffer .= q(<th>Outcome</th>) if $status eq 'closed';
 		$return_buffer .= qq(</tr>\n);
 		$return_buffer .= $buffer;
@@ -2794,10 +2794,7 @@ sub _close_submission {    ## no critic (ProhibitUnusedPrivateSubroutines) #Call
 	}
         my $dbname = $self->{'datastore'}->run_query('select current_database()');
         open(BASH, "|-", "bash");
-        print BASH "export MODULEPATH=/etc/lmod/modules \n";
-        print BASH "source /etc/profile.d/lmod.sh \n";
-        print BASH "ml mongo_bigs_dbs \n";
-        print BASH "sample_validation_to_mongo.py --db $dbname \n";
+        print BASH "/home/BIGSdb/3.9PythonVenv/bin/python3.9 /home/BIGSdb/bioit_custom_scripts/sample_validation_to_mongo.py --db $dbname \n";
         close(BASH);
         $submission = $self->{'submissionHandler'}->get_submission($submission_id);
 	my $curator_info = $self->{'datastore'}->get_user_info($curator_id);

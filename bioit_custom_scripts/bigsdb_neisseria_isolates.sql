@@ -58,3 +58,4 @@ INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, cu
 INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, curator, date_entered, datestamp, isolate_display, main_display, query_field, query_status, analysis, recommended, quality_metric, dbase_name, dbase_id) VALUES(16, 'ResFinder_AB', 'ResFinder database', 't', 16, 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE), 't', 't', 't', 'f', 't', 't', 'f', 'bigsdb_listeria_seqdef', 16);
 ALTER TABLE isolates ADD uploader text;
 ALTER TABLE isolates ADD latest_analysis_date date;
+ALTER TABLE submissions ADD validation_type text;

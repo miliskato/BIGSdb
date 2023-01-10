@@ -25,7 +25,7 @@ from MongoDB.util.mongo_querying import Mongoquerying
 from MongoDB.config import MONGO_CONFIG
 from MongoDB.new_alleles_profile_clustering_from_mongo_to_bigs import \
     run_upload_new_alleles_profiles_clustering_from_mongo_to_bigs
-from MongoDB.bad_samples_to_validation_bigs import bad_samples_to_validation_bigs
+from MongoDB.samples_to_validation_bigs import samples_to_validation_bigs
 from bioit_custom_scripts.components.databaseconnection import DatabaseConnection
 from bioit_custom_scripts.config import BIGSDB_CONFIG
 from bioit_custom_scripts.main_results_inserter import main_results_inserter
@@ -108,7 +108,7 @@ def mongo_to_bigs(species: str, single_sample: str = None) -> None:
         run_upload_new_alleles_profiles_clustering_from_mongo_to_bigs(species)
 
         # send bad samples from the badqc_isolates collection to BIGSdb
-        bad_samples_to_validation_bigs(species)
+        samples_to_validation_bigs(species)
 
         if single_sample:
             query_single = isolates_collection.find_one({'_id': single_sample})
