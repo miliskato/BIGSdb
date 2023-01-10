@@ -235,7 +235,7 @@ class MainMongo:
     """
     Class containing definitions to insert samples into MongoDB
     """
-    def __init__(self, technical_id: str, species: str, results_type: str, jsonfilepath: Path = None, subvaldict: json.loads = None, reportdirectorypath: Path = None, fastafilepath: Path = None, vcffilepath: Path = None, alternate_connection_string: str = None, dont_send_email: bool = True) -> None:
+    def __init__(self, technical_id: str, species: str, results_type: str, jsonfilepath: Path = None, subvaldict: Dict[str, str] = None, reportdirectorypath: Path = None, fastafilepath: Path = None, vcffilepath: Path = None, alternate_connection_string: str = None, dont_send_email: bool = True) -> None:
         """
         See argparse function for variables and their requiredness
         :param technical_id:
@@ -306,7 +306,7 @@ class MainMongo:
             elif self.results_type == 'badqc_validated':
                 sample_doc = self.isolates_badqc_collection.find_one({"_id": self.technical_id})
                 new_records = sample_doc['results']
-                self.validation = json.loads(self.subvaldict)
+                self.validation = self.subvaldict
                 self.fastafilepath = sample_doc['fasta_path']
                 self.vcffilepath = sample_doc['vcf_path']
                 if self.validation['outcome'] == "good":
@@ -327,6 +327,7 @@ class MainMongo:
                     new_results_handle = json.load(open(self.jsonfilepath, 'r'))
                 elif self.results_type == 'resequencing_validated':
                     new_results_handle = self.isolates_resequencing_collection.find_one({"_id": self.technical_id})
+                    self.validation = self.subvaldict
                     self.validation['date'] = datetime.datetime.utcnow()
                 self._new_reanalysis_wrapper(current_results_document, new_results_handle)
 
@@ -458,15 +459,13 @@ class MainMongo:
                                                                                           self.config_data,
                                                                                           self.species,
                                                                                           self.results_type)
-        new_results = prepend_string_dot_to_dict_keys(new_results_handle_hashes_replaced, 'results')
-        new_results["results.isolates_id"] = self.technical_id
         current_results = current_results_document['results']
-        if new_results["results.analysis_date"] == current_results["analysis_date"]:
+        if new_results["analysis_date"] == current_results["analysis_date"]:
             self._send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
                         f"This ({self.technical_id}) is not a reanalysis but the same results\n{traceback.format_exc()}")
             raise Exception(
                 f"{os.path.basename(__file__)} fail on host {socket.gethostname()}: This ({self.technical_id}) is not a reanalysis but the same results")
-        elif _return_YMD_from_DMYhms(new_results["results.analysis_date"]) < _return_YMD_from_DMYhms(
+        elif _return_YMD_from_DMYhms(new_results["analysis_date"]) < _return_YMD_from_DMYhms(
                 current_results["analysis_date"]):
             self._send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
                         f"These ({self.technical_id})results seem to be older than the current results\n{traceback.format_exc()}")
@@ -499,6 +498,8 @@ class MainMongo:
                 current_results[unchanged_assay] = unchanged_assay_new_dict_with_pointer
     
         # Update new results
+        new_results = prepend_string_dot_to_dict_keys(new_results_handle_hashes_replaced, 'results')
+        new_results["results.isolates_id"] = self.technical_id
         new_results["results.results_version"] = current_results["results_version"] + 1
         if any_result_changed_new_old is True:
             new_results["results.changed_version"] = current_results["changed_version"] + 1
@@ -511,8 +512,8 @@ class MainMongo:
             new_results['validation'] = self.validation
             report_dir_merging_cmd = ' '.join([
                 "rsync -a",
-                f"{current_results_document['report_directory']}/",
-                f"{new_results_document['report_directory']}/"
+                f"{new_results_document['report_directory']}/",
+                f"{current_results_document['report_directory']}/"
             ])
             command = Command(report_dir_merging_cmd)
             # run the command
@@ -586,7 +587,7 @@ if __name__ == '__main__':
               args.species,
               args.results_type, 
               jsonfilepath=(args.jsonfilepath if args.jsonfilepath else None), 
-              subvaldict=(args.subvaldict if args.subvaldict else None), 
+              subvaldict=(json.loads(args.subvaldict) if args.subvaldict else None),
               reportdirectorypath=(args.reportdirectorypath if args.reportdirectorypath else None), 
               fastafilepath=(args.fastafilepath if args.fastafilepath else None), 
               vcffilepath=(args.vcffilepath if args.vcffilepath else None), 
