@@ -60,7 +60,7 @@ class NewAllelesProfileClusteringFromMongoToBigs:
         self.hashed_ad_collection = hashed_ad_collection
         self.cluster_membership_collection = cluster_membership_collection
         self.update_metadata_collection = update_metadata_collection
-        self.cur_isolates, self.cur_seqdef = DatabaseConnection().connect_to_dbs_and_create_cursors(self.species)
+        (self.con_isolates, self.cur_isolates), (self.con_seqdef, self.cur_seqdef) = DatabaseConnection().connect_to_dbs_and_create_cursors(self.species)
         self.clustering_thresholds = CLUSTERING_CONFIG[f"clustering_thresholds_{self.species}"]
         self.current_update_date = datetime.datetime.utcnow()
         self.last_date_of_update = self._get_last_date_of_update()
