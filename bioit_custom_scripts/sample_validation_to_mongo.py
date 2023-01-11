@@ -26,6 +26,7 @@ from bioit_custom_scripts.config import BIGSDB_CONFIG
 from MongoDB.util.mongo_initialisation import MongoInitialisation
 from MongoDB.config import MONGO_CONFIG
 from MongoDB.mainmongo import MainMongo
+from MongoDB.mongo_to_bigs import mongo_to_bigs
 
 def send_email(subject: str, content: str, config: dict) -> None:
     """
@@ -134,6 +135,7 @@ if __name__ == '__main__':
             #update status once everything is finished
             cur_isolates.execute(f"UPDATE submissions SET status='validation_sent_to_bioit_platform' WHERE id='{submission_id}'")
         DatabaseConnection().close_connections(con_isolates, con_seqdef)
+        mongo_to_bigs(species, single_sample=isolate_id)
     except Exception as exceptionmessage:
         send_email(f"{os.path.basename(__file__)}: sample validation to mongo fail on host {socket.gethostname()}",
                     f"{exceptionmessage}\n{traceback.format_exc()}", bigsdb_config['mail'])
