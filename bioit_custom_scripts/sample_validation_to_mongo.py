@@ -97,7 +97,8 @@ if __name__ == '__main__':
             validation = {
                 'outcome': outcome,
                 'curator': curator_mailadress,
-                'type': results_type.split('_')[0]
+                'type': results_type.split('_')[0],
+                'date': datetime.datetime.utcnow().strftime('%d/%m/%Y - %X')
             }
             # Note on the behaviour of the script: This scripts runs when a sample has been validated on BIGSdb by a
             # curator. Main steps:

@@ -308,9 +308,6 @@ class MainMongo:
                 self.validation = self.subvaldict
                 self.fastafilepath = sample_doc['fasta_path']
                 self.vcffilepath = sample_doc['vcf_path']
-                if self.validation['outcome'] == "good":
-                    # date can't be added before submission as the datetime object is not serializable to json
-                    self.validation['date'] = datetime.datetime.utcnow()
                 self._new_isolate_wrapper(new_records)
             elif self.results_type == "reanalysis" or self.results_type == 'resequencing_validated':
                 try:
@@ -327,7 +324,7 @@ class MainMongo:
                 elif self.results_type == 'resequencing_validated':
                     new_results_handle = self.isolates_resequencing_collection.find_one({"_id": self.technical_id})
                     self.validation = self.subvaldict
-                    self.validation['date'] = datetime.datetime.utcnow()
+
                 self._new_reanalysis_wrapper(current_results_document, new_results_handle)
 
         except Exception as exceptionmessage:
