@@ -43,17 +43,12 @@ def _insert_submission_bigs(cur_isolates: object, sample_docs: list[dict], valid
     :param validation_type: either bad_quality or resequencing
     :return:
     """
-    cur_isolates.execute(f"SELECT max(id::int ) FROM submissions")
-    highest_sub_id = cur_isolates.fetchall()[0][0]
-    if highest_sub_id:
-        highest_sub_id = int(highest_sub_id)
-    else:
-        highest_sub_id = 0
     for doc in sample_docs:
-        highest_sub_id = highest_sub_id + 1
-        cur_isolates.execute(f"INSERT INTO submissions (id, type,submitter, date_submitted, "
+        cur_isolates.execute(f"INSERT INTO submissions (id, "
+                             f"type,submitter, date_submitted, "
                              f"datestamp, status, email, validation_type)"
-                             f"VALUES ({highest_sub_id}, 'isolates', 1, (SELECT CURRENT_DATE), "
+                             f"VALUES ((SELECT CASE WHEN (SELECT((SELECT MAX(id::int) FROM submissions)+1) IS NULL THEN 1 ELSE (SELECT(SELECT MAX(id::int) FROM submissions)+1) END), "
+                             f"'isolates', 1, (SELECT CURRENT_DATE), "
                              f"(SELECT CURRENT_DATE), 'pending', true, '{validation_type}')")
         # todo need to set a proper method to build links based on the sample to transfer
         # for testing purposes
@@ -62,21 +57,19 @@ def _insert_submission_bigs(cur_isolates: object, sample_docs: list[dict], valid
         html_path = str(html_path).replace('/reports/', '/galaxyreports/')
         html_link = f'<p><a href="{html_path}" target="_blank"> html report</a></p>'
         # end of dev code
-        field = 'html_report'
         cur_isolates.execute(f"INSERT INTO isolate_submission_isolates (submission_id, index, field, value) "
-                             f"VALUES ({highest_sub_id},1, '{field}', '{html_link}')")
+                             f"VALUES "
+                             f"((SELECT MAX(id::int) FROM submissions), 1, 'html_report', '{html_link}'), "
+                             f"((SELECT MAX(id::int) FROM submissions), 1, 'isolate_id', '{doc['_id']}'), "
+                             f"((SELECT MAX(id::int) FROM submissions),1, 'validation_type', '{validation_type}')"
+                             )
         cur_isolates.execute(f"INSERT INTO isolate_submission_field_order (submission_id,field,index)"
-                             f"VALUES ({highest_sub_id}, '{field}', 1)")
-        field2 = 'isolate_id'
-        cur_isolates.execute(f"INSERT INTO isolate_submission_isolates (submission_id, index, field, value) "
-                             f"VALUES ({highest_sub_id},1, '{field2}', '{doc['_id']}')")
-        cur_isolates.execute(f"INSERT INTO isolate_submission_field_order (submission_id,field,index)"
-                             f"VALUES ({highest_sub_id}, '{field2}', 2)")
-        field3 = 'validation_type'
-        cur_isolates.execute(f"INSERT INTO isolate_submission_isolates (submission_id, index, field, value) "
-                             f"VALUES ({highest_sub_id},1, '{field3}', '{validation_type}')")
-        cur_isolates.execute(f"INSERT INTO isolate_submission_field_order (submission_id,field,index)"
-                             f"VALUES ({highest_sub_id}, '{field3}', 3)")
+                             f"VALUES "
+                             f"((SELECT MAX(id::int) FROM submissions), 'html_report', 1), "
+                             f"((SELECT MAX(id::int) FROM submissions), 'isolate_id', 2), "
+                             f"((SELECT MAX(id::int) FROM submissions), 'validation_type', 3)"
+                             )
+
 def samples_to_validation_bigs(species: str) -> None:
     """
     Send samples in the badqc_sample and resequencing collection to be validated on BIGSdb
