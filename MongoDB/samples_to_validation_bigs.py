@@ -47,7 +47,7 @@ def _insert_submission_bigs(cur_isolates: object, sample_docs: list[dict], valid
         cur_isolates.execute(f"INSERT INTO submissions (id, "
                              f"type,submitter, date_submitted, "
                              f"datestamp, status, email, validation_type)"
-                             f"VALUES ((SELECT CASE WHEN (SELECT(SELECT MAX(id::int) FROM submissions)+1) IS NULL THEN 1 ELSE (SELECT(SELECT MAX(id::int) FROM submissions)+1) END), "
+                             f"VALUES ((SELECT CASE WHEN (SELECT MAX(id::int) FROM submissions) IS NULL THEN 1 ELSE (SELECT(SELECT MAX(id::int) FROM submissions)+1) END), "
                              f"'isolates', 1, (SELECT CURRENT_DATE), "
                              f"(SELECT CURRENT_DATE), 'pending', true, '{validation_type}')")
         # todo need to set a proper method to build links based on the sample to transfer
