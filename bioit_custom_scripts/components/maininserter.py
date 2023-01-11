@@ -29,7 +29,7 @@ class MainInserter(JsonSuperClass):
         if sample_presence[0][0] == 0:
             self.cur_isolates.execute(f"INSERT INTO isolates(id, "
                                       f"isolate, sender, curator, date_entered, datestamp, uploader, latest_analysis_date)"
-                                      f"VALUES((SELECT CASE WHEN (SELECT(SELECT MAX(id) FROM isolates)+1) IS NULL THEN 1 ELSE (SELECT(SELECT MAX(id) FROM isolates)+1) END), "
+                                      f"VALUES((SELECT CASE WHEN (SELECT MAX(id) FROM isolates) IS NULL THEN 1 ELSE (SELECT(SELECT MAX(id) FROM isolates)+1) END), "
                                       f"'{self.isolatename}', 1, 1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE), '{uploadermailadress}', '{datetime.datetime.strptime(self.sample_output_dict['analysis_date'], '%d/%m/%Y - %X').strftime('%Y-%m-%d')}')")
             self.cur_isolates.execute(f"INSERT INTO history(isolate_id, timestamp, action, curator)"
                                       f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{self.isolatename}'),(SELECT NOW()::TIMESTAMP), 'Isolate record added', 1)")
@@ -39,7 +39,7 @@ class MainInserter(JsonSuperClass):
     def insert_new_isolate_version(self) -> None:
         self.cur_isolates.execute(
             f"INSERT INTO isolates(id, isolate, sender, curator, date_entered, datestamp, uploader, latest_analysis_date) "
-            f"VALUES((SELECT CASE WHEN (SELECT(SELECT MAX(id) FROM isolates)+1) IS NULL THEN 1 "
+            f"VALUES((SELECT CASE WHEN (SELECT MAX(id) FROM isolates) IS NULL THEN 1 "
             f"ELSE (SELECT(SELECT MAX(id) FROM isolates)+1) END), '{self.isolatename}', 1, 1, "
             f"(SELECT CURRENT_DATE),(SELECT CURRENT_DATE), "
             f"(SELECT uploader FROM isolates WHERE isolate='{self.isolatename}' AND id=(SELECT MAX(id) FROM isolates WHERE isolate='{self.isolatename}')),"

@@ -95,7 +95,7 @@ def _fail_safe_mechanism(isolatename: str, config: dict, analysis_date: str, cur
                     f"DELETE FROM isolates WHERE isolate='{isolatename}' AND id=(SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}') ")
                 cur_isolates.execute(
                             f"INSERT INTO isolates(id, isolate, sender, curator, date_entered, datestamp, uploader, latest_analyis_date) "
-                            f"VALUES((SELECT CASE WHEN (SELECT(SELECT MAX(id) FROM isolates)+1) IS NULL THEN 1 "
+                            f"VALUES((SELECT CASE WHEN (SELECT MAX(id) FROM isolates) IS NULL THEN 1 "
                             f"ELSE (SELECT(SELECT MAX(id) FROM isolates)+1) END), '{isolatename}', 1, 1, "
                             f"(SELECT CURRENT_DATE),(SELECT CURRENT_DATE), "
                             f"(SELECT uploader FROM isolates WHERE isolate='{isolatename}' AND id=(SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}')),"
