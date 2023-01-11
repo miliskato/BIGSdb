@@ -198,8 +198,6 @@ def main_results_inserter(isolatename: str, uploadermailadress: str, species: st
             f"{exceptionmessage}\n{traceback.format_exc()}", config_data['mail'])
         raise Exception(f'{os.path.basename(__file__)}: Error inserting isolate of {species} pipeline to bigsdb for sample {isolatename} on host {socket.gethostname()}.')
 
-        # todo find out if connections need to be closed
-
 
 if __name__ == '__main__':
     # Configure stdout logging

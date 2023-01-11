@@ -112,6 +112,9 @@ INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, cu
 ALTER TABLE isolates ADD uploader text;
 ALTER TABLE isolates ADD latest_analysis_date date;
 ALTER TABLE submissions ADD validation_type text;
+ALTER TABLE isolates ADD validation_type text;
+ALTER TABLE isolates ADD validation_curator text;
+ALTER TABLE isolates ADD validation_date date;
 INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, curator, date_entered, datestamp, isolate_display, main_display, query_field, query_status, analysis, recommended, quality_metric, dbase_name, dbase_id) VALUES(13, 'Serotype', 'Serotyping scheme', 't', 13, 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE), 't', 't', 't', 'f', 't', 't', 'f', 'bigsdb_listeria_seqdef', 13);
 INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, dbase_name, dbase_id, url, isolate_display, main_display, query_field, analysis, submission_template, curator, date_entered, datestamp) VALUES('O_antigen','DNA','text', 't', 't', 'bigsdb_stec_seqdef', 'O_antigen', '/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_stec_seqdef&page=alleleInfo&locus=O_antigen&allele_id=[?]', 'allele only', 'f', 't', 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
 INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, dbase_name, dbase_id, url, isolate_display, main_display, query_field, analysis, submission_template, curator, date_entered, datestamp) VALUES('H_antigen','DNA','text', 't', 't', 'bigsdb_stec_seqdef', 'H_antigen', '/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_stec_seqdef&page=alleleInfo&locus=H_antigen&allele_id=[?]', 'allele only', 'f', 't', 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));

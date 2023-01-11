@@ -59,3 +59,6 @@ INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, cu
 ALTER TABLE isolates ADD uploader text;
 ALTER TABLE isolates ADD latest_analysis_date date;
 ALTER TABLE submissions ADD validation_type text;
+ALTER TABLE isolates ADD validation_type text;
+ALTER TABLE isolates ADD validation_curator text;
+ALTER TABLE isolates ADD validation_date date;

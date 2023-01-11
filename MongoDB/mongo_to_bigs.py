@@ -198,6 +198,9 @@ def mongo_to_bigs(species: str, single_sample: str = None) -> None:
             # continuation of for loop:
             # extract json file to be given to bigs
             jsonfile = f"{config_data.get('temp_dir')}/{document['results']['isolates_id']}_temp.json"
+            if document.get('validation'):
+                # add validation metadata to results in order to be able to insert them into BIGSdb
+                document['results']['validation'] = document['validation']
             with open(jsonfile, 'w') as handle:
                 handle.write(json.dumps(document['results']))
             # todo modify mailadress

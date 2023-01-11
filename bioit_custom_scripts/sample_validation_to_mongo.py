@@ -96,7 +96,7 @@ if __name__ == '__main__':
             validation = {
                 'outcome': outcome,
                 'curator': curator_mailadress,
-                'validation_type': results_type
+                'type': results_type.split('_')[0]
             }
             # Note on the behaviour of the script: This scripts runs when a sample has been validated on BIGSdb by a
             # curator. Main steps:

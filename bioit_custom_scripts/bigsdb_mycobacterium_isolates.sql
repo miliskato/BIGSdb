@@ -477,3 +477,6 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON eav_text_hidden TO apache;
 ALTER TABLE isolates ADD uploader text;
 ALTER TABLE isolates ADD latest_analysis_date date;
 ALTER TABLE submissions ADD validation_type text;
+ALTER TABLE isolates ADD validation_type text;
+ALTER TABLE isolates ADD validation_curator text;
+ALTER TABLE isolates ADD validation_date date;
