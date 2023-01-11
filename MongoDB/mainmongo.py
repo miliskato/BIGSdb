@@ -295,12 +295,11 @@ class MainMongo:
                     self._new_resequencing_arrival(new_records, dict(isolates_findone), self.isolates_collection)
                 else:
                     # Were excluding documents that were validated, additionally only documents that were validated with a negative result are still in the badqc collection
+                    # Additionally, documents that were negatively validated now have their _id removed in sample_validation_to_mongo.py
                     isolates_badqc_findone = self.isolates_badqc_collection.find_one({"_id": self.technical_id, "validation": None})
                     if isolates_badqc_findone:
+                        # unvalidated badqc isolates are taken care of in the _new_resequencing_arrival function
                         self._new_resequencing_arrival(new_records, dict(isolates_badqc_findone), self.isolates_badqc_collection)
-                    # todo rethink this logic when head clearer; what if badqc validated as bad and new sample also bad? collision!
-                    # elif not self.isolates_badqc_collection.find_one({"_id": self.technical_id}):
-                    #     self._new_isolate_wrapper(new_records)
                     else:
                         self._new_isolate_wrapper(new_records)
             elif self.results_type == 'badqc_validated':
