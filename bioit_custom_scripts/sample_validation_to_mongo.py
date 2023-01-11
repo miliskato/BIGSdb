@@ -75,17 +75,18 @@ if __name__ == '__main__':
         # Connect to db and create cursor
         (con_isolates, cur_isolates), (con_seqdef, cur_seqdef) = DatabaseConnection().connect_to_dbs_and_create_cursors(species)
 
-        cur_isolates.execute(f"SELECT isolate_submission_isolates.value, submissions.outcome, users.email, submissions.validation_type FROM submissions "
+        cur_isolates.execute(f"SELECT submissions.id, isolate_submission_isolates.value, submissions.outcome, users.email, submissions.validation_type FROM submissions "
                              f"left join users on users.id = submissions.curator "
                              f"left join isolate_submission_isolates on isolate_submission_isolates.submission_id = submissions.id "
                              f"WHERE submissions.status='closed' and isolate_submission_isolates.field='isolate_id';")
         query = cur_isolates.fetchall()
         if query:  # todo 09/01/2023 MK I think this is a dangerous approach. If at some point no connection can be made between bigs and mongo, a delay will be acquired. I would modify this to be a for loop, combined with a flagfile to say that this script is running which also contains the start time, if the start time is longer than 10 min ago remove it and restart
             #retrieve id of the isolate and curator id from BIGSdb
-            isolate_id = query[0][0]
-            outcome = query[0][1]
-            curator_mailadress = query[0][2]
-            validation_type = query[0][3]
+            submission_id = query[0][0]
+            isolate_id = query[0][1]
+            outcome = query[0][2]
+            curator_mailadress = query[0][3]
+            validation_type = query[0][4]
             if validation_type == 'bad_quality':
                 results_type = 'badqc_validated'
             elif validation_type == 'resequencing':
@@ -130,11 +131,7 @@ if __name__ == '__main__':
                 elif validation_type == 'resequencing':
                     _remove_id_from_document_to_be_unique_again_if_bad(isolates_resequencing_collection)
             #update status once everything is finished
-            cur_isolates.execute(f"UPDATE submissions SET status='validation_sent_to_bioit_platform' WHERE id='{id}'")
-
-            query_isolate_id = cur_isolates.execute(f"SELECT value FROM isolate_submission_isolates WHERE submission_id='{id}' AND field='isolate_id' ")
-            isolate_id = cur_isolates.fetchall()[0][0]
-            cur_isolates.execute(f"UPDATE submissions SET status='validation_sent_to_bioit_platform' WHERE id='{id}'")
+            cur_isolates.execute(f"UPDATE submissions SET status='validation_sent_to_bioit_platform' WHERE id='{submission_id}'")
         DatabaseConnection().close_connections(con_isolates, con_seqdef)
     except Exception as exceptionmessage:
         send_email(f"{os.path.basename(__file__)}: sample validation to mongo fail on host {socket.gethostname()}",
