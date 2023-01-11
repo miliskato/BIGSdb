@@ -75,13 +75,16 @@ if __name__ == '__main__':
         # Connect to db and create cursor
         (con_isolates, cur_isolates), (con_seqdef, cur_seqdef) = DatabaseConnection().connect_to_dbs_and_create_cursors(species)
 
-        cur_isolates.execute(f"SELECT id, outcome, curator, validation_type FROM submissions WHERE status='closed'")
+        cur_isolates.execute(f"SELECT isolate_submission_isolates.value, submissions.outcome, users.email, submissions.validation_type FROM submissions "
+                             f"left join users on users.id = submissions.curator "
+                             f"left join isolate_submission_isolates on isolate_submission_isolates.submission_id = submissions.id "
+                             f"WHERE submissions.status='closed' and isolate_submission_isolates.field='isolate_id';")
         query = cur_isolates.fetchall()
         if query:  # todo 09/01/2023 MK I think this is a dangerous approach. If at some point no connection can be made between bigs and mongo, a delay will be acquired. I would modify this to be a for loop, combined with a flagfile to say that this script is running which also contains the start time, if the start time is longer than 10 min ago remove it and restart
             #retrieve id of the isolate and curator id from BIGSdb
-            id = query[0][0]
+            isolate_id = query[0][0]
             outcome = query[0][1]
-            curator_id = query[0][2]
+            curator_mailadress = query[0][2]
             validation_type = query[0][3]
             if validation_type == 'bad_quality':
                 results_type = 'badqc_validated'
@@ -89,16 +92,11 @@ if __name__ == '__main__':
                 results_type = 'resequencing_validated'
             else:
                 results_type = '?'  # in order to not have issue 'variable referenced before assignment' and in order to leave possibility open
-            # todo curator name could be queried in the previous query already as a join, same for isolate_id
-            cur_isolates.execute(f"SELECT user_name FROM users WHERE id='{curator_id}'")
-            curator_name = cur_isolates.fetchall()[0][0]
-            cur_isolates.execute(f"SELECT value FROM isolate_submission_isolates WHERE "
-                                                    f"submission_id='{id}' AND field='isolate_id' ")
-            isolate_id = cur_isolates.fetchall()[0][0]
             #GO into mongo DB
             validation = {
                 'outcome': outcome,
-                'curator': curator_name
+                'curator': curator_mailadress,
+                'validation_type': results_type
             }
             # Note on the behaviour of the script: This scripts runs when a sample has been validated on BIGSdb by a
             # curator. Main steps:
