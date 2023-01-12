@@ -228,14 +228,14 @@ class MainMongo:
                         # unvalidated badqc isolates are taken care of in the _new_resequencing_arrival function
                         self._new_resequencing_arrival(new_records, dict(isolates_badqc_findone), self.isolates_badqc_collection)
                     else:
-                        self.self._new_isolate_wrapper(new_records)
+                        self._new_isolate_wrapper(new_records)
             elif self.results_type == 'badqc_validated':
                 sample_doc = self.isolates_badqc_collection.find_one({"_id": self.technical_id})
                 new_records = sample_doc['results']
                 self.validation = self.subvaldict
                 self.fastafilepath = sample_doc['fasta_path']
                 self.vcffilepath = sample_doc['vcf_path']
-                self.self._new_isolate_wrapper(new_records)
+                self._new_isolate_wrapper(new_records)
             elif self.results_type == "reanalysis" or self.results_type == 'resequencing_validated':
                 try:
                     current_results_document = \
