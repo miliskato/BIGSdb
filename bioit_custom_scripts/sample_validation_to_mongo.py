@@ -123,7 +123,7 @@ if __name__ == '__main__':
                     :param collection_in: collection document is in
                     :return: None
                     """
-                    negatively_validated_document = dict(collection_in.with_options(read_concern=ReadConcern(w="majority")).find_one({'_id': isolate_id}))
+                    negatively_validated_document = dict(collection_in.with_options(read_concern=ReadConcern(level="majority")).find_one({'_id': isolate_id}))
                     negatively_validated_document['validation'] = validation
                     negatively_validated_document.pop('_id')
                     collection_in.with_options(write_concern=WriteConcern(w="majority")).insert_one(negatively_validated_document)  # Modified doc
