@@ -261,7 +261,7 @@ class MainMongo:
         
         self.run_MainMongo()
 
-    def run_MainMongo(self):
+    def run_MainMongo(self) -> None:
         """
         Main function
         :return:
@@ -334,7 +334,7 @@ class MainMongo:
 
     def _new_isolate_wrapper(self, new_records: dict) -> None:
         """
-
+        Handles and inserts new isolates, whether that be actual new isolates or validated bad samples
         :param new_records: results dictionary that is modified and inserted
         :return:
         """
