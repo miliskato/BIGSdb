@@ -68,29 +68,6 @@ def _write_document(opened_collection: object, json_input: dict) -> str:
     return collection_write.inserted_id
 
 
-def _new_isolate(technical_id: str, reportdirectorypath: str, vcffilepath: str, fastafilepath: str,
-                 results: dict) -> Dict[str, Union[str, object]]:
-    """
-    Initialises new isolate dictionary including its results
-    :param technical_id:
-    :param vcffilepath:
-    :param fastafilepath:
-    :param results:
-    :return:
-    """
-    results["results_version"] = 1  # this version always increments
-    results["changed_version"] = 1  # this version only increments whenever something actually changed
-    new_isolate_dict = {"_id": technical_id,
-                        "report_directory": reportdirectorypath,
-                        "vcf_path": vcffilepath,
-                        "fasta_path": fastafilepath,
-                        "previous_latest_results_document": None,  # _write_document(old_isolateresults_collection, results)
-                        "creation_date": datetime.datetime.utcnow(),
-                        "latest_analysis_date": _return_YMD_from_DMYhms(results["analysis_date"]),
-                        "results": results}
-    return new_isolate_dict
-
-
 def prepend_string_dot_to_dict_keys(input_dictionary: dict, prepending: str = 'results') -> Dict[str, Union[str, object]]:
     """
     This function is designed to update only results that have been reanalyzed; by using dot notation in the dicts only the relevant assays/metadata are updated upon reanalysis.
@@ -127,57 +104,6 @@ def _max_temp_allele_name_new_entry(hashed_AD_collection, locus: str, scheme: st
     else:
         max_temp_allele_name = int(query_max_temp_allele_name_doc['temp_allele_name'].split('_')[-1])
         return f'{locus}_temp_{max_temp_allele_name + 1}'
-
-
-def find_hashes_in_results_and_add_to_collection(results: dict, mongoinit: object, config_data: dict, species: str, mode: str) -> Dict[str, Union[str, object]]:
-    """
-    finds hashes in json output report for multilocus sequence typing schemes and adds these hashes and alleles to a separate collection: new_allele_hashes.
-    Also replace the hashes by temporary allele identifiers and purges the sequences to save space
-    :param results: results dictionary
-    :param mongoinit: Mongointitialisation object to initialise collection connections
-    :param config_data: Mongo config data
-    :param species:
-    :return: results
-    """
-    hashed_ad_collection = mongoinit.initialise_hashing_collection(config_data, species)
-    for typing_scheme in ['mlst', 'cgmlst',  'mlst_warwick', 'mlst_pasteur']:
-        if typing_scheme in results.keys():
-            for locus_index, allele_info in enumerate(results[typing_scheme]['loci']):
-                # check if allele designation is md5 hash (32 char combination of letters andor numbers)
-                if re.findall(r'(?i)(?<![a-z0-9])[a-z0-9]{32}(?![a-z0-9])', allele_info['Allele']):
-                    logging.info('new allele detected')
-                    existing_document = hashed_ad_collection.with_options(
-                        read_concern=ReadConcern(level="majority")).find_one(
-                        {"scheme": typing_scheme, "locus": allele_info['Locus'],
-                         "hashed_allele": allele_info['Allele']})
-                    if existing_document is None:
-                        temp_allele = _max_temp_allele_name_new_entry(hashed_ad_collection, allele_info['Locus'], typing_scheme)
-                        _write_document(hashed_ad_collection, {"scheme": typing_scheme,
-                                                               "locus": allele_info['Locus'],
-                                                               "hashed_allele": allele_info['Allele'],
-                                                               "allele_sequence": allele_info['Allele_sequence'],
-                                                               "encountered_count": 1,
-                                                               "resolved_AD": 0,
-                                                               "temp_allele_name": temp_allele,
-                                                               "insertion_date": datetime.datetime.utcnow()
-                                                               })
-                    else:
-                        temp_allele = existing_document["temp_allele_name"]
-                        already_present = False
-                        if mode == 'reanalysis':
-                            hash_old = existing_document["hashed_allele"]
-                            if hash_old == allele_info['Allele']:
-                                already_present = True
-                                logging.info('hash/temp allele already present')
-                        if mode == 'new_isolate' or mode == 'reanalysis' and not already_present:
-                            hashed_ad_collection.with_options(write_concern=WriteConcern(w="majority")).update_one(
-                                {"_id": existing_document['_id']},
-                                {"$inc": {"encountered_count": 1}})
-                            logging.info(f"hashed allele '{allele_info['Allele']}' encounter incremented by one")
-                    results[typing_scheme]['loci'][locus_index].pop('Allele_sequence')
-                    results[typing_scheme]['loci'][locus_index][
-                        'Allele'] = temp_allele  # replace in the results the name of the allele (no hash anymore)
-    return results
 
 
 def _return_YMD_from_DMYhms(datetimestring: str) -> str:
@@ -302,14 +228,14 @@ class MainMongo:
                         # unvalidated badqc isolates are taken care of in the _new_resequencing_arrival function
                         self._new_resequencing_arrival(new_records, dict(isolates_badqc_findone), self.isolates_badqc_collection)
                     else:
-                        self._new_isolate_wrapper(new_records)
+                        self.self._new_isolate_wrapper(new_records)
             elif self.results_type == 'badqc_validated':
                 sample_doc = self.isolates_badqc_collection.find_one({"_id": self.technical_id})
                 new_records = sample_doc['results']
                 self.validation = self.subvaldict
                 self.fastafilepath = sample_doc['fasta_path']
                 self.vcffilepath = sample_doc['vcf_path']
-                self._new_isolate_wrapper(new_records)
+                self.self._new_isolate_wrapper(new_records)
             elif self.results_type == "reanalysis" or self.results_type == 'resequencing_validated':
                 try:
                     current_results_document = \
@@ -353,11 +279,8 @@ class MainMongo:
                     f"No qc values found in the given results\n{traceback.format_exc()}")
                 raise KeyError('No qc values found in the given results')
         if sample_quality == 'good':
-            new_records = find_hashes_in_results_and_add_to_collection(new_records, self.mongoinit, self.config_data,
-                                                                   self.species, self.results_type)
-            _write_document(self.isolates_collection,
-                            _new_isolate(self.technical_id, str(self.reportdirectorypath), str(self.vcffilepath),
-                                         str(self.fastafilepath), new_records))
+            new_records = self._find_hashes_in_results_and_add_to_collection(new_records)
+            _write_document(self.isolates_collection, self.__new_isolate(new_records))
             logging.info(f"Wrote new isolate {self.technical_id} and its result to {self.species} database")
             if 'cgmlst' in new_records.keys():
                 clustering_input = self.mongoquerying.query_typing_results_by_technicalids_and_scheme(
@@ -378,9 +301,7 @@ class MainMongo:
                     {"_id": new_records["isolates_id"]}, {'$set': {'validation': self.validation}})
                 self.isolates_badqc_collection.delete_one({'_id': new_records["isolates_id"]})
         else:
-            _write_document(self.isolates_badqc_collection,
-                            _new_isolate(self.technical_id, str(self.reportdirectorypath), str(self.vcffilepath),
-                                         str(self.fastafilepath), new_records))
+            _write_document(self.isolates_badqc_collection, self.__new_isolate(new_records))
             logging.warning(
                 f"New isolate {self.technical_id} failed quality control for one or more checks. It's results were written to the 'isolates_badqc' collection in the {self.species} database")
 
@@ -426,7 +347,7 @@ class MainMongo:
             # if new_resequencing is True:
             #     # Writing document with auto generated id to avoid having multiple resequencings with same name (pop _id key from new isolate dict)
             #     _write_document(self.isolates_resequencing_collection,
-            #                     _new_isolate(self.technical_id, str(self.reportdirectorypath), str(self.vcffilepath),
+            #                     self.__new_isolate(self.technical_id, str(self.reportdirectorypath), str(self.vcffilepath),
             #                                  str(self.fastafilepath), new_records).pop('_id'))
             #     sys.exit()
             # else:
@@ -437,9 +358,7 @@ class MainMongo:
             #         f"The technical id '{self.technical_id}' is already present in the isolates or isolates badqc collection")
             else:
                 new_records["isolates_id"] = self.technical_id
-                _write_document(self.isolates_resequencing_collection,
-                                _new_isolate(self.technical_id, str(self.reportdirectorypath), str(self.vcffilepath),
-                                             str(self.fastafilepath), new_records))
+                _write_document(self.isolates_resequencing_collection, self.__new_isolate(new_records))
 
     def _new_reanalysis_wrapper(self, current_results_document: Dict[str, Union[str, object]], new_results_document: Dict[str, Union[str, object]]) -> None:
         """        
@@ -451,11 +370,7 @@ class MainMongo:
             new_results = new_results_document
         elif self.results_type == 'resequencing_validated':
             new_results = new_results_document['results']
-        new_results_handle_hashes_replaced = find_hashes_in_results_and_add_to_collection(new_results,
-                                                                                          self.mongoinit,
-                                                                                          self.config_data,
-                                                                                          self.species,
-                                                                                          self.results_type)
+        new_results_handle_hashes_replaced = self._find_hashes_in_results_and_add_to_collection(new_results)
         current_results = current_results_document['results']
         if new_results["analysis_date"] == current_results["analysis_date"]:
             self._send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
@@ -569,6 +484,72 @@ class MainMongo:
                 s.send_message(message)
         logging.info(content)
 
+    def _find_hashes_in_results_and_add_to_collection(self, results: dict) -> Dict[str, Union[str, object]]:
+        """
+        finds hashes in json output report for multilocus sequence typing schemes and adds these hashes and alleles to a separate collection: new_allele_hashes.
+        Also replace the hashes by temporary allele identifiers and purges the sequences to save space
+        :param results: results dictionary
+        :return: results
+        """
+        hashed_ad_collection = self.mongoinit.initialise_hashing_collection(self.config_data, self.species)
+        for typing_scheme in ['mlst', 'cgmlst', 'mlst_warwick', 'mlst_pasteur']:
+            if typing_scheme in results.keys():
+                for locus_index, allele_info in enumerate(results[typing_scheme]['loci']):
+                    # check if allele designation is md5 hash (32 char combination of letters andor numbers)
+                    if re.findall(r'(?i)(?<![a-z0-9])[a-z0-9]{32}(?![a-z0-9])', allele_info['Allele']):
+                        logging.info('new allele detected')
+                        existing_document = hashed_ad_collection.with_options(
+                            read_concern=ReadConcern(level="majority")).find_one(
+                            {"scheme": typing_scheme, "locus": allele_info['Locus'],
+                             "hashed_allele": allele_info['Allele']})
+                        if existing_document is None:
+                            temp_allele = _max_temp_allele_name_new_entry(hashed_ad_collection, allele_info['Locus'],
+                                                                          typing_scheme)
+                            _write_document(hashed_ad_collection, {"scheme": typing_scheme,
+                                                                   "locus": allele_info['Locus'],
+                                                                   "hashed_allele": allele_info['Allele'],
+                                                                   "allele_sequence": allele_info['Allele_sequence'],
+                                                                   "encountered_count": 1,
+                                                                   "resolved_AD": 0,
+                                                                   "temp_allele_name": temp_allele,
+                                                                   "insertion_date": datetime.datetime.utcnow()
+                                                                   })
+                        else:
+                            temp_allele = existing_document["temp_allele_name"]
+                            already_present = False
+                            if self.results_type == 'reanalysis' or self.results_type == 'resequencing_validated':
+                                hash_old = existing_document["hashed_allele"]
+                                if hash_old == allele_info['Allele']:
+                                    already_present = True
+                                    logging.info('hash/temp allele already present')
+                            if self.results_type == 'new_isolate' or self.results_type == 'reanalysis' and not already_present:
+                                hashed_ad_collection.with_options(write_concern=WriteConcern(w="majority")).update_one(
+                                    {"_id": existing_document['_id']},
+                                    {"$inc": {"encountered_count": 1}})
+                                logging.info(f"hashed allele '{allele_info['Allele']}' encounter incremented by one")
+                        results[typing_scheme]['loci'][locus_index].pop('Allele_sequence')
+                        # replace in the results the name of the allele (no hash anymore)
+                        results[typing_scheme]['loci'][locus_index]['Allele'] = temp_allele
+        return results
+
+    def __new_isolate(self, results: dict) -> Dict[str, Union[str, object]]:
+        """
+        Initialises new isolate dictionary including its results
+        :param results:
+        :return:
+        """
+        results["results_version"] = 1  # this version always increments
+        results["changed_version"] = 1  # this version only increments whenever something actually changed
+        new_isolate_dict = {"_id": self.technical_id,
+                            "report_directory": self.reportdirectorypath,
+                            "vcf_path": self.vcffilepath,
+                            "fasta_path": self.fastafilepath,
+                            "previous_latest_results_document": None,  # _write_document(old_isolateresults_collection, results)
+                            "creation_date": datetime.datetime.utcnow(),
+                            "latest_analysis_date": _return_YMD_from_DMYhms(results["analysis_date"]),
+                            "results": results}
+        return new_isolate_dict
+    
 if __name__ == '__main__':
 
     # Parse config
