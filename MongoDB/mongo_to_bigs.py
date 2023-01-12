@@ -208,6 +208,20 @@ def mongo_to_bigs(species: str, single_sample: str = None) -> None:
             os.remove(jsonfile)
             if results_type == 'new_isolate':
                 insert_assembly(document['results']['isolates_id'], species, document['fasta_path'])
+            elif results_type == 'reanalysis' and document['validation']['type'] == 'resequencing':
+                cur_isolates.execute(f"SELECT validation_date FROM isolates WHERE isolate='11-204' ORDER BY id DESC LIMIT 2;")
+                last_two_validation_dates = cur_isolates.fetchall()
+                # select to check that the previous versions validation date is different than the current
+                if last_two_validation_dates[0][0] != last_two_validation_dates[1][0]:
+                    # revert the changes done in maininserter that move the assembly to the newest version
+                    cur_isolates.execute(
+                        f"UPDATE sequence_bin SET isolate_id=(SELECT MIN(id) FROM isolates WHERE id in (SELECT id FROM isolates WHERE isolate='{document['results']['isolates_id']}' ORDER BY id DESC LIMIT 2))"
+                        f"WHERE isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate='{document['results']['isolates_id']}')")
+                    cur_isolates.execute(
+                        f"UPDATE seqbin_stats SET isolate_id=(SELECT MIN(id) FROM isolates WHERE id in (SELECT id FROM isolates WHERE isolate='{document['results']['isolates_id']}' ORDER BY id DESC LIMIT 2))"
+                        f"WHERE isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate='{document['results']['isolates_id']}')")
+                    insert_assembly(document['results']['isolates_id'], species, document['fasta_path'])
+
             logging.info(f"wrote new results version for {document['results']['isolates_id']} to bigsdb")
 
         DatabaseConnection().close_connections(con_isolates, con_seqdef)
