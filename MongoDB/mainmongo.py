@@ -95,6 +95,7 @@ def prepend_string_dot_to_dict_keys(input_dictionary: dict, prepending: str = 'r
     """
     This function is designed to update only results that have been reanalyzed; by using dot notation in the dicts only the relevant assays/metadata are updated upon reanalysis.
     The function can of course serve other purposes
+    Dot notation documentation: https://www.mongodb.com/docs/manual/core/document/#dot-notation
     :param input_dictionary:
     :param prepending: string to prepend to dictionary keys separated by dot
     :return: dict with prepended string joined with dot
