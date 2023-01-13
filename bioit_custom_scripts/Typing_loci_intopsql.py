@@ -1,9 +1,10 @@
-import os
-import psycopg2
 import argparse
 import logging
-import yaml
+import os
 import sys
+
+import psycopg2
+import yaml
 
 PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(PYTHONPATH))
@@ -49,35 +50,47 @@ def _insert_loci() -> None:
                         present = cur_seqdef.fetchall()
                         if present[0][0] == 0:
                             print(f"locus {dir} not present in loci")
-                            # add into seqdef loci
-                            cur_seqdef.execute(f"INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, curator, date_entered, datestamp) \
-                                              VALUES('{dir}','DNA','text', 't', 't', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE))")
-                            # add into seqdef scheme members
-                            cur_seqdef.execute(f"INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) \
-                                              VALUES((SELECT id FROM schemes WHERE name='{schemedict[scheme]['schemename_bigsdb']}'), '{dir}', 1, (SELECT CURRENT_DATE))")
-                            cur_seqdef.execute(f"INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) \
-                                              VALUES(1, '{dir}', 1, (SELECT CURRENT_DATE))")
-                            # If it doesnt exist in seqdef loci, then normally not in isolate loci aswell
-                            dbaseurl = ''.join(['/cgi-bin/bigsdb/bigsdb.pl?db=', f"{config_data['species'][species]['seqdefdb']}", '&page=alleleInfo&locus=', f"{dir}", '&allele_id=[?]'])
-                            cur_isolates.execute(f"INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, dbase_name, dbase_id, "
-                                        f"url, isolate_display, main_display, query_field, analysis, submission_template, "
-                                        f"curator, date_entered, datestamp) \
-                                              VALUES('{dir}','DNA','text', 't', 't', '{config_data['species'][species]['seqdefdb']}', '{dir}', "
-                                        f"'{dbaseurl}', 'allele_only', 'f', 't', 't', 'f',"
-                                        f" 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE))")
-                            # add into isolate scheme members
-                            cur_isolates.execute(f"INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) \
-                                              VALUES((SELECT id FROM schemes WHERE name='{schemedict[scheme]['schemename_bigsdb']}'), '{dir}', 1, (SELECT CURRENT_DATE))")
+                            sqlquery = """
+                                       INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, curator, date_entered, datestamp) 
+                                       VALUES(%s, 'DNA', 'text', 't', 't', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));"""
+                            cur_seqdef.execute(sqlquery, (dir))
+                            sqlquery = """
+                                       INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) 
+                                       VALUES((SELECT id FROM schemes WHERE name=%s), %s, 1, (SELECT CURRENT_DATE));"""
+                            cur_seqdef.execute(sqlquery, (schemedict[scheme]['schemename_bigsdb'], dir))
+                            sqlquery = """
+                                       INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) 
+                                       VALUES(1, %s, 1, (SELECT CURRENT_DATE));"""
+                            cur_seqdef.execute(sqlquery, (dir))
+
+                            # insert into isolates
+                            dbaseurl = ''.join(['/cgi-bin/bigsdb/bigsdb.pl?db=', f'bigsdb_{species}_seqdef',
+                                                '&page=alleleInfo&locus=', f"{dir}", '&allele_id=[?]'])
+                            sqlquery = """
+                                       INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, dbase_name, dbase_id, 
+                                       url, isolate_display, main_display, query_field, analysis, submission_template, 
+                                       curator, date_entered, datestamp) 
+                                       VALUES(%s, 'DNA', 'text', 't', 't', %s, %s, 
+                                       %s, 'allele_only', 'f', 't', 't', 'f', 
+                                       1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));"""
+                            cur_isolates.execute(sqlquery, (dir, f'bigsdb_{species}_seqdef', dir, dbaseurl))
+                            sqlquery = """
+                                       INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) 
+                                       VALUES((SELECT id FROM schemes WHERE name=%s), %s, 1, (SELECT CURRENT_DATE));"""
+                            cur_isolates.execute(sqlquery, (schemedict[scheme]['schemename_bigsdb'], dir))
                         elif present[0][0] == 1:
-                            cur_seqdef.execute(f"SELECT count(*) FROM scheme_members WHERE locus='{dir}' and scheme_id=(SELECT id FROM schemes WHERE name='{schemedict[scheme]['schemename_bigsdb']}')")
+                            sqlquery = """
+                                       SELECT count(*) FROM scheme_members WHERE scheme_id=(SELECT id FROM schemes WHERE name=%s) AND locus=%s;"""
+                            cur_seqdef.execute(sqlquery, (schemedict[scheme]['schemename_bigsdb'], dir))
                             present2 = cur_seqdef.fetchall()
                             if present2[0][0] == 0:
                                 print(f"locus {dir} not present in scheme members")
                                 # add into seqdef scheme members
-                                cur_seqdef.execute(f"INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) \
-                                                  VALUES((SELECT id FROM schemes WHERE name='{schemedict[scheme]['schemename_bigsdb']}'), '{dir}', 1, (SELECT CURRENT_DATE))")
-                                cur_isolates.execute(f"INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) \
-                                                  VALUES((SELECT id FROM schemes WHERE name='{schemedict[scheme]['schemename_bigsdb']}'), '{dir}', 1, (SELECT CURRENT_DATE))")
+                                sqlquery_members = """
+                                           INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) 
+                                           VALUES((SELECT id FROM schemes WHERE name=%s), %s, 1, (SELECT CURRENT_DATE));"""
+                                cur_seqdef.execute(sqlquery_members, (schemedict[scheme]['schemename_bigsdb'], dir))
+                                cur_isolates.execute(sqlquery_members, (schemedict[scheme]['schemename_bigsdb'], dir))
                             else:
                                 continue
                         else:

@@ -1,9 +1,10 @@
-import os
-import json
-import requests
-import re
 import ast
+import json
 import logging
+import os
+import re
+
+import requests
 
 
 class TsvTypingResultsInserter:

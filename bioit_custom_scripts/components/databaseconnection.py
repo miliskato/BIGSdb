@@ -1,7 +1,8 @@
-import psycopg2
-import yaml
 import os
 import sys
+
+import psycopg2
+import yaml
 
 PYTHONPATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.dirname(PYTHONPATH))

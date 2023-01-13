@@ -387,9 +387,9 @@ To be ignored for mongodb, leaving the code in case useful later
 # source /etc/profile.d/lmod.sh
 #
 # cd /temp/scratch
-# export PYTHONPATH=/home/BIGSdb/automated-reanalysis
-# source /home/BIGSdb/3.9PythonVenv/bin/activate
+# export PYTHONPATH=/home/bigsdb/BIGSdb/automated-reanalysis
+# source /home/bigsdb/BIGSdb/3.9PythonVenv/bin/activate
 # for species in listeria neisseria stec mycobacterium salmonella
 # do
-#   python /home/BIGSdb/automated-reanalysis/camel/scripts/reanalysis/reanalysis.py --host-url http://$HOSTNAME.sciensano.be --species $species --config /home/BIGSdb/automated-reanalysis/camel/scripts/reanalysis/config.yml --threads 4
+#   python /home/bigsdb/BIGSdb/automated-reanalysis/camel/scripts/reanalysis/reanalysis.py --host-url http://$HOSTNAME.sciensano.be --species $species --config /home/bigsdb/BIGSdb/automated-reanalysis/camel/scripts/reanalysis/config.yml --threads 4
 # done

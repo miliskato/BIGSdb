@@ -1,6 +1,7 @@
-import requests
 import logging
 import re
+
+import requests
 
 from .json_superclass import JsonSuperClass
 
@@ -114,14 +115,15 @@ class JsonTypingResultsInserter(JsonSuperClass):
                                         # + there are really just duplicates in the db so I limit to 1, then its always the same.
                                         # Sometimes not only the sign changes when its in a promotor, but also the location, easiest solution is just to insert after it is found. Because sequences need to be unique for a locus, I take the longest sequence and add TAG
                                         self._insert_dummy_sequence_if_needed(locus[0], variantreformatted)
-                                        self.cur_seqdef.execute(
-                                            f"SELECT allele_id FROM sequences WHERE allele_id LIKE '{variantreformatted}' AND locus = '{locus[0]}' LIMIT 1")
+                                        sqlquery = """SELECT allele_id FROM sequences WHERE allele_id=%s AND locus = %s LIMIT 1;"""
+                                        self.cur_seqdef.execute(sqlquery, (variantreformatted, locus[0]))
                                         allele_id = self.cur_seqdef.fetchall()[0][0]
                                         # Select From without * returns non-empty list like [(), (), (), ()] and is less compute intensive probably
-                                        self.cur_isolates.execute(
-                                            f"SELECT FROM allele_designations WHERE locus = '{locus[0]}' AND "
-                                            f"isolate_id = (SELECT MAX(id) FROM isolates WHERE isolate='{self.isolatename}') AND"
-                                            f" allele_id = '{allele_id}'")
+                                        sqlquery = """
+                                                   SELECT FROM allele_designations WHERE locus=%s AND 
+                                                   isolate_id = (SELECT MAX(id) FROM isolates WHERE isolate=%s) AND 
+                                                   allele_id=%s;"""
+                                        self.cur_isolates.execute(sqlquery, (locus[0], self.isolatename, allele_id))
                                         allele_designation_presence = self.cur_isolates.fetchall()
                                         if allele_designation_presence == []:
                                             self._insert_allele_designation(locus[0], allele_id)
@@ -129,9 +131,10 @@ class JsonTypingResultsInserter(JsonSuperClass):
                             if self.sample_output_dict[scheme]['loci'] != '[]':
                                 for locus in self.sample_output_dict[scheme]['loci']:
                                     hit = '_'.join(['hsp65', re.sub('[.]| ', '_', locus['Species'])])
-                                    self.cur_isolates.execute(
-                                        f"SELECT FROM eav_boolean WHERE isolate_id = (SELECT MAX(id) FROM isolates WHERE isolate='{self.isolatename}')"
-                                        f" AND field = '{hit}'")
+                                    sqlquery = """
+                                               SELECT FROM eav_boolean WHERE isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate=%s)
+                                               AND field=%s;"""
+                                    self.cur_isolates.execute(sqlquery, (self.isolatename, hit))
                                     presence_hsp65 = self.cur_isolates.fetchall()
                                     if presence_hsp65 == []:
                                         self._insert_metadata_bool(hit, 't')
@@ -152,12 +155,14 @@ class JsonTypingResultsInserter(JsonSuperClass):
                             for hit in speciesandstrainhits:
                                 hit_formatted = '_'.join(['ncbi16s', hit])
                                 # check whether already exists in eav
-                                self.cur_isolates.execute(
-                                    f"SELECT count(*) FROM eav_fields WHERE category='NCBI 16S' AND field = '{hit_formatted}'")
+                                sqlquery = """SELECT count(*) FROM eav_fields WHERE category='NCBI 16S' AND field=%s;"""
+                                self.cur_isolates.execute(sqlquery, (hit_formatted))
                                 eav_exists = self.cur_isolates.fetchall()
                                 if eav_exists[0][0] == 0:
-                                    self.cur_isolates.execute(
-                                        f"INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('{hit_formatted}', 'boolean', 'NCBI 16S', '', 't', 't', (SELECT CURRENT_DATE), 1)")
+                                    sqlquery = """
+                                               INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) 
+                                               VALUES(%s, 'boolean', 'NCBI 16S', '', 't', 't', (SELECT CURRENT_DATE), 1);"""
+                                    self.cur_isolates.execute(sqlquery, (hit_formatted))
                                 self._insert_metadata_bool(hit_formatted, 't')
                     elif self.species == 'neisseria':
                         if scheme == 'resistance_genes':
@@ -221,21 +226,17 @@ class JsonTypingResultsInserter(JsonSuperClass):
                         elif scheme.startswith('spifinder'):
                             hits = self.sample_output_dict[scheme]['results']
                             if hits != '[]':
+                                inserted_alleledesignations_list = []
                                 for SPI in hits:
                                     spifinder_entry = f"CatFunc{SPI['category_function']}__{SPI['accession']}"
                                     spifinder_field = f"{scheme}_{SPI['SPI']}".upper()
-                                    self._insert_dummy_sequence_if_needed(spifinder_field, spifinder_entry)
-                                    self.cur_isolates.execute(
-                                        f"SELECT FROM allele_designations WHERE locus = '{spifinder_field}' AND "
-                                        f" isolate_id = (SELECT MAX(id) FROM isolates WHERE isolate='{self.isolatename}')"
-                                        f" AND allele_id = '{spifinder_entry}'")
-                                    presence_allele_designation = self.cur_isolates.fetchall()
-                                    if presence_allele_designation == []:
+                                    if spifinder_entry not in inserted_alleledesignations_list:
+                                        self._insert_dummy_sequence_if_needed(spifinder_field, spifinder_entry)
                                         self._insert_allele_designation(spifinder_field, spifinder_entry)
+                                        inserted_alleledesignations_list.append(spifinder_entry)
             else:
                 logging.warning(f"scheme {scheme} not present in json file")
-        self.cur_isolates.execute(f"INSERT INTO history(isolate_id, timestamp, action, curator)"
-                                  f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{self.isolatename}'),(SELECT NOW()::TIMESTAMP), 'Typing results inserted', 1)")
+        self._insert_history('Typing results inserted')
         logging.info('Typing results insertion succesful')
 
     def _salmonella_insert_antigens_into_db(self, raw_formula: str, scheme: str) -> None:

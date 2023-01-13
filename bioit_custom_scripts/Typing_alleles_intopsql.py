@@ -1,27 +1,25 @@
-# issue: max(allele_id) != len(allele_id); some alleles are missing in db, need to take count and can not use len!
-# But on the other side; allele sequences under Max should not be updated, so i can only start looking from max(db)
-
 # todo maybe add reverse check aswell to see if sequences are not retired, but why would they retire?
 
-
-import os
-import psycopg2
-from pathlib import Path
-import shutil
-import re
-import smtplib
-from email.message import EmailMessage
-import socket
-import traceback
-import sys
-import logging
-import yaml
 import argparse
+import logging
+import os
+import re
+import shutil
+import smtplib
+import socket
+import sys
+import traceback
+from email.message import EmailMessage
+from pathlib import Path
+
+import psycopg2
+import yaml
 
 PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(PYTHONPATH))
 
 from bioit_custom_scripts.config import BIGSDB_CONFIG
+from bioit_custom_scripts.components.databaseconnection import DatabaseConnection
 
 
 def _parse_arguments(specieslist: list) -> argparse.Namespace:
@@ -43,14 +41,7 @@ def _insert_alleles() -> None:
     :return:
     """
     for species in list(set(args.species)):
-        con_seqdef = psycopg2.connect(database=f"{config_data['species'][species]['seqdefdb']}", user="apache", password=config_data.get('postgresql_apache_pass'),
-                               host="127.0.0.1", port="")
-        con_seqdef.autocommit = True
-        cur_seqdef = con_seqdef.cursor()
-        con_isolates = psycopg2.connect(database=f"{config_data['species'][species]['isolatesdb']}", user="apache", password=config_data.get('postgresql_apache_pass'),
-                                        host="127.0.0.1", port="")
-        con_isolates.autocommit = True
-        cur_isolates = con_isolates.cursor()
+        (con_isolates, cur_isolates), (con_seqdef, cur_seqdef) = DatabaseConnection().connect_to_dbs_and_create_cursors(species)
 
         schemedict = config_data['species'][species]['typing_schemes']
         for scheme in schemedict.keys():
@@ -106,7 +97,8 @@ def _insert_alleles() -> None:
                                 x += 2
 
                         # Part 2: PSQL component
-                        cur_seqdef.execute(f"SELECT allele_id FROM sequences WHERE locus='{dir}'")
+                        sqlquery = """SELECT allele_id FROM sequences WHERE locus=%s;"""
+                        cur_seqdef.execute(sqlquery, (dir))
                         rows = cur_seqdef.fetchall()
                         list_alleleid = []
                         for item in rows:
@@ -130,24 +122,25 @@ def _insert_alleles() -> None:
                                 Sometimes alleles retire for seemingly no reason, and are added immediately after as a new allele id,
                                 The observed ids that went through this were not in any profile or any allele designation in the isolate db
                                 """
-                                cur_seqdef.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status,sender,curator, date_entered, datestamp) \
-                                              VALUES('{dir}','{id}','{fastadict[id]}','unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+                                sqlquery = """
+                                           INSERT INTO sequences(locus, allele_id, sequence, status,sender,curator, date_entered, datestamp) \
+                                           VALUES(%s, %s, %s, 'unchecked', 1, 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));"""
+                                cur_seqdef.execute(sqlquery, (dir, fastadict[id]))
                             except Exception:
                                 """
                                 Profiles are located in the seqdef db and will automatically update when the sequence db is updated through a rule.
                                 Allele designations in the isolate db on the other hand will not, moreover, allele designations in the allele db 
                                 do not need to be referring to a real allele in the seqdef db.
                                 """
-                                cur_seqdef.execute(
-                                    f"SELECT allele_id FROM sequences WHERE locus = '{dir}' AND sequence = '{fastadict[id]}'")
+                                sqlquery = """SELECT allele_id FROM sequences WHERE locus=%s AND sequence=%s;"""
+                                cur_seqdef.execute(sqlquery, (dir, fastadict[id]))
                                 old_id = cur_seqdef.fetchall()[0][
                                     0]  # If empty then it will be a simple empty list '[]' and taking the index twice will throw an error
-                                cur_seqdef.execute(f"UPDATE sequences SET allele_id = '{id}' WHERE locus = '{dir}' AND \
-                                              allele_id = '{old_id}'")
-                                cur_isolates.execute(
-                                    f"UPDATE allele_designations SET allele_id ='{id}' WHERE allele_id ='{old_id}' AND locus = '{dir}'")
-        con_seqdef.close()
-        cur_isolates.close()
+                                sqlquery = """UPDATE sequences SET allele_id = %s WHERE locus=%s AND allele_id=%s;"""
+                                cur_seqdef.execute(sqlquery, (id, dir, old_id))
+                                sqlquery = """UPDATE allele_designations SET allele_id = %s WHERE locus=%s AND allele_id=%s;"""
+                                cur_isolates.execute(sqlquery, (id, dir, old_id))
+        DatabaseConnection().close_connections(con_isolates, con_seqdef)
 
 
 def _send_email(subject: str, content: str, config: dict) -> None:

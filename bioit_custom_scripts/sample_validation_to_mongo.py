@@ -1,32 +1,31 @@
 """
-This script is reference by SubmitPage.pm in the lib/BIGSdb folder, if its location is modified, it needs to be modified there as well
+This script is referenced by SubmitPage.pm in the lib/BIGSdb folder, if its location is modified, it needs to be modified there as well
 """
 
-#!/usr/bin/env python
 import argparse
-import logging
-import sys
-import os
-import yaml
-import smtplib
-from email.message import EmailMessage
-import socket
-import traceback
-import re
-import json
 import datetime
-from pymongo.write_concern import WriteConcern
+import logging
+import os
+import re
+import smtplib
+import socket
+import sys
+import traceback
+from email.message import EmailMessage
+
+import yaml
 from pymongo.read_concern import ReadConcern
+from pymongo.write_concern import WriteConcern
 
 PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(PYTHONPATH))
 
 from bioit_custom_scripts.components.databaseconnection import DatabaseConnection
 from bioit_custom_scripts.config import BIGSDB_CONFIG
-from MongoDB.util.mongo_initialisation import MongoInitialisation
 from MongoDB.config import MONGO_CONFIG
 from MongoDB.mainmongo import MainMongo
 from MongoDB.mongo_to_bigs import mongo_to_bigs
+from MongoDB.util.mongo_initialisation import MongoInitialisation
 
 def send_email(subject: str, content: str, config: dict) -> None:
     """
@@ -62,7 +61,7 @@ if __name__ == '__main__':
     species = re.sub('bigsdb_|_isolates','', args.db)
     # Parse config
     with open(MONGO_CONFIG, encoding='utf-8') as handle:
-        config_data = yaml.safe_load(handle)
+        mongo_config = yaml.safe_load(handle)
 
     with open(BIGSDB_CONFIG, encoding='utf-8') as handle:
         bigsdb_config = yaml.safe_load(handle)
@@ -71,14 +70,14 @@ if __name__ == '__main__':
         # Open collections
         mongoinit = MongoInitialisation()
         isolates_collection, old_isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = \
-            mongoinit.initialise_collections(config_data, species)
+            mongoinit.initialise_collections(mongo_config, species)
 
         # Connect to db and create cursor
         (con_isolates, cur_isolates), (con_seqdef, cur_seqdef) = DatabaseConnection().connect_to_dbs_and_create_cursors(species)
 
         cur_isolates.execute(f"SELECT submissions.id, isolate_submission_isolates.value, submissions.outcome, users.email, submissions.validation_type FROM submissions "
-                             f"left join users on users.id = submissions.curator "
-                             f"left join isolate_submission_isolates on isolate_submission_isolates.submission_id = submissions.id "
+                             f"LEFT JOIN users ON users.id = submissions.curator "
+                             f"LEFT JOIN isolate_submission_isolates ON isolate_submission_isolates.submission_id = submissions.id "
                              f"WHERE submissions.status='closed' and isolate_submission_isolates.field='isolate_id';")
         query = cur_isolates.fetchall()
         if query:  # todo 09/01/2023 MK I think this is a dangerous approach. If at some point no connection can be made between bigs and mongo, a delay will be acquired. I would modify this to be a for loop, combined with a flagfile to say that this script is running which also contains the start time, if the start time is longer than 10 min ago remove it and restart
@@ -134,7 +133,8 @@ if __name__ == '__main__':
                 elif validation_type == 'resequencing':
                     _remove_id_from_document_to_be_unique_again_if_bad(isolates_resequencing_collection)
             #update status once everything is finished
-            cur_isolates.execute(f"UPDATE submissions SET status='validation_sent_to_bioit_platform' WHERE id='{submission_id}'")
+            sqlquery = """UPDATE submissions SET status='validation_sent_to_bioit_platform' WHERE id=%s;"""
+            cur_isolates.execute(sqlquery, (submission_id))
         DatabaseConnection().close_connections(con_isolates, con_seqdef)
     except Exception as exceptionmessage:
         send_email(f"{os.path.basename(__file__)}: sample validation to mongo fail on host {socket.gethostname()}",

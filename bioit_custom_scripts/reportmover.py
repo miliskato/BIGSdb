@@ -1,7 +1,6 @@
 # This script currently expects the dir to have the sample name, and to contain report.txt, report.html and the report directory.
 
 import argparse
-from pathlib import Path
 import subprocess
 
 argument_parser = argparse.ArgumentParser()

@@ -1,10 +1,21 @@
 # This script calculates all isolates with similar cgMLST profiles
 
+""""
+Deprecated, if ever to be used some work to do including psycopg2 sanitization
+"""
 import argparse
-import psycopg2
 import os
+import sys
 
-dirdict= {
+import psycopg2
+import yaml
+
+PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.dirname(PYTHONPATH))
+
+from bioit_custom_scripts.config import BIGSDB_CONFIG
+
+dirdict = {
           'mycobacterium': '/db/sequence_typing/mycobacterium/cgmlst',
           'listeria': '/db/sequence_typing/listeria/cgmlst',
           'neisseria': '/db/sequence_typing/neisseria/cgmlst',
@@ -20,7 +31,10 @@ args = argument_parser.parse_args()
 species = args.species
 isolate_name = args.isolatename
 
-con = psycopg2.connect(database=f"bigsdb_{species}_isolates", user="apache", password="remote",
+with open(BIGSDB_CONFIG, encoding='utf-8') as handle:
+    bigsdb_config = yaml.safe_load(handle)
+
+con = psycopg2.connect(database=f"bigsdb_{species}_isolates", user="apache", password=bigsdb_config.get('postgresql_apache_pass'),
                        host="127.0.0.1", port="")
 cur = con.cursor()
 con.autocommit = True

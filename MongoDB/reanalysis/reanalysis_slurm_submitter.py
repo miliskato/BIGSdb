@@ -45,7 +45,7 @@ def _parse_arguments(specieslist: list) -> argparse.Namespace:
     parser.add_argument('--threads_per_job', type=int, default=1, help='Number of threads to use for one job, should be lower than the machines maximum')
     parser.add_argument('--analysis_arguments', nargs='+', required=False,
                         help='analysis arguments stripped off --, e.g. "--analysis_arguments cgmlst mlst"')
-    parser.add_argument('--pyvenvpythonpath', type=Path, required=True, help='eg /home/BIGSdb/3.9PythonVenv/bin/python3.9')
+    parser.add_argument('--pyvenvpythonpath', type=Path, required=True, help='eg /home/bigsdb/BIGSdb/3.9PythonVenv/bin/python3.9')
     parser.add_argument('--maximal_analysis_date', type=str, required=True, help='YYYY-MM-DD')
     parser.add_argument('--minimal_analysis_date', type=str, required=True, help='YYYY-MM-DD')
     parser.add_argument('--alternate_connection_string', type=str, help=argparse.SUPPRESS)

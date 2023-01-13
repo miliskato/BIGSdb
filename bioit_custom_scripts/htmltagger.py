@@ -1,8 +1,8 @@
 import argparse
-from pathlib import Path
-from tempfile import mkstemp
-from shutil import move, copymode
 from os import fdopen, remove
+from pathlib import Path
+from shutil import move, copymode
+from tempfile import mkstemp
 
 argument_parser = argparse.ArgumentParser()
 argument_parser.add_argument('--htmlfilepath', required=True, type=Path)

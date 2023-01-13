@@ -43,6 +43,13 @@
   apt:
     name: git
 
+# this task comes before the git clone because the git directory path has been moved from /home/bigsdb/BIGSdb to /home/bigsdb/BIGSdb/BIGSdb as per request of RW 13jan23
+- name: create bigsdb unix user
+      ansible.builtin.user:
+        name: bigsdb
+        shell: /bin/sh
+        group: www-data
+
 - name: Get updated files from git repository
   git:
     repo: "https://bioit_ro:{{ secret_bioit_git_ro_password }}@git.sciensano.be/bioit/BIGSdb.git"
@@ -256,12 +263,6 @@
 
 - name: setup offline jobs
   block:
-    - name: create bigsdb unix user
-      ansible.builtin.user:
-        name: bigsdb
-        shell: /bin/sh
-        group: www-data
-
     - name: create bigsdb sql user
       community.postgresql.postgresql_user:
         login_user: postgres
@@ -341,7 +342,7 @@
         minute: '*/1'         # every minute
         hour: '*'
         weekday: '*'
-        job: 'bash /home/BIGSdb/bioit_custom_scripts/cron_startinsertion.sh'
+        job: 'bash /home/bigsdb/BIGSdb/bioit_custom_scripts/cron_startinsertion.sh'
         user: 'root'
         cron_file: bigsdb_galaxy
 

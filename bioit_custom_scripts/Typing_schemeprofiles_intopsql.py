@@ -1,13 +1,14 @@
-import os
-import psycopg2
-import smtplib
-from email.message import EmailMessage
-import socket
-import traceback
-import sys
-import logging
-import yaml
 import argparse
+import logging
+import os
+import smtplib
+import socket
+import sys
+import traceback
+from email.message import EmailMessage
+
+import psycopg2
+import yaml
 
 PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(PYTHONPATH))

@@ -12,7 +12,7 @@ do
   fi
 done
 
-
+VENV_PYTHON_BIGSDB=/home/bigsdb/BIGSdb/3.9PythonVenv/bin/python3.9
 
 for dir in /home/galaxy/mongo/*/
 do
@@ -22,10 +22,10 @@ do
   # todo uploader is unused here and in mainmongo atm, there is currently (6th jan 2022) a dummy in place in mainmongo: 'bioit'
   {
     sudo mv $dir /reports/$species/bigsdb_json_upload/${sample_name}
-    /home/BIGSdb/3.9PythonVenv/bin/python3.9 /home/BIGSdb/bioit_custom_scripts/htmltagger.py --htmlfilepath /reports/$species/bigsdb_json_upload/$sample_name/report.html --species $species
-    /home/BIGSdb/3.9PythonVenv/bin/python3.9 /home/BIGSdb/MongoDB/mainmongo.py --reportdirectorypath /reports/$species/bigsdb_json_upload/${sample_name} --species ${species} --jsonfilepath /reports/$species/bigsdb_json_upload/${sample_name}/report.json --technical_id ${sample_name} --fastafilepath /reports/$species/bigsdb_json_upload/${sample_name}/assembly/${sample_name}_contigs.fasta --vcffilepath  /reports/$species/bigsdb_json_upload/${sample_name}/variant_filtering/${sample_name}-all.vcf --results_type new_isolate
-    /home/BIGSdb/3.9PythonVenv/bin/python3.9 /home/BIGSdb/MongoDB/mongo_to_bigs.py --species ${species}
-##    /home/BIGSdb/3.9PythonVenv/bin/python3.9 /home/BIGSdb/bioit_custom_scripts/cgmlst_similar_isolates.py --isolatename $sample_name --species $species
+    $VENV_PYTHON_BIGSDB /home/bigsdb/BIGSdb/bioit_custom_scripts/htmltagger.py --htmlfilepath /reports/$species/bigsdb_json_upload/$sample_name/report.html --species $species
+    $VENV_PYTHON_BIGSDB /home/bigsdb/BIGSdb/MongoDB/mainmongo.py --reportdirectorypath /reports/$species/bigsdb_json_upload/${sample_name} --species ${species} --jsonfilepath /reports/$species/bigsdb_json_upload/${sample_name}/report.json --technical_id ${sample_name} --fastafilepath /reports/$species/bigsdb_json_upload/${sample_name}/assembly/${sample_name}_contigs.fasta --vcffilepath  /reports/$species/bigsdb_json_upload/${sample_name}/variant_filtering/${sample_name}-all.vcf --results_type new_isolate
+    $VENV_PYTHON_BIGSDB /home/bigsdb/BIGSdb/MongoDB/mongo_to_bigs.py --species ${species}
+##    $VENV_PYTHON_BIGSDB /home/bigsdb/BIGSdb/bioit_custom_scripts/cgmlst_similar_isolates.py --isolatename $sample_name --species $species
   } 2>&1 | tee /home/galaxy/mongo/$sample_name.mongodb_bigsdb_insertion.log
   mv /home/galaxy/mongo/$sample_name.mongodb_bigsdb_insertion.log /reports/$species/bigsdb_json_upload/$sample_name/
 done
@@ -36,4 +36,4 @@ done
 
 
 
-# */1 *   * * *   root    bash /home/BIGSdb/bioit_custom_scripts/cron_startinsertion_mongo_implementation.sh
+# */1 *   * * *   root    bash /home/bigsdb/BIGSdb/bioit_custom_scripts/cron_startinsertion_mongo_implementation.sh

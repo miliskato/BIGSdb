@@ -1,7 +1,7 @@
-from pathlib import Path
 import json
 import logging
 import re
+from pathlib import Path
 
 from .json_superclass import JsonSuperClass
 
@@ -99,8 +99,7 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                         self._insert_metadata(genedetectiondict[scheme]['schemename_bigsdb'], eavhtmltable)
                 else:
                     logging.warning(f"scheme {scheme} not present in json file")
-            self.cur_isolates.execute(f"INSERT INTO history(isolate_id, timestamp, action, curator)"
-                                      f"VALUES((SELECT MAX(id) FROM isolates WHERE isolate='{self.isolatename}'),(SELECT NOW()::TIMESTAMP), 'Gene detection results inserted', 1)")
+            self._insert_history('Gene detection results inserted')
             logging.info('Gene detection insertion succesful')
 
     def _create_clusterdict_current_db_version(self, scheme: str, genedetectiondict: dict) -> (dict, dict):
