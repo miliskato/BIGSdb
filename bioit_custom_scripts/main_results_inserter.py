@@ -87,27 +87,29 @@ def _fail_safe_mechanism(isolatename: str, config: dict, analysis_date: str, cur
         flagfilepath = __make_flagfilepath(isolatename, config)
         if os.path.isfile(flagfilepath):
             logging.warning(f"fail safe mechanism detects that the bigsdb insertion for sample {isolatename} was started but didnt finish. Removing {isolatename} from Bigsdb to be able to restart inserting.")
-            cur_isolates.execute(f"SELECT COUNT(*) FROM isolates WHERE isolate='{isolatename}'")
+            sqlquery = """SELECT COUNT(*) FROM isolates WHERE isolate=%s;"""
+            cur_isolates.execute(sqlquery, (isolatename,))
             nr_of_versions = cur_isolates.fetchall()[0][0]
             if nr_of_versions > 1:
-                cur_isolates.execute(
-                    f"UPDATE isolates SET new_version=NULL WHERE id=(SELECT MIN(id) FROM isolates WHERE id in (SELECT id FROM isolates WHERE isolate='{isolatename}' ORDER BY id DESC LIMIT 2))")
-                cur_isolates.execute(
-                    f"DELETE FROM isolates WHERE isolate='{isolatename}' AND id=(SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}') ")
-                cur_isolates.execute(
-                            f"INSERT INTO isolates(id, isolate, sender, curator, date_entered, datestamp, uploader, latest_analyis_date) "
-                            f"VALUES((SELECT CASE WHEN (SELECT MAX(id) FROM isolates) IS NULL THEN 1 "
-                            f"ELSE (SELECT(SELECT MAX(id) FROM isolates)+1) END), '{isolatename}', 1, 1, "
-                            f"(SELECT CURRENT_DATE),(SELECT CURRENT_DATE), "
-                            f"(SELECT uploader FROM isolates WHERE isolate='{isolatename}' AND id=(SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}')),"
-                            f"'{datetime.datetime.strptime(analysis_date, '%d/%m/%Y - %X').strftime('%Y-%m-%d')}')")
-                cur_isolates.execute(
-                    f"UPDATE isolates SET new_version=(SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}') "
-                    f"WHERE isolate='{isolatename}' AND new_version IS NULL AND id!=(SELECT MAX(id) "
-                    f"FROM isolates WHERE isolate='{isolatename}')")
+                sqlquery = """UPDATE isolates SET new_version=NULL WHERE id=(SELECT MIN(id) FROM isolates WHERE id in (SELECT id FROM isolates WHERE isolate=%s ORDER BY id DESC LIMIT 2));"""
+                cur_isolates.execute(sqlquery, (isolatename,))
+                sqlquery = """DELETE FROM isolates WHERE isolate='{isolatename}' AND id=(SELECT MAX(id) FROM isolates WHERE isolate=%s);"""
+                cur_isolates.execute(sqlquery, (isolatename,))
+                sqlquery = """
+                           INSERT INTO isolates(id, isolate, sender, curator, date_entered, datestamp, uploader, latest_analyis_date) 
+                           VALUES((SELECT CASE WHEN (SELECT MAX(id) FROM isolates) IS NULL THEN 1 
+                           ELSE (SELECT(SELECT MAX(id) FROM isolates)+1) END), %s, 1, 1, 
+                           (SELECT CURRENT_DATE),(SELECT CURRENT_DATE), 
+                           (SELECT uploader FROM isolates WHERE isolate=%s AND id=(SELECT MAX(id) FROM isolates WHERE isolate=%s)), %s);"""
+                cur_isolates.execute(sqlquery, (isolatename, isolatename, isolatename, datetime.datetime.strptime(analysis_date, '%d/%m/%Y - %X').strftime('%Y-%m-%d')))
+                sqlquery = """
+                           UPDATE isolates SET new_version=(SELECT MAX(id) FROM isolates WHERE isolate=%s) 
+                           WHERE isolate=%s AND new_version IS NULL AND id!=(SELECT MAX(id) 
+                           FROM isolates WHERE isolate=%s);"""
+                cur_isolates.execute(sqlquery, (isolatename, isolatename, isolatename))
             else:
-                cur_isolates.execute(
-                    f"DELETE FROM isolates WHERE isolate='{isolatename}' AND id=(SELECT MAX(id) FROM isolates WHERE isolate='{isolatename}') ")
+                sqlquery = """DELETE FROM isolates WHERE isolate=%s AND id=(SELECT MAX(id) FROM isolates WHERE isolate=%s);"""
+                cur_isolates.execute(sqlquery, (isolatename, isolatename))
         else:
             flagfilepath.touch()
             os.chmod(flagfilepath, 0o777)

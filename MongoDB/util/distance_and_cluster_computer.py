@@ -1,12 +1,14 @@
-import logging
-import numpy as np
-from MongoDB.util.hamming_distance import getDistance, __dist_wrapper, __parallel_dist, hamming_dist
-from multiprocessing import Pool
 import datetime
+import logging
+from multiprocessing import Pool
+
 import fastcluster
-from scipy.spatial import distance as ssd
+import numpy as np
 import scipy.cluster.hierarchy as hcluster
 from pymongo.write_concern import WriteConcern
+from scipy.spatial import distance as ssd
+
+from MongoDB.util.hamming_distance import getDistance
 
 
 class DistanceAndClusterComputer:
@@ -14,7 +16,7 @@ class DistanceAndClusterComputer:
     Class to compute hamming distances and determine the cluster membership to store in mongoDB.
     """
 
-    def __init__(self, st_collection: object, cluster_membership_collection: object, cluster_merging_collection:object, st_to_use: list) -> None:
+    def __init__(self, st_collection: object, cluster_membership_collection: object, cluster_merging_collection: object, st_to_use: list) -> None:
         """
         Initializes the class.
         :param st_collection: sequence types collection from mongoDb.

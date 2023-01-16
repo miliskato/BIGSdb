@@ -1,35 +1,26 @@
 # export PYTHONPATH=/home/mikelchtermans/Bigsdb_mongodb/BIGSdb
 # /home/mikelchtermans/3.9PythonVenv/bin/python3.9 /home/mikelchtermans/Bigsdb_mongodb/BIGSdb/MongoDB/reanalysis/reanalysis.py --species listeria --config /home/mikelchtermans/Bigsdb_mongodb/BIGSdb/MongoDB/reanalysis/config.yml --threads 30 --pyvenvpythonpath /home/mikelchtermans/3.9PythonVenv/bin/python3.9
 import argparse
-import json
-import logging
-import tempfile
-from pathlib import Path
-from urllib.parse import urljoin
 import concurrent.futures
+import datetime
+import logging
 import os
-import sys
-import socket
 import shutil
-import requests
-import yaml
-import psycopg2
-import subprocess
-import datetime
-import traceback
 import smtplib
+import socket
+import sys
+import tempfile
+import traceback
 from email.message import EmailMessage
-import datetime
+from pathlib import Path
 from typing import Optional, Dict
 
-from pymongo.write_concern import WriteConcern
-from pymongo.read_concern import ReadConcern
+import yaml
 
 PYTHONPATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.dirname(PYTHONPATH))
 
 from MongoDB.util.command.command import Command
-from MongoDB.util.mongo_querying import Mongoquerying
 from MongoDB.util.mongo_initialisation import MongoInitialisation
 from MongoDB.config import MONGO_CONFIG
 from MongoDB.reanalysis import MONGO_REANALYSIS_CONFIG

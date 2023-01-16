@@ -97,7 +97,7 @@ def _gene_detection_insertion_recalcultation():
 
                 # set the descriptions of the loci, comma separated list of all genes
                 sqlquery = """DELETE FROM locus_descriptions WHERE locus LIKE %s;"""
-                cur_seqdef.execute(sqlquery, (f"{schemedict[scheme]['schemename_bigsdb']}_GeneCluster%"))
+                cur_seqdef.execute(sqlquery, (f"{schemedict[scheme]['schemename_bigsdb']}_GeneCluster%",))
                 for cluster, description in descriptiondict.items():
                     # convert list to more meaningfull and aesthatically pleasing string
                     descriptionstring = ' '.join(['Contains genes:', ', '.join([x for x in description])])
@@ -106,11 +106,11 @@ def _gene_detection_insertion_recalcultation():
                                VALUES(%s, %s, %s ,(SELECT CURRENT_DATE), 1);"""
                     cur_seqdef.execute(sqlquery, (cluster, descriptionstring.replace('Contains genes:',''), descriptionstring))
                 sqlquery = """DELETE FROM allele_designations WHERE locus LIKE %s;"""
-                cur_isolates.execute(sqlquery, (f"{schemedict[scheme]['schemename_bigsdb']}_GeneCluster%"))
+                cur_isolates.execute(sqlquery, (f"{schemedict[scheme]['schemename_bigsdb']}_GeneCluster%",))
                 sqlquery = """
                            SELECT eav_text_hidden.isolate_id, eav_text_hidden.value, isolates.isolate FROM eav_text_hidden 
                            LEFT JOIN isolates ON isolates.id = eav_text_hidden.isolate_id WHERE eav_text_hidden.field=%s;"""
-                cur_isolates.execute(sqlquery, (schemedict[scheme]['schemename_bigsdb']))
+                cur_isolates.execute(sqlquery, (schemedict[scheme]['schemename_bigsdb'],))
                 listofsamplesandhits = cur_isolates.fetchall()
                 # this might look something like this currently: [(3, '[["Cluster_15", "ActA_1", "94.20", "1915/1920", "NODE_24_length_29899_cov_7.347474", "26015..27929", "NC_003210.1"], ["Cluster_59", "AgrA_1", "98.90", "729/729", "NODE_2_length_347775_cov_7.239843", "324619..325347", "NC_003210.1"], ["Cluster_67", "clpp_1", "96.82", "597/597", "NODE_5_length_187626_cov_7.284412", "124253..124849", "NC_003210.1"], ["Cluster_55", "codY_1", "95.26", "780/780", "NODE_14_length_77047_cov_5.065224", "15699..16478", "NC_003210.1"], ["Cluster_28", "ctaP_1", "97.91", "1575/1575", "NODE_8_length_111969_cov_7.509254", "4180..5754", "NC_003210.1"], ["Cluster_72", "ctsR_1", "96.95", "459/459", "NODE_3_length_239115_cov_6.610227", "396..854", "NC_003210.1"], ["Cluster_40", "dal_1", "92.32", "1107/1107", "NODE_13_length_82610_cov_5.507547", "35258..36364", "NC_003210.1"], ["Cluster_61", "degU_1", "98.84", "687/687", "NODE_5_length_187626_cov_7.284412", "72335..73021", "NC_003210.1"], ["Cluster_29", "dltA_1", "96.02", "1533/1533", "NODE_18_length_59308_cov_5.458390", "50475..52007", "NC_003210.1"]]'), (4, '["Cluster_0", "Eut_operon_1", "97.06", "15039/15038", "NODE_9_length_109885_cov_5.345642", "68077..83115", "NC_003210.1"], ["Cluster_23", "fbpA_1", "91.71", "1713/1713", "NODE_1_length_368586_cov_5.801544", "317694..319406", "NC_003210.1"], ["Cluster_53", "FlaA_1", "98.15", "864/864", "NODE_16_length_63978_cov_5.528441", "47023..47886", "NC_003210.1"], ["Cluster_38", "FlgE_1", "94.01", "1236/1236", "NODE_16_length_63978_cov_5.528441", "41031..42266", "NC_003210.1"], ["Cluster_76", "FlgC_1", "92.46", "411/411", "NODE_16_length_63978_cov_5.528441", "29381..29791", "NC_003210.1"], ["Cluster_70", "fri_1", "97.86", "467/471", "NODE_27_length_26080_cov_5.738643", "7405..7871", "NC_003210.1"], ["Cluster_73", "fur_1", "96.25", "453/453", "NODE_1_length_368586_cov_5.801544", "184454..184906", "NC_003210.1"], ["Cluster_16", "Gmar_1", "96.97", "1914/1914", "NODE_16_length_63978_cov_5.528441", "49045..50958", "NC_017537.1"], ["Cluster_79", "hfq_1", "99.14", "234/234", "NODE_14_length_77047_cov_5.065224", "32920..33153", "NC_003210.1"]')]
                 x = 0
@@ -179,7 +179,7 @@ def _gene_detection_insertion_recalcultation():
                             sqlquery = """
                                        INSERT INTO history(isolate_id, timestamp, action, curator) 
                                        VALUES(%s, (SELECT NOW()::TIMESTAMP), 'Gene detection results reevaluated after database update', 1);"""
-                            cur_isolates.execute(sqlquery, (isolate_id))
+                            cur_isolates.execute(sqlquery, (isolate_id,))
         DatabaseConnection().close_connections(con_isolates, con_seqdef)
 
 

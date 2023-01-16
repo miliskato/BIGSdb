@@ -1,8 +1,9 @@
-import yaml
 import argparse
-from pathlib import Path
 import os
 import sys
+from pathlib import Path
+
+import yaml
 
 PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(PYTHONPATH))
@@ -20,10 +21,9 @@ def parse_arguments(specieslist: list) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--species", required=True, type=str,
                         choices=specieslist)
-    parser.add_argument("--new_cl_thresh", required=True, type=str,  help='list writen without spaces between brackets')
+    parser.add_argument("--new_cl_thresh", required=True, type=str, nargs='+', help='Arguments passed as space separated values: e.g. --new_cl_thresh 10 15')
     parser.add_argument("--cl_config", required=True, type=Path)
     return parser.parse_args()
-
 
 
 if __name__ == '__main__':
@@ -40,5 +40,5 @@ if __name__ == '__main__':
         mongoinit.initialise_clustering_collections(config_data, args.species)
 
     new_threshold_clustering = NewThresholdClustering(st_collection, cluster_membership_collection, args.cl_config,
-                                                      eval(args.new_cl_thresh), args.species)
+                                                      list(set(args.new_cl_thresh)), args.species)
     new_threshold_clustering.create_new_threshold_and_compute_clustering()

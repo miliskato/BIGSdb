@@ -1,18 +1,18 @@
 import argparse
-import logging
-import yaml
-from pymongo.write_concern import WriteConcern
-from pymongo.read_concern import ReadConcern
-from pathlib import Path
-import sys
-import socket
-from Bio import SeqIO
-import os
 import hashlib
+import logging
+import os
 import smtplib
-from email.message import EmailMessage
+import socket
+import sys
 import traceback
+from email.message import EmailMessage
+from pathlib import Path
 
+import yaml
+from Bio import SeqIO
+from pymongo.read_concern import ReadConcern
+from pymongo.write_concern import WriteConcern
 
 PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(PYTHONPATH))
@@ -171,7 +171,10 @@ def tempid_replacer(scheme: str, species: str, alternate_connection_string: str 
                 (con_isolates, cur_isolates), (con_seqdef, cur_seqdef) = DatabaseConnection().connect_to_dbs_and_create_cursors(species)
                 for hash_document in documents_list:
                     if hash_document['resolved_AD'] != 0:
-                        cur_isolates.execute(f"UPDATE allele_designations SET allele_id='{hash_document['resolved_AD']}' WHERE allele_id='{hash_document['hashed_allele']}' AND locus='{hash_document['locus']}'")
+                        sqlquery = """
+                                   UPDATE allele_designations SET allele_id = %s 
+                                   WHERE allele_id=%s AND locus=%s;"""
+                        cur_isolates.execute(sqlquery, (hash_document['resolved_AD'], hash_document['hashed_allele'], hash_document['locus']))
                 DatabaseConnection().close_connections(con_isolates, con_seqdef)
     except Exception as exceptionmessage:
         _send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",

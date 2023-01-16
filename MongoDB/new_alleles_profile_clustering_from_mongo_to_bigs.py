@@ -1,16 +1,16 @@
-import sys
-import yaml
-import argparse
-import logging
-from pymongo.write_concern import WriteConcern
 import datetime
-from datetime import date
-import smtplib
-from email.message import EmailMessage
-import socket
-import traceback
+import logging
 import os
+import smtplib
+import socket
+import sys
+import traceback
+from datetime import date
+from email.message import EmailMessage
 from typing import Dict
+
+import yaml
+from pymongo.write_concern import WriteConcern
 
 PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(PYTHONPATH))
@@ -48,14 +48,6 @@ class NewAllelesProfileClusteringFromMongoToBigs:
         :param update_metadata_collection: the update metadata collection from the mongo db of the species
         """
         self.species = species
-        self.schemes = ['mlst', 'cgmlst'] if species != 'stec' else ['mlst_warwick', 'mlst_pasteur', 'cgmlst']
-        self.schemedict = {
-            'listeria': {'seqdefdb': 'bigsdb_listeria_seqdef', 'isolatedb': 'bigsdb_listeria_isolates'},
-            'mycobacterium': {'seqdefdb': 'bigsdb_mycobacterium_seqdef', 'isolatedb': 'bigsdb_mycobacterium_isolates'},
-            'neisseria': {'seqdefdb': 'bigsdb_neisseria_seqdef', 'isolatedb': 'bigsdb_neisseria_isolates'},
-            'stec': {'seqdefdb': 'bigsdb_stec_seqdef', 'isolatedb': 'bigsdb_stec_isolates'},
-            'salmonella': {'seqdefdb': 'bigsdb_salmonella_seqdef', 'isolatedb': 'bigsdb_salmonella_isolates'}
-        }
         self.st_collection = st_collection
         self.hashed_ad_collection = hashed_ad_collection
         self.cluster_membership_collection = cluster_membership_collection
@@ -143,32 +135,19 @@ class NewAllelesProfileClusteringFromMongoToBigs:
         for scheme_loci in ordered_by_scheme_dict.keys():
             scheme, locus = scheme_loci.split(',')
             # fetch all alleles ids already in bigs
-            self.cur_seqdef.execute(f"SELECT allele_id FROM sequences WHERE locus='{locus}'")
-            rows = self.cur_seqdef.fetchall()
-            list_alleleid = []
-            for item in rows:
-                list_alleleid.append(item[0])
+            sqlquery = """SELECT allele_id FROM sequences WHERE locus=%s;"""
+            self.cur_seqdef.execute(sqlquery, (locus,))
+            listoftuples: list = self.cur_seqdef.fetchall()
+            list_alleleid: list = [x[0] for x in listoftuples]
             for new_allele in ordered_by_scheme_dict[scheme_loci]:
                 if new_allele['temp_allele_name'] not in list_alleleid:
-                    try:
-                        self.cur_seqdef.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status,sender,"
-                                                f"curator, date_entered, datestamp) VALUES('{locus}',"
-                                                f"'{new_allele['temp_allele_name']}','{new_allele['allele_sequence']}',"
-                                                f"'unchecked',1,1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
-                        logging.info(f"id {new_allele['temp_allele_name']} inserted into locus {locus}")
-                    except:
-                        self.cur_seqdef.execute(
-                            f"SELECT allele_id FROM sequences WHERE allele_id='{new_allele['temp_allele_name']}'")
-                        test = self.cur_seqdef.fetchall()
-                        test_list = []
-                        for it in test:
-                            test_list.append(it)
-                        if len(test_list) > 0:
-                            logging.info(f"id {new_allele['temp_allele_name']} already inserted = no insertion required")
-                        else:
-                            LookupError(
-                                f"id {new_allele['temp_allele_name']} is not inserted in the db and wasn't found in the db"
-                                f". Please investigate this error further!")
+                    sqlquery = """
+                               INSERT INTO sequences(locus, allele_id, sequence, status, sender, 
+                               curator, date_entered, datestamp) 
+                               VALUES(%s, %s, %s, 'unchecked', 1, 
+                               1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE));"""
+                    self.cur_seqdef.execute(sqlquery, (locus, new_allele['temp_allele_name'], new_allele['allele_sequence']))
+                    logging.info(f"id {new_allele['temp_allele_name']} inserted into locus {locus}")
 
     def _order_sequences_by_locus(self) -> Dict[str, str]:
         """
@@ -190,9 +169,9 @@ class NewAllelesProfileClusteringFromMongoToBigs:
         :return: None.
         """
         self.cur_seqdef.execute(f"SELECT MAX(profile_id) FROM profiles WHERE "
-                                f"scheme_id = (SELECT id FROM schemes WHERE name = 'cgMLST') AND "
-                                f"LENGTH(profile_id) = (SELECT MAX(LENGTH(profile_id)) FROM profiles WHERE scheme_id = "
-                                f"(SELECT id FROM schemes WHERE name = 'cgMLST'))")
+                                f"scheme_id=(SELECT id FROM schemes WHERE name='cgMLST') AND "
+                                f"LENGTH(profile_id)="
+                                f"(SELECT MAX(LENGTH(profile_id)) FROM profiles WHERE scheme_id=(SELECT id FROM schemes WHERE name = 'cgMLST'))")
         max_st_in_bigs = self.cur_seqdef.fetchall()[0][0]
         if max_st_in_bigs is None:
             max_st_in_bigs = 0
@@ -201,40 +180,44 @@ class NewAllelesProfileClusteringFromMongoToBigs:
                 logging.info(f"start insert of {st['cgST']}")
                 st_id = st['cgST']
                 # insertion of the st id into the profiles table
-                self.cur_seqdef.execute(f"INSERT INTO profiles(scheme_id, "
-                                        f"profile_id, sender, curator, "
-                                        f"date_entered, datestamp) "
-                                        f"VALUES((SELECT id FROM schemes WHERE name = 'cgMLST'),"
-                                        f"'{st_id}', 1, 1, "
-                                        f"(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
-
+                sqlquery = """
+                           INSERT INTO profiles(scheme_id, 
+                           profile_id, sender, curator, 
+                           date_entered, datestamp) 
+                           VALUES((SELECT id FROM schemes WHERE name = 'cgMLST'), 
+                           %s, 1, 1, 
+                           (SELECT CURRENT_DATE),(SELECT CURRENT_DATE));"""
+                self.cur_seqdef.execute(sqlquery, (st_id,))
                 # insertion of the st in the profiles_fields
-                self.cur_seqdef.execute(f"INSERT INTO profile_fields(scheme_id, "
-                                        f"scheme_field, profile_id, value, "
-                                        f"curator, datestamp) "
-                                        f"VALUES((SELECT id FROM schemes WHERE name = 'cgMLST'),"
-                                        f"'cgST', '{st_id}', '{st_id}', "
-                                        f"1,(SELECT CURRENT_DATE))")
+                sqlquery = """
+                           INSERT INTO profile_fields(scheme_id, 
+                           scheme_field, profile_id, value, 
+                           curator, datestamp) 
+                           VALUES((SELECT id FROM schemes WHERE name='cgMLST'), 
+                           'cgST', %s, %s, 
+                           1, (SELECT CURRENT_DATE));"""
+                self.cur_seqdef.execute(sqlquery, (st_id, st_id))
                 alleles = st['cgMLST'].split(',')
                 for locus, allele_id in zip(self.st_headers['headers'], alleles):
                     if allele_id == '0':  # this will create a ForeignKeyViolation error so we prevent this
                         # by inserting a null allele if not yet present
-                        self.cur_seqdef.execute(f"SELECT count(*) FROM sequences WHERE "
-                                                f"locus = '{locus}' AND sequence = 'null allele'")
+                        sqlquery = """
+                                   SELECT count(*) FROM sequences WHERE 
+                                   locus=%s AND sequence='null allele';"""
+                        self.cur_seqdef.execute(sqlquery, (locus,))
                         nullpresent = self.cur_seqdef.fetchall()
                         if nullpresent[0][0] == 0:
-                            self.cur_seqdef.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status, sender,"
-                                                    f"curator, date_entered, datestamp)VALUES('{locus}',0, "
-                                                    f"'null allele', '',0,0,(SELECT CURRENT_DATE),"
-                                                    f"(SELECT CURRENT_DATE))")
+                            sqlquery = """
+                                       INSERT INTO sequences(locus, allele_id, sequence, sender, curator, date_entered, datestamp) \
+                                       VALUES(%s, 0, 'null allele', 0, 0, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));"""
+                            self.cur_seqdef.execute(sqlquery, (locus,))
 
-
-                    self.cur_seqdef.execute(f"INSERT INTO profile_members(scheme_id, "
-                                                f"locus, profile_id, allele_id, "
-                                                f"curator, datestamp) "
-                                                f"VALUES((SELECT id FROM schemes WHERE name = 'cgMLST'),"
-                                                f"'{locus}', '{st_id}', '{allele_id}', "
-                                                f"1,(SELECT CURRENT_DATE))")
+                    sqlquery = """
+                               INSERT INTO profile_members(scheme_id, 
+                               locus, profile_id, allele_id, curator, datestamp) 
+                               VALUES((SELECT id FROM schemes WHERE name='cgMLST'), 
+                               %s, %s, %s, 1, (SELECT CURRENT_DATE));"""
+                    self.cur_seqdef.execute(sqlquery, (locus, st_id, allele_id))
 
 
     def _insert_or_update_clustering(self) -> None:
@@ -250,70 +233,71 @@ class NewAllelesProfileClusteringFromMongoToBigs:
             cg_scheme_id = self.clustering_thresholds.index(cl_membership['threshold']) + 1
             profile_id = cl_membership['cgST']
             group_id = cl_membership['clustering_membership']
-            self.cur_seqdef.execute(
-                f"SELECT * FROM classification_groups WHERE (cg_scheme_id = '{cg_scheme_id}' and"
-                f" group_id = '{group_id}')")
-            test_group_exist = self.cur_seqdef.fetchall()
-            if not test_group_exist:
-                self.cur_seqdef.execute(
-                    f"INSERT INTO classification_groups (cg_scheme_id, group_id, active, curator, datestamp)"
-                    f"VALUES ('{cg_scheme_id}', '{group_id}', true, 1, (SELECT CURRENT_DATE))")
+            sqlquery = """SELECT * FROM classification_groups WHERE cg_scheme_id=%s AND group_id=%s;"""
+            self.cur_seqdef.execute(sqlquery, (cg_scheme_id, group_id))
+            query_group_exists = self.cur_seqdef.fetchall()
+            if not query_group_exists:
+                sqlquery = """
+                           INSERT INTO classification_groups(cg_scheme_id, group_id, active, curator, datestamp) 
+                           VALUES(%s, %s, true, 1, (SELECT CURRENT_DATE));"""
+                self.cur_seqdef.execute(sqlquery, (cg_scheme_id, group_id))
             # group exists so now need to check if clustering membership already present
-            self.cur_seqdef.execute(
-                f"SELECT group_id FROM classification_group_profiles WHERE (cg_scheme_id = '{cg_scheme_id}'"
-                f" and profile_id = '{profile_id}')")
-            test_group_profile_exist = self.cur_seqdef.fetchall()
-            previous_group = test_group_profile_exist
+            sqlquery = """SELECT group_id FROM classification_group_profiles WHERE cg_scheme_id=%s AND profile_id=%s;"""
+            self.cur_seqdef.execute(sqlquery, (cg_scheme_id, profile_id))
+            query_group_profile_exists = self.cur_seqdef.fetchall()
+            previous_group = query_group_profile_exists
             if not previous_group:
-                self.cur_seqdef.execute(
-                    f"INSERT INTO classification_group_profiles (cg_scheme_id, group_id, profile_id, scheme_id, "
-                    f"curator, datestamp) VALUES ('{cg_scheme_id}', '{group_id}','{profile_id}',"
-                    f" (SELECT id FROM schemes WHERE name = 'cgMLST'), 1, (SELECT CURRENT_DATE))")
+                sqlquery = """
+                           INSERT INTO classification_group_profiles(cg_scheme_id, group_id, profile_id, 
+                           scheme_id, curator, datestamp) 
+                           VALUES(%s, %s, %s, 
+                           (SELECT id FROM schemes WHERE name = 'cgMLST'), 1, (SELECT CURRENT_DATE));"""
+                self.cur_seqdef.execute(sqlquery, (cg_scheme_id, group_id, profile_id))
             elif previous_group[0][0] != group_id:
-                self.cur_seqdef.execute(
-                    f"UPDATE classification_group_profiles SET group_id = '{group_id}' WHERE"
-                    f" cg_scheme_id = '{cg_scheme_id}' AND profile_id = '{profile_id}'")
-                self.cur_seqdef.execute(
-                    f"INSERT INTO classification_group_profile_history (timestamp, scheme_id, profile_id, cg_scheme_id,"
-                    f" previous_group) VALUES((SELECT CURRENT_DATE), (SELECT id FROM schemes WHERE"
-                    f" name = 'cgMLST'), '{profile_id}', '{cg_scheme_id}', '{previous_group[0][0]}')")
+                sqlquery = """
+                           UPDATE classification_group_profiles SET group_id = %s 
+                           WHERE cg_scheme_id=%s AND profile_id=%s;"""
+                self.cur_seqdef.execute(sqlquery, (group_id, cg_scheme_id, profile_id))
+                sqlquery = """
+                           INSERT INTO classification_group_profile_history(timestamp, scheme_id, 
+                           profile_id, cg_scheme_id, previous_group) 
+                           VALUES((SELECT CURRENT_DATE), (SELECT id FROM schemes WHERE name = 'cgMLST'),
+                           %s, %s, %s);"""
+                self.cur_seqdef.execute(sqlquery, (profile_id, cg_scheme_id, previous_group[0][0]))
                 if previous_group[0][0] not in groups_merged:
                     logging.debug(f'group {previous_group[0][0]} is merged into {group_id}')
                     groups_merged.append(previous_group[0][0])
                     # update group table
-                    self.cur_seqdef.execute(
-                        f"UPDATE classification_groups SET active = false WHERE cg_scheme_id = '{cg_scheme_id}' AND \
-                                                          group_id = '{previous_group[0][0]}'")
+                    sqlquery = """UPDATE classification_groups SET active = false WHERE cg_scheme_id=%s AND group_id=%s;"""
+                    self.cur_seqdef.execute(sqlquery, (profile_id, previous_group[0][0]))
 
     def __check_for_classification_schemes(self) -> None:
         """
         Check if the classification schemes are already into BIGSdb. if not, insert them.
         :return:
         """
-        self.cur_seqdef.execute(f"SELECT id,inclusion_threshold from classification_schemes")
+        self.cur_seqdef.execute(f"SELECT id, inclusion_threshold from classification_schemes")
         query_res = self.cur_seqdef.fetchall()
-        if query_res is not None:
-            thresholds_presents = [x[1] for x in query_res]
-
-        else:
-            thresholds_presents = []
-        idx_max = len(thresholds_presents)
+        thresholds_presents = [x[1] for x in query_res]
+        idx_max = max([x[0] for x in query_res])
         for threshold in self.clustering_thresholds:
             if threshold not in thresholds_presents:
                 name = f"cgMLST_{threshold}_diffs_clustering"
                 description = f"Clustering of the cgMLST profiles at {threshold} alleles of differences"
                 # initialize in seqdef
-                self.cur_seqdef.execute(
-                    f"INSERT INTO classification_schemes (id, scheme_id, name, description, inclusion_threshold,"
-                    f" use_relative_threshold, display_order, status, curator, datestamp)VALUES ('{idx_max + 1}', "
-                    f"(SELECT id FROM schemes WHERE name = 'cgMLST'), '{name}', '{description}', '{threshold}',"
-                    f" false, '{idx_max + 1}', 'experimental',1, (SELECT CURRENT_DATE) )")
+                sqlquery = """
+                           INSERT INTO classification_schemes(id, scheme_id, name, description, inclusion_threshold, 
+                           use_relative_threshold, display_order, status, curator, datestamp) 
+                           VALUES(%s, (SELECT id FROM schemes WHERE name = 'cgMLST'), %s, %s, %s, 
+                           false, %s, 'experimental', 1, (SELECT CURRENT_DATE));"""
+                self.cur_seqdef.execute(sqlquery, (idx_max + 1, name, description, threshold, idx_max + 1))
                 # initialize in isolates
-                self.cur_isolates.execute(
-                    f"INSERT INTO classification_schemes (id, scheme_id, name, description, inclusion_threshold, "
-                    f"use_relative_threshold, seqdef_cscheme_id, display_order, status, curator, datestamp) "
-                    f"VALUES ('{idx_max + 1}', (SELECT id FROM schemes WHERE name = 'cgMLST'), '{name}', '{description}',"
-                    f" '{threshold}', false, '{idx_max + 1}','{idx_max + 1}', 'experimental',1, (SELECT CURRENT_DATE) )")
+                sqlquery = """
+                           INSERT INTO classification_schemes(id, scheme_id, name, description, inclusion_threshold, 
+                           use_relative_threshold, seqdef_cscheme_id, display_order, status, curator, datestamp) 
+                           VALUES(%s, (SELECT id FROM schemes WHERE name = 'cgMLST'), %s, %s, %s, 
+                           false, %s, %s, 'experimental', 1, (SELECT CURRENT_DATE));"""
+                self.cur_seqdef.execute(sqlquery, (idx_max + 1, name, description, threshold, idx_max + 1, idx_max + 1))
                 idx_max += 1
             else:
                 logging.debug(f"Threshold {threshold} already present")

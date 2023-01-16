@@ -97,7 +97,7 @@ class JsonSuperClass:
         present = self.cur_seqdef.fetchall()
         if present == []:
             sqlquery = """SELECT sequence FROM sequences WHERE locus=%s ORDER BY CHAR_LENGTH(sequence) DESC LIMIT 1;"""
-            self.cur_seqdef.execute(sqlquery, (locus))
+            self.cur_seqdef.execute(sqlquery, (locus,))
             longest_dummy_sequence = self.cur_seqdef.fetchall()
             if longest_dummy_sequence == []:
                 dummysequence = 'TAG'
@@ -117,14 +117,14 @@ class JsonSuperClass:
         :return:
         """
         sqlquery = """SELECT id FROM loci WHERE id=%s"""
-        self.cur_seqdef.execute(sqlquery, (locus))
+        self.cur_seqdef.execute(sqlquery, (locus,))
         present = self.cur_seqdef.fetchall()
         if present == []:
             # insert into seqdef
             sqlquery = """
                        INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, curator, date_entered, datestamp) 
                        VALUES(%s, 'DNA', 'text', 't', 't', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));"""
-            self.cur_seqdef.execute(sqlquery, (locus))
+            self.cur_seqdef.execute(sqlquery, (locus,))
             sqlquery_members = """
                        INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) 
                        VALUES((SELECT id FROM schemes WHERE name=%s), %s, 1, (SELECT CURRENT_DATE));"""
@@ -132,7 +132,7 @@ class JsonSuperClass:
             sqlquery = """
                        INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) 
                        VALUES(1, %s, 1, (SELECT CURRENT_DATE));"""
-            self.cur_seqdef.execute(sqlquery, (locus))
+            self.cur_seqdef.execute(sqlquery, (locus,))
 
             # insert into isolates
             dbaseurl = ''.join(['/cgi-bin/bigsdb/bigsdb.pl?db=', f'bigsdb_{self.species}_seqdef',
@@ -161,7 +161,7 @@ class JsonSuperClass:
         schemememberpresent = self.cur_seqdef.fetchall()
         if schemememberpresent[0][0] == 0:
             sqlquery = """
-                       INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) \
+                       INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) 
                        VALUES((SELECT id FROM schemes WHERE name=%s), %s, 1, (SELECT CURRENT_DATE));"""
             self.cur_seqdef.execute(sqlquery, (scheme, locus))
             self.cur_isolates.execute(sqlquery, (scheme, locus))

@@ -1,14 +1,13 @@
-import argparse
-import logging
-import sys
-import os
-import yaml
-from pathlib import Path
-import smtplib
-from email.message import EmailMessage
-import socket
-import traceback
 import datetime
+import logging
+import os
+import smtplib
+import socket
+import sys
+import traceback
+from email.message import EmailMessage
+
+import yaml
 from pymongo.write_concern import WriteConcern
 
 PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
@@ -44,12 +43,14 @@ def _insert_submission_bigs(cur_isolates: object, sample_docs: list[dict], valid
     :return:
     """
     for doc in sample_docs:
-        cur_isolates.execute(f"INSERT INTO submissions (id, "
-                             f"type,submitter, date_submitted, "
-                             f"datestamp, status, email, validation_type)"
-                             f"VALUES ((SELECT CASE WHEN (SELECT MAX(id::int) FROM submissions) IS NULL THEN 1 ELSE (SELECT(SELECT MAX(id::int) FROM submissions)+1) END), "
-                             f"'isolates', 1, (SELECT CURRENT_DATE), "
-                             f"(SELECT CURRENT_DATE), 'pending', true, '{validation_type}')")
+        sqlquery = """
+                   INSERT INTO submissions(id, 
+                   type,submitter, date_submitted, 
+                   datestamp, status, email, validation_type) 
+                   VALUES ((SELECT CASE WHEN (SELECT MAX(id::int) FROM submissions) IS NULL THEN 1 ELSE (SELECT(SELECT MAX(id::int) FROM submissions)+1) END), 
+                   'isolates', 1, (SELECT CURRENT_DATE), 
+                   (SELECT CURRENT_DATE), 'pending', true, %s);"""
+        cur_isolates.execute(sqlquery, (validation_type,))
         # todo need to set a proper method to build links based on the sample to transfer
         # for testing purposes
         html_path = 'http://bioit-bigs-dev.sciensano.be/galaxyreports/listeria/110-001_S68_L001/report.html'
@@ -57,18 +58,18 @@ def _insert_submission_bigs(cur_isolates: object, sample_docs: list[dict], valid
         html_path = str(html_path).replace('/reports/', '/galaxyreports/')
         html_link = f'<p><a href="{html_path}" target="_blank"> html report</a></p>'
         # end of dev code
-        cur_isolates.execute(f"INSERT INTO isolate_submission_isolates (submission_id, index, field, value) "
-                             f"VALUES "
-                             f"((SELECT MAX(id::int) FROM submissions), 1, 'html_report', '{html_link}'), "
-                             f"((SELECT MAX(id::int) FROM submissions), 1, 'isolate_id', '{doc['_id']}'), "
-                             f"((SELECT MAX(id::int) FROM submissions),1, 'validation_type', '{validation_type}')"
-                             )
-        cur_isolates.execute(f"INSERT INTO isolate_submission_field_order (submission_id,field,index)"
-                             f"VALUES "
-                             f"((SELECT MAX(id::int) FROM submissions), 'html_report', 1), "
-                             f"((SELECT MAX(id::int) FROM submissions), 'isolate_id', 2), "
-                             f"((SELECT MAX(id::int) FROM submissions), 'validation_type', 3)"
-                             )
+        sqlquery = """
+                   INSERT INTO isolate_submission_isolates (submission_id, index, field, value) 
+                   VALUES((SELECT MAX(id::int) FROM submissions), 1, %s, %s);"""
+        cur_isolates.execute(sqlquery, ('html_report', html_link))
+        cur_isolates.execute(sqlquery, ('isolate_id', doc['_id']))
+        cur_isolates.execute(sqlquery, ('validation_type', validation_type))
+        sqlquery = """
+                   INSERT INTO isolate_submission_field_order(submission_id, field, index) 
+                   VALUES((SELECT MAX(id::int) FROM submissions), %s, %s);"""
+        cur_isolates.execute(sqlquery, ('html_report', 1))
+        cur_isolates.execute(sqlquery, ('isolate_id', 2))
+        cur_isolates.execute(sqlquery, ('validation_type', 3))
 
 def samples_to_validation_bigs(species: str) -> None:
     """

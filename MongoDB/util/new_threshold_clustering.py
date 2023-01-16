@@ -1,8 +1,10 @@
-from MongoDB.util.distance_and_cluster_computer import DistanceAndClusterComputer
-from pathlib import Path
-import yaml
 import logging
+from pathlib import Path
 from typing import Dict, List, Union
+
+import yaml
+
+from MongoDB.util.distance_and_cluster_computer import DistanceAndClusterComputer
 
 
 class NewThresholdClustering(DistanceAndClusterComputer):

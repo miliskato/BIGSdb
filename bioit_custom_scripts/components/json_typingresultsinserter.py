@@ -156,13 +156,13 @@ class JsonTypingResultsInserter(JsonSuperClass):
                                 hit_formatted = '_'.join(['ncbi16s', hit])
                                 # check whether already exists in eav
                                 sqlquery = """SELECT count(*) FROM eav_fields WHERE category='NCBI 16S' AND field=%s;"""
-                                self.cur_isolates.execute(sqlquery, (hit_formatted))
+                                self.cur_isolates.execute(sqlquery, (hit_formatted,))
                                 eav_exists = self.cur_isolates.fetchall()
                                 if eav_exists[0][0] == 0:
                                     sqlquery = """
                                                INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) 
                                                VALUES(%s, 'boolean', 'NCBI 16S', '', 't', 't', (SELECT CURRENT_DATE), 1);"""
-                                    self.cur_isolates.execute(sqlquery, (hit_formatted))
+                                    self.cur_isolates.execute(sqlquery, (hit_formatted,))
                                 self._insert_metadata_bool(hit_formatted, 't')
                     elif self.species == 'neisseria':
                         if scheme == 'resistance_genes':

@@ -1,9 +1,10 @@
-from pymongo import MongoClient
+import logging
+
+from pymongo.write_concern import WriteConcern
+
+from MongoDB.config import CLUSTERING_CONFIG
 from MongoDB.util.cgmlst_profile import cgMLSTProfile
 from MongoDB.util.distance_and_cluster_computer import DistanceAndClusterComputer
-from MongoDB.config import CLUSTERING_CONFIG
-import logging
-from pymongo.write_concern import WriteConcern
 
 
 class MongoCustomClustering:
@@ -123,4 +124,3 @@ class MongoCustomClustering:
         distance_cluster = DistanceAndClusterComputer(st_collection, cluster_membership_collection, cluster_merging_collection, [0])
         distance_cluster.compute_hamming_distances('last_st')
         distance_cluster.new_st_cluster_membership(cluster_threshold)
-

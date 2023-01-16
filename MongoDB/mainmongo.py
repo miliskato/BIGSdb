@@ -1,24 +1,24 @@
 #!/usr/bin/env python
-from pymongo import MongoClient
-from pymongo.write_concern import WriteConcern
-from pymongo.read_concern import ReadConcern
+import argparse
+import datetime
+import hashlib
+import json
+import logging
+import os
+import re
+import shutil
+import smtplib
+import socket
+import sys
+import traceback
+from email.message import EmailMessage
+from pathlib import Path
+from typing import Dict, Union
+
 # import dnspython # somehow this package is a requirement without actually needing to be imported, probably imported in pymongo
 import yaml
-import argparse
-from pathlib import Path
-import logging
-import datetime
-import sys
-import re
-import json
-import smtplib
-from email.message import EmailMessage
-import socket
-import traceback
-import os
-from typing import Dict, Union
-import hashlib
-import shutil
+from pymongo.read_concern import ReadConcern
+from pymongo.write_concern import WriteConcern
 
 PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(PYTHONPATH))

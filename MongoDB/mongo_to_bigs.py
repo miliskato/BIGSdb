@@ -2,20 +2,20 @@
 # to be executed on bigs host of choice
 # /home/bigsdb/BIGSdb/3.9PythonVenv/bin/python3.9 /home/mikelchtermans/Bigsdb_new/MongoDB/mongo_to_bigs.py --species listeria --pyvenvpythonpath /home/bigsdb/BIGSdb/3.9PythonVenv/bin/python3.9
 
-import subprocess
 import argparse
-import logging
-import sys
-import os
-import yaml
-import json
-from pathlib import Path
 import datetime
-from pymongo.read_concern import ReadConcern
+import json
+import logging
+import os
 import smtplib
-from email.message import EmailMessage
 import socket
+import sys
 import traceback
+from email.message import EmailMessage
+from pathlib import Path
+
+import yaml
+from pymongo.read_concern import ReadConcern
 
 PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(PYTHONPATH))
@@ -125,7 +125,8 @@ def mongo_to_bigs(species: str, single_sample: str = None) -> None:
             listofdocuments = list(isolates_collection.find())
 
         for document in listofdocuments:
-            cur_isolates.execute(f"SELECT COUNT(*) FROM isolates WHERE isolate='{document['results']['isolates_id']}'")
+            sqlquery = """SELECT COUNT(*) FROM isolates WHERE isolate=%s;"""
+            cur_isolates.execute(sqlquery, (document['results']['isolates_id'],))
             sample_presence = cur_isolates.fetchall()
             if sample_presence[0][0] == 0:
                 results_type = "new_isolate"
@@ -136,10 +137,11 @@ def mongo_to_bigs(species: str, single_sample: str = None) -> None:
                 results_type = "new_isolate"
             else:
                 results_type = "reanalysis"
-                cur_isolates.execute(
-                    f"SELECT latest_analysis_date FROM isolates WHERE isolate='{document['results']['isolates_id']}' ORDER BY id DESC")
+                sqlquery = """SELECT latest_analysis_date FROM isolates WHERE isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate=%s);"""
+                cur_isolates.execute(sqlquery, (document['results']['isolates_id'],))
                 latest_analysis_date_bigs = cur_isolates.fetchall()[0][0]  # this appearently is a datetime object
-                cur_isolates.execute(f"SELECT value FROM eav_text_hidden WHERE field='mongo_results_version' and isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate='{document['results']['isolates_id']}')")
+                sqlquery = """SELECT value FROM eav_text_hidden WHERE field='mongo_results_version' and isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate=%s);"""
+                cur_isolates.execute(sqlquery, (document['results']['isolates_id'],))
                 # as of 2022/12/22 mongo_results_version in bigs is changed version
                 mongo_results_changed_version_bigs_query = cur_isolates.fetchall()
                 if mongo_results_changed_version_bigs_query == []:
@@ -209,17 +211,20 @@ def mongo_to_bigs(species: str, single_sample: str = None) -> None:
             if results_type == 'new_isolate':
                 insert_assembly(document['results']['isolates_id'], species, document['fasta_path'])
             elif results_type == 'reanalysis' and document['validation']['type'] == 'resequencing':
-                cur_isolates.execute(f"SELECT validation_date FROM isolates WHERE isolate='11-204' ORDER BY id DESC LIMIT 2;")
+                sqlquery = """SELECT validation_date FROM isolates WHERE isolate=%s ORDER BY id DESC LIMIT 2;"""
+                cur_isolates.execute(sqlquery, (document['results']['isolates_id'],))
                 last_two_validation_dates = cur_isolates.fetchall()
                 # select to check that the previous versions validation date is different than the current
                 if last_two_validation_dates[0][0] != last_two_validation_dates[1][0]:
                     # revert the changes done in maininserter that move the assembly to the newest version
-                    cur_isolates.execute(
-                        f"UPDATE sequence_bin SET isolate_id=(SELECT MIN(id) FROM isolates WHERE id in (SELECT id FROM isolates WHERE isolate='{document['results']['isolates_id']}' ORDER BY id DESC LIMIT 2))"
-                        f"WHERE isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate='{document['results']['isolates_id']}')")
-                    cur_isolates.execute(
-                        f"UPDATE seqbin_stats SET isolate_id=(SELECT MIN(id) FROM isolates WHERE id in (SELECT id FROM isolates WHERE isolate='{document['results']['isolates_id']}' ORDER BY id DESC LIMIT 2))"
-                        f"WHERE isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate='{document['results']['isolates_id']}')")
+                    sqlquery = """
+                               UPDATE sequence_bin SET isolate_id=(SELECT MIN(id) FROM isolates WHERE id in (SELECT id FROM isolates WHERE isolate=%s ORDER BY id DESC LIMIT 2)) 
+                               WHERE isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate=%s);"""
+                    cur_isolates.execute(sqlquery, (document['results']['isolates_id'], document['results']['isolates_id']))
+                    sqlquery = """
+                               UPDATE seqbin_stats SET isolate_id=(SELECT MIN(id) FROM isolates WHERE id in (SELECT id FROM isolates WHERE isolate=%s ORDER BY id DESC LIMIT 2)) 
+                               WHERE isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate=%s);"""
+                    cur_isolates.execute(sqlquery, (document['results']['isolates_id'], document['results']['isolates_id']))
                     insert_assembly(document['results']['isolates_id'], species, document['fasta_path'])
 
             logging.info(f"wrote new results version for {document['results']['isolates_id']} to bigsdb")

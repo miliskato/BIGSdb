@@ -56,7 +56,7 @@ def insert_assembly(isolatename: str, species: str, fastafilepath: str) -> None:
         (con_isolates, cur_isolates), (con_seqdef, cur_seqdef) = DatabaseConnection().connect_to_dbs_and_create_cursors(species)
 
         sqlquery = """SELECT COUNT(*) FROM isolates WHERE isolate=%s;"""
-        cur_isolates.execute(sqlquery, (isolatename))
+        cur_isolates.execute(sqlquery, (isolatename,))
         sample_presence = cur_isolates.fetchall()
         if sample_presence[0][0] == 0:
             _send_email(
@@ -65,7 +65,7 @@ def insert_assembly(isolatename: str, species: str, fastafilepath: str) -> None:
             sys.exit()
 
         sqlquery = """SELECT count(*) FROM sequence_bin WHERE isolate_id = (SELECT MAX(id) FROM isolates WHERE isolate=%s);"""
-        cur_isolates.execute(sqlquery, (isolatename))
+        cur_isolates.execute(sqlquery, (isolatename,))
         presentcontigs = cur_isolates.fetchall()
         if presentcontigs[0][0] == 0:
             # Make dict of fasta file while accounting for possible multiline sequences

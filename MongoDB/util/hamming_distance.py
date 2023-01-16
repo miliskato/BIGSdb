@@ -1,9 +1,12 @@
-import numpy as np, numba as nb
 from tempfile import NamedTemporaryFile
-import SharedArray as sa
 from typing import Callable
-from MongoDB.config import MONGO_CONFIG
+
+import SharedArray as sa
+import numba as nb
+import numpy as np
 import yaml
+
+from MongoDB.config import MONGO_CONFIG
 
 
 def getDistance(data: np.array, func_name:str, pool: object, start=0) -> np.array:

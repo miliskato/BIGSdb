@@ -98,7 +98,7 @@ def _insert_alleles() -> None:
 
                         # Part 2: PSQL component
                         sqlquery = """SELECT allele_id FROM sequences WHERE locus=%s;"""
-                        cur_seqdef.execute(sqlquery, (dir))
+                        cur_seqdef.execute(sqlquery, (dir,))
                         rows = cur_seqdef.fetchall()
                         list_alleleid = []
                         for item in rows:

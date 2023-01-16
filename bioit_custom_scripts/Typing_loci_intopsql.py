@@ -47,7 +47,7 @@ def _insert_loci() -> None:
                             sqlquery = """
                                        INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, curator, date_entered, datestamp) 
                                        VALUES(%s, 'DNA', 'text', 't', 't', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));"""
-                            cur_seqdef.execute(sqlquery, (dir))
+                            cur_seqdef.execute(sqlquery, (dir,))
                             sqlquery = """
                                        INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) 
                                        VALUES((SELECT id FROM schemes WHERE name=%s), %s, 1, (SELECT CURRENT_DATE));"""
@@ -55,7 +55,7 @@ def _insert_loci() -> None:
                             sqlquery = """
                                        INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) 
                                        VALUES(1, %s, 1, (SELECT CURRENT_DATE));"""
-                            cur_seqdef.execute(sqlquery, (dir))
+                            cur_seqdef.execute(sqlquery, (dir,))
 
                             # insert into isolates
                             dbaseurl = ''.join(['/cgi-bin/bigsdb/bigsdb.pl?db=', f'bigsdb_{species}_seqdef',
@@ -81,8 +81,8 @@ def _insert_loci() -> None:
                                 print(f"locus {dir} not present in scheme members")
                                 # add into seqdef scheme members
                                 sqlquery_members = """
-                                           INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) 
-                                           VALUES((SELECT id FROM schemes WHERE name=%s), %s, 1, (SELECT CURRENT_DATE));"""
+                                                   INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) 
+                                                   VALUES((SELECT id FROM schemes WHERE name=%s), %s, 1, (SELECT CURRENT_DATE));"""
                                 cur_seqdef.execute(sqlquery_members, (schemedict[scheme]['schemename_bigsdb'], dir))
                                 cur_isolates.execute(sqlquery_members, (schemedict[scheme]['schemename_bigsdb'], dir))
                             else:

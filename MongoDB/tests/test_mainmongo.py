@@ -1,36 +1,19 @@
-import argparse
-import json
 import logging
-import tempfile
-from pathlib import Path
-from urllib.parse import urljoin
-import concurrent.futures
 import os
-import sys
-import socket
-import shutil
-import requests
-import yaml
-import psycopg2
-import subprocess
-import datetime
-import traceback
 import smtplib
+import socket
+import sys
+import traceback
 from email.message import EmailMessage
-import datetime
 from typing import Dict
 
-from pymongo.write_concern import WriteConcern
-from pymongo.read_concern import ReadConcern
+import yaml
 
 PYTHONPATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.dirname(PYTHONPATH))
 
-from MongoDB.util.command.command import Command
-from MongoDB.util.mongo_querying import Mongoquerying
 from MongoDB.util.mongo_initialisation import MongoInitialisation
 from MongoDB.config import MONGO_CONFIG
-from MongoDB.reanalysis import MONGO_REANALYSIS_CONFIG
 from MongoDB.mainmongo import MainMongo
 from MongoDB.tempid_replacer import tempid_replacer
 from MongoDB.reanalysis.reanalysis_noslurm import reanalysis_noslurm

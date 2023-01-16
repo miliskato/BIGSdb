@@ -1,28 +1,23 @@
 import argparse
-import yaml
-from pymongo.read_concern import ReadConcern
-import logging
-import smtplib
-from email.message import EmailMessage
-import os
-from pathlib import Path
-import sys
-import datetime
-import git
-import subprocess
-import re
 import concurrent.futures
+import logging
+import os
+import re
+import smtplib
 import socket
+import subprocess
+import sys
 import traceback
-import json
+from email.message import EmailMessage
+from pathlib import Path
+
+import yaml
 
 PYTHONPATH = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(os.path.dirname(PYTHONPATH))
 
 from MongoDB.reanalysis.reanalysis_triggers import TRIGGER_CONFIG
-from MongoDB.util.mongo_initialisation import MongoInitialisation
 from MongoDB.config import MONGO_CONFIG
-from MongoDB.util.command.command import Command
 from MongoDB.mongo_to_bigs import mongo_to_bigs
 from MongoDB.reanalysis.reanalysis_slurm_submitter import reanalysis_slurm_submitter
 from MongoDB.reanalysis.reanalysis_noslurm import reanalysis_noslurm

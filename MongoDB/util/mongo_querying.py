@@ -1,10 +1,10 @@
 import abc
-import pymongo
 import logging
 import sys
-from pymongo.read_concern import ReadConcern
 from copy import deepcopy
 from typing import Dict, Union
+
+from pymongo.read_concern import ReadConcern
 
 
 class Mongoquerying(object, metaclass=abc.ABCMeta):
@@ -76,7 +76,6 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
                 listofresultlists.append(header)
             resultlist = [doc['_id']]
             for locus in doc['results'][scheme]['loci']:
-                # todo check logic
                 allele_id = locus['Allele']
                 if locus['% Identity'] == '100.00' and eval(locus['HSP/Locus length']) == 1.0:
                     if '_temp_' not in allele_id:

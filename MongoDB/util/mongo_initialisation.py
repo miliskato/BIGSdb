@@ -1,6 +1,6 @@
-import abc
-from pymongo import MongoClient
 import logging
+
+from pymongo import MongoClient
 
 
 class MongoInitialisation:

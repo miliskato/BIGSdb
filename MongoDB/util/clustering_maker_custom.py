@@ -1,16 +1,16 @@
-import numpy as np
-import pymongo
-import fastcluster
-import plotly.figure_factory as ff
-import plotly
-import scipy
-from scipy.spatial import distance as ssd
-import scipy.cluster.hierarchy as hcluster
-import matplotlib.pyplot as plt
 import logging
-from MongoDB.util.mongo_querying import Mongoquerying
-from MongoDB.util.distance_and_cluster_computer import DistanceAndClusterComputer
 
+import fastcluster
+import matplotlib.pyplot as plt
+import numpy as np
+import plotly
+import plotly.figure_factory as ff
+import scipy
+import scipy.cluster.hierarchy as hcluster
+from scipy.spatial import distance as ssd
+
+from MongoDB.util.distance_and_cluster_computer import DistanceAndClusterComputer
+from MongoDB.util.mongo_querying import Mongoquerying
 
 
 class ClusteringMakerCustom(DistanceAndClusterComputer):

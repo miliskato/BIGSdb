@@ -2,12 +2,12 @@
 obsolete: originally designed for tsv input, replaced by json input only
 '''
 
-import os
-import logging
-from pathlib import Path
 import abc
-from datetime import datetime
+import logging
+import os
 import re
+from datetime import datetime
+from pathlib import Path
 
 
 class Mongoresults(object, metaclass=abc.ABCMeta):

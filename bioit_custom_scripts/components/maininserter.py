@@ -25,7 +25,7 @@ class MainInserter(JsonSuperClass):
     
     def insert_new_isolate(self, uploadermailadress: str) -> None:
         sqlquery = """SELECT COUNT(*) FROM isolates WHERE isolate=%s;"""
-        self.cur_isolates.execute(sqlquery, (self.isolatename))
+        self.cur_isolates.execute(sqlquery, (self.isolatename,))
         sample_presence = self.cur_isolates.fetchall()
         if sample_presence[0][0] == 0:
             sqlquery = """
@@ -37,7 +37,7 @@ class MainInserter(JsonSuperClass):
             sqlquery = """
                        INSERT INTO history(isolate_id, timestamp, action, curator) 
                        VALUES((SELECT MAX(id) FROM isolates WHERE isolate=%s),(SELECT NOW()::TIMESTAMP), 'Isolate record added', 1);"""
-            self.cur_isolates.execute(sqlquery, (self.isolatename))
+            self.cur_isolates.execute(sqlquery, (self.isolatename,))
         else:
             raise RuntimeError(f"isolatename {self.isolatename} of {self.species} already exists on host {socket.gethostname()}")
 
@@ -73,7 +73,7 @@ class MainInserter(JsonSuperClass):
         vcflink_filtered = f'<p><a href="/galaxyreports/{self.species}/{self.isolatename}/variant_calling/variants-{self.isolatename}-filtered.vcf" target="_blank">VCF filtered</a></p>'
         self._insert_metadata('VCF_filtered', vcflink_filtered)
         sqlquery = """SELECT MAX(id) FROM isolates WHERE isolate=%s"""
-        self.cur_isolates.execute(sqlquery, (self.isolatename))
+        self.cur_isolates.execute(sqlquery, (self.isolatename,))
         isolate_id = self.cur_isolates.fetchall()[0][0]
         assemblylink = f'<p><a href="/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_{self.species}_isolates&page=plugin&name=Contigs&format=text&isolate_id={isolate_id}&match=1&pc_untagged=0&min_length=&header=1l" target="_blank">assembly</a></p>'
         self._insert_metadata('assembly', assemblylink)
