@@ -10,6 +10,7 @@ PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(PYTHONPATH))
 
 from bioit_custom_scripts.config import BIGSDB_CONFIG
+from bioit_custom_scripts.components.databaseconnection import DatabaseConnection
 
 
 def _parse_arguments(specieslist: list) -> argparse.Namespace:
@@ -31,14 +32,7 @@ def _insert_loci() -> None:
     :return:
     """
     for species in list(set(args.species)):
-        con_seqdef = psycopg2.connect(database=f"{config_data['species'][species]['seqdefdb']}", user="apache", password=config_data.get('postgresql_apache_pass'),
-                               host="127.0.0.1", port="")
-        con_seqdef.autocommit = True
-        cur_seqdef = con_seqdef.cursor()
-        con_isolates = psycopg2.connect(database=f"{config_data['species'][species]['isolatesdb']}", user="apache", password=config_data.get('postgresql_apache_pass'),
-                                        host="127.0.0.1", port="")
-        con_isolates.autocommit = True
-        cur_isolates = con_isolates.cursor()
+        (con_isolates, cur_isolates), (con_seqdef, cur_seqdef) = DatabaseConnection().connect_to_dbs_and_create_cursors(species)
 
         schemedict = config_data['species'][species]['typing_schemes']
         for scheme in schemedict.keys():
@@ -95,8 +89,7 @@ def _insert_loci() -> None:
                                 continue
                         else:
                             continue
-        con_seqdef.close()
-        cur_isolates.close()
+        DatabaseConnection().close_connections(con_isolates, con_seqdef)
 
 if __name__ == '__main__':
 

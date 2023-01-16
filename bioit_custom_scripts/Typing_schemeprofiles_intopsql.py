@@ -14,6 +14,7 @@ PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(PYTHONPATH))
 
 from bioit_custom_scripts.config import BIGSDB_CONFIG
+from bioit_custom_scripts.components.databaseconnection import DatabaseConnection
 # For this script I am assuming that profiles do not retire.
 # It is important to keep in mind that ST do not necessarily follow each other up continuously, there can be gaps
 
@@ -72,23 +73,29 @@ def __insert_profiles(scheme: str, schemedict: dict, indexdict: dict, profile_li
     # since we only need one db per scheme, it can stay open during the entire definition
     for profile in list_to_be_inserted:
         # first table (profiles):
-        cur_seqdef.execute(f"INSERT INTO profiles(scheme_id, "
-                    f"profile_id, sender, curator, "
-                    f"date_entered, datestamp) "
-                    f"VALUES((SELECT id FROM schemes WHERE name = '{schemedict[scheme]['schemename_bigsdb']}'),"
-                    f"'{profile}', 1, 1, "
-                    f"(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
+        sqlquery = """
+                   INSERT INTO profiles(scheme_id, 
+                   profile_id, sender, curator, 
+                   date_entered, datestamp) 
+                   VALUES((SELECT id FROM schemes WHERE name=%s), 
+                   %s, 1, 1, 
+                   (SELECT CURRENT_DATE),(SELECT CURRENT_DATE));"""
+        cur_seqdef.execute(sqlquery, (schemedict[scheme]['schemename_bigsdb'], profile))
+        profiles_to_be_removed: list = []
         # second table (profile fields):
         for field in schemedict[scheme]['scheme_fields']:
             line = profile_line_dict[profile]
             line = line.replace('? ', '').replace('Neisseria ', 'Neisseria_')  # this is added because rflp profiles are malformatted
-            fieldvalue = " ".join(line.split()).split(' ')[indexdict[field]]
-            cur_seqdef.execute(f"INSERT INTO profile_fields(scheme_id, "
-                        f"scheme_field, profile_id, value, "
-                        f"curator, datestamp) "
-                        f"VALUES((SELECT id FROM schemes WHERE name = '{schemedict[scheme]['schemename_bigsdb']}'),"
-                        f"'{field}', '{profile}', '{fieldvalue.replace('_',' ')}', "
-                        f"1,(SELECT CURRENT_DATE))")
+            try:
+                fieldvalue = " ".join(line.split()).split(' ')[indexdict[field]]
+                sqlquery = """
+                           INSERT INTO profile_fields(scheme_id, 
+                           scheme_field, profile_id, value, curator, datestamp) 
+                           VALUES((SELECT id FROM schemes WHERE name=%s), 
+                           %s, %s, %s, 1, (SELECT CURRENT_DATE));"""
+                cur_seqdef.execute(sqlquery, (schemedict[scheme]['schemename_bigsdb'], field, profile, fieldvalue.replace('_', ' ')))
+            except:
+                profiles_to_be_removed.append(profile)
         # third table (profile members):
         # Loci are saved from dir to be able to know which columns to search for in profiles.tsv
         loci = next(os.walk(schemedict[scheme]['dirdb']))[1]
@@ -99,25 +106,33 @@ def __insert_profiles(scheme: str, schemedict: dict, indexdict: dict, profile_li
                 line = profile_line_dict[profile]
                 locusvalue = " ".join(line.split()).split(' ')[indexdict[locus]]
                 if locusvalue == '0':  # this will create a ForeignKeyViolation error so we prevent this by inserting a null allele if not yet present
-                    cur_seqdef.execute(f"SELECT count(*) FROM sequences WHERE "
-                                f"locus = '{locus}' AND sequence = 'null allele'")
+                    sqlquery = """
+                               SELECT count(*) FROM sequences WHERE 
+                               locus=%s AND sequence='null allele';"""
+                    cur_seqdef.execute(sqlquery, (locus,))
                     nullpresent = cur_seqdef.fetchall()
                     if nullpresent[0][0] == 0:
-                        cur_seqdef.execute(f"INSERT INTO sequences(locus, allele_id, sequence, status, sender,curator, date_entered, datestamp) \
-                                      VALUES('{locus}',0, 'null allele', '',0,0,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
-
+                        sqlquery = """
+                                   INSERT INTO sequences(locus, allele_id, sequence, sender, curator, date_entered, datestamp) \
+                                   VALUES(%s, 0, 'null allele', 0, 0, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));"""
+                        cur_seqdef.execute(sqlquery, (locus,))
                 try:
-                    cur_seqdef.execute(f"INSERT INTO profile_members(scheme_id, "
-                                f"locus, profile_id, allele_id, "
-                                f"curator, datestamp) "
-                                f"VALUES((SELECT id FROM schemes WHERE name = '{schemedict[scheme]['schemename_bigsdb']}'),"
-                                f"'{locus}', '{profile}', '{locusvalue}', "
-                                f"1,(SELECT CURRENT_DATE))")
+                    sqlquery = """
+                               INSERT INTO profile_members(scheme_id, 
+                               locus, profile_id, allele_id, curator, datestamp) 
+                               VALUES((SELECT id FROM schemes WHERE name=%s), 
+                               %s, %s, %s, 1, (SELECT CURRENT_DATE));"""
+                    cur_seqdef.execute(sqlquery, (schemedict[scheme]['schemename_bigsdb'], locus, profile, locusvalue))
                 except Exception as exceptionmessage:
                     _send_email(f"profile with field {field} and value {fieldvalue.replace('_',' ')} already exists as another field, find the profile that was misinserted (not all loci have allele_id), remove it, and all above and restart this script (on db {cur_seqdef.name()} on host {socket.gethostname()})",
                                 f"{exceptionmessage}\n{traceback.format_exc()}", emaildict)
                     raise Exception(f"profile with field {field} and value {fieldvalue.replace('_',' ')} already exists as another field, find the profile that was misinserted (not all loci have allele_id), remove it, and all above and restart this script (on db {cur_seqdef.name()} on host {socket.gethostname()})")
-
+        # remove profiles with incomplete profile fields
+        for profile_to_be_removed in profiles_to_be_removed:
+            sqlquery = """
+                       DELETE FROM profiles WHERE scheme_id=(SELECT id FROM schemes WHERE name=%s)
+                       AND profile_id=%s;"""
+            cur_seqdef.execute(sqlquery, (schemedict[scheme]['schemename_bigsdb'], profile_to_be_removed))
 
 def _insert_all_profiles() -> None:
     """
@@ -125,10 +140,7 @@ def _insert_all_profiles() -> None:
     :return:
     """
     for species in list(set(args.species)):
-        con_seqdef = psycopg2.connect(database=f"{config_data['species'][species]['seqdefdb']}", user="apache", password=config_data.get('postgresql_apache_pass'),
-                                      host="127.0.0.1", port="")
-        con_seqdef.autocommit = True
-        cur_seqdef = con_seqdef.cursor()
+        (con_isolates, cur_isolates), (con_seqdef, cur_seqdef) = DatabaseConnection().connect_to_dbs_and_create_cursors(species)
 
         schemedict = config_data['species'][species]['typing_schemes']
         for scheme in schemedict.keys():
@@ -148,28 +160,28 @@ def _insert_all_profiles() -> None:
                     profile_line_dict[" ".join(line.split()).split(' ')[0]] = line
 
                 # check whether fields[0] is max or not, if not then all value above max will be inserted in all three tables
-                cur_seqdef.execute(f"SELECT MAX(profile_id) FROM profiles WHERE "
-                            f"scheme_id = (SELECT id FROM schemes WHERE name = '{schemedict[scheme]['schemename_bigsdb']}') AND "
-                            f"LENGTH(profile_id) = (SELECT MAX(LENGTH(profile_id)) FROM profiles WHERE scheme_id = (SELECT id FROM schemes WHERE name = '{schemedict[scheme]['schemename_bigsdb']}'))")
-                max_primary_field = cur_seqdef.fetchall()
-                list_to_be_inserted = []
-                if max_primary_field[0][0] is None:
+                sqlquery = """
+                           SELECT profile_id FROM profiles WHERE 
+                           scheme_id=(SELECT id FROM schemes WHERE name=%s);"""
+                cur_seqdef.execute(sqlquery, (schemedict[scheme]['schemename_bigsdb'],))
+                listoftuples: list = cur_seqdef.fetchall()
+                primary_fields: list = [x[0] for x in listoftuples]
+                list_to_be_inserted: list = []
+                if primary_fields is None:
                     # table is empty, so all need to be inserted
                     for line in handle[1:]:
                         list_to_be_inserted.append(" ".join(line.split()).split(' ')[0])
                     __insert_profiles(scheme, schemedict, indexdict, profile_line_dict, list_to_be_inserted, cur_seqdef)
-                elif max_primary_field[0][0] == " ".join(handle[-1].split()).split(' ')[0]:
-                    # table is up to date
-                    continue
-                elif int(max_primary_field[0][0]) < int(" ".join(handle[-1].split()).split(' ')[0]):
+                else:
                     # table needs to be updated
                     for line in handle[1:]:
-                        if int(" ".join(line.split()).split(' ')[0]) > int(max_primary_field[0][0]):
+                        if int(" ".join(line.split()).split(' ')[0]) not in primary_fields:
                             list_to_be_inserted.append(" ".join(line.split()).split(' ')[0])
                         else:
                             continue
-                    __insert_profiles(scheme, schemedict, indexdict, profile_line_dict, list_to_be_inserted, cur_seqdef)
-
+                    if list_to_be_inserted:
+                        __insert_profiles(scheme, schemedict, indexdict, profile_line_dict, list_to_be_inserted, cur_seqdef)
+        DatabaseConnection().close_connections(con_isolates, con_seqdef)
 
 def _send_email(subject: str, content: str, config: dict) -> None:
     """
