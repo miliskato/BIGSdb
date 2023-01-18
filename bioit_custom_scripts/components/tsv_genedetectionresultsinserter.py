@@ -2,6 +2,7 @@ import json
 import logging
 from pathlib import Path
 
+import psycopg2
 
 class TsvGeneDetectionResultsInserter:
     """
@@ -11,7 +12,7 @@ class TsvGeneDetectionResultsInserter:
     def __init__(self) -> None:
         pass
 
-    def insert_genedetection_results(self, isolatename: str, species: str, genedetectiondict: dict, sample_output_dict: dict, cur_isolates: object, cur_seqdef: object) -> None:
+    def insert_genedetection_results(self, isolatename: str, species: str, genedetectiondict: dict, sample_output_dict: dict, cur_isolates: psycopg2.extensions.cursor, cur_seqdef: psycopg2.extensions.cursor) -> None:
         """
         Inserts genedetection results into bigsdb from tsv
         :param isolatename:

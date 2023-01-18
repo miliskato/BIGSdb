@@ -59,7 +59,7 @@ def _parse_arguments(specieslist: list) -> argparse.Namespace:
 #
 
 
-def __insert_profiles(scheme: str, schemedict: dict, indexdict: dict, profile_line_dict: dict, list_to_be_inserted: list, cur_seqdef: object) -> None:
+def __insert_profiles(scheme: str, schemedict: dict, indexdict: dict, profile_line_dict: dict, list_to_be_inserted: list, cur_seqdef: psycopg2.extensions.cursor) -> None:
     """
     Inserts profiles for a given scheme in a given species database (cur_seqdef)
     :param scheme:

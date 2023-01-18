@@ -1,8 +1,8 @@
-import logging
 import datetime
-import sys
+import logging
 import socket
-from urllib.parse import urljoin
+
+import psycopg2
 
 from .json_superclass import JsonSuperClass
 
@@ -12,7 +12,7 @@ class MainInserter(JsonSuperClass):
     Class containing defintions used to insert metadata results for both json and tsv input
     """
 
-    def __init__(self, isolatename: str, species: str, cur_isolates: object, cur_seqdef: object, sample_output_dict: dict) -> None:
+    def __init__(self, isolatename: str, species: str, cur_isolates: psycopg2.extensions.cursor, cur_seqdef: psycopg2.extensions.cursor, sample_output_dict: dict) -> None:
         """
 
         :param isolatename:

@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import plotly
 import plotly.figure_factory as ff
+import pymongo
 import scipy
 import scipy.cluster.hierarchy as hcluster
 from scipy.spatial import distance as ssd
@@ -14,8 +15,8 @@ from MongoDB.util.mongo_querying import Mongoquerying
 
 
 class ClusteringMakerCustom(DistanceAndClusterComputer):
-    def __init__(self, cluster_membership_collection: object, isolates_collection: object, hashed_AD_collection: object,
-                 threshold: int, sample: str) -> None:
+    def __init__(self, cluster_membership_collection: pymongo.collection.Collection, isolates_collection: pymongo.collection.Collection,
+                 hashed_AD_collection: pymongo.collection.Collection, threshold: int, sample: str) -> None:
         """
         Init of the class
         :param cluster_membership_collection: collection where the cluster membership of the ST is stored
@@ -63,19 +64,9 @@ class ClusteringMakerCustom(DistanceAndClusterComputer):
         Retrieve all the sequence types which are part of the cluster from the sample self.sample.
         :return: None
         """
-        cluster_st = self.cluster_membership_collection.find(
-            {'clustering_membership': self.cluster_membership, 'threshold': self.threshold})
-        self.cluster_members_st = ClusteringMakerCustom.extract_field_in_find_query(cluster_st, 'cgST')
-
-    @staticmethod
-    def extract_field_in_find_query(query: object, field: str) -> list:
-        """
-        Extract a field of interrest from a batch query in mongo db.
-        :param query: the result query from find function of pymongo (cursor object).
-        :param field: the key to extract from each document in the results of the query.
-        :return:
-        """
-        return [result[field] for result in query]
+        self.cluster_members = list(self.cluster_membership_collection.find(
+            {'clustering_membership': self.cluster_membership, 'threshold': self.threshold}, {'cgST': 1, '_id': 0}))
+        self.cluster_members_st = [x['cgST'] for x in self.cluster_members]
 
     def _retrieve_cluster_members_samples_and_profiles(self) -> None:
         """

@@ -10,6 +10,7 @@ import traceback
 from email.message import EmailMessage
 from pathlib import Path
 
+import psycopg2
 import yaml
 
 PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
@@ -69,7 +70,7 @@ def __make_flagfilepath(isolatename: str, config: dict) -> Path:
     return Path(config['failsafe']['flag_dir']) / '.'.join([isolatename, config['failsafe']['flag_append']])
 
 
-def _fail_safe_mechanism(isolatename: str, config: dict, analysis_date: str, cur_isolates: object) -> None:
+def _fail_safe_mechanism(isolatename: str, config: dict, analysis_date: str, cur_isolates: psycopg2.extensions.cursor) -> None:
     """
     Creates a flagfile if insertion is started and no flagfile is present.
     else insertion is started and flag file is present: remove highest version of sample and

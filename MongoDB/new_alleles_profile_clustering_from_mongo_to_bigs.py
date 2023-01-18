@@ -9,6 +9,7 @@ from datetime import date
 from email.message import EmailMessage
 from typing import Dict
 
+import pymongo
 import yaml
 from pymongo.write_concern import WriteConcern
 
@@ -37,8 +38,8 @@ def _send_email(subject: str, content: str, config: dict) -> None:
     logging.info(content)
 
 class NewAllelesProfileClusteringFromMongoToBigs:
-    def __init__(self, species: str, st_collection: object, hashed_ad_collection: object, cluster_membership_collection: object,
-                 update_metadata_collection: object) -> None:
+    def __init__(self, species: str, st_collection: pymongo.collection.Collection, hashed_ad_collection: pymongo.collection.Collection,
+                 cluster_membership_collection: pymongo.collection.Collection, update_metadata_collection: pymongo.collection.Collection) -> None:
         """
         Initialization of the class.
         :param species: the species that needs to be updated

@@ -18,7 +18,7 @@ class DatabaseConnection:
         pass
 
     @staticmethod
-    def _connection_and_cursor(species: str, db_type: str) -> object:
+    def _connection_and_cursor(species: str, db_type: str) -> (psycopg2.extensions.connection, psycopg2.extensions.cursor):
         """
         Returns cursor object for given PSQL databases
         :param species: commonly used bioit species name: either genus or specific like stec
@@ -33,9 +33,10 @@ class DatabaseConnection:
                                host="127.0.0.1", port="")
         con.autocommit = True
         cur = con.cursor()
+        print(type(cur))
         return con, cur
 
-    def connect_to_dbs_and_create_cursors(self, species: str) -> object:
+    def connect_to_dbs_and_create_cursors(self, species: str) -> psycopg2.extensions.connection:
         """
         Connects to the species specific databases
         :param species: commonly used bioit species name: either genus or specific like stec
@@ -46,7 +47,7 @@ class DatabaseConnection:
         except Exception:
             raise RuntimeError(f"Could not connect to {species}'s databases")
 
-    def close_connections(self, con_isolates: object, con_seqdef: object) -> None:
+    def close_connections(self, con_isolates: psycopg2.extensions.connection, con_seqdef: psycopg2.extensions.connection) -> None:
         """
         closes the connections
         :param con_isolates:

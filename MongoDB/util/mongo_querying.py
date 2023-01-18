@@ -4,6 +4,7 @@ import sys
 from copy import deepcopy
 from typing import Dict, Union
 
+import pymongo
 from pymongo.read_concern import ReadConcern
 
 
@@ -15,7 +16,7 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
     def __init__(self):
         pass
 
-    def query_list_of_all_distinct_values(self, opened_collection: object, variable_of_interest: str = '_id') -> list:
+    def query_list_of_all_distinct_values(self, opened_collection: pymongo.collection.Collection, variable_of_interest: str = '_id') -> list:
         """
         Collects all values for a given variable of interest across the entire collection.
         :param opened_collection: mongo opened collection
@@ -24,7 +25,7 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         """
         return opened_collection.distinct(variable_of_interest)
 
-    def _query_collection(self, opened_collection: object) -> list:
+    def _query_collection(self, opened_collection: pymongo.collection.Collection) -> list:
         """
         Query the entire collection
         :param opened_collection: mongo opened collection
@@ -32,7 +33,7 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         """
         return [doc for doc in opened_collection.with_options(read_concern=ReadConcern(level="majority")).find()]
 
-    def query_docs_by_ids(self, opened_collection: object, ids: list) -> list:
+    def query_docs_by_ids(self, opened_collection: pymongo.collection.Collection, ids: list) -> list:
         """
         Lists the full documents for a given set of ids.
         :param opened_collection: mongo opened collection
@@ -41,8 +42,8 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         """
         return [doc for doc in opened_collection.with_options(read_concern=ReadConcern(level="majority")).find({"_id": {"$in": ids}})]
 
-    def _query_previous_latest_results_by_technicalids(self, opened_isolates_collection: object,
-                                                       opened_isolateresults_collection: object,
+    def _query_previous_latest_results_by_technicalids(self, opened_isolates_collection: pymongo.collection.Collection,
+                                                       opened_isolateresults_collection: pymongo.collection.Collection,
                                                        technicalids: list) -> list:
         """
         Retrieves all latest results for a given set of technical ids in the isolate collection
@@ -56,8 +57,8 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
                                        self.query_docs_by_ids(opened_isolates_collection,
                                                               technicalids)])
 
-    def query_typing_results_by_technicalids_and_scheme(self, opened_isolates_collection: object, scheme: str = 'cgmlst',
-                                                        technicalids: list = ['emptylist']) -> list:
+    def query_typing_results_by_technicalids_and_scheme(self, opened_isolates_collection: pymongo.collection.Collection,
+                                                        scheme: str = 'cgmlst', technicalids: list = ['emptylist']) -> list:
         """
         Returns a list of lists wherein the first list is the header [isolate, locus1, locus2, ..] and the subsequent lists are the results of all isolates in technical ids
         :param opened_isolates_collection: mongo opened isolate collection
@@ -68,7 +69,7 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         if technicalids == ['emptylist']:
             technicalids = self.query_list_of_all_distinct_values(opened_isolates_collection, "_id")
         listofresultlists = []
-        for doc_index, doc in enumerate(self.query_docs_by_ids(opened_isolates_collection, technicalids)):
+        for doc_index, doc in enumerate(self.query_docs_by_ids(opened_isolates_collection, technicalids)):  # todo more optimal querying
             if doc_index == 0:
                 header = ["isolate_id"]
                 for locus in doc['results'][scheme]['loci']:
@@ -77,7 +78,7 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
             resultlist = [doc['_id']]
             for locus in doc['results'][scheme]['loci']:
                 allele_id = locus['Allele']
-                if locus['% Identity'] == '100.00' and eval(locus['HSP/Locus length']) == 1.0:
+                if locus['% Identity'] == '100.00' and eval(locus['HSP/Locus length']) == 1.0:  # todo possibility to write the eval to the mongodb document
                     if '_temp_' not in allele_id:
                         if allele_id != '?' and allele_id != '-':
                             resultlist.append(int(allele_id))
@@ -91,7 +92,7 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
             listofresultlists.append(resultlist)
         return listofresultlists
 
-    def write_document(self, opened_collection: object, json_input: dict) -> str:
+    def write_document(self, opened_collection: pymongo.collection.Collection, json_input: dict) -> str:
         """
         write a document into a collection.
         :param opened_collection: the collection where the document needs to be saved
@@ -131,7 +132,7 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
     #     hc_data = HCNumbersData(isolate_sequence_type, hc_numbers)
     #     return hc_data.get_hc_number(hc_number)
 
-    def query_failed_causes(self, isolates_badqc_collection: object) -> print():
+    def query_failed_causes(self, isolates_badqc_collection: pymongo.collection.Collection) -> print():
         """
         aggregation pipeline to collect which qc check status is 'Failed' the most often
         :param isolates_badqc_collection: bad quality samples collection
@@ -152,7 +153,8 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
                     else:
                         print("{}\t{}".format(key, 0))
 
-    def query_what_changed_compared_to_previous(self, isolate_id: str, isolates_collection: object, isolateresults_collection: object) -> logging:
+    def query_what_changed_compared_to_previous(self, isolate_id: str, isolates_collection: pymongo.collection.Collection,
+                                                isolateresults_collection: pymongo.collection.Collection) -> logging:
         """
         query what changed compared to previous version of isolate results
         :param isolate_id: isolate name
@@ -175,7 +177,8 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
                             logging.info(f"{mainkey}{subkey} different or not in old")
                             logging.info(f"from old '{[x for x in old_results[mainkey][subkey] if x not in new_results[mainkey][subkey]]}' was/were removed or changed to '{[x for x in new_results[mainkey][subkey] if x not in old_results[mainkey][subkey]]}'")
 
-    def query_old_results_and_replace_pointers(self, isolateresults_collection: object, old_results_doc_with_pointers: dict) -> Dict[str, Union[str, Dict]]:
+    def query_old_results_and_replace_pointers(self, isolateresults_collection: pymongo.collection.Collection,
+                                               old_results_doc_with_pointers: dict) -> Dict[str, Union[str, Dict]]:
         old_results_doc_without_pointers = deepcopy(old_results_doc_with_pointers)
         if old_results_doc_without_pointers.get('results'):
             raise Exception('Not an old results document')

@@ -4,6 +4,7 @@ import logging
 import os
 import re
 
+import psycopg2
 import requests
 
 
@@ -15,7 +16,7 @@ class TsvTypingResultsInserter:
     def __init__(self) -> None:
         pass
 
-    def insert_typing_results(self, isolatename: str, species: str, schemedict: dict, sample_output_dict: dict, cur_isolates: object, cur_seqdef: object) -> None:
+    def insert_typing_results(self, isolatename: str, species: str, schemedict: dict, sample_output_dict: dict, cur_isolates: psycopg2.extensions.cursor, cur_seqdef: psycopg2.extensions.cursor) -> None:
         """
         Inserts typing results into bigsdb from tsv
         :param isolatename:

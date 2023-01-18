@@ -2,6 +2,9 @@ import json
 import logging
 import re
 from pathlib import Path
+from typing import Dict, Union, List
+
+import psycopg2
 
 from .json_superclass import JsonSuperClass
 
@@ -11,7 +14,7 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
     Class containing definitions to insert gene detection results from json input
     """
 
-    def __init__(self, isolatename: str, species: str, cur_isolates: object, cur_seqdef: object, sample_output_dict: dict) -> None:
+    def __init__(self, isolatename: str, species: str, cur_isolates: psycopg2.extensions.cursor, cur_seqdef: psycopg2.extensions.cursor, sample_output_dict: Dict[str, Union[str, List[str]]]) -> None:
         """
         :param isolatename:
         :param species: commonly used bioit species name: either genus or specific like stec
@@ -21,7 +24,7 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
         """
         JsonSuperClass.__init__(self, isolatename, species, cur_isolates, cur_seqdef, sample_output_dict)
 
-    def insert_genedetection_results(self, genedetectiondict: dict) -> None:
+    def insert_genedetection_results(self, genedetectiondict: Dict[str, Union[str, List[str]]]) -> None:
         """
         Inserts genedetection results into bigsdb from json
         :param genedetectiondict: dictionary of species specific schemes and their properties (found in config)

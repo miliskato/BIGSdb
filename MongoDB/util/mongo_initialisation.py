@@ -1,5 +1,6 @@
 import logging
 
+import pymongo
 from pymongo import MongoClient
 
 
@@ -11,7 +12,7 @@ class MongoInitialisation:
     def __init__(self):
         pass
 
-    def _open_mongo_database(self, config_data: dict, species: str) -> object:
+    def _open_mongo_database(self, config_data: dict, species: str) -> pymongo.database.Database:
         """
         Connects to the mongo Cloud Cluster specified in the config file and opens the database
         :param config_data: config data containing connection string
@@ -26,7 +27,7 @@ class MongoInitialisation:
             raise NameError(f"replace dtap value in MongoDB/config/config.yml")
         return client['_'.join([species, config_data["dtap"]])]  # e.g. listeria_dev
 
-    def _open_mongo_collection(self, opened_database: object, collection: str, config_data: dict) -> object:
+    def _open_mongo_collection(self, opened_database: pymongo.database.Database, collection: str, config_data: dict) -> pymongo.collection.Collection:
         """
         Opens a mongo collection in an opened database
         :param opened_database: mongo opened database
@@ -42,7 +43,7 @@ class MongoInitialisation:
         else:
             raise RuntimeError(f"Collection '{collection}' not in supported collections")
 
-    def initialise_collections(self, config_data: dict, species: str) -> object:
+    def initialise_collections(self, config_data: dict, species: str) -> (pymongo.collection.Collection, pymongo.collection.Collection, pymongo.collection.Collection, pymongo.collection.Collection):
         """
         Initialises database and collections for interaction
         :param config_data: config data that contains connection string connect to Cloud Cluster or local
@@ -61,7 +62,7 @@ class MongoInitialisation:
         isolates_resequencing_collection = self._open_mongo_collection(species_database, "isolates_resequencing", config_data)
         return isolates_collection, isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection
 
-    def initialise_clustering_collections(self, config_data: dict, species: str):
+    def initialise_clustering_collections(self, config_data: dict, species: str) -> (pymongo.collection.Collection, pymongo.collection.Collection, pymongo.collection.Collection):
         """
         Initialises database and collections for interaction
         :param config_data: config data to connect to Cloud Cluster
@@ -74,7 +75,7 @@ class MongoInitialisation:
         cluster_merging_collection = self._open_mongo_collection(species_database, "cluster_merging", config_data)
         return st_collection,  cluster_membership_collection, cluster_merging_collection
 
-    def initialise_hashing_collection(self, config_data: dict, species: str) -> object:
+    def initialise_hashing_collection(self, config_data: dict, species: str) -> pymongo.collection.Collection:
         """
         :param config_data: config data containing connection string
         :param species: commonly used bioit species name: either genus or specific like stec
@@ -84,7 +85,7 @@ class MongoInitialisation:
         hashed_ad_collection = self._open_mongo_collection(species_database, "new_allele_hashes", config_data)
         return hashed_ad_collection
 
-    def initialise_update_collection(self, config_data: dict, species: str) -> object:
+    def initialise_update_collection(self, config_data: dict, species: str) -> pymongo.collection.Collection:
         """
         :param config_data:
         :param species:

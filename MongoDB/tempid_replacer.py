@@ -9,6 +9,7 @@ import traceback
 from email.message import EmailMessage
 from pathlib import Path
 
+import pymongo
 import yaml
 from Bio import SeqIO
 from pymongo.read_concern import ReadConcern
@@ -52,7 +53,7 @@ def _parse_arguments(specieslist: list) -> argparse.Namespace:
     return parser.parse_args()
 
 
-def _query_hashes_of_scheme(hashed_ad_collection: object, scheme: str) -> list:
+def _query_hashes_of_scheme(hashed_ad_collection: pymongo.collection.Collection, scheme: str) -> list:
     """
     query unresolved hashes of a given scheme in the hashes collection
     :param hashed_ad_collection: Collection containing hashed alleles, sequences and more properties

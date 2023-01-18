@@ -7,6 +7,7 @@ import sys
 import traceback
 from email.message import EmailMessage
 
+import pymongo
 import yaml
 from pymongo.write_concern import WriteConcern
 
@@ -34,7 +35,8 @@ def send_email(subject: str, content: str, config: dict) -> None:
         s.send_message(message)
     logging.info(content)
 
-def _insert_submission_bigs(cur_isolates: object, sample_docs: list[dict], validation_type: str) -> None:
+def _insert_submission_bigs(cur_isolates: pymongo.collection.Collection,
+                            sample_docs: list[dict], validation_type: str) -> None:
     """
     Inserts a given list of submissions into bigsdb
     :param cur_isolates: isolates db cursor object

@@ -1,6 +1,7 @@
 import logging
 import re
 
+import psycopg2
 import requests
 
 from .json_superclass import JsonSuperClass
@@ -11,7 +12,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
     Class containing definitions to insert typing results from json input
     """
 
-    def __init__(self, isolatename: str, species: str, cur_isolates: object, cur_seqdef: object, sample_output_dict: dict) -> None:
+    def __init__(self, isolatename: str, species: str, cur_isolates: psycopg2.extensions.cursor, cur_seqdef: psycopg2.extensions.cursor, sample_output_dict: dict) -> None:
         """
         :param isolatename: 
         :param species: commonly used bioit species name: either genus or specific like stec

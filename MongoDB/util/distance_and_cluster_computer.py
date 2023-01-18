@@ -4,6 +4,7 @@ from multiprocessing import Pool
 
 import fastcluster
 import numpy as np
+import pymongo
 import scipy.cluster.hierarchy as hcluster
 from pymongo.write_concern import WriteConcern
 from scipy.spatial import distance as ssd
@@ -16,7 +17,8 @@ class DistanceAndClusterComputer:
     Class to compute hamming distances and determine the cluster membership to store in mongoDB.
     """
 
-    def __init__(self, st_collection: object, cluster_membership_collection: object, cluster_merging_collection: object, st_to_use: list) -> None:
+    def __init__(self, st_collection: pymongo.collection.Collection, cluster_membership_collection: pymongo.collection.Collection,
+                 cluster_merging_collection: pymongo.collection.Collection, st_to_use: list) -> None:
         """
         Initializes the class.
         :param st_collection: sequence types collection from mongoDb.
@@ -179,7 +181,7 @@ class DistanceAndClusterComputer:
             self.cluster_membership_collection.with_options(write_concern=WriteConcern(w="majority")).insert_one(entry)
 
     @staticmethod
-    def _insert_a_lot(insertion_docs: list, collection) -> None:
+    def _insert_a_lot(insertion_docs: list, collection: pymongo.collection.Collection) -> None:
         """
         In order to avoid having the bug of too many elements in the insertion, this function takes the list of
         elements to insert into mongo db and creates smaller batches of insertion that will be inserted into mongoDB

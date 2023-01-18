@@ -3,18 +3,18 @@
 # into schemes and link the loci/clusters from isolate db to seqdef db
 # I will also fill up these clusters with dummy alleles being TAG (allele id 1) and null allele (allele id 0) although null allele is not necessarily neccesary
 
-import os
-import psycopg2
-from pathlib import Path
-import json
-import smtplib
-from email.message import EmailMessage
-import socket
-import traceback
-import sys
-import logging
-import yaml
 import argparse
+import json
+import logging
+import os
+import smtplib
+import socket
+import sys
+import traceback
+from email.message import EmailMessage
+from pathlib import Path
+
+import yaml
 
 PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(PYTHONPATH))

@@ -2,14 +2,15 @@ import logging
 from pathlib import Path
 from typing import Dict, List, Union
 
+import pymongo
 import yaml
 
 from MongoDB.util.distance_and_cluster_computer import DistanceAndClusterComputer
 
 
 class NewThresholdClustering(DistanceAndClusterComputer):
-    def __init__(self, st_collection: object, cluster_membership_collection: object, clustering_config_file: Path, new_thresholds: list,
-                 species: str) -> None:
+    def __init__(self, st_collection: pymongo.collection.Collection, cluster_membership_collection: pymongo.collection.Collection,
+                 clustering_config_file: Path, new_thresholds: list, species: str) -> None:
         """
         Init of the class
         :param st_collection: the sequence type collection of Mongo db
