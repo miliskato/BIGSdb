@@ -169,7 +169,7 @@ if __name__ == '__main__':
         reanalysis_config = yaml.safe_load(handle)
 
     # Parse arguments
-    args = _parse_arguments(list(reanalysis_config['species'].keys()))
+    args = _parse_arguments(list(reanalysis_config['species']))
 
     # run main
     reanalysis_slurm_submitter(args.species,

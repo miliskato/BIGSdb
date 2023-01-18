@@ -91,7 +91,7 @@ def reanalysis_triggers(species: str, threads: int = 8, pyvenvpythonpath: str = 
             gitlog = subprocess.run("git log -n 1 --date=short -- . ':(exclude)db_metadata.txt'", shell=True, stdout=subprocess.PIPE).stdout.decode('utf-8')
             scheme_last_update = re.findall("[0-9]{4}-[0-9]{2}-[0-9]{2}", gitlog)[0]
             trigger_config['species'][species][scheme]["last_update"] = scheme_last_update
-            if scheme_last_update in date_scheme_dict.keys():
+            if scheme_last_update in date_scheme_dict:
                 date_scheme_dict[scheme_last_update].append(trigger_config['species'][species][scheme]['cmd_argument'])
             else:
                 date_scheme_dict[scheme_last_update] = [trigger_config['species'][species][scheme]['cmd_argument']]
@@ -104,7 +104,7 @@ def reanalysis_triggers(species: str, threads: int = 8, pyvenvpythonpath: str = 
         # Part 2: Recursively/hierarchically add all schemes with higher last update date to lower update date
         from collections import OrderedDict
         date_args_dict = {}
-        for index, last_update in enumerate(sorted(date_scheme_dict.keys())):
+        for index, last_update in enumerate(sorted(date_scheme_dict)):
             date_args_dict[last_update] = date_scheme_dict[last_update]
             for last_update_later in sorted(date_scheme_dict)[index:]:
                 date_args_dict[last_update].extend(date_scheme_dict[last_update_later])
@@ -124,7 +124,7 @@ def reanalysis_triggers(species: str, threads: int = 8, pyvenvpythonpath: str = 
             :return: None
             """
             try:
-                ordered_dates_list = sorted(date_args_dict.keys())
+                ordered_dates_list = sorted(date_args_dict)
                 index_date_in_list = ordered_dates_list.index(date)
                 minimal_date = ordered_dates_list[index_date_in_list - 1] if index_date_in_list != 0 else '1990-01-01'
                 logging.info(f"running reanalysis on samples older than {date} and younger than {minimal_date} with arguments: {date_args_dict[date]}")
@@ -151,7 +151,7 @@ def reanalysis_triggers(species: str, threads: int = 8, pyvenvpythonpath: str = 
         with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
             future_to_isolate = {executor.submit(
                 run_reanalysis, **{"date": date, "date_args_dict": date_args_dict}):
-                               date for date in date_args_dict.keys()}
+                               date for date in date_args_dict}
             logging.info(f"finished submitting reanalysis for species {species}")
 
         if alternate_connection_string is None:
@@ -171,7 +171,7 @@ if __name__ == '__main__':
         trigger_config = yaml.safe_load(handle)
 
     # Parse arguments
-    args = _parse_arguments(list(trigger_config['species'].keys()))
+    args = _parse_arguments(list(trigger_config['species']))
 
     # run main
     reanalysis_triggers(args.species,

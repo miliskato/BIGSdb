@@ -179,7 +179,7 @@ def reanalysis_slurm(species: str, isolate: json.loads, threads: int = 8, analys
             if analysis_arguments:
                 available_options_list = config_species['options']
                 accepted_options_list = []
-                if species == 'mycobacterium' and 'vcf_path' not in isolate.keys():
+                if species == 'mycobacterium' and 'vcf_path' not in isolate:
                     available_options_list = config_species['options_without_vcf']
                 for option in analysis_arguments:
                     option_reformatted = ''.join(['--', option])
@@ -192,7 +192,7 @@ def reanalysis_slurm(species: str, isolate: json.loads, threads: int = 8, analys
             # if no specific analysis arguments are given, perform all analyses
             else:
                 accepted_options_list = config_species['options']
-                if species == 'mycobacterium' and 'vcf_path' not in isolate.keys():
+                if species == 'mycobacterium' and 'vcf_path' not in isolate:
                     accepted_options_list = config_species['options_without_vcf']
 
             # Create the command to re-analyze the datasets
@@ -304,7 +304,7 @@ if __name__ == '__main__':
         reanalysis_config = yaml.safe_load(handle)
 
     # Parse arguments
-    args = _parse_arguments(list(reanalysis_config['species'].keys()))
+    args = _parse_arguments(list(reanalysis_config['species']))
 
     # run main
     reanalysis_slurm(args.species,

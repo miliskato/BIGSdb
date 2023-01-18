@@ -473,7 +473,7 @@ class Mongoresults(object, metaclass=abc.ABCMeta):
         :return: a subset of the outputtsvdict in a dict with only 1 key, the commontsvoutputoption
         """
         common_tsv_output_dict = {}
-        if commontsvoutputoption not in self._common_output_arguments.keys():
+        if commontsvoutputoption not in self._common_output_arguments:
             logging.error(
                 f"option {commontsvoutputoption} does not exist in tsv_output dictionary in this function in this script")
             raise RuntimeError(

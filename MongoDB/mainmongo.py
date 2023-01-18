@@ -104,12 +104,12 @@ def prepend_string_dot_to_dict_keys(input_dictionary: dict, prepending: str = 'r
     keydict = {}
     import copy
     input_dictionary_copy = copy.deepcopy(input_dictionary)
-    for key in input_dictionary.keys():
+    for key in input_dictionary:
         if key == 'qc' or key == 'assembly':
             for subkey in input_dictionary[key]:
                 input_dictionary_copy['.'.join([key, subkey])] = input_dictionary_copy[key][subkey]
             input_dictionary_copy.pop(key)
-    for key in input_dictionary_copy.keys():
+    for key in input_dictionary_copy:
         keydict[key] = '.'.join([prepending, key])
     return dict((keydict[key], value) for (key, value) in input_dictionary_copy.items())
 
@@ -143,7 +143,7 @@ def find_hashes_in_results_and_add_to_collection(results: dict, mongoinit: Mongo
     """
     hashed_ad_collection = mongoinit.initialise_hashing_collection(config_data, species)
     for typing_scheme in ['mlst', 'cgmlst',  'mlst_warwick', 'mlst_pasteur']:
-        if typing_scheme in results.keys():
+        if typing_scheme in results:
             for locus_index, allele_info in enumerate(results[typing_scheme]['loci']):
                 # check if allele designation is md5 hash (32 char combination of letters andor numbers)
                 if re.findall(r'(?i)(?<![a-z0-9])[a-z0-9]{32}(?![a-z0-9])', allele_info['Allele']):
@@ -213,15 +213,15 @@ def _check_if_results_changed(current_results: Dict[str, Union[str, object]], ne
     any_result_changed = False
     unchanged_results = []
     changed_results = []
-    for mainkey in new_results.keys():  # mainkey is assay
+    for mainkey in new_results:  # mainkey is assay
         if isinstance(new_results[mainkey], dict):
-            for subkey in new_results[mainkey].keys():
-                if mainkey not in current_results.keys():
+            for subkey in new_results[mainkey]:
+                if mainkey not in current_results:
                     logging.info(f"{mainkey} not in current results")
                     any_result_changed = True
                     changed_results.append(mainkey)
                 elif subkey == 'loci' or subkey == 'results' or subkey.startswith('hits'):
-                    if subkey not in current_results[mainkey].keys() or new_results[mainkey][subkey] != \
+                    if subkey not in current_results[mainkey] or new_results[mainkey][subkey] != \
                             current_results[mainkey][subkey]:
                         # keep in mind that loci is a list: it seems as if loci are always outputted in the same order though so that is allright
                         logging.info(f"{mainkey}{subkey} different or not in old")
@@ -361,7 +361,7 @@ class MainMongo:
                             _new_isolate(self.technical_id, str(self.reportdirectorypath), str(self.vcffilepath),
                                          str(self.fastafilepath), new_records))
             logging.info(f"Wrote new isolate {self.technical_id} and its result to {self.species} database")
-            if 'cgmlst' in new_records.keys():
+            if 'cgmlst' in new_records:
                 clustering_input = self.mongoquerying.query_typing_results_by_technicalids_and_scheme(
                     self.isolates_collection,
                     scheme="cgmlst",

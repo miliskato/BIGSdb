@@ -11,6 +11,7 @@ from email.message import EmailMessage
 from pathlib import Path
 
 import psycopg2
+import psycopg2.extensions
 import yaml
 
 PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
@@ -156,7 +157,7 @@ def main_results_inserter(isolatename: str, uploadermailadress: str, species: st
             sample_output_dict[line.split('\t')[0]] = line.split('\t')[1].strip('\n')
     elif jsonfilepath:
         records = json.load(open(jsonfilepath, 'r'))
-        if 'results' in records.keys():
+        if 'results' in records:
             # records come from mongodb
             sample_output_dict = records['results']
         else:
@@ -185,8 +186,8 @@ def main_results_inserter(isolatename: str, uploadermailadress: str, species: st
                 TsvTypingResultsInserter().insert_typing_results(isolatename, species, config_data['species'][species]['typing_schemes'], sample_output_dict, cur_isolates, cur_seqdef)
                 TsvGeneDetectionResultsInserter().insert_genedetection_results(isolatename, species, config_data['species'][species]['genedetection_schemes'], sample_output_dict, cur_isolates, cur_seqdef)
             elif jsonfilepath:
-                JsonTypingResultsInserter(isolatename, species, cur_isolates, cur_seqdef, sample_output_dict).insert_typing_results(config_data['species_json'][species]['typing_schemes'])
-                JsonGeneDetectionResultsInserter(isolatename, species, cur_isolates, cur_seqdef, sample_output_dict).insert_genedetection_results(config_data['species_json'][species]['genedetection_schemes'])
+                JsonTypingResultsInserter(isolatename, species, cur_isolates, cur_seqdef, sample_output_dict, config_data).insert_typing_results()
+                JsonGeneDetectionResultsInserter(isolatename, species, cur_isolates, cur_seqdef, sample_output_dict, config_data).insert_genedetection_results()
             logging.info('Finished inserting results')
         except Exception as exceptionmessage:
             _send_email(
@@ -212,7 +213,7 @@ if __name__ == '__main__':
         config_data = yaml.safe_load(handle)
 
     # Parse arguments
-    args = _parse_arguments(list(config_data['species'].keys()))
+    args = _parse_arguments(list(config_data['species']))
 
     # run main
     main_results_inserter(args.isolatename, args.uploadermailadress, args.species, args.results_type, jsonfilepath=(args.jsonfilepath if args.jsonfilepath else None), tsvfilepath=(args.tsvfilepath if args.tsvfilepath else None))

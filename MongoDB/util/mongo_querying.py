@@ -78,7 +78,7 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
             resultlist = [doc['_id']]
             for locus in doc['results'][scheme]['loci']:
                 allele_id = locus['Allele']
-                if locus['% Identity'] == '100.00' and eval(locus['HSP/Locus length']) == 1.0:  # todo possibility to write the eval to the mongodb document
+                if locus['% Identity'] == '100.00' and float(locus['HSP/Locus length']) == 1.0:  # todo possibility to write the eval to the mongodb document
                     if '_temp_' not in allele_id:
                         if allele_id != '?' and allele_id != '-':
                             resultlist.append(int(allele_id))
@@ -139,15 +139,15 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         :return: prints the qc checks and the number of times theyre failed across the entire bad qc collection
         """
         random_doc = isolates_badqc_collection.find_one()
-        for k in random_doc['results']['qc'].keys():
-            for key in random_doc['results']['qc'][k].keys():
+        for k in random_doc['results']['qc']:
+            for key in random_doc['results']['qc'][k]:
                 if key.endswith('status'):
                     keystring = f"$results.qc.{k}.{key}"
                     status_dict = {}
                     for x in isolates_badqc_collection.aggregate(
                             [{"$group": {"_id": f"{keystring}", "count": {"$sum": 1}}}]):
                         status_dict[x['_id']] = x['count']
-                    if 'Failed' in status_dict.keys():
+                    if 'Failed' in status_dict:
                         print("{}\t{}".format(key,
                                               round((int(status_dict['Failed']) / sum(status_dict.values()) * 100), 1)))
                     else:
@@ -165,13 +165,13 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         # no checks are done to see if exists
         new_results = isolates_collection.find_one({'results.isolates_id': isolate_id})['results']
         old_results = isolateresults_collection.find_one({'isolates_id': isolate_id, 'changed_version': new_results['changed_version'] - 1})
-        for mainkey in new_results.keys():
+        for mainkey in new_results:
             if isinstance(new_results[mainkey], dict):
-                for subkey in new_results[mainkey].keys():
-                    if mainkey not in old_results.keys():
+                for subkey in new_results[mainkey]:
+                    if mainkey not in old_results:
                         logging.info(f"{mainkey} not in old results")
                     elif subkey == 'loci' or subkey == 'results' or subkey.startswith('hits'):
-                        if subkey not in old_results[mainkey].keys() or new_results[mainkey][subkey] != \
+                        if subkey not in old_results[mainkey] or new_results[mainkey][subkey] != \
                                 old_results[mainkey][subkey]:
                             # keep in mind that loci is a list: it seems as if loci are always outputted in the same order though so that is allright
                             logging.info(f"{mainkey}{subkey} different or not in old")

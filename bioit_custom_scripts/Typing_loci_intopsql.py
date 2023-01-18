@@ -35,7 +35,7 @@ def _insert_loci() -> None:
         (con_isolates, cur_isolates), (con_seqdef, cur_seqdef) = DatabaseConnection().connect_to_dbs_and_create_cursors(species)
 
         schemedict = config_data['species'][species]['typing_schemes']
-        for scheme in schemedict.keys():
+        for scheme in schemedict:
             if schemedict[scheme].get('dirdb') and schemedict[scheme]['dirdb'] != '':
                 dirs = next(os.walk(schemedict[scheme]['dirdb']))[1]
                 for dir in dirs:
@@ -101,7 +101,7 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
     # Parse arguments
-    args = _parse_arguments(list(config_data['species'].keys()))
+    args = _parse_arguments(list(config_data['species']))
 
     # execute script
     _insert_loci()

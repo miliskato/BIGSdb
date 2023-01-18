@@ -2,7 +2,7 @@ import json
 import logging
 from pathlib import Path
 
-import psycopg2
+import psycopg2.extensions
 
 class TsvGeneDetectionResultsInserter:
     """

@@ -7,7 +7,7 @@ import sys
 import traceback
 from email.message import EmailMessage
 
-import psycopg2
+import psycopg2.extensions
 import yaml
 
 PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
@@ -143,7 +143,7 @@ def _insert_all_profiles() -> None:
         (con_isolates, cur_isolates), (con_seqdef, cur_seqdef) = DatabaseConnection().connect_to_dbs_and_create_cursors(species)
 
         schemedict = config_data['species'][species]['typing_schemes']
-        for scheme in schemedict.keys():
+        for scheme in schemedict:
             if schemedict[scheme].get('scheme_fields'):
                 handle = open('/'.join([schemedict[scheme]['dirdb'], profile_file]), 'r').readlines()
                 # multiple whitespaces need to be replaced by single whitespace
@@ -212,7 +212,7 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
     # Parse arguments
-    args = _parse_arguments(list(config_data['species'].keys()))
+    args = _parse_arguments(list(config_data['species']))
 
     try:
         _insert_all_profiles()

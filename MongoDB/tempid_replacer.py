@@ -97,7 +97,7 @@ def tempid_replacer(scheme: str, species: str, alternate_connection_string: str 
         else:
             locus_hash_dict = {}
             for document_index, hash_document in enumerate(documents_list):
-                if hash_document['locus'] in locus_hash_dict.keys():
+                if hash_document['locus'] in locus_hash_dict:
                     locus_hash_dict[hash_document['locus']]['hashed_alleles'].append(hash_document['hashed_allele'])
                     locus_hash_dict[hash_document['locus']]['temp_alleles'].append(hash_document['temp_allele_name'])
                     locus_hash_dict[hash_document['locus']]['indexes'].append(document_index)

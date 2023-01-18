@@ -2,7 +2,7 @@ import datetime
 import logging
 import socket
 
-import psycopg2
+import psycopg2.extensions
 
 from .json_superclass import JsonSuperClass
 

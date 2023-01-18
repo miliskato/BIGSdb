@@ -44,7 +44,7 @@ def _insert_alleles() -> None:
         (con_isolates, cur_isolates), (con_seqdef, cur_seqdef) = DatabaseConnection().connect_to_dbs_and_create_cursors(species)
 
         schemedict = config_data['species'][species]['typing_schemes']
-        for scheme in schemedict.keys():
+        for scheme in schemedict:
             if schemedict[scheme].get('dirdb') and schemedict[scheme]['dirdb'] != '':
                 dirs = next(os.walk(schemedict[scheme]['dirdb']))[1]
                 for dir in dirs:
@@ -107,13 +107,13 @@ def _insert_alleles() -> None:
                         # Part_3: Compare the two lists
                         ids_to_be_inserted = []
                         if len(list_alleleid):  # not necessary but makes it slightly more elegant for new locus allele sequences
-                            for id in list(fastadict.keys()):
+                            for id in list(fastadict):
                                 if id not in list_alleleid:
                                     ids_to_be_inserted.append(id)
                                 else:
                                     continue
                         else:
-                            ids_to_be_inserted = list(fastadict.keys())
+                            ids_to_be_inserted = list(fastadict)
 
                         # Part_4: insert missing allele sequences into psql db
                         for id in ids_to_be_inserted:
@@ -172,7 +172,7 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
     # Parse arguments
-    args = _parse_arguments(list(config_data['species'].keys()))
+    args = _parse_arguments(list(config_data['species']))
 
     try:
         _insert_alleles()

@@ -133,7 +133,7 @@ class NewAllelesProfileClusteringFromMongoToBigs:
         :return: None.
         """
         ordered_by_scheme_dict = self._order_sequences_by_locus()
-        for scheme_loci in ordered_by_scheme_dict.keys():
+        for scheme_loci in ordered_by_scheme_dict:
             scheme, locus = scheme_loci.split(',')
             # fetch all alleles ids already in bigs
             sqlquery = """SELECT allele_id FROM sequences WHERE locus=%s;"""

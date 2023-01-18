@@ -34,7 +34,7 @@ def main():
 def get_matching_schemes(db):
     if re.search(r'definitions',db['description'],flags=0):
         db_attributes = requests.get(db['href']).json()
-        if not 'schemes' in db_attributes.keys(): return
+        if not 'schemes' in db_attributes: return
         schemes = requests.get(db_attributes['schemes']).json()
         for scheme in schemes['schemes']:
             if args.match:

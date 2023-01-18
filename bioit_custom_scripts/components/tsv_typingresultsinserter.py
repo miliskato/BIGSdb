@@ -4,7 +4,7 @@ import logging
 import os
 import re
 
-import psycopg2
+import psycopg2.extensions
 import requests
 
 
@@ -41,7 +41,7 @@ class TsvTypingResultsInserter:
                         result = sample_output_dict['-'.join([schemedict[scheme]['tsvname'], directory])].split(',')
                         if directory == "'rplF":  # neisseria specific
                             directory = "rplF"
-                        if result[2] == '100.00' and result[3] != '-' and eval(result[3]) == 1.0 and result[1] != 0 and result[1] != '?':
+                        if result[2] == '100.00' and result[3] != '-' and float(result[3]) == 1.0 and result[1] != 0 and result[1] != '?':
                             allele_id = result[1]
                             cur_isolates.execute(f"INSERT INTO allele_designations(locus, isolate_id, "
                                                  f"allele_id, status, method, sender, "
@@ -259,7 +259,7 @@ class TsvTypingResultsInserter:
                     if schemedict[scheme]['tsvname'] == 'resistance_genes':
                         for directory in ['penA', 'rpoB']:
                             result = sample_output_dict['-'.join([schemedict[scheme]['tsvname'], directory])].split(',')
-                            if result[2] == '100.00' and result[3] != '-' and eval(result[3]) == 1.0:
+                            if result[2] == '100.00' and result[3] != '-' and float(result[3]) == 1.0:
                                 allele_id = int(result[1])
                                 response = requests.get(
                                     f"https://rest.pubmlst.org/db/pubmlst_neisseria_seqdef/loci/{directory}/alleles/{allele_id}")

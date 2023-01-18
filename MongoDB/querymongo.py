@@ -45,7 +45,7 @@ if __name__ == '__main__':
     print(list(isolates_collection.find({'_id': 'test'})))
     print(isolates_badqc_collection.find_one({'_id': '11-090'}, {'fasta_path':1}) if result_isolates is None else result_isolates)
     print(result_isolates if result_isolates is not None else isolates_badqc_collection.find_one({'_id': '11-090'},  {'fasta_path':1}))
-    # print(isolates_collection.find_one()['results'].keys())
+    # print(isolates_collection.find_one()['results'])
     # mongoquerying.query_failed_causes(isolates_badqc_collection)
     # list_of_lists = [docs['results']['species_confirmation']['loci'] for docs in isolates_collection.find()]
     # import itertools
@@ -63,7 +63,7 @@ if __name__ == '__main__':
     # for result in mongoquerying._query_previous_latest_results_by_technicalids(isolates_collection, old_isolateresults_collection,
     #                                                            mongoquerying._query_list_of_all_distinct_values(
     #                                                                    isolates_collection, "_id")):
-    #     if 'testiffail' in result.keys():
+    #     if 'testiffail' in result:
     #         print(result['isolates_id'], result['testiffail'])
     # print((mongoquerying._query_docs_by_ids(isolates_collection, ['technical_id_test_fqsdad']))[0].results)
     # print('test')

@@ -126,7 +126,7 @@ if __name__ == '__main__':
         config_data = yaml.safe_load(handle)
 
     # Parse arguments
-    args = _parse_arguments(list(config_data['species'].keys()))
+    args = _parse_arguments(list(config_data['species']))
 
     # run main
     insert_assembly(args.isolatename, args.species, args.fastafilepath)

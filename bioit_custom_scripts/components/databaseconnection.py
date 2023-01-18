@@ -2,6 +2,7 @@ import os
 import sys
 
 import psycopg2
+import psycopg2.extensions
 import yaml
 
 PYTHONPATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -33,14 +34,14 @@ class DatabaseConnection:
                                host="127.0.0.1", port="")
         con.autocommit = True
         cur = con.cursor()
-        print(type(cur))
         return con, cur
 
-    def connect_to_dbs_and_create_cursors(self, species: str) -> psycopg2.extensions.connection:
+    def connect_to_dbs_and_create_cursors(self, species: str) \
+            -> ((psycopg2.extensions.connection, psycopg2.extensions.cursor), (psycopg2.extensions.connection, psycopg2.extensions.cursor)):
         """
         Connects to the species specific databases
         :param species: commonly used bioit species name: either genus or specific like stec
-        :return: opened connections and cursors to isolate and seqdef db (objects)
+        :return: tuples of opened connections and cursors to isolate and seqdef db (objects)
         """
         try:
             return self._connection_and_cursor(species, 'isolates'), self._connection_and_cursor(species, 'seqdef')
@@ -50,7 +51,7 @@ class DatabaseConnection:
     def close_connections(self, con_isolates: psycopg2.extensions.connection, con_seqdef: psycopg2.extensions.connection) -> None:
         """
         closes the connections
-        :param con_isolates:
+        :param con_isolates: isolates database connection instance
         :param con_seqdef:
         :return: None
         """

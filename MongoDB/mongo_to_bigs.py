@@ -174,14 +174,14 @@ def mongo_to_bigs(species: str, single_sample: str = None) -> None:
                             old_results = mongoquerying.query_old_results_and_replace_pointers(
                                 old_isolateresults_collection, old_results_withpointers)
                         some_result_changed = False
-                        for mainkey in new_results.keys():
+                        for mainkey in new_results:
                             if isinstance(new_results[mainkey], dict):
-                                for subkey in new_results[mainkey].keys():
-                                    if mainkey not in old_results.keys():
+                                for subkey in new_results[mainkey]:
+                                    if mainkey not in old_results:
                                         logging.info(f"{mainkey} not in old results")
                                         some_result_changed = True
                                     elif subkey == 'loci' or subkey == 'results' or subkey.startswith('hits'):
-                                        if subkey not in old_results[mainkey].keys() or new_results[mainkey][subkey] != \
+                                        if subkey not in old_results[mainkey] or new_results[mainkey][subkey] != \
                                                 old_results[mainkey][subkey]:
                                             # keep in mind that loci is a list: it seems as if loci are always outputted in the same order though so that is allright
                                             logging.info(f"{mainkey}{subkey} different or not in old")

@@ -43,7 +43,7 @@ def _gene_detection_insertion_recalcultation():
 
         schemedict = config_data['species'][species]['genedetection_schemes']
         if schemedict is not None:
-            for scheme in schemedict.keys():
+            for scheme in schemedict:
                 # Part 1 adding all the loci (clusters), scheme members and alleles (dummy boolean) in seqdef and isolate dbs
                 clusterfile = open(Path(schemedict[scheme]['clusteredfasta']), 'r').readlines()
                 clusterlist = []
@@ -211,7 +211,7 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
     # Parse arguments
-    args = _parse_arguments(list(config_data['species'].keys()))
+    args = _parse_arguments(list(config_data['species']))
 
     try:
         _gene_detection_insertion_recalcultation()
