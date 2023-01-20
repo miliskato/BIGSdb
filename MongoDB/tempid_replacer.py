@@ -15,8 +15,8 @@ from Bio import SeqIO
 from pymongo.read_concern import ReadConcern
 from pymongo.write_concern import WriteConcern
 
-PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(os.path.dirname(PYTHONPATH))
+PYTHONPATH = Path(__file__).resolve().parent.parent
+sys.path.append(str(PYTHONPATH))
 
 from bioit_custom_scripts.components.databaseconnection import DatabaseConnection
 from MongoDB.util.mongo_initialisation import MongoInitialisation
@@ -178,10 +178,10 @@ def tempid_replacer(scheme: str, species: str, alternate_connection_string: str 
                         cur_isolates.execute(sqlquery, (hash_document['resolved_AD'], hash_document['hashed_allele'], hash_document['locus']))
                 DatabaseConnection().close_connections(con_isolates, con_seqdef)
     except Exception as exceptionmessage:
-        _send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
+        _send_email(f"{Path(__file__).name} fail on host {socket.gethostname()}",
                     f"{exceptionmessage}\n{traceback.format_exc()}", config_data['mail'])
         raise Exception(
-            f"{os.path.basename(__file__)} fail on host {socket.gethostname()}")
+            f"{Path(__file__).name} fail on host {socket.gethostname()}")
 
 if __name__ == '__main__':
     # Parse config

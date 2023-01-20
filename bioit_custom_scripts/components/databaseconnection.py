@@ -1,14 +1,15 @@
-import os
 import sys
+from pathlib import Path
+from typing import Tuple
 
 import psycopg2
 import psycopg2.extensions
 import yaml
 
-PYTHONPATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(os.path.dirname(PYTHONPATH))
+PYTHONPATH = Path(__file__).resolve().parent.parent.parent
+sys.path.append(str(PYTHONPATH))
 
-from bioit_custom_scripts.config import BIGSDB_CONFIG
+from bioit_custom_scripts.components.python_utility_functions import get_bigsdb_config_data
 
 class DatabaseConnection:
     """
@@ -19,7 +20,7 @@ class DatabaseConnection:
         pass
 
     @staticmethod
-    def _connection_and_cursor(species: str, db_type: str) -> (psycopg2.extensions.connection, psycopg2.extensions.cursor):
+    def _connection_and_cursor(species: str, db_type: str) -> Tuple[psycopg2.extensions.connection, psycopg2.extensions.cursor]:
         """
         Returns cursor object for given PSQL databases
         :param species: commonly used bioit species name: either genus or specific like stec
@@ -27,17 +28,16 @@ class DatabaseConnection:
         :return: cursor object that can be used to interact: CRUD
         """
         # Read the global config
-        with open(BIGSDB_CONFIG, encoding='utf-8') as handle:
-            config_data = yaml.safe_load(handle)
+        bigsdb_config_data = get_bigsdb_config_data()
 
-        con = psycopg2.connect(database=f"bigsdb_{species}_{db_type}", user="apache", password=config_data.get('postgresql_apache_pass'),
+        con = psycopg2.connect(database=f"bigsdb_{species}_{db_type}", user="apache", password=bigsdb_config_data.get('postgresql_apache_pass'),
                                host="127.0.0.1", port="")
         con.autocommit = True
         cur = con.cursor()
         return con, cur
 
     def connect_to_dbs_and_create_cursors(self, species: str) \
-            -> ((psycopg2.extensions.connection, psycopg2.extensions.cursor), (psycopg2.extensions.connection, psycopg2.extensions.cursor)):
+            -> Tuple[Tuple[psycopg2.extensions.connection, psycopg2.extensions.cursor], Tuple[psycopg2.extensions.connection, psycopg2.extensions.cursor]]:
         """
         Connects to the species specific databases
         :param species: commonly used bioit species name: either genus or specific like stec

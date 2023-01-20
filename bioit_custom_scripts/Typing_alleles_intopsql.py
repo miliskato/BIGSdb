@@ -5,24 +5,19 @@ import logging
 import os
 import re
 import shutil
-import smtplib
 import socket
 import sys
 import traceback
-from email.message import EmailMessage
 from pathlib import Path
+from typing import List
 
-import psycopg2
-import yaml
+PYTHONPATH = Path(__file__).resolve().parent.parent
+sys.path.append(str(PYTHONPATH))
 
-PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(os.path.dirname(PYTHONPATH))
-
-from bioit_custom_scripts.config import BIGSDB_CONFIG
 from bioit_custom_scripts.components.databaseconnection import DatabaseConnection
+from bioit_custom_scripts.components.python_utility_functions import get_bigsdb_config_data, send_email
 
-
-def _parse_arguments(specieslist: list) -> argparse.Namespace:
+def _parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     """
     Parses the command line arguments.
     :param specieslist: list of all the species choices
@@ -40,10 +35,10 @@ def _insert_alleles() -> None:
     Main function to insert all alleles for the given species
     :return:
     """
-    for species in list(set(args.species)):
+    for species in set(args.species):
         (con_isolates, cur_isolates), (con_seqdef, cur_seqdef) = DatabaseConnection().connect_to_dbs_and_create_cursors(species)
 
-        schemedict = config_data['species'][species]['typing_schemes']
+        schemedict = bigsdb_config_data['species'][species]['typing_schemes']
         for scheme in schemedict:
             if schemedict[scheme].get('dirdb') and schemedict[scheme]['dirdb'] != '':
                 dirs = next(os.walk(schemedict[scheme]['dirdb']))[1]
@@ -143,41 +138,19 @@ def _insert_alleles() -> None:
         DatabaseConnection().close_connections(con_isolates, con_seqdef)
 
 
-def _send_email(subject: str, content: str, config: dict) -> None:
-    """
-    Sends an email.
-    :param subject: Mail subject
-    :param content: Content of the message
-    :param config: Config containing the maildict
-    :return: None
-    """
-    message = EmailMessage()
-    message['Subject'] = subject
-    message['From'] = config['from']
-    message['To'] = config['to']
-    message.set_content(content)
-    with smtplib.SMTP(config['host']) as s:
-        s.send_message(message)
-    logging.info(content)
-
-
 if __name__ == '__main__':
 
     # Read the global config
-    with open(BIGSDB_CONFIG, encoding='utf-8') as handle:
-        config_data = yaml.safe_load(handle)
-    emaildict = config_data['mail']
+    bigsdb_config_data = get_bigsdb_config_data()
 
     # Configure stdout logging
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
     # Parse arguments
-    args = _parse_arguments(list(config_data['species']))
+    args = _parse_arguments(list(bigsdb_config_data['species']))
 
     try:
         _insert_alleles()
     except Exception as exceptionmessage:
-        _send_email(
-            f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
-            f"{exceptionmessage}\n{traceback.format_exc()}", emaildict)
-        raise Exception(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}")
+        send_email(f"{exceptionmessage}\n{traceback.format_exc()}")
+        raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}")

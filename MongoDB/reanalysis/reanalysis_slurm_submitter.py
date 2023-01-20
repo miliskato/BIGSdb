@@ -15,8 +15,8 @@ from pathlib import Path
 
 import yaml
 
-PYTHONPATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(os.path.dirname(PYTHONPATH))
+PYTHONPATH = Path(__file__).resolve().parent.parent.parent
+sys.path.append(str(PYTHONPATH))
 
 from MongoDB.util.command.command import Command
 from MongoDB.util.mongo_initialisation import MongoInitialisation
@@ -83,7 +83,7 @@ def reanalysis_slurm_submitter(species: str, maximal_analysis_date: str, minimal
         command = Command(base_command)
         command.run(Path(os.getcwd()))
         if command.returncode != 0:
-            raise RuntimeError(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}: Slurm not installed")
+            raise RuntimeError(f"{Path(__file__).name} fail on host {socket.gethostname()}: Slurm not installed")
 
         # capture start_time
         start_time_reanalysis = datetime.datetime.utcnow()
@@ -150,7 +150,7 @@ def reanalysis_slurm_submitter(species: str, maximal_analysis_date: str, minimal
                 end_time_reanalysis = datetime.datetime.utcnow()
                 timedelta_reanalysis = end_time_reanalysis - start_time_reanalysis
                 _send_email(
-                    f"{os.path.basename(__file__)} report on host {socket.gethostname()} at {datetime.datetime.utcnow()}",
+                    f"{Path(__file__).name} report on host {socket.gethostname()} at {datetime.datetime.utcnow()}",
                     f"Ran from {start_time_reanalysis} to {end_time_reanalysis} for a total of {timedelta_reanalysis.days} days, {timedelta_reanalysis.seconds // 3600} hours, {(timedelta_reanalysis.seconds - (timedelta_reanalysis.seconds // 3600 * 3600)) // 60} minutes\n"
                     f"Succes Count: {succes_counter}\nFail Count: {fail_counter}\nFail Logs: {fail_logs}",
                     mongo_config_data['mail'])
@@ -158,9 +158,9 @@ def reanalysis_slurm_submitter(species: str, maximal_analysis_date: str, minimal
             logging.info('No isolates to be reanalyzed found')
 
     except Exception as exceptionmessage:
-        _send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
+        _send_email(f"{Path(__file__).name} fail on host {socket.gethostname()}",
                     f"{exceptionmessage}\n{traceback.format_exc()}", mongo_config_data['mail'])
-        raise Exception(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}")
+        raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}")
 
 if __name__ == '__main__':
 

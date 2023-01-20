@@ -1,4 +1,7 @@
 #!/bin/bash
+# Checks whether new uploads are available from galaxy to bigsdb using the following cron command
+# The cronjob is deployed using ansible in the bigsdb role (tasks/main.yml)
+# */1 *   * * *   root    bash /home/bigsdb/BIGSdb/bioit_custom_scripts/cron_startinsertion_mongo_implementation.sh
 
 cd /home/galaxy/mongo
 
@@ -29,11 +32,3 @@ do
   } 2>&1 | tee /home/galaxy/mongo/$sample_name.mongodb_bigsdb_insertion.log
   mv /home/galaxy/mongo/$sample_name.mongodb_bigsdb_insertion.log /reports/$species/bigsdb_json_upload/$sample_name/
 done
-# should probably add an if statement for the assembly inserter because paths may vary
-
-
-
-
-
-
-# */1 *   * * *   root    bash /home/bigsdb/BIGSdb/bioit_custom_scripts/cron_startinsertion_mongo_implementation.sh

@@ -1,6 +1,7 @@
 import datetime
 import logging
 import socket
+from typing import Any, Dict, List, Tuple, Union
 
 import psycopg2.extensions
 
@@ -12,21 +13,27 @@ class MainInserter(JsonSuperClass):
     Class containing defintions used to insert metadata results for both json and tsv input
     """
 
-    def __init__(self, isolatename: str, species: str, cur_isolates: psycopg2.extensions.cursor, cur_seqdef: psycopg2.extensions.cursor, sample_output_dict: dict) -> None:
+    def __init__(self, isolatename: str, species: str, cur_isolates: psycopg2.extensions.cursor,
+                 cur_seqdef: psycopg2.extensions.cursor, sample_output_dict: Dict[str, Any]) -> None:
         """
-
-        :param isolatename:
+        :param isolatename: name of the isolate
         :param species: commonly used bioit species name: either genus or specific like stec
         :param cur_isolates: isolate database connection object
         :param cur_seqdef: sequence definition database connection object
         :param sample_output_dict: results of sample
+        :return: None
         """
         JsonSuperClass.__init__(self, isolatename, species, cur_isolates, cur_seqdef, sample_output_dict)
     
     def insert_new_isolate(self, uploadermailadress: str) -> None:
+        """
+        main function to insert a new isolate, but only the isolate
+        :param uploadermailadress: mailadress of the uploader of the new isolate
+        :return: None
+        """
         sqlquery = """SELECT COUNT(*) FROM isolates WHERE isolate=%s;"""
         self.cur_isolates.execute(sqlquery, (self.isolatename,))
-        sample_presence = self.cur_isolates.fetchall()
+        sample_presence: List[List[int]] = self.cur_isolates.fetchall()
         if sample_presence[0][0] == 0:
             sqlquery = """
                        INSERT INTO isolates(id, 
@@ -42,6 +49,10 @@ class MainInserter(JsonSuperClass):
             raise RuntimeError(f"isolatename {self.isolatename} of {self.species} already exists on host {socket.gethostname()}")
 
     def insert_new_isolate_version(self) -> None:
+        """
+        Insert a new isolate version for an existing isolate
+        :return: None
+        """
         sqlquery = """
                    INSERT INTO isolates(id, 
                    isolate, sender, curator, date_entered, datestamp, 
@@ -65,17 +76,21 @@ class MainInserter(JsonSuperClass):
         self.cur_isolates.execute(sqlquery, (self.isolatename, self.isolatename))
 
     def insert_main_metadata(self) -> None:
-        reportlink = f'<p><a href="/galaxyreports/{self.species}/{self.isolatename}/report.html" target="_blank"> html report</a></p>'
+        """
+        Inserts the main metadata into bigsdb for an isolate
+        :return: None
+        """
+        reportlink: str = f'<p><a href="/galaxyreports/{self.species}/{self.isolatename}/report.html" target="_blank"> html report</a></p>'
         self._insert_metadata('html', reportlink)
         self._insert_metadata('tsv', reportlink.replace('html', 'tsv'))
-        vcflink_unfiltered = f'<p><a href="/galaxyreports/{self.species}/{self.isolatename}/variant_calling/variants-{self.isolatename}-all.vcf" target="_blank">VCF unfiltered</a></p>'
+        vcflink_unfiltered: str = f'<p><a href="/galaxyreports/{self.species}/{self.isolatename}/variant_calling/variants-{self.isolatename}-all.vcf" target="_blank">VCF unfiltered</a></p>'
         self._insert_metadata('VCF_unfiltered', vcflink_unfiltered)
-        vcflink_filtered = f'<p><a href="/galaxyreports/{self.species}/{self.isolatename}/variant_calling/variants-{self.isolatename}-filtered.vcf" target="_blank">VCF filtered</a></p>'
+        vcflink_filtered: str = f'<p><a href="/galaxyreports/{self.species}/{self.isolatename}/variant_calling/variants-{self.isolatename}-filtered.vcf" target="_blank">VCF filtered</a></p>'
         self._insert_metadata('VCF_filtered', vcflink_filtered)
         sqlquery = """SELECT MAX(id) FROM isolates WHERE isolate=%s"""
         self.cur_isolates.execute(sqlquery, (self.isolatename,))
-        isolate_id = self.cur_isolates.fetchall()[0][0]
-        assemblylink = f'<p><a href="/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_{self.species}_isolates&page=plugin&name=Contigs&format=text&isolate_id={isolate_id}&match=1&pc_untagged=0&min_length=&header=1l" target="_blank">assembly</a></p>'
+        isolate_id: str = self.cur_isolates.fetchall()[0][0]
+        assemblylink: str = f'<p><a href="/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_{self.species}_isolates&page=plugin&name=Contigs&format=text&isolate_id={isolate_id}&match=1&pc_untagged=0&min_length=&header=1l" target="_blank">assembly</a></p>'
         self._insert_metadata('assembly', assemblylink)
         self._insert_species_specific_metadata()
         if 'changed_version' in self.sample_output_dict:
@@ -91,13 +106,17 @@ class MainInserter(JsonSuperClass):
         logging.info('Metadata insertion succesful')
     
     def _insert_species_specific_metadata(self) -> None:
+        """
+        Insert species specific metadata
+        :return: None
+        """
         if self.species == 'mycobacterium':
-            # tsv input
+            # tsv input (only this way in tsv output)
             if '51SNP-gyrB_group' in self.sample_output_dict:
                 self._insert_metadata('gyrB_group', self.sample_output_dict['51SNP-gyrB_group'])
                 self._insert_metadata('Genetic_group', self.sample_output_dict['51SNP-genetic_group'])
                 self._insert_metadata('SCG', self.sample_output_dict['51SNP-scg'])
-            # json input
+            # json input (only this way in json output)
             elif '51SNP' in self.sample_output_dict:
                 self._insert_metadata('gyrB_group', self.sample_output_dict['51SNP']['51SNP-gyrB_group'])
                 self._insert_metadata('Genetic_group', self.sample_output_dict['51SNP']['51SNP-genetic_group'])

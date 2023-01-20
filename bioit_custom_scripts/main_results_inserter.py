@@ -3,30 +3,27 @@ import datetime
 import json
 import logging
 import os
-import smtplib
 import socket
 import sys
 import traceback
-from email.message import EmailMessage
 from pathlib import Path
+from typing import List
 
-import psycopg2
 import psycopg2.extensions
-import yaml
 
-PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(os.path.dirname(PYTHONPATH))
+PYTHONPATH = Path(__file__).resolve().parent.parent
+sys.path.append(str(PYTHONPATH))
 
-from bioit_custom_scripts.config import BIGSDB_CONFIG
 from bioit_custom_scripts.components.databaseconnection import DatabaseConnection
 from bioit_custom_scripts.components.maininserter import MainInserter
 from bioit_custom_scripts.components.tsv_typingresultsinserter import TsvTypingResultsInserter
 from bioit_custom_scripts.components.tsv_genedetectionresultsinserter import TsvGeneDetectionResultsInserter
 from bioit_custom_scripts.components.json_typingresultsinserter import JsonTypingResultsInserter
 from bioit_custom_scripts.components.json_genedetectionresultsinserter import JsonGeneDetectionResultsInserter
+from bioit_custom_scripts.components.python_utility_functions import get_bigsdb_config_data, send_email
 
 
-def _parse_arguments(specieslist: list) -> argparse.Namespace:
+def _parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     """
     Parses the command line arguments.
     :param specieslist: list of all the species choices
@@ -42,23 +39,6 @@ def _parse_arguments(specieslist: list) -> argparse.Namespace:
                                  choices=specieslist)
     argument_parser.add_argument("--results_type", required=True, type=str, choices=['new_isolate', 'reanalysis'])
     return argument_parser.parse_args()
-
-
-def _send_email(subject: str, content: str, config: dict) -> None:
-    """
-    Sends an email.
-    :param subject: Mail subject
-    :param content: Content of the message
-    :return: None
-    """
-    message = EmailMessage()
-    message['Subject'] = subject
-    message['From'] = config['from']
-    message['To'] = config['to']
-    message.set_content(content)
-    with smtplib.SMTP(config['host']) as s:
-        s.send_message(message)
-    logging.info(content)
 
 
 def __make_flagfilepath(isolatename: str, config: dict) -> Path:
@@ -83,11 +63,11 @@ def _fail_safe_mechanism(isolatename: str, config: dict, analysis_date: str, cur
     :return: flag file present
     """
     try:
-        if not os.path.isdir(Path(config['failsafe']['flag_dir'])):
-            os.makedirs(Path(config['failsafe']['flag_dir']), exist_ok=True)
-            os.chmod(Path(config['failsafe']['flag_dir']), 0o777)
+        if not Path(config['failsafe']['flag_dir']).is_dir():
+            Path(config['failsafe']['flag_dir']).mkdir(parents=True, exist_ok=True)
+            Path(config['failsafe']['flag_dir']).chmod(0o777)
         flagfilepath = __make_flagfilepath(isolatename, config)
-        if os.path.isfile(flagfilepath):
+        if flagfilepath.is_file():
             logging.warning(f"fail safe mechanism detects that the bigsdb insertion for sample {isolatename} was started but didnt finish. Removing {isolatename} from Bigsdb to be able to restart inserting.")
             sqlquery = """SELECT COUNT(*) FROM isolates WHERE isolate=%s;"""
             cur_isolates.execute(sqlquery, (isolatename,))
@@ -114,11 +94,12 @@ def _fail_safe_mechanism(isolatename: str, config: dict, analysis_date: str, cur
                 cur_isolates.execute(sqlquery, (isolatename, isolatename))
         else:
             flagfilepath.touch()
-            os.chmod(flagfilepath, 0o777)
+            flagfilepath.chmod(0o777)
             logging.info(f"flagfilepath {flagfilepath}")
     except Exception as exceptionmessage:
-        _send_email(f"{os.path.basename(__file__)}: bigsdb upload fail safe mechanism fail on host {socket.gethostname()}", f"{exceptionmessage}\n{traceback.format_exc()}", config['mail'])
-        raise Exception(f"{os.path.basename(__file__)}: bigsdb upload fail safe mechanism fail on host {socket.gethostname()}")
+        send_email(f"{exceptionmessage}\n{traceback.format_exc()}",
+                   f"{Path(__file__).name}: bigsdb upload fail safe mechanism fail on host {socket.gethostname()}")
+        raise Exception(f"{Path(__file__).name}: bigsdb upload fail safe mechanism fail on host {socket.gethostname()}")
 
 
 def _delete_flagfile(isolatename: str, config: dict) -> None:
@@ -129,10 +110,11 @@ def _delete_flagfile(isolatename: str, config: dict) -> None:
     """
     flagfilepath = __make_flagfilepath(isolatename, config)
     try:
-        os.remove(flagfilepath)
+        flagfilepath.unlink()
     except Exception as exceptionmessage:
-        _send_email(f"{os.path.basename(__file__)}: Could not remove flag file {flagfilepath} on host {socket.gethostname()}", f"{exceptionmessage}\n{traceback.format_exc()}", config['mail'])
-        raise Exception(f"{os.path.basename(__file__)}: Could not remove flag file {flagfilepath} on host {socket.gethostname()}")
+        send_email(f"{exceptionmessage}\n{traceback.format_exc()}",
+                   f"{Path(__file__).name}: Could not remove flag file {flagfilepath} on host {socket.gethostname()}")
+        raise Exception(f"{Path(__file__).name}: Could not remove flag file {flagfilepath} on host {socket.gethostname()}")
 
 def main_results_inserter(isolatename: str, uploadermailadress: str, species: str, results_type: str, jsonfilepath: Path = None, tsvfilepath: Path = None) -> None:
     """
@@ -146,8 +128,7 @@ def main_results_inserter(isolatename: str, uploadermailadress: str, species: st
     :param tsvfilepath:
     :return:
     """
-    with open(BIGSDB_CONFIG, encoding='utf-8') as handle:
-        config_data = yaml.safe_load(handle)
+    bigsdb_config_data = get_bigsdb_config_data()
 
     # parse output
     if tsvfilepath:
@@ -164,9 +145,7 @@ def main_results_inserter(isolatename: str, uploadermailadress: str, species: st
             # records come from the pipeline directly
             sample_output_dict = records
     else:
-        _send_email(
-            f'{os.path.basename(__file__)}: Error inserting output of {species} pipeline to bigsdb for sample {isolatename} on host {socket.gethostname()}, need either jsonfilepath or tsvfilepath.',
-            "", config_data['mail'])
+        send_email("", f'{Path(__file__).name}: Error inserting output of {species} pipeline to bigsdb for sample {isolatename} on host {socket.gethostname()}, need either jsonfilepath or tsvfilepath.')
         sys.exit()
     # Logic
     try:
@@ -175,7 +154,7 @@ def main_results_inserter(isolatename: str, uploadermailadress: str, species: st
 
         # fail safe mechanism is initated at the same time of the isolate insertion, but after connecting to the PSQL db's
         maininserter = MainInserter(isolatename, species, cur_isolates, cur_seqdef, sample_output_dict)
-        _fail_safe_mechanism(isolatename, config_data, sample_output_dict['analysis_date'], cur_isolates)
+        _fail_safe_mechanism(isolatename, bigsdb_config_data, sample_output_dict['analysis_date'], cur_isolates)
         if results_type == 'new_isolate':
             maininserter.insert_new_isolate(uploadermailadress)
         elif results_type == 'reanalysis':
@@ -183,25 +162,23 @@ def main_results_inserter(isolatename: str, uploadermailadress: str, species: st
         try:
             maininserter.insert_main_metadata()
             if tsvfilepath:
-                TsvTypingResultsInserter().insert_typing_results(isolatename, species, config_data['species'][species]['typing_schemes'], sample_output_dict, cur_isolates, cur_seqdef)
-                TsvGeneDetectionResultsInserter().insert_genedetection_results(isolatename, species, config_data['species'][species]['genedetection_schemes'], sample_output_dict, cur_isolates, cur_seqdef)
+                TsvTypingResultsInserter().insert_typing_results(isolatename, species, bigsdb_config_data['species'][species]['typing_schemes'], sample_output_dict, cur_isolates, cur_seqdef)
+                TsvGeneDetectionResultsInserter().insert_genedetection_results(isolatename, species, bigsdb_config_data['species'][species]['genedetection_schemes'], sample_output_dict, cur_isolates, cur_seqdef)
             elif jsonfilepath:
-                JsonTypingResultsInserter(isolatename, species, cur_isolates, cur_seqdef, sample_output_dict, config_data).insert_typing_results()
-                JsonGeneDetectionResultsInserter(isolatename, species, cur_isolates, cur_seqdef, sample_output_dict, config_data).insert_genedetection_results()
+                JsonTypingResultsInserter(isolatename, species, cur_isolates, cur_seqdef, sample_output_dict, bigsdb_config_data).insert_typing_results()
+                JsonGeneDetectionResultsInserter(isolatename, species, cur_isolates, cur_seqdef, sample_output_dict, bigsdb_config_data).insert_genedetection_results()
             logging.info('Finished inserting results')
         except Exception as exceptionmessage:
-            _send_email(
-                f'{os.path.basename(__file__)}: Error inserting output of {species} pipeline to bigsdb for sample {isolatename} on host {socket.gethostname()}.',
-                f"{exceptionmessage}\n{traceback.format_exc()}", config_data['mail'])
-            raise Exception(f'{os.path.basename(__file__)}: Error inserting output of {species} pipeline to bigsdb for sample {isolatename} on host {socket.gethostname()}.')
+            send_email(f"{exceptionmessage}\n{traceback.format_exc()}",
+                       f'{Path(__file__).name}: Error inserting output of {species} pipeline to bigsdb for sample {isolatename} on host {socket.gethostname()}.')
+            raise Exception(f'{Path(__file__).name}: Error inserting output of {species} pipeline to bigsdb for sample {isolatename} on host {socket.gethostname()}.')
             # super important to raise exception because else the flagging file is removed and the entire fail safe doesnt work
-        _delete_flagfile(isolatename, config_data)
+        _delete_flagfile(isolatename, bigsdb_config_data)
         DatabaseConnection().close_connections(con_isolates, con_seqdef)
     except Exception as exceptionmessage:
-        _send_email(
-            f'{os.path.basename(__file__)}: Error inserting isolate of {species} pipeline to bigsdb for sample {isolatename} on host {socket.gethostname()}.',
-            f"{exceptionmessage}\n{traceback.format_exc()}", config_data['mail'])
-        raise Exception(f'{os.path.basename(__file__)}: Error inserting isolate of {species} pipeline to bigsdb for sample {isolatename} on host {socket.gethostname()}.')
+        send_email(f"{exceptionmessage}\n{traceback.format_exc()}",
+                   f'{Path(__file__).name}: Error inserting isolate of {species} pipeline to bigsdb for sample {isolatename} on host {socket.gethostname()}.')
+        raise Exception(f'{Path(__file__).name}: Error inserting isolate of {species} pipeline to bigsdb for sample {isolatename} on host {socket.gethostname()}.')
 
 
 if __name__ == '__main__':
@@ -209,11 +186,10 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
     # Read the global config
-    with open(BIGSDB_CONFIG, encoding='utf-8') as handle:
-        config_data = yaml.safe_load(handle)
+    bigsdb_config_data = get_bigsdb_config_data()
 
     # Parse arguments
-    args = _parse_arguments(list(config_data['species']))
+    args = _parse_arguments(list(bigsdb_config_data['species']))
 
     # run main
     main_results_inserter(args.isolatename, args.uploadermailadress, args.species, args.results_type, jsonfilepath=(args.jsonfilepath if args.jsonfilepath else None), tsvfilepath=(args.tsvfilepath if args.tsvfilepath else None))

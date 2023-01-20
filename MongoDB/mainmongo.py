@@ -21,8 +21,8 @@ import yaml
 from pymongo.read_concern import ReadConcern
 from pymongo.write_concern import WriteConcern
 
-PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(os.path.dirname(PYTHONPATH))
+PYTHONPATH = Path(__file__).resolve().parent.parent
+sys.path.append(str(PYTHONPATH))
 
 from MongoDB.util.mongo_querying import Mongoquerying
 from MongoDB.util.mongo_initialisation import MongoInitialisation
@@ -318,10 +318,10 @@ class MainMongo:
                         self.mongoquerying.query_docs_by_ids(self.isolates_collection, [self.technical_id])[0]
                 except Exception as exceptionmessage:
                     self._send_email(
-                        f"{os.path.basename(__file__)} fail on host {socket.gethostname()}: This reanalysis technical id ({self.technical_id}) is not present in the isolates collections",
+                        f"{Path(__file__).name} fail on host {socket.gethostname()}: This reanalysis technical id ({self.technical_id}) is not present in the isolates collections",
                         f"{exceptionmessage}\n{traceback.format_exc()}")
                     raise Exception(
-                        f"{os.path.basename(__file__)} fail on host {socket.gethostname()}: This reanalysis technical id ({self.technical_id}) is not present in the isolates collections")
+                        f"{Path(__file__).name} fail on host {socket.gethostname()}: This reanalysis technical id ({self.technical_id}) is not present in the isolates collections")
                 if self.results_type == "reanalysis":
                     new_results_handle = json.load(open(self.jsonfilepath, 'r'))
                 elif self.results_type == 'resequencing_validated':
@@ -331,9 +331,9 @@ class MainMongo:
                 self._new_reanalysis_wrapper(current_results_document, new_results_handle)
 
         except Exception as exceptionmessage:
-            self._send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
+            self._send_email(f"{Path(__file__).name} fail on host {socket.gethostname()}",
                         f"{exceptionmessage}\n{traceback.format_exc()}")
-            raise Exception(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}: {exceptionmessage}\n{traceback.format_exc()}")
+            raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}: {exceptionmessage}\n{traceback.format_exc()}")
 
     def _new_isolate_wrapper(self, new_records: dict) -> None:
         """
@@ -351,7 +351,7 @@ class MainMongo:
                             sample_quality = 'bad'
             except KeyError:
                 self._send_email(
-                    f"{os.path.basename(__file__)}: mongo upload fail in {self.isolates_collection.database.name} on host {socket.gethostname()}",
+                    f"{Path(__file__).name}: mongo upload fail in {self.isolates_collection.database.name} on host {socket.gethostname()}",
                     f"No qc values found in the given results\n{traceback.format_exc()}")
                 raise KeyError('No qc values found in the given results')
         if sample_quality == 'good':
@@ -403,7 +403,7 @@ class MainMongo:
 
             if collection_in == self.isolates_badqc_collection:
                 self._send_email(
-                    f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
+                    f"{Path(__file__).name} fail on host {socket.gethostname()}",
                     f"WARNING: a resequencing for sample {self.technical_id} was submitted to the isolates_resequencing while the sample is present in the isolates_badqc collection and has not yet been validated, validate the bad qc in bigs before trying to reupload this resequencing.")
                 raise Exception(
                     f"WARNING: a resequencing for sample {self.technical_id} was submitted to the isolates_resequencing while the sample is present in the isolates_badqc collection and has not yet been validated, validate the bad qc in bigs before trying to reupload this resequencing.")
@@ -413,7 +413,7 @@ class MainMongo:
             # new_resequencing = True
             if previous_resequencings != []:
                 self._send_email(
-                    f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
+                    f"{Path(__file__).name} fail on host {socket.gethostname()}",
                     f"WARNING: a resequencing for sample {self.technical_id} was submitted to the isolates_resequencing while one or more resequencings were already present: '{previous_resequencings}' in {self.isolates_resequencing_collection.database.name} on host {socket.gethostname()}, validate the original resequencing in bigs before uploading new resequencings.")
                 raise Exception(f"WARNING: a resequencing for sample {self.technical_id} was submitted to the isolates_resequencing while one or more resequencings were already present: '{previous_resequencings}' in {self.isolates_resequencing_collection.database.name} on host {socket.gethostname()}, validate the original resequencing in bigs before uploading new resequencings.")
             # The commented code below was in case multiple resequencings were allowed
@@ -424,7 +424,7 @@ class MainMongo:
             #     if new_resequencing is True:
             #         # Send a warning because we are not expecting multiple resequencings for the same same sample
             #         self._send_email(
-            #             f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
+            #             f"{Path(__file__).name} fail on host {socket.gethostname()}",
             #             f"WARNING: a resequencing for sample {self.technical_id} was written to the isolates_resequencing while one or more resequencings were already present: '{previous_resequencings}' in {self.isolates_resequencing_collection.database.name} on host {socket.gethostname()}")
             # if new_resequencing is True:
             #     # Writing document with auto generated id to avoid having multiple resequencings with same name (pop _id key from new isolate dict)
@@ -434,7 +434,7 @@ class MainMongo:
             #     sys.exit()
             # else:
             #     self._send_email(
-            #         f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
+            #         f"{Path(__file__).name} fail on host {socket.gethostname()}",
             #         f"This technical id is already present in the isolates collection\n{traceback.format_exc()}")
             #     raise Exception(
             #         f"The technical id '{self.technical_id}' is already present in the isolates or isolates badqc collection")
@@ -461,16 +461,16 @@ class MainMongo:
                                                                                           self.results_type)
         current_results = current_results_document['results']
         if new_results["analysis_date"] == current_results["analysis_date"]:
-            self._send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
+            self._send_email(f"{Path(__file__).name} fail on host {socket.gethostname()}",
                         f"This ({self.technical_id}) is not a reanalysis but the same results\n{traceback.format_exc()}")
             raise Exception(
-                f"{os.path.basename(__file__)} fail on host {socket.gethostname()}: This ({self.technical_id}) is not a reanalysis but the same results")
+                f"{Path(__file__).name} fail on host {socket.gethostname()}: This ({self.technical_id}) is not a reanalysis but the same results")
         elif _return_YMD_from_DMYhms(new_results["analysis_date"]) < _return_YMD_from_DMYhms(
                 current_results["analysis_date"]):
-            self._send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
+            self._send_email(f"{Path(__file__).name} fail on host {socket.gethostname()}",
                         f"These ({self.technical_id})results seem to be older than the current results\n{traceback.format_exc()}")
             raise Exception(
-                f"{os.path.basename(__file__)} fail on host {socket.gethostname()}: These ({self.technical_id})results seem to be older than the current results")
+                f"{Path(__file__).name} fail on host {socket.gethostname()}: These ({self.technical_id})results seem to be older than the current results")
         any_result_changed_new_old, unchanged_results_new_old, changed_results_new_old = \
             _check_if_results_changed(current_results, new_results)
         if current_results_document['previous_latest_results_document'] is not None:
@@ -520,9 +520,9 @@ class MainMongo:
             command.run(current_results_document['report_directory'])
             logging.info(f"merging the report directories of original and resequencing for isolate '{self.technical_id}'")
             if command.returncode != 0:
-                self._send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
+                self._send_email(f"{Path(__file__).name} fail on host {socket.gethostname()}",
                                  f"Could not 'git' merge dir {new_results_document['report_directory']} into dir {current_results_document['report_directory']}")
-                raise Exception(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}: Could not 'git' merge dir {new_results_document['report_directory']} into dir {current_results_document['report_directory']}")
+                raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}: Could not 'git' merge dir {new_results_document['report_directory']} into dir {current_results_document['report_directory']}")
             else:
                 # Removing the temporary working dir and the remaining files that were not kept
                 shutil.rmtree(new_results_document['report_directory'])

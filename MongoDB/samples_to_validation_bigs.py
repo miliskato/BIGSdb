@@ -11,8 +11,8 @@ import pymongo
 import yaml
 from pymongo.write_concern import WriteConcern
 
-PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(os.path.dirname(PYTHONPATH))
+PYTHONPATH = Path(__file__).resolve().parent.parent
+sys.path.append(str(PYTHONPATH))
 
 from MongoDB.util.mongo_initialisation import MongoInitialisation
 from MongoDB.config import MONGO_CONFIG
@@ -118,6 +118,6 @@ def samples_to_validation_bigs(species: str) -> None:
 
         DatabaseConnection().close_connections(con_isolates, con_seqdef)
     except Exception as exceptionmessage:
-        send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
+        send_email(f"{Path(__file__).name} fail on host {socket.gethostname()}",
                     f"{exceptionmessage}\n{traceback.format_exc()}", bigsdb_config['mail'])
-        raise Exception(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}")
+        raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}")

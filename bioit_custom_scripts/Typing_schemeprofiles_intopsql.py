@@ -1,27 +1,24 @@
 import argparse
 import logging
 import os
-import smtplib
 import socket
 import sys
 import traceback
-from email.message import EmailMessage
+from pathlib import Path
+from typing import List
 
 import psycopg2.extensions
-import yaml
 
-PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(os.path.dirname(PYTHONPATH))
+PYTHONPATH = Path(__file__).resolve().parent.parent
+sys.path.append(str(PYTHONPATH))
 
-from bioit_custom_scripts.config import BIGSDB_CONFIG
 from bioit_custom_scripts.components.databaseconnection import DatabaseConnection
+from bioit_custom_scripts.components.python_utility_functions import get_bigsdb_config_data, send_email
 # For this script I am assuming that profiles do not retire.
-# It is important to keep in mind that ST do not necessarily follow each other up continuously, there can be gaps
-
 
 profile_file = 'profiles.tsv'
 
-def _parse_arguments(specieslist: list) -> argparse.Namespace:
+def _parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     """
     Parses the command line arguments.
     :param specieslist: list of all the species choices
@@ -124,9 +121,11 @@ def __insert_profiles(scheme: str, schemedict: dict, indexdict: dict, profile_li
                                %s, %s, %s, 1, (SELECT CURRENT_DATE));"""
                     cur_seqdef.execute(sqlquery, (schemedict[scheme]['schemename_bigsdb'], locus, profile, locusvalue))
                 except Exception as exceptionmessage:
-                    _send_email(f"profile with field {field} and value {fieldvalue.replace('_',' ')} already exists as another field, find the profile that was misinserted (not all loci have allele_id), remove it, and all above and restart this script (on db {cur_seqdef.name()} on host {socket.gethostname()})",
-                                f"{exceptionmessage}\n{traceback.format_exc()}", emaildict)
-                    raise Exception(f"profile with field {field} and value {fieldvalue.replace('_',' ')} already exists as another field, find the profile that was misinserted (not all loci have allele_id), remove it, and all above and restart this script (on db {cur_seqdef.name()} on host {socket.gethostname()})")
+                    send_email(f"{exceptionmessage}\n{traceback.format_exc()}",
+                               f"profile with field {schemedict[scheme]['scheme_fields'][0]} and value {profile} already exists as another field, find the profile that was misinserted (not all loci have allele_id), "
+                               f"remove it, and all above and restart this script (on db {cur_seqdef.name()} on host {socket.gethostname()})")
+                    raise Exception(f"profile with field {schemedict[scheme]['scheme_fields'][0]} and value {profile} already exists as another field, find the profile that was misinserted (not all loci have allele_id), "
+                                    f"remove it, and all above and restart this script (on db {cur_seqdef.name()} on host {socket.gethostname()})")
         # remove profiles with incomplete profile fields
         for profile_to_be_removed in profiles_to_be_removed:
             sqlquery = """
@@ -139,10 +138,10 @@ def _insert_all_profiles() -> None:
     Main function to insert all profiles for the given species
     :return:
     """
-    for species in list(set(args.species)):
+    for species in set(args.species):
         (con_isolates, cur_isolates), (con_seqdef, cur_seqdef) = DatabaseConnection().connect_to_dbs_and_create_cursors(species)
 
-        schemedict = config_data['species'][species]['typing_schemes']
+        schemedict = bigsdb_config_data['species'][species]['typing_schemes']
         for scheme in schemedict:
             if schemedict[scheme].get('scheme_fields'):
                 handle = open('/'.join([schemedict[scheme]['dirdb'], profile_file]), 'r').readlines()
@@ -183,41 +182,20 @@ def _insert_all_profiles() -> None:
                         __insert_profiles(scheme, schemedict, indexdict, profile_line_dict, list_to_be_inserted, cur_seqdef)
         DatabaseConnection().close_connections(con_isolates, con_seqdef)
 
-def _send_email(subject: str, content: str, config: dict) -> None:
-    """
-    Sends an email.
-    :param subject: Mail subject
-    :param content: Content of the message
-    :param config: Config containing the maildict
-    :return: None
-    """
-    message = EmailMessage()
-    message['Subject'] = subject
-    message['From'] = config['from']
-    message['To'] = config['to']
-    message.set_content(content)
-    with smtplib.SMTP(config['host']) as s:
-        s.send_message(message)
-    logging.info(content)
-
 
 if __name__ == '__main__':
 
     # Read the global config
-    with open(BIGSDB_CONFIG, encoding='utf-8') as handle:
-        config_data = yaml.safe_load(handle)
-    emaildict = config_data['mail']
+    bigsdb_config_data = get_bigsdb_config_data()
 
     # Configure stdout logging
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
     # Parse arguments
-    args = _parse_arguments(list(config_data['species']))
+    args = _parse_arguments(list(bigsdb_config_data['species']))
 
     try:
         _insert_all_profiles()
     except Exception as exceptionmessage:
-        _send_email(
-            f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
-            f"{exceptionmessage}\n{traceback.format_exc()}", emaildict)
-        raise Exception(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}")
+        send_email(f"{exceptionmessage}\n{traceback.format_exc()}")
+        raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}")

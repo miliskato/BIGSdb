@@ -13,8 +13,8 @@ import pymongo
 import yaml
 from pymongo.write_concern import WriteConcern
 
-PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(os.path.dirname(PYTHONPATH))
+PYTHONPATH = Path(__file__).resolve().parent.parent
+sys.path.append(str(PYTHONPATH))
 
 from bioit_custom_scripts.components.databaseconnection import DatabaseConnection
 from MongoDB.util.mongo_initialisation import MongoInitialisation
@@ -338,6 +338,6 @@ def run_upload_new_alleles_profiles_clustering_from_mongo_to_bigs(species: str) 
                                         cluster_membership_collection, update_collection)
         updater.insert_into_bigs()
     except Exception as exceptionmessage:
-        _send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
+        _send_email(f"{Path(__file__).name} fail on host {socket.gethostname()}",
                     f"{exceptionmessage}\n{traceback.format_exc()}", config_data['mail'])
-        raise Exception(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}")
+        raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}")

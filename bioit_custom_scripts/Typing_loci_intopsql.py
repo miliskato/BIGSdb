@@ -2,18 +2,17 @@ import argparse
 import logging
 import os
 import sys
+from pathlib import Path
+from typing import List
 
-import psycopg2
-import yaml
+PYTHONPATH = Path(__file__).resolve().parent.parent
+sys.path.append(str(PYTHONPATH))
 
-PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(os.path.dirname(PYTHONPATH))
-
-from bioit_custom_scripts.config import BIGSDB_CONFIG
 from bioit_custom_scripts.components.databaseconnection import DatabaseConnection
+from bioit_custom_scripts.components.python_utility_functions import get_bigsdb_config_data
 
 
-def _parse_arguments(specieslist: list) -> argparse.Namespace:
+def _parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     """
     Parses the command line arguments.
     :param specieslist: list of all the species choices
@@ -31,10 +30,10 @@ def _insert_loci() -> None:
     Main function to insert all loci for the given species
     :return:
     """
-    for species in list(set(args.species)):
+    for species in set(args.species):
         (con_isolates, cur_isolates), (con_seqdef, cur_seqdef) = DatabaseConnection().connect_to_dbs_and_create_cursors(species)
 
-        schemedict = config_data['species'][species]['typing_schemes']
+        schemedict = bigsdb_config_data['species'][species]['typing_schemes']
         for scheme in schemedict:
             if schemedict[scheme].get('dirdb') and schemedict[scheme]['dirdb'] != '':
                 dirs = next(os.walk(schemedict[scheme]['dirdb']))[1]
@@ -94,14 +93,13 @@ def _insert_loci() -> None:
 if __name__ == '__main__':
 
     # Read the global config
-    with open(BIGSDB_CONFIG, encoding='utf-8') as handle:
-        config_data = yaml.safe_load(handle)
+    bigsdb_config_data = get_bigsdb_config_data()
 
     # Configure stdout logging
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
     # Parse arguments
-    args = _parse_arguments(list(config_data['species']))
+    args = _parse_arguments(list(bigsdb_config_data['species']))
 
     # execute script
     _insert_loci()

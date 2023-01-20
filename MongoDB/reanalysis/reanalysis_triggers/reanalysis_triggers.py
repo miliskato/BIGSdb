@@ -13,8 +13,8 @@ from pathlib import Path
 
 import yaml
 
-PYTHONPATH = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.append(os.path.dirname(PYTHONPATH))
+PYTHONPATH = Path(__file__).resolve().parent.parent.parent.parent
+sys.path.append(str(PYTHONPATH))
 
 from MongoDB.reanalysis.reanalysis_triggers import TRIGGER_CONFIG
 from MongoDB.config import MONGO_CONFIG
@@ -143,9 +143,9 @@ def reanalysis_triggers(species: str, threads: int = 8, pyvenvpythonpath: str = 
 
                 logging.info(f"Reanalysis for samples older than {date} with arguments: {date_args_dict[date]} completed")
             except Exception as exceptionmessage:
-                _send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
+                _send_email(f"{Path(__file__).name} fail on host {socket.gethostname()}",
                             f"{exceptionmessage}\n{traceback.format_exc()}", mongo_config_data['mail'])
-                raise Exception(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}")
+                raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}")
 
         # with concurrent.futures.ThreadPoolExecutor(max_workers=1 if slurm is False else 5) as executor:  # MK 24th nov 2022, i dont remember why slurm would get 5 workers because this i think would cause isolates that need to be reanalyzed in the lowest date to also be captured in the next dates
         with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
@@ -160,9 +160,9 @@ def reanalysis_triggers(species: str, threads: int = 8, pyvenvpythonpath: str = 
             logging.info(f"Mongo to bigs after reanalysis completed")
 
     except Exception as exceptionmessage:
-        _send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
+        _send_email(f"{Path(__file__).name} fail on host {socket.gethostname()}",
                     f"{exceptionmessage}\n{traceback.format_exc()}", mongo_config_data['mail'])
-        raise Exception(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}")
+        raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}")
 
 if __name__ == '__main__':
 

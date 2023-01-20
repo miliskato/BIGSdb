@@ -14,8 +14,8 @@ from typing import Optional, Dict
 
 import yaml
 
-PYTHONPATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(os.path.dirname(PYTHONPATH))
+PYTHONPATH = Path(__file__).resolve().parent.parent.parent
+sys.path.append(str(PYTHONPATH))
 
 from MongoDB.util.command.command import Command
 from MongoDB.config import MONGO_CONFIG

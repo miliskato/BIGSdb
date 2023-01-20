@@ -5,12 +5,13 @@ import socket
 import sys
 import traceback
 from email.message import EmailMessage
+from pathlib import Path
 from typing import Dict
 
 import yaml
 
-PYTHONPATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(os.path.dirname(PYTHONPATH))
+PYTHONPATH = Path(__file__).resolve().parent.parent.parent
+sys.path.append(str(PYTHONPATH))
 
 from MongoDB.util.mongo_initialisation import MongoInitialisation
 from MongoDB.config import MONGO_CONFIG
@@ -116,6 +117,6 @@ if __name__ == '__main__':
         reanalysis_noslurm('listeria', '2030-01-01', '2000-01-01', alternate_connection_string=ALTERNATE_CONNECTION_STRING)
 
     except Exception as exceptionmessage:
-        _send_email(f"{os.path.basename(__file__)} fail on {socket.gethostname()}",
+        _send_email(f"{Path(__file__).name} fail on {socket.gethostname()}",
                     f"{exceptionmessage}\n{traceback.format_exc()}", config_data['mail'])
-        raise Exception(f"{os.path.basename(__file__)} fail on {socket.gethostname()}")
+        raise Exception(f"{Path(__file__).name} fail on {socket.gethostname()}")

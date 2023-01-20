@@ -17,8 +17,8 @@ from pathlib import Path
 import yaml
 from pymongo.read_concern import ReadConcern
 
-PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(os.path.dirname(PYTHONPATH))
+PYTHONPATH = Path(__file__).resolve().parent.parent
+sys.path.append(str(PYTHONPATH))
 
 from MongoDB.util.mongo_initialisation import MongoInitialisation
 from MongoDB.util.mongo_querying import Mongoquerying
@@ -115,11 +115,11 @@ def mongo_to_bigs(species: str, single_sample: str = None) -> None:
             if query_single is not None:
                 listofdocuments = [query_single]
             else:
-                _send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
+                _send_email(f"{Path(__file__).name} fail on host {socket.gethostname()}",
                             f"Can not find document with _id '{single_sample}' in isolates",
                             bigsdb_config['mail'])
                 raise Exception(
-                    f"{os.path.basename(__file__)} fail on host {socket.gethostname()}: Can not find document with _id '{single_sample}' in isolates")
+                    f"{Path(__file__).name} fail on host {socket.gethostname()}: Can not find document with _id '{single_sample}' in isolates")
 
         else:
             listofdocuments = list(isolates_collection.find())
@@ -164,10 +164,10 @@ def mongo_to_bigs(species: str, single_sample: str = None) -> None:
                         if old_results_withpointers is None:
                             # what if bigs has version 1, but mongo has version 3, but version 3 is no different from 1 and 2?
                             # Currently new versions are only created if there were changes so in case more than 2 versions different and missing then should send error.
-                            _send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
+                            _send_email(f"{Path(__file__).name} fail on host {socket.gethostname()}",
                                         f"Can not find document in old isolate results collection for isolate {new_results['isolates_id']} and results version {mongo_results_changed_version_bigs}",
                                         bigsdb_config['mail'])
-                            raise Exception(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}: Can not find document in old isolate results collection for isolate {new_results['isolates_id']} and results version {mongo_results_changed_version_bigs}")
+                            raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}: Can not find document in old isolate results collection for isolate {new_results['isolates_id']} and results version {mongo_results_changed_version_bigs}")
                         else:
                             # replace the pointers in the old results by their actual contents
                             mongoquerying = Mongoquerying()
@@ -231,9 +231,9 @@ def mongo_to_bigs(species: str, single_sample: str = None) -> None:
 
         DatabaseConnection().close_connections(con_isolates, con_seqdef)
     except Exception as exceptionmessage:
-        _send_email(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}",
+        _send_email(f"{Path(__file__).name} fail on host {socket.gethostname()}",
                     f"{exceptionmessage}\n{traceback.format_exc()}", bigsdb_config['mail'])
-        raise Exception(f"{os.path.basename(__file__)} fail on host {socket.gethostname()}")
+        raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}")
 
 if __name__ == '__main__':
     # Configure stdout logging

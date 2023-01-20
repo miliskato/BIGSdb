@@ -1,4 +1,7 @@
 #!/bin/bash
+# Checks whether new uploads are available from galaxy to bigsdb using the following cron command
+# The cronjob is deployed using ansible in the bigsdb role (tasks/main.yml)
+# */1 *   * * *   root    bash /home/bigsdb/BIGSdb/bioit_custom_scripts/cron_startinsertion.sh
 
 cd /home/galaxy
 
@@ -6,7 +9,7 @@ for file in /home/galaxy/*_md5.txt
 do
   file_name=$(basename $file _md5.txt)
   if [ $(md5sum /home/galaxy/$file_name.tar | awk '{print $1}') == $(cat $file | awk '{print $1}') ]; then
-    tar -xf /home/galaxy/$file_name.tar # else wait until md5sum same
+    tar -xf /home/galaxy/$file_name.tar  # else wait until md5sum same
     rm /home/galaxy/$file_name.tar
     rm $file
   fi
@@ -28,6 +31,3 @@ do
   } 2>&1 | tee /home/galaxy/$sample_name.bigsdb_insertion.log
   mv /home/galaxy/$sample_name.bigsdb_insertion.log /reports/$species/$sample_name/
 done
-# should probably add an if statement for the assembly inserter because paths may vary
-
-# */1 *   * * *   root    bash /home/bigsdb/BIGSdb/bioit_custom_scripts/cron_startinsertion.sh

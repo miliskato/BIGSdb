@@ -14,7 +14,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
     """
 
     def __init__(self, isolatename: str, species: str, cur_isolates: psycopg2.extensions.cursor, cur_seqdef: psycopg2.extensions.cursor,
-                 sample_output_dict: Dict[str, Any], config_data: Dict[str, Any]) -> None:
+                 sample_output_dict: Dict[str, Any], config_data: Dict[str, Union[str, Dict[str, Any]]]) -> None:
         """
         :param isolatename: name of the isolate
         :param species: commonly used bioit species name: either genus or specific like stec
@@ -79,14 +79,14 @@ class JsonTypingResultsInserter(JsonSuperClass):
                         if scheme == 'spoligotyping':
                             for index, allele_id in enumerate(self.sample_output_dict[scheme]['spoligotype_binary']):
                                 locus: str = ''.join(['Spacer', str(index + 1).zfill(2)])
-                                self._insert_allele_designation(locus, allele_id)
+                                self._insert_allele_designation(locus, str(allele_id))
                             self._insert_metadata('spoligotype_binary', self.sample_output_dict[scheme]['spoligotype_binary'])
                             self._insert_metadata('spoligotype_octal', self.sample_output_dict[scheme]['spoligotype_octal'])
                         elif scheme == 'csb_rd':
                             for record in ['csb_detected', 'RD1_detected', 'RD9_detected']:
                                 locus: str = record.rstrip('_detected')  # need to be careful with rstrip and strip but in this case no issue
                                 allele_id: int = 1 if self.sample_output_dict[scheme][record] else 0
-                                self._insert_allele_designation(locus, allele_id)
+                                self._insert_allele_designation(locus, str(allele_id))
                         elif scheme == 'amr_who':
                             # make a dict with field and tsv names to be able to insert
                             self.cur_isolates.execute("SELECT field FROM eav_fields WHERE category='AMR detection'")

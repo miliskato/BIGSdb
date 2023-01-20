@@ -1,24 +1,22 @@
 import argparse
 import logging
-import os
-import re
 import shutil
-import smtplib
 import socket
 import sys
 import traceback
-from email.message import EmailMessage
 from pathlib import Path
+from typing import List
 
-import yaml
+from Bio import SeqIO
 
-PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(os.path.dirname(PYTHONPATH))
+PYTHONPATH = Path(__file__).resolve().parent.parent
+sys.path.append(str(PYTHONPATH))
 
-from bioit_custom_scripts.config import BIGSDB_CONFIG
 from bioit_custom_scripts.components.databaseconnection import DatabaseConnection
+from bioit_custom_scripts.components.python_utility_functions import get_bigsdb_config_data, send_email
 
-def _parse_arguments(specieslist: list) -> argparse.Namespace:
+
+def _parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     """
     Parses the command line arguments.
     :param specieslist: list of all the species choices
@@ -30,27 +28,8 @@ def _parse_arguments(specieslist: list) -> argparse.Namespace:
     argument_parser.add_argument('--isolatename', required=True, type=str)
     return argument_parser.parse_args()
 
-def _send_email(subject: str, content: str, config: dict) -> None:
-    """
-    Sends an email.
-    :param subject: Mail subject
-    :param content: Content of the message
-    :return: None
-    """
-    message = EmailMessage()
-    message['Subject'] = subject
-    message['From'] = config['from']
-    message['To'] = config['to']
-    message.set_content(content)
-    with smtplib.SMTP(config['host']) as s:
-        s.send_message(message)
-    logging.info(content)
-    
-def insert_assembly(isolatename: str, species: str, fastafilepath: str) -> None:
-    # Read the global config
-    with open(BIGSDB_CONFIG, encoding='utf-8') as handle:
-        config_data = yaml.safe_load(handle)
 
+def insert_assembly(isolatename: str, species: str, fastafilepath: str) -> None:
     try:
         # Connect to db and create cursors
         (con_isolates, cur_isolates), (con_seqdef, cur_seqdef) = DatabaseConnection().connect_to_dbs_and_create_cursors(species)
@@ -59,37 +38,54 @@ def insert_assembly(isolatename: str, species: str, fastafilepath: str) -> None:
         cur_isolates.execute(sqlquery, (isolatename,))
         sample_presence = cur_isolates.fetchall()
         if sample_presence[0][0] == 0:
-            _send_email(
-                f'{os.path.basename(__file__)}: Error inserting assembly of {species} pipeline to bigsdb for sample {isolatename} on host {socket.gethostname()}.',
-                f"please insert isolate/isolate results first", config_data['mail'])
+            send_email(f"please insert isolate/isolate results first",
+                       f'{Path(__file__).name}: Error inserting assembly of {species} pipeline to bigsdb for sample {isolatename} on host {socket.gethostname()}.')
             sys.exit()
 
         sqlquery = """SELECT count(*) FROM sequence_bin WHERE isolate_id = (SELECT MAX(id) FROM isolates WHERE isolate=%s);"""
         cur_isolates.execute(sqlquery, (isolatename,))
         presentcontigs = cur_isolates.fetchall()
         if presentcontigs[0][0] == 0:
-            # Make dict of fasta file while accounting for possible multiline sequences
-            handle = open(Path(fastafilepath), 'r').readlines()
-            fastadict = {}
-            x = 0
-            if len(handle) > 2 and not handle[2].startswith(
-                    ">"):  # one file had this fasta format where the sequence was on different lines
-                pathcopytempfile = Path('/tmp') / ''.join([isolatename.lower(), '.fasta'])
-                shutil.copyfile((Path(fastafilepath)), pathcopytempfile)
-                with open(pathcopytempfile, 'r') as file:
-                    handle2 = file.read()
-                with open(pathcopytempfile, 'w') as file:
-                    file.write(re.sub('(?<=[A-Z])\n(?=[A-Z])', '', handle2))
-                handle = open(pathcopytempfile, 'r').readlines()
-                os.remove(pathcopytempfile)
+            is_multiline = False
+            with Path(fastafilepath).open('r') as in_file:
+                for line in in_file:
+                    if not line.startswith(">") and '\n' in line:
+                        is_multiline = True
+                        break
+            if is_multiline:
+                result = []
+                sequence = ''
+                with Path(fastafilepath).open() as in_file:
+                    for line in in_file:
+                        if line.startswith(">"):
+                            if sequence:
+                                result.append(sequence)
+                            result.append(line)
+                            sequence = ''
+                        else:
+                            sequence += line.strip()
+                    result.append(sequence)
 
-            while x < len(handle):
-                if handle[x].startswith(">"):
-                    fastadict[handle[x].rstrip().replace(f">{isolatename}", "").strip("-_")] = handle[x + 1].rstrip()
-                x += 2
+                # write output to the temporary file
+                temp_file = Path('/tmp') / ''.join([isolatename.lower(), '.fasta'])
+                with temp_file.open("w") as out_file:
+                    out_file.write("\n".join(result))
+
+                # replace the original file with the new file
+                shutil.move(temp_file, Path(fastafilepath))
+            else:
+                logging.info("The file is not a multiline file")
+
+            # create an empty dictionary
+            fasta_dict = {}
+
+            # use SeqIO to read the FASTA file
+            for record in SeqIO.parse(Path(fastafilepath), "fasta"):
+                # add the record to the dictionary with the ID as the key and the sequence as the value
+                fasta_dict[record.id] = str(record.seq)
 
             # insert into database
-            for sequencename, sequence in fastadict.items():
+            for sequencename, sequence in fasta_dict.items():
                 sqlquery = """
                            INSERT INTO sequence_bin(id, 
                            isolate_id, 
@@ -99,21 +95,19 @@ def insert_assembly(isolatename: str, species: str, fastafilepath: str) -> None:
                            (SELECT MAX(id) FROM isolates WHERE isolate=%s), 
                            'f', %s, %s, 1, 
                            1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))"""
-                cur_isolates.execute(sqlquery, (isolatename, sequence,sequencename.strip('>')))
+                cur_isolates.execute(sqlquery, (isolatename, sequence, sequencename.strip('>')))
             # # remove the file
             # os.remove(Path(fastafile))
 
         else:
-            _send_email(
-                f'{os.path.basename(__file__)}: Error inserting assembly of {species} pipeline to bigsdb for sample {isolatename} on host {socket.gethostname()}.',
-                f"isolate {isolatename} already contains assembly records!", config_data['mail'])
+            send_email(f"isolate {isolatename} already contains assembly records!",
+                       f'{Path(__file__).name}: Error inserting assembly of {species} pipeline to bigsdb for sample {isolatename} on host {socket.gethostname()}.')
             sys.exit()
 
         DatabaseConnection().close_connections(con_isolates, con_seqdef)
     except Exception as exceptionmessage:
-        _send_email(
-            f'{os.path.basename(__file__)}: Error inserting assembly of {species} pipeline to bigsdb for sample {isolatename} on host {socket.gethostname()}.',
-            f"{exceptionmessage}\n{traceback.format_exc()}", config_data['mail'])
+        send_email(f"{exceptionmessage}\n{traceback.format_exc()}",
+                   f'{Path(__file__).name}: Error inserting assembly of {species} pipeline to bigsdb for sample {isolatename} on host {socket.gethostname()}.')
         sys.exit()
 
 
@@ -121,12 +115,11 @@ if __name__ == '__main__':
     # Configure stdout logging
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
-    # Read the global config
-    with open(BIGSDB_CONFIG, encoding='utf-8') as handle:
-        config_data = yaml.safe_load(handle)
+
+    bigsdb_config_data = get_bigsdb_config_data()
 
     # Parse arguments
-    args = _parse_arguments(list(config_data['species']))
+    args = _parse_arguments(list(bigsdb_config_data['species']))
 
     # run main
     insert_assembly(args.isolatename, args.species, args.fastafilepath)

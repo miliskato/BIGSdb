@@ -5,8 +5,8 @@ from pathlib import Path
 
 import yaml
 
-PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(os.path.dirname(PYTHONPATH))
+PYTHONPATH = Path(__file__).resolve().parent.parent
+sys.path.append(str(PYTHONPATH))
 
 from MongoDB.util.new_threshold_clustering import NewThresholdClustering
 from MongoDB.util.mongo_initialisation import MongoInitialisation

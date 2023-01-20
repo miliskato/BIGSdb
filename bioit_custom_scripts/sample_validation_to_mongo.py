@@ -5,44 +5,27 @@ This script is referenced by SubmitPage.pm in the lib/BIGSdb folder, if its loca
 import argparse
 import datetime
 import logging
-import os
 import re
-import smtplib
 import socket
 import sys
 import traceback
-from email.message import EmailMessage
+from pathlib import Path
 
-import yaml
 import pymongo
+import yaml
 from pymongo.read_concern import ReadConcern
 from pymongo.write_concern import WriteConcern
 
-PYTHONPATH = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(os.path.dirname(PYTHONPATH))
+PYTHONPATH = Path(__file__).resolve().parent.parent
+sys.path.append(str(PYTHONPATH))
 
 from bioit_custom_scripts.components.databaseconnection import DatabaseConnection
-from bioit_custom_scripts.config import BIGSDB_CONFIG
+from bioit_custom_scripts.components.python_utility_functions import get_bigsdb_config_data, send_email
 from MongoDB.config import MONGO_CONFIG
 from MongoDB.mainmongo import MainMongo
 from MongoDB.mongo_to_bigs import mongo_to_bigs
 from MongoDB.util.mongo_initialisation import MongoInitialisation
 
-def send_email(subject: str, content: str, config: dict) -> None:
-    """
-    Sends an email.
-    :param subject: Mail subject
-    :param content: Content of the message
-    :return: None
-    """
-    message = EmailMessage()
-    message['Subject'] = subject
-    message['From'] = config['from']
-    message['To'] = config['to']
-    message.set_content(content)
-    with smtplib.SMTP(config['host']) as s:
-        s.send_message(message)
-    logging.info(content)
 
 def parse_arguments() -> argparse.Namespace:
     """
@@ -59,13 +42,13 @@ if __name__ == '__main__':
 
     # Parse arguments
     args = parse_arguments()
-    species = re.sub('bigsdb_|_isolates','', args.db)
+    species = re.sub('bigsdb_|_isolates', '', args.db)
     # Parse config
     with open(MONGO_CONFIG, encoding='utf-8') as handle:
         mongo_config = yaml.safe_load(handle)
 
-    with open(BIGSDB_CONFIG, encoding='utf-8') as handle:
-        bigsdb_config = yaml.safe_load(handle)
+    bigsdb_config_data = get_bigsdb_config_data()
+
     try:
 
         # Open collections
@@ -138,6 +121,6 @@ if __name__ == '__main__':
         DatabaseConnection().close_connections(con_isolates, con_seqdef)
         mongo_to_bigs(species, single_sample=isolate_id)
     except Exception as exceptionmessage:
-        send_email(f"{os.path.basename(__file__)}: sample validation to mongo fail on host {socket.gethostname()}",
-                    f"{exceptionmessage}\n{traceback.format_exc()}", bigsdb_config['mail'])
-        raise Exception(f"{os.path.basename(__file__)}: sample validation to mongo fail on host {socket.gethostname()}")
+        send_email(f"{exceptionmessage}\n{traceback.format_exc()}",
+                   f"{Path(__file__).name}: sample validation to mongo fail on host {socket.gethostname()}")
+        raise Exception(f"{Path(__file__).name}: sample validation to mongo fail on host {socket.gethostname()}")
