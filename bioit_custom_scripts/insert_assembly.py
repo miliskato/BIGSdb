@@ -5,7 +5,7 @@ import socket
 import sys
 import traceback
 from pathlib import Path
-from typing import List
+from typing import Dict, List
 
 from Bio import SeqIO
 
@@ -53,36 +53,36 @@ def insert_assembly(isolatename: str, species: str, fastafilepath: str) -> None:
                         is_multiline = True
                         break
             if is_multiline:
-                result = []
-                sequence = ''
+                fasta_dict: Dict[str, str] = {}
+                sequence: str = ''
+                id: str = ''
                 with Path(fastafilepath).open() as in_file:
                     for line in in_file:
                         if line.startswith(">"):
                             if sequence:
-                                result.append(sequence)
-                            result.append(line)
-                            sequence = ''
+                                fasta_dict[id] = sequence
+                                sequence = ''
+                            id = line.strip()
+                            fasta_dict[id] = ''
                         else:
                             sequence += line.strip()
-                    result.append(sequence)
+                    if sequence:
+                        fasta_dict[id] = sequence
 
                 # write output to the temporary file
                 temp_file = Path('/tmp') / ''.join([isolatename.lower(), '.fasta'])
                 with temp_file.open("w") as out_file:
-                    out_file.write("\n".join(result))
+                    for key, value in fasta_dict.items():
+                        out_file.write(key + '\n' + value + '\n')
 
                 # replace the original file with the new file
                 shutil.move(temp_file, Path(fastafilepath))
             else:
+                fasta_dict: Dict[str, str] = {}
+                for record in SeqIO.parse(Path(fastafilepath), "fasta"):
+                    # add the record to the dictionary with the ID as the key and the sequence as the value
+                    fasta_dict[record.id] = str(record.seq)
                 logging.info("The file is not a multiline file")
-
-            # create an empty dictionary
-            fasta_dict = {}
-
-            # use SeqIO to read the FASTA file
-            for record in SeqIO.parse(Path(fastafilepath), "fasta"):
-                # add the record to the dictionary with the ID as the key and the sequence as the value
-                fasta_dict[record.id] = str(record.seq)
 
             # insert into database
             for sequencename, sequence in fasta_dict.items():

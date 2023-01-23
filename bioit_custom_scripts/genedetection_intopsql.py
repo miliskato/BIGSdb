@@ -23,7 +23,7 @@ def _parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     argument_parser = argparse.ArgumentParser()
     argument_parser.add_argument('--species', required=False, type=str,
                                  choices=specieslist, default=specieslist,
-                                 nargs='+')  # this does allow for the same species multiple times but doesnt really matter
+                                 nargs='+')  # this does allow for the same species multiple times but doesnt really matter, theyre uniquely filtered using set()
     return argument_parser.parse_args()
 
 class GeneDetectionIntoPsql:

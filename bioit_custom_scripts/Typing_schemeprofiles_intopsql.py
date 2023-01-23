@@ -5,7 +5,7 @@ import socket
 import sys
 import traceback
 from pathlib import Path
-from typing import List
+from typing import Dict, Final, List, Tuple
 
 import psycopg2.extensions
 
@@ -16,7 +16,8 @@ from bioit_custom_scripts.components.databaseconnection import DatabaseConnectio
 from bioit_custom_scripts.components.python_utility_functions import get_bigsdb_config_data, send_email
 # For this script I am assuming that profiles do not retire.
 
-profile_file = 'profiles.tsv'
+PROFILE_FILE: Final[str] = 'profiles.tsv'
+
 
 def _parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     """
@@ -27,7 +28,7 @@ def _parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     argument_parser = argparse.ArgumentParser()
     argument_parser.add_argument('--species', required=False, type=str,
                                  choices=specieslist, default=specieslist,
-                                 nargs='+')  # this does allow for the same species multiple times but doesnt really matter
+                                 nargs='+')  # this does allow for the same species multiple times but doesnt really matter, theyre uniquely filtered using set()
     return argument_parser.parse_args()
 
 # three tables are important:
@@ -56,7 +57,8 @@ def _parse_arguments(specieslist: List[str]) -> argparse.Namespace:
 #
 
 
-def __insert_profiles(scheme: str, schemedict: dict, indexdict: dict, profile_line_dict: dict, list_to_be_inserted: list, cur_seqdef: psycopg2.extensions.cursor) -> None:
+def __insert_profiles(scheme: str, schemedict: Dict[Dict[str, str]], indexdict: Dict[str, int], profile_line_dict: Dict[str, str],
+                      list_to_be_inserted: set, cur_seqdef: psycopg2.extensions.cursor) -> None:
     """
     Inserts profiles for a given scheme in a given species database (cur_seqdef)
     :param scheme:
@@ -65,7 +67,7 @@ def __insert_profiles(scheme: str, schemedict: dict, indexdict: dict, profile_li
     :param profile_line_dict: dictionary of main numeric profile fields (often ST) and their corresponding lines in the tsv
     :param list_to_be_inserted: list of main numeric profile fields (often ST) to be inserted
     :param cur_seqdef: seqdef database cursor object for a certain species
-    :return:
+    :return: None
     """
     # since we only need one db per scheme, it can stay open during the entire definition
     for profile in list_to_be_inserted:
@@ -78,11 +80,10 @@ def __insert_profiles(scheme: str, schemedict: dict, indexdict: dict, profile_li
                    %s, 1, 1, 
                    (SELECT CURRENT_DATE),(SELECT CURRENT_DATE));"""
         cur_seqdef.execute(sqlquery, (schemedict[scheme]['schemename_bigsdb'], profile))
-        profiles_to_be_removed: list = []
+        profiles_to_be_removed: set = set()
         # second table (profile fields):
         for field in schemedict[scheme]['scheme_fields']:
-            line = profile_line_dict[profile]
-            line = line.replace('? ', '').replace('Neisseria ', 'Neisseria_')  # this is added because rflp profiles are malformatted
+            line: str = profile_line_dict[profile].replace('? ', '').replace('Neisseria ', 'Neisseria_')  # this is added because rflp profiles are malformatted
             try:
                 fieldvalue = " ".join(line.split()).split(' ')[indexdict[field]]
                 sqlquery = """
@@ -91,17 +92,17 @@ def __insert_profiles(scheme: str, schemedict: dict, indexdict: dict, profile_li
                            VALUES((SELECT id FROM schemes WHERE name=%s), 
                            %s, %s, %s, 1, (SELECT CURRENT_DATE));"""
                 cur_seqdef.execute(sqlquery, (schemedict[scheme]['schemename_bigsdb'], field, profile, fieldvalue.replace('_', ' ')))
-            except:
-                profiles_to_be_removed.append(profile)
+            except Exception:
+                profiles_to_be_removed.add(profile)
         # third table (profile members):
         # Loci are saved from dir to be able to know which columns to search for in profiles.tsv
-        loci = next(os.walk(schemedict[scheme]['dirdb']))[1]
+        loci: List[str] = next(os.walk(schemedict[scheme]['dirdb']))[1]
         for locus in loci:
             if not locus.startswith('.'):  # to exclude hidden folders like .git
                 if locus == "'rplF":
                     locus = 'rplF'
-                line = profile_line_dict[profile]
-                locusvalue = " ".join(line.split()).split(' ')[indexdict[locus]]
+                line: str = profile_line_dict[profile]
+                locusvalue: str = " ".join(line.split()).split(' ')[indexdict[locus]]
                 if locusvalue == '0':  # this will create a ForeignKeyViolation error so we prevent this by inserting a null allele if not yet present
                     sqlquery = """
                                SELECT count(*) FROM sequences WHERE 
@@ -133,28 +134,27 @@ def __insert_profiles(scheme: str, schemedict: dict, indexdict: dict, profile_li
                        AND profile_id=%s;"""
             cur_seqdef.execute(sqlquery, (schemedict[scheme]['schemename_bigsdb'], profile_to_be_removed))
 
+
 def _insert_all_profiles() -> None:
     """
     Main function to insert all profiles for the given species
-    :return:
+    :return: None
     """
     for species in set(args.species):
         (con_isolates, cur_isolates), (con_seqdef, cur_seqdef) = DatabaseConnection().connect_to_dbs_and_create_cursors(species)
 
-        schemedict = bigsdb_config_data['species'][species]['typing_schemes']
+        schemedict: Dict[Dict[str, str]] = bigsdb_config_data['species'][species]['typing_schemes']
         for scheme in schemedict:
             if schemedict[scheme].get('scheme_fields'):
-                handle = open('/'.join([schemedict[scheme]['dirdb'], profile_file]), 'r').readlines()
+                handle: List[str] = open('/'.join([schemedict[scheme]['dirdb'], PROFILE_FILE]), 'r').readlines()
                 # multiple whitespaces need to be replaced by single whitespace
-                header = " ".join(handle[0].split()).split(' ')
-                x = 0
-                indexdict = {}
-                for item in header:
+                header: List[str] = " ".join(handle[0].split()).split(' ')
+                indexdict: Dict[str, int] = {}
+                for index, item in enumerate(header):
                     if item == "'rplF":
                         item = 'rplF'
-                    indexdict[item] = x
-                    x += 1
-                profile_line_dict = {}
+                    indexdict[item] = index
+                profile_line_dict: Dict[str, str] = {}
                 for line in handle[1:]:
                     profile_line_dict[" ".join(line.split()).split(' ')[0]] = line
 
@@ -163,19 +163,19 @@ def _insert_all_profiles() -> None:
                            SELECT profile_id FROM profiles WHERE 
                            scheme_id=(SELECT id FROM schemes WHERE name=%s);"""
                 cur_seqdef.execute(sqlquery, (schemedict[scheme]['schemename_bigsdb'],))
-                listoftuples: list = cur_seqdef.fetchall()
-                primary_fields: list = [x[0] for x in listoftuples]
-                list_to_be_inserted: list = []
+                listoftuples: List[Tuple[int]] = cur_seqdef.fetchall()
+                primary_fields: List[int] = [x[0] for x in listoftuples]
+                list_to_be_inserted: set = set()
                 if primary_fields is None:
                     # table is empty, so all need to be inserted
                     for line in handle[1:]:
-                        list_to_be_inserted.append(" ".join(line.split()).split(' ')[0])
+                        list_to_be_inserted.add(" ".join(line.split()).split(' ')[0])
                     __insert_profiles(scheme, schemedict, indexdict, profile_line_dict, list_to_be_inserted, cur_seqdef)
                 else:
                     # table needs to be updated
                     for line in handle[1:]:
                         if int(" ".join(line.split()).split(' ')[0]) not in primary_fields:
-                            list_to_be_inserted.append(" ".join(line.split()).split(' ')[0])
+                            list_to_be_inserted.add(" ".join(line.split()).split(' ')[0])
                         else:
                             continue
                     if list_to_be_inserted:
