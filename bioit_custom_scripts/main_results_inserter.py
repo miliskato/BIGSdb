@@ -137,7 +137,8 @@ def main_results_inserter(isolatename: str, uploadermailadress: str, species: st
     # Logic
     try:
         # Connect to db and create cursors
-        with DatabaseConnection(species, 'isolates') as isolates_psql_db, DatabaseConnection(species, 'seqdef') as seqdef_psql_db:
+        with DatabaseConnection(species, 'isolates') as isolates_psql_db, \
+                DatabaseConnection(species, 'seqdef') as seqdef_psql_db:
 
             # fail safe mechanism is initated at the same time of the isolate insertion, but after connecting to the PSQL db's
             maininserter = MainInserter(isolatename, species, isolates_psql_db, seqdef_psql_db, sample_output_dict)

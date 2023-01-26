@@ -15,18 +15,18 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
     Class containing definitions to insert gene detection results from json input
     """
 
-    def __init__(self, isolatename: str, species: str, cur_isolates: DatabaseConnection, cur_seqdef: DatabaseConnection,
+    def __init__(self, isolatename: str, species: str, isolates_psql_db: DatabaseConnection, seqdef_psql_db: DatabaseConnection,
                  sample_output_dict: Dict[str, Any], config_data: Dict[str, Any]) -> None:
         """
         :param isolatename: name of the isolate
         :param species: commonly used bioit species name: either genus or specific like stec
-        :param cur_isolates: isolate database connection object
-        :param cur_seqdef: sequence definition database connection object
+        :param isolates_psql_db: isolate database connection object
+        :param seqdef_psql_db: sequence definition database connection object
         :param config_data: the bigsdb config data
         :param sample_output_dict: results of sample
         :return: None
         """
-        JsonSuperClass.__init__(self, isolatename, species, cur_isolates, cur_seqdef, sample_output_dict, config_data)
+        JsonSuperClass.__init__(self, isolatename, species, isolates_psql_db, seqdef_psql_db, sample_output_dict, config_data)
         self.genedetectiondict: Union[None, Dict[str, Dict[str, str]]] = config_data['species_json'][species]['genedetection_schemes']
 
     def insert_genedetection_results(self) -> None:

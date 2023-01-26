@@ -14,18 +14,18 @@ class JsonTypingResultsInserter(JsonSuperClass):
     Class containing definitions to insert typing results from json input
     """
 
-    def __init__(self, isolatename: str, species: str, cur_isolates: DatabaseConnection, cur_seqdef: DatabaseConnection,
-                 sample_output_dict: Dict[str, Any], config_data: Dict[str, Union[str, Dict[str, Any]]]) -> None:
+    def __init__(self, isolatename: str, species: str, isolates_psql_db: DatabaseConnection, seqdef_psql_db: DatabaseConnection,
+                 sample_output_dict: Dict[str, Any], config_data: Dict[str, Any]) -> None:
         """
         :param isolatename: name of the isolate
         :param species: commonly used bioit species name: either genus or specific like stec
-        :param cur_isolates: isolate database connection object
-        :param cur_seqdef: sequence definition database connection object
+        :param isolates_psql_db: isolate database connection object
+        :param seqdef_psql_db: sequence definition database connection object
         :param sample_output_dict: results of sample
         :param config_data: the bigsdb config data
         :return: None
         """
-        JsonSuperClass.__init__(self, isolatename, species, cur_isolates, cur_seqdef, sample_output_dict, config_data)
+        JsonSuperClass.__init__(self, isolatename, species, isolates_psql_db, seqdef_psql_db, sample_output_dict, config_data)
         self.schemedict: Dict[str, Dict[str, str]] = self.config_data['species_json'][self.species]['typing_schemes']
 
     def insert_typing_results(self) -> None:
@@ -50,7 +50,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
                             elif ((scheme == 'pcr_serogroup' or (scheme == 'bast' and locus['Locus'] == 'NadA_peptide'))
                                     and locus['% Identity'] == '-' and locus['HSP/Locus length'] == '-') or scheme == 'cgmlst':
                                 # in cgmlst you can have perfect multihits (?) that are then also considered as a zero in the custom profile by Benoit, thats why its outside of the ( )
-                                self._insert_allele_designation(locus['Locus'], 0)
+                                self._insert_allele_designation(locus['Locus'], '0')
                                 locusset.add(locus['Locus'])
 
                 elif self.schemedict[scheme]['type'] == 'irregular':
@@ -90,8 +90,8 @@ class JsonTypingResultsInserter(JsonSuperClass):
                                 self._insert_allele_designation(locus, str(allele_id))
                         elif scheme == 'amr_who':
                             # make a dict with field and tsv names to be able to insert
-                            self.cur_isolates.execute("SELECT field FROM eav_fields WHERE category='AMR detection'")
-                            fields = self.cur_isolates.fetchall()
+                            self.isolates_psql_db.execute_query("SELECT field FROM eav_fields WHERE category='AMR detection'")
+                            fields = self.isolates_psql_db.fetchall()
                             amr_metadata_fields_tsv: Dict = {}
                             for field in fields:
                                 if field[0].startswith('amr'):
@@ -101,9 +101,9 @@ class JsonTypingResultsInserter(JsonSuperClass):
                             for bigsdbname, jsonname in amr_metadata_fields_tsv.items():
                                 self._insert_metadata(bigsdbname, self.sample_output_dict[scheme][jsonname])
                             # AMR results
-                            self.cur_isolates.execute(
+                            self.isolates_psql_db.execute_query(
                                 "SELECT locus FROM scheme_members WHERE scheme_id = (SELECT id FROM schemes WHERE name = 'AMR_detection_WHO')")
-                            for locus in self.cur_isolates.fetchall():
+                            for locus in self.isolates_psql_db.fetchall():
                                 jsonname: str = '_'.join(['amr_mutations', str(locus[0]).replace('_int', '_(int.)')])
                                 if self.sample_output_dict[scheme][jsonname] != '-':
                                     variantsset: set = set()
@@ -153,13 +153,13 @@ class JsonTypingResultsInserter(JsonSuperClass):
                                 hit_formatted: str = '_'.join(['ncbi16s', hit])
                                 # check whether already exists in eav
                                 sqlquery = """SELECT count(*) FROM eav_fields WHERE category='NCBI 16S' AND field=%s;"""
-                                self.cur_isolates.execute(sqlquery, (hit_formatted,))
-                                eav_exists = self.cur_isolates.fetchall()
+                                self.isolates_psql_db.execute_query(sqlquery, (hit_formatted,))
+                                eav_exists = self.isolates_psql_db.fetchall()
                                 if eav_exists[0][0] == 0:
                                     sqlquery = """
                                                INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) 
                                                VALUES(%s, 'boolean', 'NCBI 16S', '', 't', 't', (SELECT CURRENT_DATE), 1);"""
-                                    self.cur_isolates.execute(sqlquery, (hit_formatted,))
+                                    self.isolates_psql_db.execute_query(sqlquery, (hit_formatted,))
                                 self._insert_metadata_bool(hit_formatted, 't')
                     elif self.species == 'neisseria':
                         if scheme == 'resistance_genes' and len(self.sample_output_dict[scheme]['loci']) != 0:
@@ -176,16 +176,16 @@ class JsonTypingResultsInserter(JsonSuperClass):
                                                                           record['frequency'])
                     elif self.species == 'stec':
                         if scheme == 'serotype':
-                            serotypedict = { 'O_antigen': self.sample_output_dict[scheme]['serotype'].split(':')[0],
-                                             'H_antigen': self.sample_output_dict[scheme]['serotype'].split(':')[1]}
+                            serotypedict = {'O_antigen': self.sample_output_dict[scheme]['serotype'].split(':')[0],
+                                            'H_antigen': self.sample_output_dict[scheme]['serotype'].split(':')[1]}
                             for antigen, antigen_allele in serotypedict.items():
                                 if antigen_allele != '-':
                                     self._insert_dummy_sequence_if_needed(antigen, antigen_allele)
                                     self._insert_allele_designation(antigen, antigen_allele)
                     elif self.species == 'salmonella':
                         if scheme == 'genotyphi':
-                            self.cur_isolates.execute("SELECT field FROM eav_fields WHERE field like 'genotyphi%susceptibility'")
-                            for item in self.cur_isolates.fetchall():
+                            self.isolates_psql_db.execute_query("SELECT field FROM eav_fields WHERE field like 'genotyphi%susceptibility'")
+                            for item in self.isolates_psql_db.fetchall():
                                 if item[0] in self.sample_output_dict[scheme]['results'] and self.sample_output_dict[scheme]['results'][item[0]] is not None:
                                     susceptibility: str = self.sample_output_dict[scheme]['results'][item[0]]
                                     self._insert_metadata(item[0], susceptibility)

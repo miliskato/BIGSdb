@@ -13,7 +13,7 @@ import sys
 import traceback
 from email.message import EmailMessage
 from pathlib import Path
-from typing import Dict, Union
+from typing import Dict, List, Union
 
 # import dnspython # somehow this package is a requirement without actually needing to be imported, probably imported in pymongo
 import pymongo
@@ -32,7 +32,7 @@ from MongoDB.config import CLUSTERING_CONFIG
 from MongoDB.util.command.command import Command
 
 
-def _parse_arguments(specieslist: list) -> argparse.Namespace:
+def _parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     """
     Parses the command line arguments.
     !!Also add arguments/variables to main function!!
@@ -57,7 +57,7 @@ def _parse_arguments(specieslist: list) -> argparse.Namespace:
     return parser.parse_args()
 
 
-def _write_document(opened_collection: pymongo.collection.Collection, json_input: dict) -> str:
+def _write_document(opened_collection: pymongo.collection.Collection, json_input: Dict[str, Any]) -> str:
     """
     write a document into a collection.
     :param opened_collection: the collection where the document needs to be saved

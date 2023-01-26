@@ -169,13 +169,13 @@ def tempid_replacer(scheme: str, species: str, alternate_connection_string: str 
                                                             {"$set": {"cgMLST": cgmlst}})
             hostname = socket.gethostname()
             if 'bigs' in hostname and alternate_connection_string is None:
-                (con_isolates, cur_isolates), (con_seqdef, cur_seqdef) = DatabaseConnection().connect_to_dbs_and_create_cursors(species)
+                (con_isolates, isolates_psql_db), (con_seqdef, seqdef_psql_db) = DatabaseConnection().connect_to_dbs_and_create_cursors(species)
                 for hash_document in documents_list:
                     if hash_document['resolved_AD'] != 0:
                         sqlquery = """
                                    UPDATE allele_designations SET allele_id = %s 
                                    WHERE allele_id=%s AND locus=%s;"""
-                        cur_isolates.execute(sqlquery, (hash_document['resolved_AD'], hash_document['hashed_allele'], hash_document['locus']))
+                        isolates_psql_db.execute_query(sqlquery, (hash_document['resolved_AD'], hash_document['hashed_allele'], hash_document['locus']))
                 DatabaseConnection().close_connections(con_isolates, con_seqdef)
     except Exception as exceptionmessage:
         _send_email(f"{Path(__file__).name} fail on host {socket.gethostname()}",

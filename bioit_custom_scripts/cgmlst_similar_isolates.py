@@ -36,26 +36,26 @@ isolate_name = args.isolatename
 
 bigsdb_config_data = get_bigsdb_config_data()
 
-(con_isolates, cur_isolates), (con_seqdef, cur_seqdef) = DatabaseConnection().connect_to_dbs_and_create_cursors(species)
+(con_isolates, isolates_psql_db), (con_seqdef, seqdef_psql_db) = DatabaseConnection().connect_to_dbs_and_create_cursors(species)
 
-cur_isolates.execute(f"SELECT id FROM isolates")
-listofsamples = cur_isolates.fetchall()
+isolates_psql_db.execute_query(f"SELECT id FROM isolates")
+listofsamples = isolates_psql_db.fetchall()
 
-cur_isolates.execute(f"SELECT id FROM isolates WHERE isolate='{isolate_name}'")
-isolate_id = cur_isolates.fetchall()[0][0]
+isolates_psql_db.execute_query(f"SELECT id FROM isolates WHERE isolate='{isolate_name}'")
+isolate_id = isolates_psql_db.fetchall()[0][0]
 
-cur_isolates.execute(f"SELECT field FROM eav_fields WHERE field LIKE 'cgMLST_differences_%'")
-differencefields = cur_isolates.fetchall()
+isolates_psql_db.execute_query(f"SELECT field FROM eav_fields WHERE field LIKE 'cgMLST_differences_%'")
+differencefields = isolates_psql_db.fetchall()
 
 for isolate_id_from_comparison in listofsamples:
     dirs = next(os.walk(dirdict[species]))[1]
     different_count = 0
     for dir in dirs:
         if not dir.startswith('.'):
-            cur_isolates.execute(f"SELECT allele_id FROM allele_designations WHERE isolate_id='{isolate_id_from_comparison[0]}' AND locus='{dir}'")
-            isolate1result = cur_isolates.fetchall()
-            cur_isolates.execute(f"SELECT allele_id FROM allele_designations WHERE isolate_id=(SELECT id FROM isolates WHERE isolate='{isolate_name}') AND locus='{dir}'")
-            isolateXresult = cur_isolates.fetchall()
+            isolates_psql_db.execute_query(f"SELECT allele_id FROM allele_designations WHERE isolate_id='{isolate_id_from_comparison[0]}' AND locus='{dir}'")
+            isolate1result = isolates_psql_db.fetchall()
+            isolates_psql_db.execute_query(f"SELECT allele_id FROM allele_designations WHERE isolate_id=(SELECT id FROM isolates WHERE isolate='{isolate_name}') AND locus='{dir}'")
+            isolateXresult = isolates_psql_db.fetchall()
             if isolate1result == isolateXresult:
                 continue
             else:
@@ -66,78 +66,78 @@ for isolate_id_from_comparison in listofsamples:
         interval_stop = interval.split('-')[-1]
         print(different_count, isolate_id_from_comparison)
         if different_count >= int(interval_start) and different_count <= int(interval_stop):
-            cur_isolates.execute(f"SELECT isolate FROM isolates WHERE id='{isolate_id_from_comparison[0]}'")
-            isolate_name_from_comparison=cur_isolates.fetchall()[0][0]
+            isolates_psql_db.execute_query(f"SELECT isolate FROM isolates WHERE id='{isolate_id_from_comparison[0]}'")
+            isolate_name_from_comparison=isolates_psql_db.fetchall()[0][0]
             # to insert
-            cur_isolates.execute(f"SELECT value FROM eav_text WHERE isolate_id=(SELECT id FROM isolates WHERE isolate='{isolate_name}') and field='{field[0]}'")
-            present = cur_isolates.fetchall()
+            isolates_psql_db.execute_query(f"SELECT value FROM eav_text WHERE isolate_id=(SELECT id FROM isolates WHERE isolate='{isolate_name}') and field='{field[0]}'")
+            present = isolates_psql_db.fetchall()
             # if table absent in new sample
             print(present)
             if present == []:
                 eavhtmltable = '<table class="data"><tr><th>Isolate id</th><th>Isolate</th></tr></table>'
                 eavhtmltable = eavhtmltable.replace('</table>', ''.join(['<tr><td>', str(isolate_id_from_comparison[0]), '</td>', '<td>', isolate_name_from_comparison, '</td></tr>', '</table>']))
-                cur_isolates.execute(f"INSERT INTO eav_text(isolate_id, "
+                isolates_psql_db.execute_query(f"INSERT INTO eav_text(isolate_id, "
                             f"field, value)"
                             f"VALUES((SELECT id FROM isolates WHERE isolate='{isolate_name}'),"
                             f"'{field[0]}', '{eavhtmltable}') ")
-                cur_isolates.execute(f"SELECT value FROM eav_text WHERE isolate_id='{isolate_id_from_comparison[0]}' and field='{field[0]}'")
-                present2 = cur_isolates.fetchall()
+                isolates_psql_db.execute_query(f"SELECT value FROM eav_text WHERE isolate_id='{isolate_id_from_comparison[0]}' and field='{field[0]}'")
+                present2 = isolates_psql_db.fetchall()
                 # table is absent in comparison sample
                 if present2 == []:
                     eavhtmltable2 = '<table class="data"><tr><th>Isolate id</th><th>Isolate</th></tr></table>'
                     eavhtmltable2 = eavhtmltable2.replace('</table>', ''.join(['<tr><td>', str(isolate_id), '</td>', '<td>', isolate_name, '</td></tr>', '</table>']))
-                    cur_isolates.execute(f"INSERT INTO eav_text(isolate_id, "
+                    isolates_psql_db.execute_query(f"INSERT INTO eav_text(isolate_id, "
                                 f"field, value)"
                                 f"VALUES('{isolate_id_from_comparison[0]}',"
                                 f"'{field[0]}', '{eavhtmltable2}') ")
                 # table is present in comparison sample
                 else:
-                    cur_isolates.execute(f"SELECT value FROM eav_text WHERE isolate_id='{isolate_id_from_comparison[0]}' and field='{field[0]}'")
-                    eavhtmltable2 = cur_isolates.fetchall()[0][0]
+                    isolates_psql_db.execute_query(f"SELECT value FROM eav_text WHERE isolate_id='{isolate_id_from_comparison[0]}' and field='{field[0]}'")
+                    eavhtmltable2 = isolates_psql_db.fetchall()[0][0]
                     if ''.join(['<td>', isolate_name, '</td>']) in eavhtmltable2:
                         continue
                     else:
                         eavhtmltable2 = eavhtmltable2.replace('</table>', ''.join(['<tr><td>', str(isolate_id), '</td>', '<td>', isolate_name, '</td></tr>', '</table>']))
-                        cur_isolates.execute(f"DELETE FROM eav_text WHERE isolate_id='{isolate_id_from_comparison[0]}' and field='{field[0]}'")
-                        cur_isolates.execute(f"INSERT INTO eav_text(isolate_id, "
+                        isolates_psql_db.execute_query(f"DELETE FROM eav_text WHERE isolate_id='{isolate_id_from_comparison[0]}' and field='{field[0]}'")
+                        isolates_psql_db.execute_query(f"INSERT INTO eav_text(isolate_id, "
                                     f"field, value)"
                                     f"VALUES('{isolate_id_from_comparison[0]}',"
                                     f"'{field[0]}', '{eavhtmltable2}') ")
 
             # table is present in new sample
             else:
-                cur_isolates.execute(f"SELECT value FROM eav_text WHERE isolate_id='{isolate_id}' and field='{field[0]}'")
-                eavhtmltable = cur_isolates.fetchall()[0][0]
+                isolates_psql_db.execute_query(f"SELECT value FROM eav_text WHERE isolate_id='{isolate_id}' and field='{field[0]}'")
+                eavhtmltable = isolates_psql_db.fetchall()[0][0]
                 print(eavhtmltable, ''.join(['<td>', isolate_name_from_comparison, '</td>']))
                 if ''.join(['<td>', isolate_name_from_comparison, '</td>']) in eavhtmltable:
                     continue
                 else:
                     eavhtmltable = eavhtmltable.replace('</table>', ''.join(['<tr><td>', str(isolate_id_from_comparison[0]), '</td>', '<td>', isolate_name_from_comparison, '</td></tr>', '</table>']))
-                    cur_isolates.execute(f"DELETE FROM eav_text WHERE isolate_id='{isolate_id}' and field='{field[0]}'")
-                    cur_isolates.execute(f"INSERT INTO eav_text(isolate_id, "
+                    isolates_psql_db.execute_query(f"DELETE FROM eav_text WHERE isolate_id='{isolate_id}' and field='{field[0]}'")
+                    isolates_psql_db.execute_query(f"INSERT INTO eav_text(isolate_id, "
                                 f"field, value)"
                                 f"VALUES('{isolate_id}',"
                                 f"'{field[0]}', '{eavhtmltable}') ")
-                cur_isolates.execute(f"SELECT value FROM eav_text WHERE isolate_id='{isolate_id_from_comparison[0]}' and field='{field[0]}'")
-                present2 = cur_isolates.fetchall()
+                isolates_psql_db.execute_query(f"SELECT value FROM eav_text WHERE isolate_id='{isolate_id_from_comparison[0]}' and field='{field[0]}'")
+                present2 = isolates_psql_db.fetchall()
                 # table is absent in comparison sample
                 if present2 == []:
                     eavhtmltable2 = '<table class="data"><tr><th>Isolate id</th><th>Isolate</th></tr></table>'
                     eavhtmltable2 = eavhtmltable2.replace('</table>', ''.join(['<tr><td>', str(isolate_id), '</td>', '<td>', isolate_name, '</td></tr>', '</table>']))
-                    cur_isolates.execute(f"INSERT INTO eav_text(isolate_id, "
+                    isolates_psql_db.execute_query(f"INSERT INTO eav_text(isolate_id, "
                                 f"field, value)"
                                 f"VALUES('{isolate_id_from_comparison[0]}',"
                                 f"'{field[0]}', '{eavhtmltable2}') ")
                 # table is present in comparison sample
                 else:
-                    cur_isolates.execute(f"SELECT value FROM eav_text WHERE isolate_id='{isolate_id_from_comparison[0]}' and field='{field[0]}'")
-                    eavhtmltable2 = cur_isolates.fetchall()[0][0]
+                    isolates_psql_db.execute_query(f"SELECT value FROM eav_text WHERE isolate_id='{isolate_id_from_comparison[0]}' and field='{field[0]}'")
+                    eavhtmltable2 = isolates_psql_db.fetchall()[0][0]
                     if ''.join(['<td>', isolate_name, '</td>']) in eavhtmltable2:
                         continue
                     else:
                         eavhtmltable2 = eavhtmltable2.replace('</table>', ''.join(['<tr><td>', str(isolate_id), '</td>', '<td>', isolate_name, '</td></tr>', '</table>']))
-                        cur_isolates.execute(f"DELETE FROM eav_text WHERE isolate_id='{isolate_id_from_comparison[0]}' and field='{field[0]}'")
-                        cur_isolates.execute(f"INSERT INTO eav_text(isolate_id, "
+                        isolates_psql_db.execute_query(f"DELETE FROM eav_text WHERE isolate_id='{isolate_id_from_comparison[0]}' and field='{field[0]}'")
+                        isolates_psql_db.execute_query(f"INSERT INTO eav_text(isolate_id, "
                                     f"field, value)"
                                     f"VALUES('{isolate_id_from_comparison[0]}',"
                                     f"'{field[0]}', '{eavhtmltable2}') ")
