@@ -5,7 +5,7 @@ import socket
 import sys
 import traceback
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
@@ -34,11 +34,12 @@ class GeneDetectionIntoPsql:
     def __init__(self, bigsdb_config_data: Dict[str, Any], species: str) -> None:
         self.bigsdb_config_data = bigsdb_config_data
         self.species = species
-        (self.con_isolates, self.cur_isolates), (self.con_seqdef, self.cur_seqdef) \
-            = DatabaseConnection().connect_to_dbs_and_create_cursors(self.species)
+        self.isolates_psql_db = DatabaseConnection(self.species, 'isolates')
+        self.seqdef_psql_db = DatabaseConnection(self.species, 'seqdef')
         self._schemedict: Dict[str, Any] = self.bigsdb_config_data['species'][self.species]['genedetection_schemes']
         self.gene_detection_insertion_and_recalcultation()
-        DatabaseConnection().close_connections(self.con_isolates, self.con_seqdef)
+        self.isolates_psql_db.close()
+        self.seqdef_psql_db.close()
         
     def gene_detection_insertion_and_recalcultation(self) -> None:
         """
@@ -66,7 +67,7 @@ class GeneDetectionIntoPsql:
         self.descriptiondict: Dict[str, List[str]] = {}  # e.g. 'VFDB_GeneCluster_0' : ['gene1', 'gene2']
         self.clusterdict: Dict[str, str] = {}  # e.g. 'accesion1_allele1': 'VFDB_GeneCluster_0'
         with Path(self._schemedict[self._scheme]['metadatafile']).open('r') as handle:
-            sequencedictlist: Dict[str, Dict[Any]] = json.load(handle)
+            sequencedictlist: Dict[str, Dict[str, Any]] = json.load(handle)
             for sequencename in sequencedictlist:
                 """
                 sequencename becomes accession concatenated with allele because in e.g. 
@@ -105,19 +106,14 @@ class GeneDetectionIntoPsql:
         Inserts all the loci (clusters), scheme members and alleles (dummy boolean) in seqdef and isolate dbs if they are not present
         :return: None
         """
-        json_superclass_instance = JsonSuperClass('dummyname', self.species, self.cur_isolates, self.cur_seqdef,
+        json_superclass_instance = JsonSuperClass('dummyname', self.species, self.isolates_psql_db, self.seqdef_psql_db,
                                                   {'dummydictkey': 'dummydictvalue'})
         for cluster in self.clusterlist:
-            sqlquery = """SELECT COUNT(*) FROM loci WHERE id=%s"""
-            self.cur_seqdef.execute(sqlquery, (cluster,))
-            present = self.cur_seqdef.fetchall()
+            present: List[Tuple[int]] = self.seqdef_psql_db.execute_query(DatabaseConnection.UNI_SEL_COUNT_TB_LOCI_VAR_LOCUS, (cluster,))
             if present[0][0] == 0:
                 json_superclass_instance._insert_locus_if_needed(cluster, self._schemedict[self._scheme]['schemename_bigsdb'])
-                sqlquery = """
-                           INSERT INTO sequences(locus, allele_id, sequence, status,sender,curator, date_entered, datestamp) 
-                           VALUES(%s, %s, %s, 'unchecked', 1, 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));"""
-                self.cur_seqdef.execute(sqlquery, (cluster, 1, 'TAG'))
-                self.cur_seqdef.execute(sqlquery, (cluster, 0, 'null allele'))
+                self.seqdef_psql_db.execute_query(DatabaseConnection.SEQ_INS__TB_SEQ_VAR_LOCUS_ALL_SEQ, (cluster, 1, 'TAG'))
+                self.seqdef_psql_db.execute_query(DatabaseConnection.SEQ_INS__TB_SEQ_VAR_LOCUS_ALL_SEQ, (cluster, 0, 'null allele'))
             else:
                 continue
 
@@ -127,14 +123,14 @@ class GeneDetectionIntoPsql:
         :return: None
         """
         sqlquery = """DELETE FROM locus_descriptions WHERE locus LIKE %s;"""
-        self.cur_seqdef.execute(sqlquery, (f"{self._schemedict[self._scheme]['schemename_bigsdb']}_GeneCluster%",))
+        self.seqdef_psql_db.execute_query(sqlquery, (f"{self._schemedict[self._scheme]['schemename_bigsdb']}_GeneCluster%",))
         for cluster, description in self.descriptiondict.items():
             # convert list to more meaningfull and aesthatically pleasing string
             descriptionstring = ' '.join(['Contains genes:', ', '.join([x for x in description])])
             sqlquery = """
                        INSERT INTO locus_descriptions(locus, product, description, datestamp, curator) 
                        VALUES(%s, %s, %s ,(SELECT CURRENT_DATE), 1);"""
-            self.cur_seqdef.execute(sqlquery,
+            self.seqdef_psql_db.execute_query(sqlquery,
                                     (cluster, descriptionstring.replace('Contains genes:', ''), descriptionstring))
 
     def _recalculate_allele_designations(self) -> None:
@@ -143,12 +139,11 @@ class GeneDetectionIntoPsql:
         :return: None
         """
         sqlquery = """DELETE FROM allele_designations WHERE locus LIKE %s;"""
-        self.cur_isolates.execute(sqlquery, (f"{self._schemedict[self._scheme]['schemename_bigsdb']}_GeneCluster%",))
+        self.isolates_psql_db.execute_query(sqlquery, (f"{self._schemedict[self._scheme]['schemename_bigsdb']}_GeneCluster%",))
         sqlquery = """
                                    SELECT eav_text_hidden.isolate_id, eav_text_hidden.value, isolates.isolate FROM eav_text_hidden 
                                    LEFT JOIN isolates ON isolates.id = eav_text_hidden.isolate_id WHERE eav_text_hidden.field=%s;"""
-        self.cur_isolates.execute(sqlquery, (self._schemedict[self._scheme]['schemename_bigsdb'],))
-        listofsamplesandhits = self.cur_isolates.fetchall()
+        listofsamplesandhits = self.isolates_psql_db.execute_query(sqlquery, (self._schemedict[self._scheme]['schemename_bigsdb'],))
         if len(listofsamplesandhits) != 0:
            for sampleandhits in listofsamplesandhits:
                 isolate_id: str = sampleandhits[0]
@@ -197,17 +192,17 @@ class GeneDetectionIntoPsql:
                                                        VALUES(%s, %s, 
                                                        %s, 'confirmed', 'automatic', 1, 
                                                        1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE));"""
-                            self.cur_isolates.execute(sqlquery, (clusterhit, isolate_id, 1))
+                            self.isolates_psql_db.execute_query(sqlquery, (clusterhit, isolate_id, 1))
                             clusterhitset.add(clusterhit)
                     eavhtmltable: str = eavhtmltable + '</table>'
                     sqlquery = """DELETE FROM eav_text WHERE isolate_id=%s AND field=%s;"""
-                    self.cur_isolates.execute(sqlquery, (isolate_id, self._schemedict[self._scheme]['schemename_bigsdb']))
+                    self.isolates_psql_db.execute_query(sqlquery, (isolate_id, self._schemedict[self._scheme]['schemename_bigsdb']))
                     sqlquery = """INSERT INTO eav_text(isolate_id, field, value) VALUES(%s, %s, %s);"""
-                    self.cur_isolates.execute(sqlquery, (isolate_id, self._schemedict[self._scheme]['schemename_bigsdb'], eavhtmltable))
+                    self.isolates_psql_db.execute_query(sqlquery, (isolate_id, self._schemedict[self._scheme]['schemename_bigsdb'], eavhtmltable))
                     sqlquery = """
                                                INSERT INTO history(isolate_id, timestamp, action, curator) 
                                                VALUES(%s, (SELECT NOW()::TIMESTAMP), 'Gene detection results reevaluated after database update', 1);"""
-                    self.cur_isolates.execute(sqlquery, (isolate_id,))
+                    self.isolates_psql_db.execute_query(sqlquery, (isolate_id,))
 
 
 if __name__ == '__main__':

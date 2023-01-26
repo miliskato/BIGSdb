@@ -6,6 +6,7 @@ import socket
 import sys
 import traceback
 from email.message import EmailMessage
+from pathlib import Path
 
 import pymongo
 import yaml
@@ -35,11 +36,11 @@ def send_email(subject: str, content: str, config: dict) -> None:
         s.send_message(message)
     logging.info(content)
 
-def _insert_submission_bigs(cur_isolates: pymongo.collection.Collection,
+def _insert_submission_bigs(isolates_psql_db: pymongo.collection.Collection,
                             sample_docs: list[dict], validation_type: str) -> None:
     """
     Inserts a given list of submissions into bigsdb
-    :param cur_isolates: isolates db cursor object
+    :param isolates_psql_db: isolates db cursor object
     :param sample_docs: list of documents to be submitted
     :param validation_type: either bad_quality or resequencing
     :return:
@@ -52,7 +53,7 @@ def _insert_submission_bigs(cur_isolates: pymongo.collection.Collection,
                    VALUES ((SELECT CASE WHEN (SELECT MAX(id::int) FROM submissions) IS NULL THEN 1 ELSE (SELECT(SELECT MAX(id::int) FROM submissions)+1) END), 
                    'isolates', 1, (SELECT CURRENT_DATE), 
                    (SELECT CURRENT_DATE), 'pending', true, %s);"""
-        cur_isolates.execute(sqlquery, (validation_type,))
+        isolates_psql_db.execute_query(sqlquery, (validation_type,))
         # todo need to set a proper method to build links based on the sample to transfer
         # for testing purposes
         html_path = 'http://bioit-bigs-dev.sciensano.be/galaxyreports/listeria/110-001_S68_L001/report.html'
@@ -63,15 +64,15 @@ def _insert_submission_bigs(cur_isolates: pymongo.collection.Collection,
         sqlquery = """
                    INSERT INTO isolate_submission_isolates (submission_id, index, field, value) 
                    VALUES((SELECT MAX(id::int) FROM submissions), 1, %s, %s);"""
-        cur_isolates.execute(sqlquery, ('html_report', html_link))
-        cur_isolates.execute(sqlquery, ('isolate_id', doc['_id']))
-        cur_isolates.execute(sqlquery, ('validation_type', validation_type))
+        isolates_psql_db.execute_query(sqlquery, ('html_report', html_link))
+        isolates_psql_db.execute_query(sqlquery, ('isolate_id', doc['_id']))
+        isolates_psql_db.execute_query(sqlquery, ('validation_type', validation_type))
         sqlquery = """
                    INSERT INTO isolate_submission_field_order(submission_id, field, index) 
                    VALUES((SELECT MAX(id::int) FROM submissions), %s, %s);"""
-        cur_isolates.execute(sqlquery, ('html_report', 1))
-        cur_isolates.execute(sqlquery, ('isolate_id', 2))
-        cur_isolates.execute(sqlquery, ('validation_type', 3))
+        isolates_psql_db.execute_query(sqlquery, ('html_report', 1))
+        isolates_psql_db.execute_query(sqlquery, ('isolate_id', 2))
+        isolates_psql_db.execute_query(sqlquery, ('validation_type', 3))
 
 def samples_to_validation_bigs(species: str) -> None:
     """
@@ -95,28 +96,27 @@ def samples_to_validation_bigs(species: str) -> None:
         isolates_collection, old_isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections(config_data, species)
 
         # Connect to db and create cursor
-        (con_isolates, cur_isolates), (con_seqdef, cur_seqdef) = DatabaseConnection().connect_to_dbs_and_create_cursors(species)
+        with DatabaseConnection(species, 'isolates') as isolates_psql_db, DatabaseConnection(species, 'seqdef') as seqdef_psql_db:
 
-        # fetch all documents in the bad samples of the species
-        update_collection = mongoinit.initialise_update_collection(config_data, species)
-        query = update_collection.find_one({'metadata': 'last_validation_to_bigs_update'})
-        if query:
-            last_run_date = query['last_update_date']
-        else:
-            last_run_date = datetime.datetime(1970, 1, 1)
-            update_collection.with_options(write_concern=WriteConcern(w="majority")).insert_one(
-                {'metadata': 'last_validation_to_bigs_update', 'last_update_date': last_run_date})
-        current_date = datetime.datetime.utcnow()
-        bad_samples = list(isolates_badqc_collection.find({'creation_date': {'$gt': last_run_date}}))
-        #todo: add a date for synchronization with mongo and fetch only samples older than the date of last update
-        _insert_submission_bigs(cur_isolates, bad_samples, 'bad_quality')
-        resequencing_samples = list(isolates_resequencing_collection.find({'creation_date': {'$gt': last_run_date}}))
-        _insert_submission_bigs(cur_isolates, resequencing_samples, 'resequencing')
-        #update last date of update
-        update_collection.with_options(write_concern=WriteConcern(w="majority")).find_one_and_update(
-            {'metadata': 'last_validation_to_bigs_update'}, {'$set': {'last_update_date': current_date}})
-
-        DatabaseConnection().close_connections(con_isolates, con_seqdef)
+            # fetch all documents in the bad samples of the species
+            update_collection = mongoinit.initialise_update_collection(config_data, species)
+            query = update_collection.find_one({'metadata': 'last_validation_to_bigs_update'})
+            if query:
+                last_run_date = query['last_update_date']
+            else:
+                last_run_date = datetime.datetime(1970, 1, 1)
+                update_collection.with_options(write_concern=WriteConcern(w="majority")).insert_one(
+                    {'metadata': 'last_validation_to_bigs_update', 'last_update_date': last_run_date})
+            current_date = datetime.datetime.utcnow()
+            bad_samples = list(isolates_badqc_collection.find({'creation_date': {'$gt': last_run_date}}))
+            #todo: add a date for synchronization with mongo and fetch only samples older than the date of last update
+            _insert_submission_bigs(isolates_psql_db, bad_samples, 'bad_quality')
+            resequencing_samples = list(isolates_resequencing_collection.find({'creation_date': {'$gt': last_run_date}}))
+            _insert_submission_bigs(isolates_psql_db, resequencing_samples, 'resequencing')
+            #update last date of update
+            update_collection.with_options(write_concern=WriteConcern(w="majority")).find_one_and_update(
+                {'metadata': 'last_validation_to_bigs_update'}, {'$set': {'last_update_date': current_date}})
+    
     except Exception as exceptionmessage:
         send_email(f"{Path(__file__).name} fail on host {socket.gethostname()}",
                     f"{exceptionmessage}\n{traceback.format_exc()}", bigsdb_config['mail'])

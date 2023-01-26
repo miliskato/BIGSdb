@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Tuple, Union
 
 import psycopg2.extensions
 
+from .databaseconnection import DatabaseConnection
 from .json_superclass import JsonSuperClass
 
 
@@ -13,13 +14,13 @@ class MainInserter(JsonSuperClass):
     Class containing defintions used to insert metadata results for both json and tsv input
     """
 
-    def __init__(self, isolatename: str, species: str, cur_isolates: psycopg2.extensions.cursor,
-                 cur_seqdef: psycopg2.extensions.cursor, sample_output_dict: Dict[str, Any]) -> None:
+    def __init__(self, isolatename: str, species: str, cur_isolates: DatabaseConnection,
+                 cur_seqdef: DatabaseConnection, sample_output_dict: Dict[str, Any]) -> None:
         """
         :param isolatename: name of the isolate
         :param species: commonly used bioit species name: either genus or specific like stec
-        :param cur_isolates: isolate database connection object
-        :param cur_seqdef: sequence definition database connection object
+        :param cur_isolates: isolate database connection instance
+        :param cur_seqdef: sequence definition database connection instance
         :param sample_output_dict: results of sample
         :return: None
         """
@@ -32,7 +33,7 @@ class MainInserter(JsonSuperClass):
         :return: None
         """
         sqlquery = """SELECT COUNT(*) FROM isolates WHERE isolate=%s;"""
-        self.cur_isolates.execute(sqlquery, (self.isolatename,))
+        self.cur_isolates.execute_query(sqlquery, (self.isolatename,))
         sample_presence: List[List[int]] = self.cur_isolates.fetchall()
         if sample_presence[0][0] == 0:
             sqlquery = """
@@ -40,11 +41,11 @@ class MainInserter(JsonSuperClass):
                        isolate, sender, curator, date_entered, datestamp, uploader, latest_analysis_date)
                        VALUES((SELECT CASE WHEN (SELECT MAX(id) FROM isolates) IS NULL THEN 1 ELSE (SELECT(SELECT MAX(id) FROM isolates)+1) END), 
                        %s, 1, 1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE), %s, %s);"""
-            self.cur_isolates.execute(sqlquery, (self.isolatename, uploadermailadress, datetime.datetime.strptime(self.sample_output_dict['analysis_date'], '%d/%m/%Y - %X').strftime('%Y-%m-%d')))
+            self.cur_isolates.execute_query(sqlquery, (self.isolatename, uploadermailadress, datetime.datetime.strptime(self.sample_output_dict['analysis_date'], '%d/%m/%Y - %X').strftime('%Y-%m-%d')))
             sqlquery = """
                        INSERT INTO history(isolate_id, timestamp, action, curator) 
                        VALUES((SELECT MAX(id) FROM isolates WHERE isolate=%s),(SELECT NOW()::TIMESTAMP), 'Isolate record added', 1);"""
-            self.cur_isolates.execute(sqlquery, (self.isolatename,))
+            self.cur_isolates.execute_query(sqlquery, (self.isolatename,))
         else:
             raise RuntimeError(f"isolatename {self.isolatename} of {self.species} already exists on host {socket.gethostname()}")
 
@@ -60,20 +61,20 @@ class MainInserter(JsonSuperClass):
                    VALUES((SELECT CASE WHEN (SELECT MAX(id) FROM isolates) IS NULL THEN 1 ELSE (SELECT(SELECT MAX(id) FROM isolates)+1) END), 
                    %s, 1, 1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE), 
                    (SELECT uploader FROM isolates WHERE isolate=%s AND id=(SELECT MAX(id) FROM isolates WHERE isolate=%s)), %s);"""
-        self.cur_isolates.execute(sqlquery, (self.isolatename, self.isolatename, self.isolatename, datetime.datetime.strptime(self.sample_output_dict['analysis_date'], '%d/%m/%Y - %X').strftime('%Y-%m-%d')))
+        self.cur_isolates.execute_query(sqlquery, (self.isolatename, self.isolatename, self.isolatename, datetime.datetime.strptime(self.sample_output_dict['analysis_date'], '%d/%m/%Y - %X').strftime('%Y-%m-%d')))
         sqlquery = """
                    UPDATE isolates SET new_version=(SELECT MAX(id) FROM isolates WHERE isolate=%s) 
                    WHERE isolate=%s AND new_version IS NULL AND 
                    id!=(SELECT MAX(id) FROM isolates WHERE isolate=%s);"""
-        self.cur_isolates.execute(sqlquery, (self.isolatename, self.isolatename, self.isolatename))
+        self.cur_isolates.execute_query(sqlquery, (self.isolatename, self.isolatename, self.isolatename))
         sqlquery = """
                    UPDATE sequence_bin SET isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate=%s) 
                    WHERE isolate_id=(SELECT MIN(id) FROM isolates WHERE id in (SELECT id FROM isolates WHERE isolate=%s ORDER BY id DESC LIMIT 2));"""
-        self.cur_isolates.execute(sqlquery, (self.isolatename, self.isolatename))
+        self.cur_isolates.execute_query(sqlquery, (self.isolatename, self.isolatename))
         sqlquery = """
                    UPDATE seqbin_stats SET isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate=%s) 
                    WHERE isolate_id=(SELECT MIN(id) FROM isolates WHERE id in (SELECT id FROM isolates WHERE isolate=%s ORDER BY id DESC LIMIT 2));"""
-        self.cur_isolates.execute(sqlquery, (self.isolatename, self.isolatename))
+        self.cur_isolates.execute_query(sqlquery, (self.isolatename, self.isolatename))
 
     def insert_main_metadata(self) -> None:
         """
@@ -88,7 +89,7 @@ class MainInserter(JsonSuperClass):
         vcflink_filtered: str = f'<p><a href="/galaxyreports/{self.species}/{self.isolatename}/variant_calling/variants-{self.isolatename}-filtered.vcf" target="_blank">VCF filtered</a></p>'
         self._insert_metadata('VCF_filtered', vcflink_filtered)
         sqlquery = """SELECT MAX(id) FROM isolates WHERE isolate=%s"""
-        self.cur_isolates.execute(sqlquery, (self.isolatename,))
+        self.cur_isolates.execute_query(sqlquery, (self.isolatename,))
         isolate_id: str = self.cur_isolates.fetchall()[0][0]
         assemblylink: str = f'<p><a href="/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_{self.species}_isolates&page=plugin&name=Contigs&format=text&isolate_id={isolate_id}&match=1&pc_untagged=0&min_length=&header=1l" target="_blank">assembly</a></p>'
         self._insert_metadata('assembly', assemblylink)
@@ -101,7 +102,7 @@ class MainInserter(JsonSuperClass):
                           validation_curator = %s, 
                           validation_date = %s
                           WHERE id=%s;"""
-            self.cur_isolates.execute(sqlquery, (self.sample_output_dict['validation']['type'], self.sample_output_dict['validation']['curator'],
+            self.cur_isolates.execute_query(sqlquery, (self.sample_output_dict['validation']['type'], self.sample_output_dict['validation']['curator'],
                                                  datetime.datetime.strptime(self.sample_output_dict['validation']['date'], '%d/%m/%Y - %X').strftime('%Y-%m-%d'), isolate_id))
         logging.info('Metadata insertion succesful')
     

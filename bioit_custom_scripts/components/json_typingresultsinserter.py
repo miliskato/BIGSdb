@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Union
 import psycopg2.extensions
 import requests
 
+from .databaseconnection import DatabaseConnection
 from .json_superclass import JsonSuperClass
 
 
@@ -13,7 +14,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
     Class containing definitions to insert typing results from json input
     """
 
-    def __init__(self, isolatename: str, species: str, cur_isolates: psycopg2.extensions.cursor, cur_seqdef: psycopg2.extensions.cursor,
+    def __init__(self, isolatename: str, species: str, cur_isolates: DatabaseConnection, cur_seqdef: DatabaseConnection,
                  sample_output_dict: Dict[str, Any], config_data: Dict[str, Union[str, Dict[str, Any]]]) -> None:
         """
         :param isolatename: name of the isolate

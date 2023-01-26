@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Tuple, Union
 
 import psycopg2.extensions
 
+from .databaseconnection import DatabaseConnection
 from .json_superclass import JsonSuperClass
 
 
@@ -14,7 +15,7 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
     Class containing definitions to insert gene detection results from json input
     """
 
-    def __init__(self, isolatename: str, species: str, cur_isolates: psycopg2.extensions.cursor, cur_seqdef: psycopg2.extensions.cursor,
+    def __init__(self, isolatename: str, species: str, cur_isolates: DatabaseConnection, cur_seqdef: DatabaseConnection,
                  sample_output_dict: Dict[str, Any], config_data: Dict[str, Any]) -> None:
         """
         :param isolatename: name of the isolate
@@ -128,7 +129,7 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
         ncbi_ab_class_dict: Dict[str, str] = {}
         clusterdict: Dict[str, str] = {}  # e.g. 'accesion1_allele1': 'VFDB_GeneCluster_0'
         with Path(self.genedetectiondict[scheme]['metadatafile']).open('r') as handle:
-            sequencedictlist: Dict[str, Dict[Any]] = json.load(handle)
+            sequencedictlist: Dict[str, Dict[str, Any]] = json.load(handle)
             for sequencename in sequencedictlist:
                 """
                 sequencename becomes accession concatenated with allele because in e.g. 

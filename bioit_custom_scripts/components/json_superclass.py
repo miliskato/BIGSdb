@@ -2,18 +2,21 @@ from typing import Any, Dict, List, Union
 
 import psycopg2.extensions
 
+from .databaseconnection import DatabaseConnection
+
+
 class JsonSuperClass:
     """
     Class containing definitions to insert json typing and gene detection results
     """
 
-    def __init__(self, isolatename: str, species: str, cur_isolates: psycopg2.extensions.cursor, cur_seqdef: psycopg2.extensions.cursor,
+    def __init__(self, isolatename: str, species: str, cur_isolates: DatabaseConnection, cur_seqdef: DatabaseConnection,
                  sample_output_dict: Dict[str, Any], config_data: Dict[str, Any]) -> None:
         """
         :param isolatename: name of the isolate
         :param species: commonly used bioit species name: either genus or specific like stec
-        :param cur_isolates: isolate database connection object
-        :param cur_seqdef: sequence definition database connection object
+        :param cur_isolates: isolate database connection instance
+        :param cur_seqdef: sequence definition database connection instance
         :param sample_output_dict: results of sample
         :param config_data: the bigsdb config data
         :return: None
@@ -39,7 +42,7 @@ class JsonSuperClass:
                    VALUES(%s, (SELECT MAX(id) FROM isolates WHERE isolate=%s), 
                    %s, 'confirmed', 'automatic', 1, 
                    1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE));"""
-        self.cur_isolates.execute(sqlquery, (locus, self.isolatename, allele_id))
+        self.cur_isolates.execute_query(sqlquery, (locus, self.isolatename, allele_id))
 
     def _insert_ad_if_needed(self, locus: str, allele_id: str) -> None:
         """
@@ -51,7 +54,7 @@ class JsonSuperClass:
         sqlquery = """
                    SELECT COUNT(*) FROM allele_designations WHERE 
                    locus=%s AND isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate=%s) AND allele_id=%s;"""
-        self.cur_isolates.execute(sqlquery, (locus, self.isolatename, allele_id))
+        self.cur_isolates.execute_query(sqlquery, (locus, self.isolatename, allele_id))
         designationpresent: List[List[int]] = self.cur_isolates.fetchall()
         if designationpresent[0][0] == 0:
             self._insert_allele_designation(locus, allele_id)
@@ -66,7 +69,7 @@ class JsonSuperClass:
         sqlquery = """
                    INSERT INTO eav_text(isolate_id, field, value) 
                    VALUES((SELECT MAX(id) FROM isolates WHERE isolate=%s), %s, %s);"""
-        self.cur_isolates.execute(sqlquery, (self.isolatename, field, value))
+        self.cur_isolates.execute_query(sqlquery, (self.isolatename, field, value))
 
     def _insert_metadata_hidden(self, field: str, value: str) -> None:
         """
@@ -78,7 +81,7 @@ class JsonSuperClass:
         sqlquery = """
                    INSERT INTO eav_text_hidden(isolate_id, field, value) 
                    VALUES((SELECT MAX(id) FROM isolates WHERE isolate=%s), %s, %s);"""
-        self.cur_isolates.execute(sqlquery, (self.isolatename, field, value))
+        self.cur_isolates.execute_query(sqlquery, (self.isolatename, field, value))
 
     def _insert_metadata_bool(self, field: str, value: str) -> None:
         """
@@ -90,7 +93,7 @@ class JsonSuperClass:
         sqlquery = """
                    INSERT INTO eav_boolean(isolate_id, field, value) 
                    VALUES((SELECT MAX(id) FROM isolates WHERE isolate=%s), %s, %s);"""
-        self.cur_isolates.execute(sqlquery, (self.isolatename, field, value))
+        self.cur_isolates.execute_query(sqlquery, (self.isolatename, field, value))
 
     def _insert_dummy_sequence_if_needed(self, locus: str, allele_id: str) -> None:
         """
@@ -102,17 +105,17 @@ class JsonSuperClass:
         :return:
         """
         sqlquery = """SELECT COUNT(*) FROM sequences WHERE allele_id=%s and locus=%s;"""
-        self.cur_seqdef.execute(sqlquery, (allele_id, locus))
+        self.cur_seqdef.execute_query(sqlquery, (allele_id, locus))
         present: List[List[int]] = self.cur_seqdef.fetchall()
         if present[0][0] == 0:
             sqlquery = """SELECT sequence FROM sequences WHERE locus=%s ORDER BY CHAR_LENGTH(sequence) DESC, sequence DESC LIMIT 1;"""
-            self.cur_seqdef.execute(sqlquery, (locus,))
+            self.cur_seqdef.execute_query(sqlquery, (locus,))
             highest_dummy_sequence: List[List[str]] = self.cur_seqdef.fetchall()
             dummysequence: str = 'dummy_1' if len(highest_dummy_sequence) == 0 else '_'.join(['dummy', int(highest_dummy_sequence[0][0].split('_')[1]) + 1])
             sqlquery = """
                        INSERT INTO sequences(locus, allele_id, sequence, status,sender,curator, date_entered, datestamp) 
                        VALUES(%s, %s, %s, 'unchecked', 1, 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));"""
-            self.cur_seqdef.execute(sqlquery, (locus, allele_id, dummysequence))
+            self.cur_seqdef.execute_query(sqlquery, (locus, allele_id, dummysequence))
         # could also add insert allele designation here but i prefer to keep these definitions separate for readability
 
     def _insert_locus_if_needed(self, locus: str, scheme: str) -> None:
@@ -123,22 +126,22 @@ class JsonSuperClass:
         :return: None
         """
         sqlquery = """SELECT COUNT(*) FROM loci WHERE id=%s"""
-        self.cur_seqdef.execute(sqlquery, (locus,))
+        self.cur_seqdef.execute_query(sqlquery, (locus,))
         present: List[List[int]] = self.cur_seqdef.fetchall()
         if present[0][0] == 0:
             # insert into seqdef
             sqlquery = """
                        INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, curator, date_entered, datestamp) 
                        VALUES(%s, 'DNA', 'text', 't', 't', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));"""
-            self.cur_seqdef.execute(sqlquery, (locus,))
+            self.cur_seqdef.execute_query(sqlquery, (locus,))
             sqlquery_members = """
                        INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) 
                        VALUES((SELECT id FROM schemes WHERE name=%s), %s, 1, (SELECT CURRENT_DATE));"""
-            self.cur_seqdef.execute(sqlquery_members, (scheme, locus))
+            self.cur_seqdef.execute_query(sqlquery_members, (scheme, locus))
             sqlquery = """
                        INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) 
                        VALUES(1, %s, 1, (SELECT CURRENT_DATE));"""
-            self.cur_seqdef.execute(sqlquery, (locus,))
+            self.cur_seqdef.execute_query(sqlquery, (locus,))
 
             # insert into isolates
             dbaseurl: str = ''.join(['/cgi-bin/bigsdb/bigsdb.pl?db=', f'bigsdb_{self.species}_seqdef',
@@ -150,8 +153,8 @@ class JsonSuperClass:
                        VALUES(%s, 'DNA', 'text', 't', 't', %s, %s, 
                        %s, 'allele_only', 'f', 't', 't', 'f', 
                        1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));"""
-            self.cur_isolates.execute(sqlquery, (locus, f'bigsdb_{self.species}_seqdef', locus, dbaseurl))
-            self.cur_isolates.execute(sqlquery_members, (scheme, locus))
+            self.cur_isolates.execute_query(sqlquery, (locus, f'bigsdb_{self.species}_seqdef', locus, dbaseurl))
+            self.cur_isolates.execute_query(sqlquery_members, (scheme, locus))
 
     def _assign_schememember_if_needed(self, locus: str, scheme: str) -> None:
         """
@@ -163,14 +166,14 @@ class JsonSuperClass:
         sqlquery = """
                    SELECT COUNT(*) FROM scheme_members WHERE 
                    scheme_id=(SELECT id FROM schemes WHERE name=%s) AND locus=%s;"""
-        self.cur_seqdef.execute(sqlquery, (scheme, locus))
+        self.cur_seqdef.execute_query(sqlquery, (scheme, locus))
         schemememberpresent: List[List[int]] = self.cur_seqdef.fetchall()
         if schemememberpresent[0][0] == 0:
             sqlquery = """
                        INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) 
                        VALUES((SELECT id FROM schemes WHERE name=%s), %s, 1, (SELECT CURRENT_DATE));"""
-            self.cur_seqdef.execute(sqlquery, (scheme, locus))
-            self.cur_isolates.execute(sqlquery, (scheme, locus))
+            self.cur_seqdef.execute_query(sqlquery, (scheme, locus))
+            self.cur_isolates.execute_query(sqlquery, (scheme, locus))
 
     def _insert_history(self, message: str) -> None:
         """
@@ -181,4 +184,4 @@ class JsonSuperClass:
         sqlquery = """
                    INSERT INTO history(isolate_id, timestamp, action, curator) 
                    VALUES((SELECT MAX(id) FROM isolates WHERE isolate=%s),(SELECT NOW()::TIMESTAMP), %s, 1);"""
-        self.cur_isolates.execute(sqlquery, (self.isolatename, message))
+        self.cur_isolates.execute_query(sqlquery, (self.isolatename, message))

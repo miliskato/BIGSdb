@@ -2,12 +2,11 @@ import argparse
 import datetime
 import json
 import logging
-import os
 import socket
 import sys
 import traceback
 from pathlib import Path
-from typing import List
+from typing import Any, Dict, List, Union
 
 import psycopg2.extensions
 
@@ -41,7 +40,7 @@ def _parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     return argument_parser.parse_args()
 
 
-def __make_flagfilepath(isolatename: str, config: dict) -> Path:
+def __make_flagfilepath(isolatename: str, config: Dict[str, Any]) -> Path:
     """
     Returns the flag file path
     :param isolatename: part of flagname
@@ -51,7 +50,7 @@ def __make_flagfilepath(isolatename: str, config: dict) -> Path:
     return Path(config['failsafe']['flag_dir']) / '.'.join([isolatename, config['failsafe']['flag_append']])
 
 
-def _fail_safe_mechanism(isolatename: str, config: dict, analysis_date: str, cur_isolates: psycopg2.extensions.cursor) -> None:
+def _fail_safe_mechanism(isolatename: str, config: Dict[str, Any], analysis_date: str, isolates_psql_db: DatabaseConnection) -> None:
     """
     Creates a flagfile if insertion is started and no flagfile is present.
     else insertion is started and flag file is present: remove highest version of sample and
@@ -59,7 +58,7 @@ def _fail_safe_mechanism(isolatename: str, config: dict, analysis_date: str, cur
     :param isolatename:
     :param config: config containing the failsafe settings
     :param analysis_date: analysis date needed to insert new isolate version
-    :param cur_isolates: isolate database connection object
+    :param isolates_psql_db: isolate database connection instance
     :return: flag file present
     """
     try:
@@ -69,29 +68,16 @@ def _fail_safe_mechanism(isolatename: str, config: dict, analysis_date: str, cur
         flagfilepath = __make_flagfilepath(isolatename, config)
         if flagfilepath.is_file():
             logging.warning(f"fail safe mechanism detects that the bigsdb insertion for sample {isolatename} was started but didnt finish. Removing {isolatename} from Bigsdb to be able to restart inserting.")
-            sqlquery = """SELECT COUNT(*) FROM isolates WHERE isolate=%s;"""
-            cur_isolates.execute(sqlquery, (isolatename,))
-            nr_of_versions = cur_isolates.fetchall()[0][0]
+            nr_of_versions: int = (isolates_psql_db.execute_query(DatabaseConnection.ISO_SEL_COUNT_TB_ISO_VAR_ISO, (isolatename,)))[0][0]
             if nr_of_versions > 1:
-                sqlquery = """UPDATE isolates SET new_version=NULL WHERE id=(SELECT MIN(id) FROM isolates WHERE id in (SELECT id FROM isolates WHERE isolate=%s ORDER BY id DESC LIMIT 2));"""
-                cur_isolates.execute(sqlquery, (isolatename,))
-                sqlquery = """DELETE FROM isolates WHERE isolate='{isolatename}' AND id=(SELECT MAX(id) FROM isolates WHERE isolate=%s);"""
-                cur_isolates.execute(sqlquery, (isolatename,))
-                sqlquery = """
-                           INSERT INTO isolates(id, isolate, sender, curator, date_entered, datestamp, uploader, latest_analyis_date) 
-                           VALUES((SELECT CASE WHEN (SELECT MAX(id) FROM isolates) IS NULL THEN 1 
-                           ELSE (SELECT(SELECT MAX(id) FROM isolates)+1) END), %s, 1, 1, 
-                           (SELECT CURRENT_DATE),(SELECT CURRENT_DATE), 
-                           (SELECT uploader FROM isolates WHERE isolate=%s AND id=(SELECT MAX(id) FROM isolates WHERE isolate=%s)), %s);"""
-                cur_isolates.execute(sqlquery, (isolatename, isolatename, isolatename, datetime.datetime.strptime(analysis_date, '%d/%m/%Y - %X').strftime('%Y-%m-%d')))
-                sqlquery = """
-                           UPDATE isolates SET new_version=(SELECT MAX(id) FROM isolates WHERE isolate=%s) 
-                           WHERE isolate=%s AND new_version IS NULL AND id!=(SELECT MAX(id) 
-                           FROM isolates WHERE isolate=%s);"""
-                cur_isolates.execute(sqlquery, (isolatename, isolatename, isolatename))
+                isolates_psql_db.execute_query(DatabaseConnection.ISO_UPD_NEWV_TB_ISO_VAR_ISO, (isolatename,))
+                isolates_psql_db.execute_query(DatabaseConnection.ISO_DEL__TB_ISO_VAR_ISO_ISO, (isolatename, isolatename))
+                isolates_psql_db.execute_query(DatabaseConnection.ISO_INS__TB_ISO_VAR_ISO_ISO_ISO_DATE,
+                                               (isolatename, isolatename, isolatename,
+                                                datetime.datetime.strptime(analysis_date, '%d/%m/%Y - %X').strftime('%Y-%m-%d')))
+                isolates_psql_db.execute_query(DatabaseConnection.ISO_UPD_NEWV_TB_ISO_VAR_ISO_ISO_ISO, (isolatename, isolatename, isolatename))
             else:
-                sqlquery = """DELETE FROM isolates WHERE isolate=%s AND id=(SELECT MAX(id) FROM isolates WHERE isolate=%s);"""
-                cur_isolates.execute(sqlquery, (isolatename, isolatename))
+                isolates_psql_db.execute_query(DatabaseConnection.ISO_DEL__TB_ISO_VAR_ISO_ISO, (isolatename, isolatename))
         else:
             flagfilepath.touch()
             flagfilepath.chmod(0o777)
@@ -102,13 +88,13 @@ def _fail_safe_mechanism(isolatename: str, config: dict, analysis_date: str, cur
         raise Exception(f"{Path(__file__).name}: bigsdb upload fail safe mechanism fail on host {socket.gethostname()}")
 
 
-def _delete_flagfile(isolatename: str, config: dict) -> None:
+def _delete_flagfile(isolatename: str, config: Dict[str, Any]) -> None:
     """
     :param isolatename:
     :param config: config containing the failsafe settings
     :return: Removes flagfile
     """
-    flagfilepath = __make_flagfilepath(isolatename, config)
+    flagfilepath: Path = __make_flagfilepath(isolatename, config)
     try:
         flagfilepath.unlink()
     except Exception as exceptionmessage:
@@ -118,26 +104,26 @@ def _delete_flagfile(isolatename: str, config: dict) -> None:
 
 def main_results_inserter(isolatename: str, uploadermailadress: str, species: str, results_type: str, jsonfilepath: Path = None, tsvfilepath: Path = None) -> None:
     """
-    Main function
+    Main function, inserts isolate and its results into bigsdb
     See argparse function for variables and their requiredness
-    :param isolatename:
-    :param uploadermailadress:
-    :param species:
-    :param results_type:
-    :param jsonfilepath:
-    :param tsvfilepath:
-    :return:
+    :param isolatename: name of the isolate
+    :param uploadermailadress: mailadress of the uploader
+    :param species: commonly used bioit species name: either genus or specific like stec
+    :param results_type: results of sample
+    :param jsonfilepath: Path of the input json file
+    :param tsvfilepath: Path of the input tsv file
+    :return:None
     """
     bigsdb_config_data = get_bigsdb_config_data()
 
     # parse output
     if tsvfilepath:
-        sample_output_dict = {}
+        sample_output_dict: Dict[str, Any] = {}
         handle = open(tsvfilepath, 'r').readlines()
         for line in handle:
             sample_output_dict[line.split('\t')[0]] = line.split('\t')[1].strip('\n')
     elif jsonfilepath:
-        records = json.load(open(jsonfilepath, 'r'))
+        records: Dict[str, Any] = json.load(open(jsonfilepath, 'r'))
         if 'results' in records:
             # records come from mongodb
             sample_output_dict = records['results']
@@ -145,36 +131,36 @@ def main_results_inserter(isolatename: str, uploadermailadress: str, species: st
             # records come from the pipeline directly
             sample_output_dict = records
     else:
-        send_email("", f'{Path(__file__).name}: Error inserting output of {species} pipeline to bigsdb for sample {isolatename} on host {socket.gethostname()}, need either jsonfilepath or tsvfilepath.')
+        send_email("", f'{Path(__file__).name}: Error inserting output of {species} pipeline to bigsdb for sample {isolatename} on host {socket.gethostname()}, '
+                       f'need either jsonfilepath or tsvfilepath.')
         sys.exit()
     # Logic
     try:
         # Connect to db and create cursors
-        (con_isolates, cur_isolates), (con_seqdef, cur_seqdef) = DatabaseConnection().connect_to_dbs_and_create_cursors(species)
+        with DatabaseConnection(species, 'isolates') as isolates_psql_db, DatabaseConnection(species, 'seqdef') as seqdef_psql_db:
 
-        # fail safe mechanism is initated at the same time of the isolate insertion, but after connecting to the PSQL db's
-        maininserter = MainInserter(isolatename, species, cur_isolates, cur_seqdef, sample_output_dict)
-        _fail_safe_mechanism(isolatename, bigsdb_config_data, sample_output_dict['analysis_date'], cur_isolates)
-        if results_type == 'new_isolate':
-            maininserter.insert_new_isolate(uploadermailadress)
-        elif results_type == 'reanalysis':
-            maininserter.insert_new_isolate_version()
-        try:
-            maininserter.insert_main_metadata()
-            if tsvfilepath:
-                TsvTypingResultsInserter().insert_typing_results(isolatename, species, bigsdb_config_data['species'][species]['typing_schemes'], sample_output_dict, cur_isolates, cur_seqdef)
-                TsvGeneDetectionResultsInserter().insert_genedetection_results(isolatename, species, bigsdb_config_data['species'][species]['genedetection_schemes'], sample_output_dict, cur_isolates, cur_seqdef)
-            elif jsonfilepath:
-                JsonTypingResultsInserter(isolatename, species, cur_isolates, cur_seqdef, sample_output_dict, bigsdb_config_data).insert_typing_results()
-                JsonGeneDetectionResultsInserter(isolatename, species, cur_isolates, cur_seqdef, sample_output_dict, bigsdb_config_data).insert_genedetection_results()
-            logging.info('Finished inserting results')
-        except Exception as exceptionmessage:
-            send_email(f"{exceptionmessage}\n{traceback.format_exc()}",
-                       f'{Path(__file__).name}: Error inserting output of {species} pipeline to bigsdb for sample {isolatename} on host {socket.gethostname()}.')
-            raise Exception(f'{Path(__file__).name}: Error inserting output of {species} pipeline to bigsdb for sample {isolatename} on host {socket.gethostname()}.')
-            # super important to raise exception because else the flagging file is removed and the entire fail safe doesnt work
-        _delete_flagfile(isolatename, bigsdb_config_data)
-        DatabaseConnection().close_connections(con_isolates, con_seqdef)
+            # fail safe mechanism is initated at the same time of the isolate insertion, but after connecting to the PSQL db's
+            maininserter = MainInserter(isolatename, species, isolates_psql_db, seqdef_psql_db, sample_output_dict)
+            _fail_safe_mechanism(isolatename, bigsdb_config_data, sample_output_dict['analysis_date'], isolates_psql_db)
+            if results_type == 'new_isolate':
+                maininserter.insert_new_isolate(uploadermailadress)
+            elif results_type == 'reanalysis':
+                maininserter.insert_new_isolate_version()
+            try:
+                maininserter.insert_main_metadata()
+                if tsvfilepath:
+                    TsvTypingResultsInserter().insert_typing_results(isolatename, species, bigsdb_config_data['species'][species]['typing_schemes'], sample_output_dict, isolates_psql_db, seqdef_psql_db)
+                    TsvGeneDetectionResultsInserter().insert_genedetection_results(isolatename, species, bigsdb_config_data['species'][species]['genedetection_schemes'], sample_output_dict, isolates_psql_db, seqdef_psql_db)
+                elif jsonfilepath:
+                    JsonTypingResultsInserter(isolatename, species, isolates_psql_db, seqdef_psql_db, sample_output_dict, bigsdb_config_data).insert_typing_results()
+                    JsonGeneDetectionResultsInserter(isolatename, species, isolates_psql_db, seqdef_psql_db, sample_output_dict, bigsdb_config_data).insert_genedetection_results()
+                logging.info('Finished inserting results')
+            except Exception as exceptionmessage:
+                send_email(f"{exceptionmessage}\n{traceback.format_exc()}",
+                           f'{Path(__file__).name}: Error inserting output of {species} pipeline to bigsdb for sample {isolatename} on host {socket.gethostname()}.')
+                raise Exception(f'{Path(__file__).name}: Error inserting output of {species} pipeline to bigsdb for sample {isolatename} on host {socket.gethostname()}.')
+                # super important to raise exception because else the flagging file is removed and the entire fail safe doesnt work
+            _delete_flagfile(isolatename, bigsdb_config_data)
     except Exception as exceptionmessage:
         send_email(f"{exceptionmessage}\n{traceback.format_exc()}",
                    f'{Path(__file__).name}: Error inserting isolate of {species} pipeline to bigsdb for sample {isolatename} on host {socket.gethostname()}.')
