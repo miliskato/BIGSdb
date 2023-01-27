@@ -21,7 +21,7 @@ class NewThresholdClustering(DistanceAndClusterComputer):
         """
         self.config_file_path = clustering_config_file
         self.new_clustering_thresholds = new_thresholds
-        self.species = species
+        self._species = species
         super().__init__(st_collection, cluster_membership_collection, [0])
 
     def create_new_threshold_and_compute_clustering(self) -> None:
@@ -33,7 +33,7 @@ class NewThresholdClustering(DistanceAndClusterComputer):
         logging.info("Loading the config file")
         clustering_config = self._load_config_file()
         logging.info("Checking if the new thresholds are absent from the config")
-        species_thresh_field = f'clustering_thresholds_{self.species}'
+        species_thresh_field = f'clustering_thresholds_{self._species}'
         thresh_to_add = []
         for threshold in self.new_clustering_thresholds:
             if int(threshold) not in clustering_config[species_thresh_field]:

@@ -13,6 +13,7 @@ PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
 from bioit_custom_scripts.components.databaseconnection import DatabaseConnection
+from bioit_custom_scripts.components.psql_tables_queries import TblSequences, TblAlleleDesignations
 from bioit_custom_scripts.components.python_utility_functions import get_bigsdb_config_data, send_email
 
 def _parse_arguments(specieslist: List[str]) -> argparse.Namespace:
@@ -34,7 +35,7 @@ def _insert_alleles() -> None:
     :return: None
     """
     for species in set(args.species):
-        with DatabaseConnection(species, 'isolates') as isolates_psql_db, DatabaseConnection(species, 'seqdef') as seqdef_psql_db:
+        with TblAlleleDesignations(species) as isolates_ad_psql_tbl, TblSequences(species) as seqdef_sequences_psql_tbl:
             schemedict: Dict[str, Dict[str, str]] = bigsdb_config_data['species'][species]['typing_schemes']
             for scheme in schemedict:
                 if schemedict[scheme].get('dirdb') and schemedict[scheme]['dirdb'] != '':
@@ -83,11 +84,11 @@ def _insert_alleles() -> None:
                                         fasta_dict[sequence_id] = sequence
 
                             # Part 2: PSQL component
-                            rows: List[Tuple[str]] = seqdef_psql_db.execute_query(DatabaseConnection.SEQ_SEL_ALLELE_TB_SEQ_VAR_LOCUS, (directory,))
-                            list_alleleid: set = set(item[0] for item in rows)
+                            rows: List[Tuple[str]] = seqdef_sequences_psql_tbl.select_allele_from_locus((directory,))
+                            list_alleleid = set(item[0] for item in rows)
 
                             # Part_3: Compare the two lists
-                            ids_to_be_inserted: set = set()
+                            ids_to_be_inserted = set()
                             if len(list_alleleid):  # not necessary but makes it slightly more elegant for new locus allele sequences
                                 for sequence_id in fasta_dict:
                                     if sequence_id not in list_alleleid:
@@ -104,17 +105,17 @@ def _insert_alleles() -> None:
                                     Sometimes alleles retire for seemingly no reason, and are added immediately after as a new allele id,
                                     The observed ids that went through this were not in any profile or any allele designation in the isolate db
                                     """
-                                    seqdef_psql_db.execute_query(DatabaseConnection.SEQ_INS__TB_SEQ_VAR_LOCUS_ALL_SEQ, (directory, fasta_dict[sequence_id]))
+                                    seqdef_sequences_psql_tbl.insert_sequencebin((directory, sequence_id, fasta_dict[sequence_id]))
                                 except Exception:
                                     """
                                     Profiles are located in the seqdef db and will automatically update when the sequence db is updated through a rule.
                                     Allele designations in the isolate db on the other hand will not, moreover, allele designations in the allele db 
                                     do not need to be referring to a real allele in the seqdef db.
                                     """
-                                    old_id = (seqdef_psql_db.execute_query(DatabaseConnection.SEQ_SEL_ALLELE_TB_SEQ_VAR_LOCUS_SEQ, (directory, fasta_dict[sequence_id])))[0][0]
+                                    old_id = (seqdef_sequences_psql_tbl.select_allele_from_sequence((directory, fasta_dict[sequence_id])))[0][0]
                                     # If empty then it will be a simple empty list '[]' and taking the index twice will throw an error
-                                    seqdef_psql_db.execute_query(DatabaseConnection.SEQ_UPD_ALLELE_TB_SEQ_VAR_LOCUS_ALLELE, (sequence_id, directory, old_id))
-                                    isolates_psql_db.execute_query(DatabaseConnection.ISO_UPD_ALLELE_TB_AD_VAR_LOCI_ALLELE, (sequence_id, directory, old_id))
+                                    seqdef_sequences_psql_tbl.update_alleleid((sequence_id, directory, old_id))
+                                    isolates_ad_psql_tbl.update_designations((sequence_id, directory, old_id))
 
 
 if __name__ == '__main__':

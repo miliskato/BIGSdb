@@ -13,6 +13,7 @@ PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
 from bioit_custom_scripts.components.databaseconnection import DatabaseConnection
+from bioit_custom_scripts.components.psql_tables_queries import TblIsolates, TblSequenceBin
 from bioit_custom_scripts.components.python_utility_functions import get_bigsdb_config_data, send_email
 
 
@@ -32,19 +33,14 @@ def _parse_arguments(specieslist: List[str]) -> argparse.Namespace:
 def insert_assembly(isolatename: str, species: str, fastafilepath: str) -> None:
     try:
         # Connect to db and create cursors
-        with DatabaseConnection(species, 'isolates') as isolates_psql_db:
-
-            sqlquery = """SELECT COUNT(*) FROM isolates WHERE isolate=%s;"""
-            isolates_psql_db.execute_query(sqlquery, (isolatename,))
-            sample_presence = isolates_psql_db.fetchall()
+        with TblIsolates(species) as isolates_psql_tbl, TblSequenceBin(species) as isolates_seqbin_psql_tbl:
+            sample_presence = isolates_psql_tbl.count_isolate((isolatename,))
             if sample_presence[0][0] == 0:
                 send_email(f"please insert isolate/isolate results first",
                            f'{Path(__file__).name}: Error inserting assembly of {species} pipeline to bigsdb for sample {isolatename} on host {socket.gethostname()}.')
                 sys.exit()
 
-            sqlquery = """SELECT count(*) FROM sequence_bin WHERE isolate_id = (SELECT MAX(id) FROM isolates WHERE isolate=%s);"""
-            isolates_psql_db.execute_query(sqlquery, (isolatename,))
-            presentcontigs = isolates_psql_db.fetchall()
+            presentcontigs = isolates_seqbin_psql_tbl.count_sequencebin((isolatename,))
             if presentcontigs[0][0] == 0:
                 is_multiline = False
                 with Path(fastafilepath).open('r') as in_file:
@@ -86,16 +82,7 @@ def insert_assembly(isolatename: str, species: str, fastafilepath: str) -> None:
 
                 # insert into database
                 for sequencename, sequence in fasta_dict.items():
-                    sqlquery = """
-                               INSERT INTO sequence_bin(id, 
-                               isolate_id, 
-                               remote_contig, sequence, original_designation, sender, 
-                               curator, date_entered, datestamp) 
-                               VALUES((SELECT CASE WHEN (SELECT MAX(id) FROM sequence_bin) IS NULL THEN 1 ELSE (SELECT(SELECT MAX(id) FROM sequence_bin)+1) END), 
-                               (SELECT MAX(id) FROM isolates WHERE isolate=%s), 
-                               'f', %s, %s, 1, 
-                               1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))"""
-                    isolates_psql_db.execute_query(sqlquery, (isolatename, sequence, sequencename.strip('>')))
+                    isolates_seqbin_psql_tbl.insert_sequencebin((isolatename, sequence, sequencename.strip('>')))
                 # # remove the file
                 # os.remove(Path(fastafile))
 

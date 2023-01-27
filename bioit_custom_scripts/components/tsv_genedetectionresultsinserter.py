@@ -4,6 +4,9 @@ from pathlib import Path
 
 import psycopg2.extensions
 
+from .databaseconnection import DatabaseConnection
+
+
 class TsvGeneDetectionResultsInserter:
     """
     Class containing definitions to insert gene detection results from tsv input
@@ -12,7 +15,7 @@ class TsvGeneDetectionResultsInserter:
     def __init__(self) -> None:
         pass
 
-    def insert_genedetection_results(self, isolatename: str, species: str, genedetectiondict: dict, sample_output_dict: dict, isolates_psql_db: psycopg2.extensions.cursor, seqdef_psql_db: psycopg2.extensions.cursor) -> None:
+    def insert_genedetection_results(self, isolatename: str, species: str, genedetectiondict: dict, sample_output_dict: dict, isolates_psql_db: DatabaseConnection, seqdef_psql_db: DatabaseConnection) -> None:
         """
         Inserts genedetection results into bigsdb from tsv
         :param isolatename:

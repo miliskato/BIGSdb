@@ -37,6 +37,7 @@ class DatabaseConnection:
             raise RuntimeError(f"Could not connect to {species}'s databases")
         self._connection.autocommit = autocommit
         self._cursor: psycopg2.extensions.cursor = self._connection.cursor()
+        self.name = self._cursor.name
 
     def execute_query(self, query: str, params: Tuple[Union[str, int], ...]) -> Union[None, List[Tuple[Any]]]:
         """
@@ -46,6 +47,17 @@ class DatabaseConnection:
         :return: None
         """
         self._cursor.execute(query, params)
+        if query.startswith('SELECT'):
+            return self._cursor.fetchall()
+
+    def execute(self, query: str) -> Union[None, List[Tuple[Any]]]:
+        """
+        Executes a sql query using psycopg2 sanitazation
+        :param query: sql query to be used
+        :param params: parameters to be passed to sqlquery
+        :return: None
+        """
+        self._cursor.execute(query)
         if query.startswith('SELECT'):
             return self._cursor.fetchall()
 

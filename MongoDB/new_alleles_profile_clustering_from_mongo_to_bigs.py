@@ -49,14 +49,14 @@ class NewAllelesProfileClusteringFromMongoToBigs:
         :param cluster_membership_collection: cluster membership collection from the mongo db of the species
         :param update_metadata_collection: the update metadata collection from the mongo db of the species
         """
-        self.species = species
+        self._species = species
         self.st_collection = st_collection
         self.hashed_ad_collection = hashed_ad_collection
         self.cluster_membership_collection = cluster_membership_collection
         self.update_metadata_collection = update_metadata_collection
-        self.isolates_psql_db = DatabaseConnection(self.species, 'isolates')
-        self.seqdef_psql_db = DatabaseConnection(self.species, 'seqdef')
-        self.clustering_thresholds = CLUSTERING_CONFIG[f"clustering_thresholds_{self.species}"]
+        self.isolates_psql_db = DatabaseConnection(self._species, 'isolates')
+        self.seqdef_psql_db = DatabaseConnection(self._species, 'seqdef')
+        self.clustering_thresholds = CLUSTERING_CONFIG[f"clustering_thresholds_{self._species}"]
         self.current_update_date = datetime.datetime.utcnow()
         self.last_date_of_update = self._get_last_date_of_update()
         if self.last_date_of_update == None:

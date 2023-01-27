@@ -252,7 +252,7 @@ class MainMongo:
         :param alternate_connection_string:
         """
         self.technical_id = technical_id
-        self.species = species
+        self._species = species
         self.results_type = results_type
         self.jsonfilepath = jsonfilepath
         self.subvaldict = subvaldict
@@ -271,11 +271,11 @@ class MainMongo:
         """
         # Parse config
         with open(MONGO_CONFIG, encoding='utf-8') as handle:
-            self.config_data = yaml.safe_load(handle)
+            self._config_data = yaml.safe_load(handle)
 
         # if testing purposes; replace connection string by testing connection string
         if self.alternate_connection_string:
-            self.config_data['CONNECTION_STRING_BASE'] = self.alternate_connection_string
+            self._config_data['CONNECTION_STRING_BASE'] = self.alternate_connection_string
 
         try:
             # Configure stdout logging
@@ -284,9 +284,9 @@ class MainMongo:
             # Open collections
             self.mongoinit = MongoInitialisation()
             self.isolates_collection, self.old_isolateresults_collection, self.isolates_badqc_collection, self.isolates_resequencing_collection = self.mongoinit.initialise_collections(
-                self.config_data, self.species)
+                self._config_data, self._species)
             self.st_collection, self.cluster_membership_collection, self.cluster_merging_collection = \
-                self.mongoinit.initialise_clustering_collections(self.config_data, self.species)
+                self.mongoinit.initialise_clustering_collections(self._config_data, self._species)
             self.mongoquerying = Mongoquerying()
 
             # If statement for results_type
@@ -355,20 +355,20 @@ class MainMongo:
                     f"No qc values found in the given results\n{traceback.format_exc()}")
                 raise KeyError('No qc values found in the given results')
         if sample_quality == 'good':
-            new_records = find_hashes_in_results_and_add_to_collection(new_records, self.mongoinit, self.config_data,
-                                                                   self.species, self.results_type)
+            new_records = find_hashes_in_results_and_add_to_collection(new_records, self.mongoinit, self._config_data,
+                                                                   self._species, self.results_type)
             _write_document(self.isolates_collection,
                             _new_isolate(self.technical_id, str(self.reportdirectorypath), str(self.vcffilepath),
                                          str(self.fastafilepath), new_records))
-            logging.info(f"Wrote new isolate {self.technical_id} and its result to {self.species} database")
+            logging.info(f"Wrote new isolate {self.technical_id} and its result to {self._species} database")
             if 'cgmlst' in new_records:
                 clustering_input = self.mongoquerying.query_typing_results_by_technicalids_and_scheme(
                     self.isolates_collection,
                     scheme="cgmlst",
                     technicalids=[self.technical_id])
-                custom_clustering = MongoCustomClustering(clustering_input[0], clustering_input[1], self.species)
+                custom_clustering = MongoCustomClustering(clustering_input[0], clustering_input[1], self._species)
                 logging.info(f"Running the clustering for the isolate {self.technical_id}")
-                sp_thresholds = f"clustering_thresholds_{self.species}"
+                sp_thresholds = f"clustering_thresholds_{self._species}"
                 sequence_type = custom_clustering.run_custom_clustering(self.st_collection,
                                                                         self.cluster_membership_collection,
                                                                         self.cluster_merging_collection,
@@ -384,7 +384,7 @@ class MainMongo:
                             _new_isolate(self.technical_id, str(self.reportdirectorypath), str(self.vcffilepath),
                                          str(self.fastafilepath), new_records))
             logging.warning(
-                f"New isolate {self.technical_id} failed quality control for one or more checks. It's results were written to the 'isolates_badqc' collection in the {self.species} database")
+                f"New isolate {self.technical_id} failed quality control for one or more checks. It's results were written to the 'isolates_badqc' collection in the {self._species} database")
 
     def _new_resequencing_arrival(self, new_records: Dict[str, Union[str, object]], document_original: Dict[str, Union[str, object]],
                                   collection_in: pymongo.collection.Collection) -> None:
@@ -456,8 +456,8 @@ class MainMongo:
             new_results = new_results_document['results']
         new_results_handle_hashes_replaced = find_hashes_in_results_and_add_to_collection(new_results,
                                                                                           self.mongoinit,
-                                                                                          self.config_data,
-                                                                                          self.species,
+                                                                                          self._config_data,
+                                                                                          self._species,
                                                                                           self.results_type)
         current_results = current_results_document['results']
         if new_results["analysis_date"] == current_results["analysis_date"]:
@@ -504,10 +504,10 @@ class MainMongo:
         if any_result_changed_new_old is True:
             new_results["results.changed_version"] = current_results["changed_version"] + 1
             logging.info(
-                f"Writing new changed results and linked to isolate {self.technical_id} in {self.species}")
+                f"Writing new changed results and linked to isolate {self.technical_id} in {self._species}")
         else:
             logging.info(
-                f"New results are not different from current results for {self.technical_id} in {self.species}, updating analysis dates and db versions.")
+                f"New results are not different from current results for {self.technical_id} in {self._species}, updating analysis dates and db versions.")
         if self.results_type == 'resequencing_validated':
             new_results['validation'] = self.validation
             report_dir_merging_cmd = ' '.join([
@@ -536,7 +536,7 @@ class MainMongo:
                          "latest_analysis_date": _return_YMD_from_DMYhms(new_results["results.analysis_date"]),
                          "previous_latest_results_document": _write_document(self.old_isolateresults_collection,
                                                                              current_results)}})
-        logging.info(f"Wrote new results and linked to isolate {self.technical_id} in {self.species}")
+        logging.info(f"Wrote new results and linked to isolate {self.technical_id} in {self._species}")
     
         if 'cgmlst' in changed_results_new_old:
             clustering_input = self.mongoquerying.query_typing_results_by_technicalids_and_scheme(
@@ -544,9 +544,9 @@ class MainMongo:
                 scheme="cgmlst",
                 technicalids=[self.technical_id])
             custom_clustering = MongoCustomClustering(clustering_input[0], clustering_input[1],
-                                                      self.species)
+                                                      self._species)
             logging.info(f"Running the clustering for the isolate {self.technical_id}")
-            sp_thresholds = f"clustering_thresholds_{self.species}"
+            sp_thresholds = f"clustering_thresholds_{self._species}"
             sequence_type = custom_clustering.run_custom_clustering(self.st_collection,
                                                                     self.cluster_membership_collection,
                                                                     self.cluster_merging_collection,
@@ -565,10 +565,10 @@ class MainMongo:
         if not self.dont_send_email:
             message = EmailMessage()
             message['Subject'] = subject
-            message['From'] = self.config_data['mail']['from']
-            message['To'] = self.config_data['mail']['to']
+            message['From'] = self._config_data['mail']['from']
+            message['To'] = self._config_data['mail']['to']
             message.set_content(content)
-            with smtplib.SMTP(self.config_data['mail']['host']) as s:
+            with smtplib.SMTP(self._config_data['mail']['host']) as s:
                 s.send_message(message)
         logging.info(content)
 

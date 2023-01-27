@@ -10,7 +10,7 @@ import socket
 import sys
 import traceback
 from pathlib import Path
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Tuple, Union
 
 import pymongo
 import yaml
@@ -20,7 +20,7 @@ from pymongo.write_concern import WriteConcern
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
-from bioit_custom_scripts.components.databaseconnection import DatabaseConnection
+from bioit_custom_scripts.components.psql_tables_queries import TblSubmissions
 from bioit_custom_scripts.components.python_utility_functions import get_bigsdb_config_data, send_email
 from MongoDB.config import MONGO_CONFIG
 from MongoDB.mainmongo import MainMongo
@@ -43,7 +43,7 @@ if __name__ == '__main__':
 
     # Parse arguments
     args = parse_arguments()
-    species: str = re.sub('bigsdb_|_isolates', '', args.db)
+    species = re.sub('bigsdb_|_isolates', '', args.db)
     # Parse config
     with open(MONGO_CONFIG, encoding='utf-8') as handle:
         mongo_config = yaml.safe_load(handle)
@@ -58,11 +58,8 @@ if __name__ == '__main__':
             mongoinit.initialise_collections(mongo_config, species)
 
         # Connect to db and create cursor
-        with DatabaseConnection(species, 'isolates') as isolates_psql_db, DatabaseConnection(species, 'seqdef') as seqdef_psql_db:
-            query = isolates_psql_db.execute_query(f"SELECT submissions.id, isolate_submission_isolates.value, submissions.outcome, users.email, submissions.validation_type FROM submissions "
-                                 f"LEFT JOIN users ON users.id = submissions.curator "
-                                 f"LEFT JOIN isolate_submission_isolates ON isolate_submission_isolates.submission_id = submissions.id "
-                                 f"WHERE submissions.status='closed' and isolate_submission_isolates.field='isolate_id';")
+        with TblSubmissions(species) as isolates_submissions_psql_tbl:
+            query: List[Tuple[Any]] = isolates_submissions_psql_tbl.select_closed_submissions()
             if query:  # todo 09/01/2023 MK I think this is a dangerous approach. If at some point no connection can be made between bigs and mongo, a delay will be acquired. I would modify this to be a for loop, combined with a flagfile to say that this script is running which also contains the start time, if the start time is longer than 10 min ago remove it and restart
                 #retrieve id of the isolate and curator id from BIGSdb
                 submission_id: str = query[0][0]
@@ -105,7 +102,7 @@ if __name__ == '__main__':
                         :param collection_in: collection document is in
                         :return: None
                         """
-                        negatively_validated_document: Dict[str, Any] = dict(collection_in.with_options(read_concern=ReadConcern(level="majority")).find_one({'_id': isolate_id}))
+                        negatively_validated_document = dict(collection_in.with_options(read_concern=ReadConcern(level="majority")).find_one({'_id': isolate_id}))
                         negatively_validated_document['validation'] = validation
                         negatively_validated_document.pop('_id')
                         collection_in.with_options(write_concern=WriteConcern(w="majority")).insert_one(negatively_validated_document)  # Modified doc
@@ -115,8 +112,7 @@ if __name__ == '__main__':
                     elif validation_type == 'resequencing':
                         _remove_id_from_document_to_be_unique_again_if_bad(isolates_resequencing_collection)
                 #update status once everything is finished
-                sqlquery = """UPDATE submissions SET status='validation_sent_to_bioit_platform' WHERE id=%s;"""
-                isolates_psql_db.execute_query(sqlquery, (submission_id))
+                isolates_submissions_psql_tbl.update_submission((submission_id,))
         mongo_to_bigs(species, single_sample=isolate_id)
     except Exception as exceptionmessage:
         send_email(f"{exceptionmessage}\n{traceback.format_exc()}",

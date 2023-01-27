@@ -19,7 +19,7 @@ class MongoCustomClustering:
         """
         self.cgmlst_profile = cgMLSTProfile(data, headers)
         self.hc_results = None
-        self.species = species
+        self._species = species
 
     def run_custom_clustering(self, st_collection: pymongo.collection.Collection, cluster_membership_collection: pymongo.collection.Collection,
                               cluster_merging_collection: pymongo.collection.Collection, cluster_threshold: list) -> int or None:
@@ -33,17 +33,17 @@ class MongoCustomClustering:
         logging.getLogger().setLevel(logging.INFO)
         logging.info("Check order of the cgMLST profile")
         self._check_order_of_cgmlst_profile(st_collection)
-        logging.info(f"Query sequence type collection for {self.species}")
+        logging.info(f"Query sequence type collection for {self._species}")
         self.cgmlst_profile.st = self._query_sequence_types(st_collection)
         if self.cgmlst_profile.st:
-            logging.info(f"Found the sequence type in the sequence type collection of {self.species}")
+            logging.info(f"Found the sequence type in the sequence type collection of {self._species}")
             return self.cgmlst_profile.st
         else:
             logging.info(f"Test to evaluate if the cgMLST profile doesn't have too many missing data")
             test_missing = self.__check_missing_data()
             if test_missing == 'OK':
                 logging.info(f"Test succeeded: the cgMLST profile will be integrated to the sequence type collection "
-                             f"from {self.species}")
+                             f"from {self._species}")
                 self._add_new_sequence_type(st_collection)
                 logging.info(f"Start to process cgmlst profiles for cluster membership computing")
                 self._compute_cluster_membership(st_collection, cluster_membership_collection, cluster_merging_collection,  cluster_threshold)

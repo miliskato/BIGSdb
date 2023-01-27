@@ -7,6 +7,8 @@ import re
 import psycopg2.extensions
 import requests
 
+from .databaseconnection import DatabaseConnection
+
 
 class TsvTypingResultsInserter:
     """
@@ -16,7 +18,7 @@ class TsvTypingResultsInserter:
     def __init__(self) -> None:
         pass
 
-    def insert_typing_results(self, isolatename: str, species: str, schemedict: dict, sample_output_dict: dict, isolates_psql_db: psycopg2.extensions.cursor, seqdef_psql_db: psycopg2.extensions.cursor) -> None:
+    def insert_typing_results(self, isolatename: str, species: str, schemedict: dict, sample_output_dict: dict, isolates_psql_db: DatabaseConnection, seqdef_psql_db: DatabaseConnection) -> None:
         """
         Inserts typing results into bigsdb from tsv
         :param isolatename:
@@ -336,7 +338,7 @@ class TsvTypingResultsInserter:
                                                      "H1_antigen": rawformula.split(':')[1].split(','),
                                                      "H2_antigen": rawformula.split(':')[2].split(',')}
                                     self.tool = tool
-                                    self.isolatename = isolatename
+                                    self._isolatename = isolatename
 
                                 def __check_if_exist_in_seqdef(self, field: str, entry: str) -> list:
                                     seqdef_psql_db.execute_query(
@@ -368,7 +370,7 @@ class TsvTypingResultsInserter:
                                                 isolates_psql_db.execute_query(f"INSERT INTO allele_designations(locus, isolate_id, "
                                                                      f"allele_id, status, method, sender, "
                                                                      f"curator, date_entered, datestamp) "
-                                                                     f"VALUES('{field}', (SELECT MAX(id) FROM isolates WHERE isolate='{self.isolatename}'), "
+                                                                     f"VALUES('{field}', (SELECT MAX(id) FROM isolates WHERE isolate='{self._isolatename}'), "
                                                                      f"'{entry}', 'confirmed', 'automatic', 1, "
                                                                      f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
 
