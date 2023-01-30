@@ -11,7 +11,7 @@ PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
 from bioit_custom_scripts.components.json_superclass import JsonSuperClass
-from bioit_custom_scripts.components.psql_tables_queries import TblSequences, TblLocusDescriptions, TblLoci, TblSequences, TblAlleleDesignations, TblEavText, TblEavTextHidden, TblHistory
+from bioit_custom_scripts.components.psql_tables_queries import TblLocusDescriptions, TblLoci, TblSequences, TblAlleleDesignations, TblEavText, TblEavTextHidden, TblHistory
 from bioit_custom_scripts.components.python_utility_functions import get_bigsdb_config_data, send_email
 
 
@@ -55,7 +55,7 @@ class GeneDetectionIntoPsql:
 
                 self.__update_locus_descriptions()
 
-                self.__recalculate_allele_designations()()
+                self.__recalculate_allele_designations()
 
     def __create_necessary_dictionaries(self) -> None:
         """
