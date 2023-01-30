@@ -28,10 +28,61 @@ class PsqlQueries():
     ISO_UPD_ALLELE_TB_AD_VAR_LOCUS_ALLELE: Final[str] = """
         UPDATE allele_designations SET allele_id = %s WHERE locus=%s AND allele_id=%s;"""
 
+    # TBL classification groups
+    SEQ_INS__TB_CLGR_VAR_CGSCHID_GRID: Final[str] = """
+        INSERT INTO classification_groups(cg_scheme_id, group_id, active, curator, datestamp) 
+        VALUES(%s, %s, true, 1, (SELECT CURRENT_DATE));"""
+    SEQ_SEL_COUNT_TB_CLGR_VAR_CGSCHID_GRID: Final[str] = """
+        SELECT COUNT(*) FROM classification_groups WHERE cg_scheme_id=%s AND group_id=%s;"""
+    SEQ_UPD_ACTIVE_TB_CLGR_VAR_CGSCHID_GRID: Final[str] = """
+        UPDATE classification_groups SET active = false WHERE cg_scheme_id=%s AND group_id=%s;"""
+
+    # TBL classification group profiles
+    SEQ_INS__TB_CLGRPR_VAR_CGSCHID_GRID_PRID_SCHEME: Final[str] = """
+        INSERT INTO classification_group_profiles(cg_scheme_id, group_id, profile_id, 
+        scheme_id, curator, datestamp) 
+        VALUES(%s, %s, %s, 
+        (SELECT id FROM schemes WHERE name = %s), 1, (SELECT CURRENT_DATE));"""
+    SEQ_SEL_GRID_TB_CLGRPR_VAR_CGSCHID_PRID: Final[str] = """
+        SELECT group_id FROM classification_group_profiles WHERE cg_scheme_id=%s AND profile_id=%s;"""
+    SEQ_UPD_GRID_TB_CLGRPR_VAR_CGSCHID_PRID: Final[str] = """
+        UPDATE classification_group_profiles SET group_id = %s 
+        WHERE cg_scheme_id=%s AND profile_id=%s;"""
+
+    # TBL classification group profile history
+    SEQ_INS__TB_CLGRPRHIST_VAR_SCHEME_PRID_CGSCHID_PREVGR: Final[str] = """
+        INSERT INTO classification_group_profile_history(timestamp, scheme_id, 
+        profile_id, cg_scheme_id, previous_group) 
+        VALUES((SELECT CURRENT_DATE), (SELECT id FROM schemes WHERE name = %s),
+        %s, %s, %s);"""
+
+    # TBL classification schemes
+    SEQ_SEL_CGSCHID_INCTHR_TB_CLSCH_VAR_: Final[str] = """
+        SELECT id, inclusion_threshold from classification_schemes"""
+    SEQ_INS__TB_CLSCH_VAR_CGSCHID_SCHEME_NAME_DESC_INCTHR_CGSCHID: Final[str] = """
+        INSERT INTO classification_schemes(id, scheme_id, name, description, inclusion_threshold, 
+        use_relative_threshold, display_order, status, curator, datestamp) 
+        VALUES(%s, (SELECT id FROM schemes WHERE name = %s), %s, %s, %s, 
+        false, %s, 'experimental', 1, (SELECT CURRENT_DATE));"""
+    ISO_INS__TB_CLSCH_VAR_CGSCHID_SCHEME_NAME_DESC_INCTHR_CGSCHID_CGSCHID: Final[str] = """
+        INSERT INTO classification_schemes(id, scheme_id, name, description, inclusion_threshold, 
+        use_relative_threshold, seqdef_cscheme_id, display_order, status, curator, datestamp) 
+        VALUES(%s, (SELECT id FROM schemes WHERE name = %s), %s, %s, %s, 
+        false, %s, %s, 'experimental', 1, (SELECT CURRENT_DATE));"""
+
     # TBL client database loci
     SEQ_INS__TB_CLDBLOCI_VAR_LOCUS: Final[str] = """
         INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) 
         VALUES(1, %s, 1, (SELECT CURRENT_DATE));"""
+
+    # TBL extended attribute values fields
+    ISO_INS__TB_EAVF_VAR_FIELD: Final[str] = """
+        INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) 
+        VALUES(%s, 'boolean', 'NCBI 16S', '', 't', 't', (SELECT CURRENT_DATE), 1);"""
+    ISO_SEL_COUNT_TB_EAVF_VAR_FIELD: Final[str] = """
+        SELECT COUNT(*) FROM eav_fields WHERE category='NCBI 16S' AND field=%s;"""
+    ISO_SEL_FIELD_TB_EAVF_VAR_: Final[str] = """SELECT field FROM eav_fields WHERE category='AMR detection'"""
+    ISO_SEL_FIELD_TB_EAVF_VAR_FIELD: Final[str] = """SELECT field FROM eav_fields WHERE field LIKE %s;"""
 
     # TBL extended attribute values bool
     ISO_INS__TB_EAVB_VAR_ISO_FIELD_VAL: Final[str] = """
@@ -40,18 +91,22 @@ class PsqlQueries():
 
     # TBL extended attribute values text
     ISO_DEL__TB_EAVT_VAR_ID_FIELD: Final[str] = """DELETE FROM eav_text WHERE isolate_id=%s AND field=%s;"""
-    ISO_INS__TB_EAVT_VAR_ID_FIELD_VAL: Final[str] = """INSERT INTO eav_text(isolate_id, field, value) VALUES(%s, %s, %s);"""
+    ISO_INS__TB_EAVT_VAR_ID_FIELD_VAL: Final[str] = """
+        INSERT INTO eav_text(isolate_id, field, value) VALUES(%s, %s, %s);"""
     ISO_INS__TB_EAVT_VAR_ISO_FIELD_VAL: Final[str] = """
         INSERT INTO eav_text(isolate_id, field, value) 
         VALUES((SELECT MAX(id) FROM isolates WHERE isolate=%s), %s, %s);"""
 
     # TBL extended attribute values text hidden
+    ISO_INS__TB_EAVTH_VAR_ISO_FIELD_VAL: Final[str] = """
+        INSERT INTO eav_text_hidden(isolate_id, field, value) 
+        VALUES((SELECT MAX(id) FROM isolates WHERE isolate=%s), %s, %s);"""
     ISO_SEL_ID_VAL_ISO_TB_EAVTH_VAR_FIELD: Final[str] = """
         SELECT eav_text_hidden.isolate_id, eav_text_hidden.value, isolates.isolate FROM eav_text_hidden 
         LEFT JOIN isolates ON isolates.id = eav_text_hidden.isolate_id WHERE eav_text_hidden.field = %s;"""
-    ISO_INS__TB_EAVTH_VAR_ISO_FIELD_VAL: Final[str] = """
-            INSERT INTO eav_text_hidden(isolate_id, field, value) 
-            VALUES((SELECT MAX(id) FROM isolates WHERE isolate=%s), %s, %s);"""
+    ISO_SEL_VERSION_TB_EAVTH_VAR_ISO: Final[str] = """
+        SELECT value FROM eav_text_hidden WHERE field='mongo_results_version' AND 
+        isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate=%s);"""
 
     # TBL history
     ISO_INS__TB_HIST_VAR_ID_MESS: Final[str] = """
@@ -70,13 +125,40 @@ class PsqlQueries():
         ELSE (SELECT(SELECT MAX(id) FROM isolates)+1) END), %s, 1, 1, 
         (SELECT CURRENT_DATE),(SELECT CURRENT_DATE), 
         (SELECT uploader FROM isolates WHERE isolate=%s AND id=(SELECT MAX(id) FROM isolates WHERE isolate=%s)), %s);"""
+    ISO_INS__TB_ISO_VAR_ISO_UPL_DATE: Final[str] = """
+        INSERT INTO isolates(id, 
+        isolate, sender, curator, date_entered, datestamp, uploader, latest_analysis_date)
+        VALUES((SELECT CASE WHEN (SELECT MAX(id) FROM isolates) IS NULL THEN 1 ELSE (SELECT(SELECT MAX(id) FROM isolates)+1) END), 
+        %s, 1, 1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE), %s, %s);"""
     ISO_SEL_COUNT_TB_ISO_VAR_ISO: Final[str] = """SELECT COUNT(*) FROM isolates WHERE isolate=%s;"""
+    ISO_SEL_ANADATE_TB_ISO_VAR_ISO: Final[str] = """
+        SELECT latest_analysis_date FROM isolates WHERE isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate=%s);"""
+    ISO_SEL_MAXID_TB_ISO_VAR_ISO: Final[str] = """SELECT MAX(id) FROM isolates WHERE isolate=%s"""
+    ISO_SEL_VALDATES_TB_ISO_VAR_ISO: Final[str] = """
+        SELECT validation_date FROM isolates WHERE isolate=%s ORDER BY id DESC LIMIT 2;"""
     ISO_UPD_NEWV_TB_ISO_VAR_ISO: Final[str] = """
-        UPDATE isolates SET new_version=NULL WHERE id=(SELECT MIN(id) FROM isolates WHERE id in (SELECT id FROM isolates WHERE isolate=%s ORDER BY id DESC LIMIT 2));"""
+        UPDATE isolates SET new_version=NULL WHERE 
+        id=(SELECT MIN(id) FROM isolates WHERE id in (SELECT id FROM isolates WHERE isolate=%s ORDER BY id DESC LIMIT 2));"""
     ISO_UPD_NEWV_TB_ISO_VAR_ISO_ISO_ISO: Final[str] = """
         UPDATE isolates SET new_version=(SELECT MAX(id) FROM isolates WHERE isolate=%s) 
-        WHERE isolate=%s AND new_version IS NULL AND id!=(SELECT MAX(id) 
-        FROM isolates WHERE isolate=%s);"""
+        WHERE isolate=%s AND new_version IS NULL AND 
+        id!=(SELECT MAX(id) FROM isolates WHERE isolate=%s);"""
+    ISO_UPD_VALTYPE_VALCUR_VALDATE_VAR_ID: Final[str] = """
+        UPDATE isolates SET 
+        validation_type = %s, 
+        validation_curator = %s, 
+        validation_date = %s
+        WHERE id=%s;"""
+
+    # TBL isolate submission field order
+    ISO_INS__TB_ISOSUBFO_VAR_FIELD_INDEX: Final[str] = """
+        INSERT INTO isolate_submission_field_order(submission_id, field, index) 
+        VALUES((SELECT MAX(id::int) FROM submissions), %s, %s);"""
+
+    # TBL isolate submission isolates
+    ISO_INS__TB_ISOSUBISO_VAR_FIELD_VALUE: Final[str] = """
+        INSERT INTO isolate_submission_isolates (submission_id, index, field, value) 
+        VALUES((SELECT MAX(id::int) FROM submissions), 1, %s, %s);"""
 
     # TBL loci
     ISO_INS__TB_LOCI_VAR_LOCUS_DBNAME_DBID_URL: Final[str] = """
@@ -133,6 +215,8 @@ class PsqlQueries():
         VALUES((SELECT id FROM schemes WHERE name=%s), %s, 1, (SELECT CURRENT_DATE));"""
     UNI_SEL_COUNT_TB_SCHMEM_VAR_SCHEME_LOCUS: Final[str] = """
         SELECT COUNT(*) FROM scheme_members WHERE scheme_id=(SELECT id FROM schemes WHERE name=%s) AND locus=%s;"""
+    UNI_SEL_LOCUS_TB_SCHMEM_VAR_: Final[str] = """
+        SELECT locus FROM scheme_members WHERE scheme_id = (SELECT id FROM schemes WHERE name = 'AMR_detection_WHO');"""
 
     # TBL sequences
     SEQ_INS__TB_SEQ_VAR_LOCUS_ALLELE_SEQ: Final[str] = """
@@ -152,9 +236,7 @@ class PsqlQueries():
         UPDATE sequences SET allele_id = %s WHERE locus=%s AND allele_id=%s;"""
 
     # TBL sequence bin
-    SEQ_SEL_COUNT_TB_SEQBIN_VAR_ISO: Final[str] = """
-        SELECT COUNT(*) FROM sequence_bin WHERE isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate=%s);"""
-    SEQ_INS__TB_SEQBIN_VAR_ISO_SEQ_NAME: Final[str] = """
+    ISO_INS__TB_SEQBIN_VAR_ISO_SEQ_NAME: Final[str] = """
         INSERT INTO sequence_bin(id, 
         isolate_id, 
         remote_contig, sequence, original_designation, sender, 
@@ -163,6 +245,24 @@ class PsqlQueries():
         (SELECT MAX(id) FROM isolates WHERE isolate=%s), 
         'f', %s, %s, 1, 
         1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))"""
+    ISO_SEL_COUNT_TB_SEQBIN_VAR_ISO: Final[str] = """
+        SELECT COUNT(*) FROM sequence_bin WHERE isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate=%s);"""
+    ISO_UPD__TB_SEQBIN_VAR_ISO_ISO: Final[str] = """
+        UPDATE sequence_bin SET isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate=%s) 
+        WHERE isolate_id=(SELECT MIN(id) FROM isolates WHERE id in (SELECT id FROM isolates WHERE isolate=%s 
+        ORDER BY id DESC LIMIT 2));"""
+    ISO_UPD_REVERSE_TB_SEQBIN_VAR_ISO_ISO: Final[str] = """
+        UPDATE sequence_bin SET isolate_id=(SELECT MIN(id) FROM isolates WHERE id in (SELECT id FROM isolates WHERE isolate=%s ORDER BY id DESC LIMIT 2)) 
+        WHERE isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate=%s);"""
+
+    # TBL seq bin stats
+    ISO_UPD__TB_SEQBINSTATS_VAR_ISO_ISO: Final[str] = """
+        UPDATE seqbin_stats SET isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate=%s) 
+        WHERE isolate_id=(SELECT MIN(id) FROM isolates WHERE id in (SELECT id FROM isolates WHERE isolate=%s 
+        ORDER BY id DESC LIMIT 2));"""
+    ISO_UPD_REVERSE_TB_SEQBINSTATS_VAR_ISO_ISO: Final[str] = """
+        UPDATE seqbin_stats SET isolate_id=(SELECT MIN(id) FROM isolates WHERE id in (SELECT id FROM isolates WHERE isolate=%s ORDER BY id DESC LIMIT 2)) 
+        WHERE isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate=%s);"""
 
     # TBL submissions
     ISO_SEL_ID_VALUE_OUTCOME_EMAIL_TYPE_TB_SUB_VAR_: Final[str] = """
@@ -171,6 +271,12 @@ class PsqlQueries():
         LEFT JOIN users ON users.id = submissions.curator 
         LEFT JOIN isolate_submission_isolates ON isolate_submission_isolates.submission_id = submissions.id 
         WHERE submissions.status='closed' and isolate_submission_isolates.field='isolate_id';"""
-
     ISO_UPD_STATUS_TB_SUB_VAR_ID: Final[str] = """
         UPDATE submissions SET status='validation_sent_to_bioit_platform' WHERE id=%s;"""
+    ISO_INS__TB_SUB_VAR_VALTYPE: Final[str] = """
+        INSERT INTO submissions(id, 
+        type,submitter, date_submitted, 
+        datestamp, status, email, validation_type) 
+        VALUES ((SELECT CASE WHEN (SELECT MAX(id::int) FROM submissions) IS NULL THEN 1 ELSE (SELECT(SELECT MAX(id::int) FROM submissions)+1) END), 
+        'isolates', 1, (SELECT CURRENT_DATE), 
+        (SELECT CURRENT_DATE), 'pending', true, %s);"""

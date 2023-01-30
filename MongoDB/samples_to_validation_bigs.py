@@ -7,6 +7,7 @@ import sys
 import traceback
 from email.message import EmailMessage
 from pathlib import Path
+from typing import Any, Dict, List
 
 import pymongo
 import yaml
@@ -17,8 +18,8 @@ sys.path.append(str(PYTHONPATH))
 
 from MongoDB.util.mongo_initialisation import MongoInitialisation
 from MongoDB.config import MONGO_CONFIG
-from bioit_custom_scripts.components.databaseconnection import DatabaseConnection
-from bioit_custom_scripts.config import BIGSDB_CONFIG
+from bioit_custom_scripts.components.psql_tables_queries import TblSubmissions, TblIsolateSubmissionIsolates, TblIsolateSubmissionFieldOrder
+from bioit_custom_scripts.components.python_utility_functions import get_bigsdb_config_data
 
 def send_email(subject: str, content: str, config: dict) -> None:
     """
@@ -36,48 +37,40 @@ def send_email(subject: str, content: str, config: dict) -> None:
         s.send_message(message)
     logging.info(content)
 
-def _insert_submission_bigs(isolates_psql_db: pymongo.collection.Collection,
-                            sample_docs: list[dict], validation_type: str) -> None:
+def _insert_submission_bigs(sample_docs: List[Dict[str, Any]], validation_type: str, species: str) -> None:
     """
     Inserts a given list of submissions into bigsdb
-    :param isolates_psql_db: isolates db cursor object
     :param sample_docs: list of documents to be submitted
     :param validation_type: either bad_quality or resequencing
+    :param species: commonly used bioit species name: either genus or specific like stec
     :return:
     """
-    for doc in sample_docs:
-        sqlquery = """
-                   INSERT INTO submissions(id, 
-                   type,submitter, date_submitted, 
-                   datestamp, status, email, validation_type) 
-                   VALUES ((SELECT CASE WHEN (SELECT MAX(id::int) FROM submissions) IS NULL THEN 1 ELSE (SELECT(SELECT MAX(id::int) FROM submissions)+1) END), 
-                   'isolates', 1, (SELECT CURRENT_DATE), 
-                   (SELECT CURRENT_DATE), 'pending', true, %s);"""
-        isolates_psql_db.execute_query(sqlquery, (validation_type,))
-        # todo need to set a proper method to build links based on the sample to transfer
-        # for testing purposes
-        html_path = 'http://bioit-bigs-dev.sciensano.be/galaxyreports/listeria/110-001_S68_L001/report.html'
-        # dev code, not set yet
-        html_path = str(html_path).replace('/reports/', '/galaxyreports/')
-        html_link = f'<p><a href="{html_path}" target="_blank"> html report</a></p>'
-        # end of dev code
-        sqlquery = """
-                   INSERT INTO isolate_submission_isolates (submission_id, index, field, value) 
-                   VALUES((SELECT MAX(id::int) FROM submissions), 1, %s, %s);"""
-        isolates_psql_db.execute_query(sqlquery, ('html_report', html_link))
-        isolates_psql_db.execute_query(sqlquery, ('isolate_id', doc['_id']))
-        isolates_psql_db.execute_query(sqlquery, ('validation_type', validation_type))
-        sqlquery = """
-                   INSERT INTO isolate_submission_field_order(submission_id, field, index) 
-                   VALUES((SELECT MAX(id::int) FROM submissions), %s, %s);"""
-        isolates_psql_db.execute_query(sqlquery, ('html_report', 1))
-        isolates_psql_db.execute_query(sqlquery, ('isolate_id', 2))
-        isolates_psql_db.execute_query(sqlquery, ('validation_type', 3))
+    with TblSubmissions(species) as isolates_sub_psql_tbl, \
+        TblIsolateSubmissionIsolates(species) as isolates_isosubiso_psql_tbl, \
+        TblIsolateSubmissionFieldOrder(species) as isolates_isosubfo_psql_tbl:
+        for doc in sample_docs:
+            isolates_sub_psql_tbl.insert_submission((validation_type,))
+            # todo need to set a proper method to build links based on the sample to transfer
+            # for testing purposes
+            html_path = 'http://bioit-bigs-dev.sciensano.be/galaxyreports/listeria/110-001_S68_L001/report.html'
+            # dev code, not set yet
+            html_path = str(html_path).replace('/reports/', '/galaxyreports/')
+            html_link = f'<p><a href="{html_path}" target="_blank"> html report</a></p>'
+            # end of dev code
+            isolates_isosubiso_psql_tbl.insert_validation_metadata(('html_report', html_link))
+            isolates_isosubiso_psql_tbl.insert_validation_metadata(('isolate_id', doc['_id']))
+            isolates_isosubiso_psql_tbl.insert_validation_metadata(('validation_type', validation_type))
+            # todo i wonder if these indexes always need to be inserted? it seems like a lot of queries for something
+            #  that could have a default
+            isolates_isosubfo_psql_tbl.insert_validation_indexes(('html_report', 1))
+            isolates_isosubfo_psql_tbl.insert_validation_indexes(('isolate_id', 2))
+            isolates_isosubfo_psql_tbl.insert_validation_indexes(('validation_type', 3))
+
 
 def samples_to_validation_bigs(species: str) -> None:
     """
     Send samples in the badqc_sample and resequencing collection to be validated on BIGSdb
-    :param species: the species of the database to send the bad samples from
+    :param species: commonly used bioit species name: either genus or specific like stec
     :return: None
     """
     # Configure stdout logging
@@ -85,39 +78,36 @@ def samples_to_validation_bigs(species: str) -> None:
 
     # Parse config
     with open(MONGO_CONFIG, encoding='utf-8') as handle:
-        config_data = yaml.safe_load(handle)
+        mongo_config_data = yaml.safe_load(handle)
 
-    with open(BIGSDB_CONFIG, encoding='utf-8') as handle:
-        bigsdb_config = yaml.safe_load(handle)
+    bigsdb_config_data = get_bigsdb_config_data()
+
     try:
 
         # Open collections
         mongoinit = MongoInitialisation()
-        isolates_collection, old_isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections(config_data, species)
+        isolates_collection, old_isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections(mongo_config_data, species)
 
-        # Connect to db and create cursor
-        with DatabaseConnection(species, 'isolates') as isolates_psql_db, DatabaseConnection(species, 'seqdef') as seqdef_psql_db:
-
-            # fetch all documents in the bad samples of the species
-            update_collection = mongoinit.initialise_update_collection(config_data, species)
-            query = update_collection.find_one({'metadata': 'last_validation_to_bigs_update'})
-            if query:
-                last_run_date = query['last_update_date']
-            else:
-                last_run_date = datetime.datetime(1970, 1, 1)
-                update_collection.with_options(write_concern=WriteConcern(w="majority")).insert_one(
-                    {'metadata': 'last_validation_to_bigs_update', 'last_update_date': last_run_date})
-            current_date = datetime.datetime.utcnow()
-            bad_samples = list(isolates_badqc_collection.find({'creation_date': {'$gt': last_run_date}}))
-            #todo: add a date for synchronization with mongo and fetch only samples older than the date of last update
-            _insert_submission_bigs(isolates_psql_db, bad_samples, 'bad_quality')
-            resequencing_samples = list(isolates_resequencing_collection.find({'creation_date': {'$gt': last_run_date}}))
-            _insert_submission_bigs(isolates_psql_db, resequencing_samples, 'resequencing')
-            #update last date of update
-            update_collection.with_options(write_concern=WriteConcern(w="majority")).find_one_and_update(
-                {'metadata': 'last_validation_to_bigs_update'}, {'$set': {'last_update_date': current_date}})
+        # fetch all documents in the bad samples of the species
+        update_collection = mongoinit.initialise_update_collection(mongo_config_data, species)
+        query = update_collection.find_one({'metadata': 'last_validation_to_bigs_update'})
+        if query:
+            last_run_date = query['last_update_date']
+        else:
+            last_run_date = datetime.datetime(1970, 1, 1)
+            update_collection.with_options(write_concern=WriteConcern(w="majority")).insert_one(
+                {'metadata': 'last_validation_to_bigs_update', 'last_update_date': last_run_date})
+        current_date = datetime.datetime.utcnow()
+        bad_samples = list(isolates_badqc_collection.find({'creation_date': {'$gt': last_run_date}}))
+        #todo: add a date for synchronization with mongo and fetch only samples older than the date of last update
+        _insert_submission_bigs(bad_samples, 'bad_quality', species)
+        resequencing_samples = list(isolates_resequencing_collection.find({'creation_date': {'$gt': last_run_date}}))
+        _insert_submission_bigs(resequencing_samples, 'resequencing', species)
+        #update last date of update
+        update_collection.with_options(write_concern=WriteConcern(w="majority")).find_one_and_update(
+            {'metadata': 'last_validation_to_bigs_update'}, {'$set': {'last_update_date': current_date}})
     
     except Exception as exceptionmessage:
         send_email(f"{Path(__file__).name} fail on host {socket.gethostname()}",
-                    f"{exceptionmessage}\n{traceback.format_exc()}", bigsdb_config['mail'])
+                    f"{exceptionmessage}\n{traceback.format_exc()}", bigsdb_config_data['mail'])
         raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}")

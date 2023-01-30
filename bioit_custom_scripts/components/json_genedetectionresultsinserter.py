@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Tuple, Union
 import psycopg2.extensions
 
 from .json_superclass import JsonSuperClass
-from .psql_tables_queries import TblAlleleDesignations, TblHistory, TblEavTextHidden
+from .psql_tables_queries import TblAlleleDesignations, TblHistory, TblEavTextHidden, TblEavText
 
 
 class JsonGeneDetectionResultsInserter(JsonSuperClass):
@@ -24,15 +24,15 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
         :return: None
         """
         JsonSuperClass.__init__(self, isolatename, species, sample_output_dict, config_data)
-        self.genedetectiondict: Union[None, Dict[str, Dict[str, str]]] = config_data['species_json'][species]['genedetection_schemes']
+        self._genedetectiondict: Union[None, Dict[str, Dict[str, str]]] = config_data['species_json'][species]['genedetection_schemes']
 
     def insert_genedetection_results(self) -> None:
         """
         Inserts genedetection results into bigsdb from json
         :return: None
         """
-        if self.genedetectiondict is not None:
-            for scheme in self.genedetectiondict:
+        if self._genedetectiondict is not None:
+            for scheme in self._genedetectiondict:
                 if scheme in self._sample_output_dict:
                     # create current clusterdict with names and current cluster
                     clusterdict, ncbi_ab_class_dict = self._create_clusterdict_current_db_version(scheme)
@@ -52,7 +52,7 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                             for k, v in hit.items():
                                 listofhits[index][k] = v.replace("'", "")
                         with TblEavTextHidden(self._species) as isolates_eavth_psql_tbl:
-                            isolates_eavth_psql_tbl.insert_hidden_isolate((self._isolatename, self.genedetectiondict[scheme]['schemename_bigsdb'], json.dumps(listofhits)))
+                            isolates_eavth_psql_tbl.insert_hidden_isolate((self._isolatename, self._genedetectiondict[scheme]['schemename_bigsdb'], json.dumps(listofhits)))
                         eavhtmltable = '<table class="data"><tr><th>GeneCluster</th><th>Locus</th></tr>'
                         clusterhitset = set()  # in case loci that were in different clusters at some point get in the same cluster
                         with TblAlleleDesignations(self._species) as isolates_ad_psql_tbl:
@@ -81,13 +81,13 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                                 locusname: str = hit['Gene'] if scheme.endswith('vfdbcore') else hit['Locus']
                                 eavhtmltable = eavhtmltable + ''.join(
                                     [f'<td><a href="/galaxyreports/{self._species}/', self._isolatename, '/report.html#',
-                                     self.genedetectiondict[scheme]['schemename_html'], '" target="_blank">',
+                                     self._genedetectiondict[scheme]['schemename_html'], '" target="_blank">',
                                      locusname, '</a></td></tr>'])
     
                                 """
                                 Part 2 for the AB schemes
                                 """""
-                                if self.genedetectiondict[scheme]['schemename_bigsdb'] == 'NCBI_AMR':
+                                if self._genedetectiondict[scheme]['schemename_bigsdb'] == 'NCBI_AMR':
                                     ncbi_class: str = ncbi_ab_class_dict[hit_name]
                                     genehit = re.sub('[.]| ', '_', hit['Locus'])
                                     self.insert_locus_if_needed(ncbi_class, 'NCBI_AMR_AB_CLASS')
@@ -102,7 +102,7 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                                         self._insert_dummy_sequence_if_needed(ab_hit, genehit)
                                         self._insert_ad_if_needed(ab_hit, genehit)
     
-                                elif self.genedetectiondict[scheme]['schemename_bigsdb'] == 'ResFinder':
+                                elif self._genedetectiondict[scheme]['schemename_bigsdb'] == 'ResFinder':
                                     genehit = re.sub('[.]| ', '_', hit['Locus'])
                                     for antibiotic in hit['Antibiotic(s)'].split('/'):
                                         ab_hit = '_'.join(['ResFinder', antibiotic.upper().replace(' ', '_')])
@@ -112,7 +112,8 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
 
                         # Close Html table
                         eavhtmltable = eavhtmltable + '</table>'
-                        self._insert_metadata(self.genedetectiondict[scheme]['schemename_bigsdb'], eavhtmltable)
+                        with TblEavText(self._species) as isolates_eavt_psql_tbl:
+                            isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, self._genedetectiondict[scheme]['schemename_bigsdb'], eavhtmltable))
                 else:
                     logging.warning(f"scheme {scheme} not present in json file")
             with TblHistory(self._species) as isolates_history_psql_tbl:
@@ -128,7 +129,7 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
         # first create a cluster content list
         ncbi_ab_class_dict: Dict[str, str] = {}
         clusterdict: Dict[str, str] = {}  # e.g. 'accesion1_allele1': 'VFDB_GeneCluster_0'
-        with Path(self.genedetectiondict[scheme]['metadatafile']).open('r') as handle:
+        with Path(self._genedetectiondict[scheme]['metadatafile']).open('r') as handle:
             sequencedictlist: Dict[str, Dict[str, Any]] = json.load(handle)
             for sequencename in sequencedictlist:
                 """
@@ -152,10 +153,10 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                     # in VFDB, there are accessions with name "null", this borke the script,
                     # therefore, now a - is added, and the allele should be enough to find.
                     sequencedictlist[sequencename]['accession'] = "-"
-                geneclusternamebigsdb = f"{self.genedetectiondict[scheme]['schemename_bigsdb']}_Gene{sequencedictlist[sequencename]['cluster']}"
+                geneclusternamebigsdb = f"{self._genedetectiondict[scheme]['schemename_bigsdb']}_Gene{sequencedictlist[sequencename]['cluster']}"
                 clusterdict['_'.join([(sequencedictlist[sequencename]['accession']),
                                            (sequencedictlist[sequencename]['allele']).replace("'", "")])] = geneclusternamebigsdb
-                if self.genedetectiondict[scheme]['schemename_bigsdb'] == 'NCBI_AMR':
+                if self._genedetectiondict[scheme]['schemename_bigsdb'] == 'NCBI_AMR':
                     ncbi_ab_class_dict['_'.join(
                         [(sequencedictlist[sequencename]['accession']), (sequencedictlist[sequencename]['allele']).replace("'", "")])] = '_'.join(
                         ['NCBI_AMR', sequencedictlist[sequencename]['class'].upper().replace(' ', '_')])

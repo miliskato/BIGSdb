@@ -17,7 +17,7 @@ from pymongo.write_concern import WriteConcern
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
-from bioit_custom_scripts.components.databaseconnection import DatabaseConnection
+from bioit_custom_scripts.components.psql_tables_queries import TblSequences, TblProfiles, TblProfileFields, TblProfileMembers, TblClassificationGroups, TblClassificationGroupProfiles, TblClassificationGroupProfileHistory, TblClassificationSchemes
 from MongoDB.util.mongo_initialisation import MongoInitialisation
 from MongoDB.config import MONGO_CONFIG
 from MongoDB.config import CLUSTERING_CONFIG
@@ -54,13 +54,12 @@ class NewAllelesProfileClusteringFromMongoToBigs:
         self.hashed_ad_collection = hashed_ad_collection
         self.cluster_membership_collection = cluster_membership_collection
         self.update_metadata_collection = update_metadata_collection
-        self.isolates_psql_db = DatabaseConnection(self._species, 'isolates')
-        self.seqdef_psql_db = DatabaseConnection(self._species, 'seqdef')
+        self._seqdef_sequences_psql_tbl = TblSequences(self._species)
         self.clustering_thresholds = CLUSTERING_CONFIG[f"clustering_thresholds_{self._species}"]
         self.current_update_date = datetime.datetime.utcnow()
         self.last_date_of_update = self._get_last_date_of_update()
         if self.last_date_of_update == None:
-            self.last_date_of_update = datetime.datetime(1970, 1, 1)
+            self.last_date_of_update = datetime.datetime(1970, 1, 1)  # unix time
             self.update_metadata_collection.with_options(write_concern=WriteConcern(w="majority")).insert_one(
             {'metadata': 'last_update',
             'last_update_date': datetime.datetime(1970, 1, 1)})
@@ -68,8 +67,7 @@ class NewAllelesProfileClusteringFromMongoToBigs:
         self.new_st = self._get_new_st()
         self.st_headers = self._get_st_headers()
         self.new_cluster_membership = self._get_new_cluster_membership()
-        self.isolates_psql_db.close()
-        self.seqdef_psql_db.close()
+        self._seqdef_sequences_psql_tbl.close()
 
     def _get_last_date_of_update(self) -> date:
         """
@@ -140,17 +138,11 @@ class NewAllelesProfileClusteringFromMongoToBigs:
         for scheme_loci in ordered_by_scheme_dict:
             scheme, locus = scheme_loci.split(',')
             # fetch all alleles ids already in bigs
-            sqlquery = """SELECT allele_id FROM sequences WHERE locus=%s;"""
-            listoftuples: List[Tuple[str]] = self.seqdef_psql_db.execute_query(sqlquery, (locus,))
+            listoftuples = self._seqdef_sequences_psql_tbl.select_allele_from_locus((locus,))
             list_alleleid: List[str] = [x[0] for x in listoftuples]
             for new_allele in ordered_by_scheme_dict[scheme_loci]:
                 if new_allele['temp_allele_name'] not in list_alleleid:
-                    sqlquery = """
-                               INSERT INTO sequences(locus, allele_id, sequence, status, sender, 
-                               curator, date_entered, datestamp) 
-                               VALUES(%s, %s, %s, 'unchecked', 1, 
-                               1,(SELECT CURRENT_DATE),(SELECT CURRENT_DATE));"""
-                    self.seqdef_psql_db.execute_query(sqlquery, (locus, new_allele['temp_allele_name'], new_allele['allele_sequence']))
+                    self._seqdef_sequences_psql_tbl.insert_sequence((locus, new_allele['temp_allele_name'], new_allele['allele_sequence']))
                     logging.info(f"id {new_allele['temp_allele_name']} inserted into locus {locus}")
 
     def _order_sequences_by_locus(self) -> Dict[str, str]:
@@ -172,55 +164,27 @@ class NewAllelesProfileClusteringFromMongoToBigs:
         Insert the new sequence types retrieved during the initialization into BIGSdb.
         :return: None.
         """
-        max_st_in_bigs = (self.seqdef_psql_db.execute_query(f"SELECT MAX(profile_id) FROM profiles WHERE "
-                                f"scheme_id=(SELECT id FROM schemes WHERE name='cgMLST') AND "
-                                f"LENGTH(profile_id)="
-                                f"(SELECT MAX(LENGTH(profile_id)) FROM profiles WHERE scheme_id=(SELECT id FROM schemes WHERE name = 'cgMLST'))"))[0][0]
-        if max_st_in_bigs is None:
-            max_st_in_bigs = 0
-        for st in self.new_st:
-            if int(st['cgST']) > int(max_st_in_bigs):
-                logging.info(f"start insert of {st['cgST']}")
-                st_id = st['cgST']
-                # insertion of the st id into the profiles table
-                sqlquery = """
-                           INSERT INTO profiles(scheme_id, 
-                           profile_id, sender, curator, 
-                           date_entered, datestamp) 
-                           VALUES((SELECT id FROM schemes WHERE name = 'cgMLST'), 
-                           %s, 1, 1, 
-                           (SELECT CURRENT_DATE),(SELECT CURRENT_DATE));"""
-                self.seqdef_psql_db.execute_query(sqlquery, (st_id,))
-                # insertion of the st in the profiles_fields
-                sqlquery = """
-                           INSERT INTO profile_fields(scheme_id, 
-                           scheme_field, profile_id, value, 
-                           curator, datestamp) 
-                           VALUES((SELECT id FROM schemes WHERE name='cgMLST'), 
-                           'cgST', %s, %s, 
-                           1, (SELECT CURRENT_DATE));"""
-                self.seqdef_psql_db.execute_query(sqlquery, (st_id, st_id))
-                alleles = st['cgMLST'].split(',')
-                for locus, allele_id in zip(self.st_headers['headers'], alleles):
-                    if allele_id == '0':  # this will create a ForeignKeyViolation error so we prevent this
-                        # by inserting a null allele if not yet present
-                        sqlquery = """
-                                   SELECT count(*) FROM sequences WHERE 
-                                   locus=%s AND sequence='null allele';"""
-                        nullpresent = self.seqdef_psql_db.execute_query(sqlquery, (locus,))
-                        if nullpresent[0][0] == 0:
-                            sqlquery = """
-                                       INSERT INTO sequences(locus, allele_id, sequence, sender, curator, date_entered, datestamp) \
-                                       VALUES(%s, 0, 'null allele', 0, 0, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));"""
-                            self.seqdef_psql_db.execute_query(sqlquery, (locus,))
-
-                    sqlquery = """
-                               INSERT INTO profile_members(scheme_id, 
-                               locus, profile_id, allele_id, curator, datestamp) 
-                               VALUES((SELECT id FROM schemes WHERE name='cgMLST'), 
-                               %s, %s, %s, 1, (SELECT CURRENT_DATE));"""
-                    self.seqdef_psql_db.execute_query(sqlquery, (locus, st_id, allele_id))
-
+        with TblProfiles(self._species) as seqdef_profiles_psql_tbl:
+            listoftuples: List[Tuple[int]] = seqdef_profiles_psql_tbl.select_profile(('cgMLST',))
+            primary_fields = [int(x[0]) for x in listoftuples] if listoftuples is not None else []
+            with TblProfileMembers(self._species) as seqdef_profilemembers_psql_tbl, \
+                    TblProfileFields(self._species) as seqdef_profilefields_psql_table:
+                for st in self.new_st:
+                    if int(st['cgST']) not in primary_fields:
+                        logging.info(f"start insert of {st['cgST']}")
+                        st_id = st['cgST']
+                        # insertion of the st id into the profiles table
+                        seqdef_profiles_psql_tbl.insert_profile(('cgMLST', st_id))
+                        # insertion of the st in the profiles_fields
+                        seqdef_profilefields_psql_table.insert_profile_field(('cgMLST', 'cgST', st_id, st_id))
+                        alleles = st['cgMLST'].split(',')
+                        for locus, allele_id in zip(self.st_headers['headers'], alleles):
+                            if allele_id == '0':  # this will create a ForeignKeyViolation error so we prevent this
+                                # by inserting a null allele if not yet present
+                                nullpresent = self._seqdef_sequences_psql_tbl.count_sequence_null((locus,))
+                                if nullpresent[0][0] == 0:
+                                    self._seqdef_sequences_psql_tbl.insert_sequence((locus, '0', 'null allele'))
+                            seqdef_profilemembers_psql_tbl.insert_profile_member(('cgMLST', locus, st_id, allele_id))
 
     def _insert_or_update_clustering(self) -> None:
         """
@@ -229,78 +193,57 @@ class NewAllelesProfileClusteringFromMongoToBigs:
         (classification_group_profile_history table).
         :return: None.
         """
-        groups_merged = []
+        groups_merged = set()
         self.__check_for_classification_schemes()
-        for cl_membership in self.new_cluster_membership:
-            cg_scheme_id = self.clustering_thresholds.index(cl_membership['threshold']) + 1
-            profile_id = cl_membership['cgST']
-            group_id = cl_membership['clustering_membership']
-            sqlquery = """SELECT * FROM classification_groups WHERE cg_scheme_id=%s AND group_id=%s;"""
-            query_group_exists = self.seqdef_psql_db.execute_query(sqlquery, (cg_scheme_id, group_id))
-            if not query_group_exists:
-                sqlquery = """
-                           INSERT INTO classification_groups(cg_scheme_id, group_id, active, curator, datestamp) 
-                           VALUES(%s, %s, true, 1, (SELECT CURRENT_DATE));"""
-                self.seqdef_psql_db.execute_query(sqlquery, (cg_scheme_id, group_id))
-            # group exists so now need to check if clustering membership already present
-            sqlquery = """SELECT group_id FROM classification_group_profiles WHERE cg_scheme_id=%s AND profile_id=%s;"""
-            query_group_profile_exists = self.seqdef_psql_db.execute_query(sqlquery, (cg_scheme_id, profile_id))
-            previous_group = query_group_profile_exists
-            if not previous_group:
-                sqlquery = """
-                           INSERT INTO classification_group_profiles(cg_scheme_id, group_id, profile_id, 
-                           scheme_id, curator, datestamp) 
-                           VALUES(%s, %s, %s, 
-                           (SELECT id FROM schemes WHERE name = 'cgMLST'), 1, (SELECT CURRENT_DATE));"""
-                self.seqdef_psql_db.execute_query(sqlquery, (cg_scheme_id, group_id, profile_id))
-            elif previous_group[0][0] != group_id:
-                sqlquery = """
-                           UPDATE classification_group_profiles SET group_id = %s 
-                           WHERE cg_scheme_id=%s AND profile_id=%s;"""
-                self.seqdef_psql_db.execute_query(sqlquery, (group_id, cg_scheme_id, profile_id))
-                sqlquery = """
-                           INSERT INTO classification_group_profile_history(timestamp, scheme_id, 
-                           profile_id, cg_scheme_id, previous_group) 
-                           VALUES((SELECT CURRENT_DATE), (SELECT id FROM schemes WHERE name = 'cgMLST'),
-                           %s, %s, %s);"""
-                self.seqdef_psql_db.execute_query(sqlquery, (profile_id, cg_scheme_id, previous_group[0][0]))
-                if previous_group[0][0] not in groups_merged:
-                    logging.debug(f'group {previous_group[0][0]} is merged into {group_id}')
-                    groups_merged.append(previous_group[0][0])
-                    # update group table
-                    sqlquery = """UPDATE classification_groups SET active = false WHERE cg_scheme_id=%s AND group_id=%s;"""
-                    self.seqdef_psql_db.execute_query(sqlquery, (profile_id, previous_group[0][0]))
+        with TblClassificationGroups(self._species) as seqdef_clgr_psql_tbl, \
+            TblClassificationGroupProfiles(self._species) as seqdef_clgrpr_psql_tbl, \
+            TblClassificationGroupProfileHistory(self._species) as seqdef_clgrprhist_psql_tbl:
+            for cl_membership in self.new_cluster_membership:
+                cg_scheme_id = self.clustering_thresholds.index(cl_membership['threshold']) + 1
+                profile_id = cl_membership['cgST']
+                group_id = cl_membership['clustering_membership']
+                seqdef_clgr_psql_tbl.count_group((cg_scheme_id, group_id))
+                query_group_exists = seqdef_clgr_psql_tbl.count_group((cg_scheme_id, group_id))
+                if query_group_exists[0][0] == 0:
+                    seqdef_clgr_psql_tbl.insert_group((cg_scheme_id, group_id))
+                    seqdef_clgrpr_psql_tbl.insert_profile(('cgMLST', cg_scheme_id, group_id, profile_id))
+                else:
+                    # group exists so now need to check if clustering membership already present
+                    current_bigsdb_group = seqdef_clgrpr_psql_tbl.select_profile_group((cg_scheme_id, profile_id))
+                    if not current_bigsdb_group:
+                        seqdef_clgrpr_psql_tbl.insert_profile(('cgMLST', cg_scheme_id, group_id, profile_id))
+                    elif int(current_bigsdb_group[0][0]) != int(group_id):
+                        seqdef_clgrpr_psql_tbl.update_profile_group((group_id, cg_scheme_id, profile_id))
+                        seqdef_clgrprhist_psql_tbl.insert_history(('cgMLST', profile_id, cg_scheme_id, str(current_bigsdb_group[0][0])))
+                        if current_bigsdb_group[0][0] not in groups_merged:
+                            logging.debug(f'group {current_bigsdb_group[0][0]} is merged into {group_id}')
+                            groups_merged.add(current_bigsdb_group[0][0])
+                            # update group table
+                            seqdef_clgr_psql_tbl.inactivate_group((profile_id, str(current_bigsdb_group[0][0])))
 
     def __check_for_classification_schemes(self) -> None:
         """
         Check if the classification schemes are already into BIGSdb. if not, insert them.
         :return:
         """
-        query_res = self.seqdef_psql_db.execute_query(f"SELECT id, inclusion_threshold from classification_schemes")
-        thresholds_presents = [x[1] for x in query_res]
-        idx_max = max([x[0] for x in query_res])
-        for threshold in self.clustering_thresholds:
-            if threshold not in thresholds_presents:
-                name = f"cgMLST_{threshold}_diffs_clustering"
-                description = f"Clustering of the cgMLST profiles at {threshold} alleles of differences"
-                # initialize in seqdef
-                sqlquery = """
-                           INSERT INTO classification_schemes(id, scheme_id, name, description, inclusion_threshold, 
-                           use_relative_threshold, display_order, status, curator, datestamp) 
-                           VALUES(%s, (SELECT id FROM schemes WHERE name = 'cgMLST'), %s, %s, %s, 
-                           false, %s, 'experimental', 1, (SELECT CURRENT_DATE));"""
-                self.seqdef_psql_db.execute_query(sqlquery, (idx_max + 1, name, description, threshold, idx_max + 1))
-                # initialize in isolates
-                sqlquery = """
-                           INSERT INTO classification_schemes(id, scheme_id, name, description, inclusion_threshold, 
-                           use_relative_threshold, seqdef_cscheme_id, display_order, status, curator, datestamp) 
-                           VALUES(%s, (SELECT id FROM schemes WHERE name = 'cgMLST'), %s, %s, %s, 
-                           false, %s, %s, 'experimental', 1, (SELECT CURRENT_DATE));"""
-                self.seqdef_psql_db.execute_query(sqlquery, (idx_max + 1, name, description, threshold, idx_max + 1, idx_max + 1))
-                idx_max += 1
+        with TblClassificationSchemes(self._species, 'seqdef') as seqdef_clsch_psql_tbl, \
+            TblClassificationSchemes(self._species, 'isolates') as isolates_clsch_psql_tbl:
+            query_res = seqdef_clsch_psql_tbl.select_cgschemes()
+            if query_res is not None:
+                thresholds_presents = [x[1] for x in query_res]
+                idx_max = max([int(x[0]) for x in query_res])
             else:
-                logging.debug(f"Threshold {threshold} already present")
-
+                thresholds_presents = []
+            for threshold in self.clustering_thresholds:
+                if threshold not in thresholds_presents:
+                    name = f"cgMLST_{threshold}_diffs_clustering"
+                    description = f"cgMLST profiles clustering at the threshold of {threshold} allelic differences"
+                    # initialize in seqdef
+                    seqdef_clsch_psql_tbl.insert_cgscheme_seqdef((str(idx_max + 1), 'cgMLST', name, description, threshold, str(idx_max + 1)))
+                    isolates_clsch_psql_tbl.insert_cgscheme_isolates((str(idx_max + 1), 'cgMLST', name, description, threshold, str(idx_max + 1), str(idx_max + 1)))
+                    idx_max += 1
+                else:
+                    logging.debug(f"Threshold {threshold} already present")
 
     def _update_last_update_date(self) -> None:
         """

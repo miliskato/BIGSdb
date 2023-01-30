@@ -73,8 +73,8 @@ def _fail_safe_mechanism(isolatename: str, config: Dict[str, Any], analysis_date
             if nr_of_versions > 1:
                 isolates_psql_tbl.revert_newversion((isolatename,))
                 isolates_psql_tbl.delete_isolate((isolatename, isolatename))
-                isolates_psql_tbl.insert_isolate((isolatename, isolatename, isolatename,
-                                                datetime.datetime.strptime(analysis_date, '%d/%m/%Y - %X').strftime('%Y-%m-%d')))
+                isolates_psql_tbl.insert_isolate_newversion((isolatename, isolatename, isolatename,
+                                                             datetime.datetime.strptime(analysis_date, '%d/%m/%Y - %X').strftime('%Y-%m-%d')))
                 isolates_psql_tbl.update_newversion((isolatename, isolatename, isolatename))
             else:
                 isolates_psql_tbl.delete_isolate((isolatename, isolatename))
@@ -137,7 +137,7 @@ def main_results_inserter(isolatename: str, uploadermailadress: str, species: st
     # Logic
     try:
         # fail safe mechanism is initated at the same time of the isolate insertion, but after connecting to the PSQL db's
-        maininserter = MainInserter(isolatename, species, sample_output_dict)
+        maininserter = MainInserter(isolatename, species, sample_output_dict, bigsdb_config_data)
         with TblIsolates(species) as isolates_psql_tbl:
             _fail_safe_mechanism(isolatename, bigsdb_config_data, sample_output_dict['analysis_date'], isolates_psql_tbl)
         if results_type == 'new_isolate':

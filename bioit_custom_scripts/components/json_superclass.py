@@ -15,8 +15,6 @@ class JsonSuperClass:
         """
         :param isolatename: name of the isolate
         :param species: commonly used bioit species name: either genus or specific like stec
-        :param isolates_psql_db: isolate database connection instance
-        :param seqdef_psql_db: sequence definition database connection instance
         :param sample_output_dict: results of sample
         :param config_data: the bigsdb config data
         :return: None
@@ -37,18 +35,6 @@ class JsonSuperClass:
             designationpresent = isolates_ad_psql_tbl.count_designations((locus, self._isolatename, allele_id))
             if designationpresent[0][0] == 0:
                 isolates_ad_psql_tbl.insert_designation((locus, self._isolatename, allele_id))
-
-    def _insert_metadata(self, field: str, value: str) -> None:
-        # todo this one should actually probably be replaced in all occurences to reduce the number of
-        #  times the table is opened, but there are so many
-        """
-        Insert given metadata (value) for given text metadata fields
-        :param field: sql field value
-        :param value: sql column value
-        :return: None
-        """
-        with TblEavText(self._species) as isolates_eavt_psql_tbl:
-            isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, field, value))
 
     def _insert_dummy_sequence_if_needed(self, locus: str, allele_id: str) -> None:
         """

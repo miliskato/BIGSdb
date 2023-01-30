@@ -44,10 +44,10 @@ class DatabaseConnection:
         Executes a sql query using psycopg2 sanitazation
         :param query: sql query to be used
         :param params: parameters to be passed to sqlquery
-        :return: None
+        :return: None or query results
         """
         self._cursor.execute(query, params)
-        if query.startswith('SELECT'):
+        if query.strip().startswith('SELECT'):
             return self._cursor.fetchall()
 
     def execute(self, query: str) -> Union[None, List[Tuple[Any]]]:
@@ -55,10 +55,10 @@ class DatabaseConnection:
         Executes a sql query using psycopg2 sanitazation
         :param query: sql query to be used
         :param params: parameters to be passed to sqlquery
-        :return: None
+        :return: None or query results
         """
         self._cursor.execute(query)
-        if query.startswith('SELECT'):
+        if query.strip().startswith('SELECT'):
             return self._cursor.fetchall()
 
     def __enter__(self) -> 'DatabaseConnection':
@@ -73,6 +73,8 @@ class DatabaseConnection:
         Closes the cursor and database connection
         :return: None
         """
+        if not self._connection.autocommit:
+            self._connection.commit()
         self._cursor.close()
         self._connection.close()
 
@@ -84,8 +86,7 @@ class DatabaseConnection:
         :param exc_tb:
         :return:
         """
-        self._cursor.close()
-        self._connection.close()
+        self.close()
 
     """
     QUERIES

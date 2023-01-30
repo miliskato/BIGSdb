@@ -20,16 +20,16 @@ from pymongo.read_concern import ReadConcern
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
+from bioit_custom_scripts.components.psql_tables_queries import TblIsolates, TblEavTextHidden, TblSequenceBin, TblSeqBinStats
+from bioit_custom_scripts.components.python_utility_functions import get_bigsdb_config_data
+from bioit_custom_scripts.insert_assembly import insert_assembly
+from bioit_custom_scripts.main_results_inserter import main_results_inserter
 from MongoDB.util.mongo_initialisation import MongoInitialisation
 from MongoDB.util.mongo_querying import Mongoquerying
 from MongoDB.config import MONGO_CONFIG
 from MongoDB.new_alleles_profile_clustering_from_mongo_to_bigs import \
     run_upload_new_alleles_profiles_clustering_from_mongo_to_bigs
 from MongoDB.samples_to_validation_bigs import samples_to_validation_bigs
-from bioit_custom_scripts.components.databaseconnection import DatabaseConnection
-from bioit_custom_scripts.config import BIGSDB_CONFIG
-from bioit_custom_scripts.main_results_inserter import main_results_inserter
-from bioit_custom_scripts.insert_assembly import insert_assembly
 
 
 def _parse_arguments(specieslist: list) -> argparse.Namespace:
@@ -88,58 +88,54 @@ def mongo_to_bigs(species: str, single_sample: str = None) -> None:
     """
     # Parse Mongo config, second time because first time needed for argparse, and this time needed if function called from outside
     with open(MONGO_CONFIG, encoding='utf-8') as handle:
-        config_data = yaml.safe_load(handle)
+        mongo_config_data = yaml.safe_load(handle)
 
     # Parse Bigsdb config
-    with open(BIGSDB_CONFIG, encoding='utf-8') as handle:
-        bigsdb_config = yaml.safe_load(handle)
+    bigsdb_config_data = get_bigsdb_config_data()
 
     try:
 
         # Open collections
         mongoinit = MongoInitialisation()
         isolates_collection, old_isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections(
-            config_data, species)
+            mongo_config_data, species)
 
-        # Connect to db and create cursor
-        with DatabaseConnection(species, 'isolates') as isolates_psql_db, DatabaseConnection(species, 'seqdef') as seqdef_psql_db:
+        # call the function to insert new alleles and profiles
+        run_upload_new_alleles_profiles_clustering_from_mongo_to_bigs(species)
 
-            # call the function to insert new alleles and profiles
-            run_upload_new_alleles_profiles_clustering_from_mongo_to_bigs(species)
-    
-            # send bad samples from the badqc_isolates collection to BIGSdb
-            samples_to_validation_bigs(species)
-    
-            if single_sample:
-                query_single = isolates_collection.find_one({'_id': single_sample})
-                if query_single is not None:
-                    listofdocuments = [query_single]
-                else:
-                    _send_email(f"{Path(__file__).name} fail on host {socket.gethostname()}",
-                                f"Can not find document with _id '{single_sample}' in isolates",
-                                bigsdb_config['mail'])
-                    raise Exception(
-                        f"{Path(__file__).name} fail on host {socket.gethostname()}: Can not find document with _id '{single_sample}' in isolates")
-    
+        # send bad samples from the badqc_isolates collection to BIGSdb
+        samples_to_validation_bigs(species)
+
+        if single_sample:
+            query_single = isolates_collection.find_one({'_id': single_sample})
+            if query_single is not None:
+                listofdocuments = [query_single]
             else:
-                listofdocuments = list(isolates_collection.find())
-    
+                _send_email(f"{Path(__file__).name} fail on host {socket.gethostname()}",
+                            f"Can not find document with _id '{single_sample}' in isolates",
+                            bigsdb_config_data['mail'])
+                raise Exception(
+                    f"{Path(__file__).name} fail on host {socket.gethostname()}: Can not find document with _id '{single_sample}' in isolates")
+
+        else:
+            listofdocuments = list(isolates_collection.find())
+
+        with TblIsolates(species) as isolates_psql_tbl:
             for document in listofdocuments:
-                sqlquery = """SELECT COUNT(*) FROM isolates WHERE isolate=%s;"""
-                sample_presence = isolates_psql_db.execute_query(sqlquery, (document['results']['isolates_id'],))
+                document_id = document['results']['isolates_id']
+                sample_presence = isolates_psql_tbl.count_isolate((document_id,))
                 if sample_presence[0][0] == 0:
                     results_type = "new_isolate"
-                elif sample_presence[0][0] == 1 and os.path.isfile(Path(bigsdb_config['failsafe']['flag_dir']) / '.'.join(
-                        [document['results']['isolates_id'], bigsdb_config['failsafe']['flag_append']])):
+                elif sample_presence[0][0] == 1 and os.path.isfile(Path(bigsdb_config_data['failsafe']['flag_dir']) / '.'.join(
+                        [document_id, bigsdb_config_data['failsafe']['flag_append']])):
                     # isolate into bigsdb was started but failed during insertion.
                     # if argument "new_isolate" is passed to main_results_inserter and it finds the flag, it will remove the isolate and the flag, and then recreate the flag and start insertion again.
                     results_type = "new_isolate"
                 else:
                     results_type = "reanalysis"
-                    sqlquery = """SELECT latest_analysis_date FROM isolates WHERE isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate=%s);"""
-                    latest_analysis_date_bigs = (isolates_psql_db.execute_query(sqlquery, (document['results']['isolates_id'],)))[0][0]  # this appearently is a datetime object
-                    sqlquery = """SELECT value FROM eav_text_hidden WHERE field='mongo_results_version' and isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate=%s);"""
-                    mongo_results_changed_version_bigs_query = isolates_psql_db.execute_query(sqlquery, (document['results']['isolates_id'],))
+                    latest_analysis_date_bigs = (isolates_psql_tbl.select_latestanalysisdate_for_isolate((document_id)))[0][0]  # this appearently is a datetime object
+                    with TblEavTextHidden(species) as isolates_eavth_psql_tbl:
+                        mongo_results_changed_version_bigs_query = isolates_eavth_psql_tbl.select_mongo_resultsversion((document_id,))
                     # as of 2022/12/22 mongo_results_version in bigs is changed version
                     if mongo_results_changed_version_bigs_query == []:
                         # Accounting for old samples that didnt have a version yet
@@ -151,7 +147,7 @@ def mongo_to_bigs(species: str, single_sample: str = None) -> None:
                         if new_results['changed_version'] == int(mongo_results_changed_version_bigs):
                             # results are same so do nothing
                             logging.info(
-                                f"results_version might be different, but changed_version same in mongodb and bigsdb for {document['results']['isolates_id']}")
+                                f"results_version might be different, but changed_version same in mongodb and bigsdb for {document_id}")
                             continue
                         else:
                             old_results_withpointers = old_isolateresults_collection.with_options(
@@ -163,7 +159,7 @@ def mongo_to_bigs(species: str, single_sample: str = None) -> None:
                                 # Currently new versions are only created if there were changes so in case more than 2 versions different and missing then should send error.
                                 _send_email(f"{Path(__file__).name} fail on host {socket.gethostname()}",
                                             f"Can not find document in old isolate results collection for isolate {new_results['isolates_id']} and results version {mongo_results_changed_version_bigs}",
-                                            bigsdb_config['mail'])
+                                            bigsdb_config_data['mail'])
                                 raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}: Can not find document in old isolate results collection for isolate {new_results['isolates_id']} and results version {mongo_results_changed_version_bigs}")
                             else:
                                 # replace the pointers in the old results by their actual contents
@@ -186,48 +182,45 @@ def mongo_to_bigs(species: str, single_sample: str = None) -> None:
                             if some_result_changed is False:
                                 # results didnt change
                                 logging.info(
-                                    f"different version (more than 1 diff) but results same in mongodb and bigsdb {document['results']['isolates_id']}")
+                                    f"different version (more than 1 diff) but results same in mongodb and bigsdb {document_id}")
                                 continue
                             # else if results changed, the for loop is continued and results are inserted into bigsdb as reanalysis
                     else:
                         logging.info(
-                            f"results version same in mongodb and bigsdb for sample {document['results']['isolates_id']}")
+                            f"results version same in mongodb and bigsdb for sample {document_id}")
                         continue
     
                 # continuation of for loop:
                 # extract json file to be given to bigs
-                jsonfile = f"{config_data.get('temp_dir')}/{document['results']['isolates_id']}_temp.json"
+                jsonfile = f"{mongo_config_data.get('temp_dir')}/{document_id}_temp.json"
                 if document.get('validation'):
                     # add validation metadata to results in order to be able to insert them into BIGSdb
                     document['results']['validation'] = document['validation']
                 with open(jsonfile, 'w') as handle:
                     handle.write(json.dumps(document['results']))
                 # todo modify mailadress
-                main_results_inserter(document['results']['isolates_id'], 'bioit@sciensano.be', species, results_type, jsonfilepath=Path(jsonfile))
+                main_results_inserter(document_id, 'bioit@sciensano.be', species, results_type, jsonfilepath=Path(jsonfile))
                 os.remove(jsonfile)
                 if results_type == 'new_isolate':
-                    insert_assembly(document['results']['isolates_id'], species, document['fasta_path'])
+                    insert_assembly(document_id, species, document['fasta_path'])
                 elif results_type == 'reanalysis' and document['validation']['type'] == 'resequencing':
-                    sqlquery = """SELECT validation_date FROM isolates WHERE isolate=%s ORDER BY id DESC LIMIT 2;"""
-                    last_two_validation_dates = isolates_psql_db.execute_query(sqlquery, (document['results']['isolates_id'],))
+                    last_two_validation_dates = isolates_psql_tbl.select_validationdate_for_isolate((document_id,))
                     # select to check that the previous versions validation date is different than the current
                     if last_two_validation_dates[0][0] != last_two_validation_dates[1][0]:
                         # revert the changes done in maininserter that move the assembly to the newest version
-                        sqlquery = """
-                                   UPDATE sequence_bin SET isolate_id=(SELECT MIN(id) FROM isolates WHERE id in (SELECT id FROM isolates WHERE isolate=%s ORDER BY id DESC LIMIT 2)) 
-                                   WHERE isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate=%s);"""
-                        isolates_psql_db.execute_query(sqlquery, (document['results']['isolates_id'], document['results']['isolates_id']))
-                        sqlquery = """
-                                   UPDATE seqbin_stats SET isolate_id=(SELECT MIN(id) FROM isolates WHERE id in (SELECT id FROM isolates WHERE isolate=%s ORDER BY id DESC LIMIT 2)) 
-                                   WHERE isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate=%s);"""
-                        isolates_psql_db.execute_query(sqlquery, (document['results']['isolates_id'], document['results']['isolates_id']))
-                        insert_assembly(document['results']['isolates_id'], species, document['fasta_path'])
+                        with TblSequenceBin(species) as isolates_seqbin_psql_tbl:
+                            isolates_seqbin_psql_tbl.update_sequencebin_newversion(
+                                (document_id, document_id))
+                        with TblSeqBinStats(species) as isolates_seqbinstats_psql_tbl:
+                            isolates_seqbinstats_psql_tbl.update_seqbinstats_newversion(
+                                (document_id, document_id))
+                        insert_assembly(document_id, species, document['fasta_path'])
     
-                logging.info(f"wrote new results version for {document['results']['isolates_id']} to bigsdb")
+                logging.info(f"wrote new results version for {document_id} to bigsdb")
 
     except Exception as exceptionmessage:
         _send_email(f"{Path(__file__).name} fail on host {socket.gethostname()}",
-                    f"{exceptionmessage}\n{traceback.format_exc()}", bigsdb_config['mail'])
+                    f"{exceptionmessage}\n{traceback.format_exc()}", bigsdb_config_data['mail'])
         raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}")
 
 if __name__ == '__main__':
@@ -236,10 +229,10 @@ if __name__ == '__main__':
 
     # Parse Mongo config
     with open(MONGO_CONFIG, encoding='utf-8') as handle:
-        config_data = yaml.safe_load(handle)
+        mongo_config_data = yaml.safe_load(handle)
 
     # Parse arguments
-    args = _parse_arguments(config_data['species'])
+    args = _parse_arguments(mongo_config_data['species'])
 
     # run main
     mongo_to_bigs(args.species,

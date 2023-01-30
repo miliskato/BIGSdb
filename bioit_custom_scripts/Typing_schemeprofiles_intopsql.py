@@ -130,11 +130,10 @@ def _insert_all_profiles() -> None:
                     profile_line_dict: Dict[str, str] = {}
                     for line in handle[1:]:
                         profile_line_dict[" ".join(line.split()).split(' ')[0]] = line
-    
-                    # check whether fields[0] is max or not, if not then all value above max will be inserted in all three tables
+
                     listoftuples: List[Tuple[int]] = \
                         seqdef_profiles_psql_tbl.select_profile((schemedict[scheme]['schemename_bigsdb'],))
-                    primary_fields: List[int] = [int(x[0]) for x in listoftuples]
+                    primary_fields = [int(x[0]) for x in listoftuples] if listoftuples is not None else None
                     list_to_be_inserted = set()
                     if primary_fields is None:
                         # table is empty, so all need to be inserted
