@@ -11,21 +11,21 @@ import yaml
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
-from bioit_custom_scripts.config import BIGSDB_CONFIG
+from MongoDB.config import MONGO_CONFIG
 
 
-def get_bigsdb_config_data() -> Dict[str, Union[str, List[Any], Dict[str, Union[str, Dict[str, Any]]]]]:
+def get_mongodb_config_data() -> Dict[str, Union[str, List[Any], Dict[str, Union[str, Dict[str, Any]]]]]:
     """
     Reads the global bigsdb config
     :return:
     """
-    with open(BIGSDB_CONFIG, encoding='utf-8') as handle:
+    with open(MONGO_CONFIG, encoding='utf-8') as handle:
         config_data = yaml.safe_load(handle)
     return config_data
 
 
 def send_email(content: str, subject: str = f"{Path(__file__).name} fail on host {socket.gethostname()}",
-               config: Dict[str, str] = get_bigsdb_config_data().get('mail')) -> None:
+               config: Dict[str, str] = get_mongodb_config_data().get('mail')) -> None:
     """
     Sends an email.
     :param subject: Mail subject

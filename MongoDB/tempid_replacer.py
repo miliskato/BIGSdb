@@ -1,17 +1,15 @@
 import argparse
 import hashlib
 import logging
-import os
-import smtplib
 import socket
 import sys
 import traceback
-from email.message import EmailMessage
 from pathlib import Path
+from typing import Any, Dict, List, Union
 
 import pymongo
-import yaml
 from Bio import SeqIO
+from Bio.SeqRecord import SeqRecord
 from pymongo.read_concern import ReadConcern
 from pymongo.write_concern import WriteConcern
 
@@ -20,25 +18,10 @@ sys.path.append(str(PYTHONPATH))
 
 from bioit_custom_scripts.components.psql_tables_queries import TblAlleleDesignations
 from MongoDB.util.mongo_initialisation import MongoInitialisation
-from MongoDB.config import MONGO_CONFIG
+from MongoDB.util.python_utility_functions import get_mongodb_config_data, send_email
 
-def _send_email(subject: str, content: str, config: dict) -> None:
-    """
-    Sends an email.
-    :param subject: Mail subject
-    :param content: Content of the message
-    :return: None
-    """
-    message = EmailMessage()
-    message['Subject'] = subject
-    message['From'] = config['from']
-    message['To'] = config['to']
-    message.set_content(content)
-    with smtplib.SMTP(config['host']) as s:
-        s.send_message(message)
-    logging.info(content)
 
-def _parse_arguments(specieslist: list) -> argparse.Namespace:
+def _parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     """
     Parses the command line arguments.
     :param specieslist: list of all the species choices
@@ -46,149 +29,195 @@ def _parse_arguments(specieslist: list) -> argparse.Namespace:
     """
     parser = argparse.ArgumentParser()
     parser.add_argument("--scheme", required=True, type=str, help='lower case scheme as in json reports/mongodb documents')
-    parser.add_argument("--species", required=True, type=str,
-                        choices=specieslist)
+    parser.add_argument("--species", required=True, type=str, choices=specieslist)
     parser.add_argument('--alternate_connection_string', type=str,
                         help=argparse.SUPPRESS)  # will replace connection string, only for small testing purposes
     return parser.parse_args()
 
 
-def _query_hashes_of_scheme(hashed_ad_collection: pymongo.collection.Collection, scheme: str) -> list:
+class TempidReplacer:
     """
-    query unresolved hashes of a given scheme in the hashes collection
-    :param hashed_ad_collection: Collection containing hashed alleles, sequences and more properties
-    :param scheme: scheme that unresolved hashes should be queried from
-    :return: list of documents (dicts) of unresolved hashes
+    Class containing definitions to check and replace temporary ids in MongoDB (and BIGSdb)
     """
-    return [document for document in hashed_ad_collection.with_options(read_concern=ReadConcern(level="majority")).find({"scheme": scheme, "resolved_AD": 0})]
-
-def tempid_replacer(scheme: str, species: str, alternate_connection_string: str = None) -> None:
-    """
-    Main function
-    See argparse function for variables and their requiredness
-    :param scheme: 
-    :param species: 
-    :param alternate_connection_string: 
-    :return: 
-    """
-    # Parse config
-    with open(MONGO_CONFIG, encoding='utf-8') as handle:
-        config_data = yaml.safe_load(handle)
-    
-    # if testing purposes; replace connection string by testing connection string
-    if alternate_connection_string:
-        config_data['CONNECTION_STRING_BASE'] = 'mongodb+srv://mikelchtermans:YMFOH4BLF1U79dDk@hera-bioit-trial.vajezh0.mongodb.net'
-
-    # Configure stdout logging
-    logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
-
-    try:
+    def __init__(self, scheme: str, species: str, alternate_connection_string: str = None):
+        """
+        Initalizes the class and executes the main function
+        :param scheme: scheme that unresolved hashes should be queried from
+        :param species: commonly used bioit species name: either genus or specific like stec
+        :param alternate_connection_string: use alternate connection string, used for testing on the free Atlas Cluster
+        :return: None
+        """
+        self._scheme = scheme
+        self._species = species
+        self._alternate_connection_string = alternate_connection_string
+        # parse config data
+        self._mongo_config_data = get_mongodb_config_data()
+        # if testing purposes; replace connection string by testing connection string
+        if self._alternate_connection_string:
+            self._mongo_config_data['CONNECTION_STRING_BASE'] = self._alternate_connection_string
         # Open collections
-        mongoinit = MongoInitialisation()
-        isolates_collection, old_isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections(
-            config_data, species)
-        hashed_AD_collection = mongoinit.initialise_hashing_collection(config_data, species)
-        st_collection, cluster_membership_collection, cluster_merging_collection = \
-            mongoinit.initialise_clustering_collections(config_data, species)
-        # Query the docs with hashes for this particular scheme
-        documents_list = _query_hashes_of_scheme(hashed_AD_collection, scheme)
-        if documents_list == []:
-            pass
-        else:
-            locus_hash_dict = {}
-            for document_index, hash_document in enumerate(documents_list):
-                if hash_document['locus'] in locus_hash_dict:
-                    locus_hash_dict[hash_document['locus']]['hashed_alleles'].append(hash_document['hashed_allele'])
-                    locus_hash_dict[hash_document['locus']]['temp_alleles'].append(hash_document['temp_allele_name'])
-                    locus_hash_dict[hash_document['locus']]['indexes'].append(document_index)
-                else:
-                    locus_hash_dict[hash_document['locus']] = {'hashed_alleles': [hash_document['hashed_allele']], 'indexes': [document_index], 'temp_alleles': [hash_document['temp_allele_name']]}
+        self._mongoinit = MongoInitialisation()
+        self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, self._isolates_resequencing_collection = self._mongoinit.initialise_collections(
+            self._mongo_config_data, self._species)
+        self._hashed_ad_collection = self._mongoinit.initialise_hashing_collection(mongo_config_data, species)
+        self._st_collection, self._cluster_membership_collection, self._cluster_merging_collection = \
+            self._mongoinit.initialise_clustering_collections(mongo_config_data, species)
+
+        # Query all unresolved hashes from hash collection for this particular scheme
+        self._documents_list = self._query_hashes_of_scheme()
+
+        # Execute main
+        try:
+            self.tempid_replacer()
+        except Exception as exceptionmessage:
+            send_email(f"{exceptionmessage}\n{traceback.format_exc()}")
+            raise Exception(
+                f"{Path(__file__).name} fail on host {socket.gethostname()}")
+
+    def tempid_replacer(self) -> None:
+        """
+        Main function
+        Checks the databases to see if previously defined temporary id's have been taken up in the source database.
+        If so, replaces the temporary identifiers with the new source database identifier in MongoDB
+        If the host is a bigsdb host, also replace the temporary identifiers in the database, however
+        the current implementation will only replace temp identifiers if theyre replaced in the current run, therefore
+        if the script is run on another host first and then here, those identifiers will not be replaced in bigs.
+        The idea is to run this script after a database update in order for the reanalysis to not think that an allele has changed
+        :return: None
+        """
+
+        # Configure stdout logging
+        logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
+
+        if len(self._documents_list) != 0:
+            locus_hash_dict = self._create_locus_hash_dict()
             for locus, values in locus_hash_dict.items():
                 hash_list = values['hashed_alleles']
-                temp_alleles_list = values['temp_alleles']
-                if species == 'stec':
-                    fasta_file = Path(f"/db/sequence_typing/ecoli/{scheme.replace('-','_')}/{locus}/{locus.lower()}.fasta")
-                else:
-                    fasta_file = Path(f"/db/sequence_typing/{species}/{scheme.replace('-', '_')}/{locus}/{locus.lower()}.fasta")
-                if os.path.isfile(fasta_file):
-                    logging.info(f"opening fasta file: {fasta_file}")
-                else:
-                    raise RuntimeError(f"Fasta file path for locus {locus} does not seem to adhere to the normal fasta path syntax")
+                fasta_file = self._check_and_return_fasta_file(locus)
                 logging.info(f"hash list: {hash_list} for locus {locus}")
                 with fasta_file.open() as handle:
-                    alleles = list(SeqIO.parse(handle, 'fasta'))
+                    alleles = SeqIO.parse(handle, 'fasta')
+                    allele: Union[SeqRecord, Any]
                     for allele in alleles:
-                        hashed_allele = hashlib.md5(allele.seq.encode()).hexdigest()
+                        hashed_allele = hashlib.md5(bytes(allele.seq, 'utf-8')).hexdigest()
                         if hashed_allele in hash_list:
-                            index_match = hash_list.index(hashed_allele)
-                            temp_allele_name = temp_alleles_list[index_match]
-                            allele_id = allele.id.split('_')[-1]
-                            # Update collections
-                            logging.debug(f"replacing {temp_allele_name} by {allele_id} for locus {locus}")
-                            isolates_collection.with_options(write_concern=WriteConcern(w="majority")).update_many(
-                                {f"results.{scheme}.loci":
-                                 {"$elemMatch":
-                                  {"Locus": locus, "Allele": temp_allele_name}}},
-                                {"$set":
-                                 {f"results.{scheme}.loci.$.Allele": allele_id}})
-                            isolates_badqc_collection.with_options(write_concern=WriteConcern(w="majority")).update_many(
-                                {f"results.{scheme}.loci":
-                                 {"$elemMatch":
-                                  {"Locus": locus, "Allele": temp_allele_name}}},
-                                {"$set":
-                                 {f"results.{scheme}.loci.$.Allele": allele_id}})
-                            # todo think if old results collection should be updated aswell
-                            old_isolateresults_collection.with_options(write_concern=WriteConcern(w="majority")).update_many(
-                                {f"{scheme}.loci":
-                                 {"$elemMatch":
-                                  {"Locus": locus, "Allele": temp_allele_name}}},
-                                {"$set":
-                                 {f"{scheme}.loci.$.Allele": allele_id}})
-                            # Update document but do not delete
-                            hashed_AD_collection.with_options(write_concern=WriteConcern(w="majority")).update_one(
-                                {"scheme": scheme, "resolved_AD": 0, "locus": locus, "temp_allele_name": temp_allele_name},
-                                {"$set": {"resolved_AD": allele_id}})
-                            # add allele id to hash document to not have to requery for bigsdb if bigs host
-                            # documents_list: list of all documents
-                            # values['indexes']: list of indexes of the documents belonging to the list of hashed alleles in values['hashed_alleles']
-                            # hash list: values['hashed_alleles'], list of the hashes for a locus
-                            # documents_list[values['indexes'][hash_list.index(hashed_allele)]]: hash document
-                            documents_list[
-                                values['indexes']
-                                [hash_list.index(hashed_allele)]
-                                 ]['resolved_AD'] = allele_id
-                            #replace in all the cgST the old temp allele by the new id
-                            # greater than 0 is used to exclude the header document
-                            all_st = st_collection.find({'cgST':{'$gt':0}})
-                            for st in all_st:
-                                profile = st['cgMLST'].split(',')
-                                if temp_allele_name in profile:
-                                    profile = [allele_id if x == temp_allele_name else x for x in profile]
-                                    cgmlst = ','.join([str(i) for i in profile])
-                                    st_collection.find_one_and_update({"cgST": st["cgST"]},
-                                                            {"$set": {"cgMLST": cgmlst}})
-            hostname = socket.gethostname()
-            if 'bigs' in hostname and alternate_connection_string is None:
-                with TblAlleleDesignations(species) as isolates_ad_psql_tbl:
-                    for hash_document in documents_list:
+                            self._update_temp_to_real_mongodb(locus, allele, hashed_allele, hash_list, values)
+            if 'bigs' in socket.gethostname() and self._alternate_connection_string is None:
+                with TblAlleleDesignations(self._species) as isolates_ad_psql_tbl:
+                    for hash_document in self._documents_list:
                         if hash_document['resolved_AD'] != 0:
                             isolates_ad_psql_tbl.update_designations((hash_document['resolved_AD'], hash_document['locus'], hash_document['hashed_allele']))
-    except Exception as exceptionmessage:
-        _send_email(f"{Path(__file__).name} fail on host {socket.gethostname()}",
-                    f"{exceptionmessage}\n{traceback.format_exc()}", config_data['mail'])
-        raise Exception(
-            f"{Path(__file__).name} fail on host {socket.gethostname()}")
+
+    def _query_hashes_of_scheme(self) -> List[Dict[str, Any]]:
+        """
+        Query unresolved hashes of a given scheme in the hashes collection
+        :return: list of documents (dicts) of unresolved hashes
+        """
+        return [document for document in
+                self._hashed_ad_collection.with_options(read_concern=ReadConcern(level="majority")).find(
+                    {"scheme": self._scheme, "resolved_AD": 0})]
+
+    def _create_locus_hash_dict(self) -> Dict[str, Dict[str, List[str]]]:
+        locus_hash_dict = {}
+        for document_index, hash_document in enumerate(self._documents_list):
+            if hash_document['locus'] in locus_hash_dict:
+                locus_hash_dict[hash_document['locus']]['hashed_alleles'].append(hash_document['hashed_allele'])
+                locus_hash_dict[hash_document['locus']]['temp_alleles'].append(hash_document['temp_allele_name'])
+                locus_hash_dict[hash_document['locus']]['indices'].append(document_index)
+            else:
+                locus_hash_dict[hash_document['locus']] = {'hashed_alleles': [hash_document['hashed_allele']],
+                                                           'indices': [document_index],
+                                                           'temp_alleles': [hash_document['temp_allele_name']]}
+        return locus_hash_dict
+
+    def _check_and_return_fasta_file(self, locus: str) -> Path:
+        """
+        Checks if fasta file exists and returns the path if so
+        :param locus: current locus name
+        :return: fasta file pathlib Path instance
+        """
+        if self._species == 'stec':
+            fasta_file = Path(
+                f"/db/sequence_typing/ecoli/{self._scheme.replace('-', '_')}/{locus}/{locus.lower()}.fasta")
+        else:
+            fasta_file = Path(
+                f"/db/sequence_typing/{self._species}/{self._scheme.replace('-', '_')}/{locus}/{locus.lower()}.fasta")
+        if fasta_file.is_file():
+            logging.info(f"opening fasta file: {fasta_file}")
+        else:
+            send_email(f"Fasta file path for locus {locus} of species {self._species} "
+                       f"does not seem to adhere to the normal fasta path syntax")
+            raise RuntimeError(f"Fasta file path for locus {locus} of species {self._species} "
+                               f"does not seem to adhere to the normal fasta path syntax")
+        return fasta_file
+
+    def _update_temp_to_real_mongodb(self, locus: str, allele: SeqRecord, hashed_allele: str, hash_list: List[str], values: Dict[str, List[Union[str, int]]]) -> None:
+        """
+        Updates the temporary identifiers that are now newly in the source database to the source database's identifier in MongoDB
+        :param locus: current locus name
+        :param allele: allele SeqRecord instance
+        :param hashed_allele: md5 hash of the allele string
+        :param hash_list: list of the hashed alleles corresponding with the indices list
+        :param values: lists of hashed alleles, indices, and temp_alleles for a locus
+        :return: None
+        """
+        index_match = hash_list.index(hashed_allele)
+        temp_alleles_list = values['temp_alleles']
+        temp_allele_name = temp_alleles_list[index_match]
+        new_allele_id = allele.id.split('_')[-1]
+        # Update collections
+        logging.debug(f"replacing {temp_allele_name} by {new_allele_id} for locus {locus}")
+        self.__update_temp_allele_to_new(self._isolates_collection, locus, temp_allele_name, new_allele_id)
+        self.__update_temp_allele_to_new(self._isolates_badqc_collection, locus, temp_allele_name, new_allele_id)
+        self.__update_temp_allele_to_new(self._isolates_resequencing_collection, locus, temp_allele_name, new_allele_id)
+        self.__update_temp_allele_to_new(self._old_isolateresults_collection, locus, temp_allele_name, new_allele_id, in_results=False)
+        # Update document but do not delete
+        self._hashed_ad_collection.with_options(write_concern=WriteConcern(w="majority")).update_one(
+            {"scheme": self._scheme, "resolved_AD": 0, "locus": locus, "temp_allele_name": temp_allele_name},
+            {"$set": {"resolved_AD": new_allele_id}})
+        # add allele id to hash document to not have to requery for bigsdb if bigs host
+        # documents_list: list of all documents
+        # values['indices']: list of indices of the documents belonging to the list of hashed alleles in values['hashed_alleles']
+        # hash list: values['hashed_alleles'], list of the hashes for a locus
+        # documents_list[values['indices'][hash_list.index(hashed_allele)]]: hash document
+        hashed_allele_index_in_doclist = int(values['indices'][hash_list.index(hashed_allele)])
+        self._documents_list[hashed_allele_index_in_doclist]['resolved_AD'] = new_allele_id
+        # replace in all the cgST the old temp allele by the new id
+        # greater than 0 is used to exclude the header document
+        all_st = self._st_collection.find({'cgST': {'$gt': 0}})
+        for st in all_st:
+            profile = st['cgMLST'].split(',')
+            if temp_allele_name in profile:
+                profile = [new_allele_id if x == temp_allele_name else x for x in profile]
+                cgmlst = ','.join([str(i) for i in profile])
+                self._st_collection.find_one_and_update({"cgST": st["cgST"]},
+                                                        {"$set": {"cgMLST": cgmlst}})
+
+    def __update_temp_allele_to_new(self, collection: pymongo.collection.Collection, locus: str, temp_allele_name: str, new_allele_id: str, in_results: bool = True) -> None:
+        """
+        Updates the collections containing isolates with the newly found alleles that were previously temporary identifiers
+        :param collection: collection containing isolates that needs to be updated
+        :param locus: locus name
+        :param temp_allele_name: temporary identifier name
+        :param new_allele_id: new source allele id
+        :param in_results: are the assays located under results or not? usually yes except for old_isolate_results
+        :return:
+        """
+        collection.with_options(write_concern=WriteConcern(w="majority")).update_many(
+            {f"{'results.' if in_results else ''}{self._scheme}.loci":
+             {"$elemMatch": {"Locus": locus, "Allele": temp_allele_name}}},
+            {"$set":
+             {f"{'results.' if in_results else ''}{self._scheme}.loci.$.Allele": new_allele_id}})
+
 
 if __name__ == '__main__':
     # Parse config
-    with open(MONGO_CONFIG, encoding='utf-8') as handle:
-        config_data = yaml.safe_load(handle)
+    mongo_config_data = get_mongodb_config_data()
 
     # Parse arguments
-    args = _parse_arguments(config_data['species'])
+    args = _parse_arguments(mongo_config_data['species'])
 
     # run main
-    tempid_replacer(args.scheme, 
-                    args.species, 
-                    alternate_connection_string=(args.alternate_connection_string if args.alternate_connection_string else None))
+    TempidReplacer(args.scheme, args.species,
+                   alternate_connection_string=(args.alternate_connection_string if args.alternate_connection_string else None))
     

@@ -16,11 +16,9 @@ sys.path.append(str(PYTHONPATH))
 from MongoDB.util.mongo_initialisation import MongoInitialisation
 from MongoDB.config import MONGO_CONFIG
 from MongoDB.mainmongo import MainMongo
-from MongoDB.tempid_replacer import tempid_replacer
+from MongoDB.tempid_replacer import TempidReplacer
 from MongoDB.reanalysis.reanalysis_noslurm import reanalysis_noslurm
 from MongoDB.reanalysis.reanalysis_triggers.reanalysis_triggers import reanalysis_triggers
-
-ALTERNATE_CONNECTION_STRING = 'mongodb+srv://mikelchtermans:YMFOH4BLF1U79dDk@hera-bioit-trial.vajezh0.mongodb.net'  # do not change
 
 
 def _send_email(subject: str, content: str, config: dict) -> None:
@@ -46,7 +44,7 @@ if __name__ == '__main__':
         config_data = yaml.safe_load(handle)
 
     if config_data.get('CONNECTION_STRING_BASE') and config_data.get('dtap'):
-        config_data['CONNECTION_STRING_BASE'] = ALTERNATE_CONNECTION_STRING
+        config_data['CONNECTION_STRING_BASE'] = config_data['CONNECTION_STRING_ALTERNATE']
     else:
         raise Exception('was config modified?')
 
@@ -92,7 +90,7 @@ if __name__ == '__main__':
                          'species': 'listeria',
                          'results_type': results_type,
                          'jsonfilepath': '/'.join([source, 'inputfiles', filename]),
-                         'alternate_connection_string': ALTERNATE_CONNECTION_STRING}
+                         'alternate_connection_string': config_data['CONNECTION_STRING_ALTERNATE']}
             if results_type == 'new_isolate':
                 arguments['fastafilepath'] = '/'.join([source, 'inputfiles', 'listeria_assembly_filtered.fasta'])
             return arguments
@@ -102,7 +100,7 @@ if __name__ == '__main__':
         MainMongo(**new_isolate_args)
 
         # test hash replacer
-        tempid_replacer('cgmlst', 'listeria', alternate_connection_string=ALTERNATE_CONNECTION_STRING)
+        TempidReplacer('cgmlst', 'listeria', alternate_connection_string=config_data['CONNECTION_STRING_ALTERNATE'])
 
         # Add the dummy reanalysis results:
         # the integers appendices of the files indicate the results version and changed version, so: resultsversion_changedversion
@@ -111,10 +109,10 @@ if __name__ == '__main__':
             MainMongo(**reanalysis_args)
 
         # test reanalyis triggers and reanalysis
-        reanalysis_triggers('listeria', 6, alternate_connection_string=ALTERNATE_CONNECTION_STRING)
+        reanalysis_triggers('listeria', 6, alternate_connection_string=config_data['CONNECTION_STRING_ALTERNATE'])
 
         # test reanalysis
-        reanalysis_noslurm('listeria', '2030-01-01', '2000-01-01', alternate_connection_string=ALTERNATE_CONNECTION_STRING)
+        reanalysis_noslurm('listeria', '2030-01-01', '2000-01-01', alternate_connection_string=config_data['CONNECTION_STRING_ALTERNATE'])
 
     except Exception as exceptionmessage:
         _send_email(f"{Path(__file__).name} fail on {socket.gethostname()}",

@@ -13,7 +13,7 @@ import sys
 import traceback
 from email.message import EmailMessage
 from pathlib import Path
-from typing import Dict, List, Union
+from typing import Any, Dict, List, Union
 
 # import dnspython # somehow this package is a requirement without actually needing to be imported, probably imported in pymongo
 import pymongo
@@ -396,8 +396,8 @@ class MainMongo:
         # https://git.sciensano.be/bioit/BIGSdb/src/d2a261056221056e56df6aa584563454f6bfec3a/lib/BIGSdb/SubmitPage.pm#L2800
         # 2022-12-20 Check whether resequencing; if resequencing; fasta md5sum should be different from original one. debating whether to store md5 in mongo or not
         # resequencings should be rare so we can afford multiple finds
-        md5_original = hashlib.md5(open(Path(document_original['fasta_path']), 'r').read().encode()).hexdigest()
-        md5_new = hashlib.md5(open(Path(self.fastafilepath), 'r').read().encode()).hexdigest()
+        md5_original = hashlib.md5(bytes(open(Path(document_original['fasta_path']), 'r').read(), 'utf-8')).hexdigest()
+        md5_new = hashlib.md5(bytes(open(Path(self.fastafilepath), 'r').read(), 'utf-8')).hexdigest()
         if md5_original != md5_new:
             # this is an actual resequencing because the fastafilepath is different
 
@@ -419,7 +419,7 @@ class MainMongo:
             # The commented code below was in case multiple resequencings were allowed
             #     # check whether fasta is different from existing previous resequencings.
             #     for projection in previous_resequencings:
-            #         if hashlib.md5(open(Path(projection['fasta_path']), 'r').read().encode()).hexdigest() == md5_new:
+            #         if hashlib.md5(bytes(open(Path(projection['fasta_path']), 'r').read(), 'utf-8')).hexdigest() == md5_new:
             #             new_resequencing = False
             #     if new_resequencing is True:
             #         # Send a warning because we are not expecting multiple resequencings for the same same sample
