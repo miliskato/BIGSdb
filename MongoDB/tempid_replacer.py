@@ -18,7 +18,7 @@ from pymongo.write_concern import WriteConcern
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
-from bioit_custom_scripts.components.databaseconnection import DatabaseConnection
+from bioit_custom_scripts.components.psql_tables_queries import TblAlleleDesignations
 from MongoDB.util.mongo_initialisation import MongoInitialisation
 from MongoDB.config import MONGO_CONFIG
 
@@ -169,14 +169,10 @@ def tempid_replacer(scheme: str, species: str, alternate_connection_string: str 
                                                             {"$set": {"cgMLST": cgmlst}})
             hostname = socket.gethostname()
             if 'bigs' in hostname and alternate_connection_string is None:
-                (con_isolates, isolates_psql_db), (con_seqdef, seqdef_psql_db) = DatabaseConnection().connect_to_dbs_and_create_cursors(species)
-                for hash_document in documents_list:
-                    if hash_document['resolved_AD'] != 0:
-                        sqlquery = """
-                                   UPDATE allele_designations SET allele_id = %s 
-                                   WHERE allele_id=%s AND locus=%s;"""
-                        isolates_psql_db.execute_query(sqlquery, (hash_document['resolved_AD'], hash_document['hashed_allele'], hash_document['locus']))
-                DatabaseConnection().close_connections(con_isolates, con_seqdef)
+                with TblAlleleDesignations(species) as isolates_ad_psql_tbl:
+                    for hash_document in documents_list:
+                        if hash_document['resolved_AD'] != 0:
+                            isolates_ad_psql_tbl.update_designations((hash_document['resolved_AD'], hash_document['locus'], hash_document['hashed_allele']))
     except Exception as exceptionmessage:
         _send_email(f"{Path(__file__).name} fail on host {socket.gethostname()}",
                     f"{exceptionmessage}\n{traceback.format_exc()}", config_data['mail'])
