@@ -33,7 +33,7 @@ sample_name=$(cat $1 |  sed -n ${nameline}p | awk '{print $2}')
 
 touch list_of_isolates.txt
 
-for f in `curl -s http://bioit-bigs-${DTAPVM}.sciensano.be:5000/db/bigsdb_${species}_isolates/isolates | grep -oP '(?<="http://bioit-bigs-'${DTAPVM}'.sciensano.be:5000/db/bigsdb_'${species}'_isolates/isolates/)[^"]*'`; do curl -s http://bioit-bigs-${DTAPVM}.sciensano.be:5000/db/bigsdb_${species}_isolates/isolates/$f | grep -oP '(?<="isolate":")[^"]*' >> list_of_isolates.txt; done
+for f in `curl -s http://bioit-bigs-${DTAPVM}.sciensano.be:5000/db/bigsdb_${species}_isolates/isolates?return_all=1 | grep -oP '(?<="http://bioit-bigs-'${DTAPVM}'.sciensano.be:5000/db/bigsdb_'${species}'_isolates/isolates/)[^"]*'`; do curl -s http://bioit-bigs-${DTAPVM}.sciensano.be:5000/db/bigsdb_${species}_isolates/isolates/$f | grep -oP '(?<="isolate":")[^"]*' >> list_of_isolates.txt; done
 
 if grep -q $sample_name list_of_isolates.txt; then
   printf '%s\n' "${sample_name} already exists in ${species} BIGSdb" >&2
