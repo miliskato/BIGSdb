@@ -38,7 +38,7 @@ def _parse_arguments(specieslist: list) -> argparse.Namespace:
     parser.add_argument('--pyvenvpythonpath', type=Path, required=True, help='eg /home/bigsdb/BIGSdb/3.9PythonVenv/bin/python3.9')
     parser.add_argument('--maximal_analysis_date', type=str, required=True, help='YYYY-MM-DD')
     parser.add_argument('--minimal_analysis_date', type=str, required=True, help='YYYY-MM-DD')
-    parser.add_argument('--alternate_connection_string', type=str, help=argparse.SUPPRESS)
+    parser.add_argument('--alternate_connection_string', action='store_true', help=argparse.SUPPRESS)
     return parser.parse_args()
 
 
@@ -58,7 +58,7 @@ def _send_email(subject: str, content: str, config: dict) -> None:
         s.send_message(message)
     logging.info(content)
 
-def reanalysis_slurm_submitter(species: str, maximal_analysis_date: str, minimal_analysis_date: str, pyvenvpythonpath: str, threads_per_job: int = 1, analysis_arguments: list = None, alternate_connection_string: str = None) -> None:
+def reanalysis_slurm_submitter(species: str, maximal_analysis_date: str, minimal_analysis_date: str, pyvenvpythonpath: str, threads_per_job: int = 1, analysis_arguments: list = None, alternate_connection_string: bool = False) -> None:
     """
     Main function
     See argparse function for variables and their requiredness
@@ -118,7 +118,7 @@ def reanalysis_slurm_submitter(species: str, maximal_analysis_date: str, minimal
                 f"--isolate '{json.dumps(isolate)}'"
             ])
             if alternate_connection_string:
-                base_command += f" --alternate_connection_string {alternate_connection_string}"
+                base_command += f" --alternate_connection_string"
             command = Command(base_command)
             command_output = command.run(Path(os.getcwd()))
             if command.returncode != 0:
@@ -177,5 +177,4 @@ if __name__ == '__main__':
                                args.pyvenvpythonpath,
                                threads_per_job=args.threads_per_job,
                                analysis_arguments=(args.analysis_arguments if args.analysis_arguments else None),
-                               alternate_connection_string=(
-                                   args.alternate_connection_string if args.alternate_connection_string else None))
+                               alternate_connection_string=(True if args.alternate_connection_string else False))

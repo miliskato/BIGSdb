@@ -30,7 +30,7 @@ def _parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--scheme", required=True, type=str, help='lower case scheme as in json reports/mongodb documents')
     parser.add_argument("--species", required=True, type=str, choices=specieslist)
-    parser.add_argument('--alternate_connection_string', type=str,
+    parser.add_argument('--alternate_connection_string', action='store_true',
                         help=argparse.SUPPRESS)  # will replace connection string, only for small testing purposes
     return parser.parse_args()
 
@@ -39,7 +39,7 @@ class TempidReplacer:
     """
     Class containing definitions to check and replace temporary ids in MongoDB (and BIGSdb)
     """
-    def __init__(self, scheme: str, species: str, alternate_connection_string: str = None):
+    def __init__(self, scheme: str, species: str, alternate_connection_string: bool = False):
         """
         Initalizes the class and executes the main function
         :param scheme: scheme that unresolved hashes should be queried from
@@ -54,7 +54,7 @@ class TempidReplacer:
         self._mongo_config_data = get_mongodb_config_data()
         # if testing purposes; replace connection string by testing connection string
         if self._alternate_connection_string:
-            self._mongo_config_data['CONNECTION_STRING_BASE'] = self._alternate_connection_string
+            self._mongo_config_data['CONNECTION_STRING_BASE'] = self._mongo_config_data['CONNECTION_STRING_ALTERNATE']
         # Open collections
         self._mongoinit = MongoInitialisation(self._species)
         self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, self._isolates_resequencing_collection = self._mongoinit.initialise_collections()
@@ -217,5 +217,5 @@ if __name__ == '__main__':
 
     # run main
     TempidReplacer(args.scheme, args.species,
-                   alternate_connection_string=(args.alternate_connection_string if args.alternate_connection_string else None))
+                   alternate_connection_string=(True if args.alternate_connection_string else False))
     

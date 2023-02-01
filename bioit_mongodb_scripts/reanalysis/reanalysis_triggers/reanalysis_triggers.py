@@ -37,7 +37,7 @@ def _parse_arguments(specieslist: list) -> argparse.Namespace:
     parser.add_argument('--threads', type=int, default=8, help='Number of threads to use in total, only applicable when not using slurm since slurm knows how many threads are available')
     parser.add_argument('--pyvenvpythonpath', type=Path, help='eg /home/bigsdb/BIGSdb/3.9PythonVenv/bin/python3.9, required when using slurm')
     parser.add_argument('--slurm', action='store_true', help='Run reanalyses using slurm, dont include to not use slurm')
-    parser.add_argument('--alternate_connection_string', type=str, help=argparse.SUPPRESS)
+    parser.add_argument('--alternate_connection_string', action='store_true', help=argparse.SUPPRESS)
     return parser.parse_args()
 
 
@@ -57,7 +57,7 @@ def _send_email(subject: str, content: str, config: dict) -> None:
         s.send_message(message)
     logging.info(content)
 
-def reanalysis_triggers(species: str, threads: int = 8, pyvenvpythonpath: str = None, alternate_connection_string: str = None, slurm = False) -> None:
+def reanalysis_triggers(species: str, threads: int = 8, pyvenvpythonpath: str = None, alternate_connection_string: bool = False, slurm = False) -> None:
     """
     Main function
     See argparse function for variables and their requiredness
@@ -132,7 +132,7 @@ def reanalysis_triggers(species: str, threads: int = 8, pyvenvpythonpath: str = 
                              'maximal_analysis_date': date,
                              'minimal_analysis_date': minimal_date,
                              'analysis_arguments': date_args_dict[date],
-                             'alternate_connection_string': alternate_connection_string if alternate_connection_string else None}
+                             'alternate_connection_string': alternate_connection_string}
                 if slurm is False:
                     arguments['threads'] = threads
                     reanalysis_noslurm(**arguments)
@@ -154,7 +154,7 @@ def reanalysis_triggers(species: str, threads: int = 8, pyvenvpythonpath: str = 
                                date for date in date_args_dict}
             logging.info(f"finished submitting reanalysis for species {species}")
 
-        if alternate_connection_string is None:
+        if alternate_connection_string is False:
             # After all the reanalyses, execute mongo_to_bigs.py
             mongo_to_bigs(species)
             logging.info(f"Mongo to bigs after reanalysis completed")
@@ -177,7 +177,6 @@ if __name__ == '__main__':
     reanalysis_triggers(args.species,
                         threads=args.threads,
                         pyvenvpythonpath=(args.pyvenvpythonpath if args.pyvenvpythonpath else None),
-                        alternate_connection_string=(
-                            args.alternate_connection_string if args.alternate_connection_string else None),
+                        alternate_connection_string=(True if args.alternate_connection_string else False),
                         slurm=args.slurm
                         )

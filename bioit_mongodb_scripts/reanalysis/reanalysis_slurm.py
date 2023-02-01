@@ -35,7 +35,7 @@ def _parse_arguments(specieslist: list) -> argparse.Namespace:
     parser.add_argument('--analysis_arguments', nargs='+', required=False,
                         help='analysis arguments stripped off --, e.g. "--analysis_arguments cgmlst mlst"')
     parser.add_argument('--isolate', type=json.loads, required=True)
-    parser.add_argument('--alternate_connection_string', type=str, help=argparse.SUPPRESS)
+    parser.add_argument('--alternate_connection_string', action='store_true', help=argparse.SUPPRESS)
     return parser.parse_args()
 
 def _send_email(subject: str, content: str, config: dict) -> None:
@@ -110,7 +110,7 @@ def _delete_flagfile(isolatename: str, config: dict, reanalysis_outcome_dictiona
         reanalysis_outcome_dictionary['Traceback'] = f"Could not remove flag file {flagfilepath}"
         return reanalysis_outcome_dictionary
 
-def reanalysis_slurm(species: str, isolate: json.loads, threads: int = 8, analysis_arguments: list = None, alternate_connection_string: str = None) -> Dict[str, str]:
+def reanalysis_slurm(species: str, isolate: json.loads, threads: int = 8, analysis_arguments: list = None, alternate_connection_string: bool = False) -> Dict[str, str]:
     """
     Main function
     See argparse function for variables and their requiredness
@@ -136,7 +136,7 @@ def reanalysis_slurm(species: str, isolate: json.loads, threads: int = 8, analys
             mongo_config_data = yaml.safe_load(handle)
 
         if alternate_connection_string:
-            mongo_config_data['CONNECTION_STRING_BASE'] = alternate_connection_string
+            mongo_config_data['CONNECTION_STRING_BASE'] = mongo_config_data['CONNECTION_STRING_ALTERNATE']
 
         # ! For testing, you can specify isolates manually here
         # documents_list = [{'_id':'Myco-DRR041783-ds', .......}]
@@ -247,13 +247,12 @@ def reanalysis_slurm(species: str, isolate: json.loads, threads: int = 8, analys
                              'species': species,
                              'results_type': 'reanalysis',
                              'jsonfilepath': dir_out / 'report.json',
-                             'dont_send_email': True}
-                if alternate_connection_string:
-                    arguments['alternate_connection_string'] = alternate_connection_string
+                             'dont_send_email': True,
+                             'alternate_connection_string': alternate_connection_string}
                 # run the command
                 MainMongo(**arguments)
                 # logging.info(f"Mongodb insertion for isolate '{isolate_id}' completed")
-                if alternate_connection_string is None:
+                if alternate_connection_string is False:
                     try:
                         # shutil doesnt throw an error, but simply stops. Therefore it has to be put inside a try except
                         # logging.info(f"executing: {dir_temp}/camel.log {isolate['report_directory']}/{temp_new_sample_name}.log")
@@ -311,7 +310,7 @@ if __name__ == '__main__':
                      args.isolate,
                      threads=args.threads,
                      analysis_arguments=(args.analysis_arguments if args.analysis_arguments else None),
-                     alternate_connection_string=(args.alternate_connection_string if args.alternate_connection_string else None))
+                     alternate_connection_string=(True if args.alternate_connection_string else False))
 
 '''
 To be ignored for mongodb, leaving the code in case useful later

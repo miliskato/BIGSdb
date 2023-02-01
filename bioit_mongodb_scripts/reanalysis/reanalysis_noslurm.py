@@ -38,7 +38,7 @@ def _parse_arguments(specieslist: list) -> argparse.Namespace:
     parser.add_argument('--analysis_arguments', nargs='+', required=False, help='analysis arguments stripped off --, e.g. "--analysis_arguments cgmlst mlst"')
     parser.add_argument('--maximal_analysis_date', type=str, required=True, help='YYYY-MM-DD')
     parser.add_argument('--minimal_analysis_date', type=str, required=True, help='YYYY-MM-DD')
-    parser.add_argument('--alternate_connection_string', type=str, help=argparse.SUPPRESS)
+    parser.add_argument('--alternate_connection_string', action='store_true', help=argparse.SUPPRESS)
     return parser.parse_args()
 
 def _send_email(subject: str, content: str, config: dict) -> None:
@@ -113,7 +113,7 @@ def _delete_flagfile(isolatename: str, config: dict, reanalysis_outcome_dictiona
         reanalysis_outcome_dictionary['Traceback'] = f"Could not remove flag file {flagfilepath}"
         return reanalysis_outcome_dictionary
 
-def reanalysis_noslurm(species: str, maximal_analysis_date: str, minimal_analysis_date: str, threads: int = 8, analysis_arguments: list = None, alternate_connection_string: str = None) -> Dict[str, str]:
+def reanalysis_noslurm(species: str, maximal_analysis_date: str, minimal_analysis_date: str, threads: int = 8, analysis_arguments: list = None, alternate_connection_string: bool = False) -> Dict[str, str]:
     """
     Main function
     See argparse function for variables and their requiredness
@@ -138,7 +138,7 @@ def reanalysis_noslurm(species: str, maximal_analysis_date: str, minimal_analysi
             mongo_config_data = yaml.safe_load(handle)
 
         if alternate_connection_string:
-            mongo_config_data['CONNECTION_STRING_BASE'] = alternate_connection_string
+            mongo_config_data['CONNECTION_STRING_BASE'] = mongo_config_data['CONNECTION_STRING_ALTERNATE']
 
         # capture start_time
         start_time_reanalysis = datetime.datetime.utcnow()
@@ -268,9 +268,8 @@ def reanalysis_noslurm(species: str, maximal_analysis_date: str, minimal_analysi
                                      'species': species,
                                      'results_type': 'reanalysis',
                                      'jsonfilepath': dir_out / 'report.json',
-                                     'dont_send_email': True}
-                        if alternate_connection_string:
-                            arguments['alternate_connection_string'] = alternate_connection_string
+                                     'dont_send_email': True,
+                                     'alternate_connection_string': alternate_connection_string}
                         # run the command
                         MainMongo(**arguments)
                         logging.info(f"Mongodb insertion for isolate '{isolate_id}' completed")
@@ -363,7 +362,7 @@ if __name__ == '__main__':
                        args.minimal_analysis_date,
                        threads=args.threads,
                        analysis_arguments=(args.analysis_arguments if args.analysis_arguments else None),
-                       alternate_connection_string=(args.alternate_connection_string if args.alternate_connection_string else None))
+                       alternate_connection_string=(True if args.alternate_connection_string else False))
 
 '''
 To be ignored for mongodb, leaving the code in case useful later
