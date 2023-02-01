@@ -35,8 +35,8 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 
     # Open collections
-    mongoinit = MongoInitialisation()
-    isolates_collection, old_isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections(config_data, args.species)
+    mongoinit = MongoInitialisation(args.species)
+    isolates_collection, old_isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections()
     # isolates_collection.drop()
     # old_isolateresults_collection.drop()
     mongoquerying = Mongoquerying()

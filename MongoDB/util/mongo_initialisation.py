@@ -3,31 +3,36 @@ import logging
 import pymongo
 from pymongo import MongoClient
 
+from .python_utility_functions import get_mongodb_config_data
+
 
 class MongoInitialisation:
     """
     Class containing all queries for Mongo
     """
+    def __init__(self, species: str):
+        """
+        Initialises this class and opens the species/dtap specific mongo database
+        :param species: commonly used bioit species name: either genus or specific like stec
+        """
+        self._config_data = get_mongodb_config_data()
+        self._opened_mongo_database = self._open_mongo_database(species)
 
-    def __init__(self):
-        pass
-
-    def _open_mongo_database(self, config_data: dict, species: str) -> pymongo.database.Database:
+    def _open_mongo_database(self, species: str) -> pymongo.database.Database:
         """
         Connects to the mongo Cloud Cluster specified in the config file and opens the database
-        :param config_data: config data containing connection string
         :param species: commonly used bioit species name: either genus or specific like stec
         :return: opened database object
         """
         try:
-            client = MongoClient(config_data["CONNECTION_STRING_BASE"])
+            client = MongoClient(self._config_data["CONNECTION_STRING_BASE"])
         except Exception:
-            raise RuntimeError(f"Could not connect to {config_data['CONNECTION_STRING_BASE']}")
-        if config_data["dtap"] not in ['dev', 'test', 'acc', 'prod']:
+            raise RuntimeError(f"Could not connect to {self._config_data['CONNECTION_STRING_BASE']}")
+        if self._config_data["dtap"] not in ['dev', 'test', 'acc', 'prod']:
             raise NameError(f"replace dtap value in MongoDB/config/config.yml")
-        return client['_'.join([species, config_data["dtap"]])]  # e.g. listeria_dev
+        return client['_'.join([species, self._config_data["dtap"]])]  # e.g. listeria_dev
 
-    def _open_mongo_collection(self, opened_database: pymongo.database.Database, collection: str, config_data: dict) -> pymongo.collection.Collection:
+    def _open_mongo_collection(self, opened_database: pymongo.database.Database, collection: str) -> pymongo.collection.Collection:
         """
         Opens a mongo collection in an opened database
         :param opened_database: mongo opened database
@@ -36,61 +41,50 @@ class MongoInitialisation:
         """
         # MongoDB creates collections on the fly while inserting any Documents, we do not want to allow
         # unwanted collections to be created, therefore this check:
-        if collection in config_data['collections']:
+        if collection in self._config_data['collections']:
             opened_collection = opened_database[collection]
             logging.debug(f"opened collection {collection}")
             return opened_collection
         else:
             raise RuntimeError(f"Collection '{collection}' not in supported collections")
 
-    def initialise_collections(self, config_data: dict, species: str) -> (pymongo.collection.Collection, pymongo.collection.Collection, pymongo.collection.Collection, pymongo.collection.Collection):
+    def initialise_collections(self) -> (pymongo.collection.Collection, pymongo.collection.Collection, pymongo.collection.Collection, pymongo.collection.Collection):
         """
         Initialises database and collections for interaction
-        :param config_data: config data that contains connection string connect to Cloud Cluster or local
-        :param species: string that is the database name
         :return: opened isolate, isolatesresults and isolatesbadqc collections (objects) for a given species
         """
-        # open connection to species db
-        species_database = self._open_mongo_database(config_data, species)
         # open isolates collection
-        isolates_collection = self._open_mongo_collection(species_database, "isolates", config_data)
+        isolates_collection = self._open_mongo_collection(self._opened_mongo_database, "isolates")
         # open isolate_results collection
-        isolateresults_collection = self._open_mongo_collection(species_database, "old_isolate_results", config_data)
+        isolateresults_collection = self._open_mongo_collection(self._opened_mongo_database, "old_isolate_results")
         # open isolates badqc collection
-        isolates_badqc_collection = self._open_mongo_collection(species_database, "isolates_badqc", config_data)
+        isolates_badqc_collection = self._open_mongo_collection(self._opened_mongo_database, "isolates_badqc")
         # open isolates resequencing collection
-        isolates_resequencing_collection = self._open_mongo_collection(species_database, "isolates_resequencing", config_data)
+        isolates_resequencing_collection = self._open_mongo_collection(self._opened_mongo_database, "isolates_resequencing")
         return isolates_collection, isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection
 
-    def initialise_clustering_collections(self, config_data: dict, species: str) -> (pymongo.collection.Collection, pymongo.collection.Collection, pymongo.collection.Collection):
+    def initialise_clustering_collections(self) -> (pymongo.collection.Collection, pymongo.collection.Collection, pymongo.collection.Collection):
         """
         Initialises database and collections for interaction
-        :param config_data: config data to connect to Cloud Cluster
-        :param species: string that is the database name
         :return: opened sequence_type and  for a given species
         """
-        species_database = self._open_mongo_database(config_data, species)
-        st_collection = self._open_mongo_collection(species_database, "sequence_types", config_data)
-        cluster_membership_collection = self._open_mongo_collection(species_database, "cluster_membership",config_data)
-        cluster_merging_collection = self._open_mongo_collection(species_database, "cluster_merging", config_data)
+        st_collection = self._open_mongo_collection(self._opened_mongo_database, "sequence_types")
+        cluster_membership_collection = self._open_mongo_collection(self._opened_mongo_database, "cluster_membership")
+        cluster_merging_collection = self._open_mongo_collection(self._opened_mongo_database, "cluster_merging")
         return st_collection,  cluster_membership_collection, cluster_merging_collection
 
-    def initialise_hashing_collection(self, config_data: dict, species: str) -> pymongo.collection.Collection:
+    def initialise_hashing_collection(self) -> pymongo.collection.Collection:
         """
-        :param config_data: config data containing connection string
-        :param species: commonly used bioit species name: either genus or specific like stec
+        Initialises collection containing hashes
         :return: Opened hashing collection
         """
-        species_database = self._open_mongo_database(config_data, species)
-        hashed_ad_collection = self._open_mongo_collection(species_database, "new_allele_hashes", config_data)
+        hashed_ad_collection = self._open_mongo_collection(self._opened_mongo_database, "new_allele_hashes")
         return hashed_ad_collection
 
-    def initialise_update_collection(self, config_data: dict, species: str) -> pymongo.collection.Collection:
+    def initialise_update_collection(self, species: str) -> pymongo.collection.Collection:
         """
-        :param config_data:
-        :param species:
+        Initialises collection containing update metadata
         :return: Opened hashing collection
         """
-        species_database = self._open_mongo_database(config_data, species)
-        update_collection = self._open_mongo_collection(species_database, "update_metadata", config_data)
+        update_collection = self._open_mongo_collection(self._opened_mongo_database, "update_metadata")
         return update_collection

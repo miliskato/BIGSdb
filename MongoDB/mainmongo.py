@@ -30,6 +30,7 @@ from MongoDB.util.mongo_custom_clustering import MongoCustomClustering
 from MongoDB.config import MONGO_CONFIG
 from MongoDB.config import CLUSTERING_CONFIG
 from MongoDB.util.command.command import Command
+from MongoDB.util.python_utility_functions import get_mongodb_config_data, send_email
 
 
 def _parse_arguments(specieslist: List[str]) -> argparse.Namespace:
@@ -141,7 +142,7 @@ def find_hashes_in_results_and_add_to_collection(results: dict, mongoinit: Mongo
     :param species:
     :return: results
     """
-    hashed_ad_collection = mongoinit.initialise_hashing_collection(config_data, species)
+    hashed_ad_collection = mongoinit.initialise_hashing_collection()
     for typing_scheme in ['mlst', 'cgmlst',  'mlst_warwick', 'mlst_pasteur']:
         if typing_scheme in results:
             for locus_index, allele_info in enumerate(results[typing_scheme]['loci']):
@@ -261,79 +262,76 @@ class MainMongo:
         self.vcffilepath = vcffilepath
         self.alternate_connection_string = alternate_connection_string
         self.dont_send_email = dont_send_email
-        
-        self.run_MainMongo()
 
-    def run_MainMongo(self) -> None:
-        """
-        Main function
-        :return:
-        """
         # Parse config
-        with open(MONGO_CONFIG, encoding='utf-8') as handle:
-            self._config_data = yaml.safe_load(handle)
-
+        self._mongo_config_data = get_mongodb_config_data
         # if testing purposes; replace connection string by testing connection string
         if self.alternate_connection_string:
-            self._config_data['CONNECTION_STRING_BASE'] = self.alternate_connection_string
+            self._mongo_config_data['CONNECTION_STRING_BASE'] = self.alternate_connection_string
 
+        # Open collections
+        self.mongoinit = MongoInitialisation(self._species)
+        self.isolates_collection, self.old_isolateresults_collection, self.isolates_badqc_collection, self.isolates_resequencing_collection = self.mongoinit.initialise_collections()
+        self.st_collection, self.cluster_membership_collection, self.cluster_merging_collection = self.mongoinit.initialise_clustering_collections()
+        self.mongoquerying = Mongoquerying()
+
+        # Execute main function
         try:
-            # Configure stdout logging
-            logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
-
-            # Open collections
-            self.mongoinit = MongoInitialisation()
-            self.isolates_collection, self.old_isolateresults_collection, self.isolates_badqc_collection, self.isolates_resequencing_collection = self.mongoinit.initialise_collections(
-                self._config_data, self._species)
-            self.st_collection, self.cluster_membership_collection, self.cluster_merging_collection = \
-                self.mongoinit.initialise_clustering_collections(self._config_data, self._species)
-            self.mongoquerying = Mongoquerying()
-
-            # If statement for results_type
-            if self.results_type == "new_isolate":
-                new_records = json.load(open(self.jsonfilepath, 'r'))
-                # todo check if fasta path and vcf path are real?
-                isolates_findone = self.isolates_collection.find_one({"_id": self.technical_id})
-                if isolates_findone:
-                    self._new_resequencing_arrival(new_records, dict(isolates_findone), self.isolates_collection)
-                else:
-                    # Were excluding documents that were validated, additionally only documents that were validated with a negative result are still in the badqc collection
-                    # Additionally, documents that were negatively validated now have their _id removed in sample_validation_to_mongo.py
-                    isolates_badqc_findone = self.isolates_badqc_collection.find_one({"_id": self.technical_id, "validation": None})
-                    if isolates_badqc_findone:
-                        # unvalidated badqc isolates are taken care of in the _new_resequencing_arrival function
-                        self._new_resequencing_arrival(new_records, dict(isolates_badqc_findone), self.isolates_badqc_collection)
-                    else:
-                        self._new_isolate_wrapper(new_records)
-            elif self.results_type == 'badqc_validated':
-                sample_doc = self.isolates_badqc_collection.find_one({"_id": self.technical_id})
-                new_records = sample_doc['results']
-                self.validation = self.subvaldict
-                self.fastafilepath = sample_doc['fasta_path']
-                self.vcffilepath = sample_doc['vcf_path']
-                self._new_isolate_wrapper(new_records)
-            elif self.results_type == "reanalysis" or self.results_type == 'resequencing_validated':
-                try:
-                    current_results_document = \
-                        self.mongoquerying.query_docs_by_ids(self.isolates_collection, [self.technical_id])[0]
-                except Exception as exceptionmessage:
-                    self._send_email(
-                        f"{Path(__file__).name} fail on host {socket.gethostname()}: This reanalysis technical id ({self.technical_id}) is not present in the isolates collections",
-                        f"{exceptionmessage}\n{traceback.format_exc()}")
-                    raise Exception(
-                        f"{Path(__file__).name} fail on host {socket.gethostname()}: This reanalysis technical id ({self.technical_id}) is not present in the isolates collections")
-                if self.results_type == "reanalysis":
-                    new_results_handle = json.load(open(self.jsonfilepath, 'r'))
-                elif self.results_type == 'resequencing_validated':
-                    new_results_handle = self.isolates_resequencing_collection.find_one({"_id": self.technical_id})
-                    self.validation = self.subvaldict
-
-                self._new_reanalysis_wrapper(current_results_document, new_results_handle)
-
+            self.main_mongo()
         except Exception as exceptionmessage:
             self._send_email(f"{Path(__file__).name} fail on host {socket.gethostname()}",
                         f"{exceptionmessage}\n{traceback.format_exc()}")
             raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}: {exceptionmessage}\n{traceback.format_exc()}")
+
+    def main_mongo(self) -> None:
+        """
+        Main function
+        :return:
+        """
+        # Configure stdout logging
+        logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
+
+        # If statement for results_type
+        if self.results_type == "new_isolate":
+            new_records = json.load(open(self.jsonfilepath, 'r'))
+            # todo check if fasta path and vcf path are real?
+            isolates_findone: Dict[str, Any] = self.isolates_collection.find_one({"_id": self.technical_id})
+            if isolates_findone:
+                self._new_resequencing_arrival(new_records, isolates_findone, self.isolates_collection)
+            else:
+                # Were excluding documents that were validated, additionally only documents that were validated with a negative result are still in the badqc collection
+                # Additionally, documents that were negatively validated now have their _id removed in sample_validation_to_mongo.py
+                isolates_badqc_findone = self.isolates_badqc_collection.find_one({"_id": self.technical_id, "validation": None})
+                if isolates_badqc_findone:
+                    # unvalidated badqc isolates are taken care of in the _new_resequencing_arrival function
+                    self._new_resequencing_arrival(new_records, isolates_badqc_findone, self.isolates_badqc_collection)
+                else:
+                    self._new_isolate_wrapper(new_records)
+        elif self.results_type == 'badqc_validated':
+            sample_doc = self.isolates_badqc_collection.find_one({"_id": self.technical_id})
+            new_records = sample_doc['results']
+            self.validation = self.subvaldict
+            self.fastafilepath = sample_doc['fasta_path']
+            self.vcffilepath = sample_doc['vcf_path']
+            self._new_isolate_wrapper(new_records)
+        elif self.results_type == "reanalysis" or self.results_type == 'resequencing_validated':
+            try:
+                current_results_document = \
+                    self.mongoquerying.query_docs_by_ids(self.isolates_collection, [self.technical_id])[0]
+            except Exception as exceptionmessage:
+                self._send_email(
+                    f"{Path(__file__).name} fail on host {socket.gethostname()}: This reanalysis technical id ({self.technical_id}) is not present in the isolates collections",
+                    f"{exceptionmessage}\n{traceback.format_exc()}")
+                raise Exception(
+                    f"{Path(__file__).name} fail on host {socket.gethostname()}: This reanalysis technical id ({self.technical_id}) is not present in the isolates collections")
+            if self.results_type == "reanalysis":
+                new_results_handle = json.load(open(self.jsonfilepath, 'r'))
+            elif self.results_type == 'resequencing_validated':
+                new_results_handle = self.isolates_resequencing_collection.find_one({"_id": self.technical_id})
+                self.validation = self.subvaldict
+
+            self._new_reanalysis_wrapper(current_results_document, new_results_handle)
+
 
     def _new_isolate_wrapper(self, new_records: dict) -> None:
         """
@@ -355,7 +353,7 @@ class MainMongo:
                     f"No qc values found in the given results\n{traceback.format_exc()}")
                 raise KeyError('No qc values found in the given results')
         if sample_quality == 'good':
-            new_records = find_hashes_in_results_and_add_to_collection(new_records, self.mongoinit, self._config_data,
+            new_records = find_hashes_in_results_and_add_to_collection(new_records, self.mongoinit, self._mongo_config_data,
                                                                    self._species, self.results_type)
             _write_document(self.isolates_collection,
                             _new_isolate(self.technical_id, str(self.reportdirectorypath), str(self.vcffilepath),
@@ -456,7 +454,7 @@ class MainMongo:
             new_results = new_results_document['results']
         new_results_handle_hashes_replaced = find_hashes_in_results_and_add_to_collection(new_results,
                                                                                           self.mongoinit,
-                                                                                          self._config_data,
+                                                                                          self._mongo_config_data,
                                                                                           self._species,
                                                                                           self.results_type)
         current_results = current_results_document['results']
@@ -565,21 +563,20 @@ class MainMongo:
         if not self.dont_send_email:
             message = EmailMessage()
             message['Subject'] = subject
-            message['From'] = self._config_data['mail']['from']
-            message['To'] = self._config_data['mail']['to']
+            message['From'] = self._mongo_config_data['mail']['from']
+            message['To'] = self._mongo_config_data['mail']['to']
             message.set_content(content)
-            with smtplib.SMTP(self._config_data['mail']['host']) as s:
+            with smtplib.SMTP(self._mongo_config_data['mail']['host']) as s:
                 s.send_message(message)
         logging.info(content)
 
 if __name__ == '__main__':
 
     # Parse config
-    with open(MONGO_CONFIG, encoding='utf-8') as handle:
-        config_data = yaml.safe_load(handle)
+    mongo_config_data = get_mongodb_config_data
 
     # Parse arguments
-    args = _parse_arguments(config_data['species'])
+    args = _parse_arguments(mongo_config_data['species'])
     parameter_compatibility_checks(args)
 
     # run main

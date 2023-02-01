@@ -24,7 +24,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
         :return: None
         """
         JsonSuperClass.__init__(self, isolatename, species, sample_output_dict, config_data)
-        self._schemedict: Dict[str, Dict[str, str]] = self._config_data['species_json'][self._species]['typing_schemes']
+        self._schemedict: Dict[str, Dict[str, str]] = self._mongo_config_data['species_json'][self._species]['typing_schemes']
         self._scheme = None
 
     def insert_typing_results(self) -> None:

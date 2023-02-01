@@ -267,11 +267,11 @@ def run_upload_new_alleles_profiles_clustering_from_mongo_to_bigs(species: str) 
     # Configure stdout logging
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
     # Open collections
-    mongoinit = MongoInitialisation()
-    hashed_ad_collection = mongoinit.initialise_hashing_collection(config_data, species)
+    mongoinit = MongoInitialisation(species)
+    hashed_ad_collection = mongoinit.initialise_hashing_collection()
     st_collection, cluster_membership_collection, cluster_merging_collection = \
-        mongoinit.initialise_clustering_collections(config_data, species)
-    update_collection = mongoinit.initialise_update_collection(config_data, species)
+        mongoinit.initialise_clustering_collections()
+    update_collection = mongoinit.initialise_update_collection()
 
     # initialize the class
     try:

@@ -35,9 +35,9 @@ if __name__ == '__main__':
     # Parse arguments
     args = parse_arguments(config_data['species'])
     # Open collections
-    mongoinit = MongoInitialisation()
+    mongoinit = MongoInitialisation(args.species)
     st_collection, cluster_membership_collection = \
-        mongoinit.initialise_clustering_collections(config_data, args.species)
+        mongoinit.initialise_clustering_collections()
 
     new_threshold_clustering = NewThresholdClustering(st_collection, cluster_membership_collection, args.cl_config,
                                                       list(set(args.new_cl_thresh)), args.species)

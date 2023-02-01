@@ -85,8 +85,8 @@ def samples_to_validation_bigs(species: str) -> None:
     try:
 
         # Open collections
-        mongoinit = MongoInitialisation()
-        isolates_collection, old_isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections(mongo_config_data, species)
+        mongoinit = MongoInitialisation(species)
+        isolates_collection, old_isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections()
 
         # fetch all documents in the bad samples of the species
         update_collection = mongoinit.initialise_update_collection(mongo_config_data, species)

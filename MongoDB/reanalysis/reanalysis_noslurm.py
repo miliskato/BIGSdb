@@ -144,8 +144,8 @@ def reanalysis_noslurm(species: str, maximal_analysis_date: str, minimal_analysi
         start_time_reanalysis = datetime.datetime.utcnow()
 
         # Retrieve isolates that need to be re-analyzed
-        mongoinit = MongoInitialisation()
-        isolates_collection, old_isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections(mongo_config_data, species)
+        mongoinit = MongoInitialisation(species)
+        isolates_collection, old_isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections()
         # query all the documents, # todo maybe do a projection as were only interested in _id, fastapath, vcfpath unless we also want db updates later (can also be projected)
 
         documents_list = [doc for doc in isolates_collection.find({'latest_analysis_date': {"$lt": maximal_analysis_date, "$gte": minimal_analysis_date}}, {"_id": 1, "fasta_path": 1, "vcf_path": 1, "report_directory": 1, "latest_analysis_date": 1})]

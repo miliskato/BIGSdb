@@ -54,13 +54,13 @@ if __name__ == '__main__':
         logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
         # Open collections
-        mongoinit = MongoInitialisation()
+        mongoinit = MongoInitialisation('listeria')
         isolates_collection, old_isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = \
-            mongoinit.initialise_collections(config_data, 'listeria')
-        hashed_ad_collection = mongoinit.initialise_hashing_collection(config_data, 'listeria')
+            mongoinit.initialise_collections()
+        hashed_ad_collection = mongoinit.initialise_hashing_collection()
         st_collection, cluster_membership_collection, cluster_merging_collection = \
-            mongoinit.initialise_clustering_collections(config_data, 'listeria')
-        update_collection = mongoinit.initialise_update_collection(config_data, 'listeria')
+            mongoinit.initialise_clustering_collections()
+        update_collection = mongoinit.initialise_update_collection()
 
         # as a first step I would drop the db if query less than 5 results else raise exception
         documents_count = isolates_collection.count_documents({})

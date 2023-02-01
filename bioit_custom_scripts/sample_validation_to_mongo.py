@@ -53,9 +53,9 @@ if __name__ == '__main__':
     try:
 
         # Open collections
-        mongoinit = MongoInitialisation()
+        mongoinit = MongoInitialisation(species)
         isolates_collection, old_isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = \
-            mongoinit.initialise_collections(mongo_config, species)
+            mongoinit.initialise_collections()
 
         # Connect to db and create cursor
         with TblSubmissions(species) as isolates_submissions_psql_tbl:

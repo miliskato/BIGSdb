@@ -96,9 +96,8 @@ def mongo_to_bigs(species: str, single_sample: str = None) -> None:
     try:
 
         # Open collections
-        mongoinit = MongoInitialisation()
-        isolates_collection, old_isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections(
-            mongo_config_data, species)
+        mongoinit = MongoInitialisation(species)
+        isolates_collection, old_isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections()
 
         # call the function to insert new alleles and profiles
         run_upload_new_alleles_profiles_clustering_from_mongo_to_bigs(species)

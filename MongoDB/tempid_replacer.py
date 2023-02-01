@@ -56,25 +56,23 @@ class TempidReplacer:
         if self._alternate_connection_string:
             self._mongo_config_data['CONNECTION_STRING_BASE'] = self._alternate_connection_string
         # Open collections
-        self._mongoinit = MongoInitialisation()
-        self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, self._isolates_resequencing_collection = self._mongoinit.initialise_collections(
-            self._mongo_config_data, self._species)
-        self._hashed_ad_collection = self._mongoinit.initialise_hashing_collection(mongo_config_data, species)
-        self._st_collection, self._cluster_membership_collection, self._cluster_merging_collection = \
-            self._mongoinit.initialise_clustering_collections(mongo_config_data, species)
+        self._mongoinit = MongoInitialisation(self._species)
+        self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, self._isolates_resequencing_collection = self._mongoinit.initialise_collections()
+        self._hashed_ad_collection = self._mongoinit.initialise_hashing_collection()
+        self._st_collection, self._cluster_membership_collection, self._cluster_merging_collection = self._mongoinit.initialise_clustering_collections()
 
         # Query all unresolved hashes from hash collection for this particular scheme
-        self._documents_list = self._query_hashes_of_scheme()
+        self._documents_list = self.__query_hashes_of_scheme()
 
         # Execute main
         try:
-            self.tempid_replacer()
+            self._tempid_replacer()
         except Exception as exceptionmessage:
             send_email(f"{exceptionmessage}\n{traceback.format_exc()}")
             raise Exception(
                 f"{Path(__file__).name} fail on host {socket.gethostname()}")
 
-    def tempid_replacer(self) -> None:
+    def _tempid_replacer(self) -> None:
         """
         Main function
         Checks the databases to see if previously defined temporary id's have been taken up in the source database.
@@ -90,10 +88,10 @@ class TempidReplacer:
         logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
         if len(self._documents_list) != 0:
-            locus_hash_dict = self._create_locus_hash_dict()
+            locus_hash_dict = self.__create_locus_hash_dict()
             for locus, values in locus_hash_dict.items():
                 hash_list = values['hashed_alleles']
-                fasta_file = self._check_and_return_fasta_file(locus)
+                fasta_file = self.__check_and_return_fasta_file(locus)
                 logging.info(f"hash list: {hash_list} for locus {locus}")
                 with fasta_file.open() as handle:
                     alleles = SeqIO.parse(handle, 'fasta')
@@ -101,14 +99,14 @@ class TempidReplacer:
                     for allele in alleles:
                         hashed_allele = hashlib.md5(bytes(allele.seq, 'utf-8')).hexdigest()
                         if hashed_allele in hash_list:
-                            self._update_temp_to_real_mongodb(locus, allele, hashed_allele, hash_list, values)
+                            self.__update_temp_to_real_mongodb(locus, allele, hashed_allele, hash_list, values)
             if 'bigs' in socket.gethostname() and self._alternate_connection_string is None:
                 with TblAlleleDesignations(self._species) as isolates_ad_psql_tbl:
                     for hash_document in self._documents_list:
                         if hash_document['resolved_AD'] != 0:
                             isolates_ad_psql_tbl.update_designations((hash_document['resolved_AD'], hash_document['locus'], hash_document['hashed_allele']))
 
-    def _query_hashes_of_scheme(self) -> List[Dict[str, Any]]:
+    def __query_hashes_of_scheme(self) -> List[Dict[str, Any]]:
         """
         Query unresolved hashes of a given scheme in the hashes collection
         :return: list of documents (dicts) of unresolved hashes
@@ -117,7 +115,7 @@ class TempidReplacer:
                 self._hashed_ad_collection.with_options(read_concern=ReadConcern(level="majority")).find(
                     {"scheme": self._scheme, "resolved_AD": 0})]
 
-    def _create_locus_hash_dict(self) -> Dict[str, Dict[str, List[str]]]:
+    def __create_locus_hash_dict(self) -> Dict[str, Dict[str, List[str]]]:
         locus_hash_dict = {}
         for document_index, hash_document in enumerate(self._documents_list):
             if hash_document['locus'] in locus_hash_dict:
@@ -130,7 +128,7 @@ class TempidReplacer:
                                                            'temp_alleles': [hash_document['temp_allele_name']]}
         return locus_hash_dict
 
-    def _check_and_return_fasta_file(self, locus: str) -> Path:
+    def __check_and_return_fasta_file(self, locus: str) -> Path:
         """
         Checks if fasta file exists and returns the path if so
         :param locus: current locus name
@@ -151,7 +149,7 @@ class TempidReplacer:
                                f"does not seem to adhere to the normal fasta path syntax")
         return fasta_file
 
-    def _update_temp_to_real_mongodb(self, locus: str, allele: SeqRecord, hashed_allele: str, hash_list: List[str], values: Dict[str, List[Union[str, int]]]) -> None:
+    def __update_temp_to_real_mongodb(self, locus: str, allele: SeqRecord, hashed_allele: str, hash_list: List[str], values: Dict[str, List[Union[str, int]]]) -> None:
         """
         Updates the temporary identifiers that are now newly in the source database to the source database's identifier in MongoDB
         :param locus: current locus name
@@ -167,10 +165,10 @@ class TempidReplacer:
         new_allele_id = allele.id.split('_')[-1]
         # Update collections
         logging.debug(f"replacing {temp_allele_name} by {new_allele_id} for locus {locus}")
-        self.__update_temp_allele_to_new(self._isolates_collection, locus, temp_allele_name, new_allele_id)
-        self.__update_temp_allele_to_new(self._isolates_badqc_collection, locus, temp_allele_name, new_allele_id)
-        self.__update_temp_allele_to_new(self._isolates_resequencing_collection, locus, temp_allele_name, new_allele_id)
-        self.__update_temp_allele_to_new(self._old_isolateresults_collection, locus, temp_allele_name, new_allele_id, in_results=False)
+        self.___update_temp_allele_to_new(self._isolates_collection, locus, temp_allele_name, new_allele_id)
+        self.___update_temp_allele_to_new(self._isolates_badqc_collection, locus, temp_allele_name, new_allele_id)
+        self.___update_temp_allele_to_new(self._isolates_resequencing_collection, locus, temp_allele_name, new_allele_id)
+        self.___update_temp_allele_to_new(self._old_isolateresults_collection, locus, temp_allele_name, new_allele_id, in_results=False)
         # Update document but do not delete
         self._hashed_ad_collection.with_options(write_concern=WriteConcern(w="majority")).update_one(
             {"scheme": self._scheme, "resolved_AD": 0, "locus": locus, "temp_allele_name": temp_allele_name},
@@ -193,7 +191,7 @@ class TempidReplacer:
                 self._st_collection.find_one_and_update({"cgST": st["cgST"]},
                                                         {"$set": {"cgMLST": cgmlst}})
 
-    def __update_temp_allele_to_new(self, collection: pymongo.collection.Collection, locus: str, temp_allele_name: str, new_allele_id: str, in_results: bool = True) -> None:
+    def ___update_temp_allele_to_new(self, collection: pymongo.collection.Collection, locus: str, temp_allele_name: str, new_allele_id: str, in_results: bool = True) -> None:
         """
         Updates the collections containing isolates with the newly found alleles that were previously temporary identifiers
         :param collection: collection containing isolates that needs to be updated
