@@ -69,6 +69,7 @@ class MainMongo:
         :param fastafilepath: absolute path to where the fasta file is stored (only required for new_isolate)
         :param vcffilepath: absolute path to where the fasta file is stored (only required for new_isolate)
         :param alternate_connection_string: use given alternate connection string, used for testing on the free Atlas Cluster
+        :return: None
         """
         # Input parameters
         self._technical_id = technical_id
@@ -140,13 +141,14 @@ class MainMongo:
 
         # If statement for results_type
         if self._results_type == "new_isolate":
-            new_records = json.load(open(self._jsonfilepath, 'r'))
+            with Path(self._jsonfilepath).open('r') as handle:
+                new_records = json.load(handle)
             # todo check if fasta path and vcf path are real?
             isolates_findone: Dict[str, Any] = self._isolates_collection.find_one({"_id": self._technical_id})
             if isolates_findone:
                 self._new_resequencing_arrival(new_records, isolates_findone, self._isolates_collection)
             else:
-                # Were excluding documents that were validated, additionally only documents that were validated with a negative result are still in the badqc collection
+                # We're excluding documents that were validated, additionally only documents that were validated with a negative result are still in the badqc collection
                 # Additionally, documents that were negatively validated now have their _id removed in sample_validation_to_mongo.py
                 isolates_badqc_findone = self._isolates_badqc_collection.find_one({"_id": self._technical_id, "validation": None})
                 if isolates_badqc_findone:
@@ -172,7 +174,8 @@ class MainMongo:
                 raise Exception(
                     f"{Path(__file__).name} fail on host {socket.gethostname()}: This reanalysis technical id ({self._technical_id}) is not present in the isolates collections")
             if self._results_type == "reanalysis":
-                new_results_handle = json.load(open(self._jsonfilepath, 'r'))
+                with Path(self._jsonfilepath).open('r') as handle:
+                    new_results_handle = json.load(handle)
             else:  # self._results_type == 'resequencing_validated'
                 new_results_handle = self._isolates_resequencing_collection.find_one({"_id": self._technical_id})
 
@@ -185,19 +188,19 @@ class MainMongo:
         :return: None
         """
         new_records["isolates_id"] = self._technical_id
-        sample_quality = 'good'
+        good_sample_quality = True
         if self._results_type == 'new_isolate':
             try:
                 for qc_type in new_records['qc']:
                     for key in new_records['qc'][qc_type]:
                         if key.endswith('status') and new_records['qc'][qc_type][key] == 'Failed':
-                            sample_quality = 'bad'
+                            good_sample_quality = False
             except KeyError:
                 send_email(
                     f"No qc values found in the given results for {self._technical_id}\n{traceback.format_exc()}",
                     dont_send_email=self._dont_send_email)
                 raise KeyError('No qc values found in the given results')
-        if sample_quality == 'good':
+        if good_sample_quality:
             new_records = self.__find_hashes_in_results_and_add_to_collection(new_records, 'new_isolate')
             new_records = self.__convert_typinghitdictionaries_to_lists(new_records)
             new_isolate_dictionary = self.__new_isolate(new_records)
@@ -233,8 +236,9 @@ class MainMongo:
         # https://git.sciensano.be/bioit/BIGSdb/src/d2a261056221056e56df6aa584563454f6bfec3a/lib/BIGSdb/SubmitPage.pm#L2800
         # 2022-12-20 Check whether resequencing; if resequencing; fasta md5sum should be different from original one. debating whether to store md5 in mongo or not
         # resequencings should be rare so we can afford multiple finds
-        md5_original = hashlib.md5(bytes(open(Path(document_original['fasta_path']), 'r').read(), 'utf-8')).hexdigest()
-        md5_new = hashlib.md5(bytes(open(Path(self._fastafilepath), 'r').read(), 'utf-8')).hexdigest()
+        with Path(document_original['fasta_path']).open('r') as handle_ori, Path(self._fastafilepath).open('r') as handle_new:
+            md5_original = hashlib.md5(bytes(handle_ori.read(), 'utf-8')).hexdigest()
+            md5_new = hashlib.md5(bytes(handle_new.read(), 'utf-8')).hexdigest()
         if md5_original != md5_new:
             # this is an actual resequencing because the fastafilepath is different
 
@@ -298,7 +302,7 @@ class MainMongo:
             new_results = self.__find_hashes_in_results_and_add_to_collection(new_results,
                                                                               'reanalysis')
             new_results = self.__convert_typinghitdictionaries_to_lists(new_results)
-        elif self._results_type == 'resequencing_validated':
+        else:  # if self._results_type == 'resequencing_validated':
             new_results = new_results_document['results']
             new_results = self.__revert_typinghitlists_to_dictionaries(new_results)
             new_results = self.__find_hashes_in_results_and_add_to_collection(new_results,

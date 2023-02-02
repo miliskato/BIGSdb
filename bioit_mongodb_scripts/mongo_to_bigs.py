@@ -13,6 +13,7 @@ import sys
 import traceback
 from email.message import EmailMessage
 from pathlib import Path
+from typing import Any, Dict, List
 
 import yaml
 from pymongo.read_concern import ReadConcern
@@ -26,13 +27,13 @@ from bioit_bigsdb_scripts.insert_assembly import insert_assembly
 from bioit_bigsdb_scripts.main_results_inserter import main_results_inserter
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.mongo_querying import Mongoquerying
-from bioit_mongodb_scripts.config import MONGO_CONFIG
+from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email
 from bioit_mongodb_scripts.new_alleles_profile_clustering_from_mongo_to_bigs import \
     run_upload_new_alleles_profiles_clustering_from_mongo_to_bigs
 from bioit_mongodb_scripts.samples_to_validation_bigs import samples_to_validation_bigs
 
 
-def _parse_arguments(specieslist: list) -> argparse.Namespace:
+def _parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     """
     Parses the command line arguments.
     :param specieslist: list of all the species choices
@@ -43,22 +44,6 @@ def _parse_arguments(specieslist: list) -> argparse.Namespace:
                                  choices=specieslist)
     argument_parser.add_argument('--single_sample', type=str, help=argparse.SUPPRESS)
     return argument_parser.parse_args()
-
-def _send_email(subject: str, content: str, config: dict) -> None:
-    """
-    Sends an email.
-    :param subject: Mail subject
-    :param content: Content of the message
-    :return: None
-    """
-    message = EmailMessage()
-    message['Subject'] = subject
-    message['From'] = config['from']
-    message['To'] = config['to']
-    message.set_content(content)
-    with smtplib.SMTP(config['host']) as s:
-        s.send_message(message)
-    logging.info(content)
 
 def _return_datetimeobj_from_DMYhms(datetimestring: str) -> object:
     """
@@ -87,8 +72,7 @@ def mongo_to_bigs(species: str, single_sample: str = None) -> None:
     :return:
     """
     # Parse Mongo config, second time because first time needed for argparse, and this time needed if function called from outside
-    with open(MONGO_CONFIG, encoding='utf-8') as handle:
-        mongo_config_data = yaml.safe_load(handle)
+    mongo_config_data = get_mongodb_config_data()
 
     # Parse Bigsdb config
     bigsdb_config_data = get_bigsdb_config_data()
@@ -110,9 +94,7 @@ def mongo_to_bigs(species: str, single_sample: str = None) -> None:
             if query_single is not None:
                 listofdocuments = [query_single]
             else:
-                _send_email(f"{Path(__file__).name} fail on host {socket.gethostname()}",
-                            f"Can not find document with _id '{single_sample}' in isolates",
-                            bigsdb_config_data['mail'])
+                send_email(f"Can not find document with _id '{single_sample}' in isolates")
                 raise Exception(
                     f"{Path(__file__).name} fail on host {socket.gethostname()}: Can not find document with _id '{single_sample}' in isolates")
 
@@ -156,9 +138,7 @@ def mongo_to_bigs(species: str, single_sample: str = None) -> None:
                             if old_results_withpointers is None:
                                 # what if bigs has version 1, but mongo has version 3, but version 3 is no different from 1 and 2?
                                 # Currently new versions are only created if there were changes so in case more than 2 versions different and missing then should send error.
-                                _send_email(f"{Path(__file__).name} fail on host {socket.gethostname()}",
-                                            f"Can not find document in old isolate results collection for isolate {new_results['isolates_id']} and results version {mongo_results_changed_version_bigs}",
-                                            bigsdb_config_data['mail'])
+                                send_email(f"Can not find document in old isolate results collection for isolate {new_results['isolates_id']} and results version {mongo_results_changed_version_bigs}")
                                 raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}: Can not find document in old isolate results collection for isolate {new_results['isolates_id']} and results version {mongo_results_changed_version_bigs}")
                             else:
                                 # replace the pointers in the old results by their actual contents
@@ -218,8 +198,7 @@ def mongo_to_bigs(species: str, single_sample: str = None) -> None:
                 logging.info(f"wrote new results version for {document_id} to bigsdb")
 
     except Exception as exceptionmessage:
-        _send_email(f"{Path(__file__).name} fail on host {socket.gethostname()}",
-                    f"{exceptionmessage}\n{traceback.format_exc()}", bigsdb_config_data['mail'])
+        send_email(f"{exceptionmessage}\n{traceback.format_exc()}")
         raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}")
 
 if __name__ == '__main__':
@@ -227,8 +206,7 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
     # Parse Mongo config
-    with open(MONGO_CONFIG, encoding='utf-8') as handle:
-        mongo_config_data = yaml.safe_load(handle)
+    mongo_config_data = get_mongodb_config_data()
 
     # Parse arguments
     args = _parse_arguments(mongo_config_data['species'])
