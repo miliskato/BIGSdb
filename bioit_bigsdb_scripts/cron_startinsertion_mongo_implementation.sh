@@ -26,8 +26,8 @@ do
   {
     sudo mv $dir /reports/$species/bigsdb_json_upload/${sample_name}
     $VENV_PYTHON_BIGSDB /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/htmltagger.py --htmlfilepath /reports/$species/bigsdb_json_upload/$sample_name/report.html --species $species
-    $VENV_PYTHON_BIGSDB /home/bigsdb/BIGSdb/MongoDB/mainmongo.py --reportdirectorypath /reports/$species/bigsdb_json_upload/${sample_name} --species ${species} --jsonfilepath /reports/$species/bigsdb_json_upload/${sample_name}/report.json --technical_id ${sample_name} --fastafilepath /reports/$species/bigsdb_json_upload/${sample_name}/assembly/${sample_name}_contigs.fasta --vcffilepath  /reports/$species/bigsdb_json_upload/${sample_name}/variant_filtering/${sample_name}-all.vcf --results_type new_isolate
-    $VENV_PYTHON_BIGSDB /home/bigsdb/BIGSdb/MongoDB/mongo_to_bigs.py --species ${species}
+    $VENV_PYTHON_BIGSDB /home/bigsdb/BIGSdb/bioit_mongodb_scripts/mainmongo.py --reportdirectorypath /reports/$species/bigsdb_json_upload/${sample_name} --species ${species} --jsonfilepath /reports/$species/bigsdb_json_upload/${sample_name}/report.json --technical_id ${sample_name} --fastafilepath /reports/$species/bigsdb_json_upload/${sample_name}/assembly/${sample_name}_contigs.fasta --vcffilepath  /reports/$species/bigsdb_json_upload/${sample_name}/variant_filtering/${sample_name}-all.vcf --results_type new_isolate
+    $VENV_PYTHON_BIGSDB /home/bigsdb/BIGSdb/bioit_mongodb_scripts/mongo_to_bigs.py --species ${species}
 ##    $VENV_PYTHON_BIGSDB /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/cgmlst_similar_isolates.py --isolatename $sample_name --species $species
   } 2>&1 | tee /home/galaxy/mongo/$sample_name.mongodb_bigsdb_insertion.log
   mv /home/galaxy/mongo/$sample_name.mongodb_bigsdb_insertion.log /reports/$species/bigsdb_json_upload/$sample_name/
