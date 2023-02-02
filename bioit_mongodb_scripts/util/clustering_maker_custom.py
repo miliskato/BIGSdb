@@ -16,7 +16,7 @@ from bioit_mongodb_scripts.util.mongo_querying import Mongoquerying
 
 class ClusteringMakerCustom(DistanceAndClusterComputer):
     def __init__(self, cluster_membership_collection: pymongo.collection.Collection, isolates_collection: pymongo.collection.Collection,
-                 hashed_AD_collection: pymongo.collection.Collection, threshold: int, sample: str) -> None:
+                 hashed_AD_collection: pymongo.collection.Collection, threshold: int, sample: str, headers_collection: pymongo.collection.Collection) -> None:
         """
         Init of the class
         :param cluster_membership_collection: collection where the cluster membership of the ST is stored
@@ -33,6 +33,7 @@ class ClusteringMakerCustom(DistanceAndClusterComputer):
         self.sample = sample
         self.sample_st = self._retrieve_sample_st()
         self.threshold = threshold
+        self._headers_collection = headers_collection
         self.cluster_membership = self._retrieve_cluster_membership()
         self.cluster_members_st = []
         self._retrieve_cluster_members_st()
@@ -74,17 +75,12 @@ class ClusteringMakerCustom(DistanceAndClusterComputer):
         :return:  None
         """
         for st in self.cluster_members_st:
-            query_samples = self.isolates_collection.find({'results.cgST': st})
+            query_samples = self.isolates_collection.find({'results.cgST': st}, {'_id': 1, 'results.cgmlst.loci': 1})
             for res in query_samples:
                 sample_id = res['_id']
                 if res == query_samples[0]:
                     mongoquerying = Mongoquerying()
-                    query_profile = mongoquerying.query_typing_results_by_technicalids_and_scheme(
-                    self.isolates_collection,
-                    self.hashed_AD_collection,
-                    scheme="cgmlst",
-                    technicalids=
-                    [sample_id])
+                    query_profile = mongoquerying.singledoc_typing_results_by_technicalids_and_scheme(res, 'cgmlst', self._headers_collection)
                 # next step is to order the alleles by allele names to be sure that all profiles are in the same order.
                 # ordered_alleles = [x for _, x in sorted(zip(query_profile[0][1:], query_profile[1][1:]))]
                 self.cgmlst_profiles.append(np.array(query_profile[1][1:]))

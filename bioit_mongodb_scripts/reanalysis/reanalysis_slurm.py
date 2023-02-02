@@ -135,9 +135,6 @@ def reanalysis_slurm(species: str, isolate: json.loads, threads: int = 8, analys
         with open(MONGO_CONFIG, encoding='utf-8') as handle:
             mongo_config_data = yaml.safe_load(handle)
 
-        if alternate_connection_string:
-            mongo_config_data['CONNECTION_STRING_BASE'] = mongo_config_data['CONNECTION_STRING_ALTERNATE']
-
         # ! For testing, you can specify isolates manually here
         # documents_list = [{'_id':'Myco-DRR041783-ds', .......}]
 

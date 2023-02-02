@@ -137,14 +137,11 @@ def reanalysis_noslurm(species: str, maximal_analysis_date: str, minimal_analysi
         with open(MONGO_CONFIG, encoding='utf-8') as handle:
             mongo_config_data = yaml.safe_load(handle)
 
-        if alternate_connection_string:
-            mongo_config_data['CONNECTION_STRING_BASE'] = mongo_config_data['CONNECTION_STRING_ALTERNATE']
-
         # capture start_time
         start_time_reanalysis = datetime.datetime.utcnow()
 
         # Retrieve isolates that need to be re-analyzed
-        mongoinit = MongoInitialisation(species)
+        mongoinit = MongoInitialisation(species, alternate_connection_string=alternate_connection_string)
         isolates_collection, old_isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections()
         # query all the documents, # todo maybe do a projection as were only interested in _id, fastapath, vcfpath unless we also want db updates later (can also be projected)
 

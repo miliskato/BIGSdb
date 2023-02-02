@@ -91,15 +91,11 @@ class MainMongo:
         self._dont_send_email = dont_send_email
 
         # Parse config
-        self._mongo_config_data = get_mongodb_config_data()
-        # if testing purposes; replace connection string by testing connection string
-        if self._alternate_connection_string:
-            self._mongo_config_data['CONNECTION_STRING_BASE'] = self._mongo_config_data['CONNECTION_STRING_ALTERNATE']
-
         # Open collections
-        self._mongoinit = MongoInitialisation(self._species)
+        self._mongoinit = MongoInitialisation(self._species, alternate_connection_string=self._alternate_connection_string)
         self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, self._isolates_resequencing_collection = self._mongoinit.initialise_collections()
         self._st_collection, self._cluster_membership_collection, self._cluster_merging_collection = self._mongoinit.initialise_clustering_collections()
+        self._headers_collection = self._mongoinit.initialise_headers_collection()
         self._mongoquerying = Mongoquerying()
 
         # Parameter compatibility checks
@@ -212,29 +208,27 @@ class MainMongo:
                     dont_send_email=self._dont_send_email)
                 raise KeyError('No qc values found in the given results')
         if sample_quality == 'good':
-            new_records = self.__find_hashes_in_results_and_add_to_collection(new_records, self._mongoinit, 'new_isolate')
-            self.__write_document(self._isolates_collection,
-                            self.__new_isolate(self._technical_id, str(self._reportdirectorypath), str(self._vcffilepath),
-                                         str(self._fastafilepath), new_records))
-            logging.info(f"Wrote new isolate {self._technical_id} and its result to {self._species} database")
+            new_records = self.__find_hashes_in_results_and_add_to_collection(new_records, 'new_isolate')
+            new_records = self.__convert_typinghitdictionaries_to_lists(new_records)
+            new_isolate_dictionary = self.__new_isolate(self._technical_id, str(self._reportdirectorypath), str(self._vcffilepath),
+                                         str(self._fastafilepath), new_records)
             if 'cgmlst' in new_records:
-                clustering_input = self._mongoquerying.query_typing_results_by_technicalids_and_scheme(
-                    self._isolates_collection,
-                    scheme="cgmlst",
-                    technicalids=[self._technical_id])
+                clustering_input = self._mongoquerying.singledoc_typing_results_by_technicalids_and_scheme(
+                    new_isolate_dictionary, "cgmlst", self._headers_collection)
                 custom_clustering = MongoCustomClustering(clustering_input[0], clustering_input[1], self._species)
                 logging.info(f"Running the clustering for the isolate {self._technical_id}")
                 sp_thresholds = f"clustering_thresholds_{self._species}"
-                sequence_type = custom_clustering.run_custom_clustering(self._st_collection,
+                cg_sequence_type = custom_clustering.run_custom_clustering(self._st_collection,
                                                                         self._cluster_membership_collection,
                                                                         self._cluster_merging_collection,
                                                                         CLUSTERING_CONFIG[sp_thresholds])
-                self._isolates_collection.with_options(write_concern=WriteConcern(w="majority")).find_one_and_update(
-                    {"_id": new_records["isolates_id"]}, {"$set": {"results.cgST": sequence_type}})
+                new_isolate_dictionary['results']['cgST'] = cg_sequence_type
             if self._results_type == 'badqc_validated':
-                self._isolates_collection.with_options(write_concern=WriteConcern(w="majority")).find_one_and_update(
-                    {"_id": new_records["isolates_id"]}, {'$set': {'validation': self.validation}})
+                new_isolate_dictionary['validation'] = self.validation
                 self._isolates_badqc_collection.delete_one({'_id': new_records["isolates_id"]})
+            self.__write_document(self._isolates_collection,
+                            new_isolate_dictionary)
+            logging.info(f"Wrote new isolate {self._technical_id} and its result to {self._species} database")
         else:
             self.__write_document(self._isolates_badqc_collection,
                             self.__new_isolate(self._technical_id, str(self._reportdirectorypath), str(self._vcffilepath),
@@ -296,9 +290,15 @@ class MainMongo:
             #         f"The technical id '{self._technical_id}' is already present in the isolates or isolates badqc collection")
             else:
                 new_records["isolates_id"] = self._technical_id
-                self.__write_document(self._isolates_resequencing_collection,
-                                self.__new_isolate(self._technical_id, str(self._reportdirectorypath), str(self._vcffilepath),
-                                             str(self._fastafilepath), new_records))
+                new_isolate = self.__new_isolate(self._technical_id, str(self._reportdirectorypath), str(self._vcffilepath),
+                                             str(self._fastafilepath), new_records)
+                new_isolate = self.__convert_typinghitdictionaries_to_lists(new_isolate)
+                self.__write_document(self._isolates_resequencing_collection, new_isolate)
+        else:
+            send_email(
+                f"A duplicate resequencing for  {self._technical_id} was submitted to the isolates_resequencing ",
+                dont_send_email=self._dont_send_email)
+            raise Exception(f"A duplicate resequencing for  {self._technical_id} was submitted to the isolates_resequencing ")
 
     def _new_reanalysis_wrapper(self, current_results_document: Dict[str, Any], new_results_document: Dict[str, Any]) -> None:
         """        
@@ -308,11 +308,16 @@ class MainMongo:
         """
         if self._results_type == "reanalysis":
             new_results = new_results_document
+            new_results = self.__find_hashes_in_results_and_add_to_collection(new_results,
+                                                                              'reanalysis')
+            new_results = self.__convert_typinghitdictionaries_to_lists(new_results)
         elif self._results_type == 'resequencing_validated':
             new_results = new_results_document['results']
-        new_results_handle_hashes_replaced = self.__find_hashes_in_results_and_add_to_collection(new_results,
-                                                                                          self._mongoinit,
-                                                                                          'reanalysis')
+            new_results = self.__revert_typinghitlists_to_dictionaries(new_results)
+            new_results = self.__find_hashes_in_results_and_add_to_collection(new_results,
+                                                                              'reanalysis')
+            new_results = self.__convert_typinghitdictionaries_to_lists(new_results)
+
         current_results = current_results_document['results']
         if new_results["analysis_date"] == current_results["analysis_date"]:
             send_email(f"This ({self._technical_id}) is not a reanalysis but the same results\n{traceback.format_exc()}", dont_send_email=self._dont_send_email)
@@ -349,8 +354,21 @@ class MainMongo:
                         unchanged_assay_new_dict_with_pointer[info] = current_results[unchanged_assay][info]
                 current_results[unchanged_assay] = unchanged_assay_new_dict_with_pointer
     
-        # Update new results
-        new_results = self.__prepend_string_dot_to_dict_keys(new_results_handle_hashes_replaced, 'results')
+        # Update new results if really a reanalysis/resequencing where at least one field changed
+        if 'cgmlst' in changed_results_new_old:
+            clustering_input = self._mongoquerying.singledoc_typing_results_by_technicalids_and_scheme(
+                {'_id': self._technical_id, 'results': new_results},
+                "cgmlst", self._headers_collection)
+            custom_clustering = MongoCustomClustering(clustering_input[0], clustering_input[1],
+                                                      self._species)
+            logging.info(f"Running the clustering for the isolate {self._technical_id}")
+            sp_thresholds = f"clustering_thresholds_{self._species}"
+            sequence_type = custom_clustering.run_custom_clustering(self._st_collection,
+                                                                    self._cluster_membership_collection,
+                                                                    self._cluster_merging_collection,
+                                                                    CLUSTERING_CONFIG[sp_thresholds])
+            new_results["cgST"] =  sequence_type
+        new_results = self.__prepend_string_dot_to_dict_keys(new_results, 'results')
         new_results["results.isolates_id"] = self._technical_id
         new_results["results.results_version"] = current_results["results_version"] + 1
         if any_result_changed_new_old is True:
@@ -388,23 +406,6 @@ class MainMongo:
                          "previous_latest_results_document": self.__write_document(self._old_isolateresults_collection,
                                                                              current_results)}})
         logging.info(f"Wrote new results and linked to isolate {self._technical_id} in {self._species}")
-    
-        if 'cgmlst' in changed_results_new_old:
-            clustering_input = self._mongoquerying.query_typing_results_by_technicalids_and_scheme(
-                self._isolates_collection,
-                scheme="cgmlst",
-                technicalids=[self._technical_id])
-            custom_clustering = MongoCustomClustering(clustering_input[0], clustering_input[1],
-                                                      self._species)
-            logging.info(f"Running the clustering for the isolate {self._technical_id}")
-            sp_thresholds = f"clustering_thresholds_{self._species}"
-            sequence_type = custom_clustering.run_custom_clustering(self._st_collection,
-                                                                    self._cluster_membership_collection,
-                                                                    self._cluster_merging_collection,
-                                                                    CLUSTERING_CONFIG[sp_thresholds])
-            self._isolates_collection.with_options(write_concern=WriteConcern(w="majority")).find_one_and_update(
-                {"_id": self._technical_id},
-                {"$set": {"results.cgST": sequence_type}})
 
     @staticmethod
     def __write_document(opened_collection: pymongo.collection.Collection, json_input: Dict[str, Any]) -> str:
@@ -421,7 +422,7 @@ class MainMongo:
         return collection_write.inserted_id
 
     def __new_isolate(self, technical_id: str, reportdirectorypath: str, vcffilepath: str, fastafilepath: str,
-                     results: Dict[str, Any]) -> Dict[str, Union[str, object]]:
+                     results: Dict[str, Any]) -> Dict[str, Any]:
         """
         Initialises new isolate dictionary including its results
         :param technical_id:
@@ -483,16 +484,15 @@ class MainMongo:
             max_temp_allele_name = int(query_max_temp_allele_name_doc['temp_allele_name'].split('_')[-1])
             return f'{locus}_temp_{max_temp_allele_name + 1}'
 
-    def __find_hashes_in_results_and_add_to_collection(self, results: Dict[str, Any], mongoinit: MongoInitialisation, mode: str) -> Dict[str, Union[str, object]]:
+    def __find_hashes_in_results_and_add_to_collection(self, results: Dict[str, Any], mode: str) -> Dict[str, Union[str, object]]:
         """
         finds hashes in json output report for multilocus sequence typing schemes and adds these hashes and alleles to a separate collection: new_allele_hashes.
         Also replace the hashes by temporary allele identifiers and purges the sequences to save space
         :param results: results dictionary
-        :param mongoinit: Mongointitialisation object to initialise collection connections
         :param mode: results_type but resequencing becomes reanalyis
         :return: results
         """
-        hashed_ad_collection = mongoinit.initialise_hashing_collection()
+        hashed_ad_collection = self._mongoinit.initialise_hashing_collection()
         for typing_scheme in ['mlst', 'cgmlst', 'mlst_warwick', 'mlst_pasteur']:
             if typing_scheme in results:
                 for locus_index, allele_info in enumerate(results[typing_scheme]['loci']):
@@ -565,6 +565,80 @@ class MainMongo:
                 if mainkey not in changed_results:
                     unchanged_results.append(mainkey)
         return any_result_changed, unchanged_results, changed_results
+
+    def __convert_typinghitdictionaries_to_lists(self, document: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        This function aims to reduce the memory usage of hits' metadata by only storing the metadata once in a separate collection
+        and storing the results in a list instead.
+        Be wary, this method does not create a deepcopy, therefore changes are applied to the input docuemnt
+        even if the return value's name is modified
+        :return: The converted input document
+        """
+        hit_metadata: Union[None, Dict[str, Union[object, str, List[str]]]] = self._headers_collection.find_one({'type': 'hit_metadata'})
+        if hit_metadata is None:
+            inserted_document = self._headers_collection.insert_one({'type': 'hit_metadata'})
+            hit_metadata = {'_id': inserted_document.inserted_id}
+        results_to_modify = (document['results'] if 'results' in document else document)  # this is not a deepcopy so results will be modified in document as well
+        for mainkey in results_to_modify:  # mainkey is assay
+            if isinstance(results_to_modify[mainkey], dict):
+                for subkey in results_to_modify[mainkey]:
+                    if subkey == 'loci' and results_to_modify[mainkey][subkey] != [] and 'DB_cluster' not in results_to_modify[mainkey][subkey][0]:
+                        # sort hit dictionary keys and pop locus for the first locus
+                        hit_header_list = sorted(results_to_modify[mainkey][subkey][0].keys())
+                        hit_primary_key = 'Locus'
+                        hit_header_list.pop(hit_header_list.index(hit_primary_key))
+                        if f"{mainkey}_{subkey}" in hit_metadata.keys():
+                            # check whether first locus/results/hits corresponds to the f"{mainkey}_{subkey}"'s value which is the list of headers
+                            if hit_metadata[f"{mainkey}_{subkey}"] == hit_header_list:
+                                meta_hit_dictionary = {}  # dictionary that will store hits and metadata e.g. {'locus1': ['DNA', '5', '12'], 'locus2': ['DNA', '10', '14']}
+                                for single_hit_dictionary in results_to_modify[mainkey][subkey]:
+                                    meta_hit_dictionary[single_hit_dictionary['Locus']] = [single_hit_dictionary[metadata] for metadata in hit_header_list]
+                                results_to_modify[mainkey][subkey] = meta_hit_dictionary
+                            else:
+                                send_email(f'Headers for typing scheme {mainkey} do not match with headers from'
+                                           f' header collection {hit_metadata[f"{mainkey}_{subkey}"]} for sample {self._technical_id}',
+                                           dont_send_email=self._dont_send_email)
+                                raise ValueError(f'Headers for typing scheme {mainkey} do not match with headers from '
+                                               f'header collection {hit_metadata[f"{mainkey}_{subkey}"]} for sample {self._technical_id}')
+                        else:
+                            hit_metadata[f"{mainkey}_{subkey}"] = hit_header_list
+                            self._headers_collection.update_one({"_id": hit_metadata['_id']},
+                                                         {"$set": {f"{mainkey}_{subkey}": hit_header_list}})
+                            meta_hit_dictionary = {}  # dictionary that will store hits and metadata e.g. {'locus1': ['DNA', '5', '12'], 'locus2': ['DNA', '10', '14']}
+                            for single_hit_dictionary in results_to_modify[mainkey][subkey]:
+                                meta_hit_dictionary[single_hit_dictionary['Locus']] = [single_hit_dictionary[metadata]
+                                                                                       for metadata in hit_header_list]
+                            results_to_modify[mainkey][subkey] = meta_hit_dictionary
+        return document
+
+    def __revert_typinghitlists_to_dictionaries(self, document: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        This function restores the lists of hit metadata (Allele, %id, length etc.) to dictionaries which are more
+        easily readable and required for bigsdb
+        Be wary, this method does not create a deepcopy, therefore changes are applied to the input docuemnt
+        even if the return value's name is modified
+        :return: The reverted input document
+        """
+        hit_metadata: Union[None, Dict[str, Union[object, str, List[str]]]] = self._headers_collection.find_one({'type': 'hit_metadata'})
+        if hit_metadata is None:
+            # no header so can not revert anything
+            return document
+        results_to_modify = (document['results'] if 'results' in document else document)  # this is not a deepcopy so results will be modified in document as well
+        for mainkey in results_to_modify:  # mainkey is assay
+            if isinstance(results_to_modify[mainkey], dict):
+                for subkey in results_to_modify[mainkey]:
+                    if subkey == 'loci' and isinstance(results_to_modify[mainkey][subkey], dict):
+                        # check whether first locus/results/hits length corresponds to the length of f"{mainkey}_{subkey}"'s value which is the list of headers
+                        if f"{mainkey}_{subkey}" in hit_metadata and len(hit_metadata[f"{mainkey}_{subkey}"]) == len(results_to_modify[mainkey][subkey][results_to_modify[mainkey][subkey].keys[0]]):
+                            meta_hit_list = []
+                            for locus in sorted(results_to_modify[mainkey][subkey].keys()):
+                                single_hit_dictionary = {hit_metadata[f"{mainkey}_{subkey}"][index]:
+                                                             results_to_modify[mainkey][subkey][locus[index]]
+                                                         for index in enumerate(hit_metadata[f"{mainkey}_{subkey}"])}
+                                single_hit_dictionary['Locus'] = locus
+                                meta_hit_list.append(single_hit_dictionary)
+                            results_to_modify[mainkey][subkey] = meta_hit_list
+        return document
 
 
 if __name__ == '__main__':

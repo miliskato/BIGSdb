@@ -10,12 +10,14 @@ class MongoInitialisation:
     """
     Class containing all queries for Mongo
     """
-    def __init__(self, species: str):
+    def __init__(self, species: str, alternate_connection_string: bool = False):
         """
         Initialises this class and opens the species/dtap specific mongo database
         :param species: commonly used bioit species name: either genus or specific like stec
         """
-        self._config_data = get_mongodb_config_data()
+        self._mongo_config_data = get_mongodb_config_data()
+        if alternate_connection_string:
+            self._mongo_config_data['CONNECTION_STRING_BASE'] = self._mongo_config_data['CONNECTION_STRING_ALTERNATE']
         self._opened_mongo_database = self._open_mongo_database(species)
 
     def _open_mongo_database(self, species: str) -> pymongo.database.Database:
@@ -25,12 +27,12 @@ class MongoInitialisation:
         :return: opened database object
         """
         try:
-            client = MongoClient(self._config_data["CONNECTION_STRING_BASE"])
+            client = MongoClient(self._mongo_config_data["CONNECTION_STRING_BASE"])
         except Exception:
-            raise RuntimeError(f"Could not connect to {self._config_data['CONNECTION_STRING_BASE']}")
-        if self._config_data["dtap"] not in ['dev', 'test', 'acc', 'prod']:
+            raise RuntimeError(f"Could not connect to {self._mongo_config_data['CONNECTION_STRING_BASE']}")
+        if self._mongo_config_data["dtap"] not in ['dev', 'test', 'acc', 'prod']:
             raise NameError(f"replace dtap value in MongoDB/config/config.yml")
-        return client['_'.join([species, self._config_data["dtap"]])]  # e.g. listeria_dev
+        return client['_'.join([species, self._mongo_config_data["dtap"]])]  # e.g. listeria_dev
 
     def _open_mongo_collection(self, opened_database: pymongo.database.Database, collection: str) -> pymongo.collection.Collection:
         """
@@ -41,7 +43,7 @@ class MongoInitialisation:
         """
         # MongoDB creates collections on the fly while inserting any Documents, we do not want to allow
         # unwanted collections to be created, therefore this check:
-        if collection in self._config_data['collections']:
+        if collection in self._mongo_config_data['collections']:
             opened_collection = opened_database[collection]
             logging.debug(f"opened collection {collection}")
             return opened_collection
@@ -81,10 +83,20 @@ class MongoInitialisation:
         hashed_ad_collection = self._open_mongo_collection(self._opened_mongo_database, "new_allele_hashes")
         return hashed_ad_collection
 
-    def initialise_update_collection(self, species: str) -> pymongo.collection.Collection:
+    def initialise_update_collection(self) -> pymongo.collection.Collection:
         """
         Initialises collection containing update metadata
         :return: Opened hashing collection
         """
         update_collection = self._open_mongo_collection(self._opened_mongo_database, "update_metadata")
         return update_collection
+
+    def initialise_headers_collection(self) -> pymongo.collection.Collection:
+        """
+        Initialises collection containing headers of all sorts:
+        typing hit dictionary headers,
+        ...
+        :return: Opened hashing collection
+        """
+        header_collection = self._open_mongo_collection(self._opened_mongo_database, "headers")
+        return header_collection

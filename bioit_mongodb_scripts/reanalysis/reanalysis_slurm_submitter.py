@@ -89,7 +89,7 @@ def reanalysis_slurm_submitter(species: str, maximal_analysis_date: str, minimal
         start_time_reanalysis = datetime.datetime.utcnow()
 
         # Retrieve isolates that need to be re-analyzed
-        mongoinit = MongoInitialisation(species)
+        mongoinit = MongoInitialisation(species, alternate_connection_string=alternate_connection_string)
         isolates_collection, old_isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections()
         # query all the documents as a projection
         documents_list = [doc for doc in

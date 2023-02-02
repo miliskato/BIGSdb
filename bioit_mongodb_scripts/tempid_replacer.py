@@ -52,14 +52,12 @@ class TempidReplacer:
         self._alternate_connection_string = alternate_connection_string
         # parse config data
         self._mongo_config_data = get_mongodb_config_data()
-        # if testing purposes; replace connection string by testing connection string
-        if self._alternate_connection_string:
-            self._mongo_config_data['CONNECTION_STRING_BASE'] = self._mongo_config_data['CONNECTION_STRING_ALTERNATE']
         # Open collections
-        self._mongoinit = MongoInitialisation(self._species)
+        self._mongoinit = MongoInitialisation(self._species, alternate_connection_string=self._alternate_connection_string)
         self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, self._isolates_resequencing_collection = self._mongoinit.initialise_collections()
         self._hashed_ad_collection = self._mongoinit.initialise_hashing_collection()
         self._st_collection, self._cluster_membership_collection, self._cluster_merging_collection = self._mongoinit.initialise_clustering_collections()
+        self._headers_collection = self._mongoinit.initialise_headers_collection()
 
         # Query all unresolved hashes from hash collection for this particular scheme
         self._documents_list = self.__query_hashes_of_scheme()
@@ -97,7 +95,7 @@ class TempidReplacer:
                     alleles = SeqIO.parse(handle, 'fasta')
                     allele: Union[SeqRecord, Any]
                     for allele in alleles:
-                        hashed_allele = hashlib.md5(bytes(allele.seq, 'utf-8')).hexdigest()
+                        hashed_allele = hashlib.md5(bytes(str(allele.seq), 'utf-8')).hexdigest()
                         if hashed_allele in hash_list:
                             self.__update_temp_to_real_mongodb(locus, allele, hashed_allele, hash_list, values)
             if 'bigs' in socket.gethostname() and self._alternate_connection_string is None:
@@ -163,12 +161,15 @@ class TempidReplacer:
         temp_alleles_list = values['temp_alleles']
         temp_allele_name = temp_alleles_list[index_match]
         new_allele_id = allele.id.split('_')[-1]
+        # Get allele index in
+        hit_metadata = self._headers_collection.find_one({'type': 'hit_metadata'})
+        allele_index = hit_metadata[f"{self._scheme}_loci"].index('Allele')
         # Update collections
         logging.debug(f"replacing {temp_allele_name} by {new_allele_id} for locus {locus}")
-        self.___update_temp_allele_to_new(self._isolates_collection, locus, temp_allele_name, new_allele_id)
-        self.___update_temp_allele_to_new(self._isolates_badqc_collection, locus, temp_allele_name, new_allele_id)
-        self.___update_temp_allele_to_new(self._isolates_resequencing_collection, locus, temp_allele_name, new_allele_id)
-        self.___update_temp_allele_to_new(self._old_isolateresults_collection, locus, temp_allele_name, new_allele_id, in_results=False)
+        self.___update_temp_allele_to_new(self._isolates_collection, locus, temp_allele_name, new_allele_id, allele_index)
+        self.___update_temp_allele_to_new(self._isolates_badqc_collection, locus, temp_allele_name, new_allele_id, allele_index)
+        self.___update_temp_allele_to_new(self._isolates_resequencing_collection, locus, temp_allele_name, new_allele_id, allele_index)
+        self.___update_temp_allele_to_new(self._old_isolateresults_collection, locus, temp_allele_name, new_allele_id, allele_index, in_results=False)
         # Update document but do not delete
         self._hashed_ad_collection.with_options(write_concern=WriteConcern(w="majority")).update_one(
             {"scheme": self._scheme, "resolved_AD": 0, "locus": locus, "temp_allele_name": temp_allele_name},
@@ -182,6 +183,8 @@ class TempidReplacer:
         self._documents_list[hashed_allele_index_in_doclist]['resolved_AD'] = new_allele_id
         # replace in all the cgST the old temp allele by the new id
         # greater than 0 is used to exclude the header document
+        # todo this needs to be updated to be more efficient, not all profiles should be queried and loaded into memory,
+        #  but in order to update in place, the values need to be in a list instead of a concatenated string
         all_st = self._st_collection.find({'cgST': {'$gt': 0}})
         for st in all_st:
             profile = st['cgMLST'].split(',')
@@ -191,21 +194,31 @@ class TempidReplacer:
                 self._st_collection.find_one_and_update({"cgST": st["cgST"]},
                                                         {"$set": {"cgMLST": cgmlst}})
 
-    def ___update_temp_allele_to_new(self, collection: pymongo.collection.Collection, locus: str, temp_allele_name: str, new_allele_id: str, in_results: bool = True) -> None:
+    def ___update_temp_allele_to_new(self, collection: pymongo.collection.Collection, locus: str, temp_allele_name: str,
+                                     new_allele_id: str, allele_index = int, in_results: bool = True) -> None:
         """
         Updates the collections containing isolates with the newly found alleles that were previously temporary identifiers
         :param collection: collection containing isolates that needs to be updated
         :param locus: locus name
         :param temp_allele_name: temporary identifier name
         :param new_allele_id: new source allele id
+        :param allele_index: index of the allele in the new hit metadata list
         :param in_results: are the assays located under results or not? usually yes except for old_isolate_results
         :return:
         """
+        # the commented code below is cleaner than the one not commented, but for some
+        # reason the operator $index was not found, 'unknown operator: $index', this is maybe due to
+        # the mongodb version being too low but atlas is supposedly 5.0 and pymongo4.2.0 is supposed
+        # to support mongodb 5.0
+        # collection.with_options(write_concern=WriteConcern(w="majority")).update_many(
+        #     {f"{'results.' if in_results else ''}{self._scheme}.loci.{locus}":
+        #      {"$elemMatch": {"$eq": temp_allele_name, "$index": allele_index}}},
+        #     {"$set":
+        #      {f"{'results.' if in_results else ''}{self._scheme}.loci.{locus}.{allele_index}": new_allele_id}})
         collection.with_options(write_concern=WriteConcern(w="majority")).update_many(
-            {f"{'results.' if in_results else ''}{self._scheme}.loci":
-             {"$elemMatch": {"Locus": locus, "Allele": temp_allele_name}}},
+            {f"{'results.' if in_results else ''}{self._scheme}.loci.{locus}.{allele_index}": temp_allele_name},
             {"$set":
-             {f"{'results.' if in_results else ''}{self._scheme}.loci.$.Allele": new_allele_id}})
+             {f"{'results.' if in_results else ''}{self._scheme}.loci.{locus}.{allele_index}": new_allele_id}})
 
 
 if __name__ == '__main__':

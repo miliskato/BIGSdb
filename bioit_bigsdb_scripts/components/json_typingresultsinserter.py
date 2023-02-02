@@ -212,7 +212,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
         if self._scheme == 'resistance_genes' and len(self._sample_output_dict[self._scheme]['loci']) != 0:
             for locus in self._sample_output_dict[self._scheme]['loci']:
                 if locus['Locus'] in ['penA', 'rpoB'] and locus['% Identity'] == '100.00' and \
-                        locus['HSP/Locus length'] != '-' and float(locus['HSP/Locus length']) == 1.0:
+                        locus['HSP/Locus length'] != '-' and eval(locus['HSP/Locus length']) == 1.0:
                     response: requests.models.Response = requests.get(
                         f"https://rest.pubmlst.org/db/pubmlst_neisseria_seqdef/loci/{locus['Locus']}/alleles/{locus['Allele']}")
                     json_data: Dict = response.json()

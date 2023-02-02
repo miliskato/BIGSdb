@@ -44,7 +44,7 @@ if __name__ == '__main__':
         config_data = yaml.safe_load(handle)
 
     if config_data.get('CONNECTION_STRING_BASE') and config_data.get('dtap'):
-        config_data['CONNECTION_STRING_BASE'] = config_data['CONNECTION_STRING_ALTERNATE']
+        pass
     else:
         raise Exception('was config modified?')
 
@@ -54,13 +54,14 @@ if __name__ == '__main__':
         logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
         # Open collections
-        mongoinit = MongoInitialisation('listeria')
+        mongoinit = MongoInitialisation('listeria', alternate_connection_string=True)
         isolates_collection, old_isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = \
             mongoinit.initialise_collections()
         hashed_ad_collection = mongoinit.initialise_hashing_collection()
         st_collection, cluster_membership_collection, cluster_merging_collection = \
             mongoinit.initialise_clustering_collections()
         update_collection = mongoinit.initialise_update_collection()
+        headers_collection = mongoinit.initialise_headers_collection()
 
         # as a first step I would drop the db if query less than 5 results else raise exception
         documents_count = isolates_collection.count_documents({})
@@ -75,6 +76,7 @@ if __name__ == '__main__':
             cluster_membership_collection.drop()
             cluster_merging_collection.drop()
             update_collection.drop()
+            headers_collection.drop()
 
 
         def create_mainmongo_arguments_dict(results_type: str, filename: str) -> Dict[str, str]:
@@ -92,6 +94,7 @@ if __name__ == '__main__':
                          'jsonfilepath': '/'.join([source, 'inputfiles', filename]),
                          'alternate_connection_string': True}
             if results_type == 'new_isolate':
+                arguments['reportdirectorypath'] = '/'.join([source, 'inputfiles'])
                 arguments['fastafilepath'] = '/'.join([source, 'inputfiles', 'listeria_assembly_filtered.fasta'])
             return arguments
 
@@ -102,17 +105,17 @@ if __name__ == '__main__':
         # test hash replacer
         TempidReplacer('cgmlst', 'listeria', alternate_connection_string=True)
 
-        # Add the dummy reanalysis results:
-        # the integers appendices of the files indicate the results version and changed version, so: resultsversion_changedversion
-        for dummy_reanalysis_file in ['report_version_2_2.json', 'report_version_3_3.json', 'report_version_4_4.json', 'report_version_5_4.json']:
-            reanalysis_args = create_mainmongo_arguments_dict('reanalysis', dummy_reanalysis_file)
-            MainMongo(**reanalysis_args)
+        # # Add the dummy reanalysis results:
+        # # the integers appendices of the files indicate the results version and changed version, so: resultsversion_changedversion
+        # for dummy_reanalysis_file in ['report_version_2_2.json', 'report_version_3_3.json', 'report_version_4_4.json', 'report_version_5_4.json']:
+        #     reanalysis_args = create_mainmongo_arguments_dict('reanalysis', dummy_reanalysis_file)
+        #     MainMongo(**reanalysis_args)
 
-        # test reanalyis triggers and reanalysis
-        reanalysis_triggers('listeria', 6, alternate_connection_string=True)
-
-        # test reanalysis
-        reanalysis_noslurm('listeria', '2030-01-01', '2000-01-01', alternate_connection_string=True)
+        # # test reanalyis triggers and reanalysis
+        # reanalysis_triggers('listeria', 6, alternate_connection_string=True)
+        #
+        # # test reanalysis
+        # reanalysis_noslurm('listeria', '2030-01-01', '2000-01-01', alternate_connection_string=True)
 
     except Exception as exceptionmessage:
         _send_email(f"{Path(__file__).name} fail on {socket.gethostname()}",
