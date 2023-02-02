@@ -2794,7 +2794,7 @@ sub _close_submission {    ## no critic (ProhibitUnusedPrivateSubroutines) #Call
 	}
         my $dbname = $self->{'datastore'}->run_query('select current_database()');
         open(BASH, "|-", "bash");
-        print BASH "/home/bigsdb/BIGSdb/3.9PythonVenv/bin/python3.9 /home/bigsdb/BIGSdb/bioit_custom_scripts/sample_validation_to_mongo.py --db $dbname \n";
+        print BASH "/home/bigsdb/BIGSdb/3.9PythonVenv/bin/python3.9 /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/sample_validation_to_mongo.py --db $dbname \n";
         close(BASH);
         $submission = $self->{'submissionHandler'}->get_submission($submission_id);
 	my $curator_info = $self->{'datastore'}->get_user_info($curator_id);

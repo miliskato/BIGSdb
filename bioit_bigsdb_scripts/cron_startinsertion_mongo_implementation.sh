@@ -1,7 +1,7 @@
 #!/bin/bash
 # Checks whether new uploads are available from galaxy to bigsdb using the following cron command
 # The cronjob is deployed using ansible in the bigsdb role (tasks/main.yml)
-# */1 *   * * *   root    bash /home/bigsdb/BIGSdb/bioit_custom_scripts/cron_startinsertion_mongo_implementation.sh
+# */1 *   * * *   root    bash /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/cron_startinsertion_mongo_implementation.sh
 
 cd /home/galaxy/mongo
 
@@ -25,10 +25,10 @@ do
   # todo uploader is unused here and in mainmongo atm, there is currently (6th jan 2022) a dummy in place in mainmongo: 'bioit'
   {
     sudo mv $dir /reports/$species/bigsdb_json_upload/${sample_name}
-    $VENV_PYTHON_BIGSDB /home/bigsdb/BIGSdb/bioit_custom_scripts/htmltagger.py --htmlfilepath /reports/$species/bigsdb_json_upload/$sample_name/report.html --species $species
+    $VENV_PYTHON_BIGSDB /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/htmltagger.py --htmlfilepath /reports/$species/bigsdb_json_upload/$sample_name/report.html --species $species
     $VENV_PYTHON_BIGSDB /home/bigsdb/BIGSdb/MongoDB/mainmongo.py --reportdirectorypath /reports/$species/bigsdb_json_upload/${sample_name} --species ${species} --jsonfilepath /reports/$species/bigsdb_json_upload/${sample_name}/report.json --technical_id ${sample_name} --fastafilepath /reports/$species/bigsdb_json_upload/${sample_name}/assembly/${sample_name}_contigs.fasta --vcffilepath  /reports/$species/bigsdb_json_upload/${sample_name}/variant_filtering/${sample_name}-all.vcf --results_type new_isolate
     $VENV_PYTHON_BIGSDB /home/bigsdb/BIGSdb/MongoDB/mongo_to_bigs.py --species ${species}
-##    $VENV_PYTHON_BIGSDB /home/bigsdb/BIGSdb/bioit_custom_scripts/cgmlst_similar_isolates.py --isolatename $sample_name --species $species
+##    $VENV_PYTHON_BIGSDB /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/cgmlst_similar_isolates.py --isolatename $sample_name --species $species
   } 2>&1 | tee /home/galaxy/mongo/$sample_name.mongodb_bigsdb_insertion.log
   mv /home/galaxy/mongo/$sample_name.mongodb_bigsdb_insertion.log /reports/$species/bigsdb_json_upload/$sample_name/
 done

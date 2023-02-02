@@ -1,7 +1,7 @@
 #!/bin/bash
 # Checks whether new uploads are available from galaxy to bigsdb using the following cron command
 # The cronjob is deployed using ansible in the bigsdb role (tasks/main.yml)
-# */1 *   * * *   root    bash /home/bigsdb/BIGSdb/bioit_custom_scripts/cron_startinsertion.sh
+# */1 *   * * *   root    bash /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/cron_startinsertion.sh
 
 cd /home/galaxy
 
@@ -23,11 +23,11 @@ do
   sample_name=$(cat $dir/info.txt | grep -oPw "(?<='sample_name': ')[^']*")
   uploader=$(cat $dir/info.txt | grep -oPw "(?<='user': ')[^']*")
   {
-    $VENV_PYTHON_BIGSDB /home/bigsdb/BIGSdb/bioit_custom_scripts/reportmover.py --reportdirectory $dir --species $species
-    $VENV_PYTHON_BIGSDB /home/bigsdb/BIGSdb/bioit_custom_scripts/htmltagger.py --htmlfilepath /reports/$species/$sample_name/report.html --species $species
-    $VENV_PYTHON_BIGSDB /home/bigsdb/BIGSdb/bioit_custom_scripts/main_results_inserter.py --tsvfilepath /reports/$species/$sample_name/report.tsv --isolatename $sample_name --uploadermailadress $uploader --species $species --results_type new_isolate
-    $VENV_PYTHON_BIGSDB /home/bigsdb/BIGSdb/bioit_custom_scripts/insert_assembly.py --fastafilepath /reports/$species/$sample_name/assembly/${sample_name}_contigs.fasta --isolatename $sample_name --species $species
-##    $VENV_PYTHON_BIGSDB /home/bigsdb/BIGSdb/bioit_custom_scripts/cgmlst_similar_isolates.py --isolatename $sample_name --species $species
+    $VENV_PYTHON_BIGSDB /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/reportmover.py --reportdirectory $dir --species $species
+    $VENV_PYTHON_BIGSDB /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/htmltagger.py --htmlfilepath /reports/$species/$sample_name/report.html --species $species
+    $VENV_PYTHON_BIGSDB /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/main_results_inserter.py --tsvfilepath /reports/$species/$sample_name/report.tsv --isolatename $sample_name --uploadermailadress $uploader --species $species --results_type new_isolate
+    $VENV_PYTHON_BIGSDB /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/insert_assembly.py --fastafilepath /reports/$species/$sample_name/assembly/${sample_name}_contigs.fasta --isolatename $sample_name --species $species
+##    $VENV_PYTHON_BIGSDB /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/cgmlst_similar_isolates.py --isolatename $sample_name --species $species
   } 2>&1 | tee /home/galaxy/$sample_name.bigsdb_insertion.log
   mv /home/galaxy/$sample_name.bigsdb_insertion.log /reports/$species/$sample_name/
 done

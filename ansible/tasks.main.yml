@@ -196,7 +196,7 @@
 
     - name: Add apache psql password to config
       lineinfile:
-        path: "{{ bioit_bigs_home }}/bioit_custom_scripts/config/config.yml"
+        path: "{{ bioit_bigs_home }}/bioit_bigsdb_scripts/config/config.yml"
         regexp: 'postgresql_apache_pass: to_be_replaced_by_ansible'
         line: "postgresql_apache_pass: {{ secret_bioit_bigs_postgresql_apache_password }}"
 
@@ -342,7 +342,7 @@
         minute: '*/1'         # every minute
         hour: '*'
         weekday: '*'
-        job: 'bash /home/bigsdb/BIGSdb/bioit_custom_scripts/cron_startinsertion.sh'
+        job: 'bash /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/cron_startinsertion.sh'
         user: 'root'
         cron_file: bigsdb_galaxy
 
@@ -389,11 +389,11 @@
       loop: "{{ list_cron|flatten(levels=1) }}"
       vars:
         list_cron:
-          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}//bioit_custom_scripts/Typing_loci_intopsql.py --species {{ species }}",
+          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}//bioit_bigsdb_scripts/Typing_loci_intopsql.py --species {{ species }}",
               filename: "{{ species }}_loci_intopsql" }
-          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_custom_scripts/Typing_alleles_intopsql.py --species {{ species }}",
+          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_bigsdb_scripts/Typing_alleles_intopsql.py --species {{ species }}",
               filename: "{{ species }}_alleles_intopsql" }
-          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_custom_scripts/genedetection_intopsql.py --species {{ species }}",
+          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_bigsdb_scripts/genedetection_intopsql.py --species {{ species }}",
               filename: "{{ species }}_genedetection_intopsql" }
 
     - name: Add crontrab entry for database updates
@@ -408,7 +408,7 @@
       loop: "{{ list_cron|flatten(levels=1) }}"
       vars:
         list_cron:
-          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_custom_scripts/Typing_schemeprofiles_intopsql.py --species {{ species }}",
+          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_bigsdb_scripts/Typing_schemeprofiles_intopsql.py --species {{ species }}",
               filename: "{{ species }}_schemeprofiles_intopsql" }
 
     - name: add daily cronjob
@@ -638,8 +638,8 @@
       loop: "{{ list_script|flatten(levels=1) }}"
       vars:
         list_script:
-          - { db: "bigsdb_{{ species }}_seqdef", script: "{{ bioit_bigs_home }}/bioit_custom_scripts/bigsdb_{{ species }}_seqdef.sql" }
-          - { db: "bigsdb_{{ species }}_isolates", script: "{{ bioit_bigs_home }}/bioit_custom_scripts/bigsdb_{{ species }}_isolates.sql" }
+          - { db: "bigsdb_{{ species }}_seqdef", script: "{{ bioit_bigs_home }}/bioit_bigsdb_scripts/bigsdb_{{ species }}_seqdef.sql" }
+          - { db: "bigsdb_{{ species }}_isolates", script: "{{ bioit_bigs_home }}/bioit_bigsdb_scripts/bigsdb_{{ species }}_isolates.sql" }
       when: query_result_eavtexthidden.query_result[0]['exists'] == false
       become_user: postgres
 
@@ -647,7 +647,7 @@
       block:
         - name: Install requirements
           pip:
-            requirements: "{{ bioit_bigs_home }}/bioit_custom_scripts/requirements.txt"
+            requirements: "{{ bioit_bigs_home }}/bioit_bigsdb_scripts/requirements.txt"
             virtualenv: "{{ bioit_bigs_home }}/3.9PythonVenv"
             virtualenv_python: python3.9
 
@@ -655,10 +655,10 @@
         - name: insert loci, alleles, profiles, gene detection
           shell: "{{ item }}"
           loop:
-            - "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_custom_scripts/Typing_loci_intopsql.py --species {{ species }}"
-            - "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_custom_scripts/Typing_alleles_intopsql.py --species {{ species }}"
-            - "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_custom_scripts/Typing_schemeprofiles_intopsql.py --species {{ species }}"
-            - "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_custom_scripts/genedetection_intopsql.py --species {{ species }}"
+            - "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_bigsdb_scripts/Typing_loci_intopsql.py --species {{ species }}"
+            - "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_bigsdb_scripts/Typing_alleles_intopsql.py --species {{ species }}"
+            - "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_bigsdb_scripts/Typing_schemeprofiles_intopsql.py --species {{ species }}"
+            - "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_bigsdb_scripts/genedetection_intopsql.py --species {{ species }}"
 
 - name: setup reports and symlinks
   block:
