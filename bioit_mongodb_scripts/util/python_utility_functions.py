@@ -20,8 +20,8 @@ def get_mongodb_config_data() -> Dict[str, Union[str, List[Any], Dict[str, Union
     :return:
     """
     with open(MONGO_CONFIG, encoding='utf-8') as handle:
-        config_data = yaml.safe_load(handle)
-    return config_data
+        mongo_config_data = yaml.safe_load(handle)
+    return mongo_config_data
 
 
 def send_email(content: str, subject: str = f"{Path(__file__).name} fail on host {socket.gethostname()}",
