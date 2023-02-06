@@ -105,17 +105,17 @@ if __name__ == '__main__':
         # test hash replacer
         TempidReplacer('cgmlst', 'listeria', alternate_connection_string=True)
 
-        # # Add the dummy reanalysis results:
-        # # the integers appendices of the files indicate the results version and changed version, so: resultsversion_changedversion
-        # for dummy_reanalysis_file in ['report_version_2_2.json', 'report_version_3_3.json', 'report_version_4_4.json', 'report_version_5_4.json']:
-        #     reanalysis_args = create_mainmongo_arguments_dict('reanalysis', dummy_reanalysis_file)
-        #     MainMongo(**reanalysis_args)
+        # Add the dummy reanalysis results:
+        # the integers appendices of the files indicate the results version and changed version, so: resultsversion_changedversion
+        for dummy_reanalysis_file in ['report_version_2_2.json', 'report_version_3_3.json', 'report_version_4_4.json', 'report_version_5_4.json']:
+            reanalysis_args = create_mainmongo_arguments_dict('reanalysis', dummy_reanalysis_file)
+            MainMongo(**reanalysis_args)
 
-        # # test reanalyis triggers and reanalysis
-        # reanalysis_triggers('listeria', 6, alternate_connection_string=True)
-        #
-        # # test reanalysis
-        # reanalysis_noslurm('listeria', '2030-01-01', '2000-01-01', alternate_connection_string=True)
+        # test reanalyis triggers and reanalysis
+        reanalysis_triggers('listeria', 6, alternate_connection_string=True)
+
+        # test reanalysis
+        reanalysis_noslurm('listeria', '2030-01-01', '2000-01-01', alternate_connection_string=True)
 
     except Exception as exceptionmessage:
         _send_email(f"{Path(__file__).name} fail on {socket.gethostname()}",
