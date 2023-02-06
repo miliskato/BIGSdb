@@ -3,30 +3,29 @@ import concurrent.futures
 import logging
 import os
 import re
-import smtplib
 import socket
 import subprocess
 import sys
 import traceback
-from email.message import EmailMessage
 from pathlib import Path
+from typing import Dict, List
 
 import yaml
 
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
-from bioit_mongodb_scripts.reanalysis.reanalysis_triggers import TRIGGER_CONFIG
-from bioit_mongodb_scripts.config import MONGO_CONFIG
 from bioit_mongodb_scripts.mongo_to_bigs import MongoToBigs
-from bioit_mongodb_scripts.reanalysis.reanalysis_slurm_submitter import reanalysis_slurm_submitter
 from bioit_mongodb_scripts.reanalysis.reanalysis_noslurm import reanalysis_noslurm
+from bioit_mongodb_scripts.reanalysis.reanalysis_slurm_submitter import reanalysis_slurm_submitter
+from bioit_mongodb_scripts.reanalysis.reanalysis_triggers import TRIGGER_CONFIG
+from bioit_mongodb_scripts.util.python_utility_functions import send_email
 
 # https://stackoverflow.com/questions/5685007/making-git-log-ignore-changes-for-certain-paths
 # git log --date=short -- . ':(exclude)db_metadata.txt'
 
 
-def _parse_arguments(specieslist: list) -> argparse.Namespace:
+def _parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     """
     Parses the command line arguments.
     :param specieslist: list of all the species choices
@@ -41,37 +40,18 @@ def _parse_arguments(specieslist: list) -> argparse.Namespace:
     return parser.parse_args()
 
 
-def _send_email(subject: str, content: str, config: dict) -> None:
-    """
-    Sends an email.
-    :param subject: Mail subject
-    :param content: Content of the message
-    :return: None
-    """
-    message = EmailMessage()
-    message['Subject'] = subject
-    message['From'] = config['from']
-    message['To'] = config['to']
-    message.set_content(content)
-    with smtplib.SMTP(config['host']) as s:
-        s.send_message(message)
-    logging.info(content)
-
-def reanalysis_triggers(species: str, threads: int = 8, pyvenvpythonpath: str = None, alternate_connection_string: bool = False, slurm = False) -> None:
+def reanalysis_triggers(species: str, threads: int = 8, pyvenvpythonpath: str = None, alternate_connection_string: bool = False, slurm: bool = False) -> None:
     """
     Main function
-    See argparse function for variables and their requiredness
-    :param species:
-    :param threads:
-    :param pyvenvpythonpath:
-    :param alternate_connection_string:
-    :param slurm:
-    :return:
+    Checks the local git versions/dates of the databases listed in the TRIGGER_CONFIG and dispatches jobs for all samples
+    that do not have their results up to date according to the git versions
+    :param species: commonly used bioit species name: either genus or specific like stec
+    :param threads: number of total threads to use for reanalysis
+    :param pyvenvpythonpath: pyvenpythonpath necessary in case slurm is true
+    :param alternate_connection_string: Whether to use the alternate connection string for testing purposes
+    :param slurm: whether to use slurm to do the reanalysis
+    :return: None
     """
-    # Parse config
-    with open(MONGO_CONFIG, encoding='utf-8') as handle:
-        mongo_config_data = yaml.safe_load(handle)
-
     # Read the trigger config
     with open(TRIGGER_CONFIG, encoding='utf-8') as handle:
         trigger_config = yaml.safe_load(handle)
@@ -115,9 +95,9 @@ def reanalysis_triggers(species: str, threads: int = 8, pyvenvpythonpath: str = 
         #                       '2022-10-02': ['mlst', 'cgmlst', 'pcr-serogroup', 'metal-detergent', 'typing-virulence', 'typing-amr', 'species-confirmation']}
 
         # Part 3: run reanalysis
-        def run_reanalysis(date: str, date_args_dict: dict) -> None:
+        def run_reanalysis(date: str, date_args_dict: Dict[str, str]) -> None:
             """
-            Runs reanalysis.py on samples with last analysis date older than assay db updates
+            Runs reanalysis_*.py on samples with last analysis date older than assay db updates
             :param date: datetimestring 'YYYY-MM-DD', key in date_args_dict
             :param date_args_dict: key (date): args(str) dict e.g. {'2019-03-04': 'vfdb-core virulencefinder'}
             :param ordered_dates_list: ordered list of dates, used to determine minimal analysis date
@@ -126,7 +106,7 @@ def reanalysis_triggers(species: str, threads: int = 8, pyvenvpythonpath: str = 
             try:
                 ordered_dates_list = sorted(date_args_dict)
                 index_date_in_list = ordered_dates_list.index(date)
-                minimal_date = ordered_dates_list[index_date_in_list - 1] if index_date_in_list != 0 else '1990-01-01'
+                minimal_date = ordered_dates_list[index_date_in_list - 1] if index_date_in_list != 0 else '1970-01-01'
                 logging.info(f"running reanalysis on samples older than {date} and younger than {minimal_date} with arguments: {date_args_dict[date]}")
                 arguments = {'species': species,
                              'maximal_analysis_date': date,
@@ -143,12 +123,12 @@ def reanalysis_triggers(species: str, threads: int = 8, pyvenvpythonpath: str = 
 
                 logging.info(f"Reanalysis for samples older than {date} with arguments: {date_args_dict[date]} completed")
             except Exception as exceptionmessage:
-                _send_email(f"{Path(__file__).name} fail on host {socket.gethostname()}",
-                            f"{exceptionmessage}\n{traceback.format_exc()}", mongo_config_data['mail'])
+                send_email(f"{exceptionmessage}\n{traceback.format_exc()}")
                 raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}")
 
-        # with concurrent.futures.ThreadPoolExecutor(max_workers=1 if slurm is False else 5) as executor:  # MK 24th nov 2022, i dont remember why slurm would get 5 workers because this i think would cause isolates that need to be reanalyzed in the lowest date to also be captured in the next dates
-        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+        # 5 workers if slurm because then a max of 5000 jobs (5 x 1000) are launched
+        # at a time (see reanalysis_slurm_submitter.py, 1000 max workers)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1 if args.slurm is False else 5) as executor:
             future_to_isolate = {executor.submit(
                 run_reanalysis, **{"date": date, "date_args_dict": date_args_dict}):
                                date for date in date_args_dict}
@@ -160,9 +140,9 @@ def reanalysis_triggers(species: str, threads: int = 8, pyvenvpythonpath: str = 
             logging.info(f"Mongo to bigs after reanalysis completed")
 
     except Exception as exceptionmessage:
-        _send_email(f"{Path(__file__).name} fail on host {socket.gethostname()}",
-                    f"{exceptionmessage}\n{traceback.format_exc()}", mongo_config_data['mail'])
-        raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}")
+        send_email(f"{exceptionmessage}\n{traceback.format_exc()}")
+        raise Exception(f"{exceptionmessage}\n{traceback.format_exc()}")
+
 
 if __name__ == '__main__':
 

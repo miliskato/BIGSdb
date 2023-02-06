@@ -6,22 +6,21 @@ import datetime
 import json
 import logging
 import os
-import smtplib
 import socket
 import sys
 import traceback
-from email.message import EmailMessage
 from pathlib import Path
+from typing import Dict, List
 
 import yaml
 
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
+from bioit_mongodb_scripts.reanalysis import MONGO_REANALYSIS_CONFIG
 from bioit_mongodb_scripts.util.command.command import Command
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
-from bioit_mongodb_scripts.config import MONGO_CONFIG
-from bioit_mongodb_scripts.reanalysis import MONGO_REANALYSIS_CONFIG
+from bioit_mongodb_scripts.util.python_utility_functions import send_email
 
 
 def _parse_arguments(specieslist: list) -> argparse.Namespace:
@@ -42,23 +41,8 @@ def _parse_arguments(specieslist: list) -> argparse.Namespace:
     return parser.parse_args()
 
 
-def _send_email(subject: str, content: str, config: dict) -> None:
-    """
-    Sends an email.
-    :param subject: Mail subject
-    :param content: Content of the message
-    :return: None
-    """
-    message = EmailMessage()
-    message['Subject'] = subject
-    message['From'] = config['from']
-    message['To'] = config['to']
-    message.set_content(content)
-    with smtplib.SMTP(config['host']) as s:
-        s.send_message(message)
-    logging.info(content)
-
-def reanalysis_slurm_submitter(species: str, maximal_analysis_date: str, minimal_analysis_date: str, pyvenvpythonpath: str, threads_per_job: int = 1, analysis_arguments: list = None, alternate_connection_string: bool = False) -> None:
+def reanalysis_slurm_submitter(species: str, maximal_analysis_date: str, minimal_analysis_date: str, pyvenvpythonpath: str,
+                               threads_per_job: int = 1, analysis_arguments: List[str] = None, alternate_connection_string: bool = False) -> None:
     """
     Main function
     See argparse function for variables and their requiredness
@@ -73,10 +57,6 @@ def reanalysis_slurm_submitter(species: str, maximal_analysis_date: str, minimal
     try:
         # Configure stdout logging
         logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
-
-        # Parse config
-        with open(MONGO_CONFIG, encoding='utf-8') as handle:
-            mongo_config_data = yaml.safe_load(handle)
 
         # Check if slurm installed:
         base_command = "sinfo -V"
@@ -101,7 +81,7 @@ def reanalysis_slurm_submitter(species: str, maximal_analysis_date: str, minimal
         source = os.path.dirname(__file__)
 
         # approach threadpoolexecutor
-        def run_reanalysis(isolate: dict) -> None:
+        def run_reanalysis(isolate: Dict[str, str]) -> Dict[str, str]:
             """
             Creates command, runs command, and checks if command completes
             :param isolate: isolate dictionary from MongoDB
@@ -129,7 +109,7 @@ def reanalysis_slurm_submitter(species: str, maximal_analysis_date: str, minimal
                 logging.info(f"Slurm submission for isolate '{isolate['_id']}' completed")
                 return json.loads(command_output.stdout.decode())  # This is the reanalysis_outcome_dictionary or at least it should be # todo test
 
-        # Slurm can schedule up to 10000 jobs, best to max 5000: reanalysis triggers launches max 5, times 1000 below is 5000 max
+        # Slurm can schedule up to 10000 jobs, best to max 5000: reanalysis_triggers.py launches max 5, times 1000 below is 5000 max
         if documents_list != []:
             with concurrent.futures.ThreadPoolExecutor(max_workers=1000) as executor:
                 futures = {executor.submit(
@@ -148,18 +128,18 @@ def reanalysis_slurm_submitter(species: str, maximal_analysis_date: str, minimal
                 # Capture end_time reanalysis
                 end_time_reanalysis = datetime.datetime.utcnow()
                 timedelta_reanalysis = end_time_reanalysis - start_time_reanalysis
-                _send_email(
-                    f"{Path(__file__).name} report on host {socket.gethostname()} at {datetime.datetime.utcnow()}",
-                    f"Ran from {start_time_reanalysis} to {end_time_reanalysis} for a total of {timedelta_reanalysis.days} days, {timedelta_reanalysis.seconds // 3600} hours, {(timedelta_reanalysis.seconds - (timedelta_reanalysis.seconds // 3600 * 3600)) // 60} minutes\n"
+                send_email(
+                    f"Ran from {start_time_reanalysis} to {end_time_reanalysis} for a total of {timedelta_reanalysis.days} days, {timedelta_reanalysis.seconds // 3600} hours, "
+                    f"{(timedelta_reanalysis.seconds - (timedelta_reanalysis.seconds // 3600 * 3600)) // 60} minutes\n"
                     f"Succes Count: {succes_counter}\nFail Count: {fail_counter}\nFail Logs: {fail_logs}",
-                    mongo_config_data['mail'])
+                    f"{Path(__file__).name} report on host {socket.gethostname()} at {datetime.datetime.utcnow()}")
         else:
             logging.info('No isolates to be reanalyzed found')
 
     except Exception as exceptionmessage:
-        _send_email(f"{Path(__file__).name} fail on host {socket.gethostname()}",
-                    f"{exceptionmessage}\n{traceback.format_exc()}", mongo_config_data['mail'])
-        raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}")
+        send_email(f"{exceptionmessage}\n{traceback.format_exc()}")
+        raise Exception(f"{exceptionmessage}\n{traceback.format_exc()}")
+
 
 if __name__ == '__main__':
 

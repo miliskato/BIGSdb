@@ -119,11 +119,13 @@ def main_results_inserter(isolatename: str, uploadermailadress: str, species: st
     # parse output
     if tsvfilepath:
         sample_output_dict: Dict[str, Any] = {}
-        handle = open(tsvfilepath, 'r').readlines()
-        for line in handle:
+        with tsvfilepath.open('r') as handle:
+            tsvfile = handle.readlines()
+        for line in tsvfile:
             sample_output_dict[line.split('\t')[0]] = line.split('\t')[1].strip('\n')
     elif jsonfilepath:
-        records: Dict[str, Any] = json.load(open(jsonfilepath, 'r'))
+        with jsonfilepath.open('r') as handle:
+            records: Dict[str, Any] = json.load(handle)
         if 'results' in records:
             # records come from mongodb
             sample_output_dict = records['results']

@@ -84,7 +84,7 @@ def insert_assembly(isolatename: str, species: str, fastafilepath: str) -> None:
                 for sequencename, sequence in fasta_dict.items():
                     isolates_seqbin_psql_tbl.insert_sequencebin((isolatename, sequence, sequencename.strip('>')))
                 # # remove the file
-                # os.remove(Path(fastafile))
+                # Path(fastafile).unlink()
 
             else:
                 send_email(f"isolate {isolatename} already contains assembly records!",

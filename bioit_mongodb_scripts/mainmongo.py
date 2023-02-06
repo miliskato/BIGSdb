@@ -385,7 +385,7 @@ class MainMongo:
                 raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}: Could not 'git' merge dir {new_results_document['report_directory']} into dir {current_results_document['report_directory']}")
             else:
                 # Removing the temporary working dir and the remaining files that were not kept
-                shutil.rmtree(new_results_document['report_directory'])
+                shutil.rmtree(Path(new_results_document['report_directory']))
                 logging.info(f"Resequecing directory {new_results_document['report_directory']} deletion for isolate '{self._technical_id}' completed")
             # Remove the isolate from the resequencing collection to allow for new resequencings
             self._isolates_resequencing_collection.delete_one({'_id': self._technical_id})
