@@ -23,7 +23,7 @@ from bioit_bigsdb_scripts.insert_assembly import insert_assembly
 from bioit_bigsdb_scripts.main_results_inserter import main_results_inserter
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.mongo_querying import Mongoquerying
-from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email
+from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email, convert_dmyhms_to_dateobj
 from bioit_mongodb_scripts.new_alleles_profile_clustering_from_mongo_to_bigs import \
     run_upload_new_alleles_profiles_clustering_from_mongo_to_bigs
 from bioit_mongodb_scripts.samples_to_validation_bigs import samples_to_validation_bigs
@@ -39,23 +39,6 @@ def _parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     argument_parser.add_argument('--species', required=True, type=str, choices=specieslist)
     argument_parser.add_argument('--single_sample_id', type=str, help=argparse.SUPPRESS)
     return argument_parser.parse_args()
-
-def _return_datetimeobj_from_dmyhms(datetimestring: str) -> object:
-    """
-    return datetime object from Camel's custom datetime notation
-    :param datetimestring: datetime sting in '%d/%m/%Y - %X' format
-    :return: datetime.datetime object
-    """
-    return datetime.strptime(datetimestring, '%d/%m/%Y - %X').date()
-
-
-def _convert_datetimestr_from_ymd_to_dmyhms(datetimestring: str) -> str:
-    """
-    Revert SQL or other YMD to Camel's custom datetime notation
-    :param datetimestring: datetime string in '%Y-%m-%d'
-    :return: datetime string in '%d/%m/%Y - %X'
-    """
-    return datetime.strptime(datetimestring, '%Y-%m-%d').strftime('%d/%m/%Y - %X')
 
 class MongoToBigs:
     """
@@ -83,12 +66,16 @@ class MongoToBigs:
         self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, \
         self._isolates_resequencing_collection = self._mongoinit.initialise_collections()
         self._mongoquerying = Mongoquerying()
+        # Open Bigsdb isolates table
+        self._isolates_psql_tbl = TblIsolates(self._species)
 
         try:
             self.mongo_to_bigs()
         except Exception as exceptionmessage:
             send_email(f"{exceptionmessage}\n{traceback.format_exc()}")
             raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}")
+
+        self._isolates_psql_tbl.close()
 
     def mongo_to_bigs(self) -> None:
         """
@@ -105,102 +92,50 @@ class MongoToBigs:
 
         listofdocuments = self._get_list_of_documents()
 
-        with TblIsolates(self._species) as isolates_psql_tbl:
-            for document in listofdocuments:
-                document_id = document['results']['isolates_id']
-                sample_presence = isolates_psql_tbl.count_isolate((document_id,))
-                if sample_presence[0][0] == 0:
-                    results_type = "new_isolate"
-                elif sample_presence[0][0] == 1 and (Path(self._bigsdb_config_data['failsafe']['flag_dir']) / '.'.join(
-                        [document_id, self._bigsdb_config_data['failsafe']['flag_append']])).is_file():
-                    # isolate into bigsdb was started but failed during insertion.
-                    # if argument "new_isolate" is passed to main_results_inserter and it finds the flag, it will remove the isolate and the flag, and then recreate the flag and start insertion again.
-                    results_type = "new_isolate"
-                else:
-                    results_type = "reanalysis"
-                    latest_analysis_date_bigs = (isolates_psql_tbl.select_latestanalysisdate_for_isolate((document_id)))[0][0]  # this appearently is a datetime object
-                    with TblEavTextHidden(self._species) as isolates_eavth_psql_tbl:
-                        mongo_results_changed_version_bigs_query = isolates_eavth_psql_tbl.select_mongo_resultsversion((document_id,))
-                    # as of 2022/12/22 mongo_results_version in bigs is changed version
-                    if len(mongo_results_changed_version_bigs_query) == 0:
-                        # Accounting for old samples that didnt have a version yet
-                        mongo_results_changed_version_bigs = 1
-                    else:
-                        mongo_results_changed_version_bigs = int(mongo_results_changed_version_bigs_query[0][0])
-                    if _return_datetimeobj_from_dmyhms(document['results']['analysis_date']) > latest_analysis_date_bigs:
-                        new_results = document['results']
-                        if new_results['changed_version'] == int(mongo_results_changed_version_bigs):
-                            # results are same so do nothing
-                            logging.info(
-                                f"results_version might be different, but changed_version same in mongodb and bigsdb for {document_id}")
-                            continue
-                        else:
-                            old_results_withpointers = self._old_isolateresults_collection.with_options(
-                                read_concern=ReadConcern(level="majority")).find_one(
-                                {'isolates_id': new_results['isolates_id'],
-                                 'changed_version': mongo_results_changed_version_bigs})
-                            if old_results_withpointers is None:
-                                # what if bigs has version 1, but mongo has version 3, but version 3 is no different from 1 and 2?
-                                # Currently new versions are only created if there were changes so in case more than 2 versions different and missing then should send error.
-                                send_email(f"Can not find document in old isolate results collection for isolate {new_results['isolates_id']} and results version {mongo_results_changed_version_bigs}")
-                                raise Exception(f"Can not find document in old isolate results collection for isolate {new_results['isolates_id']} and results version {mongo_results_changed_version_bigs}")
-                            else:
-                                # replace the pointers in the old results by their actual contents
-                                old_results = self._mongoquerying.query_old_results_and_replace_pointers(
-                                    self._old_isolateresults_collection, old_results_withpointers)
-                            some_result_changed = False
-                            for mainkey in new_results:
-                                if isinstance(new_results[mainkey], dict):
-                                    for subkey in new_results[mainkey]:
-                                        if mainkey not in old_results:
-                                            logging.info(f"{mainkey} not in old results")
-                                            some_result_changed = True
-                                        elif subkey == 'loci' or subkey == 'results' or subkey.startswith('hits'):
-                                            if subkey not in old_results[mainkey] or new_results[mainkey][subkey] != \
-                                                    old_results[mainkey][subkey]:
-                                                # keep in mind that loci is a list: it seems as if loci are always outputted in the same order though so that is allright
-                                                logging.info(f"{mainkey}{subkey} different or not in old")
-                                                some_result_changed = True
-                                                break  # A change has been detected, no need to loop over next mainkey(s)
-                            if some_result_changed is False:
-                                # results didnt change
-                                logging.info(
-                                    f"different version (more than 1 diff) but results same in mongodb and bigsdb {document_id}")
-                                continue
-                            # else if results changed, the for loop is continued and results are inserted into bigsdb as reanalysis
-                    else:
-                        logging.info(
-                            f"results version same in mongodb and bigsdb for sample {document_id}")
-                        continue
+        for document in listofdocuments:
+            document_id = document['results']['isolates_id']
+            sample_presence = self._isolates_psql_tbl.count_isolate((document_id,))
+            if sample_presence[0][0] == 0:
+                results_type = "new_isolate"
+            elif sample_presence[0][0] == 1 and (Path(self._bigsdb_config_data['failsafe']['flag_dir']) / '.'.join(
+                    [document_id, self._bigsdb_config_data['failsafe']['flag_append']])).is_file():
+                # isolate into bigsdb was started but failed during insertion.
+                # if argument "new_isolate" is passed to main_results_inserter and it finds the flag, it will remove the isolate and the flag, and then recreate the flag and start insertion again.
+                results_type = "new_isolate"
+            else:
+                results_type = "reanalysis"
+                different_version = self._check_if_reanalysis_different()
+                if different_version is False:
+                    continue
 
-                # continuation of for loop:
-                # extract json file to be given to bigs
-                if document.get('validation'):
-                    # add validation metadata to results in order to be able to insert them into BIGSdb
-                    document['results']['validation'] = document['validation']
-                document = self._mongoquerying.revert_typinghitlists_to_dictionaries(document, self._mongoinit)
-                jsonfile = Path(f"{mongo_config_data.get('temp_dir')}/{document_id}_temp.json")
-                with jsonfile.open('w') as handle:
-                    handle.write(json.dumps(document['results']))
-                # todo modify mailadress
-                main_results_inserter(document_id, 'bioit@sciensano.be', self._species, results_type, jsonfilepath=jsonfile)
-                jsonfile.unlink()
-                if results_type == 'new_isolate':
+            # continuation of for loop:
+            # extract json file to be given to bigs
+            if document.get('validation'):
+                # add validation metadata to results in order to be able to insert them into BIGSdb
+                document['results']['validation'] = document['validation']
+            document = self._mongoquerying.revert_typinghitlists_to_dictionaries(document, self._mongoinit)
+            jsonfile = Path(f"{mongo_config_data.get('temp_dir')}/{document_id}_temp.json")
+            with jsonfile.open('w') as handle:
+                handle.write(json.dumps(document['results']))
+            # todo modify mailadress
+            main_results_inserter(document_id, 'bioit@sciensano.be', self._species, results_type, jsonfilepath=jsonfile)
+            jsonfile.unlink()
+            if results_type == 'new_isolate':
+                insert_assembly(document_id, self._species, document['fasta_path'])
+            elif results_type == 'reanalysis' and document['validation']['type'] == 'resequencing':
+                last_two_validation_dates = self._isolates_psql_tbl.select_validationdate_for_isolate((document_id,))
+                # select to check that the previous version's validation date is different from the current
+                if last_two_validation_dates[0][0] != last_two_validation_dates[1][0]:
+                    # revert the changes done in maininserter that move the assembly to the newest version
+                    with TblSequenceBin(self._species) as isolates_seqbin_psql_tbl:
+                        isolates_seqbin_psql_tbl.update_sequencebin_newversion(
+                            (document_id, document_id))
+                    with TblSeqBinStats(self._species) as isolates_seqbinstats_psql_tbl:
+                        isolates_seqbinstats_psql_tbl.update_seqbinstats_newversion(
+                            (document_id, document_id))
                     insert_assembly(document_id, self._species, document['fasta_path'])
-                elif results_type == 'reanalysis' and document['validation']['type'] == 'resequencing':
-                    last_two_validation_dates = isolates_psql_tbl.select_validationdate_for_isolate((document_id,))
-                    # select to check that the previous versions validation date is different than the current
-                    if last_two_validation_dates[0][0] != last_two_validation_dates[1][0]:
-                        # revert the changes done in maininserter that move the assembly to the newest version
-                        with TblSequenceBin(self._species) as isolates_seqbin_psql_tbl:
-                            isolates_seqbin_psql_tbl.update_sequencebin_newversion(
-                                (document_id, document_id))
-                        with TblSeqBinStats(self._species) as isolates_seqbinstats_psql_tbl:
-                            isolates_seqbinstats_psql_tbl.update_seqbinstats_newversion(
-                                (document_id, document_id))
-                        insert_assembly(document_id, self._species, document['fasta_path'])
 
-                logging.info(f"wrote new results version for {document_id} to bigsdb")
+            logging.info(f"wrote new results version for {document_id} to bigsdb")
 
     def _get_list_of_documents(self) -> List[Dict[str, Any]]:
         """
@@ -218,6 +153,74 @@ class MongoToBigs:
         else:
             listofdocuments = list(self._isolates_collection.find())
         return listofdocuments
+
+    def _check_if_reanalysis_different(self, document: Dict[str, Any], document_id: str) -> bool:
+        """
+        Checks if the reanalysis is different or not, outside this function: continues the for loop,
+        it is called in, to the next sample if not different
+        :param document: document dictionary
+        :param document_id: name of the isolate
+        :return: boolean whether version is different or not
+        """
+        different_version = True
+        latest_analysis_date_bigs = (self._isolates_psql_tbl.select_latestanalysisdate_for_isolate((document_id)))[0][
+            0]  # this appearently is a datetime object
+        with TblEavTextHidden(self._species) as isolates_eavth_psql_tbl:
+            mongo_results_changed_version_bigs_query = isolates_eavth_psql_tbl.select_mongo_resultsversion(
+                (document_id,))
+        # as of 2022/12/22 mongo_results_version in bigs is changed version
+        if len(mongo_results_changed_version_bigs_query) == 0:
+            # Accounting for old samples that didnt have a version yet
+            mongo_results_changed_version_bigs = 1
+        else:
+            mongo_results_changed_version_bigs = int(mongo_results_changed_version_bigs_query[0][0])
+        if convert_dmyhms_to_dateobj(document['results']['analysis_date']) > latest_analysis_date_bigs:
+            new_results = document['results']
+            if new_results['changed_version'] == int(mongo_results_changed_version_bigs):
+                # results are same so do nothing
+                logging.info(
+                    f"results_version might be different, but changed_version same in mongodb and bigsdb for {document_id}")
+                different_version = False
+            else:
+                old_results_withpointers = self._old_isolateresults_collection.with_options(
+                    read_concern=ReadConcern(level="majority")).find_one(
+                    {'isolates_id': new_results['isolates_id'],
+                     'changed_version': mongo_results_changed_version_bigs})
+                if old_results_withpointers is None:
+                    # what if bigs has version 1, but mongo has version 3, but version 3 is no different from 1 and 2?
+                    # Currently new versions are only created if there were changes so in case more than 2 versions different and missing then should send error.
+                    send_email(
+                        f"Can not find document in old isolate results collection for isolate {new_results['isolates_id']} and results version {mongo_results_changed_version_bigs}")
+                    raise Exception(
+                        f"Can not find document in old isolate results collection for isolate {new_results['isolates_id']} and results version {mongo_results_changed_version_bigs}")
+                else:
+                    # replace the pointers in the old results by their actual contents
+                    old_results = self._mongoquerying.query_old_results_and_replace_pointers(
+                        self._old_isolateresults_collection, old_results_withpointers)
+                some_result_changed = False
+                for mainkey in new_results:
+                    if isinstance(new_results[mainkey], dict):
+                        for subkey in new_results[mainkey]:
+                            if mainkey not in old_results:
+                                logging.info(f"{mainkey} not in old results")
+                                some_result_changed = True
+                            elif subkey == 'loci' or subkey == 'results' or subkey.startswith('hits'):
+                                if subkey not in old_results[mainkey] or new_results[mainkey][subkey] != \
+                                        old_results[mainkey][subkey]:
+                                    logging.info(f"{mainkey}{subkey} different or not in old")
+                                    some_result_changed = True
+                                    break  # A change has been detected, no need to loop over next mainkey(s)
+                if some_result_changed is False:
+                    # results didnt change
+                    logging.info(
+                        f"different version (more than 1 diff) but results same in mongodb and bigsdb {document_id}")
+                    different_version = False
+                # else if results changed, the for loop is continued and results are inserted into bigsdb as reanalysis
+        else:
+            logging.info(
+                f"results version same in mongodb and bigsdb for sample {document_id}")
+            different_version = False
+        return different_version
 
 
 if __name__ == '__main__':
