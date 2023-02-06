@@ -304,7 +304,7 @@ class MainMongo:
             new_results = self.__convert_typinghitdictionaries_to_lists(new_results)
         else:  # if self._results_type == 'resequencing_validated':
             new_results = new_results_document['results']
-            new_results = self.__revert_typinghitlists_to_dictionaries(new_results)
+            new_results = self._mongoquerying.revert_typinghitlists_to_dictionaries(new_results, self._mongoinit)
             new_results = self.__find_hashes_in_results_and_add_to_collection(new_results,
                                                                               'reanalysis')
             new_results = self.__convert_typinghitdictionaries_to_lists(new_results)
@@ -599,35 +599,6 @@ class MainMongo:
                                 meta_hit_dictionary[single_hit_dictionary['Locus']] = [single_hit_dictionary[metadata]
                                                                                        for metadata in hit_header_list]
                             results_to_modify[mainkey][subkey] = meta_hit_dictionary
-        return document
-
-    def __revert_typinghitlists_to_dictionaries(self, document: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        This function restores the lists of hit metadata (Allele, %id, length etc.) to dictionaries which are more
-        easily readable and required for bigsdb
-        Be wary, this method does not create a deepcopy, therefore changes are applied to the input docuemnt
-        even if the return value's name is modified
-        :return: The reverted input document
-        """
-        hit_metadata: Union[None, Dict[str, Union[object, str, List[str]]]] = self._headers_collection.find_one({'type': 'hit_metadata'})
-        if hit_metadata is None:
-            # no header so can not revert anything
-            return document
-        results_to_modify = (document['results'] if 'results' in document else document)  # this is not a deepcopy so results will be modified in document as well
-        for mainkey in results_to_modify:  # mainkey is assay or metadata
-            if isinstance(results_to_modify[mainkey], dict):
-                for subkey in results_to_modify[mainkey]:
-                    if subkey == 'loci' and isinstance(results_to_modify[mainkey][subkey], dict):
-                        # check whether first locus/results/hits length corresponds to the length of f"{mainkey}_{subkey}"'s value which is the list of headers
-                        if f"{mainkey}_{subkey}" in hit_metadata and len(hit_metadata[f"{mainkey}_{subkey}"]) == len(results_to_modify[mainkey][subkey][results_to_modify[mainkey][subkey].keys[0]]):
-                            meta_hit_list = []
-                            for locus in sorted(results_to_modify[mainkey][subkey].keys()):
-                                single_hit_dictionary = {hit_metadata[f"{mainkey}_{subkey}"][index]:
-                                                         results_to_modify[mainkey][subkey][locus[index]]
-                                                         for index in enumerate(hit_metadata[f"{mainkey}_{subkey}"])}
-                                single_hit_dictionary['Locus'] = locus
-                                meta_hit_list.append(single_hit_dictionary)
-                            results_to_modify[mainkey][subkey] = meta_hit_list
         return document
 
 

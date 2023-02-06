@@ -18,7 +18,7 @@ sys.path.append(str(PYTHONPATH))
 
 from bioit_mongodb_scripts.reanalysis.reanalysis_triggers import TRIGGER_CONFIG
 from bioit_mongodb_scripts.config import MONGO_CONFIG
-from bioit_mongodb_scripts.mongo_to_bigs import mongo_to_bigs
+from bioit_mongodb_scripts.mongo_to_bigs import MongoToBigs
 from bioit_mongodb_scripts.reanalysis.reanalysis_slurm_submitter import reanalysis_slurm_submitter
 from bioit_mongodb_scripts.reanalysis.reanalysis_noslurm import reanalysis_noslurm
 
@@ -156,7 +156,7 @@ def reanalysis_triggers(species: str, threads: int = 8, pyvenvpythonpath: str = 
 
         if alternate_connection_string is False:
             # After all the reanalyses, execute mongo_to_bigs.py
-            mongo_to_bigs(species)
+            MongoToBigs(species)
             logging.info(f"Mongo to bigs after reanalysis completed")
 
     except Exception as exceptionmessage:

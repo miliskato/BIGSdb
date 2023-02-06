@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Union
 import pymongo
 from pymongo.read_concern import ReadConcern
 
+from .mongo_initialisation import MongoInitialisation
 
 class Mongoquerying(object, metaclass=abc.ABCMeta):
     """
@@ -258,3 +259,34 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
                     results_dict = old_docs_containing_results_dict[old_results_doc_without_pointers[key]['pointer']][key]
                     old_results_doc_without_pointers[key] = results_dict  # which is now without pointers
         return old_results_doc_without_pointers  # which is now without pointers
+
+    @staticmethod
+    def revert_typinghitlists_to_dictionaries(document: Dict[str, Any], mongoinit: MongoInitialisation) -> Dict[str, Any]:
+        """
+        This function restores the lists of hit metadata (Allele, %id, length etc.) to dictionaries which are more
+        easily readable and required for bigsdb
+        Be wary, this method does not create a deepcopy, therefore changes are applied to the input docuemnt
+        even if the return value's name is modified
+        :return: The reverted input document
+        """
+        headers_collection = mongoinit.initialise_headers_collection()
+        hit_metadata: Union[None, Dict[str, Union[object, str, List[str]]]] = headers_collection.find_one({'type': 'hit_metadata'})
+        if hit_metadata is None:
+            # no header so can not revert anything
+            return document
+        results_to_modify = (document['results'] if 'results' in document else document)  # this is not a deepcopy so results will be modified in document as well
+        for mainkey in results_to_modify:  # mainkey is assay or metadata
+            if isinstance(results_to_modify[mainkey], dict):
+                for subkey in results_to_modify[mainkey]:
+                    if subkey == 'loci' and isinstance(results_to_modify[mainkey][subkey], dict):
+                        # check whether first locus/results/hits length corresponds to the length of f"{mainkey}_{subkey}"'s value which is the list of headers
+                        if f"{mainkey}_{subkey}" in hit_metadata and len(hit_metadata[f"{mainkey}_{subkey}"]) == len(results_to_modify[mainkey][subkey][results_to_modify[mainkey][subkey].keys[0]]):
+                            meta_hit_list = []
+                            for locus in sorted(results_to_modify[mainkey][subkey].keys()):
+                                single_hit_dictionary = {hit_metadata[f"{mainkey}_{subkey}"][index]:
+                                                         results_to_modify[mainkey][subkey][locus[index]]
+                                                         for index in enumerate(hit_metadata[f"{mainkey}_{subkey}"])}
+                                single_hit_dictionary['Locus'] = locus
+                                meta_hit_list.append(single_hit_dictionary)
+                            results_to_modify[mainkey][subkey] = meta_hit_list
+        return document

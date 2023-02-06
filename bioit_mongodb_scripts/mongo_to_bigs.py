@@ -3,19 +3,15 @@
 # /home/bigsdb/BIGSdb/3.9PythonVenv/bin/python3.9 /home/mikelchtermans/Bigsdb_new/bioit_mongodb_scripts/mongo_to_bigs.py --species listeria --pyvenvpythonpath /home/bigsdb/BIGSdb/3.9PythonVenv/bin/python3.9
 
 import argparse
-import datetime
 import json
 import logging
-import os
-import smtplib
 import socket
 import sys
 import traceback
-from email.message import EmailMessage
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List
 
-import yaml
 from pymongo.read_concern import ReadConcern
 
 PYTHONPATH = Path(__file__).resolve().parent.parent
@@ -40,90 +36,98 @@ def _parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     :return: Parsed arguments
     """
     argument_parser = argparse.ArgumentParser()
-    argument_parser.add_argument('--species', required=True, type=str,
-                                 choices=specieslist)
-    argument_parser.add_argument('--single_sample', type=str, help=argparse.SUPPRESS)
+    argument_parser.add_argument('--species', required=True, type=str, choices=specieslist)
+    argument_parser.add_argument('--single_sample_id', type=str, help=argparse.SUPPRESS)
     return argument_parser.parse_args()
 
-def _return_datetimeobj_from_DMYhms(datetimestring: str) -> object:
+def _return_datetimeobj_from_dmyhms(datetimestring: str) -> object:
     """
-    return datetime object from Bert's custom datetime notation in Camel
+    return datetime object from Camel's custom datetime notation
     :param datetimestring: datetime sting in '%d/%m/%Y - %X' format
     :return: datetime.datetime object
     """
-    return datetime.datetime.strptime(datetimestring, '%d/%m/%Y - %X').date()
+    return datetime.strptime(datetimestring, '%d/%m/%Y - %X').date()
 
 
-def _return_datetimestr_from_YMD_to_DMYhms(datetimestring: str) -> str:
+def _convert_datetimestr_from_ymd_to_dmyhms(datetimestring: str) -> str:
     """
-    Revert SQL or other YMD to Bert's custom datetime notation in Camel
+    Revert SQL or other YMD to Camel's custom datetime notation
     :param datetimestring: datetime string in '%Y-%m-%d'
-    :return: str
+    :return: datetime string in '%d/%m/%Y - %X'
     """
-    return datetime.datetime.strptime(datetimestring, '%Y-%m-%d').strftime('%d/%m/%Y - %X')
+    return datetime.strptime(datetimestring, '%Y-%m-%d').strftime('%d/%m/%Y - %X')
 
-
-def mongo_to_bigs(species: str, single_sample: str = None) -> None:
+class MongoToBigs:
     """
-    Main function
-    See argparse function for variables and their requiredness
-    :param species:
-    :param single_sample:
-    :return:
+    Initializing this class will trigger its main function.
+    If the current host is a bigsdb host, syncs all samples (or a single one if provided) with the bigsdb database
     """
-    # Parse Mongo config, second time because first time needed for argparse, and this time needed if function called from outside
-    mongo_config_data = get_mongodb_config_data()
+    def __init__(self, species: str, single_sample_id: str = None) -> None:
+        """
+        Initializes this class and executes the main function
+        :param species: commonly used bioit species name: either genus or specific like stec
+        :param single_sample_id: name of a single sample if only this sample should be synced
+        :return: None
+        """
+        # Configure stdout logging
+        logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
-    # Parse Bigsdb config
-    bigsdb_config_data = get_bigsdb_config_data()
-
-    try:
-
+        self._species = species
+        self._single_sample_id = single_sample_id
+        # Parse MongoDB config
+        self._mongo_config_data = get_mongodb_config_data
+        # Parse Bigsdb config
+        self._bigsdb_config_data = get_bigsdb_config_data()
         # Open collections
-        mongoinit = MongoInitialisation(species)
-        isolates_collection, old_isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections()
+        self._mongoinit = MongoInitialisation(self._species)
+        self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, \
+        self._isolates_resequencing_collection = self._mongoinit.initialise_collections()
+        self._mongoquerying = Mongoquerying()
+
+        try:
+            self.mongo_to_bigs()
+        except Exception as exceptionmessage:
+            send_email(f"{exceptionmessage}\n{traceback.format_exc()}")
+            raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}")
+
+    def mongo_to_bigs(self) -> None:
+        """
+        Main function
+        If the current host is a bigsdb host, syncs all samples (or a single one if provided) with the bigsdb database
+        :return: None
+        """
 
         # call the function to insert new alleles and profiles
-        run_upload_new_alleles_profiles_clustering_from_mongo_to_bigs(species)
+        run_upload_new_alleles_profiles_clustering_from_mongo_to_bigs(self._species)
 
         # send bad samples from the badqc_isolates collection to BIGSdb
-        samples_to_validation_bigs(species)
+        samples_to_validation_bigs(self._species)
 
-        if single_sample:
-            query_single = isolates_collection.find_one({'_id': single_sample})
-            if query_single is not None:
-                listofdocuments = [query_single]
-            else:
-                send_email(f"Can not find document with _id '{single_sample}' in isolates")
-                raise Exception(
-                    f"{Path(__file__).name} fail on host {socket.gethostname()}: Can not find document with _id '{single_sample}' in isolates")
+        listofdocuments = self._get_list_of_documents()
 
-        else:
-            listofdocuments = list(isolates_collection.find())
-
-        with TblIsolates(species) as isolates_psql_tbl:
+        with TblIsolates(self._species) as isolates_psql_tbl:
             for document in listofdocuments:
                 document_id = document['results']['isolates_id']
                 sample_presence = isolates_psql_tbl.count_isolate((document_id,))
                 if sample_presence[0][0] == 0:
                     results_type = "new_isolate"
-                elif sample_presence[0][0] == 1 and os.path.isfile(Path(bigsdb_config_data['failsafe']['flag_dir']) / '.'.join(
-                        [document_id, bigsdb_config_data['failsafe']['flag_append']])):
+                elif sample_presence[0][0] == 1 and (Path(self._bigsdb_config_data['failsafe']['flag_dir']) / '.'.join(
+                        [document_id, self._bigsdb_config_data['failsafe']['flag_append']])).is_file():
                     # isolate into bigsdb was started but failed during insertion.
                     # if argument "new_isolate" is passed to main_results_inserter and it finds the flag, it will remove the isolate and the flag, and then recreate the flag and start insertion again.
                     results_type = "new_isolate"
                 else:
                     results_type = "reanalysis"
                     latest_analysis_date_bigs = (isolates_psql_tbl.select_latestanalysisdate_for_isolate((document_id)))[0][0]  # this appearently is a datetime object
-                    with TblEavTextHidden(species) as isolates_eavth_psql_tbl:
+                    with TblEavTextHidden(self._species) as isolates_eavth_psql_tbl:
                         mongo_results_changed_version_bigs_query = isolates_eavth_psql_tbl.select_mongo_resultsversion((document_id,))
                     # as of 2022/12/22 mongo_results_version in bigs is changed version
-                    if mongo_results_changed_version_bigs_query == []:
+                    if len(mongo_results_changed_version_bigs_query) == 0:
                         # Accounting for old samples that didnt have a version yet
                         mongo_results_changed_version_bigs = 1
                     else:
                         mongo_results_changed_version_bigs = int(mongo_results_changed_version_bigs_query[0][0])
-                    if _return_datetimeobj_from_DMYhms(document['results']['analysis_date']) > latest_analysis_date_bigs:
+                    if _return_datetimeobj_from_dmyhms(document['results']['analysis_date']) > latest_analysis_date_bigs:
                         new_results = document['results']
                         if new_results['changed_version'] == int(mongo_results_changed_version_bigs):
                             # results are same so do nothing
@@ -131,7 +135,7 @@ def mongo_to_bigs(species: str, single_sample: str = None) -> None:
                                 f"results_version might be different, but changed_version same in mongodb and bigsdb for {document_id}")
                             continue
                         else:
-                            old_results_withpointers = old_isolateresults_collection.with_options(
+                            old_results_withpointers = self._old_isolateresults_collection.with_options(
                                 read_concern=ReadConcern(level="majority")).find_one(
                                 {'isolates_id': new_results['isolates_id'],
                                  'changed_version': mongo_results_changed_version_bigs})
@@ -139,12 +143,11 @@ def mongo_to_bigs(species: str, single_sample: str = None) -> None:
                                 # what if bigs has version 1, but mongo has version 3, but version 3 is no different from 1 and 2?
                                 # Currently new versions are only created if there were changes so in case more than 2 versions different and missing then should send error.
                                 send_email(f"Can not find document in old isolate results collection for isolate {new_results['isolates_id']} and results version {mongo_results_changed_version_bigs}")
-                                raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}: Can not find document in old isolate results collection for isolate {new_results['isolates_id']} and results version {mongo_results_changed_version_bigs}")
+                                raise Exception(f"Can not find document in old isolate results collection for isolate {new_results['isolates_id']} and results version {mongo_results_changed_version_bigs}")
                             else:
                                 # replace the pointers in the old results by their actual contents
-                                mongoquerying = Mongoquerying()
-                                old_results = mongoquerying.query_old_results_and_replace_pointers(
-                                    old_isolateresults_collection, old_results_withpointers)
+                                old_results = self._mongoquerying.query_old_results_and_replace_pointers(
+                                    self._old_isolateresults_collection, old_results_withpointers)
                             some_result_changed = False
                             for mainkey in new_results:
                                 if isinstance(new_results[mainkey], dict):
@@ -158,6 +161,7 @@ def mongo_to_bigs(species: str, single_sample: str = None) -> None:
                                                 # keep in mind that loci is a list: it seems as if loci are always outputted in the same order though so that is allright
                                                 logging.info(f"{mainkey}{subkey} different or not in old")
                                                 some_result_changed = True
+                                                break  # A change has been detected, no need to loop over next mainkey(s)
                             if some_result_changed is False:
                                 # results didnt change
                                 logging.info(
@@ -168,38 +172,53 @@ def mongo_to_bigs(species: str, single_sample: str = None) -> None:
                         logging.info(
                             f"results version same in mongodb and bigsdb for sample {document_id}")
                         continue
-    
+
                 # continuation of for loop:
                 # extract json file to be given to bigs
-                jsonfile = f"{mongo_config_data.get('temp_dir')}/{document_id}_temp.json"
                 if document.get('validation'):
                     # add validation metadata to results in order to be able to insert them into BIGSdb
                     document['results']['validation'] = document['validation']
-                with open(jsonfile, 'w') as handle:
+                document = self._mongoquerying.revert_typinghitlists_to_dictionaries(document, self._mongoinit)
+                jsonfile = Path(f"{mongo_config_data.get('temp_dir')}/{document_id}_temp.json")
+                with jsonfile.open('w') as handle:
                     handle.write(json.dumps(document['results']))
                 # todo modify mailadress
-                main_results_inserter(document_id, 'bioit@sciensano.be', species, results_type, jsonfilepath=Path(jsonfile))
-                os.remove(jsonfile)
+                main_results_inserter(document_id, 'bioit@sciensano.be', self._species, results_type, jsonfilepath=jsonfile)
+                jsonfile.unlink()
                 if results_type == 'new_isolate':
-                    insert_assembly(document_id, species, document['fasta_path'])
+                    insert_assembly(document_id, self._species, document['fasta_path'])
                 elif results_type == 'reanalysis' and document['validation']['type'] == 'resequencing':
                     last_two_validation_dates = isolates_psql_tbl.select_validationdate_for_isolate((document_id,))
                     # select to check that the previous versions validation date is different than the current
                     if last_two_validation_dates[0][0] != last_two_validation_dates[1][0]:
                         # revert the changes done in maininserter that move the assembly to the newest version
-                        with TblSequenceBin(species) as isolates_seqbin_psql_tbl:
+                        with TblSequenceBin(self._species) as isolates_seqbin_psql_tbl:
                             isolates_seqbin_psql_tbl.update_sequencebin_newversion(
                                 (document_id, document_id))
-                        with TblSeqBinStats(species) as isolates_seqbinstats_psql_tbl:
+                        with TblSeqBinStats(self._species) as isolates_seqbinstats_psql_tbl:
                             isolates_seqbinstats_psql_tbl.update_seqbinstats_newversion(
                                 (document_id, document_id))
-                        insert_assembly(document_id, species, document['fasta_path'])
-    
+                        insert_assembly(document_id, self._species, document['fasta_path'])
+
                 logging.info(f"wrote new results version for {document_id} to bigsdb")
 
-    except Exception as exceptionmessage:
-        send_email(f"{exceptionmessage}\n{traceback.format_exc()}")
-        raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}")
+    def _get_list_of_documents(self) -> List[Dict[str, Any]]:
+        """
+        Gets the list of documents, = all if no single_sample_id, else list of single document
+        :return: list of documents (dictionaries)
+        """
+        if self._single_sample_id:
+            query_single = self._isolates_collection.find_one({'_id': self._single_sample_id})
+            if query_single is not None:
+                listofdocuments = [query_single]
+            else:
+                send_email(f"Can not find document with _id '{self._single_sample_id}' in isolates")
+                raise Exception(f"Can not find document with _id '{self._single_sample_id}' in isolates")
+
+        else:
+            listofdocuments = list(self._isolates_collection.find())
+        return listofdocuments
+
 
 if __name__ == '__main__':
     # Configure stdout logging
@@ -212,5 +231,5 @@ if __name__ == '__main__':
     args = _parse_arguments(mongo_config_data['species'])
 
     # run main
-    mongo_to_bigs(args.species,
-                  single_sample=(args.single_sample if args.single_sample else None))
+    MongoToBigs(args.species,
+                  single_sample_id=(args.single_sample_id if args.single_sample_id else None))

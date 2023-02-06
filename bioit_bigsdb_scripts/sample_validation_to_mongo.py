@@ -24,7 +24,7 @@ from bioit_bigsdb_scripts.components.psql_tables_queries import TblSubmissions
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data, send_email
 from bioit_mongodb_scripts.config import MONGO_CONFIG
 from bioit_mongodb_scripts.mainmongo import MainMongo
-from bioit_mongodb_scripts.mongo_to_bigs import mongo_to_bigs
+from bioit_mongodb_scripts.mongo_to_bigs import MongoToBigs
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 
 
@@ -113,7 +113,7 @@ if __name__ == '__main__':
                         _remove_id_from_document_to_be_unique_again_if_bad(isolates_resequencing_collection)
                 #update status once everything is finished
                 isolates_submissions_psql_tbl.update_submission((submission_id,))
-        mongo_to_bigs(species, single_sample=isolate_id)
+        MongoToBigs(species, single_sample_id=isolate_id)
     except Exception as exceptionmessage:
         send_email(f"{exceptionmessage}\n{traceback.format_exc()}",
                    f"{Path(__file__).name}: sample validation to mongo fail on host {socket.gethostname()}")
