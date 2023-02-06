@@ -8,7 +8,6 @@ import logging
 import socket
 import sys
 import traceback
-from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -104,7 +103,7 @@ class MongoToBigs:
                 results_type = "new_isolate"
             else:
                 results_type = "reanalysis"
-                different_version = self._check_if_reanalysis_different()
+                different_version = self._check_if_reanalysis_different(document, document_id)
                 if different_version is False:
                     continue
 
@@ -163,7 +162,7 @@ class MongoToBigs:
         :return: boolean whether version is different or not
         """
         different_version = True
-        latest_analysis_date_bigs = (self._isolates_psql_tbl.select_latestanalysisdate_for_isolate((document_id)))[0][
+        latest_analysis_date_bigs = (self._isolates_psql_tbl.select_latestanalysisdate_for_isolate((document_id,)))[0][
             0]  # this appearently is a datetime object
         with TblEavTextHidden(self._species) as isolates_eavth_psql_tbl:
             mongo_results_changed_version_bigs_query = isolates_eavth_psql_tbl.select_mongo_resultsversion(
