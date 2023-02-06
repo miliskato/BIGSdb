@@ -259,26 +259,6 @@ class MainMongo:
                     f"on host {socket.gethostname()}, validate the original resequencing in bigs before uploading new resequencings.",
                     dont_send_email=self._dont_send_email)
                 raise Exception(f"WARNING: a resequencing for sample {self._technical_id} was submitted to the isolates_resequencing while one or more resequencings were already present: '{previous_resequencings}' in {self._isolates_resequencing_collection.database.name} on host {socket.gethostname()}, validate the original resequencing in bigs before uploading new resequencings.")
-            # The commented code below was in case multiple resequencings were allowed
-            #     # check whether fasta is different from existing previous resequencings.
-            #     for projection in previous_resequencings:
-            #         if hashlib.md5(bytes(open(Path(projection['fasta_path']), 'r').read(), 'utf-8')).hexdigest() == md5_new:
-            #             new_resequencing = False
-            #     if new_resequencing is True:
-            #         # Send a warning because we are not expecting multiple resequencings for the same same sample
-            #         send_email(,
-            #             f"WARNING: a resequencing for sample {self._technical_id} was written to the isolates_resequencing while one or more resequencings were already present: '{previous_resequencings}' in {self._isolates_resequencing_collection.database.name} on host {socket.gethostname()}", dont_send_email=self._dont_send_email)
-            # if new_resequencing is True:
-            #     # Writing document with auto generated id to avoid having multiple resequencings with same name (pop _id key from new isolate dict)
-            #     __write_document(self._isolates_resequencing_collection,
-            #                     __new_isolate(self._technical_id, str(self._reportdirectorypath), str(self._vcffilepath),
-            #                                  str(self._fastafilepath), new_records).pop('_id'))
-            #     sys.exit()
-            # else:
-            #     send_email(
-            #         f"This technical id is already present in the isolates collection\n{traceback.format_exc()}", dont_send_email=self._dont_send_email)
-            #     raise Exception(
-            #         f"The technical id '{self._technical_id}' is already present in the isolates or isolates badqc collection")
             else:
                 new_records["isolates_id"] = self._technical_id
                 new_isolate = self.__new_isolate(new_records)
