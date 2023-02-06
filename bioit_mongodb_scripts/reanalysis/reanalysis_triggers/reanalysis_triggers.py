@@ -128,7 +128,7 @@ def reanalysis_triggers(species: str, threads: int = 8, pyvenvpythonpath: str = 
 
         # 5 workers if slurm because then a max of 5000 jobs (5 x 1000) are launched
         # at a time (see reanalysis_slurm_submitter.py, 1000 max workers)
-        with concurrent.futures.ThreadPoolExecutor(max_workers=1 if args.slurm is False else 5) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1 if slurm is False else 5) as executor:
             future_to_isolate = {executor.submit(
                 run_reanalysis, **{"date": date, "date_args_dict": date_args_dict}):
                                date for date in date_args_dict}

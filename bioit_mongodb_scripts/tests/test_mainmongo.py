@@ -13,37 +13,20 @@ import yaml
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
-from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
-from bioit_mongodb_scripts.config import MONGO_CONFIG
 from bioit_mongodb_scripts.mainmongo import MainMongo
-from bioit_mongodb_scripts.tempid_replacer import TempidReplacer
 from bioit_mongodb_scripts.reanalysis.reanalysis_noslurm import reanalysis_noslurm
 from bioit_mongodb_scripts.reanalysis.reanalysis_triggers.reanalysis_triggers import reanalysis_triggers
+from bioit_mongodb_scripts.tempid_replacer import TempidReplacer
+from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
+from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email
 
-
-def _send_email(subject: str, content: str, config: dict) -> None:
-    """
-    Sends an email.
-    :param subject: Mail subject
-    :param content: Content of the message
-    :return: None
-    """
-    message = EmailMessage()
-    message['Subject'] = subject
-    message['From'] = config['from']
-    message['To'] = config['to']
-    message.set_content(content)
-    with smtplib.SMTP(config['host']) as s:
-        s.send_message(message)
-    logging.info(content)
 
 if __name__ == '__main__':
 
     # Parse config
-    with open(MONGO_CONFIG, encoding='utf-8') as handle:
-        config_data = yaml.safe_load(handle)
+    mongo_config_data = get_mongodb_config_data()
 
-    if config_data.get('CONNECTION_STRING_BASE') and config_data.get('dtap'):
+    if mongo_config_data.get('CONNECTION_STRING_BASE') and mongo_config_data.get('dtap'):
         pass
     else:
         raise Exception('was config modified?')
@@ -118,6 +101,5 @@ if __name__ == '__main__':
         reanalysis_noslurm('listeria', '2030-01-01', '2000-01-01', alternate_connection_string=True)
 
     except Exception as exceptionmessage:
-        _send_email(f"{Path(__file__).name} fail on {socket.gethostname()}",
-                    f"{exceptionmessage}\n{traceback.format_exc()}", config_data['mail'])
-        raise Exception(f"{Path(__file__).name} fail on {socket.gethostname()}")
+        send_email(f"{exceptionmessage}\n{traceback.format_exc()}")
+        raise Exception(f"{exceptionmessage}\n{traceback.format_exc()}")
