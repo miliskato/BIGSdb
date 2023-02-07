@@ -57,7 +57,7 @@ class DistanceAndClusterComputer:
 
         for doc in query_all_data:
             if 'cgST' in doc:
-                self.cgmlst_profiles.append(np.array(doc['cgMLST'].split(',')))
+                self.cgmlst_profiles.append(np.array(doc['cgMLST']))
                 self.sequence_types.append(doc['cgST'])
 
     def _sorting_cgmlst_profiles(self) -> None:
