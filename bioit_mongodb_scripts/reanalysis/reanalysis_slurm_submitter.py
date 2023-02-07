@@ -133,6 +133,10 @@ def reanalysis_slurm_submitter(species: str, maximal_analysis_date: str, minimal
                     f"{(timedelta_reanalysis.seconds - (timedelta_reanalysis.seconds // 3600 * 3600)) // 60} minutes\n"
                     f"Succes Count: {succes_counter}\nFail Count: {fail_counter}\nFail Logs: {fail_logs}",
                     f"{Path(__file__).name} report on host {socket.gethostname()} at {datetime.datetime.utcnow()}")
+                logging.info(
+                    f"Ran from {start_time_reanalysis} to {end_time_reanalysis} for a total of {timedelta_reanalysis.days} days, {timedelta_reanalysis.seconds // 3600} hours, "
+                    f"{(timedelta_reanalysis.seconds - (timedelta_reanalysis.seconds // 3600 * 3600)) // 60} minutes\n"
+                    f"Succes Count: {succes_counter}\nFail Count: {fail_counter}\nFail Logs: {fail_logs}")
         else:
             logging.info('No isolates to be reanalyzed found')
 
