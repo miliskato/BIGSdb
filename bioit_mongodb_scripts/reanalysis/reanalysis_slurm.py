@@ -2,25 +2,23 @@
 import argparse
 import datetime
 import json
-import os
+import logging
 import shutil
-import smtplib
 import sys
 import tempfile
 import traceback
-from email.message import EmailMessage
 from pathlib import Path
-from typing import Optional, Dict
+from typing import Dict, Optional
 
 import yaml
 
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
-from bioit_mongodb_scripts.util.command.command import Command
-from bioit_mongodb_scripts.config import MONGO_CONFIG
-from bioit_mongodb_scripts.reanalysis import MONGO_REANALYSIS_CONFIG
 from bioit_mongodb_scripts.mainmongo import MainMongo
+from bioit_mongodb_scripts.reanalysis import MONGO_REANALYSIS_CONFIG
+from bioit_mongodb_scripts.util.command.command import Command
+from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data
 
 
 def _parse_arguments(specieslist: list) -> argparse.Namespace:
@@ -37,22 +35,6 @@ def _parse_arguments(specieslist: list) -> argparse.Namespace:
     parser.add_argument('--isolate', type=json.loads, required=True)
     parser.add_argument('--alternate_connection_string', action='store_true', help=argparse.SUPPRESS)
     return parser.parse_args()
-
-def _send_email(subject: str, content: str, config: dict) -> None:
-    """
-    Sends an email.
-    :param subject: Mail subject
-    :param content: Content of the message
-    :return: None
-    """
-    message = EmailMessage()
-    message['Subject'] = subject
-    message['From'] = config['from']
-    message['To'] = config['to']
-    message.set_content(content)
-    with smtplib.SMTP(config['host']) as s:
-        s.send_message(message)
-    # logging.info(content)
 
 
 def __make_flagfilepath(isolatename: str, config: dict) -> Path:
@@ -75,20 +57,21 @@ def _fail_safe_mechanism(isolatename: str, config: dict, reanalysis_outcome_dict
     :return: None
     """
     try:
-        if not os.path.isdir(Path(config['failsafe']['flag_dir'])):
-            os.makedirs(Path(config['failsafe']['flag_dir']), exist_ok=True)
-            os.chmod(Path(config['failsafe']['flag_dir']), 0o777)
+        if not Path(config['failsafe']['flag_dir']).is_dir():
+            Path(config['failsafe']['flag_dir']).mkdir()
+            Path(config['failsafe']['flag_dir']).chmod(0o777)
         flagfilepath = __make_flagfilepath(isolatename, config)
-        if os.path.isfile(flagfilepath):
-            tmp_dir_fail = Path(open(flagfilepath).readlines()[0])
-            # logging.warning(f"fail safe mechanism detects that the reanalysis for sample {isolatename} was started but didnt finish. Removing tmp_dir {tmp_dir_fail}.")
-            shutil.rmtree(tmp_dir_fail)
+        if flagfilepath.is_file():
+            with flagfilepath.open('r') as handle:
+                tmp_dir_fail = handle.readlines()[0]
+            logging.warning(f"fail safe mechanism detects that the reanalysis for sample {isolatename} was started but didnt finish. Removing tmp_dir {tmp_dir_fail}.")
+            shutil.rmtree(Path(tmp_dir_fail))
             # remove flagfilepath with wrong tmp dir in case reanalysis fails again
-            os.remove(flagfilepath)
-        with open(flagfilepath, 'w') as handle:
+            flagfilepath.unlink()
+        with flagfilepath.open('w') as handle:
             handle.write(tmp_dir)
-        os.chmod(flagfilepath, 0o777)
-        # logging.info(f"flagfilepath {flagfilepath}")
+        flagfilepath.chmod(0o777)
+        logging.info(f"flagfilepath {flagfilepath}")
     except Exception as exceptionmessage:
         reanalysis_outcome_dictionary['Outcome'] = 'Fail'
         reanalysis_outcome_dictionary['Traceback'] = f"reanalysis fail safe mechanism fail: {exceptionmessage}\n{traceback.format_exc()}"
@@ -104,7 +87,7 @@ def _delete_flagfile(isolatename: str, config: dict, reanalysis_outcome_dictiona
     """
     flagfilepath = __make_flagfilepath(isolatename, config)
     try:
-        os.remove(flagfilepath)
+        flagfilepath.unlink()
     except Exception:
         reanalysis_outcome_dictionary['Outcome'] = 'Fail'
         reanalysis_outcome_dictionary['Traceback'] = f"Could not remove flag file {flagfilepath}"
@@ -129,11 +112,10 @@ def reanalysis_slurm(species: str, isolate: json.loads, threads: int = 8, analys
             reanalysis_config = yaml.safe_load(handle)
 
         # Configure stdout # logging
-        # logging.basicConfig(level=# logging.DEBUG, stream=sys.stdout)
+        logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
         # Parse config
-        with open(MONGO_CONFIG, encoding='utf-8') as handle:
-            mongo_config_data = yaml.safe_load(handle)
+        mongo_config_data = get_mongodb_config_data()
 
         # ! For testing, you can specify isolates manually here
         # documents_list = [{'_id':'Myco-DRR041783-ds', .......}]
@@ -144,7 +126,7 @@ def reanalysis_slurm(species: str, isolate: json.loads, threads: int = 8, analys
         # logging.info(f"Starting reanalysis for {isolate_id}")
 
         # check if fasta path exists
-        if os.path.isfile(Path(isolate['fasta_path'])):
+        if Path(isolate['fasta_path']).is_file():
             # logging.info(f"Fasta file is real")
             # todo check if fasta is actually fasta or not empty or?
             pass
@@ -212,7 +194,7 @@ def reanalysis_slurm(species: str, isolate: json.loads, threads: int = 8, analys
                 # if this vcf doesnt exist then pipeline will fail during execution and send a mail just like with any other error
                 # check if vcf path exists
                 # todo be sure that this vcf path is the unfiltered one
-                if os.path.isfile(Path(isolate['vcf_path'])):
+                if Path(isolate['vcf_path']).is_file():
                     # logging.info(f"vcf file is real")
                     command = Command(' '.join([base_command, f'--vcf-unfiltered {isolate["vcf_path"]}']))
                 else:
@@ -244,7 +226,7 @@ def reanalysis_slurm(species: str, isolate: json.loads, threads: int = 8, analys
                              'species': species,
                              'results_type': 'reanalysis',
                              'jsonfilepath': dir_out / 'report.json',
-                             'dont_send_email': True,
+                             'dontsend_email': True,
                              'alternate_connection_string': alternate_connection_string}
                 # run the command
                 MainMongo(**arguments)
@@ -292,6 +274,7 @@ def reanalysis_slurm(species: str, isolate: json.loads, threads: int = 8, analys
         reanalysis_outcome_dictionary['Traceback'] = f"{exceptionmessage}\n{traceback.format_exc()}"
         return reanalysis_outcome_dictionary
     return reanalysis_outcome_dictionary
+
 
 if __name__ == '__main__':
 

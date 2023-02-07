@@ -119,16 +119,17 @@ def _insert_all_profiles() -> None:
             schemedict: Dict[str, Dict[str, str]] = bigsdb_config_data['species'][species]['typing_schemes']
             for scheme in schemedict:
                 if schemedict[scheme].get('scheme_fields'):
-                    handle: List[str] = open('/'.join([schemedict[scheme]['dirdb'], PROFILE_FILE]), 'r').readlines()
+                    with Path('/'.join([schemedict[scheme]['dirdb'], PROFILE_FILE])).open('r') as handle:
+                        profiles = handle.readlines()
                     # multiple whitespaces need to be replaced by single whitespace
-                    header: List[str] = " ".join(handle[0].split()).split(' ')
+                    header = " ".join(profiles[0].split()).split(' ')
                     indexdict: Dict[str, int] = {}
                     for index, item in enumerate(header):
                         if item == "'rplF":
                             item = 'rplF'
                         indexdict[item] = index
                     profile_line_dict: Dict[str, str] = {}
-                    for line in handle[1:]:
+                    for line in profiles[1:]:
                         profile_line_dict[" ".join(line.split()).split(' ')[0]] = line
 
                     listoftuples: List[Tuple[int]] = \
@@ -137,12 +138,12 @@ def _insert_all_profiles() -> None:
                     list_to_be_inserted = set()
                     if primary_fields is None:
                         # table is empty, so all need to be inserted
-                        for line in handle[1:]:
+                        for line in profiles[1:]:
                             list_to_be_inserted.add(" ".join(line.split()).split(' ')[0])
                         __insert_profiles(scheme, schemedict, indexdict, profile_line_dict, list_to_be_inserted, seqdef_profiles_psql_tbl, species)
                     else:
                         # table needs to be updated
-                        for line in handle[1:]:
+                        for line in profiles[1:]:
                             if int(" ".join(line.split()).split(' ')[0]) not in primary_fields:
                                 list_to_be_inserted.add(" ".join(line.split()).split(' ')[0])
                             else:

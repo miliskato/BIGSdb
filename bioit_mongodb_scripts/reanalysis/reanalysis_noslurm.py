@@ -4,29 +4,26 @@ import argparse
 import concurrent.futures
 import datetime
 import logging
-import os
 import shutil
-import smtplib
 import socket
 import sys
 import tempfile
 import traceback
-from email.message import EmailMessage
 from pathlib import Path
-from typing import Optional, Dict
+from typing import Any, List, Dict, Optional
 
 import yaml
 
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
+from bioit_mongodb_scripts.mainmongo import MainMongo
+from bioit_mongodb_scripts.reanalysis import MONGO_REANALYSIS_CONFIG
 from bioit_mongodb_scripts.util.command.command import Command
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
-from bioit_mongodb_scripts.config import MONGO_CONFIG
-from bioit_mongodb_scripts.reanalysis import MONGO_REANALYSIS_CONFIG
-from bioit_mongodb_scripts.mainmongo import MainMongo
+from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email
 
-def _parse_arguments(specieslist: list) -> argparse.Namespace:
+def _parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     """
     Parses the command line arguments.
     :param specieslist: list of all the species choices
@@ -41,24 +38,8 @@ def _parse_arguments(specieslist: list) -> argparse.Namespace:
     parser.add_argument('--alternate_connection_string', action='store_true', help=argparse.SUPPRESS)
     return parser.parse_args()
 
-def _send_email(subject: str, content: str, config: dict) -> None:
-    """
-    Sends an email.
-    :param subject: Mail subject
-    :param content: Content of the message
-    :return: None
-    """
-    message = EmailMessage()
-    message['Subject'] = subject
-    message['From'] = config['from']
-    message['To'] = config['to']
-    message.set_content(content)
-    with smtplib.SMTP(config['host']) as s:
-        s.send_message(message)
-    logging.info(content)
 
-
-def __make_flagfilepath(isolatename: str, config: dict) -> Path:
+def __make_flagfilepath(isolatename: str, config: Dict[str, Any]) -> Path:
     """
     Returns the flagfile path based on the isolate name
     :param isolatename: name of the isolate
@@ -68,7 +49,7 @@ def __make_flagfilepath(isolatename: str, config: dict) -> Path:
     return Path(config['failsafe']['flag_dir']) / '.'.join([isolatename, config['failsafe']['flag_append']])
 
 
-def _fail_safe_mechanism(isolatename: str, config: dict, reanalysis_outcome_dictionary: dict, tmp_dir: str) -> Optional[Dict[str, str]]:
+def _fail_safe_mechanism(isolatename: str, config: Dict[str, Any], reanalysis_outcome_dictionary: Dict[str, Any], tmp_dir: str) -> Optional[Dict[str, str]]:
     """
     Creates a flagfile containing the temporary dictionary if the file doesnt exist, if it does, remove the previous temporary directory, the file, and recreate the file
     :param isolatename: name of the isolate
@@ -78,26 +59,27 @@ def _fail_safe_mechanism(isolatename: str, config: dict, reanalysis_outcome_dict
     :return: None
     """
     try:
-        if not os.path.isdir(Path(config['failsafe']['flag_dir'])):
-            os.makedirs(Path(config['failsafe']['flag_dir']), exist_ok=True)
-            os.chmod(Path(config['failsafe']['flag_dir']), 0o777)
+        if not Path(config['failsafe']['flag_dir']).is_dir():
+            Path(config['failsafe']['flag_dir']).mkdir()
+            Path(config['failsafe']['flag_dir']).chmod(0o777)
         flagfilepath = __make_flagfilepath(isolatename, config)
-        if os.path.isfile(flagfilepath):
-            tmp_dir_fail = Path(open(flagfilepath).readlines()[0])
+        if flagfilepath.is_file():
+            with flagfilepath.open('r') as handle:
+                tmp_dir_fail = handle.readlines()[0]
             logging.warning(f"fail safe mechanism detects that the reanalysis for sample {isolatename} was started but didnt finish. Removing tmp_dir {tmp_dir_fail}.")
-            shutil.rmtree(tmp_dir_fail)
+            shutil.rmtree(Path(tmp_dir_fail))
             # remove flagfilepath with wrong tmp dir in case reanalysis fails again
-            os.remove(flagfilepath)
-        with open(flagfilepath, 'w') as handle:
+            flagfilepath.unlink()
+        with flagfilepath.open('w') as handle:
             handle.write(tmp_dir)
-        os.chmod(flagfilepath, 0o777)
+        flagfilepath.chmod(0o777)
         logging.info(f"flagfilepath {flagfilepath}")
     except Exception as exceptionmessage:
         reanalysis_outcome_dictionary['Outcome'] = 'Fail'
         reanalysis_outcome_dictionary['Traceback'] = f"reanalysis fail safe mechanism fail: {exceptionmessage}\n{traceback.format_exc()}"
         return reanalysis_outcome_dictionary
 
-def _delete_flagfile(isolatename: str, config: dict, reanalysis_outcome_dictionary: dict) -> Optional[Dict[str, str]]:
+def _delete_flagfile(isolatename: str, config: Dict[str, Any], reanalysis_outcome_dictionary: dict) -> Optional[Dict[str, str]]:
     """
     Removes the flagfile
     :param isolatename: name of the isolate
@@ -107,23 +89,24 @@ def _delete_flagfile(isolatename: str, config: dict, reanalysis_outcome_dictiona
     """
     flagfilepath = __make_flagfilepath(isolatename, config)
     try:
-        os.remove(flagfilepath)
+        flagfilepath.unlink()
     except Exception:
         reanalysis_outcome_dictionary['Outcome'] = 'Fail'
         reanalysis_outcome_dictionary['Traceback'] = f"Could not remove flag file {flagfilepath}"
         return reanalysis_outcome_dictionary
 
-def reanalysis_noslurm(species: str, maximal_analysis_date: str, minimal_analysis_date: str, threads: int = 8, analysis_arguments: list = None, alternate_connection_string: bool = False) -> Dict[str, str]:
+def reanalysis_noslurm(species: str, maximal_analysis_date: str, minimal_analysis_date: str, threads: int = 8,
+                       analysis_arguments: List[str] = None, alternate_connection_string: bool = False) -> None:
     """
     Main function
     See argparse function for variables and their requiredness
-    :param species: 
-    :param maximal_analysis_date:
-    :param minimal_analysis_date:
-    :param threads: 
-    :param analysis_arguments: 
-    :param alternate_connection_string: 
-    :return: 
+    :param species: commonly used bioit species name: either genus or specific like stec
+    :param maximal_analysis_date: maximal analysis date of sample
+    :param minimal_analysis_date: minimal analysis date of sample
+    :param threads: number of total threads to use for reanalysis
+    :param analysis_arguments: list of analysis arguments passed to the species specific pipeline
+    :param alternate_connection_string: whether to use the alternate connection string for testing purposes
+    :return: None
     """
     try:
         # Read the reanalysis config
@@ -133,9 +116,8 @@ def reanalysis_noslurm(species: str, maximal_analysis_date: str, minimal_analysi
         # Configure stdout logging
         logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
-        # Parse config
-        with open(MONGO_CONFIG, encoding='utf-8') as handle:
-            mongo_config_data = yaml.safe_load(handle)
+        # Parse mongo config
+        mongo_config_data = get_mongodb_config_data()
 
         # capture start_time
         start_time_reanalysis = datetime.datetime.utcnow()
@@ -153,7 +135,7 @@ def reanalysis_noslurm(species: str, maximal_analysis_date: str, minimal_analysi
 
         # Re-analyze the isolates (can be parallelized with a Snakemake workflow)
         # e.g. response_data['isolates'] : "isolates":["http://bioit-bigs-dev.sciensano.be:5000/db/bigsdb_listeria_isolates/isolates/3","http://bioit-bigs-dev.sciensano.be:5000/db/bigsdb_listeria_isolates/isolates/4","http://bioit-bigs-dev.sciensano.be:5000/db/bigsdb_listeria_isolates/isolates/5"]
-        def reanalyse_and_insert(isolate: dict, threads_per_job: int = 2) -> Dict[str, str]:
+        def reanalyse_and_insert(isolate: Dict[str, str], threads_per_job: int = 2) -> Dict[str, str]:
             """
             Reanalyzes a given isolate dict (document from MongoDB)
             :param isolate: isolate dictionary from MongoDB
@@ -167,7 +149,7 @@ def reanalysis_noslurm(species: str, maximal_analysis_date: str, minimal_analysi
                 logging.info(f"Starting reanalysis for {isolate_id}")
 
                 # check if fasta path exists
-                if os.path.isfile(Path(isolate['fasta_path'])):
+                if Path(isolate['fasta_path']).is_file():
                     logging.info(f"Fasta file is real")
                     # todo check if fasta is actually fasta or not empty or?
                 else:
@@ -234,7 +216,7 @@ def reanalysis_noslurm(species: str, maximal_analysis_date: str, minimal_analysi
                         # if this vcf doesnt exist then pipeline will fail during execution and send a mail just like with any other error
                         # check if vcf path exists
                         # todo be sure that this vcf path is the unfiltered one
-                        if os.path.isfile(Path(isolate['vcf_path'])):
+                        if Path(isolate['vcf_path']).is_file():
                             logging.info(f"vcf file is real")
                             command = Command(' '.join([base_command, f'--vcf-unfiltered {isolate["vcf_path"]}']))
                         else:
@@ -265,7 +247,7 @@ def reanalysis_noslurm(species: str, maximal_analysis_date: str, minimal_analysi
                                      'species': species,
                                      'results_type': 'reanalysis',
                                      'jsonfilepath': dir_out / 'report.json',
-                                     'dont_send_email': True,
+                                     'dontsend_email': True,
                                      'alternate_connection_string': alternate_connection_string}
                         # run the command
                         MainMongo(**arguments)
@@ -333,16 +315,16 @@ def reanalysis_noslurm(species: str, maximal_analysis_date: str, minimal_analysi
                 # Capture end_time reanalysis
                 end_time_reanalysis = datetime.datetime.utcnow()
                 timedelta_reanalysis = end_time_reanalysis - start_time_reanalysis
-                _send_email(f"{Path(__file__).name} report on host {socket.gethostname()} at {datetime.datetime.utcnow()}",
-                            f"Ran from {start_time_reanalysis} to {end_time_reanalysis} for a total of {timedelta_reanalysis.days} days, {timedelta_reanalysis.seconds // 3600} hours, {(timedelta_reanalysis.seconds - (timedelta_reanalysis.seconds // 3600 * 3600)) // 60} minutes\n"
-                            f"Succes Count: {succes_counter}\nFail Count: {fail_counter}\nFail Logs: {fail_logs}", mongo_config_data['mail'])
+                send_email(f"Ran from {start_time_reanalysis} to {end_time_reanalysis} for a total of {timedelta_reanalysis.days} days, {timedelta_reanalysis.seconds // 3600} hours, "
+                           f"{(timedelta_reanalysis.seconds - (timedelta_reanalysis.seconds // 3600 * 3600)) // 60} minutes\n"
+                           f"Succes Count: {succes_counter}\nFail Count: {fail_counter}\nFail Logs: {fail_logs}",
+                           f"{Path(__file__).name} report on host {socket.gethostname()} at {datetime.datetime.utcnow()}")
         else:
             logging.info('No isolates to be reanalyzed found')
 
     except Exception as exceptionmessage:
-        _send_email(f"{Path(__file__).name} fail on host {socket.gethostname()}",
-                    f"{exceptionmessage}\n{traceback.format_exc()}", mongo_config_data['mail'])
-        raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}")
+        send_email(f"{exceptionmessage}\n{traceback.format_exc()}")
+        raise Exception(f"{exceptionmessage}\n{traceback.format_exc()}")
 
 if __name__ == '__main__':
 

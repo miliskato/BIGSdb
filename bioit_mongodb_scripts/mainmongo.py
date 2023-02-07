@@ -25,7 +25,7 @@ from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.mongo_custom_clustering import MongoCustomClustering
 from bioit_mongodb_scripts.config import CLUSTERING_CONFIG
 from bioit_mongodb_scripts.util.command.command import Command
-from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email
+from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email, convert_dmyhms_to_ymd
 
 
 def _parse_arguments(specieslist: List[str]) -> argparse.Namespace:
@@ -260,26 +260,6 @@ class MainMongo:
                     f"on host {socket.gethostname()}, validate the original resequencing in bigs before uploading new resequencings.",
                     dont_send_email=self._dont_send_email)
                 raise Exception(f"WARNING: a resequencing for sample {self._technical_id} was submitted to the isolates_resequencing while one or more resequencings were already present: '{previous_resequencings}' in {self._isolates_resequencing_collection.database.name} on host {socket.gethostname()}, validate the original resequencing in bigs before uploading new resequencings.")
-            # The commented code below was in case multiple resequencings were allowed
-            #     # check whether fasta is different from existing previous resequencings.
-            #     for projection in previous_resequencings:
-            #         if hashlib.md5(bytes(open(Path(projection['fasta_path']), 'r').read(), 'utf-8')).hexdigest() == md5_new:
-            #             new_resequencing = False
-            #     if new_resequencing is True:
-            #         # Send a warning because we are not expecting multiple resequencings for the same same sample
-            #         send_email(,
-            #             f"WARNING: a resequencing for sample {self._technical_id} was written to the isolates_resequencing while one or more resequencings were already present: '{previous_resequencings}' in {self._isolates_resequencing_collection.database.name} on host {socket.gethostname()}", dont_send_email=self._dont_send_email)
-            # if new_resequencing is True:
-            #     # Writing document with auto generated id to avoid having multiple resequencings with same name (pop _id key from new isolate dict)
-            #     __write_document(self._isolates_resequencing_collection,
-            #                     __new_isolate(self._technical_id, str(self._reportdirectorypath), str(self._vcffilepath),
-            #                                  str(self._fastafilepath), new_records).pop('_id'))
-            #     sys.exit()
-            # else:
-            #     send_email(
-            #         f"This technical id is already present in the isolates collection\n{traceback.format_exc()}", dont_send_email=self._dont_send_email)
-            #     raise Exception(
-            #         f"The technical id '{self._technical_id}' is already present in the isolates or isolates badqc collection")
             else:
                 new_records["isolates_id"] = self._technical_id
                 new_isolate = self.__new_isolate(new_records)
@@ -315,7 +295,7 @@ class MainMongo:
             send_email(f"This ({self._technical_id}) is not a reanalysis but the same results\n{traceback.format_exc()}", dont_send_email=self._dont_send_email)
             raise Exception(
                 f"{Path(__file__).name} fail on host {socket.gethostname()}: This ({self._technical_id}) is not a reanalysis but the same results")
-        elif self.__convert_dmyhms_to_ymd(new_results["analysis_date"]) < self.__convert_dmyhms_to_ymd(
+        elif convert_dmyhms_to_ymd(new_results["analysis_date"]) < convert_dmyhms_to_ymd(
                 current_results["analysis_date"]):
             send_email(f"These ({self._technical_id})results seem to be older than the current results\n{traceback.format_exc()}", dont_send_email=self._dont_send_email)
             raise Exception(
@@ -387,7 +367,7 @@ class MainMongo:
                 raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}: Could not 'git' merge dir {new_results_document['report_directory']} into dir {current_results_document['report_directory']}")
             else:
                 # Removing the temporary working dir and the remaining files that were not kept
-                shutil.rmtree(new_results_document['report_directory'])
+                shutil.rmtree(Path(new_results_document['report_directory']))
                 logging.info(f"Resequecing directory {new_results_document['report_directory']} deletion for isolate '{self._technical_id}' completed")
             # Remove the isolate from the resequencing collection to allow for new resequencings
             self._isolates_resequencing_collection.delete_one({'_id': self._technical_id})
@@ -395,7 +375,7 @@ class MainMongo:
             {"_id": self._technical_id}, {
                 "$set": {**new_results,
                          "results.results_changed_since_last_version": any_result_changed_new_old,
-                         "latest_analysis_date": self.__convert_dmyhms_to_ymd(new_results["results.analysis_date"]),
+                         "latest_analysis_date": convert_dmyhms_to_ymd(new_results["results.analysis_date"]),
                          "previous_latest_results_document": self.__write_document(self._old_isolateresults_collection,
                                                                                    current_results)}})
         logging.info(f"Wrote new results and linked to isolate {self._technical_id} in {self._species}")
@@ -428,7 +408,7 @@ class MainMongo:
                             "fasta_path": str(self._fastafilepath),
                             "previous_latest_results_document": None,
                             "creation_date": datetime.utcnow(),
-                            "latest_analysis_date": self.__convert_dmyhms_to_ymd(results["analysis_date"]),
+                            "latest_analysis_date": convert_dmyhms_to_ymd(results["analysis_date"]),
                             "results": results}
         return new_isolate_dict
 
@@ -518,15 +498,6 @@ class MainMongo:
                         results[typing_scheme]['loci'][locus_index][
                             'Allele'] = temp_allele  # replace in the results the name of the allele (no hash anymore)
         return results
-
-    @staticmethod
-    def __convert_dmyhms_to_ymd(datetimestring: str) -> str:
-        """
-        Converts long to short datetime string format
-        :param datetimestring: datetimestring in dmyhms format
-        :return: Short datetime string format (ymd)
-        """
-        return datetime.strptime(datetimestring, '%d/%m/%Y - %X').strftime('%Y-%m-%d')
 
     @staticmethod
     def __check_if_results_changed(current_results: Dict[str, Union[str, object]],
