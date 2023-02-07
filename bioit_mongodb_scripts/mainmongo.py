@@ -302,30 +302,6 @@ class MainMongo:
                 f"{Path(__file__).name} fail on host {socket.gethostname()}: These ({self._technical_id})results seem to be older than the current results")
         any_result_changed_new_old, unchanged_results_new_old, changed_results_new_old = \
             self.__check_if_results_changed(current_results, new_results)
-        if current_results_document['previous_latest_results_document'] is not None:
-            # Update current results
-            older_results_document_with_pointers = \
-                self._mongoquerying.query_docs_by_ids(self._old_isolateresults_collection, [
-                    current_results_document['previous_latest_results_document']])[0]
-            older_results = self._mongoquerying.query_old_results_and_replace_pointers(self._old_isolateresults_collection,
-                                                                                       older_results_document_with_pointers)
-            any_result_changed_old_older, unchanged_results_old_older, changed_results_old_older = self.__check_if_results_changed(
-                older_results, current_results)
-            for unchanged_assay in unchanged_results_old_older:
-                unchanged_assay_new_dict_with_pointer = {}
-                # check if document already has a pointer with same results to previous document or make pointer to document
-                if older_results_document_with_pointers[unchanged_assay].get('pointer'):
-                    unchanged_assay_new_dict_with_pointer['pointer'] = \
-                        older_results_document_with_pointers[unchanged_assay]['pointer']
-                else:
-                    unchanged_assay_new_dict_with_pointer['pointer'] = older_results['_id']
-                # for metadata info, check if same or different, independently of if results are different in order to be able to track when an assay was last analyzed by which tools
-                for info in ['analysis_date', 'informs_tools', 'informs_dbs']:
-                    if current_results[unchanged_assay].get(info) and older_results[unchanged_assay][info] != \
-                            current_results[unchanged_assay][info]:
-                        unchanged_assay_new_dict_with_pointer[info] = current_results[unchanged_assay][info]
-                current_results[unchanged_assay] = unchanged_assay_new_dict_with_pointer
-    
         # Update new results if really a reanalysis/resequencing where at least one field changed
         if 'cgmlst' in changed_results_new_old:
             clustering_input = self._mongoquerying.singledoc_typing_results_by_technicalids_and_scheme(
@@ -341,6 +317,7 @@ class MainMongo:
                                                                     self._cluster_merging_collection,
                                                                     CLUSTERING_CONFIG[sp_thresholds])
             new_results["cgST"] = sequence_type
+        deltas_new_old = self.__nested_dict_delta(current_results, new_results)
         new_results = self.__prepend_string_dot_to_dict_keys(new_results, 'results')
         new_results["results.isolates_id"] = self._technical_id
         new_results["results.results_version"] = current_results["results_version"] + 1
@@ -377,7 +354,7 @@ class MainMongo:
                          "results.results_changed_since_last_version": any_result_changed_new_old,
                          "latest_analysis_date": convert_dmyhms_to_ymd(new_results["results.analysis_date"]),
                          "previous_latest_results_document": self.__write_document(self._old_isolateresults_collection,
-                                                                                   current_results)}})
+                                                                                   deltas_new_old)}})
         logging.info(f"Wrote new results and linked to isolate {self._technical_id} in {self._species}")
 
     @staticmethod
@@ -500,8 +477,7 @@ class MainMongo:
         return results
 
     @staticmethod
-    def __check_if_results_changed(current_results: Dict[str, Union[str, object]],
-                                   new_results: Dict[str, Union[str, object]]) -> Tuple[bool, set, set]:
+    def __check_if_results_changed(current_results: Dict[str, Any], new_results: Dict[str, Any]) -> Tuple[bool, set, set]:
         """
         Checks if any result changed between the current mongodb results and the to be inserted new results
         :param current_results: current mongodb results
@@ -528,6 +504,35 @@ class MainMongo:
                 if mainkey not in changed_results:
                     unchanged_results.add(mainkey)
         return any_result_changed, unchanged_results, changed_results
+
+    def __nested_dict_delta(self, current_results: Dict[str, Any], new_results: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        This function calculates the delta between the new results and the current results;
+        it returns the changes needed to get from the new results to the current results.
+        :param current_results: current mongodb results
+        :param new_results: to be inserted results
+        :return: dictionary of deltas
+        """
+        delta_new_old = {}
+        for key, value in current_results.items():
+            if key in new_results:
+                if isinstance(value, dict) and isinstance(new_results[key], dict):
+                    nested_delta = self.__nested_dict_delta(new_results[key], value)
+                    if nested_delta:
+                        delta_new_old[key] = nested_delta
+                elif new_results[key] != value:
+                    delta_new_old[key] = value
+            else:
+                continue
+                # delta_new_old[key] = value  # uncommenting this would lead to keys not found in the
+                # new results to be added to the delta, whereas we're going to be doing
+                # differential reanalysis so there will often be assays missing
+        # add the isolates id as a primary key in first iteration
+        if 'isolates_id' in current_results:
+            delta_new_old['isolates_id'] = current_results['isolates_id']
+            delta_new_old['results_version'] = current_results['results_version']
+            delta_new_old['changed_version'] = current_results['changed_version']
+        return delta_new_old
 
     def __convert_typinghitdictionaries_to_lists(self, document: Dict[str, Any]) -> Dict[str, Any]:
         """

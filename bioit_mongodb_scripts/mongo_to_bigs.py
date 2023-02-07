@@ -181,40 +181,7 @@ class MongoToBigs:
                     f"results_version might be different, but changed_version same in mongodb and bigsdb for {document_id}")
                 different_version = False
             else:
-                old_results_withpointers = self._old_isolateresults_collection.with_options(
-                    read_concern=ReadConcern(level="majority")).find_one(
-                    {'isolates_id': new_results['isolates_id'],
-                     'changed_version': mongo_results_changed_version_bigs})
-                if old_results_withpointers is None:
-                    # what if bigs has version 1, but mongo has version 3, but version 3 is no different from 1 and 2?
-                    # Currently new versions are only created if there were changes so in case more than 2 versions different and missing then should send error.
-                    send_email(
-                        f"Can not find document in old isolate results collection for isolate {new_results['isolates_id']} and results version {mongo_results_changed_version_bigs}")
-                    raise Exception(
-                        f"Can not find document in old isolate results collection for isolate {new_results['isolates_id']} and results version {mongo_results_changed_version_bigs}")
-                else:
-                    # replace the pointers in the old results by their actual contents
-                    old_results = self._mongoquerying.query_old_results_and_replace_pointers(
-                        self._old_isolateresults_collection, old_results_withpointers)
-                some_result_changed = False
-                for mainkey in new_results:
-                    if isinstance(new_results[mainkey], dict):
-                        for subkey in new_results[mainkey]:
-                            if mainkey not in old_results:
-                                logging.info(f"{mainkey} not in old results")
-                                some_result_changed = True
-                            elif subkey == 'loci' or subkey == 'results' or subkey.startswith('hits'):
-                                if subkey not in old_results[mainkey] or new_results[mainkey][subkey] != \
-                                        old_results[mainkey][subkey]:
-                                    logging.info(f"{mainkey}{subkey} different or not in old")
-                                    some_result_changed = True
-                                    break  # A change has been detected, no need to loop over next mainkey(s)
-                if some_result_changed is False:
-                    # results didnt change
-                    logging.info(
-                        f"different version (more than 1 diff) but results same in mongodb and bigsdb {document_id}")
-                    different_version = False
-                # else if results changed, the for loop is continued and results are inserted into bigsdb as reanalysis
+                different_version = True
         else:
             logging.info(
                 f"results version same in mongodb and bigsdb for sample {document_id}")

@@ -226,7 +226,7 @@ def reanalysis_slurm(species: str, isolate: json.loads, threads: int = 8, analys
                              'species': species,
                              'results_type': 'reanalysis',
                              'jsonfilepath': dir_out / 'report.json',
-                             'dontsend_email': True,
+                             'dont_send_email': True,
                              'alternate_connection_string': alternate_connection_string}
                 # run the command
                 MainMongo(**arguments)

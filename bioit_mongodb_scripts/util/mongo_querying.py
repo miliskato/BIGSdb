@@ -213,54 +213,6 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
                         print("{}\t{}".format(key, 0))
 
     @staticmethod
-    def query_what_changed_compared_to_previous(isolate_id: str, isolates_collection: pymongo.collection.Collection,
-                                                isolateresults_collection: pymongo.collection.Collection) -> logging:
-        """
-        query what changed compared to previous version of isolate results
-        :param isolate_id: isolate name
-        :param isolates_collection:
-        :param isolateresults_collection:
-        :return: log with changes if any
-        """
-        # no checks are done to see if exists
-        new_results = isolates_collection.find_one({'results.isolates_id': isolate_id})['results']
-        old_results = isolateresults_collection.find_one({'isolates_id': isolate_id, 'changed_version': new_results['changed_version'] - 1})
-        for mainkey in new_results:
-            if isinstance(new_results[mainkey], dict):
-                for subkey in new_results[mainkey]:
-                    if mainkey not in old_results:
-                        logging.info(f"{mainkey} not in old results")
-                    elif subkey == 'loci' or subkey == 'results' or subkey.startswith('hits'):
-                        if subkey not in old_results[mainkey] or new_results[mainkey][subkey] != \
-                                old_results[mainkey][subkey]:
-                            # keep in mind that loci is a list: it seems as if loci are always outputted in the same order though so that is allright
-                            logging.info(f"{mainkey}{subkey} different or not in old")
-                            logging.info(f"from old '{[x for x in old_results[mainkey][subkey] if x not in new_results[mainkey][subkey]]}' was/were removed or "
-                                         f"changed to '{[x for x in new_results[mainkey][subkey] if x not in old_results[mainkey][subkey]]}'")
-
-    def query_old_results_and_replace_pointers(self, isolateresults_collection: pymongo.collection.Collection,
-                                               old_results_doc_with_pointers: Dict[str, Any]) -> Dict[str, Union[str, Dict]]:
-        old_results_doc_without_pointers = deepcopy(old_results_doc_with_pointers)
-        if old_results_doc_without_pointers.get('results'):
-            raise Exception('Not an old results document')
-        pointers_list = []
-        for key in old_results_doc_without_pointers:
-            if type(old_results_doc_without_pointers[key]) == dict and old_results_doc_without_pointers[key].get('pointer'):
-                pointers_list.append(old_results_doc_without_pointers[key]['pointer'])
-        pointers_list_unique = list(set(pointers_list))
-        if len(pointers_list_unique) > 0:
-            old_docs_containing_results_list = self.query_docs_by_ids(isolateresults_collection, pointers_list_unique)
-            if len(pointers_list_unique) != len(old_docs_containing_results_list):
-                raise Exception('Documents are missing from the old results database')
-            # transform old_docs list to dict:
-            old_docs_containing_results_dict = {document['_id']:document for document in old_docs_containing_results_list}
-            for key in old_results_doc_without_pointers:
-                if type(old_results_doc_without_pointers[key]) == dict and old_results_doc_without_pointers[key].get('pointer'):
-                    results_dict = old_docs_containing_results_dict[old_results_doc_without_pointers[key]['pointer']][key]
-                    old_results_doc_without_pointers[key] = results_dict  # which is now without pointers
-        return old_results_doc_without_pointers  # which is now without pointers
-
-    @staticmethod
     def revert_typinghitlists_to_dictionaries(document: Dict[str, Any], mongoinit: MongoInitialisation) -> Dict[str, Any]:
         """
         This function restores the lists of hit metadata (Allele, %id, length etc.) to dictionaries which are more

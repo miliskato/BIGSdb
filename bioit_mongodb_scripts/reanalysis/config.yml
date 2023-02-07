@@ -26,4 +26,4 @@ failsafe:
   flag_dir: /scratch/temp/flags
   flag_append: reanalysis_start_flag
 
-threads_per_job: 2
+threads_per_job: 1

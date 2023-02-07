@@ -247,7 +247,7 @@ def reanalysis_noslurm(species: str, maximal_analysis_date: str, minimal_analysi
                                      'species': species,
                                      'results_type': 'reanalysis',
                                      'jsonfilepath': dir_out / 'report.json',
-                                     'dontsend_email': True,
+                                     'dont_send_email': True,
                                      'alternate_connection_string': alternate_connection_string}
                         # run the command
                         MainMongo(**arguments)
