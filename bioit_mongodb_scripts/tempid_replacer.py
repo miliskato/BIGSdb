@@ -182,7 +182,8 @@ class TempidReplacer:
         hashed_allele_index_in_doclist = int(values['indices'][hash_list.index(hashed_allele)])
         self._documents_list[hashed_allele_index_in_doclist]['resolved_AD'] = new_allele_id
         # replace in all the cgST the old temp allele by the new id
-        # greater than 0 is used to exclude the header document
+        #use the power of list
+        header_collection.find_one({'type': 'cgmlst_headers'})['headers']
         # todo this needs to be updated to be more efficient, not all profiles should be queried and loaded into memory,
         #  but in order to update in place, the values need to be in a list instead of a concatenated string
         all_st = self._st_collection.find({'cgST': {'$gt': 0}})
