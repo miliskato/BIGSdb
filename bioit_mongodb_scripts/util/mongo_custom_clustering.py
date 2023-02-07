@@ -36,7 +36,7 @@ class MongoCustomClustering:
         """
         logging.getLogger().setLevel(logging.INFO)
         logging.info("Check order of the cgMLST profile")
-        self._check_order_of_cgmlst_profile()
+        self._check_order_of_cgmlst_profile(header_collection)
         logging.info(f"Query sequence type collection for {self._species}")
         self.cgmlst_profile.st = self._query_sequence_types(st_collection)
         if self.cgmlst_profile.st:
