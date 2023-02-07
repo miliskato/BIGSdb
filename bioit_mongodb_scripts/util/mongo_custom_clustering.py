@@ -20,9 +20,13 @@ class MongoCustomClustering:
         self.cgmlst_profile = cgMLSTProfile(data, headers)
         self.hc_results = None
         self._species = species
+        self.initialize_cluster_index = 'no'
 
-    def run_custom_clustering(self, st_collection: pymongo.collection.Collection, cluster_membership_collection: pymongo.collection.Collection,
-                              cluster_merging_collection: pymongo.collection.Collection, cluster_threshold: list) -> int or None:
+    def run_custom_clustering(self, header_collection: pymongo.collection.Collection,
+                              st_collection: pymongo.collection.Collection,
+                              cluster_membership_collection: pymongo.collection.Collection,
+                              cluster_merging_collection: pymongo.collection.Collection,
+                              cluster_threshold: list) -> int or None:
         """
         Main function to run the whole clustering and storing data in mongoDB
         :param cluster_threshold: the thresholds for clustering membership to be used for the clustering
@@ -32,7 +36,7 @@ class MongoCustomClustering:
         """
         logging.getLogger().setLevel(logging.INFO)
         logging.info("Check order of the cgMLST profile")
-        self._check_order_of_cgmlst_profile(st_collection)
+        self._check_order_of_cgmlst_profile()
         logging.info(f"Query sequence type collection for {self._species}")
         self.cgmlst_profile.st = self._query_sequence_types(st_collection)
         if self.cgmlst_profile.st:
@@ -46,25 +50,28 @@ class MongoCustomClustering:
                              f"from {self._species}")
                 self._add_new_sequence_type(st_collection)
                 logging.info(f"Start to process cgmlst profiles for cluster membership computing")
-                self._compute_cluster_membership(st_collection, cluster_membership_collection, cluster_merging_collection,  cluster_threshold)
+                self._compute_cluster_membership(header_collection, st_collection, cluster_membership_collection,
+                                                 cluster_merging_collection, cluster_threshold)
                 return self.cgmlst_profile.st
             else:
                 logging.info(f"Test for missing data failed: cgMLST profile will not be clustered!")
                 return None
 
-    def _check_order_of_cgmlst_profile(self, st_collection: pymongo.collection.Collection) -> None:
+    def _check_order_of_cgmlst_profile(self, header_collection: pymongo.collection.Collection) -> None:
         """
         Checks if the order of the loci in the st to be added are the same as the one in the st_collection. If not, the,
         it reorder the new st loci to correspond to the order of the st collection.
         :param st_collection: the sequence types collection from mongoDB
         :return:
         """
-        try :
-            db_headers = st_collection.find_one({'ID': 'headers'})['headers']
+        try:
+            db_headers = header_collection.find_one({'type': 'cgmlst_headers'})['headers']
         except:
-            st_collection.with_options(write_concern=WriteConcern(w="majority")).insert_one({'ID':'headers',
-                                      'headers': self.cgmlst_profile.loci})
-            db_headers = st_collection.find_one({'ID': 'headers'})['headers']
+            header_collection.with_options(write_concern=WriteConcern(w="majority")).insert_one(
+                {'type': 'cgmlst_headers',
+                 'headers': self.cgmlst_profile.loci})
+            self.initialize_cluster_index = 'yes'
+            db_headers = header_collection.find_one({'type': 'cgmlst_headers'})['headers']
         if self.cgmlst_profile.loci != db_headers:
             bad_headers_map = {}
             for i, b in enumerate(self.cgmlst_profile.loci):
@@ -112,10 +119,14 @@ class MongoCustomClustering:
             self.cgmlst_profile.st = latest_st['cgST'] + 1
         except:
             self.cgmlst_profile.st = 1
-        st_collection.with_options(write_concern=WriteConcern(w="majority")).insert_one(self.cgmlst_profile.get_st_collection_entry())
+        st_collection.with_options(write_concern=WriteConcern(w="majority")).insert_one(
+            self.cgmlst_profile.get_st_collection_entry())
 
-    def _compute_cluster_membership(self, st_collection: pymongo.collection.Collection, cluster_membership_collection: pymongo.collection.Collection,
-                                    cluster_merging_collection: pymongo.collection.Collection, cluster_threshold: list) ->None:
+    def _compute_cluster_membership(self, header_collection: pymongo.collection.Collection,
+                                    st_collection: pymongo.collection.Collection,
+                                    cluster_membership_collection: pymongo.collection.Collection,
+                                    cluster_merging_collection: pymongo.collection.Collection,
+                                    cluster_threshold: list) -> None:
         """
         Computes the cluster membership for the new sequence added to the st_collection.
         :param st_collection: the sequence types collection from mongoDB.
@@ -124,6 +135,9 @@ class MongoCustomClustering:
         clustering membership.
         :return:
         """
-        distance_cluster = DistanceAndClusterComputer(st_collection, cluster_membership_collection, cluster_merging_collection, [0])
+        distance_cluster = DistanceAndClusterComputer(header_collection, st_collection, cluster_membership_collection,
+                                                      cluster_merging_collection, [0])
         distance_cluster.compute_hamming_distances('last_st')
         distance_cluster.new_st_cluster_membership(cluster_threshold)
+        if self.initialize_cluster_index == 'yes':
+            cluster_membership_collection.create_index([("threshold", 1),("clustering_membership", 1)])

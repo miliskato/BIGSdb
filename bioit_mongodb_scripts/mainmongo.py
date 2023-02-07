@@ -210,7 +210,8 @@ class MainMongo:
                 custom_clustering = MongoCustomClustering(clustering_input[0], clustering_input[1], self._species)
                 logging.info(f"Running the clustering for the isolate {self._technical_id}")
                 sp_thresholds = f"clustering_thresholds_{self._species}"
-                cg_sequence_type = custom_clustering.run_custom_clustering(self._st_collection,
+                cg_sequence_type = custom_clustering.run_custom_clustering(self._headers_collection,
+                                                                           self._st_collection,
                                                                            self._cluster_membership_collection,
                                                                            self._cluster_merging_collection,
                                                                            CLUSTERING_CONFIG[sp_thresholds])
@@ -354,7 +355,8 @@ class MainMongo:
                                                       self._species)
             logging.info(f"Running the clustering for the isolate {self._technical_id}")
             sp_thresholds = f"clustering_thresholds_{self._species}"
-            sequence_type = custom_clustering.run_custom_clustering(self._st_collection,
+            sequence_type = custom_clustering.run_custom_clustering(self._headers_collection,
+                                                                    self._st_collection,
                                                                     self._cluster_membership_collection,
                                                                     self._cluster_merging_collection,
                                                                     CLUSTERING_CONFIG[sp_thresholds])
