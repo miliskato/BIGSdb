@@ -280,15 +280,11 @@ class MainMongo:
         """
         if self._results_type == "reanalysis":
             new_results = new_results_document
-            new_results = self.__find_hashes_in_results_and_add_to_collection(new_results,
-                                                                              'reanalysis')
-            new_results = self.__convert_typinghitdictionaries_to_lists(new_results)
         else:  # if self._results_type == 'resequencing_validated':
             new_results = new_results_document['results']
-            new_results = self._mongoquerying.revert_typinghitlists_to_dictionaries(new_results, self._mongoinit)
-            new_results = self.__find_hashes_in_results_and_add_to_collection(new_results,
-                                                                              'reanalysis')
-            new_results = self.__convert_typinghitdictionaries_to_lists(new_results)
+        new_results = self.__find_hashes_in_results_and_add_to_collection(new_results,
+                                                                          'reanalysis')
+        new_results = self.__convert_typinghitdictionaries_to_lists(new_results)
 
         current_results = current_results_document['results']
         if new_results["analysis_date"] == current_results["analysis_date"]:
@@ -472,8 +468,12 @@ class MainMongo:
                                     {"$inc": {"encountered_count": 1}})
                                 logging.info(f"hashed allele '{allele_info['Allele']}' encounter incremented by one")
                         results[typing_scheme]['loci'][locus_index].pop('Allele_sequence')
-                        results[typing_scheme]['loci'][locus_index][
-                            'Allele'] = temp_allele  # replace in the results the name of the allele (no hash anymore)
+                        if existing_document['resolved_AD'] == 0:
+                            results[typing_scheme]['loci'][locus_index][
+                                'Allele'] = temp_allele  # replace in the results the name of the allele (no hash anymore)
+                        else:
+                            results[typing_scheme]['loci'][locus_index][
+                                'Allele'] = existing_document['resolved_AD']
         return results
 
     @staticmethod
@@ -563,7 +563,7 @@ class MainMongo:
                                     meta_hit_dictionary[single_hit_dictionary['Locus']] = [single_hit_dictionary[metadata] for metadata in hit_header_list]
                                 results_to_modify[mainkey][subkey] = meta_hit_dictionary
                             else:
-                                send_email(f'Headers for typing scheme {mainkey} do not match with headers from'
+                                send_email(f'Headers {hit_header_list} for typing scheme {mainkey} do not match with headers from'
                                            f' header collection {hit_metadata[f"{mainkey}_{subkey}"]} for sample {self._technical_id}',
                                            dont_send_email=self._dont_send_email)
                                 raise ValueError(f'Headers for typing scheme {mainkey} do not match with headers from '

@@ -167,8 +167,8 @@ class TempidReplacer:
         # Update collections
         logging.debug(f"replacing {temp_allele_name} by {new_allele_id} for locus {locus}")
         self.___update_temp_allele_to_new(self._isolates_collection, locus, temp_allele_name, new_allele_id, allele_index)
-        self.___update_temp_allele_to_new(self._isolates_badqc_collection, locus, temp_allele_name, new_allele_id, allele_index)
-        self.___update_temp_allele_to_new(self._isolates_resequencing_collection, locus, temp_allele_name, new_allele_id, allele_index)
+        self.___update_temp_allele_to_new(self._isolates_badqc_collection, locus, temp_allele_name, new_allele_id)
+        self.___update_temp_allele_to_new(self._isolates_resequencing_collection, locus, temp_allele_name, new_allele_id)
         self.___update_temp_allele_to_new(self._old_isolateresults_collection, locus, temp_allele_name, new_allele_id, allele_index, in_results=False)
         # Update document but do not delete
         self._hashed_ad_collection.with_options(write_concern=WriteConcern(w="majority")).update_one(
@@ -195,7 +195,7 @@ class TempidReplacer:
                                                         {"$set": {"cgMLST": cgmlst}})
 
     def ___update_temp_allele_to_new(self, collection: pymongo.collection.Collection, locus: str, temp_allele_name: str,
-                                     new_allele_id: str, allele_index = int, in_results: bool = True) -> None:
+                                     new_allele_id: str, allele_index: int = None, in_results: bool = True) -> None:
         """
         Updates the collections containing isolates with the newly found alleles that were previously temporary identifiers
         :param collection: collection containing isolates that needs to be updated
@@ -204,7 +204,7 @@ class TempidReplacer:
         :param new_allele_id: new source allele id
         :param allele_index: index of the allele in the new hit metadata list
         :param in_results: are the assays located under results or not? usually yes except for old_isolate_results
-        :return:
+        :return: None
         """
         # the commented code below is cleaner than the one not commented, but for some
         # reason the operator $index was not found, 'unknown operator: $index', this is maybe due to
@@ -215,10 +215,18 @@ class TempidReplacer:
         #      {"$elemMatch": {"$eq": temp_allele_name, "$index": allele_index}}},
         #     {"$set":
         #      {f"{'results.' if in_results else ''}{self._scheme}.loci.{locus}.{allele_index}": new_allele_id}})
-        collection.with_options(write_concern=WriteConcern(w="majority")).update_many(
-            {f"{'results.' if in_results else ''}{self._scheme}.loci.{locus}.{allele_index}": temp_allele_name},
-            {"$set":
-             {f"{'results.' if in_results else ''}{self._scheme}.loci.{locus}.{allele_index}": new_allele_id}})
+        if allele_index: # new way of storing typing results
+            collection.with_options(write_concern=WriteConcern(w="majority")).update_many(
+                {f"{'results.' if in_results else ''}{self._scheme}.loci.{locus}.{allele_index}": temp_allele_name},
+                {"$set":
+                 {f"{'results.' if in_results else ''}{self._scheme}.loci.{locus}.{allele_index}": new_allele_id}})
+        else:
+            collection.with_options(write_concern=WriteConcern(w="majority")).update_many(
+                {f"{self._scheme}.loci":
+                 {"$elemMatch":
+                  {"Locus": locus, "Allele": temp_allele_name}}},
+                {"$set":
+                 {f"{self._scheme}.loci.$.Allele": new_allele_id}})
 
 
 if __name__ == '__main__':
