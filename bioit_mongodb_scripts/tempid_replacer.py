@@ -149,7 +149,8 @@ class TempidReplacer:
 
     def __update_temp_to_real_mongodb(self, locus: str, allele: SeqRecord, hashed_allele: str, hash_list: List[str], values: Dict[str, List[Union[str, int]]]) -> None:
         """
-        Updates the temporary identifiers that are now newly in the source database to the source database's identifier in MongoDB
+        Updates the temporary identifiers that are now newly in the source database to the source database's identifier in MongoDB.
+        The cgmlst profiles that contains the temporary allele identifier are also updated at the same time.
         :param locus: current locus name
         :param allele: allele SeqRecord instance
         :param hashed_allele: md5 hash of the allele string
@@ -184,17 +185,20 @@ class TempidReplacer:
         # replace in all the cgST the old temp allele by the new id
         #use the power of list to replace only where it's needed
         headers_cgmlst = self._headers_collection.find_one({'type': 'cgmlst_headers'})['headers']
-        locus_place = headers_cgmlst.index(locus)
-        # todo this needs to be updated to be more efficient, not all profiles should be queried and loaded into memory,
-        #  but in order to update in place, the values need to be in a list instead of a concatenated string
-        all_st = self._st_collection.find({'cgST': {'$gt': 0}})
-        for st in all_st:
-            profile = st['cgMLST'].split(',')
-            if temp_allele_name in profile:
-                profile = [new_allele_id if x == temp_allele_name else x for x in profile]
-                cgmlst = ','.join([str(i) for i in profile])
-                self._st_collection.find_one_and_update({"cgST": st["cgST"]},
-                                                        {"$set": {"cgMLST": cgmlst}})
+        locus_place = f"cgMLST.{headers_cgmlst.index(locus)}"
+        self._st_collection.update_many(
+            {locus_place: temp_allele_name},
+            update={"$set": {locus_place: new_allele_id}}
+        )
+        logging.debug(f'[information_temp_id_replacer] Locus {locus} at position {locus_place} is replacing {temp_allele_name} by {new_allele_id}')
+        # all_st = self._st_collection.find({'cgST': {'$gt': 0}})
+        # for st in all_st:
+        #     profile = st['cgMLST'].split(',')
+        #     if temp_allele_name in profile:
+        #         profile = [new_allele_id if x == temp_allele_name else x for x in profile]
+        #         cgmlst = ','.join([str(i) for i in profile])
+        #         self._st_collection.find_one_and_update({"cgST": st["cgST"]},
+        #                                                 {"$set": {"cgMLST": cgmlst}})
 
     def ___update_temp_allele_to_new(self, collection: pymongo.collection.Collection, locus: str, temp_allele_name: str,
                                      new_allele_id: str, allele_index: int = None, in_results: bool = True) -> None:
