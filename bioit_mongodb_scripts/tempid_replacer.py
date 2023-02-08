@@ -188,7 +188,7 @@ class TempidReplacer:
         locus_place = f"cgMLST.{headers_cgmlst.index(locus)}"
         self._st_collection.update_many(
             {locus_place: temp_allele_name},
-            update={"$set": {locus_place: new_allele_id}}
+            update={"$set": {locus_place: int(new_allele_id)}}
         )
         logging.debug(f'[information_temp_id_replacer] Locus {locus} at position {locus_place} is replacing {temp_allele_name} by {new_allele_id}')
         # all_st = self._st_collection.find({'cgST': {'$gt': 0}})
