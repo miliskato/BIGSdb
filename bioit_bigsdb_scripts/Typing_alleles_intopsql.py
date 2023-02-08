@@ -9,10 +9,11 @@ import traceback
 from pathlib import Path
 from typing import Dict, List, Tuple
 
+from Bio import SeqIO
+
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
-from bioit_bigsdb_scripts.components.databaseconnection import DatabaseConnection
 from bioit_bigsdb_scripts.components.psql_tables_queries import TblSequences, TblAlleleDesignations
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data, send_email
 
@@ -41,57 +42,29 @@ def _insert_alleles() -> None:
                 if schemedict[scheme].get('dirdb') and schemedict[scheme]['dirdb'] != '':
                     dirs: List[str] = next(os.walk(schemedict[scheme]['dirdb']))[1]
                     for directory in dirs:
+                        # hidden directories (startswith('.') need to be skipped as
+                        # well as directories containing loci from other schemes in neisseria
                         if not directory.startswith('.') and not (scheme == 'neisseria_fhbpnucl' and (
                                 directory != 'fHbp_allele' and directory != 'fHbp_DNAfrag_Pasteur')) and not (
                                 scheme == 'neisseria_fhbppept' and (directory == 'fHbp_allele' or directory == 'fHbp_DNAfrag_Pasteur')):
                             # Part 1: Python component
                             # Make dict of fasta file
                             fastafilepath: Path = Path(schemedict[scheme]['dirdb']) / directory / ''.join([directory.lower(), '.fasta'])
-                            is_multiline = False
-                            with Path(fastafilepath).open('r') as in_file:
-                                for line in in_file:
-                                    if not line.startswith(">") and '\n' in line:
-                                        is_multiline = True
-                                        break
-                            if is_multiline:
-                                fasta_dict: Dict[str, str] = {}
-                                sequence: str = ''
-                                sequence_id: str = ''
-                                with Path(fastafilepath).open() as in_file:
-                                    for line in in_file:
-                                        if line.startswith(">"):
-                                            if sequence:
-                                                fasta_dict[sequence_id] = sequence
-                                                sequence = ''
-                                            if directory == 'rplF' or directory == 'fHbp':
-                                                 sequence_id = line.strip().replace(f">'{directory}", "").strip("-_")
-                                            elif directory == 'fHbp_allele':
-                                                sequence_id = line.strip().replace(f">'fHbp", "").strip("-_")
-                                            elif directory == 'FetA':
-                                                sequence_id = line.strip().replace(f">{directory}_VR", "").strip("-_")
-                                            elif directory == 'porB':
-                                                sequence_id = line.strip().replace(f">NEIS2020_", "").strip("-_")
-                                            elif directory == 'nhba':
-                                                sequence_id = line.strip().replace(f">NEIS2109_", "").strip("-_")
-                                            elif directory == 'nadA':
-                                                sequence_id = line.strip().replace(f">NEIS1969_", "").strip("-_")
-                                            else:
-                                                sequence_id = line.strip().replace(f">{directory}", "").strip("-_")
-                                            fasta_dict[sequence_id] = ''
-                                        else:
-                                            sequence += line.strip()
-                                    if sequence:
-                                        fasta_dict[sequence_id] = sequence
+                            fasta_dict = {}
+                            for record in SeqIO.parse(fastafilepath, "fasta"):
+                                # add the record to the dictionary with the ID as the key and the sequence as the value
+                                sequence_id = record.id.split('_')[-1]
+                                fasta_dict[sequence_id] = str(record.seq)
 
                             # Part 2: PSQL component
                             rows: List[Tuple[str]] = seqdef_sequences_psql_tbl.select_allele_from_locus((directory,))
-                            list_alleleid = set(item[0] for item in rows)
+                            set_alleleid = set(item[0] for item in rows)
 
                             # Part_3: Compare the two lists
                             ids_to_be_inserted = set()
-                            if len(list_alleleid):  # not necessary but makes it slightly more elegant for new locus allele sequences
+                            if len(set_alleleid) > 0:  # not necessary but makes it slightly more elegant for new locus allele sequences
                                 for sequence_id in fasta_dict:
-                                    if sequence_id not in list_alleleid:
+                                    if sequence_id not in set_alleleid:
                                         ids_to_be_inserted.add(sequence_id)
                                     else:
                                         continue
@@ -105,7 +78,7 @@ def _insert_alleles() -> None:
                                     Sometimes alleles retire for seemingly no reason, and are added immediately after as a new allele id,
                                     The observed ids that went through this were not in any profile or any allele designation in the isolate db
                                     """
-                                    seqdef_sequences_psql_tbl.insert_sequencebin((directory, sequence_id, fasta_dict[sequence_id]))
+                                    seqdef_sequences_psql_tbl.insert_sequence((directory, sequence_id, fasta_dict[sequence_id]))
                                 except Exception:
                                     """
                                     Profiles are located in the seqdef db and will automatically update when the sequence db is updated through a rule.
