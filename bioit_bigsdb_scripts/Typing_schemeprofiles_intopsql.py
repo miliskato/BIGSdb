@@ -65,7 +65,7 @@ def __insert_profiles(scheme: str, schemedict: Dict[str, Dict[str, str]], indexd
     :param profile_line_dict: dictionary of main numeric profile fields (often ST) and their corresponding lines in the tsv
     :param list_to_be_inserted: list of main numeric profile fields (often ST) to be inserted
     :param seqdef_profiles_psql_tbl: seqdef profiles table/ connection instance for a given species
-    :param: commonly used bioit species name: either genus or specific like stec
+    :param species: commonly used bioit species name: either genus or specific like stec
     :return: None
     """
     # since we only need one db per scheme, it can stay open during the entire definition
