@@ -296,7 +296,6 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
                         merge_nested_dicts(old_versions_merged, x)
                 merge_nested_dicts(current_version['results'], old_versions_merged)
             requested_document = current_version
-
         # 4. Revert the effective dict to list storage to a readable format for the html reporter
         requested_document = self.revert_typinghitlists_to_dictionaries(requested_document, headers_collection)
         requested_document['latest_analysis_date'] = requested_document['results']['analysis_date']
