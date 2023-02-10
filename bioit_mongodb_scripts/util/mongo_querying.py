@@ -235,11 +235,6 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
                 for subkey in results_to_modify[mainkey]:
                     if subkey == 'loci' and isinstance(results_to_modify[mainkey][subkey], dict):
                         # check whether first locus/results/hits length corresponds to the length of f"{mainkey}_{subkey}"'s value which is the list of headers
-                        print(f"{mainkey}_{subkey}")
-                        print(len(hit_metadata[f"{mainkey}_{subkey}"]))
-                        print(results_to_modify[mainkey][subkey])
-                        print(list(results_to_modify[mainkey][subkey])[0])
-                        print(hit_metadata[f"{mainkey}_{subkey}"])
                         if f"{mainkey}_{subkey}" in hit_metadata and len(hit_metadata[f"{mainkey}_{subkey}"]) == len(results_to_modify[mainkey][subkey][list(results_to_modify[mainkey][subkey])[0]]):
                             meta_hit_list = []
                             for locus in sorted(results_to_modify[mainkey][subkey].keys()):
