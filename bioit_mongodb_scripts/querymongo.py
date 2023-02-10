@@ -2,6 +2,7 @@ import argparse
 import logging
 import os
 import sys
+from pathlib import Path
 
 import yaml
 
@@ -35,16 +36,20 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 
     # Open collections
-    mongoinit = MongoInitialisation(args.species)
+    mongoinit = MongoInitialisation(args.species, alternate_connection_string=True)
     isolates_collection, old_isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections()
+    headers_collection = mongoinit.initialise_headers_collection()
     # isolates_collection.drop()
     # old_isolateresults_collection.drop()
     mongoquerying = Mongoquerying()
-
-    result_isolates = isolates_collection.find_one({'_id': '11-090'})
-    print(list(isolates_collection.find({'_id': 'test'})))
-    print(isolates_badqc_collection.find_one({'_id': '11-090'}, {'fasta_path':1}) if result_isolates is None else result_isolates)
-    print(result_isolates if result_isolates is not None else isolates_badqc_collection.find_one({'_id': '11-090'},  {'fasta_path':1}))
+    from pymongo.read_concern import ReadConcern
+    #print(list(old_isolateresults_collection.with_options(read_concern=ReadConcern(level="majority")).\
+    #            find({'isolates_id': 'test_mainmongo', 'analysis_date': {'$gte': '03/02/2023 - 00:00:00'}}, {'analysis_date':1}).sort('analysis_date', -1)))
+    print(mongoquerying.get_any_results_version('test_mainmongo', 'analysis_date', '2024-01-01', isolates_collection, old_isolateresults_collection, headers_collection))
+    # result_isolates = isolates_collection.find_one({'_id': '11-090'})
+    # print(list(isolates_collection.find({'_id': 'test'})))
+    # print(isolates_badqc_collection.find_one({'_id': '11-090'}, {'fasta_path':1}) if result_isolates is None else result_isolates)
+    # print(result_isolates if result_isolates is not None else isolates_badqc_collection.find_one({'_id': '11-090'},  {'fasta_path':1}))
     # print(isolates_collection.find_one()['results'])
     # mongoquerying.query_failed_causes(isolates_badqc_collection)
     # list_of_lists = [docs['results']['species_confirmation']['loci'] for docs in isolates_collection.find()]

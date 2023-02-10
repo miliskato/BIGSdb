@@ -1,5 +1,6 @@
 import abc
 import logging
+import re
 import sys
 from copy import deepcopy
 from typing import Any, Dict, List, Union
@@ -8,6 +9,7 @@ import pymongo
 from pymongo.read_concern import ReadConcern
 
 from .mongo_initialisation import MongoInitialisation
+from .python_utility_functions import convert_dmyhms_to_ymd, merge_nested_dicts
 
 class Mongoquerying(object, metaclass=abc.ABCMeta):
     """
@@ -213,15 +215,16 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
                         print("{}\t{}".format(key, 0))
 
     @staticmethod
-    def revert_typinghitlists_to_dictionaries(document: Dict[str, Any], mongoinit: MongoInitialisation) -> Dict[str, Any]:
+    def revert_typinghitlists_to_dictionaries(document: Dict[str, Any], headers_collection: pymongo.collection.Collection) -> Dict[str, Any]:
         """
         This function restores the lists of hit metadata (Allele, %id, length etc.) to dictionaries which are more
         easily readable and required for bigsdb
         Be wary, this method does not create a deepcopy, therefore changes are applied to the input docuemnt
         even if the return value's name is modified
+        :param document: python dictionary acquired from a mongodb json document
+        :param headers_collection: pymongo collection containing the headers for various lists
         :return: The reverted input document
         """
-        headers_collection = mongoinit.initialise_headers_collection()
         hit_metadata: Union[None, Dict[str, Union[object, str, List[str]]]] = headers_collection.find_one({'type': 'hit_metadata'})
         if hit_metadata is None:
             # no header so can not revert anything
@@ -232,13 +235,69 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
                 for subkey in results_to_modify[mainkey]:
                     if subkey == 'loci' and isinstance(results_to_modify[mainkey][subkey], dict):
                         # check whether first locus/results/hits length corresponds to the length of f"{mainkey}_{subkey}"'s value which is the list of headers
-                        if f"{mainkey}_{subkey}" in hit_metadata and len(hit_metadata[f"{mainkey}_{subkey}"]) == len(results_to_modify[mainkey][subkey][results_to_modify[mainkey][subkey].keys[0]]):
+                        print(f"{mainkey}_{subkey}")
+                        print(len(hit_metadata[f"{mainkey}_{subkey}"]))
+                        print(results_to_modify[mainkey][subkey])
+                        print(list(results_to_modify[mainkey][subkey])[0])
+                        print(hit_metadata[f"{mainkey}_{subkey}"])
+                        if f"{mainkey}_{subkey}" in hit_metadata and len(hit_metadata[f"{mainkey}_{subkey}"]) == len(results_to_modify[mainkey][subkey][list(results_to_modify[mainkey][subkey])[0]]):
                             meta_hit_list = []
                             for locus in sorted(results_to_modify[mainkey][subkey].keys()):
-                                single_hit_dictionary = {hit_metadata[f"{mainkey}_{subkey}"][index]:
-                                                         results_to_modify[mainkey][subkey][locus[index]]
-                                                         for index in enumerate(hit_metadata[f"{mainkey}_{subkey}"])}
+                                single_hit_dictionary = {metadata:
+                                                         results_to_modify[mainkey][subkey][locus][index]
+                                                         for index, metadata in enumerate(hit_metadata[f"{mainkey}_{subkey}"])}
                                 single_hit_dictionary['Locus'] = locus
                                 meta_hit_list.append(single_hit_dictionary)
                             results_to_modify[mainkey][subkey] = meta_hit_list
         return document
+
+    def get_any_results_version(self, isolate_id: str, searchkey: str, searchvalue: Union[str, int],
+                                isolates_collection: pymongo.collection.Collection,
+                                old_isolateresults_collection: pymongo.collection.Collection,
+                                headers_collection: pymongo.collection.Collection):
+        """
+        Gets any results version for a given isolate_id
+        :param isolate_id: name of the isolate corresponding to the _id key in the isolates collection
+        :param searchkey: historic version key, either changed_version or analysis_date
+        :param searchvalue: historic key value, int for changed_version, str YYYY-MM-DD for analysis_date
+        :param isolates_collection: pymongo main isolates collection
+        :param old_isolateresults_collection: pymongo collection of old isolate results
+        :param headers_collection: pymongo collection containing the headers for various lists
+        :return: document of the requested version
+        """
+        # 1. Check input
+        if searchkey not in ['changed_version', 'analysis_date']:
+            raise ValueError(f'Invalid key {searchkey}, key must be changed_version or analysis_date!')
+        if searchkey == 'changed_version' and not isinstance(searchvalue, int):
+            raise ValueError(f'if changed_version is searchkey; searchvalue must be integer')
+        if searchkey == 'analysis_date' and not isinstance(searchvalue, str) and not re.match(r'^\d{4}-\d{2}-\d{2}$', searchvalue):
+            raise ValueError(f'if analysis_date is searchkey; searchvalue must be string in YYYY-MM-DD format')
+        # 2. Query current results and check whether current results version is the one requested
+        current_version = isolates_collection.with_options(read_concern=ReadConcern(level="majority")).find_one({'_id': isolate_id})
+        if searchkey == 'changed_version' and current_version['results'][searchkey] <= searchvalue:
+            requested_document = current_version
+        elif searchkey == 'analysis_date' and convert_dmyhms_to_ymd(current_version['results'][searchkey]) <= searchvalue:
+            requested_document = current_version
+        # 3. Query all old results up until the requested value, if the requested value is a date,
+        # and the date is not an exact date that the sample has a version, the first more recent result will be selected
+        else:
+            if searchkey == 'changed_version':
+                old_versions = old_isolateresults_collection.with_options(read_concern=ReadConcern(level="majority")).\
+                    find({'isolates_id': isolate_id, searchkey: {'$gte': searchvalue}})
+                old_versions = sorted(old_versions, key=lambda x: convert_dmyhms_to_ymd(x['analysis_date']))
+            else:  # key == 'analysis_date'
+                old_versions = old_isolateresults_collection.with_options(read_concern=ReadConcern(level="majority")).\
+                    find({'isolates_id': isolate_id})
+                old_versions = sorted([x for x in old_versions if convert_dmyhms_to_ymd(x['analysis_date']) > searchvalue], key=lambda x: convert_dmyhms_to_ymd(x['analysis_date']))
+            if len(old_versions) > 0:
+                old_versions_merged = old_versions[0]
+                if len(old_versions) > 1:
+                    for x in old_versions[1:-1]:
+                        merge_nested_dicts(old_versions_merged, x)
+                merge_nested_dicts(current_version['results'], old_versions_merged)
+            requested_document = current_version
+
+        # 4. Revert the effective dict to list storage to a readable format for the html reporter
+        requested_document = self.revert_typinghitlists_to_dictionaries(requested_document, headers_collection)
+        requested_document['latest_analysis_date'] = requested_document['results']['analysis_date']
+        return requested_document

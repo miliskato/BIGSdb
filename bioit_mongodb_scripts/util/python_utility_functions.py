@@ -69,3 +69,10 @@ def convert_dmyhms_to_dateobj(datetimestring: str) -> datetime.date:
     :return: datetime.datetime object
     """
     return datetime.strptime(datetimestring, '%d/%m/%Y - %X').date()
+
+def merge_nested_dicts(target_dict, merging_dict):
+    for key, value in merging_dict.items():
+        if key in target_dict and isinstance(target_dict[key], dict) and isinstance(value, dict):
+            merge_nested_dicts(target_dict[key], value)
+        else:
+            target_dict[key] = value
