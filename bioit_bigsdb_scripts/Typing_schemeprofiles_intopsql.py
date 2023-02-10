@@ -10,7 +10,7 @@ from typing import Dict, Final, List, Tuple
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
-from bioit_bigsdb_scripts.components.psql_tables_queries import TblProfiles, TblProfileFields, TblProfileMembers, TblSequences
+from bioit_bigsdb_scripts.components.psql import TblProfiles, TblProfileFields, TblProfileMembers, TblSequences
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data, send_email
 # For this script I am assuming that profiles do not retire.
 

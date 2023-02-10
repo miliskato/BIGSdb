@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Tuple, Union
 import psycopg2.extensions
 
 from .json_superclass import JsonSuperClass
-from .psql_tables_queries import TblAlleleDesignations, TblHistory, TblEavTextHidden, TblEavText
+from .psql import TblAlleleDesignations, TblHistory, TblEavTextHidden, TblEavText
 
 
 class JsonGeneDetectionResultsInserter(JsonSuperClass):

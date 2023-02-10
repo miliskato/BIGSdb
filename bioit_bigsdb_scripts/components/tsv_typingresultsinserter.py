@@ -7,7 +7,7 @@ import re
 import psycopg2.extensions
 import requests
 
-from .databaseconnection import DatabaseConnection
+from .psql.databaseconnection import DatabaseConnection
 
 
 class TsvTypingResultsInserter:

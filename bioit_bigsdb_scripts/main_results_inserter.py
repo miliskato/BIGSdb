@@ -13,13 +13,13 @@ import psycopg2.extensions
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
-from bioit_bigsdb_scripts.components.databaseconnection import DatabaseConnection
+from bioit_bigsdb_scripts.components.psql.databaseconnection import DatabaseConnection
 from bioit_bigsdb_scripts.components.maininserter import MainInserter
 from bioit_bigsdb_scripts.components.tsv_typingresultsinserter import TsvTypingResultsInserter
 from bioit_bigsdb_scripts.components.tsv_genedetectionresultsinserter import TsvGeneDetectionResultsInserter
 from bioit_bigsdb_scripts.components.json_typingresultsinserter import JsonTypingResultsInserter
 from bioit_bigsdb_scripts.components.json_genedetectionresultsinserter import JsonGeneDetectionResultsInserter
-from bioit_bigsdb_scripts.components.psql_tables_queries import TblIsolates
+from bioit_bigsdb_scripts.components.psql import TblIsolates
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data, send_email
 
 

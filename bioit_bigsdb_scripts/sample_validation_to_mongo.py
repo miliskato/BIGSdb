@@ -20,7 +20,7 @@ from pymongo.write_concern import WriteConcern
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
-from bioit_bigsdb_scripts.components.psql_tables_queries import TblSubmissions
+from bioit_bigsdb_scripts.components.psql import TblSubmissions
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data, send_email
 from bioit_mongodb_scripts.config import MONGO_CONFIG
 from bioit_mongodb_scripts.mainmongo import MainMongo

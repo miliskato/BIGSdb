@@ -2,8 +2,8 @@ from typing import Any, Dict, List, Union
 
 import psycopg2.extensions
 
-from .databaseconnection import DatabaseConnection
-from .psql_tables_queries import TblAlleleDesignations, TblSequences, TblLoci, TblSchemeMembers, TblClientDbaseLoci, TblEavText
+from .psql.databaseconnection import DatabaseConnection
+from .psql import TblAlleleDesignations, TblSequences, TblLoci, TblSchemeMembers, TblClientDbaseLoci, TblEavText
 
 class JsonSuperClass:
     """

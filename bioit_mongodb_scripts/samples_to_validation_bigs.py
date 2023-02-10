@@ -18,7 +18,7 @@ sys.path.append(str(PYTHONPATH))
 
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.config import MONGO_CONFIG
-from bioit_bigsdb_scripts.components.psql_tables_queries import TblSubmissions, TblIsolateSubmissionIsolates, TblIsolateSubmissionFieldOrder
+from bioit_bigsdb_scripts.components.psql import TblSubmissions, TblIsolateSubmissionIsolates, TblIsolateSubmissionFieldOrder
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data
 
 def send_email(subject: str, content: str, config: dict) -> None:

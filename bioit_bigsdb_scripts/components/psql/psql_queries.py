@@ -143,7 +143,7 @@ class PsqlQueries():
         UPDATE isolates SET new_version=(SELECT MAX(id) FROM isolates WHERE isolate=%s) 
         WHERE isolate=%s AND new_version IS NULL AND 
         id!=(SELECT MAX(id) FROM isolates WHERE isolate=%s);"""
-    ISO_UPD_VALTYPE_VALCUR_VALDATE_VAR_ID: Final[str] = """
+    ISO_UPD_VALTYPE_VALCUR_VALDATE_TB_ISO_VAR_ID: Final[str] = """
         UPDATE isolates SET 
         validation_type = %s, 
         validation_curator = %s, 

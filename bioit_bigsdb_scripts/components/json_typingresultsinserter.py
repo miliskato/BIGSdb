@@ -6,7 +6,7 @@ import psycopg2.extensions
 import requests
 
 from .json_superclass import JsonSuperClass
-from .psql_tables_queries import TblAlleleDesignations, TblHistory, TblEavBoolean, TblEavText, TblEavFields, TblSchemeMembers
+from .psql import TblAlleleDesignations, TblHistory, TblEavBoolean, TblEavText, TblEavFields, TblSchemeMembers
 
 
 class JsonTypingResultsInserter(JsonSuperClass):

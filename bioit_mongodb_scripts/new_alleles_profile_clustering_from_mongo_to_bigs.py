@@ -17,7 +17,7 @@ from pymongo.write_concern import WriteConcern
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
-from bioit_bigsdb_scripts.components.psql_tables_queries import TblSequences, TblProfiles, TblProfileFields, TblProfileMembers, TblClassificationGroups, TblClassificationGroupProfiles, TblClassificationGroupProfileHistory, TblClassificationSchemes
+from bioit_bigsdb_scripts.components.psql import TblSequences, TblProfiles, TblProfileFields, TblProfileMembers, TblClassificationGroups, TblClassificationGroupProfiles, TblClassificationGroupProfileHistory, TblClassificationSchemes
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.config import MONGO_CONFIG
 from bioit_mongodb_scripts.config import CLUSTERING_CONFIG

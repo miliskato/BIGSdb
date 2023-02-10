@@ -11,7 +11,7 @@ from Bio import SeqIO
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
-from bioit_bigsdb_scripts.components.psql_tables_queries import TblIsolates, TblSequenceBin
+from bioit_bigsdb_scripts.components.psql import TblIsolates, TblSequenceBin
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data, send_email
 
 

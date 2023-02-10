@@ -16,7 +16,7 @@ from pymongo.read_concern import ReadConcern
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
-from bioit_bigsdb_scripts.components.psql_tables_queries import TblIsolates, TblEavTextHidden, TblSequenceBin, TblSeqBinStats
+from bioit_bigsdb_scripts.components.psql import TblIsolates, TblEavTextHidden, TblSequenceBin, TblSeqBinStats
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data
 from bioit_bigsdb_scripts.insert_assembly import insert_assembly
 from bioit_bigsdb_scripts.main_results_inserter import main_results_inserter
@@ -160,7 +160,6 @@ class MongoToBigs:
         :param document_id: name of the isolate
         :return: boolean whether version is different or not
         """
-        different_version = True
         latest_analysis_date_bigs = (self._isolates_psql_tbl.select_latestanalysisdate_for_isolate((document_id,)))[0][
             0]  # this appearently is a datetime object
         with TblEavTextHidden(self._species) as isolates_eavth_psql_tbl:
