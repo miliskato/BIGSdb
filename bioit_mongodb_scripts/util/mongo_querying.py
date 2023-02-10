@@ -254,7 +254,7 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
     def get_any_results_version(self, isolate_id: str, searchkey: str, searchvalue: Union[str, int],
                                 isolates_collection: pymongo.collection.Collection,
                                 old_isolateresults_collection: pymongo.collection.Collection,
-                                headers_collection: pymongo.collection.Collection):
+                                headers_collection: pymongo.collection.Collection) -> Dict[str, Any]:
         """
         Gets any results version for a given isolate_id
         :param isolate_id: name of the isolate corresponding to the _id key in the isolates collection
