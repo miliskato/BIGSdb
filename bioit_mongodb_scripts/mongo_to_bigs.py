@@ -69,14 +69,14 @@ class MongoToBigs:
         self._isolates_psql_tbl = TblIsolates(self._species)
 
         try:
-            self.mongo_to_bigs()
+            self._mongo_to_bigs()
         except Exception as exceptionmessage:
             send_email(f"{exceptionmessage}\n{traceback.format_exc()}")
             raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}")
 
         self._isolates_psql_tbl.close()
 
-    def mongo_to_bigs(self) -> None:
+    def _mongo_to_bigs(self) -> None:
         """
         Main function
         If the current host is a bigsdb host, syncs all samples (or a single one if provided) with the bigsdb database
@@ -89,7 +89,7 @@ class MongoToBigs:
         # send bad samples from the badqc_isolates collection to BIGSdb
         samples_to_validation_bigs(self._species)
 
-        listofdocuments = self._get_list_of_documents()
+        listofdocuments = self.__get_list_of_documents()
 
         for document in listofdocuments:
             document_id = document['results']['isolates_id']
@@ -103,7 +103,7 @@ class MongoToBigs:
                 results_type = "new_isolate"
             else:
                 results_type = "reanalysis"
-                different_version = self._check_if_reanalysis_different(document, document_id)
+                different_version = self.__check_if_reanalysis_different(document, document_id)
                 if different_version is False:
                     continue
 
@@ -135,7 +135,7 @@ class MongoToBigs:
                     insert_assembly(document_id, self._species, Path(document['fasta_path']))
             logging.info(f"wrote new results version for {document_id} to bigsdb")
 
-    def _get_list_of_documents(self) -> List[Dict[str, Any]]:
+    def __get_list_of_documents(self) -> List[Dict[str, Any]]:
         """
         Gets the list of documents, = all if no single_sample_id, else list of single document
         :return: list of documents (dictionaries)
@@ -152,7 +152,7 @@ class MongoToBigs:
             listofdocuments = list(self._isolates_collection.find())
         return listofdocuments
 
-    def _check_if_reanalysis_different(self, document: Dict[str, Any], document_id: str) -> bool:
+    def __check_if_reanalysis_different(self, document: Dict[str, Any], document_id: str) -> bool:
         """
         Checks if the reanalysis is different or not, outside this function: continues the for loop,
         it is called in, to the next sample if not different
