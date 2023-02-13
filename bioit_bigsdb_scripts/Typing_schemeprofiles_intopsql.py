@@ -56,20 +56,20 @@ def _parse_arguments(specieslist: List[str]) -> argparse.Namespace:
 
 
 def __insert_profiles(scheme: str, schemedict: Dict[str, Dict[str, str]], indexdict: Dict[str, int], profile_line_dict: Dict[str, str],
-                      list_to_be_inserted: set, seqdef_profiles_psql_tbl: TblProfiles, species: str) -> None:
+                      set_to_be_inserted: set, seqdef_profiles_psql_tbl: TblProfiles, species: str) -> None:
     """
     Inserts profiles for a given scheme in a given species database (seqdef_profiles_psql_table)
     :param scheme: the currently iterating scheme
     :param schemedict: dictionary containing scheme metadata
     :param indexdict: dictionary containing profile locus indexes, and profile fields indexes in the tsv profiles file
     :param profile_line_dict: dictionary of main numeric profile fields (often ST) and their corresponding lines in the tsv
-    :param list_to_be_inserted: list of main numeric profile fields (often ST) to be inserted
+    :param set_to_be_inserted: list of main numeric profile fields (often ST) to be inserted
     :param seqdef_profiles_psql_tbl: seqdef profiles table/ connection instance for a given species
     :param species: commonly used bioit species name: either genus or specific like stec
     :return: None
     """
     # since we only need one db per scheme, it can stay open during the entire definition
-    for profile in list_to_be_inserted:
+    for profile in set_to_be_inserted:
         # first table (profiles):
         seqdef_profiles_psql_tbl.insert_profile((schemedict[scheme]['schemename_bigsdb'], profile))
         profiles_to_be_removed = set()
@@ -135,21 +135,21 @@ def _insert_all_profiles() -> None:
                     listoftuples: List[Tuple[int]] = \
                         seqdef_profiles_psql_tbl.select_profile((schemedict[scheme]['schemename_bigsdb'],))
                     primary_fields = [int(x[0]) for x in listoftuples] if listoftuples is not None else None
-                    list_to_be_inserted = set()
+                    set_to_be_inserted = set()
                     if primary_fields is None:
                         # table is empty, so all need to be inserted
                         for line in profiles[1:]:
-                            list_to_be_inserted.add(" ".join(line.split()).split(' ')[0])
-                        __insert_profiles(scheme, schemedict, indexdict, profile_line_dict, list_to_be_inserted, seqdef_profiles_psql_tbl, species)
+                            set_to_be_inserted.add(" ".join(line.split()).split(' ')[0])
+                        __insert_profiles(scheme, schemedict, indexdict, profile_line_dict, set_to_be_inserted, seqdef_profiles_psql_tbl, species)
                     else:
                         # table needs to be updated
                         for line in profiles[1:]:
                             if int(" ".join(line.split()).split(' ')[0]) not in primary_fields:
-                                list_to_be_inserted.add(" ".join(line.split()).split(' ')[0])
+                                set_to_be_inserted.add(" ".join(line.split()).split(' ')[0])
                             else:
                                 continue
-                        if list_to_be_inserted:
-                            __insert_profiles(scheme, schemedict, indexdict, profile_line_dict, list_to_be_inserted, seqdef_profiles_psql_tbl, species)
+                        if len(set_to_be_inserted) > 0:
+                            __insert_profiles(scheme, schemedict, indexdict, profile_line_dict, set_to_be_inserted, seqdef_profiles_psql_tbl, species)
 
 
 if __name__ == '__main__':
