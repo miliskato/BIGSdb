@@ -356,12 +356,12 @@
         user: 'bigsdb'
         cron_file: sync_globalbigsdbusers
 
-    - name: Add crontrab entry for hash replacer
+    - name: Add crontrab entry for hash replacer  # needs to run before database updates in bigs (and after automated cfr Bert)
       cron:
         name: "crontab for tempid_replacer"
         minute: '0'
         hour: '6'
-        weekday: '1'       # monday morning
+        weekday: '0'       # sunday morning
         job: "{{ item.command }}"
         user: 'bigsdb'
         cron_file: "{{ item.filename }}"
@@ -382,15 +382,13 @@
         name: "crontab for weekly database updates"
         minute: '00'
         hour: '7'
-        weekday: '1'       # monday morning
+        weekday: '0'       # sunday morning
         job: "{{ item.command }}"
         user: 'bigsdb'
         cron_file: "{{ item.filename }}"
       loop: "{{ list_cron|flatten(levels=1) }}"
       vars:
         list_cron:
-          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}//bioit_bigsdb_scripts/Typing_loci_intopsql.py --species {{ species }}",
-              filename: "{{ species }}_loci_intopsql" }
           - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_bigsdb_scripts/Typing_alleles_intopsql.py --species {{ species }}",
               filename: "{{ species }}_alleles_intopsql" }
           - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_bigsdb_scripts/genedetection_intopsql.py --species {{ species }}",
@@ -401,7 +399,7 @@
         name: "crontab for weekly database updates, profiles 30 minutes later than sequences"
         minute: '30'
         hour: '7'
-        weekday: '1'       # monday morning
+        weekday: '0'       # sunday morning
         job: "{{ item.command }}"
         user: 'bigsdb'
         cron_file: "{{ item.filename }}"
