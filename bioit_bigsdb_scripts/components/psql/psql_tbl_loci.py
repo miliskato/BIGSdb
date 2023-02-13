@@ -9,9 +9,9 @@ class TblLoci(DatabaseConnection):
     loci table in both databases
     """
     def __init__(self, species: str, db_type: str) -> None:
+        super().__init__(species, db_type)
         if self._db_type != 'seqdef' and self._db_type != 'isolates':
             raise ValueError('no such database type')
-        super().__init__(species, db_type)
 
     def count_locus(self, param: Tuple[str]) -> List[Tuple[int]]:
         """

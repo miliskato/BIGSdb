@@ -9,8 +9,6 @@ class TblSchemeMembers(DatabaseConnection):
     scheme_members table in both databases
     """
     def __init__(self, species: str, db_type: str) -> None:
-        if self._db_type != 'seqdef' and self._db_type != 'isolates':
-            raise ValueError('no such database type')
         super().__init__(species, db_type)
 
     def count_scheme_member(self, param: Tuple[str, str]) -> List[Tuple[int]]:

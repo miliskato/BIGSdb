@@ -45,10 +45,10 @@
 
 # this task comes before the git clone because the git directory path has been moved from /home/bigsdb/BIGSdb to /home/bigsdb/BIGSdb/BIGSdb as per request of RW 13jan23
 - name: create bigsdb unix user
-      ansible.builtin.user:
-        name: bigsdb
-        shell: /bin/sh
-        group: www-data
+  ansible.builtin.user:
+    name: bigsdb
+    shell: /bin/sh
+    group: www-data
 
 - name: Get updated files from git repository
   git:
