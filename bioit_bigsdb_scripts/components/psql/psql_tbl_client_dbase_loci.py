@@ -16,7 +16,7 @@ class TblClientDbaseLoci(DatabaseConnection):
         self._db_type = 'seqdef'
         super().__init__(species, self._db_type)
 
-    def insert_locus(self, param: Tuple[str, str, str, str]) -> None:
+    def insert_locus(self, param: Tuple[str]) -> None:
         """
         Inserts a locus into the client dbase loci, necessary for rest api broadcasting
         :param param: variables to feed to the PSQL query, which also sanitizes these variables,
