@@ -7,7 +7,7 @@ import sys
 import traceback
 from datetime import date
 from email.message import EmailMessage
-from typing import Dict, List, Tuple
+from typing import Any, Dict, List, Tuple
 from pathlib import Path
 
 import pymongo
@@ -67,7 +67,6 @@ class NewAllelesProfileClusteringFromMongoToBigs:
         self.new_st = self._get_new_st()
         self.st_headers = self._get_st_headers()
         self.new_cluster_membership = self._get_new_cluster_membership()
-        self._seqdef_sequences_psql_tbl.close()
 
     def _get_last_date_of_update(self) -> date:
         """
@@ -145,7 +144,7 @@ class NewAllelesProfileClusteringFromMongoToBigs:
                     self._seqdef_sequences_psql_tbl.insert_sequence((locus, new_allele['temp_allele_name'], new_allele['allele_sequence']))
                     logging.info(f"id {new_allele['temp_allele_name']} inserted into locus {locus}")
 
-    def _order_sequences_by_locus(self) -> Dict[str, str]:
+    def _order_sequences_by_locus(self) -> Dict[str, Any]:
         """
         Order the sequences by locus in order to be able to add the alleles by locus in an easy way.
         :return: None
@@ -253,6 +252,13 @@ class NewAllelesProfileClusteringFromMongoToBigs:
         self.update_metadata_collection.with_options(write_concern=WriteConcern(w="majority")).update_one(
             {'metadata': 'last_update'}, {
                 "$set": {'last_update_date': self.current_update_date}})
+
+    def __exit__(self) -> None:
+        """
+        Closes the isolates psql table when the class is closed
+        :return: None
+        """
+        self._seqdef_sequences_psql_tbl.close()
 
 
 def run_upload_new_alleles_profiles_clustering_from_mongo_to_bigs(species: str) -> None:

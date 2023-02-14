@@ -74,8 +74,6 @@ class MongoToBigs:
             send_email(f"{exceptionmessage}\n{traceback.format_exc()}")
             raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}")
 
-        self._isolates_psql_tbl.close()
-
     def _mongo_to_bigs(self) -> None:
         """
         Main function
@@ -185,6 +183,13 @@ class MongoToBigs:
                 f"results version same in mongodb and bigsdb for sample {document_id}")
             different_version = False
         return different_version
+
+    def __exit__(self) -> None:
+        """
+        Closes the isolates psql table when the class is closed
+        :return: None
+        """
+        self._isolates_psql_tbl.close()
 
 
 if __name__ == '__main__':
