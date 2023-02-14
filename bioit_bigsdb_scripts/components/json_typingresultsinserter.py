@@ -103,6 +103,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
                              self._schemedict[self._scheme]['schemename_html'], '" target="_blank">',
                              result['Mutation'], '</a></td>'])
                         eavhtmltable = eavhtmltable + ''.join(['<td>', antibiotic, '</td></tr>'])
+                        self.insert_locus_if_needed(antibiotic_reformatted, self._schemedict[self._scheme]['schemename_bigsdb'])
                         self._insert_dummy_sequence_if_needed(antibiotic_reformatted, mutation)
                         self._isolates_ad_psql_tbl.insert_designation_by_isolatename(
                             (antibiotic_reformatted, self._isolatename, mutation))
@@ -134,23 +135,24 @@ class JsonTypingResultsInserter(JsonSuperClass):
             # make a dict with field and tsv names to be able to insert
             with TblEavFields(self._species) as isolates_eavf_psql_tbl:
                 fields = isolates_eavf_psql_tbl.select_fields_amr()
-            amr_metadata_fields_tsv: Dict = {}
+            amr_metadata_fields_tsv = {}
             for field in fields:
                 if field[0].startswith('amr'):
                     amr_metadata_fields_tsv[field[0]] = field[0]
                 else:
                     amr_metadata_fields_tsv[field[0]] = ''.join(['amr_pheno_', field[0].split('_')[-1]])
             for bigsdbname, jsonname in amr_metadata_fields_tsv.items():
+                print(self._sample_output_dict[self._scheme])
                 self._isolates_eavt_psql_tbl.insert_eav_isolate(
-                    (self._isolatename, bigsdbname, self._sample_output_dict[self._scheme][jsonname]))
+                    (self._isolatename, bigsdbname, self._sample_output_dict[self._scheme]['results'][jsonname]))
             # AMR results
             with TblSchemeMembers(self._species, 'isolates') as isolates_schememembers_psql_tbl:
                 amr_loci = isolates_schememembers_psql_tbl.select_loci_amr()
             for locus in amr_loci:
                 jsonname = '_'.join(['amr_mutations', str(locus[0]).replace('_int', '_(int.)')])
-                if self._sample_output_dict[self._scheme][jsonname] != '-':
+                if self._sample_output_dict[self._scheme]['results'][jsonname] != '-':
                     variantsset = set()
-                    for variant in self._sample_output_dict[self._scheme][jsonname].split(', '):
+                    for variant in self._sample_output_dict[self._scheme]['results'][jsonname].split(', '):
                         variantreformatted = re.sub('[(]|[)]', '_', variant)
                         # Bert explained that if the change is found in promotor, then it can change signs
                         # And also honestly the db is really discrepant, e.g. how likely is this:
@@ -169,7 +171,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
                 speciesset = set()
                 with TblEavBoolean(self._species) as isolates_eavb_psql_tbl:
                     for locus in self._sample_output_dict[self._scheme]['loci']:
-                        hit = '_'.join(['hsp65', re.sub('[.]| ', '_', locus['Species'])])
+                        hit = '_'.join(['hsp65', locus['Species'].strip('"').replace(' ','_').replace('.', '')])
                         if hit not in speciesset:
                             isolates_eavb_psql_tbl.insert_eav_isolate((self._isolatename, hit, 't'))
                             speciesset.add(hit)

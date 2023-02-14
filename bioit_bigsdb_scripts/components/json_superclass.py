@@ -49,7 +49,7 @@ class JsonSuperClass:
             present = seqdef_sequences_psql_tbl.count_sequence_allele((locus, allele_id))
             if present[0][0] == 0:
                 highest_dummy_sequence = seqdef_sequences_psql_tbl.select_sequence_from_locus((locus,))
-                dummysequence: str = 'dummy_1' if len(highest_dummy_sequence) == 0 else '_'.join(['dummy', int(highest_dummy_sequence[0][0].split('_')[1]) + 1])
+                dummysequence: str = 'dummy_1' if len(highest_dummy_sequence) == 0 else '_'.join(['dummy', str(int(highest_dummy_sequence[0][0].split('_')[1]) + 1)])
                 seqdef_sequences_psql_tbl.insert_sequence((locus, allele_id, dummysequence))
 
     def insert_locus_if_needed(self, locus: str, scheme: str) -> None:

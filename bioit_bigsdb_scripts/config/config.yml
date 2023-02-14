@@ -363,6 +363,7 @@ species_json:
       pointfinder:
         type: irregular
         schemename_html: PointFinder
+        schemename_bigsdb: Pointfinder
       ncbi_16s:
         type: irregular
     genedetection_schemes: null
@@ -410,6 +411,7 @@ species_json:
       pointfinder:
         type: irregular
         schemename_html: PointFinder
+        schemename_bigsdb: Pointfinder
       serotype:
         type: irregular
     genedetection_schemes:
@@ -450,6 +452,7 @@ species_json:
       pointfinder:
         type: irregular
         schemename_html: PointFinder
+        schemename_bigsdb: Pointfinder
       genotyphi:
         type: irregular
       sistr:
