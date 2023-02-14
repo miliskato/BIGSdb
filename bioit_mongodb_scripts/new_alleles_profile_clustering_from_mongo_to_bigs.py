@@ -40,7 +40,8 @@ def _send_email(subject: str, content: str, config: dict) -> None:
 
 class NewAllelesProfileClusteringFromMongoToBigs:
     def __init__(self, species: str, st_collection: pymongo.collection.Collection, hashed_ad_collection: pymongo.collection.Collection,
-                 cluster_membership_collection: pymongo.collection.Collection, update_metadata_collection: pymongo.collection.Collection) -> None:
+                 cluster_membership_collection: pymongo.collection.Collection, update_metadata_collection: pymongo.collection.Collection,
+                 headers_collection: pymongo.collection.Collection) -> None:
         """
         Initialization of the class.
         :param species: the species that needs to be updated
@@ -48,9 +49,11 @@ class NewAllelesProfileClusteringFromMongoToBigs:
         :param hashed_ad_collection: the ashed allele collection of mongo db of the species
         :param cluster_membership_collection: cluster membership collection from the mongo db of the species
         :param update_metadata_collection: the update metadata collection from the mongo db of the species
+        :param headers_collection: collection containing headers for typing locus dictionaries + headers of cgmlst profiles
         """
         self._species = species
         self.st_collection = st_collection
+        self.headers_collection = headers_collection
         self.hashed_ad_collection = hashed_ad_collection
         self.cluster_membership_collection = cluster_membership_collection
         self.update_metadata_collection = update_metadata_collection
@@ -104,7 +107,7 @@ class NewAllelesProfileClusteringFromMongoToBigs:
         Retrieve the sequence types headers from the sequence type collection from Mongo DB
         :return: The document (dict) containing the headers.
         """
-        return self.st_collection.find_one({'ID': 'headers'})
+        return self.headers_collection.find_one({'type': 'cgmlst_headers'})
 
     def _get_new_cluster_membership(self) -> list:
         """
@@ -176,9 +179,9 @@ class NewAllelesProfileClusteringFromMongoToBigs:
                         seqdef_profiles_psql_tbl.insert_profile(('cgMLST', st_id))
                         # insertion of the st in the profiles_fields
                         seqdef_profilefields_psql_table.insert_profile_field(('cgMLST', 'cgST', st_id, st_id))
-                        alleles = st['cgMLST'].split(',')
+                        alleles = st['cgMLST']
                         for locus, allele_id in zip(self.st_headers['headers'], alleles):
-                            if allele_id == '0':  # this will create a ForeignKeyViolation error so we prevent this
+                            if str(allele_id) == '0':  # this will create a ForeignKeyViolation error so we prevent this
                                 # by inserting a null allele if not yet present
                                 nullpresent = self._seqdef_sequences_psql_tbl.count_sequence_null((locus,))
                                 if nullpresent[0][0] == 0:
@@ -205,12 +208,12 @@ class NewAllelesProfileClusteringFromMongoToBigs:
                 query_group_exists = seqdef_clgr_psql_tbl.count_group((cg_scheme_id, group_id))
                 if query_group_exists[0][0] == 0:
                     seqdef_clgr_psql_tbl.insert_group((cg_scheme_id, group_id))
-                    seqdef_clgrpr_psql_tbl.insert_profile(('cgMLST', cg_scheme_id, group_id, profile_id))
+                    seqdef_clgrpr_psql_tbl.insert_profile((cg_scheme_id, group_id, profile_id, 'cgMLST'))
                 else:
                     # group exists so now need to check if clustering membership already present
-                    current_bigsdb_group = seqdef_clgrpr_psql_tbl.select_profile_group((cg_scheme_id, profile_id))
+                    current_bigsdb_group = seqdef_clgrpr_psql_tbl.select_profile_group((cg_scheme_id, str(profile_id)))
                     if not current_bigsdb_group:
-                        seqdef_clgrpr_psql_tbl.insert_profile(('cgMLST', cg_scheme_id, group_id, profile_id))
+                        seqdef_clgrpr_psql_tbl.insert_profile((cg_scheme_id, group_id, profile_id, 'cgMLST'))
                     elif int(current_bigsdb_group[0][0]) != int(group_id):
                         seqdef_clgrpr_psql_tbl.update_profile_group((group_id, cg_scheme_id, profile_id))
                         seqdef_clgrprhist_psql_tbl.insert_history(('cgMLST', profile_id, cg_scheme_id, str(current_bigsdb_group[0][0])))
@@ -228,11 +231,12 @@ class NewAllelesProfileClusteringFromMongoToBigs:
         with TblClassificationSchemes(self._species, 'seqdef') as seqdef_clsch_psql_tbl, \
             TblClassificationSchemes(self._species, 'isolates') as isolates_clsch_psql_tbl:
             query_res = seqdef_clsch_psql_tbl.select_cgschemes()
-            if query_res is not None:
+            if len(query_res) > 0:
                 thresholds_presents = [x[1] for x in query_res]
                 idx_max = max([int(x[0]) for x in query_res])
             else:
                 thresholds_presents = []
+                idx_max = 0
             for threshold in self.clustering_thresholds:
                 if threshold not in thresholds_presents:
                     name = f"cgMLST_{threshold}_diffs_clustering"
@@ -278,11 +282,12 @@ def run_upload_new_alleles_profiles_clustering_from_mongo_to_bigs(species: str) 
     st_collection, cluster_membership_collection, cluster_merging_collection = \
         mongoinit.initialise_clustering_collections()
     update_collection = mongoinit.initialise_update_collection()
+    headers_collection = mongoinit.initialise_headers_collection()
 
     # initialize the class
     try:
         updater = NewAllelesProfileClusteringFromMongoToBigs(species, st_collection, hashed_ad_collection,
-                                        cluster_membership_collection, update_collection)
+                                        cluster_membership_collection, update_collection, headers_collection)
         updater.insert_into_bigs()
     except Exception as exceptionmessage:
         _send_email(f"{Path(__file__).name} fail on host {socket.gethostname()}",

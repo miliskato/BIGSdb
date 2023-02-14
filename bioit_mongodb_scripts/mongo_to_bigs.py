@@ -64,6 +64,7 @@ class MongoToBigs:
         self._mongoinit = MongoInitialisation(self._species)
         self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, \
         self._isolates_resequencing_collection = self._mongoinit.initialise_collections()
+        self._headers_collection = self._mongoinit.initialise_headers_collection()
         self._mongoquerying = Mongoquerying()
         # Open Bigsdb isolates table
         self._isolates_psql_tbl = TblIsolates(self._species)
@@ -110,7 +111,7 @@ class MongoToBigs:
             if document.get('validation'):
                 # add validation metadata to results in order to be able to insert them into BIGSdb
                 document['results']['validation'] = document['validation']
-            document = self._mongoquerying.revert_typinghitlists_to_dictionaries(document, self._mongoinit)
+            document = self._mongoquerying.revert_typinghitlists_to_dictionaries(document, self._headers_collection)
             jsonfile = Path(f"{mongo_config_data.get('temp_dir')}/{document_id}_temp.json")
             with jsonfile.open('w') as handle:
                 handle.write(json.dumps(document['results']))

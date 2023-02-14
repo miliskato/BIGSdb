@@ -1,6 +1,5 @@
 import datetime
 import logging
-import os
 import smtplib
 import socket
 import sys
@@ -9,7 +8,6 @@ from email.message import EmailMessage
 from pathlib import Path
 from typing import Any, Dict, List
 
-import pymongo
 import yaml
 from pymongo.write_concern import WriteConcern
 
@@ -89,7 +87,7 @@ def samples_to_validation_bigs(species: str) -> None:
         isolates_collection, old_isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections()
 
         # fetch all documents in the bad samples of the species
-        update_collection = mongoinit.initialise_update_collection(mongo_config_data, species)
+        update_collection = mongoinit.initialise_update_collection()
         query = update_collection.find_one({'metadata': 'last_validation_to_bigs_update'})
         if query:
             last_run_date = query['last_update_date']

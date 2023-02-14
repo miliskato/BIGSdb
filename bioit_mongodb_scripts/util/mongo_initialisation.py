@@ -98,5 +98,5 @@ class MongoInitialisation:
         ...
         :return: Opened hashing collection
         """
-        header_collection = self._open_mongo_collection(self._opened_mongo_database, "headers")
-        return header_collection
+        headers_collection = self._open_mongo_collection(self._opened_mongo_database, "headers")
+        return headers_collection

@@ -17,7 +17,7 @@ class DistanceAndClusterComputer:
     Class to compute hamming distances and determine the cluster membership to store in mongoDB.
     """
 
-    def __init__(self,header_collection: pymongo.collection.Collection, st_collection: pymongo.collection.Collection,
+    def __init__(self,headers_collection: pymongo.collection.Collection, st_collection: pymongo.collection.Collection,
                  cluster_membership_collection: pymongo.collection.Collection,
                  cluster_merging_collection: pymongo.collection.Collection, st_to_use: list) -> None:
         """
@@ -28,7 +28,7 @@ class DistanceAndClusterComputer:
         logging.getLogger().setLevel(logging.INFO)
         logging.info("Initialization of the distance and cluster computer")
         self.st_to_use = st_to_use
-        self.header_collection = header_collection
+        self.headers_collection = headers_collection
         self.st_collection = st_collection
         # self.matrix_collection = distance_matrix_collection
         self.cluster_membership_collection = cluster_membership_collection

@@ -35,7 +35,7 @@ class TblClassificationSchemes(DatabaseConnection):
             raise ValueError(f'Wrong db_type {self._db_type} for the current table object/instance')
         self.execute_query(PsqlQueries.SEQ_INS__TB_CLSCH_VAR_CGSCHID_SCHEME_NAME_DESC_INCTHR_CGSCHID, param)
 
-    def select_cgschemes(self) -> Union[None, List[Tuple[str, str]]]:
+    def select_cgschemes(self) -> Union[List, List[Tuple[str, str]]]:
         """
         Selects all scheme id and their inclusion tresholds
         :param param: variables to feed to the PSQL query, which also sanitizes these variables,

@@ -34,7 +34,7 @@ class JsonSuperClass:
         with TblAlleleDesignations(self._species) as isolates_ad_psql_tbl:
             designationpresent = isolates_ad_psql_tbl.count_designations((locus, self._isolatename, allele_id))
             if designationpresent[0][0] == 0:
-                isolates_ad_psql_tbl.insert_designation((locus, self._isolatename, allele_id))
+                isolates_ad_psql_tbl.insert_designation_by_isolatename((locus, self._isolatename, allele_id))
 
     def _insert_dummy_sequence_if_needed(self, locus: str, allele_id: str) -> None:
         """

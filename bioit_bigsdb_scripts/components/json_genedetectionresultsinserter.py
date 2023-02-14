@@ -78,7 +78,7 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                                     continue
     
                                 if clusterhit not in clusterhitset:
-                                    isolates_ad_psql_tbl.insert_designation((clusterhit, self._isolatename, '1'))
+                                    isolates_ad_psql_tbl.insert_designation_by_isolatename((clusterhit, self._isolatename, '1'))
     
                                 clusterhitset.add(clusterhit)
                                 self._append_to_htmltable(hit, clusterhit)

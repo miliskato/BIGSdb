@@ -15,11 +15,18 @@ class PsqlQueries():
     """
     # TBL allele designations
     ISO_DEL__TB_AD_VAR_LOCUS: Final[str] = """DELETE FROM allele_designations WHERE locus LIKE %s;"""
-    ISO_INS__TB_AD_VAR_LOCUS_ISO_ALLELE: Final[str] = """
+    ISO_INS__TB_AD_VAR_LOCUS_ID_ALLELE: Final[str] = """
         INSERT INTO allele_designations(locus, isolate_id, 
         allele_id, status, method, sender, 
         curator, date_entered, datestamp) 
         VALUES(%s, %s, 
+        %s, 'confirmed', 'automatic', 1, 
+        1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE));"""
+    ISO_INS__TB_AD_VAR_LOCUS_ISO_ALLELE: Final[str] = """
+        INSERT INTO allele_designations(locus, isolate_id, 
+        allele_id, status, method, sender, 
+        curator, date_entered, datestamp) 
+        VALUES(%s, (SELECT MAX(id) FROM isolates WHERE isolate=%s), 
         %s, 'confirmed', 'automatic', 1, 
         1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE));"""
     ISO_SEL_COUNT_TB_AD_VAR_LOCUS_ISO_ALLELE: Final[str] = """

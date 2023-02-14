@@ -34,7 +34,7 @@ class TblAlleleDesignations(DatabaseConnection):
         """
         self.execute_query(PsqlQueries.ISO_DEL__TB_AD_VAR_LOCUS, param)
 
-    def insert_designation(self, param: Tuple[str, str, str]) -> None:
+    def insert_designation_by_isolatename(self, param: Tuple[str, str, str]) -> None:
         """
         Insert allele designation for a specific isolate, locus and allele
         :param param: variables to feed to the PSQL query, which also sanitizes these variables,
@@ -42,6 +42,15 @@ class TblAlleleDesignations(DatabaseConnection):
         :return: None
         """
         self.execute_query(PsqlQueries.ISO_INS__TB_AD_VAR_LOCUS_ISO_ALLELE, param)
+
+    def insert_designation_by_isolateid(self, param: Tuple[str, str, str]) -> None:
+        """
+        Insert allele designation for a specific isolate, locus and allele
+        :param param: variables to feed to the PSQL query, which also sanitizes these variables,
+        necessary parameters visible in the PSQL query name and query
+        :return: None
+        """
+        self.execute_query(PsqlQueries.ISO_INS__TB_AD_VAR_LOCUS_ID_ALLELE, param)
 
     def update_designations(self, param: Tuple[str, str, str]) -> None:
         """

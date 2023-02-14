@@ -180,7 +180,7 @@ class GeneDetectionIntoPsql:
                                      (hits)[y][htmlname], '</a></td></tr>'])
     
                             if clusterhit not in clusterhitset:
-                                isolates_ad_psql_tbl.insert_designation((clusterhit, isolate_id, '1'))
+                                isolates_ad_psql_tbl.insert_designation_by_isolateid((clusterhit, isolate_id, '1'))
                                 clusterhitset.add(clusterhit)
                         eavhtmltable = eavhtmltable + '</table>'
                         isolates_eavt_psql_tbl.delete_eav(
