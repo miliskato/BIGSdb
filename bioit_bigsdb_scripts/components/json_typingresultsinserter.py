@@ -26,6 +26,8 @@ class JsonTypingResultsInserter(JsonSuperClass):
         JsonSuperClass.__init__(self, isolatename, species, sample_output_dict, config_data)
         self._schemedict: Dict[str, Dict[str, str]] = self._mongo_config_data['species_json'][self._species]['typing_schemes']
         self._scheme = None
+        self._locusset = set()  # Locusset serves as to not insert duplicates (creates error in sql),
+        # for Listeria e.g. prs and prfA are included in two self._schemes
 
     def insert_typing_results(self) -> None:
         """
@@ -51,15 +53,13 @@ class JsonTypingResultsInserter(JsonSuperClass):
         Processes regular typing scheme results
         :return: None
         """
-        locusset = set()  # Locusset serves as to not insert duplicates (creates error in sql),
-        # for Listeria e.g. prs and prfA are included in two self._schemes
         for locus in self._sample_output_dict[self._scheme]['loci']:
-            if locus['Locus'] not in locusset:
+            if locus['Locus'] not in self._locusset:
                 if locus['% Identity'] == '100.00' and locus['HSP/Locus length'] != '-' and eval(
                         locus['HSP/Locus length']) == 1.0 and locus['Allele'] != 0 and locus['Allele'] != '?':
                     self._isolates_ad_psql_tbl.insert_designation_by_isolatename(
                         (locus['Locus'].replace("'", ""), self._isolatename, locus['Allele']))
-                    locusset.add(locus['Locus'])
+                    self._locusset.add(locus['Locus'])
                 # the elif below is specific to Listeria pcr serogroup where 0's are included in the profiles
                 # (absent loci are required to define profiles)
                 # Bigsdb creates a null allele itself in the seqdef database
@@ -67,7 +67,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
                       and locus['% Identity'] == '-' and locus['HSP/Locus length'] == '-') or self._scheme == 'cgmlst':
                     # in cgmlst you can have perfect multihits (?) that are then also considered as a zero in the custom profile by Benoit, thats why its outside of the ( )
                     self._isolates_ad_psql_tbl.insert_designation_by_isolatename((locus['Locus'], self._isolatename, '0'))
-                    locusset.add(locus['Locus'])
+                    self._locusset.add(locus['Locus'])
                     
     def _process_irregular_typing_scheme(self) -> None:
         if self._scheme == 'pointfinder':
