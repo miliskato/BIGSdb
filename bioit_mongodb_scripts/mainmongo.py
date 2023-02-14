@@ -454,6 +454,7 @@ class MainMongo:
                                                                          "temp_allele_name": temp_allele,
                                                                          "insertion_date": datetime.utcnow()
                                                                           })
+                            results[typing_scheme]['loci'][locus_index]['Allele'] = temp_allele  # replace the name of the allele in the results (no hash anymore)
                         else:
                             temp_allele = existing_document["temp_allele_name"]
                             already_present = False
@@ -462,18 +463,18 @@ class MainMongo:
                                 if hash_old == allele_info['Allele']:
                                     already_present = True
                                     logging.info('hash/temp allele already present')
-                            if mode == 'new_isolate' or mode == 'reanalysis' and not already_present:
+                            if mode == 'new_isolate' or (mode == 'reanalysis' and not already_present):
                                 hashed_ad_collection.with_options(write_concern=WriteConcern(w="majority")).update_one(
                                     {"_id": existing_document['_id']},
                                     {"$inc": {"encountered_count": 1}})
                                 logging.info(f"hashed allele '{allele_info['Allele']}' encounter incremented by one")
+                            if existing_document['resolved_AD'] == 0:
+                                results[typing_scheme]['loci'][locus_index][
+                                    'Allele'] = temp_allele  # replace the name of the allele in the results (no hash anymore)
+                            else:
+                                results[typing_scheme]['loci'][locus_index][
+                                    'Allele'] = existing_document['resolved_AD']
                         results[typing_scheme]['loci'][locus_index].pop('Allele_sequence')
-                        if existing_document['resolved_AD'] == 0:
-                            results[typing_scheme]['loci'][locus_index][
-                                'Allele'] = temp_allele  # replace in the results the name of the allele (no hash anymore)
-                        else:
-                            results[typing_scheme]['loci'][locus_index][
-                                'Allele'] = existing_document['resolved_AD']
         return results
 
     @staticmethod
