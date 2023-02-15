@@ -89,7 +89,7 @@ class MongoCustomClustering:
         :param st_collection: the sequence type collection from mongo db.
         :return: the sequence type if it exists already in the db or None if it doesn't.
         """
-        query_st = st_collection.find_one({'cgMLST': self.cgmlst_profile.get_cgmlst_profile()})
+        query_st = st_collection.find_one({'cgMLST': self.cgmlst_profile.cgmlst})
         if query_st:
             return query_st['cgST']
         else:

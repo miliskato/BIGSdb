@@ -17,15 +17,6 @@ class cgMLSTProfile:
         if headers:
             self.loci = headers[1:len(headers)]
 
-    def get_cgmlst_profile(self) -> str:
-        """
-        Concatenates all the cgmlst alleles into one string to return the cgmlst profile.
-        Note: this is an unused function on 7th of Fevruary 2023 so if not used somewhere else in one year can be
-        removed from the code base.
-        :return:
-        """
-        return ','.join([str(i) for i in self.cgmlst])
-
     def get_st_collection_entry(self) -> Dict[str, Union[str, int, object]]:
         """
         Creates a dict containing the sequence type and the cgmlst profile to enter into the sequence type collection
