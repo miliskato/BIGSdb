@@ -2,7 +2,7 @@ CONNECTION_STRING_ALTERNATE: mongodb+srv://mikelchtermans:YMFOH4BLF1U79dDk@hera-
 CONNECTION_STRING_BASE: mongodb://admin:8T1r7nQwXnMoP3A9ubsu@bioit-mongo-d01:27017,bioit-mongo-d02:27017,bioit-mongo-d03:27017/?replicaSet=bioit-HERA&authSource=admin
 
 mail:
-    from: bioit-dev1@wiv-isp.be
+    from: bioit@sciensano.be
     to: bioit.hera.sciensano.test@gmail.com
     host: smtp.wiv-isp.be
 

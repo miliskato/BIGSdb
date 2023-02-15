@@ -1,5 +1,5 @@
 mail:
-    from: bioit-dev1@wiv-isp.be
+    from: bioit@sciensano.be
     to:  bioit.hera.sciensano.test@gmail.com
     host: smtp.wiv-isp.be
 
