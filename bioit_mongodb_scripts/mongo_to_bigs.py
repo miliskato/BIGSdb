@@ -10,6 +10,7 @@ import sys
 import traceback
 from pathlib import Path
 from typing import Any, Dict, List
+import subprocess
 
 from pymongo.read_concern import ReadConcern
 
@@ -85,6 +86,12 @@ class MongoToBigs:
 
         # call the function to insert new alleles and profiles
         run_upload_new_alleles_profiles_clustering_from_mongo_to_bigs(self._species)
+
+        # update the bigsdb cache so the clustering schemes get updated
+        command = f'/home/bigsdb/BIGSdb/scripts/maintenance/update_scheme_caches.pl ' \
+                  f'--database bigsdb_{self._species}_isolates'
+        process = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
+        output, error = process.communicate()
 
         # send bad samples from the badqc_isolates collection to BIGSdb
         samples_to_validation_bigs(self._species)
@@ -201,3 +208,4 @@ if __name__ == '__main__':
     # run main
     MongoToBigs(args.species,
                   single_sample_id=(args.single_sample_id if args.single_sample_id else None))
+
