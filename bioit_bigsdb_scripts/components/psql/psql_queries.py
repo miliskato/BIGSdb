@@ -15,11 +15,18 @@ class PsqlQueries():
     """
     # TBL allele designations
     ISO_DEL__TB_AD_VAR_LOCUS: Final[str] = """DELETE FROM allele_designations WHERE locus LIKE %s;"""
-    ISO_INS__TB_AD_VAR_LOCUS_ISO_ALLELE: Final[str] = """
+    ISO_INS__TB_AD_VAR_LOCUS_ID_ALLELE: Final[str] = """
         INSERT INTO allele_designations(locus, isolate_id, 
         allele_id, status, method, sender, 
         curator, date_entered, datestamp) 
         VALUES(%s, %s, 
+        %s, 'confirmed', 'automatic', 1, 
+        1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE));"""
+    ISO_INS__TB_AD_VAR_LOCUS_ISO_ALLELE: Final[str] = """
+        INSERT INTO allele_designations(locus, isolate_id, 
+        allele_id, status, method, sender, 
+        curator, date_entered, datestamp) 
+        VALUES(%s, (SELECT MAX(id) FROM isolates WHERE isolate=%s), 
         %s, 'confirmed', 'automatic', 1, 
         1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE));"""
     ISO_SEL_COUNT_TB_AD_VAR_LOCUS_ISO_ALLELE: Final[str] = """
@@ -132,7 +139,7 @@ class PsqlQueries():
         %s, 1, 1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE), %s, %s);"""
     ISO_SEL_COUNT_TB_ISO_VAR_ISO: Final[str] = """SELECT COUNT(*) FROM isolates WHERE isolate=%s;"""
     ISO_SEL_ANADATE_TB_ISO_VAR_ISO: Final[str] = """
-        SELECT latest_analysis_date FROM isolates WHERE isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate=%s);"""
+        SELECT latest_analysis_date FROM isolates WHERE id=(SELECT MAX(id) FROM isolates WHERE isolate=%s);"""
     ISO_SEL_MAXID_TB_ISO_VAR_ISO: Final[str] = """SELECT MAX(id) FROM isolates WHERE isolate=%s"""
     ISO_SEL_VALDATES_TB_ISO_VAR_ISO: Final[str] = """
         SELECT validation_date FROM isolates WHERE isolate=%s ORDER BY id DESC LIMIT 2;"""
@@ -143,7 +150,7 @@ class PsqlQueries():
         UPDATE isolates SET new_version=(SELECT MAX(id) FROM isolates WHERE isolate=%s) 
         WHERE isolate=%s AND new_version IS NULL AND 
         id!=(SELECT MAX(id) FROM isolates WHERE isolate=%s);"""
-    ISO_UPD_VALTYPE_VALCUR_VALDATE_VAR_ID: Final[str] = """
+    ISO_UPD_VALTYPE_VALCUR_VALDATE_TB_ISO_VAR_ID: Final[str] = """
         UPDATE isolates SET 
         validation_type = %s, 
         validation_curator = %s, 

@@ -11,7 +11,7 @@ from Bio import SeqIO
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
-from bioit_bigsdb_scripts.components.psql_tables_queries import TblIsolates, TblSequenceBin
+from bioit_bigsdb_scripts.components.psql import TblIsolates, TblSequenceBin
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data, send_email
 
 
@@ -50,7 +50,7 @@ def insert_assembly(isolatename: str, species: str, fastafilepath: Path) -> None
             if presentcontigs[0][0] == 0:
                 for record in SeqIO.parse(fastafilepath, "fasta"):
                     # add the record to the dictionary with the ID as the key and the sequence as the value
-                    isolates_seqbin_psql_tbl.insert_sequencebin((isolatename, record.seq, record.id))
+                    isolates_seqbin_psql_tbl.insert_sequencebin((isolatename, str(record.seq), record.id))
             else:
                 send_email(f"isolate {isolatename} already contains assembly records!",
                            f'{Path(__file__).name}: Error inserting assembly of {species} pipeline to bigsdb for '

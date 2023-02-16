@@ -11,7 +11,7 @@ PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
 from bioit_bigsdb_scripts.components.json_superclass import JsonSuperClass
-from bioit_bigsdb_scripts.components.psql_tables_queries import TblLocusDescriptions, TblLoci, TblSequences, TblAlleleDesignations, TblEavText, TblEavTextHidden, TblHistory
+from bioit_bigsdb_scripts.components.psql import TblLocusDescriptions, TblLoci, TblSequences, TblAlleleDesignations, TblEavText, TblEavTextHidden, TblHistory
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data, send_email
 
 
@@ -104,8 +104,8 @@ class GeneDetectionIntoPsql:
         Inserts all the loci (clusters), scheme members and alleles (dummy boolean) in seqdef and isolate dbs if they are not present
         :return: None
         """
-        json_superclass_instance = JsonSuperClass('dummyname', self._species, {'dummydictkey': 'dummydictvalue'})
-        with TblSequences(self._species) as seqdef_sequences_psql_tbl, TblLoci(self._species) as seqdef_loci_psql_tbl:
+        json_superclass_instance = JsonSuperClass('dummyname', self._species, {'dummydictkey': 'dummydictvalue'}, config_data=self._bigsdb_config_data)
+        with TblSequences(self._species) as seqdef_sequences_psql_tbl, TblLoci(self._species, 'seqdef') as seqdef_loci_psql_tbl:
             for cluster in self._clusterlist:
                 present: List[Tuple[int]] = seqdef_loci_psql_tbl.count_locus((cluster,))
                 if present[0][0] == 0:
@@ -180,7 +180,7 @@ class GeneDetectionIntoPsql:
                                      (hits)[y][htmlname], '</a></td></tr>'])
     
                             if clusterhit not in clusterhitset:
-                                isolates_ad_psql_tbl.insert_designation((clusterhit, isolate_id, '1'))
+                                isolates_ad_psql_tbl.insert_designation_by_isolateid((clusterhit, isolate_id, '1'))
                                 clusterhitset.add(clusterhit)
                         eavhtmltable = eavhtmltable + '</table>'
                         isolates_eavt_psql_tbl.delete_eav(

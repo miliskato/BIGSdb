@@ -92,16 +92,16 @@ class MainMongo:
         self._mongoquerying = Mongoquerying()
 
         # Parameter compatibility checks
-        self.parameter_compatibility_checks()
+        self._parameter_compatibility_checks()
 
         # Execute main function
         try:
-            self.main_mongo()
+            self._main_mongo()
         except Exception as exceptionmessage:
             send_email(f"{exceptionmessage}\n{traceback.format_exc()}", dont_send_email=self._dont_send_email)
             raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}: {exceptionmessage}\n{traceback.format_exc()}")
 
-    def parameter_compatibility_checks(self) -> None:
+    def _parameter_compatibility_checks(self) -> None:
         """
         Checks compatibility of argparse arguments
         :return: None
@@ -127,7 +127,7 @@ class MainMongo:
         # if self._results_type == 'new_isolate' and not self._vcffilepath:
         #     raise Exception('vcffilepath necessary when using results_type new_isolate')
 
-    def main_mongo(self) -> None:
+    def _main_mongo(self) -> None:
         """
         Handles a sample according to the given results_type:
         if new_isolate; check whether really new, and if not resequencing, if really new insert into either bad or good
@@ -146,14 +146,14 @@ class MainMongo:
             # todo check if fasta path and vcf path are real?
             isolates_findone: Dict[str, Any] = self._isolates_collection.find_one({"_id": self._technical_id})
             if isolates_findone:
-                self._new_resequencing_arrival(new_records, isolates_findone, self._isolates_collection)
+                self.__new_resequencing_arrival(new_records, isolates_findone, self._isolates_collection)
             else:
                 # We're excluding documents that were validated, additionally only documents that were validated with a negative result are still in the badqc collection
                 # Additionally, documents that were negatively validated now have their _id removed in sample_validation_to_mongo.py
                 isolates_badqc_findone = self._isolates_badqc_collection.find_one({"_id": self._technical_id, "validation": None})
                 if isolates_badqc_findone:
                     # unvalidated badqc isolates are taken care of in the _new_resequencing_arrival function
-                    self._new_resequencing_arrival(new_records, isolates_badqc_findone, self._isolates_badqc_collection)
+                    self.__new_resequencing_arrival(new_records, isolates_badqc_findone, self._isolates_badqc_collection)
                 else:
                     self.__new_isolate_wrapper(new_records)
         elif self._results_type == 'badqc_validated':
@@ -179,7 +179,7 @@ class MainMongo:
             else:  # self._results_type == 'resequencing_validated'
                 new_results_handle = self._isolates_resequencing_collection.find_one({"_id": self._technical_id})
 
-            self._new_reanalysis_wrapper(current_results_document, new_results_handle)
+            self.__new_reanalysis_wrapper(current_results_document, new_results_handle)
 
     def __new_isolate_wrapper(self, new_records: Dict[str, Any]) -> None:
         """
@@ -201,9 +201,9 @@ class MainMongo:
                     dont_send_email=self._dont_send_email)
                 raise KeyError('No qc values found in the given results')
         if good_sample_quality:
-            new_records = self.__find_hashes_in_results_and_add_to_collection(new_records, 'new_isolate')
-            new_records = self.__convert_typinghitdictionaries_to_lists(new_records)
-            new_isolate_dictionary = self.__new_isolate(new_records)
+            new_records = self.___find_hashes_in_results_and_add_to_collection(new_records, 'new_isolate')
+            new_records = self.___convert_typinghitdictionaries_to_lists(new_records)
+            new_isolate_dictionary = self.___new_isolate(new_records)
             if 'cgmlst' in new_records:
                 clustering_input = self._mongoquerying.singledoc_typing_results_by_technicalids_and_scheme(
                     new_isolate_dictionary, "cgmlst", self._headers_collection)
@@ -219,16 +219,16 @@ class MainMongo:
             if self._results_type == 'badqc_validated':
                 new_isolate_dictionary['validation'] = self._subvaldict
                 self._isolates_badqc_collection.delete_one({'_id': new_records["isolates_id"]})
-            self.__write_document(self._isolates_collection, new_isolate_dictionary)
+            self.___write_document(self._isolates_collection, new_isolate_dictionary)
             logging.info(f"Wrote new isolate {self._technical_id} and its result to {self._species} database")
         else:
-            self.__write_document(self._isolates_badqc_collection, 
-                                  self.__new_isolate(new_records))
+            self.___write_document(self._isolates_badqc_collection,
+                                   self.___new_isolate(new_records))
             logging.warning(
                 f"New isolate {self._technical_id} failed quality control for one or more checks. It's results were written to the 'isolates_badqc' collection in the {self._species} database")
 
-    def _new_resequencing_arrival(self, new_records: Dict[str, Union[str, object]], document_original: Dict[str, Union[str, object]],
-                                  collection_in: pymongo.collection.Collection) -> None:
+    def __new_resequencing_arrival(self, new_records: Dict[str, Union[str, object]], document_original: Dict[str, Union[str, object]],
+                                   collection_in: pymongo.collection.Collection) -> None:
         """
         After an id is found in either isolates or isolates_badqc; this workflow will determine if it really is a resequencing, and if so insert it into isolates_resequencing
         :param new_records: results dictionary that is modified and inserted
@@ -262,16 +262,16 @@ class MainMongo:
                 raise Exception(f"WARNING: a resequencing for sample {self._technical_id} was submitted to the isolates_resequencing while one or more resequencings were already present: '{previous_resequencings}' in {self._isolates_resequencing_collection.database.name} on host {socket.gethostname()}, validate the original resequencing in bigs before uploading new resequencings.")
             else:
                 new_records["isolates_id"] = self._technical_id
-                new_isolate = self.__new_isolate(new_records)
-                new_isolate = self.__convert_typinghitdictionaries_to_lists(new_isolate)
-                self.__write_document(self._isolates_resequencing_collection, new_isolate)
+                new_isolate = self.___new_isolate(new_records)
+                new_isolate = self.___convert_typinghitdictionaries_to_lists(new_isolate)
+                self.___write_document(self._isolates_resequencing_collection, new_isolate)
         else:
             send_email(
                 f"A duplicate resequencing for  {self._technical_id} was submitted to the isolates_resequencing ",
                 dont_send_email=self._dont_send_email)
             raise Exception(f"A duplicate resequencing for  {self._technical_id} was submitted to the isolates_resequencing ")
 
-    def _new_reanalysis_wrapper(self, current_results_document: Dict[str, Any], new_results_document: Dict[str, Any]) -> None:
+    def __new_reanalysis_wrapper(self, current_results_document: Dict[str, Any], new_results_document: Dict[str, Any]) -> None:
         """
         Wrapper function for reanalysis and resequencing validated         
         :param current_results_document: the current results document dict in the Mongo collection before applying the reanalysis
@@ -282,9 +282,9 @@ class MainMongo:
             new_results = new_results_document
         else:  # if self._results_type == 'resequencing_validated':
             new_results = new_results_document['results']
-        new_results = self.__find_hashes_in_results_and_add_to_collection(new_results,
+        new_results = self.___find_hashes_in_results_and_add_to_collection(new_results,
                                                                           'reanalysis')
-        new_results = self.__convert_typinghitdictionaries_to_lists(new_results)
+        new_results = self.___convert_typinghitdictionaries_to_lists(new_results)
 
         current_results = current_results_document['results']
         if new_results["analysis_date"] == current_results["analysis_date"]:
@@ -297,7 +297,7 @@ class MainMongo:
             raise Exception(
                 f"{Path(__file__).name} fail on host {socket.gethostname()}: These ({self._technical_id})results seem to be older than the current results")
         any_result_changed_new_old, unchanged_results_new_old, changed_results_new_old = \
-            self.__check_if_results_changed(current_results, new_results)
+            self.___check_if_results_changed(current_results, new_results)
         # Update new results if really a reanalysis/resequencing where at least one field changed
         if 'cgmlst' in changed_results_new_old:
             clustering_input = self._mongoquerying.singledoc_typing_results_by_technicalids_and_scheme(
@@ -313,8 +313,8 @@ class MainMongo:
                                                                     self._cluster_merging_collection,
                                                                     CLUSTERING_CONFIG[sp_thresholds])
             new_results["cgST"] = sequence_type
-        deltas_new_old = self.__nested_dict_delta(current_results, new_results)
-        new_results = self.__prepend_string_dot_to_dict_keys(new_results, 'results')
+        deltas_new_old = self.___nested_dict_delta(current_results, new_results)
+        new_results = self.___prepend_string_dot_to_dict_keys(new_results, 'results')
         new_results["results.isolates_id"] = self._technical_id
         new_results["results.results_version"] = current_results["results_version"] + 1
         if any_result_changed_new_old is True:
@@ -349,12 +349,12 @@ class MainMongo:
                 "$set": {**new_results,
                          "results.results_changed_since_last_version": any_result_changed_new_old,
                          "latest_analysis_date": convert_dmyhms_to_ymd(new_results["results.analysis_date"]),
-                         "previous_latest_results_document": self.__write_document(self._old_isolateresults_collection,
-                                                                                   deltas_new_old)}})
+                         "previous_latest_results_document": self.___write_document(self._old_isolateresults_collection,
+                                                                                    deltas_new_old)}})
         logging.info(f"Wrote new results and linked to isolate {self._technical_id} in {self._species}")
 
     @staticmethod
-    def __write_document(opened_collection: pymongo.collection.Collection, json_input: Dict[str, Any]) -> str:
+    def ___write_document(opened_collection: pymongo.collection.Collection, json_input: Dict[str, Any]) -> str:
         """
         Write a document into a collection. if the provided document doesnt contain an _id key, then it is autogenerated
         else the would be autogenerated _id field is overwritten by the one provided
@@ -367,7 +367,7 @@ class MainMongo:
         logging.debug(f"Writing {collection_write.inserted_id} in collection {opened_collection}")
         return collection_write.inserted_id
 
-    def __new_isolate(self, results: Dict[str, Any]) -> Dict[str, Any]:
+    def ___new_isolate(self, results: Dict[str, Any]) -> Dict[str, Any]:
         """
         Initialises new isolate dictionary including its results
         :param results: results dictionary to be inserted
@@ -386,7 +386,7 @@ class MainMongo:
         return new_isolate_dict
 
     @staticmethod
-    def __prepend_string_dot_to_dict_keys(input_dictionary: Dict[str, Any], prepending: str = 'results') -> Dict[str, Union[str, object]]:
+    def ___prepend_string_dot_to_dict_keys(input_dictionary: Dict[str, Any], prepending: str = 'results') -> Dict[str, Union[str, object]]:
         """
         This function is designed to update only results that have been reanalyzed; by using dot notation in the dicts only the relevant assays/metadata are updated upon reanalysis.
         The function can of course serve other purposes
@@ -406,8 +406,8 @@ class MainMongo:
         return {keydict[key]: value for key, value in input_dictionary_copy.items()}
 
     @staticmethod
-    def __max_temp_allele_name_new_entry(hashed_ad_collection: pymongo.collection.Collection,
-                                         locus: str, scheme: str) -> str:
+    def ___max_temp_allele_name_new_entry(hashed_ad_collection: pymongo.collection.Collection,
+                                          locus: str, scheme: str) -> str:
         """
         Finds the last temporary name for a hashed allele and returns a new id for the new allele to add.
         :param hashed_ad_collection: hashed allele collection from mongo db
@@ -423,7 +423,7 @@ class MainMongo:
             max_temp_allele_name = int(query_max_temp_allele_name_doc['temp_allele_name'].split('_')[-1])
             return f'{locus}_temp_{max_temp_allele_name + 1}'
 
-    def __find_hashes_in_results_and_add_to_collection(self, results: Dict[str, Any], mode: str) -> Dict[str, Any]:
+    def ___find_hashes_in_results_and_add_to_collection(self, results: Dict[str, Any], mode: str) -> Dict[str, Any]:
         """
         Finds hashes in json output report for multilocus sequence typing schemes and adds these hashes and alleles to a separate collection: new_allele_hashes.
         Also replace the hashes by temporary allele identifiers and purges the sequences to save space
@@ -443,9 +443,9 @@ class MainMongo:
                             {"scheme": typing_scheme, "locus": allele_info['Locus'],
                              "hashed_allele": allele_info['Allele']})
                         if existing_document is None:
-                            temp_allele = self.__max_temp_allele_name_new_entry(hashed_ad_collection, allele_info['Locus'],
-                                                                                typing_scheme)
-                            self.__write_document(hashed_ad_collection, {"scheme": typing_scheme,
+                            temp_allele = self.___max_temp_allele_name_new_entry(hashed_ad_collection, allele_info['Locus'],
+                                                                                 typing_scheme)
+                            self.___write_document(hashed_ad_collection, {"scheme": typing_scheme,
                                                                          "locus": allele_info['Locus'],
                                                                          "hashed_allele": allele_info['Allele'],
                                                                          "allele_sequence": allele_info['Allele_sequence'],
@@ -453,7 +453,8 @@ class MainMongo:
                                                                          "resolved_AD": 0,
                                                                          "temp_allele_name": temp_allele,
                                                                          "insertion_date": datetime.utcnow()
-                                                                         })
+                                                                          })
+                            results[typing_scheme]['loci'][locus_index]['Allele'] = temp_allele  # replace the name of the allele in the results (no hash anymore)
                         else:
                             temp_allele = existing_document["temp_allele_name"]
                             already_present = False
@@ -462,22 +463,22 @@ class MainMongo:
                                 if hash_old == allele_info['Allele']:
                                     already_present = True
                                     logging.info('hash/temp allele already present')
-                            if mode == 'new_isolate' or mode == 'reanalysis' and not already_present:
+                            if mode == 'new_isolate' or (mode == 'reanalysis' and not already_present):
                                 hashed_ad_collection.with_options(write_concern=WriteConcern(w="majority")).update_one(
                                     {"_id": existing_document['_id']},
                                     {"$inc": {"encountered_count": 1}})
                                 logging.info(f"hashed allele '{allele_info['Allele']}' encounter incremented by one")
+                            if existing_document['resolved_AD'] == 0:
+                                results[typing_scheme]['loci'][locus_index][
+                                    'Allele'] = temp_allele  # replace the name of the allele in the results (no hash anymore)
+                            else:
+                                results[typing_scheme]['loci'][locus_index][
+                                    'Allele'] = existing_document['resolved_AD']
                         results[typing_scheme]['loci'][locus_index].pop('Allele_sequence')
-                        if existing_document['resolved_AD'] == 0:
-                            results[typing_scheme]['loci'][locus_index][
-                                'Allele'] = temp_allele  # replace in the results the name of the allele (no hash anymore)
-                        else:
-                            results[typing_scheme]['loci'][locus_index][
-                                'Allele'] = existing_document['resolved_AD']
         return results
 
     @staticmethod
-    def __check_if_results_changed(current_results: Dict[str, Any], new_results: Dict[str, Any]) -> Tuple[bool, set, set]:
+    def ___check_if_results_changed(current_results: Dict[str, Any], new_results: Dict[str, Any]) -> Tuple[bool, set, set]:
         """
         Checks if any result changed between the current mongodb results and the to be inserted new results
         :param current_results: current mongodb results
@@ -505,7 +506,7 @@ class MainMongo:
                     unchanged_results.add(mainkey)
         return any_result_changed, unchanged_results, changed_results
 
-    def __nested_dict_delta(self, current_results: Dict[str, Any], new_results: Dict[str, Any]) -> Dict[str, Any]:
+    def ___nested_dict_delta(self, current_results: Dict[str, Any], new_results: Dict[str, Any]) -> Dict[str, Any]:
         """
         This function calculates the delta between the new results and the current results;
         it returns the changes needed to get from the new results to the current results.
@@ -517,7 +518,7 @@ class MainMongo:
         for key, value in current_results.items():
             if key in new_results:
                 if isinstance(value, dict) and isinstance(new_results[key], dict):
-                    nested_delta = self.__nested_dict_delta(new_results[key], value)
+                    nested_delta = self.___nested_dict_delta(new_results[key], value)
                     if nested_delta:
                         delta_new_old[key] = nested_delta
                 elif new_results[key] != value:
@@ -534,7 +535,7 @@ class MainMongo:
             delta_new_old['changed_version'] = current_results['changed_version']
         return delta_new_old
 
-    def __convert_typinghitdictionaries_to_lists(self, document: Dict[str, Any]) -> Dict[str, Any]:
+    def ___convert_typinghitdictionaries_to_lists(self, document: Dict[str, Any]) -> Dict[str, Any]:
         """
         This function aims to reduce the memory usage of hits' metadata by only storing the metadata once in a separate collection
         and storing the results in a list instead.

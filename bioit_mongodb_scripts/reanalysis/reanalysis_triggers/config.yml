@@ -45,16 +45,18 @@ species:
       cmd_argument: cgmlst
 # all not updated automatically and no git repo
 # also distinction with vcf and without vcf...
-#    51SNP:
+#    51SNP:  # doesnt make sense to do 51snp since it is a static db of 51 snps
 #      cmd_argument: 51snp
 #    amr_who:
 #      cmd_argument: amr_who
 #    hsp65:
 #      cmd_argument: hsp65
-#    pointfinder:
-#      cmd_argument: pointfinder
-#    ncbi_16s:
-#      cmd_argument: ncbi_16s
+    pointfinder:
+      dirdb: /usr/local/bin/lmod/PointFinder/20190227/pointfinder_db
+      cmd_argument: pointfinder
+    ncbi_16s:
+      dirdb: /db/gene_detection/NCBI_16S
+      cmd_argument: ncbi_16s
 #    snp_lineage:
 #      cmd_argument: snp-lineage
 #    snpit
@@ -137,8 +139,9 @@ species:
     cgmlst:
       dirdb: /db/sequence_typing/ecoli/cgmlst
       cmd_argument: cgmlst
-#    pointfinder:
-#      cmd_argument: pointfinder
+    pointfinder:
+      dirdb: /usr/local/bin/lmod/PointFinder/20190227/pointfinder_db
+      cmd_argument: pointfinder
 ## having the same argparse argument twice does not seem to affect anything
     serotype_o:
       dirdb: /db/gene_detection/SerotypeFinder-O_type
@@ -169,16 +172,18 @@ species:
     cgmlst:
       dirdb: /db/sequence_typing/salmonella/cgmlst
       cmd_argument: cgmlst
-## todo spifinder and serotype paths and git repos
-#    spifinder:
-#      cmd_argument: spifinder
+    spifinder:
+      dirdb: /db/pipelines/salmonella/spifinder
+      cmd_argument: spifinder
 ## having the same argparse argument twice does not seem to affect anything
-#    serotype_sistr:
-#      dirdb: /db/SISTR
-#      cmd_argument: serotype
-#    serotype_seqsero:
-#      dirdb: /db/pipelines/salmonella/seqsero2
-#      cmd_argument: serotype
+    serotype_sistr:  # sistr does not yet have a local git repo (8feb23)
+      dirdb: /db/SISTR/1.1.1/data
+      cmd_argument: serotype
+    serotype_seqsero:
+      dirdb: /db/pipelines/salmonella/seqsero2/1.2.1/seqsero2_db
+      cmd_argument: serotype
+#    genotyphi:  # genotyphi is a fastq specific option
+#      dirdb: /db/pipelines/salmonella/mykrobe
     ncbi_amr:
       dirdb: /db/gene_detection/NCBI_AMR
       cmd_argument: ncbi-amr
@@ -191,5 +196,6 @@ species:
     vfdb_core:
       dirdb: /db/gene_detection/VFDB_core
       cmd_argument: vfdb-core
-    #    pointfinder:
-    #      cmd_argument: pointfinder
+    pointfinder:
+      dirdb: /usr/local/bin/lmod/PointFinder/20190227/pointfinder_db
+      cmd_argument: pointfinder

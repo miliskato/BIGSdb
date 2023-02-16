@@ -16,7 +16,7 @@ from pymongo.write_concern import WriteConcern
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
-from bioit_bigsdb_scripts.components.psql_tables_queries import TblAlleleDesignations
+from bioit_bigsdb_scripts.components.psql import TblAlleleDesignations
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email
 
@@ -185,12 +185,12 @@ class TempidReplacer:
         # replace in all the cgST the old temp allele by the new id
         #use the power of list to replace only where it's needed
         headers_cgmlst = self._headers_collection.find_one({'type': 'cgmlst_headers'})['headers']
-        locus_place = f"cgMLST.{headers_cgmlst.index(locus)}"
+        locus_index = headers_cgmlst.index(locus)
         self._st_collection.update_many(
-            {locus_place: temp_allele_name},
-            update={"$set": {locus_place: int(new_allele_id)}}
+            {f"cgMLST.{locus_index}": temp_allele_name},
+            update={"$set": {f"cgMLST.{locus_index}": int(new_allele_id)}}
         )
-        logging.debug(f'[information_temp_id_replacer] Locus {locus} at position {locus_place} is replacing {temp_allele_name} by {new_allele_id}')
+        logging.debug(f'[information_temp_id_replacer] Locus {locus} at position {locus_index} is replacing {temp_allele_name} by {new_allele_id}')
         # all_st = self._st_collection.find({'cgST': {'$gt': 0}})
         # for st in all_st:
         #     profile = st['cgMLST'].split(',')

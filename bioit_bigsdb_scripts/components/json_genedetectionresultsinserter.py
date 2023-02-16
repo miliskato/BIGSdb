@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Tuple, Union
 import psycopg2.extensions
 
 from .json_superclass import JsonSuperClass
-from .psql_tables_queries import TblAlleleDesignations, TblHistory, TblEavTextHidden, TblEavText
+from .psql import TblAlleleDesignations, TblHistory, TblEavTextHidden, TblEavText
 
 
 class JsonGeneDetectionResultsInserter(JsonSuperClass):
@@ -40,7 +40,7 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
             for scheme in self._genedetectiondict:
                 if scheme in self._sample_output_dict:
                     self._scheme = scheme
-                    self._schemename_bigsdb = self._schemename_bigsdb
+                    self._schemename_bigsdb = self._genedetectiondict[self._scheme]['schemename_bigsdb']
                     # create current clusterdict with names and current cluster
                     self._clusterdict, self._ncbi_ab_class_dict = self._create_clusterdict_current_db_version()
                     # Get hits
@@ -78,7 +78,7 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                                     continue
     
                                 if clusterhit not in clusterhitset:
-                                    isolates_ad_psql_tbl.insert_designation((clusterhit, self._isolatename, '1'))
+                                    isolates_ad_psql_tbl.insert_designation_by_isolatename((clusterhit, self._isolatename, '1'))
     
                                 clusterhitset.add(clusterhit)
                                 self._append_to_htmltable(hit, clusterhit)
@@ -124,7 +124,7 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
         :return:
         """
         genehit = re.sub('[.]| ', '_', hit['Locus'])
-        scheme_name = f'{self._schemename_bigsdb}_AB' if amr_class else f'{self._schemename_bigsdb}_AB_CLASS'
+        scheme_name = f'{self._schemename_bigsdb}_AB' if not amr_class else f'{self._schemename_bigsdb}_AB_CLASS'
         self.insert_locus_if_needed(locusname, scheme_name)
         self._insert_dummy_sequence_if_needed(locusname, genehit)
         self._insert_ad_if_needed(locusname, genehit)

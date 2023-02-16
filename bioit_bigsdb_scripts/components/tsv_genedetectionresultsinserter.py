@@ -4,7 +4,7 @@ from pathlib import Path
 
 import psycopg2.extensions
 
-from .databaseconnection import DatabaseConnection
+from .psql.databaseconnection import DatabaseConnection
 
 
 class TsvGeneDetectionResultsInserter:

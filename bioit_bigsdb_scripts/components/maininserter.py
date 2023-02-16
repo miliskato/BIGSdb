@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Tuple, Union
 import psycopg2.extensions
 
 from .json_superclass import JsonSuperClass
-from .psql_tables_queries import TblEavTextHidden, TblEavText, TblIsolates, TblHistory, TblSequenceBin, TblSeqBinStats
+from .psql import TblEavTextHidden, TblEavText, TblIsolates, TblHistory, TblSequenceBin, TblSeqBinStats
 
 
 class MainInserter(JsonSuperClass):

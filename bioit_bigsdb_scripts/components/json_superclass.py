@@ -2,8 +2,8 @@ from typing import Any, Dict, List, Union
 
 import psycopg2.extensions
 
-from .databaseconnection import DatabaseConnection
-from .psql_tables_queries import TblAlleleDesignations, TblSequences, TblLoci, TblSchemeMembers, TblClientDbaseLoci, TblEavText
+from .psql.databaseconnection import DatabaseConnection
+from .psql import TblAlleleDesignations, TblSequences, TblLoci, TblSchemeMembers, TblClientDbaseLoci, TblEavText
 
 class JsonSuperClass:
     """
@@ -34,7 +34,7 @@ class JsonSuperClass:
         with TblAlleleDesignations(self._species) as isolates_ad_psql_tbl:
             designationpresent = isolates_ad_psql_tbl.count_designations((locus, self._isolatename, allele_id))
             if designationpresent[0][0] == 0:
-                isolates_ad_psql_tbl.insert_designation((locus, self._isolatename, allele_id))
+                isolates_ad_psql_tbl.insert_designation_by_isolatename((locus, self._isolatename, allele_id))
 
     def _insert_dummy_sequence_if_needed(self, locus: str, allele_id: str) -> None:
         """
@@ -49,7 +49,7 @@ class JsonSuperClass:
             present = seqdef_sequences_psql_tbl.count_sequence_allele((locus, allele_id))
             if present[0][0] == 0:
                 highest_dummy_sequence = seqdef_sequences_psql_tbl.select_sequence_from_locus((locus,))
-                dummysequence: str = 'dummy_1' if len(highest_dummy_sequence) == 0 else '_'.join(['dummy', int(highest_dummy_sequence[0][0].split('_')[1]) + 1])
+                dummysequence: str = 'dummy_1' if len(highest_dummy_sequence) == 0 else '_'.join(['dummy', str(int(highest_dummy_sequence[0][0].split('_')[1]) + 1)])
                 seqdef_sequences_psql_tbl.insert_sequence((locus, allele_id, dummysequence))
 
     def insert_locus_if_needed(self, locus: str, scheme: str) -> None:

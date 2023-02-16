@@ -69,3 +69,18 @@ def convert_dmyhms_to_dateobj(datetimestring: str) -> datetime.date:
     :return: datetime.datetime object
     """
     return datetime.strptime(datetimestring, '%d/%m/%Y - %X').date()
+
+def merge_nested_dicts(target_dict: Dict[str, Any], merging_dict: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Merges a nested dictionary into another target nested dictionary, seeing as this does not create a deepcopy,
+    changes are applied regardless of if the output is captured
+    :param target_dict: dictionary to be merged in
+    :param merging_dict: dictionary to merge into target
+    :return: merged target directory
+    """
+    for key, value in merging_dict.items():
+        if key in target_dict and isinstance(target_dict[key], dict) and isinstance(value, dict):
+            merge_nested_dicts(target_dict[key], value)
+        else:
+            target_dict[key] = value
+    return target_dict

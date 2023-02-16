@@ -68,7 +68,7 @@ def reanalysis_triggers(species: str, threads: int = 8, pyvenvpythonpath: str = 
             # set git repo to safe repo
             subprocess.run(f"git config --global --add safe.directory {trigger_config['species'][species][scheme]['dirdb'].replace('/db', '/var/lib/.bioit_database')}", shell=True)
             # query_date
-            gitlog = subprocess.run("git log -n 1 --date=short -- . ':(exclude)db_metadata.txt'", shell=True, stdout=subprocess.PIPE).stdout.decode('utf-8')
+            gitlog = subprocess.run("git log -n 1 --date=short -- . ':(exclude)db_metadata.txt' ':(exclude)scheme_metadata.txt'", shell=True, stdout=subprocess.PIPE).stdout.decode('utf-8')
             scheme_last_update = re.findall("[0-9]{4}-[0-9]{2}-[0-9]{2}", gitlog)[0]
             trigger_config['species'][species][scheme]["last_update"] = scheme_last_update
             if scheme_last_update in date_scheme_dict:
@@ -100,7 +100,6 @@ def reanalysis_triggers(species: str, threads: int = 8, pyvenvpythonpath: str = 
             Runs reanalysis_*.py on samples with last analysis date older than assay db updates
             :param date: datetimestring 'YYYY-MM-DD', key in date_args_dict
             :param date_args_dict: key (date): args(str) dict e.g. {'2019-03-04': 'vfdb-core virulencefinder'}
-            :param ordered_dates_list: ordered list of dates, used to determine minimal analysis date
             :return: None
             """
             try:

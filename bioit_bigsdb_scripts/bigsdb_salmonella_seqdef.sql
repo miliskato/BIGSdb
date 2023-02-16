@@ -103,16 +103,6 @@ INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT 
 INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='spifinder_fasta'), 'SPIFINDER_FASTA_NOT_NAMED', 1, (SELECT CURRENT_DATE));
 --pointfinder
 INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no_submissions, disable, curator, date_entered, datestamp) VALUES(9, 'Pointfinder', 'pointfinder mutation giving resistance to antibiotic', 't', 9, 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
-INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('POINTFINDER_SPECTINOMYCIN','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
-INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('POINTFINDER_CIPROFLOXACIN','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
-INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('POINTFINDER_COLISTIN','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
-INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('POINTFINDER_NALIDIXIC_ACID','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
-INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('POINTFINDER_UNKNOWN','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
-INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Pointfinder'), 'POINTFINDER_SPECTINOMYCIN', 1, (SELECT CURRENT_DATE));
-INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Pointfinder'), 'POINTFINDER_CIPROFLOXACIN', 1, (SELECT CURRENT_DATE));
-INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Pointfinder'), 'POINTFINDER_COLISTIN', 1, (SELECT CURRENT_DATE));
-INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Pointfinder'), 'POINTFINDER_NALIDIXIC_ACID', 1, (SELECT CURRENT_DATE));
-INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Pointfinder'), 'POINTFINDER_UNKNOWN', 1, (SELECT CURRENT_DATE));
 --Genotyphi
 INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no_submissions, disable, curator, date_entered, datestamp) VALUES(10,'Genotyphi', 'genotyphi genes and variants for antibiotic resistance', 't', 10, 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
 INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('GENOTYPHI_ESBLS','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
@@ -186,12 +176,6 @@ INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no
 INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no_submissions, disable, curator, date_entered, datestamp) VALUES(17, 'ResFinder_AB', 'ResFinder database', 't', 14, 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));
 --client dbase
 INSERT INTO client_dbases(id, name, description, dbase_name, dbase_config_name, dbase_view, url, curator, datestamp) VALUES(1, 'bigsdb_salmonella_isolates', 'Other isolates containing this allele:', 'bigsdb_salmonella_isolates', 'bigsdb_salmonella_isolates', 'isolates', '/cgi-bin/bigsdb/bigsdb.pl', 1, (SELECT CURRENT_DATE));
---client db: pointfinder
-INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) VALUES(1, 'POINTFINDER_SPECTINOMYCIN', 1, (SELECT CURRENT_DATE));
-INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) VALUES(1, 'POINTFINDER_CIPROFLOXACIN', 1, (SELECT CURRENT_DATE));
-INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) VALUES(1, 'POINTFINDER_COLISTIN', 1, (SELECT CURRENT_DATE));
-INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) VALUES(1, 'POINTFINDER_NALIDIXIC_ACID', 1, (SELECT CURRENT_DATE));
-INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) VALUES(1, 'POINTFINDER_UNKNOWN', 1, (SELECT CURRENT_DATE));
 --client db: serotyping
 INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) VALUES(1, 'SISTR_O_ANTIGEN', 1, (SELECT CURRENT_DATE));
 INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) VALUES(1, 'SISTR_H1_ANTIGEN', 1, (SELECT CURRENT_DATE));

@@ -17,7 +17,7 @@ from pymongo.read_concern import ReadConcern
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
-from bioit_bigsdb_scripts.components.psql_tables_queries import TblIsolates, TblEavTextHidden, TblSequenceBin, TblSeqBinStats
+from bioit_bigsdb_scripts.components.psql import TblIsolates, TblEavTextHidden, TblSequenceBin, TblSeqBinStats
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data
 from bioit_bigsdb_scripts.insert_assembly import insert_assembly
 from bioit_bigsdb_scripts.main_results_inserter import main_results_inserter
@@ -65,19 +65,18 @@ class MongoToBigs:
         self._mongoinit = MongoInitialisation(self._species)
         self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, \
         self._isolates_resequencing_collection = self._mongoinit.initialise_collections()
+        self._headers_collection = self._mongoinit.initialise_headers_collection()
         self._mongoquerying = Mongoquerying()
         # Open Bigsdb isolates table
         self._isolates_psql_tbl = TblIsolates(self._species)
 
         try:
-            self.mongo_to_bigs()
+            self._mongo_to_bigs()
         except Exception as exceptionmessage:
             send_email(f"{exceptionmessage}\n{traceback.format_exc()}")
             raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}")
 
-        self._isolates_psql_tbl.close()
-
-    def mongo_to_bigs(self) -> None:
+    def _mongo_to_bigs(self) -> None:
         """
         Main function
         If the current host is a bigsdb host, syncs all samples (or a single one if provided) with the bigsdb database
@@ -96,7 +95,7 @@ class MongoToBigs:
         # send bad samples from the badqc_isolates collection to BIGSdb
         samples_to_validation_bigs(self._species)
 
-        listofdocuments = self._get_list_of_documents()
+        listofdocuments = self.__get_list_of_documents()
 
         for document in listofdocuments:
             document_id = document['results']['isolates_id']
@@ -110,7 +109,7 @@ class MongoToBigs:
                 results_type = "new_isolate"
             else:
                 results_type = "reanalysis"
-                different_version = self._check_if_reanalysis_different(document, document_id)
+                different_version = self.__check_if_reanalysis_different(document, document_id)
                 if different_version is False:
                     continue
 
@@ -119,7 +118,7 @@ class MongoToBigs:
             if document.get('validation'):
                 # add validation metadata to results in order to be able to insert them into BIGSdb
                 document['results']['validation'] = document['validation']
-            document = self._mongoquerying.revert_typinghitlists_to_dictionaries(document, self._mongoinit)
+            document = self._mongoquerying.revert_typinghitlists_to_dictionaries(document, self._headers_collection)
             jsonfile = Path(f"{mongo_config_data.get('temp_dir')}/{document_id}_temp.json")
             with jsonfile.open('w') as handle:
                 handle.write(json.dumps(document['results']))
@@ -142,7 +141,7 @@ class MongoToBigs:
                     insert_assembly(document_id, self._species, Path(document['fasta_path']))
             logging.info(f"wrote new results version for {document_id} to bigsdb")
 
-    def _get_list_of_documents(self) -> List[Dict[str, Any]]:
+    def __get_list_of_documents(self) -> List[Dict[str, Any]]:
         """
         Gets the list of documents, = all if no single_sample_id, else list of single document
         :return: list of documents (dictionaries)
@@ -159,7 +158,7 @@ class MongoToBigs:
             listofdocuments = list(self._isolates_collection.find())
         return listofdocuments
 
-    def _check_if_reanalysis_different(self, document: Dict[str, Any], document_id: str) -> bool:
+    def __check_if_reanalysis_different(self, document: Dict[str, Any], document_id: str) -> bool:
         """
         Checks if the reanalysis is different or not, outside this function: continues the for loop,
         it is called in, to the next sample if not different
@@ -167,7 +166,6 @@ class MongoToBigs:
         :param document_id: name of the isolate
         :return: boolean whether version is different or not
         """
-        different_version = True
         latest_analysis_date_bigs = (self._isolates_psql_tbl.select_latestanalysisdate_for_isolate((document_id,)))[0][
             0]  # this appearently is a datetime object
         with TblEavTextHidden(self._species) as isolates_eavth_psql_tbl:
@@ -193,6 +191,13 @@ class MongoToBigs:
                 f"results version same in mongodb and bigsdb for sample {document_id}")
             different_version = False
         return different_version
+
+    def __exit__(self) -> None:
+        """
+        Closes the isolates psql table when the class is closed
+        :return: None
+        """
+        self._isolates_psql_tbl.close()
 
 
 if __name__ == '__main__':
