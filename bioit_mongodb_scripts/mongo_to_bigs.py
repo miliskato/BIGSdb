@@ -10,7 +10,7 @@ import sys
 import traceback
 from pathlib import Path
 from typing import Any, Dict, List
-import subprocess
+import os
 
 from pymongo.read_concern import ReadConcern
 
@@ -27,7 +27,7 @@ from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_conf
 from bioit_mongodb_scripts.new_alleles_profile_clustering_from_mongo_to_bigs import \
     run_upload_new_alleles_profiles_clustering_from_mongo_to_bigs
 from bioit_mongodb_scripts.samples_to_validation_bigs import samples_to_validation_bigs
-
+from bioit_mongodb_scripts.util.command.command import Command
 
 def _parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     """
@@ -87,10 +87,12 @@ class MongoToBigs:
         run_upload_new_alleles_profiles_clustering_from_mongo_to_bigs(self._species)
 
         # update the bigsdb cache so the clustering schemes get updated
-        command = f'/home/bigsdb/BIGSdb/scripts/maintenance/update_scheme_caches.pl ' \
+        cache_command = f'/home/bigsdb/BIGSdb/scripts/maintenance/update_scheme_caches.pl ' \
                   f'--database bigsdb_{self._species}_isolates'
-        process = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
-        output, error = process.communicate()
+        command = Command(cache_command)
+        command.run(Path(os.getcwd()))
+        if command.returncode != 0:
+            raise RuntimeError(f"update of the cache to display the clustering failed on host {socket.gethostname()} ")
 
         # send bad samples from the badqc_isolates collection to BIGSdb
         samples_to_validation_bigs(self._species)
