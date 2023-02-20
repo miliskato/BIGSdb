@@ -1,12 +1,18 @@
 import argparse
+import sys
 from os import fdopen, remove
 from pathlib import Path
 from shutil import move, copymode
 from tempfile import mkstemp
 
+PYTHONPATH = Path(__file__).resolve().parent.parent
+sys.path.append(str(PYTHONPATH))
+
+from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data
+
 argument_parser = argparse.ArgumentParser()
 argument_parser.add_argument('--htmlfilepath', required=True, type=Path)
-argument_parser.add_argument('--species', required=True, type=str, choices=['mycobacterium', 'listeria', 'neisseria', 'stec', 'salmonella'])
+argument_parser.add_argument('--species', required=True, type=str, choices=list(get_bigsdb_config_data()['species']))
 args = argument_parser.parse_args()
 htmlfilepath = Path(args.htmlfilepath)
 species = args.species
