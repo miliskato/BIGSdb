@@ -56,7 +56,7 @@ species:
       cmd_argument: pointfinder
     ncbi_16s:
       dirdb: /db/gene_detection/NCBI_16S
-      cmd_argument: ncbi_16s
+      cmd_argument: ncbi-16s
 #    snp_lineage:
 #      cmd_argument: snp-lineage
 #    snpit
@@ -88,7 +88,7 @@ species:
       cmd_argument: resistance-genes
     vaccine_targets:
       dirdb: /db/sequence_typing/neisseria/vaccine_targets
-      cmd_argument: vaccine_targets
+      cmd_argument: vaccine-targets
     fhbp:
       dirdb: /db/sequence_typing/neisseria/fhbp
       cmd_argument: fhbp
@@ -132,10 +132,10 @@ species:
   stec:
     mlst_warwick:
       dirdb: /db/sequence_typing/ecoli/mlst-warwick
-      cmd_argument: mlst_warwick
+      cmd_argument: mlst-warwick
     mlst_pasteur:
       dirdb: /db/sequence_typing/ecoli/mlst-pasteur
-      cmd_argument: mlst_pasteur
+      cmd_argument: mlst-pasteur
     cgmlst:
       dirdb: /db/sequence_typing/ecoli/cgmlst
       cmd_argument: cgmlst
