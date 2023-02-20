@@ -85,7 +85,7 @@ species:
       cmd_argument: feta
     resistance_genes:
       dirdb: /db/sequence_typing/neisseria/resistance_genes
-      cmd_argument: resistance_genes
+      cmd_argument: resistance-genes
     vaccine_targets:
       dirdb: /db/sequence_typing/neisseria/vaccine_targets
       cmd_argument: vaccine_targets
