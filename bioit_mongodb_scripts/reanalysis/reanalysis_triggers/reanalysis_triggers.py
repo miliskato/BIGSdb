@@ -82,11 +82,10 @@ def reanalysis_triggers(species: str, threads: int = 8, pyvenvpythonpath: str = 
         #                         '2019-03-04': ['vfdb-core']}
 
         # Part 2: Recursively/hierarchically add all schemes with higher last update date to lower update date
-        from collections import OrderedDict
         date_args_dict = {}
         for index, last_update in enumerate(sorted(date_scheme_dict)):
             date_args_dict[last_update] = date_scheme_dict[last_update]
-            for last_update_later in sorted(date_scheme_dict)[index:]:
+            for last_update_later in sorted(date_scheme_dict)[index + 1:]:
                 date_args_dict[last_update].extend(date_scheme_dict[last_update_later])
         # e.g. date_args_dict: {'2019-03-04': ['vfdb-core', 'virulencefinder', 'plasmidfinder', 'resfinder', 'ncbi-amr', 'mlst', 'cgmlst', 'pcr-serogroup', 'metal-detergent', 'typing-virulence', 'typing-amr', 'species-confirmation'],
         #                       '2020-06-24': ['virulencefinder', 'plasmidfinder', 'resfinder', 'ncbi-amr', 'mlst', 'cgmlst', 'pcr-serogroup', 'metal-detergent', 'typing-virulence', 'typing-amr', 'species-confirmation'],
