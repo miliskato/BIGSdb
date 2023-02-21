@@ -643,9 +643,15 @@
 
     - name: populate db with python sql scripts
       block:
-        - name: Install requirements
+        - name: Install requirements bigs
           pip:
             requirements: "{{ bioit_bigs_home }}/bioit_bigsdb_scripts/requirements.txt"
+            virtualenv: "{{ bioit_bigs_home }}/3.9PythonVenv"
+            virtualenv_python: python3.9
+
+        - name: Install requirements mongo
+          pip:
+            requirements: "{{ bioit_bigs_home }}/bioit_mongodb_scripts/requirements.txt"
             virtualenv: "{{ bioit_bigs_home }}/3.9PythonVenv"
             virtualenv_python: python3.9
 
