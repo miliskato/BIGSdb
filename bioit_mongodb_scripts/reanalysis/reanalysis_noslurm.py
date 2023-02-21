@@ -252,7 +252,7 @@ def reanalysis_noslurm(species: str, maximal_analysis_date: str, minimal_analysi
                         # run the command
                         MainMongo(**arguments)
                         logging.info(f"Mongodb insertion for isolate '{isolate_id}' completed")
-                        if alternate_connection_string is None:
+                        if alternate_connection_string is False:
                             try:
                                 # shutil doesnt throw an error, but simply stops. Therefore it has to be put inside a try except
                                 logging.info(
