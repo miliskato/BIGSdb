@@ -41,7 +41,12 @@ schemedict = {'listeria':        {'listeria_ndaro':              {'schemename_ht
               }
 
 
-def tagger(htmlname):
+def tagger(htmlname: str) -> None:
+    """
+    This function tags a html file at specific locations (scheme start). These tags can then be used to direct the user to that exact location in Bigsdb
+    :param htmlname: name of the scheme to be tagged in the html file
+    :return: None
+    """
     if htmlname == 'PointFinder':
         htmlreport = ''.join(['<div class="report_section"><h2>', htmlname, ' <small'])
     else:

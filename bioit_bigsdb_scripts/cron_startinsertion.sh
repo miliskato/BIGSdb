@@ -23,7 +23,7 @@ do
   sample_name=$(cat $dir/info.txt | grep -oPw "(?<='sample_name': ')[^']*")
   uploader=$(cat $dir/info.txt | grep -oPw "(?<='user': ')[^']*")
   {
-    $VENV_PYTHON_BIGSDB /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/reportmover.py --reportdirectory $dir --species $species
+    mv $dir /reports/$species/$sample_name
     $VENV_PYTHON_BIGSDB /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/htmltagger.py --htmlfilepath /reports/$species/$sample_name/report.html --species $species
     $VENV_PYTHON_BIGSDB /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/main_results_inserter.py --tsvfilepath /reports/$species/$sample_name/report.tsv --isolatename $sample_name --uploadermailadress $uploader --species $species --results_type new_isolate
     $VENV_PYTHON_BIGSDB /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/insert_assembly.py --fastafilepath /reports/$species/$sample_name/assembly/${sample_name}_contigs.fasta --isolatename $sample_name --species $species
