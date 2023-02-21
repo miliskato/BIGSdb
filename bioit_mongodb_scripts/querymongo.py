@@ -1,6 +1,5 @@
 import argparse
 import logging
-import os
 import sys
 from pathlib import Path
 
@@ -11,7 +10,7 @@ sys.path.append(str(PYTHONPATH))
 
 from bioit_mongodb_scripts.util.mongo_querying import Mongoquerying
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
-from bioit_mongodb_scripts.config import MONGO_CONFIG
+from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data
 
 def _parse_arguments(specieslist: list) -> argparse.Namespace:
     """
@@ -26,12 +25,14 @@ def _parse_arguments(specieslist: list) -> argparse.Namespace:
 
 
 if __name__ == '__main__':
+    """
+    This script is a playground script, it allows to test anything concerning MongoDB easily
+    """
     # Parse config
-    with open(MONGO_CONFIG, encoding='utf-8') as handle:
-        config_data = yaml.safe_load(handle)
+    mongo_config_data = get_mongodb_config_data()
 
     # Parse arguments
-    args = _parse_arguments(config_data['species'])
+    args = _parse_arguments(list(mongo_config_data['species']))
 
     logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 
