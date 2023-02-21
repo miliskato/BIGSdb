@@ -20,7 +20,7 @@ sys.path.append(str(PYTHONPATH))
 from bioit_bigsdb_scripts.components.psql import TblIsolates, TblEavTextHidden, TblSequenceBin, TblSeqBinStats
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data
 from bioit_bigsdb_scripts.insert_assembly import insert_assembly
-from bioit_bigsdb_scripts.main_results_inserter import main_results_inserter
+from bioit_bigsdb_scripts.main_results_inserter import MainResultsInserter
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.mongo_querying import Mongoquerying
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email, convert_dmyhms_to_dateobj
@@ -125,7 +125,7 @@ class MongoToBigs:
             with jsonfile.open('w') as handle:
                 handle.write(json.dumps(document['results']))
             # todo modify mailadress
-            main_results_inserter(document_id, 'bioit@sciensano.be', self._species, results_type, jsonfilepath=jsonfile)
+            MainResultsInserter(document_id, 'bioit@sciensano.be', self._species, results_type, jsonfilepath=jsonfile)
             jsonfile.unlink()
             if results_type == 'new_isolate':
                 insert_assembly(document_id, self._species, Path(document['fasta_path']))

@@ -22,7 +22,7 @@ class JsonSuperClass:
         self._isolatename = isolatename
         self._species = species
         self._sample_output_dict = sample_output_dict
-        self._mongo_config_data = config_data
+        self._bigsdb_config_data = config_data
 
     def _insert_ad_if_needed(self, locus: str, allele_id: str) -> None:
         """

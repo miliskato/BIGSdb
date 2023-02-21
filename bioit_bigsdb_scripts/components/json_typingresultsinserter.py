@@ -23,8 +23,8 @@ class JsonTypingResultsInserter(JsonSuperClass):
         :param config_data: the bigsdb config data
         :return: None
         """
-        JsonSuperClass.__init__(self, isolatename, species, sample_output_dict, config_data)
-        self._schemedict: Dict[str, Dict[str, str]] = self._mongo_config_data['species_json'][self._species]['typing_schemes']
+        super().__init__(isolatename, species, sample_output_dict, config_data)
+        self._schemedict: Dict[str, Dict[str, str]] = self._bigsdb_config_data['species_json'][self._species]['typing_schemes']
         self._scheme = None
         self._locusset = set()  # Locusset serves as to not insert duplicates (creates error in sql),
         # for Listeria e.g. prs and prfA are included in two self._schemes

@@ -1,9 +1,7 @@
 import datetime
 import logging
 import socket
-from typing import Any, Dict, List, Tuple, Union
-
-import psycopg2.extensions
+from typing import Any, Dict
 
 from .json_superclass import JsonSuperClass
 from .psql import TblEavTextHidden, TblEavText, TblIsolates, TblHistory, TblSequenceBin, TblSeqBinStats
@@ -18,12 +16,11 @@ class MainInserter(JsonSuperClass):
         """
         :param isolatename: name of the isolate
         :param species: commonly used bioit species name: either genus or specific like stec
-        :param isolates_psql_db: isolate database connection instance
-        :param seqdef_psql_db: sequence definition database connection instance
         :param sample_output_dict: results of sample
+        :param config_data: the bigsdb config data
         :return: None
         """
-        JsonSuperClass.__init__(self, isolatename, species, sample_output_dict, config_data)
+        super().__init__(isolatename, species, sample_output_dict, config_data)
     
     def insert_new_isolate(self, uploadermailadress: str) -> None:
         """

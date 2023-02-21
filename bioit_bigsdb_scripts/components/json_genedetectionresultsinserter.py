@@ -4,8 +4,6 @@ import re
 from pathlib import Path
 from typing import Any, Dict, List, Tuple, Union
 
-import psycopg2.extensions
-
 from .json_superclass import JsonSuperClass
 from .psql import TblAlleleDesignations, TblHistory, TblEavTextHidden, TblEavText
 
@@ -23,8 +21,8 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
         :param sample_output_dict: results of sample
         :return: None
         """
-        JsonSuperClass.__init__(self, isolatename, species, sample_output_dict, config_data)
-        self._genedetectiondict: Union[None, Dict[str, Dict[str, str]]] = config_data['species_json'][species]['genedetection_schemes']
+        super().__init__(isolatename, species, sample_output_dict, config_data)
+        self._genedetectiondict: Union[None, Dict[str, Dict[str, str]]] = self._bigsdb_config_data['species_json'][species]['genedetection_schemes']
         self._eavhtmltable = None
         self._scheme = None
         self._clusterdict = None
