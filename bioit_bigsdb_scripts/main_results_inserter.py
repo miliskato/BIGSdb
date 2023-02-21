@@ -60,6 +60,11 @@ class MainResultsInserter:
         self._results_type = results_type
         self._jsonfilepath = jsonfilepath
         self._tsvfilepath = tsvfilepath
+        if self._jsonfilepath and self._tsvfilepath:
+            send_email(f"Choose one of both input methods",
+                       f'{Path(__file__).name}: Error inserting isolate of {species} pipeline to bigsdb for sample {isolatename} on host {socket.gethostname()}.')
+            raise Exception(
+                f'{Path(__file__).name}: Error inserting isolate of {species} pipeline to bigsdb for sample {isolatename} on host {socket.gethostname()}.')
 
         try:
             self._main_results_inserter()
@@ -100,6 +105,10 @@ class MainResultsInserter:
         self.__delete_flagfile()
 
     def __parse_input(self) -> Dict[str, Any]:
+        """
+        Parses the input into a dictionary
+        :return: results dictionary
+        """
         if self._tsvfilepath:
             sample_output_dict: Dict[str, Any] = {}
             with self._tsvfilepath.open('r') as handle:
@@ -168,7 +177,7 @@ class MainResultsInserter:
 
     def __delete_flagfile(self) -> None:
         """
-        :return: Removes flagfile
+        :return: None, Removes flagfile
         """
         flagfilepath: Path = self.___make_flagfilepath()
         try:
@@ -188,7 +197,7 @@ if __name__ == '__main__':
     bigsdb_config_data = get_bigsdb_config_data()
 
     # Parse arguments
-    args = _parse_arguments(list(bigsdb_config_data['species']))
+    args = _parse_arguments(list(bigsdb_config_data['species_json']))
 
     # run main
     MainResultsInserter(args.isolatename, args.uploadermailadress, args.species, args.results_type, jsonfilepath=(args.jsonfilepath if args.jsonfilepath else None), tsvfilepath=(args.tsvfilepath if args.tsvfilepath else None))
