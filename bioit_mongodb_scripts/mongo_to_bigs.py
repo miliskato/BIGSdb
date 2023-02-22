@@ -29,7 +29,7 @@ from bioit_mongodb_scripts.new_alleles_profile_clustering_from_mongo_to_bigs imp
 from bioit_mongodb_scripts.samples_to_validation_bigs import samples_to_validation_bigs
 from bioit_mongodb_scripts.util.command.command import Command
 
-def _parse_arguments(specieslist: List[str]) -> argparse.Namespace:
+def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     """
     Parses the command line arguments.
     :param specieslist: list of all the species choices
@@ -208,7 +208,7 @@ if __name__ == '__main__':
     mongo_config_data = get_mongodb_config_data()
 
     # Parse arguments
-    args = _parse_arguments(mongo_config_data['species'])
+    args = parse_arguments(mongo_config_data['species'])
 
     # run main
     MongoToBigs(args.species,

@@ -28,7 +28,7 @@ from bioit_mongodb_scripts.util.command.command import Command
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email, convert_dmyhms_to_ymd
 
 
-def _parse_arguments(specieslist: List[str]) -> argparse.Namespace:
+def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     """
     Parses the command line arguments.
     !! If new arguments are added, Also add arguments/variables to main function/class!!
@@ -587,7 +587,7 @@ if __name__ == '__main__':
     mongo_config_data = get_mongodb_config_data()
 
     # Parse arguments
-    args = _parse_arguments(mongo_config_data['species'])
+    args = parse_arguments(mongo_config_data['species'])
 
     # run main
     MainMongo(args.technical_id,

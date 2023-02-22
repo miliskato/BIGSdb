@@ -25,16 +25,16 @@ class TblSubmissions(DatabaseConnection):
         """
         self.execute_query(PsqlQueries.ISO_INS__TB_SUB_VAR_VALTYPE, param)
 
-    def select_closed_submissions(self) -> List[Tuple[Union[int, str]]]:
+    def select_closed_submission(self, param: Tuple[int]) -> List[Tuple[Union[int, str]]]:
         """
         Selects all necessary values for closed submissions
         :param param: variables to feed to the PSQL query, which also sanitizes these variables,
         necessary parameters visible in the PSQL query name and query
         :return: list of tuples of ints and strings
         """
-        return self.execute(PsqlQueries.ISO_SEL_ID_VALUE_OUTCOME_EMAIL_TYPE_TB_SUB_VAR_)
+        return self.execute_query(PsqlQueries.ISO_SEL_ID_VALUE_OUTCOME_EMAIL_TYPE_TB_SUB_VAR_SUBID, param)
 
-    def update_submission(self, param: Tuple[str]) -> None:
+    def update_submission(self, param: Tuple[int]) -> None:
         """
         Updates the submission status for a given submission
         :param param: variables to feed to the PSQL query, which also sanitizes these variables,

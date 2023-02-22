@@ -21,7 +21,7 @@ from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email
 
 
-def _parse_arguments(specieslist: List[str]) -> argparse.Namespace:
+def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     """
     Parses the command line arguments.
     :param specieslist: list of all the species choices
@@ -191,14 +191,6 @@ class TempidReplacer:
             update={"$set": {f"cgMLST.{locus_index}": int(new_allele_id)}}
         )
         logging.debug(f'[information_temp_id_replacer] Locus {locus} at position {locus_index} is replacing {temp_allele_name} by {new_allele_id}')
-        # all_st = self._st_collection.find({'cgST': {'$gt': 0}})
-        # for st in all_st:
-        #     profile = st['cgMLST'].split(',')
-        #     if temp_allele_name in profile:
-        #         profile = [new_allele_id if x == temp_allele_name else x for x in profile]
-        #         cgmlst = ','.join([str(i) for i in profile])
-        #         self._st_collection.find_one_and_update({"cgST": st["cgST"]},
-        #                                                 {"$set": {"cgMLST": cgmlst}})
 
     def ___update_temp_allele_to_new(self, collection: pymongo.collection.Collection, locus: str, temp_allele_name: str,
                                      new_allele_id: str, allele_index: int = None, in_results: bool = True) -> None:
@@ -240,7 +232,7 @@ if __name__ == '__main__':
     mongo_config_data = get_mongodb_config_data()
 
     # Parse arguments
-    args = _parse_arguments(mongo_config_data['species'])
+    args = parse_arguments(mongo_config_data['species'])
 
     # run main
     TempidReplacer(args.scheme, args.species,

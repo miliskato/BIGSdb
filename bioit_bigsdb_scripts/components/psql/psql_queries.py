@@ -272,7 +272,7 @@ class PsqlQueries():
         WHERE isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate=%s);"""
 
     # TBL submissions
-    ISO_SEL_ID_VALUE_OUTCOME_EMAIL_TYPE_TB_SUB_VAR_: Final[str] = """
+    ISO_SEL_ID_VALUE_OUTCOME_EMAIL_TYPE_TB_SUB_VAR_SUBID: Final[str] = """
         SELECT submissions.id, isolate_submission_isolates.value, submissions.outcome, users.email, submissions.validation_type 
         FROM submissions 
         LEFT JOIN users ON users.id = submissions.curator 

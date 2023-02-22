@@ -21,7 +21,7 @@ from bioit_bigsdb_scripts.components.psql import TblIsolates
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data, send_email
 
 
-def _parse_arguments(specieslist: List[str]) -> argparse.Namespace:
+def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     """
     Parses the command line arguments.
     :param specieslist: list of all the species choices
@@ -33,14 +33,12 @@ def _parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     mutually_exclusive_group.add_argument('--jsonfilepath', type=Path)
     argument_parser.add_argument('--isolatename', required=True, type=str)
     argument_parser.add_argument('--uploadermailadress', required=True, type=str)
-    argument_parser.add_argument('--species', required=True, type=str,
-                                 choices=specieslist)
+    argument_parser.add_argument('--species', required=True, type=str, choices=specieslist)
     argument_parser.add_argument("--results_type", required=True, type=str, choices=['new_isolate', 'reanalysis'])
     return argument_parser.parse_args()
 
 
 class MainResultsInserter:
-    
     def __init__(self, isolatename: str, uploadermailadress: str, species: str, results_type: str,
                  jsonfilepath: Optional[Path] = None, tsvfilepath: Optional[Path] = None) -> None:
         """
@@ -197,7 +195,7 @@ if __name__ == '__main__':
     bigsdb_config_data = get_bigsdb_config_data()
 
     # Parse arguments
-    args = _parse_arguments(list(bigsdb_config_data['species_json']))
+    args = parse_arguments(list(bigsdb_config_data['species_json']))
 
     # run main
     MainResultsInserter(args.isolatename, args.uploadermailadress, args.species, args.results_type, jsonfilepath=(args.jsonfilepath if args.jsonfilepath else None), tsvfilepath=(args.tsvfilepath if args.tsvfilepath else None))

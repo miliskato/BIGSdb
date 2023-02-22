@@ -15,7 +15,7 @@ from bioit_bigsdb_scripts.components.psql import TblIsolates, TblSequenceBin
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data, send_email
 
 
-def _parse_arguments(specieslist: List[str]) -> argparse.Namespace:
+def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     """
     Parses the command line arguments.
     :param specieslist: list of all the species choices
@@ -72,7 +72,7 @@ if __name__ == '__main__':
     bigsdb_config_data = get_bigsdb_config_data()
 
     # Parse arguments
-    args = _parse_arguments(list(bigsdb_config_data['species']))
+    args = parse_arguments(list(bigsdb_config_data['species']))
 
     # run main
     insert_assembly(args.isolatename, args.species, args.fastafilepath)
