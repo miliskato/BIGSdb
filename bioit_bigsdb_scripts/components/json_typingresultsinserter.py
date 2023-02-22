@@ -1,6 +1,6 @@
 import logging
 import re
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Tuple, Union
 
 import psycopg2.extensions
 import requests
@@ -116,8 +116,8 @@ class JsonTypingResultsInserter(JsonSuperClass):
         :return: None
         """
         if self._scheme == 'spoligotyping':
-            for index, allele_id in enumerate(self._sample_output_dict[self._scheme]['spoligotype_binary']):
-                locus = ''.join(['Spacer', str(index + 1).zfill(2)])
+            for index, allele_id in enumerate(self._sample_output_dict[self._scheme]['spoligotype_binary'], 1):
+                locus = ''.join(['Spacer', str(index).zfill(2)])
                 self._isolates_ad_psql_tbl.insert_designation_by_isolatename((locus, self._isolatename, str(allele_id)))
             self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'spoligotype_binary',
                                                              self._sample_output_dict[self._scheme][
@@ -218,6 +218,8 @@ class JsonTypingResultsInserter(JsonSuperClass):
                     response: requests.models.Response = requests.get(
                         f"https://rest.pubmlst.org/db/pubmlst_neisseria_seqdef/loci/{locus['Locus']}/alleles/{locus['Allele']}")
                     json_data: Dict = response.json()
+                    # An api hammering test showed that it could > 1000 results in minutes in a simple for loop,
+                    # which is not going to be the case here
                     if json_data['status'] != '404' and json_data.get('linked_data') and 'PubMLST isolates' in \
                             json_data['linked_data']:
                         for antibiotic in ['rifampicin_SIR', 'penicillin_SIR']:
@@ -247,13 +249,18 @@ class JsonTypingResultsInserter(JsonSuperClass):
         """
         if self._scheme == 'genotyphi':
             with TblEavFields(self._species) as isolates_eavf_psql_tbl:
-                fields_genotyphi = isolates_eavf_psql_tbl.select_fields_like(('genotyphi%susceptibility',))
+                fields_genotyphi: List[Tuple[str]] = isolates_eavf_psql_tbl.select_fields_like(('genotyphi%susceptibility',))
             for item in fields_genotyphi:
                 if item[0] in self._sample_output_dict[self._scheme]['results'] and \
                         self._sample_output_dict[self._scheme]['results'][item[0]] is not None:
                     susceptibility: str = self._sample_output_dict[self._scheme]['results'][item[0]]
                     self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, item[0], susceptibility))
                     # insert new alleles
+                    # example of structure in output dict:
+                    # {'genotyphi': {'results': {'genotyphi_IncFIAHI1_susceptibility': 'S',
+                    #                            'genotyphi_IncFIAHI1_variants': '-',
+                    #                            'genotyphi_IncFIAHI1_genes': '-',
+                    #                            ... } } }
                     variant = item[0].replace('susceptibility', 'variants')
                     gene = item[0].replace('susceptibility', 'genes')
                     genotyphi_field = item[0].replace('_susceptibility', '').upper()
