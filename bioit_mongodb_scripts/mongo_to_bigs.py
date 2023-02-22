@@ -135,11 +135,9 @@ class MongoToBigs:
                 if last_two_validation_dates[0][0] != last_two_validation_dates[1][0]:
                     # revert the changes done in maininserter that move the assembly to the newest version
                     with TblSequenceBin(self._species) as isolates_seqbin_psql_tbl:
-                        isolates_seqbin_psql_tbl.update_sequencebin_newversion(
-                            (document_id, document_id))
+                        isolates_seqbin_psql_tbl.revert_sequencebin_newversion([document_id])
                     with TblSeqBinStats(self._species) as isolates_seqbinstats_psql_tbl:
-                        isolates_seqbinstats_psql_tbl.update_seqbinstats_newversion(
-                            (document_id, document_id))
+                        isolates_seqbinstats_psql_tbl.revert_seqbinstats_newversion([document_id])
                     insert_assembly(document_id, self._species, Path(document['fasta_path']))
             logging.info(f"wrote new results version for {document_id} to bigsdb")
 

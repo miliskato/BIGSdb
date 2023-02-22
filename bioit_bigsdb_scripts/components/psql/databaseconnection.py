@@ -39,7 +39,7 @@ class DatabaseConnection:
         self._cursor: psycopg2.extensions.cursor = self._connection.cursor()
         self.name = self._cursor.name
 
-    def execute_query(self, query: str, params: Tuple[Union[str, int], ...]) -> Union[None, List[Tuple[Any]]]:
+    def execute_query(self, query: str, params: Union[Tuple[Union[str, int], ...], List[Union[str, int], ...]]) -> Union[None, List[Tuple[Any]]]:
         """
         Executes a sql query using psycopg2 sanitazation
         :param query: sql query to be used

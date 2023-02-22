@@ -35,14 +35,14 @@ class TblIsolates(DatabaseConnection):
         """
         return self.execute_query(PsqlQueries.ISO_SEL_COUNT_TB_ISO_VAR_ISO, param)
 
-    def delete_isolate(self, param: Tuple[str, str]) -> None:
+    def delete_isolate(self, param: List[str]) -> None:
         """
         Deletes the last version of an isolate
         :param param: variables to feed to the PSQL query, which also sanitizes these variables,
         necessary parameters visible in the PSQL query name and query
         :return: None
         """
-        self.execute_query(PsqlQueries.ISO_DEL__TB_ISO_VAR_ISO_ISO, param)
+        self.execute_query(PsqlQueries.ISO_DEL__TB_ISO_VAR_ISO_ISO, param * 2)
 
     def insert_isolate(self, param: Tuple[str, str, str]) -> None:
         """
@@ -98,11 +98,11 @@ class TblIsolates(DatabaseConnection):
         """
         return self.execute_query(PsqlQueries.ISO_SEL_VALDATES_TB_ISO_VAR_ISO, param)
 
-    def update_newversion(self, param: Tuple[str, str, str]) -> None:
+    def update_newversion(self, param: List[str]) -> None:
         """
         Adds a pointer from the latest - 1 version to the latest version of an isolate
         :param param: variables to feed to the PSQL query, which also sanitizes these variables,
         necessary parameters visible in the PSQL query name and query
         :return: None
         """
-        self.execute_query(PsqlQueries.ISO_UPD_NEWV_TB_ISO_VAR_ISO_ISO_ISO, param)
+        self.execute_query(PsqlQueries.ISO_UPD_NEWV_TB_ISO_VAR_ISO_ISO_ISO, param * 3)

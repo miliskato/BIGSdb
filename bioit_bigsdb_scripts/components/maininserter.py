@@ -47,11 +47,11 @@ class MainInserter(JsonSuperClass):
         with TblIsolates(self._species) as isolates_psql_tbl:
             isolates_psql_tbl.insert_isolate_newversion((self._isolatename, self._isolatename, self._isolatename,
                                                          datetime.datetime.strptime(self._sample_output_dict['analysis_date'], '%d/%m/%Y - %X').strftime('%Y-%m-%d')))
-            isolates_psql_tbl.update_newversion((self._isolatename, self._isolatename, self._isolatename))
+            isolates_psql_tbl.update_newversion([self._isolatename])
             with TblSequenceBin(self._species) as isolates_seqbin_psql_tbl:
-                isolates_seqbin_psql_tbl.update_sequencebin_newversion((self._isolatename, self._isolatename))
+                isolates_seqbin_psql_tbl.update_sequencebin_newversion([self._isolatename])
             with TblSeqBinStats(self._species) as isolates_seqbinstats_psql_tbl:
-                isolates_seqbinstats_psql_tbl.update_seqbinstats_newversion((self._isolatename, self._isolatename))
+                isolates_seqbinstats_psql_tbl.update_seqbinstats_newversion([self._isolatename])
 
     def insert_main_metadata(self) -> None:
         """
