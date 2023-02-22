@@ -1,9 +1,7 @@
-from typing import Any, Dict, List, Union
+from typing import Any, Dict
 
-import psycopg2.extensions
+from .psql import TblAlleleDesignations, TblSequences, TblLoci, TblSchemeMembers, TblClientDbaseLoci
 
-from .psql.databaseconnection import DatabaseConnection
-from .psql import TblAlleleDesignations, TblSequences, TblLoci, TblSchemeMembers, TblClientDbaseLoci, TblEavText
 
 class JsonSuperClass:
     """

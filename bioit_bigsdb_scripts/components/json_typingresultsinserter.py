@@ -1,8 +1,7 @@
 import logging
 import re
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Tuple
 
-import psycopg2.extensions
 import requests
 
 from .json_superclass import JsonSuperClass

@@ -2,7 +2,7 @@ import sys
 from builtins import BaseException
 from pathlib import Path
 from types import TracebackType
-from typing import Any, Final, List, Tuple, Type, Union
+from typing import Any, List, Tuple, Type, Union
 
 import psycopg2
 import psycopg2.extensions

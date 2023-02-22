@@ -8,9 +8,6 @@ import os
 import sys
 from pathlib import Path
 
-import psycopg2
-import yaml
-
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 

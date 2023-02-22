@@ -15,25 +15,8 @@ PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
-from bioit_mongodb_scripts.config import MONGO_CONFIG
 from bioit_bigsdb_scripts.components.psql import TblSubmissions, TblIsolateSubmissionIsolates, TblIsolateSubmissionFieldOrder
-from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data
-
-def send_email(subject: str, content: str, config: dict) -> None:
-    """
-    Sends an email.
-    :param subject: Mail subject
-    :param content: Content of the message
-    :return: None
-    """
-    message = EmailMessage()
-    message['Subject'] = subject
-    message['From'] = config['from']
-    message['To'] = config['to']
-    message.set_content(content)
-    with smtplib.SMTP(config['host']) as s:
-        s.send_message(message)
-    logging.info(content)
+from bioit_bigsdb_scripts.components.python_utility_functions import send_email
 
 def _insert_submission_bigs(sample_docs: List[Dict[str, Any]], validation_type: str, species: str) -> None:
     """
@@ -74,12 +57,6 @@ def samples_to_validation_bigs(species: str) -> None:
     # Configure stdout logging
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
-    # Parse config
-    with open(MONGO_CONFIG, encoding='utf-8') as handle:
-        mongo_config_data = yaml.safe_load(handle)
-
-    bigsdb_config_data = get_bigsdb_config_data()
-
     try:
 
         # Open collections
@@ -106,6 +83,5 @@ def samples_to_validation_bigs(species: str) -> None:
             {'metadata': 'last_validation_to_bigs_update'}, {'$set': {'last_update_date': current_date}})
     
     except Exception as exceptionmessage:
-        send_email(f"{Path(__file__).name} fail on host {socket.gethostname()}",
-                    f"{exceptionmessage}\n{traceback.format_exc()}", bigsdb_config_data['mail'])
-        raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}")
+        send_email(f"{exceptionmessage}\n{traceback.format_exc()}")
+        raise Exception(f"{exceptionmessage}\n{traceback.format_exc()}")
