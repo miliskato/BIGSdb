@@ -26,6 +26,8 @@ from bioit_mongodb_scripts.util.mongo_custom_clustering import MongoCustomCluste
 from bioit_mongodb_scripts.config import CLUSTERING_CONFIG
 from bioit_mongodb_scripts.util.command.command import Command
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email, convert_dmyhms_to_ymd
+from bioit_mongodb_scripts.util.exceptions import MongoReanalysisDateError, MongoMissingValueIsolateCollectionError, MongoResequencingAlreadyExistsError
+from bioit_mongodb_scripts.util.warnings import MongoResequencingNoIsolateWarning, MongoTooManyResequencingsWarning
 
 
 def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
@@ -166,12 +168,12 @@ class MainMongo:
             try:
                 current_results_document = \
                     self._mongoquerying.query_docs_by_ids(self._isolates_collection, [self._technical_id])[0]
-            except Exception as exceptionmessage:
+            except MongoMissingValueIsolateCollectionError as exceptionmessage:
                 send_email(
                     f"{exceptionmessage}\n{traceback.format_exc()}",
                     f"{Path(__file__).name} fail on host {socket.gethostname()}: This reanalysis technical id ({self._technical_id}) is not present in the isolates collections",
                     dont_send_email=self._dont_send_email)
-                raise Exception(
+                raise MongoMissingValueIsolateCollectionError(
                     f"{Path(__file__).name} fail on host {socket.gethostname()}: This reanalysis technical id ({self._technical_id}) is not present in the isolates collections")
             if self._results_type == "reanalysis":
                 with Path(self._jsonfilepath).open('r') as handle:
@@ -247,7 +249,7 @@ class MainMongo:
                 send_email(
                     f"WARNING: a resequencing for sample {self._technical_id} was submitted to the isolates_resequencing while the sample is present in the isolates_badqc collection and has not yet been validated, validate the bad qc in bigs before trying to reupload this resequencing.",
                     dont_send_email=self._dont_send_email)
-                raise Exception(
+                raise MongoResequencingNoIsolateWarning(
                     f"WARNING: a resequencing for sample {self._technical_id} was submitted to the isolates_resequencing while the sample is present in the isolates_badqc collection and has not yet been validated, validate the bad qc in bigs before trying to reupload this resequencing.")
             previous_resequencings = list(
                 self._isolates_resequencing_collection.find({'results.isolates_id': self._technical_id},
@@ -259,7 +261,7 @@ class MainMongo:
                     f"while one or more resequencings were already present: '{previous_resequencings}' in {self._isolates_resequencing_collection.database.name} "
                     f"on host {socket.gethostname()}, validate the original resequencing in bigs before uploading new resequencings.",
                     dont_send_email=self._dont_send_email)
-                raise Exception(f"WARNING: a resequencing for sample {self._technical_id} was submitted to the isolates_resequencing while one or more resequencings were already present: '{previous_resequencings}' in {self._isolates_resequencing_collection.database.name} on host {socket.gethostname()}, validate the original resequencing in bigs before uploading new resequencings.")
+                raise MongoTooManyResequencingsWarning(f"WARNING: a resequencing for sample {self._technical_id} was submitted to the isolates_resequencing while one or more resequencings were already present: '{previous_resequencings}' in {self._isolates_resequencing_collection.database.name} on host {socket.gethostname()}, validate the original resequencing in bigs before uploading new resequencings.")
             else:
                 new_records["isolates_id"] = self._technical_id
                 new_isolate = self.___new_isolate(new_records)
@@ -269,7 +271,7 @@ class MainMongo:
             send_email(
                 f"A duplicate resequencing for  {self._technical_id} was submitted to the isolates_resequencing ",
                 dont_send_email=self._dont_send_email)
-            raise Exception(f"A duplicate resequencing for  {self._technical_id} was submitted to the isolates_resequencing ")
+            raise MongoResequencingAlreadyExistsError(f"A duplicate resequencing for  {self._technical_id} was submitted to the isolates_resequencing ")
 
     def __new_reanalysis_wrapper(self, current_results_document: Dict[str, Any], new_results_document: Dict[str, Any]) -> None:
         """
@@ -289,12 +291,12 @@ class MainMongo:
         current_results = current_results_document['results']
         if new_results["analysis_date"] == current_results["analysis_date"]:
             send_email(f"This ({self._technical_id}) is not a reanalysis but the same results\n{traceback.format_exc()}", dont_send_email=self._dont_send_email)
-            raise Exception(
+            raise MongoReanalysisDateError(
                 f"{Path(__file__).name} fail on host {socket.gethostname()}: This ({self._technical_id}) is not a reanalysis but the same results")
         elif convert_dmyhms_to_ymd(new_results["analysis_date"]) < convert_dmyhms_to_ymd(
                 current_results["analysis_date"]):
             send_email(f"These ({self._technical_id})results seem to be older than the current results\n{traceback.format_exc()}", dont_send_email=self._dont_send_email)
-            raise Exception(
+            raise MongoReanalysisDateError(
                 f"{Path(__file__).name} fail on host {socket.gethostname()}: These ({self._technical_id})results seem to be older than the current results")
         any_result_changed_new_old, unchanged_results_new_old, changed_results_new_old = \
             self.___check_if_results_changed(current_results, new_results)

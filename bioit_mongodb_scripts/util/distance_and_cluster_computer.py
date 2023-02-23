@@ -17,7 +17,7 @@ class DistanceAndClusterComputer:
     Class to compute hamming distances and determine the cluster membership to store in mongoDB.
     """
 
-    def __init__(self,headers_collection: pymongo.collection.Collection, st_collection: pymongo.collection.Collection,
+    def __init__(self, headers_collection: pymongo.collection.Collection, st_collection: pymongo.collection.Collection,
                  cluster_membership_collection: pymongo.collection.Collection,
                  cluster_merging_collection: pymongo.collection.Collection, st_to_use: list) -> None:
         """
@@ -87,7 +87,7 @@ class DistanceAndClusterComputer:
         pool = Pool(4)
         self.hamming_distances = getDistance(np.array(self.cgmlst_profiles), 'hamming_dist', pool, start)
         if mode == 'full':
-            #when mode is full, half matrix is computed (lower triangle) so as we know that the
+            # when mode is full, half matrix is computed (lower triangle) so as we know that the
             # distances are symetric we can add the transposed to retrieve the upper triangle of the matrix
             # and get a squared distance matrix for downstream applications
             self.hamming_distances += self.hamming_distances.T
@@ -146,7 +146,8 @@ class DistanceAndClusterComputer:
 
     def __save_cluster_membership_in_history(self, query: dict, new_cluster_name: int, thresh: int) -> None:
         """
-        saves in the cluster merging collection the record of a merging of cluster for each cgST that were in the older cluster
+        Saves in the cluster merging collection the record of a merging of cluster for each cgST that were in the older
+        cluster.
         :param query: the query to retrieve all the cgST from this particular cluster.
         :param new_cluster_name: the new cluster names that the cgST will belong to.
         :param thresh: the threshold for which the merging occurs.

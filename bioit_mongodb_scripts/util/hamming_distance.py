@@ -5,11 +5,11 @@ import SharedArray as sa
 import numba as nb
 import numpy as np
 import yaml
-
+from multiprocessing import Pool
 from bioit_mongodb_scripts.config import MONGO_CONFIG
 
 
-def getDistance(data: np.array, func_name:str, pool: object, start=0) -> np.array:
+def getDistance(data: np.array, func_name:str, pool: type(Pool), start=0) -> np.array:
     """
     Main function to call to compute the hamming distance in parallel and return the half matrix
     :param data: the array containing all the cgmlst profiles to compute the distances on
@@ -38,7 +38,7 @@ def getDistance(data: np.array, func_name:str, pool: object, start=0) -> np.arra
 
 
 
-def __parallel_dist(mat_buf: str, func: Callable, dist_buf:str, mat_shape: tuple, pool:object, start:int =0) -> None:
+def __parallel_dist(mat_buf: str, func: Callable, dist_buf:str, mat_shape: tuple, pool: type(Pool), start:int =0) -> None:
     """
     This function take as input a matrix stored in the buffer and containing the cgmlst profiles. This function
     distribute jobs on the pool of threads to start the computation in parallel.

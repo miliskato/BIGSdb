@@ -1,5 +1,4 @@
 import argparse
-import os
 import sys
 from pathlib import Path
 
@@ -12,6 +11,7 @@ from bioit_mongodb_scripts.util.new_threshold_clustering import NewThresholdClus
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.config import MONGO_CONFIG
 
+
 def parse_arguments(specieslist: list) -> argparse.Namespace:
     """
     Parses the command line arguments.
@@ -21,13 +21,13 @@ def parse_arguments(specieslist: list) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--species", required=True, type=str,
                         choices=specieslist)
-    parser.add_argument("--new_cl_thresh", required=True, type=str, nargs='+', help='Arguments passed as space separated values: e.g. --new_cl_thresh 10 15')
+    parser.add_argument("--new_cl_thresh", required=True, type=str, nargs='+',
+                        help='Arguments passed as space separated values: e.g. --new_cl_thresh 10 15')
     parser.add_argument("--cl_config", required=True, type=Path)
     return parser.parse_args()
 
 
 if __name__ == '__main__':
-
     # Parse config
     with open(MONGO_CONFIG, encoding='utf-8') as handle:
         config_data = yaml.safe_load(handle)
