@@ -9,7 +9,7 @@ from multiprocessing import Pool
 from bioit_mongodb_scripts.config import MONGO_CONFIG
 
 
-def getDistance(data: np.array, func_name:str, pool: type(Pool), start=0) -> np.array:
+def getDistance(data: np.array, func_name: str, pool: Pool, start=0) -> np.array:
     """
     Main function to call to compute the hamming distance in parallel and return the half matrix
     :param data: the array containing all the cgmlst profiles to compute the distances on
