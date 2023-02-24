@@ -15,7 +15,6 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
     """
     Class containing all queries for Mongo
     """
-
     def __init__(self):
         pass
 

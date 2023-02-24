@@ -31,3 +31,7 @@ module_name:
     - mongo_bigs_dbs/0.1
 
 temp_dir: /scratch/temp
+
+htmlreporterpipeline:
+    lmod: camel_hera/0.1
+    main_script: mainhtmlreporterpipeline.py

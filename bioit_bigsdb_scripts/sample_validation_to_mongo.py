@@ -21,19 +21,21 @@ PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
 from bioit_bigsdb_scripts.components.psql import TblSubmissions
-from bioit_bigsdb_scripts.components.python_utility_functions import send_email
+from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data, send_email
 from bioit_mongodb_scripts.mainmongo import MainMongo
 from bioit_mongodb_scripts.mongo_to_bigs import MongoToBigs
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 
 
-def parse_arguments() -> argparse.Namespace:
+def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     """
     Parses the command line arguments.
     :return: Parsed arguments
     """
     argument_parser = argparse.ArgumentParser()
-    argument_parser.add_argument('--db', required=True, type=str)
+    mutually_exclusive_group = argument_parser.add_mutually_exclusive_group(required=True)
+    mutually_exclusive_group.add_argument('--db', type=str)
+    mutually_exclusive_group.add_argument('--species', type=str, choices=specieslist)
     argument_parser.add_argument('--sub_id', required=True, type=int)
     return argument_parser.parse_args()
 
@@ -43,21 +45,23 @@ class SampleValidationToMongo:
     This class is used to send validation metadata from Bigsdb to MongoDB and move samples
     from the resequencing or badqc collection to the isolates collection.
     """
-    def __init__(self, db: str, sub_id: int) -> None:
+    def __init__(self, species: str, sub_id: int) -> None:
         """
         Initialises the class and runs the main function.
         See also argparse function for variables and their requiredness.
-        :param db: name of the database the script was called in
+        :param species: commonly used bioit species name: either genus or specific like stec
         :param sub_id: id of the submission in the submissions table
         :return: None
         """
+        # Input parameters
         self._sub_id = sub_id
-        self._species = re.sub('bigsdb_|_isolates', '', db)
+        self._species = species
 
         # Open collections
         self._mongoinit = MongoInitialisation(self._species)
         self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, self._isolates_resequencing_collection = self._mongoinit.initialise_collections()
 
+        # Run main
         try:
             self._sample_validation_to_mongo()
         except Exception as exceptionmessage:
@@ -150,8 +154,12 @@ if __name__ == '__main__':
     # Configure stdout logging
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
+    # Read the global config
+    bigsdb_config_data = get_bigsdb_config_data()
+
     # Parse arguments
-    args = parse_arguments()
+    args = parse_arguments(list(bigsdb_config_data['species_json']))
+    species = re.sub('bigsdb_|_isolates', '', args.db) if args.db else args.species
 
     # run main
-    SampleValidationToMongo(args.db, args.sub_id)
+    SampleValidationToMongo(species, args.sub_id)

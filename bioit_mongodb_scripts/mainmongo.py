@@ -85,12 +85,13 @@ class MainMongo:
         self._alternate_connection_string = alternate_connection_string
         self._dont_send_email = dont_send_email
 
-        # Parse config
         # Open collections
         self._mongoinit = MongoInitialisation(self._species, alternate_connection_string=self._alternate_connection_string)
         self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, self._isolates_resequencing_collection = self._mongoinit.initialise_collections()
         self._st_collection, self._cluster_membership_collection, self._cluster_merging_collection = self._mongoinit.initialise_clustering_collections()
         self._headers_collection = self._mongoinit.initialise_headers_collection()
+
+        # Open querying class instance
         self._mongoquerying = Mongoquerying()
 
         # Parameter compatibility checks

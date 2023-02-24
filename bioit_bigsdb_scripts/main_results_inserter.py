@@ -52,18 +52,22 @@ class MainResultsInserter:
         :param tsvfilepath: Path of the input tsv file
         :return: None
         """
+        # Input parameters
         self._isolatename = isolatename
         self._uploadermailadress = uploadermailadress
         self._species = species
         self._results_type = results_type
         self._jsonfilepath = jsonfilepath
         self._tsvfilepath = tsvfilepath
+
+        # Parameter compatibility checks
         if self._jsonfilepath and self._tsvfilepath:
             send_email(f"Choose one of both input methods",
                        f'{Path(__file__).name}: Error inserting isolate of {species} pipeline to bigsdb for sample {isolatename} on host {socket.gethostname()}.')
             raise Exception(
                 f'{Path(__file__).name}: Error inserting isolate of {species} pipeline to bigsdb for sample {isolatename} on host {socket.gethostname()}.')
 
+        # Execute main function
         try:
             self._main_results_inserter()
         except Exception as exceptionmessage:
