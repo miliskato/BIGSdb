@@ -20,14 +20,13 @@ from pymongo.write_concern import WriteConcern
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
-from bioit_mongodb_scripts.util.mongo_querying import Mongoquerying
-from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
-from bioit_mongodb_scripts.util.mongo_custom_clustering import MongoCustomClustering
 from bioit_mongodb_scripts.config import CLUSTERING_CONFIG
 from bioit_mongodb_scripts.util.command.command import Command
+from bioit_mongodb_scripts.util.error import *
+from bioit_mongodb_scripts.util.mongo_custom_clustering import MongoCustomClustering
+from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
+from bioit_mongodb_scripts.util.mongo_querying import Mongoquerying
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email, convert_dmyhms_to_ymd
-from bioit_mongodb_scripts.util.exceptions import MongoReanalysisDateError, MongoMissingValueIsolateCollectionError, MongoResequencingAlreadyExistsError
-from bioit_mongodb_scripts.util.warnings import MongoResequencingNoIsolateWarning, MongoTooManyResequencingsWarning
 
 
 def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
@@ -250,7 +249,7 @@ class MainMongo:
                 send_email(
                     f"WARNING: a resequencing for sample {self._technical_id} was submitted to the isolates_resequencing while the sample is present in the isolates_badqc collection and has not yet been validated, validate the bad qc in bigs before trying to reupload this resequencing.",
                     dont_send_email=self._dont_send_email)
-                raise MongoResequencingNoIsolateWarning(
+                raise MongoResequencingNoIsolateError(
                     f"WARNING: a resequencing for sample {self._technical_id} was submitted to the isolates_resequencing while the sample is present in the isolates_badqc collection and has not yet been validated, validate the bad qc in bigs before trying to reupload this resequencing.")
             previous_resequencings = list(
                 self._isolates_resequencing_collection.find({'results.isolates_id': self._technical_id},
@@ -262,7 +261,7 @@ class MainMongo:
                     f"while one or more resequencings were already present: '{previous_resequencings}' in {self._isolates_resequencing_collection.database.name} "
                     f"on host {socket.gethostname()}, validate the original resequencing in bigs before uploading new resequencings.",
                     dont_send_email=self._dont_send_email)
-                raise MongoTooManyResequencingsWarning(f"WARNING: a resequencing for sample {self._technical_id} was submitted to the isolates_resequencing while one or more resequencings were already present: '{previous_resequencings}' in {self._isolates_resequencing_collection.database.name} on host {socket.gethostname()}, validate the original resequencing in bigs before uploading new resequencings.")
+                raise MongoTooManyResequencingsError(f"WARNING: a resequencing for sample {self._technical_id} was submitted to the isolates_resequencing while one or more resequencings were already present: '{previous_resequencings}' in {self._isolates_resequencing_collection.database.name} on host {socket.gethostname()}, validate the original resequencing in bigs before uploading new resequencings.")
             else:
                 new_records["isolates_id"] = self._technical_id
                 new_isolate = self.___new_isolate(new_records)
