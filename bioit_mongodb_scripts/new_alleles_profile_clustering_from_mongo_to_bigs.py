@@ -141,9 +141,9 @@ class NewAllelesProfileClusteringFromMongoToBigs:
             scheme, locus = scheme_loci.split(',')
             # fetch all alleles ids already in bigs
             listoftuples = self._seqdef_sequences_psql_tbl.select_allele_from_locus((locus,))
-            list_alleleid: List[str] = [x[0] for x in listoftuples]
+            set_alleleid = set(item[0] for item in listoftuples)
             for new_allele in ordered_by_scheme_dict[scheme_loci]:
-                if new_allele['temp_allele_name'] not in list_alleleid:
+                if new_allele['temp_allele_name'] not in set_alleleid:
                     self._seqdef_sequences_psql_tbl.insert_sequence((locus, new_allele['temp_allele_name'], new_allele['allele_sequence']))
                     logging.info(f"id {new_allele['temp_allele_name']} inserted into locus {locus}")
 
