@@ -41,27 +41,13 @@ if __name__ == '__main__':
                                         mongo_config_data=mongo_config_data)
         isolates_collection, old_isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = \
             mongoinit.initialise_collections()
-        hashed_ad_collection = mongoinit.initialise_hashing_collection()
-        st_collection, cluster_membership_collection, cluster_merging_collection = \
-            mongoinit.initialise_clustering_collections()
-        update_collection = mongoinit.initialise_update_collection()
-        headers_collection = mongoinit.initialise_headers_collection()
 
         # as a security measure I would drop the db if query less than 5 results else raise exception
         documents_count = isolates_collection.count_documents({})
         if documents_count > 5:
             raise Exception('Are you sure you are looking at the right database using the right connection string?')
         else:
-            isolates_collection.drop()
-            old_isolateresults_collection.drop()
-            isolates_badqc_collection.drop()
-            hashed_ad_collection.drop()
-            st_collection.drop()
-            cluster_membership_collection.drop()
-            cluster_merging_collection.drop()
-            update_collection.drop()
-            headers_collection.drop()
-
+            mongoinit.opened_mongo_database.drop_database()
 
         def create_mainmongo_arguments_dict(results_type: str, filename: str) -> Dict[str, str]:
             """

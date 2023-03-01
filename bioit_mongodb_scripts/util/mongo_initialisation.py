@@ -21,7 +21,7 @@ class MongoInitialisation:
         self._mongo_config_data = mongo_config_data if mongo_config_data else get_mongodb_config_data()
         if alternate_connection_string:
             self._mongo_config_data['CONNECTION_STRING_BASE'] = self._mongo_config_data['CONNECTION_STRING_ALTERNATE']
-        self._opened_mongo_database = self._open_mongo_database(species)
+        self.opened_mongo_database = self._open_mongo_database(species)
 
     def _open_mongo_database(self, species: str) -> pymongo.database.Database:
         """
@@ -59,13 +59,13 @@ class MongoInitialisation:
         :return: opened isolate, isolatesresults and isolatesbadqc collections (objects) for a given species
         """
         # open isolates collection
-        isolates_collection = self._open_mongo_collection(self._opened_mongo_database, "isolates")
+        isolates_collection = self._open_mongo_collection(self.opened_mongo_database, "isolates")
         # open isolate_results collection
-        isolateresults_collection = self._open_mongo_collection(self._opened_mongo_database, "old_isolate_results")
+        isolateresults_collection = self._open_mongo_collection(self.opened_mongo_database, "old_isolate_results")
         # open isolates badqc collection
-        isolates_badqc_collection = self._open_mongo_collection(self._opened_mongo_database, "isolates_badqc")
+        isolates_badqc_collection = self._open_mongo_collection(self.opened_mongo_database, "isolates_badqc")
         # open isolates resequencing collection
-        isolates_resequencing_collection = self._open_mongo_collection(self._opened_mongo_database, "isolates_resequencing")
+        isolates_resequencing_collection = self._open_mongo_collection(self.opened_mongo_database, "isolates_resequencing")
         return isolates_collection, isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection
 
     def initialise_clustering_collections(self) -> (pymongo.collection.Collection, pymongo.collection.Collection, pymongo.collection.Collection):
@@ -73,9 +73,9 @@ class MongoInitialisation:
         Initialises database and collections for interaction
         :return: opened sequence_type and  for a given species
         """
-        st_collection = self._open_mongo_collection(self._opened_mongo_database, "sequence_types")
-        cluster_membership_collection = self._open_mongo_collection(self._opened_mongo_database, "cluster_membership")
-        cluster_merging_collection = self._open_mongo_collection(self._opened_mongo_database, "cluster_merging")
+        st_collection = self._open_mongo_collection(self.opened_mongo_database, "sequence_types")
+        cluster_membership_collection = self._open_mongo_collection(self.opened_mongo_database, "cluster_membership")
+        cluster_merging_collection = self._open_mongo_collection(self.opened_mongo_database, "cluster_merging")
         return st_collection,  cluster_membership_collection, cluster_merging_collection
 
     def initialise_hashing_collection(self) -> pymongo.collection.Collection:
@@ -83,7 +83,7 @@ class MongoInitialisation:
         Initialises collection containing hashes
         :return: Opened hashing collection
         """
-        hashed_ad_collection = self._open_mongo_collection(self._opened_mongo_database, "new_allele_hashes")
+        hashed_ad_collection = self._open_mongo_collection(self.opened_mongo_database, "new_allele_hashes")
         return hashed_ad_collection
 
     def initialise_update_collection(self) -> pymongo.collection.Collection:
@@ -91,7 +91,7 @@ class MongoInitialisation:
         Initialises collection containing update metadata
         :return: Opened hashing collection
         """
-        update_collection = self._open_mongo_collection(self._opened_mongo_database, "update_metadata")
+        update_collection = self._open_mongo_collection(self.opened_mongo_database, "update_metadata")
         return update_collection
 
     def initialise_headers_collection(self) -> pymongo.collection.Collection:
@@ -101,5 +101,5 @@ class MongoInitialisation:
         ...
         :return: Opened hashing collection
         """
-        headers_collection = self._open_mongo_collection(self._opened_mongo_database, "headers")
+        headers_collection = self._open_mongo_collection(self.opened_mongo_database, "headers")
         return headers_collection
