@@ -45,11 +45,12 @@ class MongoToBigs:
     Initializing this class will trigger its main function.
     If the current host is a bigsdb host, syncs all samples (or a single one if provided) with the bigsdb database
     """
-    def __init__(self, species: str, single_sample_id: str = None) -> None:
+    def __init__(self, species: str, single_sample_id: str = None, mongo_config_data: Dict[str, Any] = None) -> None:
         """
         Initializes this class and executes the main function
         :param species: commonly used bioit species name: either genus or specific like stec
         :param single_sample_id: name of a single sample if only this sample should be synced
+        :param mongo_config_data: Use provided mongo_config_data, else get mongo_config_data from file
         :return: None
         """
         # Configure stdout logging
@@ -58,11 +59,11 @@ class MongoToBigs:
         self._species = species
         self._single_sample_id = single_sample_id
         # Parse MongoDB config
-        self._mongo_config_data = get_mongodb_config_data
+        self._mongo_config_data = mongo_config_data if mongo_config_data else get_mongodb_config_data()
         # Parse Bigsdb config
         self._bigsdb_config_data = get_bigsdb_config_data()
         # Open collections
-        self._mongoinit = MongoInitialisation(self._species)
+        self._mongoinit = MongoInitialisation(self._species, mongo_config_data=self._mongo_config_data)
         self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, \
         self._isolates_resequencing_collection = self._mongoinit.initialise_collections()
         self._headers_collection = self._mongoinit.initialise_headers_collection()
@@ -84,7 +85,7 @@ class MongoToBigs:
         """
 
         # call the function to insert new alleles and profiles
-        run_upload_new_alleles_profiles_clustering_from_mongo_to_bigs(self._species)
+        run_upload_new_alleles_profiles_clustering_from_mongo_to_bigs(self._species, mongo_config_data=self._mongo_config_data)
 
         # update the bigsdb cache so the clustering schemes get updated
         cache_command = f'/home/bigsdb/BIGSdb/scripts/maintenance/update_scheme_caches.pl ' \
@@ -95,7 +96,7 @@ class MongoToBigs:
             raise RuntimeError(f"update of the cache to display the clustering failed on host {socket.gethostname()} ")
 
         # send bad samples from the badqc_isolates collection to BIGSdb
-        samples_to_validation_bigs(self._species)
+        samples_to_validation_bigs(self._species, mongo_config_data=self._mongo_config_data)
 
         listofdocuments = self.__get_list_of_documents()
 
@@ -212,5 +213,5 @@ if __name__ == '__main__':
 
     # run main
     MongoToBigs(args.species,
-                  single_sample_id=(args.single_sample_id if args.single_sample_id else None))
-
+                single_sample_id=(args.single_sample_id if args.single_sample_id else None),
+                mongo_config_data=mongo_config_data)

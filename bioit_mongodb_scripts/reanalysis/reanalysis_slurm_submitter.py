@@ -45,13 +45,15 @@ def reanalysis_slurm_submitter(species: str, maximal_analysis_date: str, minimal
                                threads_per_job: int = 1, analysis_arguments: List[str] = None, alternate_connection_string: bool = False) -> None:
     """
     Main function
-    See argparse function for variables and their requiredness
-    :param species:
-    :param maximal_analysis_date:
-    :param pyvenvpythonpath:
-    :param threads_per_job:
-    :param analysis_arguments:
-    :param alternate_connection_string:
+    Dispatches slurm jobs for samples to be reanalyzed, last analyzed between given dates, and for given analysis arguments
+    !! If parameters/arguments are added here, also add them to the argparse function!!
+    :param species:commonly used bioit species name: either genus or specific like stec
+    :param maximal_analysis_date: maximal sample date of analysis for the provided analysis arguments
+    :param minimal_analysis_date: minimal sample date of analysis for the provided analysis arguments
+    :param pyvenvpythonpath: path of the python virtual environment, needed by slurm
+    :param threads_per_job: threads per job
+    :param analysis_arguments: analysis arguments in a list
+    :param alternate_connection_string: whe
     :return:
     """
     try:
@@ -85,7 +87,7 @@ def reanalysis_slurm_submitter(species: str, maximal_analysis_date: str, minimal
             """
             Creates command, runs command, and checks if command completes
             :param isolate: isolate dictionary from MongoDB
-            :return: None
+            :return: dictionary with outcome of the reanalysis
             """
             base_command = ' '.join([
                 f"sbatch "

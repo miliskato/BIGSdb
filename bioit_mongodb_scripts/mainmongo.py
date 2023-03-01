@@ -56,8 +56,10 @@ class MainMongo:
     """
     Class containing definitions to insert samples into MongoDB
     """
-    def __init__(self, technical_id: str, species: str, results_type: str, jsonfilepath: Path = None, subvaldict: Dict[str, str] = None, reportdirectorypath: Path = None,
-                 fastafilepath: Path = None, vcffilepath: Path = None, alternate_connection_string: bool = False, dont_send_email: bool = False) -> None:
+    def __init__(self, technical_id: str, species: str, results_type: str, jsonfilepath: Path = None,
+                 subvaldict: Dict[str, str] = None, reportdirectorypath: Path = None, fastafilepath: Path = None,
+                 vcffilepath: Path = None, alternate_connection_string: bool = False, dont_send_email: bool = False,
+                 mongo_config_data: Dict[str, Any] = None) -> None:
         """
         Intialises this class and executes the main function which will insert/update the sample in a mongodb collection containing isolates
         !! If parameters/arguments are added here, also add them to the argparse function!!
@@ -70,6 +72,7 @@ class MainMongo:
         :param fastafilepath: absolute path to where the fasta file is stored (only required for new_isolate)
         :param vcffilepath: absolute path to where the fasta file is stored (only required for new_isolate)
         :param alternate_connection_string: use given alternate connection string, used for testing on the free Atlas Cluster
+        :param mongo_config_data: Pass provided mongo_config_data to MongoInitialisation, else get mongo_config_data from file
         :return: None
         """
         # Input parameters
@@ -83,9 +86,13 @@ class MainMongo:
         self._vcffilepath = vcffilepath
         self._alternate_connection_string = alternate_connection_string
         self._dont_send_email = dont_send_email
+        self._mongo_config_data = mongo_config_data  # no need to get if not provided because it is only
+        # needed in mongoinit and there it can be retrieved by itself
 
         # Open collections
-        self._mongoinit = MongoInitialisation(self._species, alternate_connection_string=self._alternate_connection_string)
+        self._mongoinit = MongoInitialisation(self._species,
+                                              alternate_connection_string=self._alternate_connection_string,
+                                              mongo_config_data=self._mongo_config_data)
         self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, self._isolates_resequencing_collection = self._mongoinit.initialise_collections()
         self._st_collection, self._cluster_membership_collection, self._cluster_merging_collection = self._mongoinit.initialise_clustering_collections()
         self._headers_collection = self._mongoinit.initialise_headers_collection()
@@ -601,4 +608,5 @@ if __name__ == '__main__':
               fastafilepath=(args.fastafilepath if args.fastafilepath else None), 
               vcffilepath=(args.vcffilepath if args.vcffilepath else None), 
               alternate_connection_string=(True if args.alternate_connection_string else False),
-              dont_send_email=(True if args.dont_send_email else False))
+              dont_send_email=(True if args.dont_send_email else False),
+              mongo_config_data=mongo_config_data)

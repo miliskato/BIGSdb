@@ -1,14 +1,10 @@
 import datetime
 import logging
-import smtplib
-import socket
 import sys
 import traceback
-from email.message import EmailMessage
 from pathlib import Path
 from typing import Any, Dict, List
 
-import yaml
 from pymongo.write_concern import WriteConcern
 
 PYTHONPATH = Path(__file__).resolve().parent.parent
@@ -48,10 +44,11 @@ def _insert_submission_bigs(sample_docs: List[Dict[str, Any]], validation_type: 
             isolates_isosubfo_psql_tbl.insert_validation_indexes(('validation_type', 3))
 
 
-def samples_to_validation_bigs(species: str) -> None:
+def samples_to_validation_bigs(species: str, mongo_config_data: Dict[str, Any] = None) -> None:
     """
     Send samples in the badqc_sample and resequencing collection to be validated on BIGSdb
     :param species: commonly used bioit species name: either genus or specific like stec
+    :param mongo_config_data: Pass provided mongo_config_data to MongoInitialisation, else get mongo_config_data from file
     :return: None
     """
     # Configure stdout logging
@@ -60,8 +57,9 @@ def samples_to_validation_bigs(species: str) -> None:
     try:
 
         # Open collections
-        mongoinit = MongoInitialisation(species)
-        isolates_collection, old_isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections()
+        mongoinit = MongoInitialisation(species, mongo_config_data=mongo_config_data)
+        isolates_collection, old_isolateresults_collection, isolates_badqc_collection, \
+        isolates_resequencing_collection = mongoinit.initialise_collections()
 
         # fetch all documents in the bad samples of the species
         update_collection = mongoinit.initialise_update_collection()

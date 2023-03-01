@@ -1,4 +1,5 @@
 import logging
+from typing import Any, Dict
 
 import pymongo
 from pymongo import MongoClient
@@ -10,12 +11,14 @@ class MongoInitialisation:
     """
     Class containing all queries for Mongo
     """
-    def __init__(self, species: str, alternate_connection_string: bool = False):
+    def __init__(self, species: str, alternate_connection_string: bool = False, mongo_config_data: Dict[str, Any] = None):
         """
         Initialises this class and opens the species/dtap specific mongo database
         :param species: commonly used bioit species name: either genus or specific like stec
+        :param alternate_connection_string: Use the alternate connection string, which connects to the testing Atlas Cluster
+        :param mongo_config_data: Use provided mongo_config_data, else get mongo_config_data from file
         """
-        self._mongo_config_data = get_mongodb_config_data()
+        self._mongo_config_data = mongo_config_data if mongo_config_data else get_mongodb_config_data()
         if alternate_connection_string:
             self._mongo_config_data['CONNECTION_STRING_BASE'] = self._mongo_config_data['CONNECTION_STRING_ALTERNATE']
         self._opened_mongo_database = self._open_mongo_database(species)

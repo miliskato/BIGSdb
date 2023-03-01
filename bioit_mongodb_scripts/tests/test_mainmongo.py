@@ -37,7 +37,8 @@ if __name__ == '__main__':
         logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
         # Open collections
-        mongoinit = MongoInitialisation('listeria', alternate_connection_string=True)
+        mongoinit = MongoInitialisation('listeria', alternate_connection_string=True,
+                                        mongo_config_data=mongo_config_data)
         isolates_collection, old_isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = \
             mongoinit.initialise_collections()
         hashed_ad_collection = mongoinit.initialise_hashing_collection()
@@ -46,7 +47,7 @@ if __name__ == '__main__':
         update_collection = mongoinit.initialise_update_collection()
         headers_collection = mongoinit.initialise_headers_collection()
 
-        # as a first step I would drop the db if query less than 5 results else raise exception
+        # as a security measure I would drop the db if query less than 5 results else raise exception
         documents_count = isolates_collection.count_documents({})
         if documents_count > 5:
             raise Exception('Are you sure you are looking at the right database using the right connection string?')
@@ -75,7 +76,8 @@ if __name__ == '__main__':
                          'species': 'listeria',
                          'results_type': results_type,
                          'jsonfilepath': '/'.join([source, 'inputfiles', filename]),
-                         'alternate_connection_string': True}
+                         'alternate_connection_string': True,
+                         'mongo_config_data': mongo_config_data}
             if results_type == 'new_isolate':
                 arguments['reportdirectorypath'] = '/'.join([source, 'inputfiles'])
                 arguments['fastafilepath'] = '/'.join([source, 'inputfiles', 'listeria_assembly_filtered.fasta'])

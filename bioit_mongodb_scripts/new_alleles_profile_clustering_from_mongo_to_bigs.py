@@ -1,17 +1,15 @@
 import datetime
 import logging
-import os
 import smtplib
 import socket
 import sys
 import traceback
 from datetime import date
 from email.message import EmailMessage
-from typing import Any, Dict, List, Tuple
 from pathlib import Path
+from typing import Any, Dict, List, Tuple
 
 import pymongo
-import yaml
 from pymongo.write_concern import WriteConcern
 
 PYTHONPATH = Path(__file__).resolve().parent.parent
@@ -19,7 +17,6 @@ sys.path.append(str(PYTHONPATH))
 
 from bioit_bigsdb_scripts.components.psql import TblSequences, TblProfiles, TblProfileFields, TblProfileMembers, TblClassificationGroups, TblClassificationGroupProfiles, TblClassificationGroupProfileHistory, TblClassificationSchemes
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
-from bioit_mongodb_scripts.config import MONGO_CONFIG
 from bioit_mongodb_scripts.config import CLUSTERING_CONFIG
 
 def _send_email(subject: str, content: str, config: dict) -> None:
@@ -265,19 +262,17 @@ class NewAllelesProfileClusteringFromMongoToBigs:
         self._seqdef_sequences_psql_tbl.close()
 
 
-def run_upload_new_alleles_profiles_clustering_from_mongo_to_bigs(species: str) -> None:
+def run_upload_new_alleles_profiles_clustering_from_mongo_to_bigs(species: str, mongo_config_data: Dict[str, Any] = None) -> None:
     """
     Runs the uplaod of new alleles and clustering from mongo to bigs
     :param species: the species to which the database needs to be uploaded
+    :param mongo_config_data: Pass provided mongo_config_data to MongoInitialisation, else get mongo_config_data from file
     :return: None
     """
-    # Parse config
-    with open(MONGO_CONFIG, encoding='utf-8') as handle:
-        config_data = yaml.safe_load(handle)
     # Configure stdout logging
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
     # Open collections
-    mongoinit = MongoInitialisation(species)
+    mongoinit = MongoInitialisation(species, mongo_config_data=mongo_config_data)
     hashed_ad_collection = mongoinit.initialise_hashing_collection()
     st_collection, cluster_membership_collection, cluster_merging_collection = \
         mongoinit.initialise_clustering_collections()
@@ -291,5 +286,5 @@ def run_upload_new_alleles_profiles_clustering_from_mongo_to_bigs(species: str) 
         updater.insert_into_bigs()
     except Exception as exceptionmessage:
         _send_email(f"{Path(__file__).name} fail on host {socket.gethostname()}",
-                    f"{exceptionmessage}\n{traceback.format_exc()}", config_data['mail'])
+                    f"{exceptionmessage}\n{traceback.format_exc()}", mongo_config_data['mail'])
         raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}")

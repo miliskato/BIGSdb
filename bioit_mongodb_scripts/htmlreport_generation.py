@@ -17,6 +17,7 @@ from bioit_mongodb_scripts.util.mongo_querying import Mongoquerying
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email
 
+
 def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     """
     Parses the command line arguments.
@@ -32,6 +33,7 @@ def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     mutually_exclusive_group2.add_argument('--analysis_date', type=str)
     return argument_parser.parse_args()
 
+
 class HtmlreportGeneration:
     """
     Generates a html report for a given isolate at a given results version
@@ -42,6 +44,8 @@ class HtmlreportGeneration:
         See also argparse function for variables and their requiredness.
         :param species: commonly used bioit species name: either genus or specific like stec
         :param technical_id: sample id/ isolates id
+        :param changed_version: changed version of the desired report
+        :param analysis date: desired date of the report, if it doesnt exist, get the closest more recent report date
         :return: None
         """
         # Input parameters
@@ -58,16 +62,17 @@ class HtmlreportGeneration:
         if self._analysis_date and not isinstance(self._analysis_date, str) and not re.match(r'^\d{4}-\d{2}-\d{2}$', self._analysis_date):
             raise ValueError(f'if analysis_date is searchkey; searchvalue must be string in YYYY-MM-DD format')
 
+        # Parse config
+        self._mongo_config_data = get_mongodb_config_data()
+
         # Open collections
-        self._mongoinit = MongoInitialisation(self._species)
-        self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, self._isolates_resequencing_collection = self._mongoinit.initialise_collections()
+        self._mongoinit = MongoInitialisation(self._species, mongo_config_data=self._mongo_config_data)
+        self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, \
+        self._isolates_resequencing_collection = self._mongoinit.initialise_collections()
         self._headers_collection = self._mongoinit.initialise_headers_collection()
 
         # Open querying class instance
         self._mongoquerying = Mongoquerying()
-
-        # Parse config
-        self._mongo_config_data = get_mongodb_config_data()
 
         # Run main
         try:

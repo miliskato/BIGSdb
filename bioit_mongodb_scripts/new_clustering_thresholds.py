@@ -35,7 +35,7 @@ if __name__ == '__main__':
     # Parse arguments
     args = parse_arguments(config_data['species'])
     # Open collections
-    mongoinit = MongoInitialisation(args.species)
+    mongoinit = MongoInitialisation(args.species, mongo_config_data=config_data)
     st_collection, cluster_membership_collection = \
         mongoinit.initialise_clustering_collections()
 

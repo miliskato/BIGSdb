@@ -39,12 +39,13 @@ class TempidReplacer:
     """
     Class containing definitions to check and replace temporary ids in MongoDB (and BIGSdb)
     """
-    def __init__(self, scheme: str, species: str, alternate_connection_string: bool = False):
+    def __init__(self, scheme: str, species: str, alternate_connection_string: bool = False, mongo_config_data: Dict[str, Any] = None):
         """
         Initalizes the class and executes the main function
         :param scheme: scheme that unresolved hashes should be queried from
         :param species: commonly used bioit species name: either genus or specific like stec
         :param alternate_connection_string: use alternate connection string, used for testing on the free Atlas Cluster
+        :param mongo_config_data: Use provided mongo_config_data, else get mongo_config_data from file
         :return: None
         """
         self._scheme = scheme
@@ -53,7 +54,9 @@ class TempidReplacer:
         # parse config data
         self._mongo_config_data = get_mongodb_config_data()
         # Open collections
-        self._mongoinit = MongoInitialisation(self._species, alternate_connection_string=self._alternate_connection_string)
+        self._mongoinit = MongoInitialisation(self._species,
+                                              alternate_connection_string=self._alternate_connection_string,
+                                              mongo_config_data=self._mongo_config_data)
         self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, self._isolates_resequencing_collection = self._mongoinit.initialise_collections()
         self._hashed_ad_collection = self._mongoinit.initialise_hashing_collection()
         self._st_collection, self._cluster_membership_collection, self._cluster_merging_collection = self._mongoinit.initialise_clustering_collections()

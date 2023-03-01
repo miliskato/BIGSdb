@@ -34,10 +34,11 @@ if __name__ == '__main__':
     # Parse arguments
     args = _parse_arguments(list(mongo_config_data['species']))
 
+    # Configure logging
     logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 
     # Open collections
-    mongoinit = MongoInitialisation(args.species, alternate_connection_string=True)
+    mongoinit = MongoInitialisation(args.species, alternate_connection_string=True, mongo_config_data=mongo_config_data)
     isolates_collection, old_isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections()
     headers_collection = mongoinit.initialise_headers_collection()
     # isolates_collection.drop()
