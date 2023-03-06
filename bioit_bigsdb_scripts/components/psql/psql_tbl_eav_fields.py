@@ -1,4 +1,4 @@
-from typing import Any, List, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
 
 from .databaseconnection import DatabaseConnection
 from .psql_queries import PsqlQueries
@@ -26,7 +26,7 @@ class TblEavFields(DatabaseConnection):
         """
         self.execute_query(PsqlQueries.ISO_INS__TB_EAVF_VAR_FIELD, param)
 
-    def select_fields_amr(self) -> List[Tuple[str]]:
+    def select_fields_amr(self) -> List[Optional[Tuple[str]]]:
         """
         Selects all the fields in the mycobacterium-specific amr who category
         :param param: variables to feed to the PSQL query, which also sanitizes these variables,
@@ -35,7 +35,7 @@ class TblEavFields(DatabaseConnection):
         """
         return self.execute(PsqlQueries.ISO_SEL_FIELD_TB_EAVF_VAR_)
 
-    def select_fields_like(self, param: Tuple[str]) -> List[Tuple[str]]:
+    def select_fields_like(self, param: Tuple[str]) -> List[Optional[Tuple[str]]]:
         """
         Selects all the fields where field is like input value (containing % sign)
         :param param: variables to feed to the PSQL query, which also sanitizes these variables,

@@ -44,7 +44,7 @@ class TblSequences(DatabaseConnection):
         """
         self.execute_query(PsqlQueries.SEQ_INS__TB_SEQ_VAR_LOCUS_ALLELE_SEQ, param)
 
-    def select_allele_from_locus(self, param: Tuple[str]) -> List[Tuple[Any]]:
+    def select_allele_from_locus(self, param: Tuple[str]) -> List[Optional[Tuple[Any]]]:
         """
         Selects all alleles for a given locus
         :param param: variables to feed to the PSQL query, which also sanitizes these variables,
@@ -53,7 +53,7 @@ class TblSequences(DatabaseConnection):
         """
         return self.execute_query(PsqlQueries.SEQ_SEL_ALLELE_TB_SEQ_VAR_LOCUS, param)
 
-    def select_sequence_from_locus(self, param: Tuple[str]) -> List[Tuple[Any]]:
+    def select_sequence_from_locus(self, param: Tuple[str]) -> List[Optional[Tuple[Any]]]:
         """
         Selects the sorted highest sequence for a given locus (used for dummy sequences)
         :param param: variables to feed to the PSQL query, which also sanitizes these variables,
