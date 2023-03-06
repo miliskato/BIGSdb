@@ -139,7 +139,7 @@ class GeneDetectionIntoPsql:
             isolates_ad_psql_tbl.delete_designations((f"{self._schemedict[self._scheme]['schemename_bigsdb']}_GeneCluster%",))
             with TblEavTextHidden(self._species) as isolates_eavth_psql_tbl:
                 listofsamplesandhits = isolates_eavth_psql_tbl.select_hidden((self._schemedict[self._scheme]['schemename_bigsdb'],))
-            if len(listofsamplesandhits) != 0:
+            if len(listofsamplesandhits) > 0:
                for sampleandhits in listofsamplesandhits:
                     isolate_id: str = sampleandhits[0]
                     isolate_name: str = sampleandhits[2]

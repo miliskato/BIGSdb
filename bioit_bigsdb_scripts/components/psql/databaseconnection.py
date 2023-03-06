@@ -2,7 +2,7 @@ import sys
 from builtins import BaseException
 from pathlib import Path
 from types import TracebackType
-from typing import Any, List, Tuple, Type, Union
+from typing import Any, List, Optional, Tuple, Type, Union
 
 import psycopg2
 import psycopg2.extensions
@@ -39,7 +39,7 @@ class DatabaseConnection:
         self._cursor: psycopg2.extensions.cursor = self._connection.cursor()
         self.name = self._cursor.name
 
-    def execute_query(self, query: str, params: Union[Tuple[Union[str, int], ...], List[Union[str, int], ...]]) -> Union[None, List[Tuple[Any]]]:
+    def execute_query(self, query: str, params: Union[Tuple[Union[str, int]], List[Union[str, int]]]) -> Optional[List[Optional[Tuple[Any]]]]:
         """
         Executes a sql query using psycopg2 sanitazation
         :param query: sql query to be used
@@ -50,11 +50,10 @@ class DatabaseConnection:
         if query.strip().startswith('SELECT'):
             return self._cursor.fetchall()
 
-    def execute(self, query: str) -> Union[None, List[Tuple[Any]]]:
+    def execute(self, query: str) -> Optional[List[Optional[Tuple[Any]]]]:
         """
         Executes a sql query using psycopg2 sanitazation
         :param query: sql query to be used
-        :param params: parameters to be passed to sqlquery
         :return: None or query results
         """
         self._cursor.execute(query)

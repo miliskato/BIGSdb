@@ -1,4 +1,4 @@
-from typing import Any, List, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
 
 from .databaseconnection import DatabaseConnection
 from .psql_queries import PsqlQueries
@@ -35,7 +35,7 @@ class TblProfiles(DatabaseConnection):
         """
         self.execute_query(PsqlQueries.SEQ_INS__TB_PROF_VAR_SCHEME_PROFID, param)
 
-    def select_profile(self, param: Tuple[str]) -> List[Tuple[int]]:
+    def select_profile(self, param: Tuple[str]) -> List[Optional[Tuple[int]]]:
         """
         Select all profile_id's for a given scheme
         :param param: variables to feed to the PSQL query, which also sanitizes these variables,

@@ -1,4 +1,4 @@
-from typing import Any, List, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
 
 from .databaseconnection import DatabaseConnection
 from .psql_queries import PsqlQueries
@@ -62,7 +62,7 @@ class TblSequences(DatabaseConnection):
         """
         return self.execute_query(PsqlQueries.SEQ_SEL_SEQUENCE_TB_SEQ_VAR_LOCUS, param)
 
-    def select_allele_from_sequence(self, param: Tuple[str, str]) -> List[Tuple[Any]]:
+    def select_allele_from_sequence(self, param: Tuple[str, str]) -> List[Optional[Tuple[Any]]]:
         """
         Selects the allele id for a given locus and sequence
         :param param: variables to feed to the PSQL query, which also sanitizes these variables,

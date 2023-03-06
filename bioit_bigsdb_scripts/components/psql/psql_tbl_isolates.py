@@ -1,4 +1,4 @@
-from typing import Any, List, Tuple, Union
+from typing import Any, List, Optional, Tuple
 
 from .databaseconnection import DatabaseConnection
 from .psql_queries import PsqlQueries
@@ -71,7 +71,7 @@ class TblIsolates(DatabaseConnection):
         """
         self.execute_query(PsqlQueries.ISO_UPD_NEWV_TB_ISO_VAR_ISO, param)
 
-    def select_latestanalysisdate_for_isolate(self, param: Tuple[str]) -> List[Tuple[Any]]:
+    def select_latestanalysisdate_for_isolate(self, param: Tuple[str]) -> List[Optional[Tuple[Any]]]:
         """
         Selects the latest analysis date for a given isolate
         :param param: variables to feed to the PSQL query, which also sanitizes these variables,
@@ -89,7 +89,7 @@ class TblIsolates(DatabaseConnection):
         """
         return self.execute_query(PsqlQueries.ISO_SEL_MAXID_TB_ISO_VAR_ISO, param)
 
-    def select_validationdate_for_isolate(self, param: Tuple[str]) -> Union[None, List[Tuple[Any]]]:
+    def select_validationdate_for_isolate(self, param: Tuple[str]) -> Optional[List[Tuple[Any]]]:
         """
         Selects the last two validation dates for a given isolate
         :param param: variables to feed to the PSQL query, which also sanitizes these variables,

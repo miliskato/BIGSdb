@@ -1,4 +1,4 @@
-from typing import Any, List, Tuple, Union
+from typing import Any, List, Optional, Tuple
 
 from .databaseconnection import DatabaseConnection
 from .psql_queries import PsqlQueries
@@ -27,7 +27,7 @@ class TblEavTextHidden(DatabaseConnection):
         """
         self.execute_query(PsqlQueries.ISO_INS__TB_EAVTH_VAR_ISO_FIELD_VAL, param)
 
-    def select_hidden(self, param: Tuple[str]) -> List[Tuple[Any]]:
+    def select_hidden(self, param: Tuple[str]) -> List[Optional[Tuple[Any]]]:
         """
         Selects all values for all isolates where field is a certain value
         :param param: variables to feed to the PSQL query, which also sanitizes these variables,
@@ -36,7 +36,7 @@ class TblEavTextHidden(DatabaseConnection):
         """
         return self.execute_query(PsqlQueries.ISO_SEL_ID_VAL_ISO_TB_EAVTH_VAR_FIELD, param)
 
-    def select_mongo_resultsversion(self, param: Tuple[str]) -> Union[None, List[Tuple[int]]]:
+    def select_mongo_resultsversion(self, param: Tuple[str]) -> List[Optional[Tuple[int]]]:
         """
         Selects corresponding results version mongodb for a given isolate
         :param param: variables to feed to the PSQL query, which also sanitizes these variables,

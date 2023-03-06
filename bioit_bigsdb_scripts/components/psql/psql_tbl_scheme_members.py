@@ -1,4 +1,4 @@
-from typing import Any, List, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
 
 from .databaseconnection import DatabaseConnection
 from .psql_queries import PsqlQueries
@@ -29,7 +29,7 @@ class TblSchemeMembers(DatabaseConnection):
         """
         self.execute_query(PsqlQueries.UNI_INS__TB_SCHMEM_VAR_SCHEME_LOCUS, param)
 
-    def select_loci_amr(self) -> List[Tuple[str]]:
+    def select_loci_amr(self) -> List[Optional[Tuple[str]]]:
         """
         Selects all loci that are scheme_members of the mycobacterium amr_who scheme
         :param param: variables to feed to the PSQL query, which also sanitizes these variables,

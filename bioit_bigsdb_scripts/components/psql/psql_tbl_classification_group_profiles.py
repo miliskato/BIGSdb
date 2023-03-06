@@ -1,4 +1,4 @@
-from typing import Any, List, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
 
 from .databaseconnection import DatabaseConnection
 from .psql_queries import PsqlQueries
@@ -25,7 +25,7 @@ class TblClassificationGroupProfiles(DatabaseConnection):
         """
         self.execute_query(PsqlQueries.SEQ_INS__TB_CLGRPR_VAR_CGSCHID_GRID_PRID_SCHEME, param)
 
-    def select_profile_group(self, param: Tuple[str, str]) -> Union[None, List[Tuple[int]]]:
+    def select_profile_group(self, param: Tuple[str, str]) -> List[Optional[Tuple[int]]]:
         """
         Selects the group id for a specific profile id
         :param param: variables to feed to the PSQL query, which also sanitizes these variables,
