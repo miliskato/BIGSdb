@@ -1,13 +1,11 @@
 import datetime
 import logging
-import smtplib
 import socket
 import sys
 import traceback
 from datetime import date
-from email.message import EmailMessage
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import pymongo
 from pymongo.write_concern import WriteConcern
@@ -16,24 +14,10 @@ PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
 from bioit_bigsdb_scripts.components.psql import TblSequences, TblProfiles, TblProfileFields, TblProfileMembers, TblClassificationGroups, TblClassificationGroupProfiles, TblClassificationGroupProfileHistory, TblClassificationSchemes
-from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.config import CLUSTERING_CONFIG
+from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
+from bioit_mongodb_scripts.util.python_utility_functions import send_email
 
-def _send_email(subject: str, content: str, config: dict) -> None:
-    """
-    Sends an email.
-    :param subject: Mail subject
-    :param content: Content of the message
-    :return: None
-    """
-    message = EmailMessage()
-    message['Subject'] = subject
-    message['From'] = config['from']
-    message['To'] = config['to']
-    message.set_content(content)
-    with smtplib.SMTP(config['host']) as s:
-        s.send_message(message)
-    logging.info(content)
 
 class NewAllelesProfileClusteringFromMongoToBigs:
     def __init__(self, species: str, st_collection: pymongo.collection.Collection, hashed_ad_collection: pymongo.collection.Collection,
@@ -41,90 +25,83 @@ class NewAllelesProfileClusteringFromMongoToBigs:
                  headers_collection: pymongo.collection.Collection) -> None:
         """
         Initialization of the class.
-        :param species: the species that needs to be updated
-        :param st_collection: the sequence type collection from the mongo db of the species
-        :param hashed_ad_collection: the ashed allele collection of mongo db of the species
-        :param cluster_membership_collection: cluster membership collection from the mongo db of the species
-        :param update_metadata_collection: the update metadata collection from the mongo db of the species
+        :param species: commonly used bioit species name: either genus or specific like stec
+        :param st_collection: the sequence type collection
+        :param hashed_ad_collection: the hashed allele collection
+        :param cluster_membership_collection: cluster membership collection
+        :param update_metadata_collection: the update metadata collection o
         :param headers_collection: collection containing headers for typing locus dictionaries + headers of cgmlst profiles
+        :return None
         """
         self._species = species
-        self.st_collection = st_collection
-        self.headers_collection = headers_collection
-        self.hashed_ad_collection = hashed_ad_collection
-        self.cluster_membership_collection = cluster_membership_collection
-        self.update_metadata_collection = update_metadata_collection
+        self._st_collection = st_collection
+        self._headers_collection = headers_collection
+        self._hashed_ad_collection = hashed_ad_collection
+        self._cluster_membership_collection = cluster_membership_collection
+        self._update_metadata_collection = update_metadata_collection
         self._seqdef_sequences_psql_tbl = TblSequences(self._species)
-        self.clustering_thresholds = CLUSTERING_CONFIG[f"clustering_thresholds_{self._species}"]
-        self.current_update_date = datetime.datetime.utcnow()
-        self.last_date_of_update = self._get_last_date_of_update()
-        if self.last_date_of_update == None:
-            self.last_date_of_update = datetime.datetime(1970, 1, 1)  # unix time
-            self.update_metadata_collection.with_options(write_concern=WriteConcern(w="majority")).insert_one(
+        self._clustering_thresholds = CLUSTERING_CONFIG[f"clustering_thresholds_{self._species}"]
+        self._current_update_date = datetime.datetime.utcnow()
+        self._last_date_of_update = self._get_last_date_of_update()
+        if self._last_date_of_update == None:
+            self._last_date_of_update = datetime.datetime(1970, 1, 1)  # unix time
+            self._update_metadata_collection.with_options(write_concern=WriteConcern(w="majority")).insert_one(
             {'metadata': 'last_update',
             'last_update_date': datetime.datetime(1970, 1, 1)})
-        self.new_sequences = self._get_new_sequence()
-        self.new_st = self._get_new_st()
-        self.st_headers = self._get_st_headers()
-        self.new_cluster_membership = self._get_new_cluster_membership()
+        self._new_sequences = self._get_new_sequence()
+        self._new_st = self._get_new_st()
+        self._st_headers = self._get_st_headers()
+        self._new_cluster_membership = self._get_new_cluster_membership()
 
-    def _get_last_date_of_update(self) -> date:
+    def _get_last_date_of_update(self) -> Optional[date]:
         """
         Retrieve in mongo db the date of the last update.
         :return: a date in iso UTC format
         """
-        query = self.update_metadata_collection.find_one({'metadata': 'last_update'})
-        if query:
-            return query['last_update_date']
-        else:
-            return query
+        query = self._update_metadata_collection.find_one({'metadata': 'last_update'})
+        return query['last_update_date'] if query else None
 
-    def _get_new_sequence(self) -> list:
+    def _get_new_sequence(self) -> List[Dict[str, Any]]:
         """
         Retrieve all the new hashed alleles from the mongo hashed alleles collection that have been added since the
         date of the last update.
         :return: A list of documents containing the information about the new alleles.
         """
-        query_seq = self.hashed_ad_collection.find({'insertion_date': {'$gt': self.last_date_of_update}})
-        results = list(query_seq)
-        return results
+        return list(self._hashed_ad_collection.find({'insertion_date': {'$gt': self._last_date_of_update}, 'resolved_AD': 0}))
 
-    def _get_new_st(self) -> list:
+    def _get_new_st(self) -> List[Dict[str, Any]]:
         """
         Retrieve the new sequence types from the mongo db sequence types collection which have been added since the
         date of the last update.
-        :return: A list of documents containing the information about the new alleles.
+        :return: A list of documents containing the information about the new sequence types.
         """
-        query_st = self.st_collection.find({'insertion_date': {'$gt': self.last_date_of_update}})
-        sts = list(query_st)
-        return sts
+        return list(self._st_collection.find({'insertion_date': {'$gt': self._last_date_of_update}}))
 
-    def _get_st_headers(self) -> Dict[str, str]:
+    def _get_st_headers(self) -> Dict[str, Any]:
         """
         Retrieve the sequence types headers from the sequence type collection from Mongo DB
-        :return: The document (dict) containing the headers.
+        :return: The document (dict) containing the allele names as a list under the 'headers' key.
+        This allele names header corresponds to the list of alleles in the profiles in the sequence_types collection.
         """
-        return self.headers_collection.find_one({'type': 'cgmlst_headers'})
+        return self._headers_collection.find_one({'type': 'cgmlst_headers'})
 
-    def _get_new_cluster_membership(self) -> list:
+    def _get_new_cluster_membership(self) -> List[Dict[str, Any]]:
         """
         Retrieve the cluster memberships that have been added or modified since the last date of update
         :return: A list of documents (dict) containing the information about the new cluster memberships.
         """
-        query_cluster = self.cluster_membership_collection.find({'insertion_date': {'$gt': self.last_date_of_update}})
-        cluster = list(query_cluster)
-        return cluster
+        return list(self._cluster_membership_collection.find({'insertion_date': {'$gt': self._last_date_of_update}}))
 
     def insert_into_bigs(self) -> None:
         """
         Main method to initiate the insertion into BIGSdb of the new results retrieved during the initialization.
         :return: None.
         """
-        if len(self.new_sequences) > 0:
+        if len(self._new_sequences) > 0:
             self._insert_new_alleles()
-        if len(self.new_st) > 0:
+        if len(self._new_st) > 0:
             self._insert_sequence_types()
-        if len(self.new_cluster_membership) > 0:
+        if len(self._new_cluster_membership) > 0:
             self._insert_or_update_clustering()
         self._update_last_update_date()
 
@@ -133,25 +110,23 @@ class NewAllelesProfileClusteringFromMongoToBigs:
         Insert into BIGSdb the new alleles retrieved during the initialization.
         :return: None.
         """
-        ordered_by_scheme_dict = self._order_sequences_by_locus()
-        for scheme_loci in ordered_by_scheme_dict:
-            scheme, locus = scheme_loci.split(',')
+        ordered_by_locus_dict = self._order_sequences_by_locus()
+        for locus in ordered_by_locus_dict:
             # fetch all alleles ids already in bigs
-            listoftuples = self._seqdef_sequences_psql_tbl.select_allele_from_locus((locus,))
-            set_alleleid = set(item[0] for item in listoftuples)
-            for new_allele in ordered_by_scheme_dict[scheme_loci]:
+            set_alleleid = set(item[0] for item in self._seqdef_sequences_psql_tbl.select_allele_from_locus((locus,)))
+            for new_allele in ordered_by_locus_dict[locus]:
                 if new_allele['temp_allele_name'] not in set_alleleid:
                     self._seqdef_sequences_psql_tbl.insert_sequence((locus, new_allele['temp_allele_name'], new_allele['allele_sequence']))
                     logging.info(f"id {new_allele['temp_allele_name']} inserted into locus {locus}")
 
-    def _order_sequences_by_locus(self) -> Dict[str, Any]:
+    def _order_sequences_by_locus(self) -> Dict[str, List[Dict[str, Any]]]:
         """
         Order the sequences by locus in order to be able to add the alleles by locus in an easy way.
-        :return: None
+        :return: dictionary of loci and a list of their corresponding hashed dictionaries
         """
         order_seqs = {}
-        for seq in self.new_sequences:
-            key = f"{seq['scheme']},{seq['locus']}"
+        for seq in self._new_sequences:
+            key = seq['locus']
             if key in order_seqs:
                 order_seqs[key].append(seq)
             else:
@@ -165,10 +140,10 @@ class NewAllelesProfileClusteringFromMongoToBigs:
         """
         with TblProfiles(self._species) as seqdef_profiles_psql_tbl:
             listoftuples: List[Tuple[int]] = seqdef_profiles_psql_tbl.select_profile(('cgMLST',))
-            primary_fields = [int(x[0]) for x in listoftuples] if listoftuples is not None else []
+            primary_fields = [int(x[0]) for x in listoftuples] if listoftuples else []
             with TblProfileMembers(self._species) as seqdef_profilemembers_psql_tbl, \
                     TblProfileFields(self._species) as seqdef_profilefields_psql_table:
-                for st in self.new_st:
+                for st in self._new_st:
                     if int(st['cgST']) not in primary_fields:
                         logging.info(f"start insert of {st['cgST']}")
                         st_id = st['cgST']
@@ -177,7 +152,7 @@ class NewAllelesProfileClusteringFromMongoToBigs:
                         # insertion of the st in the profiles_fields
                         seqdef_profilefields_psql_table.insert_profile_field(('cgMLST', 'cgST', st_id, st_id))
                         alleles = st['cgMLST']
-                        for locus, allele_id in zip(self.st_headers['headers'], alleles):
+                        for locus, allele_id in zip(self._st_headers['headers'], alleles):
                             if str(allele_id) == '0':  # this will create a ForeignKeyViolation error so we prevent this
                                 # by inserting a null allele if not yet present
                                 nullpresent = self._seqdef_sequences_psql_tbl.count_sequence_null((locus,))
@@ -197,8 +172,8 @@ class NewAllelesProfileClusteringFromMongoToBigs:
         with TblClassificationGroups(self._species) as seqdef_clgr_psql_tbl, \
             TblClassificationGroupProfiles(self._species) as seqdef_clgrpr_psql_tbl, \
             TblClassificationGroupProfileHistory(self._species) as seqdef_clgrprhist_psql_tbl:
-            for cl_membership in self.new_cluster_membership:
-                cg_scheme_id = self.clustering_thresholds.index(cl_membership['threshold']) + 1
+            for cl_membership in self._new_cluster_membership:
+                cg_scheme_id = self._clustering_thresholds.index(cl_membership['threshold']) + 1
                 profile_id = cl_membership['cgST']
                 group_id = cl_membership['clustering_membership']
                 seqdef_clgr_psql_tbl.count_group((cg_scheme_id, group_id))
@@ -223,7 +198,7 @@ class NewAllelesProfileClusteringFromMongoToBigs:
     def __check_for_classification_schemes(self) -> None:
         """
         Check if the classification schemes are already into BIGSdb. if not, insert them.
-        :return:
+        :return: None
         """
         with TblClassificationSchemes(self._species, 'seqdef') as seqdef_clsch_psql_tbl, \
             TblClassificationSchemes(self._species, 'isolates') as isolates_clsch_psql_tbl:
@@ -234,7 +209,7 @@ class NewAllelesProfileClusteringFromMongoToBigs:
             else:
                 thresholds_presents = []
                 idx_max = 0
-            for threshold in self.clustering_thresholds:
+            for threshold in self._clustering_thresholds:
                 if threshold not in thresholds_presents:
                     name = f"cgMLST_{threshold}_diffs_clustering"
                     description = f"cgMLST profiles clustering at the threshold of {threshold} allelic differences"
@@ -250,9 +225,9 @@ class NewAllelesProfileClusteringFromMongoToBigs:
         Update into Mongodb the last date of update once the update has been carried out.
         :return: None.
         """
-        self.update_metadata_collection.with_options(write_concern=WriteConcern(w="majority")).update_one(
+        self._update_metadata_collection.with_options(write_concern=WriteConcern(w="majority")).update_one(
             {'metadata': 'last_update'}, {
-                "$set": {'last_update_date': self.current_update_date}})
+                "$set": {'last_update_date': self._current_update_date}})
 
     def __exit__(self) -> None:
         """
@@ -271,6 +246,7 @@ def run_upload_new_alleles_profiles_clustering_from_mongo_to_bigs(species: str, 
     """
     # Configure stdout logging
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
+    
     # Open collections
     mongoinit = MongoInitialisation(species, mongo_config_data=mongo_config_data)
     hashed_ad_collection = mongoinit.initialise_hashing_collection()
@@ -282,9 +258,9 @@ def run_upload_new_alleles_profiles_clustering_from_mongo_to_bigs(species: str, 
     # initialize the class
     try:
         updater = NewAllelesProfileClusteringFromMongoToBigs(species, st_collection, hashed_ad_collection,
-                                        cluster_membership_collection, update_collection, headers_collection)
+                                                             cluster_membership_collection, update_collection,
+                                                             headers_collection)
         updater.insert_into_bigs()
     except Exception as exceptionmessage:
-        _send_email(f"{Path(__file__).name} fail on host {socket.gethostname()}",
-                    f"{exceptionmessage}\n{traceback.format_exc()}", mongo_config_data['mail'])
+        send_email(f"{exceptionmessage}\n{traceback.format_exc()}")
         raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}")

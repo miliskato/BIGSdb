@@ -15,33 +15,39 @@ from bioit_mongodb_scripts.util.mongo_querying import Mongoquerying
 
 
 class ClusteringMakerCustom(DistanceAndClusterComputer):
-    def __init__(self, cluster_membership_collection: pymongo.collection.Collection, isolates_collection: pymongo.collection.Collection,
-                 hashed_AD_collection: pymongo.collection.Collection, threshold: int, sample: str, headers_collection: pymongo.collection.Collection) -> None:
+    def __init__(self, cluster_membership_collection: pymongo.collection.Collection, 
+                 isolates_collection: pymongo.collection.Collection, 
+                 hashed_ad_collection: pymongo.collection.Collection, 
+                 threshold: int, sample: str, headers_collection: pymongo.collection.Collection,
+                 st_collection: pymongo.collection.Collection, 
+                 cluster_merging_collection: pymongo.collection.Collection) -> None:
         """
         Init of the class
         :param cluster_membership_collection: collection where the cluster membership of the ST is stored
         :param isolates_collection: collection where results from the isolates is stored
-        :param hashed_AD_collection: collection where the new alleles are stored
+        :param hashed_ad_collection: collection where the new alleles are stored
         :param threshold: threshold to use to reconstruct the cluster (number of differences between cgmlst profiles tolerated to be part of the same cluster).
         :param sample: sample to extract the cluster membership and reconstruct the cluster.
+        :param headers_collection the collection containing the headers
+        :param st_collection: the sequence types collection from mongoDB.
+        :param cluster_merging_collection: the collection containing the cluster merging history
+        :return: None
         """
         logging.getLogger().setLevel(logging.INFO)
         logging.info("Initialization of the clustering maker custom")
-        self.cluster_membership_collection = cluster_membership_collection
-        self.isolates_collection = isolates_collection
-        self.hashed_AD_collection = hashed_AD_collection
-        self.sample = sample
-        self.sample_st = self._retrieve_sample_st()
-        self.threshold = threshold
-        self._headers_collection = headers_collection
-        self.cluster_membership = self._retrieve_cluster_membership()
-        self.cluster_members_st = []
+        super().__init__(headers_collection, st_collection, cluster_membership_collection, cluster_merging_collection)
+        self._isolates_collection = isolates_collection
+        self._sample = sample
+        self._sample_st = self._retrieve_sample_st()
+        self._threshold = threshold
+        self._cluster_membership = self._retrieve_cluster_membership()
+        self._cluster_members_st = []
         self._retrieve_cluster_members_st()
-        self.cluster_members_samples = []
-        self.cgmlst_profiles = []
+        self._cluster_members_samples = []
+        self._cgmlst_profiles = []
         logging.info("Retrieving cluster members and cgMLST profiles")
         self._retrieve_cluster_members_samples_and_profiles()
-        self.hamming_distances = []
+        self._hamming_distances = []
         logging.info("Computing hamming distances")
         self.compute_hamming_distances('full')
 
@@ -50,32 +56,32 @@ class ClusteringMakerCustom(DistanceAndClusterComputer):
         Retrieve the sequence type of the sample.
         :return: the sequence type which is an int.
         """
-        return self.isolates_collection.find_one({'_id': self.sample})['results']['cgST']
+        return self._isolates_collection.find_one({'_id': self._sample})['results']['cgST']
 
     def _retrieve_cluster_membership(self) -> int:
         """
-        Retrieve the cluster membership of the sample self.sample.
+        Retrieve the cluster membership of the sample self._sample.
         :return: the cluster membership which is an int.
         """
-        return self.cluster_membership_collection.find_one({'cgST': self.sample_st, 'threshold': self.threshold})[
+        return self._cluster_membership_collection.find_one({'cgST': self._sample_st, 'threshold': self._threshold})[
             'clustering_membership']
 
     def _retrieve_cluster_members_st(self) -> None:
         """
-        Retrieve all the sequence types which are part of the cluster from the sample self.sample.
+        Retrieve all the sequence types which are part of the cluster from the sample self._sample.
         :return: None
         """
-        self.cluster_members = list(self.cluster_membership_collection.find(
-            {'clustering_membership': self.cluster_membership, 'threshold': self.threshold}, {'cgST': 1, '_id': 0}))
-        self.cluster_members_st = [x['cgST'] for x in self.cluster_members]
+        self.cluster_members = list(self._cluster_membership_collection.find(
+            {'clustering_membership': self._cluster_membership, 'threshold': self._threshold}, {'cgST': 1, '_id': 0}))
+        self._cluster_members_st = [x['cgST'] for x in self.cluster_members]
 
     def _retrieve_cluster_members_samples_and_profiles(self) -> None:
         """
         Retrieve the samples which are members of the cluster and their cgmlst proviles
         :return:  None
         """
-        for st in self.cluster_members_st:
-            query_samples = self.isolates_collection.find({'results.cgST': st}, {'_id': 1, 'results.cgmlst.loci': 1})
+        for st in self._cluster_members_st:
+            query_samples = self._isolates_collection.find({'results.cgST': st}, {'_id': 1, 'results.cgmlst.loci': 1})
             for res in query_samples:
                 sample_id = res['_id']
                 if res == query_samples[0]:
@@ -83,9 +89,9 @@ class ClusteringMakerCustom(DistanceAndClusterComputer):
                     query_profile = mongoquerying.singledoc_typing_results_by_technicalids_and_scheme(res, 'cgmlst', self._headers_collection)
                 # next step is to order the alleles by allele names to be sure that all profiles are in the same order.
                 # ordered_alleles = [x for _, x in sorted(zip(query_profile[0][1:], query_profile[1][1:]))]
-                self.cgmlst_profiles.append(np.array(query_profile[1][1:]))
-                self.cluster_members_samples.append(sample_id)
-        self.cgmlst_profiles = np.array(self.cgmlst_profiles)
+                self._cgmlst_profiles.append(np.array(query_profile[1][1:]))
+                self._cluster_members_samples.append(sample_id)
+        self._cgmlst_profiles = np.array(self._cgmlst_profiles)
 
     @staticmethod
     def get_newick(node: scipy.cluster.hierarchy.ClusterNode, parent_dist: float, leaf_names: list, newick: str = '') -> str:
@@ -110,13 +116,13 @@ class ClusteringMakerCustom(DistanceAndClusterComputer):
             return newick
 
     def single_linkage_clustering(self) -> None:
-        slc = fastcluster.single(ssd.squareform(self.hamming_distances))
-        names = self.cluster_members_samples
-        dist = self.hamming_distances / 2
-        cluster_name = self.cluster_membership
-        save_name = f'{self.sample}_{self.threshold}_cluster_{cluster_name}'
+        slc = fastcluster.single(ssd.squareform(self._hamming_distances))
+        names = self._cluster_members_samples
+        dist = self._hamming_distances / 2
+        cluster_name = self._cluster_membership
+        save_name = f'{self._sample}_{self._threshold}_cluster_{cluster_name}'
         fig = ff.create_dendrogram(dist, orientation='left', labels=names,
-                                   color_threshold=int(self.threshold))
+                                   color_threshold=int(self._threshold))
         fig.update_layout(width=800, height=500)
         plotly.offline.plot(fig, filename=f"{save_name}.html", auto_open=False)
         #dn = hcluster.dendrogram(slc, leaf_rotation=90, labels=names, leaf_font_size=8, show_leaf_counts=False)

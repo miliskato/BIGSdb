@@ -1,5 +1,5 @@
-import os
-import yaml
-_config_folder = os.path.dirname(os.path.realpath(__file__))
+from pathlib import Path
 
-TRIGGER_CONFIG = os.path.join(_config_folder, 'config.yml')
+_config_folder = Path(__file__).resolve().parent
+
+TRIGGER_CONFIG = _config_folder / 'config.yml'

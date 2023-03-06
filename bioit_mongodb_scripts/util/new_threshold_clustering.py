@@ -1,28 +1,37 @@
 import logging
+import sys
 from pathlib import Path
-from typing import Dict, List, Union
+from typing import Any, Dict, List, Union
 
 import pymongo
 import yaml
+
+PYTHONPATH = Path(__file__).resolve().parent.parent.parent
+sys.path.append(str(PYTHONPATH))
 
 from bioit_mongodb_scripts.util.distance_and_cluster_computer import DistanceAndClusterComputer
 
 
 class NewThresholdClustering(DistanceAndClusterComputer):
-    def __init__(self, st_collection: pymongo.collection.Collection, cluster_membership_collection: pymongo.collection.Collection,
-                 clustering_config_file: Path, new_thresholds: list, species: str) -> None:
+    def __init__(self, st_collection: pymongo.collection.Collection,
+                 cluster_membership_collection: pymongo.collection.Collection,
+                 headers_collection: pymongo.collection.Collection,
+                 cluster_merging_collection: pymongo.collection.Collection,
+                 clustering_config_file: Path, new_thresholds: set[int], species: str) -> None:
         """
         Init of the class
         :param st_collection: the sequence type collection of Mongo db
         :param cluster_membership_collection:  the cluster membership collection of mongo db
-        :param clustering_config_file:  the path to the clustering config file
+        :param headers_collection the collection containing the headers
+        :param cluster_merging_collection: the collection containing the cluster merging history
+        :param clustering_config_file: the path to the clustering config file
         :param new_thresholds: new threshold (max number of differences accepted to be part of the same cluster)
-        :param species: species to which we want to add new thresholds
+        :param species: commonly used bioit species name: either genus or specific like stec
         """
-        self.config_file_path = clustering_config_file
-        self.new_clustering_thresholds = new_thresholds
+        super().__init__(headers_collection, st_collection, cluster_membership_collection, cluster_merging_collection)
+        self._config_file_path = clustering_config_file
+        self._new_clustering_thresholds = new_thresholds
         self._species = species
-        super().__init__(st_collection, cluster_membership_collection, [0])
 
     def create_new_threshold_and_compute_clustering(self) -> None:
         """
@@ -34,17 +43,17 @@ class NewThresholdClustering(DistanceAndClusterComputer):
         clustering_config = self._load_config_file()
         logging.info("Checking if the new thresholds are absent from the config")
         species_thresh_field = f'clustering_thresholds_{self._species}'
-        thresh_to_add = []
-        for threshold in self.new_clustering_thresholds:
-            if int(threshold) not in clustering_config[species_thresh_field]:
-                thresh_to_add.append(int(threshold))
+        thresh_to_add = set()
+        for threshold in self._new_clustering_thresholds:
+            if threshold not in clustering_config[species_thresh_field]:
+                thresh_to_add.add(threshold)
             else:
                 logging.info(f"The threshold {threshold} is already in the config file, it will not be added")
-        if not thresh_to_add:
+        if len(thresh_to_add) == 0:
             logging.info(f"None of the thresholds needed to be added => No further actions")
         else:
             logging.info(f"The following thresholds will be added : {thresh_to_add}")
-            clustering_config[species_thresh_field] = clustering_config[species_thresh_field] + thresh_to_add
+            clustering_config[species_thresh_field] = clustering_config[species_thresh_field] + list(thresh_to_add)
             self._write_config_file(clustering_config)
             logging.info(f"New config file written")
             logging.info(f"Clustering of the sequence types of the database to the new thresholds")
@@ -58,15 +67,15 @@ class NewThresholdClustering(DistanceAndClusterComputer):
         loads the clustering config file
         :return: dict with the loaded config file informations
         """
-        with open(self.config_file_path) as handle:
+        with open(self._config_file_path) as handle:
             clustering_config = yaml.load(handle, Loader=yaml.SafeLoader)
         return clustering_config
 
-    def _write_config_file(self, config: dict) -> None:
+    def _write_config_file(self, config: Dict[str, Any]) -> None:
         """
         write the config file with the new clustering informations.
         :param config: dict containing the information of the config files to be loaded.
         :return: None
         """
-        with open(self.config_file_path, 'w') as outfile:
+        with open(self._config_file_path, 'w') as outfile:
             yaml.dump(config, outfile, default_flow_style=False)

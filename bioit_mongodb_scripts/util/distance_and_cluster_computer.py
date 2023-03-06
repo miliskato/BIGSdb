@@ -1,6 +1,9 @@
 import datetime
 import logging
+import sys
 from multiprocessing import Pool
+from typing import List
+from pathlib import Path
 
 import fastcluster
 import numpy as np
@@ -8,6 +11,9 @@ import pymongo
 import scipy.cluster.hierarchy as hcluster
 from pymongo.write_concern import WriteConcern
 from scipy.spatial import distance as ssd
+
+PYTHONPATH = Path(__file__).resolve().parent.parent.parent
+sys.path.append(str(PYTHONPATH))
 
 from bioit_mongodb_scripts.util.hamming_distance import getDistance
 
@@ -19,24 +25,26 @@ class DistanceAndClusterComputer:
 
     def __init__(self, headers_collection: pymongo.collection.Collection, st_collection: pymongo.collection.Collection,
                  cluster_membership_collection: pymongo.collection.Collection,
-                 cluster_merging_collection: pymongo.collection.Collection, st_to_use: list) -> None:
+                 cluster_merging_collection: pymongo.collection.Collection, st_to_use: List[int] = None) -> None:
         """
         Initializes the class.
+        :param headers_collection the collection containing the headers (will use the cgmlst headers)
         :param st_collection: sequence types collection from mongoDb.
         :param cluster_membership_collection:  the cluster membership collection from mongoDB.
+        :param cluster_merging_collection: the collection containing the cluster merging history
+        :param st_to_use: sequence types list to be used for clustering
+        :return: None
         """
         logging.getLogger().setLevel(logging.INFO)
         logging.info("Initialization of the distance and cluster computer")
-        self.st_to_use = st_to_use
-        self.headers_collection = headers_collection
-        self.st_collection = st_collection
-        # self.matrix_collection = distance_matrix_collection
-        self.cluster_membership_collection = cluster_membership_collection
-        self.cluster_merging_collection = cluster_merging_collection
-        self.cgmlst_profiles = []
-        self.sequence_types = []
-        self.missing_alleles = []
-        self.hamming_distances = []
+        self._st_to_use = st_to_use
+        self._headers_collection = headers_collection
+        self._st_collection = st_collection
+        self._cluster_membership_collection = cluster_membership_collection
+        self._cluster_merging_collection = cluster_merging_collection
+        self._cgmlst_profiles = []
+        self._sequence_types = []
+        self._hamming_distances = []
         logging.info("Retrieving cgmlst profiles from the database")
         self._get_cgmlst_profiles()
         logging.info("Sorting cgmlst profiles")
@@ -48,27 +56,27 @@ class DistanceAndClusterComputer:
         Retrieves all the cgmlst profiles as list from mongoDB st_collection.
         :return:
         """
-        if self.st_to_use == [0]:
+        if self._st_to_use:
             logging.info("All cgmlst profiles from the db are being retrieved")
-            query_all_data = self.st_collection.find({})
+            query_all_data = self._st_collection.find({})
         else:
             logging.info("Only the provided st are being retrieved")
-            query_all_data = self.st_collection.find({'$in': self.st_to_use})
+            query_all_data = self._st_collection.find({'cgST': {'$in': self._st_to_use}})
 
         for doc in query_all_data:
             if 'cgST' in doc:
-                self.cgmlst_profiles.append(np.array(doc['cgMLST']))
-                self.sequence_types.append(doc['cgST'])
+                self._cgmlst_profiles.append(np.array(doc['cgMLST']))
+                self._sequence_types.append(doc['cgST'])
 
     def _sorting_cgmlst_profiles(self) -> None:
         """
         Sorts by ascending order the cgmlst profiles and sequence types.
         :return:
         """
-        zip_list = zip(self.sequence_types, self.cgmlst_profiles)
+        zip_list = zip(self._sequence_types, self._cgmlst_profiles)
         sorted_pairs = sorted(zip_list, reverse=False)
         tuples = zip(*sorted_pairs)
-        self.sequence_types, self.cgmlst_profiles = [list(tuple1) for tuple1 in tuples]
+        self._sequence_types, self._cgmlst_profiles = [list(tuple1) for tuple1 in tuples]
 
     def compute_hamming_distances(self, mode: str) -> None:
         """
@@ -81,19 +89,19 @@ class DistanceAndClusterComputer:
         if mode == 'full':
             start = 0
         elif mode == 'last_st':
-            start = len(self.cgmlst_profiles) - 1
+            start = len(self._cgmlst_profiles) - 1
         else:
-            ValueError('mode should be either full or last_st for compute_hamming_distances')
+            raise ValueError('mode should be either full or last_st for compute_hamming_distances')
         pool = Pool(4)
-        self.hamming_distances = getDistance(np.array(self.cgmlst_profiles), 'hamming_dist', pool, start)
+        self._hamming_distances = getDistance(np.array(self._cgmlst_profiles), 'hamming_dist', pool, start)
         if mode == 'full':
             # when mode is full, half matrix is computed (lower triangle) so as we know that the
             # distances are symetric we can add the transposed to retrieve the upper triangle of the matrix
             # and get a squared distance matrix for downstream applications
-            self.hamming_distances += self.hamming_distances.T
+            self._hamming_distances += self._hamming_distances.T
         logging.info(f"{datetime.datetime.now()}: Hamming distances computed!")
 
-    def init_clustering_and_cluster_membership(self, cluster_thresholds: list) -> None:
+    def init_clustering_and_cluster_membership(self, cluster_thresholds: set) -> None:
         """
         This function is to compute the clustering from more than one sequence type. It uses the distance matrix and
         after clustering (single-linkage) it determines for every ST the cluster membership of all the ST for every
@@ -103,17 +111,17 @@ class DistanceAndClusterComputer:
         :return:
         """
         logging.info(f"{datetime.datetime.now()}: Starting initial clustering and clustering membership encoding")
-        slc = fastcluster.single(ssd.squareform(self.hamming_distances))
+        slc = fastcluster.single(ssd.squareform(self._hamming_distances))
         for thresh in cluster_thresholds:
             cluster_membership = hcluster.fcluster(slc, thresh, criterion='distance')
             documents = []
             for entry in range(len(cluster_membership)):
-                doc = {'cgST': self.sequence_types[entry],
+                doc = {'cgST': self._sequence_types[entry],
                        'insertion_date': datetime.datetime.utcnow(),
                        'threshold': thresh,
                        'clustering_membership': int(cluster_membership[entry])}
                 documents.append(doc)
-            self._insert_a_lot(documents, self.cluster_membership_collection)
+            self._insert_a_lot(documents, self._cluster_membership_collection)
             logging.info(f"{datetime.datetime.now()}: Clustering membership finished for threshold {thresh}")
         logging.info(f"{datetime.datetime.now()}: Clustering and clustering membership finished")
 
@@ -131,7 +139,7 @@ class DistanceAndClusterComputer:
         logging.debug(f'merging clusters {memberships}')
         memberships.sort()
         for cluster in memberships:
-            cluster_sizes.append(self.cluster_membership_collection.count_documents({'threshold': threshold,
+            cluster_sizes.append(self._cluster_membership_collection.count_documents({'threshold': threshold,
                                                                                      'clustering_membership': cluster}))
         max_index = cluster_sizes.index(max(cluster_sizes))
         new_cluster_name = memberships[max_index]
@@ -141,7 +149,7 @@ class DistanceAndClusterComputer:
                      'clustering_membership': cl}
             self.__save_cluster_membership_in_history(query, new_cluster_name, threshold)
             update = {'$set': {'clustering_membership': new_cluster_name, 'insertion_date': datetime.datetime.utcnow()}}
-            self.cluster_membership_collection.update_many(query, update)
+            self._cluster_membership_collection.update_many(query, update)
         return new_cluster_name
 
     def __save_cluster_membership_in_history(self, query: dict, new_cluster_name: int, thresh: int) -> None:
@@ -153,9 +161,9 @@ class DistanceAndClusterComputer:
         :param thresh: the threshold for which the merging occurs.
         :return: None
         """
-        query_res = self.cluster_membership_collection.find(query)
+        query_res = self._cluster_membership_collection.find(query)
         for st in query_res:
-            self.cluster_merging_collection.insert_one({'cgST': st['cgST'],
+            self._cluster_merging_collection.insert_one({'cgST': st['cgST'],
                                                         'threshold': thresh,
                                                         'merging_date': datetime.datetime.utcnow(),
                                                         'old_cluster': st['clustering_membership'],
@@ -169,19 +177,19 @@ class DistanceAndClusterComputer:
         """
         for thresh in cluster_thresholds:
             membership = []
-            for it in range(len(self.hamming_distances[0]) - 1):
-                if self.hamming_distances[0][it] <= thresh:
-                    membership.append(self.cluster_membership_collection.find_one({'cgST': self.sequence_types[it], 'threshold': thresh})['clustering_membership'])
+            for it in range(len(self._hamming_distances[0]) - 1):
+                if self._hamming_distances[0][it] <= thresh:
+                    membership.append(self._cluster_membership_collection.find_one({'cgST': self._sequence_types[it], 'threshold': thresh})['clustering_membership'])
             membership = list(set(membership))
             if len(membership) > 1:
                 membership = [self._merge_clusters(membership, thresh)]
             elif len(membership) == 0:
-                membership.append(self.sequence_types[-1])
-            entry = {'cgST': self.sequence_types[-1],
+                membership.append(self._sequence_types[-1])
+            entry = {'cgST': self._sequence_types[-1],
                      'insertion_date': datetime.datetime.utcnow(),
                      'threshold': thresh,
                      'clustering_membership': membership[0]}
-            self.cluster_membership_collection.with_options(write_concern=WriteConcern(w="majority")).insert_one(entry)
+            self._cluster_membership_collection.with_options(write_concern=WriteConcern(w="majority")).insert_one(entry)
 
     @staticmethod
     def _insert_a_lot(insertion_docs: list, collection: pymongo.collection.Collection) -> None:

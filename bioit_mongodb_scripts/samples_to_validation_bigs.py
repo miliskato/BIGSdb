@@ -1,7 +1,5 @@
 import datetime
-import logging
 import sys
-import traceback
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -11,8 +9,9 @@ PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
-from bioit_bigsdb_scripts.components.psql import TblSubmissions, TblIsolateSubmissionIsolates, TblIsolateSubmissionFieldOrder
-from bioit_bigsdb_scripts.components.python_utility_functions import send_email
+from bioit_bigsdb_scripts.components.psql import TblSubmissions, TblIsolateSubmissionIsolates, \
+    TblIsolateSubmissionFieldOrder
+
 
 def _insert_submission_bigs(sample_docs: List[Dict[str, Any]], validation_type: str, species: str) -> None:
     """
@@ -20,25 +19,24 @@ def _insert_submission_bigs(sample_docs: List[Dict[str, Any]], validation_type: 
     :param sample_docs: list of documents to be submitted
     :param validation_type: either bad_quality or resequencing
     :param species: commonly used bioit species name: either genus or specific like stec
-    :return:
+    :return: None
     """
     with TblSubmissions(species) as isolates_sub_psql_tbl, \
-        TblIsolateSubmissionIsolates(species) as isolates_isosubiso_psql_tbl, \
-        TblIsolateSubmissionFieldOrder(species) as isolates_isosubfo_psql_tbl:
+            TblIsolateSubmissionIsolates(species) as isolates_isosubiso_psql_tbl, \
+            TblIsolateSubmissionFieldOrder(species) as isolates_isosubfo_psql_tbl:
         for doc in sample_docs:
             isolates_sub_psql_tbl.insert_submission((validation_type,))
             # todo need to set a proper method to build links based on the sample to transfer
             # for testing purposes
             html_path = 'http://bioit-bigs-dev.sciensano.be/galaxyreports/listeria/110-001_S68_L001/report.html'
             # dev code, not set yet
-            html_path = str(html_path).replace('/reports/', '/galaxyreports/')
+            html_path = str(html_path).replace('/reports/', '/galaxyreports/') #  todo, probably needs to be removed after proper working with htmlreporter
             html_link = f'<p><a href="{html_path}" target="_blank"> html report</a></p>'
             # end of dev code
             isolates_isosubiso_psql_tbl.insert_validation_metadata(('html_report', html_link))
             isolates_isosubiso_psql_tbl.insert_validation_metadata(('isolate_id', doc['_id']))
             isolates_isosubiso_psql_tbl.insert_validation_metadata(('validation_type', validation_type))
-            # todo i wonder if these indexes always need to be inserted? it seems like a lot of queries for something
-            #  that could have a default
+            # The indexes below are necessary, if they are not inserted the values above are not visible
             isolates_isosubfo_psql_tbl.insert_validation_indexes(('html_report', 1))
             isolates_isosubfo_psql_tbl.insert_validation_indexes(('isolate_id', 2))
             isolates_isosubfo_psql_tbl.insert_validation_indexes(('validation_type', 3))
@@ -48,38 +46,28 @@ def samples_to_validation_bigs(species: str, mongo_config_data: Dict[str, Any] =
     """
     Send samples in the badqc_sample and resequencing collection to be validated on BIGSdb
     :param species: commonly used bioit species name: either genus or specific like stec
-    :param mongo_config_data: Pass provided mongo_config_data to MongoInitialisation, else get mongo_config_data from file
+    :param mongo_config_data: Pass provided mongo_config_data to MongoInitialisation,
+    else get mongo_config_data from file in mongoinit
     :return: None
     """
-    # Configure stdout logging
-    logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
-
-    try:
-
-        # Open collections
-        mongoinit = MongoInitialisation(species, mongo_config_data=mongo_config_data)
-        isolates_collection, old_isolateresults_collection, isolates_badqc_collection, \
+    # Open collections
+    mongoinit = MongoInitialisation(species, mongo_config_data=mongo_config_data)
+    isolates_collection, old_isolateresults_collection, isolates_badqc_collection, \
         isolates_resequencing_collection = mongoinit.initialise_collections()
 
-        # fetch all documents in the bad samples of the species
-        update_collection = mongoinit.initialise_update_collection()
-        query = update_collection.find_one({'metadata': 'last_validation_to_bigs_update'})
-        if query:
-            last_run_date = query['last_update_date']
-        else:
-            last_run_date = datetime.datetime(1970, 1, 1)
-            update_collection.with_options(write_concern=WriteConcern(w="majority")).insert_one(
-                {'metadata': 'last_validation_to_bigs_update', 'last_update_date': last_run_date})
-        current_date = datetime.datetime.utcnow()
-        bad_samples = list(isolates_badqc_collection.find({'creation_date': {'$gt': last_run_date}}))
-        #todo: add a date for synchronization with mongo and fetch only samples older than the date of last update
-        _insert_submission_bigs(bad_samples, 'bad_quality', species)
-        resequencing_samples = list(isolates_resequencing_collection.find({'creation_date': {'$gt': last_run_date}}))
-        _insert_submission_bigs(resequencing_samples, 'resequencing', species)
-        #update last date of update
+    # fetch all documents in the bad samples of the species
+    update_collection = mongoinit.initialise_update_collection()
+    query = update_collection.find_one({'metadata': 'last_validation_to_bigs_update'})
+    last_run_date = query['last_update_date'] if query else datetime.datetime(1970, 1, 1)  # unix time
+    current_date = datetime.datetime.utcnow()
+    bad_samples = list(isolates_badqc_collection.find({'creation_date': {'$gt': last_run_date}}))
+    _insert_submission_bigs(bad_samples, 'bad_quality', species)
+    resequencing_samples = list(isolates_resequencing_collection.find({'creation_date': {'$gt': last_run_date}}))
+    _insert_submission_bigs(resequencing_samples, 'resequencing', species)
+    # update last date of update
+    if query:
         update_collection.with_options(write_concern=WriteConcern(w="majority")).find_one_and_update(
             {'metadata': 'last_validation_to_bigs_update'}, {'$set': {'last_update_date': current_date}})
-    
-    except Exception as exceptionmessage:
-        send_email(f"{exceptionmessage}\n{traceback.format_exc()}")
-        raise Exception(f"{exceptionmessage}\n{traceback.format_exc()}")
+    else:
+        update_collection.with_options(write_concern=WriteConcern(w="majority")).insert_one(
+            {'metadata': 'last_validation_to_bigs_update', 'last_update_date': last_run_date})

@@ -56,7 +56,7 @@ class MongoInitialisation:
     def initialise_collections(self) -> (pymongo.collection.Collection, pymongo.collection.Collection, pymongo.collection.Collection, pymongo.collection.Collection):
         """
         Initialises database and collections for interaction
-        :return: opened isolate, isolatesresults and isolatesbadqc collections (objects) for a given species
+        :return: opened isolate, isolatesresults, isolatesbadqc, and isolates resequencing collections (instances) for a given species
         """
         # open isolates collection
         isolates_collection = self._open_mongo_collection(self.opened_mongo_database, "isolates")
@@ -71,7 +71,7 @@ class MongoInitialisation:
     def initialise_clustering_collections(self) -> (pymongo.collection.Collection, pymongo.collection.Collection, pymongo.collection.Collection):
         """
         Initialises database and collections for interaction
-        :return: opened sequence_type and  for a given species
+        :return: opened sequence_type, cluster membership, and cluster merging history collections for a given species
         """
         st_collection = self._open_mongo_collection(self.opened_mongo_database, "sequence_types")
         cluster_membership_collection = self._open_mongo_collection(self.opened_mongo_database, "cluster_membership")
@@ -89,7 +89,7 @@ class MongoInitialisation:
     def initialise_update_collection(self) -> pymongo.collection.Collection:
         """
         Initialises collection containing update metadata
-        :return: Opened hashing collection
+        :return: Opened update metadata collection
         """
         update_collection = self._open_mongo_collection(self.opened_mongo_database, "update_metadata")
         return update_collection
@@ -98,8 +98,9 @@ class MongoInitialisation:
         """
         Initialises collection containing headers of all sorts:
         typing hit dictionary headers,
+        cgST profile headers,
         ...
-        :return: Opened hashing collection
+        :return: Opened headers collection
         """
         headers_collection = self._open_mongo_collection(self.opened_mongo_database, "headers")
         return headers_collection

@@ -241,6 +241,8 @@ class MainMongo:
         """
         After an id is found in either isolates or isolates_badqc; this workflow will determine if it really is a resequencing, and if so insert it into isolates_resequencing
         :param new_records: results dictionary that is modified and inserted
+        :param document_original: original document including the sample metadata and headers and results
+        :param collection_in: the collection that the orignal sample was in
         :return: None
         """
         # https://git.sciensano.be/bioit/BIGSdb/src/d2a261056221056e56df6aa584563454f6bfec3a/lib/BIGSdb/SubmitPage.pm#L2800

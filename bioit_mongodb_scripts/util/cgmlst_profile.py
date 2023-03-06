@@ -1,16 +1,17 @@
 import datetime
-from typing import Union, Dict
+from typing import Dict, List, Union
 
 
 class cgMLSTProfile:
     """
     Class used to store cgMLST profiles  and sequence type and export them into convenient formats.
     """
-    def __init__(self, data: list, headers: list = None):
+    def __init__(self, data: List[str, int], headers: List[str] = None) -> None:
         """
         Initialize the class
         :param data: the st + cgmlst in a list (query from querymongo by assay and id)
         :param headers: the headers from the data (query from querymongo by assay and id also)
+        :return: None
         """
         self.st = data[0]
         self.cgmlst = data[1:len(data)]
@@ -20,13 +21,6 @@ class cgMLSTProfile:
     def get_st_collection_entry(self) -> Dict[str, Union[str, int, object]]:
         """
         Creates a dict containing the sequence type and the cgmlst profile to enter into the sequence type collection
-        :return:
+        :return: Dictionary containing the cgST, the cgmlst allele designations list and the current date
         """
         return {'cgST': int(self.st), 'cgMLST': self.cgmlst, 'insertion_date': datetime.datetime.utcnow()}
-
-    def get_st_line_for_hiercc_input(self) -> str:
-        """
-        Concatenates the st + all the cgmlst into one string to write it into the input file for HierCC
-        :return:
-        """
-        return '\t'.join([str(self.st), '\t'.join(map(str, self.cgmlst))])
