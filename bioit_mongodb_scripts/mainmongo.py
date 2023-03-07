@@ -178,7 +178,7 @@ class MainMongo:
             try:
                 current_results_document = \
                     self._mongoquerying.query_docs_by_ids(self._isolates_collection, [self._technical_id])[0]
-            except MongoMissingValueIsolateCollectionError as exceptionmessage:
+            except Exception as exceptionmessage:
                 send_email(
                     f"{exceptionmessage}\n{traceback.format_exc()}",
                     f"{Path(__file__).name} fail on host {socket.gethostname()}: This reanalysis technical id ({self._technical_id}) is not present in the isolates collections",
@@ -219,14 +219,11 @@ class MainMongo:
             if 'cgmlst' in new_records:
                 clustering_input = self._mongoquerying.singledoc_typing_results_by_technicalids_and_scheme(
                     new_isolate_dictionary, "cgmlst", self._headers_collection)
-                custom_clustering = MongoCustomClustering(clustering_input[0], clustering_input[1], self._species)
+                custom_clustering = MongoCustomClustering(clustering_input[0], clustering_input[1], self._species,
+                                                          mongo_config_data=self._mongo_config_data)
                 logging.info(f"Running the clustering for the isolate {self._technical_id}")
                 sp_thresholds = f"clustering_thresholds_{self._species}"
-                cg_sequence_type = custom_clustering.run_custom_clustering(self._headers_collection,
-                                                                           self._st_collection,
-                                                                           self._cluster_membership_collection,
-                                                                           self._cluster_merging_collection,
-                                                                           CLUSTERING_CONFIG[sp_thresholds])
+                cg_sequence_type = custom_clustering.run_custom_clustering(CLUSTERING_CONFIG[sp_thresholds])
                 new_isolate_dictionary['results']['cgST'] = cg_sequence_type
             if self._results_type == 'badqc_validated':
                 new_isolate_dictionary['validation'] = self._subvaldict

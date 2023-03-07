@@ -1,6 +1,6 @@
 import logging
 import sys
-from typing import List, Optional
+from typing import Any, Dict, List, Optional, Union
 from pathlib import Path
 
 import pymongo
@@ -12,40 +12,41 @@ sys.path.append(str(PYTHONPATH))
 from bioit_mongodb_scripts.config import CLUSTERING_CONFIG
 from bioit_mongodb_scripts.util.cgmlst_profile import cgMLSTProfile
 from bioit_mongodb_scripts.util.distance_and_cluster_computer import DistanceAndClusterComputer
+from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
+from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data
 
 
 class MongoCustomClustering:
-    def __init__(self, headers: List[str], data: List[str, int], species: str) -> None:
+    def __init__(self, headers: List[str], data: List[Union[str, int]], species: str, mongo_config_data: Dict[str, Any] = None) -> None:
         """
-        Initialize the class
+        Initializes the class
         :param headers: the headers of the sequence type file from HierCC (so the headers store
         in the sequence type collection of the species).
         :param data: the list of the alleles of the cgmlst profile of the isolate to process.
-        :param species: the species of the isolate.
+        :param species: commonly used bioit species name: either genus or specific like stec
+        :param mongo_config_data: Use provided mongo_config_data, else get mongo_config_data from file
         :return: None
         """
         self._cgmlst_profile = cgMLSTProfile(data, headers)
         self._species = species
+        self._mongo_config_data = mongo_config_data if mongo_config_data else get_mongodb_config_data()
         self._initialize_cluster_index = False
+        # Open collections
+        self._mongoinit = MongoInitialisation(self._species, mongo_config_data=self._mongo_config_data)
+        self._headers_collection = self._mongoinit.initialise_headers_collection()
+        self._st_collection, self._cluster_membership_collection, self._cluster_merging_collection = self._mongoinit. \
+            initialise_clustering_collections()
 
-    def run_custom_clustering(self, headers_collection: pymongo.collection.Collection,
-                              st_collection: pymongo.collection.Collection,
-                              cluster_membership_collection: pymongo.collection.Collection,
-                              cluster_merging_collection: pymongo.collection.Collection,
-                              cluster_threshold: List[int]) -> Optional[int]:
+    def run_custom_clustering(self, cluster_threshold: List[int]) -> Optional[int]:
         """
         Main function to run the whole clustering and storing data in mongoDB
-        :param headers_collection the collection containing the headers (will use the cgmlst headers)
         :param cluster_threshold: the thresholds for clustering membership to be used for the clustering
-        :param st_collection: the collection of sequence types from mongoDB.
-        :param cluster_membership_collection: the collection containing the cluster memberships in mongoDB
-        :param cluster_merging_collection: the collection containing the cluster merging history
         :return: the cg sequence type if the percentage of missing data does not exceed the threshold, else None
         """
         logging.info("Check order of the cgMLST profile")
-        self._check_order_of_cgmlst_profile(headers_collection)
+        self._check_order_of_cgmlst_profile(self._headers_collection)
         logging.info(f"Query sequence type collection for {self._species}")
-        self._cgmlst_profile.st = self._query_sequence_types(st_collection)
+        self._cgmlst_profile.st = self._query_sequence_types(self._st_collection)
         logging.info(f"Test to evaluate if the cgMLST profile doesn't have too many missing data")
         if self.__check_missing_data():
             logging.info(f"Test succeeded: the cgMLST profile will be integrated to the sequence type collection "
@@ -57,12 +58,10 @@ class MongoCustomClustering:
             logging.info(f"Found the sequence type in the sequence type collection of {self._species}")
             return self._cgmlst_profile.st
         else:
-            self._add_new_sequence_type(st_collection)
+            self._add_new_sequence_type(self._st_collection)
             logging.info(f"Start to process cgmlst profiles for cluster membership computing")
-            self._compute_cluster_membership(headers_collection, st_collection, cluster_membership_collection,
-                                             cluster_merging_collection, cluster_threshold)
+            self._compute_cluster_membership(cluster_threshold)
             return self._cgmlst_profile.st
-
 
     def _check_order_of_cgmlst_profile(self, headers_collection: pymongo.collection.Collection) -> None:
         """
@@ -73,7 +72,7 @@ class MongoCustomClustering:
         """
         try:
             db_headers = headers_collection.find_one({'type': 'cgmlst_headers'})['headers']
-        except:
+        except Exception:
             headers_collection.with_options(write_concern=WriteConcern(w="majority")).insert_one(
                 {'type': 'cgmlst_headers',
                  'headers': self._cgmlst_profile.loci})
@@ -124,29 +123,20 @@ class MongoCustomClustering:
         latest_st = st_collection.find_one(sort=[("cgST", -1)])
         try:
             self._cgmlst_profile.st = latest_st['cgST'] + 1
-        except:
+        except Exception:
             self._cgmlst_profile.st = 1
         st_collection.with_options(write_concern=WriteConcern(w="majority")).insert_one(
             self._cgmlst_profile.get_st_collection_entry())
 
-    def _compute_cluster_membership(self, headers_collection: pymongo.collection.Collection,
-                                    st_collection: pymongo.collection.Collection,
-                                    cluster_membership_collection: pymongo.collection.Collection,
-                                    cluster_merging_collection: pymongo.collection.Collection,
-                                    cluster_threshold: List[str]) -> None:
+    def _compute_cluster_membership(self, cluster_threshold: List[int]) -> None:
         """
         Computes the cluster membership for the new sequence added to the st_collection.
-        :param headers_collection the collection containing the headers
-        :param st_collection: the sequence types collection from mongoDB.
-        :param cluster_membership_collection: the cluster membership collection from mongoDB.
-        :param cluster_merging_collection: the collection containing the cluster merging history
         :param cluster_threshold: The list of thresholds to be applied when clustering the new st and determine its
         clustering membership.
         :return: None
         """
-        distance_cluster = DistanceAndClusterComputer(headers_collection, st_collection, cluster_membership_collection,
-                                                      cluster_merging_collection)
+        distance_cluster = DistanceAndClusterComputer(self._species, self._mongo_config_data)
         distance_cluster.compute_hamming_distances('last_st')
         distance_cluster.new_st_cluster_membership(cluster_threshold)
         if self._initialize_cluster_index is True:
-            cluster_membership_collection.create_index([("threshold", 1), ("clustering_membership", 1)])
+            self._cluster_membership_collection.create_index([("threshold", 1), ("clustering_membership", 1)])
