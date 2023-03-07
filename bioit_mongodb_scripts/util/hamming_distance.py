@@ -2,6 +2,7 @@ from tempfile import NamedTemporaryFile
 from typing import Any, Callable, Dict, List
 
 import SharedArray as sa
+import numba as nb
 import numpy as np
 from multiprocessing import Pool
 
@@ -75,3 +76,26 @@ def __dist_wrapper(data: List[List[Any]]) -> None:
         d = func(mat, s, e)
         dist[(s-start):(e-start)] = d
     del mat, dist
+
+@nb.jit(nopython=True)
+def hamming_dist(mat: np.ndarray, s: int, e: int):
+    """
+    hamming distances computation function. Compute the hamming distances for the line of the distance matrix between
+    indices s and e
+    :param mat: matrix to store the distances in
+    :param s: starting line to compute the distances
+    :param e: ending line to compute the distances
+    :return:
+    """
+    dist = np.zeros((e-s, mat.shape[0]), dtype=np.int32 )
+    n_loci = mat.shape[1]
+    for i in range(s, e):
+        for j in range(i):
+            hamming = 0
+            for k in range(n_loci) :
+                if mat[j, k] != '0':
+                    if mat[i, k] != '0':
+                        if mat[i, k] != mat[j, k]:
+                            hamming += 1
+            dist[i - s, j] = int(hamming)
+    return dist

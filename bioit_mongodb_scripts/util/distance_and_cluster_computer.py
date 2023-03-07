@@ -57,7 +57,7 @@ class DistanceAndClusterComputer:
         Retrieves all the cgmlst profiles as list from mongoDB st_collection.
         :return:
         """
-        if self._st_to_use:
+        if not self._st_to_use:
             logging.info("All cgmlst profiles from the db are being retrieved")
             query_all_data = self._st_collection.find({})
         else:
