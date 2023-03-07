@@ -6,7 +6,7 @@ class cgMLSTProfile:
     """
     Class used to store cgMLST profiles  and sequence type and export them into convenient formats.
     """
-    def __init__(self, data: List[str, int], headers: List[str] = None) -> None:
+    def __init__(self, data: List[Union[str, int]], headers: List[str] = None) -> None:
         """
         Initialize the class
         :param data: the st + cgmlst in a list (query from querymongo by assay and id)
