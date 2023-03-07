@@ -12,7 +12,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Tuple, Union
 
-# import dnspython # somehow this package is a requirement without actually needing to be imported, probably imported in pymongo
+# import dnspython
+# somehow this package is a requirement without actually needing to be imported, probably imported in pymongo
 import pymongo
 from pymongo.read_concern import ReadConcern
 from pymongo.write_concern import WriteConcern
@@ -93,8 +94,10 @@ class MainMongo:
         self._mongoinit = MongoInitialisation(self._species,
                                               alternate_connection_string=self._alternate_connection_string,
                                               mongo_config_data=self._mongo_config_data)
-        self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, self._isolates_resequencing_collection = self._mongoinit.initialise_collections()
-        self._st_collection, self._cluster_membership_collection, self._cluster_merging_collection = self._mongoinit.initialise_clustering_collections()
+        self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, \
+            self._isolates_resequencing_collection = self._mongoinit.initialise_collections()
+        self._st_collection, self._cluster_membership_collection, self._cluster_merging_collection = \
+            self._mongoinit.initialise_clustering_collections()
         self._headers_collection = self._mongoinit.initialise_headers_collection()
 
         # Open querying class instance

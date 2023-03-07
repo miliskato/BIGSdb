@@ -1,44 +1,43 @@
 from tempfile import NamedTemporaryFile
-from typing import Callable
+from typing import Any, Callable, Dict, List
 
 import SharedArray as sa
-import numba as nb
 import numpy as np
-import yaml
 from multiprocessing import Pool
-from bioit_mongodb_scripts.config import MONGO_CONFIG
+
+from .python_utility_functions import get_mongodb_config_data
 
 
-def getDistance(data: np.array, func_name: str, pool: Pool, start: int=0) -> np.array:
+def get_distance(data: np.array, func_name: str, pool: Pool, start: int = 0,
+                 mongo_config_data: Dict[str, Any] = None) -> np.array:
     """
     Main function to call to compute the hamming distance in parallel and return the half matrix
     :param data: the array containing all the cgmlst profiles to compute the distances on
     :param func_name: the name of the function to use to compute the distances
     :param pool: a pool of thread to compute the distances in parallel
     :param start: from which cgmlst profiles do the distances need to be computed?
+    :param mongo_config_data: Use provided mongo_config_data, else get mongo_config_data from file
     :return: an array (matrix like) containing the different computed distances
     """
     # Parse config
-    with open(MONGO_CONFIG, encoding='utf-8') as handle:
-        config_data = yaml.safe_load(handle)
+    mongo_config_data = mongo_config_data if mongo_config_data is not None else get_mongodb_config_data()
 
-    with NamedTemporaryFile(dir=config_data["temp_dir"], prefix='HCC_') as file :
+    with NamedTemporaryFile(dir=mongo_config_data["temp_dir"], prefix='HCC_') as file:
         prefix = 'file://{0}'.format(file.name)
         func = eval(func_name)
         mat_buf = '{0}.mat.sa'.format(prefix)
         mat = sa.create(mat_buf, shape=data.shape, dtype=data.dtype)
         mat[:] = data[:]
         dist_buf = '{0}.dist.sa'.format(prefix)
-        dist = sa.create(dist_buf, shape = [mat.shape[0] - start, mat.shape[0]], dtype = np.int32)
+        dist = sa.create(dist_buf, shape=[mat.shape[0] - start, mat.shape[0]], dtype=np.int32)
         dist[:] = 0
-        __parallel_dist(mat_buf, func, dist_buf, mat.shape, pool, start)
+        _parallel_dist(mat_buf, func, dist_buf, mat.shape, pool, start)
         sa.delete(mat_buf)
         sa.delete(dist_buf)
     return dist
 
 
-
-def __parallel_dist(mat_buf: str, func: Callable, dist_buf:str, mat_shape: tuple, pool: Pool, start: int=0) -> None:
+def _parallel_dist(mat_buf: str, func: Callable, dist_buf: str, mat_shape: tuple, pool: Pool, start: int = 0) -> None:
     """
     This function take as input a matrix stored in the buffer and containing the cgmlst profiles. This function
     distribute jobs on the pool of threads to start the computation in parallel.
@@ -53,16 +52,17 @@ def __parallel_dist(mat_buf: str, func: Callable, dist_buf:str, mat_shape: tuple
     n_pool = len(pool._pool)
     tot_cmp = (mat_shape[0] * mat_shape[0] - start * start)/n_pool
     s, indices = start, []
-    for _ in np.arange(n_pool) :
+    for _ in np.arange(n_pool):
         e = np.sqrt(s * s + tot_cmp)
         indices.append([s, e])
         s = e
     indices = (np.array(indices)+0.5).astype(int)
-    for _ in pool.imap_unordered(__dist_wrapper, [[func, mat_buf, dist_buf, s, e, start] for s, e in indices ]) :
+    for _ in pool.imap_unordered(__dist_wrapper, [[func, mat_buf, dist_buf, s, e, start] for s, e in indices]):
         pass
     return
 
-def __dist_wrapper(data:list) -> None :
+
+def __dist_wrapper(data: List[List[Any]]) -> None:
     """
     Wrapper to start computing the distances.
     :param data: a list of all the parameters to pass to the dist_wrapper
@@ -71,30 +71,7 @@ def __dist_wrapper(data:list) -> None :
     func, mat_buf, dist_buf, s, e, start = data
     mat = sa.attach(mat_buf)
     dist = sa.attach(dist_buf)
-    if e > s :
+    if e > s:
         d = func(mat, s, e)
         dist[(s-start):(e-start)] = d
     del mat, dist
-
-@nb.jit(nopython=True)
-def hamming_dist(mat: np.ndarray, s: int, e: int):
-    """
-    hamming distances computation function. Compute the hamming distances for the line of the distance matrix between
-    indices s and e
-    :param mat: matrix to store the distances in
-    :param s: starting line to compute the distances
-    :param e: ending line to compute the distances
-    :return:
-    """
-    dist = np.zeros((e-s, mat.shape[0]), dtype=np.int32 )
-    n_loci = mat.shape[1]
-    for i in range(s, e):
-        for j in range(i):
-            hamming = 0
-            for k in range(n_loci) :
-                if mat[j, k] != '0':
-                    if mat[i, k] != '0':
-                        if mat[i, k] != mat[j, k]:
-                            hamming += 1
-            dist[i - s, j] = int(hamming)
-    return dist

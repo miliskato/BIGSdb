@@ -3,7 +3,6 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Union
 
-import pymongo
 import yaml
 
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
@@ -13,22 +12,15 @@ from bioit_mongodb_scripts.util.distance_and_cluster_computer import DistanceAnd
 
 
 class NewThresholdClustering(DistanceAndClusterComputer):
-    def __init__(self, st_collection: pymongo.collection.Collection,
-                 cluster_membership_collection: pymongo.collection.Collection,
-                 headers_collection: pymongo.collection.Collection,
-                 cluster_merging_collection: pymongo.collection.Collection,
-                 clustering_config_file: Path, new_thresholds: set[int], species: str) -> None:
+    def __init__(self, clustering_config_file: Path, new_thresholds: set[int], species: str,
+                 mongo_config_data: Dict[str, Any] = None) -> None:
         """
         Init of the class
-        :param st_collection: the sequence type collection of Mongo db
-        :param cluster_membership_collection:  the cluster membership collection of mongo db
-        :param headers_collection the collection containing the headers
-        :param cluster_merging_collection: the collection containing the cluster merging history
         :param clustering_config_file: the path to the clustering config file
         :param new_thresholds: new threshold (max number of differences accepted to be part of the same cluster)
         :param species: commonly used bioit species name: either genus or specific like stec
         """
-        super().__init__(headers_collection, st_collection, cluster_membership_collection, cluster_merging_collection)
+        super().__init__(species, mongo_config_data=mongo_config_data)
         self._config_file_path = clustering_config_file
         self._new_clustering_thresholds = new_thresholds
         self._species = species

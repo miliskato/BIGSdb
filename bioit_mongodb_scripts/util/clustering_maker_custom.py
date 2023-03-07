@@ -1,4 +1,5 @@
 import logging
+from typing import Any, Dict
 
 import fastcluster
 import matplotlib.pyplot as plt
@@ -15,28 +16,19 @@ from bioit_mongodb_scripts.util.mongo_querying import Mongoquerying
 
 
 class ClusteringMakerCustom(DistanceAndClusterComputer):
-    def __init__(self, cluster_membership_collection: pymongo.collection.Collection, 
-                 isolates_collection: pymongo.collection.Collection, 
-                 hashed_ad_collection: pymongo.collection.Collection, 
-                 threshold: int, sample: str, headers_collection: pymongo.collection.Collection,
-                 st_collection: pymongo.collection.Collection, 
-                 cluster_merging_collection: pymongo.collection.Collection) -> None:
+    def __init__(self, threshold: int, sample: str, species: str, mongo_config_data: Dict[str, Any] = None) -> None:
         """
         Init of the class
-        :param cluster_membership_collection: collection where the cluster membership of the ST is stored
-        :param isolates_collection: collection where results from the isolates is stored
-        :param hashed_ad_collection: collection where the new alleles are stored
         :param threshold: threshold to use to reconstruct the cluster (number of differences between cgmlst profiles tolerated to be part of the same cluster).
         :param sample: sample to extract the cluster membership and reconstruct the cluster.
-        :param headers_collection the collection containing the headers
-        :param st_collection: the sequence types collection from mongoDB.
-        :param cluster_merging_collection: the collection containing the cluster merging history
+        :param species: commonly used bioit species name: either genus or specific like stec
+        :param mongo_config_data: Use provided mongo_config_data, else get mongo_config_data from file
         :return: None
         """
-        logging.getLogger().setLevel(logging.INFO)
         logging.info("Initialization of the clustering maker custom")
-        super().__init__(headers_collection, st_collection, cluster_membership_collection, cluster_merging_collection)
-        self._isolates_collection = isolates_collection
+        super().__init__(species, mongo_config_data=mongo_config_data)
+        self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, \
+            self._isolates_resequencing_collection = self._mongoinit.initialise_collections()
         self._sample = sample
         self._sample_st = self._retrieve_sample_st()
         self._threshold = threshold

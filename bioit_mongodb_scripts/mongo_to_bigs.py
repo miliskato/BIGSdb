@@ -12,8 +12,6 @@ from pathlib import Path
 from typing import Any, Dict, List
 import os
 
-from pymongo.read_concern import ReadConcern
-
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
@@ -24,8 +22,8 @@ from bioit_bigsdb_scripts.main_results_inserter import MainResultsInserter
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.mongo_querying import Mongoquerying
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email, convert_dmyhms_to_dateobj
-from bioit_mongodb_scripts.new_alleles_profile_clustering_from_mongo_to_bigs import \
-    run_upload_new_alleles_profiles_clustering_from_mongo_to_bigs
+from bioit_mongodb_scripts.new_clustering_info_to_bigs import \
+    NewClusteringInfoToBigs
 from bioit_mongodb_scripts.samples_to_validation_bigs import samples_to_validation_bigs
 from bioit_mongodb_scripts.util.command.command import Command
 
@@ -71,11 +69,12 @@ class MongoToBigs:
         # Open Bigsdb isolates table
         self._isolates_psql_tbl = TblIsolates(self._species)
 
+        # Execute main function
         try:
             self._mongo_to_bigs()
         except Exception as exceptionmessage:
             send_email(f"{exceptionmessage}\n{traceback.format_exc()}")
-            raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}")
+            raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}: {exceptionmessage}\n{traceback.format_exc()}")
 
     def _mongo_to_bigs(self) -> None:
         """
@@ -84,8 +83,8 @@ class MongoToBigs:
         :return: None
         """
 
-        # call the function to insert new alleles and profiles
-        run_upload_new_alleles_profiles_clustering_from_mongo_to_bigs(self._species, mongo_config_data=self._mongo_config_data)
+        # call the autoexecutable function to insert new alleles and profiles
+        NewClusteringInfoToBigs(self._species, mongo_config_data=self._mongo_config_data)
 
         # update the bigsdb cache so the clustering schemes get updated
         cache_command = f'/home/bigsdb/BIGSdb/scripts/maintenance/update_scheme_caches.pl ' \
@@ -93,7 +92,8 @@ class MongoToBigs:
         command = Command(cache_command)
         command.run(Path(os.getcwd()))
         if command.returncode != 0:
-            raise RuntimeError(f"update of the cache to display the clustering failed on host {socket.gethostname()} ")
+            send_email(f"update of the cache to display the clustering failed on host {socket.gethostname()}")
+            raise RuntimeError(f"update of the cache to display the clustering failed on host {socket.gethostname()}")
 
         # send bad samples from the badqc_isolates collection to BIGSdb
         samples_to_validation_bigs(self._species, mongo_config_data=self._mongo_config_data)

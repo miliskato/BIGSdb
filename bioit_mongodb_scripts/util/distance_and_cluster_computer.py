@@ -2,7 +2,7 @@ import datetime
 import logging
 import sys
 from multiprocessing import Pool
-from typing import List
+from typing import Any, Dict, List
 from pathlib import Path
 
 import fastcluster
@@ -15,7 +15,9 @@ from scipy.spatial import distance as ssd
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
-from bioit_mongodb_scripts.util.hamming_distance import getDistance
+from bioit_mongodb_scripts.util.hamming_distance import get_distance
+from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
+from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data
 
 
 class DistanceAndClusterComputer:
@@ -23,25 +25,24 @@ class DistanceAndClusterComputer:
     Class to compute hamming distances and determine the cluster membership to store in mongoDB.
     """
 
-    def __init__(self, headers_collection: pymongo.collection.Collection, st_collection: pymongo.collection.Collection,
-                 cluster_membership_collection: pymongo.collection.Collection,
-                 cluster_merging_collection: pymongo.collection.Collection, st_to_use: List[int] = None) -> None:
+    def __init__(self, species: str, mongo_config_data: Dict[str, Any] = None, st_to_use: List[int] = None) -> None:
         """
         Initializes the class.
-        :param headers_collection the collection containing the headers (will use the cgmlst headers)
-        :param st_collection: sequence types collection from mongoDb.
-        :param cluster_membership_collection:  the cluster membership collection from mongoDB.
-        :param cluster_merging_collection: the collection containing the cluster merging history
+        :param species: commonly used bioit species name: either genus or specific like stec
+        :param mongo_config_data: Use provided mongo_config_data, else get mongo_config_data from file
         :param st_to_use: sequence types list to be used for clustering
         :return: None
         """
-        logging.getLogger().setLevel(logging.INFO)
-        logging.info("Initialization of the distance and cluster computer")
+        self._species = species
+        self._mongo_config_data = mongo_config_data if mongo_config_data else get_mongodb_config_data()
         self._st_to_use = st_to_use
-        self._headers_collection = headers_collection
-        self._st_collection = st_collection
-        self._cluster_membership_collection = cluster_membership_collection
-        self._cluster_merging_collection = cluster_merging_collection
+        # Open collections
+        self._mongoinit = MongoInitialisation(self._species, mongo_config_data=self._mongo_config_data)
+        self._headers_collection = self._mongoinit.initialise_headers_collection()
+        self._st_collection, self._cluster_membership_collection, self._cluster_merging_collection = self._mongoinit. \
+            initialise_clustering_collections()
+        self._update_metadata_collection = self._mongoinit.initialise_update_collection()
+        logging.info("Initialization of the distance and cluster computer")
         self._cgmlst_profiles = []
         self._sequence_types = []
         self._hamming_distances = []
@@ -93,7 +94,7 @@ class DistanceAndClusterComputer:
         else:
             raise ValueError('mode should be either full or last_st for compute_hamming_distances')
         pool = Pool(4)
-        self._hamming_distances = getDistance(np.array(self._cgmlst_profiles), 'hamming_dist', pool, start)
+        self._hamming_distances = get_distance(np.array(self._cgmlst_profiles), 'hamming_dist', pool, start=start, mongo_config_data=self._mongo_config_data)
         if mode == 'full':
             # when mode is full, half matrix is computed (lower triangle) so as we know that the
             # distances are symetric we can add the transposed to retrieve the upper triangle of the matrix
@@ -164,10 +165,10 @@ class DistanceAndClusterComputer:
         query_res = self._cluster_membership_collection.find(query)
         for st in query_res:
             self._cluster_merging_collection.insert_one({'cgST': st['cgST'],
-                                                        'threshold': thresh,
-                                                        'merging_date': datetime.datetime.utcnow(),
-                                                        'old_cluster': st['clustering_membership'],
-                                                        'new_cluster': new_cluster_name})
+                                                         'threshold': thresh,
+                                                         'merging_date': datetime.datetime.utcnow(),
+                                                         'old_cluster': st['clustering_membership'],
+                                                         'new_cluster': new_cluster_name})
 
     def new_st_cluster_membership(self, cluster_thresholds: list) -> None:
         """
@@ -179,7 +180,8 @@ class DistanceAndClusterComputer:
             membership = []
             for it in range(len(self._hamming_distances[0]) - 1):
                 if self._hamming_distances[0][it] <= thresh:
-                    membership.append(self._cluster_membership_collection.find_one({'cgST': self._sequence_types[it], 'threshold': thresh})['clustering_membership'])
+                    membership.append(self._cluster_membership_collection.find_one({'cgST': self._sequence_types[it],
+                                                                                    'threshold': thresh})['clustering_membership'])
             membership = list(set(membership))
             if len(membership) > 1:
                 membership = [self._merge_clusters(membership, thresh)]
