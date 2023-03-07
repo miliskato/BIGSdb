@@ -17,7 +17,8 @@ from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_conf
 
 
 class MongoCustomClustering:
-    def __init__(self, headers: List[str], data: List[Union[str, int]], species: str, mongo_config_data: Dict[str, Any] = None) -> None:
+    def __init__(self, headers: List[str], data: List[Union[str, int]], species: str,
+                 mongo_config_data: Dict[str, Any] = None) -> None:
         """
         Initializes the class
         :param headers: the headers of the sequence type file from HierCC (so the headers store

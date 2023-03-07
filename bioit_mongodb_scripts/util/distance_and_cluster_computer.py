@@ -64,7 +64,7 @@ class DistanceAndClusterComputer:
             logging.info("Only the provided st are being retrieved")
             query_all_data = self._st_collection.find({'cgST': {'$in': self._st_to_use}})
 
-        for doc in query_all_data:
+        for doc in list(query_all_data):
             if 'cgST' in doc:
                 self._cgmlst_profiles.append(np.array(doc['cgMLST']))
                 self._sequence_types.append(doc['cgST'])
