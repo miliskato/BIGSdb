@@ -39,13 +39,12 @@ class TempidReplacer:
     """
     Class containing definitions to check and replace temporary ids in MongoDB (and BIGSdb)
     """
-    def __init__(self, scheme: str, species: str, alternate_connection_string: bool = False, mongo_config_data: Dict[str, Any] = None):
+    def __init__(self, scheme: str, species: str, alternate_connection_string: bool = False):
         """
-        Initalizes the class and executes the main function
+        Initalizes the class and executes the main function (auto-executable)
         :param scheme: scheme that unresolved hashes should be queried from
         :param species: commonly used bioit species name: either genus or specific like stec
         :param alternate_connection_string: use alternate connection string, used for testing on the free Atlas Cluster
-        :param mongo_config_data: Use provided mongo_config_data, else get mongo_config_data from file
         :return: None
         """
         self._scheme = scheme
@@ -117,6 +116,14 @@ class TempidReplacer:
                     {"scheme": self._scheme, "resolved_AD": 0})]
 
     def __create_locus_hash_dict(self) -> Dict[str, Dict[str, List[str]]]:
+        """
+        Creates a dictionary with as keys the loci and as values dictionaries where the dictioniaries' keys are
+        properties concerning the alleles that have not been found in the reference database yet. More specifically:
+        hashed_alleles is a list of all the hashed alleles (md5)
+        temp_alleles is a list of all the temporary allele names defined by us, which are a nicer representation than a hash
+        indices are the indices of the respective alleles in the queried _documents_list
+        :return: Dictionary containing properties concerning new alleles.
+        """
         locus_hash_dict = {}
         for document_index, hash_document in enumerate(self._documents_list):
             if hash_document['locus'] in locus_hash_dict:
