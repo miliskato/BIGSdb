@@ -62,3 +62,28 @@ ALTER TABLE submissions ADD validation_type text;
 ALTER TABLE isolates ADD validation_type text;
 ALTER TABLE isolates ADD validation_curator text;
 ALTER TABLE isolates ADD validation_date date;
+ALTER TABLE isolates ADD sample_id text;
+ALTER TABLE isolates
+    ADD COLUMN isolation_date date,
+    ADD COLUMN year_of_isolation smallint,
+    ADD COLUMN human_sample bool SET DEFAULT 1,
+    ADD COLUMN specimen text,
+    ADD COLUMN patient_birth_date date,
+    ADD COLUMN patient_age smallint,
+    ADD COLUMN patient_age_group text,
+    ADD COLUMN patient_sex text,
+    ADD COLUMN patient_zip smallint,
+    ADD COLUMN province text,
+    ADD COLUMN region text,
+    ADD COLUMN hospitalisation text,
+    ADD COLUMN recently_stayed_abroad text,
+    ADD COLUMN country_1 text,
+    ADD COLUMN country_2 text,
+    ADD COLUMN serogroup_pheno text,
+    ADD COLUMN mic_azm_1 text,
+    ADD COLUMN mic_cox_1 text,
+    ADD COLUMN mic_chl_1 text,
+    ADD COLUMN mic_cip_1 text,
+    ADD COLUMN mic_pen_1 text,
+    ADD COLUMN mic_rif_1 text,
+    ADD COLUMN remarks text;
