@@ -66,7 +66,7 @@ ALTER TABLE isolates ADD sample_id text;
 ALTER TABLE isolates
     ADD COLUMN isolation_date date,
     ADD COLUMN year_of_isolation smallint,
-    ADD COLUMN human_sample bool SET DEFAULT 1,
+    ADD COLUMN human_sample bool,
     ADD COLUMN specimen text,
     ADD COLUMN patient_birth_date date,
     ADD COLUMN patient_age smallint,
