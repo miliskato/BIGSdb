@@ -514,7 +514,7 @@
       loop:
         - "bigsdb_{{ species }}_seqdef"
         - "bigsdb_{{ species }}_isolates"
-      when: query_result_users.query_result[0]['exists'] == false
+      when: query_result_species_seqdef.query_result[0]['exists'] == false
       become_user: postgres
 
     - name: add user db to species db
@@ -525,7 +525,7 @@
       loop:
         - "bigsdb_{{ species }}_seqdef"
         - "bigsdb_{{ species }}_isolates"
-      when: query_result_users.query_result[0]['exists'] == false
+      when: query_result_species_seqdef.query_result[0]['exists'] == false
       become_user: postgres
         # this should be other when but doesnt matter for now
 
@@ -537,7 +537,7 @@
       loop:
         - "bigsdb_{{ species }}_seqdef"
         - "bigsdb_{{ species }}_isolates"
-      when: query_result_users.query_result[0]['exists'] == false
+      when: query_result_species_seqdef.query_result[0]['exists'] == false
       become_user: postgres
 
 - name: setup REST API
