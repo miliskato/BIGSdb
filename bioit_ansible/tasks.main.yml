@@ -261,6 +261,13 @@
         mode: "u=rw,g=rw,o=r"
         owner: www-data
 
+    - name: Touch bigsdb_scripts.log
+      ansible.builtin.file:
+        path: /var/log/bigsdb_scripts.log
+        state: touch
+        mode: "u=rw,g=rw,o=rw"
+        owner: bigsdb
+
 - name: setup offline jobs
   block:
     - name: create bigsdb sql user
