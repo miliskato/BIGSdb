@@ -129,7 +129,7 @@ class MongoToBigs:
             MainResultsInserter(document_id, 'bioit@sciensano.be', self._species, results_type, jsonfilepath=jsonfile)
             jsonfile.unlink()
             if results_type == 'new_isolate':
-                insert_assembly(document_id, self._species, Path(document['fasta_path']))
+                continue # insert_assembly(document_id, self._species, Path(document['fasta_path']))
             elif results_type == 'reanalysis' and document['validation']['type'] == 'resequencing':
                 last_two_validation_dates = self._isolates_psql_tbl.select_validationdate_for_isolate((document_id,))
                 # select to check that the previous version's validation date is different from the current
