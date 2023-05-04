@@ -488,3 +488,36 @@ species_json:
         metadatafile: /db/gene_detection/PlasmidFinder-entero/mapping_full.json
         schemename_bigsdb: PlasmidFinder_entero
         schemename_html: PlasmidFinder - Enterobacteriaceae
+
+lab_meta_data:
+  neisseria:
+    id: 'id'
+    isolate: 'isolate'
+    date_entered: 'date_entered'
+    uploader: 'uploader'
+    sample_id: 'Sample ID'
+    isolation_date: 'Isolation Date '
+    year_of_isolation: 'Year of Isolation'
+    human_sample: 'Human Sample'
+    specimen: 'Specimen'
+    patient_birth_date: 'Patient BirthDate'
+    patient_age: 'Patient Age'
+    patient_age_group: 'Patient Age Group'
+    patient_sex: 'Patient Sex'
+    patient_zip: 'Patient Zip'
+    province: 'Province'
+    region: 'Region'
+    hospitalisation: 'Hospitalisation'
+    recently_stayed_abroad: 'Recently Stayed Abroad'
+    country_1: 'Country 1'
+    country_2: 'Country 2'
+    serogroup_pheno: 'Serogroup'
+    mic_azm_1: 'MIC Azm I'
+    mic_cox_1: 'MIC Cox I'
+    mic_chl_1: 'MIC Chl I'
+    mic_cip_1: 'MIC Cip I'
+    mic_pen_1: 'MIC Pen I'
+    mic_rif_1: 'MIC Rif I'
+    remarks: 'Comment'
+
+
