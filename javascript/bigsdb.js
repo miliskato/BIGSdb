@@ -136,3 +136,83 @@ function getCookie(name) {
     end = dc.length;
   return unescape(dc.substring(begin + prefix.length, end));
 }
+
+function str2bytes (str) {
+   var bytes = new Uint8Array(str.length);
+   for (var i=0; i<str.length; i++) {
+      bytes[i] = str.charCodeAt(i);
+    }
+    return bytes;
+}
+
+function get_preview(id, species, res_time, get_zip){
+    query_string = "http://127.0.0.1:5000/search?isolate_id=" + id + '&res_version=' + res_time +"&species=" + species + "&get_zip=" + get_zip
+    $.ajax( query_string , {
+        method: 'GET',
+        headers: {"x-access-token": localStorage.getItem('token')},
+        success:function(response){
+            console.log(response);
+            if(get_zip === 'no'){
+                document.write(response);
+                } else{
+                    //generate the file to save the zip
+                     var blob=new Blob([str2bytes(response)], {type: "application/zip"}  );
+                     var link=document.createElement('a');
+                     link.href=window.URL.createObjectURL(blob);
+                     filename = id + '_' + res_time + '_' + species + '_report.zip';
+                     link.download=filename;
+                     link.click();
+                     console.log(response);
+                     //location.reload();
+            }
+            },
+        error:function(){
+            document.write('Failure to retrieve the report. Please refresh the page to start again or call BIOIT if it still fails')
+        }
+    });
+    dataType: "blob"
+}
+
+
+
+function get_jwt_report (get_zip) {
+    var title = document.title
+    var id = title.replace(/^.*\(|\).*$/g, '');
+    var species = title.replace(/^.*- /g, '').replace(' isolates','').toLowerCase();
+    var res_version = 'null'
+    console.log(id)
+    console.log(species)
+
+    const dt = document.querySelectorAll("dt");
+    const dd = document.querySelectorAll("dd");
+    //start the loading screen as we have now all the elements needed to start querying the api
+    document.write('Retrieving your report, please wait...')
+    dt.forEach((el, index) => {
+        if (el.textContent.includes("latest analysis date") === true) {
+             console.log(el.textContent);
+             console.log(dd[index].textContent);
+             res_version = dd[index].textContent;
+        }
+    })
+
+    $.ajax({
+        url: 'http://127.0.0.1:5000/login',
+        type: 'post',
+        data: {
+            "email": "test@test.com",
+            "password": "1234"
+        },
+        headers: {
+            "Access-Control-Allow-Origin": "http://127.0.0.1:5000/login",
+        },
+        success: function (data) {
+            console.log(data)
+            localStorage.setItem('token', data.token);
+        },
+        complete: function(){
+            get_preview(id, species, res_version, get_zip)
+        },
+        dataType: 'json'
+    });
+}
+
