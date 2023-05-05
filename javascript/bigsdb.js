@@ -137,45 +137,51 @@ function getCookie(name) {
   return unescape(dc.substring(begin + prefix.length, end));
 }
 
-function str2bytes (str) {
-   var bytes = new Uint8Array(str.length);
-   for (var i=0; i<str.length; i++) {
-      bytes[i] = str.charCodeAt(i);
-    }
-    return bytes;
-}
-
-function get_preview(id, species, res_time, get_zip){
-    query_string = "http://127.0.0.1:5000/search?isolate_id=" + id + '&res_version=' + res_time +"&species=" + species + "&get_zip=" + get_zip
+//application for the api of HERA
+function get_jwt_preview(id, species, res_time, get_zip){
+    query_string = "http://127.0.0.1:5001/search?isolate_id=" + id + '&res_version=' + res_time +"&species=" + species + "&get_zip=" + get_zip
     $.ajax( query_string , {
         method: 'GET',
         headers: {"x-access-token": localStorage.getItem('token')},
         success:function(response){
-            console.log(response);
-            if(get_zip === 'no'){
+            // console.log(response);
+                document.open('/report');
                 document.write(response);
-                } else{
-                    //generate the file to save the zip
-                     var blob=new Blob([str2bytes(response)], {type: "application/zip"}  );
-                     var link=document.createElement('a');
-                     link.href=window.URL.createObjectURL(blob);
-                     filename = id + '_' + res_time + '_' + species + '_report.zip';
-                     link.download=filename;
-                     link.click();
-                     console.log(response);
-                     //location.reload();
-            }
-            },
+           },
         error:function(){
+        document.open('error')
+        document.write('Failure to retrieve the report. Please refresh the page to start again or call BIOIT if it still fails')
+    }
+    });
+}
+
+function get_jwt_zip(id, species, res_time, get_zip){
+    query_string = "http://127.0.0.1:5001/search?isolate_id=" + id + '&res_version=' + res_time +"&species=" + species + "&get_zip=" + get_zip
+    $.ajax( query_string , {
+        method: 'GET',
+        headers: {"x-access-token": localStorage.getItem('token')},
+        cache:false,
+        xhrFields:{
+            responseType: 'blob'
+        },
+        success:function(response) {
+            filename = 'report_' + id +'_' + res_time + '_' + species +'.zip'
+            var blobUrl = window.URL.createObjectURL(response);
+            const anchor = document.createElement('a');
+            anchor.style.display = 'none';
+            anchor.href = blobUrl;
+            anchor.download = filename;
+            anchor.click();
+            location.reload() //done to come back to original page
+        },
+        error:function(){
+            document.open('error')
             document.write('Failure to retrieve the report. Please refresh the page to start again or call BIOIT if it still fails')
         }
     });
-    dataType: "blob"
 }
 
-
-
-function get_jwt_report (get_zip) {
+function get_jwt_report (get_zip){
     var title = document.title
     var id = title.replace(/^.*\(|\).*$/g, '');
     var species = title.replace(/^.*- /g, '').replace(' isolates','').toLowerCase();
@@ -196,7 +202,7 @@ function get_jwt_report (get_zip) {
     })
 
     $.ajax({
-        url: 'http://127.0.0.1:5000/login',
+        url: 'http://127.0.0.1:5001/login',
         type: 'post',
         data: {
             "email": "test@test.com",
@@ -210,7 +216,62 @@ function get_jwt_report (get_zip) {
             localStorage.setItem('token', data.token);
         },
         complete: function(){
-            get_preview(id, species, res_version, get_zip)
+            if(get_zip === 'yes'){
+                get_jwt_zip(id, species, res_version, get_zip)
+            }else{
+                 get_jwt_preview(id, species, res_version, get_zip)
+            }
+        },
+        dataType: 'json'
+    });
+
+}
+
+function get_subpart(rel_file_path){
+    query_string = "http://127.0.0.1:5001/get_file?file_path=" + rel_file_path
+    var file_extension = rel_file_path.split('.').pop();
+    $.ajax( query_string , {
+        method: 'GET',
+        headers: {"x-access-token": localStorage.getItem('token')},
+        contentType: "octet/stream",
+        xhrFields:{
+            responseType: ''
+        },
+        success:function(response){
+            console.log(response);
+            document.open('/test')
+            if(file_extension === 'html'){
+
+                document.write(response)
+            }else{
+                document.write("<textarea disabled rows=100 cols=100>", response, "</textarea>")
+            }
+
+            },
+        error:function(){
+            document.write('Failure to retrieve the document. Please refresh the page to start again or call BIOIT if it still fails')
+        }
+    });
+}
+
+function get_jwt_subpart(rel_file_path){
+       $.ajax({
+        url: 'http://127.0.0.1:5001/login',
+        type: 'post',
+        data: {
+            "email": "test@test.com",
+            "password": "1234"
+        },
+        headers: {
+            "Access-Control-Allow-Origin": "http://127.0.0.1:5000/login",
+        },
+        success: function (data) {
+            console.log(data)
+            localStorage.setItem('token', data.token);
+        },
+        complete: function(){
+               get_subpart(rel_file_path)
+
         },
         dataType: 'json'
     });
