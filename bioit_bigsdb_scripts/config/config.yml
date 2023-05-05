@@ -491,11 +491,6 @@ species_json:
 
 lab_meta_data:
   neisseria:
-    id: 'id'
-    isolate: 'isolate'
-    date_entered: 'date_entered'
-    uploader: 'uploader'
-    sample_id: 'Sample ID'
     isolation_date: 'Isolation Date '
     year_of_isolation: 'Year of Isolation'
     human_sample: 'Human Sample'
