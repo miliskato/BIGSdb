@@ -106,3 +106,24 @@ class TblIsolates(DatabaseConnection):
         :return: None
         """
         self.execute_query(PsqlQueries.ISO_UPD_NEWV_TB_ISO_VAR_ISO_ISO_ISO, param * 3)
+
+    @staticmethod
+    def build_update_nomin_metadata_query(metadata_mapping: dict[str, Any]) -> str:
+        """
+        Build the query used to update metadata for a specific species
+        :metadata_mapping : db<->json fields mapping for the species
+        :return: the update query
+        """
+        set_list = []
+        for key in metadata_mapping:
+            set_list.append(str(key + "=%s"))
+        sets = ', '.join(map(str, set_list))
+        return str.format(PsqlQueries.ISO_INSERT_GENERIC_LAB_METADATA_TEMPLATE, sets)
+
+    def update_nomin_metadata(self, query: str, param: List[str]):
+        """
+        Adds laboratory nominative data in isolates table for the specified species
+        :param param: variables to feed to the PSQL query
+        :return: None
+        """
+        self.execute_query(query, param)
