@@ -315,14 +315,10 @@ class MainMongo:
                 {'_id': self._technical_id, 'results': new_results},
                 "cgmlst", self._headers_collection)
             custom_clustering = MongoCustomClustering(clustering_input[0], clustering_input[1],
-                                                      self._species)
+                                                      self._species, self._mongo_config_data)
             logging.info(f"Running the clustering for the isolate {self._technical_id}")
             sp_thresholds = f"clustering_thresholds_{self._species}"
-            sequence_type = custom_clustering.run_custom_clustering(self._headers_collection,
-                                                                    self._st_collection,
-                                                                    self._cluster_membership_collection,
-                                                                    self._cluster_merging_collection,
-                                                                    CLUSTERING_CONFIG[sp_thresholds])
+            sequence_type = custom_clustering.run_custom_clustering(CLUSTERING_CONFIG[sp_thresholds])
             new_results["cgST"] = sequence_type
         deltas_new_old = self.___nested_dict_delta(current_results, new_results)
         new_results = self.___prepend_string_dot_to_dict_keys(new_results, 'results')

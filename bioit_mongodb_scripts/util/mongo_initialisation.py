@@ -2,7 +2,7 @@ import logging
 from typing import Any, Dict
 
 import pymongo
-from pymongo import MongoClient
+from pymongo import MongoClient, database
 
 from .python_utility_functions import get_mongodb_config_data
 
@@ -30,12 +30,12 @@ class MongoInitialisation:
         :return: opened database object
         """
         try:
-            client = MongoClient(self._mongo_config_data["CONNECTION_STRING_BASE"])
+            self.client = MongoClient(self._mongo_config_data["CONNECTION_STRING_BASE"])
         except Exception:
             raise RuntimeError(f"Could not connect to {self._mongo_config_data['CONNECTION_STRING_BASE']}")
         if self._mongo_config_data["dtap"] not in ['dev', 'test', 'acc', 'prod']:
             raise NameError(f"replace dtap value in bioit_mongodb_scripts/config/config.yml")
-        return client['_'.join([species, self._mongo_config_data["dtap"]])]  # e.g. listeria_dev
+        return self.client['_'.join([species, self._mongo_config_data["dtap"]])]  # e.g. listeria_dev
 
     def _open_mongo_collection(self, opened_database: pymongo.database.Database, collection: str) -> pymongo.collection.Collection:
         """
