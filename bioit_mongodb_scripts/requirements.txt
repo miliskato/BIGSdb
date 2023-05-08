@@ -6,3 +6,4 @@ SharedArray==3.2.1
 numpy==1.22.4
 temp==2020.7.2
 fastcluster==1.2.6
+scipy==1.9.1
