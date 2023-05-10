@@ -138,8 +138,9 @@ function getCookie(name) {
 }
 
 //application for the api of HERA
+
 function get_jwt_preview(id, species, res_time, get_zip){
-    query_string = "http://127.0.0.1:5001/search?isolate_id=" + id + '&res_version=' + res_time +"&species=" + species + "&get_zip=" + get_zip
+    query_string = "http://10.5.1.25:9090/search?isolate_id=" + id + '&res_version=' + res_time +"&species=" + species + "&get_zip=" + get_zip
     $.ajax( query_string , {
         method: 'GET',
         headers: {"x-access-token": localStorage.getItem('token')},
@@ -156,7 +157,7 @@ function get_jwt_preview(id, species, res_time, get_zip){
 }
 
 function get_jwt_zip(id, species, res_time, get_zip){
-    query_string = "http://127.0.0.1:5001/search?isolate_id=" + id + '&res_version=' + res_time +"&species=" + species + "&get_zip=" + get_zip
+    query_string = "http://10.5.1.25:9090/search?isolate_id=" + id + '&res_version=' + res_time +"&species=" + species + "&get_zip=" + get_zip
     $.ajax( query_string , {
         method: 'GET',
         headers: {"x-access-token": localStorage.getItem('token')},
@@ -202,11 +203,11 @@ function get_jwt_report (get_zip){
     })
 
     $.ajax({
-        url: 'http://127.0.0.1:5001/login',
+        url: 'http://10.5.1.25:9090/login',
         type: 'post',
         data: {
-            "email": "test@test.com",
-            "password": "1234"
+            "email": "bioit@sciensano.be",
+            "password": "super_secret_password"
         },
         headers: {
             "Access-Control-Allow-Origin": "http://127.0.0.1:5000/login",
@@ -228,7 +229,7 @@ function get_jwt_report (get_zip){
 }
 
 function get_subpart(rel_file_path){
-    query_string = "http://127.0.0.1:5001/get_file?file_path=" + rel_file_path
+    query_string = "http://10.5.1.25:9090/get_file?file_path=" + rel_file_path
     var file_extension = rel_file_path.split('.').pop();
     $.ajax( query_string , {
         method: 'GET',
@@ -239,12 +240,11 @@ function get_subpart(rel_file_path){
         },
         success:function(response){
             console.log(response);
-            document.open('/test')
+            var wnd = window.open("about:blank");
             if(file_extension === 'html'){
-
-                document.write(response)
+                wnd.document.write(response)
             }else{
-                document.write("<textarea disabled rows=100 cols=100>", response, "</textarea>")
+                wnd.document.write("<textarea disabled rows=100 cols=100>", response, "</textarea>")
             }
 
             },
@@ -256,11 +256,11 @@ function get_subpart(rel_file_path){
 
 function get_jwt_subpart(rel_file_path){
        $.ajax({
-        url: 'http://127.0.0.1:5001/login',
+        url: 'http://10.5.1.25:9090/login',
         type: 'post',
         data: {
-            "email": "test@test.com",
-            "password": "1234"
+            "email": "bioit@sciensano.be",
+            "password": "super_secret_password"
         },
         headers: {
             "Access-Control-Allow-Origin": "http://127.0.0.1:5000/login",
