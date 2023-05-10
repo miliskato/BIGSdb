@@ -72,7 +72,7 @@ ALTER TABLE isolates
     ADD COLUMN patient_age smallint,
     ADD COLUMN patient_age_group text,
     ADD COLUMN patient_sex text,
-    ADD COLUMN patient_zip smallint,
+    ADD COLUMN patient_zip text,
     ADD COLUMN province text,
     ADD COLUMN region text,
     ADD COLUMN hospitalisation text,
