@@ -138,9 +138,12 @@ function getCookie(name) {
 }
 
 //application for the api of HERA
+// global variables
+var HOSTANDPORT = replaced_by_ansible
+var PASSWORD = replaced_by_ansible
 
 function get_jwt_preview(id, species, res_time, get_zip){
-    query_string = "http://10.5.1.25:9090/search?isolate_id=" + id + '&res_version=' + res_time +"&species=" + species + "&get_zip=" + get_zip
+    query_string = "http://" + HOSTANDPORT + "/search?isolate_id=" + id + '&res_version=' + res_time +"&species=" + species + "&get_zip=" + get_zip
     $.ajax( query_string , {
         method: 'GET',
         headers: {"x-access-token": localStorage.getItem('token')},
@@ -157,7 +160,7 @@ function get_jwt_preview(id, species, res_time, get_zip){
 }
 
 function get_jwt_zip(id, species, res_time, get_zip){
-    query_string = "http://10.5.1.25:9090/search?isolate_id=" + id + '&res_version=' + res_time +"&species=" + species + "&get_zip=" + get_zip
+    query_string = "http://" + HOSTANDPORT + "/search?isolate_id=" + id + '&res_version=' + res_time +"&species=" + species + "&get_zip=" + get_zip
     $.ajax( query_string , {
         method: 'GET',
         headers: {"x-access-token": localStorage.getItem('token')},
@@ -203,11 +206,11 @@ function get_jwt_report (get_zip){
     })
 
     $.ajax({
-        url: 'http://10.5.1.25:9090/login',
+        url: "http://" + HOSTANDPORT + "/login",
         type: 'post',
         data: {
             "email": "bioit@sciensano.be",
-            "password": "super_secret_password"
+            "password": PASSWORD
         },
         headers: {
             "Access-Control-Allow-Origin": "http://127.0.0.1:5000/login",
@@ -229,7 +232,7 @@ function get_jwt_report (get_zip){
 }
 
 function get_subpart(rel_file_path){
-    query_string = "http://10.5.1.25:9090/get_file?file_path=" + rel_file_path
+    query_string = "http://" + HOSTANDPORT + "/get_file?file_path=" + rel_file_path
     var file_extension = rel_file_path.split('.').pop();
     $.ajax( query_string , {
         method: 'GET',
@@ -256,11 +259,11 @@ function get_subpart(rel_file_path){
 
 function get_jwt_subpart(rel_file_path){
        $.ajax({
-        url: 'http://10.5.1.25:9090/login',
+        url: "http://" + HOSTANDPORT + "/login",
         type: 'post',
         data: {
             "email": "bioit@sciensano.be",
-            "password": "super_secret_password"
+            "password": PASSWORD
         },
         headers: {
             "Access-Control-Allow-Origin": "http://127.0.0.1:5000/login",
