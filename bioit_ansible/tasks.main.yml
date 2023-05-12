@@ -77,14 +77,14 @@
 - name: replace line password in bigs.js file
   lineinfile:
     path: "{{ bioit_bigs_home }}/javascript/bigsdb.min.js"
-    regexp: "var PASSWORD=replaced_by_ansible"
+    regexp: 'var_PASSWORD=replaced_by_ansible'
     line: "var PASSWORD = '{{ secret_bioit_api_hera_user_pswd }}'"
     backrefs: yes
 
 - name: replace line hostandport in bigs.js file
   lineinfile:
     path: "{{ bioit_bigs_home }}/javascript/bigsdb.min.js"
-    regexp: "var HOSTANDPORT=replaced_by_ansible"
+    regexp: 'var_HOSTANDPORT=replaced_by_ansible'
     line: "var HOSTANDPORT = '{{ apihostandport }}'"
     backrefs: yes
 
