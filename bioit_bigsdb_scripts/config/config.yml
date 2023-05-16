@@ -1,7 +1,7 @@
 mail:
-    from: bioit@sciensano.be
-    to:  bioit.hera.sciensano.test@gmail.com
-    host: smtp.wiv-isp.be
+    from: BIGSdb internal HERA
+    to: Michael or Ann-Stephan
+    host: bioit-mailhog.sciensano.be:1025
 
 failsafe:
   flag_dir: /scratch/temp/flags
