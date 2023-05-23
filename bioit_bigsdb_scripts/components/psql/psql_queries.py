@@ -216,6 +216,12 @@ class PsqlQueries():
         VALUES((SELECT id FROM schemes WHERE name=%s), 
         %s, %s, %s, 1, (SELECT CURRENT_DATE));"""
 
+    # TBL project members
+    ISO_INS__TB_PROJMEM_VAR_ISO_ISO: Final[str] = """
+        INSERT INTO project_members(project_id, isolate_id, curator, datestamp)
+        SELECT project_id, (SELECT MAX(id) FROM isolates WHERE isolate=%s), curator, datestamp
+        from project_members WHERE isolate_id=(SELECT MIN(id) FROM isolates WHERE id in (SELECT id FROM isolates WHERE isolate=%s ORDER BY id DESC LIMIT 2));"""
+
     # TBL scheme members
     UNI_INS__TB_SCHMEM_VAR_SCHEME_LOCUS: Final[str] = """
         INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) 
