@@ -56,7 +56,7 @@
     dest: "{{ bioit_bigs_home }}"
     version: "{{ branch }}"
     force: yes
-    tags :
+    tags:
     - gitaddbigsdb
 
 - name: Change Mongo dtap version in config based on playbook argument
