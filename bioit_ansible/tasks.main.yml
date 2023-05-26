@@ -55,7 +55,7 @@
     repo: "https://bioit_ro:{{ secret_bioit_git_ro_password }}@git.sciensano.be/bioit/BIGSdb.git"
     dest: "{{ bioit_bigs_home }}"
     version: "{{ branch }}"
-    force: yes
+    force: false
   tags: gitupdate
 
 - name: Change Mongo dtap version in config based on playbook argument
