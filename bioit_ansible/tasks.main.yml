@@ -56,8 +56,8 @@
     dest: "{{ bioit_bigs_home }}"
     version: "{{ branch }}"
     force: yes
-    tags:
-    - never
+  tags:
+    - gitupdate
 
 - name: Change Mongo dtap version in config based on playbook argument
   lineinfile:
