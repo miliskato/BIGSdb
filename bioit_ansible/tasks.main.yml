@@ -57,7 +57,7 @@
     version: "{{ branch }}"
     force: yes
   tags:
-    - gitupdate
+  - gitupdate
 
 - name: Change Mongo dtap version in config based on playbook argument
   lineinfile:
