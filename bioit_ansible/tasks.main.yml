@@ -437,7 +437,7 @@
         repo: https://github.com/achtman-lab/GrapeTree/
         dest: /var/www/html/GrapeTree
   tags:
-  - grapetreeinst
+  - grapetreedown
 
 - name: Create actual data db
   block:
