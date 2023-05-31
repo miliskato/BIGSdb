@@ -433,10 +433,11 @@
         state: directory
 
     - name: copy  GrapeTree files to html for web usage
-      ansible.builtin.copy:
-        src: /usr/local/bin/lmod/grapetree/1.5/venv/lib/python2.7/site-packages/grapetree/
+      ansible.builtin.git:
+        repo: https://github.com/achtman-lab/GrapeTree/
         dest: /var/www/html/GrapeTree
-        remote_src: yes
+  tags:
+  - grapetreeinst
 
 - name: Create actual data db
   block:
