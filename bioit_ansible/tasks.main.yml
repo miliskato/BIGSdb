@@ -50,13 +50,13 @@
     shell: /bin/sh
     group: www-data
 
-#- name: Get updated files from git repository
-#  git:
-#    repo: "https://bioit_ro:{{ secret_bioit_git_ro_password }}@git.sciensano.be/bioit/BIGSdb.git"
-#    dest: "{{ bioit_bigs_home }}"
-#    version: "{{ branch }}"
-#    force: false
-#  tags: gitupdate
+- name: Get updated files from git repository
+  git:
+    repo: "https://{{bioit_git_ro_user}}:{{ secret_bioit_git_ro_password }}@{{bioit_git_server}}/bigsdb/bigsdb.git"
+    dest: "{{ bioit_bigs_home }}"
+    version: "{{ branch }}"
+    force: false
+  tags: gitupdate
 
 - name: Change Mongo dtap version in config based on playbook argument
   lineinfile:
