@@ -253,7 +253,6 @@
         src: /var/www/tmp
         dest: /var/www/html/tmp
         state: link
-        remote_src: yes
 
     - name: Touch bigsdb log
       ansible.builtin.file:
@@ -330,7 +329,6 @@
         src: /var/submissions
         dest: /var/www/submissions
         state: link
-        remote_src: yes
 
 - name: setup cron
   block:
@@ -427,7 +425,7 @@
 
 - name: setup GrapeTree
   tags:
-    - install_gt
+  - installgt
   block:
     - name: create GrapeTree html dir
       ansible.builtin.file:
@@ -440,25 +438,19 @@
         name: grapetree
         #requirements: "{{ bioit_bigs_home }}/bioit_bigsdb_scripts/requirements_grapetree.txt"
         virtualenv: "/var/www/html/gt_venv"
-        #virtualenv_python: python3.6
+        virtualenv_python: python3.8
 
-    #- name: copy  GrapeTree files to html for web usage
-     # ansible.builtin.copy:
-     #  src: /usr/local/bin/lmod/grapetree/1.5/venv/lib/python2.7/site-packages/grapetree/
-     # dest: /var/www/html/GrapeTree
-     # remote_src: yes
+        #- name: copy  GrapeTree files to html for web usage
+        #ansible.builtin.copy:
+        #src: /usr/local/bin/lmod/grapetree/1.5/venv/lib/python2.7/site-packages/grapetree/
+        #dest: /var/www/html/GrapeTree
+        #remote_src: yes
 
-    - name: copy  GrapeTree files to html for web usage
+    - name: copy GrapeTree files to html for web usage
       ansible.builtin.copy:
-        src: /var/www/html/gt_venv/lib/python*/site-packages/grapetree/
+        src: /var/www/html/gt_venv/lib/python3.8/site-packages/grapetree/
         dest: /var/www/html/GrapeTree
         remote_src: yes
-
-    - name: remove reverse proxy or access to enterobase
-      replace:
-        path: /var/www/html/GrapeTree/static/js/tree/grapetree_fileHandler.js
-        regexp: "url[[:punct:]][[:space:]]'[[:print:]]*'+"
-        replace: 'url: '
 
 - name: Create actual data db
   block:
@@ -708,7 +700,6 @@
         src: /reports
         dest: /var/www/html/galaxyreports
         state: link
-        remote_src: yes
 
 - name: Restart service rest after all other steps
   ansible.builtin.systemd:
