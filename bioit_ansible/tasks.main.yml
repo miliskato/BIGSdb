@@ -436,7 +436,6 @@
     - name: Install grapetree via pip
       ansible.builtin.pip:
         name: grapetree
-        #requirements: "{{ bioit_bigs_home }}/bioit_bigsdb_scripts/requirements_grapetree.txt"
         virtualenv: "/var/www/html/gt_venv"
         virtualenv_python: python3.8
 
