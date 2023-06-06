@@ -184,6 +184,8 @@
       - { src: bioit_etc.bigsdb.dbases/, dest: /etc/bigsdb/dbases }
       - { src: headers/, dest: /var/www/html/ }
       - { src: "bioit_website_varwwwhtml/{{ species }}.html", dest: /var/www/html/index.html }
+      - { src: "bioit_website_varwwwhtml/Organisms _ PubMLST_files", dest: /var/www/html/ }
+      - { src: "bioit_website_varwwwhtml/sciensano.be _ Healthy all life long_files", dest: /var/www/html/ }
 
 - name: setup core db's 1
   block:
