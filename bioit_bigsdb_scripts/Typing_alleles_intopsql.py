@@ -51,7 +51,7 @@ def _insert_alleles() -> None:
                             continue
                         # Part 1: Python component
                         # Make dict of fasta file
-                        fastafilepath: Path = directory / ''.join([directory.name.lower(), '.fasta'])
+                        fastafilepath: Path = directory / ''.join([directory.name, '.fasta'])
                         fasta_dict = {}
                         for record in SeqIO.parse(fastafilepath, "fasta"):
                             # add the record to the dictionary with the ID as the key and the sequence as the value
