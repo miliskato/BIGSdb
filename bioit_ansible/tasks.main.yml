@@ -183,9 +183,15 @@
       - { src: conf/, dest: /etc/bigsdb }
       - { src: bioit_etc.bigsdb.dbases/, dest: /etc/bigsdb/dbases }
       - { src: headers/, dest: /var/www/html/ }
-      - { src: "bioit_website_varwwwhtml/{{ species }}.html", dest: /var/www/html/index.html }
       - { src: "bioit_website_varwwwhtml/Organisms _ PubMLST_files", dest: /var/www/html/ }
       - { src: "bioit_website_varwwwhtml/sciensano.be _ Healthy all life long_files", dest: /var/www/html/ }
+
+- name: symlink species.html to index.html
+  ansible.builtin.file:
+    src: "/var/www/html/{{ species }}.html"
+    dest: /var/www/html/index.html
+    state: link
+    force: true
 
 - name: setup core db's 1
   block:
