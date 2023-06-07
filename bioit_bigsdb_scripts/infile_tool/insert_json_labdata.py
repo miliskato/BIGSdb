@@ -50,53 +50,53 @@ def insert_json_labdata(species: str, jsonfilepath: Path) -> None:
     :return: None
     """
 
-df = pd.read_json(jsonfilepath)
-col3name = df.columns.values[2]
-col6name = df.columns.values[5]
-col10name = df.columns.values[9]
-col13name = df.columns.values[12]  # sex
-col14name = df.columns.values[13]  # zipcode
+    df = pd.read_json(jsonfilepath)
+    #col3name = df.columns.values[2]
+    #col6name = df.columns.values[5]
+    #col10name = df.columns.values[9]
+    col13name = df.columns.values[12]  # sex
+    col14name = df.columns.values[13]  # zipcode
 
-#date_form_regex = ['\d+/\d+/\d+','\d+-\d+-\d+','\d+-\d+-\d+\s\d+-\d+-\d+']
-for item in df.columns.values:
-    df[item] = df[item].apply(safe_date_parse)
+    #date_form_regex = ['\d+/\d+/\d+','\d+-\d+-\d+','\d+-\d+-\d+\s\d+-\d+-\d+']
+    for item in df.columns.values:
+        df[item] = df[item].apply(safe_date_parse)
 
-#(df[col10name].str.match('\d+/\d+/\d+'))
-df[col3name] = df[col3name].apply(lambda x: pd.to_datetime(x, format='%Y-%m-%d', errors='coerce'))
-df[col6name] = df[col6name].apply(lambda x: pd.to_datetime(x, format='%Y-%m-%d %H:%M:%S', errors='coerce'))
-df[col10name] = df[col10name].apply(lambda x: pd.to_datetime(x, format='%d/%m/%Y', errors='coerce'))
+    #(df[col10name].str.match('\d+/\d+/\d+'))
+    #df[col3name] = df[col3name].apply(lambda x: pd.to_datetime(x, format='%Y-%m-%d', errors='coerce'))
+    #df[col6name] = df[col6name].apply(lambda x: pd.to_datetime(x, format='%Y-%m-%d %H:%M:%S', errors='coerce'))
+    #df[col10name] = df[col10name].apply(lambda x: pd.to_datetime(x, format='%d/%m/%Y', errors='coerce'))
 
-df[col13name].replace(0, np.nan, inplace=True)
-df[col14name].replace(0, np.nan, inplace=True)
+    df[col13name].replace(0, np.nan, inplace=True)
+    df[col14name].replace(0, np.nan, inplace=True)
 
-config = get_bigsdb_config_data()
-db_metadata_mappings = config['lab_meta_data']
+    config = get_bigsdb_config_data()
+    db_metadata_mappings = config['lab_meta_data']
 
-metadata_map_species = db_metadata_mappings[species]
+    metadata_map_species = db_metadata_mappings[species]
 
-# prepare query
-species_update_query = TblIsolates.build_update_nomin_metadata_query(metadata_map_species)
+    # prepare query
+    species_update_query = TblIsolates.build_update_nomin_metadata_query(metadata_map_species)
 
-tbl_isolates = TblIsolates(species)
-# update rows
-df = df.reset_index()
-fail = 0
+    tbl_isolates = TblIsolates(species)
+    # update rows
+    df = df.reset_index()
+    fail = 0
 
-for index, row in df.iterrows():
-    try:
-        params = []
-        for key in metadata_map_species:
-            if pd.isnull(row[metadata_map_species[key]]) or row[metadata_map_species[key]] == ' ':
-                params.append(None)
-            else:
-                params.append(row[metadata_map_species[key]])
-        params.append(row['id'])
-        tbl_isolates.update_nomin_metadata(species_update_query, params)
-    except Exception as e:
-        fail += 1
-        print(str.format("Error on id {} (Skipping it): {}", row['id'], e));
+    for index, row in df.iterrows():
+        try:
+            params = []
+            for key in metadata_map_species:
+                if pd.isnull(row[metadata_map_species[key]]) or row[metadata_map_species[key]] == ' ':
+                    params.append(None)
+                else:
+                    params.append(row[metadata_map_species[key]])
+            params.append(row['id'])
+            tbl_isolates.update_nomin_metadata(species_update_query, params)
+        except Exception as e:
+            fail += 1
+            print(str.format("Error on id {} (Skipping it): {}", row['id'], e));
 
-print(str.format("Updated {} items, {} failures", (df.shape[0]-fail), fail))
+    print(str.format("Updated {} items, {} failures", (df.shape[0]-fail), fail))
 
 if __name__ == '__main__':
     # Configure stdout logging
