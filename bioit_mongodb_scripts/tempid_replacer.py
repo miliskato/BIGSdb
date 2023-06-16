@@ -144,10 +144,10 @@ class TempidReplacer:
         """
         if self._species == 'stec':
             fasta_file = Path(
-                f"/db/sequence_typing/ecoli/{self._scheme.replace('-', '_')}/{locus}/{locus.lower()}.fasta")
+                f"/db/sequence_typing/ecoli/{self._scheme.replace('-', '_')}/{locus}/{locus}.fasta")
         else:
             fasta_file = Path(
-                f"/db/sequence_typing/{self._species}/{self._scheme.replace('-', '_')}/{locus}/{locus.lower()}.fasta")
+                f"/db/sequence_typing/{self._species}/{self._scheme.replace('-', '_')}/{locus}/{locus}.fasta")
         if fasta_file.is_file():
             logging.info(f"opening fasta file: {fasta_file}")
         else:
