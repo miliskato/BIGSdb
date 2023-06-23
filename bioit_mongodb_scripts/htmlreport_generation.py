@@ -38,7 +38,8 @@ class HtmlreportGeneration:
     """
     Generates a html report for a given isolate at a given results version
     """
-    def __init__(self, species: str, technical_id: str, changed_version: Optional[int] = None, analysis_date: Optional[str] = None) -> None:
+    def __init__(self, species: str, technical_id: str, changed_version: Optional[int] = None,
+                 analysis_date: Optional[str] = None, threads: Optional[int] = 1) -> None:
         """
         Initialises the class and runs the main function.
         See also argparse function for variables and their requiredness.
@@ -46,6 +47,7 @@ class HtmlreportGeneration:
         :param technical_id: sample id/ isolates id
         :param changed_version: changed version of the desired report
         :param analysis date: desired date of the report, if it doesnt exist, get the closest more recent report date
+        :param threads: number of threads, if it does not exist, default is one
         :return: None
         """
         # Input parameters
@@ -53,6 +55,7 @@ class HtmlreportGeneration:
         self._technical_id = technical_id
         self._changed_version = changed_version
         self._analysis_date = analysis_date
+        self._threads = threads
 
         # Parameter compatibility checks
         if (not self._changed_version and not self._analysis_date) or (self._changed_version and self._analysis_date):
@@ -112,6 +115,7 @@ class HtmlreportGeneration:
                 f"--output-html {dir_out / 'report.html'} ",
                 f"--output-tsv {dir_out / 'report.tsv'} ",
                 f'--working-dir {dir_temp} ',
+                f'--threads {self._threads}'
             ])
             command = Command(base_command)
 
