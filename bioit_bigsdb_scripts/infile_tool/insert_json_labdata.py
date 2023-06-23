@@ -28,18 +28,20 @@ def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     argument_parser.add_argument('--species', required=True, type=str, choices=specieslist)
     return argument_parser.parse_args()
 
-
 def safe_date_parse(value):
     try:
-        return pd.to_datetime(value, format='%Y-%m-%d', errors='coerce')
+        return pd.to_datetime(value, format='%Y-%m-%d')
     except (ParserError, ValueError):
         try:
-            return pd.to_datetime(value, format='%Y-%m-%d %H:%M:%S', errors='coerce')
+            return pd.to_datetime(value, format='%Y-%m-%d %H:%M:%S')
         except (ParserError, ValueError):
             try:
-                return pd.to_datetime(value, format='%d/%m/%Y', errors='coerce')
+                return pd.to_datetime(value, format='%d/%m/%Y')
             except (ParserError, ValueError):
-                return value
+                try:
+                    return pd.to_datetime(value, unit='ms')
+                except (ParserError, ValueError):
+                    return value
 
 
 def insert_json_labdata(species: str, jsonfilepath: Path) -> None:
@@ -51,20 +53,20 @@ def insert_json_labdata(species: str, jsonfilepath: Path) -> None:
     """
 
     df = pd.read_json(jsonfilepath)
-    #col3name = df.columns.values[2]
-    #col6name = df.columns.values[5]
-    #col10name = df.columns.values[9]
+    col3name = df.columns.values[2]
+    col6name = df.columns.values[5]
+    col10name = df.columns.values[9]
     col13name = df.columns.values[12]  # sex
     col14name = df.columns.values[13]  # zipcode
 
     #date_form_regex = ['\d+/\d+/\d+','\d+-\d+-\d+','\d+-\d+-\d+\s\d+-\d+-\d+']
     for item in df.columns.values:
-        df[item] = df[item].apply(safe_date_parse)
+        df[item] = df[item].apply(lambda x: safe_date_parse(x))
 
     #(df[col10name].str.match('\d+/\d+/\d+'))
-    #df[col3name] = df[col3name].apply(lambda x: pd.to_datetime(x, format='%Y-%m-%d', errors='coerce'))
-    #df[col6name] = df[col6name].apply(lambda x: pd.to_datetime(x, format='%Y-%m-%d %H:%M:%S', errors='coerce'))
-    #df[col10name] = df[col10name].apply(lambda x: pd.to_datetime(x, format='%d/%m/%Y', errors='coerce'))
+    print(df[col3name])
+    print(df[col6name])
+    print(df[col10name])
 
     df[col13name].replace(0, np.nan, inplace=True)
     df[col14name].replace(0, np.nan, inplace=True)
@@ -94,7 +96,7 @@ def insert_json_labdata(species: str, jsonfilepath: Path) -> None:
             tbl_isolates.update_nomin_metadata(species_update_query, params)
         except Exception as e:
             fail += 1
-            print(str.format("Error on id {} (Skipping it): {}", row['id'], e));
+            print(str.format("Error on id {} (Skipping it): {}", row['id'], e))
 
     print(str.format("Updated {} items, {} failures", (df.shape[0]-fail), fail))
 
