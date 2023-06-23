@@ -19,14 +19,15 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         pass
 
     @staticmethod
-    def query_list_of_all_distinct_values(opened_collection: pymongo.collection.Collection, variable_of_interest: str = '_id') -> List[str]:
+    def query_list_of_all_distinct_values(opened_collection: pymongo.collection.Collection, variable_of_interest: str = '_id', filtering_cond = None) -> List[str]:
         """
         Collects all values for a given variable of interest across the entire collection.
         :param opened_collection: mongo opened collection
         :param variable_of_interest: variable to be collected in every document in the collection
+        :filtering_cond: Optional: filtering expression for mongo db
         :return: list of distinct values for a variable of interest
         """
-        return opened_collection.distinct(variable_of_interest)
+        return opened_collection.distinct(variable_of_interest, filter=filtering_cond)
 
     @staticmethod
     def _query_collection(opened_collection: pymongo.collection.Collection) -> List[Dict[str, Any]]:
@@ -162,6 +163,33 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         collection_write = opened_collection.insert_one(json_input)
         logging.debug(f"Writing {collection_write.inserted_id} in collection {opened_collection}")
         return collection_write.inserted_id
+
+    @staticmethod
+    def duplicate_Mongofield_under_newname(opened_collection: pymongo.collection.Collection, mongo_id: str, field_to_copy: str, new_field_name: str) -> None:
+        """
+        Function to create a new field in specific mongo document (based on the _id) and fill-in this field with the value of another one frome the same document
+        :param opened_collection: the collection where the document needs to be saved
+        :param mongo_id: _id from the document that should be modified
+        :param field_to_copy: value of this field will be used to fill the new one
+        :param new_field_name: name of the field to be created.
+        """
+        fieldvalue = opened_collection.find_one({'_id':mongo_id},{field_to_copy:1})
+        thevalue = fieldvalue[field_to_copy]
+        thequery = {"_id": mongo_id}
+        newvalue = {"$set": {new_field_name: thevalue}}
+        opened_collection.update_one(thequery,newvalue)
+
+
+    # @staticmethod
+    # def adapt_isolates_id_in_mongodb(opened_collection: pymongo.collection.Collection, actual_id: str, new_id: str) -> None:
+    #     """
+    #     Function to change the _id field of an isolate already upload to Mongo DB
+    #     :param actual_id: current id of the isolate
+    #     :param new_id: new id to give to the isolate
+    #     """
+    #     var copy = db.isolates_badqc.findOne({_id: 'S17BD00190'})
+    #     copy._id = 'S23BDtest'
+    #     db.isolates_badqc.insert(copy)
 
     # def find_isolates_cgmlst_distance(self, isolate_id: str, distance_threshold: int, isolate_collection,
     #                                   distance_matrix_collection) -> list:
