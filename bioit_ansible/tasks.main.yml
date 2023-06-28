@@ -678,6 +678,7 @@
             requirements: "{{ bioit_bigs_home }}/bioit_bigsdb_scripts/requirements.txt"
             virtualenv: "{{ bioit_bigs_home }}/3.9PythonVenv"
             virtualenv_python: python3.9
+      tags: piprequirements
 
         - name: Install requirements mongo
           pip:
