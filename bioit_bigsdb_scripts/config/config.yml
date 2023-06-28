@@ -526,7 +526,8 @@ lab_meta_data:
     mic_rif_1: 'MIC Rif I'
     clinical_info: 'Clinical info'
     evolution: 'Evolution'
-    case_type: 'Case Type'
+    case_type: 'Case Type '
+
 
 
 
