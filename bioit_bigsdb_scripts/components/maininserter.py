@@ -60,12 +60,12 @@ class MainInserter(JsonSuperClass):
         """
         with TblEavText(self._species) as self._isolates_eavt_psql_tbl,\
                 TblIsolates(self._species) as self.isolates_psql_tbl:
-            reportlink = f'<p><a href="/galaxyreports/{self._species}/{self._isolatename}/report.html" target="_blank"> html report</a></p>'
+            reportlink = f'<p><a href="/galaxyreports/{self._species}/{self._isolatename}_{self._report_date}/report.html" target="_blank"> html report</a></p>'
             self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'html', reportlink))
             self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'tsv', reportlink.replace('html', 'tsv')))
-            vcflink_unfiltered = f'<p><a href="/galaxyreports/{self._species}/{self._isolatename}/variant_calling/variants-{self._isolatename}-all.vcf" target="_blank">VCF unfiltered</a></p>'
+            vcflink_unfiltered = f'<p><a href="/galaxyreports/{self._species}/{self._isolatename}_{self._report_date}/variant_calling/variants-{self._isolatename}-all.vcf" target="_blank">VCF unfiltered</a></p>'
             self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'VCF_unfiltered', vcflink_unfiltered))
-            vcflink_filtered = f'<p><a href="/galaxyreports/{self._species}/{self._isolatename}/variant_calling/variants-{self._isolatename}-filtered.vcf" target="_blank">VCF filtered</a></p>'
+            vcflink_filtered = f'<p><a href="/galaxyreports/{self._species}/{self._isolatename}_{self._report_date}/variant_calling/variants-{self._isolatename}-filtered.vcf" target="_blank">VCF filtered</a></p>'
             self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'VCF_filtered', vcflink_filtered))
             isolate_id = self.isolates_psql_tbl.select_maxid_for_isolate((self._isolatename,))[0][0]
             assemblylink = f'<p><a href="/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_{self._species}_isolates&page=plugin&name=Contigs&format=text&isolate_id={isolate_id}&match=1&pc_untagged=0&min_length=&header=1l" target="_blank">assembly</a></p>'
