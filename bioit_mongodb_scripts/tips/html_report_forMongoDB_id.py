@@ -56,14 +56,14 @@ if __name__ == '__main__':
             line =line.strip()
             nottobedone.append(line)
 
-    res = [i for i in samplesforhtml if i not in nottobedone]
-
+    #res = [i for i in samplesforhtml if i not in nottobedone]
+    res = ['S17BD00720']
     today = date.today()
     day_reanalyse = today.strftime("%Y-%m-%d")
     type(day_reanalyse)
 
     for sample in res:
-        enddir=fr"/scratch/temp/{sample}_2023-06-14"
+        enddir=fr"/scratch/temp/{sample}_2023-06-27"
         if not Path(enddir).is_dir():
             #HtmlreportGeneration(args.species, sample, analysis_date=day_reanalyse)
-            HtmlreportGeneration(args.species, sample, analysis_date='2023-06-14')
+            HtmlreportGeneration(args.species, sample, analysis_date='2027-06-27')
