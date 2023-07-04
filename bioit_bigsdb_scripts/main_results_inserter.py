@@ -39,7 +39,7 @@ def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
 
 
 class MainResultsInserter:
-    def __init__(self, isolatename: str, uploadermailadress: str, species: str, results_type: str,
+    def __init__(self, isolatename: str, uploadermailadress: str, species: str, results_type: str, report_date: str,
                  jsonfilepath: Optional[Path] = None, tsvfilepath: Optional[Path] = None) -> None:
         """
         Initialises the class and runs the main function.
@@ -57,6 +57,7 @@ class MainResultsInserter:
         self._uploadermailadress = uploadermailadress
         self._species = species
         self._results_type = results_type
+        self._report_date = report_date
         self._jsonfilepath = jsonfilepath
         self._tsvfilepath = tsvfilepath
 
@@ -89,7 +90,7 @@ class MainResultsInserter:
         # fail safe mechanism uses a flagfile to lock the isolate insertion and checks whether the previous insertion of the isolate succeeded.
         with TblIsolates(self._species) as isolates_psql_tbl:
             self.__fail_safe_mechanism(sample_output_dict['analysis_date'], isolates_psql_tbl)
-        maininserter = MainInserter(self._isolatename, self._species, sample_output_dict, self._bigsdb_config_data)
+        maininserter = MainInserter(self._isolatename, self._species, sample_output_dict, self._bigsdb_config_data, self._report_date)
         if self._results_type == 'new_isolate':
             maininserter.insert_new_isolate(self._uploadermailadress)
         elif self._results_type == 'reanalysis':
@@ -202,4 +203,5 @@ if __name__ == '__main__':
     args = parse_arguments(list(bigsdb_config_data['species_json']))
 
     # run main
-    MainResultsInserter(args.isolatename, args.uploadermailadress, args.species, args.results_type, jsonfilepath=(args.jsonfilepath if args.jsonfilepath else None), tsvfilepath=(args.tsvfilepath if args.tsvfilepath else None))
+    # TODOAS mettre la report date ici
+    MainResultsInserter(args.isolatename, args.uploadermailadress, args.species, args.results_type, report_date='2023-06-27', jsonfilepath=(args.jsonfilepath if args.jsonfilepath else None), tsvfilepath=(args.tsvfilepath if args.tsvfilepath else None))
