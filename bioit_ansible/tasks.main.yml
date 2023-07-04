@@ -491,6 +491,7 @@
           - { db: "bigsdb_{{ species }}_isolates", script: "{{ bioit_bigs_home }}/sql/isolatedb.sql" }
       when: query_result_species_seqdef.query_result[0]['exists'] == false
       become_user: postgres
+  tags: make_data_db
 
 - name: create global user database
   block:
@@ -569,6 +570,7 @@
         - "bigsdb_{{ species }}_isolates"
       when: query_result_species_seqdef.query_result[0]['exists'] == false
       become_user: postgres
+  tags: make_user_db
 
 - name: setup REST API
   block:
@@ -643,6 +645,7 @@
         daemon_reload: yes
         name: bigsdb-rest.service
         enabled: yes
+  tags: rest_api
 
 - name: populate databases
   block:
@@ -694,6 +697,7 @@
             - "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_bigsdb_scripts/Typing_alleles_intopsql.py --species {{ species }}"
             - "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_bigsdb_scripts/Typing_schemeprofiles_intopsql.py --species {{ species }}"
             - "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_bigsdb_scripts/genedetection_intopsql.py --species {{ species }}"
+  tags: pop_db
 
 - name: setup reports and symlinks
   block:
@@ -709,6 +713,7 @@
         src: /reports
         dest: /var/www/html/galaxyreports
         state: link
+  tags: set_symlink
 
 - name: Restart service rest after all other steps
   ansible.builtin.systemd:
@@ -716,6 +721,7 @@
     daemon_reload: yes
     name: bigsdb-rest.service
     enabled: yes
+  tags: rest_serv
 
 - name: create galaxy user
   block:
@@ -750,5 +756,6 @@
         remote_src: yes
 
     - debug: msg="TODO manually; copy the private key to the right galaxy host manually in /home/galaxy/.ssh, chmod 0600 it !"
+  tags: gal_user
 
 ...
