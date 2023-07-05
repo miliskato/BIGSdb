@@ -19,7 +19,8 @@ from bioit_bigsdb_scripts.components.json_typingresultsinserter import JsonTypin
 from bioit_bigsdb_scripts.components.json_genedetectionresultsinserter import JsonGeneDetectionResultsInserter
 from bioit_bigsdb_scripts.components.psql import TblIsolates
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data, send_email
-
+from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
+from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email
 
 def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     """
@@ -35,11 +36,12 @@ def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     argument_parser.add_argument('--uploadermailadress', required=True, type=str)
     argument_parser.add_argument('--species', required=True, type=str, choices=specieslist)
     argument_parser.add_argument("--results_type", required=True, type=str, choices=['new_isolate', 'reanalysis'])
+    argument_parser.add_argument("--report_access", required=True, type=str)
     return argument_parser.parse_args()
 
 
 class MainResultsInserter:
-    def __init__(self, isolatename: str, uploadermailadress: str, species: str, results_type: str, report_date: str,
+    def __init__(self, isolatename: str, uploadermailadress: str, species: str, results_type: str, report_access: str,
                  jsonfilepath: Optional[Path] = None, tsvfilepath: Optional[Path] = None) -> None:
         """
         Initialises the class and runs the main function.
@@ -57,7 +59,7 @@ class MainResultsInserter:
         self._uploadermailadress = uploadermailadress
         self._species = species
         self._results_type = results_type
-        self._report_date = report_date
+        self._report_access = report_access
         self._jsonfilepath = jsonfilepath
         self._tsvfilepath = tsvfilepath
 
@@ -90,7 +92,7 @@ class MainResultsInserter:
         # fail safe mechanism uses a flagfile to lock the isolate insertion and checks whether the previous insertion of the isolate succeeded.
         with TblIsolates(self._species) as isolates_psql_tbl:
             self.__fail_safe_mechanism(sample_output_dict['analysis_date'], isolates_psql_tbl)
-        maininserter = MainInserter(self._isolatename, self._species, sample_output_dict, self._bigsdb_config_data, self._report_date)
+        maininserter = MainInserter(self._isolatename, self._species, sample_output_dict, self._bigsdb_config_data, self._report_access)
         if self._results_type == 'new_isolate':
             maininserter.insert_new_isolate(self._uploadermailadress)
         elif self._results_type == 'reanalysis':
@@ -202,6 +204,22 @@ if __name__ == '__main__':
     # Parse arguments
     args = parse_arguments(list(bigsdb_config_data['species_json']))
 
+    # Config Mongo
+    mongo_config_data = get_mongodb_config_data()
+
+    # Open collections
+    mongoinit = MongoInitialisation(args.species, mongo_config_data=mongo_config_data)
+
+    isolates_collection, old_isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections()
+
     # run main
-    # TODOAS mettre la report date ici
-    MainResultsInserter(args.isolatename, args.uploadermailadress, args.species, args.results_type, report_date='2023-06-27', jsonfilepath=(args.jsonfilepath if args.jsonfilepath else None), tsvfilepath=(args.tsvfilepath if args.tsvfilepath else None))
+
+    report_doc = isolates_collection.find_one({'_id': args.isolatename}, {'report_directory': 1})
+
+    if report_doc is None:
+        report_doc = isolates_badqc_collection.find_one({'_id': args.isolatename}, {'report_directory': 1})
+
+    if report_doc is None:
+        report_doc = isolates_resequencing_collection.find_one({'_id': args.isolatename}, {'report_directory': 1})
+
+    MainResultsInserter(args.isolatename, args.uploadermailadress, args.species, args.results_type, report_access=report_doc['report_directory'], jsonfilepath=(args.jsonfilepath if args.jsonfilepath else None), tsvfilepath=(args.tsvfilepath if args.tsvfilepath else None))

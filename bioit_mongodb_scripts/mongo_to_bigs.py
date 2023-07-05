@@ -126,8 +126,8 @@ class MongoToBigs:
             with jsonfile.open('w') as handle:
                 handle.write(json.dumps(document['results']))
             # todo modify mailadress
-            # todoas vérifier _mongo_config_data['report_date']
-            MainResultsInserter(document_id, 'ann-stephan.gori@sciensano.be', self._species, results_type, jsonfilepath=jsonfile, report_date=self._mongo_config_data['report_date'])
+            # todoas add document["report_directory"]
+            MainResultsInserter(document_id, 'ann-stephan.gori@sciensano.be', self._species, results_type, jsonfilepath=jsonfile, report_access=document['report_directory'])
             jsonfile.unlink()
             if results_type == 'new_isolate':
                 continue # insert_assembly(document_id, self._species, Path(document['fasta_path']))
@@ -211,6 +211,8 @@ if __name__ == '__main__':
 
     # Parse arguments
     args = parse_arguments(mongo_config_data['species'])
+
+
 
     # run main
     MongoToBigs(args.species,
