@@ -35,5 +35,3 @@ temp_dir: /scratch/temp
 htmlreporterpipeline:
     lmod: camel_hera/0.1
     main_script: mainhtmlreporterpipeline.py
-
-report_date: '2023-06-07'
