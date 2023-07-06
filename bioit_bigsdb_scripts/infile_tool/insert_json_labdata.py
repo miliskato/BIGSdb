@@ -53,23 +53,10 @@ def insert_json_labdata(species: str, jsonfilepath: Path) -> None:
     """
 
     df = pd.read_json(jsonfilepath)
-    col3name = df.columns.values[2]
-    col6name = df.columns.values[5]
-    col10name = df.columns.values[9]
-    col13name = df.columns.values[12]  # sex
-    col14name = df.columns.values[13]  # zipcode
+    fields_to_parse = ['Isolation Date ','Patient BirthDate']
 
-    #date_form_regex = ['\d+/\d+/\d+','\d+-\d+-\d+','\d+-\d+-\d+\s\d+-\d+-\d+']
-    for item in df.columns.values:
+    for item in fields_to_parse:
         df[item] = df[item].apply(lambda x: safe_date_parse(x))
-
-    #(df[col10name].str.match('\d+/\d+/\d+'))
-    print(df[col3name])
-    print(df[col6name])
-    print(df[col10name])
-
-    df[col13name].replace(0, np.nan, inplace=True)
-    df[col14name].replace(0, np.nan, inplace=True)
 
     config = get_bigsdb_config_data()
     db_metadata_mappings = config['lab_meta_data']
