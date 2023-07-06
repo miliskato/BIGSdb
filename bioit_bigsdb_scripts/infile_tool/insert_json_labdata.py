@@ -79,7 +79,7 @@ def insert_json_labdata(species: str, jsonfilepath: Path) -> None:
                     params.append(None)
                 else:
                     params.append(row[metadata_map_species[key]])
-            params.append(row['id'])
+            params.append(row['Sample ID'])
             tbl_isolates.update_nomin_metadata(species_update_query, params)
         except Exception as e:
             fail += 1
