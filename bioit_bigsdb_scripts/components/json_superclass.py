@@ -9,7 +9,7 @@ class JsonSuperClass:
     """
 
     def __init__(self, isolatename: str, species: str,
-                 sample_output_dict: Dict[str, Any], config_data: Dict[str, Any], report_date: str) -> None:
+                 sample_output_dict: Dict[str, Any], config_data: Dict[str, Any]) -> None:
         """
         :param isolatename: name of the isolate
         :param species: commonly used bioit species name: either genus or specific like stec
@@ -21,7 +21,6 @@ class JsonSuperClass:
         self._species = species
         self._sample_output_dict = sample_output_dict
         self._bigsdb_config_data = config_data
-        self._report_date = report_date
 
     def _insert_ad_if_needed(self, locus: str, allele_id: str) -> None:
         """
