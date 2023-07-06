@@ -287,4 +287,4 @@ class PsqlQueries():
         VALUES ((SELECT CASE WHEN (SELECT MAX(id::int) FROM submissions) IS NULL THEN 1 ELSE (SELECT(SELECT MAX(id::int) FROM submissions)+1) END), 
         'isolates', 1, (SELECT CURRENT_DATE), 
         (SELECT CURRENT_DATE), 'pending', true, %s);"""
-    ISO_INSERT_GENERIC_LAB_METADATA_TEMPLATE: Final[str] = "UPDATE isolates SET {} WHERE id=%s;"
+    ISO_INSERT_GENERIC_LAB_METADATA_TEMPLATE: Final[str] = "UPDATE isolates SET {} WHERE isolate=%s;"
