@@ -527,7 +527,7 @@ lab_meta_data:
     clinical_info: 'Clinical info'
     evolution: 'Evolution'
     case_type: 'Case Type '
-
+    hidden_isolate : 'Hidden Isolate'
 
 
 
