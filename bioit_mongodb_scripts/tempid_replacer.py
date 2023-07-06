@@ -28,7 +28,7 @@ def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     :return: Parsed arguments
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("--scheme", required=True, type=str, help='lower case scheme as in json reports/mongodb documents')
+    parser.add_argument("--scheme", required=True, type=str, help='lower case scheme as in json reports/mongodb documents') #cgmlst / mlst
     parser.add_argument("--species", required=True, type=str, choices=specieslist)
     parser.add_argument('--alternate_connection_string', action='store_true',
                         help=argparse.SUPPRESS)  # will replace connection string, only for small testing purposes
@@ -101,7 +101,7 @@ class TempidReplacer:
                         hashed_allele = hashlib.md5(bytes(str(allele.seq), 'utf-8')).hexdigest()
                         if hashed_allele in hash_list:
                             self.__update_temp_to_real_mongodb(locus, allele, hashed_allele, hash_list, values)
-            if 'bigs' in socket.gethostname() and self._alternate_connection_string is None:
+            if ('bigs' in socket.gethostname() or 'nrc' in socket.gethostname()) and self._alternate_connection_string is None:
                 with TblAlleleDesignations(self._species) as isolates_ad_psql_tbl:
                     for hash_document in self._documents_list:
                         if hash_document['resolved_AD'] != 0:
