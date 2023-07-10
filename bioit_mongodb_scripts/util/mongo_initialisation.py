@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, Union
 
 import pymongo
 from pymongo import MongoClient, database
@@ -11,7 +11,8 @@ class MongoInitialisation:
     """
     Class containing all queries for Mongo
     """
-    def __init__(self, species: str, alternate_connection_string: bool = False, mongo_config_data: Dict[str, Any] = None):
+    def __init__(self, species: str, alternate_connection_string: bool = False, alternate_dtap: Union[str, None] = None,
+                 mongo_config_data: Dict[str, Any] = None):
         """
         Initialises this class and opens the species/dtap specific mongo database
         :param species: commonly used bioit species name: either genus or specific like stec
@@ -21,6 +22,8 @@ class MongoInitialisation:
         self._mongo_config_data = mongo_config_data if mongo_config_data else get_mongodb_config_data()
         if alternate_connection_string:
             self._mongo_config_data['CONNECTION_STRING_BASE'] = self._mongo_config_data['CONNECTION_STRING_ALTERNATE']
+        if alternate_dtap:
+            self._mongo_config_data['dtap'] = alternate_dtap
         self.opened_mongo_database = self._open_mongo_database(species)
 
     def _open_mongo_database(self, species: str) -> pymongo.database.Database:
@@ -34,7 +37,7 @@ class MongoInitialisation:
         except Exception:
             raise RuntimeError(f"Could not connect to {self._mongo_config_data['CONNECTION_STRING_BASE']}")
         if self._mongo_config_data["dtap"] not in ['dev', 'test', 'acc', 'prod']:
-            raise NameError(f"replace dtap value in bioit_mongodb_scripts/config/config.yml")
+            raise NameError(f"replace dtap value in bioit_mongodb_scripts/config/config.yml or use alternate_dtap")
         return self.client['_'.join([species, self._mongo_config_data["dtap"]])]  # e.g. listeria_dev
 
     def _open_mongo_collection(self, opened_database: pymongo.database.Database, collection: str) -> pymongo.collection.Collection:
