@@ -11,8 +11,8 @@ class MongoInitialisation:
     """
     Class containing all queries for Mongo
     """
-    def __init__(self, species: str, alternate_connection_string: bool = False, alternate_dtap: Union[str, None] = None,
-                 mongo_config_data: Dict[str, Any] = None):
+    def __init__(self, species: str, alternate_connection_string: Union[str, bool] = False, alternate_dtap:
+                 Union[str, None] = None, mongo_config_data: Dict[str, Any] = None):
         """
         Initialises this class and opens the species/dtap specific mongo database
         :param species: commonly used bioit species name: either genus or specific like stec
@@ -20,8 +20,10 @@ class MongoInitialisation:
         :param mongo_config_data: Use provided mongo_config_data, else get mongo_config_data from file
         """
         self._mongo_config_data = mongo_config_data if mongo_config_data else get_mongodb_config_data()
-        if alternate_connection_string:
+        if isinstance(alternate_connection_string, bool) and alternate_connection_string:
             self._mongo_config_data['CONNECTION_STRING_BASE'] = self._mongo_config_data['CONNECTION_STRING_ALTERNATE']
+        elif isinstance(alternate_connection_string, str):
+            self._mongo_config_data['CONNECTION_STRING_BASE'] = alternate_connection_string
         if alternate_dtap:
             self._mongo_config_data['dtap'] = alternate_dtap
         self.opened_mongo_database = self._open_mongo_database(species)
