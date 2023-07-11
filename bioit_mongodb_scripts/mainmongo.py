@@ -74,6 +74,7 @@ class MainMongo:
         :param fastafilepath: absolute path to where the fasta file is stored (only required for new_isolate)
         :param vcffilepath: absolute path to where the fasta file is stored (only required for new_isolate)
         :param alternate_connection_string: use given alternate connection string, used for testing on the free Atlas Cluster
+        :param alternate_dtap: alternative dtap than what is in the config file
         :param mongo_config_data: Pass provided mongo_config_data to MongoInitialisation, else get mongo_config_data from file
         :return: None
         """

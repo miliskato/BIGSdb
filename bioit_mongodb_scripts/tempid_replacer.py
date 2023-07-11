@@ -30,7 +30,7 @@ def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--scheme", required=True, type=str, help='lower case scheme as in json reports/mongodb documents')
     parser.add_argument("--species", required=True, type=str, choices=specieslist)
-    parser.add_argument('--alternate_connection_string', action='store_true',
+    parser.add_argument('--alternate_connection_string', type=str,
                         help=argparse.SUPPRESS)  # will replace connection string, only for small testing purposes
     return parser.parse_args()
 
@@ -39,22 +39,27 @@ class TempidReplacer:
     """
     Class containing definitions to check and replace temporary ids in MongoDB (and BIGSdb)
     """
-    def __init__(self, scheme: str, species: str, alternate_connection_string: bool = False):
+    def __init__(self, scheme: str, species: str, alternate_connection_string: Union[bool, str] = False,
+                 alternate_dtap: Union[str, None] = None):
         """
         Initalizes the class and executes the main function (auto-executable)
         :param scheme: scheme that unresolved hashes should be queried from
         :param species: commonly used bioit species name: either genus or specific like stec
         :param alternate_connection_string: use alternate connection string, used for testing on the free Atlas Cluster
+        :param alternate_dtap: alternative dtap than what is in the config file
         :return: None
         """
         self._scheme = scheme
         self._species = species
         self._alternate_connection_string = alternate_connection_string
+        self._alternate_dtap = alternate_dtap
+
         # parse config data
         self._mongo_config_data = get_mongodb_config_data()
         # Open collections
         self._mongoinit = MongoInitialisation(self._species,
                                               alternate_connection_string=self._alternate_connection_string,
+                                              alternate_dtap=self._alternate_dtap,
                                               mongo_config_data=self._mongo_config_data)
         self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, self._isolates_resequencing_collection = self._mongoinit.initialise_collections()
         self._hashed_ad_collection = self._mongoinit.initialise_hashing_collection()
@@ -100,7 +105,7 @@ class TempidReplacer:
                         hashed_allele = hashlib.md5(bytes(str(allele.seq), 'utf-8')).hexdigest()
                         if hashed_allele in hash_list:
                             self.__update_temp_to_real_mongodb(locus, allele, hashed_allele, hash_list, values)
-            if 'bigs' in socket.gethostname() and self._alternate_connection_string is None:
+            if 'bigs' in socket.gethostname() and not self._alternate_connection_string:
                 with TblAlleleDesignations(self._species) as isolates_ad_psql_tbl:
                     for hash_document in self._documents_list:
                         if hash_document['resolved_AD'] != 0:
