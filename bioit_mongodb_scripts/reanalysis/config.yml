@@ -21,6 +21,9 @@ species:
         main_script: mainsalmonellapipeline.py
         options: ['--serotype', '--spifinder', '--mlst', '--cgmlst', '--resfinder', '--ncbi-amr', '--vfdb-core', '--plasmidfinder', '--cgmlst', '--pointfinder']
 
+mongodb:
+    lmod: bioit_mongodb/0.1
+    main_script: mainmongo.py
 
 failsafe:
   flag_dir: /scratch/temp/flags

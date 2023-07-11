@@ -7,3 +7,7 @@ temp==2020.7.2
 fastcluster==1.2.6
 scipy==1.9.1
 PyYAML==5.3.1
+azure-batch==14.0.0
+azure-identity==1.13.0
+azure-keyvault==4.2.0
+azure-storage-blob==12.16.0
