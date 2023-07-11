@@ -48,7 +48,7 @@ def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     parser.add_argument("--fastafilepath", required=False, type=str)  # not mandatory because of reanalysis
     parser.add_argument("--vcffilepath", required=False, type=str)  # not mandatory because of reanalysis
     parser.add_argument("--technical_id", required=True, type=str)
-    parser.add_argument('--alternate_connection_string', action='store_true', help=argparse.SUPPRESS)  # will replace connection string, only for small testing purposes
+    parser.add_argument('--alternate_connection_string', type=str, help=argparse.SUPPRESS)  # will replace connection string, only for small testing purposes
     parser.add_argument('--alternate_dtap', choices=['dev', 'test', 'acc', 'prod'], help=argparse.SUPPRESS)  # will replace connection string, only for small testing purposes
     parser.add_argument('--dont_send_email', action='store_true', help=argparse.SUPPRESS)  # will not send emails, mainly used for blocking the reanalysis spam
     return parser.parse_args()
@@ -60,7 +60,7 @@ class MainMongo:
     """
     def __init__(self, technical_id: str, species: str, results_type: str, jsonfilepath: Path = None,
                  subvaldict: Dict[str, str] = None, reportdirectorypath: Path = None, fastafilepath: Path = None,
-                 vcffilepath: Path = None, alternate_connection_string: bool = False, alternate_dtap: Union[str, None] = None,
+                 vcffilepath: Path = None, alternate_connection_string: Union[bool, str] = False, alternate_dtap: Union[str, None] = None,
                  dont_send_email: bool = False, mongo_config_data: Dict[str, Any] = None) -> None:
         """
         Intialises this class and executes the main function which will insert/update the sample in a mongodb collection containing isolates
@@ -95,7 +95,7 @@ class MainMongo:
         # Open collections
         self._mongoinit = MongoInitialisation(self._species,
                                               alternate_connection_string=self._alternate_connection_string,
-                                              alterante_dtap=self._alternate_dtap,
+                                              alternate_dtap=self._alternate_dtap,
                                               mongo_config_data=self._mongo_config_data)
         self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, \
             self._isolates_resequencing_collection = self._mongoinit.initialise_collections()

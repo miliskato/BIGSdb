@@ -11,7 +11,7 @@ class MongoInitialisation:
     """
     Class containing all queries for Mongo
     """
-    def __init__(self, species: str, alternate_connection_string: Union[str, bool] = False, alternate_dtap:
+    def __init__(self, species: str, alternate_connection_string: Union[bool, str] = False, alternate_dtap:
                  Union[str, None] = None, mongo_config_data: Dict[str, Any] = None):
         """
         Initialises this class and opens the species/dtap specific mongo database
