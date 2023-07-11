@@ -13,11 +13,11 @@ from pathlib import Path
 from typing import Any, Dict, Final, List
 
 import azure.batch as batch
-import azure.batch.batch_auth as batch_auth
 import azure.batch.models as batchmodels
 from azure.batch.models import (VirtualMachineConfiguration, ImageReference,
                                 BatchErrorException, StartTask, TaskSchedulingPolicy, TaskAddParameter,
-                                NetworkConfiguration, OutputFile, OutputFileDestination, OutputFileUploadOptions, OutputFileBlobContainerDestination)
+                                NetworkConfiguration, OutputFile, OutputFileDestination, OutputFileUploadOptions,
+                                OutputFileBlobContainerDestination)
 from azure.common.credentials import ServicePrincipalCredentials
 from azure.identity import DefaultAzureCredential
 from azure.keyvault.secrets import SecretClient
@@ -65,8 +65,9 @@ def wrapper_loop_dtap_and_species(speciess: List[str], dtaps: List[str]) -> None
 
 class _BatchPipelinesReanalysis:
     """
-    This class contains the functionalities to parse events, and depending on the pathogen launch a different pipeline
-    on a new VM. The VM is stopped once the pipeline finished or fails but this is not handled in this class.
+    This class contains the functionalities check for dbupdates, and depending on the pathogen launch a different pipeline
+    on a new VM according to the last analysis date of the sample and the last dbupdate of each argument. 
+    The VM is stopped once the pipeline finished or fails but this is not handled in this class.
     The best-practices page concerning AB contains very useful information and is a must-read:
     https://learn.microsoft.com/en-us/azure/batch/best-practices
     According to this page, the best practice is to have few jobs with many tasks.
@@ -106,7 +107,6 @@ class _BatchPipelinesReanalysis:
             'AZURE-STORAGE-CONNECTION-STRING-INPUT').value
         self._blob_service_client_input = BlobServiceClient.from_connection_string(INPUT_STORAGE_CONNECTION_STRING)
 
-
     def _connect_to_batch_client(self) -> None:
         """
         Connects to batch service.
@@ -141,33 +141,7 @@ class _BatchPipelinesReanalysis:
         date_args_dict = self.__collect_database_update_dates()
 
         for maximal_analysis_date in date_args_dict:
-            ordered_dates_list = sorted(date_args_dict)
-            index_date_in_list = ordered_dates_list.index(maximal_analysis_date)
-            minimal_analysis_date = ordered_dates_list[index_date_in_list - 1] if index_date_in_list != 0 else '1970-01-01'
-            logging.info(
-                f"Submitting reanalysis for samples older than {maximal_analysis_date} and younger than {minimal_analysis_date} with arguments: {date_args_dict[maximal_analysis_date]} for {self._species}_{self._dtap}")
-            # Retrieve isolates that need to be re-analyzed
-            mongoinit = MongoInitialisation(self._species, alternate_connection_string=
-                                            self._keyvault_client.get_secret('MONGODB-CONNECTION-STRING').value,
-                                            alternate_dtap=self._dtap)
-            isolates_collection, old_isolateresults_collection, \
-                isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections()
-            # query all the documents as a projection
-            documents_list = [doc for doc in
-                              isolates_collection.find({'latest_analysis_date': {"$lt": maximal_analysis_date,
-                                                                                 "$gte": minimal_analysis_date}},
-                                                       {"_id": 1, "fasta_path": 1, "vcf_path": 1,
-                                                        "latest_analysis_date": 1, "report_directory": 1,
-                                                        "results.isolates_id": 1}
-                                                       )
-                              ]
-            logging.info(f"{len(documents_list)} isolates to be reanalyzed for {self._species}_{self._dtap}")
-            for mongodb_document in documents_list:
-                # Create a new task to execute a command on the VM
-                task_name = f"{mongodb_document['results']['isolates_id']}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
-                command = self.___build_command(task_name, date_args_dict[maximal_analysis_date], mongodb_document)
-                self.__create_task(job_name, task_name, command)
-            logging.info(f"Reanalysis submission for samples older than {maximal_analysis_date} with arguments: {date_args_dict[maximal_analysis_date]} completed")
+            self.__launch_tasks(maximal_analysis_date, date_args_dict, job_name)
 
     def __create_pool(self) -> None:
         """
@@ -186,7 +160,6 @@ class _BatchPipelinesReanalysis:
         image_ref = batchmodels.ImageReference(
             virtual_machine_image_id=self._keyvault_client.get_secret('BATCH-IMAGE').value
         )
-
 
         vm_config = VirtualMachineConfiguration(image_reference=image_ref, node_agent_sku_id=node_agent_sku_id)
 
@@ -290,7 +263,44 @@ class _BatchPipelinesReanalysis:
         #                       '2022-10-02': ['mlst', 'cgmlst', 'pcr-serogroup', 'metal-detergent', 'typing-virulence', 'typing-amr', 'species-confirmation']}
         return date_args_dict
 
-    def __create_task(self, job_name: str, task_name: str, command: str) -> None:
+    def __launch_tasks(self, maximal_analysis_date: str, date_args_dict: Dict[str, List[str]], job_name: str) -> None:
+        """
+        Launches the Azure Batch tasks for all required samples for a given maximal_analysis_date
+        :param maximal_analysis_date: key in the date_args_dict that we're currently looping over
+        :param date_args_dict: the dictionary containing all dates and arguments
+        :param job_name: the Azure Batch job name
+        :return: None
+        """
+        ordered_dates_list = sorted(date_args_dict)
+        index_date_in_list = ordered_dates_list.index(maximal_analysis_date)
+        minimal_analysis_date = ordered_dates_list[index_date_in_list - 1] if index_date_in_list != 0 else '1970-01-01'
+        logging.info(
+            f"Submitting reanalysis for samples older than {maximal_analysis_date} and younger than {minimal_analysis_date} with arguments: {date_args_dict[maximal_analysis_date]} for {self._species}_{self._dtap}")
+        # Retrieve isolates that need to be re-analyzed
+        mongoinit = MongoInitialisation(self._species,
+                                        alternate_connection_string=self._keyvault_client.get_secret('MONGODB-CONNECTION-STRING').value,
+                                        alternate_dtap=self._dtap)
+        isolates_collection, old_isolateresults_collection, \
+            isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections()
+        # query all the documents as a projection
+        documents_list = [doc for doc in
+                          isolates_collection.find({'latest_analysis_date': {"$lt": maximal_analysis_date,
+                                                                             "$gte": minimal_analysis_date}},
+                                                   {"_id": 1, "fasta_path": 1, "vcf_path": 1,
+                                                    "latest_analysis_date": 1, "report_directory": 1,
+                                                    "results.isolates_id": 1}
+                                                   )
+                          ]
+        logging.info(f"{len(documents_list)} isolates to be reanalyzed for {self._species}_{self._dtap}")
+        for mongodb_document in documents_list:
+            # Create a new task to execute a command on the VM
+            task_name = f"{mongodb_document['results']['isolates_id']}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+            command = self.___build_command(task_name, date_args_dict[maximal_analysis_date], mongodb_document)
+            self.___create_task(job_name, task_name, command)
+        logging.info(
+            f"Reanalysis submission for samples older than {maximal_analysis_date} with arguments: {date_args_dict[maximal_analysis_date]} completed")
+
+    def ___create_task(self, job_name: str, task_name: str, command: str) -> None:
         """
         Creates a task in the previously created job with the same name as the created job.
         Only a single task is submitted per job because all our jobs/tasks arrive separately
@@ -400,6 +410,7 @@ class _BatchPipelinesReanalysis:
                                     permission=AccountSasPermissions(read=True, write=True),
                                     expiry=datetime.utcnow() + timedelta(hours=48))
         # Issue: the 48 h here is a bottleneck, but any nr of hrs will be a bottleneck
+
 
 if __name__ == '__main__':
 
