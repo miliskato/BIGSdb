@@ -10,7 +10,7 @@ import sys
 import yaml
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, Final, List
+from typing import Any, Dict, Final, List
 
 import azure.batch as batch
 import azure.batch.batch_auth as batch_auth
@@ -78,6 +78,7 @@ class _BatchPipelinesReanalysis:
         """
         Initialises the class and runs the main function.
         :param species: commonly used bioit species name: either genus or specific like stec
+        :param dtap: dev, test, acc, or prod
         :return: None
         """
         self._species = species
@@ -213,9 +214,10 @@ class _BatchPipelinesReanalysis:
                     network_configuration=network_configuration
                 ))
 
-    def __create_job(self, job_name) -> None:
+    def __create_job(self, job_name: str) -> None:
         """
         Creates a job with a species specific ID, associated with the specified pool.
+        :param job_name: the Azure Batch job name
         :return: None
         """
         try:
@@ -238,10 +240,9 @@ class _BatchPipelinesReanalysis:
 
     def __collect_database_update_dates(self) -> Dict[str, List]:
         """
-        Main function
         Checks the local git versions/dates of the databases listed in the TRIGGER_CONFIG and dispatches jobs for all samples
         that do not have their results up to date according to the git versions
-        :return: None
+        :return: dictionary of last dbupdate dates grouped by date (key)
         """
         # Read the trigger config
         with open(TRIGGER_CONFIG, encoding='utf-8') as handle:
@@ -294,6 +295,9 @@ class _BatchPipelinesReanalysis:
         Creates a task in the previously created job with the same name as the created job.
         Only a single task is submitted per job because all our jobs/tasks arrive separately
         and should be executed on a single VM anyway.
+        :param job_name: the Azure Batch job name
+        :param task_name: the Azure Batch task name
+        :param command: the full shell command to be executed on the Azure spot instance in Azure Batch
         :return: None
         """
         logging.info(f"Creating task {task_name} in job {job_name}")
@@ -324,10 +328,13 @@ class _BatchPipelinesReanalysis:
         )
         self._batch_client.task.add(job_name, task)
 
-    def ___build_command(self, task_name, analysis_arguments, mongodb_document) -> str:
+    def ___build_command(self, task_name: str, analysis_arguments: List[str], mongodb_document: Dict[str, Any]) -> str:
         """
         Builds the pathogen specific command
-        :return:
+        :param task_name: the Azure Batch task name
+        :param analysis_arguments: the list of analysis arguments to use with the corresponding to be reanalysed mongodb doc.
+        :param mongodb_document: The mongodb document of the to be reanalyzed sample
+        :return: command
         """
         # pre command to load lmod and to stop commands upon failure (set -o errexit)
         pre_command = 'export MODULEPATH=/etc/lmod/modules; source /etc/profile.d/lmod.sh; set -o errexit'
