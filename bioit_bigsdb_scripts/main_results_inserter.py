@@ -50,6 +50,7 @@ class MainResultsInserter:
         :param uploadermailadress: mailadress of the uploader
         :param species: commonly used bioit species name: either genus or specific like stec
         :param results_type: results of sample
+        :param report_access: report_directory from MongoDB
         :param jsonfilepath: Path of the input json file
         :param tsvfilepath: Path of the input tsv file
         :return: None
