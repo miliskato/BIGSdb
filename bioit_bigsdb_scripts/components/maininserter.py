@@ -18,6 +18,7 @@ class MainInserter(JsonSuperClass):
         :param species: commonly used bioit species name: either genus or specific like stec
         :param sample_output_dict: results of sample
         :param config_data: the bigsdb config data
+        :param report_access: report_directory field from mongoDB
         :return: None
         """
         super().__init__(isolatename, species, sample_output_dict, config_data)
@@ -62,7 +63,7 @@ class MainInserter(JsonSuperClass):
         with TblEavText(self._species) as self._isolates_eavt_psql_tbl,\
                 TblIsolates(self._species) as self.isolates_psql_tbl:
             mongo_report_field = self._report_access
-            galaxy_report_access=mongo_report_field.replace("reports","galaxyreports")
+            galaxy_report_access = mongo_report_field.replace("reports","galaxyreports")
 
             reportlink = f'<p><a href="{galaxy_report_access}/report.html" target="_blank"> html report</a></p>'
             self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'html', reportlink))
