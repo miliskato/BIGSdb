@@ -63,5 +63,3 @@
 <field type="text" required="yes" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Rif I">mic_rif_1</field>
 <field type="text" required="yes" length="10" maindisplay="no" group ="nominative metadata" comments="Case Type">case_type</field>
 </db>
-
-#todoas
