@@ -46,9 +46,9 @@ def safe_date_parse(value):
 
 def insert_json_labdata(species: str, jsonfilepath: Path) -> None:
     """
-    Inserts an assembly for a given sample in bigsdb
+    Inserts nominative metada for a given sample in bigsdb according to config file for the specie
     :param species: commonly used bioit species name: either genus or specific like stec
-    :param fastafilepath: path of the fasta file
+    :param jsonfilepath: path of the nominative metadata json file
     :return: None
     """
 
