@@ -131,10 +131,10 @@ species:
       cmd_argument: serogroup
   stec:
     mlst_warwick:
-      dirdb: /db/sequence_typing/ecoli/mlst-warwick
+      dirdb: /db/sequence_typing/ecoli/mlst_warwick
       cmd_argument: mlst-warwick
     mlst_pasteur:
-      dirdb: /db/sequence_typing/ecoli/mlst-pasteur
+      dirdb: /db/sequence_typing/ecoli/mlst_pasteur
       cmd_argument: mlst-pasteur
     cgmlst:
       dirdb: /db/sequence_typing/ecoli/cgmlst
@@ -173,17 +173,22 @@ species:
       dirdb: /db/sequence_typing/salmonella/cgmlst
       cmd_argument: cgmlst
     spifinder:
-      dirdb: /db/pipelines/salmonella/spifinder
+      dirdb: /db/pipelines/salmonella/spifinder/genomicepidemiology-spifinder_db-db102668b704
       cmd_argument: spifinder
 ## having the same argparse argument twice does not seem to affect anything
-    serotype_sistr:  # sistr does not yet have a local git repo (8feb23)
+    serotype_sistr:
       dirdb: /db/SISTR/1.1.1/data
       cmd_argument: serotype
     serotype_seqsero:
       dirdb: /db/pipelines/salmonella/seqsero2/1.2.1/seqsero2_db
       cmd_argument: serotype
+    serotype_seqsero_salmid:
+      dirdb: /db/pipelines/salmonella/salmid/0.1.23
+      cmd_argument: serotype
 #    genotyphi:  # genotyphi is a fastq specific option
 #      dirdb: /db/pipelines/salmonella/mykrobe
+    abritamr:
+      dirdb: /db/abritamr/amrfinderplus_data
     ncbi_amr:
       dirdb: /db/gene_detection/NCBI_AMR
       cmd_argument: ncbi-amr

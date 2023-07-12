@@ -370,7 +370,7 @@ class _BatchPipelinesReanalysis:
             f'--output-dir {report_dir}',
             f"--output-html {report_dir}/report.html",
             f'--output-tsv {report_dir}/report.tsv',
-            ' '.join([x for x in analysis_arguments]),
+            ' '.join([f"--{x}" for x in analysis_arguments]),
             f'--threads 2',
             f'--sample-name {isolate_id}'
         ])
