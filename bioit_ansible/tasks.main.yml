@@ -757,7 +757,4 @@
 
     - debug: msg="TODO manually; copy the private key to the right galaxy host manually in /home/galaxy/.ssh, chmod 0600 it !"
   tags: gal_user
-
-# TODOAS :add creation of /scratch/temp/flags/ on bigs
-
 ...
