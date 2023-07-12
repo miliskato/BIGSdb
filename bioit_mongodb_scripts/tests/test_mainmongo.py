@@ -47,7 +47,9 @@ if __name__ == '__main__':
         if documents_count > 5:
             raise Exception('Are you sure you are looking at the right database using the right connection string?')
         else:
-            mongoinit.opened_mongo_database.drop_database()
+            # drop all collections in the database
+            for coll_name in mongoinit.opened_mongo_database.list_collection_names():
+                mongoinit.opened_mongo_database[coll_name].drop()
 
         def create_mainmongo_arguments_dict(results_type: str, filename: str) -> Dict[str, str]:
             """
@@ -73,6 +75,10 @@ if __name__ == '__main__':
         Add new good isolate
         """
         new_isolate_args = create_mainmongo_arguments_dict('new_isolate', 'report_version_1_1.json')
+        MainMongo(**new_isolate_args)
+
+        new_isolate_args = create_mainmongo_arguments_dict('new_isolate', 'report_version_5_4.json')
+        new_isolate_args['technical_id'] = 'test_mainmongo_2'
         MainMongo(**new_isolate_args)
 
         """

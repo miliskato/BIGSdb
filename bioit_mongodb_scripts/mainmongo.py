@@ -48,7 +48,8 @@ def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     parser.add_argument("--fastafilepath", required=False, type=str)  # not mandatory because of reanalysis
     parser.add_argument("--vcffilepath", required=False, type=str)  # not mandatory because of reanalysis
     parser.add_argument("--technical_id", required=True, type=str)
-    parser.add_argument('--alternate_connection_string', action='store_true', help=argparse.SUPPRESS)  # will replace connection string, only for small testing purposes
+    parser.add_argument('--alternate_connection_string', type=str, help=argparse.SUPPRESS)  # will replace connection string, only for small testing purposes
+    parser.add_argument('--alternate_dtap', choices=['dev', 'test', 'acc', 'prod'], help=argparse.SUPPRESS)  # will replace connection string, only for small testing purposes
     parser.add_argument('--dont_send_email', action='store_true', help=argparse.SUPPRESS)  # will not send emails, mainly used for blocking the reanalysis spam
     return parser.parse_args()
 
@@ -59,8 +60,8 @@ class MainMongo:
     """
     def __init__(self, technical_id: str, species: str, results_type: str, jsonfilepath: Path = None,
                  subvaldict: Dict[str, str] = None, reportdirectorypath: Path = None, fastafilepath: Path = None,
-                 vcffilepath: Path = None, alternate_connection_string: bool = False, dont_send_email: bool = False,
-                 mongo_config_data: Dict[str, Any] = None) -> None:
+                 vcffilepath: Path = None, alternate_connection_string: Union[bool, str] = False, alternate_dtap: Union[str, None] = None,
+                 dont_send_email: bool = False, mongo_config_data: Dict[str, Any] = None) -> None:
         """
         Intialises this class and executes the main function which will insert/update the sample in a mongodb collection containing isolates
         !! If parameters/arguments are added here, also add them to the argparse function!!
@@ -73,6 +74,7 @@ class MainMongo:
         :param fastafilepath: absolute path to where the fasta file is stored (only required for new_isolate)
         :param vcffilepath: absolute path to where the fasta file is stored (only required for new_isolate)
         :param alternate_connection_string: use given alternate connection string, used for testing on the free Atlas Cluster
+        :param alternate_dtap: alternative dtap than what is in the config file
         :param mongo_config_data: Pass provided mongo_config_data to MongoInitialisation, else get mongo_config_data from file
         :return: None
         """
@@ -86,6 +88,7 @@ class MainMongo:
         self._fastafilepath = fastafilepath
         self._vcffilepath = vcffilepath
         self._alternate_connection_string = alternate_connection_string
+        self._alternate_dtap = alternate_dtap
         self._dont_send_email = dont_send_email
         self._mongo_config_data = mongo_config_data  # no need to get if not provided because it is only
         # needed in mongoinit and there it can be retrieved by itself
@@ -93,6 +96,7 @@ class MainMongo:
         # Open collections
         self._mongoinit = MongoInitialisation(self._species,
                                               alternate_connection_string=self._alternate_connection_string,
+                                              alternate_dtap=self._alternate_dtap,
                                               mongo_config_data=self._mongo_config_data)
         self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, \
             self._isolates_resequencing_collection = self._mongoinit.initialise_collections()
@@ -135,6 +139,9 @@ class MainMongo:
             raise Exception('fastafilepath necessary when using results_type new_isolate')
         if self._results_type == 'new_isolate' and self._species == 'mycobacterium' and not self._vcffilepath:
             raise Exception('vcffilepath necessary when using results_type new_isolate')
+        # the below check is already handled in mongo initialisation
+        # if self._alternate_dtap and self._alternate_dtap not in ['dev', 'test', 'acc', 'prod']:
+        #     raise Exception('alternate dtap needs to be a valid choice between; dev, test, acc, prod')
         # new isolates should not have vcfs necesarily if they are uploaded using only a fasta
         # if self._results_type == 'new_isolate' and not self._vcffilepath:
         #     raise Exception('vcffilepath necessary when using results_type new_isolate')
@@ -315,14 +322,10 @@ class MainMongo:
                 {'_id': self._technical_id, 'results': new_results},
                 "cgmlst", self._headers_collection)
             custom_clustering = MongoCustomClustering(clustering_input[0], clustering_input[1],
-                                                      self._species)
+                                                      self._species, self._mongo_config_data)
             logging.info(f"Running the clustering for the isolate {self._technical_id}")
             sp_thresholds = f"clustering_thresholds_{self._species}"
-            sequence_type = custom_clustering.run_custom_clustering(self._headers_collection,
-                                                                    self._st_collection,
-                                                                    self._cluster_membership_collection,
-                                                                    self._cluster_merging_collection,
-                                                                    CLUSTERING_CONFIG[sp_thresholds])
+            sequence_type = custom_clustering.run_custom_clustering(CLUSTERING_CONFIG[sp_thresholds])
             new_results["cgST"] = sequence_type
         deltas_new_old = self.___nested_dict_delta(current_results, new_results)
         new_results = self.___prepend_string_dot_to_dict_keys(new_results, 'results')

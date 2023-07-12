@@ -1,7 +1,6 @@
 import datetime
 import logging
 import sys
-from multiprocessing import Pool
 from typing import Any, Dict, List
 from pathlib import Path
 
@@ -93,8 +92,7 @@ class DistanceAndClusterComputer:
             start = len(self._cgmlst_profiles) - 1
         else:
             raise ValueError('mode should be either full or last_st for compute_hamming_distances')
-        pool = Pool(4)
-        self._hamming_distances = get_distance(np.array(self._cgmlst_profiles), 'hamming_dist', pool, start=start, mongo_config_data=self._mongo_config_data)
+        self._hamming_distances = get_distance(np.array(self._cgmlst_profiles), 'hamming_dist', start=start)
         if mode == 'full':
             # when mode is full, half matrix is computed (lower triangle) so as we know that the
             # distances are symetric we can add the transposed to retrieve the upper triangle of the matrix

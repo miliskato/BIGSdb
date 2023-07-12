@@ -4,7 +4,7 @@ import socket
 from typing import Any, Dict
 
 from .json_superclass import JsonSuperClass
-from .psql import TblEavTextHidden, TblEavText, TblIsolates, TblHistory, TblSequenceBin, TblSeqBinStats
+from .psql import TblEavTextHidden, TblEavText, TblIsolates, TblHistory, TblSequenceBin, TblSeqBinStats, TblProjectMembers
 
 
 class MainInserter(JsonSuperClass):
@@ -54,6 +54,8 @@ class MainInserter(JsonSuperClass):
                 isolates_seqbin_psql_tbl.update_sequencebin_newversion([self._isolatename])
             with TblSeqBinStats(self._species) as isolates_seqbinstats_psql_tbl:
                 isolates_seqbinstats_psql_tbl.update_seqbinstats_newversion([self._isolatename])
+        with TblProjectMembers(self._species) as isolates_projectmembers_psql_tbl:
+            isolates_projectmembers_psql_tbl.add_newversion_projectmembers([self._isolatename])
 
     def insert_main_metadata(self) -> None:
         """

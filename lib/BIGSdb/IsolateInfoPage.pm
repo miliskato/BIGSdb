@@ -583,6 +583,9 @@ sub _print_plugin_buttons {
 		say q(<h2>Tools</h2>);
 		say $buffer;
 		say q(</div>);
+		say q(<button onclick = "get_jwt_report('no')" > Get report preview </button>);
+        say q(<button onclick = "get_jwt_report('yes')" > Get report zip archive </button>);
+
 	}
 	return;
 }

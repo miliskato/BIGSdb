@@ -82,7 +82,7 @@ class HtmlreportGeneration:
             self._htmlreport_generation()
         except Exception as exceptionmessage:
             send_email(f"{exceptionmessage}\n{traceback.format_exc()}",
-                       f"{Path(__file__).name}: sample validation to mongo fail on host {socket.gethostname()}")
+                       f"{Path(__file__).name} fail on host {socket.gethostname()}")
             raise Exception(f"{exceptionmessage}\n{traceback.format_exc()}")
 
 
