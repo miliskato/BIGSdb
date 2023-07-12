@@ -125,12 +125,11 @@ class MongoToBigs:
             jsonfile = Path(f"{mongo_config_data.get('temp_dir')}/{document_id}_temp.json")
             with jsonfile.open('w') as handle:
                 handle.write(json.dumps(document['results']))
-            # todo modify mailadress
-            # todoas add document["report_directory"]
+            # todo check mailadress
             MainResultsInserter(document_id, 'ann-stephan.gori@sciensano.be', self._species, results_type, jsonfilepath=jsonfile, report_access=document['report_directory'])
             jsonfile.unlink()
             if results_type == 'new_isolate':
-                continue # insert_assembly(document_id, self._species, Path(document['fasta_path']))
+                insert_assembly(document_id, self._species, Path(document['fasta_path']))
             elif results_type == 'reanalysis' and document['validation']['type'] == 'resequencing':
                 last_two_validation_dates = self._isolates_psql_tbl.select_validationdate_for_isolate((document_id,))
                 # select to check that the previous version's validation date is different from the current
