@@ -120,7 +120,7 @@ class TblIsolates(DatabaseConnection):
         sets = ', '.join(map(str, set_list))
         return str.format(PsqlQueries.ISO_INSERT_GENERIC_LAB_METADATA_TEMPLATE, sets)
 
-    def update_nomin_metadata(self, query: str, param: List[str]):
+    def update_nomin_metadata(self, query: str, param: List[str]) -> None:
         """
         Adds laboratory nominative data in isolates table for the specified species
         :param param: variables to feed to the PSQL query
