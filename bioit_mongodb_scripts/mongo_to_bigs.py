@@ -128,8 +128,10 @@ class MongoToBigs:
             # todo check mailadress
             MainResultsInserter(document_id, 'ann-stephan.gori@sciensano.be', self._species, results_type, jsonfilepath=jsonfile, report_access=document['report_directory'])
             jsonfile.unlink()
+            fasta_name = Path(document['fasta_path']).name
+            fasta_dir = Path(document['report_directory']).joinpath('assembly/', fasta_name)
             if results_type == 'new_isolate':
-                insert_assembly(document_id, self._species, Path(document['fasta_path']))
+                insert_assembly(document_id, self._species, fasta_dir)
             elif results_type == 'reanalysis' and document['validation']['type'] == 'resequencing':
                 last_two_validation_dates = self._isolates_psql_tbl.select_validationdate_for_isolate((document_id,))
                 # select to check that the previous version's validation date is different from the current
@@ -139,7 +141,7 @@ class MongoToBigs:
                         isolates_seqbin_psql_tbl.revert_sequencebin_newversion([document_id])
                     with TblSeqBinStats(self._species) as isolates_seqbinstats_psql_tbl:
                         isolates_seqbinstats_psql_tbl.revert_seqbinstats_newversion([document_id])
-                    insert_assembly(document_id, self._species, Path(document['fasta_path']))
+                    insert_assembly(document_id, self._species, fasta_dir)
             logging.info(f"wrote new results version for {document_id} to bigsdb")
 
     def __get_list_of_documents(self) -> List[Dict[str, Any]]:
