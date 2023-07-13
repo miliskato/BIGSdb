@@ -128,7 +128,8 @@ class MongoToBigs:
             # todo check mailadress
             MainResultsInserter(document_id, 'ann-stephan.gori@sciensano.be', self._species, results_type, jsonfilepath=jsonfile, report_access=document['report_directory'])
             jsonfile.unlink()
-            fasta_name = Path(document['fasta_path']).name
+            #fasta_name = Path(document['fasta_path']).name
+            fasta_name = document_id + '_contigs.fasta'
             fasta_dir = Path(document['report_directory']).joinpath('assembly/', fasta_name)
             if results_type == 'new_isolate':
                 insert_assembly(document_id, self._species, fasta_dir)
