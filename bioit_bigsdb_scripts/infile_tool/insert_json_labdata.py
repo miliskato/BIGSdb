@@ -10,7 +10,7 @@ import re
 
 from pandas.errors import ParserError
 
-PYTHONPATH = Path(__file__).resolve().parent.parent
+PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
 from bioit_bigsdb_scripts.components.psql import TblIsolates
