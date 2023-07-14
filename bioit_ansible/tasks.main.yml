@@ -479,6 +479,12 @@
         dest: /var/www/html/GrapeTree
         remote_src: yes
 
+    - name: remove reverse proxy or access to enterobase
+      replace:
+        path: /var/www/html/GrapeTree/static/js/tree/grapetree_fileHandler.js
+        regexp: "url[[:punct:]][[:space:]]'[[:print:]]*'+"
+        replace: 'url: '
+
 - name: Create actual data db
   block:
     - name: create species databases
