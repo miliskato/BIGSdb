@@ -89,6 +89,7 @@ class _BatchPipelinesReanalysis:
         with open(MONGO_REANALYSIS_CONFIG, encoding='utf-8') as handle:
             self._reanalysis_config = yaml.safe_load(handle)
 
+        # Connect to keyvault
         self._credential = DefaultAzureCredential()  # this should take the Managed Identity (which needs to have 'Keyvault secrets user' permissions)
         self._keyvault_client = SecretClient(vault_url=f"https://keyv-weu-{self._dtap}.vault.azure.net", credential=self._credential)
 
@@ -150,7 +151,7 @@ class _BatchPipelinesReanalysis:
         """
         # Create a new pool if none exists
         logging.info(f"Checking pool {BATCH_POOL_NAME}'s existence")
-        vm_size = 'Standard_D2a_v4'
+        vm_size = self._keyvault_client.get_secret('BATCH-VM-SIZE').value
         node_agent_sku_id = 'batch.node.ubuntu 20.04'
         # listing popular images: az vm image list --output table # https://learn.microsoft.com/en-us/azure/virtual-machines/linux/cli-ps-findimage#list-popular-images
         # image_ref = ImageReference(publisher='Canonical', offer='0001-com-ubuntu-server-jammy', sku='22_04-lts-gen2')
@@ -208,7 +209,6 @@ class _BatchPipelinesReanalysis:
                     # on_task_failure=,
                     # on_all_tasks_complete='terminateJob' #25/05 we never terminate the job anymore as it can scale up to millions of tasks
                 )
-
                 self._batch_client.job.add(job)
 
     def __collect_database_update_dates(self) -> Dict[str, List]:
@@ -371,7 +371,7 @@ class _BatchPipelinesReanalysis:
             f"--output-html {report_dir}/report.html",
             f'--output-tsv {report_dir}/report.tsv',
             ' '.join([f"--{x}" for x in analysis_arguments]),
-            f'--threads 2',
+            '--threads 2',
             f'--sample-name {isolate_id}'
         ])
         if self._species == 'mycobacterium':
@@ -381,7 +381,8 @@ class _BatchPipelinesReanalysis:
         post_command = f'cp $AZ_BATCH_TASK_DIR/std*.txt {report_dir}/'
         # Check if report.html exists, if it does, remove working directory to clean up and
         # stderr + stdout because they're not necessary
-        cleanup_command = f"if test -e {report_dir}/report.html ; then rm -r {working_dir}; rm {report_dir}/std*.txt; fi; rsync -a {report_dir}/ {results_dir}/; rm {results_dir}/camel.log"
+        cleanup_command = f"if test -e {report_dir}/report.html ; then rm -r {working_dir}; rm {report_dir}/std*.txt; fi; cd /scratch/scratch/; rsync -a {report_dir}/ {results_dir}/; rm {results_dir}/camel.log"
+        # the cd before rsync is necessary because else it will throw the error: rsync: getcwd(): No such file or directory (2)
         config_mongodb = self._reanalysis_config['mongodb']
         mongodb_command = ' '.join([
             f"module load {config_mongodb['lmod']};",
@@ -391,8 +392,8 @@ class _BatchPipelinesReanalysis:
             f"--technical_id {isolate_id}",
             f"--jsonfilepath {results_dir}/report.json",
             "--dont_send_email",
-            f"--alternate_connection_string {self._keyvault_client.get_secret('MONGODB-CONNECTION-STRING').value}",
-            f"--alternate_dtap {self._dtap}"
+            f"--alternate_dtap {self._dtap}",
+            f"--alternate_connection_string {self._keyvault_client.get_secret('MONGODB-CONNECTION-STRING').value}"
                                     ])
         task_command = f'/bin/bash -c "{pre_command}; {base_command}; {post_command}; {cleanup_command}; {mongodb_command}"'
         return task_command

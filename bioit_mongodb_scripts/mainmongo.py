@@ -612,6 +612,7 @@ if __name__ == '__main__':
               reportdirectorypath=(args.reportdirectorypath if args.reportdirectorypath else None), 
               fastafilepath=(args.fastafilepath if args.fastafilepath else None), 
               vcffilepath=(args.vcffilepath if args.vcffilepath else None), 
-              alternate_connection_string=(True if args.alternate_connection_string else False),
+              alternate_connection_string=(args.alternate_connection_string if args.alternate_connection_string else False),
+              alternate_dtap=args.alternate_dtap,
               dont_send_email=(True if args.dont_send_email else False),
               mongo_config_data=mongo_config_data)
