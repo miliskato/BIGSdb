@@ -190,13 +190,13 @@ species:
   stec:
     typing_schemes:
       stec_mlst_warwick:
-        dirdb: /db/sequence_typing/ecoli/mlst-warwick
+        dirdb: /db/sequence_typing/ecoli/mlst_warwick
         tsvname: mlst_warwick
         scheme_fields:
           - ST
         schemename_bigsdb: MLST_Warwick
       stec_mlst_pasteur:
-        dirdb: /db/sequence_typing/ecoli/mlst-pasteur
+        dirdb: /db/sequence_typing/ecoli/mlst_pasteur
         tsvname: mlst_pasteur
         scheme_fields:
           - ST
