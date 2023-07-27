@@ -9,13 +9,16 @@ import traceback
 from pathlib import Path
 from typing import List, Optional
 
+from azure.identity import DefaultAzureCredential
+from azure.keyvault.secrets import SecretClient
+
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
 from bioit_mongodb_scripts.util.command.command import Command
 from bioit_mongodb_scripts.util.mongo_querying import Mongoquerying
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
-from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email
+from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data
 
 
 def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
@@ -31,6 +34,7 @@ def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     mutually_exclusive_group2 = argument_parser.add_mutually_exclusive_group(required=True)
     mutually_exclusive_group2.add_argument('--changed_version', type=int)
     mutually_exclusive_group2.add_argument('--analysis_date', type=str)
+    argument_parser.add_argument('--dtap', required=True, type=str, choices=['dev', 'test', 'acc', 'prod'])
     return argument_parser.parse_args()
 
 
@@ -38,12 +42,14 @@ class HtmlreportGeneration:
     """
     Generates a html report for a given isolate at a given results version
     """
-    def __init__(self, species: str, technical_id: str, changed_version: Optional[int] = None, analysis_date: Optional[str] = None) -> None:
+    def __init__(self, species: str, technical_id: str, dtap: str, changed_version: Optional[int] = None,
+                 analysis_date: Optional[str] = None) -> None:
         """
         Initialises the class and runs the main function.
         See also argparse function for variables and their requiredness.
         :param species: commonly used bioit species name: either genus or specific like stec
         :param technical_id: sample id/ isolates id
+        :param dtap: dev, test, acc, or prod
         :param changed_version: changed version of the desired report
         :param analysis_date: desired date of the report, if it doesnt exist, get the closest more recent report date
         :return: None
@@ -51,6 +57,7 @@ class HtmlreportGeneration:
         # Input parameters
         self._species = species
         self._technical_id = technical_id
+        self._dtap = dtap
         self._changed_version = changed_version
         self._analysis_date = analysis_date
 
@@ -61,14 +68,22 @@ class HtmlreportGeneration:
             raise ValueError(f'if changed_version is searchkey; searchvalue must be integer')
         if self._analysis_date and not isinstance(self._analysis_date, str) and not re.match(r'^\d{4}-\d{2}-\d{2}$', self._analysis_date):
             raise ValueError(f'if analysis_date is searchkey; searchvalue must be string in YYYY-MM-DD format')
+        if self._dtap not in ['dev', 'test', 'acc', 'prod']:
+            raise ValueError(f'dtap must be one of dev, test, acc, or prod')
+
+        # Connect to keyvault
+        self._credential = DefaultAzureCredential()  # this should take the Managed Identity (which needs to have 'Keyvault secrets user' permissions)
+        self._keyvault_client = SecretClient(vault_url=f"https://keyv-weu-{self._dtap}.vault.azure.net", credential=self._credential)
 
         # Parse config
         self._mongo_config_data = get_mongodb_config_data()
 
         # Open collections
-        self._mongoinit = MongoInitialisation(self._species, mongo_config_data=self._mongo_config_data)
+        self._mongoinit = MongoInitialisation(self._species, mongo_config_data=self._mongo_config_data,
+                                              alternate_dtap=self._dtap,
+                                              alternate_connection_string=self._keyvault_client.get_secret('MONGODB-CONNECTION-STRING').value)
         self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, \
-        self._isolates_resequencing_collection = self._mongoinit.initialise_collections()
+            self._isolates_resequencing_collection = self._mongoinit.initialise_collections()
         self._headers_collection = self._mongoinit.initialise_headers_collection()
 
         # Open querying class instance
@@ -78,8 +93,6 @@ class HtmlreportGeneration:
         try:
             self._htmlreport_generation()
         except Exception as exceptionmessage:
-            send_email(f"{exceptionmessage}\n{traceback.format_exc()}",
-                       f"{Path(__file__).name} fail on host {socket.gethostname()}")
             raise Exception(f"{exceptionmessage}\n{traceback.format_exc()}")
 
     def _htmlreport_generation(self):
@@ -92,14 +105,14 @@ class HtmlreportGeneration:
             self._analysis_date if self._analysis_date else self._changed_version,
             self._isolates_collection, self._old_isolateresults_collection, self._headers_collection)
 
-        with self.__create_temp_dir('temp_reporting') as dir_temp:
+        with self.__create_temp_dir('temp_reporting') as dir_temp:  # todo need to have a /scratch/temp directory on the vm
             # Dump the required json file
             jsonfile = Path(dir_temp) / f"{self._technical_id}_temp.json"
             with jsonfile.open('w') as handle:
                 handle.write(json.dumps(requested_document['results']))
 
             # Set the output dir
-            dir_out = Path(self._mongo_config_data['temp_dir']) /'_'.join([self._technical_id, self._analysis_date if self._analysis_date else str(self._changed_version)])
+            dir_out = Path(self._mongo_config_data['temp_dir']) / '_'.join([self._technical_id, self._analysis_date if self._analysis_date else str(self._changed_version)])
             # Create the command to re-analyze the datasets
             base_command = ' '.join([
                 f"module load {self._mongo_config_data['htmlreporterpipeline']['lmod']}; ",
@@ -118,7 +131,6 @@ class HtmlreportGeneration:
             command.run(dir_temp)
 
             if command.returncode != 0:
-                send_email(command.stderr)
                 raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}: {command.stderr}")
 
     def __create_temp_dir(self, prefix: str) -> tempfile.TemporaryDirectory:
@@ -142,4 +154,4 @@ if __name__ == '__main__':
     species = re.sub('bigsdb_|_isolates', '', args.db) if args.db else args.species
 
     # run main
-    HtmlreportGeneration(species, args.technical_id, args.changed_version, args.analysis_date)
+    HtmlreportGeneration(species, args.technical_id, args.dtap, args.changed_version, args.analysis_date)
