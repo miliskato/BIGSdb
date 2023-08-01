@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import argparse
 import json
 import logging
@@ -112,6 +113,7 @@ class HtmlreportGeneration:
                 handle.write(json.dumps(requested_document['results']))
 
             # Set the output dir
+            # todo add dtap
             dir_out = Path(self._mongo_config_data['temp_dir']) / '_'.join([self._technical_id, self._analysis_date if self._analysis_date else str(self._changed_version)])
             # Create the command to re-analyze the datasets
             base_command = ' '.join([

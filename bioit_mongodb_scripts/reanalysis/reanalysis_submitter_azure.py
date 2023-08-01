@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import argparse
 import json
 import logging
@@ -355,8 +356,8 @@ class _BatchPipelinesReanalysis:
         We're creating the report dir before the smk pipe does it, because then if the smk fails for whatever reason,
         the stderr.txt and stdout.txt files can still be copied to the report_dir in the post_command
         """
-        report_dir = f'/scratch/scratch/report_dirs/new_isolate/{self._species}/{task_name}'
-        working_dir = f'/scratch/scratch/working_dirs/reanalysis/{self._species}/{task_name}_working'
+        report_dir = f'/scratch/scratch/{self._dtap}/report_dirs/new_isolate/{self._species}/{task_name}'
+        working_dir = f'/scratch/scratch/{self._dtap}/working_dirs/reanalysis/{self._species}/{task_name}_working'
         results_dir = mongodb_document['report_directory']
         base_command = ' '.join([
             f"module load {config_species['lmod']};",
