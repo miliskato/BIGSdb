@@ -3,12 +3,7 @@ import logging
 import sys
 from pathlib import Path
 from typing import List
-
-import numpy as np
 import pandas as pd
-import re
-
-from pandas.errors import ParserError
 
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
@@ -28,7 +23,12 @@ def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     argument_parser.add_argument('--species', required=True, type=str, choices=specieslist)
     return argument_parser.parse_args()
 
+
 def safe_date_parse(value):
+    """
+    replace date of different formats with pandas datetime object and bypass using pandas series with heterogeneous data
+    :param value: value from a specific cell in the df dataframe can be date or other.
+    """
     formats = ['%Y-%m-%d', '%Y-%m-%d %H:%M:%S', '%d/%m/%Y']
     for format in formats:
         parsed_date = pd.to_datetime(value, format=format, errors='coerce')
@@ -40,6 +40,7 @@ def safe_date_parse(value):
             return parsed_date
     return value
 
+
 def insert_json_labdata(species: str, jsonfilepath: Path) -> None:
     """
     Inserts nominative metada for a given sample in bigsdb according to config file for the specie
@@ -49,7 +50,7 @@ def insert_json_labdata(species: str, jsonfilepath: Path) -> None:
     """
 
     df = pd.read_json(jsonfilepath)
-    fields_to_parse = ['Isolation Date ','Patient BirthDate']
+    fields_to_parse = ['Isolation Date ', 'Patient BirthDate']
 
     for item in fields_to_parse:
         df[item] = df[item].apply(lambda x: safe_date_parse(x))
@@ -79,9 +80,10 @@ def insert_json_labdata(species: str, jsonfilepath: Path) -> None:
             tbl_isolates.update_nomin_metadata(species_update_query, params)
         except Exception as e:
             fail += 1
-            print(str.format("Error on id {} (Skipping it): {}", row['id'], e))
+            print(f"Error on id {row['id']} (Skipping it): {e}")
 
-    print(str.format("Updated {} items, {} failures", (df.shape[0]-fail), fail))
+    print(f"Updated {df.shape[0]-fail} items, {fail} failures")
+
 
 if __name__ == '__main__':
     # Configure stdout logging
