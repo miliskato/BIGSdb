@@ -29,20 +29,16 @@ def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     return argument_parser.parse_args()
 
 def safe_date_parse(value):
-    try:
-        return pd.to_datetime(value, format='%Y-%m-%d')
-    except (ParserError, ValueError):
-        try:
-            return pd.to_datetime(value, format='%Y-%m-%d %H:%M:%S')
-        except (ParserError, ValueError):
-            try:
-                return pd.to_datetime(value, format='%d/%m/%Y')
-            except (ParserError, ValueError):
-                try:
-                    return pd.to_datetime(value, unit='ms')
-                except (ParserError, ValueError):
-                    return value
-
+    formats = ['%Y-%m-%d', '%Y-%m-%d %H:%M:%S', '%d/%m/%Y']
+    for format in formats:
+        parsed_date = pd.to_datetime(value, format=format, errors='coerce')
+        if not pd.isnull(parsed_date):
+            return parsed_date
+    if value.isdigit():
+        parsed_date = pd.to_datetime(int(value), unit='ms', errors='coerce')
+        if not pd.isnull(parsed_date):
+            return parsed_date
+    return value
 
 def insert_json_labdata(species: str, jsonfilepath: Path) -> None:
     """
