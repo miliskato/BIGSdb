@@ -59,7 +59,7 @@ def insert_json_labdata(species: str, jsonfilepath: Path) -> None:
         df[item] = df[item].apply(lambda x: safe_date_parse(x))
 
     config = get_bigsdb_config_data()
-    db_metadata_mappings = config['lab_meta_data']
+    db_metadata_mappings = config['lab_metadata']
 
     metadata_map_species = db_metadata_mappings[species]
 
@@ -95,7 +95,7 @@ if __name__ == '__main__':
     bigsdb_config_data = get_bigsdb_config_data()
 
     # Parse arguments
-    args = parse_arguments(list(bigsdb_config_data['lab_meta_data']))
+    args = parse_arguments(list(bigsdb_config_data['lab_metadata']))
 
     # run main
     insert_json_labdata(args.species, args.jsonfilepath)

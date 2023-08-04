@@ -489,7 +489,7 @@ species_json:
         schemename_bigsdb: PlasmidFinder_entero
         schemename_html: PlasmidFinder - Enterobacteriaceae
 
-lab_meta_data:
+lab_metadata:
   neisseria:
     isolation_date: 'Isolation Date '
     year_of_isolation: 'Year of Isolation'
