@@ -27,6 +27,7 @@ from bioit_mongodb_scripts.new_clustering_info_to_bigs import \
 from bioit_mongodb_scripts.samples_to_validation_bigs import samples_to_validation_bigs
 from bioit_mongodb_scripts.util.command.command import Command
 
+
 def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     """
     Parses the command line arguments.
@@ -37,6 +38,7 @@ def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     argument_parser.add_argument('--species', required=True, type=str, choices=specieslist)
     argument_parser.add_argument('--single_sample_id', type=str, help=argparse.SUPPRESS)
     return argument_parser.parse_args()
+
 
 class MongoToBigs:
     """
@@ -63,7 +65,7 @@ class MongoToBigs:
         # Open collections
         self._mongoinit = MongoInitialisation(self._species, mongo_config_data=self._mongo_config_data)
         self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, \
-        self._isolates_resequencing_collection = self._mongoinit.initialise_collections()
+            self._isolates_resequencing_collection = self._mongoinit.initialise_collections()
         self._headers_collection = self._mongoinit.initialise_headers_collection()
         self._mongoquerying = Mongoquerying()
         # Open Bigsdb isolates table
@@ -88,7 +90,7 @@ class MongoToBigs:
 
         # update the bigsdb cache so the clustering schemes get updated
         cache_command = f'/home/bigsdb/BIGSdb/scripts/maintenance/update_scheme_caches.pl ' \
-                  f'--database bigsdb_{self._species}_isolates --schemes 2'
+            f'--database bigsdb_{self._species}_isolates --schemes 2'
         command = Command(cache_command)
         command.run(Path(os.getcwd()))
         if command.returncode != 0:
@@ -125,12 +127,11 @@ class MongoToBigs:
             jsonfile = Path(f"{mongo_config_data.get('temp_dir')}/{document_id}_temp.json")
             with jsonfile.open('w') as handle:
                 handle.write(json.dumps(document['results']))
-            # todo check mailadress
-            MainResultsInserter(document_id, 'ann-stephan.gori@sciensano.be', self._species, results_type, jsonfilepath=jsonfile, report_access=document['report_directory'])
+            # TODO : check mailadress
+            MainResultsInserter(document_id, 'bioit@sciensano.be', self._species, results_type, jsonfilepath=jsonfile, report_access=document['report_directory'])
             jsonfile.unlink()
-            #fasta_name = Path(document['fasta_path']).name
-            fasta_name = document_id + '_contigs.fasta'
-            fasta_dir = Path(document['report_directory']).joinpath('assembly/', fasta_name)
+            fasta_name = Path(document['fasta_path']).stem
+            fasta_dir = Path(document['report_directory']) / 'assembly' / fasta_name
             if results_type == 'new_isolate':
                 insert_assembly(document_id, self._species, fasta_dir)
             elif results_type == 'reanalysis' and document['validation']['type'] == 'resequencing':
@@ -213,8 +214,6 @@ if __name__ == '__main__':
 
     # Parse arguments
     args = parse_arguments(mongo_config_data['species'])
-
-
 
     # run main
     MongoToBigs(args.species,
