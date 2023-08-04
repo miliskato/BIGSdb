@@ -2,14 +2,11 @@ import abc
 import logging
 import re
 import sys
-from copy import deepcopy
 from typing import Any, Dict, List, Union
-
 import pymongo
 from pymongo.read_concern import ReadConcern
-
-from .mongo_initialisation import MongoInitialisation
 from .python_utility_functions import convert_dmyhms_to_ymd, merge_nested_dicts
+
 
 class Mongoquerying(object, metaclass=abc.ABCMeta):
     """
@@ -19,12 +16,13 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         pass
 
     @staticmethod
-    def query_list_of_all_distinct_values(opened_collection: pymongo.collection.Collection, variable_of_interest: str = '_id', filtering_cond = None) -> List[str]:
+    def query_list_of_all_distinct_values(opened_collection: pymongo.collection.Collection,
+                                          variable_of_interest: str = '_id', filtering_cond=None) -> List[str]:
         """
         Collects all values for a given variable of interest across the entire collection.
         :param opened_collection: mongo opened collection
         :param variable_of_interest: variable to be collected in every document in the collection
-        :filtering_cond: Optional: filtering expression for mongo db
+        :param filtering_cond: Optional: filtering expression for mongo db
         :return: list of distinct values for a variable of interest
         """
         return opened_collection.distinct(variable_of_interest, filter=filtering_cond)
@@ -67,7 +65,7 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
                                                         opened_headers_collection: pymongo.collection.Collection,
                                                         scheme: str = 'cgmlst', technicalids: List[str] = ['emptylist']) -> List[List[Union[str, int]]]:   # todo type
         """
-        Returns a list of lists wherein the first list is the header [isolate, locus1, locus2, ..] and the subsequent lists are the results of all isolates in technical ids
+        Returns a list of lists wherein the first list is the header [isolate, locus1, locus2, ...] and the subsequent lists are the results of all isolates in technical ids
         :param opened_isolates_collection: mongo opened isolate collection
         :param opened_headers_collection: mongo opened headers collection
         :param technicalids: technical ids list, default calculated in function and is all ids
@@ -165,7 +163,7 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         return collection_write.inserted_id
 
     @staticmethod
-    def duplicate_Mongofield_under_newname(opened_collection: pymongo.collection.Collection, mongo_id: str, field_to_copy: str, new_field_name: str) -> None:
+    def duplicate_mongofield_under_newname(opened_collection: pymongo.collection.Collection, mongo_id: str, field_to_copy: str, new_field_name: str) -> None:
         """
         Function to create a new field in specific mongo document (based on the _id) and fill-in this field with the value of another one frome the same document
         :param opened_collection: the collection where the document needs to be saved
@@ -173,12 +171,11 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         :param field_to_copy: value of this field will be used to fill the new one
         :param new_field_name: name of the field to be created.
         """
-        fieldvalue = opened_collection.find_one({'_id':mongo_id},{field_to_copy:1})
-        thevalue = fieldvalue[field_to_copy]
+        mongo_field_caught = opened_collection.find_one({'_id': mongo_id}, {field_to_copy: 1})
+        thevalue = mongo_field_caught[field_to_copy]
         thequery = {"_id": mongo_id}
         newvalue = {"$set": {new_field_name: thevalue}}
-        opened_collection.update_one(thequery,newvalue)
-
+        opened_collection.update_one(thequery, newvalue)
 
     # @staticmethod
     # def adapt_isolates_id_in_mongodb(opened_collection: pymongo.collection.Collection, actual_id: str, new_id: str) -> None:
