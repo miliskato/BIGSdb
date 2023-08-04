@@ -19,8 +19,7 @@ from bioit_bigsdb_scripts.components.json_typingresultsinserter import JsonTypin
 from bioit_bigsdb_scripts.components.json_genedetectionresultsinserter import JsonGeneDetectionResultsInserter
 from bioit_bigsdb_scripts.components.psql import TblIsolates
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data, send_email
-from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
-from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email
+from bioit_mongodb_scripts.util.python_utility_functions import send_email
 
 def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     """
@@ -205,22 +204,5 @@ if __name__ == '__main__':
     # Parse arguments
     args = parse_arguments(list(bigsdb_config_data['species_json']))
 
-    # Config Mongo
-    mongo_config_data = get_mongodb_config_data()
-
-    # Open collections
-    mongoinit = MongoInitialisation(args.species, mongo_config_data=mongo_config_data)
-
-    isolates_collection, old_isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections()
-
     # run main
-
-    report_doc = isolates_collection.find_one({'_id': args.isolatename}, {'report_directory': 1})
-
-    if report_doc is None:
-        report_doc = isolates_badqc_collection.find_one({'_id': args.isolatename}, {'report_directory': 1})
-
-    if report_doc is None:
-        report_doc = isolates_resequencing_collection.find_one({'_id': args.isolatename}, {'report_directory': 1})
-
-    MainResultsInserter(args.isolatename, args.uploadermailadress, args.species, args.results_type, report_access=report_doc['report_directory'], jsonfilepath=(args.jsonfilepath if args.jsonfilepath else None), tsvfilepath=(args.tsvfilepath if args.tsvfilepath else None))
+    MainResultsInserter(args.isolatename, args.uploadermailadress, args.species, args.results_type, args.report_access, jsonfilepath=(args.jsonfilepath if args.jsonfilepath else None), tsvfilepath=(args.tsvfilepath if args.tsvfilepath else None))
