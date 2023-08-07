@@ -371,12 +371,12 @@ class _BatchPipelinesReanalysis:
             f'--output-dir {report_dir}',
             f"--output-html {report_dir}/report.html",
             f'--output-tsv {report_dir}/report.tsv',
-            ' '.join([f"--{x}" for x in analysis_arguments]),
+            ' '.join([f"--{x}" for x in analysis_arguments]) if not self._species == 'mycobacterium' and not mongodb_document.get("vcf_path") else ' '.join([f"--{x}" for x in analysis_arguments if x in self._reanalysis_config['species'][self._species]['options_without_vcf']]),
             '--threads 2',
             f'--sample-name {isolate_id}'
         ])
         if self._species == 'mycobacterium':
-            base_command += f' --vcf-unfiltered {mongodb_document["vcf_path"]}'
+            base_command += f' --vcf-unfiltered {mongodb_document["vcf_path"]}' if mongodb_document.get("vcf_path") else ''
         # Copy the stderr and stdout files from the temporary working dir to the fileshare because they
         # might contain more information than the camel.log
         post_command = f'cp $AZ_BATCH_TASK_DIR/std*.txt {report_dir}/'
