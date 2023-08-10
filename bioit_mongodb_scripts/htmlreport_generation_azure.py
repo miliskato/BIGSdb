@@ -3,6 +3,7 @@ import argparse
 import json
 import logging
 import re
+import shutil
 import socket
 import sys
 import tempfile
@@ -106,35 +107,40 @@ class HtmlreportGeneration:
             self._analysis_date if self._analysis_date else self._changed_version,
             self._isolates_collection, self._old_isolateresults_collection, self._headers_collection)
 
-        with self.__create_temp_dir('temp_reporting') as dir_temp:  # todo need to have a /scratch/temp directory on the vm
-            # Dump the required json file
-            jsonfile = Path(dir_temp) / f"{self._technical_id}_temp.json"
-            with jsonfile.open('w') as handle:
-                handle.write(json.dumps(requested_document['results']))
+        # Set the output dir
+        dir_out = Path(self._mongo_config_data['temp_dir']) / self._dtap / self._species / '_'.join(
+            [self._technical_id, self._analysis_date if self._analysis_date else str(self._changed_version)])
+        dir_out.mkdir(parents=True, exist_ok=True)
 
-            # Set the output dir
-            # todo add dtap
-            dir_out = Path(self._mongo_config_data['temp_dir']) / self._dtap / self._species / '_'.join([self._technical_id, self._analysis_date if self._analysis_date else str(self._changed_version)])
-            dir_out.mkdir(parents=True, exist_ok=True)
-            # Create the command to re-analyze the datasets
-            base_command = ' '.join([
-                f"module load {self._mongo_config_data['htmlreporterpipeline']['lmod']}; ",
-                f"{self._mongo_config_data['htmlreporterpipeline']['main_script']} ",
-                f'--json_file {jsonfile} ',
-                f"--sample_files_dir {requested_document['report_directory']} "
-                f'--sample-name {self._technical_id} '
-                f'--output-dir {dir_out} ',
-                f"--output-html {dir_out / 'report.html'} ",
-                f"--output-tsv {dir_out / 'report.tsv'} ",
-                f'--working-dir {dir_temp} ',
-            ])
-            command = Command(base_command)
+        if not requested_document['results_version'] == 1:
+            with self.__create_temp_dir('temp_reporting') as dir_temp:
+                # Dump the required json file
+                jsonfile = Path(dir_temp) / f"{self._technical_id}_temp.json"
+                with jsonfile.open('w') as handle:
+                    handle.write(json.dumps(requested_document['results']))
 
-            # run the command
-            command.run(dir_temp)
+                # Create the command to re-analyze the datasets
+                base_command = ' '.join([
+                    f"module load {self._mongo_config_data['htmlreporterpipeline']['lmod']}; ",
+                    f"{self._mongo_config_data['htmlreporterpipeline']['main_script']} ",
+                    f'--json_file {jsonfile} ',
+                    f"--sample_files_dir {requested_document['report_directory']} "
+                    f'--sample-name {self._technical_id} '
+                    f'--output-dir {dir_out} ',
+                    f"--output-html {dir_out / 'report.html'} ",
+                    f"--output-tsv {dir_out / 'report.tsv'} ",
+                    f'--working-dir {dir_temp} ',
+                ])
+                command = Command(base_command)
 
-            if command.returncode != 0:
-                raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}: {command.stderr}")
+                # run the command
+                command.run(dir_temp)
+
+                if command.returncode != 0:
+                    raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}: {command.stderr}")
+        else:  # if requested_document['results_version'] == 1:
+            shutil.copytree(requested_document['report_directory'], str(dir_out))
+            pass
 
     def __create_temp_dir(self, prefix: str) -> tempfile.TemporaryDirectory:
         """
