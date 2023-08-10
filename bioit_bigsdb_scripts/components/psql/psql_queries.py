@@ -156,6 +156,8 @@ class PsqlQueries():
         validation_curator = %s, 
         validation_date = %s
         WHERE id=%s;"""
+    SEL_ISOLATE_ID: Final[str] = """
+        SELECT isolate FROM isolates;"""
 
     # TBL isolate submission field order
     ISO_INS__TB_ISOSUBFO_VAR_FIELD_INDEX: Final[str] = """
