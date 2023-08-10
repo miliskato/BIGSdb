@@ -51,12 +51,15 @@ fi
 nameline=$(cat $1 | awk '{print $1}' | grep -nw sample | awk -F ':' '{print $1}')
 sample_name=$(cat $1 |  sed -n ${nameline}p | awk '{print $2}')
 
-#for f in `curl -s http://${bigs_fqdn}:5000/db/bigsdb_${species}_isolates/isolates?return_all=1 | grep -oP '(?<="http://'${bigs_fqdn}':5000/db/bigsdb_'${species}'_isolates/isolates/)[^"]*'`; do curl -s http://${bigs_fqdn}:5000/db/bigsdb_${species}_isolates/isolates/$f | grep -oP '(?<="isolate":")[^"]*' >> list_of_isolates.txt; done
+########### read "list_of_isolates.txt" on nrc host
+scp -i /home/galaxy/.ssh/id_rsa_${nrc_suffix}_${DTAPVM} galaxy@'${bigs_fqdn}':/home/galaxy/list_of_isolates.txt .
 
 if grep -q $sample_name list_of_isolates.txt; then
   printf '%s\n' "${sample_name} already exists in ${species} BIGSdb" >&2
   exit
 fi
+
+rm list_of_isolates
 
 # get html file and folder from tsv file name, by taking basename and doing -1
 tsvfilenumber=$(basename "$1" .dat | awk -F '_' '{print $2}')
@@ -69,30 +72,29 @@ if [ $(echo $htmlfilenumber | grep -o '...$') == 999 ]; then
 fi
 htmlfilefolder=$(echo $htmlfilename | sed 's/\.dat/_files/g')
 
-mkdir $sample_name
+mkdir ${sample_name}
 
-cp $1 ./$sample_name/report.tsv
+cp $1 ./${sample_name}/report.tsv
 if test -f ${1}.json; then
-  cp ${1}.json ./$sample_name/report.json
+  cp ${1}.json ./${sample_name}/report.json
 fi
-cp $htmlfilename ./$sample_name/report.html
-cp -r $htmlfilefolder/* ./$sample_name/
-touch ./$sample_name/info.txt
-echo "{'sample_name': '${sample_name}', 'species': '${species}', 'user': '$2'}" > ./$sample_name/info.txt
-tar -cf $sample_name.tar ./$sample_name/
-md5sum $sample_name.tar > ${sample_name}_md5.txt
+cp $htmlfilename ./${sample_name}/report.html
+cp -r $htmlfilefolder/* ./${sample_name}/
+touch ./${sample_name}/info.txt
+echo "{'sample_name': '${sample_name}', 'species': '${species}', 'user': '$2'}" > ./${sample_name}/info.txt
+tar -cf ${sample_name}.tar ./${sample_name}/
+md5sum ${sample_name}.tar > ${sample_name}_md5.txt
 
 if test -f ${1}.json; then
-  scp -i /home/galaxy/.ssh/id_rsa_bigsdb -r ./$sample_name.tar galaxy@'${bigs_fqdn}':/home/galaxy/mongo
-  scp -i /home/galaxy/.ssh/id_rsa_bigsdb -r ./${sample_name}_md5.txt galaxy@'${bigs_fqdn}':/home/galaxy/mongo
+  scp -i /home/galaxy/.ssh/id_rsa_${nrc_suffix}_${DTAPVM} -r ./${sample_name}.tar galaxy@'${bigs_fqdn}':/home/galaxy/mongo
+  scp -i /home/galaxy/.ssh/id_rsa_${nrc_suffix}_${DTAPVM} -r ./${sample_name}_md5.txt galaxy@'${bigs_fqdn}':/home/galaxy/mongo
 else
-  scp -i /home/galaxy/.ssh/id_rsa_bigsdb -r ./$sample_name.tar galaxy@'${bigs_fqdn}':/home/galaxy
-  scp -i /home/galaxy/.ssh/id_rsa_bigsdb -r ./${sample_name}_md5.txt galaxy@'${bigs_fqdn}':/home/galaxy
+  scp -i /home/galaxy/.ssh/id_rsa_${nrc_suffix}_${DTAPVM} -r ./${sample_name}.tar galaxy@'${bigs_fqdn}':/home/galaxy
+  scp -i /home/galaxy/.ssh/id_rsa_${nrc_suffix}_${DTAPVM} -r ./${sample_name}_md5.txt galaxy@'${bigs_fqdn}':/home/galaxy
 fi
 
-echo "{user_mail: $2, sample_name: $sample_name, species: $species}" > $3
+echo "{user_mail: $2, sample_name: ${sample_name}, species: ${species}}" > $3
 
 # todo need a check for pipeline name in tsv
 
-rm -r $sample_name ${sample_name}_md5.txt $sample_name.tar
-
+rm -r ${sample_name} ${sample_name}_md5.txt ${sample_name}.tar
