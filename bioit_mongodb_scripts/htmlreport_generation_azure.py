@@ -139,6 +139,7 @@ class HtmlreportGeneration:
                 if command.returncode != 0:
                     raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}: {command.stderr}")
         else:  # if requested_document['results_version'] == 1:
+            dir_out.rmdir()
             shutil.copytree(requested_document['report_directory'], str(dir_out))
             pass
 
