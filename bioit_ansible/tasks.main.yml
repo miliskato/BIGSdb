@@ -380,6 +380,16 @@
         user: 'root'
         cron_file: bigsdb_galaxy
 
+    - name: Add crontrab entry for galaxy tool output into mongoDB
+      cron:
+        name: "cron_startinsertion_mongo_implementation.sh"
+        minute: '*/1'         # every minute
+        hour: '*'
+        weekday: '*'
+        job: 'bash /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/cron_startinsertion_mongo_implementation.sh'
+        user: 'root'
+        cron_file: mongo_galaxy
+
     - name: Add crontrab entry for global db
       cron:
         name: "sync_user_dbase_users.pl"
