@@ -1,6 +1,6 @@
 # Hybrid between Bigs components and Mongodb components
 # to be executed on bigs host of choice
-# /home/bigsdb/BIGSdb/3.9PythonVenv/bin/python3.9 /home/mikelchtermans/Bigsdb_new/bioit_mongodb_scripts/mongo_to_bigs.py --species listeria --pyvenvpythonpath /home/bigsdb/BIGSdb/3.9PythonVenv/bin/python3.9
+# /home/bigsdb/BIGSdb/3.9PythonVenv/bin/python3.9 /home/mikelchtermans/Bigsdb_new/bioit_mongodb_scripts/mongo_to_bigs.py --species listeria --uploadermailaddress bioit@sciensano.be --pyvenvpythonpath /home/bigsdb/BIGSdb/3.9PythonVenv/bin/python3.9
 
 import argparse
 import json
@@ -36,6 +36,7 @@ def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     """
     argument_parser = argparse.ArgumentParser()
     argument_parser.add_argument('--species', required=True, type=str, choices=specieslist)
+    argument_parser.add_argument('--uploadermailaddress', required=True, type=str)
     argument_parser.add_argument('--single_sample_id', type=str, help=argparse.SUPPRESS)
     return argument_parser.parse_args()
 
@@ -45,7 +46,7 @@ class MongoToBigs:
     Initializing this class will trigger its main function.
     If the current host is a bigsdb host, syncs all samples (or a single one if provided) with the bigsdb database
     """
-    def __init__(self, species: str, single_sample_id: str = None, mongo_config_data: Dict[str, Any] = None) -> None:
+    def __init__(self, species: str, uploadermailaddress: str, single_sample_id: str = None, mongo_config_data: Dict[str, Any] = None) -> None:
         """
         Initializes this class and executes the main function
         :param species: commonly used bioit species name: either genus or specific like stec
@@ -58,6 +59,7 @@ class MongoToBigs:
 
         self._species = species
         self._single_sample_id = single_sample_id
+        self._uploader_mail_address = uploadermailaddress
         # Parse MongoDB config
         self._mongo_config_data = mongo_config_data if mongo_config_data else get_mongodb_config_data()
         # Parse Bigsdb config
@@ -128,7 +130,7 @@ class MongoToBigs:
             with jsonfile.open('w') as handle:
                 handle.write(json.dumps(document['results']))
             # TODO : check mailadress
-            MainResultsInserter(document_id, 'bioit@sciensano.be', self._species, results_type, jsonfilepath=jsonfile, report_access=document['report_directory'])
+            MainResultsInserter(document_id, self._uploader_mail_address, self._species, results_type, jsonfilepath=jsonfile, report_access=document['report_directory'])
             jsonfile.unlink()
             fasta_name = Path(document['fasta_path']).stem
             fasta_dir = Path(document['report_directory']) / 'assembly' / fasta_name
@@ -197,6 +199,11 @@ class MongoToBigs:
             different_version = False
         return different_version
 
+    list_of_isolates_in_bigs = self._isolates_psql_tbl.listing_isolates()
+    with open("/home/galaxy/list_of_isolates.txt", 'w') as fileout:
+        for item in list_of_isolates_in_bigs:
+            fileout.write("%s\n" % item)
+
     def __exit__(self) -> None:
         """
         Closes the isolates psql table when the class is closed
@@ -216,6 +223,9 @@ if __name__ == '__main__':
     args = parse_arguments(mongo_config_data['species'])
 
     # run main
-    MongoToBigs(args.species,
+    MongoToBigs(args.species, args.uploadermailaddress,
                 single_sample_id=(args.single_sample_id if args.single_sample_id else None),
                 mongo_config_data=mongo_config_data)
+
+
+
