@@ -33,6 +33,7 @@ def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     mutually_exclusive_group.add_argument('--db', type=str)
     mutually_exclusive_group.add_argument('--species', type=str, choices=specieslist)
     argument_parser.add_argument('--technical_id', required=True, type=str)
+    argument_parser.add_argument('--validation_type', required=True, type=str, choices=['null', 'bad_quality', 'resequencing'])
     mutually_exclusive_group2 = argument_parser.add_mutually_exclusive_group(required=True)
     mutually_exclusive_group2.add_argument('--changed_version', type=int)
     mutually_exclusive_group2.add_argument('--analysis_date', type=str)
@@ -44,7 +45,7 @@ class HtmlreportGeneration:
     """
     Generates a html report for a given isolate at a given results version
     """
-    def __init__(self, species: str, technical_id: str, dtap: str, changed_version: Optional[int] = None,
+    def __init__(self, species: str, technical_id: str, dtap: str, validation_type: str, changed_version: Optional[int] = None,
                  analysis_date: Optional[str] = None) -> None:
         """
         Initialises the class and runs the main function.
@@ -60,18 +61,23 @@ class HtmlreportGeneration:
         self._species = species
         self._technical_id = technical_id
         self._dtap = dtap
+        self._validation_type = validation_type
         self._changed_version = changed_version
         self._analysis_date = analysis_date
 
         # Parameter compatibility checks
         if (not self._changed_version and not self._analysis_date) or (self._changed_version and self._analysis_date):
-            raise ValueError(f'Exactly one of both changed_version or analysis_date must be provided!')
+            raise ValueError('Exactly one of both changed_version or analysis_date must be provided!')
         if self._changed_version and not isinstance(self._changed_version, int):
-            raise ValueError(f'if changed_version is searchkey; searchvalue must be integer')
+            raise ValueError('if changed_version is searchkey; searchvalue must be integer')
         if self._analysis_date and not isinstance(self._analysis_date, str) and not re.match(r'^\d{4}-\d{2}-\d{2}$', self._analysis_date):
-            raise ValueError(f'if analysis_date is searchkey; searchvalue must be string in YYYY-MM-DD format')
+            raise ValueError('if analysis_date is searchkey; searchvalue must be string in YYYY-MM-DD format')
         if self._dtap not in ['dev', 'test', 'acc', 'prod']:
-            raise ValueError(f'dtap must be one of dev, test, acc, or prod')
+            raise ValueError('dtap must be one of dev, test, acc, or prod')
+        if self._validation_type not in ['null', 'bad_quality', 'resequencing']:
+            raise ValueError('validation_type must be one of null, bad_quality, or resequencing')
+        if self._validation_type != 'null' and not self._analysis_date:
+            raise ValueError('if validation type is not null, need an analysis date')
 
         # Connect to keyvault
         self._credential = DefaultAzureCredential()  # this should take the Managed Identity (which needs to have 'Keyvault secrets user' permissions)
@@ -102,17 +108,22 @@ class HtmlreportGeneration:
         Main function; finds the corresponding
         :return: None
         """
-        requested_document = self._mongoquerying.get_any_results_version(
-            self._technical_id, 'analysis_date' if self._analysis_date else 'changed_version',
-            self._analysis_date if self._analysis_date else self._changed_version,
-            self._isolates_collection, self._old_isolateresults_collection, self._headers_collection)
+        if self._validation_type == 'bad_quality':
+            requested_document = self._isolates_badqc_collection.find_one({'_id': self._technical_id, 'latest_analysis_date': self._analysis_date})
+        elif self._validation_type == 'resequencing':
+            requested_document = self._isolates_resequencing_collection.find_one({'_id': self._technical_id, 'latest_analysis_date': self._analysis_date})
+        else:  # self._validation_type == 'null':
+            requested_document = self._mongoquerying.get_any_results_version(
+                self._technical_id, 'analysis_date' if self._analysis_date else 'changed_version',
+                self._analysis_date if self._analysis_date else self._changed_version,
+                self._isolates_collection, self._old_isolateresults_collection, self._headers_collection)
 
         # Set the output dir
         dir_out = Path(self._mongo_config_data['temp_dir']) / self._dtap / self._species / '_'.join(
             [self._technical_id, self._analysis_date if self._analysis_date else str(self._changed_version)])
         dir_out.mkdir(parents=True, exist_ok=True)
 
-        if not requested_document['results_version'] == 1:
+        if (requested_document.get('results_version') and not requested_document['results_version'] == 1): # badqc and reseq isolates do not have a results_version
             with self.__create_temp_dir('temp_reporting') as dir_temp:
                 # Dump the required json file
                 jsonfile = Path(dir_temp) / f"{self._technical_id}_temp.json"
@@ -164,4 +175,4 @@ if __name__ == '__main__':
     species = re.sub('bigsdb_|_isolates', '', args.db) if args.db else args.species
 
     # run main
-    HtmlreportGeneration(species, args.technical_id, args.dtap, args.changed_version, args.analysis_date)
+    HtmlreportGeneration(species, args.technical_id, args.dtap, args.validation_type, args.changed_version, args.analysis_date)

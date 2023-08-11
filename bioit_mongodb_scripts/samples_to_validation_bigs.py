@@ -26,12 +26,7 @@ def _insert_submission_bigs(sample_docs: List[Dict[str, Any]], validation_type: 
             TblIsolateSubmissionFieldOrder(species) as isolates_isosubfo_psql_tbl:
         for doc in sample_docs:
             isolates_sub_psql_tbl.insert_submission((validation_type,))
-            # todo need to set a proper method to build links based on the sample to transfer
-            # for testing purposes
-            html_path = 'http://bioit-bigs-dev.sciensano.be/galaxyreports/listeria/110-001_S68_L001/report.html'
-            # dev code, not set yet
-            html_path = str(html_path).replace('/reports/', '/galaxyreports/') #  todo, probably needs to be removed after proper working with htmlreporter
-            html_link = f'<p><a href="{html_path}" target="_blank"> html report</a></p>'
+            html_link = f'<button onclick="get_jwt_report(\'no\',\'{validation_type}\',\'{doc["_id"]}\',\'{species}\',\'{doc["latest_analysis_date"]}\')" class="small_submit"> Html report </button>'
             # end of dev code
             isolates_isosubiso_psql_tbl.insert_validation_metadata(('html_report', html_link))
             isolates_isosubiso_psql_tbl.insert_validation_metadata(('isolate_id', doc['_id']))
