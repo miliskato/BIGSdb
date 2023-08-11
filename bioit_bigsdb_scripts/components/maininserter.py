@@ -24,17 +24,17 @@ class MainInserter(JsonSuperClass):
         super().__init__(isolatename, species, sample_output_dict, config_data)
         self._report_access = report_access
     
-    def insert_new_isolate(self, uploadermailaddress: str) -> None:
+    def insert_new_isolate(self, uploader_mail_address: str) -> None:
         """
         main function to insert a new isolate, but only the isolate
-        :param uploadermailaddress: mailadress of the uploader of the new isolate
+        :param uploader_mail_address: mailadress of the uploader of the new isolate
         :return: None
         """
         with TblIsolates(self._species) as isolates_psql_tbl:
             isolates_psql_tbl.count_isolate((self._isolatename,))
             sample_presence = isolates_psql_tbl.count_isolate((self._isolatename,))
             if sample_presence[0][0] == 0:
-                isolates_psql_tbl.insert_isolate((self._isolatename, uploadermailaddress,
+                isolates_psql_tbl.insert_isolate((self._isolatename, uploader_mail_address,
                                                   datetime.datetime.strptime(self._sample_output_dict['analysis_date'], '%d/%m/%Y - %X').strftime('%Y-%m-%d')))
                 with TblHistory(self._species) as isolates_history_psql_tbl:
                     isolates_history_psql_tbl.insert_history_isolate((self._isolatename, 'Isolate record added'))
