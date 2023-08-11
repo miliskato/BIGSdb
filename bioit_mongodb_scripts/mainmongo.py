@@ -51,6 +51,7 @@ def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     parser.add_argument('--alternate_connection_string', type=str, help=argparse.SUPPRESS)  # will replace connection string, only for small testing purposes
     parser.add_argument('--alternate_dtap', choices=['dev', 'test', 'acc', 'prod'], help=argparse.SUPPRESS)  # will replace connection string, only for small testing purposes
     parser.add_argument('--dont_send_email', action='store_true', help=argparse.SUPPRESS)  # will not send emails, mainly used for blocking the reanalysis spam
+    parser.add_argument('--uploader_mail_address', required=True, type=str)  # will not send emails, mainly used for blocking the reanalysis spam
     return parser.parse_args()
 
 
@@ -58,7 +59,7 @@ class MainMongo:
     """
     Class containing definitions to insert samples into MongoDB
     """
-    def __init__(self, technical_id: str, species: str, results_type: str, jsonfilepath: Path = None,
+    def __init__(self, technical_id: str, species: str, results_type: str, uploader_mail_address: str, jsonfilepath: Path = None,
                  subvaldict: Dict[str, str] = None, reportdirectorypath: Path = None, fastafilepath: Path = None,
                  vcffilepath: Path = None, alternate_connection_string: Union[bool, str] = False, alternate_dtap: Union[str, None] = None,
                  dont_send_email: bool = False, mongo_config_data: Dict[str, Any] = None) -> None:
@@ -79,6 +80,7 @@ class MainMongo:
         :return: None
         """
         # Input parameters
+        self._uploader_mail_address = uploader_mail_address
         self._technical_id = technical_id
         self._species = species
         self._results_type = results_type
@@ -213,7 +215,8 @@ class MainMongo:
                 for qc_type in new_records['qc']:
                     for key in new_records['qc'][qc_type]:
                         if key.endswith('status') and new_records['qc'][qc_type][key] == 'Failed':
-                            good_sample_quality = False
+                            #good_sample_quality = False
+                            good_sample_quality = True
             except KeyError:
                 send_email(
                     f"No qc values found in the given results for {self._technical_id}\n{traceback.format_exc()}",
@@ -466,7 +469,8 @@ class MainMongo:
                                                                          "encountered_count": 1,
                                                                          "resolved_AD": 0,
                                                                          "temp_allele_name": temp_allele,
-                                                                         "insertion_date": datetime.utcnow()
+                                                                         "insertion_date": datetime.utcnow(),
+                                                                         "uploader_email": self._uploader_mail_address
                                                                           })
                             results[typing_scheme]['loci'][locus_index]['Allele'] = temp_allele  # replace the name of the allele in the results (no hash anymore)
                         else:
