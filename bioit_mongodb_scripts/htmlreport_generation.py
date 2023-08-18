@@ -3,6 +3,7 @@ import argparse
 import json
 import logging
 import re
+import shutil
 import socket
 import sys
 import tempfile
@@ -117,6 +118,9 @@ class HtmlreportGeneration:
 
             # run the command
             command.run(dir_temp)
+
+            # Moving the log to the report dir because debugging is pretty hard with a python temp dir
+            shutil.move(Path(dir_temp) / 'camel.log', dir_out / 'camel.log')
 
             if command.returncode != 0:
                 send_email(command.stderr)

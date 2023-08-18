@@ -147,6 +147,9 @@ class HtmlreportGeneration:
                 # run the command
                 command.run(dir_temp)
 
+                # Moving the log to the report dir because debugging is pretty hard with a python temp dir
+                shutil.move(Path(dir_temp) / 'camel.log', dir_out / 'camel.log')
+
                 if command.returncode != 0:
                     raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}: {command.stderr}")
         else:  # if requested_document['results_version'] == 1:
