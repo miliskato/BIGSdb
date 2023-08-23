@@ -3,7 +3,8 @@
 # the DTAP of the VM is equivalent to DTAP of galaxy host used for upload ("dev" or "test")
 galaxy_hn=$(hostname)
 readarray -d - -t strarr <<<"$galaxy_hn"
-DTAPVM=${strarr[-1]}
+DTAPVM_raw=${strarr[-1]}
+DTAPVM="$(echo -e "${DTAPVM_raw}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
 
 # will make a shell script with positional arguments
 # $1 tsvpath
@@ -52,14 +53,14 @@ nameline=$(cat $1 | awk '{print $1}' | grep -nw sample | awk -F ':' '{print $1}'
 sample_name=$(cat $1 |  sed -n ${nameline}p | awk '{print $2}')
 
 ########### read "list_of_isolates.txt" on nrc host
-scp -i /home/galaxy/.ssh/id_rsa_${nrc_suffix}_${DTAPVM} galaxy@'${bigs_fqdn}':/home/galaxy/list_of_isolates.txt .
+scp -i /home/galaxy/.ssh/id_rsa_${nrc_suffix}_${DTAPVM} galaxy@${bigs_fqdn}:/home/galaxy/list_of_isolates.txt .
 
 if grep -q $sample_name list_of_isolates.txt; then
   printf '%s\n' "${sample_name} already exists in ${species} BIGSdb" >&2
   exit
 fi
 
-rm list_of_isolates
+rm list_of_isolates.txt
 
 # get html file and folder from tsv file name, by taking basename and doing -1
 tsvfilenumber=$(basename "$1" .dat | awk -F '_' '{print $2}')
@@ -86,11 +87,11 @@ tar -cf ${sample_name}.tar ./${sample_name}/
 md5sum ${sample_name}.tar > ${sample_name}_md5.txt
 
 if test -f ${1}.json; then
-  scp -i /home/galaxy/.ssh/id_rsa_${nrc_suffix}_${DTAPVM} -r ./${sample_name}.tar galaxy@'${bigs_fqdn}':/home/galaxy/mongo
-  scp -i /home/galaxy/.ssh/id_rsa_${nrc_suffix}_${DTAPVM} -r ./${sample_name}_md5.txt galaxy@'${bigs_fqdn}':/home/galaxy/mongo
+  scp -i /home/galaxy/.ssh/id_rsa_${nrc_suffix}_${DTAPVM} -r ./${sample_name}.tar galaxy@${bigs_fqdn}:/home/galaxy/mongo/
+  scp -i /home/galaxy/.ssh/id_rsa_${nrc_suffix}_${DTAPVM} -r ./${sample_name}_md5.txt galaxy@${bigs_fqdn}:/home/galaxy/mongo/
 else
-  scp -i /home/galaxy/.ssh/id_rsa_${nrc_suffix}_${DTAPVM} -r ./${sample_name}.tar galaxy@'${bigs_fqdn}':/home/galaxy
-  scp -i /home/galaxy/.ssh/id_rsa_${nrc_suffix}_${DTAPVM} -r ./${sample_name}_md5.txt galaxy@'${bigs_fqdn}':/home/galaxy
+  scp -i /home/galaxy/.ssh/id_rsa_${nrc_suffix}_${DTAPVM} -r ./${sample_name}.tar galaxy@${bigs_fqdn}:/home/galaxy/
+  scp -i /home/galaxy/.ssh/id_rsa_${nrc_suffix}_${DTAPVM} -r ./${sample_name}_md5.txt galaxy@${bigs_fqdn}:/home/galaxy/
 fi
 
 echo "{user_mail: $2, sample_name: ${sample_name}, species: ${species}}" > $3
