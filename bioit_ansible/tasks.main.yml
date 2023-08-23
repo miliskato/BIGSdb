@@ -60,7 +60,7 @@
     repo: "https://{{bioit_git_ro_user}}:{{ secret_bioit_git_ro_password }}@{{bioit_git_server}}/bigsdb/bigsdb.git"
     dest: "{{ bioit_bigs_home }}"
     version: "{{ branch }}"
-    force: yes
+    force: true
   tags: gitupdate
 
 - name: Change Mongo dtap version in config based on playbook argument
@@ -389,6 +389,7 @@
         job: 'bash /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/cron_startinsertion_mongo_implementation.sh'
         user: 'root'
         cron_file: mongo_galaxy
+      tags: cron_mongo
 
     - name: Add crontrab entry for global db
       cron:
@@ -462,8 +463,7 @@
         remote_src: yes
 
 - name: setup GrapeTree
-  tags:
-  - installgt
+  tags: installgt
   block:
     - name: create GrapeTree html dir
       ansible.builtin.file:
@@ -477,11 +477,11 @@
         virtualenv: "/var/www/html/gt_venv"
         virtualenv_python: python3.8
 
-        #- name: copy  GrapeTree files to html for web usage
-        #ansible.builtin.copy:
-        #src: /usr/local/bin/lmod/grapetree/1.5/venv/lib/python2.7/site-packages/grapetree/
-        #dest: /var/www/html/GrapeTree
-        #remote_src: yes
+        # - name: copy  GrapeTree files to html for web usage
+        # ansible.builtin.copy:
+        # src: /usr/local/bin/lmod/grapetree/1.5/venv/lib/python2.7/site-packages/grapetree/
+        # dest: /var/www/html/GrapeTree
+        # remote_src: yes
 
     - name: copy GrapeTree files to html for web usage
       ansible.builtin.copy:
@@ -758,6 +758,13 @@
     enabled: yes
   tags: rest_serv
 
+- name: create scratch temp dir
+  ansible.builtin.file:
+    path: /scratch/temp/
+    state: directory
+    owner: root
+    mode: 0777
+
 - name: create galaxy user
   block:
     - name: Setup user without UID (You have to create key manually because format error)
@@ -771,6 +778,7 @@
         path: /home/galaxy/mongo
         state: directory
         owner: galaxy
+        mode: 0777
 
     - name: generate SSH key galaxy user
       user:
@@ -792,4 +800,5 @@
 
     - debug: msg="TODO manually; copy the private key to the right galaxy host manually in /home/galaxy/.ssh, chmod 0600 it !"
   tags: gal_user
+
 ...
