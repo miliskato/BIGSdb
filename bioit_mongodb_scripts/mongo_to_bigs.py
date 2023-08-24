@@ -148,6 +148,11 @@ class MongoToBigs:
                     insert_assembly(document_id, self._species, fasta_dir)
             logging.info(f"wrote new results version for {document_id} to bigsdb")
 
+        list_of_isolates_in_bigs = self._isolates_psql_tbl.listing_isolates()
+        with open("/home/galaxy/list_of_isolates.txt", 'w') as fileout:
+            for item in list_of_isolates_in_bigs:
+                fileout.write("%s\n" % item)
+
     def __get_list_of_documents(self) -> List[Dict[str, Any]]:
         """
         Gets the list of documents, = all if no single_sample_id, else list of single document
@@ -198,11 +203,6 @@ class MongoToBigs:
                 f"results version same in mongodb and bigsdb for sample {document_id}")
             different_version = False
         return different_version
-
-    list_of_isolates_in_bigs = self._isolates_psql_tbl.listing_isolates()
-    with open("/home/galaxy/list_of_isolates.txt", 'w') as fileout:
-        for item in list_of_isolates_in_bigs:
-            fileout.write("%s\n" % item)
 
     def __exit__(self) -> None:
         """
