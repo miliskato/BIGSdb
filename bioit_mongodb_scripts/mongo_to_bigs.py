@@ -151,7 +151,7 @@ class MongoToBigs:
         list_of_isolates_in_bigs = self._isolates_psql_tbl.listing_isolates()
         with Path('/home/galaxy/list_of_isolates.txt').open('w') as fileout:
             for item in list_of_isolates_in_bigs:
-                fileout.write(f"{item}\n")
+                fileout.write(f"{item[0]}\n")
 
     def __get_list_of_documents(self) -> List[Dict[str, Any]]:
         """
