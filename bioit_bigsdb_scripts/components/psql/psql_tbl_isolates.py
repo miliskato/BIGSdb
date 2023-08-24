@@ -111,7 +111,7 @@ class TblIsolates(DatabaseConnection):
         """
         Get list of isolate currently present in isolates table of bigsdb_isolates db.
         """
-        return self.execute_query(PsqlQueries.SEL_ISOLATE_ID)
+        return self.execute(PsqlQueries.SEL_ISOLATE_ID)
 
     @staticmethod
     def build_update_nomin_metadata_query(metadata_mapping: dict[str, Any]) -> str:
