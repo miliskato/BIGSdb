@@ -149,9 +149,9 @@ class MongoToBigs:
             logging.info(f"wrote new results version for {document_id} to bigsdb")
 
         list_of_isolates_in_bigs = self._isolates_psql_tbl.listing_isolates()
-        with open("/home/galaxy/list_of_isolates.txt", 'w') as fileout:
+        with Path('/home/galaxy/list_of_isolates.txt').open('w') as fileout:
             for item in list_of_isolates_in_bigs:
-                fileout.write("%s\n" % item)
+                fileout.write(f"{item}\n")
 
     def __get_list_of_documents(self) -> List[Dict[str, Any]]:
         """
