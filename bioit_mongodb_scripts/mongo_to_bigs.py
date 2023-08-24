@@ -132,7 +132,7 @@ class MongoToBigs:
             # TODO : check mailadress
             MainResultsInserter(document_id, self._uploader_mail_address, self._species, results_type, jsonfilepath=jsonfile, report_access=document['report_directory'])
             jsonfile.unlink()
-            fasta_name = Path(document['fasta_path']).stem
+            fasta_name = Path(document['fasta_path']).name
             fasta_dir = Path(document['report_directory']) / 'assembly' / fasta_name
             if results_type == 'new_isolate':
                 insert_assembly(document_id, self._species, fasta_dir)
