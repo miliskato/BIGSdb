@@ -32,6 +32,6 @@ module_name:
 
 temp_dir: /scratch/temp
 
-htmlreporterforkpipeline:
+htmlreporterpipeline:
     lmod: camel_hera/0.1
     main_script: mainhtmlreporterpipeline.py
