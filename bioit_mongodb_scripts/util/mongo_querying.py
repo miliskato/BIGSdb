@@ -17,7 +17,7 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
 
     @staticmethod
     def query_list_of_all_distinct_values(opened_collection: pymongo.collection.Collection,
-                                          variable_of_interest: str = '_id', filtering_cond=None) -> List[str]:
+                                          variable_of_interest: str = '_id', filtering_cond: str = None) -> List[str]:
         """
         Collects all values for a given variable of interest across the entire collection.
         :param opened_collection: mongo opened collection
