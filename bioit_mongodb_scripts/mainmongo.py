@@ -51,7 +51,7 @@ def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     parser.add_argument('--alternate_connection_string', type=str, help=argparse.SUPPRESS)  # will replace connection string, only for small testing purposes
     parser.add_argument('--alternate_dtap', choices=['dev', 'test', 'acc', 'prod'], help=argparse.SUPPRESS)  # will replace connection string, only for small testing purposes
     parser.add_argument('--dont_send_email', action='store_true', help=argparse.SUPPRESS)  # will not send emails, mainly used for blocking the reanalysis spam
-    parser.add_argument('--uploader_mail_address', required=True, type=str)  # will not send emails, mainly used for blocking the reanalysis spam
+    parser.add_argument('--uploader_mail_address', required=True, type=str)
     return parser.parse_args()
 
 
