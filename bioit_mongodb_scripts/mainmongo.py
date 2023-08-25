@@ -216,7 +216,8 @@ class MainMongo:
                     for key in new_records['qc'][qc_type]:
                         if key.endswith('status') and new_records['qc'][qc_type][key] == 'Failed':
                             #good_sample_quality = False
-                            good_sample_quality = True
+                            continue  # temp fix: on NRC platform, once a sample is uploaded is considered of good quality.
+
             except KeyError:
                 send_email(
                     f"No qc values found in the given results for {self._technical_id}\n{traceback.format_exc()}",
