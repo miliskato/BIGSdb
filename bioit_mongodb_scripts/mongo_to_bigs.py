@@ -92,7 +92,7 @@ class MongoToBigs:
 
         # update the bigsdb cache so the clustering schemes get updated
         cache_command = f'/home/bigsdb/BIGSdb/scripts/maintenance/update_scheme_caches.pl ' \
-            f'--database bigsdb_{self._species}_isolates --schemes 2'
+                        f'--database bigsdb_{self._species}_isolates --schemes 2'
         command = Command(cache_command)
         command.run(Path(os.getcwd()))
         if command.returncode != 0:
@@ -129,7 +129,6 @@ class MongoToBigs:
             jsonfile = Path(f"{mongo_config_data.get('temp_dir')}/{document_id}_temp.json")
             with jsonfile.open('w') as handle:
                 handle.write(json.dumps(document['results']))
-            # TODO : check mailadress
             MainResultsInserter(document_id, self._uploader_mail_address, self._species, results_type, jsonfilepath=jsonfile, report_access=document['report_directory'])
             jsonfile.unlink()
             fasta_name = Path(document['fasta_path']).name
