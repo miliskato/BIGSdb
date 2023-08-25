@@ -1,5 +1,5 @@
 <tool id="bigsdb_upload" name="BIGSdb upload" version="nrc">
-        <description>Upload isolate pipeline results to corresponding DTAP BIGSdb instance</description>
+        <description>Upload isolate pipeline results to corresponding DTAP and pathogen related NRC instance of BIGSdb</description>
         <command>
         <![CDATA[
         $__tool_directory__/run_bigsdb_upload.sh
@@ -20,6 +20,6 @@
         <data name="output_log" format="data" label="BIGSdb-NRC upload report ${section_input.tsv_file_path}" />
     </outputs>
     <help><![CDATA[
-        This tool uploads galaxy reports to the dedicated NRC internal BIGSdb instance, it parses the species, sample_name and results from the output.It is currently only develop for neisseria. Only users with the required permissions can succesfully execute this tool. Only pipeline output-tsv's are allowed, no uploaded tsv's.
+        This tool uploads galaxy reports to the dedicated NRC internal BIGSdb instance, it parses the species, sample_name and results from the output.It is currently only developed for neisseria. Only users with the required permissions can successfully execute this tool. Only pipeline output-tsv's are allowed, no uploaded tsv's.
     ]]></help>
 </tool>
