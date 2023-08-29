@@ -53,7 +53,8 @@ nameline=$(cat $1 | awk '{print $1}' | grep -nw sample | awk -F ':' '{print $1}'
 sample_name=$(cat $1 |  sed -n ${nameline}p | awk '{print $2}')
 
 ########### read "list_of_isolates.txt" on nrc host
-scp -s -i /home/galaxy/.ssh/id_rsa_${nrc_suffix}_${DTAPVM} galaxy@${bigs_fqdn}:/scratch/bigsupload/mongo/list_of_isolates.txt .
+#due to jail, /scratch/bigsupload/mongo/list_of_isolates.txt is readable from galaxy under mongo/list_of_isolates.txt only.
+sftp -q -i /home/galaxy/.ssh/id_rsa_${nrc_suffix}_${DTAPVM} galaxy@${bigs_fqdn} <<< "get /mongo/list_of_isolates.txt"
 
 if grep -q $sample_name list_of_isolates.txt; then
   printf '%s\n' "${sample_name} already exists in ${species} BIGSdb" >&2
@@ -87,11 +88,11 @@ tar -cf ${sample_name}.tar ./${sample_name}/
 md5sum ${sample_name}.tar > ${sample_name}_md5.txt
 
 if test -f ${1}.json; then
-  scp -s -i /home/galaxy/.ssh/id_rsa_${nrc_suffix}_${DTAPVM} -r ./${sample_name}.tar galaxy@${bigs_fqdn}:/scratch/bigsupload/mongo/
-  scp -s -i /home/galaxy/.ssh/id_rsa_${nrc_suffix}_${DTAPVM} -r ./${sample_name}_md5.txt galaxy@${bigs_fqdn}:/scratch/bigsupload/mongo/
+  sftp -q -i /home/galaxy/.ssh/id_rsa_${nrc_suffix}_${DTAPVM} galaxy@${bigs_fqdn} <<< "put ${sample_name}.tar mongo/"
+  sftp -q -i /home/galaxy/.ssh/id_rsa_${nrc_suffix}_${DTAPVM} galaxy@${bigs_fqdn} <<< "put ${sample_name}_md5.txt mongo/"
 else
-  scp -s -i /home/galaxy/.ssh/id_rsa_${nrc_suffix}_${DTAPVM} -r ./${sample_name}.tar galaxy@${bigs_fqdn}:/scratch/bigsupload/
-  scp -s -i /home/galaxy/.ssh/id_rsa_${nrc_suffix}_${DTAPVM} -r ./${sample_name}_md5.txt galaxy@${bigs_fqdn}:/scratch/bigsupload/
+  sftp -q -i /home/galaxy/.ssh/id_rsa_${nrc_suffix}_${DTAPVM} galaxy@${bigs_fqdn} <<< "put ${sample_name}.tar not_json/"
+  sftp -q -i /home/galaxy/.ssh/id_rsa_${nrc_suffix}_${DTAPVM} galaxy@${bigs_fqdn} <<< "put ${sample_name}_md5.txt not_json/"
 fi
 
 echo "{user_mail: $2, sample_name: ${sample_name}, species: ${species}}" > $3
