@@ -2,7 +2,7 @@ import abc
 import logging
 import re
 import sys
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Union, Optional
 import pymongo
 from pymongo.read_concern import ReadConcern
 from .python_utility_functions import convert_dmyhms_to_ymd, merge_nested_dicts
