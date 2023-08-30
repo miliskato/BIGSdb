@@ -5,7 +5,7 @@ galaxy_hn=$(hostname)
 readarray -d - -t strarr <<<"$galaxy_hn"
 DTAPVM_raw=${strarr[-1]}
 DTAPVM="$(echo -e "${DTAPVM_raw}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
-
+job_run_date=$(date +%m-%d-%Y_%H:%M:%S)
 # will make a shell script with positional arguments
 # $1 tsvpath
 # $2 user mail
@@ -54,14 +54,14 @@ sample_name=$(cat $1 |  sed -n ${nameline}p | awk '{print $2}')
 
 ########### read "list_of_isolates.txt" on nrc host
 #due to jail, /scratch/bigsupload/mongo/list_of_isolates.txt is readable from galaxy under mongo/list_of_isolates.txt only.
-sftp -q -i /home/galaxy/.ssh/id_rsa_${nrc_suffix}_${DTAPVM} galaxy@${bigs_fqdn} <<< "get /mongo/list_of_isolates.txt"
+sftp -q -i /home/galaxy/.ssh/id_rsa_${nrc_suffix}_${DTAPVM} galaxy@${bigs_fqdn} <<< "get /mongo/list_of_isolates.txt list_of_isolates_${job_run_date}"
 
 if grep -q $sample_name list_of_isolates.txt; then
   printf '%s\n' "${sample_name} already exists in ${species} BIGSdb" >&2
   exit
 fi
 
-rm list_of_isolates.txt
+rm list_of_isolates_${job_run_date}.txt
 
 # get html file and folder from tsv file name, by taking basename and doing -1
 tsvfilenumber=$(basename "$1" .dat | awk -F '_' '{print $2}')
