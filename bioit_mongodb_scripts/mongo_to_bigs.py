@@ -23,9 +23,8 @@ from bioit_bigsdb_scripts.main_results_inserter import MainResultsInserter
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.mongo_querying import Mongoquerying
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email, convert_dmyhms_to_dateobj
-from bioit_mongodb_scripts.new_clustering_info_to_bigs import \
-    NewClusteringInfoToBigs
-from bioit_mongodb_scripts.samples_to_validation_bigs import samples_to_validation_bigs
+from bioit_mongodb_scripts.util.new_clustering_info_to_bigs import NewClusteringInfoToBigs
+from bioit_mongodb_scripts.util.samples_to_validation_bigs import samples_to_validation_bigs
 from bioit_mongodb_scripts.util.command.command import Command
 
 def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
