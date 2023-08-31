@@ -3,13 +3,14 @@ import logging
 import re
 import sys
 from copy import deepcopy
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 
 import pymongo
 from pymongo.read_concern import ReadConcern
 
 from .mongo_initialisation import MongoInitialisation
 from .python_utility_functions import convert_dmyhms_to_ymd, merge_nested_dicts
+
 
 class Mongoquerying(object, metaclass=abc.ABCMeta):
     """
@@ -38,14 +39,17 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         return [doc for doc in opened_collection.with_options(read_concern=ReadConcern(level="majority")).find()]
 
     @staticmethod
-    def query_docs_by_ids(opened_collection: pymongo.collection.Collection, ids: List[str]) -> List[Dict[str, Any]]:
+    def query_docs_by_ids(opened_collection: pymongo.collection.Collection, ids: Optional[List[str]] = None) -> List[Dict[str, Any]]:
         """
         Lists the full documents for a given set of ids.
         :param opened_collection: mongo opened collection
         :param ids: list of ids for which the full document is desired
         :return: list of all documents/contents of the in the collection
         """
-        return [doc for doc in opened_collection.with_options(read_concern=ReadConcern(level="majority")).find({"_id": {"$in": ids}})]
+        if ids:
+            return [doc for doc in opened_collection.with_options(read_concern=ReadConcern(level="majority")).find({"_id": {"$in": ids}})]
+        else:
+            return [doc for doc in opened_collection.with_options(read_concern=ReadConcern(level="majority")).find()]
 
     def _query_previous_latest_results_by_technicalids(self, opened_isolates_collection: pymongo.collection.Collection,
                                                        opened_isolateresults_collection: pymongo.collection.Collection,
@@ -64,7 +68,7 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
 
     def query_typing_results_by_technicalids_and_scheme(self, opened_isolates_collection: pymongo.collection.Collection,
                                                         opened_headers_collection: pymongo.collection.Collection,
-                                                        scheme: str = 'cgmlst', technicalids: List[str] = ['emptylist']) -> List[List[Union[str, int]]]:   # todo type
+                                                        scheme: str = 'cgmlst', technicalids: Optional[List[str]] = None) -> List[List[Union[str, int]]]:
         """
         Returns a list of lists wherein the first list is the header [isolate, locus1, locus2, ..] and the subsequent lists are the results of all isolates in technical ids
         :param opened_isolates_collection: mongo opened isolate collection
@@ -73,10 +77,8 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         :param scheme: schemename as string
         :return: List of n lists with first list header and subsesequent lists results of samples
         """
-        if technicalids == ['emptylist']:
-            technicalids = self.query_list_of_all_distinct_values(opened_isolates_collection, "_id")
         listofresultlists = []
-        for doc_index, doc in enumerate(self.query_docs_by_ids(opened_isolates_collection, technicalids)):  # todo more optimal querying
+        for doc_index, doc in enumerate(self.query_docs_by_ids(opened_isolates_collection, technicalids)):
             resultlist = self.singledoc_typing_results_by_technicalids_and_scheme(doc, scheme, opened_headers_collection, doc_index)
             if doc_index == 0:
                 # double list with header and first document's results needs to be preserved
@@ -109,7 +111,7 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
             resultlist = [document['_id']]
             for locus in document['results'][scheme]['loci']:
                 allele_id = locus['Allele']
-                if locus['% Identity'] == '100.00' and eval(locus['HSP/Locus length']) == 1.0:  # todo possibility to write the eval to the mongodb document, this is not a possibilit because then we lose the length information
+                if locus['% Identity'] == '100.00' and eval(locus['HSP/Locus length']) == 1.0:  # what about possibility to write the eval to the mongodb document, this is not a possibility because then we lose the length information
                     if '_temp_' not in allele_id:
                         if allele_id != '?' and allele_id != '-':
                             resultlist.append(int(allele_id))
