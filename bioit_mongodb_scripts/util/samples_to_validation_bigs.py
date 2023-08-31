@@ -6,7 +6,7 @@ from typing import Any, Dict, List
 
 from pymongo.write_concern import WriteConcern
 
-PYTHONPATH = Path(__file__).resolve().parent.parent
+PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
