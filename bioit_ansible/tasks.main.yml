@@ -832,6 +832,7 @@
         state: touch
         mode: 0644
         owner: bigsdb
+      tags: isolates_touch
 
     - debug: msg="TODO manually; copy the private key to the right galaxy host manually in /home/galaxy/.ssh, chmod 0600 it !"
   tags: gal_user
