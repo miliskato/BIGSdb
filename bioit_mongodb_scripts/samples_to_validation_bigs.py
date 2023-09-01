@@ -57,7 +57,7 @@ def samples_to_validation_bigs(species: str, mongo_config_data: Dict[str, Any] =
 
     # fetch all documents in the bad samples of the species
     update_collection = mongoinit.initialise_update_collection()
-    query = update_collection.find_one({'metadata': 'last_validation_to_bigs_update'})
+    query = update_collection.find_one({'metadata': 'last_validation_to_bigs_update', 'host': socket.gethostname()})
     last_run_date = query['last_update_date'] if query else datetime.datetime(1970, 1, 1)  # unix time
     current_date = datetime.datetime.utcnow()
     bad_samples = list(isolates_badqc_collection.find({'creation_date': {'$gt': last_run_date}}))
@@ -67,7 +67,7 @@ def samples_to_validation_bigs(species: str, mongo_config_data: Dict[str, Any] =
     # update last date of update
     if query:
         update_collection.with_options(write_concern=WriteConcern(w="majority")).find_one_and_update(
-            {'metadata': 'last_validation_to_bigs_update'}, {'$set': {'last_update_date': current_date}})
+            {'metadata': 'last_validation_to_bigs_update', 'host': socket.gethostname()}, {'$set': {'last_update_date': current_date}})
     else:
         update_collection.with_options(write_concern=WriteConcern(w="majority")).insert_one(
-            {'metadata': 'last_validation_to_bigs_update', 'last_update_date': last_run_date})
+            {'metadata': 'last_validation_to_bigs_update', 'host': socket.gethostname(), 'last_update_date': last_run_date})

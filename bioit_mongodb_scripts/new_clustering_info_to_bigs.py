@@ -46,7 +46,7 @@ class NewClusteringInfoToBigs:
         if self._last_date_of_update is None:
             self._last_date_of_update = datetime.datetime(1970, 1, 1)  # unix time
             self._update_metadata_collection.with_options(write_concern=WriteConcern(w="majority")).\
-                insert_one({'metadata': 'last_update', 'last_update_date': self._last_date_of_update})
+                insert_one({'metadata': 'last_update', 'last_update_date': self._last_date_of_update, 'host': socket.gethostname()})
         self._new_sequences = self._get_new_sequence()
         self._new_st = self._get_new_st()
         self._st_headers = self._get_st_headers()
@@ -79,7 +79,7 @@ class NewClusteringInfoToBigs:
         Retrieve in mongo db the date of the last update.
         :return: a date in iso UTC format
         """
-        query = self._update_metadata_collection.find_one({'metadata': 'last_update'})
+        query = self._update_metadata_collection.find_one({'metadata': 'last_update', 'host': socket.gethostname()})
         return query['last_update_date'] if query else None
 
     def _get_new_sequence(self) -> List[Dict[str, Any]]:
