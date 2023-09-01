@@ -54,9 +54,9 @@ sample_name=$(cat $1 |  sed -n ${nameline}p | awk '{print $2}')
 
 ########### read "list_of_isolates.txt" on nrc host
 #due to jail, /scratch/bigsupload/mongo/list_of_isolates.txt is readable from galaxy under mongo/list_of_isolates.txt only.
-sftp -q -i /home/galaxy/.ssh/id_rsa_${nrc_suffix}_${DTAPVM} galaxy@${bigs_fqdn} <<< "get /mongo/list_of_isolates.txt list_of_isolates_${job_run_date}"
+sftp -q -i /home/galaxy/.ssh/id_rsa_${nrc_suffix}_${DTAPVM} galaxy@${bigs_fqdn} <<< "get /mongo/list_of_isolates.txt list_of_isolates_${job_run_date}.txt"
 
-if grep -q $sample_name list_of_isolates.txt; then
+if grep -q $sample_name list_of_isolates_${job_run_date}.txt; then
   printf '%s\n' "${sample_name} already exists in ${species} BIGSdb" >&2
   exit
 fi
