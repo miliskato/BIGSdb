@@ -22,8 +22,8 @@ do
   species=$(cat $dir/info.txt | grep -oPw "(?<='species': ')[^']*")
   sample_name=$(cat $dir/info.txt | grep -oPw "(?<='sample_name': ')[^']*")
   uploader=$(cat $dir/info.txt | grep -oPw "(?<='user': ')[^']*")
+  insert_date=$(date +%m-%d-%Y_%H:%M:%S)
   {
-    insert_date=$(date +%m-%d-%Y_%H:%M:%S)
     mv $dir /reports/$species/${sample_name}_${insert_date}
     $VENV_PYTHON_BIGSDB /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/htmltagger.py --htmlfilepath /reports/$species/${sample_name}_${insert_date}/report.html --species $species
     $VENV_PYTHON_BIGSDB /home/bigsdb/BIGSdb/bioit_mongodb_scripts/mainmongo.py --reportdirectorypath /reports/$species/${sample_name}_${insert_date} --species ${species} --uploader_mail_address ${uploader} --jsonfilepath /reports/$species/${sample_name}_${insert_date}/report.json --technical_id ${sample_name} --fastafilepath /reports/$species/${sample_name}_${insert_date}/assembly/${sample_name}_contigs.fasta --vcffilepath  /reports/$species/${sample_name}_${insert_date}/variant_filtering/${sample_name}-all.vcf --results_type new_isolate
