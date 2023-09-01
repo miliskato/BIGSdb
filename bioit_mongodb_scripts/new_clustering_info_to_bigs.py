@@ -239,7 +239,7 @@ class NewClusteringInfoToBigs:
         :return: None.
         """
         self._update_metadata_collection.with_options(write_concern=WriteConcern(w="majority")).update_one(
-            {'metadata': 'last_update'}, {
+            {'metadata': 'last_update', 'host': socket.gethostname()}, {
                 "$set": {'last_update_date': self._current_update_date}})
 
     def __exit__(self) -> None:
