@@ -24,3 +24,11 @@ class TblIsolateSubmissionIsolates(DatabaseConnection):
         :return: None
         """
         self.execute_query(PsqlQueries.ISO_INS__TB_ISOSUBISO_VAR_FIELD_VALUE, param)
+
+    def get_field_and_value_from_submission(self, param: str):
+        """
+        Return field and value columns from isolate_submission_isolates filter for submission_id
+        :param param: submission_id
+        :return: Dictionnary with key corresponding to "field" and corresponding values to "value"
+        """
+        return self.execute_query(PsqlQueries.ISO_SEL_ISOSUBISO_FOR_SUBMISSION_ID, param)

@@ -163,11 +163,15 @@ class PsqlQueries():
     ISO_INS__TB_ISOSUBFO_VAR_FIELD_INDEX: Final[str] = """
         INSERT INTO isolate_submission_field_order(submission_id, field, index) 
         VALUES((SELECT MAX(id::int) FROM submissions), %s, %s);"""
+    ISO_ISOSUBISO_SEL_ISOLATE_ID: Final[str] = """
+        SELECT isolate_id FROM isolate_;"""
 
     # TBL isolate submission isolates
     ISO_INS__TB_ISOSUBISO_VAR_FIELD_VALUE: Final[str] = """
         INSERT INTO isolate_submission_isolates (submission_id, index, field, value) 
         VALUES((SELECT MAX(id::int) FROM submissions), 1, %s, %s);"""
+    ISO_SEL_ISOSUBISO_FOR_SUBMISSION_ID: Final[str] = """
+        SELECT * FROM isolate_submission_isolates WHERE submission_id=%s;"""
 
     # TBL loci
     ISO_INS__TB_LOCI_VAR_LOCUS_DBNAME_DBID_URL: Final[str] = """
@@ -295,4 +299,6 @@ class PsqlQueries():
         VALUES ((SELECT CASE WHEN (SELECT MAX(id::int) FROM submissions) IS NULL THEN 1 ELSE (SELECT(SELECT MAX(id::int) FROM submissions)+1) END), 
         'isolates', 1, (SELECT CURRENT_DATE), 
         (SELECT CURRENT_DATE), 'pending', true, %s);"""
+    ISO_SEL_ID_SUBMISSION_THROUGH_BIGS: Final[str] = """
+        SELECT id FROM submissions WHERE outcome = 'good' and status = 'closed' and id like 'BIGSdb_%';"""
     ISO_INSERT_GENERIC_LAB_METADATA_TEMPLATE: Final[str] = "UPDATE isolates SET {} WHERE isolate=%s;"

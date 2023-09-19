@@ -2,7 +2,7 @@ from typing import Any, List, Optional, Tuple, Union
 
 from .databaseconnection import DatabaseConnection
 from .psql_queries import PsqlQueries
-
+import psycopg2
 
 class TblSubmissions(DatabaseConnection):
     """
@@ -42,3 +42,15 @@ class TblSubmissions(DatabaseConnection):
         :return: None
         """
         self.execute_query(PsqlQueries.ISO_UPD_STATUS_TB_SUB_VAR_ID, param)
+
+    def get_submission_id_from_bigs_upload(self):
+        """
+        Return isolates id for which lab data was submitted through bigsDB interface
+        :param param:
+        :return: List of isolates id for which lab metadata should be update
+        """
+        #cursor = psycopg2.connection.cursor()
+        #cursor.execute(self.execute_query(PsqlQueries.ISO_SEL_ID_SUBMISSION_THROUGH_BIGS, param))
+        #records = cursor.fetchall()
+        #return records
+        return self.execute(PsqlQueries.ISO_SEL_ID_SUBMISSION_THROUGH_BIGS)
