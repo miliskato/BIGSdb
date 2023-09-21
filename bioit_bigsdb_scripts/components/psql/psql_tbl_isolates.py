@@ -107,7 +107,7 @@ class TblIsolates(DatabaseConnection):
         """
         self.execute_query(PsqlQueries.ISO_UPD_NEWV_TB_ISO_VAR_ISO_ISO_ISO, param * 3)
 
-    def listing_isolates(self) -> List[str]:
+    def listing_isolates(self) -> List[Tuple[str]]:
         """
         Get list of isolate currently present in isolates table of bigsdb_isolates db.
         """

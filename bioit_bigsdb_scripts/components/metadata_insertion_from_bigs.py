@@ -73,7 +73,7 @@ if __name__ == '__main__':
     # Get Bigsdb config
     bigsdb_config_data = get_bigsdb_config_data()
 
-    args = parse_arguments(specieslist=['neisseria'])
+    args = parse_arguments(list(bigsdb_config_data['lab_metadata']))
 
     # run main
     insert_lab_metadata_through_bigs(args.species)
