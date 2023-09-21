@@ -108,7 +108,7 @@ class SampleValidationToMongo:
                         self.__remove_id_from_document_to_be_unique_again_if_bad(self._isolates_resequencing_collection,
                                                                                  isolatename, validation_dict)
                 # update status once everything is finished
-                self._isolates_submissions_psql_tbl.update_submission((self._sub_id,))
+                self._isolates_submissions_psql_tbl.update_submission((str(self._sub_id),))
         MongoToBigs(self._species, single_sample_id=isolatename)
 
     @staticmethod
