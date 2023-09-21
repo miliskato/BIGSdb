@@ -4,13 +4,13 @@ from pathlib import Path
 import socket
 import sys
 from typing import List
-from bioit_bigsdb_scripts.components.python_utility_functions import send_email
-from bioit_bigsdb_scripts.components.psql import (TblIsolates, TblSubmissions, TblIsolateSubmissionIsolates)
-from psql.databaseconnection import (get_bigsdb_config_data)
-
 
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
+
+from bioit_bigsdb_scripts.components.python_utility_functions import send_email
+from bioit_bigsdb_scripts.components.psql import (TblIsolates, TblSubmissions, TblIsolateSubmissionIsolates)
+from psql.databaseconnection import (get_bigsdb_config_data)
 
 
 def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
@@ -73,7 +73,7 @@ if __name__ == '__main__':
     # Get Bigsdb config
     bigsdb_config_data = get_bigsdb_config_data()
 
-    args = parse_arguments(list(bigsdb_config_data['lab_metadata']))
+    args = parse_arguments(list(bigsdb_config_data['species']))
 
     # run main
     insert_lab_metadata_through_bigs(args.species)

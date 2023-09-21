@@ -397,8 +397,8 @@
         minute: '*/2'         # every 2 minute
         hour: '*'
         weekday: '*'
-        job: 'bash /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/cron_startinsertion_mongo_implementation.sh'
-        user: 'root'
+        job: 'bash /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/cron_startinsertion_lab_metadata.sh'
+        user: 'bigsdb'
         cron_file: bigsdb_upload
       tags: bigs_upload_cron
 
