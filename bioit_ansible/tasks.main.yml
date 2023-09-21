@@ -798,6 +798,14 @@
         mode: '0640'
         remote_src: yes
 
+    - name: mkdir folder for jail
+      ansible.builtin.file:
+        path: /scratch/bigsupload
+        state: directory
+        owner: root
+        mode: 0751
+      tags: galaxy_jail
+
     - name: creation of jail section for galaxy
       blockinfile:
         path: /etc/ssh/sshd_config
