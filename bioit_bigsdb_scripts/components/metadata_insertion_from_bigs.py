@@ -1,8 +1,8 @@
 import argparse
 import logging
-from pathlib import Path
 import socket
 import sys
+from pathlib import Path
 from typing import List
 
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
@@ -24,7 +24,7 @@ def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     return argument_parser.parse_args()
 
 
-def insert_lab_metadata_through_bigs(species: str):
+def insert_lab_metadata_through_bigs(species: str) -> None:
     """
     Inserts lab metadata submitted through bigsdb built-in upload tool
     :param species: commonly used bioit species name: either genus or specific like stec
@@ -35,35 +35,29 @@ def insert_lab_metadata_through_bigs(species: str):
             TblIsolates(species) as isolates_psql_tbl:
 
         isolates_returned = isolates_psql_tbl.listing_isolates()
-        isolates_already_in_bigs = []
-        for i in isolates_returned:
-            isolates_already_in_bigs.append(list(i)[0])
-
+        isolates_already_in_bigs = {isolate[0] for isolate in isolates_returned}
         submission_ids = isolates_sub_psql_tbl.get_submission_id_from_bigs_upload()
-        if len(submission_ids) > 0:
-            for submitted_id in submission_ids:
-                lab_metadata = isolates_isosubiso_psql_tbl.get_field_and_value_from_submission(submitted_id)
+        for submitted_id in submission_ids:
+            lab_metadata = isolates_isosubiso_psql_tbl.get_field_and_value_from_submission(submitted_id)
 
-                metadata_dict = {}
-                for i in range(1, len(lab_metadata) - 1):
-                    if lab_metadata[i][2] == 'isolate':
-                        isolate_id = lab_metadata[i][3]
-                    else:
-                        metadata_dict[lab_metadata[i][2]] = lab_metadata[i][3]
-
-                if isolate_id in isolates_already_in_bigs:
-                    # prepare query
-                    isolate_update_query = TblIsolates.build_update_nomin_metadata_query(metadata_dict)
-                    params = []
-                    for key in metadata_dict:
-                        params.append(metadata_dict[key])
-                    params.append(isolate_id)
-                    isolates_psql_tbl.update_nomin_metadata(isolate_update_query, params)
+            metadata_dict = {}
+            for i in range(1, len(lab_metadata) - 1):
+                if lab_metadata[i][2] == 'isolate':
+                    isolate_id = lab_metadata[i][3]
                 else:
-                    send_email(f"Insertion failed: Isolate {isolate_id} not found in bigsDB",
-                               subject=f"Metadata insertion on host {socket.gethostname()}")
+                    metadata_dict[lab_metadata[i][2]] = lab_metadata[i][3]
 
-                isolates_sub_psql_tbl.update_submission(submitted_id)
+            if isolate_id in isolates_already_in_bigs:
+                # prepare query
+                isolate_update_query = TblIsolates.build_update_nomin_metadata_query(metadata_dict)
+                params = [v for v in metadata_dict.values()]
+                params.append(isolate_id)
+                isolates_psql_tbl.update_nomin_metadata(isolate_update_query, params)
+            else:
+                send_email(f"Insertion failed: Isolate {isolate_id} not found in bigsDB",
+                           subject=f"Metadata insertion on host {socket.gethostname()}")
+
+            isolates_sub_psql_tbl.update_submission(submitted_id)
 
 
 if __name__ == '__main__':
@@ -72,7 +66,6 @@ if __name__ == '__main__':
 
     # Get Bigsdb config
     bigsdb_config_data = get_bigsdb_config_data()
-
     args = parse_arguments(list(bigsdb_config_data['species']))
 
     # run main
