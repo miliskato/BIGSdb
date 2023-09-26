@@ -42,7 +42,7 @@ class TblSubmissions(DatabaseConnection):
         """
         self.execute_query(PsqlQueries.ISO_UPD_STATUS_TB_SUB_VAR_ID, param)
 
-    def get_submission_id_from_bigs_upload(self):
+    def get_submission_id_from_bigs_upload(self) -> List[Tuple]:
         """
         Select submission ids submitted through bigsDB interface with status closed
         :return: List of corresponding submissions id
