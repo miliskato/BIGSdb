@@ -3,7 +3,7 @@ import logging
 import socket
 import sys
 from pathlib import Path
-from typing import List
+from typing import Dict, List, Tuple
 
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
@@ -24,6 +24,21 @@ def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     return argument_parser.parse_args()
 
 
+def get_lab_metadata_dictionnary(lab_metadata_from_query: List[Tuple]) -> [Dict, str]:
+    """
+    Handle results of the psql request which get back submissions from BIGSdb uploading tool
+    :param lab_metadata_from_query: list of tuples containing lab metadata from the "isolate_submission_isolates" table.
+    :return: Dictionary containing lab_metadata and string returning the isolate id.
+    """
+    metadata_dictionary = {}
+    for i in range(1, len(lab_metadata_from_query) - 1):
+        if lab_metadata_from_query[i][2] == 'isolate':
+            isolate_str = lab_metadata_from_query[i][3]
+        else:
+            metadata_dictionary[lab_metadata_from_query[i][2]] = lab_metadata_from_query[i][3]
+    return metadata_dictionary, isolate_str
+
+
 def insert_lab_metadata_through_bigs(species: str) -> None:
     """
     Inserts lab metadata submitted through bigsdb built-in upload tool
@@ -40,12 +55,8 @@ def insert_lab_metadata_through_bigs(species: str) -> None:
         for submitted_id in submission_ids:
             lab_metadata = isolates_isosubiso_psql_tbl.get_field_and_value_from_submission(submitted_id)
 
-            metadata_dict = {}
-            for i in range(1, len(lab_metadata) - 1):
-                if lab_metadata[i][2] == 'isolate':
-                    isolate_id = lab_metadata[i][3]
-                else:
-                    metadata_dict[lab_metadata[i][2]] = lab_metadata[i][3]
+            metadata_dict = get_lab_metadata_dictionnary(lab_metadata)[0]
+            isolate_id = get_lab_metadata_dictionnary(lab_metadata)[1]
 
             if isolate_id in isolates_already_in_bigs:
                 # prepare query
