@@ -13,6 +13,8 @@
  read_access="public"
  all_plugins="yes"
  tblastx_tagging="yes"
+ genome_submissions="no"
+ show_job_notification_form="no"
 >
 </system>
 <field type="int" required="yes" length="5" maindisplay="yes" comments="primary key">id</field>

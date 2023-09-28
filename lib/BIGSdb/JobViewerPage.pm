@@ -263,7 +263,9 @@ sub _print_status {
 	  . qq(<dd class="elapsed" style="display:none" id="elapsed">$value</dd>);
 	say q(</dl>);
 	say q(</div>);
-	$self->_print_notification_form($job);
+	if ( ( $self->{'system'}->{'show_job_notification_form'} // q() ) ne 'no' ) {
+		$self->_print_notification_form($job);
+	}
 	say q(</div></div>);
 	return;
 }

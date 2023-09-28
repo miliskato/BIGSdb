@@ -1,3 +1,4 @@
+
 <?xml version="1.0" encoding="ISO-8859-1" ?>
 <db>
 <system
@@ -17,9 +18,12 @@
  field_groups="Curation history|fas fa-history,nominative metadata|fas fa-search"
  user_projects="yes"
  submissions="yes"
+ genome_submissions="no"
+ show_job_notification_form="no"
 >
 </system>
-<field type="text" required="yes" length="20" maindisplay="yes" comments="isolate name">sample_id</field>
+<field type="int" required="yes" length="5" maindisplay="yes" comments="primary key">id</field>
+<field type="text" required="yes" length="20" maindisplay="yes" comments="isolate name">isolate</field>
 <field type="int" required="yes" length="4" maindisplay="no" group ="Curation history" comments="sender unique name, link to users">sender</field>
 <field type="int" required="yes" length="4" maindisplay="no" group ="Curation history" comments="curator who entered data,link to users">curator</field>
 <field type="date" required="yes" length="10" maindisplay="no" group ="Curation history" comments="latest analysis date">latest_analysis_date</field>
@@ -30,9 +34,8 @@
 <field type="text" required="yes" length="40" maindisplay="no" group ="Curation history" comments="curator that validated this sample">validation_curator</field>
 <field type="date" required="yes" length="10" maindisplay="no" group ="Curation history" comments="date of curation">validation_date</field>
 <field type="date" required="yes" length="10" maindisplay="no" group ="nominative metadata" comments="isolation date">isolation_date</field>
-<field type="int" required="yes" length="4" maindisplay="no" group ="nominative metadata" comments="isolation year">year_of_isolation</field>
 <field type="text" required="yes" length="4" maindisplay="no" group ="nominative metadata" comments="isolation month">month_of_isolation</field>
-<field type="text" required="yes" length="4" maindisplay="no" group ="nominative metadata" comments="isolation day">day_of_isolation</field>
+<field type="int" required="yes" length="4" maindisplay="no" group ="nominative metadata" comments="isolation year">year_of_isolation</field>
 <field type="text" required="yes" length="4" maindisplay="no" group ="nominative metadata" comments="human sample">human_sample</field>
 <field type="text" required="yes" length="10" maindisplay="no" group ="nominative metadata" comments="specimen">specimen</field>
 <field type="int" required="yes" length="10" maindisplay="no" group ="nominative metadata" comments="patient ID">patient_id</field>
@@ -52,8 +55,8 @@
 <field type="text" required="yes" length="10" maindisplay="no" group ="nominative metadata" comments="serogroup pheno">serogroup_pheno</field>
 <field type="float" required="yes" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Azm">mic_azm</field>
 <field type="text" required="yes" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Azm I">mic_azm_1</field>
-<field type="text" required="yes" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Cox">mic_cox</field>
 <field type="float" required="yes" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Cox I">mic_cox_1</field>
+<field type="text" required="yes" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Cox">mic_cox</field>
 <field type="float" required="yes" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Chl">mic_chl</field>
 <field type="text" required="yes" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Chl I">mic_chl_1</field>
 <field type="float" required="yes" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Cip">mic_cip</field>
@@ -62,7 +65,6 @@
 <field type="text" required="yes" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Pen I">mic_pen_1</field>
 <field type="float" required="yes" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Rif">mic_rif</field>
 <field type="text" required="yes" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Rif I">mic_rif_1</field>
-<field type="text" required="yes" length="10" maindisplay="no" group ="nominative metadata" comments="clinical info">clinical_info</field>
-<field type="text" required="yes" length="10" maindisplay="no" group ="nominative metadata" comments="evolution">evolution</field>
-<field type="text" required="yes" length="10" maindisplay="no" group ="nominative metadata" comments="case type">case_type</field>
+<field type="text" required="yes" length="10" maindisplay="no" group ="nominative metadata" comments="Case Type">case_type</field>
 </db>
+
