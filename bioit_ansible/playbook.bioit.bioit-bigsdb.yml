@@ -1,5 +1,5 @@
 ---
-# test ansible-playbook /etc/ansible/playbook/bioit/bioit-bigsdb.yml -e "target=bioit-nrcnei-dev species=neisseria branch=dev_asg mongo_dtap=dev hostandport=10.5.1.25:9090 --vault-password-file /etc/ansible/vault/bioit_vault_pass"
+# ansible-playbook /etc/ansible/playbook/bioit/bioit-bigsdb.yml -e "target=bioit-nrcnei-dev species=neisseria branch=dev_asg mongo_dtap=dev hostandport=10.5.1.25:9090 --vault-password-file /etc/ansible/vault/bioit_vault_pass"
 - hosts: "{{ target }}"
   gather_facts: True
   become: yes
