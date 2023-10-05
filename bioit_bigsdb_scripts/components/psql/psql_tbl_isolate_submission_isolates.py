@@ -25,7 +25,7 @@ class TblIsolateSubmissionIsolates(DatabaseConnection):
         """
         self.execute_query(PsqlQueries.ISO_INS__TB_ISOSUBISO_VAR_FIELD_VALUE, param)
 
-    def get_field_and_value_from_submission(self, param: Tuple[str]) -> List[Tuple[Any]]:
+    def get_field_and_value_from_submission(self, param: Tuple[str]) -> List[Tuple[str, int, str, Any]]:
         """
         Return field and value columns from isolate_submission_isolates filtered by submission_id
         :param param: submission_id
