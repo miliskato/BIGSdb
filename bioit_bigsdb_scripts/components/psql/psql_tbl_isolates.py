@@ -129,7 +129,16 @@ class TblIsolates(DatabaseConnection):
     def update_nomin_metadata(self, query: str, param: List[str]) -> None:
         """
         Adds laboratory nominative data in isolates table for the specified species
+        :param query: PSQL query to be fed
         :param param: variables to feed to the PSQL query
         :return: None
         """
         self.execute_query(query, param)
+
+    def add_fields_for_lab_metadata(self, query: str) -> None:
+        """
+        Adds field for laboratory nominative data in isolates table for the specified species
+        :param query: query string ALTER TABLE ADD followed by field related to the specie
+        :return: None
+        """
+        self.execute(query)

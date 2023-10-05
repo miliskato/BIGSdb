@@ -31,4 +31,4 @@ class TblIsolateSubmissionIsolates(DatabaseConnection):
         :param param: submission_id
         :return: List of tuples containing the "field" and "value" items
         """
-        return self.execute_query(PsqlQueries.ISO_SEL_ISOSUBISO_FOR_SUBMISSION_ID, param)
+        return self.execute_query(PsqlQueries.ISO_SEL_ALL_TB_ISOSUBISO_VAR_SUBID, param)
