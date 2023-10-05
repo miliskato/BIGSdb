@@ -400,6 +400,12 @@
         job: 'bash /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/cron_startinsertion_lab_metadata.sh'
         user: 'bigsdb'
         cron_file: bigsdb_upload
+
+    - name: Adapt specie in bash script related to bigsdb upload
+      lineinfile:
+        path: "{{ bioit_bigs_home }}/bioit_bigsdb_scripts/cron_startinsertion_lab_metadata.sh"
+        regexp: "--species to_be_replace_by_ansible"
+        line: "/home/bigsdb/BIGSdb/3.9PythonVenv/bin/python3.9 /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/components/metadata_insertion_from_bigs.py --species {{ species }} "
       tags: bigs_upload_cron
 
     - name: Add crontrab entry for global db
