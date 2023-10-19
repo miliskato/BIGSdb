@@ -783,7 +783,7 @@ sub _get_pending_submission_count {
 	my $user_info = $self->{'datastore'}->get_user_info_from_username( $self->{'username'} );
 	return 0 if $user_info->{'status'} ne 'admin' && $user_info->{'status'} ne 'curator';
 	if ( $self->{'system'}->{'dbtype'} eq 'isolates' ) {
-		return 0 if !$self->can_modify_table('isolates');
+		#return 0 if !$self->can_modify_table('isolates');
 		my $count = $self->{'datastore'}
 		  ->run_query( 'SELECT COUNT(*) FROM submissions WHERE (type,status)=(?,?)', [ 'isolates', 'pending' ] );
 		if ( $self->can_modify_table('sequence_bin') ) {
