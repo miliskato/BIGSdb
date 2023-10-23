@@ -39,11 +39,6 @@
     msg: "unsupported mongo_dtap requested, choose from {{ dtaplist }}"
   when: mongo_dtap not in dtaplist
 
-- name: Assert if apihostandport given
-  fail:
-    msg: "'apihostandport' argument required in -e when running playbook"
-  when: apihostandport is not defined
-
 - name: install git package
   apt:
     name: git
@@ -74,20 +69,6 @@
     path: "{{ bioit_bigs_home }}/conf/db.conf"
     regexp: 'dbpassword=to_be_replaced_by_ansible'
     line: "dbpassword={{ secret_bioit_bigs_postgresql_apache_password }}"
-
-- name: replace line password in bigs.js file
-  lineinfile:
-    path: "{{ bioit_bigs_home }}/javascript/bigsdb.min.js"
-    regexp: 'var_PASSWORD=replaced_by_ansible'
-    line: "var PASSWORD = '{{ secret_bioit_api_hera_user_pswd }}'"
-    backrefs: yes
-
-- name: replace line hostandport in bigs.js file
-  lineinfile:
-    path: "{{ bioit_bigs_home }}/javascript/bigsdb.min.js"
-    regexp: 'var_HOSTANDPORT=replaced_by_ansible'
-    line: "var HOSTANDPORT = '{{ apihostandport }}'"
-    backrefs: yes
 
 ## perl 5 is installed on Ubuntu by default.
 - name: Install packages
@@ -213,6 +194,15 @@
     state: link
     force: true
 
+- name: copy dbmate executable on host
+  ansible.builtin.get_url:
+    url: "{{ linux_repo_tools }}/focal/dbmate/dbmate"
+    dest: /usr/local/bin/
+    owner: root
+    group: root
+    mode: '0755'
+  tags: dbmate
+
 - name: setup core db's 1
   block:
     - name: create apache user
@@ -221,7 +211,7 @@
         name: apache
         password: "{{ secret_bioit_bigs_postgresql_apache_password }}"
       become_user: postgres
-      # check documentation if pass clear text or hash <- doesnt need to hashed https://docs.w3cub.com/ansible~2.9/modules/postgresql_user_module
+      # check documentation if pass clear text or hash <- doesnt needa to hashed https://docs.w3cub.com/ansible~2.9/modules/postgresql_user_module
 
     - name: Add apache psql password to config
       lineinfile:
@@ -229,43 +219,15 @@
         regexp: 'postgresql_apache_pass: to_be_replaced_by_ansible'
         line: "postgresql_apache_pass: {{ secret_bioit_bigs_postgresql_apache_password }}"
 
-    - name: create core db
-      community.postgresql.postgresql_db:
-        login_user: postgres
-        name: "{{ item }}"
+    - name: create core db (if it does not already exist) and run any pending migrations
+      ansible.builtin.shell:
+        chdir: "{{ bioit_bigs_home }}/sql/{{ item }}_v"
+        cmd: DATABASE_URL=postgres://postgres:{{ postgresql_postgres_user_password }}@127.0.0.1:5432/{{ item }}?sslmode=disable dbmate up
       loop:
         - bigsdb_auth
         - bigsdb_prefs
         - bigsdb_refs
-      become_user: postgres
-
-- name: setup core db's 2
-  block:
-    - name: Check if table in bigsdb_auth exists
-      postgresql_query:
-        db: bigsdb_auth
-        login_user: postgres
-        query: SELECT EXISTS ( SELECT FROM information_schema.tables WHERE table_schema LIKE 'public' AND table_type LIKE 'BASE TABLE' AND table_name = 'users' )
-      register: query_result_auth
-      become_user: postgres
-
-    - debug:
-        var: query_result_auth.query_result[0]['exists']
-        verbosity: 1
-
-    - name: Format core db
-      postgresql_query:
-        db: "{{ item.db }}"
-        login_user: postgres
-        path_to_script: "{{ item.script }}"
-      loop: "{{ script_list|flatten(levels=1) }}"
-      vars:
-        script_list:
-          - { db: bigsdb_auth, script: "{{ bioit_bigs_home }}/sql/auth.sql" }
-          - { db: bigsdb_prefs, script: "{{ bioit_bigs_home }}/sql/prefs.sql" }
-          - { db: bigsdb_refs, script: "{{ bioit_bigs_home }}/sql/refs.sql" }
-      when: query_result_auth.query_result[0]['exists'] == false
-      become_user: postgres
+      tags: always
 
 - name: setup temporary dir
   block:
@@ -304,27 +266,11 @@
         name: bigsdb
       become_user: postgres
 
-    - name: create jobs db
-      community.postgresql.postgresql_db:
-        login_user: postgres
-        name: bigsdb_jobs
-      become_user: postgres
-
-    - name: Check if table in bigsdb_jobs exists
-      postgresql_query:
-        db: bigsdb_jobs
-        login_user: postgres
-        query: SELECT EXISTS ( SELECT FROM information_schema.tables WHERE table_schema LIKE 'public' AND table_type LIKE 'BASE TABLE' AND table_name = 'jobs' )
-      register: query_result_jobs
-      become_user: postgres
-
-    - name: Format bigsdb_jobs
-      postgresql_query:
-        db: bigsdb_jobs
-        login_user: postgres
-        path_to_script: "{{ bioit_bigs_home }}/sql/jobs.sql"
-      when: query_result_jobs.query_result[0]['exists'] == false
-      become_user: postgres
+    - name: create bigdb_jobs database (if it does not already exist) and run any pending migrations
+      ansible.builtin.shell:
+        chdir: "{{ bioit_bigs_home }}/sql/bigsdb_jobs_v"
+        cmd: DATABASE_URL=postgres://postgres:{{ postgresql_postgres_user_password }}@127.0.0.1:5432/bigsdb_jobs?sslmode=disable dbmate up
+      tags: always
 
     - name: move bigsjobs.pl
       ansible.builtin.copy:
@@ -341,6 +287,7 @@
         state: touch
         mode: "u=rwx,g=rw,o=r"
         owner: bigsdb
+  tags: offlinejobs
 
 - name: setup submission system
   block:
@@ -400,6 +347,7 @@
         job: 'bash /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/cron_startinsertion_lab_metadata.sh'
         user: 'bigsdb'
         cron_file: bigsdb_upload
+      tags: bigs_upload_cron
 
     - name: Adapt specie in bash script related to bigsdb upload
       lineinfile:
@@ -512,103 +460,60 @@
         regexp: "url[[:punct:]][[:space:]]'[[:print:]]*'+"
         replace: 'url: '
 
-- name: Create actual data db
-  block:
-    - name: create species databases
-      community.postgresql.postgresql_db:
-        login_user: postgres
-        name: "{{ item }}"
-      loop:
-        - "bigsdb_{{ species }}_seqdef"
-        - "bigsdb_{{ species }}_isolates"
-      become_user: postgres
-
-    - name: Check if table in "bigsdb_{{ species }}_seqdef" exists
-      postgresql_query:
-        db: "bigsdb_{{ species }}_seqdef"
-        login_user: postgres
-        query: SELECT EXISTS ( SELECT FROM information_schema.tables WHERE table_schema LIKE 'public' AND table_type LIKE 'BASE TABLE' AND table_name = 'sequences' )
-      register: query_result_species_seqdef
-      become_user: postgres
-
-    - name: Format species databases
-      postgresql_query:
-        db: "{{ item.db }}"
-        login_user: postgres
-        path_to_script: "{{ item.script }}"
-      loop: "{{ script_list|flatten(levels=1) }}"
-      vars:
-        script_list:
-          - { db: "bigsdb_{{ species }}_seqdef", script: "{{ bioit_bigs_home }}/sql/seqdef.sql" }
-          - { db: "bigsdb_{{ species }}_isolates", script: "{{ bioit_bigs_home }}/sql/isolatedb.sql" }
-      when: query_result_species_seqdef.query_result[0]['exists'] == false
-      become_user: postgres
-  tags: make_data_db
+- name: Create species (refseq and isolates) data db (if they don't already exist) and run any pending migrations
+  ansible.builtin.shell:
+    chdir: "{{ bioit_bigs_home }}/sql/{{ item.dbmate_repo }}_v"
+    cmd: DATABASE_URL=postgres://postgres:{{ postgresql_postgres_user_password }}@127.0.0.1:5432/{{ item.db_name }}?sslmode=disable dbmate up
+  loop: "{{ db_info|flatten(levels=1) }}"
+  vars:
+    db_info:
+      - { dbmate_repo: "bigsdb_seqdef", db_name: "bigsdb_{{ species }}_seqdef" }
+      - { dbmate_repo: "bigsdb_isolates", db_name: "bigsdb_{{ species }}_isolates" }
+  tags: always
 
 - name: create global user database
   block:
-    - name: create global bigsdb user db
-      community.postgresql.postgresql_db:
-        login_user: postgres
-        name: global_bigsdb_users
-      become_user: postgres
-
-    - name: Check if table in bigsdb_users exists
-      postgresql_query:
-        db: global_bigsdb_users
-        login_user: postgres
-        query: SELECT EXISTS ( SELECT FROM information_schema.tables WHERE table_schema LIKE 'public' AND table_type LIKE 'BASE TABLE' AND table_name = 'users' )
-      register: query_result_users
-      become_user: postgres
-
-    - name: Format global_bigsdb_users
-      postgresql_query:
-        db: global_bigsdb_users
-        login_user: postgres
-        path_to_script: "{{ bioit_bigs_home }}/sql/users.sql"
-      when: query_result_users.query_result[0]['exists'] == false
-      become_user: postgres
+    - name: create global bigsdb users db (if it does not already exist) and run any pending migrations
+      ansible.builtin.shell:
+        chdir: "{{ bioit_bigs_home }}/sql/global_bigsdb_users_v"
+        cmd: DATABASE_URL=postgres://postgres:{{ postgresql_postgres_user_password }}@127.0.0.1:5432/global_bigsdb_users?sslmode=disable dbmate up
+      tags: always
 
     - name: create bioit user
       postgresql_query:
         db: global_bigsdb_users
         login_user: postgres
-        query: INSERT INTO users (user_name,surname,first_name,email,affiliation,date_entered,datestamp,status) VALUES ('bioit','Sciensano','Bioit', 'bioit@sciensano.be','Sciensano','now','now', 'validated')
+        query: INSERT INTO users (user_name,surname,first_name,email,affiliation,date_entered,datestamp,status) VALUES ('bioit','Sciensano','Bioit', 'bioit@sciensano.be','Sciensano','now','now', 'validated') ON CONFLICT DO NOTHING
       become_user: postgres
-      when: query_result_users.query_result[0]['exists'] == false
 
     - name: add user password with perl script with bcrypt
       shell: "perl {{ bioit_bigs_home }}/scripts/maintenance/add_user.pl -a -d global_bigsdb_users -n bioit -p {{ secret_bioit_bigsdb_gui_password }}"
-      when: query_result_users.query_result[0]['exists'] == false
 
     - name: permissions
       postgresql_query:
         db: global_bigsdb_users
         login_user: postgres
-        query: INSERT INTO permissions (user_name,permission,curator,datestamp) VALUES ('bioit','import_dbase_configs','bioit','now'), ('bioit','set_site_user_passwords','bioit','now'), ('bioit','merge_users','bioit','now'), ('bioit','modify_users','bioit','now')
+        query: INSERT INTO permissions (user_name,permission,curator,datestamp) VALUES ('bioit','import_dbase_configs','bioit','now'), ('bioit','set_site_user_passwords','bioit','now'), ('bioit','merge_users','bioit','now'), ('bioit','modify_users','bioit','now') ON CONFLICT DO NOTHING
       become_user: postgres
-      when: query_result_users.query_result[0]['exists'] == false
 
     - name: add bioit user to all species db
       postgresql_query:
         db: "{{ item }}"
         login_user: postgres
-        query: INSERT INTO users (id, user_name, surname, first_name, email, affiliation, status, date_entered, datestamp, curator) VALUES (1,'bioit','Sciensano','Bioit', 'bioit@sciensano.be','Sciensano','admin','now','now', 1)
+        query: INSERT INTO users (id, user_name, surname, first_name, email, affiliation, status, date_entered, datestamp, curator) VALUES (1,'bioit','Sciensano','Bioit', 'bioit@sciensano.be','Sciensano','admin','now','now', 1) ON CONFLICT DO NOTHING
       loop:
         - "bigsdb_{{ species }}_seqdef"
         - "bigsdb_{{ species }}_isolates"
-      when: query_result_species_seqdef.query_result[0]['exists'] == false
       become_user: postgres
 
     - name: add user db to species db
       postgresql_query:
         db: "{{ item }}"
         login_user: postgres
-        query: INSERT INTO user_dbases (id, name, dbase_name, curator, datestamp) VALUES (1, '', 'global_bigsdb_users', 1, 'now')
+        query: INSERT INTO user_dbases (id, name, dbase_name, curator, datestamp) VALUES (1, '', 'global_bigsdb_users', 1, 'now') ON CONFLICT DO NOTHING;
       loop:
         - "bigsdb_{{ species }}_seqdef"
         - "bigsdb_{{ species }}_isolates"
-      when: query_result_species_seqdef.query_result[0]['exists'] == false
       become_user: postgres
         # this should be other when but doesnt matter for now
 
@@ -620,7 +525,6 @@
       loop:
         - "bigsdb_{{ species }}_seqdef"
         - "bigsdb_{{ species }}_isolates"
-      when: query_result_species_seqdef.query_result[0]['exists'] == false
       become_user: postgres
   tags: make_user_db
 
@@ -633,27 +537,11 @@
         mode: "u=rwx,g=rw,o=r"
         owner: bigsdb
 
-    - name: create rest db
-      community.postgresql.postgresql_db:
-        login_user: postgres
-        name: bigsdb_rest
-      become_user: postgres
-
-    - name: Check if table in bigsdb_rest exists
-      postgresql_query:
-        db: bigsdb_rest
-        login_user: postgres
-        query: SELECT EXISTS ( SELECT FROM information_schema.tables WHERE table_schema LIKE 'public' AND table_type LIKE 'BASE TABLE' AND table_name = 'groups' )
-      register: query_result_rest
-      become_user: postgres
-
-    - name: Format bigsdb_rest
-      postgresql_query:
-        db: bigsdb_rest
-        login_user: postgres
-        path_to_script: "{{ bioit_bigs_home }}/sql/rest.sql"
-      when: query_result_rest.query_result[0]['exists'] == false
-      become_user: postgres
+    - name: create rest db (if it does not already exist) and run any pending migrations
+      ansible.builtin.shell:
+        chdir: "{{ bioit_bigs_home }}/sql/bigsdb_rest_v"
+        cmd: DATABASE_URL=postgres://postgres:{{ postgresql_postgres_user_password }}@127.0.0.1:5432/bigsdb_rest?sslmode=disable dbmate up
+      tags: always
 
     - name: create rest dir
       ansible.builtin.file:
@@ -685,10 +573,9 @@
         login_user: postgres
         query: "{{ item }}"
       loop:
-        - "INSERT INTO resources (dbase_config,description) VALUES ('bigsdb_{{ species }}_seqdef','{{ species }} sequence/profile definitions'), ('bigsdb_{{ species }}_isolates','{{ species }} isolates')"
-        - "INSERT INTO groups (name,description) VALUES ('{{ species }}','{{ species }}')"
-        - "INSERT INTO group_resources (group_name,dbase_config) VALUES ('{{ species }}','bigsdb_{{ species }}_seqdef'), ('{{ species }}','bigsdb_{{ species }}_isolates')"
-      when: query_result_rest.query_result[0]['exists'] == false
+        - "INSERT INTO resources (dbase_config,description) VALUES ('bigsdb_{{ species }}_seqdef','{{ species }} sequence/profile definitions'), ('bigsdb_{{ species }}_isolates','{{ species }} isolates') ON CONFLICT DO NOTHING"
+        - "INSERT INTO groups (name,description) VALUES ('{{ species }}','{{ species }}') ON CONFLICT DO NOTHING"
+        - "INSERT INTO group_resources (group_name,dbase_config) VALUES ('{{ species }}','bigsdb_{{ species }}_seqdef'), ('{{ species }}','bigsdb_{{ species }}_isolates') ON CONFLICT DO NOTHING"
       become_user: postgres
 
     - name: Restart service rest
@@ -701,30 +588,18 @@
 
 - name: populate databases
   block:
-    - name: Check if table that is created in sql files below exists
-      postgresql_query:
-        db: "bigsdb_{{ species }}_isolates"
-        login_user: postgres
-        query: SELECT EXISTS ( SELECT FROM information_schema.tables WHERE table_schema LIKE 'public' AND table_type LIKE 'BASE TABLE' AND table_name = 'eav_text_hidden' )
-      register: query_result_eavtexthidden
-      become_user: postgres
-
-    - debug:
-        var: query_result_eavtexthidden
-        verbosity: 1
-
-    - name: Format species databases
-      postgresql_query:
+    - name: run a collection of insert into on clonfict do nothing for the dedicated specie
+      community.postgresql.postgresql_script:
         login_user: postgres
         db: "{{ item.db }}"
-        path_to_script: "{{ item.script }}"
+        path: "{{ item.script }}"
       loop: "{{ list_script|flatten(levels=1) }}"
       vars:
         list_script:
           - { db: "bigsdb_{{ species }}_seqdef", script: "{{ bioit_bigs_home }}/bioit_bigsdb_scripts/bigsdb_{{ species }}_seqdef.sql" }
           - { db: "bigsdb_{{ species }}_isolates", script: "{{ bioit_bigs_home }}/bioit_bigsdb_scripts/bigsdb_{{ species }}_isolates.sql" }
-      when: query_result_eavtexthidden.query_result[0]['exists'] == false
       become_user: postgres
+      tags: always
 
     - name: populate db with python sql scripts
       block:
@@ -833,7 +708,7 @@
             X11Forwarding no
             AllowTcpForwarding no
             ForceCommand internal-sftp
-      tags : galaxy_jail
+      tags: galaxy_jail
 
     - name: creation of mongo dir in jail
       ansible.builtin.file:
@@ -841,7 +716,7 @@
         state: directory
         owner: galaxy
         mode: 0777
-      tags : galaxy_jail
+      tags: galaxy_jail
 
     - name: creation of not_json dir in jail
       ansible.builtin.file:
@@ -861,5 +736,4 @@
 
     - debug: msg="TODO manually; copy the private key to the right galaxy host manually in /home/galaxy/.ssh, chmod 0600 it !"
   tags: gal_user
-
 ...
