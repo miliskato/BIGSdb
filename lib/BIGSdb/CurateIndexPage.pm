@@ -2035,15 +2035,15 @@ sub print_content {
 	if ( $self->{'datastore'}->user_dbs_defined ) {
 		$self->_print_account_requests_section;
 	}
-	if ( !$can_do_something ) {
-		$self->print_bad_status(
-			{
-				    message => q(Although you are set as a curator/submitter, )
-				  . q(you haven't been granted specific permission to do anything.  Please contact the )
-				  . q(database administrator to set your appropriate permissions.)
-			}
-		);
-	}
+	# if ( !$can_do_something ) {
+	# 	$self->print_bad_status(
+	# 		{
+	# 			    message => q(Although you are set as a curator/submitter, )
+	# 			  . q(you haven't been granted specific permission to do anything.  Please contact the )
+	# 			  . q(database administrator to set your appropriate permissions.)
+	# 		}
+	# 	);
+	# }
 	return;
 }
 
