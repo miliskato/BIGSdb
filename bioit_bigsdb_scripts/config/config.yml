@@ -9,6 +9,8 @@ failsafe:
 
 postgresql_apache_pass: to_be_replaced_by_ansible
 
+naive_clustering_distance_matrix_file: /home/bigsdb/cgmlst_distance_matrix_species.npy # todo
+
 species:
   listeria:
     typing_schemes:

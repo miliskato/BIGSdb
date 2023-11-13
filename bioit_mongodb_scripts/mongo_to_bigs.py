@@ -73,7 +73,7 @@ class MongoToBigs:
         try:
             self._mongo_to_bigs()
         except Exception as exceptionmessage:
-            send_email(f"{exceptionmessage}\n{traceback.format_exc()}")
+            # send_email(f"{exceptionmessage}\n{traceback.format_exc()}") # todo
             raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}: {exceptionmessage}\n{traceback.format_exc()}")
 
     def _mongo_to_bigs(self) -> None:
@@ -84,7 +84,7 @@ class MongoToBigs:
         """
 
         # call the autoexecutable function to insert new alleles and profiles
-        NewClusteringInfoToBigs(self._species, mongo_config_data=self._mongo_config_data)
+        NewClusteringInfoToBigs(self._species, Path(self._bigsdb_config_data['naive_clustering_distance_matrix_file'].replace('species', self._species)), mongo_config_data=self._mongo_config_data)
 
         # update the bigsdb cache so the clustering schemes get updated
         cache_command = f'/home/bigsdb/BIGSdb/scripts/maintenance/update_scheme_caches.pl ' \
