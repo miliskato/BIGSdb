@@ -78,18 +78,19 @@ class DistanceAndClusterComputer:
         tuples = zip(*sorted_pairs)
         self._sequence_types, self._cgmlst_profiles = [list(tuple1) for tuple1 in tuples]
 
-    def compute_hamming_distances(self, mode: str) -> None:
+    def compute_hamming_distances(self, mode: str, number_of_new_sts: int = 1) -> np.array:
         """
         Computes the hamming distances between sequence types
         :param mode: full is to compute all the distances against all the cgmlst in the db while
         last_st computes only for the last sequence type entered in the db.
-        :return:
+        :param number_of_new_sts: number of new sts if not one and if mode last_st
+        :return: np.array
         """
         logging.info(f"{datetime.datetime.now()}: Starting to compute hamming distances in mode {mode}")
         if mode == 'full':
             start = 0
         elif mode == 'last_st':
-            start = len(self._cgmlst_profiles) - 1
+            start = len(self._cgmlst_profiles) - number_of_new_sts
         else:
             raise ValueError('mode should be either full or last_st for compute_hamming_distances')
         self._hamming_distances = get_distance(np.array(self._cgmlst_profiles), 'hamming_dist', start=start)
@@ -99,6 +100,7 @@ class DistanceAndClusterComputer:
             # and get a squared distance matrix for downstream applications
             self._hamming_distances += self._hamming_distances.T
         logging.info(f"{datetime.datetime.now()}: Hamming distances computed!")
+        return self._hamming_distances
 
     def init_clustering_and_cluster_membership(self, cluster_thresholds: set) -> None:
         """
@@ -176,9 +178,9 @@ class DistanceAndClusterComputer:
         """
         for thresh in cluster_thresholds:
             membership = []
-            for it in range(len(self._hamming_distances[0]) - 1):
-                if self._hamming_distances[0][it] <= thresh:
-                    membership.append(self._cluster_membership_collection.find_one({'cgST': self._sequence_types[it],
+            for index, hamming_distance in enumerate(self._hamming_distances[0][:-1]):
+                if hamming_distance <= thresh:
+                    membership.append(self._cluster_membership_collection.find_one({'cgST': self._sequence_types[index],
                                                                                     'threshold': thresh})['clustering_membership'])
             membership = list(set(membership))
             if len(membership) > 1:

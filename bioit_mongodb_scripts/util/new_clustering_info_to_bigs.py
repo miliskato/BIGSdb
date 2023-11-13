@@ -4,8 +4,9 @@ import socket
 import sys
 import traceback
 from datetime import date
+import numpy as np
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from pymongo.write_concern import WriteConcern
 
@@ -14,24 +15,28 @@ sys.path.append(str(PYTHONPATH))
 
 from bioit_bigsdb_scripts.components.psql import TblSequences, TblProfiles, TblProfileFields, TblProfileMembers, \
     TblClassificationGroups, TblClassificationGroupProfiles, TblClassificationGroupProfileHistory, \
-    TblClassificationSchemes
+    TblClassificationSchemes, TblIsolates, TblEavText
 from bioit_mongodb_scripts.config import CLUSTERING_CONFIG
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email
 
 
 class NewClusteringInfoToBigs:
-    def __init__(self, species: str, mongo_config_data: Dict[str, Any] = None) -> None:
+    def __init__(self, species: str, naive_clustering_distance_matrix_file: Path, mongo_config_data: Dict[str, Any] = None) -> None:
         """
         Intialises this class and executes the main function
         :param species: commonly used bioit species name: either genus or specific like stec
+        :param naive_clustering_distance_matrix_file: The path to the naive clustering cgmlst distance matrix file
         :param mongo_config_data: Use provided mongo_config_data, else get mongo_config_data from file
         :return None
         """
         self._species = species
         self._mongo_config_data = mongo_config_data if mongo_config_data else get_mongodb_config_data()
+        self._naive_clustering_distance_matrix_file = naive_clustering_distance_matrix_file
         # Open collections
         self._mongoinit = MongoInitialisation(self._species, mongo_config_data=self._mongo_config_data)
+        self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, \
+            self._isolates_resequencing_collection = self._mongoinit.initialise_collections()
         self._headers_collection = self._mongoinit.initialise_headers_collection()
         self._st_collection, self._cluster_membership_collection, self._cluster_merging_collection = self._mongoinit.\
             initialise_clustering_collections()
@@ -56,7 +61,7 @@ class NewClusteringInfoToBigs:
         try:
             self._insert_into_bigs()
         except Exception as exceptionmessage:
-            send_email(f"{exceptionmessage}\n{traceback.format_exc()}")
+            # send_email(f"{exceptionmessage}\n{traceback.format_exc()}") # todo
             raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}: "
                             f"{exceptionmessage}\n{traceback.format_exc()}")
 
@@ -72,6 +77,7 @@ class NewClusteringInfoToBigs:
             self.__insert_sequence_types()
         if len(self._new_cluster_membership) > 0:
             self.__insert_or_update_clustering()
+        self.__update_naive_clustering_implementation()
         self.__update_last_update_date()
 
     def _get_last_date_of_update(self) -> Optional[date]:
@@ -232,6 +238,95 @@ class NewClusteringInfoToBigs:
                     idx_max += 1
                 else:
                     logging.debug(f"Threshold {threshold} already present")
+
+    def __update_naive_clustering_implementation(self) -> None:
+        """
+        Calculates the cgST distance matrix and writes it to a file
+        :return: None
+        """
+        import numpy as np
+        from bioit_bigsdb_scripts.components.psql import TblEavFields
+        with TblEavFields(self._species) as isolates_eavf_psql_tbl:
+            cgmlst_diff_fields = isolates_eavf_psql_tbl.select_fields_cgmlstdifferences()
+        if len(cgmlst_diff_fields) > 0:
+            full_calculation = False if self._naive_clustering_distance_matrix_file.is_file() else True
+            if full_calculation:
+                distance_matrix = self.___calculate_and_write_full_cgstdistancematrix()
+            else:
+                distance_matrix: np.array = np.load(str(self._naive_clustering_distance_matrix_file))
+                from bioit_mongodb_scripts.util.distance_and_cluster_computer import DistanceAndClusterComputer
+                distance_cluster = DistanceAndClusterComputer(self._species, self._mongo_config_data)
+                hd_np_array = distance_cluster.compute_hamming_distances('last_st', number_of_new_sts=len(self._new_st))
+                # fix the lower triangle to be symmetric
+                hd_np_array = np.concatenate([hd_np_array[:, :distance_matrix.shape[0]], hd_np_array[:, distance_matrix.shape[0]:] + hd_np_array[:, distance_matrix.shape[0]:].T], axis=1)
+                # Add the new distances to the existing matrix
+                distance_matrix = np.concatenate([distance_matrix, hd_np_array[:, :distance_matrix.shape[0]]], axis=0)
+                distance_matrix = np.concatenate([distance_matrix, hd_np_array.T], axis=1)
+            self.___update_all_existing_naive_clusterimplementations(full_calculation, cgmlst_diff_fields, distance_matrix)
+        # todo after executing this function, all samples in the db should be updated. After this, somewhere in mongo to bigs or in maininserter the new isolates should be receiving the html fields
+        sys.exit()
+
+    def ___calculate_and_write_full_cgstdistancematrix(self) -> None:
+        """
+        Calculates the cgST distance matrix and writes it to a file
+        :return: None
+        """
+        from bioit_mongodb_scripts.util.distance_and_cluster_computer import DistanceAndClusterComputer
+        distance_cluster = DistanceAndClusterComputer(self._species, self._mongo_config_data)
+        hd_np_array = distance_cluster.compute_hamming_distances('full')
+        import numpy as np
+        np.save(str(self._naive_clustering_distance_matrix_file), hd_np_array)
+        return hd_np_array
+
+    def ___update_all_existing_naive_clusterimplementations(self, full_calculation: bool, cgmlst_diff_fields: List[Optional[Tuple[str]]], distance_matrix: np.array) -> None:
+        """
+        Calculates the cgST distance matrix and writes it to a file, inserts/updates the corresponding fields in bigsdb
+        :param full_calculation: Whether a distance matrix existed and therefore whether any fields are present in the database already
+        :param cgmlst_diff_fields: list of cgmlst difference fields in bigsdb
+        :param distance_matrix: the full cgmlst hamming distance matrix
+        :return: None
+        """
+        # parse cgmlst distance thresholds from cgmlst_diff_fields
+        for field in cgmlst_diff_fields:
+            interval = field[0].split('_')[-1]
+            interval_start = int(interval.split('-')[0])
+            interval_stop = int(interval.split('-')[-1])
+            if full_calculation:
+                # get all cgsts in mongodb:
+                cgsts_per_isolate: List[Dict[str, Union[str, Dict[str, int]]]] = [doc for doc in self._isolates_collection.find({}, {"results.cgST": 1, "_id": 1})]
+                cgsts = set(x['results']['cgST'] for x in cgsts_per_isolate)
+                with TblIsolates(self._species) as isolates_psql_tbl, TblEavText(
+                        self._species) as isolates_eavt_psql_tbl:
+                    for cgst in cgsts:
+                        # extract row
+                        row_cgst = distance_matrix[cgst - 1]
+                        # get all cgSTs within distance
+                        indices = np.where((row_cgst >= interval_start) & (row_cgst <= interval_stop))[0]
+                        if len(indices) > 0:
+                            if interval != '0':
+                                indices = np.append(indices, cgst - 1)
+                            html = self.____generate_htmlfield_cgstquery([x + 1 for x in indices])
+                            for id in [_dict['_id'] for _dict in cgsts_per_isolate if _dict['results'].get('cgST') == cgst]:
+                                isolates_eavt_psql_tbl.insert_eav_id((str(isolates_psql_tbl.select_maxid_for_isolate((id,))[0][0]), field[0], html))
+            else:
+                if len(self._new_st) > 0:
+                        for cgst in self._new_st:
+                            continue # todo calculate all new cgsts neigbours and update all those neigbours's html fields in bigsdb with the current new cgst
+
+
+    def ____generate_htmlfield_cgstquery(self, cgsts: List[int]) -> str:
+        """
+        Generates an html field to be inserted into bigsdb that will query all isolates with certain cgSTs
+        :param cgsts: the cgST's that should be included in the html query
+        :return: html query string
+        """
+        base_start = f' <p><a href="/cgi-bin/bigsdb/bigsdb.pl?set_id=0&page=query&submit=1&order=id&db=bigsdb_{self._species}_isolates'
+        base_end = '" target="_blank">query</a><p>'
+        html_ref = base_start
+        for index, cgst in enumerate(cgsts):
+            html_ref += f"&designation_value{index+1}={cgst}&designation_field{index+1}=s_2_cgST" # todo get scheme id in previous function
+        html_ref += base_end
+        return html_ref
 
     def __update_last_update_date(self) -> None:
         """
