@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # Hybrid between Bigs components and Mongodb components
 # to be executed on bigs host of choice
 # /home/bigsdb/BIGSdb/3.9PythonVenv/bin/python3.9 /home/mikelchtermans/Bigsdb_new/bioit_mongodb_scripts/mongo_to_bigs.py --species listeria --uploader_mail_address bioit@sciensano.be --pyvenvpythonpath /home/bigsdb/BIGSdb/3.9PythonVenv/bin/python3.9
@@ -15,7 +16,7 @@ import os
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
-from bioit_bigsdb_scripts.components.psql import TblIsolates, TblEavTextHidden, TblSequenceBin, TblSeqBinStats
+from bioit_bigsdb_scripts.components.psql import TblIsolates, TblEavTextHidden, TblSequenceBin, TblSeqBinStats, TblSchemes
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data
 from bioit_bigsdb_scripts.insert_assembly import insert_assembly
 from bioit_bigsdb_scripts.main_results_inserter import MainResultsInserter
@@ -90,11 +91,13 @@ class MongoToBigs:
         NewClusteringInfoToBigs(self._species, Path(self._bigsdb_config_data['naive_clustering_distance_matrix_file'].replace('species', self._species)), mongo_config_data=self._mongo_config_data)
 
         # update the bigsdb cache so the clustering schemes get updated
+        with TblSchemes(self._species, 'isolates') as isolates_schmemes_psql_tbl:
+            cgmlst_bigsdb_schemeid = isolates_schmemes_psql_tbl.select_scheme_id_cgmlst()[0][0]
         cache_command = f'/home/bigsdb/BIGSdb/scripts/maintenance/update_scheme_caches.pl ' \
-                        f'--database bigsdb_{self._species}_isolates --schemes 2'
-        command = Command(cache_command)
-        command.run(Path(os.getcwd()))
-        if command.returncode != 0:
+                        f'--database bigsdb_{self._species}_isolates --schemes {cgmlst_bigsdb_schemeid}'
+        cache_commandobj = Command(cache_command)
+        cache_commandobj.run(Path(os.getcwd()))
+        if cache_commandobj.returncode != 0:
             send_email(f"update of the cache to display the clustering failed on host {socket.gethostname()}")
             raise RuntimeError(f"update of the cache to display the clustering failed on host {socket.gethostname()}")
 
@@ -145,6 +148,12 @@ class MongoToBigs:
                         isolates_seqbinstats_psql_tbl.revert_seqbinstats_newversion([document_id])
                     insert_assembly(document_id, self._species, fasta_dir)
             logging.info(f"wrote new results version for {document_id} to bigsdb")
+
+        # Update cache again:
+        cache_commandobj.run(Path(os.getcwd()))
+        if cache_commandobj.returncode != 0:
+            send_email(f"update of the cache to display the clustering failed on host {socket.gethostname()}")
+            raise RuntimeError(f"update of the cache to display the clustering failed on host {socket.gethostname()}")
 
         list_of_isolates_in_bigs = self._isolates_psql_tbl.listing_isolates()
         with Path('/scratch/bigsupload/mongo/list_of_isolates.txt').open('w') as fileout:
@@ -224,6 +233,3 @@ if __name__ == '__main__':
     MongoToBigs(args.species, args.uploader_mail_address,
                 single_sample_id=(args.single_sample_id if args.single_sample_id else None),
                 mongo_config_data=mongo_config_data)
-
-
-
