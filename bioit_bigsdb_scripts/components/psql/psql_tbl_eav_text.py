@@ -43,3 +43,21 @@ class TblEavText(DatabaseConnection):
         :return: None
         """
         self.execute_query(PsqlQueries.ISO_INS__TB_EAVT_VAR_ISO_FIELD_VAL, param)
+
+    def update_eav_id(self, param: Tuple[str, str, str]) -> None:
+        """
+        Updates metadata value where isolate id is certain value and metadata field is certain value
+        :param param: variables to feed to the PSQL query, which also sanitizes these variables,
+        necessary parameters visible in the PSQL query name and query
+        :return: None
+        """
+        self.execute_query(PsqlQueries.ISO_UPD_VAL_TB_EAVT_VAR_ID_FIELD, param)
+
+    def select_count_eav_id(self, param: Tuple[str, str]) -> List[Tuple[int]]:
+        """
+        Counts the nr of fields with a given isolate id and field name
+        :param param: variables to feed to the PSQL query, which also sanitizes these variables,
+        necessary parameters visible in the PSQL query name and query
+        :return: Count enclosed in a tuple and a list
+        """
+        return self.execute_query(PsqlQueries.ISO_SEL_COUNT_TB_EAVT_VAR_ID_FIELD, param)

@@ -20,6 +20,7 @@ from .psql_tbl_profile_members import TblProfileMembers
 from .psql_tbl_profiles import TblProfiles
 from .psql_tbl_project_members import TblProjectMembers
 from .psql_tbl_scheme_members import TblSchemeMembers
+from .psql_tbl_schemes import TblSchemes
 from .psql_tbl_seq_bin_stats import TblSeqBinStats
 from .psql_tbl_sequence_bin import TblSequenceBin
 from .psql_tbl_sequences import TblSequences

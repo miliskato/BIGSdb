@@ -80,7 +80,7 @@ class TblIsolates(DatabaseConnection):
         """
         return self.execute_query(PsqlQueries.ISO_SEL_ANADATE_TB_ISO_VAR_ISO, param)
 
-    def select_maxid_for_isolate(self, param: Tuple[str]) -> List[Tuple[int]]:
+    def select_maxid_for_isolate(self, param: Tuple[str]) -> List[Optional[Tuple[int]]]:
         """
         Selects the id of the latest isolate version
         :param param: variables to feed to the PSQL query, which also sanitizes these variables,

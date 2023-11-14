@@ -76,7 +76,7 @@ class MongoToBigs:
         try:
             self._mongo_to_bigs()
         except Exception as exceptionmessage:
-            # send_email(f"{exceptionmessage}\n{traceback.format_exc()}") # todo
+            send_email(f"{exceptionmessage}\n{traceback.format_exc()}")
             raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}: {exceptionmessage}\n{traceback.format_exc()}")
 
     def _mongo_to_bigs(self) -> None:

@@ -104,6 +104,10 @@ class PsqlQueries():
     ISO_INS__TB_EAVT_VAR_ISO_FIELD_VAL: Final[str] = """
         INSERT INTO eav_text(isolate_id, field, value) 
         VALUES((SELECT MAX(id) FROM isolates WHERE isolate=%s), %s, %s);"""
+    ISO_UPD_VAL_TB_EAVT_VAR_ID_FIELD: Final[str] = """
+        UPDATE eav_text SET value = %s WHERE isolate_id=%s AND field=%s;"""
+    ISO_SEL_COUNT_TB_EAVT_VAR_ID_FIELD: Final[str] = """
+        SELECT COUNT(*) FROM eav_text WHERE isolate_id=%s AND field=%s;"""
 
     # TBL extended attribute values text hidden
     ISO_INS__TB_EAVTH_VAR_ISO_FIELD_VAL: Final[str] = """
@@ -226,6 +230,10 @@ class PsqlQueries():
         INSERT INTO project_members(project_id, isolate_id, curator, datestamp)
         SELECT project_id, (SELECT MAX(id) FROM isolates WHERE isolate=%s), curator, datestamp
         from project_members WHERE isolate_id=(SELECT MIN(id) FROM isolates WHERE id in (SELECT id FROM isolates WHERE isolate=%s ORDER BY id DESC LIMIT 2));"""
+
+    # TBL schemes
+    UNI_SEL_ID_TB_SCHEME_VAR_: Final[str] = """
+        SELECT id FROM schemes WHERE name = 'cgMLST';"""
 
     # TBL scheme members
     UNI_INS__TB_SCHMEM_VAR_SCHEME_LOCUS: Final[str] = """
