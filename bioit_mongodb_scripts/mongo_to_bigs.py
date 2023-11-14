@@ -16,7 +16,7 @@ import os
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
-from bioit_bigsdb_scripts.components.psql import TblIsolates, TblEavTextHidden, TblSequenceBin, TblSeqBinStats
+from bioit_bigsdb_scripts.components.psql import TblIsolates, TblEavTextHidden, TblSequenceBin, TblSeqBinStats, TblSchemes
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data
 from bioit_bigsdb_scripts.insert_assembly import insert_assembly
 from bioit_bigsdb_scripts.main_results_inserter import MainResultsInserter
@@ -87,11 +87,13 @@ class MongoToBigs:
         NewClusteringInfoToBigs(self._species, Path(self._bigsdb_config_data['naive_clustering_distance_matrix_file'].replace('species', self._species)), mongo_config_data=self._mongo_config_data)
 
         # update the bigsdb cache so the clustering schemes get updated
+        with TblSchemes(self._species, 'isolates') as isolates_schmemes_psql_tbl:
+            cgmlst_bigsdb_schemeid = isolates_schmemes_psql_tbl.select_scheme_id_cgmlst()[0][0]
         cache_command = f'/home/bigsdb/BIGSdb/scripts/maintenance/update_scheme_caches.pl ' \
-                  f'--database bigsdb_{self._species}_isolates --schemes 2'
-        command = Command(cache_command)
-        command.run(Path(os.getcwd()))
-        if command.returncode != 0:
+                        f'--database bigsdb_{self._species}_isolates --schemes {cgmlst_bigsdb_schemeid}'
+        cache_commandobj = Command(cache_command)
+        cache_commandobj.run(Path(os.getcwd()))
+        if cache_commandobj.returncode != 0:
             send_email(f"update of the cache to display the clustering failed on host {socket.gethostname()}")
             raise RuntimeError(f"update of the cache to display the clustering failed on host {socket.gethostname()}")
 
@@ -141,6 +143,12 @@ class MongoToBigs:
                         isolates_seqbinstats_psql_tbl.revert_seqbinstats_newversion([document_id])
                     insert_assembly(document_id, self._species, Path(document['fasta_path']))
             logging.info(f"wrote new results version for {document_id} to bigsdb")
+
+        # Update cache again:
+        cache_commandobj.run(Path(os.getcwd()))
+        if cache_commandobj.returncode != 0:
+            send_email(f"update of the cache to display the clustering failed on host {socket.gethostname()}")
+            raise RuntimeError(f"update of the cache to display the clustering failed on host {socket.gethostname()}")
 
     def __get_list_of_documents(self) -> List[Dict[str, Any]]:
         """
