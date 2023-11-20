@@ -1,6 +1,7 @@
 import logging
 import re
 from typing import Any, Dict, List, Tuple
+from pathlib import Path
 
 import requests
 
@@ -14,7 +15,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
     """
 
     def __init__(self, isolatename: str, species: str,
-                 sample_output_dict: Dict[str, Any], config_data: Dict[str, Any]) -> None:
+                 sample_output_dict: Dict[str, Any], config_data: Dict[str, Any], report_access: str) -> None:
         """
         :param isolatename: name of the isolate
         :param species: commonly used bioit species name: either genus or specific like stec
@@ -23,6 +24,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
         :return: None
         """
         super().__init__(isolatename, species, sample_output_dict, config_data)
+        self._report_access = report_access
         self._schemedict: Dict[str, Dict[str, str]] = self._bigsdb_config_data['species_json'][self._species]['typing_schemes']
         self._scheme = None
         self._locusset = set()  # Locusset serves as to not insert duplicates (creates error in sql),
@@ -96,8 +98,10 @@ class JsonTypingResultsInserter(JsonSuperClass):
                         antibiotic_reformatted = '_'.join(
                             ['POINTFINDER', re.sub('-| ', '_', antibiotic).upper()])
                         mutation = re.sub('[.]| ', '_', result['Mutation'])
+                        report_dir_from_mongo = self._report_access
+                        report_name = Path(report_dir_from_mongo).name
                         eavhtmltable = eavhtmltable + ''.join(
-                            [f'<tr><td><a href="/galaxyreports/{self._species}/', self._isolatename,
+                            [f'<tr><td><a href="/galaxyreports/{self._species}/', report_name,
                              '/report.html#',
                              self._schemedict[self._scheme]['schemename_html'], '" target="_blank">',
                              result['Mutation'], '</a></td>'])
@@ -248,11 +252,12 @@ class JsonTypingResultsInserter(JsonSuperClass):
         """
         if self._scheme == 'genotyphi':
             with TblEavFields(self._species) as isolates_eavf_psql_tbl:
-                fields_genotyphi: List[Tuple[str]] = isolates_eavf_psql_tbl.select_fields_like(('genotyphi%susceptibility',))
+                fields_genotyphi: List[Tuple[str]] = isolates_eavf_psql_tbl.select_fields_of_a_category(('Genotyphi',))
             for item in fields_genotyphi:
-                if item[0] in self._sample_output_dict[self._scheme]['results'] and \
-                        self._sample_output_dict[self._scheme]['results'][item[0]] is not None:
-                    susceptibility: str = self._sample_output_dict[self._scheme]['results'][item[0]]
+                item_like_mongo= 'genotyphi_'+item[0]
+                if item_like_mongo in self._sample_output_dict[self._scheme]['results'] and \
+                        self._sample_output_dict[self._scheme]['results'][item_like_mongo] is not None:
+                    susceptibility: str = self._sample_output_dict[self._scheme]['results'][item_like_mongo]
                     self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, item[0], susceptibility))
                     # insert new alleles
                     # example of structure in output dict:
@@ -260,9 +265,9 @@ class JsonTypingResultsInserter(JsonSuperClass):
                     #                            'genotyphi_IncFIAHI1_variants': '-',
                     #                            'genotyphi_IncFIAHI1_genes': '-',
                     #                            ... } } }
-                    variant = item[0].replace('susceptibility', 'variants')
-                    gene = item[0].replace('susceptibility', 'genes')
-                    genotyphi_field = item[0].replace('_susceptibility', '').upper()
+                    variant = item_like_mongo.replace('susceptibility', 'variants')
+                    gene = item_like_mongo.replace('susceptibility', 'genes')
+                    genotyphi_field = item_like_mongo.replace('_susceptibility', '').upper()
                     # get the genes and variants
                     future_alleles = self._sample_output_dict[self._scheme]['results'][variant].split(';') + \
                                      self._sample_output_dict[self._scheme]['results'][gene].split(';')
@@ -304,6 +309,18 @@ class JsonTypingResultsInserter(JsonSuperClass):
                         self._isolates_ad_psql_tbl.insert_designation_by_isolatename(
                             (spifinder_field, self._isolatename, spifinder_entry))
                         inserted_alleledesignations_list.add(spifinder_entry)
+        elif self._scheme == 'abritamr':
+            with TblEavFields(self._species) as isolates_eavf_psql_tbl:
+                fields_abritamr: List[Tuple[str]] = isolates_eavf_psql_tbl.select_fields_of_a_category(('AbritAMR',))
+
+            for item in fields_abritamr:
+                item_like_mongo='abritamr_'+item[0]
+                if item_like_mongo in self._sample_output_dict[self._scheme]['results'] and \
+                        self._sample_output_dict[self._scheme]['results'][item_like_mongo] is not None:
+                    amr_detection: str = self._sample_output_dict[self._scheme]['results'][item_like_mongo]
+                    if amr_detection == '-':
+                        amr_detection = 'NA'
+                    self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, item[0], amr_detection))
                         
     def ___salmonella_insert_antigens_into_db(self, raw_formula: str) -> None:
         """
