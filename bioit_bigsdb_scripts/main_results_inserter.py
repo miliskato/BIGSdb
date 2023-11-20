@@ -101,10 +101,10 @@ class MainResultsInserter:
         if self._tsvfilepath:
             with DatabaseConnection(self._species, 'isolates') as isolates_psql_db, \
                     DatabaseConnection(self._species, 'seqdef') as seqdef_psql_db:
-                TsvTypingResultsInserter().insert_typing_results(self._isolatename, self._species, self._bigsdb_config_data['species'][self._species]['typing_schemes'], sample_output_dict, isolates_psql_db, seqdef_psql_db)
+                TsvTypingResultsInserter().insert_typing_results(self._isolatename, self._species, self._bigsdb_config_data['species'][self._species]['typing_schemes'], sample_output_dict, isolates_psql_db, seqdef_psql_db, self._report_access)
                 TsvGeneDetectionResultsInserter().insert_genedetection_results(self._isolatename, self._species, self._bigsdb_config_data['species'][self._species]['genedetection_schemes'], sample_output_dict, isolates_psql_db, seqdef_psql_db)
         elif self._jsonfilepath:
-            JsonTypingResultsInserter(self._isolatename, self._species, sample_output_dict, self._bigsdb_config_data).insert_typing_results()
+            JsonTypingResultsInserter(self._isolatename, self._species, sample_output_dict, self._bigsdb_config_data, self._report_access).insert_typing_results()
             JsonGeneDetectionResultsInserter(self._isolatename, self._species, sample_output_dict, self._bigsdb_config_data).insert_genedetection_results()
         logging.info('Finished inserting results')
         self.__delete_flagfile()
