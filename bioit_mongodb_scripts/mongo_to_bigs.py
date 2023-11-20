@@ -91,22 +91,22 @@ class MongoToBigs:
         NewClusteringInfoToBigs(self._species, Path(self._bigsdb_config_data['naive_clustering_distance_matrix_file'].replace('species', self._species)), mongo_config_data=self._mongo_config_data)
 
         # update the bigsdb cache so the clustering schemes get updated
-        with TblSchemes(self._species, 'isolates') as isolates_schmemes_psql_tbl:
-            cgmlst_bigsdb_schemeid = isolates_schmemes_psql_tbl.select_scheme_id_cgmlst()[0][0]
+        with TblSchemes(self._species, 'isolates') as isolates_schemes_psql_tbl:
+            cgmlst_bigsdb_scheme_id = isolates_schemes_psql_tbl.select_scheme_id_cgmlst()[0][0]
         cache_command = f'/home/bigsdb/BIGSdb/scripts/maintenance/update_scheme_caches.pl ' \
-                        f'--database bigsdb_{self._species}_isolates --schemes {cgmlst_bigsdb_schemeid}'
-        cache_commandobj = Command(cache_command)
-        cache_commandobj.run(Path(os.getcwd()))
-        if cache_commandobj.returncode != 0:
+                        f'--database bigsdb_{self._species}_isolates --schemes {cgmlst_bigsdb_scheme_id}'
+        cache_command_object = Command(cache_command)
+        cache_command_object.run(Path(os.getcwd()))
+        if cache_command_object.returncode != 0:
             send_email(f"update of the cache to display the clustering failed on host {socket.gethostname()}")
             raise RuntimeError(f"update of the cache to display the clustering failed on host {socket.gethostname()}")
 
         # send bad samples from the badqc_isolates collection to BIGSdb
         samples_to_validation_bigs(self._species, mongo_config_data=self._mongo_config_data)
 
-        listofdocuments = self.__get_list_of_documents()
+        list_of_documents = self.__get_list_of_documents()
 
-        for document in listofdocuments:
+        for document in list_of_documents:
             document_id = document['results']['isolates_id']
             sample_presence = self._isolates_psql_tbl.count_isolate((document_id,))
             if sample_presence[0][0] == 0:
@@ -150,8 +150,8 @@ class MongoToBigs:
             logging.info(f"wrote new results version for {document_id} to bigsdb")
 
         # Update cache again:
-        cache_commandobj.run(Path(os.getcwd()))
-        if cache_commandobj.returncode != 0:
+        cache_command_object.run(Path(os.getcwd()))
+        if cache_command_object.returncode != 0:
             send_email(f"update of the cache to display the clustering failed on host {socket.gethostname()}")
             raise RuntimeError(f"update of the cache to display the clustering failed on host {socket.gethostname()}")
 
@@ -168,14 +168,14 @@ class MongoToBigs:
         if self._single_sample_id:
             query_single = self._isolates_collection.find_one({'_id': self._single_sample_id})
             if query_single is not None:
-                listofdocuments = [query_single]
+                list_of_documents = [query_single]
             else:
                 send_email(f"Can not find document with _id '{self._single_sample_id}' in isolates")
                 raise Exception(f"Can not find document with _id '{self._single_sample_id}' in isolates")
 
         else:
-            listofdocuments = list(self._isolates_collection.find())
-        return listofdocuments
+            list_of_documents = list(self._isolates_collection.find())
+        return list_of_documents
 
     def __check_if_reanalysis_different(self, document: Dict[str, Any], document_id: str) -> bool:
         """

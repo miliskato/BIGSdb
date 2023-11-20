@@ -83,13 +83,16 @@ class DistanceAndClusterComputer:
         Computes the hamming distances between sequence types
         :param mode: full is to compute all the distances against all the cgmlst in the db while
         last_st computes only for the last sequence type entered in the db.
-        :param number_of_new_sts: number of new sts if not one and if mode last_st
+        :param number_of_new_sts: number of new sts if not one and if mode last_st, must be natural number,
+        sadly natural numbers are not easily modeled in Python
         :return: np.array
         """
         logging.info(f"{datetime.datetime.now()}: Starting to compute hamming distances in mode {mode}")
         if mode == 'full':
             start = 0
         elif mode == 'last_st':
+            if number_of_new_sts < 1:
+                raise ValueError("number_of_new_sts must be natural number")
             start = len(self._cgmlst_profiles) - number_of_new_sts
         else:
             raise ValueError('mode should be either full or last_st for compute_hamming_distances')
