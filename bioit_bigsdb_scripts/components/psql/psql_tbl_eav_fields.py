@@ -52,3 +52,11 @@ class TblEavFields(DatabaseConnection):
         :return: Count enclosed in a tuple and a list
         """
         return self.execute_query(PsqlQueries.ISO_SEL_COUNT_TB_EAVF_VAR_FIELD, param)
+
+    def select_fields_of_a_category(self, param: Tuple[str]) -> List[Tuple[str]]:
+        """
+         Selects all the fields where category is equal to the input value
+        :param param: variables to feed to the PSQL query in that case 'category' on which we want to filter the table
+        :return: list of tuples containing one string
+        """
+        return self.execute_query(PsqlQueries.ISO_SEL_FIELD_TB_EAVF_VAR_CAT, param)

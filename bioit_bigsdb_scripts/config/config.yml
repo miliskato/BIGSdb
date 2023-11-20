@@ -467,6 +467,8 @@ species_json:
         type: irregular
       spifinder_fasta:
         type: irregular
+      abritamr:
+        type: irregular
     genedetection_schemes:
       ncbi_amr:
         clusteredfasta: /db/gene_detection/NCBI_AMR/ncbi_amr-clustered_80.fasta

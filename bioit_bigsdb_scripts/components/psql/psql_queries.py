@@ -89,6 +89,7 @@ class PsqlQueries():
     ISO_SEL_COUNT_TB_EAVF_VAR_FIELD: Final[str] = """
         SELECT COUNT(*) FROM eav_fields WHERE category='NCBI 16S' AND field=%s;"""
     ISO_SEL_FIELD_TB_EAVF_VAR_: Final[str] = """SELECT field FROM eav_fields WHERE category='AMR detection'"""
+    ISO_SEL_FIELD_TB_EAVF_VAR_CAT: Final[str] = """SELECT field FROM eav_fields WHERE category=%s"""
     ISO_SEL_FIELD_TB_EAVF_VAR_FIELD: Final[str] = """SELECT field FROM eav_fields WHERE field LIKE %s;"""
 
     # TBL extended attribute values bool

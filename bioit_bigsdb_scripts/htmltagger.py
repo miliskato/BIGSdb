@@ -36,8 +36,8 @@ schemedict = {'listeria':        {'listeria_ndaro':              {'schemename_ht
                                   'salmonella_ndaro':              {'schemename_html': 'NCBI AMR genes (NDARO)'},
                                   'salmonella_resfinder':          {'schemename_html': 'ResFinder'},
                                   'salmonella_vfdbcore':           {'schemename_html': 'Virulence Factor DB - Core'},
-                                  'salmonella_plasmidfinder':      {'schemename_html': 'PlasmidFinder - Enterobacteriaceae'}},
-
+                                  'salmonella_plasmidfinder':      {'schemename_html': 'PlasmidFinder - Enterobacteriaceae'},
+                                  'salmonella_abritamr':           {'schemename_html': 'AbritAMR'}},
               }
 
 
