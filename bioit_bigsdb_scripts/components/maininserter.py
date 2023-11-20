@@ -138,8 +138,8 @@ class MainInserter(JsonSuperClass):
         row_cgst = distance_matrix[self._sample_output_dict['cgST'] - 1]
         with TblEavFields(self._species) as isolates_eavf_psql_tbl:
             cgmlst_diff_fields = isolates_eavf_psql_tbl.select_fields_cgmlstdifferences()
-        with TblSchemes(self._species, 'isolates') as isolates_schmemes_psql_tbl:
-            cgmlst_bigsdb_schemeid = isolates_schmemes_psql_tbl.select_scheme_id_cgmlst()[0][0]
+        with TblSchemes(self._species, 'isolates') as isolates_schemes_psql_tbl:
+            cgmlst_bigsdb_scheme_id = isolates_schemes_psql_tbl.select_scheme_id_cgmlst()[0][0]
         for field in cgmlst_diff_fields:
             interval = field[0].split('_')[-1]
             interval_start = int(interval.split('-')[0])
@@ -150,15 +150,15 @@ class MainInserter(JsonSuperClass):
                 if interval != '0':
                     indices = np.append(indices, self._sample_output_dict['cgST'] - 1)
                 html = self.__generate_htmlfield_cgstquery([x + 1 for x in indices],
-                                                           cgmlst_bigsdb_schemeid)
+                                                           cgmlst_bigsdb_scheme_id)
                 with TblEavText(self._species) as isolates_eavt_psql_tbl:
                     isolates_eavt_psql_tbl.insert_eav_id((str(isolate_id), field[0], html))
 
-    def __generate_htmlfield_cgstquery(self, cgsts: List[int], cgmlst_bigsdb_schemeid: int) -> str:
+    def __generate_htmlfield_cgstquery(self, cgsts: List[int], cgmlst_bigsdb_scheme_id: int) -> str:
         """
         Generates an html field to be inserted into bigsdb that will query all isolates with certain cgSTs
         :param cgsts: the cgST's that should be included in the html query
-        :param cgmlst_bigsdb_schemeid: the scheme id of the cgMLST scheme in bigsdb (usually 2, after 1 mlst,
+        :param cgmlst_bigsdb_scheme_id: the scheme id of the cgMLST scheme in bigsdb (usually 2, after 1 mlst,
         but in the case of stec that has 2 mlst it is 3)
         :return: html query string
         """
@@ -167,6 +167,6 @@ class MainInserter(JsonSuperClass):
         base_end = '" target="_blank">query</a><p>'
         html_ref = base_start
         for index, cgst in enumerate(cgsts):
-            html_ref += f"&designation_value{index+1}={cgst}&designation_field{index+1}=s_{cgmlst_bigsdb_schemeid}_cgST"
+            html_ref += f"&designation_value{index+1}={cgst}&designation_field{index+1}=s_{cgmlst_bigsdb_scheme_id}_cgST"
         html_ref += base_end
         return html_ref
