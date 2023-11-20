@@ -10,7 +10,7 @@
  description="Mycobacterium Seqdef"
  locus_superscript_prefix="yes"
  authentication="builtin"
- read_access="public"
+ read_access="authenticated_users"
  disable_seq_downloads="no"
 >
 </system>
