@@ -47,6 +47,8 @@ def get_lab_metadata_dictionary(lab_metadata_by_isolate: List[Tuple]) -> Tuple[D
     for i, item in enumerate(lab_metadata_by_isolate):
         if lab_metadata_by_isolate[i][0] == 'isolate':
             isolate_str = lab_metadata_by_isolate[i][1]
+        elif lab_metadata_by_isolate[i][0] in ['id', 'aliases', 'references', 'latest_analysis_date', 'uploader', 'validation_type', 'validation_curator', 'validation_date']:
+            continue
         else:
             metadata_dictionary[lab_metadata_by_isolate[i][0]] = lab_metadata_by_isolate[i][1]
     if isolate_str == '':
