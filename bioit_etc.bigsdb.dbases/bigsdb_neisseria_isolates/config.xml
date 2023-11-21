@@ -45,15 +45,15 @@
 <field type="text" required="no" length="30" maindisplay="no" group ="nominative metadata" comments="province">province</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="region">region</field>
 <field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="latitude">latitude</field>
-<field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="longitude">longitude</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="patient sex">patient_sex</field>
+<field type="float" required="no" length="20" maindisplay="no" group ="nominative metadata" comments="longitude">longitude</field>
+<field type="text" required="no" length="20" maindisplay="no" group ="nominative metadata" comments="patient sex">patient_sex</field>
 <field type="int" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="patient age">patient_age</field>
 <field type="text" required="no" length="30" maindisplay="no" group ="nominative metadata" comments="patient age group">patient_age_group</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="recently stay abroad">recently_stayed_abroad</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="country 1">country_1</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="country 2">country_2</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="hospitalisation">hospitalisation</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="specimen">specimen</field>
+<field type="text" required="no" length="30" maindisplay="no" group ="nominative metadata" comments="specimen">specimen</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="case Type">case_type</field>
 <field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="clinical info">clinical_info</field>
 <field type="text" required="no" length="40" maindisplay="no" group ="nominative metadata" comments="evolution">evolution</field>
