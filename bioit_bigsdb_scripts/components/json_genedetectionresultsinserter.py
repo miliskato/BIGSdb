@@ -13,21 +13,26 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
     Class containing definitions to insert gene detection results from json input
     """
     def __init__(self, isolatename: str, species: str,
-                 sample_output_dict: Dict[str, Any], config_data: Dict[str, Any]) -> None:
+                 sample_output_dict: Dict[str, Any], config_data: Dict[str, Any], report_access) -> None:
         """
         :param isolatename: name of the isolate
         :param species: commonly used bioit species name: either genus or specific like stec
         :param config_data: the bigsdb config data
         :param sample_output_dict: results of sample
+        :param report_access: report dir from mongo
         :return: None
         """
+        self._report_access = report_access
+
         super().__init__(isolatename, species, sample_output_dict, config_data)
+
         self._genedetectiondict: Union[None, Dict[str, Dict[str, str]]] = self._bigsdb_config_data['species_json'][species]['genedetection_schemes']
         self._eavhtmltable = None
         self._scheme = None
         self._clusterdict = None
         self._ncbi_ab_class_dict = None
         self._schemename_bigsdb = None
+
 
     def insert_genedetection_results(self) -> None:
         """
@@ -108,8 +113,10 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
         self._eavhtmltable += ''.join(['<tr><td>', ''.join(['GeneCluster', clusterhit.split('Cluster')[1]]), '</td>'])
         # append Locus
         locusname: str = hit['Gene'] if self._scheme.endswith('vfdbcore') else hit['Locus']
+        report_dir_from_mongo = self._report_access
+        report_name = Path(report_dir_from_mongo).name
         self._eavhtmltable += ''.join(
-            [f'<td><a href="/galaxyreports/{self._species}/', self._isolatename, '/report.html#',
+            [f'<td><a href="/galaxyreports/{self._species}/', report_name, '/report.html#',
              self._genedetectiondict[self._scheme]['schemename_html'], '" target="_blank">',
              locusname, '</a></td></tr>'])
 

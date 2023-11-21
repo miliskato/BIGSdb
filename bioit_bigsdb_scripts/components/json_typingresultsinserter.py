@@ -21,6 +21,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
         :param species: commonly used bioit species name: either genus or specific like stec
         :param sample_output_dict: results of sample
         :param config_data: the bigsdb config data
+        :param report_access: report dir from mongo
         :return: None
         """
         super().__init__(isolatename, species, sample_output_dict, config_data)

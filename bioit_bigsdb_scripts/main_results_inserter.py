@@ -105,7 +105,7 @@ class MainResultsInserter:
                 TsvGeneDetectionResultsInserter().insert_genedetection_results(self._isolatename, self._species, self._bigsdb_config_data['species'][self._species]['genedetection_schemes'], sample_output_dict, isolates_psql_db, seqdef_psql_db)
         elif self._jsonfilepath:
             JsonTypingResultsInserter(self._isolatename, self._species, sample_output_dict, self._bigsdb_config_data, self._report_access).insert_typing_results()
-            JsonGeneDetectionResultsInserter(self._isolatename, self._species, sample_output_dict, self._bigsdb_config_data).insert_genedetection_results()
+            JsonGeneDetectionResultsInserter(self._isolatename, self._species, sample_output_dict, self._bigsdb_config_data, self._report_access).insert_genedetection_results()
         logging.info('Finished inserting results')
         self.__delete_flagfile()
 
