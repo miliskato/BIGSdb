@@ -300,7 +300,13 @@ class NewClusteringInfoToBigs:
                 list(self._isolates_collection.find({}, {"results.cgST": 1, "_id": 1}))
             with TblSchemes(self._species, 'isolates') as isolates_schemes_psql_tbl:
                 cgmlst_bigsdb_scheme_id = isolates_schemes_psql_tbl.select_scheme_id_cgmlst()[0][0]
-            if full_calculation:
+            # check if field is possibly new by checking if there are any values for the field yet,
+            # this feature is needed because fields can be added at different points in time and
+            # would otherwise be skipped for isolates/cgsts already in the database
+            with TblEavText(self._species) as isolates_eavt_psql_tbl:
+                is_field_possibly_new = True if isolates_eavt_psql_tbl.select_count_eav_field((field[0],))[0][0] == 0 \
+                                            else False
+            if full_calculation or is_field_possibly_new:
                 logging.info(f"Inserting cgMLST difference html fields for isolates present in Bigsdb")
                 cgsts = set(x['results']['cgST'] for x in cgsts_per_isolate)
                 with TblIsolates(self._species) as isolates_psql_tbl, TblEavText(

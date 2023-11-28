@@ -61,3 +61,12 @@ class TblEavText(DatabaseConnection):
         :return: Count enclosed in a tuple and a list
         """
         return self.execute_query(PsqlQueries.ISO_SEL_COUNT_TB_EAVT_VAR_ID_FIELD, param)
+
+    def select_count_eav_field(self, param: Tuple[str]) -> List[Tuple[int]]:
+        """
+        Counts the nr of fields with a field name
+        :param param: variables to feed to the PSQL query, which also sanitizes these variables,
+        necessary parameters visible in the PSQL query name and query
+        :return: Count enclosed in a tuple and a list
+        """
+        return self.execute_query(PsqlQueries.ISO_SEL_COUNT_TB_EAVT_VAR_FIELD, param)
