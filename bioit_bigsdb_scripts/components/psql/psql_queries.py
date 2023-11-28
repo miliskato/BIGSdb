@@ -107,7 +107,8 @@ class PsqlQueries():
         UPDATE eav_text SET value = %s WHERE isolate_id=%s AND field=%s;"""
     ISO_SEL_COUNT_TB_EAVT_VAR_ID_FIELD: Final[str] = """
         SELECT COUNT(*) FROM eav_text WHERE isolate_id=%s AND field=%s;"""
-
+    ISO_SEL_COUNT_TB_EAVT_VAR_FIELD: Final[str] = """
+        SELECT COUNT(*) FROM eav_text WHERE field=%s;"""
     # TBL extended attribute values text hidden
     ISO_INS__TB_EAVTH_VAR_ISO_FIELD_VAL: Final[str] = """
         INSERT INTO eav_text_hidden(isolate_id, field, value) 
