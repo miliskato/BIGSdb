@@ -256,13 +256,15 @@ class NewClusteringInfoToBigs:
                 distance_matrix: np.array = np.load(str(self._naive_clustering_distance_matrix_file))
                 if len(self._new_st) > 0:
                     distance_cluster = DistanceAndClusterComputer(self._species, self._mongo_config_data)
-                    hd_np_array = distance_cluster.compute_hamming_distances('last_st', number_of_new_sts=len(self._new_st))
+                    hd_np_array = distance_cluster.compute_hamming_distances('last_st',
+                                                                             number_of_new_sts=len(self._new_st))
                     # fix the lower triangle to be symmetric
                     hd_np_array = np.concatenate([hd_np_array[:, :distance_matrix.shape[0]],
                                                   hd_np_array[:, distance_matrix.shape[0]:] +
                                                   hd_np_array[:, distance_matrix.shape[0]:].T], axis=1)
                     # Add the new distances to the existing matrix
-                    distance_matrix = np.concatenate([distance_matrix, hd_np_array[:, :distance_matrix.shape[0]]], axis=0)
+                    distance_matrix = np.concatenate([distance_matrix, hd_np_array[:, :distance_matrix.shape[0]]],
+                                                     axis=0)
                     distance_matrix = np.concatenate([distance_matrix, hd_np_array.T], axis=1)
             self.___update_all_existing_naive_clusterimplementations(full_calculation, cgmlst_diff_fields,
                                                                      distance_matrix)
@@ -311,13 +313,13 @@ class NewClusteringInfoToBigs:
                         if len(indices) > 0:
                             if interval != '0':
                                 indices = np.append(indices, cgst - 1)
-                            html = self.____generate_htmlfield_cgstquery([x + 1 for x in indices],
-                                                                         cgmlst_bigsdb_scheme_id)
+                            html = self.____generate_htmlelement_cgstquery([x + 1 for x in indices],
+                                                                           cgmlst_bigsdb_scheme_id, field[0])
                             for technical_id in [_dict['_id'] for _dict in cgsts_per_isolate
                                                  if _dict['results'].get('cgST') == cgst]:
                                 bigsdb_maxid_isolate = isolates_psql_tbl.select_maxid_for_isolate((technical_id,))
                                 # it is possible that new isolates have not been added to bigsdb yet with old cgSTs
-                                if len(bigsdb_maxid_isolate) > 0:
+                                if bigsdb_maxid_isolate[0][0] is not None:
                                     isolates_eavt_psql_tbl.insert_eav_id((
                                         str(bigsdb_maxid_isolate[0][0]),
                                         field[0], html))
@@ -341,7 +343,7 @@ class NewClusteringInfoToBigs:
                         # New cgsts/isolates with those new cgsts should/will not be in the database yet,
                         # so the following code does not need to be executed
                             #     indices = np.append(indices, cgst - 1)
-                            # html = self.____generate_htmlfield_cgstquery([x + 1 for x in indices],
+                            # html = self.____generate_htmlelement_cgstquery([x + 1 for x in indices],
                             #                                              cgmlst_bigsdb_scheme_id)
                             # for technical_id in [_dict['_id'] for _dict in cgsts_per_isolate
                             #                      if _dict['results'].get('cgST') == cgst]:
@@ -363,8 +365,8 @@ class NewClusteringInfoToBigs:
                             if len(indices) > 0:
                                 if interval != '0':
                                     indices = np.append(indices, cgst - 1)
-                                html = self.____generate_htmlfield_cgstquery([x + 1 for x in indices],
-                                                                             cgmlst_bigsdb_scheme_id)
+                                html = self.____generate_htmlelement_cgstquery([x + 1 for x in indices],
+                                                                               cgmlst_bigsdb_scheme_id, field[0])
                                 for technical_id in [_dict['_id'] for _dict in cgsts_per_isolate
                                                      if _dict['results'].get('cgST') == cgst]:
                                     bigsdb_maxid_isolate = isolates_psql_tbl.select_maxid_for_isolate((technical_id,))
@@ -376,27 +378,35 @@ class NewClusteringInfoToBigs:
                                                 html, str(bigsdb_maxid_isolate[0][0]),
                                                 field[0]))
                                         else:
-                                            # it is also possible that the isolates in question do not have the fields yet because no cgST's were close up until now
+                                            # it is also possible that the isolates in question do not have the fields
+                                            # yet because no cgST's were close up until now
                                             isolates_eavt_psql_tbl.insert_eav_id((
                                                 str(bigsdb_maxid_isolate[0][0]),
                                                 field[0], html))
 
-    def ____generate_htmlfield_cgstquery(self, cgsts: List[int], cgmlst_bigsdb_scheme_id: int) -> str:
+    def ____generate_htmlelement_cgstquery(self, cgsts: List[int], cgmlst_bigsdb_scheme_id: int,
+                                           cgmlst_diff_field: str) -> str:
         """
-        Generates an html field to be inserted into bigsdb that will query all isolates with certain cgSTs
+        Generates a html element to be inserted into bigsdb that will query all isolates with certain
+        cgSTs after clicking on it, also provides a preview of the number of those isolates using JavaScript
+        and will provide a preview
         :param cgsts: the cgST's that should be included in the html query
         :param cgmlst_bigsdb_scheme_id: the scheme id of the cgMLST scheme in bigsdb (usually 2, after 1 mlst,
         but in the case of stec that has 2 mlst it is 3)
-        :return: html query string
+        :param cgmlst_diff_field: cgmlst difference field in bigsdb e.g. cgMLST_differences_1-10
+        :return: html element that executes the javascript function replaceQueriedValue e.g.
+        '<div id="cgMLST_differences_1-10"><script type="text/javascript">replaceQueriedValue("/cgi-bin/bigsdb/bigsdb.pl
+        ?set_id=0&page=query&submit=1&order=id&db=bigsdb_mycobacterium_isolates&designation_value1=1&designation_field1=
+        s_2_cgST&designation_value2=5&designation_field2=s_2_cgST", "cgMLST_differences_1-10")</script>'
         """
-        base_start = f' <p><a href="/cgi-bin/bigsdb/bigsdb.pl?set_id=0&page=query&submit=1&order=id&db=bigsdb_' \
-                     f'{self._species}_isolates'
-        base_end = '" target="_blank">query</a><p>'
-        html_ref = base_start
+        url_start = f"/cgi-bin/bigsdb/bigsdb.pl?set_id=0&page=query&submit=1&order=id&db=bigsdb_" \
+                    f"{self._species}_isolates"
+        url = url_start
         for index, cgst in enumerate(cgsts):
-            html_ref += f"&designation_value{index+1}={cgst}&designation_field{index+1}=s_{cgmlst_bigsdb_scheme_id}_cgST"
-        html_ref += base_end
-        return html_ref
+            url += f"&designation_value{index+1}={cgst}&designation_field{index+1}=s_{cgmlst_bigsdb_scheme_id}_cgST"
+        html_element = f'<div id="{cgmlst_diff_field}"><script type="text/javascript">replaceQueriedValue("{url}", ' \
+                       f'"{cgmlst_diff_field}")</script>'
+        return html_element
 
     def __update_last_update_date(self) -> None:
         """
