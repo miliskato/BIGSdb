@@ -15,6 +15,6 @@ function replaceQueriedValue(url, id_field) {
         .then(response => response.text())
         .then(html => {
             const recordsFound = parseHTML_returnINT(html);
-            document.getElementById(id_field).innerHTML = `<a href=${url} target="_blank">${recordsFound}</a>`;
+            document.getElementById(id_field).innerHTML = `<a href=${url} target="_blank">${recordsFound} isolates</a>`;
         });
 }
