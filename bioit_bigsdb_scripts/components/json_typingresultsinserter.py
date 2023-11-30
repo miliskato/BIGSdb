@@ -1,7 +1,7 @@
 import logging
 import re
-from typing import Any, Dict, List, Tuple
 from pathlib import Path
+from typing import Any, Dict, List, Tuple
 
 import requests
 
@@ -25,8 +25,9 @@ class JsonTypingResultsInserter(JsonSuperClass):
         :return: None
         """
         super().__init__(isolatename, species, sample_output_dict, config_data)
-        self._report_access = report_access
-        self._schemedict: Dict[str, Dict[str, str]] = self._bigsdb_config_data['species_json'][self._species]['typing_schemes']
+        self._report_access = Path(report_access)
+        self._schemedict: Dict[str, Dict[str, str]] = self._bigsdb_config_data['species_json'][self._species][
+            'typing_schemes']
         self._scheme = None
         self._locusset = set()  # Locusset serves as to not insert duplicates (creates error in sql),
         # for Listeria e.g. prs and prfA are included in two self._schemes
@@ -36,7 +37,8 @@ class JsonTypingResultsInserter(JsonSuperClass):
         Inserts typing results into bigsdb from json
         :return: None
         """
-        with TblAlleleDesignations(self._species) as self._isolates_ad_psql_tbl, TblEavText(self._species) as self._isolates_eavt_psql_tbl:
+        with TblAlleleDesignations(self._species) as self._isolates_ad_psql_tbl, TblEavText(
+                self._species) as self._isolates_eavt_psql_tbl:
             for scheme in self._schemedict:
                 if scheme in self._sample_output_dict:
                     self._scheme = scheme
@@ -68,9 +70,10 @@ class JsonTypingResultsInserter(JsonSuperClass):
                 elif ((self._scheme == 'pcr_serogroup' or (self._scheme == 'bast' and locus['Locus'] == 'NadA_peptide'))
                       and locus['% Identity'] == '-' and locus['HSP/Locus length'] == '-') or self._scheme == 'cgmlst':
                     # in cgmlst you can have perfect multihits (?) that are then also considered as a zero in the custom profile by Benoit, thats why its outside of the ( )
-                    self._isolates_ad_psql_tbl.insert_designation_by_isolatename((locus['Locus'], self._isolatename, '0'))
+                    self._isolates_ad_psql_tbl.insert_designation_by_isolatename(
+                        (locus['Locus'], self._isolatename, '0'))
                     self._locusset.add(locus['Locus'])
-                    
+
     def _process_irregular_typing_scheme(self) -> None:
         if self._scheme == 'pointfinder':
             self.__process_irregular_typing_scheme_pointfinder()
@@ -82,7 +85,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
             self.__process_irregular_typing_scheme_stec_specific()
         elif self._species == 'salmonella':
             self.__process_irregular_typing_scheme_salmonella_specific()
-    
+
     def __process_irregular_typing_scheme_pointfinder(self) -> None:
         """
         Processes and inserts pointfinder results (available in multiple species)
@@ -99,21 +102,21 @@ class JsonTypingResultsInserter(JsonSuperClass):
                         antibiotic_reformatted = '_'.join(
                             ['POINTFINDER', re.sub('-| ', '_', antibiotic).upper()])
                         mutation = re.sub('[.]| ', '_', result['Mutation'])
-                        report_dir_from_mongo = self._report_access
-                        report_name = Path(report_dir_from_mongo).name
+                        report_name = self._report_access.name
                         eavhtmltable = eavhtmltable + ''.join(
                             [f'<tr><td><a href="/galaxyreports/{self._species}/', report_name,
                              '/report.html#',
                              self._schemedict[self._scheme]['schemename_html'], '" target="_blank">',
                              result['Mutation'], '</a></td>'])
                         eavhtmltable = eavhtmltable + ''.join(['<td>', antibiotic, '</td></tr>'])
-                        self.insert_locus_if_needed(antibiotic_reformatted, self._schemedict[self._scheme]['schemename_bigsdb'])
+                        self.insert_locus_if_needed(antibiotic_reformatted,
+                                                    self._schemedict[self._scheme]['schemename_bigsdb'])
                         self._insert_dummy_sequence_if_needed(antibiotic_reformatted, mutation)
                         self._isolates_ad_psql_tbl.insert_designation_by_isolatename(
                             (antibiotic_reformatted, self._isolatename, mutation))
             eavhtmltable = eavhtmltable + '</table>'
             self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'pointfinder_hits', eavhtmltable))
-            
+
     def __process_irregular_typing_scheme_mycobacterium_specific(self) -> None:
         """
         Processes and inserts mycobacterium results
@@ -175,7 +178,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
                 speciesset = set()
                 with TblEavBoolean(self._species) as isolates_eavb_psql_tbl:
                     for locus in self._sample_output_dict[self._scheme]['loci']:
-                        hit = '_'.join(['hsp65', locus['Species'].strip('"').replace(' ','_').replace('.', '')])
+                        hit = '_'.join(['hsp65', locus['Species'].strip('"').replace(' ', '_').replace('.', '')])
                         if hit not in speciesset:
                             isolates_eavb_psql_tbl.insert_eav_isolate((self._isolatename, hit, 't'))
                             speciesset.add(hit)
@@ -244,8 +247,9 @@ class JsonTypingResultsInserter(JsonSuperClass):
             for antigen, antigen_allele in serotypedict.items():
                 if antigen_allele != '-':
                     self._insert_dummy_sequence_if_needed(antigen, antigen_allele)
-                    self._isolates_ad_psql_tbl.insert_designation_by_isolatename((antigen, self._isolatename, antigen_allele))
-                    
+                    self._isolates_ad_psql_tbl.insert_designation_by_isolatename(
+                        (antigen, self._isolatename, antigen_allele))
+
     def __process_irregular_typing_scheme_salmonella_specific(self) -> None:
         """
         Processes and inserts Salmonella results
@@ -255,7 +259,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
             with TblEavFields(self._species) as isolates_eavf_psql_tbl:
                 fields_genotyphi: List[Tuple[str]] = isolates_eavf_psql_tbl.select_fields_of_a_category(('Genotyphi',))
             for item in fields_genotyphi:
-                item_like_mongo= 'genotyphi_'+item[0]
+                item_like_mongo = 'genotyphi_' + item[0]
                 if item_like_mongo in self._sample_output_dict[self._scheme]['results'] and \
                         self._sample_output_dict[self._scheme]['results'][item_like_mongo] is not None:
                     susceptibility: str = self._sample_output_dict[self._scheme]['results'][item_like_mongo]
@@ -315,14 +319,14 @@ class JsonTypingResultsInserter(JsonSuperClass):
                 fields_abritamr: List[Tuple[str]] = isolates_eavf_psql_tbl.select_fields_of_a_category(('AbritAMR',))
 
             for item in fields_abritamr:
-                item_like_mongo='abritamr_'+item[0]
+                item_like_mongo = 'abritamr_' + item[0]
                 if item_like_mongo in self._sample_output_dict[self._scheme]['results'] and \
                         self._sample_output_dict[self._scheme]['results'][item_like_mongo] is not None:
                     amr_detection: str = self._sample_output_dict[self._scheme]['results'][item_like_mongo]
                     if amr_detection == '-':
                         amr_detection = 'NA'
                     self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, item[0], amr_detection))
-                        
+
     def ___salmonella_insert_antigens_into_db(self, raw_formula: str) -> None:
         """
         Inserts antigens separately from the formula
