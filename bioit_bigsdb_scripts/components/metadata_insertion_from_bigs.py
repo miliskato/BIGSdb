@@ -51,9 +51,6 @@ def get_lab_metadata_dictionary(lab_metadata_by_isolate: List[Tuple]) -> Tuple[D
             continue
         else:
             metadata_dictionary[lab_metadata_by_isolate[i][0]] = lab_metadata_by_isolate[i][1]
-    if isolate_str == '':
-        send_email(f"Insertion failed: Isolate_id was missing for this submission, BigsDB should have refused the submission!",
-                   subject=f"Metadata insertion failure on host {socket.gethostname()}")
 
     return metadata_dictionary, isolate_str
 
@@ -71,25 +68,31 @@ def insert_lab_metadata_through_bigs(species: str) -> None:
         isolates_returned = isolates_psql_tbl.listing_isolates()
         isolates_already_in_bigs = {isolate[0] for isolate in isolates_returned}
         submission_ids = isolates_sub_psql_tbl.get_submission_id_from_bigs_upload()
+
         for submitted_id in submission_ids:
             lab_metadata = isolates_isosubiso_psql_tbl.get_field_and_value_from_submission(submitted_id)
 
             dict_by_isolate = convert_submission_to_dict(lab_metadata)
-
+            failed_isolates = []
             for key in dict_by_isolate:
                 metadata_dict, isolate_id = get_lab_metadata_dictionary(dict_by_isolate[key])
 
-                if isolate_id in isolates_already_in_bigs:
+                if len(metadata_dict) == 0:
+                    continue
+                elif isolate_id in isolates_already_in_bigs:
                     # prepare query
                     isolate_update_query = TblIsolates.build_update_nomin_metadata_query(metadata_dict)
                     value_to_set_in_fields = [v for v in metadata_dict.values()]
                     value_to_set_in_fields.append(isolate_id)
                     isolates_psql_tbl.update_nomin_metadata(isolate_update_query, value_to_set_in_fields)
                 else:
-                    send_email(f"Insertion failed: Isolate {isolate_id} not found in bigsDB",
-                               subject=f"Metadata insertion failure on host {socket.gethostname()}")
+                    failed_isolates.append(isolate_id)
 
             isolates_sub_psql_tbl.update_submission(submitted_id)
+
+        if (len(failed_isolates)>0):
+            send_email(f"For submission {submitted_id}: The following isolates were not found in bigsDB\n{failed_isolates}",
+                       subject=f"Metadata insertion failure on host {socket.gethostname()}")
 
 
 if __name__ == '__main__':
