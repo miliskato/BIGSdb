@@ -28,6 +28,7 @@ def _insert_submission_bigs(sample_docs: List[Dict[str, Any]], validation_type: 
         for doc in sample_docs:
             isolates_sub_psql_tbl.insert_submission((validation_type,))
             html_path = doc['report_directory']
+            html_path = str(html_path).replace('/reports/', '/galaxyreports/')
             html_link = f'<p><a href="{html_path}" target="_blank"> html report</a></p>'
             # end of dev code
             isolates_isosubiso_psql_tbl.insert_validation_metadata(('html_report', html_link))
