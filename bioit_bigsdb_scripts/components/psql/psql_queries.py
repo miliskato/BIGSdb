@@ -36,6 +36,7 @@ class PsqlQueries():
         UPDATE allele_designations SET allele_id = %s WHERE locus=%s AND allele_id=%s;"""
 
     # TBL classification groups
+    SEQ_DEL__TB_CLGR_VAR_CGSCHID: Final[str] = """DELETE FROM classification_groups WHERE cg_scheme_id=%s;"""
     SEQ_INS__TB_CLGR_VAR_CGSCHID_GRID: Final[str] = """
         INSERT INTO classification_groups(cg_scheme_id, group_id, active, curator, datestamp) 
         VALUES(%s, %s, true, 1, (SELECT CURRENT_DATE));"""
