@@ -77,8 +77,9 @@ class NewClusteringInfoToBigs:
             self.__insert_new_alleles()
         if len(self._new_st) > 0:
             self.__insert_sequence_types()
-        if len(self._new_cluster_membership) > 0:
-            self.__insert_or_update_clustering()
+        # this comment disabled BBP's clustering implementation in bigsdb on 2023/12/06
+        # if len(self._new_cluster_membership) > 0:
+        #     self.__insert_or_update_clustering()
         self.__update_naive_clustering_implementation()
         self.__update_last_update_date()
 

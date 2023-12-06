@@ -297,7 +297,7 @@ sub _print_classification_groups {
 		my $url = qq($self->{'system'}->{'script_name'}?db=$self->{'instance'}&amp;page=query&amp;)
 		  . qq(scheme_id=$scheme_id&amp;s1=$cscheme->{'name'}&amp;y1==&amp;t1=$cgroup&amp;submit=1);
 		$buffer .=
-		    qq(<tr class="td$td"><td>$cscheme->{'name'}$tooltip</td><td>Single-linkage</td>)
+		    qq(<tr class="td$td"><td>$cscheme->{'name'}$tooltip</td><td>Complete-linkage</td>)
 		  . qq(<td>$cscheme->{'inclusion_threshold'}</td><td>$cscheme->{'status'}</td>)
 		  . qq(<td>$cgroup</td>);
 

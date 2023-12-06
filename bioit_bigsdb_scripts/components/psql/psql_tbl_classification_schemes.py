@@ -16,8 +16,8 @@ class TblClassificationSchemes(DatabaseConnection):
     def insert_cgscheme_isolates(self, param: Tuple[str, str, str, str, str, str, str]) -> None:
         """
         Inserts a new group in a specific clustering group scheme in the isolates db
-        :param param: variables to feed to the PSQL query, which also sanitizes these variables,
-        necessary parameters visible in the PSQL query name and query
+        :param param: cluster group scheme id, scheme id, cluster scheme name, cluster scheme description,
+        inclusion threshold, cluster group scheme id, cluster group scheme id
         :return: None
         """
         if self._db_type != 'isolates':
@@ -27,8 +27,8 @@ class TblClassificationSchemes(DatabaseConnection):
     def insert_cgscheme_seqdef(self, param: Tuple[str, str, str, str, str, str]) -> None:
         """
         Inserts a new group in a specific clustering group scheme in the seqdef db
-        :param param: variables to feed to the PSQL query, which also sanitizes these variables,
-        necessary parameters visible in the PSQL query name and query
+        :param param: cluster group scheme id, scheme id, cluster scheme name, cluster scheme description,
+        inclusion threshold, cluster group scheme id
         :return: None
         """
         if self._db_type != 'seqdef':
@@ -38,8 +38,6 @@ class TblClassificationSchemes(DatabaseConnection):
     def select_cgschemes(self) -> Union[List, List[Tuple[str, str]]]:
         """
         Selects all scheme id and their inclusion tresholds
-        :param param: variables to feed to the PSQL query, which also sanitizes these variables,
-        necessary parameters visible in the PSQL query name and query
         :return: None or a list of tuples of two strings (clustering scheme id and inclusion threshold)
         """
         return self.execute(PsqlQueries.SEQ_SEL_CGSCHID_INCTHR_TB_CLSCH_VAR_)
