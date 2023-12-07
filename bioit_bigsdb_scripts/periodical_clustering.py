@@ -8,6 +8,7 @@ from typing import List
 
 import fastcluster
 import numpy as np
+import os
 import scipy.cluster.hierarchy as hcluster
 from scipy.spatial import distance as ssd
 
@@ -15,8 +16,9 @@ PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
 from bioit_bigsdb_scripts.components.psql import TblClassificationSchemes, TblClassificationGroups, \
-    TblClassificationGroupProfiles
+    TblClassificationGroupProfiles, TblSchemes
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data, send_email
+from bioit_mongodb_scripts.util.command.command import Command
 
 
 def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
@@ -128,3 +130,14 @@ if __name__ == '__main__':
 
     # run main
     PeriodicalClustering(args.species, args.linkage_method)
+
+    # update the bigsdb cache so the clustering schemes get updated
+    with TblSchemes(args.species, 'isolates') as isolates_schemes_psql_tbl:
+        cgmlst_bigsdb_scheme_id = isolates_schemes_psql_tbl.select_scheme_id_cgmlst()[0][0]
+    cache_command = f'/home/bigsdb/BIGSdb/scripts/maintenance/update_scheme_caches.pl ' \
+                    f'--database bigsdb_{args.species}_isolates --schemes {cgmlst_bigsdb_scheme_id}'
+    cache_command_object = Command(cache_command)
+    cache_command_object.run(Path(os.getcwd()))
+    if cache_command_object.returncode != 0:
+        send_email(f"update of the cache to display the clustering failed on host {socket.gethostname()}")
+        raise RuntimeError(f"update of the cache to display the clustering failed on host {socket.gethostname()}")
