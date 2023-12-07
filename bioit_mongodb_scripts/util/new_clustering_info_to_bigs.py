@@ -402,16 +402,12 @@ class NewClusteringInfoToBigs:
         but in the case of stec that has 2 mlst it is 3)
         :param cgmlst_diff_field: cgmlst difference field in bigsdb e.g. cgMLST_differences_1-10
         :return: html element that executes the javascript function replaceQueriedValue e.g.
-        '<div id="cgMLST_differences_1-10"><script type="text/javascript">replaceQueriedValue("/cgi-bin/bigsdb/bigsdb.pl
-        ?set_id=0&page=query&submit=1&order=id&db=bigsdb_mycobacterium_isolates&designation_value1=1&designation_field1=
-        s_2_cgST&designation_value2=5&designation_field2=s_2_cgST", "cgMLST_differences_1-10")</script>'
+        '<div id="cgMLST_differences_1-10"><script type="text/javascript">replaceQueriedValue(
+        generateUrlCgst("mycobacterium", "2", ["1","2","3"]), "cgMLST_differences_1-10")</script>'
         """
-        url_start = f"/cgi-bin/bigsdb/bigsdb.pl?set_id=0&page=query&submit=1&order=id&db=bigsdb_" \
-                    f"{self._species}_isolates"
-        url = url_start
-        for index, cgst in enumerate(cgsts):
-            url += f"&designation_value{index+1}={cgst}&designation_field{index+1}=s_{cgmlst_bigsdb_scheme_id}_cgST"
-        html_element = f'<div id="{cgmlst_diff_field}"><script type="text/javascript">replaceQueriedValue("{url}", ' \
+        cgsts_plaintext = '","'.join(str(x) for x in cgsts)
+        url = f'generateUrlCgst("{self._species}", "{cgmlst_bigsdb_scheme_id}", ["{cgsts_plaintext}"])'
+        html_element = f'<div id="{cgmlst_diff_field}"><script type="text/javascript">replaceQueriedValue({url}, ' \
                        f'"{cgmlst_diff_field}")</script>'
         return html_element
 
