@@ -70,6 +70,12 @@
     regexp: 'dbpassword=to_be_replaced_by_ansible'
     line: "dbpassword={{ secret_bioit_bigs_postgresql_apache_password }}"
 
+-name: Add microreact token to bigdb config file
+ lineinfile:
+    path: "{{ bioit_bigs_home }}/conf/bigsdb.conf"
+    regexp: 'microreact_token=to_be_replaced_by_ansible'
+    line: "microreact_token={{ microreact_token }}"
+
 ## perl 5 is installed on Ubuntu by default.
 - name: Install packages
   apt:
@@ -145,6 +151,19 @@
     - "  mymap       www-data           apache"
     - "  mymap       bigsdb             bigsdb"
     - "  mymap       bigsdb             apache"
+
+- name: Install postGIS
+  ansible.builtin.apt:
+    name: postgresql-12-postgis-3
+  tags: postGIS
+
+- name: Adds postgis extension to the database acme in the schema foo
+  postgresql_ext:
+    name: postgis
+    db: bigsdb_neisseria_isolates
+    login_user: postgres
+  become_user: postgres
+  tags: postGIS
 
 - name: Install bio perl package
   community.general.cpanm:
@@ -457,7 +476,7 @@
     - name: remove reverse proxy or access to enterobase
       replace:
         path: /var/www/html/GrapeTree/static/js/tree/grapetree_fileHandler.js
-        regexp: "url[[:punct:]][[:space:]]'[[:print:]]*'+"
+        regexp: "url:\\s+('.*'\\+)"
         replace: 'url: '
 
 - name: Create species (refseq and isolates) data db (if they don't already exist) and run any pending migrations
@@ -598,6 +617,7 @@
         list_script:
           - { db: "bigsdb_{{ species }}_seqdef", script: "{{ bioit_bigs_home }}/bioit_bigsdb_scripts/bigsdb_{{ species }}_seqdef.sql" }
           - { db: "bigsdb_{{ species }}_isolates", script: "{{ bioit_bigs_home }}/bioit_bigsdb_scripts/bigsdb_{{ species }}_isolates.sql" }
+          - { db: "bigsdb_{{ species }}_isolates", script: "{{ bioit_bigs_home }}/sql/add_zipcode_coord.sql" }
       become_user: postgres
       tags: always
 
