@@ -12,6 +12,7 @@
  authentication="builtin"
  read_access="authenticated_users"
  all_plugins="yes"
+ microreact_year_field="isolation_date"
  tblastx_tagging="yes"
  eav_groups="Gene detection|fas fa-search,galaxy report|fas fa-file-medical-alt,Antibiotic resistance|fas fa-angle-right,Serotyping|fas fa-angle-right"
  field_groups="Curation history|fas fa-history,nominative metadata|fas fa-search"
@@ -41,7 +42,7 @@
 <field type="text" required="no" length="4" maindisplay="no" group ="nominative metadata" comments="human sample">human_sample</field>
 <field type="text" required="no" length="20" maindisplay="no" group ="nominative metadata" comments="patient ID">patient_id</field>
 <field type="date" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="patient birth date">patient_birth_date</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="patient zip">patient_zip</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" geography_point_lookup="yes" comments="patient zip">patient_zip</field>
 <field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="province">province</field>
 <field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="region">region</field>
 <field type="float" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="latitude">latitude</field>

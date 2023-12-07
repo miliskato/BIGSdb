@@ -32,6 +32,8 @@ use BIGSdb::Utils;
 use BIGSdb::Constants qw(COUNTRIES);
 use LWP::UserAgent;
 use Email::Valid;
+use File::Basename;
+use MIME::Base64;
 use Storable qw(dclone);
 use JSON;
 use Log::Log4perl qw(get_logger);
@@ -39,8 +41,9 @@ my $logger = get_logger('BIGSdb.Plugins');
 use utf8;
 use constant MAX_RECORDS                 => 2000;
 use constant MAX_SEQS                    => 100_000;
-use constant MICROREACT_SCHEMA_CONVERTER => 'https://microreact.org/api/schema/convert';
-use constant MICROREACT_URL              => 'https://microreact.org/api/projects/create';
+use constant MICROREACT_SCHEMA_CONVERTER => 'https://bioit-mreact-dev.darwinproject.be/api/schema/convert';
+use constant MICROREACT_URL              => 'https://bioit-mreact-dev.darwinproject.be/api/projects/create';
+use constant BELGIUM_REGION_MAP			 => 'https://bioit-mreact-dev.darwinproject.be/api/files/raw?8d6aa35a14838d9fa6fa801cd3374b2fda332bdd';
 
 sub get_attributes {
 	my ($self) = @_;
@@ -127,6 +130,19 @@ sub _microreact_upload {
 		data        => $$tsv,
 		tree        => $$tree
 	};
+
+	#my $geo				= BIGSdb::Utils::slurp(BELGIUM_REGION_MAP);
+	#my $geo_size 		= length($geo);
+	#my $encoded_geojson = "data:application/octet-stream;base64,".encode_base64($geo);
+	#$upload_data->{"files"}->{"ny55"} = {
+	#	blob		   => $encoded_geojson,
+	#	format		   => 'application/geo+json',
+	#	id			   => 'ny55',
+	#	name		   => basename(BELGIUM_REGION_MAP),
+	#	size		   => "$geo_size",
+	#	type		   => 'geo'
+	#};
+
 	my $email = Email::Valid->address( $job->{'email'} );
 	$upload_data->{'email'} = $email if $email;
 	my $converter_response = $uploader->post(
@@ -140,16 +156,30 @@ sub _microreact_upload {
 		$$message_html .= q(<p class="statusbad">Microreact scheme conversion failed.</p>);
 		return;
 	}
-	my $microreact_json = $converter_response->decoded_content;
+	my $microreact_json	= $converter_response->decoded_content;
 	my $microreact_data = decode_json($microreact_json);
 	my $country_field   = $self->_get_country_field;
 	my $geo_field       = $self->_get_geo_field($params);
+
+	$microreact_data->{'files'}->{'1sej'} = {
+      "id" => "1sej",
+      "size" => 674998,
+      "name" => "Belgium.municipalities.WGS84.geojson",
+      "format" => "application/geo+json",
+      "type" => "geo",
+      "url" => BELGIUM_REGION_MAP
+    };
+
 	if ( defined $geo_field ) {
 		$microreact_data->{'maps'}->{'map-1'} = {
 			dataType       => 'geographic-coordinates',
 			title          => 'Map',
 			latitudeField  => '__latitude',
-			longitudeField => '__longitude'
+			longitudeField => '__longitude',
+			geodata			=> {
+				"file"     => "1sej",
+				"linkType" => "geographic-coordinates"
+			}
 		};
 	} elsif ( defined $country_field ) {
 		$country_field =~ s/_/ /gx;
@@ -177,6 +207,12 @@ sub _microreact_upload {
 		Content        => encode_json($microreact_data)
 	);
 	my $response_json = $upload_response->decoded_content;
+	open(OUT, ">:encoding(UTF-8)", '/home/bigsdb/mreact-response.json') or die "Cannot open /home/bigsdb/mreact-response.json";
+	my $test = encode_json($microreact_data);
+	print OUT $test;
+	close OUT;
+
+
 	if ( $response_json eq 'Unauthorized' ) {
 		$logger->error('Microreact token is not valid.');
 		$$message_html .= q(<p class="statusbad">Upload to Microreact failed.</p>);
