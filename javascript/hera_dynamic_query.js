@@ -6,6 +6,7 @@ function generateUrlCgst(species, cgmlst_bigsdb_scheme_id, cgsts) {
     cgsts.forEach((cgst, index) => {
         url += `&designation_value${index + 1}=${cgst}&designation_field${index + 1}=s_${cgmlst_bigsdb_scheme_id}_cgST`;
     });
+    url += `&designation_andor=OR`;
 
     return url;
 }
