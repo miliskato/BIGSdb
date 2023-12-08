@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import List
 
 import fastcluster
+import hashlib
 import numpy as np
 import os
 import scipy.cluster.hierarchy as hcluster
@@ -97,6 +98,27 @@ class PeriodicalClustering:
         if not Path(self._dm_file).is_file():
             raise FileNotFoundError(f"the distance matrix file {self._dm_file} could not be found, "
                                     f"hence the clustering could not be initialized")
+        self.___check_flagile_and_md5()
+
+    def ___check_flagile_and_md5(self) -> None:
+        """
+        Checks whether a flagfile containing the md5 exists for the distance matrix and whether the current distance
+        matrix has a different md5. If the md5 is the same, the script exits gracefully.
+        :return: None
+        """
+        path_flagfile = (Path(self._bigsdb_config_data['failsafe']['flag_dir']) / f"{Path(self._dm_file).stem}_md5.txt")
+        md5_current_dm = hashlib.md5(np.load(self._dm_file).tobytes()).hexdigest()
+        if not path_flagfile.is_file():
+            pass
+        else:
+            with path_flagfile.open('r') as handle:
+                md5_dm = handle.read()
+            if md5_dm == md5_current_dm:
+                logging.warning(f"Md5 of previous version of distance matrix and md5 of the current version are the "
+                                f"same. Exiting gracefully..")
+                sys.exit()
+        with path_flagfile.open('w') as handle:
+            handle.write(md5_current_dm)
 
     def __calculate_linkage_matrix(self) -> np.ndarray:
         """
