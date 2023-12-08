@@ -443,7 +443,6 @@
           - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_bigsdb_scripts/periodical_clustering.py --species {{ species }}",
               filename: "{{ species }}_periodicalclustering_intopsql" }
 
-
     - name: add daily cronjob
       ansible.builtin.copy:
         src: "{{ bioit_bigs_home }}/cron/cron.daily/periodically_remove_temporary_files"
