@@ -43,7 +43,7 @@ use constant MAX_RECORDS                 => 2000;
 use constant MAX_SEQS                    => 100_000;
 use constant MICROREACT_SCHEMA_CONVERTER => 'https://bioit-mreact-dev.darwinproject.be/api/schema/convert';
 use constant MICROREACT_URL              => 'https://bioit-mreact-dev.darwinproject.be/api/projects/create';
-use constant BELGIUM_REGION_MAP			 => 'https://bioit-mreact-dev.darwinproject.be/api/files/raw?8d6aa35a14838d9fa6fa801cd3374b2fda332bdd';
+use constant BELGIUM_REGION_MAP			 => 'http://linux-repo-prod.sciensano.be/bioit_tools/microreact/Belgium.municipalities.WGS84.geojson';
 
 sub get_attributes {
 	my ($self) = @_;
