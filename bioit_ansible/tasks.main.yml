@@ -70,8 +70,8 @@
     regexp: 'dbpassword=to_be_replaced_by_ansible'
     line: "dbpassword={{ secret_bioit_bigs_postgresql_apache_password }}"
 
--name: Add microreact token to bigdb config file
- lineinfile:
+- name: Add microreact token to bigdb config file
+  lineinfile:
     path: "{{ bioit_bigs_home }}/conf/bigsdb.conf"
     regexp: 'microreact_token=to_be_replaced_by_ansible'
     line: "microreact_token={{ microreact_token }}"
@@ -155,14 +155,6 @@
 - name: Install postGIS
   ansible.builtin.apt:
     name: postgresql-12-postgis-3
-  tags: postGIS
-
-- name: Adds postgis extension to the database acme in the schema foo
-  postgresql_ext:
-    name: postgis
-    db: bigsdb_neisseria_isolates
-    login_user: postgres
-  become_user: postgres
   tags: postGIS
 
 - name: Install bio perl package
@@ -490,6 +482,14 @@
       - { dbmate_repo: "bigsdb_isolates", db_name: "bigsdb_{{ species }}_isolates" }
   tags: always
 
+- name: Adds postgis extension to the database acme in the schema foo
+  postgresql_ext:
+    name: postgis
+    db: "bigsdb_{{ species }}_isolates"
+    login_user: postgres
+  become_user: postgres
+  tags: postGIS
+
 - name: create global user database
   block:
     - name: create global bigsdb users db (if it does not already exist) and run any pending migrations
@@ -699,6 +699,9 @@
         ssh_key_type: rsa
         ssh_key_bits: 4096
         ssh_key_file: .ssh/id_rsa
+        owner: galaxy
+        group: galaxy
+        mode: '0600'
         force: no
 
     - name: copy ssh key to authenticated users

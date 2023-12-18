@@ -1,4 +1,6 @@
 -- migrate:up
+CREATE EXTENSION postgis;
+
 CREATE TABLE geography_point_lookup (
 id bigserial NOT NULL,
 country_code text NOT NULL,
@@ -19,3 +21,4 @@ GRANT SELECT,UPDATE,INSERT,DELETE ON geography_point_lookup TO apache;
 
 -- migrate:down
 DROP TABLE geography_point_lookup;
+DROP EXTENSION postgis;
