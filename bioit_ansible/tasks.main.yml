@@ -482,7 +482,7 @@
       - { dbmate_repo: "bigsdb_isolates", db_name: "bigsdb_{{ species }}_isolates" }
   tags: always
 
-- name: Adds postgis extension to the database acme in the schema foo
+- name: Adds postgis extension to the isolate database in the schema public
   postgresql_ext:
     name: postgis
     db: "bigsdb_{{ species }}_isolates"
@@ -617,9 +617,13 @@
         list_script:
           - { db: "bigsdb_{{ species }}_seqdef", script: "{{ bioit_bigs_home }}/bioit_bigsdb_scripts/bigsdb_{{ species }}_seqdef.sql" }
           - { db: "bigsdb_{{ species }}_isolates", script: "{{ bioit_bigs_home }}/bioit_bigsdb_scripts/bigsdb_{{ species }}_isolates.sql" }
-          - { db: "bigsdb_{{ species }}_isolates", script: "{{ bioit_bigs_home }}/sql/add_zipcode_coord.sql" }
       become_user: postgres
       tags: always
+
+    - name: add geographic coordinates for zip codes
+      ansible.builtin.shell:
+        chdir: "{{ bioit_bigs_home }}/sql"
+        cmd: "sudo -u postgres psql -d bigsdb_{{ species }}_isolates -f add_zipcode_coord.sql"
 
     - name: populate db with python sql scripts
       block:
@@ -699,9 +703,7 @@
         ssh_key_type: rsa
         ssh_key_bits: 4096
         ssh_key_file: .ssh/id_rsa
-        owner: galaxy
         group: galaxy
-        mode: '0600'
         force: no
 
     - name: copy ssh key to authenticated users
