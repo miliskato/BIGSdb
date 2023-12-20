@@ -51,9 +51,6 @@ species:
 #      cmd_argument: amr_who
 #    hsp65:
 #      cmd_argument: hsp65
-    pointfinder:
-      dirdb: /usr/local/bin/lmod/PointFinder/20190227/pointfinder_db
-      cmd_argument: pointfinder
     ncbi_16s:
       dirdb: /db/gene_detection/NCBI_16S
       cmd_argument: ncbi-16s
@@ -202,6 +199,3 @@ species:
     vfdb_core:
       dirdb: /db/gene_detection/VFDB_core
       cmd_argument: vfdb-core
-    pointfinder:
-      dirdb: /usr/local/bin/lmod/PointFinder/20190227/pointfinder_db
-      cmd_argument: pointfinder

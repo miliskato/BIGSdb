@@ -236,7 +236,7 @@ class _BatchPipelinesReanalysis:
                 shell=True)
             # query_date
             gitlog = subprocess.run(
-                "git log -n 1 --date=short -- . ':(exclude)scheme_metadata.json' ':(exclude)scheme_metadata.txt' ':(exclude)db_update_info.json'",
+                "git log -n 1 --date=short -- . ':(exclude)scheme_metadata.json' ':(exclude)scheme_metadata.txt' ':(exclude)db_update_info.json' ':(exclude)db_metadata.txt'",
                 shell=True, stdout=subprocess.PIPE).stdout.decode('utf-8')
             scheme_last_update = re.findall("[0-9]{4}-[0-9]{2}-[0-9]{2}", gitlog)[0]
             trigger_config['species'][self._species][scheme]["last_update"] = scheme_last_update
