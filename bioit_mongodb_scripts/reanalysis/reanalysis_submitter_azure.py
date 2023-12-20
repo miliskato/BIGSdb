@@ -371,7 +371,7 @@ class _BatchPipelinesReanalysis:
             f'--output-dir {report_dir}',
             f"--output-html {report_dir}/report.html",
             f'--output-tsv {report_dir}/report.tsv',
-            ' '.join([f"--{x}" for x in analysis_arguments]) if not self._species == 'mycobacterium' and not mongodb_document.get("vcf_path") else ' '.join([f"--{x}" for x in analysis_arguments if x in self._reanalysis_config['species'][self._species]['options_without_vcf']]),
+            ' '.join([f"--{x}" for x in analysis_arguments if x in self._reanalysis_config['species'][self._species]['options_without_vcf']]) if self._species == 'mycobacterium' and not mongodb_document.get("vcf_path") else ' '.join([f"--{x}" for x in analysis_arguments]),
             '--threads 2',
             f'--sample-name {isolate_id}'
         ])
