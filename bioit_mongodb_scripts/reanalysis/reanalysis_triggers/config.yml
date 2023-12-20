@@ -189,6 +189,7 @@ species:
 #      dirdb: /db/pipelines/salmonella/mykrobe
     abritamr:
       dirdb: /db/abritamr/amrfinderplus_data
+      cmd_argument: abritamr
     ncbi_amr:
       dirdb: /db/gene_detection/NCBI_AMR
       cmd_argument: ncbi-amr
