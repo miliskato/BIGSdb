@@ -41,9 +41,11 @@ my $logger = get_logger('BIGSdb.Plugins');
 use utf8;
 use constant MAX_RECORDS                 => 2000;
 use constant MAX_SEQS                    => 100_000;
+#adapt URL to the in house instance of microreact and give access to geojson map for belgium zip code
 use constant MICROREACT_SCHEMA_CONVERTER => 'https://bioit-mreact-dev.darwinproject.be/api/schema/convert';
 use constant MICROREACT_URL              => 'https://bioit-mreact-dev.darwinproject.be/api/projects/create';
 use constant BELGIUM_REGION_MAP			 => 'http://linux-repo-prod.sciensano.be/bioit_tools/microreact/Belgium.municipalities.WGS84.geojson';
+
 
 sub get_attributes {
 	my ($self) = @_;
@@ -131,18 +133,6 @@ sub _microreact_upload {
 		tree        => $$tree
 	};
 
-	#my $geo				= BIGSdb::Utils::slurp(BELGIUM_REGION_MAP);
-	#my $geo_size 		= length($geo);
-	#my $encoded_geojson = "data:application/octet-stream;base64,".encode_base64($geo);
-	#$upload_data->{"files"}->{"ny55"} = {
-	#	blob		   => $encoded_geojson,
-	#	format		   => 'application/geo+json',
-	#	id			   => 'ny55',
-	#	name		   => basename(BELGIUM_REGION_MAP),
-	#	size		   => "$geo_size",
-	#	type		   => 'geo'
-	#};
-
 	my $email = Email::Valid->address( $job->{'email'} );
 	$upload_data->{'email'} = $email if $email;
 	my $converter_response = $uploader->post(
@@ -161,6 +151,7 @@ sub _microreact_upload {
 	my $country_field   = $self->_get_country_field;
 	my $geo_field       = $self->_get_geo_field($params);
 
+	#description of the regional map of belgium in the tsv file read by microreact
 	$microreact_data->{'files'}->{'1sej'} = {
       "id" => "1sej",
       "size" => 674998,
@@ -170,6 +161,7 @@ sub _microreact_upload {
       "url" => BELGIUM_REGION_MAP
     };
 
+	#if zip code is used as geographic field in the query (plot the map with belgium region and get coordinates from zip code):
 	if ( defined $geo_field ) {
 		$microreact_data->{'maps'}->{'map-1'} = {
 			dataType       => 'geographic-coordinates',
