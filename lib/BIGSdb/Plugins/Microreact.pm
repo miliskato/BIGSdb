@@ -207,11 +207,6 @@ sub _microreact_upload {
 		Content        => encode_json($microreact_data)
 	);
 	my $response_json = $upload_response->decoded_content;
-	open(OUT, ">:encoding(UTF-8)", '/home/bigsdb/mreact-response.json') or die "Cannot open /home/bigsdb/mreact-response.json";
-	my $test = encode_json($microreact_data);
-	print OUT $test;
-	close OUT;
-
 
 	if ( $response_json eq 'Unauthorized' ) {
 		$logger->error('Microreact token is not valid.');
