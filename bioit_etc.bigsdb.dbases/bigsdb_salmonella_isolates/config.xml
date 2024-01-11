@@ -22,7 +22,7 @@
 >
 </system>
 <field type="int" required="yes" length="5" maindisplay="yes" comments="primary key">id</field>
-<field type="text" required="yes" length="20" maindisplay="yes" comments="isolate name">isolate</field>
+<field type="text" required="yes" length="40" maindisplay="yes" comments="isolate name">isolate</field>
 <field type="int" required="yes" length="4" maindisplay="no" group ="Curation history" comments="sender unique name, link to users">sender</field>
 <field type="int" required="yes" length="4" maindisplay="no" group ="Curation history" comments="curator who entered data,link to users">curator</field>
 <field type="date" required="no" length="10" maindisplay="no" group ="Curation history" comments="latest analysis date">latest_analysis_date</field>
@@ -42,7 +42,7 @@
 <field type="text" required="no" length="20" maindisplay="no" group ="nominative metadata" comments="origine">origine</field>
 <field type="text" required="no" length="20" maindisplay="no" group ="nominative metadata" comments="patient ID">patient_id</field>
 <field type="date" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="patient birth date">patient_birth_date</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="client zip">client_zip</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" geography_point_lookup="yes" comments="patient zip">patient_zip</field>
 <field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="province">province</field>
 <field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="region">region</field>
 <field type="float" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="latitude">latitude</field>
