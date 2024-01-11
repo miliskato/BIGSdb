@@ -1229,3 +1229,5 @@ INSERT INTO geography_point_lookup (country_code, field, value, location,datesta
 INSERT INTO geography_point_lookup (country_code, field, value, location,datestamp, curator) VALUES ('BE', 'patient_zip', '9990', ST_MakePoint( 3.4327722449576346,51.19958507615239), '2023-12-04',0) ON CONFLICT DO NOTHING;
 INSERT INTO geography_point_lookup (country_code, field, value, location,datestamp, curator) VALUES ('BE', 'patient_zip', '9991', ST_MakePoint( 3.502766008215296,51.18218511767298), '2023-12-04',0) ON CONFLICT DO NOTHING;
 INSERT INTO geography_point_lookup (country_code, field, value, location,datestamp, curator) VALUES ('BE', 'patient_zip', '9992', ST_MakePoint( 3.4080986433831844,51.251803237430686), '2023-12-04',0) ON CONFLICT DO NOTHING;
+
+INSERT INTO isolates (country) VALUES ('Belgium') ON CONFLICT DO NOTHING;
