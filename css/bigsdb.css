@@ -2432,6 +2432,14 @@ span.submission_indicator {
 	color: #d44
 }
 
+span.alert_indicator {
+	color: #d44
+}
+
+span.warning_indicator {
+	color: #d60
+}
+
 span.icon_button {
 	display: flex;
 	flex-direction: column;

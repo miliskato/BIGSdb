@@ -86,6 +86,7 @@ sub print_page {
 		ajaxPrefs             => 'AjaxPrefs',
 		add                   => 'CurateAddPage',
 		addSeqbin             => 'CurateAddSeqbinPage',
+		alert                 => 'AlertPage',
 		alleleInfo            => 'AlleleInfoPage',
 		alleleQuery           => 'AlleleQueryPage',
 		alleleSequence        => 'AlleleSequencePage',

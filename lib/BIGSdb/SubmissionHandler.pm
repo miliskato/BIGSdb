@@ -267,6 +267,35 @@ sub get_isolate_submission {
 	return $submission;
 }
 
+sub get_alert {
+	my ( $self, $alert_id ) = @_;
+	$logger->logcarp('No submission_id passed') if !$alert_id;
+	my $positions =
+	  $self->{'datastore'}->run_query( 'SELECT field,index FROM isolate_outbreak_field_order WHERE alert_id=?',
+		$alert_id, { fetch => 'all_arrayref', cache => 'SubmissionHandler::get_alert::positions' } );
+	return if !$positions;
+	my $order = {};
+	$order->{ $_->[0] } = $_->[1] foreach @$positions;
+	my $indexes =
+	  $self->{'datastore'}
+	  ->run_query( 'SELECT DISTINCT(index) FROM isolate_outbreaks WHERE alert_id=? ORDER BY index',
+		$alert_id, { fetch => 'col_arrayref', cache => 'SubmissionHandler::get_alert:index' } );
+	my @alerts;
+
+	foreach my $index (@$indexes) {
+		my $values = $self->{'datastore'}->run_query(
+			'SELECT field,value FROM isolate_outbreaks WHERE (alert_id,index)=(?,?)',
+			[ $alert_id, $index ],
+			{ fetch => 'all_arrayref', cache => 'SubmissionHandler::get_alert::alerts' }
+		);
+		my $alert_values = {};
+		$alert_values->{ $_->[0] } = $_->[1] foreach @$values;
+		push @alerts, $alert_values;
+	}
+	my $submission = { order => $order, alerts => \@alerts };
+	return $submission;
+}
+
 sub write_submission_allele_FASTA {
 	my ( $self, $submission_id ) = @_;
 	my $allele_submission = $self->get_allele_submission($submission_id);

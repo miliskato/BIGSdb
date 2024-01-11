@@ -429,3 +429,49 @@ INSERT INTO eav_fields(field, value_format, description, no_curate, no_submissio
 INSERT INTO eav_fields(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('cgMLST_differences_0-12', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
 INSERT INTO classification_schemes(id, scheme_id, name, description, inclusion_threshold, use_relative_threshold, seqdef_cscheme_id, display_order, status, curator, datestamp) VALUES(1, (SELECT id FROM schemes WHERE name = 'cgMLST'), 'cgMLST_5_diffs_clustering', 'cgMLST profiles clustering at the threshold of 5 allelic differences', 5, false, 1, 1, 'experimental', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
 INSERT INTO classification_schemes(id, scheme_id, name, description, inclusion_threshold, use_relative_threshold, seqdef_cscheme_id, display_order, status, curator, datestamp) VALUES(2, (SELECT id FROM schemes WHERE name = 'cgMLST'), 'cgMLST_12_diffs_clustering', 'cgMLST profiles clustering at the threshold of 12 allelic differences', 12, false, 2, 2, 'experimental', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
+CREATE TABLE outbreaks (
+id text NOT NULL,
+type text NOT NULL,
+method text NULL,
+submitter int NOT NULL,
+date_submitted date NOT NULL,
+datestamp date NOT NULL,
+status text NOT NULL,
+curator int,
+outcome text,
+email boolean,
+PRIMARY KEY(id),
+CONSTRAINT s_submitter FOREIGN KEY (submitter) REFERENCES users
+ON DELETE CASCADE
+ON UPDATE CASCADE,
+CONSTRAINT s_curator FOREIGN KEY (curator) REFERENCES users
+ON DELETE CASCADE
+ON UPDATE CASCADE
+);
+
+GRANT SELECT,UPDATE,INSERT,DELETE ON outbreaks TO apache;
+
+CREATE TABLE isolate_outbreaks (
+alert_id text NOT NULL,
+index int NOT NULL,
+field text NOT NULL,
+value text,
+PRIMARY KEY(alert_id,index,field),
+CONSTRAINT io_alert_id FOREIGN KEY (alert_id) REFERENCES outbreaks
+ON DELETE CASCADE
+ON UPDATE CASCADE
+);
+
+GRANT SELECT,UPDATE,INSERT,DELETE ON isolate_outbreaks TO apache;
+
+CREATE TABLE isolate_outbreak_field_order (
+alert_id text NOT NULL,
+field text NOT NULL,
+index int NOT NULL,
+PRIMARY KEY(alert_id,field),
+CONSTRAINT iofo_alert_id FOREIGN KEY (alert_id) REFERENCES outbreaks
+ON DELETE CASCADE
+ON UPDATE CASCADE
+);
+
+GRANT SELECT,UPDATE,INSERT,DELETE ON isolate_outbreak_field_order TO apache;

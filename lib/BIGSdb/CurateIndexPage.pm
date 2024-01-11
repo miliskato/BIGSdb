@@ -20,7 +20,7 @@ package BIGSdb::CurateIndexPage;
 use strict;
 use warnings;
 use 5.010;
-use parent qw(BIGSdb::CuratePage BIGSdb::IndexPage BIGSdb::SubmitPage);
+use parent qw(BIGSdb::CuratePage BIGSdb::IndexPage BIGSdb::SubmitPage BIGSdb::AlertPage);
 use Try::Tiny;
 use List::MoreUtils qw(uniq none);
 use BIGSdb::Constants qw(:interface DEFAULT_DOMAIN);
