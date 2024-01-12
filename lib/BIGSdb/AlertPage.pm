@@ -354,9 +354,6 @@ sub _get_alerts_for_curation {
 		} else {
 			$return_buffer .= qq(<h2>New alerts waiting for curation</h2>\n);
 			$return_buffer .= qq(<p>Your account is authorized to handle the following alerts:<p>\n);
-			my $alert_curate_message = "$self->{'dbase_config_dir'}/$self->{'instance'}/alert_curate.html"; # todo find out what this is supposed to be; link to readthedocs?
-			$return_buffer .= $self->print_file( $alert_curate_message, { get_only => 1 } )
-			  if -e $alert_curate_message;
 		}
 		$return_buffer .= q(<table class="resultstable"><tr><th>Alert id</th><th>Triggered</th>)
 		  . q(<th>Type</th><th>Method</th>);
@@ -474,7 +471,7 @@ sub _print_alert_table {
 	my $alert_details           = $alert->{'alert_details'};
 	my $fields =
 	  $self->{'submissionHandler'}
-	  ->get_populated_fields( $alert->{'alert_details'}, $alert->{'order'} );  # todo working on this currently
+	  ->get_populated_fields( $alert->{'alert_details'}, $alert->{'order'} );
 	my $max_width = $self->{'config'}->{'page_max_width'} // PAGE_MAX_WIDTH;
 	my $main_max_width = $max_width - 100;
 	say qq(<div style="max-width:min(${main_max_width}px, 100vw - 100px)"><div class="scrollable">)
@@ -633,7 +630,7 @@ sub _curate_alert {    ## no critic (ProhibitUnusedPrivateSubroutines) #Called b
 	my $q = $self->{'cgi'};
 	say q(<h1>Curate alert</h1>);
 	return if !$self->_is_alert_valid( $alert_id, { curate => 1 } );
-	my $alert = $self->{'submissionHandler'}->get_alert($alert_id); # todo this is located in SubmissionHandler
+	my $alert = $self->{'submissionHandler'}->get_alert($alert_id);
 	my $curate     = 1;
 	if ( $alert->{'status'} eq 'dismissed' ) {
 		$self->print_bad_status( { message => q(This alert is closed and cannot now be modified.) } );
