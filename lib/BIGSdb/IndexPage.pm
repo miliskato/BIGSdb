@@ -636,7 +636,7 @@ sub _print_alerts_menu_item {
 	my $set_id = $self->get_set_id // 0;
 	my $set_string =
 	  ( $self->{'system'}->{'sets'} // '' ) eq 'yes' ? qq(&amp;choose_set=1&amp;sets_list=$set_id) : q();
-	my $pending_warnings = $self->_get_pending_outbreak_count( 'warning' );
+	my $pending_warnings = $self->_get_pending_alert_count( 'warning' );
 	my $number_icon_warnings = q();
 	if ($pending_warnings) {
 		$pending_warnings = '99+' if $pending_warnings > 99;
@@ -647,7 +647,7 @@ sub _print_alerts_menu_item {
 		  . qq($pending_warnings</span>);
 		$number_icon_warnings .= q(</span>);
 	}
-	my $pending_alerts = $self->_get_pending_outbreak_count( 'alert' );
+	my $pending_alerts = $self->_get_pending_alert_count( 'alert' );
 	my $number_icon_alerts         = q();
 	if ($pending_alerts) {
 		$pending_alerts = '99+' if $pending_alerts > 99;
@@ -862,15 +862,15 @@ sub _get_pending_submission_count {
 	}
 }
 
-sub _get_pending_outbreak_count {
-	my ($self, $outbreak_type) = @_;  #
+sub _get_pending_alert_count {
+	my ($self, $alert_type) = @_;  #
 	return 0 if !$self->{'username'};
 	my $user_info = $self->{'datastore'}->get_user_info_from_username( $self->{'username'} );
 	return 0 if $user_info->{'status'} ne 'admin' && $user_info->{'status'} ne 'curator';
 	if ( $self->{'system'}->{'dbtype'} eq 'isolates' ) {
 		#return 0 if !$self->can_modify_table('isolates');
 		my $count = $self->{'datastore'}
-		  ->run_query( 'SELECT COUNT(*) FROM outbreaks WHERE (type,status)=(?,?)', [ $outbreak_type, 'pending' ] );
+		  ->run_query( 'SELECT COUNT(*) FROM alerts WHERE (type,status)=(?,?)', [ $alert_type, 'pending' ] );
 		return $count;
 	} else {
 		my $count = 0;

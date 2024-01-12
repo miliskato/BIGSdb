@@ -65,6 +65,18 @@ sub delete_submission {
 	return;
 }
 
+sub delete_alert {
+	my ( $self, $alert_id ) = @_;
+	eval { $self->{'db'}->do( 'DELETE FROM alerts WHERE id=?', undef, $alert_id ) };
+	if ($@) {
+		$logger->error($@);
+		$self->{'db'}->rollback;
+	} else {
+		$self->{'db'}->commit;
+	}
+	return;
+}
+
 sub _delete_submission_files {
 	my ( $self, $submission_id ) = @_;
 	my $dir = $self->get_submission_dir($submission_id);
@@ -176,6 +188,18 @@ sub update_submission_datestamp {
 	return;
 }
 
+sub update_alert_datestamp {
+	my ( $self, $alert_id ) = @_;
+	eval { $self->{'db'}->do( 'UPDATE alerts SET datestamp=? WHERE id=?', undef, 'now', $alert_id ) };
+	if ($@) {
+		$logger->error($@);
+		$self->{'db'}->rollback;
+	} else {
+		$self->{'db'}->commit;
+	}
+	return;
+}
+
 sub get_submission {
 	my ( $self, $submission_id ) = @_;
 	$logger->logcarp('No submission_id passed') if !$submission_id;
@@ -269,31 +293,38 @@ sub get_isolate_submission {
 
 sub get_alert {
 	my ( $self, $alert_id ) = @_;
-	$logger->logcarp('No submission_id passed') if !$alert_id;
-	my $positions =
-	  $self->{'datastore'}->run_query( 'SELECT field,index FROM isolate_outbreak_field_order WHERE alert_id=?',
-		$alert_id, { fetch => 'all_arrayref', cache => 'SubmissionHandler::get_alert::positions' } );
-	return if !$positions;
-	my $order = {};
-	$order->{ $_->[0] } = $_->[1] foreach @$positions;
-	my $indexes =
-	  $self->{'datastore'}
-	  ->run_query( 'SELECT DISTINCT(index) FROM isolate_outbreaks WHERE alert_id=? ORDER BY index',
-		$alert_id, { fetch => 'col_arrayref', cache => 'SubmissionHandler::get_alert:index' } );
-	my @alerts;
+	$logger->logcarp('No alert_id passed') if !$alert_id;
+	return $self->{'datastore'}->run_query( 'SELECT * FROM alerts WHERE id=?',
+		$alert_id, { fetch => 'row_hashref', cache => 'SubmissionHandler::get_alert' } );
+}
 
-	foreach my $index (@$indexes) {
-		my $values = $self->{'datastore'}->run_query(
-			'SELECT field,value FROM isolate_outbreaks WHERE (alert_id,index)=(?,?)',
-			[ $alert_id, $index ],
-			{ fetch => 'all_arrayref', cache => 'SubmissionHandler::get_alert::alerts' }
-		);
-		my $alert_values = {};
-		$alert_values->{ $_->[0] } = $_->[1] foreach @$values;
-		push @alerts, $alert_values;
-	}
-	my $submission = { order => $order, alerts => \@alerts };
-	return $submission;
+sub get_alert_details {
+        my ( $self, $alert_id ) = @_;
+        $logger->logcarp('No submission_id passed') if !$alert_id;
+        my $positions =
+          $self->{'datastore'}->run_query( 'SELECT field,index FROM alert_details_field_order WHERE alert_id=?',
+                $alert_id, { fetch => 'all_arrayref', cache => 'SubmissionHandler::get_alert::positions' } );
+        return if !$positions;
+        my $order = {};
+        $order->{ $_->[0] } = $_->[1] foreach @$positions;
+        my $indexes =
+          $self->{'datastore'}
+          ->run_query( 'SELECT DISTINCT(index) FROM alert_details WHERE alert_id=? ORDER BY index',
+                $alert_id, { fetch => 'col_arrayref', cache => 'SubmissionHandler::get_alert:index' } );
+        my @alert_details;
+
+        foreach my $index (@$indexes) {
+                my $values = $self->{'datastore'}->run_query(
+                        'SELECT field,value FROM alert_details WHERE (alert_id,index)=(?,?)',
+                        [ $alert_id, $index ],
+                        { fetch => 'all_arrayref', cache => 'SubmissionHandler::get_alert::alerts' }
+                );
+                my $alert_values = {};
+                $alert_values->{ $_->[0] } = $_->[1] foreach @$values;
+                push @alert_details, $alert_values;
+        }
+        my $alert_details = { order => $order, alert_details => \@alert_details };
+        return $alert_details;
 }
 
 sub write_submission_allele_FASTA {
