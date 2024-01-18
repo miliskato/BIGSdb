@@ -1,11 +1,11 @@
 import datetime
 import logging
-import numpy as np
 import socket
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from .json_superclass import JsonSuperClass
-from .psql import TblEavTextHidden, TblEavText, TblIsolates, TblHistory, TblSequenceBin, TblSeqBinStats, TblProjectMembers, TblEavFields, TblSchemes
+from .psql import TblEavTextHidden, TblEavText, TblIsolates, TblHistory, TblSequenceBin, TblSeqBinStats, \
+    TblProjectMembers
 
 
 class MainInserter(JsonSuperClass):
@@ -79,7 +79,6 @@ class MainInserter(JsonSuperClass):
             assemblylink = f'<p><a href="/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_{self._species}_isolates&page=plugin&name=Contigs&format=text&isolate_id={isolate_id}&match=1&pc_untagged=0&min_length=&header=1l" target="_blank">assembly</a></p>'
             self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'assembly', assemblylink))
             self._insert_species_specific_metadata()
-            self._insert_naive_clustering(isolate_id)
             if 'changed_version' in self._sample_output_dict:
                 with TblEavTextHidden(self._species) as isolates_eavth_psql_tbl:
                     isolates_eavth_psql_tbl.insert_hidden_isolate((self._isolatename, 'mongo_results_version', self._sample_output_dict['changed_version']))
@@ -129,48 +128,3 @@ class MainInserter(JsonSuperClass):
             # json input
             elif 'serogroup' in self._sample_output_dict:
                 self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'Serogroup', self._sample_output_dict['serogroup']['detected_serogroup']))
-
-    def _insert_naive_clustering(self, isolate_id: int) -> None:
-        """
-        Insert the distances for the existing distance fields
-        :param isolate_id: id of the isolate in bigsdb
-        :return: None
-        """
-        distance_matrix: np.array = np.load(str(self._bigsdb_config_data['naive_clustering_distance_matrix_file']).
-                                            replace('species', self._species))
-        # extract row
-        row_cgst = distance_matrix[self._sample_output_dict['cgST'] - 1]
-        with TblEavFields(self._species) as isolates_eavf_psql_tbl:
-            cgmlst_diff_fields = isolates_eavf_psql_tbl.select_fields_cgmlstdifferences()
-        with TblSchemes(self._species, 'isolates') as isolates_schemes_psql_tbl:
-            cgmlst_bigsdb_scheme_id = isolates_schemes_psql_tbl.select_scheme_id_cgmlst()[0][0]
-        for field in cgmlst_diff_fields:
-            interval = field[0].split('_')[-1]
-            interval_start = int(interval.split('-')[0])
-            interval_stop = int(interval.split('-')[-1])
-            # get all cgSTs within distance
-            indices = np.where((row_cgst >= interval_start) & (row_cgst <= interval_stop))[0]
-            if len(indices) > 0:
-                if interval != '0':
-                    indices = np.append(indices, self._sample_output_dict['cgST'] - 1)
-                html = self.__generate_htmlfield_cgstquery([x + 1 for x in indices],
-                                                           cgmlst_bigsdb_scheme_id)
-                with TblEavText(self._species) as isolates_eavt_psql_tbl:
-                    isolates_eavt_psql_tbl.insert_eav_id((str(isolate_id), field[0], html))
-
-    def __generate_htmlfield_cgstquery(self, cgsts: List[int], cgmlst_bigsdb_scheme_id: int) -> str:
-        """
-        Generates an html field to be inserted into bigsdb that will query all isolates with certain cgSTs
-        :param cgsts: the cgST's that should be included in the html query
-        :param cgmlst_bigsdb_scheme_id: the scheme id of the cgMLST scheme in bigsdb (usually 2, after 1 mlst,
-        but in the case of stec that has 2 mlst it is 3)
-        :return: html query string
-        """
-        base_start = f' <p><a href="/cgi-bin/bigsdb/bigsdb.pl?set_id=0&page=query&submit=1&order=id&db=bigsdb_' \
-                     f'{self._species}_isolates'
-        base_end = '" target="_blank">query</a><p>'
-        html_ref = base_start
-        for index, cgst in enumerate(cgsts):
-            html_ref += f"&designation_value{index+1}={cgst}&designation_field{index+1}=s_{cgmlst_bigsdb_scheme_id}_cgST"
-        html_ref += base_end
-        return html_ref
