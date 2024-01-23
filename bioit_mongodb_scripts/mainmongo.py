@@ -47,6 +47,8 @@ def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     parser.add_argument("--reportdirectorypath", required=False, type=str)  # not mandatory because of reanalysis
     parser.add_argument("--fastafilepath", required=False, type=str)  # not mandatory because of reanalysis
     parser.add_argument("--vcffilepath", required=False, type=str)  # not mandatory because of reanalysis
+    parser.add_argument("--vcffilepath_unfiltered", required=False, type=str)  # not mandatory because of reanalysis
+    parser.add_argument("--original_input_format", required=False, type=str) # maybe later change it to choices
     parser.add_argument("--technical_id", required=True, type=str)
     parser.add_argument('--alternate_connection_string', type=str, help=argparse.SUPPRESS)  # will replace connection string, only for small testing purposes
     parser.add_argument('--alternate_dtap', choices=['dev', 'test', 'acc', 'prod'], help=argparse.SUPPRESS)  # will replace connection string, only for small testing purposes
@@ -60,7 +62,7 @@ class MainMongo:
     """
     def __init__(self, technical_id: str, species: str, results_type: str, jsonfilepath: Path = None,
                  subvaldict: Dict[str, str] = None, reportdirectorypath: Path = None, fastafilepath: Path = None,
-                 vcffilepath: Path = None, alternate_connection_string: Union[bool, str] = False, alternate_dtap: Union[str, None] = None,
+                 vcffilepath: Path = None, vcffilepath_unfiltered: Path = None, original_input_format: str = None, alternate_connection_string: Union[bool, str] = False, alternate_dtap: Union[str, None] = None,
                  dont_send_email: bool = False, mongo_config_data: Dict[str, Any] = None) -> None:
         """
         Intialises this class and executes the main function which will insert/update the sample in a mongodb collection containing isolates
@@ -72,7 +74,9 @@ class MainMongo:
         :param subvaldict: validation dictionary, received after validation through bigsdb (either results type badqc_validated or resequencing_validated')
         :param reportdirectorypath: absolute path to where the directory containing all files required for html are stored (only required for new_isolate)
         :param fastafilepath: absolute path to where the fasta file is stored (only required for new_isolate)
-        :param vcffilepath: absolute path to where the fasta file is stored (only required for new_isolate)
+        :param vcffilepath: absolute path to where the filtered VCF file is stored (only required for new_isolate)
+        :param vcffilepath_unfiltered: absolute path to where the unfiltered VCF file is stored (only required for new_isolate)
+        :param original_input_format: original input that was given to run the first analysis
         :param alternate_connection_string: use given alternate connection string, used for testing on the free Atlas Cluster
         :param alternate_dtap: alternative dtap than what is in the config file
         :param mongo_config_data: Pass provided mongo_config_data to MongoInitialisation, else get mongo_config_data from file
@@ -87,6 +91,8 @@ class MainMongo:
         self._reportdirectorypath = reportdirectorypath
         self._fastafilepath = fastafilepath
         self._vcffilepath = vcffilepath
+        self._vcffilepath_unfiltered = vcffilepath_unfiltered
+        self._original_input_format = original_input_format
         self._alternate_connection_string = alternate_connection_string
         self._alternate_dtap = alternate_dtap
         self._dont_send_email = dont_send_email
@@ -180,6 +186,8 @@ class MainMongo:
             new_records = sample_doc['results']
             self._fastafilepath = sample_doc['fasta_path']
             self._vcffilepath = sample_doc['vcf_path']
+            self._vcffilepath_unfiltered = sample_doc['vcf_path_unfiltered']
+            self._original_input_format = sample_doc['original_input_format']
             self.__new_isolate_wrapper(new_records)
         elif self._results_type == "reanalysis" or self._results_type == 'resequencing_validated':
             try:
@@ -392,6 +400,8 @@ class MainMongo:
         new_isolate_dict = {"_id": self._technical_id,
                             "report_directory": str(self._reportdirectorypath),
                             "vcf_path": str(self._vcffilepath),
+                            "vcf_path_unfiltered": str(self._vcffilepath_unfiltered),
+                            "original_input_format": str(self._original_input_format),
                             "fasta_path": str(self._fastafilepath),
                             "previous_latest_results_document": None,
                             "creation_date": datetime.utcnow(),
@@ -611,7 +621,9 @@ if __name__ == '__main__':
               subvaldict=(args.subvaldict if args.subvaldict else None),
               reportdirectorypath=(args.reportdirectorypath if args.reportdirectorypath else None), 
               fastafilepath=(args.fastafilepath if args.fastafilepath else None), 
-              vcffilepath=(args.vcffilepath if args.vcffilepath else None), 
+              vcffilepath=(args.vcffilepath if args.vcffilepath else None),
+              vcffilepath_unfiltered=(args.vcffilepath_unfiltered if args.vcffilepath_unfiltered else None),
+              original_input_format=(args.original_input_format if args.original_input_format else None),
               alternate_connection_string=(args.alternate_connection_string if args.alternate_connection_string else False),
               alternate_dtap=args.alternate_dtap,
               dont_send_email=(True if args.dont_send_email else False),
