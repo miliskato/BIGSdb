@@ -20,6 +20,7 @@ from bioit_bigsdb_scripts.components.psql import TblIsolates, TblEavTextHidden, 
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data
 from bioit_bigsdb_scripts.insert_assembly import insert_assembly
 from bioit_bigsdb_scripts.main_results_inserter import MainResultsInserter
+from bioit_mongodb_scripts.util.alerts_to_bigs import AlertsToBigs
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.mongo_querying import Mongoquerying
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email, convert_dmyhms_to_dateobj

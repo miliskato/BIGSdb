@@ -98,6 +98,26 @@ class TblIsolates(DatabaseConnection):
         """
         return self.execute_query(PsqlQueries.ISO_SEL_VALDATES_TB_ISO_VAR_ISO, param)
 
+    def select_isolates_by_cgsts_and_between_dates(self, param: Tuple[int, int, int, Tuple[str, ...], str, str]) -> List[Optional[Tuple[Any]]]:
+        """
+        Selects all current versions of isolates that belong to a set of cgsts and were isolated between a given set of dates.
+        # todo replace the date in the sql query once there is a fixed analysis date, and then afterwards once the isolation date is known !!!
+        :param param: variables to feed to the PSQL query, which also sanitizes these variables,
+        necessary parameters visible in the PSQL query name and query
+        :return: None or list of tuple of dates
+        """
+        return self.execute_query(PsqlQueries.ISO_SEL_ID_ISO_DATE_CGST_TB_ISO_VAR_SCHID_SCHID_SCHID_CGSTS_DATE1_DATE2, param)
+
+    def select_isolates_by_cgsts(self, param: Tuple[int, int, int, Tuple[str, ...]]) -> List[Optional[Tuple[Any]]]:
+        """
+        Selects all current versions of isolates that belong to a set of cgsts
+        # todo replace the date in the sql query once there is a fixed analysis date, and then afterwards once the isolation date is known !!!
+        :param param: variables to feed to the PSQL query, which also sanitizes these variables,
+        necessary parameters visible in the PSQL query name and query
+        :return: None or list of tuple of dates
+        """
+        return self.execute_query(PsqlQueries.ISO_SEL_ID_ISO_DATE_CGST_TB_ISO_VAR_SCHID_SCHID_SCHID_CGSTS, param)
+
     def update_newversion(self, param: List[str]) -> None:
         """
         Adds a pointer from the latest - 1 version to the latest version of an isolate

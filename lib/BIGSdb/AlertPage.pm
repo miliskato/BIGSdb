@@ -218,7 +218,7 @@ sub print_content {
 	}
 	if ($closed_buffer) {
 		say q(<div class="box resultstable" id="closed" style="display:none"><div class="scrollable">);
-		say q(<h2>Closed alerts for which you had curator rights</h2>);
+		say q(<h2>Dismissed alerts for which you had curator rights</h2>);
 		say q(<p>The following alerts are now closed);
 		say $closed_buffer;
 		say q(</div></div>);
@@ -428,7 +428,7 @@ sub _print_alert_table_fieldset {
 	my $csv_icon = $self->get_file_icon('CSV');
 	say $q->start_form;
 	$self->_print_alert_table( $alert_id, $options );
-	$self->_print_update_button( { record_status => 1 } ) if $options->{'curate'};
+	#$self->_print_update_button( { record_status => 1 } ) if $options->{'curate'};
 	say $q->hidden($_) foreach qw(db page alert_id curate);
 	say $q->end_form;
 =begin
@@ -496,31 +496,31 @@ sub _print_alert_table {
 	return;
 }
 
-sub _print_update_button {
-	my ( $self, $options ) = @_;
-	$options = {} if ref $options ne 'HASH';
-	my $q = $self->{'cgi'};
-	say q(<div style="float:right">);
-	if ( $options->{'mark_all'} ) {
-		say q(<span style="margin-right:1em">)
-		  . q(Mark all: <input type="button" onclick='status_markall("pending")' )
-		  . q(value="Pending" class="small_reset" /><input type="button" )
-		  . q(onclick='status_markall("dismissed")' value="dismissed" class="small_reset" />)
-		  . q(</span>);
-	}
-	if ( $options->{'record_status'} ) {
-		say q(<label for="record_status">Record status:</label>);
-		say $q->popup_menu(
-			-name  => 'record_status',
-			id     => 'record_status',
-			# values => [qw(pending accepted dismissed)]
-			values => [qw(pending dismissed)]
-		);
-	}
-	say $q->submit( -name => 'update', -label => 'Update', -class => 'small_submit' );
-	say q(</div>);
-	return;
-}
+#sub _print_update_button {
+#	my ( $self, $options ) = @_;
+#	$options = {} if ref $options ne 'HASH';
+#	my $q = $self->{'cgi'};
+#	say q(<div style="float:right">);
+#	if ( $options->{'mark_all'} ) {
+#		say q(<span style="margin-right:1em">)
+#		  . q(Mark all: <input type="button" onclick='status_markall("pending")' )
+#		  . q(value="Pending" class="small_reset" /><input type="button" )
+#		  . q(onclick='status_markall("dismissed")' value="dismissed" class="small_reset" />)
+#		  . q(</span>);
+#	}
+#	if ( $options->{'record_status'} ) {
+#		say q(<label for="record_status">Record status:</label>);
+#		say $q->popup_menu(
+#			-name  => 'record_status',
+#			id     => 'record_status',
+#			# values => [qw(pending accepted dismissed)]
+#			values => [qw(pending dismissed)]
+#		);
+#	}
+#	say $q->submit( -name => 'update', -label => 'Update', -class => 'small_submit' );
+#	say q(</div>);
+#	return;
+#}
 
 sub _print_close_alert_fieldset {
 	my ( $self, $alert_id ) = @_;
@@ -528,7 +528,7 @@ sub _print_close_alert_fieldset {
 	say $q->start_form;
 	$q->param( close => 1 );
 	say $q->hidden($_) foreach qw( db page alert_id close );
-	$self->print_action_fieldset( { no_reset => 1, submit_label => 'Close alert' } );
+	$self->print_action_fieldset( { no_reset => 1, submit_label => 'Dismiss alert' } );
         say $q->end_form;
 	return;
 }
