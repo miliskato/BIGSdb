@@ -1,4 +1,7 @@
 # import all tables so that the programmer does not need to list every file separately
+from .psql_tbl_alert_details_field_order import TblAlertDetailsFieldOrder
+from .psql_tbl_alert_details import TblAlertDetails
+from .psql_tbl_alerts import TblAlerts
 from .psql_tbl_allele_designations import TblAlleleDesignations
 from .psql_tbl_classification_group_profile_history import TblClassificationGroupProfileHistory
 from .psql_tbl_classification_group_profiles import TblClassificationGroupProfiles

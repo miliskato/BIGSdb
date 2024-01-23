@@ -449,7 +449,7 @@ ALTER TABLE isolates ADD validation_type text;
 ALTER TABLE isolates ADD validation_curator text;
 ALTER TABLE isolates ADD validation_date date;
 
-CREATE TABLE outbreaks (
+CREATE TABLE alerts (
 id text NOT NULL,
 type text NOT NULL,
 method text NULL,
@@ -469,29 +469,29 @@ ON DELETE CASCADE
 ON UPDATE CASCADE
 );
 
-GRANT SELECT,UPDATE,INSERT,DELETE ON outbreaks TO apache;
+GRANT SELECT,UPDATE,INSERT,DELETE ON alerts TO apache;
 
-CREATE TABLE isolate_outbreaks (
+CREATE TABLE alert_details (
 alert_id text NOT NULL,
 index int NOT NULL,
 field text NOT NULL,
 value text,
 PRIMARY KEY(alert_id,index,field),
-CONSTRAINT io_alert_id FOREIGN KEY (alert_id) REFERENCES outbreaks
+CONSTRAINT io_alert_id FOREIGN KEY (alert_id) REFERENCES alerts
 ON DELETE CASCADE
 ON UPDATE CASCADE
 );
 
-GRANT SELECT,UPDATE,INSERT,DELETE ON isolate_outbreaks TO apache;
+GRANT SELECT,UPDATE,INSERT,DELETE ON alert_details TO apache;
 
-CREATE TABLE isolate_outbreak_field_order (
+CREATE TABLE alert_details_field_order (
 alert_id text NOT NULL,
 field text NOT NULL,
 index int NOT NULL,
 PRIMARY KEY(alert_id,field),
-CONSTRAINT iofo_alert_id FOREIGN KEY (alert_id) REFERENCES outbreaks
+CONSTRAINT iofo_alert_id FOREIGN KEY (alert_id) REFERENCES alerts
 ON DELETE CASCADE
 ON UPDATE CASCADE
 );
 
-GRANT SELECT,UPDATE,INSERT,DELETE ON isolate_outbreak_field_order TO apache;
+GRANT SELECT,UPDATE,INSERT,DELETE ON alert_details_field_order TO apache;
