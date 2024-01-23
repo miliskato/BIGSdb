@@ -318,7 +318,7 @@ class NewClusteringInfoToBigs:
                         # get all cgSTs within distance
                         indices = np.where((row_cgst >= interval_start) & (row_cgst <= interval_stop))[0]
                         if len(indices) > 0:
-                            if interval != '0':
+                            if interval_start != '0':
                                 indices = np.append(indices, cgst - 1)
                             html = self.____generate_htmlelement_cgstquery([x + 1 for x in indices],
                                                                            cgmlst_bigsdb_scheme_id, field[0])
