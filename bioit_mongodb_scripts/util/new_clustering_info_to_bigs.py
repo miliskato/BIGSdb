@@ -297,7 +297,7 @@ class NewClusteringInfoToBigs:
             interval_start = int(interval.split('-')[0])
             interval_stop = int(interval.split('-')[-1])
             # get all cgsts in mongodb:
-            cgsts_per_isolate: List[Dict[str, Union[str, Dict[str, int]]]] = \
+            cgsts_per_isolate: List[Dict[str, Union[str, Dict[str, Optional[int]]]]] = \
                 list(self._isolates_collection.find({}, {"results.cgST": 1, "_id": 1}))
             with TblSchemes(self._species, 'isolates') as isolates_schemes_psql_tbl:
                 cgmlst_bigsdb_scheme_id = isolates_schemes_psql_tbl.select_scheme_id_cgmlst()[0][0]
@@ -310,6 +310,7 @@ class NewClusteringInfoToBigs:
             if full_calculation or is_field_possibly_new:
                 logging.info(f"Inserting cgMLST difference html fields for isolates present in Bigsdb")
                 cgsts = set(x['results']['cgST'] for x in cgsts_per_isolate)
+                cgsts.discard(None)
                 with TblIsolates(self._species) as isolates_psql_tbl, TblEavText(
                         self._species) as isolates_eavt_psql_tbl:
                     for cgst in cgsts:
@@ -318,7 +319,7 @@ class NewClusteringInfoToBigs:
                         # get all cgSTs within distance
                         indices = np.where((row_cgst >= interval_start) & (row_cgst <= interval_stop))[0]
                         if len(indices) > 0:
-                            if interval_start != '0':
+                            if interval_start != 0:
                                 indices = np.append(indices, cgst - 1)
                             html = self.____generate_htmlelement_cgstquery([x + 1 for x in indices],
                                                                            cgmlst_bigsdb_scheme_id, field[0])
