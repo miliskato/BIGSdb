@@ -13,7 +13,7 @@ import os
 import scipy.cluster.hierarchy as hcluster
 from scipy.spatial import distance as ssd
 
-PYTHONPATH = Path(__file__).resolve().parent.parent.parent
+PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
 from bioit_bigsdb_scripts.components.psql import TblClassificationSchemes, TblClassificationGroups, \
