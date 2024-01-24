@@ -75,7 +75,7 @@ class TempidReplacer:
         except Exception as exceptionmessage:
             send_email(f"{exceptionmessage}\n{traceback.format_exc()}")
             raise Exception(
-                f"{Path(__file__).name} fail on host {socket.gethostname()}")
+                f"{Path(__file__).name} fail on host {socket.gethostname()} for scheme {self._scheme}")
 
     def _tempid_replacer(self) -> None:
         """
@@ -199,13 +199,14 @@ class TempidReplacer:
         self._documents_list[hashed_allele_index_in_doclist]['resolved_AD'] = new_allele_id
         # replace in all the cgST the old temp allele by the new id
         #use the power of list to replace only where it's needed
-        headers_cgmlst = self._headers_collection.find_one({'type': 'cgmlst_headers'})['headers']
-        locus_index = headers_cgmlst.index(locus)
-        self._st_collection.update_many(
-            {f"cgMLST.{locus_index}": temp_allele_name},
-            update={"$set": {f"cgMLST.{locus_index}": int(new_allele_id)}}
-        )
-        logging.debug(f'[information_temp_id_replacer] Locus {locus} at position {locus_index} is replacing {temp_allele_name} by {new_allele_id}')
+        if self._scheme == 'cgmlst':
+            headers_cgmlst = self._headers_collection.find_one({'type': 'cgmlst_headers'})['headers']
+            locus_index = headers_cgmlst.index(locus)
+            self._st_collection.update_many(
+                {f"cgMLST.{locus_index}": temp_allele_name},
+                update={"$set": {f"cgMLST.{locus_index}": int(new_allele_id)}}
+            )
+            logging.debug(f'[information_temp_id_replacer] Locus {locus} at position {locus_index} is replacing {temp_allele_name} by {new_allele_id}')
 
     def ___update_temp_allele_to_new(self, collection: pymongo.collection.Collection, locus: str, temp_allele_name: str,
                                      new_allele_id: str, allele_index: int = None, in_results: bool = True) -> None:
