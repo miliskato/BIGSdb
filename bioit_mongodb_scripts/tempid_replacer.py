@@ -73,7 +73,7 @@ class TempidReplacer:
         try:
             self._tempid_replacer()
         except Exception as exceptionmessage:
-            send_email(f"{exceptionmessage}\n{traceback.format_exc()}", subject = f"{Path(__file__).name} fail on host {socket.gethostname()} for scheme {self._scheme}")
+            send_email(f"{exceptionmessage}\n{traceback.format_exc()}", subject=f"{Path(__file__).name} fail on host {socket.gethostname()} for scheme {self._scheme}")
             raise Exception(
                 f"{Path(__file__).name} fail on host {socket.gethostname()} for scheme {self._scheme}")
 
