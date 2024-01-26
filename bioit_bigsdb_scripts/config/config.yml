@@ -9,6 +9,30 @@ failsafe:
 
 postgresql_apache_pass: to_be_replaced_by_ansible
 
+naive_clustering_distance_matrix_file: /home/bigsdb/BIGSdb/cgmlst_distance_matrix_species.npy # todo if bigs home changes, then this breaks + /home is not the best place to store DM that can potentially become very big
+
+alerts:
+  listeria:
+    threshold_warning: 7
+    threshold_alert: 4
+    timeframe_in_months: 12
+    number_of_cases: 2
+  mycobacterium:
+    threshold_warning: 12
+    threshold_alert: 5
+    timeframe_in_months: 12000  # irrespective of time; took 1000 years
+    number_of_cases: 2
+  neisseria:
+    threshold_warning: 7
+    threshold_alert: 4
+    timeframe_in_months: 12
+    number_of_cases: 2
+  salmonella:
+    threshold_warning: 10
+    threshold_alert: 5
+    timeframe_in_months: 2
+    number_of_cases: 5
+
 species:
   listeria:
     typing_schemes:

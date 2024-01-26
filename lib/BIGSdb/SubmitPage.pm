@@ -714,7 +714,7 @@ sub _get_profile_submissions_for_curation {
 sub _get_isolate_submissions_for_curation {
 	my ( $self, $options ) = @_;
 	my $status = $options->{'status'} // 'pending';
-	return q() if !$self->can_modify_table('isolates');
+	# return q() if !$self->can_modify_table('isolates'); # disable this so that all curators, regardless of their rights can validate new isolates, mk 23/10/18
 	my $submissions = $self->_get_submissions_by_status( $status, { get_all => 1 } );
 	my $buffer;
 	my $td = 1;

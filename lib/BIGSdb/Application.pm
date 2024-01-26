@@ -27,6 +27,7 @@ use BIGSdb::AjaxAnalysis;
 use BIGSdb::AjaxJobs;
 use BIGSdb::AjaxPrefs;
 use BIGSdb::AjaxRest;
+use BIGSdb::AlertPage;
 use BIGSdb::AlleleInfoPage;
 use BIGSdb::AlleleQueryPage;
 use BIGSdb::AlleleSequencePage;
@@ -86,9 +87,9 @@ use List::MoreUtils qw(any);
 use Config::Tiny;
 use Try::Tiny;
 use constant PAGES_NEEDING_AUTHENTICATION => qw(authorizeClient changePassword userProjects bookmarks
-  submit login logout);
+  submit alert login logout);
 use constant PAGES_NEEDING_JOB_MANAGER        => qw(plugin job jobs index dashboard login logout options ajaxJobs);
-use constant PAGES_NEEDING_SUBMISSION_HANDLER => qw(submit batchAddFasta profileAdd profileBatchAdd batchAdd
+use constant PAGES_NEEDING_SUBMISSION_HANDLER => qw(submit alert batchAddFasta profileAdd profileBatchAdd batchAdd
   batchAddSequences batchIsolateUpdate isolateAdd isolateUpdate index logout);
 use constant PAGES_NOT_NEEDING_PLUGINS => qw(ajaxJobs jobMonitor ajaxRest restMonitor);
 
@@ -420,6 +421,7 @@ sub print_page {
 		ajaxJobs           => 'AjaxJobs',
 		ajaxPrefs          => 'AjaxPrefs',
 		ajaxRest           => 'AjaxRest',
+		alert              => 'AlertPage',
 		alleleInfo         => 'AlleleInfoPage',
 		alleleQuery        => 'AlleleQueryPage',
 		alleleSequence     => 'AlleleSequencePage',

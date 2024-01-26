@@ -13,6 +13,25 @@ class PsqlQueries():
     .
     Group queries by database, then by crud, then by table, then alphabetically
     """
+    # TBL alert details field order
+    ISO_INS__TB_ALDEFO_VAR_FIELD_INDEX: Final[str] = """
+        INSERT INTO alert_details_field_order(alert_id, field, index) 
+        VALUES((SELECT MAX(id::int) FROM alerts), %s, %s);"""
+
+    # TBL alert details
+    ISO_INS__TB_ALDE_VAR_FIELD_VALUE: Final[str] = """
+        INSERT INTO alert_details (alert_id, index, field, value) 
+        VALUES((SELECT MAX(id::int) FROM alerts), 1, %s, %s);"""
+
+    # TBL alerts
+    ISO_INS__TB_AL_VAR_TYPE_METH: Final[str] = """
+        INSERT INTO alerts(id, 
+        type, method, submitter, date_submitted, 
+        datestamp, status, email) 
+        VALUES ((SELECT CASE WHEN (SELECT MAX(id::int) FROM alerts) IS NULL THEN 1 ELSE (SELECT(SELECT MAX(id::int) FROM alerts)+1) END), 
+        %s, %s, 1, (SELECT CURRENT_DATE), 
+        (SELECT CURRENT_DATE), 'pending', true);"""
+
     # TBL allele designations
     ISO_DEL__TB_AD_VAR_LOCUS: Final[str] = """DELETE FROM allele_designations WHERE locus LIKE %s;"""
     ISO_INS__TB_AD_VAR_LOCUS_ID_ALLELE: Final[str] = """
@@ -36,6 +55,7 @@ class PsqlQueries():
         UPDATE allele_designations SET allele_id = %s WHERE locus=%s AND allele_id=%s;"""
 
     # TBL classification groups
+    SEQ_DEL__TB_CLGR_VAR_CGSCHID: Final[str] = """DELETE FROM classification_groups WHERE cg_scheme_id=%s;"""
     SEQ_INS__TB_CLGR_VAR_CGSCHID_GRID: Final[str] = """
         INSERT INTO classification_groups(cg_scheme_id, group_id, active, curator, datestamp) 
         VALUES(%s, %s, true, 1, (SELECT CURRENT_DATE));"""
@@ -103,7 +123,12 @@ class PsqlQueries():
     ISO_INS__TB_EAVT_VAR_ISO_FIELD_VAL: Final[str] = """
         INSERT INTO eav_text(isolate_id, field, value) 
         VALUES((SELECT MAX(id) FROM isolates WHERE isolate=%s), %s, %s);"""
-
+    ISO_UPD_VAL_TB_EAVT_VAR_ID_FIELD: Final[str] = """
+        UPDATE eav_text SET value = %s WHERE isolate_id=%s AND field=%s;"""
+    ISO_SEL_COUNT_TB_EAVT_VAR_ID_FIELD: Final[str] = """
+        SELECT COUNT(*) FROM eav_text WHERE isolate_id=%s AND field=%s;"""
+    ISO_SEL_COUNT_TB_EAVT_VAR_FIELD: Final[str] = """
+        SELECT COUNT(*) FROM eav_text WHERE field=%s;"""
     # TBL extended attribute values text hidden
     ISO_INS__TB_EAVTH_VAR_ISO_FIELD_VAL: Final[str] = """
         INSERT INTO eav_text_hidden(isolate_id, field, value) 
@@ -140,6 +165,14 @@ class PsqlQueries():
     ISO_SEL_COUNT_TB_ISO_VAR_ISO: Final[str] = """SELECT COUNT(*) FROM isolates WHERE isolate=%s;"""
     ISO_SEL_ANADATE_TB_ISO_VAR_ISO: Final[str] = """
         SELECT latest_analysis_date FROM isolates WHERE id=(SELECT MAX(id) FROM isolates WHERE isolate=%s);"""
+    ISO_SEL_ID_ISO_DATE_CGST_TB_ISO_VAR_SCHID_SCHID_SCHID_CGSTS_DATE1_DATE2: Final[str] = """
+        SELECT isolates.id, isolates.isolate, isolates.date_entered, cgst FROM isolates LEFT JOIN 
+        temp_isolates_scheme_fields_%s on isolates.id = temp_isolates_scheme_fields_%s.id 
+        WHERE new_version IS NULL and temp_isolates_scheme_fields_%s.cgst IN %s AND isolates.date_entered>%s AND isolates.date_entered<=%s;"""
+    ISO_SEL_ID_ISO_DATE_CGST_TB_ISO_VAR_SCHID_SCHID_SCHID_CGSTS: Final[str] = """
+        SELECT isolates.id, isolates.isolate, isolates.date_entered, cgst FROM isolates LEFT JOIN 
+        temp_isolates_scheme_fields_%s on isolates.id = temp_isolates_scheme_fields_%s.id 
+        WHERE new_version IS NULL and temp_isolates_scheme_fields_%s.cgst IN %s;"""
     ISO_SEL_MAXID_TB_ISO_VAR_ISO: Final[str] = """SELECT MAX(id) FROM isolates WHERE isolate=%s"""
     ISO_SEL_VALDATES_TB_ISO_VAR_ISO: Final[str] = """
         SELECT validation_date FROM isolates WHERE isolate=%s ORDER BY id DESC LIMIT 2;"""
@@ -221,6 +254,10 @@ class PsqlQueries():
         INSERT INTO project_members(project_id, isolate_id, curator, datestamp)
         SELECT project_id, (SELECT MAX(id) FROM isolates WHERE isolate=%s), curator, datestamp
         from project_members WHERE isolate_id=(SELECT MIN(id) FROM isolates WHERE id in (SELECT id FROM isolates WHERE isolate=%s ORDER BY id DESC LIMIT 2));"""
+
+    # TBL schemes
+    UNI_SEL_ID_TB_SCHEME_VAR_: Final[str] = """
+        SELECT id FROM schemes WHERE name = 'cgMLST';"""
 
     # TBL scheme members
     UNI_INS__TB_SCHMEM_VAR_SCHEME_LOCUS: Final[str] = """

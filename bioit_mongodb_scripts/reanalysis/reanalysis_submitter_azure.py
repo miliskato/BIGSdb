@@ -236,7 +236,7 @@ class _BatchPipelinesReanalysis:
                 shell=True)
             # query_date
             gitlog = subprocess.run(
-                "git log -n 1 --date=short -- . ':(exclude)scheme_metadata.json' ':(exclude)scheme_metadata.txt' ':(exclude)db_update_info.json'",
+                "git log -n 1 --date=short -- . ':(exclude)scheme_metadata.json' ':(exclude)scheme_metadata.txt' ':(exclude)db_update_info.json' ':(exclude)db_metadata.txt'",
                 shell=True, stdout=subprocess.PIPE).stdout.decode('utf-8')
             scheme_last_update = re.findall("[0-9]{4}-[0-9]{2}-[0-9]{2}", gitlog)[0]
             trigger_config['species'][self._species][scheme]["last_update"] = scheme_last_update
@@ -287,9 +287,9 @@ class _BatchPipelinesReanalysis:
         documents_list = [doc for doc in
                           isolates_collection.find({'latest_analysis_date': {"$lt": maximal_analysis_date,
                                                                              "$gte": minimal_analysis_date}},
-                                                   {"_id": 1, "fasta_path": 1, "vcf_path": 1, "vcf_path_unfiltered": 1,
-                                                    "original_input_format": 1, "latest_analysis_date": 1,
-                                                    "report_directory": 1, "results.isolates_id": 1}
+                                                   {"_id": 1, "fasta_path": 1, "vcf_path": 1,
+                                                    "latest_analysis_date": 1, "report_directory": 1,
+                                                    "results.isolates_id": 1}
                                                    )
                           ]
         logging.info(f"{len(documents_list)} isolates to be reanalyzed for {self._species}_{self._dtap}")
@@ -371,13 +371,12 @@ class _BatchPipelinesReanalysis:
             f'--output-dir {report_dir}',
             f"--output-html {report_dir}/report.html",
             f'--output-tsv {report_dir}/report.tsv',
-            ' '.join([f"--{x}" for x in analysis_arguments]),
+            ' '.join([f"--{x}" for x in analysis_arguments if x in self._reanalysis_config['species'][self._species]['options_without_vcf']]) if self._species == 'mycobacterium' and not mongodb_document.get("vcf_path") else ' '.join([f"--{x}" for x in analysis_arguments]),
             '--threads 2',
             f'--sample-name {isolate_id}'
-            f"--reanalysis-original-input {mongodb_document['original_input_format']}"
         ])
-        if self._species == 'mycobacterium' and mongodb_document['original_input_format'] != 'FASTA':
-            base_command += f' --vcf-unfiltered {mongodb_document["vcf_path_unfiltered"]}' if mongodb_document.get("vcf_path_unfiltered") else ''
+        if self._species == 'mycobacterium':
+            base_command += f' --vcf-unfiltered {mongodb_document["vcf_path"]}' if mongodb_document.get("vcf_path") else ''
         # Copy the stderr and stdout files from the temporary working dir to the fileshare because they
         # might contain more information than the camel.log
         post_command = f'cp $AZ_BATCH_TASK_DIR/std*.txt {report_dir}/'

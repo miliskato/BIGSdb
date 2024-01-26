@@ -19,8 +19,7 @@ class TblClassificationGroups(DatabaseConnection):
     def count_group(self, param: Tuple[str, str]) -> List[Tuple[int]]:
         """
         Counts the nr of times a group_id occurs in a specific scheme with a specific group_id (0 or 1)
-        :param param: variables to feed to the PSQL query, which also sanitizes these variables,
-        necessary parameters visible in the PSQL query name and query
+        :param param: cluster group scheme id, group id
         :return: Count enclosed in a tuple and a list
         """
         return self.execute_query(PsqlQueries.SEQ_SEL_COUNT_TB_CLGR_VAR_CGSCHID_GRID, param)
@@ -28,8 +27,7 @@ class TblClassificationGroups(DatabaseConnection):
     def inactivate_group(self, param: Tuple[str, str]) -> None:
         """
         Updates a specific group to not be active anymore
-        :param param: variables to feed to the PSQL query, which also sanitizes these variables,
-        necessary parameters visible in the PSQL query name and query
+        :param param: cluster group scheme id, group id
         :return: None
         """
         self.execute_query(PsqlQueries.SEQ_UPD_ACTIVE_TB_CLGR_VAR_CGSCHID_GRID, param)
@@ -37,8 +35,15 @@ class TblClassificationGroups(DatabaseConnection):
     def insert_group(self, param: Tuple[str, str]) -> None:
         """
         Inserts a new group in a specific clustering group scheme
-        :param param: variables to feed to the PSQL query, which also sanitizes these variables,
-        necessary parameters visible in the PSQL query name and query
+        :param param: cluster group scheme id, group id
         :return: None
         """
         self.execute_query(PsqlQueries.SEQ_INS__TB_CLGR_VAR_CGSCHID_GRID, param)
+
+    def delete_groups(self, param: Tuple[int]) -> None:
+        """
+        Inserts a new group in a specific clustering group scheme
+        :param param: cluster group scheme id
+        :return: None
+        """
+        self.execute_query(PsqlQueries.SEQ_DEL__TB_CLGR_VAR_CGSCHID, param)

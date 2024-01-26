@@ -1,3 +1,4 @@
+import logging
 import numba as nb
 import numpy as np
 
@@ -13,32 +14,25 @@ def get_distance(data: np.array, func_name: str, start: int = 0) -> np.array:
     """
 
     func = eval(func_name)
-    dist = np.zeros((data.shape[0] - start, data.shape[0] - start), dtype=np.int32)
+    logging.getLogger('numba').setLevel(logging.WARNING)
+    dist = np.zeros((data.shape[0] - start, data.shape[0]), dtype=np.int32)
     for i in range(start, data.shape[0]):
-        for j in range(start, i):
-            d = func(data, i, j)
-            dist[i - start, j - start] = d[j - i]
+        for j in range(0, i):
+            dist[i - start, j] = func(data, i, j)
     return dist
 
 @nb.jit(nopython=True)
-def hamming_dist(mat: np.ndarray, s: int, e: int) -> np.ndarray:
+def hamming_dist(mat: np.ndarray, line1: int, line2: int) -> int:
     """
-    hamming distances computation function. Compute the hamming distances for the line of the distance matrix between
-    indices s and e
+    hamming distances computation function. Compute the hamming distances between two lines
     :param mat: matrix to store the distances in
-    :param s: starting line to compute the distances
-    :param e: ending line to compute the distances
+    :param line1: starting line to compute the distances
+    :param line2: ending line to compute the distances
     :return:
     """
-    dist = np.zeros((e-s, mat.shape[0]), dtype=np.int32)
     n_loci = mat.shape[1]
-    for i in range(s, e):
-        for j in range(i):
-            hamming = 0
-            for k in range(n_loci):
-                if mat[j, k] != '0':
-                    if mat[i, k] != '0':
-                        if mat[i, k] != mat[j, k]:
-                            hamming += 1
-            dist[i - s, j - s] = int(hamming)
-    return dist
+    hamming = 0
+    for k in range(n_loci):
+        if mat[line2, k] != '0' and mat[line1, k] != '0' and mat[line2, k] != mat[line1, k]:
+            hamming += 1
+    return hamming
