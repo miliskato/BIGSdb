@@ -74,12 +74,52 @@ class MongoToBigs:
         # Open Bigsdb isolates table
         self._isolates_psql_tbl = TblIsolates(self._species)
 
+        # Prepare cgmlst cache updater command
+        with TblSchemes(self._species, 'isolates') as isolates_schemes_psql_tbl:
+            self._cgmlst_bigsdb_scheme_id = isolates_schemes_psql_tbl.select_scheme_id_cgmlst()[0][0]
+        cache_command = f'/home/bigsdb/BIGSdb/scripts/maintenance/update_scheme_caches.pl ' \
+                        f'--database bigsdb_{self._species}_isolates --schemes {self._cgmlst_bigsdb_scheme_id}'
+        self._cache_command_object = Command(cache_command)
+
+        # Prepare
+        self._list_of_new_isolates_for_alerts = []
+        self._list_of_new_versions_for_alerts = []
+
         # Execute main function
         try:
             self._mongo_to_bigs()
-        except Exception as exceptionmessage:
-            send_email(f"{exceptionmessage}\n{traceback.format_exc()}")
-            raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}: {exceptionmessage}\n{traceback.format_exc()}")
+        except Exception as exceptionmessage1:
+            """
+            if an insertion into bigsdb fails, the alerts for the succeeded insertions need to be evaluated,
+            because else they would not be evaluated at all
+            for this purpose the cache first needs to be updated after having inserted new isolates/cgsts
+            (the cgst needs to come from the seqdef db)
+            """
+            traceback1 = traceback.format_exc()
+
+            self._cache_command_object.run(Path(os.getcwd()))
+            if self._cache_command_object.returncode != 0:
+                send_email(f"update of the cache to display the clustering failed on host {socket.gethostname()}")
+                raise RuntimeError(
+                    f"update of the cache to display the clustering failed on host {socket.gethostname()}")
+
+            # then run the alerts implementation for distance matrices
+            # ofcourse this can fail too, therefore we encapsulate it in another try except
+            try:
+                if len(self._list_of_new_isolates_for_alerts + self._list_of_new_versions_for_alerts) > 0:
+                    AlertsToBigs(self._list_of_new_isolates_for_alerts, self._list_of_new_versions_for_alerts,
+                                 self._species, self._cgmlst_bigsdb_scheme_id)
+            except Exception as exceptionmessage2:
+                traceback2 = traceback.format_exc()
+                send_email(f"Failure 1: {exceptionmessage1}\n{traceback1}\n"
+                           f"Failure 2: {exceptionmessage2}\n{traceback2}",
+                           subject=f"{Path(__file__).name} double fail on host {socket.gethostname()}")
+                raise Exception(f"{Path(__file__).name} double fail on host {socket.gethostname()}: "
+                                f"Failure 1: {exceptionmessage1}\n{traceback1}\n"
+                                f"Failure 2: {exceptionmessage2}\n{traceback2}")
+
+            send_email(f"{exceptionmessage1}\n{traceback1}")
+            raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}: {exceptionmessage1}\n{traceback1}")
 
     def _mongo_to_bigs(self) -> None:
         """
@@ -92,13 +132,8 @@ class MongoToBigs:
         NewClusteringInfoToBigs(self._species, Path(self._bigsdb_config_data['naive_clustering_distance_matrix_file'].replace('species', self._species)), mongo_config_data=self._mongo_config_data)
 
         # update the bigsdb cache so the clustering schemes get updated
-        with TblSchemes(self._species, 'isolates') as isolates_schemes_psql_tbl:
-            cgmlst_bigsdb_scheme_id = isolates_schemes_psql_tbl.select_scheme_id_cgmlst()[0][0]
-        cache_command = f'/home/bigsdb/BIGSdb/scripts/maintenance/update_scheme_caches.pl ' \
-                        f'--database bigsdb_{self._species}_isolates --schemes {cgmlst_bigsdb_scheme_id}'
-        cache_command_object = Command(cache_command)
-        cache_command_object.run(Path(os.getcwd()))
-        if cache_command_object.returncode != 0:
+        self._cache_command_object.run(Path(os.getcwd()))
+        if self._cache_command_object.returncode != 0:
             send_email(f"update of the cache to display the clustering failed on host {socket.gethostname()}")
             raise RuntimeError(f"update of the cache to display the clustering failed on host {socket.gethostname()}")
 
@@ -112,11 +147,17 @@ class MongoToBigs:
             sample_presence = self._isolates_psql_tbl.count_isolate((document_id,))
             if sample_presence[0][0] == 0:
                 results_type = "new_isolate"
+                self._list_of_new_isolates_for_alerts.append(
+                    {'isolate_name': document_id, 'cgST': document['results']['cgST'],
+                     'isolation_date': document['results']['analysis_date']})  # todo change date to isolation_date
             elif sample_presence[0][0] == 1 and (Path(self._bigsdb_config_data['failsafe']['flag_dir']) / '.'.join(
                     [document_id, self._bigsdb_config_data['failsafe']['flag_append']])).is_file():
                 # isolate into bigsdb was started but failed during insertion.
                 # if argument "new_isolate" is passed to main_results_inserter and it finds the flag, it will remove the isolate and the flag, and then recreate the flag and start insertion again.
                 results_type = "new_isolate"
+                self._list_of_new_isolates_for_alerts.append(
+                    {'isolate_name': document_id, 'cgST': document['results']['cgST'],
+                     'isolation_date': document['results']['analysis_date']})  # todo change date to isolation_date
             else:
                 results_type = "reanalysis"
                 different_version = self.__check_if_reanalysis_different(document, document_id)
@@ -150,16 +191,17 @@ class MongoToBigs:
                     insert_assembly(document_id, self._species, fasta_dir)
             logging.info(f"wrote new results version for {document_id} to bigsdb")
 
-        # Update cache again:
-        cache_command_object.run(Path(os.getcwd()))
-        if cache_command_object.returncode != 0:
+        # Update cache again before alerts implementation because it will :
+        self._cache_command_object.run(Path(os.getcwd()))
+        if self._cache_command_object.returncode != 0:
             send_email(f"update of the cache to display the clustering failed on host {socket.gethostname()}")
             raise RuntimeError(f"update of the cache to display the clustering failed on host {socket.gethostname()}")
 
-        list_of_isolates_in_bigs = self._isolates_psql_tbl.listing_isolates()
-        with Path('/scratch/bigsupload/mongo/list_of_isolates.txt').open('w') as fileout:
-            for item in list_of_isolates_in_bigs:
-                fileout.write(f"{item[0]}\n")
+        # Run Alerts to bigs after updating the cache because it accesses a SQL table that is updated by the cache updater.
+        # also run it after having inserted all isolates into bigsdb
+        if len(self._list_of_new_isolates_for_alerts + self._list_of_new_versions_for_alerts) > 0:
+            AlertsToBigs(self._list_of_new_isolates_for_alerts, self._list_of_new_versions_for_alerts, self._species, self._cgmlst_bigsdb_scheme_id)
+
 
     def __get_list_of_documents(self) -> List[Dict[str, Any]]:
         """
