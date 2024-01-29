@@ -18,8 +18,8 @@ class TblAlerts(DatabaseConnection):
 
     def insert_alert(self, param: Tuple[str, str]) -> None:
         """
-        Inserts a new alert for a given type (warning or alert) and a given method (distance_matrix or complete_linkage) # todo method names
-        :param param: type (warning or alert), method (distance_matrix or complete_linkage)
+        Inserts a new alert for a given type (warning or alert) and a given method (distance matrix or complete linkage)
+        :param param: type (warning or alert), method (distance matrix or complete linkage)
         :return: None
         """
         self.execute_query(PsqlQueries.ISO_INS__TB_AL_VAR_TYPE_METH, param)

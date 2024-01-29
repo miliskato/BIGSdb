@@ -18,7 +18,7 @@ class TblAlertDetails(DatabaseConnection):
 
     def insert_alert_metadata(self, param: Tuple[str, str]) -> None:
         """
-        Inserts an alert metadata value for a given alert metadata field for the last inserted validation
+        Inserts an alert metadata value for a given alert metadata field for the last inserted validation.
         :param param: alert detail field, value
         :return: None
         """
@@ -26,7 +26,7 @@ class TblAlertDetails(DatabaseConnection):
 
     def select_alert_for_isolate(self, param: Tuple[str, str]) -> Optional[List[Tuple[int, str, str]]]:
         """
-        Selects the alert id and the type of an alert belonging to a bigsdb id and computation method
+        Selects the alert id and the type of an alert belonging to a bigsdb id and computation method.
         :param param: isolate bigsdb id as str, alert computation method
         :return: None or list of tuple of alert info: (alert_id, type)
         """
@@ -34,7 +34,7 @@ class TblAlertDetails(DatabaseConnection):
 
     def update_details_for_alert_id(self, param: Tuple[str, str, str]) -> None:
         """
-        Updates the alert details value for a given field and a given alert id
+        Updates the alert details value for a given field and a given alert id.
         :param param: value, field, alert_id as str
         :return: None
         """
