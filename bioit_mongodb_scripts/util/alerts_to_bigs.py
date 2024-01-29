@@ -44,7 +44,7 @@ class AlertsToBigs:
         self._affected_isolates_tuples: set[Tuple[Any], ...] = set()
         self._subject_isolates_tuples: set[Tuple[Any], ...] = set()
 
-        self._investigation_method = 'distance_matrix'
+        self._investigation_method = 'distance matrix'
         self._infinite_timeframe = self._bigsdb_config_data['alerts'][self._species]['timeframe_in_months'] > 10000
         self._evaluate_warning_and_alert_from_distance_matrix()
 

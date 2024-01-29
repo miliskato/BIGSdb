@@ -73,20 +73,25 @@ class TblIsolates(DatabaseConnection):
 
     def select_cgsts_of_two_latest_versions_of_isolate(self, param: Tuple[int, int, str]) -> List[Optional[Tuple[Any]]]:
         """
-        Used for isolates where multiple versions exist; selects the cgsts of the two latest versions of an isolate, along with the isolate ids
+        Used for isolates where multiple versions exist; selects the cgsts of the two latest versions of an isolate,
+        along with the isolate ids
         :param param: cgmlst scheme id, cgmlst scheme id, isolate name
         :return: None or list of tuple isolate_id and cgst
         """
         return self.execute_query(PsqlQueries.ISO_SEL_ID_CGST_TB_ISO_VAR_SCHID_SCHID_ISO, param)
 
-    def select_isolates_by_cgsts_and_between_dates(self, param: Tuple[int, int, int, Tuple[str, ...], str, str]) -> List[Optional[Tuple[Any]]]:
+    def select_isolates_by_cgsts_and_between_dates(self, param: Tuple[int, int, int, Tuple[str, ...], str, str]) -> \
+            List[Optional[Tuple[Any]]]:
         """
-        Selects all current versions of isolates that belong to a set of cgsts and were isolated between a given set of dates.
+        Selects all current versions of isolates that belong to a set of cgsts and were isolated between a
+        given set of dates.
         # todo replace the date in the sql query once there is a fixed analysis date, and then afterwards once the isolation date is known !!!
-        :param param: cgmlst scheme id, cgmlst scheme id, cgmlst scheme id, cgsts, date1 (in YYYY-MM-DD), date2 (in YYYY-MM-DD)
+        :param param: cgmlst scheme id, cgmlst scheme id, cgmlst scheme id, cgsts,
+        date1 (in YYYY-MM-DD), date2 (in YYYY-MM-DD)
         :return: None or list of tuple of isolates.id, isolates.isolate, isolates.date_entered, cgst
         """
-        return self.execute_query(PsqlQueries.ISO_SEL_ID_ISO_DATE_CGST_TB_ISO_VAR_SCHID_SCHID_SCHID_CGSTS_DATE1_DATE2, param)
+        return self.execute_query(PsqlQueries.ISO_SEL_ID_ISO_DATE_CGST_TB_ISO_VAR_SCHID_SCHID_SCHID_CGSTS_DATE1_DATE2,
+                                  param)
 
     def select_isolates_by_cgsts(self, param: Tuple[int, int, int, Tuple[str, ...]]) -> List[Optional[Tuple[Any]]]:
         """
