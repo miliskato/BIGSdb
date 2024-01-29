@@ -22,6 +22,11 @@ class PsqlQueries():
     ISO_INS__TB_ALDE_VAR_FIELD_VALUE: Final[str] = """
         INSERT INTO alert_details (alert_id, index, field, value) 
         VALUES((SELECT MAX(id::int) FROM alerts), 1, %s, %s);"""
+    ISO_SEL_ALID_TYPE_TB_ALDE_VAR_ISOID_METH: Final[str] = """
+        SELECT alert_id, type FROM alert_details LEFT JOIN alerts ON 
+        alerts.id = alert_details.alert_id WHERE field = 'isolate_id' AND value = %s and method = %s;"""
+    ISO_UPD_VAL_TB_ALDE_VAR_ALID_FIELD: Final[str] = """
+        UPDATE alert_details SET value = %s WHERE alert_id = %s AND field = %s"""
 
     # TBL alerts
     ISO_INS__TB_AL_VAR_TYPE_METH: Final[str] = """
@@ -31,6 +36,8 @@ class PsqlQueries():
         VALUES ((SELECT CASE WHEN (SELECT MAX(id::int) FROM alerts) IS NULL THEN 1 ELSE (SELECT(SELECT MAX(id::int) FROM alerts)+1) END), 
         %s, %s, 1, (SELECT CURRENT_DATE), 
         (SELECT CURRENT_DATE), 'pending', true);"""
+    ISO_UPD_TYPE_STATUS_TB_ALDE_VAR_ALID: Final[str] = """
+        UPDATE alerts SET type = 'alert' AND status = 'pending' WHERE alert_id = %s"""
 
     # TBL allele designations
     ISO_DEL__TB_AD_VAR_LOCUS: Final[str] = """DELETE FROM allele_designations WHERE locus LIKE %s;"""
@@ -167,12 +174,16 @@ class PsqlQueries():
         SELECT latest_analysis_date FROM isolates WHERE id=(SELECT MAX(id) FROM isolates WHERE isolate=%s);"""
     ISO_SEL_ID_ISO_DATE_CGST_TB_ISO_VAR_SCHID_SCHID_SCHID_CGSTS_DATE1_DATE2: Final[str] = """
         SELECT isolates.id, isolates.isolate, isolates.date_entered, cgst FROM isolates LEFT JOIN 
-        temp_isolates_scheme_fields_%s on isolates.id = temp_isolates_scheme_fields_%s.id 
-        WHERE new_version IS NULL and temp_isolates_scheme_fields_%s.cgst IN %s AND isolates.date_entered>%s AND isolates.date_entered<=%s;"""
+        temp_isolates_scheme_fields_%s ON isolates.id = temp_isolates_scheme_fields_%s.id 
+        WHERE new_version IS NULL AND temp_isolates_scheme_fields_%s.cgst IN %s AND isolates.date_entered>%s AND isolates.date_entered<=%s;"""
     ISO_SEL_ID_ISO_DATE_CGST_TB_ISO_VAR_SCHID_SCHID_SCHID_CGSTS: Final[str] = """
         SELECT isolates.id, isolates.isolate, isolates.date_entered, cgst FROM isolates LEFT JOIN 
+        temp_isolates_scheme_fields_%s ON isolates.id = temp_isolates_scheme_fields_%s.id 
+        WHERE new_version IS NULL AND temp_isolates_scheme_fields_%s.cgst IN %s;"""
+    ISO_SEL_ID_CGST_TB_ISO_VAR_SCHID_SCHID_ISO: Final[str] = """
+        SELECT isolates.id, cgst FROM isolates LEFT JOIN 
         temp_isolates_scheme_fields_%s on isolates.id = temp_isolates_scheme_fields_%s.id 
-        WHERE new_version IS NULL and temp_isolates_scheme_fields_%s.cgst IN %s;"""
+        WHERE isolates.isolate = %s ORDER BY isolates.id DESC LIMIT 2;"""
     ISO_SEL_MAXID_TB_ISO_VAR_ISO: Final[str] = """SELECT MAX(id) FROM isolates WHERE isolate=%s"""
     ISO_SEL_VALDATES_TB_ISO_VAR_ISO: Final[str] = """
         SELECT validation_date FROM isolates WHERE isolate=%s ORDER BY id DESC LIMIT 2;"""

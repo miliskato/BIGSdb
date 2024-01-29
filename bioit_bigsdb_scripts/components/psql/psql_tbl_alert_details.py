@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import List, Optional, Tuple
 
 from .databaseconnection import DatabaseConnection
 from .psql_queries import PsqlQueries
@@ -23,3 +23,19 @@ class TblAlertDetails(DatabaseConnection):
         :return: None
         """
         self.execute_query(PsqlQueries.ISO_INS__TB_ALDE_VAR_FIELD_VALUE, param)
+
+    def select_alert_for_isolate(self, param: Tuple[str, str]) -> Optional[List[Tuple[int, str, str]]]:
+        """
+        Selects the alert id and the type of an alert belonging to a bigsdb id and computation method
+        :param param: isolate bigsdb id as str, alert computation method
+        :return: None or list of tuple of alert info: (alert_id, type)
+        """
+        return self.execute_query(PsqlQueries.ISO_SEL_ALID_TYPE_TB_ALDE_VAR_ISOID_METH, param)
+
+    def update_details_for_alert_id(self, param: Tuple[str, str, str]) -> None:
+        """
+        Updates the alert details value for a given field and a given alert id
+        :param param: value, field, alert_id as str
+        :return: None
+        """
+        return self.execute_query(PsqlQueries.ISO_UPD_VAL_TB_ALDE_VAR_ALID_FIELD, param)

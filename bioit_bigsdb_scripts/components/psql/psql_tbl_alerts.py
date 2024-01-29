@@ -23,3 +23,11 @@ class TblAlerts(DatabaseConnection):
         :return: None
         """
         self.execute_query(PsqlQueries.ISO_INS__TB_AL_VAR_TYPE_METH, param)
+
+    def update_warning_to_alert_and_status_to_pending(self, param: Tuple[str]) -> None:
+        """
+        Updates a given alert's type to 'alert', and its status to 'pending', whatever it was before
+        :param param: alert_id as str
+        :return: None
+        """
+        self.execute_query(PsqlQueries.ISO_UPD_TYPE_STATUS_TB_ALDE_VAR_ALID, param)
