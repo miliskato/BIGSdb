@@ -48,7 +48,7 @@ def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     parser.add_argument('--species', required=False, type=str, choices=specieslist, default=specieslist,
                         nargs='+')  # this does allow for the same species multiple times but doesn't really matter, they're uniquely filtered using set() anyway
     parser.add_argument('--dtap', required=False, type=str, choices=['dev', 'test', 'acc', 'prod'],
-                        default=['dev', 'test', 'acc', 'prod'], nargs='+')  # this does allow for the same dtap multiple times but doesn't really matter, they're uniquely filtered using set() anyway
+                        default=['prod'], nargs='+')  # this does allow for the same dtap multiple times but doesn't really matter, they're uniquely filtered using set() anyway
     return parser.parse_args()
 
 
