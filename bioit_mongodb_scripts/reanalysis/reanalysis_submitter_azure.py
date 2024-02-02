@@ -376,7 +376,7 @@ class _BatchPipelinesReanalysis:
             f'--sample-name {isolate_id}',
             f"--reanalysis-original-input {mongodb_document['original_input_format']}"
         ])
-        if self._species == 'mycobacterium' and mongodb_document['original_input_format'] != 'FASTA':
+        if self._species == 'mycobacterium' and mongodb_document['original_input_format'] != 'fasta':
             base_command += f' --vcf-unfiltered {mongodb_document["vcf_path_unfiltered"]}' if mongodb_document.get("vcf_path_unfiltered") else ''
         # Copy the stderr and stdout files from the temporary working dir to the fileshare because they
         # might contain more information than the camel.log
