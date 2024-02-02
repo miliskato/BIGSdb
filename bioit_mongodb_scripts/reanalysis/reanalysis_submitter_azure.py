@@ -34,7 +34,7 @@ from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_conf
 
 BATCH_POOL_NAME: Final[str] = 'reanalysis_pool_focal'
 BATCH_JOB_NAME_PREFIX: Final[str] = 'reanalysis_tasks_'
-AUTOSCALE_FORMULA = """$TargetLowPriorityNodes = max(0, min(20, $PendingTasks.GetSample(TimeInterval_Minute)));\n$NodeDeallocationOption = taskcompletion;"""
+AUTOSCALE_FORMULA = """$TargetLowPriorityNodes = max(0, min(20, $PendingTasks.GetSample(TimeInterval_Minute*5)));\n$NodeDeallocationOption = taskcompletion;"""
 
 
 def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
@@ -373,7 +373,7 @@ class _BatchPipelinesReanalysis:
             f'--output-tsv {report_dir}/report.tsv',
             ' '.join([f"--{x}" for x in analysis_arguments]),
             '--threads 2',
-            f'--sample-name {isolate_id}'
+            f'--sample-name {isolate_id}',
             f"--reanalysis-original-input {mongodb_document['original_input_format']}"
         ])
         if self._species == 'mycobacterium' and mongodb_document['original_input_format'] != 'FASTA':
