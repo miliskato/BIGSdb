@@ -77,9 +77,8 @@ class NewClusteringInfoToBigs:
             self.__insert_new_alleles()
         if len(self._new_st) > 0:
             self.__insert_sequence_types()
-        # this comment disabled BBP's clustering implementation in bigsdb on 2023/12/06
-        # if len(self._new_cluster_membership) > 0:
-        #     self.__insert_or_update_clustering()
+        if len(self._new_cluster_membership) > 0:
+            self.__insert_or_update_clustering()
         self.__update_naive_clustering_implementation()
         self.__update_last_update_date()
 
@@ -192,7 +191,7 @@ class NewClusteringInfoToBigs:
             TblClassificationGroupProfiles(self._species) as seqdef_clgrpr_psql_tbl, \
                 TblClassificationGroupProfileHistory(self._species) as seqdef_clgrprhist_psql_tbl:
             for cl_membership in self._new_cluster_membership:
-                cg_scheme_id = self._clustering_thresholds.index(cl_membership['threshold']) + 1
+                cg_scheme_id = self._clustering_thresholds.index(cl_membership['threshold']) + 1  # todo fix this very bad implementation
                 profile_id = cl_membership['cgST']
                 group_id = cl_membership['clustering_membership']
                 seqdef_clgr_psql_tbl.count_group((cg_scheme_id, group_id))

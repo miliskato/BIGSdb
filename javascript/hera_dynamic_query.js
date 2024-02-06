@@ -18,7 +18,7 @@ function generateUrlCgst(species, cgmlst_bigsdb_scheme_id, cgsts) {
 }
 
 function generateUrlCgstDate(species, cgmlst_bigsdb_scheme_id, cgsts, date_lower, date_upper) {
-    // generates the url to look up all isolates belonging to specific cgsts inserted above a certain date (YYYY-MM-DD)
+    // generates the url to look up all isolates belonging to specific cgsts and inserted within a certain date range (YYYY-MM-DD)
     // usage: <script type="text/javascript">generateUrlCgst("mycobacterium", "2", ["1","2","3"], "2020-02-03", "2026-06-19")</script>
 
     // arg species: str: commonly used bioit species name; either genus or specific like stec
@@ -27,8 +27,8 @@ function generateUrlCgstDate(species, cgmlst_bigsdb_scheme_id, cgsts, date_lower
     // arg date_lower; str: the lowerbound isolation date
     // arg date_upper; str: the upperbound isolation date
 
-    // an example return would be; "/cgi-bin/bigsdb/bigsdb.pl?set_id=0&page=query&submit=1&order=id&db=bigsdb_mycobacterium_isolates&designation_value1=1&designation_field1=s_2_cgST&designation_value2=5&designation_field2=s_2_cgST&prov_field1=date_entered&prov_value1=2020-06-05&prov_operator1=>"
-    let url = `/cgi-bin/bigsdb/bigsdb.pl?set_id=0&page=query&submit=1&db=bigsdb_${species}_isolates&prov_field1=date_entered&prov_value1=${date_lower}&prov_operator1>=&prov_field2=date_entered&prov_value2=${date_upper}&prov_operator1<=`;
+    // an example return would be; "/cgi-bin/bigsdb/bigsdb.pl?set_id=0&page=query&submit=1&order=id&db=bigsdb_mycobacterium_isolates&designation_value1=1&designation_field1=s_2_cgST&designation_value2=5&designation_field2=s_2_cgST&prov_field1=date_entered&prov_value1=2020-06-05&prov_operator1=>&prov_field2=date_entered&prov_value2=2024-08-02&prov_operator2<="
+    let url = `/cgi-bin/bigsdb/bigsdb.pl?set_id=0&page=query&submit=1&db=bigsdb_${species}_isolates&prov_field1=date_entered&prov_value1=${date_lower}&prov_operator1>=&prov_field2=date_entered&prov_value2=${date_upper}&prov_operator2<=`;
 
     cgsts.forEach((cgst, index) => {
         url += `&designation_value${index + 1}=${cgst}&designation_field${index + 1}=s_${cgmlst_bigsdb_scheme_id}_cgST`;
@@ -36,6 +36,32 @@ function generateUrlCgstDate(species, cgmlst_bigsdb_scheme_id, cgsts, date_lower
     url += `&designation_andor=OR`;
 
     return url;
+}
+
+function generateUrlClgr(species, clgr_bigsdb_scheme_id, clgr) {
+    // generates the url to look up all isolates belonging to a specific cluster/classification group
+    // usage: <script type="text/javascript">generateUrlCgst("mycobacterium", "2", "5")</script>
+
+    // arg species: str: commonly used bioit species name; either genus or specific like stec
+    // arg clgr_bigsdb_scheme_id: int as str: either 1 or 2 for the warnings and alerts, but possibly another number if htere are more hierarchical clustering thresholds
+    // arg clgr: int as str: cluster/classification group
+
+    // an example return would be; "/cgi-bin/bigsdb/bigsdb.pl?set_id=0&page=query&submit=1&order=id&db=bigsdb_mycobacterium_isolates&designation_value1=1&designation_field1=cg_2_group"
+    return `/cgi-bin/bigsdb/bigsdb.pl?set_id=0&page=query&submit=1&db=bigsdb_${species}_isolates&designation_value1=${clgr}&designation_field1=cg_${clgr_bigsdb_scheme_id}_group`;
+}
+
+function generateUrlClgrDate(species, clgr_bigsdb_scheme_id, clgr, date_lower, date_upper) {
+    // generates the url to look up all isolates belonging to a specific cluster/classification group and inserted within a certain date range (YYYY-MM-DD)
+    // usage: <script type="text/javascript">generateUrlCgst("mycobacterium", "2", "5")</script>
+
+    // arg species: str: commonly used bioit species name; either genus or specific like stec
+    // arg clgr_bigsdb_scheme_id: int as str: either 1 or 2 for the warnings and alerts, but possibly another number if htere are more hierarchical clustering thresholds
+    // arg clgr: int as str: cluster/classification group
+        // arg date_lower; str: the lowerbound isolation date
+    // arg date_upper; str: the upperbound isolation date
+
+    // an example return would be; "/cgi-bin/bigsdb/bigsdb.pl?set_id=0&page=query&submit=1&order=id&db=bigsdb_mycobacterium_isolates&designation_value1=1&designation_field1=cg_2_group&prov_field1=date_entered&prov_value1=2020-06-05&prov_operator1=>&prov_field2=date_entered&prov_value2=2024-08-02&prov_operator2<="
+    return `/cgi-bin/bigsdb/bigsdb.pl?set_id=0&page=query&submit=1&db=bigsdb_${species}_isolates&designation_value1=${clgr}&designation_field1=cg_${clgr_bigsdb_scheme_id}_group&prov_field1=date_entered&prov_value1=${date_lower}&prov_operator1>=&prov_field2=date_entered&prov_value2=${date_upper}&prov_operator2<=`;
 }
 
 const parseHTML_returnINT = html => {

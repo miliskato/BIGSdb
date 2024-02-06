@@ -35,6 +35,14 @@ class TblClassificationSchemes(DatabaseConnection):
             raise ValueError(f'Wrong db_type {self._db_type} for the current table object/instance')
         self.execute_query(PsqlQueries.SEQ_INS__TB_CLSCH_VAR_CGSCHID_SCHEME_NAME_DESC_INCTHR_CGSCHID, param)
 
+    def select_cgschemeid_by_threshold(self, param: Tuple[int]) -> Union[List, List[Tuple[int]]]:
+        """
+        Selects a scheme id by inclusion threshold.
+        :param param: the inclusion threshold for which the scheme id is required
+        :return: None or a list of tuples of two strings (clustering scheme id and inclusion threshold)
+        """
+        return self.execute_query(PsqlQueries.SEQ_SEL_CGSCHID_TB_CLSCH_VAR_INCTHR, param)
+
     def select_cgschemes(self) -> Union[List, List[Tuple[str, str]]]:
         """
         Selects all scheme id and their inclusion tresholds

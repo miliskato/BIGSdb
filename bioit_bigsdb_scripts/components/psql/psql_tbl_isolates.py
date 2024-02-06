@@ -80,26 +80,53 @@ class TblIsolates(DatabaseConnection):
         """
         return self.execute_query(PsqlQueries.ISO_SEL_ID_CGST_TB_ISO_VAR_SCHID_SCHID_ISO, param)
 
-    def select_isolates_by_cgsts_and_between_dates(self, param: Tuple[int, int, int, Tuple[str, ...], str, str]) -> \
+    def select_isolates_by_cgsts_and_between_dates(self, param: Tuple[int, Tuple[str, ...], str, str]) -> \
             List[Optional[Tuple[Any]]]:
         """
         Selects all current versions of isolates that belong to a set of cgsts and were isolated between a
         given set of dates.
         # todo replace the date in the sql query once there is a fixed analysis date, and then afterwards once the isolation date is known !!!
-        :param param: cgmlst scheme id, cgmlst scheme id, cgmlst scheme id, cgsts,
+        :param param: cgmlst scheme id, cgsts, date1 (in YYYY-MM-DD), date2 (in YYYY-MM-DD)
+        :return: None or list of tuple of isolates.id, isolates.isolate, isolates.date_entered, cgst
+        """
+        param_arranged_for_psql = (param[0], param[0], param[0], param[1], param[2], param[3])
+        return self.execute_query(PsqlQueries.ISO_SEL_ID_ISO_DATE_CGST_TB_ISO_VAR_SCHID_SCHID_SCHID_CGSTS_DATE1_DATE2,
+                                  param_arranged_for_psql)
+
+    def select_isolates_by_cgsts(self, param: Tuple[int, Tuple[str, ...]]) -> List[Optional[Tuple[Any]]]:
+        """
+        Selects all current versions of isolates that belong to a set of cgsts
+        # todo replace the date in the sql query once there is a fixed analysis date, and then afterwards once the isolation date is known !!!
+        :param param: cgmlst scheme id, cgsts
+        :return: None or list of tuple of isolates.id, isolates.isolate, isolates.date_entered, cgst
+        """
+        param_arranged_for_psql = (param[0], param[0], param[0], param[1])
+        return self.execute_query(PsqlQueries.ISO_SEL_ID_ISO_DATE_CGST_TB_ISO_VAR_SCHID_SCHID_SCHID_CGSTS, param_arranged_for_psql)
+
+    def select_isolates_by_cluster_group_and_between_dates(self, param: Tuple[int, int, str, str, str]) -> List[Optional[Tuple[Any]]]:
+        """
+        Selects all current versions of isolates that belong to the cluster group of a given cgst and were isolated between a
+        given set of dates.
+        # todo replace the date in the sql query once there is a fixed analysis date, and then afterwards once the isolation date is known !!!
+        :param param: classification_scheme_id, cgmlst scheme id, cgst,
         date1 (in YYYY-MM-DD), date2 (in YYYY-MM-DD)
         :return: None or list of tuple of isolates.id, isolates.isolate, isolates.date_entered, cgst
         """
-        return self.execute_query(PsqlQueries.ISO_SEL_ID_ISO_DATE_CGST_TB_ISO_VAR_SCHID_SCHID_SCHID_CGSTS_DATE1_DATE2,
-                                  param)
+        param_arranged_for_psql = (param[0], param[1], param[1], param[0], param[0], param[0], param[0], param[2],
+                                   param[3], param[4])
+        return self.execute_query(
+            PsqlQueries.ISO_SEL_ID_ISO_DATE_CGST_CLGR_TB_ISO_VAR_CSCHID_SCHID_SCHID_CSCHID_CSCHID_CSCHID_CSCHID_CGST_DATE1_DATE2, param_arranged_for_psql)
 
-    def select_isolates_by_cgsts(self, param: Tuple[int, int, int, Tuple[str, ...]]) -> List[Optional[Tuple[Any]]]:
+    def select_isolates_by_cluster_group(self, param: Tuple[int, int, str]) -> List[Optional[Tuple[Any]]]:
         """
-        Selects all current versions of isolates that belong to a set of cgsts
-        :param param: cgmlst scheme id, cgmlst scheme id, cgmlst scheme id, cgsts
+        Selects all current versions of isolates that belong to the cluster group of a given cgst
+        # todo replace the date in the sql query once there is a fixed analysis date, and then afterwards once the isolation date is known !!!
+        :param param: classification_scheme_id, cgmlst scheme id, cgst
         :return: None or list of tuple of isolates.id, isolates.isolate, isolates.date_entered, cgst
         """
-        return self.execute_query(PsqlQueries.ISO_SEL_ID_ISO_DATE_CGST_TB_ISO_VAR_SCHID_SCHID_SCHID_CGSTS, param)
+        param_arranged_for_psql = (param[0], param[1], param[1], param[0], param[0], param[0], param[0], param[2])
+        return self.execute_query(
+            PsqlQueries.ISO_SEL_ID_ISO_DATE_CGST_CLGR_TB_ISO_VAR_CSCHID_SCHID_SCHID_CSCHID_CSCHID_CSCHID_CSCHID_CGST, param_arranged_for_psql)
 
     def select_latestanalysisdate_for_isolate(self, param: Tuple[str]) -> List[Optional[Tuple[Any]]]:
         """
