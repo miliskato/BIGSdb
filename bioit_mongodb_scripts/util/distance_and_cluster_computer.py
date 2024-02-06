@@ -115,15 +115,30 @@ class DistanceAndClusterComputer:
         :return:
         """
         logging.info(f"{datetime.datetime.now()}: Starting initial clustering and clustering membership encoding")
-        slc = fastcluster.single(ssd.squareform(self._hamming_distances))
+
+        self.compute_hamming_distances('full')
+
         for thresh in cluster_thresholds:
-            cluster_membership = hcluster.fcluster(slc, thresh, criterion='distance')
+            cgst_cluster_dict = {}
+            new_group_id = 1
+            for index, row in enumerate(self._hamming_distances):
+                cgst = index + 1
+                if cgst_cluster_dict.get(cgst):
+                    continue
+                else:
+                    cgst_cluster_dict[cgst] = new_group_id
+                    indices = np.where(row <= thresh)[0]
+                    for index2 in indices:
+                        cgst2 = int(index2) + 1
+                        cgst_cluster_dict[cgst2] = new_group_id
+                    new_group_id += 1
+
             documents = []
-            for entry in range(len(cluster_membership)):
-                doc = {'cgST': self._sequence_types[entry],
+            for cgst, cluster in cgst_cluster_dict.items():
+                doc = {'cgST': cgst,
                        'insertion_date': datetime.datetime.utcnow(),
                        'threshold': thresh,
-                       'clustering_membership': int(cluster_membership[entry])}
+                       'clustering_membership': cluster}
                 documents.append(doc)
             self._insert_a_lot(documents, self._cluster_membership_collection)
             logging.info(f"{datetime.datetime.now()}: Clustering membership finished for threshold {thresh}")

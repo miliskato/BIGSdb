@@ -38,10 +38,10 @@ class MongoCustomClustering:
         self._st_collection, self._cluster_membership_collection, self._cluster_merging_collection = self._mongoinit. \
             initialise_clustering_collections()
 
-    def run_custom_clustering(self, cluster_threshold: List[int]) -> Optional[int]:
+    def run_custom_clustering(self, cluster_thresholds: List[int]) -> Optional[int]:
         """
         Main function to run the whole clustering and storing data in mongoDB
-        :param cluster_threshold: the thresholds for clustering membership to be used for the clustering
+        :param cluster_thresholds: the thresholds for clustering membership to be used for the clustering
         :return: the cg sequence type if the percentage of missing data does not exceed the threshold, else None
         """
         logging.info("Check order of the cgMLST profile")
@@ -61,7 +61,7 @@ class MongoCustomClustering:
         else:
             self._add_new_sequence_type(self._st_collection)
             logging.info(f"Start to process cgmlst profiles for cluster membership computing")
-            self._compute_cluster_membership(cluster_threshold)
+            self._compute_cluster_membership(cluster_thresholds)
             return self._cgmlst_profile.st
 
     def _check_order_of_cgmlst_profile(self, headers_collection: pymongo.collection.Collection) -> None:
@@ -129,15 +129,24 @@ class MongoCustomClustering:
         st_collection.with_options(write_concern=WriteConcern(w="majority")).insert_one(
             self._cgmlst_profile.get_st_collection_entry())
 
-    def _compute_cluster_membership(self, cluster_threshold: List[int]) -> None:
+    def _compute_cluster_membership(self, cluster_thresholds: List[int]) -> None:
         """
         Computes the cluster membership for the new sequence added to the st_collection.
-        :param cluster_threshold: The list of thresholds to be applied when clustering the new st and determine its
+        :param cluster_thresholds: The list of thresholds to be applied when clustering the new st and determine its
         clustering membership.
         :return: None
         """
         distance_cluster = DistanceAndClusterComputer(self._species, self._mongo_config_data)
-        distance_cluster.compute_hamming_distances('last_st')
-        distance_cluster.new_st_cluster_membership(cluster_threshold)
+        cluster_thresholds_not_in_db = []
+        for cluster_threshold in cluster_thresholds:
+            if len(self._cluster_membership_collection.find({'threshold': cluster_threshold})):
+                cluster_thresholds_not_in_db.append(cluster_threshold)
+                cluster_thresholds.remove(cluster_threshold)
+        if cluster_thresholds_not_in_db:
+            distance_cluster.compute_hamming_distances('full')
+            distance_cluster.init_clustering_and_cluster_membership(set(cluster_thresholds_not_in_db))
+        if cluster_thresholds:
+            distance_cluster.compute_hamming_distances('last_st')
+            distance_cluster.new_st_cluster_membership(cluster_thresholds)
         if self._initialize_cluster_index is True:
             self._cluster_membership_collection.create_index([("threshold", 1), ("clustering_membership", 1)])

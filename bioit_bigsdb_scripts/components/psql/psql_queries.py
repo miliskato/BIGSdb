@@ -81,7 +81,7 @@ class PsqlQueries():
         SELECT group_id FROM classification_group_profiles WHERE cg_scheme_id=%s AND profile_id=%s;"""
     SEQ_UPD_GRID_TB_CLGRPR_VAR_CGSCHID_PRID: Final[str] = """
         UPDATE classification_group_profiles SET group_id = %s 
-        WHERE cg_scheme_id=%s AND profile_id=%s;"""
+        WHERE cg_scheme_id=%s AND profile_id='%s';"""
 
     # TBL classification group profile history
     SEQ_INS__TB_CLGRPRHIST_VAR_SCHEME_PRID_CGSCHID_PREVGR: Final[str] = """
@@ -91,17 +91,19 @@ class PsqlQueries():
         %s, %s, %s);"""
 
     # TBL classification schemes
+    SEQ_SEL_CGSCHID_TB_CLSCH_VAR_INCTHR: Final[str] = """
+        SELECT id FROM classification_schemes WHERE inclusion_threshold=%s"""
     SEQ_SEL_CGSCHID_INCTHR_TB_CLSCH_VAR_: Final[str] = """
         SELECT id, inclusion_threshold from classification_schemes"""
     SEQ_INS__TB_CLSCH_VAR_CGSCHID_SCHEME_NAME_DESC_INCTHR_CGSCHID: Final[str] = """
         INSERT INTO classification_schemes(id, scheme_id, name, description, inclusion_threshold, 
         use_relative_threshold, display_order, status, curator, datestamp) 
-        VALUES(%s, (SELECT id FROM schemes WHERE name = %s), %s, %s, %s, 
+        VALUES(%s, (SELECT id FROM schemes WHERE name=%s), %s, %s, %s, 
         false, %s, 'experimental', 1, (SELECT CURRENT_DATE));"""
     ISO_INS__TB_CLSCH_VAR_CGSCHID_SCHEME_NAME_DESC_INCTHR_CGSCHID_CGSCHID: Final[str] = """
         INSERT INTO classification_schemes(id, scheme_id, name, description, inclusion_threshold, 
         use_relative_threshold, seqdef_cscheme_id, display_order, status, curator, datestamp) 
-        VALUES(%s, (SELECT id FROM schemes WHERE name = %s), %s, %s, %s, 
+        VALUES(%s, (SELECT id FROM schemes WHERE name=%s), %s, %s, %s, 
         false, %s, %s, 'experimental', 1, (SELECT CURRENT_DATE));"""
 
     # TBL client database loci
@@ -176,11 +178,24 @@ class PsqlQueries():
     ISO_SEL_ID_ISO_DATE_CGST_TB_ISO_VAR_SCHID_SCHID_SCHID_CGSTS_DATE1_DATE2: Final[str] = """
         SELECT isolates.id, isolates.isolate, isolates.date_entered, cgst FROM isolates LEFT JOIN 
         temp_isolates_scheme_fields_%s ON isolates.id = temp_isolates_scheme_fields_%s.id 
-        WHERE new_version IS NULL AND temp_isolates_scheme_fields_%s.cgst IN %s AND isolates.date_entered>%s AND isolates.date_entered<=%s;"""
+        WHERE new_version IS NULL AND temp_isolates_scheme_fields_%s.cgst IN %s AND isolates.date_entered>%s AND isolates.date_entered<=%s;"""   # todo; date entered needs to be replaced by isolation date
     ISO_SEL_ID_ISO_DATE_CGST_TB_ISO_VAR_SCHID_SCHID_SCHID_CGSTS: Final[str] = """
         SELECT isolates.id, isolates.isolate, isolates.date_entered, cgst FROM isolates LEFT JOIN 
         temp_isolates_scheme_fields_%s ON isolates.id = temp_isolates_scheme_fields_%s.id 
-        WHERE new_version IS NULL AND temp_isolates_scheme_fields_%s.cgst IN %s;"""
+        WHERE new_version IS NULL AND temp_isolates_scheme_fields_%s.cgst IN %s;"""  # todo; date entered needs to be replaced by isolation date
+    ISO_SEL_ID_ISO_DATE_CGST_CLGR_TB_ISO_VAR_CSCHID_SCHID_SCHID_CSCHID_CSCHID_CSCHID_CSCHID_CGST_DATE1_DATE2: Final[str] = """
+        SELECT isolates.id, isolates.isolate, isolates.date_entered, cgst, temp_cscheme_%s.group_id FROM isolates LEFT JOIN 
+        temp_isolates_scheme_fields_%s ON isolates.id = temp_isolates_scheme_fields_%s.id 
+        LEFT JOIN temp_cscheme_%s on cgst = temp_cscheme_%s.profile_id
+        WHERE new_version IS NULL AND temp_cscheme_%s.group_id = 
+        (SELECT group_id FROM temp_cscheme_%s WHERE profile_id = %s)
+        AND isolates.date_entered>%s AND isolates.date_entered<=%s;"""  # todo; date entered needs to be replaced by isolation date
+    ISO_SEL_ID_ISO_DATE_CGST_CLGR_TB_ISO_VAR_CSCHID_SCHID_SCHID_CSCHID_CSCHID_CSCHID_CSCHID_CGST: Final[str] = """
+        SELECT isolates.id, isolates.isolate, isolates.date_entered, cgst, temp_cscheme_%s.group_id FROM isolates LEFT JOIN 
+        temp_isolates_scheme_fields_%s ON isolates.id = temp_isolates_scheme_fields_%s.id 
+        LEFT JOIN temp_cscheme_%s on cgst = temp_cscheme_%s.profile_id
+        WHERE new_version IS NULL AND temp_cscheme_%s.group_id = 
+        (SELECT group_id FROM temp_cscheme_%s WHERE profile_id = %s);"""  # todo; date entered needs to be replaced by isolation date
     ISO_SEL_ID_CGST_TB_ISO_VAR_SCHID_SCHID_ISO: Final[str] = """
         SELECT isolates.id, cgst FROM isolates LEFT JOIN 
         temp_isolates_scheme_fields_%s on isolates.id = temp_isolates_scheme_fields_%s.id 

@@ -668,7 +668,7 @@ sub _get_classification_group_data {
 			  {
 				cscheme       => qq($cscheme->{'name'}$tooltip),
 				scheme        => $scheme_info->{'name'},
-				method        => 'Complete-linkage',
+				method        => 'Single-linkage',
 				threshold     => $cscheme->{'inclusion_threshold'},
 				status        => $cscheme->{'status'},
 				group         => $cg_buffer,

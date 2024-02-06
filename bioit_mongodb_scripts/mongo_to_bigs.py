@@ -153,7 +153,8 @@ class MongoToBigs:
             elif sample_presence[0][0] == 1 and (Path(self._bigsdb_config_data['failsafe']['flag_dir']) / '.'.join(
                     [document_id, self._bigsdb_config_data['failsafe']['flag_append']])).is_file():
                 # isolate into bigsdb was started but failed during insertion.
-                # if argument "new_isolate" is passed to main_results_inserter and it finds the flag, it will remove the isolate and the flag, and then recreate the flag and start insertion again.
+                # if argument "new_isolate" is passed to main_results_inserter and it finds the flag,
+                # it will remove the isolate and the flag, and then recreate the flag and start insertion again.
                 results_type = "new_isolate"
                 self._list_of_new_isolates_for_alerts.append(
                     {'isolate_name': document_id, 'cgST': document['results']['cgST'],
@@ -163,6 +164,8 @@ class MongoToBigs:
                 different_version = self.__check_if_reanalysis_different(document, document_id)
                 if different_version is False:
                     continue
+                self._list_of_new_versions_for_alerts.append({'isolate_name': document_id, 'cgST': document['results']['cgST'],
+                                                              'isolation_date': document['results']['analysis_date']})
 
             # continuation of for loop:
             # extract json file to be given to bigs

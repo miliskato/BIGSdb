@@ -11,6 +11,7 @@ postgresql_apache_pass: to_be_replaced_by_ansible
 
 naive_clustering_distance_matrix_file: /home/bigsdb/BIGSdb/cgmlst_distance_matrix_species.npy # todo if bigs home changes, then this breaks + /home is not the best place to store DM that can potentially become very big
 
+# the cgmlst thresholds are duplicated in the mongodb clustering config
 alerts:
   listeria:
     threshold_warning: 7
