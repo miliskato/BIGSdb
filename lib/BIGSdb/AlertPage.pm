@@ -207,18 +207,18 @@ sub print_content {
 	}
 	my $alerts_to_show = $self->_any_pending_alerts_to_show;
 	my $closed_buffer =
-	  $self->print_alerts_for_curation( { status => 'dismissed', show_outcome => 1, get_only => 1 } );
+	  $self->print_alerts_for_curation( { status => 'archived', show_outcome => 1, get_only => 1 } );
 	if ($alerts_to_show) {
 		say q(<div class="box resultstable"><div class="scrollable">);
 		$self->_print_pending_alerts;
 		$self->print_alerts_for_curation;
-		$self->_print_closed_alerts;
+		$self->_print_archived_alerts;
 		$self->print_navigation_bar( { closed_submissions => $closed_buffer ? 1 : 0 } );
 		say q(</div></div>);
 	}
 	if ($closed_buffer) {
 		say q(<div class="box resultstable" id="closed" style="display:none"><div class="scrollable">);
-		say q(<h2>Dismissed alerts for which you had curator rights</h2>);
+		say q(<h2>Archived alerts for which you had curator rights</h2>);
 		say q(<p>The following alerts are now closed);
 		say $closed_buffer;
 		say q(</div></div>);
@@ -230,7 +230,7 @@ sub _any_pending_alerts_to_show {
 	my ($self) = @_;
 	return 1 if $self->_get_own_alerts('pending');
 	return 1 if $self->print_alerts_for_curation( { get_only => 1 } );
-	return 1 if $self->_get_own_alerts('dismissed');
+	return 1 if $self->_get_own_alerts('archived');
 	return;
 }
 
@@ -340,7 +340,7 @@ sub _get_alerts_for_curation {
 		  . qq(<td>$item->{'date_submitted'}</td>)
 		  . qq(<td>$item->{'type'}</td>)
 		  . qq(<td>$item->{'method'}</td>);
-		if ( $status eq 'dismissed' ) {
+		if ( $status eq 'archived' ) {
 			my %style = FACE_STYLE;
 			$buffer .= qq(<td><span $style{$item->{'outcome'}}></span></td>);
 		}
@@ -349,7 +349,7 @@ sub _get_alerts_for_curation {
 	}
 	my $return_buffer = q();
 	if ($buffer) {
-		if ( $status eq 'dismissed' ) {
+		if ( $status eq 'archived' ) {
 			$return_buffer .= q(<h3>Alerts</h3>);
 		} else {
 			$return_buffer .= qq(<h2>New alerts waiting for curation</h2>\n);
@@ -357,7 +357,7 @@ sub _get_alerts_for_curation {
 		}
 		$return_buffer .= q(<table class="resultstable"><tr><th>Alert id</th><th>Triggered</th>)
 		  . q(<th>Type</th><th>Method</th>);
-		$return_buffer .= q(<th>Outcome</th>) if $status eq 'dismissed';
+		$return_buffer .= q(<th>Outcome</th>) if $status eq 'archived';
 		$return_buffer .= qq(</tr>\n);
 		$return_buffer .= $buffer;
 		$return_buffer .= qq(</table>\n);
@@ -365,12 +365,12 @@ sub _get_alerts_for_curation {
 	return $return_buffer;
 }
 
-sub _print_closed_alerts {
+sub _print_archived_alerts {
 	my ($self) = @_;
-	my $buffer = $self->_get_own_alerts( 'dismissed', { show_outcome => 1, allow_remove => 1 } );
+	my $buffer = $self->_get_own_alerts( 'archived', { show_outcome => 1, allow_remove => 1 } );
 	if ($buffer) {
-		say q(<h2>Recently closed alerts</h2>);
-		say q(<p>You have submitted the following alerts which are now closed);
+		say q(<h2>Recently archived alerts</h2>);
+		say q(<p>You have submitted the following alerts which are now archived);
 		say $buffer;
 	}
 	return;
@@ -448,16 +448,16 @@ sub _print_alert_table_fieldset {
 =cut
 	say q(</fieldset>);
 	say q(<div id="dialog"></div>);
-	$self->{'all_assigned_or_dismissed'} = $alert->{'outcome'} ? 1 : 0;
+	$self->{'all_assigned_or_archived'} = $alert->{'outcome'} ? 1 : 0;
 	return;
 }
 
 sub _get_outcome {
 	my ( $self,         $args )         = @_;
-	my ( $all_assigned, $all_dismissed ) = @{$args}{qw(all_assigned all_dismissed)};
+	my ( $all_assigned, $all_archived ) = @{$args}{qw(all_assigned all_archived)};
 	if ($all_assigned) {
 		return 'good';
-	} elsif ($all_dismissed) {
+	} elsif ($all_archived) {
 		return 'bad';
 	}
 	return 'mixed';
@@ -505,7 +505,7 @@ sub _print_alert_table {
 #		say q(<span style="margin-right:1em">)
 #		  . q(Mark all: <input type="button" onclick='status_markall("pending")' )
 #		  . q(value="Pending" class="small_reset" /><input type="button" )
-#		  . q(onclick='status_markall("dismissed")' value="dismissed" class="small_reset" />)
+#		  . q(onclick='status_markall("archived")' value="archived" class="small_reset" />)
 #		  . q(</span>);
 #	}
 #	if ( $options->{'record_status'} ) {
@@ -513,8 +513,8 @@ sub _print_alert_table {
 #		say $q->popup_menu(
 #			-name  => 'record_status',
 #			id     => 'record_status',
-#			# values => [qw(pending accepted dismissed)]
-#			values => [qw(pending dismissed)]
+#			# values => [qw(pending accepted archived)]
+#			values => [qw(pending archived)]
 #		);
 #	}
 #	say $q->submit( -name => 'update', -label => 'Update', -class => 'small_submit' );
@@ -528,7 +528,7 @@ sub _print_close_alert_fieldset {
 	say $q->start_form;
 	$q->param( close => 1 );
 	say $q->hidden($_) foreach qw( db page alert_id close );
-	$self->print_action_fieldset( { no_reset => 1, submit_label => 'Dismiss alert' } );
+	$self->print_action_fieldset( { no_reset => 1, submit_label => 'Archive alert' } );
         say $q->end_form;
 	return;
 }
@@ -558,7 +558,7 @@ sub _print_summary {
 	say qq(<dt>status</dt><dd>$alert->{'status'}</dd>);
 	my %outcome = (
 		good  => 'accepted - data uploaded',
-		bad   => 'dismissed - data not uploaded',
+		bad   => 'archived - data not uploaded',
 		mixed => 'mixed - alert partially accepted'
 	);
 	say qq(<dt>outcome</dt><dd>$outcome{$alert->{'outcome'}}</dd>) if $alert->{'outcome'};
@@ -632,8 +632,8 @@ sub _curate_alert {    ## no critic (ProhibitUnusedPrivateSubroutines) #Called b
 	return if !$self->_is_alert_valid( $alert_id, { curate => 1 } );
 	my $alert = $self->{'submissionHandler'}->get_alert($alert_id);
 	my $curate     = 1;
-	if ( $alert->{'status'} eq 'dismissed' ) {
-		$self->print_bad_status( { message => q(This alert is closed and cannot now be modified.) } );
+	if ( $alert->{'status'} eq 'archived' ) {
+		$self->print_bad_status( { message => q(This alert is archived and cannot now be modified.) } );
 		$curate = 0;
 	}
 	say q(<div class="box" id="resultstable">);
@@ -674,11 +674,11 @@ sub _close_alert {    ## no critic (ProhibitUnusedPrivateSubroutines) #Called by
 	my ( $self, $alert_id ) = @_;
 	return if !$self->_is_alert_valid( $alert_id, { curate => 1, no_message => 1 } );
 	my $alert = $self->{'submissionHandler'}->get_alert($alert_id);
-	return if !$alert || $alert->{'status'} eq 'dismissed';    #Prevent refresh from re-sending E-mail
+	return if !$alert || $alert->{'status'} eq 'archived';    #Prevent refresh from re-sending E-mail
 	my $curator_id = $self->get_curator_id;
         eval {
 		$self->{'db'}->do( 'UPDATE alerts SET (status,datestamp,curator)=(?,?,?) WHERE id=?',
-			undef, 'dismissed', 'now', $curator_id, $alert_id );
+			undef, 'archived', 'now', $curator_id, $alert_id );
 	};
 	if ($@) {
 		$logger->error($@);
@@ -754,7 +754,7 @@ sub _reopen_alert {
 	my ( $self, $alert_id ) = @_;
 	return if !$self->_is_alert_valid( $alert_id, { no_message => 1, curate => 1 } );
 	my $alert = $self->{'submissionHandler'}->get_alert($alert_id);
-	return if $alert->{'status'} ne 'dismissed';
+	return if $alert->{'status'} ne 'archived';
 	my $curator_id = $self->get_curator_id;
 	my $message    = 'Alert re-opened.';
 	eval {
