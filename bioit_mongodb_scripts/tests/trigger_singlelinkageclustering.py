@@ -1,4 +1,5 @@
 # Usage : python trigger_singlelinkageclustering.py neisseria 5 10
+import logging
 import sys
 from pathlib import Path
 
@@ -8,6 +9,9 @@ sys.path.append(str(PYTHONPATH))
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data
 
 if __name__ == '__main__':
+
+    # Configure stdout logging
+    logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
     # Parse config
     mongo_config_data = get_mongodb_config_data()
