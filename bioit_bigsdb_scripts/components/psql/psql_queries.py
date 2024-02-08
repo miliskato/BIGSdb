@@ -26,7 +26,7 @@ class PsqlQueries():
         SELECT alert_id, type FROM alert_details LEFT JOIN alerts ON 
         alerts.id = alert_details.alert_id WHERE field = 'isolate_id' AND value = %s and method = %s;"""
     ISO_UPD_VAL_TB_ALDE_VAR_ALID_FIELD: Final[str] = """
-        UPDATE alert_details SET value = %s WHERE alert_id = %s AND field = %s"""
+        UPDATE alert_details SET value = %s WHERE alert_id = %s AND field = %s;"""
 
     # TBL alerts
     ISO_INS__TB_AL_VAR_TYPE_METH: Final[str] = """
@@ -37,7 +37,7 @@ class PsqlQueries():
         %s, %s, 1, (SELECT CURRENT_DATE), 
         (SELECT CURRENT_DATE), 'pending', true);"""
     ISO_UPD_TYPE_STATUS_TB_ALDE_VAR_ALID: Final[str] = """
-        UPDATE alerts SET type = 'alert' AND status = 'pending' WHERE alert_id = %s"""
+        UPDATE alerts SET type = 'alert' AND status = 'pending' WHERE alert_id = %s;"""
 
     # TBL allele designations
     ISO_DEL__TB_AD_VAR_LOCUS: Final[str] = """DELETE FROM allele_designations WHERE locus LIKE %s;"""
@@ -92,9 +92,9 @@ class PsqlQueries():
 
     # TBL classification schemes
     SEQ_SEL_CGSCHID_TB_CLSCH_VAR_INCTHR: Final[str] = """
-        SELECT id FROM classification_schemes WHERE inclusion_threshold=%s"""
+        SELECT id FROM classification_schemes WHERE inclusion_threshold=%s;"""
     SEQ_SEL_CGSCHID_INCTHR_TB_CLSCH_VAR_: Final[str] = """
-        SELECT id, inclusion_threshold from classification_schemes"""
+        SELECT id, inclusion_threshold from classification_schemes;"""
     SEQ_INS__TB_CLSCH_VAR_CGSCHID_SCHEME_NAME_DESC_INCTHR_CGSCHID: Final[str] = """
         INSERT INTO classification_schemes(id, scheme_id, name, description, inclusion_threshold, 
         use_relative_threshold, display_order, status, curator, datestamp) 
@@ -199,7 +199,7 @@ class PsqlQueries():
         SELECT isolates.id, cgst FROM isolates LEFT JOIN 
         temp_isolates_scheme_fields_%s on isolates.id = temp_isolates_scheme_fields_%s.id 
         WHERE isolates.isolate = %s ORDER BY isolates.id DESC LIMIT 2;"""
-    ISO_SEL_MAXID_TB_ISO_VAR_ISO: Final[str] = """SELECT MAX(id) FROM isolates WHERE isolate=%s"""
+    ISO_SEL_MAXID_TB_ISO_VAR_ISO: Final[str] = """SELECT MAX(id) FROM isolates WHERE isolate=%s;"""
     ISO_SEL_VALDATES_TB_ISO_VAR_ISO: Final[str] = """
         SELECT validation_date FROM isolates WHERE isolate=%s ORDER BY id DESC LIMIT 2;"""
     ISO_UPD_NEWV_TB_ISO_VAR_ISO: Final[str] = """
@@ -320,7 +320,7 @@ class PsqlQueries():
         VALUES((SELECT CASE WHEN (SELECT MAX(id) FROM sequence_bin) IS NULL THEN 1 ELSE (SELECT(SELECT MAX(id) FROM sequence_bin)+1) END), 
         (SELECT MAX(id) FROM isolates WHERE isolate=%s), 
         'f', %s, %s, 1, 
-        1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))"""
+        1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE));"""
     ISO_SEL_COUNT_TB_SEQBIN_VAR_ISO: Final[str] = """
         SELECT COUNT(*) FROM sequence_bin WHERE isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate=%s);"""
     ISO_UPD__TB_SEQBIN_VAR_ISO_ISO: Final[str] = """
