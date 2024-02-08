@@ -187,11 +187,17 @@ class NewClusteringInfoToBigs:
         """
         groups_merged = set()
         self.___check_for_classification_schemes()
+        threshold_bigsdbcgschemeid_dict = {}
+        with TblClassificationSchemes(self._species, 'isolates') as isolates_clsch_psql_tbl:
+            for threshold in self._clustering_thresholds:
+                threshold_bigsdbcgschemeid_dict[threshold] = \
+                    str(isolates_clsch_psql_tbl.select_cgschemeid_by_threshold(
+                            (threshold,))[0][0])
         with TblClassificationGroups(self._species) as seqdef_clgr_psql_tbl, \
             TblClassificationGroupProfiles(self._species) as seqdef_clgrpr_psql_tbl, \
                 TblClassificationGroupProfileHistory(self._species) as seqdef_clgrprhist_psql_tbl:
             for cl_membership in self._new_cluster_membership:
-                cg_scheme_id = self._clustering_thresholds.index(cl_membership['threshold']) + 1  # todo fix this very bad implementation
+                cg_scheme_id = threshold_bigsdbcgschemeid_dict[int(cl_membership['threshold'])]
                 profile_id = cl_membership['cgST']
                 group_id = cl_membership['clustering_membership']
                 seqdef_clgr_psql_tbl.count_group((cg_scheme_id, group_id))
