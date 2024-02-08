@@ -116,8 +116,6 @@ class DistanceAndClusterComputer:
         """
         logging.info(f"{datetime.datetime.now()}: Starting initial clustering and clustering membership encoding")
 
-        self.compute_hamming_distances('full')
-
         for thresh in cluster_thresholds:
             cgst_cluster_dict = {}
             new_group_id = 1
