@@ -166,6 +166,7 @@
 
 - name: Install bio perl package
   community.general.cpanm:
+    executable: /usr/bin/cpan
     name: BioPerl
 
 - name: create dirs
