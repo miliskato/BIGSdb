@@ -313,7 +313,7 @@ class AlertsToBigs:
                         if not self._cgst_date_isolatecount_dict.get((affected_cgst, affected_isolation_date)):
                             queried_isolates = self._isolates_psql_tbl.select_isolates_by_cgsts_and_between_dates(
                                 (self._cgmlst_bigsdb_scheme_id, cgsts_as_tuple_of_str, start_date, end_date))
-                            self._cgst_date_isolatecount_dict[(affected_cgst, analysis_date.strftime('%Y-%m-%d'))] = \
+                            self._cgst_date_isolatecount_dict[(affected_cgst, analysis_date)] = \
                                 len(queried_isolates)
 
                         queried_isolates_number = self._cgst_date_isolatecount_dict[
@@ -325,7 +325,7 @@ class AlertsToBigs:
                                     (self._bigsdb_config_data['alerts'][self._species][
                                          f'{threshold_key}_classification_scheme_id'],
                                      self._cgmlst_bigsdb_scheme_id, affected_cgst, start_date, end_date))
-                            self._clgr_date_isolatecount_dict[(affected_clgr, analysis_date.strftime('%Y-%m-%d'))] = \
+                            self._clgr_date_isolatecount_dict[(affected_clgr, analysis_date)] = \
                                 len(queried_isolates)
 
                         queried_isolates_number = self._clgr_date_isolatecount_dict[
