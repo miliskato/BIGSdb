@@ -106,6 +106,8 @@ class AlertsToBigs:
         logging.info('Computing warnings/alerts from single linkage clustering for isolates already in bigsdb, '
                      'but affected by isolates just inserted into bigsdb')
         # Remove subject isolate tuples from affected ones in order to not reevaluate them
+        print(self._affected_isolates_tuples)
+        print(self._subject_isolates_tuples)
         self._affected_isolates_tuples.difference_update(self._subject_isolates_tuples)
         self.__evaluate_warning_and_alert_for_affected_isolates(investigation_method)
         
@@ -254,6 +256,15 @@ class AlertsToBigs:
                                                                      isolate["isolate_name"])
                             if threshold_key == 'threshold_alert':
                                 # if Alert is triggered, break the for loop because a warning would be redundant
+                                if investigation_method == 'single linkage':
+                                    queried_isolates = self._isolates_psql_tbl.select_isolates_by_cluster_group(
+                                        (self._bigsdb_config_data['alerts'][self._species][
+                                             f'threshold_warning_classification_scheme_id'],
+                                         self._cgmlst_bigsdb_scheme_id, isolate['cgST']))
+                                    for isolate_tuple in queried_isolates:
+                                        if isolate_tuple[1] == isolate['isolate_name']:
+                                            subject_isolate_tuple = isolate_tuple
+                                            self._subject_isolates_tuples.add(subject_isolate_tuple)
                                 break
                     else:
                         self._subject_isolates_tuples.add(queried_isolates[0])
@@ -353,7 +364,7 @@ class AlertsToBigs:
                             # in Any possible case, update the variable details for a warning or alert,
                             # it is not worth it to check if they changed
                             self.___update_variable_details_for_alert(
-                                str(alert_id), cgsts, warning_or_alert, start_date, end_date,
+                                str(alert_id), cgsts, investigation_method, warning_or_alert, start_date, end_date,
                                 subject_clgr=affected_clgr if investigation_method == 'single linkage' else None)
                         elif warning_or_alert == 'warning':
                             # Here we need to make the distinction between threshold_alert and threshold_warning;
@@ -450,14 +461,14 @@ class AlertsToBigs:
                     url = f'generateUrlCgst("{self._species}", "{self._cgmlst_bigsdb_scheme_id}", ["{cgsts_plaintext}"])'
                 else:
                     url = f'generateUrlCgstDate("{self._species}", "{self._cgmlst_bigsdb_scheme_id}", ' \
-                          f'["{cgsts_plaintext}"], "{start_date}", "{end_date})'
+                          f'["{cgsts_plaintext}"], "{start_date}", "{end_date}")'
             elif investigation_method == 'single linkage':
                 clgr_bigsdb_scheme_id = self._get_clgr_bigsdb_scheme_id(alert_type)
                 if self._timeframe_is_infinite:
                     url = f'generateUrlClgr("{self._species}", "{clgr_bigsdb_scheme_id}", "{subject_clgr}")'
                 else:
                     url = f'generateUrlClgrDate("{self._species}", "{clgr_bigsdb_scheme_id}", ' \
-                          f'"{subject_clgr}", "{start_date}", "{end_date})'
+                          f'"{subject_clgr}", "{start_date}", "{end_date}")'
 
             html_element = f'<div id="trigger_subjects"><script type="text/javascript">replaceQueriedValue({url}, ' \
                            f'"trigger_subjects")</script>'
@@ -525,14 +536,14 @@ class AlertsToBigs:
                     url = f'generateUrlCgst("{self._species}", "{self._cgmlst_bigsdb_scheme_id}", ["{cgsts_plaintext}"])'
                 else:
                     url = f'generateUrlCgstDate("{self._species}", "{self._cgmlst_bigsdb_scheme_id}", ' \
-                          f'["{cgsts_plaintext}"], "{start_date}", "{end_date})'
+                          f'["{cgsts_plaintext}"], "{start_date}", "{end_date}")'
             elif investigation_method == 'single linkage':
                 clgr_bigsdb_scheme_id = self._get_clgr_bigsdb_scheme_id(alert_type)
                 if self._timeframe_is_infinite:
                     url = f'generateUrlClgr("{self._species}", "{clgr_bigsdb_scheme_id}", "{subject_clgr}")'
                 else:
                     url = f'generateUrlClgrDate("{self._species}", "{clgr_bigsdb_scheme_id}", ' \
-                          f'"{subject_clgr}", "{start_date}", "{end_date})'
+                          f'"{subject_clgr}", "{start_date}", "{end_date}")'
                 isolates_alertsdet_psql_tbl.update_details_for_alert_id(
                     (f'<div id="{subject_clgr}"><script type="text/javascript">addUrlToField({url}, '
                      f'"{subject_clgr}")</script>',
