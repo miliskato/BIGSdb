@@ -27,8 +27,8 @@ function generateUrlCgstDate(species, cgmlst_bigsdb_scheme_id, cgsts, date_lower
     // arg date_lower; str: the lowerbound isolation date
     // arg date_upper; str: the upperbound isolation date
 
-    // an example return would be; "/cgi-bin/bigsdb/bigsdb.pl?set_id=0&page=query&submit=1&order=id&db=bigsdb_mycobacterium_isolates&designation_value1=1&designation_field1=s_2_cgST&designation_value2=5&designation_field2=s_2_cgST&prov_field1=date_entered&prov_value1=2020-06-05&prov_operator1=>&prov_field2=date_entered&prov_value2=2024-08-02&prov_operator2<="
-    let url = `/cgi-bin/bigsdb/bigsdb.pl?set_id=0&page=query&submit=1&db=bigsdb_${species}_isolates&prov_field1=date_entered&prov_value1=${date_lower}&prov_operator1>=&prov_field2=date_entered&prov_value2=${date_upper}&prov_operator2<=`;
+    // an example return would be; "/cgi-bin/bigsdb/bigsdb.pl?set_id=0&page=query&submit=1&order=id&db=bigsdb_mycobacterium_isolates&designation_value1=1&designation_field1=s_2_cgST&designation_value2=5&designation_field2=s_2_cgST&prov_field1=date_entered&prov_value1=2020-06-05&prov_operator1=>=&prov_field2=date_entered&prov_value2=2024-08-02&prov_operator2=<="
+    let url = `/cgi-bin/bigsdb/bigsdb.pl?set_id=0&page=query&submit=1&db=bigsdb_${species}_isolates&prov_field1=date_entered&prov_value1=${date_lower}&prov_operator1=>=&prov_field2=date_entered&prov_value2=${date_upper}&prov_operator2=<=`;
 
     cgsts.forEach((cgst, index) => {
         url += `&designation_value${index + 1}=${cgst}&designation_field${index + 1}=s_${cgmlst_bigsdb_scheme_id}_cgST`;
@@ -60,8 +60,8 @@ function generateUrlClgrDate(species, clgr_bigsdb_scheme_id, clgr, date_lower, d
         // arg date_lower; str: the lowerbound isolation date
     // arg date_upper; str: the upperbound isolation date
 
-    // an example return would be; "/cgi-bin/bigsdb/bigsdb.pl?set_id=0&page=query&submit=1&order=id&db=bigsdb_mycobacterium_isolates&designation_value1=1&designation_field1=cg_2_group&prov_field1=date_entered&prov_value1=2020-06-05&prov_operator1=>&prov_field2=date_entered&prov_value2=2024-08-02&prov_operator2<="
-    return `/cgi-bin/bigsdb/bigsdb.pl?set_id=0&page=query&submit=1&db=bigsdb_${species}_isolates&designation_value1=${clgr}&designation_field1=cg_${clgr_bigsdb_scheme_id}_group&prov_field1=date_entered&prov_value1=${date_lower}&prov_operator1>=&prov_field2=date_entered&prov_value2=${date_upper}&prov_operator2<=`;
+    // an example return would be; "/cgi-bin/bigsdb/bigsdb.pl?set_id=0&page=query&submit=1&order=id&db=bigsdb_mycobacterium_isolates&designation_value1=1&designation_field1=cg_2_group&prov_field1=date_entered&prov_value1=2020-06-05&prov_operator1=>=&prov_field2=date_entered&prov_value2=2024-08-02&prov_operator2=<="
+    return `/cgi-bin/bigsdb/bigsdb.pl?set_id=0&page=query&submit=1&db=bigsdb_${species}_isolates&designation_value1=${clgr}&designation_field1=cg_${clgr_bigsdb_scheme_id}_group&prov_field1=date_entered&prov_value1=${date_lower}&prov_operator1=>=&prov_field2=date_entered&prov_value2=${date_upper}&prov_operator2=<=`;
 }
 
 const parseHTML_returnINT = html => {
@@ -89,7 +89,7 @@ function replaceQueriedValue(url, id_field) {
         .then(response => response.text())
         .then(html => {
             const recordsFound = parseHTML_returnINT(html);
-            document.getElementById(id_field).innerHTML = `<a href=${url} target="_blank">${recordsFound} isolates</a>`;
+            document.getElementById(id_field).innerHTML = `<a href="${url}" target="_blank">${recordsFound} isolates</a>`;
         });
 }
 
