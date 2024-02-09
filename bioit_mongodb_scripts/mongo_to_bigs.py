@@ -86,6 +86,7 @@ class MongoToBigs:
         self._list_of_new_versions_for_alerts = []
 
         # Execute main function
+        self._exception_in_alerts = False
         try:
             self._mongo_to_bigs()
         except Exception as exceptionmessage1:
@@ -105,18 +106,19 @@ class MongoToBigs:
 
             # then run the alerts implementation for distance matrices
             # ofcourse this can fail too, therefore we encapsulate it in another try except
-            try:
-                if len(self._list_of_new_isolates_for_alerts + self._list_of_new_versions_for_alerts) > 0:
+            if len(self._list_of_new_isolates_for_alerts + self._list_of_new_versions_for_alerts) > 0 and not \
+                    self._exception_in_alerts:
+                try:
                     AlertsToBigs(self._list_of_new_isolates_for_alerts, self._list_of_new_versions_for_alerts,
                                  self._species, self._cgmlst_bigsdb_scheme_id)
-            except Exception as exceptionmessage2:
-                traceback2 = traceback.format_exc()
-                send_email(f"Failure 1: {exceptionmessage1}\n{traceback1}\n"
-                           f"Failure 2: {exceptionmessage2}\n{traceback2}",
-                           subject=f"{Path(__file__).name} double fail on host {socket.gethostname()}")
-                raise Exception(f"{Path(__file__).name} double fail on host {socket.gethostname()}: "
-                                f"Failure 1: {exceptionmessage1}\n{traceback1}\n"
-                                f"Failure 2: {exceptionmessage2}\n{traceback2}")
+                except Exception as exceptionmessage2:
+                    traceback2 = traceback.format_exc()
+                    send_email(f"Failure 1: {exceptionmessage1}\n{traceback1}\n"
+                               f"Failure 2: {exceptionmessage2}\n{traceback2}",
+                               subject=f"{Path(__file__).name} double fail on host {socket.gethostname()}")
+                    raise Exception(f"{Path(__file__).name} double fail on host {socket.gethostname()}: "
+                                    f"Failure 1: {exceptionmessage1}\n{traceback1}\n"
+                                    f"Failure 2: {exceptionmessage2}\n{traceback2}")
 
             send_email(f"{exceptionmessage1}\n{traceback1}")
             raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}: {exceptionmessage1}\n{traceback1}")
@@ -202,9 +204,11 @@ class MongoToBigs:
 
         # Run Alerts to bigs after updating the cache because it accesses a SQL table that is updated by the cache updater.
         # also run it after having inserted all isolates into bigsdb
-        if len(self._list_of_new_isolates_for_alerts + self._list_of_new_versions_for_alerts) > 0:
-            AlertsToBigs(self._list_of_new_isolates_for_alerts, self._list_of_new_versions_for_alerts, self._species, self._cgmlst_bigsdb_scheme_id)
-
+        try:
+            if len(self._list_of_new_isolates_for_alerts + self._list_of_new_versions_for_alerts) > 0:
+                AlertsToBigs(self._list_of_new_isolates_for_alerts, self._list_of_new_versions_for_alerts, self._species, self._cgmlst_bigsdb_scheme_id)
+        except:
+            self._exception_in_alerts = True
 
     def __get_list_of_documents(self) -> List[Dict[str, Any]]:
         """
