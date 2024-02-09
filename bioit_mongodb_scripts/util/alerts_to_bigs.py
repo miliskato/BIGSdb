@@ -304,7 +304,7 @@ class AlertsToBigs:
 
                         queried_isolates_number = self._clgr_isolatecount_dict[affected_clgr]
                 else:
-                    analysis_date = datetime.datetime.strptime(affected_isolation_date, '%Y-%m-%d')
+                    analysis_date = affected_isolation_date
                     timedelta_timeframe = datetime.timedelta(
                         days=(self._bigsdb_config_data['alerts'][self._species]['timeframe_in_months'] * 31))
                     start_date = (analysis_date - timedelta_timeframe).strftime('%Y-%m-%d')
