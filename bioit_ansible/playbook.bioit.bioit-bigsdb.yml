@@ -1,5 +1,6 @@
 ---
 # ansible-playbook --vault-id nrcnei@prompt /etc/ansible_bioit/playbook/bioit/bioit-bigsdb.yml -e "target=bioit-nrcnei-dev species=neisseria branch=dev_ASG mongo_dtap=dev" --ask-vault-pass
+#  ansible-playbook /etc/ansible_bioit/playbook/bioit/bioit-bigsdb.yml -e "target=bioit-nrcnei-dev species=neisseria branch=dev_ASG_MK3_api mongo_dtap=dev apihostandport=172.23.3.72:9090" --ask-vault-pass
 # use --tags if needed
 - hosts: "{{ target }}"
   gather_facts: True
