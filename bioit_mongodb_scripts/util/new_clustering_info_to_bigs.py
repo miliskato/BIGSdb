@@ -105,7 +105,7 @@ class NewClusteringInfoToBigs:
         date of the last update.
         :return: A list of documents containing the information about the new sequence types.
         """
-        return list(self._st_collection.find({'insertion_date': {'$gt': self._last_date_of_update}}))
+        return list(self._st_collection.find({'insertion_date': {'$gt': self._last_date_of_update}}, sort=[('cgST', 1)]))
 
     def _get_st_headers(self) -> Dict[str, Any]:
         """
