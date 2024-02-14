@@ -240,11 +240,11 @@ sub _get_alerts_by_status {
 	my $user_info = $self->{'datastore'}->get_user_info_from_username( $self->{'username'} );
 	my ( $qry, $get_all, @args );
 	if ( $options->{'get_all'} ) {
-		$qry     = 'SELECT * FROM alerts WHERE status=? ORDER BY id';
+		$qry     = 'SELECT * FROM alerts WHERE status=? ORDER BY CAST(id AS INTEGER)';
 		$get_all = 1;
 		push @args, $status;
 	} else {
-		$qry     = 'SELECT * FROM alerts WHERE (submitter,status)=(?,?) ORDER BY id';
+		$qry     = 'SELECT * FROM alerts WHERE (submitter,status)=(?,?) ORDER BY CAST(id AS INTEGER)';
 		$get_all = 0;
 		push @args, ( $user_info->{'id'}, $status );
 	}
