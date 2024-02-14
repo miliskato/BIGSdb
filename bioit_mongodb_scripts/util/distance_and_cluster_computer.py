@@ -58,10 +58,10 @@ class DistanceAndClusterComputer:
         """
         if not self._st_to_use:
             logging.info("All cgmlst profiles from the db are being retrieved")
-            query_all_data = self._st_collection.find({})
+            query_all_data = self._st_collection.find({}, sort=[('cgST', 1)])
         else:
             logging.info("Only the provided st are being retrieved")
-            query_all_data = self._st_collection.find({'cgST': {'$in': self._st_to_use}})
+            query_all_data = self._st_collection.find({'cgST': {'$in': self._st_to_use}}, sort=[('cgST', 1)])
 
         for doc in list(query_all_data):
             if 'cgST' in doc:
