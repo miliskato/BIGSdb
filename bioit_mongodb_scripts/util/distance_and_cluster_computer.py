@@ -124,12 +124,29 @@ class DistanceAndClusterComputer:
                 if cgst_cluster_dict.get(cgst):
                     continue
                 else:
-                    cgst_cluster_dict[cgst] = new_group_id
                     indices = np.where(row <= thresh)[0]
+                    existing_groups = []
                     for index2 in indices:
                         cgst2 = int(index2) + 1
-                        cgst_cluster_dict[cgst2] = new_group_id
-                    new_group_id += 1
+                        if cgst_cluster_dict.get(cgst2):
+                            existing_groups.append(cgst_cluster_dict[cgst2])
+                    for index2 in indices:
+                        cgst2 = int(index2) + 1
+                        if len(existing_groups) == 1:
+                            cgst_cluster_dict[cgst2] = existing_groups[0]
+                        elif len(existing_groups) > 1:
+                            for group in existing_groups:
+                                cgst_cluster_dict = {key: (min(existing_groups) if value == group else value)
+                                                     for key, value in cgst_cluster_dict.items()}
+                        else:
+                            cgst_cluster_dict[cgst2] = new_group_id
+                    if len(existing_groups) == 1:
+                        cgst_cluster_dict[cgst] = existing_groups[0]
+                    elif len(existing_groups) > 1:
+                        cgst_cluster_dict[cgst] = min(existing_groups)
+                    else:
+                        cgst_cluster_dict[cgst] = new_group_id
+                        new_group_id += 1
 
             documents = []
             for cgst, cluster in cgst_cluster_dict.items():
