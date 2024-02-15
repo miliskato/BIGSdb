@@ -123,7 +123,7 @@ class HtmlreportGeneration:
             [self._technical_id, self._analysis_date if self._analysis_date else str(self._changed_version)])
         dir_out.mkdir(parents=True, exist_ok=True)
 
-        if (requested_document.get('results_version') and not requested_document['results_version'] == 1): # badqc and reseq isolates do not have a results_version
+        if (requested_document['results'].get('results_version') and not requested_document['results']['results_version'] == 1): # badqc and reseq isolates do not have a results_version
             with self.__create_temp_dir('temp_reporting') as dir_temp:
                 # Dump the required json file
                 jsonfile = Path(dir_temp) / f"{self._technical_id}_temp.json"
@@ -147,10 +147,11 @@ class HtmlreportGeneration:
                 # run the command
                 command.run(dir_temp)
 
-                # Moving the log to the report dir because debugging is pretty hard with a python temp dir
-                shutil.move(Path(dir_temp) / 'camel.log', dir_out / 'camel.log')
-
                 if command.returncode != 0:
+                    # dir_out seems to get removed by Camel; therefore recreate it here before moving the camel.log
+                    dir_out.mkdir(parents=True, exist_ok=True)
+                    # Moving the log to the report dir because debugging is pretty hard with a python temp dir
+                    shutil.copyfile(Path(dir_temp) / 'camel.log', dir_out / 'camel.log')
                     raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}: {command.stderr}")
         else:  # if requested_document['results_version'] == 1:
             dir_out.rmdir()
