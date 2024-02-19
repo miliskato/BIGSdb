@@ -11,7 +11,7 @@ species:
     neisseria:
         lmod: camel_hera/0.1
         main_script: mainneisseriapipeline.py
-        options: ['-resfinder', '--ncbi-amr', '--mlst', '--rplf', '--bast', '--pora', '--porb', '--feta', '--fhbp', '--resistance-genes', '--vaccine-targets', '--cgmlst', '--serogroup']
+        options: ['--resfinder', '--ncbi-amr', '--mlst', '--rplf', '--bast', '--pora', '--porb', '--feta', '--fhbp', '--resistance-genes', '--vaccine-targets', '--cgmlst', '--serogroup']
     stec:
         lmod: camel_hera/0.1
         main_script: mainstecpipeline.py
