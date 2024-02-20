@@ -314,7 +314,7 @@ class NewClusteringInfoToBigs:
                                             else False
             if full_calculation or is_field_possibly_new:
                 logging.info(f"Inserting cgMLST difference html fields for isolates present in Bigsdb")
-                cgsts = set(x['results']['cgST'] for x in cgsts_per_isolate)
+                cgsts = set(x['results'].get('cgST') for x in cgsts_per_isolate)
                 cgsts.discard(None)
                 with TblIsolates(self._species) as isolates_psql_tbl, TblEavText(
                         self._species) as isolates_eavt_psql_tbl:

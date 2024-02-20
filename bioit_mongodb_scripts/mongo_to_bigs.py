@@ -8,6 +8,7 @@ import json
 import logging
 import socket
 import sys
+import tempfile
 import traceback
 from pathlib import Path
 from typing import Any, Dict, List
@@ -148,7 +149,7 @@ class MongoToBigs:
             if sample_presence[0][0] == 0:
                 results_type = "new_isolate"
                 self._list_of_new_isolates_for_alerts.append(
-                    {'isolate_name': document_id, 'cgST': document['results']['cgST'],
+                    {'isolate_name': document_id, 'cgST': document['results'].get('cgST'),
                      'isolation_date': document['results']['analysis_date']})  # todo change date to isolation_date
             elif sample_presence[0][0] == 1 and (Path(self._bigsdb_config_data['failsafe']['flag_dir']) / '.'.join(
                     [document_id, self._bigsdb_config_data['failsafe']['flag_append']])).is_file():
@@ -157,14 +158,14 @@ class MongoToBigs:
                 # it will remove the isolate and the flag, and then recreate the flag and start insertion again.
                 results_type = "new_isolate"
                 self._list_of_new_isolates_for_alerts.append(
-                    {'isolate_name': document_id, 'cgST': document['results']['cgST'],
+                    {'isolate_name': document_id, 'cgST': document['results'].get('cgST'),
                      'isolation_date': document['results']['analysis_date']})  # todo change date to isolation_date
             else:
                 results_type = "reanalysis"  # reanalysis and resequencing are considered the same here
                 different_version = self.__check_if_reanalysis_different(document, document_id)
                 if different_version is False:
                     continue
-                self._list_of_new_versions_for_alerts.append({'isolate_name': document_id, 'cgST': document['results']['cgST'],
+                self._list_of_new_versions_for_alerts.append({'isolate_name': document_id, 'cgST': document['results'].get('cgST'),
                                                               'isolation_date': document['results']['analysis_date']})
 
             # continuation of for loop:
@@ -179,19 +180,29 @@ class MongoToBigs:
             # todo modify mailadress
             MainResultsInserter(document_id, 'bioit@sciensano.be', self._species, results_type, jsonfilepath=jsonfile)
             jsonfile.unlink()
-            if results_type == 'new_isolate':
-                insert_assembly(document_id, self._species, Path(document['fasta_path']))
-            elif results_type == 'reanalysis' and document['validation']['type'] == 'resequencing':
-                last_two_validation_dates = self._isolates_psql_tbl.select_validationdate_for_isolate((document_id,))
-                # select to check that the previous version's validation date is different from the current
-                if last_two_validation_dates[0][0] != last_two_validation_dates[1][0]:
-                    # revert the changes done in maininserter that move the assembly to the newest version
-                    with TblSequenceBin(self._species) as isolates_seqbin_psql_tbl:
-                        isolates_seqbin_psql_tbl.revert_sequencebin_newversion([document_id])
-                    with TblSeqBinStats(self._species) as isolates_seqbinstats_psql_tbl:
-                        isolates_seqbinstats_psql_tbl.revert_seqbinstats_newversion([document_id])
-                    insert_assembly(document_id, self._species, Path(document['fasta_path']))
-            logging.info(f"wrote new results version for {document_id} to bigsdb")
+            fasta_name = Path(document['fasta_path']).name
+            fasta_path_remote = Path(document['report_directory']) / 'assembly' / fasta_name
+            with tempfile.NamedTemporaryFile(dir=mongo_config_data.get('temp_dir'), mode="w") as temp_fasta:
+                temp_fasta_path = Path(mongo_config_data.get('temp_dir')) / temp_fasta.name
+                scp_command = f"scp -i /home/bigsdb/.ssh/.id_rsa_reportsapi bigsdb@{mongo_config_data.get('azure_reportsapi_ip')}:{fasta_path_remote} {str(temp_fasta_path)}"
+                scp_cmd = Command(scp_command)
+                scp_cmd.run(Path(mongo_config_data.get('temp_dir')))
+                if scp_cmd.returncode != 0:
+                    raise Exception(f"scp command to copy fasta from Azure to onsite failed: {scp_cmd.stderr}")
+
+                if results_type == 'new_isolate':
+                    insert_assembly(document_id, self._species, temp_fasta_path)
+                elif results_type == 'reanalysis' and document['validation']['type'] == 'resequencing':
+                    last_two_validation_dates = self._isolates_psql_tbl.select_validationdate_for_isolate((document_id,))
+                    # select to check that the previous version's validation date is different from the current
+                    if last_two_validation_dates[0][0] != last_two_validation_dates[1][0]:
+                        # revert the changes done in maininserter that move the assembly to the newest version
+                        with TblSequenceBin(self._species) as isolates_seqbin_psql_tbl:
+                            isolates_seqbin_psql_tbl.revert_sequencebin_newversion([document_id])
+                        with TblSeqBinStats(self._species) as isolates_seqbinstats_psql_tbl:
+                            isolates_seqbinstats_psql_tbl.revert_seqbinstats_newversion([document_id])
+                        insert_assembly(document_id, self._species, temp_fasta_path)
+                logging.info(f"wrote new results version for {document_id} to bigsdb")
 
         # Update cache again before alerts implementation because it will :
         self._cache_command_object.run(Path(os.getcwd()))
