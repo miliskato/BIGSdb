@@ -35,3 +35,5 @@ temp_dir: /scratch/temp
 htmlreporterpipeline:
     lmod: camel_hera/0.1
     main_script: mainhtmlreporterpipeline.py
+
+azure_reportsapi_ip: to_be_replaced_by_ansible

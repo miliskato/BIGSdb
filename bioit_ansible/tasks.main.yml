@@ -39,11 +39,6 @@
     msg: "unsupported mongo_dtap requested, choose from {{ dtaplist }}"
   when: mongo_dtap not in dtaplist
 
-- name: Assert if apihostandport given
-  fail:
-    msg: "'apihostandport' argument required in -e when running playbook"
-  when: apihostandport is not defined
-
 - name: install git package
   apt:
     name: git
@@ -92,8 +87,32 @@
   lineinfile:
     path: "{{ bioit_bigs_home }}/javascript/bigsdb.min.js"
     regexp: 'var HOSTANDPORT=replaced_by_ansible'
-    line: "var HOSTANDPORT = '{{ apihostandport }}'"
+    line: "var HOSTANDPORT = '{{ azure_reports_api }}:9090'"
     backrefs: yes
+
+- name: add azure reportsapi ip to mongodb config
+  lineinfile:
+    path: "{{ bioit_bigs_home }}/bioit_mongodb_scripts/config/config.yml"
+    regexp: 'azure_reports_api: to_be_replaced_by_ansible'
+    line: "azure_reports_api: {{ azure_reportsapi_ip }}"
+
+- name: create bigsdb .ssh directory
+  ansible.builtin.file:
+    dest: '/home/bigsdb/.ssh'
+    mode: 0700
+    owner: bigsdb
+
+- name: Create bigsdb rsa key to connect to azure reportsapi vm
+  ansible.builtin.file:
+    path: /home/bigsdb/.ssh/.id_rsa_reportsapi
+    state: touch
+    mode: "u=rw"
+    owner: bigsdb
+
+- name: Write secret private key to the file, replace literal linebreaks in secret by actual linebreaks
+  copy:
+    dest: /home/bigsdb/.ssh/.id_rsa_reportsapi
+    content: "{{ bigsdb_azure_reportsapi_private_key.replace('\\n', '\n') }}"
 
 ## perl 5 is installed on Ubuntu by default.
 - name: Install packages
