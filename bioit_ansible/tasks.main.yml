@@ -172,6 +172,21 @@
     path: /etc/apache2/conf-enabled/javascript-common.conf
     state: absent
 
+- name: Check if reportsapi proxy configuration is present in apache
+  shell: grep -q 'ProxyPass' /etc/apache2/apache2.conf && echo "Line exists" || echo "Line doesn't exist"
+  register: reportsapi_proxy_check
+  changed_when: false
+
+- name: Add reportsapi proxy configuration to apache
+  ansible.builtin.lineinfile:
+    path: /etc/apache2/apache2.conf
+    line: |
+            <VirtualHost *:80>
+              ProxyPass "/reportsapi" "http://{{ azure_reportsapi_ip }}:9090"
+              ProxyPassReverse "/reportsapi" "http://{{ azure_reportsapi_ip }}:9090"
+            </VirtualHost>
+  when: reportsapi_proxy_check.stdout.find("Line doesn't exist") != -1
+
 - name: Restart service apache2
   ansible.builtin.systemd:
     state: restarted
