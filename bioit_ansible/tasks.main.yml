@@ -172,6 +172,9 @@
     path: /etc/apache2/conf-enabled/javascript-common.conf
     state: absent
 
+- name: Execute a2enmod proxy_http command
+  command: sudo a2enmod proxy_http
+
 - name: Check if reportsapi proxy configuration is present in apache
   shell: grep -q 'ProxyPass' /etc/apache2/apache2.conf && echo "Line exists" || echo "Line doesn't exist"
   register: reportsapi_proxy_check
