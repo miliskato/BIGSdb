@@ -385,6 +385,7 @@ class _BatchPipelinesReanalysis:
         # stderr + stdout because they're not necessary
         cleanup_command = f"if test -e {report_dir}/report.html ; then rm -r {working_dir}; rm {report_dir}/std*.txt; fi; cd /scratch/scratch/; rsync -a {report_dir}/ {results_dir}/; rm {results_dir}/camel.log"
         # the cd before rsync is necessary because else it will throw the error: rsync: getcwd(): No such file or directory (2)
+        unload_command = f"module unload {config_species['lmod']}"
         config_mongodb = self._reanalysis_config['mongodb']
         mongodb_command = ' '.join([
             f"module load {config_mongodb['lmod']};",
@@ -397,7 +398,7 @@ class _BatchPipelinesReanalysis:
             f"--alternate_dtap {self._dtap}",
             f"--alternate_connection_string {self._keyvault_client.get_secret('MONGODB-CONNECTION-STRING').value}"
                                     ])
-        task_command = f'/bin/bash -c "{pre_command}; {base_command}; {post_command}; {cleanup_command}; {mongodb_command}"'
+        task_command = f'/bin/bash -c "{pre_command}; {base_command}; {post_command}; {cleanup_command}; {unload_command}; {mongodb_command}"'
         return task_command
 
     @property
