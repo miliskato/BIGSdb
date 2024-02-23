@@ -136,9 +136,9 @@ species:
     cgmlst:
       dirdb: /db/sequence_typing/ecoli/cgmlst
       cmd_argument: cgmlst
-    pointfinder:
-      dirdb: /usr/local/bin/lmod/PointFinder/20190227/pointfinder_db
-      cmd_argument: pointfinder
+#    pointfinder:
+#      dirdb: /usr/local/bin/lmod/PointFinder/20190227/pointfinder_db
+#      cmd_argument: pointfinder
 ## having the same argparse argument twice does not seem to affect anything
     serotype_o:
       dirdb: /db/gene_detection/SerotypeFinder-O_type
