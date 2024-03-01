@@ -5,14 +5,15 @@ import os
 import re
 import subprocess
 import sys
+import yaml
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, Final, List
 
 import azure.batch as batch
 import azure.batch.models as batchmodels
-from azure.batch.models import (VirtualMachineConfiguration, ImageReference,
-                                BatchErrorException, StartTask, TaskSchedulingPolicy, TaskAddParameter,
+from azure.batch.models import (VirtualMachineConfiguration, BatchErrorException, TaskSchedulingPolicy,
+                                TaskAddParameter,
                                 NetworkConfiguration, OutputFile, OutputFileDestination, OutputFileUploadOptions,
                                 OutputFileBlobContainerDestination)
 
@@ -42,7 +43,8 @@ def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     parser.add_argument('--species', required=False, type=str, choices=specieslist, default=specieslist,
                         nargs='+')  # this does allow for the same species multiple times but doesn't really matter, they're uniquely filtered using set() anyway
     parser.add_argument('--dtap', required=False, type=str, choices=['dev', 'test', 'acc', 'prod'],
-                        default=['prod'], nargs='+')  # this does allow for the same dtap multiple times but doesn't really matter, they're uniquely filtered using set() anyway
+                        default=['prod'],
+                        nargs='+')  # this does allow for the same dtap multiple times but doesn't really matter, they're uniquely filtered using set() anyway
     return parser.parse_args()
 
 
@@ -85,6 +87,8 @@ class _BatchPipelinesReanalysis:
             self._reanalysis_config = yaml.safe_load(handle)
         # Connect to keyvault, batch account and storages
         self._connection_azure = ConnectAzure(self._dtap)
+        self._batch_client = self._connection_azure.connect_to_batch_client()
+        self._blob_service_client_input = self._connection_azure.connect_to_storages()
         self._batch_pipelines()
 
     def _batch_pipelines(self) -> None:
@@ -129,12 +133,12 @@ class _BatchPipelinesReanalysis:
             subnet_id=self._connection_azure.keyvault_client.get_secret('BATCH-SUBNET').value)
 
         try:
-            self._connection_azure.batch_client.pool.get(BATCH_POOL_NAME)
+            self._batch_client.pool.get(BATCH_POOL_NAME)
         except BatchErrorException as e:
             if e.response.status_code == 404:
                 logging.info(f"Creating pool {BATCH_POOL_NAME}")
                 # https://learn.microsoft.com/en-us/python/api/azure-batch/azure.batch.models.pooladdparameter?view=azure-python
-                self._connection_azure.batch_client.pool.add(batch.models.PoolAddParameter(
+                self._batch_client.pool.add(batch.models.PoolAddParameter(
                     id=BATCH_POOL_NAME,
                     virtual_machine_configuration=vm_config,
                     vm_size=vm_size,
@@ -154,7 +158,7 @@ class _BatchPipelinesReanalysis:
         :return: None
         """
         try:
-            self._connection_azure.batch_client.job.get(job_name)
+            self._batch_client.job.get(job_name)
         except BatchErrorException as e:
             if e.response.status_code == 404:
                 logging.info(f"Creating job {job_name}")
@@ -168,7 +172,7 @@ class _BatchPipelinesReanalysis:
                     # on_task_failure=,
                     # on_all_tasks_complete='terminateJob' #25/05 we never terminate the job anymore as it can scale up to millions of tasks
                 )
-                self._connection_azure.batch_client.job.add(job)
+                self._batch_client.job.add(job)
 
     def __collect_database_update_dates(self) -> Dict[str, List]:
         """
@@ -297,7 +301,7 @@ class _BatchPipelinesReanalysis:
             )]
 
         )
-        self._connection_azure.batch_client.task.add(job_name, task)
+        self._batch_client.task.add(job_name, task)
 
     def ___build_command(self, task_name: str, analysis_arguments: List[str], mongodb_document: Dict[str, Any]) -> str:
         """
@@ -337,7 +341,8 @@ class _BatchPipelinesReanalysis:
             f"--reanalysis-original-input {mongodb_document['original_input_format']}"
         ])
         if self._species == 'mycobacterium' and mongodb_document['original_input_format'] != 'fasta':
-            base_command += f' --vcf-unfiltered {mongodb_document["vcf_path_unfiltered"]}' if mongodb_document.get("vcf_path_unfiltered") else ''
+            base_command += f' --vcf-unfiltered {mongodb_document["vcf_path_unfiltered"]}' if mongodb_document.get(
+                "vcf_path_unfiltered") else ''
         # Copy the stderr and stdout files from the temporary working dir to the fileshare because they
         # might contain more information than the camel.log
         post_command = f'cp $AZ_BATCH_TASK_DIR/std*.txt {report_dir}/'

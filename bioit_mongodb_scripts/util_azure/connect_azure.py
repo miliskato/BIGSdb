@@ -16,8 +16,6 @@ class ConnectAzure:
     def __init__(self, dtap: str):
         self._dtap = dtap
         self._connect_to_keyvault()
-        self._connect_to_batch_client()
-        self._connect_to_storages()
 
     def _connect_to_keyvault(self) -> None:
         """
@@ -28,7 +26,7 @@ class ConnectAzure:
         self.keyvault_client = SecretClient(vault_url=f"https://keyv-weu-{self._dtap}.vault.azure.net",
                                             credential=self.credential)
 
-    def _connect_to_batch_client(self) -> None:
+    def connect_to_batch_client(self) -> batch.BatchServiceClient:
         """
         Connects to batch service.
         :return: None
@@ -46,9 +44,10 @@ class ConnectAzure:
         )
         # Managed identity in defaultcredential can not be used to authenticate to BatchServiceClient yet.
         # The error it gives is: AttributeError: 'ManagedIdentityCredential' object has no attribute 'signed_session'
-        self.batch_client = batch.BatchServiceClient(creds, batch_url)
+        batch_client = batch.BatchServiceClient(creds, batch_url)
+        return batch_client
 
-    def _connect_to_storages(self) -> None:
+    def connect_to_storages(self) -> BlobServiceClient:
         """
         Connects to the blob storage and the fileshare, which are needed to access the files.
         :return: None
@@ -56,7 +55,8 @@ class ConnectAzure:
         # Instantiate a BlobServiceClient
         INPUT_STORAGE_CONNECTION_STRING = self.keyvault_client.get_secret(
             'AZURE-STORAGE-CONNECTION-STRING-INPUT').value
-        self._blob_service_client_input = BlobServiceClient.from_connection_string(INPUT_STORAGE_CONNECTION_STRING)
+        blob_service_client_input = BlobServiceClient.from_connection_string(INPUT_STORAGE_CONNECTION_STRING)
+        return blob_service_client_input
 
     @property
     def sas_token_blobstorage_input(self) -> str:
@@ -65,8 +65,8 @@ class ConnectAzure:
         :return: str
         """
         # SAS = shared access signatures
-        return generate_account_sas(account_name=self._blob_service_client_input.account_name,
-                                    account_key=self._blob_service_client_input.credential.account_key,
+        return generate_account_sas(account_name=self.connect_to_storages().account_name,
+                                    account_key=self.connect_to_storages().credential.account_key,
                                     resource_types=ResourceTypes(service=True, container=True, object=True),
                                     permission=AccountSasPermissions(read=True, write=True),
                                     expiry=datetime.utcnow() + timedelta(hours=48))

@@ -9,12 +9,12 @@ from pathlib import Path
 from typing import Any, Dict, List, Union
 
 import pymongo
-from azure.identity import DefaultAzureCredential
-from azure.keyvault.secrets import SecretClient
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
 from pymongo.read_concern import ReadConcern
 from pymongo.write_concern import WriteConcern
+
+from bioit_mongodb_scripts.util_azure.connect_azure import ConnectAzure
 
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
@@ -52,6 +52,7 @@ def wrapper_loop_dtap_and_species_and_schemes(speciess: List[str], dtaps: List[s
             for scheme in set(schemes):
                 _TempidReplacer(scheme, species, dtap)
 
+
 class _TempidReplacer:
     """
     Class containing definitions to check and replace temporary ids in MongoDB (and BIGSdb)
@@ -69,12 +70,11 @@ class _TempidReplacer:
         self._dtap = dtap
 
         # Connect to keyvault
-        self._credential = DefaultAzureCredential()  # this should take the Managed Identity (which needs to have 'Keyvault secrets user' permissions)
-        self._keyvault_client = SecretClient(vault_url=f"https://keyv-weu-{self._dtap}.vault.azure.net", credential=self._credential)
+        self._connection_azure = ConnectAzure(self._dtap)
 
         # Open collections
         self._mongoinit = MongoInitialisation(self._species,
-                                              alternate_connection_string=self._keyvault_client.get_secret('MONGODB-CONNECTION-STRING').value,
+                                              alternate_connection_string=self._connection_azure.keyvault_client.get_secret('MONGODB-CONNECTION-STRING').value,
                                               alternate_dtap=self._dtap)
         self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, self._isolates_resequencing_collection = self._mongoinit.initialise_collections()
         self._hashed_ad_collection = self._mongoinit.initialise_hashing_collection()
