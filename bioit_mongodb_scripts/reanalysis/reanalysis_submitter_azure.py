@@ -1,14 +1,10 @@
 #!/usr/bin/env python
 import argparse
-import json
 import logging
 import os
-import random
 import re
-import string
 import subprocess
 import sys
-import yaml
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, Final, List
@@ -19,10 +15,8 @@ from azure.batch.models import (VirtualMachineConfiguration, ImageReference,
                                 BatchErrorException, StartTask, TaskSchedulingPolicy, TaskAddParameter,
                                 NetworkConfiguration, OutputFile, OutputFileDestination, OutputFileUploadOptions,
                                 OutputFileBlobContainerDestination)
-from azure.common.credentials import ServicePrincipalCredentials
-from azure.identity import DefaultAzureCredential
-from azure.keyvault.secrets import SecretClient
-from azure.storage.blob import AccountSasPermissions, BlobServiceClient, generate_account_sas, ResourceTypes
+
+from bioit_mongodb_scripts.util_azure.connect_azure import ConnectAzure
 
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
@@ -89,45 +83,9 @@ class _BatchPipelinesReanalysis:
         # Read the reanalysis config
         with open(MONGO_REANALYSIS_CONFIG, encoding='utf-8') as handle:
             self._reanalysis_config = yaml.safe_load(handle)
-
-        # Connect to keyvault
-        self._credential = DefaultAzureCredential()  # this should take the Managed Identity (which needs to have 'Keyvault secrets user' permissions)
-        self._keyvault_client = SecretClient(vault_url=f"https://keyv-weu-{self._dtap}.vault.azure.net", credential=self._credential)
-
-        self._connect_to_storages()
-        self._connect_to_batch_client()
-
+        # Connect to keyvault, batch account and storages
+        self._connection_azure = ConnectAzure(self._dtap)
         self._batch_pipelines()
-
-    def _connect_to_storages(self) -> None:
-        """
-        Connects to the blob storage and the fileshare, which are needed to access the files.
-        :return: None
-        """
-        # Instantiate a BlobServiceClient
-        INPUT_STORAGE_CONNECTION_STRING = self._keyvault_client.get_secret(
-            'AZURE-STORAGE-CONNECTION-STRING-INPUT').value
-        self._blob_service_client_input = BlobServiceClient.from_connection_string(INPUT_STORAGE_CONNECTION_STRING)
-
-    def _connect_to_batch_client(self) -> None:
-        """
-        Connects to batch service.
-        :return: None
-        """
-        batch_url = f"https://baweu{self._dtap}herawgs.westeurope.batch.azure.com"
-
-        # # Specify Batch account and service principal account credentials
-        # Where to get the client secret and id: https://success.myshn.net/Skyhigh_CASB/Skyhigh_CASB_Sanctioned_Apps/Skyhigh_CASB_for_Office_365/Service_Principal_with_a_Secret_Key_and_Azure_API_Integration
-        # Initialize the Batch client with Azure AD authentication
-        creds = ServicePrincipalCredentials(
-            client_id=self._keyvault_client.get_secret('SP-MKDEV-AZURE-CLIENT-ID').value,
-            secret=self._keyvault_client.get_secret('SP-MKDEV-AZURE-CLIENT-SECRET').value,
-            tenant=self._keyvault_client.get_secret('TENANT-ID').value,
-            resource="https://batch.core.windows.net/"
-        )
-        # Managed identity in defaultcredential can not be used to authenticate to BatchServiceClient yet.
-        # The error it gives is: AttributeError: 'ManagedIdentityCredential' object has no attribute 'signed_session'
-        self._batch_client = batch.BatchServiceClient(creds, batch_url)
 
     def _batch_pipelines(self) -> None:
         """
@@ -152,7 +110,7 @@ class _BatchPipelinesReanalysis:
         """
         # Create a new pool if none exists
         logging.info(f"Checking pool {BATCH_POOL_NAME}'s existence")
-        vm_size = self._keyvault_client.get_secret('BATCH-VM-SIZE').value
+        vm_size = self._connection_azure.keyvault_client.get_secret('BATCH-VM-SIZE').value
         node_agent_sku_id = 'batch.node.ubuntu 20.04'
         # listing popular images: az vm image list --output table # https://learn.microsoft.com/en-us/azure/virtual-machines/linux/cli-ps-findimage#list-popular-images
         # image_ref = ImageReference(publisher='Canonical', offer='0001-com-ubuntu-server-jammy', sku='22_04-lts-gen2')
@@ -160,7 +118,7 @@ class _BatchPipelinesReanalysis:
         # Create an ImageReference which specifies the image from
         # Azure Compute Gallery to install on the nodes.
         image_ref = batchmodels.ImageReference(
-            virtual_machine_image_id=self._keyvault_client.get_secret('BATCH-IMAGE').value
+            virtual_machine_image_id=self._connection_azure.keyvault_client.get_secret('BATCH-IMAGE').value
         )
 
         vm_config = VirtualMachineConfiguration(image_reference=image_ref, node_agent_sku_id=node_agent_sku_id)
@@ -168,15 +126,15 @@ class _BatchPipelinesReanalysis:
         scheduling_policy = TaskSchedulingPolicy(node_fill_type='spread')
 
         network_configuration = NetworkConfiguration(
-            subnet_id=self._keyvault_client.get_secret('BATCH-SUBNET').value)
+            subnet_id=self._connection_azure.keyvault_client.get_secret('BATCH-SUBNET').value)
 
         try:
-            self._batch_client.pool.get(BATCH_POOL_NAME)
+            self._connection_azure.batch_client.pool.get(BATCH_POOL_NAME)
         except BatchErrorException as e:
             if e.response.status_code == 404:
                 logging.info(f"Creating pool {BATCH_POOL_NAME}")
                 # https://learn.microsoft.com/en-us/python/api/azure-batch/azure.batch.models.pooladdparameter?view=azure-python
-                self._batch_client.pool.add(batch.models.PoolAddParameter(
+                self._connection_azure.batch_client.pool.add(batch.models.PoolAddParameter(
                     id=BATCH_POOL_NAME,
                     virtual_machine_configuration=vm_config,
                     vm_size=vm_size,
@@ -196,7 +154,7 @@ class _BatchPipelinesReanalysis:
         :return: None
         """
         try:
-            self._batch_client.job.get(job_name)
+            self._connection_azure.batch_client.job.get(job_name)
         except BatchErrorException as e:
             if e.response.status_code == 404:
                 logging.info(f"Creating job {job_name}")
@@ -210,7 +168,7 @@ class _BatchPipelinesReanalysis:
                     # on_task_failure=,
                     # on_all_tasks_complete='terminateJob' #25/05 we never terminate the job anymore as it can scale up to millions of tasks
                 )
-                self._batch_client.job.add(job)
+                self._connection_azure.batch_client.job.add(job)
 
     def __collect_database_update_dates(self) -> Dict[str, List]:
         """
@@ -244,7 +202,8 @@ class _BatchPipelinesReanalysis:
                 date_scheme_dict[scheme_last_update].append(
                     trigger_config['species'][self._species][scheme]['cmd_argument'])
             else:
-                date_scheme_dict[scheme_last_update] = [trigger_config['species'][self._species][scheme]['cmd_argument']]
+                date_scheme_dict[scheme_last_update] = [
+                    trigger_config['species'][self._species][scheme]['cmd_argument']]
         # e.g. date_scheme_dict: {'2022-10-02': ['mlst', 'cgmlst', 'pcr-serogroup', 'metal-detergent', 'typing-virulence', 'typing-amr', 'species-confirmation',
         #                         '2022-08-14': ['ncbi-amr'],
         #                         '2022-07-03': ['resfinder'],
@@ -279,7 +238,8 @@ class _BatchPipelinesReanalysis:
             f"Submitting reanalysis for samples older than {maximal_analysis_date} and younger than {minimal_analysis_date} with arguments: {date_args_dict[maximal_analysis_date]} for {self._species}_{self._dtap}")
         # Retrieve isolates that need to be re-analyzed
         mongoinit = MongoInitialisation(self._species,
-                                        alternate_connection_string=self._keyvault_client.get_secret('MONGODB-CONNECTION-STRING').value,
+                                        alternate_connection_string=self._connection_azure.keyvault_client.get_secret(
+                                            'MONGODB-CONNECTION-STRING').value,
                                         alternate_dtap=self._dtap)
         isolates_collection, old_isolateresults_collection, \
             isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections()
@@ -325,7 +285,7 @@ class _BatchPipelinesReanalysis:
                 file_pattern="../stderr.txt",
                 destination=OutputFileDestination(
                     container=OutputFileBlobContainerDestination(
-                        container_url=f"https://{INPUT_STORAGE_ACCOUNT_NAME}.blob.core.windows.net/batch-logs?{self._sas_token_blobstorage_input}",
+                        container_url=f"https://{INPUT_STORAGE_ACCOUNT_NAME}.blob.core.windows.net/batch-logs?{self._connection_azure.sas_token_blobstorage_input}",
                         path=f"{BATCH_POOL_NAME}/{job_name}/{task_name}_stderr.txt"
                     )
                 ),
@@ -337,7 +297,7 @@ class _BatchPipelinesReanalysis:
             )]
 
         )
-        self._batch_client.task.add(job_name, task)
+        self._connection_azure.batch_client.task.add(job_name, task)
 
     def ___build_command(self, task_name: str, analysis_arguments: List[str], mongodb_document: Dict[str, Any]) -> str:
         """
@@ -396,28 +356,13 @@ class _BatchPipelinesReanalysis:
             f"--jsonfilepath {results_dir}/report.json",
             "--dont_send_email",
             f"--alternate_dtap {self._dtap}",
-            f"--alternate_connection_string {self._keyvault_client.get_secret('MONGODB-CONNECTION-STRING').value}"
-                                    ])
+            f"--alternate_connection_string {self._connection_azure.keyvault_client.get_secret('MONGODB-CONNECTION-STRING').value}"
+        ])
         task_command = f'/bin/bash -c "{pre_command}; {base_command}; {post_command}; {cleanup_command}; {unload_command}; {mongodb_command}"'
         return task_command
 
-    @property
-    def _sas_token_blobstorage_input(self) -> str:
-        """
-        Generates a sas token for the input blob storage
-        :return: str
-        """
-        # SAS = shared access signatures
-        return generate_account_sas(account_name=self._blob_service_client_input.account_name,
-                                    account_key=self._blob_service_client_input.credential.account_key,
-                                    resource_types=ResourceTypes(service=True, container=True, object=True),
-                                    permission=AccountSasPermissions(read=True, write=True),
-                                    expiry=datetime.utcnow() + timedelta(hours=48))
-        # Issue: the 48 h here is a bottleneck, but any nr of hrs will be a bottleneck
-
 
 if __name__ == '__main__':
-
     # Configure stdout logging
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 

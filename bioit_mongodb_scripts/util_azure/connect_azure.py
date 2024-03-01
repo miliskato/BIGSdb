@@ -1,0 +1,73 @@
+from datetime import datetime, timedelta
+
+from azure import batch
+from azure.common.credentials import ServicePrincipalCredentials
+from azure.identity import DefaultAzureCredential
+from azure.keyvault.secrets import SecretClient
+from azure.storage.blob import AccountSasPermissions, BlobServiceClient, generate_account_sas, ResourceTypes
+
+
+class ConnectAzure:
+    """
+    This class is used to connect to the keyvault, the batch service, the blob storage and the fileshare of a specific
+    environment.
+    """
+
+    def __init__(self, dtap: str):
+        self._dtap = dtap
+        self._connect_to_keyvault()
+        self._connect_to_batch_client()
+        self._connect_to_storages()
+
+    def _connect_to_keyvault(self) -> None:
+        """
+        Connects to keyvault.
+        :return: None
+        """
+        self.credential = DefaultAzureCredential()  # this should take the Managed Identity (which needs to have 'Keyvault secrets user' permissions)
+        self.keyvault_client = SecretClient(vault_url=f"https://keyv-weu-{self._dtap}.vault.azure.net",
+                                            credential=self.credential)
+
+    def _connect_to_batch_client(self) -> None:
+        """
+        Connects to batch service.
+        :return: None
+        """
+        batch_url = f"https://baweu{self._dtap}herawgs.westeurope.batch.azure.com"
+
+        # # Specify Batch account and service principal account credentials
+        # Where to get the client secret and id: https://success.myshn.net/Skyhigh_CASB/Skyhigh_CASB_Sanctioned_Apps/Skyhigh_CASB_for_Office_365/Service_Principal_with_a_Secret_Key_and_Azure_API_Integration
+        # Initialize the Batch client with Azure AD authentication
+        creds = ServicePrincipalCredentials(
+            client_id=self.keyvault_client.get_secret('SP-MKDEV-AZURE-CLIENT-ID').value,
+            secret=self.keyvault_client.get_secret('SP-MKDEV-AZURE-CLIENT-SECRET').value,
+            tenant=self.keyvault_client.get_secret('TENANT-ID').value,
+            resource="https://batch.core.windows.net/"
+        )
+        # Managed identity in defaultcredential can not be used to authenticate to BatchServiceClient yet.
+        # The error it gives is: AttributeError: 'ManagedIdentityCredential' object has no attribute 'signed_session'
+        self.batch_client = batch.BatchServiceClient(creds, batch_url)
+
+    def _connect_to_storages(self) -> None:
+        """
+        Connects to the blob storage and the fileshare, which are needed to access the files.
+        :return: None
+        """
+        # Instantiate a BlobServiceClient
+        INPUT_STORAGE_CONNECTION_STRING = self.keyvault_client.get_secret(
+            'AZURE-STORAGE-CONNECTION-STRING-INPUT').value
+        self._blob_service_client_input = BlobServiceClient.from_connection_string(INPUT_STORAGE_CONNECTION_STRING)
+
+    @property
+    def sas_token_blobstorage_input(self) -> str:
+        """
+        Generates a sas token for the input blob storage
+        :return: str
+        """
+        # SAS = shared access signatures
+        return generate_account_sas(account_name=self._blob_service_client_input.account_name,
+                                    account_key=self._blob_service_client_input.credential.account_key,
+                                    resource_types=ResourceTypes(service=True, container=True, object=True),
+                                    permission=AccountSasPermissions(read=True, write=True),
+                                    expiry=datetime.utcnow() + timedelta(hours=48))
+        # Issue: the 48 h here is a bottleneck, but any nr of hrs will be a bottleneck
