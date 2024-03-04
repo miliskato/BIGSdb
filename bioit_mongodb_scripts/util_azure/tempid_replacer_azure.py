@@ -4,7 +4,6 @@ import hashlib
 import logging
 import socket
 import sys
-import traceback
 from pathlib import Path
 from typing import Any, Dict, List, Union
 
@@ -50,10 +49,10 @@ def wrapper_loop_dtap_and_species_and_schemes(speciess: List[str], dtaps: List[s
     for dtap in set(dtaps):
         for species in set(speciess):
             for scheme in set(schemes):
-                _TempidReplacer(scheme, species, dtap)
+                TempidReplacerAzure(scheme, species, dtap)
 
 
-class _TempidReplacer:
+class TempidReplacerAzure:
     """
     Class containing definitions to check and replace temporary ids in MongoDB (and BIGSdb)
     """
@@ -74,7 +73,7 @@ class _TempidReplacer:
 
         # Open collections
         self._mongoinit = MongoInitialisation(self._species,
-                                              alternate_connection_string=self._connection_azure.keyvault_client.get_secret('MONGODB-CONNECTION-STRING').value,
+                                              alternate_connection_string=self._connection_azure.get_secret_value('MONGODB-CONNECTION-STRING'),
                                               alternate_dtap=self._dtap)
         self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, self._isolates_resequencing_collection = self._mongoinit.initialise_collections()
         self._hashed_ad_collection = self._mongoinit.initialise_hashing_collection()

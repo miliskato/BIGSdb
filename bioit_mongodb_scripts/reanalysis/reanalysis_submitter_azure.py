@@ -5,13 +5,13 @@ import os
 import re
 import subprocess
 import sys
-import yaml
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, Final, List
 
 import azure.batch as batch
 import azure.batch.models as batchmodels
+import yaml
 from azure.batch.models import (VirtualMachineConfiguration, BatchErrorException, TaskSchedulingPolicy,
                                 TaskAddParameter,
                                 NetworkConfiguration, OutputFile, OutputFileDestination, OutputFileUploadOptions,
@@ -57,10 +57,10 @@ def wrapper_loop_dtap_and_species(speciess: List[str], dtaps: List[str]) -> None
     """
     for dtap in set(dtaps):
         for species in set(speciess):
-            _BatchPipelinesReanalysis(species, dtap)
+            BatchPipelinesReanalysis(species, dtap)
 
 
-class _BatchPipelinesReanalysis:
+class BatchPipelinesReanalysis:
     """
     This class contains the functionalities check for dbupdates, and depending on the pathogen launch a different pipeline
     on a new VM according to the last analysis date of the sample and the last dbupdate of each argument. 
@@ -114,7 +114,7 @@ class _BatchPipelinesReanalysis:
         """
         # Create a new pool if none exists
         logging.info(f"Checking pool {BATCH_POOL_NAME}'s existence")
-        vm_size = self._connection_azure.keyvault_client.get_secret('BATCH-VM-SIZE').value
+        vm_size = self._connection_azure.get_secret_value('BATCH-VM-SIZE')
         node_agent_sku_id = 'batch.node.ubuntu 20.04'
         # listing popular images: az vm image list --output table # https://learn.microsoft.com/en-us/azure/virtual-machines/linux/cli-ps-findimage#list-popular-images
         # image_ref = ImageReference(publisher='Canonical', offer='0001-com-ubuntu-server-jammy', sku='22_04-lts-gen2')
@@ -122,7 +122,7 @@ class _BatchPipelinesReanalysis:
         # Create an ImageReference which specifies the image from
         # Azure Compute Gallery to install on the nodes.
         image_ref = batchmodels.ImageReference(
-            virtual_machine_image_id=self._connection_azure.keyvault_client.get_secret('BATCH-IMAGE').value
+            virtual_machine_image_id=self._connection_azure.get_secret_value('BATCH-IMAGE')
         )
 
         vm_config = VirtualMachineConfiguration(image_reference=image_ref, node_agent_sku_id=node_agent_sku_id)
@@ -130,7 +130,7 @@ class _BatchPipelinesReanalysis:
         scheduling_policy = TaskSchedulingPolicy(node_fill_type='spread')
 
         network_configuration = NetworkConfiguration(
-            subnet_id=self._connection_azure.keyvault_client.get_secret('BATCH-SUBNET').value)
+            subnet_id=self._connection_azure.get_secret_value('BATCH-SUBNET'))
 
         try:
             self._batch_client.pool.get(BATCH_POOL_NAME)
@@ -242,8 +242,8 @@ class _BatchPipelinesReanalysis:
             f"Submitting reanalysis for samples older than {maximal_analysis_date} and younger than {minimal_analysis_date} with arguments: {date_args_dict[maximal_analysis_date]} for {self._species}_{self._dtap}")
         # Retrieve isolates that need to be re-analyzed
         mongoinit = MongoInitialisation(self._species,
-                                        alternate_connection_string=self._connection_azure.keyvault_client.get_secret(
-                                            'MONGODB-CONNECTION-STRING').value,
+                                        alternate_connection_string=self._connection_azure.get_secret_value(
+                                            'MONGODB-CONNECTION-STRING'),
                                         alternate_dtap=self._dtap)
         isolates_collection, old_isolateresults_collection, \
             isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections()
@@ -361,7 +361,7 @@ class _BatchPipelinesReanalysis:
             f"--jsonfilepath {results_dir}/report.json",
             "--dont_send_email",
             f"--alternate_dtap {self._dtap}",
-            f"--alternate_connection_string {self._connection_azure.keyvault_client.get_secret('MONGODB-CONNECTION-STRING').value}"
+            f"--alternate_connection_string {self._connection_azure.get_secret_value('MONGODB-CONNECTION-STRING')}"
         ])
         task_command = f'/bin/bash -c "{pre_command}; {base_command}; {post_command}; {cleanup_command}; {unload_command}; {mongodb_command}"'
         return task_command

@@ -5,12 +5,13 @@ import time
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from bioit_mongodb_scripts.reanalysis.reanalysis_submitter_azure import _BatchPipelinesReanalysis
-from bioit_mongodb_scripts.tempid_replacer_azure import _TempidReplacer
+from azure.monitor.ingestion import LogsIngestionClient
+
+from bioit_mongodb_scripts.reanalysis.reanalysis_submitter_azure import BatchPipelinesReanalysis
 from bioit_mongodb_scripts.util.command.command import Command
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data
 from bioit_mongodb_scripts.util_azure.connect_azure import ConnectAzure
-from azure.monitor.ingestion import LogsIngestionClient
+from bioit_mongodb_scripts.util_azure.tempid_replacer_azure import TempidReplacerAzure
 
 REMOVE_LOGS = 'find /var/log/dbupdate-logs/ -maxdepth 1 -mtime +28 -exec rm -rf {} \; 2>/dev/null'
 DBUPDATES = 'export DB_UPD_ROOT="/opt/db_update"; export XDG_CACHE_HOME="/var/cache/dbupdate_cache"; /opt/db_update/dbupdate/scripts/bash/update_weekly.sh >> /var/log/dbupdate-logs/$(date +"%Y_%m_%d_%H-%M-%S")_updatelog.txt 2>&1'
@@ -39,12 +40,12 @@ class DbUpdatesReanalysis:
             self._mongo_config_data = get_mongodb_config_data()
             self._connection_azure = ConnectAzure(self._dtap)
             self._batch_client = self._connection_azure.connect_to_batch_client()
-            self._disable_jobs()
-            self._execution_dbupdates()
-            self._enable_jobs()
-            self._execution_reanalysis()
+            self._disable_batch_jobs()
+            self._execute_dbupdates()
+            self._enable_batch_jobs()
+            self._execute_reanalysis()
         except Exception as e:
-            self._enable_jobs()
+            self._enable_batch_jobs()
             logging.error(f"An exception occurred during the database updates and the automated reanalysis: {e}")
             message_log = "An error occurred during the database updates and launching of the reanalysis"
             self._send_log_entry(level="Error", exception_message=str(e), message=message_log,
@@ -52,18 +53,18 @@ class DbUpdatesReanalysis:
         finally:
             self._execute_command(DEALLOCATE_VM)
 
-    def _execution_dbupdates(self) -> None:
+    def _execute_dbupdates(self) -> None:
         """
         Checks whether the database updates can be carried out, removes logs older than 4 weeks, executes the
         database updates and executes the tempid replacer.
         :return: None
         """
-        self._check_dbupdates()
+        self.__check_dbupdates()
         self._execute_command(REMOVE_LOGS)
         self._execute_command(DBUPDATES)
-        self._execution_tempid_replacer()
+        self.__execute_tempid_replacer()
 
-    def _check_dbupdates(self, max_hours: int = 10, sleep_minutes: int = 20) -> None:
+    def __check_dbupdates(self, max_hours: int = 10, sleep_minutes: int = 20) -> None:
         """
         Checks whether the database updates can be carried out (no tasks running). If not, it keeps regularly checking
         whether the database updates can be carried out. If the database updates can't be carried out after a maximum
@@ -73,7 +74,7 @@ class DbUpdatesReanalysis:
         """
         start_time = datetime.now()
         while datetime.now() - start_time < timedelta(hours=max_hours):
-            self._get_task_status()
+            self.__get_task_status()
             if any(status == "running" for status in self._tasks_status):
                 logging.info("Still tasks running, database updates can't be carried out")
                 time.sleep(sleep_minutes * 60)
@@ -81,25 +82,30 @@ class DbUpdatesReanalysis:
                 logging.info("Database updates can be carried out")
                 break  # Break out of the loop if no tasks are running
         else:
-            raise Exception("Maximum waiting time has passed, database updates can't be carried out")
+            raise Exception(f"Maximum waiting time ({max_hours} hours) has passed, database updates can't be carried out")
 
-    def _execution_tempid_replacer(self) -> None:
+    def __execute_tempid_replacer(self) -> None:
+        """
+        Executes the tempid replacer azure script.
+        :return: None
+        """
         schemes = ['mlst', 'cgmlst', 'mlst_warwick', 'mlst_pasteur']
         for species in self._mongo_config_data['species']:
             for scheme in schemes:
-                _TempidReplacer(scheme, species, self._dtap)
+                TempidReplacerAzure(scheme, species, self._dtap)
 
-    def _execution_reanalysis(self) -> None:
+    def _execute_reanalysis(self) -> None:
         """
         Executes the reanalysis script.
         :return: None
         """
         for species in self._mongo_config_data['species']:
-            _BatchPipelinesReanalysis(species, self._dtap)
+            BatchPipelinesReanalysis(species, self._dtap)
 
-    def _disable_jobs(self, retries: int = 3, timeout: int = 60 * 5, disable_tasks: str = "wait") -> None:
+    def _disable_batch_jobs(self, retries: int = 3, timeout: int = 60 * 5, disable_tasks: str = "wait") -> None:
         """
-        Disables all the jobs of a specific batch account.
+        Disables all the jobs of a specific batch account. Default of disable tasks is wait which means that currently
+        running tasks are allowed to complete, while newly added tasks are queued.
         :param retries: Number of retries
         :param timeout: Waiting time until trying again
         :param disable_tasks: requeue, terminate or wait
@@ -119,13 +125,13 @@ class DbUpdatesReanalysis:
                         job_disabled = True
                         break
                 except Exception as e:
-                    message_log = f"Job {job.id} could not be disabled: {e}."
+                    message_log = f"Job {job.id} could not be disabled at try {retry}: {e}."
                     logging.info(message_log)
                     time.sleep(timeout)
             if not job_disabled:
                 raise Exception(f"Job {job.id} could not be disabled")
 
-    def _enable_jobs(self, retries: int = 3, timeout: int = 60 * 5) -> None:
+    def _enable_batch_jobs(self, retries: int = 3, timeout: int = 60 * 5) -> None:
         """
         Enables all the jobs of a specific batch account.
         :param retries: Number of retries
@@ -154,7 +160,7 @@ class DbUpdatesReanalysis:
                 self._send_log_entry(level="Error", exception_message=message_log, message=message_log,
                                      stream_name="Custom-DbupdatesReanalysis_CL")
 
-    def _get_task_status(self) -> None:
+    def __get_task_status(self) -> None:
         """
         Gets the status of all the tasks for all the jobs of a specific batch account.
         :return: None
@@ -169,9 +175,16 @@ class DbUpdatesReanalysis:
         self._tasks_status = tasks_status
 
     def _send_log_entry(self, level: str, exception_message: str, message: str, stream_name: str):
-        endpoint = self._connection_azure.keyvault_client.get_secret('DATA-COLLECTION-ENDPOINT-DBUPDATES')
+        """
+        Sends a log to the log analytics space.
+        param level: importance of the log
+        param exception_message: exception message
+        param message: information message
+        param stream_name: Table to which the log is written
+        """
+        endpoint = self._connection_azure.get_secret_value('DATA-COLLECTION-ENDPOINT-DBUPDATES')
         client = LogsIngestionClient(endpoint=endpoint, credential=self._connection_azure.credential)
-        rule_id = self._connection_azure.keyvault_client.get_secret('DBUPDATES-REANALYSIS-RULE-ID')
+        rule_id = self._connection_azure.get_secret_value('DBUPDATES-REANALYSIS-RULE-ID')
 
         time_generated = datetime.now().isoformat()
         body = [{
@@ -205,4 +218,3 @@ if __name__ == "__main__":
         DbUpdatesReanalysis(dtap='dev')
     else:
         print("Execution of dbupdates and launching of reanalysis not yet implemented on ap.")
-

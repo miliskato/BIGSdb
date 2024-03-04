@@ -11,9 +11,6 @@ import traceback
 from pathlib import Path
 from typing import List, Optional
 
-from azure.identity import DefaultAzureCredential
-from azure.keyvault.secrets import SecretClient
-
 from bioit_mongodb_scripts.util_azure.connect_azure import ConnectAzure
 
 PYTHONPATH = Path(__file__).resolve().parent.parent
@@ -90,7 +87,7 @@ class HtmlreportGeneration:
         # Open collections
         self._mongoinit = MongoInitialisation(self._species, mongo_config_data=self._mongo_config_data,
                                               alternate_dtap=self._dtap,
-                                              alternate_connection_string=self._connection_azure.keyvault_client.get_secret('MONGODB-CONNECTION-STRING').value)
+                                              alternate_connection_string=self._connection_azure.keyvault_client.get_secret_value('MONGODB-CONNECTION-STRING'))
         self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, \
             self._isolates_resequencing_collection = self._mongoinit.initialise_collections()
         self._headers_collection = self._mongoinit.initialise_headers_collection()

@@ -49,14 +49,22 @@ class ConnectAzure:
 
     def connect_to_storages(self) -> BlobServiceClient:
         """
-        Connects to the blob storage and the fileshare, which are needed to access the files.
+        Connects to the blob storage, which is needed to access the files.
         :return: None
         """
         # Instantiate a BlobServiceClient
-        INPUT_STORAGE_CONNECTION_STRING = self.keyvault_client.get_secret(
-            'AZURE-STORAGE-CONNECTION-STRING-INPUT').value
-        blob_service_client_input = BlobServiceClient.from_connection_string(INPUT_STORAGE_CONNECTION_STRING)
+        input_storage_connection_string = self.keyvault_client.get_secret_value(
+            'AZURE-STORAGE-CONNECTION-STRING-INPUT')
+        blob_service_client_input = BlobServiceClient.from_connection_string(input_storage_connection_string)
         return blob_service_client_input
+
+    def get_secret_value(self, secret_key: str) -> str:
+        """
+        Returns the secret value of the keyvault for the given secret key.
+        :return: str
+        """
+        secret_value = self.keyvault_client.get_secret(secret_key).value
+        return secret_value
 
     @property
     def sas_token_blobstorage_input(self) -> str:
@@ -69,5 +77,5 @@ class ConnectAzure:
                                     account_key=self.connect_to_storages().credential.account_key,
                                     resource_types=ResourceTypes(service=True, container=True, object=True),
                                     permission=AccountSasPermissions(read=True, write=True),
-                                    expiry=datetime.utcnow() + timedelta(hours=48))
+                                    expiry=datetime.utcnow() + timedelta(weeks=2))
         # Issue: the 48 h here is a bottleneck, but any nr of hrs will be a bottleneck
