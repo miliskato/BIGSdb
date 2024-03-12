@@ -85,6 +85,7 @@ class MainMongo:
         # Input parameters
         self._technical_id = technical_id
         self._species = species
+        self._is_viral = self._species in ['influenza_a', 'influenza_b', 'sars_cov_2']
         self._results_type = results_type
         self._jsonfilepath = jsonfilepath
         self._subvaldict = subvaldict
@@ -216,7 +217,7 @@ class MainMongo:
         """
         new_records["isolates_id"] = self._technical_id
         good_sample_quality = True
-        if self._results_type == 'new_isolate':
+        if self._results_type == 'new_isolate' and not self._is_viral:  # viral pathogens do not have a qc section
             try:
                 for qc_type in new_records['qc']:
                     for key in new_records['qc'][qc_type]:
