@@ -37,9 +37,9 @@ class ConnectAzure:
         # Where to get the client secret and id: https://success.myshn.net/Skyhigh_CASB/Skyhigh_CASB_Sanctioned_Apps/Skyhigh_CASB_for_Office_365/Service_Principal_with_a_Secret_Key_and_Azure_API_Integration
         # Initialize the Batch client with Azure AD authentication
         creds = ServicePrincipalCredentials(
-            client_id=self.keyvault_client.get_secret('SP-MKDEV-AZURE-CLIENT-ID').value,
-            secret=self.keyvault_client.get_secret('SP-MKDEV-AZURE-CLIENT-SECRET').value,
-            tenant=self.keyvault_client.get_secret('TENANT-ID').value,
+            client_id=self.get_secret_value('SP-HERA-SHRD-AZURE-CLIENT-ID'),
+            secret=self.get_secret_value('SP-HERA-SHRD-AZURE-CLIENT-SECRET'),
+            tenant=self.get_secret_value('TENANT-ID'),
             resource="https://batch.core.windows.net/"
         )
         # Managed identity in defaultcredential can not be used to authenticate to BatchServiceClient yet.
@@ -53,7 +53,7 @@ class ConnectAzure:
         :return: None
         """
         # Instantiate a BlobServiceClient
-        input_storage_connection_string = self.keyvault_client.get_secret_value(
+        input_storage_connection_string = self.get_secret_value(
             'AZURE-STORAGE-CONNECTION-STRING-INPUT')
         blob_service_client_input = BlobServiceClient.from_connection_string(input_storage_connection_string)
         return blob_service_client_input

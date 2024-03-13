@@ -87,7 +87,7 @@ class HtmlreportGeneration:
         # Open collections
         self._mongoinit = MongoInitialisation(self._species, mongo_config_data=self._mongo_config_data,
                                               alternate_dtap=self._dtap,
-                                              alternate_connection_string=self._connection_azure.keyvault_client.get_secret_value('MONGODB-CONNECTION-STRING'))
+                                              alternate_connection_string=self._connection_azure.get_secret_value('MONGODB-CONNECTION-STRING'))
         self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, \
             self._isolates_resequencing_collection = self._mongoinit.initialise_collections()
         self._headers_collection = self._mongoinit.initialise_headers_collection()
