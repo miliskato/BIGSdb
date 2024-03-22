@@ -92,7 +92,7 @@ class MongoToBigs:
 
         # update the bigsdb cache so the clustering schemes get updated
         cache_command = f'/home/bigsdb/BIGSdb/scripts/maintenance/update_scheme_caches.pl ' \
-                        f'--database bigsdb_{self._species}_isolates --method incremental --schemes 2'
+                        f'--database bigsdb_{self._species}_isolates --method full --schemes 2'
         command = Command(cache_command)
         command.run(Path(os.getcwd()))
         if command.returncode != 0:
