@@ -240,11 +240,11 @@ sub _get_alerts_by_status {
 	my $user_info = $self->{'datastore'}->get_user_info_from_username( $self->{'username'} );
 	my ( $qry, $get_all, @args );
 	if ( $options->{'get_all'} ) {
-		$qry     = 'SELECT * FROM alerts WHERE status=? ORDER BY CAST(id AS INTEGER)';
+		$qry     = "SELECT *, (SELECT value FROM alert_details WHERE field='trigger cgst' AND alert_id=id), (SELECT isolate FROM isolates WHERE id=CAST((SELECT value FROM alert_details WHERE field='isolate_id' AND alert_id=alerts.id) AS INT)) FROM alerts WHERE status=? ORDER BY CAST(id AS INTEGER)";
 		$get_all = 1;
 		push @args, $status;
 	} else {
-		$qry     = 'SELECT * FROM alerts WHERE (submitter,status)=(?,?) ORDER BY CAST(id AS INTEGER)';
+		$qry     = "SELECT *, (SELECT value FROM alert_details WHERE field='trigger cgst' AND alert_id=id), (SELECT isolate FROM isolates WHERE id=CAST((SELECT value FROM alert_details WHERE field='isolate_id' AND alert_id=alerts.id) AS INT)) FROM alerts WHERE (submitter,status)=(?,?) ORDER BY CAST(id AS INTEGER)";
 		$get_all = 0;
 		push @args, ( $user_info->{'id'}, $status );
 	}
@@ -270,7 +270,8 @@ sub _get_own_alerts {
 			$table_buffer .=
 			    qq(<tr class="td$td"><td><a href="$url">$alert->{'id'}</a></td>)
 			  . qq(<td>$alert->{'date_submitted'}</td><td>$alert->{'datestamp'}</td>)
-			  . qq(<td>$alert->{'type'}</td>);
+			  . qq(<td>$alert->{'type'}</td>)
+			  . qq(<td>$alert->{'value'}</td><td>$alert->{'isolate'}</td>);  # trigger cgst and isolate
 			$table_buffer .= qq(<td>$details</td>);
 			if ( $options->{'show_outcome'} ) {
 				my %style = FACE_STYLE;
@@ -289,7 +290,7 @@ sub _get_own_alerts {
 		}
 		if ($table_buffer) {
 			$buffer .= q(<table class="resultstable"><tr><th>Alert id</th><th>Submitted</th><th>Updated</th>)
-			  . q(<th>Type</th><th>Details</th>);
+			  . q(<th>Type</th><th>cgST</th><th>trigger</th>);
 			$buffer .= q(<th>Outcome</th>) if $options->{'show_outcome'};
 			#$buffer .= q(<th>Remove</th>)  if $options->{'allow_remove'};
 			$buffer .= q(</tr>);
@@ -339,7 +340,8 @@ sub _get_alerts_for_curation {
 		  . qq(page=alert&amp;alert_id=$item->{'id'}&amp;curate=1">$item->{'id'}</a></td>)
 		  . qq(<td>$item->{'date_submitted'}</td>)
 		  . qq(<td>$item->{'type'}</td>)
-		  . qq(<td>$item->{'method'}</td>);
+		  . qq(<td>$item->{'method'}</td>)
+          . qq(<td>$item->{'value'}</td><td>$item->{'isolate'}</td>);  # trigger cgst and isolate
 		if ( $status eq 'archived' ) {
 			my %style = FACE_STYLE;
 			$buffer .= qq(<td><span $style{$item->{'outcome'}}></span></td>);
@@ -356,7 +358,7 @@ sub _get_alerts_for_curation {
 			$return_buffer .= qq(<p>Your account is authorized to handle the following alerts:<p>\n);
 		}
 		$return_buffer .= q(<table class="resultstable"><tr><th>Alert id</th><th>Triggered</th>)
-		  . q(<th>Type</th><th>Method</th>);
+		  . q(<th>Type</th><th>Method</th><th>cgST</th><th>trigger</th>);
 		$return_buffer .= q(<th>Outcome</th>) if $status eq 'archived';
 		$return_buffer .= qq(</tr>\n);
 		$return_buffer .= $buffer;
