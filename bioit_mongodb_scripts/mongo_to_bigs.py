@@ -79,7 +79,8 @@ class MongoToBigs:
         with TblSchemes(self._species, 'isolates') as isolates_schemes_psql_tbl:
             self._cgmlst_bigsdb_scheme_id = isolates_schemes_psql_tbl.select_scheme_id_cgmlst()[0][0]
         cache_command = f'/home/bigsdb/BIGSdb/scripts/maintenance/update_scheme_caches.pl ' \
-                        f'--database bigsdb_{self._species}_isolates --schemes {self._cgmlst_bigsdb_scheme_id}'
+                        f'--database bigsdb_{self._species}_isolates --schemes {self._cgmlst_bigsdb_scheme_id} ' \
+                        f'--method incremental'
         self._cache_command_object = Command(cache_command)
 
         # Prepare

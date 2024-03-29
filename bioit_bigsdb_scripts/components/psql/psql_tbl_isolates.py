@@ -87,7 +87,7 @@ class TblIsolates(DatabaseConnection):
         given set of dates.
         # todo replace the date in the sql query once there is a fixed analysis date, and then afterwards once the isolation date is known !!!
         :param param: cgmlst scheme id, cgsts, date1 (in YYYY-MM-DD), date2 (in YYYY-MM-DD)
-        :return: None or list of tuple of isolates.id, isolates.isolate, isolates.date_entered, cgst
+        :return: None or list of tuple of isolates.id, isolates.isolate, isolates.date_entered (as datetime date), cgst
         """
         param_arranged_for_psql = (param[0], param[0], param[0], param[1], param[2], param[3])
         return self.execute_query(PsqlQueries.ISO_SEL_ID_ISO_DATE_CGST_TB_ISO_VAR_SCHID_SCHID_SCHID_CGSTS_DATE1_DATE2,
@@ -98,7 +98,7 @@ class TblIsolates(DatabaseConnection):
         Selects all current versions of isolates that belong to a set of cgsts
         # todo replace the date in the sql query once there is a fixed analysis date, and then afterwards once the isolation date is known !!!
         :param param: cgmlst scheme id, cgsts
-        :return: None or list of tuple of isolates.id, isolates.isolate, isolates.date_entered, cgst
+        :return: None or list of tuple of isolates.id, isolates.isolate, isolates.date_entered (as datetime date), cgst
         """
         param_arranged_for_psql = (param[0], param[0], param[0], param[1])
         return self.execute_query(PsqlQueries.ISO_SEL_ID_ISO_DATE_CGST_TB_ISO_VAR_SCHID_SCHID_SCHID_CGSTS, param_arranged_for_psql)
@@ -110,7 +110,7 @@ class TblIsolates(DatabaseConnection):
         # todo replace the date in the sql query once there is a fixed analysis date, and then afterwards once the isolation date is known !!!
         :param param: classification_scheme_id, cgmlst scheme id, cgst,
         date1 (in YYYY-MM-DD), date2 (in YYYY-MM-DD)
-        :return: None or list of tuple of isolates.id, isolates.isolate, isolates.date_entered, cgst
+        :return: None or list of tuple of isolates.id, isolates.isolate, isolates.date_entered (as datetime date), cgst
         """
         param_arranged_for_psql = (param[0], param[1], param[1], param[0], param[0], param[0], param[0], param[2],
                                    param[3], param[4])
@@ -122,7 +122,7 @@ class TblIsolates(DatabaseConnection):
         Selects all current versions of isolates that belong to the cluster group of a given cgst
         # todo replace the date in the sql query once there is a fixed analysis date, and then afterwards once the isolation date is known !!!
         :param param: classification_scheme_id, cgmlst scheme id, cgst
-        :return: None or list of tuple of isolates.id, isolates.isolate, isolates.date_entered, cgst
+        :return: None or list of tuple of isolates.id, isolates.isolate, isolates.date_entered (as datetime date), cgst
         """
         param_arranged_for_psql = (param[0], param[1], param[1], param[0], param[0], param[0], param[0], param[2])
         return self.execute_query(

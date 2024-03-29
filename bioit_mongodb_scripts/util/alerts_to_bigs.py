@@ -1,6 +1,6 @@
 import datetime
 import logging
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, Iterator, List, Tuple, Union
 
 import numpy as np
 
@@ -161,7 +161,6 @@ class AlertsToBigs:
         for isolate in self._list_of_new_isolates_inserted_in_bigsdb:
             if isolate['cgST'] is None:
                 continue
-
             # extract row from distance matrix
             row_cgst = self._distance_matrix[isolate['cgST'] - 1]
             # order of keys below is important, if alert is triggered we'll break because warning will be redundant
@@ -222,38 +221,79 @@ class AlertsToBigs:
                         # Assess whether number of cases threshold was surpassed
                         if len(queried_isolates) >= \
                                 self._bigsdb_config_data['alerts'][self._species]['number_of_cases']:
-                            if not isolate.get('alert_id'):  # check if we're not dealing with reanalysis/resequencing
-                                if self._timeframe_is_infinite:
+                            if self._timeframe_is_infinite:
+                                if not isolate.get('alert_id'):  # check if we're not dealing with reanalysis/resequencing
                                     self.___insert_item_into_alerts(threshold_key.split('_')[-1],
                                                                     investigation_method, subject_isolate_tuple,
                                                                     cgsts, distance_threshold)
                                 else:
+                                    if threshold_key == 'threshold_alert' and \
+                                            isolate.get('previous_version_alert_type') == 'warning':
+                                        self.___update_warning_to_alert(str(isolate['alert_id']),
+                                                                        str(distance_threshold))
+                                    self.___update_variable_details_for_alert(
+                                        str(isolate['alert_id']), cgsts,
+                                        investigation_method,
+                                        threshold_key.split('_')[-1],
+                                        subject_clgr=queried_isolates[0][4] if investigation_method == 'single linkage' else None)
+                                    self.___update_identifiers_for_alert(str(isolate['alert_id']),
+                                                                         str(subject_isolate_tuple[0]),
+                                                                         isolate["isolate_name"])
+                            else:  # not self._timeframe_is_infinite
+                                """In this case we know that in **double** of the requested timeframe, the isolate number 
+                                 threshold is surpassed.
+                                Therefore we need to evaluate all daily-sliding windows (with lengths equal to requested 
+                                 timeframe) here to check whether a sliding window surpasses the threshold. 
+                                If multiple sliding windows surpass the threshold, and they do not have the same isolates
+                                 contents, then the contents need to be weighed to see which sliding window will be used.
+                                The weight of isolates in a sliding window is equal to 1 divided by the number of days 
+                                 apart from the isolate under investigation. The sliding window with the highest sum of 
+                                 all weights then 'wins'. In case of an ex aequo, the sliding window closest to today will
+                                 be used. 
+                                Likewise, if multiple sliding windows surpass the threshold, but they all 
+                                 contain the same isolates, then the sliding window closest to today will be used.
+                                """
+                                analysis_day = analysis_date.date()
+                                sliding_windows_by_weight: List[Tuple[float, datetime.date, datetime.date]] = []
+                                for window_start, window_end in zip(self.loop_over_days(analysis_day - timedelta_timeframe, analysis_day),
+                                                                    self.loop_over_days(analysis_day, analysis_day + timedelta_timeframe)):
+                                    isolates_count = 0
+                                    isolates_weight = 0
+                                    for queried_isolate in queried_isolates:
+                                        if window_start <= queried_isolate[2] <= window_end:
+                                            isolates_count += 1
+                                            isolates_weight += 1 / (abs((analysis_day - queried_isolate[2]).days) if (analysis_day - queried_isolate[2]).days != 0 else 1)
+                                        else:
+                                            continue
+                                    if isolates_count >= self._bigsdb_config_data['alerts'][self._species]['number_of_cases']:
+                                        sliding_windows_by_weight.append((isolates_weight, window_start, window_end))
+                                if len(sliding_windows_by_weight) == 0:
+                                    # No sliding windows meeting the threshold were found
+                                    logging.info(f"no sliding windows meeting the threshold criteria were found for isolate {isolate['isolate_name']}")
+                                    continue
+                                # sort the sliding windows so that the weights and dates are sorted in descending order
+                                sliding_windows_by_weight.sort(reverse=True)
+                                if not isolate.get('alert_id'):  # check if we're not dealing with reanalysis/resequencing
                                     self.___insert_item_into_alerts(threshold_key.split('_')[-1],
                                                                     investigation_method, subject_isolate_tuple,
-                                                                    cgsts, distance_threshold, start_date, end_date)
-                            else:
-                                if threshold_key == 'threshold_alert' and \
-                                        isolate.get('previous_version_alert_type') == 'warning':
-                                    self.___update_warning_to_alert(str(isolate['alert_id']), str(distance_threshold))
-                                # in Any possible case, update the variable details for a warning or alert,
-                                # it is not worth it to check if they changed
-                                if self._timeframe_is_infinite:
-                                    self.___update_variable_details_for_alert(
-                                        str(isolate['alert_id']), cgsts,
-                                        investigation_method,
-                                        threshold_key.split('_')[-1],
-                                        subject_clgr=queried_isolates[0][4] if investigation_method == 'single linkage' else None)
+                                                                    cgsts, distance_threshold,
+                                                                    sliding_windows_by_weight[0][1].strftime('%Y-%m-%d'),
+                                                                    sliding_windows_by_weight[0][2].strftime('%Y-%m-%d'))
                                 else:
+                                    if threshold_key == 'threshold_alert' and \
+                                            isolate.get('previous_version_alert_type') == 'warning':
+                                        self.___update_warning_to_alert(str(isolate['alert_id']),
+                                                                        str(distance_threshold))
                                     self.___update_variable_details_for_alert(
                                         str(isolate['alert_id']), cgsts,
                                         investigation_method,
                                         threshold_key.split('_')[-1],
-                                        start_date, end_date,
+                                        sliding_windows_by_weight[0][1].strftime('%Y-%m-%d'),
+                                        sliding_windows_by_weight[0][2].strftime('%Y-%m-%d'),
                                         subject_clgr=queried_isolates[0][4] if investigation_method == 'single linkage' else None)
-                                # update identifier data regardless
-                                self.___update_identifiers_for_alert(str(isolate['alert_id']),
-                                                                     str(subject_isolate_tuple[0]),
-                                                                     isolate["isolate_name"])
+                                    self.___update_identifiers_for_alert(str(isolate['alert_id']),
+                                                                         str(subject_isolate_tuple[0]),
+                                                                         isolate["isolate_name"])
                             if threshold_key == 'threshold_alert':
                                 # if Alert is triggered, break the for loop because a warning would be redundant
                                 if investigation_method == 'single linkage':
@@ -341,19 +381,14 @@ class AlertsToBigs:
 
                         queried_isolates_number = self._clgr_date_isolatecount_dict[
                             (affected_clgr, affected_isolation_date)]
-            if queried_isolates_number > 1:
-                if queried_isolates_number >= self._bigsdb_config_data['alerts'][self._species]['number_of_cases']:
-                    with TblAlertDetails(self._species) as isolates_alertsdet_psql_tbl:
-                        warning_or_alert_info = isolates_alertsdet_psql_tbl.select_alert_for_isolate(
-                            (str(affected_bigsdb_id), investigation_method))
+            if queried_isolates_number >= self._bigsdb_config_data['alerts'][self._species]['number_of_cases']:
+                with TblAlertDetails(self._species) as isolates_alertsdet_psql_tbl:
+                    warning_or_alert_info = isolates_alertsdet_psql_tbl.select_alert_for_isolate(
+                        (str(affected_bigsdb_id), investigation_method))
+                if self._timeframe_is_infinite:
                     if len(warning_or_alert_info) == 0:
-                        if self._timeframe_is_infinite:
-                            self.___insert_item_into_alerts(threshold_key.split('_')[-1], investigation_method,
-                                                            affected_isolate_tuple, cgsts, distance_threshold)
-                        else:
-                            self.___insert_item_into_alerts(threshold_key.split('_')[-1], investigation_method,
-                                                            affected_isolate_tuple, cgsts, distance_threshold,
-                                                            start_date, end_date)
+                        self.___insert_item_into_alerts(threshold_key.split('_')[-1], investigation_method,
+                                                        affected_isolate_tuple, cgsts, distance_threshold)
                     else:
                         alert_id = warning_or_alert_info[0][0]
                         warning_or_alert = warning_or_alert_info[0][1]
@@ -375,17 +410,77 @@ class AlertsToBigs:
                                 self.___update_warning_to_alert(str(alert_id), str(distance_threshold))
                             # in Any possible case, update the variable details for a warning or alert,
                             # it is not worth it to check if they changed
-                            if self._timeframe_is_infinite:
-                                self.___update_variable_details_for_alert(
-                                    str(alert_id), cgsts, investigation_method, warning_or_alert,
-                                    subject_clgr=affected_clgr if investigation_method == 'single linkage' else None)
-                            else:
-                                self.___update_variable_details_for_alert(
-                                    str(alert_id), cgsts, investigation_method, warning_or_alert, start_date, end_date,
-                                    subject_clgr=affected_clgr if investigation_method == 'single linkage' else None)
-                    if threshold_key == 'threshold_alert':
-                        # if Alert is triggered, break the for loop because a warning would be redundant
-                        break
+                            self.___update_variable_details_for_alert(
+                                str(alert_id), cgsts, investigation_method, warning_or_alert,
+                                subject_clgr=affected_clgr if investigation_method == 'single linkage' else None)
+
+                else:  # not self._timeframe_is_infinite
+                    """In this case we know that in **double** of the requested timeframe, the isolate number 
+                     threshold is surpassed.
+                    Therefore we need to evaluate all daily-sliding windows (with lengths equal to requested 
+                     timeframe) here to check whether a sliding window surpasses the threshold. 
+                    If multiple sliding windows surpass the threshold, and they do not have the same isolates
+                     contents, then the contents need to be weighed to see which sliding window will be used.
+                    The weight of isolates in a sliding window is equal to 1 divided by the number of days 
+                     apart from the isolate under investigation. The sliding window with the highest sum of 
+                     all weights then 'wins'. In case of an ex aequo, the sliding window closest to today will
+                     be used. 
+                    Likewise, if multiple sliding windows surpass the threshold, but they all 
+                     contain the same isolates, then the sliding window closest to today will be used.
+                    """
+                    sliding_windows_by_weight: List[Tuple[float, datetime.date, datetime.date]] = []
+                    for window_start, window_end in zip(
+                            self.loop_over_days(affected_isolation_date - timedelta_timeframe, affected_isolation_date),
+                            self.loop_over_days(affected_isolation_date, affected_isolation_date + timedelta_timeframe)):
+                        isolates_count = 0
+                        isolates_weight = 0
+                        for queried_isolate in queried_isolates:
+                            if window_start <= queried_isolate[2] <= window_end:
+                                isolates_count += 1
+                                isolates_weight += 1 / abs((affected_isolation_date - queried_isolate[2]).days) if (affected_isolation_date - queried_isolate[2]).days != 0 else 1
+                        if isolates_count >= self._bigsdb_config_data['alerts'][self._species]['number_of_cases']:
+                            sliding_windows_by_weight.append((isolates_weight, window_start, window_end))
+                    if len(sliding_windows_by_weight) == 0:
+                        # No sliding windows meeting the threshold were found
+                        continue
+                    # sort the sliding windows so that the weights and dates are sorted in descending order
+                    sliding_windows_by_weight.sort(reverse=True)
+                    if len(warning_or_alert_info) == 0:
+                        self.___insert_item_into_alerts(threshold_key.split('_')[-1], investigation_method,
+                                                        affected_isolate_tuple, cgsts, distance_threshold,
+                                                        sliding_windows_by_weight[0][1].strftime('%Y-%m-%d'),
+                                                        sliding_windows_by_weight[0][2].strftime('%Y-%m-%d'))
+                    else:
+                        alert_id = warning_or_alert_info[0][0]
+                        warning_or_alert = warning_or_alert_info[0][1]
+                        if warning_or_alert == 'alert':
+                            # because of the threshold_alert break of this for loop, it is never possible
+                            # that we're evaluating a warning where the bigsdb db would be displaying an alert,
+                            # therefore this condition is not checked here.
+                            # in Any possible case, update the variable details for a warning or alert,
+                            # it is not worth it to check if they changed
+                            self.___update_variable_details_for_alert(
+                                str(alert_id), cgsts, investigation_method, warning_or_alert,
+                                sliding_windows_by_weight[0][1].strftime('%Y-%m-%d'),
+                                sliding_windows_by_weight[0][2].strftime('%Y-%m-%d'),
+                                subject_clgr=affected_clgr if investigation_method == 'single linkage' else None)
+                        elif warning_or_alert == 'warning':
+                            # Here we need to make the distinction between threshold_alert and threshold_warning;
+                            # only if the threshold_key is alert we'll change the status and type,
+                            # else only the contents
+                            if threshold_key == 'threshold_alert':
+                                # Update alerts table to evolve from warning to alert
+                                self.___update_warning_to_alert(str(alert_id), str(distance_threshold))
+                            # in Any possible case, update the variable details for a warning or alert,
+                            # it is not worth it to check if they changed
+                            self.___update_variable_details_for_alert(
+                                str(alert_id), cgsts, investigation_method, warning_or_alert,
+                                sliding_windows_by_weight[0][1].strftime('%Y-%m-%d'),
+                                sliding_windows_by_weight[0][2].strftime('%Y-%m-%d'),
+                                subject_clgr=affected_clgr if investigation_method == 'single linkage' else None)
+                if threshold_key == 'threshold_alert':
+                    # if Alert is triggered, break the for loop because a warning would be redundant
+                    break
 
     def ___update_identifiers_for_alert(self, alert_id: str, new_isolate_bigsdb_id: str, isolate_name: str) -> None:
         """
@@ -574,3 +669,16 @@ class AlertsToBigs:
         :return: a scheme id for the classification/cluster group scheme corresponding to the alert/warning threshold
         """
         return self._bigsdb_config_data['alerts'][self._species][f'threshold_{alert_type}_classification_scheme_id']
+
+    @staticmethod
+    def loop_over_days(start_date: datetime.date, end_date: datetime.date) -> Iterator[datetime.date]:
+        """
+        Loops over all days between two datetime.date 's and returns them one by one.
+        :param start_date: loop start date
+        :param end_date: loop end date
+        :return: iterator over dates
+        """
+        current_date = start_date
+        while current_date <= end_date:
+            yield current_date
+            current_date += datetime.timedelta(days=1)
