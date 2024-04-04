@@ -28,7 +28,7 @@ from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data
 
 BATCH_POOL_NAME: Final[str] = 'reanalysis_pool_focal'
-BATCH_JOB_NAME_PREFIX: Final[str] = 'reanalysis_tasks_'
+BATCH_JOB_NAME_PREFIX: Final[str] = 'reanalysis_tasks_focal_'
 AUTOSCALE_FORMULA = """$TargetLowPriorityNodes = max(0, min(20, $PendingTasks.GetSample(TimeInterval_Minute*5)));\n$NodeDeallocationOption = taskcompletion;"""
 
 
@@ -102,10 +102,12 @@ class BatchPipelinesReanalysis:
         job_name = f"{BATCH_JOB_NAME_PREFIX}{self._species}"
         self.__create_job(job_name)
 
-        date_args_dict = self.__collect_database_update_dates()
-
-        for maximal_analysis_date in date_args_dict:
-            self.__launch_tasks(maximal_analysis_date, date_args_dict, job_name)
+        if self._species not in ['sars_cov_2', 'influenza_a', 'influenza_b']:
+            date_args_dict = self.__collect_database_update_dates()
+            for maximal_analysis_date in date_args_dict:
+                self.__launch_tasks(maximal_analysis_date, date_args_dict, job_name)
+        else:
+            self.__launch_tasks_viral(job_name)
 
     def __create_pool(self) -> None:
         """
@@ -138,18 +140,23 @@ class BatchPipelinesReanalysis:
             if e.response.status_code == 404:
                 logging.info(f"Creating pool {BATCH_POOL_NAME}")
                 # https://learn.microsoft.com/en-us/python/api/azure-batch/azure.batch.models.pooladdparameter?view=azure-python
-                self._batch_client.pool.add(batch.models.PoolAddParameter(
-                    id=BATCH_POOL_NAME,
-                    virtual_machine_configuration=vm_config,
-                    vm_size=vm_size,
-                    task_scheduling_policy=scheduling_policy,
-                    # target_low_priority_nodes=0,  # can not be specified when using auto_scale
-                    enable_auto_scale=True,
-                    auto_scale_formula=AUTOSCALE_FORMULA,
-                    auto_scale_evaluation_interval=timedelta(minutes=5),
-                    task_slots_per_node=1,  # default is 1 but putting it here anyway in case they change the default
-                    network_configuration=network_configuration
-                ))
+                try:
+                    self._batch_client.pool.add(batch.models.PoolAddParameter(
+                        id=BATCH_POOL_NAME,
+                        virtual_machine_configuration=vm_config,
+                        vm_size=vm_size,
+                        task_scheduling_policy=scheduling_policy,
+                        # target_low_priority_nodes=0,  # can not be specified when using auto_scale
+                        enable_auto_scale=True,
+                        auto_scale_formula=AUTOSCALE_FORMULA,
+                        auto_scale_evaluation_interval=timedelta(minutes=5),
+                        task_slots_per_node=1,  # default is 1 but putting it here anyway in case they change the default
+                        network_configuration=network_configuration
+                    ))
+                except:  # if the pool doesn't exist yet, and multiple samples are submitted at the same time; then a first sample will succeed and the rest will fail
+                    logging.info(
+                        f"Pool '{BATCH_POOL_NAME}' was likely created a fraction of time ago; continuing with job creation..")
+                    pass
 
     def __create_job(self, job_name: str) -> None:
         """
@@ -265,6 +272,44 @@ class BatchPipelinesReanalysis:
         logging.info(
             f"Reanalysis submission for samples older than {maximal_analysis_date} with arguments: {date_args_dict[maximal_analysis_date]} completed")
 
+    def __launch_tasks_viral(self, job_name: str) -> None:
+        """
+        Launches the Azure Batch tasks for all viral samples
+        :param job_name: the Azure Batch job name
+        :return: None
+        """
+        # Retrieve isolates that need to be re-analyzed
+        mongoinit = MongoInitialisation(self._species,
+                                        alternate_connection_string=self._connection_azure.get_secret_value(
+                                            'MONGODB-CONNECTION-STRING'),
+                                        alternate_dtap=self._dtap)
+        isolates_collection, old_isolateresults_collection, \
+            isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections()
+        # query all the documents as a projection
+        fields_to_retrieve = {
+            "_id": 1,
+            "fasta_path": 1,
+            "vcf_path": 1,
+            "vcf_path_unfiltered": 1,
+            "original_input_format": 1,
+            "latest_analysis_date": 1,
+            "report_directory": 1,
+            "results.isolates_id": 1
+        }
+
+        documents_list = list(isolates_collection.find({}, fields_to_retrieve))
+
+        logging.info(f"{len(documents_list)} isolates to be reanalyzed for {self._species}_{self._dtap}")
+        analysis_arguments = [argument.replace('--', '') for argument in
+                              self._reanalysis_config['species'][self._species]['options']]
+        for mongodb_document in documents_list:
+            # Create a new task to execute a command on the VM
+            task_name = f"{mongodb_document['results']['isolates_id']}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+            command = self.___build_command(task_name, analysis_arguments, mongodb_document)
+            self.___create_task(job_name, task_name, command)
+            logging.info(
+                f"Reanalysis submission for {self._species} samples with arguments: {analysis_arguments} completed")
+
     def ___create_task(self, job_name: str, task_name: str, command: str) -> None:
         """
         Creates a task in the previously created job with the same name as the created job.
@@ -329,8 +374,8 @@ class BatchPipelinesReanalysis:
             f"cd {working_dir};"
             f"{config_species['main_script']} ",
             f"--fasta {mongodb_document['fasta_path']} ",
-            '--detection-method blast',
-            '--library NexteraPE',
+            '--detection-method blast' if self._species not in ['sars_cov_2', 'influenza_a', 'influenza_b'] else '',
+            '--library NexteraPE', # should be changed in the future?
             f'--working-dir {working_dir}',
             f'--output-dir {report_dir}',
             f"--output-html {report_dir}/report.html",
