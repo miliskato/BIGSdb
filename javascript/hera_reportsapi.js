@@ -30,7 +30,7 @@ function get_jwt_preview(id, species, validation_type, res_time, get_zip, dtap, 
             //     var blob = new Blob([blobContent], { type: 'text/html' });
             //     newWindow.location.href = URL.createObjectURL(blob);
             newWindow.document.body.innerHTML = '';  // in order to clear previous message
-            newWindow.document.write('<script src="/javascript/jquery.min.js"></script>' + '<script src="/javascript/bigsdb.min.js"></script>' + response);
+            newWindow.document.write('<script src="/javascript/jquery.min.js"></script>' + '<script src="/javascript/hera_reportsapi.js"></script>' + response);
            },
         error:function(){
         var blob = new Blob(['Failure to retrieve the report. Please resubmit the request to start again or submit a ticket to bioit@sciensano if it still fails'], { type: 'text/html' });
