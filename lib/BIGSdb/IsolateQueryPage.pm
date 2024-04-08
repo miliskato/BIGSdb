@@ -1233,7 +1233,7 @@ sub _print_provenance_fields {
 			}
 		}
 		if ( defined $q->param("prov_value$row") && $q->param("prov_value$row") ne '' ) {
-		    push @$values, $q->optgroup( -name => 'selected', -values => ('f_isolation_date'), -labels => {'f_isolation_date' => 'isolation_date'});
+		    push @$values, $q->optgroup( -name => 'selected', -values => ($q->param("prov_field$row")), -labels => {$q->param("prov_field$row") => $q->param("prov_field$row")});
 		}
 		foreach my $group ( undef, @group_list ) {
 			my $name = $group // 'General';
