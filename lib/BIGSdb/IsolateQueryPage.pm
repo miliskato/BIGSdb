@@ -1232,7 +1232,9 @@ sub _print_provenance_fields {
 				push @{ $group_members->{'General'} }, $field;
 			}
 		}
-		push @$values, $q->optgroup( -name => 'selected', -values => ('f_isolation_date'), -labels => {'f_isolation_date' => 'isolation_date'});
+		if ( defined $q->param("prov_value$row") && $q->param("prov_value$row") ne '' ) {
+		    push @$values, $q->optgroup( -name => 'selected', -values => ('f_isolation_date'), -labels => {'f_isolation_date' => 'isolation_date'});
+		}
 		foreach my $group ( undef, @group_list ) {
 			my $name = $group // 'General';
 			$name =~ s/\|.+$//x;
