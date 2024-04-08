@@ -106,8 +106,6 @@ class AlertsToBigs:
         logging.info('Computing warnings/alerts from single linkage clustering for isolates already in bigsdb, '
                      'but affected by isolates just inserted into bigsdb')
         # Remove subject isolate tuples from affected ones in order to not reevaluate them
-        print(self._affected_isolates_tuples)
-        print(self._subject_isolates_tuples)
         self._affected_isolates_tuples.difference_update(self._subject_isolates_tuples)
         self.__evaluate_warning_and_alert_for_affected_isolates(investigation_method)
         

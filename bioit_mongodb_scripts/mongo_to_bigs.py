@@ -100,27 +100,28 @@ class MongoToBigs:
             """
             traceback1 = traceback.format_exc()
 
-            self._cache_command_object.run(Path(os.getcwd()))
-            if self._cache_command_object.returncode != 0:
-                send_email(f"update of the cache to display the clustering failed on host {socket.gethostname()}")
-                raise RuntimeError(
-                    f"update of the cache to display the clustering failed on host {socket.gethostname()}")
-
-            # then run the alerts implementation for distance matrices
-            # ofcourse this can fail too, therefore we encapsulate it in another try except
-            if len(self._list_of_new_isolates_for_alerts + self._list_of_new_versions_for_alerts) > 0 and not \
-                    self._exception_in_alerts:
-                try:
-                    AlertsToBigs(self._list_of_new_isolates_for_alerts, self._list_of_new_versions_for_alerts,
-                                 self._species, self._cgmlst_bigsdb_scheme_id)
-                except Exception as exceptionmessage2:
-                    traceback2 = traceback.format_exc()
-                    send_email(f"Failure 1: {exceptionmessage1}\n{traceback1}\n"
-                               f"Failure 2: {exceptionmessage2}\n{traceback2}",
-                               subject=f"{Path(__file__).name} double fail on host {socket.gethostname()}")
-                    raise Exception(f"{Path(__file__).name} double fail on host {socket.gethostname()}: "
-                                    f"Failure 1: {exceptionmessage1}\n{traceback1}\n"
-                                    f"Failure 2: {exceptionmessage2}\n{traceback2}")
+            # todo: disabled following code on 2024/04/08 because isolation date not yet in incoming metadata; to reenable when it does
+            # self._cache_command_object.run(Path(os.getcwd()))
+            # if self._cache_command_object.returncode != 0:
+            #     send_email(f"update of the cache to display the clustering failed on host {socket.gethostname()}")
+            #     raise RuntimeError(
+            #         f"update of the cache to display the clustering failed on host {socket.gethostname()}")
+            #
+            # # then run the alerts implementation for distance matrices
+            # # ofcourse this can fail too, therefore we encapsulate it in another try except
+            # if len(self._list_of_new_isolates_for_alerts + self._list_of_new_versions_for_alerts) > 0 and not \
+            #         self._exception_in_alerts:
+            #     try:
+            #         AlertsToBigs(self._list_of_new_isolates_for_alerts, self._list_of_new_versions_for_alerts,
+            #                      self._species, self._cgmlst_bigsdb_scheme_id)
+            #     except Exception as exceptionmessage2:
+            #         traceback2 = traceback.format_exc()
+            #         send_email(f"Failure 1: {exceptionmessage1}\n{traceback1}\n"
+            #                    f"Failure 2: {exceptionmessage2}\n{traceback2}",
+            #                    subject=f"{Path(__file__).name} double fail on host {socket.gethostname()}")
+            #         raise Exception(f"{Path(__file__).name} double fail on host {socket.gethostname()}: "
+            #                         f"Failure 1: {exceptionmessage1}\n{traceback1}\n"
+            #                         f"Failure 2: {exceptionmessage2}\n{traceback2}")
 
             send_email(f"{exceptionmessage1}\n{traceback1}")
             raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}: {exceptionmessage1}\n{traceback1}")
@@ -214,11 +215,12 @@ class MongoToBigs:
 
         # Run Alerts to bigs after updating the cache because it accesses a SQL table that is updated by the cache updater.
         # also run it after having inserted all isolates into bigsdb
-        try:
-            if len(self._list_of_new_isolates_for_alerts + self._list_of_new_versions_for_alerts) > 0:
-                AlertsToBigs(self._list_of_new_isolates_for_alerts, self._list_of_new_versions_for_alerts, self._species, self._cgmlst_bigsdb_scheme_id)
-        except:
-            self._exception_in_alerts = True
+        # todo: disabled following code on 2024/04/08 because isolation date not yet in incoming metadata; to reenable when it does
+        # try:
+        #     if len(self._list_of_new_isolates_for_alerts + self._list_of_new_versions_for_alerts) > 0:
+        #         AlertsToBigs(self._list_of_new_isolates_for_alerts, self._list_of_new_versions_for_alerts, self._species, self._cgmlst_bigsdb_scheme_id)
+        # except:
+        #     self._exception_in_alerts = True
 
     def __get_list_of_documents(self) -> List[Dict[str, Any]]:
         """

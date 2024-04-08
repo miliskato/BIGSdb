@@ -483,6 +483,16 @@
         group: root
         remote_src: yes
 
+    - name: add daily cronjob for temporary alerts implementation
+      cron:
+        name: "temporary_alerts_implementation"
+        minute: '0'
+        hour: '12'
+        weekday: '*'
+        job: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_mongodb_scripts/mongo_to_bigs_temporary_alerts_implementation.py --species {{ species }}"
+        user: 'bigsdb'
+        cron_file: temporary_alerts_implementation
+
 - name: setup GrapeTree
   tags: installgt
   block:

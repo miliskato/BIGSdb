@@ -176,36 +176,39 @@ class PsqlQueries():
     ISO_SEL_ANADATE_TB_ISO_VAR_ISO: Final[str] = """
         SELECT latest_analysis_date FROM isolates WHERE id=(SELECT MAX(id) FROM isolates WHERE isolate=%s);"""
     ISO_SEL_ID_ISO_DATE_CGST_TB_ISO_VAR_SCHID_SCHID_SCHID_CGSTS_DATE1_DATE2: Final[str] = """
-        SELECT isolates.id, isolates.isolate, isolates.date_entered, cgst FROM isolates LEFT JOIN 
+        SELECT isolates.id, isolates.isolate, isolates.isolation_date, cgst FROM isolates LEFT JOIN 
         temp_isolates_scheme_fields_%s ON isolates.id = temp_isolates_scheme_fields_%s.id 
-        WHERE new_version IS NULL AND temp_isolates_scheme_fields_%s.cgst IN %s AND isolates.date_entered>%s AND isolates.date_entered<=%s;"""   # todo; date entered needs to be replaced by isolation date
+        WHERE new_version IS NULL AND temp_isolates_scheme_fields_%s.cgst IN %s AND isolates.isolation_date>%s AND isolates.isolation_date<=%s;"""
     ISO_SEL_ID_ISO_DATE_CGST_TB_ISO_VAR_SCHID_SCHID_SCHID_CGSTS: Final[str] = """
-        SELECT isolates.id, isolates.isolate, isolates.date_entered, cgst FROM isolates LEFT JOIN 
+        SELECT isolates.id, isolates.isolate, isolates.isolation_date, cgst FROM isolates LEFT JOIN 
         temp_isolates_scheme_fields_%s ON isolates.id = temp_isolates_scheme_fields_%s.id 
-        WHERE new_version IS NULL AND temp_isolates_scheme_fields_%s.cgst IN %s;"""  # todo; date entered needs to be replaced by isolation date
+        WHERE new_version IS NULL AND temp_isolates_scheme_fields_%s.cgst IN %s;"""
     ISO_SEL_ID_ISO_DATE_CGST_CLGR_TB_ISO_VAR_CSCHID_SCHID_SCHID_CSCHID_CSCHID_CSCHID_CSCHID_CGST_DATE1_DATE2: Final[str] = """
-        SELECT isolates.id, isolates.isolate, isolates.date_entered, cgst, temp_cscheme_%s.group_id FROM isolates LEFT JOIN 
+        SELECT isolates.id, isolates.isolate, isolates.isolation_date, cgst, temp_cscheme_%s.group_id FROM isolates LEFT JOIN 
         temp_isolates_scheme_fields_%s ON isolates.id = temp_isolates_scheme_fields_%s.id 
         LEFT JOIN temp_cscheme_%s on cgst = temp_cscheme_%s.profile_id
         WHERE new_version IS NULL AND temp_cscheme_%s.group_id = 
         (SELECT group_id FROM temp_cscheme_%s WHERE profile_id = %s)
-        AND isolates.date_entered>%s AND isolates.date_entered<=%s;"""  # todo; date entered needs to be replaced by isolation date
+        AND isolates.isolation_date>%s AND isolates.isolation_date<=%s;"""
     ISO_SEL_ID_ISO_DATE_CGST_CLGR_TB_ISO_VAR_CSCHID_SCHID_SCHID_CSCHID_CSCHID_CSCHID_CSCHID_CGST: Final[str] = """
-        SELECT isolates.id, isolates.isolate, isolates.date_entered, cgst, temp_cscheme_%s.group_id FROM isolates LEFT JOIN 
+        SELECT isolates.id, isolates.isolate, isolates.isolation_date, cgst, temp_cscheme_%s.group_id FROM isolates LEFT JOIN 
         temp_isolates_scheme_fields_%s ON isolates.id = temp_isolates_scheme_fields_%s.id 
         LEFT JOIN temp_cscheme_%s on cgst = temp_cscheme_%s.profile_id
         WHERE new_version IS NULL AND temp_cscheme_%s.group_id = 
-        (SELECT group_id FROM temp_cscheme_%s WHERE profile_id = %s);"""  # todo; date entered needs to be replaced by isolation date
+        (SELECT group_id FROM temp_cscheme_%s WHERE profile_id = %s);"""
     ISO_SEL_ID_CGST_TB_ISO_VAR_SCHID_SCHID_ISO: Final[str] = """
         SELECT isolates.id, cgst FROM isolates LEFT JOIN 
         temp_isolates_scheme_fields_%s on isolates.id = temp_isolates_scheme_fields_%s.id 
         WHERE isolates.isolate = %s ORDER BY isolates.id DESC LIMIT 2;"""
+    ISO_SEL_ISO_DATE_TB_ISO_VAR_ISOS: Final[str] = """
+        SELECT isolate, isolation_date FROM isolates WHERE
+        isolate IN %s AND isolation_date IS NOT NULL AND new_version IS NULL;"""
     ISO_SEL_MAXID_TB_ISO_VAR_ISO: Final[str] = """SELECT MAX(id) FROM isolates WHERE isolate=%s;"""
     ISO_SEL_VALDATES_TB_ISO_VAR_ISO: Final[str] = """
         SELECT validation_date FROM isolates WHERE isolate=%s ORDER BY id DESC LIMIT 2;"""
     ISO_UPD_NEWV_TB_ISO_VAR_ISO: Final[str] = """
         UPDATE isolates SET new_version=NULL WHERE 
-        id=(SELECT MIN(id) FROM isolates WHERE id in (SELECT id FROM isolates WHERE isolate=%s ORDER BY id DESC LIMIT 2));"""
+        id=(SELECT MIN(id) FROM isolates WHERE id IN (SELECT id FROM isolates WHERE isolate=%s ORDER BY id DESC LIMIT 2));"""
     ISO_UPD_NEWV_TB_ISO_VAR_ISO_ISO_ISO: Final[str] = """
         UPDATE isolates SET new_version=(SELECT MAX(id) FROM isolates WHERE isolate=%s) 
         WHERE isolate=%s AND new_version IS NULL AND 
