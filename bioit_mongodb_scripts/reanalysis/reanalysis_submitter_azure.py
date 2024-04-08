@@ -307,8 +307,8 @@ class BatchPipelinesReanalysis:
             task_name = f"{mongodb_document['results']['isolates_id']}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
             command = self.___build_command(task_name, analysis_arguments, mongodb_document)
             self.___create_task(job_name, task_name, command)
-            logging.info(
-                f"Reanalysis submission for {self._species} samples with arguments: {analysis_arguments} completed")
+        logging.info(
+            f"Reanalysis submission for {self._species} samples with arguments: {analysis_arguments} completed")
 
     def ___create_task(self, job_name: str, task_name: str, command: str) -> None:
         """
