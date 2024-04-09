@@ -5,7 +5,7 @@ import socket
 import sys
 import traceback
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Union
 
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
@@ -13,6 +13,9 @@ sys.path.append(str(PYTHONPATH))
 from bioit_bigsdb_scripts.components.json_superclass import JsonSuperClass
 from bioit_bigsdb_scripts.components.psql import TblLocusDescriptions, TblLoci, TblSequences, TblAlleleDesignations, TblEavText, TblEavTextHidden, TblHistory
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data, send_email
+from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
+from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data
+from bioit_mongodb_scripts.util.mongo_querying import Mongoquerying
 
 
 def _parse_arguments(specieslist: List[str]) -> argparse.Namespace:
@@ -23,8 +26,7 @@ def _parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     """
     argument_parser = argparse.ArgumentParser()
     argument_parser.add_argument('--species', required=False, type=str,
-                                 choices=specieslist, default=specieslist,
-                                 nargs='+')  # this does allow for the same species multiple times but doesnt really matter, theyre uniquely filtered using set()
+                                 choices=specieslist, default=specieslist, nargs='+')  # this does allow for the same species multiple times but doesnt really matter, theyre uniquely filtered using set()
     return argument_parser.parse_args()
 
 
@@ -37,8 +39,10 @@ class GeneDetectionIntoPsql:
         self._bigsdb_config_data = bigsdb_config_data
         self._species = species
         self._schemedict: Dict[str, Any] = self._bigsdb_config_data['species'][self._species]['genedetection_schemes']
+#        self._genedetectiondict: Union[None, Dict[str, Dict[str, str]]] = self._bigsdb_config_data['species_json'][self._species]['genedetection_schemes']
         self._gene_detection_insertion_and_recalculation()
-        
+        self._eavhtmltable = None
+
     def _gene_detection_insertion_and_recalculation(self) -> None:
         """
         Inserts gene detection loci and alleles and recalculates existing loci/alleles
@@ -133,17 +137,23 @@ class GeneDetectionIntoPsql:
         Removes, recaculates and reinserts allele designations
         :return: None
         """
-        with TblAlleleDesignations(self._species) as isolates_ad_psql_tbl, \
+        with (TblAlleleDesignations(self._species) as isolates_ad_psql_tbl, \
                 TblEavText(self._species) as isolates_eavt_psql_tbl, \
-                TblHistory(self._species) as isolates_history_psql_tbl:
+                TblHistory(self._species) as isolates_history_psql_tbl):
             isolates_ad_psql_tbl.delete_designations((f"{self._schemedict[self._scheme]['schemename_bigsdb']}_GeneCluster%",))
             with TblEavTextHidden(self._species) as isolates_eavth_psql_tbl:
                 listofsamplesandhits = isolates_eavth_psql_tbl.select_hidden((self._schemedict[self._scheme]['schemename_bigsdb'],))
             if len(listofsamplesandhits) > 0:
-               for sampleandhits in listofsamplesandhits:
+                for sampleandhits in listofsamplesandhits:
                     isolate_id: str = sampleandhits[0]
                     isolate_name: str = sampleandhits[2]
-                    eavhtmltable = '<table class="data"><tr><th>GeneCluster</th><th>Locus</th></tr>'
+                    report_dir: str = self.___get_report_name_from_mongo(isolate_name)
+                    report_name = Path(report_dir).name
+                    html_scheme_name = self._schemedict[self._scheme]['schemename_html']
+                    url = f'/galaxyreports/{self._species}/{report_name}/report.html#{html_scheme_name}'
+                    self._eavhtmltable = '<style>table.nice { text-align: center; border-spacing:0 }table.nice tr:nth-child(n+3) {background: #E4EFF3}table.nice tr:nth-child(2n+3) {background: #C1E6F3}</style>'
+                    self._eavhtmltable += f'<table class="data nice"><tr><th>GeneCluster</th><th>Locus</th></tr>'
+                    self._eavhtmltable += f'<tr align="left"><td colspan="4"><a href="{url}" target="_blank">Full report</a></td></tr>'
                     clusterhitset = set()  # in case loci that were in different clusters at some point get in the same cluster
                     hits = json.loads(sampleandhits[1])
                     if len(hits) != 0:
@@ -153,42 +163,46 @@ class GeneDetectionIntoPsql:
                                 hit = '_'.join([(hits)[y][-1],
                                                 (hits)[y][1]])
                                 clusterhit: str = self._clusterdict[hit]
-                                # append Cluster
-                                eavhtmltable = eavhtmltable + ''.join(
-                                    ['<tr><td>', ''.join(['GeneCluster', clusterhit.split('Cluster')[1]]), '</td>'])
-                                # append Locus
-                                index = -2 if self._scheme == 'vfdb_core' else 1
-                                eavhtmltable = eavhtmltable + ''.join(
-                                    ['<td><a href="/galaxyreports/', self._species, '/', isolate_name,
-                                     '/report.html#', self._schemedict[self._scheme]['schemename_html'],
-                                     '" target="_blank">',
-                                     (hits)[y][index], '</a></td></tr>'])
-    
+                                self.___append_to_htmltable(hit, clusterhit)
+
                             elif isinstance(hits[y], dict):
                                 hit = '_'.join([(hits)[y]['Accession'],
                                                 (hits)[y]['Locus']])
                                 clusterhit = self._clusterdict[hit]
-                                # append Cluster
-                                eavhtmltable = eavhtmltable + ''.join(
-                                    ['<tr><td>', ''.join(['GeneCluster', clusterhit.split('Cluster')[1]]), '</td>'])
-                                # append Locus
-                                htmlname = 'Gene' if self._scheme == 'vfdb_core' else 'Locus'
-                                eavhtmltable = eavhtmltable + ''.join(
-                                    ['<td><a href="/galaxyreports/', self._species, '/', isolate_name,
-                                     '/report.html#', self._schemedict[self._scheme]['schemename_html'],
-                                     '" target="_blank">',
-                                     (hits)[y][htmlname], '</a></td></tr>'])
-    
+                                self.___append_to_htmltable(hits[y], clusterhit)
+
                             if clusterhit not in clusterhitset:
                                 isolates_ad_psql_tbl.insert_designation_by_isolateid((clusterhit, isolate_id, '1'))
                                 clusterhitset.add(clusterhit)
-                        eavhtmltable = eavhtmltable + '</table>'
+
+                        self._eavhtmltable += f'</table>'
                         isolates_eavt_psql_tbl.delete_eav(
                             (isolate_id, self._schemedict[self._scheme]['schemename_bigsdb']))
                         isolates_eavt_psql_tbl.insert_eav_id(
-                            (isolate_id, self._schemedict[self._scheme]['schemename_bigsdb'], eavhtmltable))
-                        isolates_history_psql_tbl.insert_history_id((isolate_id, 'Gene detection results reevaluated after database update'))
-                 
+                            (isolate_id, self._schemedict[self._scheme]['schemename_bigsdb'], self._eavhtmltable))
+                        isolates_history_psql_tbl.insert_history_id(
+                            (isolate_id, 'Gene detection results reevaluated after database update'))
+
+    def ___get_report_name_from_mongo(self, samplename: str) -> Union[str, Path]:
+        mongoinit = MongoInitialisation(species=self._species, mongo_config_data=get_mongodb_config_data())
+        isolates_collection, old_isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections()
+        isolate_report_path = Mongoquerying.query_docs_by_ids(opened_collection=isolates_collection, ids=[samplename])
+        return isolate_report_path[0]['report_directory']
+
+    def ___append_to_htmltable(self, hit: Dict[str, str], clusterhit: str) -> None:
+        """
+        Appends a row to the html table
+        :param hit: hit dictionary
+        :param clusterhit: current cluster of the hit
+        :param count_hits: index of the hit among others form the report
+        :return: None
+        """
+        # append Cluster
+        gene_cluster = clusterhit.split('Cluster_')[1]
+        locus_name: str = hit['Gene'] if self._scheme.endswith('vfdbcore') else hit['Locus']
+
+        self._eavhtmltable += f'<tr><td>{gene_cluster}</td><td>{locus_name}</td></tr>'
+
 
 if __name__ == '__main__':
 

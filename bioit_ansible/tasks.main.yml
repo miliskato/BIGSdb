@@ -81,6 +81,7 @@
     path: "{{ bioit_bigs_home }}/conf/bigsdb.conf"
     regexp: 'microreact_token=to_be_replaced_by_ansible'
     line: "microreact_token={{ microreact_token }}"
+  tags: microreact
 
 - name: add azure reportsapi ip to mongodb config
   lineinfile:
@@ -532,6 +533,20 @@
         regexp: "url:\\s+('.*'\\+)"
         replace: 'url: '
 
+- name: Create isolates db to initialize postGIS
+  community.postgresql.postgresql_db:
+    login_user: postgres
+    name: "bigsdb_{{ species }}_isolates"
+  become_user: postgres
+
+- name: Adds postgis extension to the isolate database in the schema public
+  postgresql_ext:
+    name: postgis
+    db: "bigsdb_{{ species }}_isolates"
+    login_user: postgres
+  become_user: postgres
+  tags: postGIS
+
 - name: Create species (refseq and isolates) data db (if they don't already exist) and run any pending migrations
   ansible.builtin.shell:
     chdir: "{{ bioit_bigs_home }}/sql/{{ item.dbmate_repo }}_v"
@@ -542,14 +557,6 @@
       - { dbmate_repo: "bigsdb_seqdef", db_name: "bigsdb_{{ species }}_seqdef" }
       - { dbmate_repo: "bigsdb_isolates", db_name: "bigsdb_{{ species }}_isolates" }
   tags: always
-
-- name: Adds postgis extension to the isolate database in the schema public
-  postgresql_ext:
-    name: postgis
-    db: "bigsdb_{{ species }}_isolates"
-    login_user: postgres
-  become_user: postgres
-  tags: postGIS
 
 - name: create global user database
   block:
@@ -673,6 +680,8 @@
         login_user: postgres
         db: "{{ item.db }}"
         path: "{{ item.script }}"
+        search_path:
+          - public
       loop: "{{ list_script|flatten(levels=1) }}"
       vars:
         list_script:
@@ -685,6 +694,7 @@
       ansible.builtin.shell:
         chdir: "{{ bioit_bigs_home }}/sql"
         cmd: "sudo -u postgres psql -d bigsdb_{{ species }}_isolates -f add_zipcode_coord.sql"
+      tags: always
 
     - name: populate db with python sql scripts
       block:
@@ -709,7 +719,7 @@
             - "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_bigsdb_scripts/Typing_alleles_intopsql.py --species {{ species }}"
             - "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_bigsdb_scripts/Typing_schemeprofiles_intopsql.py --species {{ species }}"
             - "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_bigsdb_scripts/genedetection_intopsql.py --species {{ species }}"
-  tags: pop_db
+          tags: pop_db
 
 - name: setup reports and symlinks
   block:

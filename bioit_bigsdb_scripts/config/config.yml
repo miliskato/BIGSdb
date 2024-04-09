@@ -78,7 +78,7 @@ species:
         metadatafile: /db/gene_detection/NCBI_AMR/mapping_full.json
         tsvname: hits_ncbi_amr
         schemename_bigsdb: NCBI_AMR
-        schemename_html: NCBI AMR genes
+        schemename_html: NCBI AMR genes (NDARO)
       listeria_resfinder:
         clusteredfasta: /db/gene_detection/ResFinder/resfinder-clustered_80.fasta
         metadatafile: /db/gene_detection/ResFinder/mapping_full.json
@@ -203,7 +203,7 @@ species:
         metadatafile: /db/gene_detection/NCBI_AMR/mapping_full.json
         tsvname: hits_ncbi_amr
         schemename_bigsdb: NCBI_AMR
-        schemename_html: NCBI AMR genes
+        schemename_html: NCBI AMR genes (NDARO)
       neisseria_resfinder:
         clusteredfasta: /db/gene_detection/ResFinder/resfinder-clustered_80.fasta
         metadatafile: /db/gene_detection/ResFinder/mapping_full.json
@@ -242,7 +242,7 @@ species:
         clusteredfasta: /db/gene_detection/NCBI_AMR/ncbi_amr-clustered_80.fasta
         metadatafile: /db/gene_detection/NCBI_AMR/mapping_full.json
         schemename_bigsdb: NCBI_AMR
-        schemename_html: NCBI AMR genes
+        schemename_html: NCBI AMR genes (NDARO)
         tsvname: hits_ncbi_amr
       stec_resfinder:
         clusteredfasta: /db/gene_detection/ResFinder/resfinder-clustered_80.fasta
@@ -304,7 +304,7 @@ species:
         metadatafile: /db/gene_detection/NCBI_AMR/mapping_full.json
         tsvname: hits_ncbi_amr
         schemename_bigsdb: NCBI_AMR
-        schemename_html: NCBI AMR genes
+        schemename_html: NCBI AMR genes (NDARO)
       salmonella_resfinder:
         clusteredfasta: /db/gene_detection/ResFinder/resfinder-clustered_80.fasta
         metadatafile: /db/gene_detection/ResFinder/mapping_full.json
@@ -322,7 +322,7 @@ species:
         metadatafile: /db/gene_detection/PlasmidFinder-entero/mapping_full.json
         tsvname: hits_plasmidfinder
         schemename_bigsdb: PlasmidFinder_entero
-        schemename_html: PlasmidFinder - Enterobacteriaceae
+        schemename_html: plasmid
     seqdefdb: bigsdb_salmonella_seqdef
     isolatesdb: bigsdb_salmonella_isolates
 

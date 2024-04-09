@@ -62,9 +62,16 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                                 listofhits[index][k] = v.replace("'", "")
                         with TblEavTextHidden(self._species) as isolates_eavth_psql_tbl:
                             isolates_eavth_psql_tbl.insert_hidden_isolate((self._isolatename, self._schemename_bigsdb, json.dumps(listofhits)))
-                        self._eavhtmltable = '<table class="data"><tr><th>GeneCluster</th><th>Locus</th></tr>'
+                        report_name = self._report_access.name
+                        html_scheme_name = self._genedetectiondict[self._scheme]['schemename_html']
+                        url = f'/galaxyreports/{self._species}/{report_name}/report.html#{html_scheme_name}'
+                        self._eavhtmltable = '<style>table.nice { text-align: center; border-spacing:0 }table.nice tr:nth-child(n+3) {background: #E4EFF3}table.nice tr:nth-child(2n+3) {background: #C1E6F3}</style>'
+                        self._eavhtmltable += '<table class="data nice"><tr><th>GeneCluster</th><th>Locus</th></tr>'
+                        self._eavhtmltable += f'<tr align="left"><td colspan="4"><a href="{url}" target="_blank">Full report</a></td></tr>'
+
                         clusterhitset = set()  # in case loci that were in different clusters at some point get in the same cluster
                         with TblAlleleDesignations(self._species) as isolates_ad_psql_tbl:
+                            n = 1
                             for hit in listofhits:
                                 """
                                 Part 1 regular gene detection
@@ -84,7 +91,7 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
     
                                 clusterhitset.add(clusterhit)
                                 self._append_to_htmltable(hit, clusterhit)
-    
+
                                 """
                                 Part 2 for the AB schemes
                                 """
@@ -106,17 +113,14 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
         Appends a row to the html table
         :param hit: hit dictionary
         :param clusterhit: current cluster of the hit
+        :param count_hits: index of the hit among others form the report
         :return: None
         """
         # append Cluster
-        self._eavhtmltable += ''.join(['<tr><td>', ''.join(['GeneCluster', clusterhit.split('Cluster')[1]]), '</td>'])
-        # append Locus
-        locusname: str = hit['Gene'] if self._scheme.endswith('vfdbcore') else hit['Locus']
-        report_name = self._report_access.name
-        self._eavhtmltable += ''.join(
-            [f'<td><a href="/galaxyreports/{self._species}/', report_name, '/report.html#',
-             self._genedetectiondict[self._scheme]['schemename_html'], '" target="_blank">',
-             locusname, '</a></td></tr>'])
+        gene_cluster = clusterhit.split('Cluster_')[1]
+        locus_name: str = hit['Gene'] if self._scheme.endswith('vfdbcore') else hit['Locus']
+
+        self._eavhtmltable += f'<tr><td>{gene_cluster}</td><td>{locus_name}</td></tr>'
 
     def __process_ab_scheme(self, locusname: str, hit: Dict[str, str], amr_class: bool = False) -> None:
         """
