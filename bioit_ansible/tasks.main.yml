@@ -58,6 +58,12 @@
     force: true
   tags: gitupdate
 
+- name: Change Mongo connection string in config based on host vars
+  lineinfile:
+    path: "{{ bioit_bigs_home }}/bioit_mongodb_scripts/config/config.yml"
+    regexp: 'CONNECTION_STRING_BASE: to_be_replaced_by_ansible'
+    line: "CONNECTION_STRING_BASE: {{ azure_mongo_connection_string }}"
+
 - name: Change Mongo dtap version in config based on playbook argument
   lineinfile:
     path: "{{ bioit_bigs_home }}/bioit_mongodb_scripts/config/config.yml"

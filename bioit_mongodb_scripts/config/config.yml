@@ -1,5 +1,5 @@
 CONNECTION_STRING_ALTERNATE: mongodb+srv://mikelchtermans:YMFOH4BLF1U79dDk@hera-bioit-trial.vajezh0.mongodb.net
-CONNECTION_STRING_BASE: mongodb://admin:8T1r7nQwXnMoP3A9ubsu@bioit-mongo-d01.sciensano.be:27017,bioit-mongo-d02.sciensano.be:27017,bioit-mongo-d03.sciensano.be:27017/?replicaSet=bioit-HERA&authSource=admin
+CONNECTION_STRING_BASE: to_be_replaced_by_ansible
 
 mail:
     from: MongoDB internal HERA
