@@ -27,6 +27,7 @@ def _parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     argument_parser = argparse.ArgumentParser()
     argument_parser.add_argument('--species', required=False, type=str,
                                  choices=specieslist, default=specieslist, nargs='+')  # this does allow for the same species multiple times but doesnt really matter, theyre uniquely filtered using set()
+    argument_parser.add_argument('--do_not_recalculate', required=False, type=bool, default=False)  # Since 2024/03/29 this script accesses Mongo directly to recalculate, in some instances mongo is not instantiated yet when this script is called (moving from local to Azure), requiring the ability to disable the recalculation
     return argument_parser.parse_args()
 
 
@@ -35,9 +36,16 @@ class GeneDetectionIntoPsql:
     Class containing function to insert gene detection loci and alleles and update them (weekly)
     """
 
-    def __init__(self, bigsdb_config_data: Dict[str, Any], species: str) -> None:
+    def __init__(self, bigsdb_config_data: Dict[str, Any], species: str, do_not_recalculate: bool) -> None:
+        """
+        Initialises this class and executes the main function: _gene_detection_insertion_and_recalculation
+        :param bigsdb_config_data: the bigsdb config data
+        :param species: commonly used bioit species name: either genus or specific like stec.
+        :param do_not_recalculate: Whether the recalculation step should be skipped or not.
+        """
         self._bigsdb_config_data = bigsdb_config_data
         self._species = species
+        self._do_not_recalculate = do_not_recalculate
         self._schemedict: Dict[str, Any] = self._bigsdb_config_data['species'][self._species]['genedetection_schemes']
 #        self._genedetectiondict: Union[None, Dict[str, Dict[str, str]]] = self._bigsdb_config_data['species_json'][self._species]['genedetection_schemes']
         self._gene_detection_insertion_and_recalculation()
@@ -59,7 +67,8 @@ class GeneDetectionIntoPsql:
 
                 self.__update_locus_descriptions()
 
-                self.__recalculate_allele_designations()
+                if not self._do_not_recalculate:
+                    self.__recalculate_allele_designations()
 
     def __create_necessary_dictionaries(self) -> None:
         """
@@ -137,9 +146,9 @@ class GeneDetectionIntoPsql:
         Removes, recaculates and reinserts allele designations
         :return: None
         """
-        with (TblAlleleDesignations(self._species) as isolates_ad_psql_tbl, \
+        with TblAlleleDesignations(self._species) as isolates_ad_psql_tbl, \
                 TblEavText(self._species) as isolates_eavt_psql_tbl, \
-                TblHistory(self._species) as isolates_history_psql_tbl):
+                TblHistory(self._species) as isolates_history_psql_tbl:
             isolates_ad_psql_tbl.delete_designations((f"{self._schemedict[self._scheme]['schemename_bigsdb']}_GeneCluster%",))
             with TblEavTextHidden(self._species) as isolates_eavth_psql_tbl:
                 listofsamplesandhits = isolates_eavth_psql_tbl.select_hidden((self._schemedict[self._scheme]['schemename_bigsdb'],))
@@ -217,7 +226,7 @@ if __name__ == '__main__':
 
     try:
         for species in set(args.species):
-            GeneDetectionIntoPsql(bigsdb_config_data, species)
+            GeneDetectionIntoPsql(bigsdb_config_data, args.species, args.do_not_recalculate)
     except Exception as exceptionmessage:
         send_email(f"{exceptionmessage}\n{traceback.format_exc()}")
         raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}")
