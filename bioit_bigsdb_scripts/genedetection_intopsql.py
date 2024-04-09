@@ -27,7 +27,7 @@ def _parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     argument_parser = argparse.ArgumentParser()
     argument_parser.add_argument('--species', required=False, type=str,
                                  choices=specieslist, default=specieslist, nargs='+')  # this does allow for the same species multiple times but doesnt really matter, theyre uniquely filtered using set()
-    argument_parser.add_argument('--do_not_recalculate', required=False, type=bool, default=False)  # Since 2024/03/29 this script accesses Mongo directly to recalculate, in some instances mongo is not instantiated yet when this script is called (moving from local to Azure), requiring the ability to disable the recalculation
+    argument_parser.add_argument('--do_not_recalculate', required=False, action='store_true', default=False)  # Since 2024/03/29 this script accesses Mongo directly to recalculate, in some instances mongo is not instantiated yet when this script is called (moving from local to Azure), requiring the ability to disable the recalculation
     return argument_parser.parse_args()
 
 
@@ -226,7 +226,7 @@ if __name__ == '__main__':
 
     try:
         for species in set(args.species):
-            GeneDetectionIntoPsql(bigsdb_config_data, args.species, args.do_not_recalculate)
+            GeneDetectionIntoPsql(bigsdb_config_data, species, args.do_not_recalculate)
     except Exception as exceptionmessage:
         send_email(f"{exceptionmessage}\n{traceback.format_exc()}")
         raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}")
