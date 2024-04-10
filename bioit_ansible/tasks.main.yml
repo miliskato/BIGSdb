@@ -179,7 +179,7 @@
     line: |
             <VirtualHost "{{ inventory_hostname }}.{{ host_domain }}":80>
               ServerAlias *
-              
+
               ProxyPass "/reportsapi" "http://{{ azure_reportsapi_ip }}:9090"
               ProxyPassReverse "/reportsapi" "http://{{ azure_reportsapi_ip }}:9090"
             </VirtualHost>
