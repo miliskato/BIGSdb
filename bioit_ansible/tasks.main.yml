@@ -86,8 +86,8 @@
 - name: add azure reportsapi ip to mongodb config
   lineinfile:
     path: "{{ bioit_bigs_home }}/bioit_mongodb_scripts/config/config.yml"
-    regexp: 'azure_reports_api: to_be_replaced_by_ansible'
-    line: "azure_reports_api: {{ azure_reportsapi_ip }}"
+    regexp: 'azure_reportsapi_ip: to_be_replaced_by_ansible'
+    line: "azure_reportsapi_ip: {{ azure_reportsapi_ip }}"
 
 - name: create bigsdb .ssh directory
   ansible.builtin.file:
