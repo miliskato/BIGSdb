@@ -207,11 +207,16 @@ class MongoToBigs:
                         insert_assembly(document_id, self._species, temp_fasta_path)
                 logging.info(f"wrote new results version for {document_id} to bigsdb")
 
-        # Update cache again before alerts implementation because it will :
+        # Update cache again before alerts implementation because new isolates won't have cgST's but are needed for alerts implementation
         self._cache_command_object.run(Path(os.getcwd()))
         if self._cache_command_object.returncode != 0:
             send_email(f"update of the cache to display the clustering failed on host {socket.gethostname()}")
             raise RuntimeError(f"update of the cache to display the clustering failed on host {socket.gethostname()}")
+
+        list_of_isolates_in_bigs = self._isolates_psql_tbl.listing_isolates()
+        with Path('/scratch/bigsupload/mongo/list_of_isolates.txt').open('w') as fileout:
+            for item in list_of_isolates_in_bigs:
+                fileout.write(f"{item[0]}\n")
 
         # Run Alerts to bigs after updating the cache because it accesses a SQL table that is updated by the cache updater.
         # also run it after having inserted all isolates into bigsdb

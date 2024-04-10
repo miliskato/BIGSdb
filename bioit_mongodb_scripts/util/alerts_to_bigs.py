@@ -66,7 +66,7 @@ class AlertsToBigs:
     def _evaluate_warning_and_alert_from_distance_matrix(self) -> None:
         """
         For the currently inserted new isolates, and new versions of isolates, evaluates whether they trigger
-        warnings/alerts and inserts/updates these accordingly.
+        warnings/alerts using the distance matrix method and inserts/updates these accordingly.
         After the currently inserted isolates are evaluated, also evaluates possibly affected isolates,
         and inserts/updates their warnings/alerts accordingly.
         :return: None
@@ -85,7 +85,7 @@ class AlertsToBigs:
     def _evaluate_warning_and_alert_from_hierarchical_clustering(self) -> None:
         """
         For the currently inserted new isolates, and new versions of isolates, evaluates whether they trigger
-        warnings/alerts and inserts/updates these accordingly.
+        warnings/alerts using the single linkage method and inserts/updates these accordingly.
         After the currently inserted isolates are evaluated, also evaluates possibly affected isolates,
         and inserts/updates their warnings/alerts accordingly.
         :return: None
