@@ -90,7 +90,9 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                                     isolates_ad_psql_tbl.insert_designation_by_isolatename((clusterhit, self._isolatename, '1'))
     
                                 clusterhitset.add(clusterhit)
-                                self._append_to_htmltable(hit, clusterhit)
+
+                                if not self._scheme.endswith('vfdbcore'):
+                                    self._append_to_htmltable(hit, clusterhit)
 
                                 """
                                 Part 2 for the AB schemes
@@ -118,7 +120,7 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
         """
         # append Cluster
         gene_cluster = clusterhit.split('Cluster_')[1]
-        locus_name: str = hit['Gene'] if self._scheme.endswith('vfdbcore') else hit['Locus']
+        locus_name: str = hit['Locus']
 
         self._eavhtmltable += f'<tr><td>{gene_cluster}</td><td>{locus_name}</td></tr>'
 

@@ -161,7 +161,7 @@ class GeneDetectionIntoPsql:
                             if isinstance(hits[y], list):
                                 # allele is always position 1 and accession is always last position (-1)
                                 hit = '_'.join([(hits)[y][-1],
-                                                (hits)[y][1]])
+                                                 (hits)[y][1]])
                                 clusterhit: str = self._clusterdict[hit]
                                 self.___append_to_htmltable(hit, clusterhit)
 
@@ -169,19 +169,20 @@ class GeneDetectionIntoPsql:
                                 hit = '_'.join([(hits)[y]['Accession'],
                                                 (hits)[y]['Locus']])
                                 clusterhit = self._clusterdict[hit]
-                                self.___append_to_htmltable(hits[y], clusterhit)
+                                if not self._scheme.endswith('vfdbcore'):
+                                    self.___append_to_htmltable(hits[y], clusterhit)
 
                             if clusterhit not in clusterhitset:
                                 isolates_ad_psql_tbl.insert_designation_by_isolateid((clusterhit, isolate_id, '1'))
                                 clusterhitset.add(clusterhit)
 
-                        self._eavhtmltable += f'</table>'
-                        isolates_eavt_psql_tbl.delete_eav(
-                            (isolate_id, self._schemedict[self._scheme]['schemename_bigsdb']))
-                        isolates_eavt_psql_tbl.insert_eav_id(
-                            (isolate_id, self._schemedict[self._scheme]['schemename_bigsdb'], self._eavhtmltable))
-                        isolates_history_psql_tbl.insert_history_id(
-                            (isolate_id, 'Gene detection results reevaluated after database update'))
+                    self._eavhtmltable += f'</table>'
+                    isolates_eavt_psql_tbl.delete_eav(
+                        (isolate_id, self._schemedict[self._scheme]['schemename_bigsdb']))
+                    isolates_eavt_psql_tbl.insert_eav_id(
+                        (isolate_id, self._schemedict[self._scheme]['schemename_bigsdb'], self._eavhtmltable))
+                    isolates_history_psql_tbl.insert_history_id(
+                        (isolate_id, 'Gene detection results reevaluated after database update'))
 
     def ___get_report_name_from_mongo(self, samplename: str) -> Union[str, Path]:
         mongoinit = MongoInitialisation(species=self._species, mongo_config_data=get_mongodb_config_data())
@@ -199,7 +200,7 @@ class GeneDetectionIntoPsql:
         """
         # append Cluster
         gene_cluster = clusterhit.split('Cluster_')[1]
-        locus_name: str = hit['Gene'] if self._scheme.endswith('vfdbcore') else hit['Locus']
+        locus_name: str = hit['Locus']
 
         self._eavhtmltable += f'<tr><td>{gene_cluster}</td><td>{locus_name}</td></tr>'
 
