@@ -180,8 +180,8 @@
             <VirtualHost "{{ inventory_hostname }}.{{ host_domain }}":80>
               ServerAlias *
 
-              ProxyPass "/reportsapi" "http://{{ azure_reportsapi_ip }}:9090"
-              ProxyPassReverse "/reportsapi" "http://{{ azure_reportsapi_ip }}:9090"
+              ProxyPass "/reportsapi" "http://{{ azure_reportsapi_ip }}:9090" timeout=10000
+              ProxyPassReverse "/reportsapi" "http://{{ azure_reportsapi_ip }}:9090" timeout=10000
             </VirtualHost>
   when: reportsapi_proxy_check.stdout.find("Line doesn't exist") != -1
 
