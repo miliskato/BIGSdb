@@ -385,6 +385,7 @@ class _BatchPipelinesReanalysis:
         config_mongodb = self._reanalysis_config['mongodb']
         mongodb_command = ' '.join([
             f"module load {config_mongodb['lmod']};",
+            f"/usr/bin/flock -n /scratch/scratch/{self._dtap}/mainmongo_{self._species}.lockfile",
             f"{config_mongodb['main_script']}",
             "--results_type reanalysis",
             f"--species {self._species}",
