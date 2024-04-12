@@ -75,7 +75,7 @@
     - name: Choose value for microreact token and host
       set_fact:
         microreact_token: "{{ microreact_token_dta }}"
-        microreact_host: "{{ common_host_dta }}"
+        microreact_host: "{{ microreact_common_host_dta }}"
       when: mongo_dtap == "dev" or mongo_dtap == "test" or mongo_dtap == "acc"
 
     - name: Choose value for microreact token and host when prod
@@ -84,7 +84,7 @@
         microreact_host: "{{ unique_host_prod }}"
       when: mongo_dtap == "prod"
 
-    - name: Add microreact urls according to DTAP and specie if on prod
+    - name: Add microreact urls according to DTAP and species if on prod
       lineinfile:
         path: "{{ bioit_bigs_home }}/conf/bigsdb.conf"
         regex: "{{ item.to_adapt}}"
