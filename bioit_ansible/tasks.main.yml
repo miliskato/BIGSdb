@@ -70,12 +70,33 @@
     regexp: 'dbpassword=to_be_replaced_by_ansible'
     line: "dbpassword={{ secret_bioit_bigs_postgresql_apache_password }}"
 
-- name: Add microreact token to bigdb config file
-  lineinfile:
-    path: "{{ bioit_bigs_home }}/conf/bigsdb.conf"
-    regexp: 'microreact_token=to_be_replaced_by_ansible'
-    line: "microreact_token={{ microreact_token }}"
-  tags: microreact
+- name: Configure microreact
+  block:
+    - name: Choose value for microreact token and host
+      set_fact:
+        microreact_token: "{{ microreact_token_dta }}"
+        microreact_host: "{{ common_host_dta }}"
+      when: mongo_dtap == "dev" or mongo_dtap == "test" or mongo_dtap == "acc"
+
+    - name: Choose value for microreact token and host when prod
+      set_fact:
+        microreact_token: "{{ microreact_token_prod }}"
+        microreact_host: "{{ unique_host_prod }}"
+      when: mongo_dtap == "prod"
+
+    - name: Add microreact urls according to DTAP and specie if on prod
+      lineinfile:
+        path: "{{ bioit_bigs_home }}/conf/bigsdb.conf"
+        regex: "{{ item.to_adapt}}"
+        line: "{{ item.with_value }}"
+      loop: "{{ var_list|flatten(levels=1) }}"
+      vars:
+        var_list:
+          - { to_adapt: microreact_token=to_be_replaced_by_ansible, with_value: "microreact_token={{ microreact_token }}" }
+          - { to_adapt: microreact_url_create=to_be_replaced_by_ansible, with_value: "microreact_url_create='https://{{ microreact_host }}/api/projects/create'" }
+          - { to_adapt: microreact_schema_converter=to_be_replaced_by_ansible, with_value: "microreact_schema_converter='https://{{ microreact_host }}/api/schema/convert'" }
+
+  tags: microreact_config
 
 - name: Add microreact token to bigdb config file
   lineinfile:

@@ -42,8 +42,8 @@ use utf8;
 use constant MAX_RECORDS                 => 2000;
 use constant MAX_SEQS                    => 100_000;
 #adapt URL to the in house instance of microreact and give access to geojson map for belgium zip code
-use constant MICROREACT_SCHEMA_CONVERTER => 'https://bioit-mreact-dev.darwinproject.be/api/schema/convert';
-use constant MICROREACT_URL              => 'https://bioit-mreact-dev.darwinproject.be/api/projects/create';
+use constant MICROREACT_SCHEMA_CONVERTER => 'to_be_replace_by_ansible';
+use constant MICROREACT_URL              => 'to_be_replace_by_ansible';
 use constant BELGIUM_REGION_MAP			 => 'http://linux-repo-prod.sciensano.be/bioit_tools/microreact/Belgium.municipalities.WGS84.geojson';
 
 
@@ -62,10 +62,7 @@ sub get_attributes {
 		full_description => 'Microreact is a tool for visualising genomic epidemiology and phylogeography '
 		  . '(<a href="https://pubmed.ncbi.nlm.nih.gov/28348833/">Argim&oacute;n <i>et al</i> 2016 <i>Microb Genom</i> '
 		  . '2:e000093</a>). Individual nodes on a displayed tree are linked to nodes on a geographical map and/or '
-		  . 'timeline, making any spatial and temporal relationships between isolates apparent. The Microreact plugin '
-		  . 'generates Neighbour-joining trees from concatenated sequences for any selection of loci or schemes '
-		  . 'and uploads these, together with country and year field values, to the '
-		  . '<a href="https://microreact.org/">Microreact website</a> for display.',
+		  . 'timeline, making any spatial and temporal relationships between isolates apparent.',
 		category   => 'Third party',
 		buttontext => 'Microreact',
 		menutext   => 'Microreact',
@@ -77,6 +74,8 @@ sub get_attributes {
 		help       => 'tooltips',
 		requires   => 'aligner,offline_jobs,js_tree,clustalw,microreact_token',
 		order      => 40,
+		mreact_host_url => $self->{'config'}->{'microreact_url_create'} // MICROREACT_URL
+		mreact_host_schema_converter => $self->{'config'}->{'microreact_schema_converter'} // MICROREACT_SCHEMA_CONVERTER
 		min        => 2,
 		max        => $self->{'system'}->{'microreact_record_limit'} // $self->{'config'}->{'microreact_record_limit'}
 		  // MAX_RECORDS,
@@ -193,7 +192,7 @@ sub _microreact_upload {
 		};
 	}
 	my $upload_response = $uploader->post(
-		MICROREACT_URL,
+		$mreact_host_url,
 		'Content-Type' => 'application/json; charset=UTF-8',
 		'Access-Token' => $self->{'config'}->{'microreact_token'},
 		Content        => encode_json($microreact_data)
