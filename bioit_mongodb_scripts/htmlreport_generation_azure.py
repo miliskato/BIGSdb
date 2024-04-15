@@ -123,7 +123,7 @@ class HtmlreportGeneration:
             [self._technical_id, self._analysis_date if self._analysis_date else str(self._changed_version)])
         dir_out.mkdir(parents=True, exist_ok=True)
 
-        if (requested_document['results'].get('results_version') and not requested_document['results']['results_version'] == 1): # badqc and reseq isolates do not have a results_version
+        if requested_document['results'].get('results_version') and not requested_document['results']['results_version'] == 1: # badqc and reseq isolates do not have a results_version
             with self.__create_temp_dir('temp_reporting') as dir_temp:
                 # Dump the required json file
                 jsonfile = Path(dir_temp) / f"{self._technical_id}_temp.json"
