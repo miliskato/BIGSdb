@@ -135,7 +135,7 @@ sub _microreact_upload {
 	my $email = Email::Valid->address( $job->{'email'} );
 	$upload_data->{'email'} = $email if $email;
 	my $converter_response = $uploader->post(
-		MICROREACT_SCHEMA_CONVERTER,
+		$mreact_host_schema_converter,
 		'Content-Type' => 'application/json; charset=UTF-8',
 		Content        => encode_json($upload_data)
 	);
