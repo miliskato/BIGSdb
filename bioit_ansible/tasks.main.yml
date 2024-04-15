@@ -98,20 +98,6 @@
 
   tags: microreact_config
 
-- name: Add microreact token to bigdb config file
-  lineinfile:
-    path: "{{ bioit_bigs_home }}/conf/bigsdb.conf"
-    regexp: "use constant MICROREACT_SCHEMA_CONVERTER => 'to_be_replace_by_ansible';"
-    line: "use constant MICROREACT_SCHEMA_CONVERTER => '{{ microreact_schema_converter }}';"
-  tags: microreact
-
-- name: Add microreact token to bigdb config file
-  lineinfile:
-    path: "{{ bioit_bigs_home }}/conf/bigsdb.conf"
-    regexp: "use constant MICROREACT_URL              => 'to_be_replace_by_ansible';"
-    line: "use constant MICROREACT_URL              => '{{ microreact_url }}';"
-  tags: microreact
-
 ## perl 5 is installed on Ubuntu by default.
 - name: Install packages
   apt:
