@@ -42,8 +42,8 @@ use utf8;
 use constant MAX_RECORDS                 => 2000;
 use constant MAX_SEQS                    => 100_000;
 #adapt URL to the in house instance of microreact and give access to geojson map for belgium zip code
-use constant MICROREACT_SCHEMA_CONVERTER => 'to_be_replaced_by_ansible';
-use constant MICROREACT_URL              => 'to_be_replaced_by_ansible';
+use constant MICROREACT_SCHEMA_CONVERTER => 'read_from_config';
+use constant MICROREACT_URL              => 'read_from_config';
 use constant BELGIUM_REGION_MAP			 => 'http://linux-repo-prod.sciensano.be/bioit_tools/microreact/Belgium.municipalities.WGS84.geojson';
 
 
