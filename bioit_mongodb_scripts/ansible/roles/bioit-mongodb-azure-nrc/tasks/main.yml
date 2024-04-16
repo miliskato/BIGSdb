@@ -1,0 +1,22 @@
+---
+
+# - debug: msg="{{item.0.name}} {{item.1}} {{ vars['pass_'+item.0.name+'_'+item.1] }}"
+#   with_subelements:
+#     - "{{ species }}"
+#     - dtap
+
+- name: Create MongoDB user
+  community.mongodb.mongodb_atlas_user:
+    group_id: "{{ '63fdbfc9ac6c602cb8d79c44' if item.1 == 'dev' or item.1 == 'test' else '654ce68605762969e183789d' }}"
+    api_username: "axfbixno"
+    api_password: "{{ mongodb_master_api_password_axfbixno }}"
+    username: "{{ item.0.name + 'User_' + item.1 }}"  # e.g. salmonellaUser_dev
+    password: "{{ vars['mongodb_nrc_pass_'+item.0.name+'_'+item.1] }}"  # e.g. "{{ mongodb_nrc_pass_salmonella_dev }}"
+    # database_name: "{{ item.0.name + '_' + item.1 }}"  # e.g. salmonella_dev
+    roles:
+      - database_name: "{{ item.0.name + '_' + item.1 }}"  # e.g. salmonella_dev
+        role_name: "readWrite"
+  with_subelements:
+    - "{{ species }}"
+    - dtap
+...

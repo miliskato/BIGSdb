@@ -1,0 +1,12 @@
+---
+dtap:
+  - 'dev'
+  - 'test'
+  - 'acc'
+  - 'prod'
+species:
+  - name: 'salmonella'
+    dtap: "{{ dtap }}"
+  - name: 'listeria'
+    dtap: "{{ dtap }}"
+...

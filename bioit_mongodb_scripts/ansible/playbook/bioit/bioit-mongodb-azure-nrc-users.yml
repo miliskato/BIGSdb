@@ -1,0 +1,7 @@
+---
+# ansible-playbook /etc/ansible/playbook/bioit/bioit-mongodb-azure-nrc-users.yml --vault-password-file /etc/ansible/vault/bioit_vault_pass
+- hosts: localhost
+  become: no
+  roles:
+    - { name: bioit.mongodb_azure_nrc_users }
+...
