@@ -160,14 +160,12 @@ class GeneDetectionIntoPsql:
                         for y in range(len(hits)):
                             if isinstance(hits[y], list):
                                 # allele is always position 1 and accession is always last position (-1)
-                                hit = '_'.join([(hits)[y][-1],
-                                                 (hits)[y][1]])
+                                hit = '_'.join([hits[y][-1], hits[y][1]])
                                 clusterhit: str = self._clusterdict[hit]
                                 self.___append_to_htmltable(hit, clusterhit)
 
                             elif isinstance(hits[y], dict):
-                                hit = '_'.join([(hits)[y]['Accession'],
-                                                (hits)[y]['Locus']])
+                                hit = '_'.join([hits[y]['Accession'], hits[y]['Locus']])
                                 clusterhit = self._clusterdict[hit]
                                 if not self._scheme.endswith('vfdbcore'):
                                     self.___append_to_htmltable(hits[y], clusterhit)
@@ -185,6 +183,11 @@ class GeneDetectionIntoPsql:
                         (isolate_id, 'Gene detection results reevaluated after database update'))
 
     def ___get_report_name_from_mongo(self, samplename: str) -> Union[str, Path]:
+        """
+        Get the name of the html report for the given isolate
+        :param samplename: name of the isolate
+        :return: report name for the isolate
+        """
         mongoinit = MongoInitialisation(species=self._species, mongo_config_data=get_mongodb_config_data())
         isolates_collection, old_isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections()
         isolate_report_path = Mongoquerying.query_docs_by_ids(opened_collection=isolates_collection, ids=[samplename])
@@ -195,7 +198,6 @@ class GeneDetectionIntoPsql:
         Appends a row to the html table
         :param hit: hit dictionary
         :param clusterhit: current cluster of the hit
-        :param count_hits: index of the hit among others form the report
         :return: None
         """
         # append Cluster

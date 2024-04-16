@@ -47,6 +47,7 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                     self._clusterdict, self._ncbi_ab_class_dict = self._create_clusterdict_current_db_version()
                     # Get hits
                     listofhits: List = self._sample_output_dict[self._scheme]['loci']
+                    report_name = self._report_access.name
                     """
                     this might look something like this currently: 
                     "ncbi_amr": {"loci": 
@@ -62,7 +63,7 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                                 listofhits[index][k] = v.replace("'", "")
                         with TblEavTextHidden(self._species) as isolates_eavth_psql_tbl:
                             isolates_eavth_psql_tbl.insert_hidden_isolate((self._isolatename, self._schemename_bigsdb, json.dumps(listofhits)))
-                        report_name = self._report_access.name
+
                         html_scheme_name = self._genedetectiondict[self._scheme]['schemename_html']
                         url = f'/galaxyreports/{self._species}/{report_name}/report.html#{html_scheme_name}'
                         self._eavhtmltable = '<style>table.nice { text-align: center; border-spacing:0 }table.nice tr:nth-child(n+3) {background: #E4EFF3}table.nice tr:nth-child(2n+3) {background: #C1E6F3}</style>'
@@ -115,7 +116,6 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
         Appends a row to the html table
         :param hit: hit dictionary
         :param clusterhit: current cluster of the hit
-        :param count_hits: index of the hit among others form the report
         :return: None
         """
         # append Cluster
