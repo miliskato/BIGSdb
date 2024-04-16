@@ -22,9 +22,9 @@ class MongoInitialisation:
         """
         self._mongo_config_data = mongo_config_data if mongo_config_data else get_mongodb_config_data()
         if isinstance(alternate_connection_string, bool) and alternate_connection_string:
-            self._mongo_config_data['CONNECTION_STRING_BASE'] = self._mongo_config_data['CONNECTION_STRING_ALTERNATE']
+            self._mongo_config_data['CONNECTION_STRING_AZURE'] = self._mongo_config_data['CONNECTION_STRING_ALTERNATE']
         elif isinstance(alternate_connection_string, str):
-            self._mongo_config_data['CONNECTION_STRING_BASE'] = alternate_connection_string
+            self._mongo_config_data['CONNECTION_STRING_AZURE'] = alternate_connection_string
         if alternate_dtap:
             self._mongo_config_data['dtap'] = alternate_dtap
         self.opened_mongo_database = self._open_mongo_database(species)
@@ -36,9 +36,9 @@ class MongoInitialisation:
         :return: opened database object
         """
         try:
-            self.client = MongoClient(self._mongo_config_data["CONNECTION_STRING_BASE"])
+            self.client = MongoClient(self._mongo_config_data["CONNECTION_STRING_AZURE"])
         except Exception:
-            raise RuntimeError(f"Could not connect to {self._mongo_config_data['CONNECTION_STRING_BASE']}")
+            raise RuntimeError(f"Could not connect to {self._mongo_config_data['CONNECTION_STRING_AZURE']}")
         if self._mongo_config_data["dtap"] not in ['dev', 'test', 'acc', 'prod']:
             raise NameError(f"replace dtap value in bioit_mongodb_scripts/config/config.yml or use alternate_dtap")
         return self.client['_'.join([species, self._mongo_config_data["dtap"]])]  # e.g. listeria_dev

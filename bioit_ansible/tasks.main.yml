@@ -80,12 +80,6 @@
     force: true
   tags: gitupdate
 
-- name: Change Mongo connection string in config based on host vars
-  lineinfile:
-    path: "{{ bioit_bigs_home }}/bioit_mongodb_scripts/config/config.yml"
-    regexp: 'CONNECTION_STRING_BASE: to_be_replaced_by_ansible'
-    line: "CONNECTION_STRING_BASE: {{ azure_mongo_connection_string }}"
-
 - name: Change Mongo dtap version in config based on playbook argument
   lineinfile:
     path: "{{ bioit_bigs_home }}/bioit_mongodb_scripts/config/config.yml"
@@ -733,12 +727,14 @@
       set_fact:
         mongo_host: "{{ mongo_host_dt }}"
         mongodb_admin_password: "{{ mongodb_admin_password_dt }}"
+        mongo_azure_private_endpoint: "mongodb-atlas-devtest-pl-0.fgpmn"
       when: mongo_dtap == "dev" or mongo_dtap == "test"
 
     - name: adapt Mongo host and admin passphrase for acc/prod
       set_fact:
         mongo_host: "{{ mongo_host_ap }}"
         mongodb_admin_password: "{{ mongodb_admin_password_ap }}"
+        mongo_azure_private_endpoint: "mongodb-atlas-accprod-pl-0.lw3rk"
       when: mongo_dtap == "acc" or mongo_dtap == "prod"
 
     - name: choose Mongo passphrase for NRC user and DTAP
@@ -780,7 +776,7 @@
         login_password: "{{ mongodb_admin_password }}"
         login_port: 27017
         database: "{{ species }}_{{ mongo_dtap }}"
-        name: "{{ species }}User"
+        name: "{{ species }}User_{{ mongo_dtap }}"
         password: "{{ mongo_user_password }}"
         roles: readWrite
       delegate_to: "{{ primary }}"
@@ -788,8 +784,14 @@
     - name: replace string connection in config file
       lineinfile:
         path: "{{ bioit_bigs_home }}/bioit_mongodb_scripts/config/config.yml"
-        regexp: 'CONNECTION_STRING_BASE: to_be_replaced_by_ansible'
-        line: "CONNECTION_STRING_BASE: mongodb://{{ species }}User:{{ mongo_user_password }}@{{ mongo_host.split(',')[0] }}:27017,{{ mongo_host.split(',')[1] }}:27017,{{ mongo_host.split(',')[2] }}:27017/?authSource={{ species }}_{{ mongo_dtap }}&replicaSet=bioit-HERA"
+        regexp: 'CONNECTION_STRING_LOCAL: to_be_replaced_by_ansible'
+        line: "CONNECTION_STRING_LOCAL: mongodb://{{ species }}User_{{ mongo_dtap }}:{{ mongo_user_password }}@{{ mongo_host.split(',')[0] }}:27017,{{ mongo_host.split(',')[1] }}:27017,{{ mongo_host.split(',')[2] }}:27017/?authSource={{ species }}_{{ mongo_dtap }}&replicaSet=bioit-HERA"
+
+    - name: replace azure connection string in config file
+      lineinfile:
+        path: "{{ bioit_bigs_home }}/bioit_mongodb_scripts/config/config.yml"
+        regexp: 'CONNECTION_STRING_AZURE: to_be_replaced_by_ansible'
+        line: "CONNECTION_STRING_AZURE: mongodb+srv://{{ species }}User_{{ mongo_dtap }}:{{ mongo_user_password }}@{{ mongo_azure_private_endpoint }}.mongodb.net/?retryWrites=true&w=majority"
 
   tags: mongo_setup
 

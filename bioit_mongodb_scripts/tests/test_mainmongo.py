@@ -26,7 +26,7 @@ if __name__ == '__main__':
     # Parse config
     mongo_config_data = get_mongodb_config_data()
 
-    if mongo_config_data.get('CONNECTION_STRING_BASE') and mongo_config_data.get('dtap'):
+    if mongo_config_data.get('CONNECTION_STRING_AZURE') and mongo_config_data.get('dtap'):
         pass
     else:
         raise Exception('was config modified?')
