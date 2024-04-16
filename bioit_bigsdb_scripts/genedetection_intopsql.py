@@ -164,17 +164,10 @@ class GeneDetectionIntoPsql:
                     hits = json.loads(sampleandhits[1])
                     if len(hits) != 0:
                         for y in range(len(hits)):
-                            if isinstance(hits[y], list):
-                                # allele is always position 1 and accession is always last position (-1)
-                                hit = '_'.join([hits[y][-1], hits[y][1]])
-                                clusterhit: str = self._clusterdict[hit]
-                                self.___append_to_htmltable(hit, clusterhit)
-
-                            elif isinstance(hits[y], dict):
-                                hit = '_'.join([hits[y]['Accession'], hits[y]['Locus']])
-                                clusterhit = self._clusterdict[hit]
-                                if not self._scheme.endswith('vfdbcore'):
-                                    self.___append_to_htmltable(hits[y], clusterhit)
+                            hit = '_'.join([hits[y]['Accession'], hits[y]['Locus']])
+                            clusterhit = self._clusterdict[hit]
+                            if not self._scheme.endswith('vfdbcore'):
+                                self.___append_to_htmltable(hits[y], clusterhit)
 
                             if clusterhit not in clusterhitset:
                                 isolates_ad_psql_tbl.insert_designation_by_isolateid((clusterhit, isolate_id, '1'))
