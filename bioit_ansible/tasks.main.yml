@@ -1,6 +1,27 @@
 ---
 # src parameter: If path is a directory, it is copied recursively. In this case, if path ends with "/", only inside contents of that directory are copied to destination. Otherwise, if it does not end with "/", the directory itself with all contents is copied.
 
+- name: check version of postgres on the target VM
+  block:
+    - name: Get list of version directories
+      ansible.builtin.find:
+        paths: /etc/postgresql
+        file_type: directory
+      register: psql_dirlist
+
+    - name: Fail when more than one version is found
+      ansible.builtin.fail:
+        msg: Multiple PostgreSQL versions are installed at the same time! If this is correct, supply the version variable directly with the playbook as an extra_var.
+      when: psql_dirlist.matched > 1 and bioit_nrc_psql_version is not defined
+
+    - name: Set PSQL version
+      ansible.builtin.set_fact:
+        bioit_nrc_psql_version: "{{ psql_dirlist.files[0].path.split('/')[-1] }}"
+      when: bioit_nrc_psql_version is not defined
+
+    - debug:
+        var: bioit_nrc_psql_version
+
 - name: Assert if species given
   fail:
     msg: "'species' argument required in -e when running playbook"
@@ -14,6 +35,7 @@
       - neisseria
       - stec
       - salmonella
+      - yersinia
   fail:
     msg: "unsupported species requested, choose from {{ specieslist }}"
   when: species not in specieslist
@@ -76,12 +98,33 @@
     regexp: 'dbpassword=to_be_replaced_by_ansible'
     line: "dbpassword={{ secret_bioit_bigs_postgresql_apache_password }}"
 
-- name: Add microreact token to bigdb config file
-  lineinfile:
-    path: "{{ bioit_bigs_home }}/conf/bigsdb.conf"
-    regexp: 'microreact_token=to_be_replaced_by_ansible'
-    line: "microreact_token={{ microreact_token }}"
-  tags: microreact
+- name: Configure microreact
+  block:
+    - name: Choose value for microreact token and host
+      set_fact:
+        microreact_token: "{{ microreact_token_dta }}"
+        microreact_host: "{{ microreact_common_host_dta }}"
+      when: mongo_dtap == "dev" or mongo_dtap == "test" or mongo_dtap == "acc"
+
+    - name: Choose value for microreact token and host when prod
+      set_fact:
+        microreact_token: "{{ microreact_token_prod }}"
+        microreact_host: "{{ unique_host_prod }}"
+      when: mongo_dtap == "prod"
+
+    - name: Add microreact urls according to DTAP and species if on prod
+      lineinfile:
+        path: "{{ bioit_bigs_home }}/conf/bigsdb.conf"
+        regex: "{{ item.to_adapt}}"
+        line: "{{ item.with_value }}"
+      loop: "{{ var_list|flatten(levels=1) }}"
+      vars:
+        var_list:
+          - { to_adapt: microreact_token=to_be_replaced_by_ansible, with_value: "microreact_token={{ microreact_token }}" }
+          - { to_adapt: microreact_url_create=to_be_replaced_by_ansible, with_value: "microreact_url_create=https://{{ microreact_host }}/api/projects/create" }
+          - { to_adapt: microreact_schema_converter=to_be_replaced_by_ansible, with_value: "microreact_schema_converter=https://{{ microreact_host }}/api/schema/convert" }
+
+  tags: microreact_config
 
 - name: add azure reportsapi ip to mongodb config
   lineinfile:
@@ -130,6 +173,7 @@
       - libterm-prompt-perl
       - libdigest-bcrypt-perl
       - libparallel-forkmanager-perl
+      - libbio-db-ncbihelper-perl
       - libbio-procedural-perl
       - libbio-tools-run-remoteblast-perl
       - libtime-duration-perl
@@ -193,7 +237,7 @@
 
 - name: Add pg_ident configuration
   lineinfile:
-    path: "/etc/postgresql/12/main/pg_ident.conf"
+    path: "/etc/postgresql/{{bioit_nrc_psql_version}}/main/pg_ident.conf"
     insertafter: '# MAPNAME       SYSTEM-USERNAME         PG-USERNAME'
     line: "{{ item }}"
   loop:
@@ -205,7 +249,7 @@
 
 - name: Install postGIS
   ansible.builtin.apt:
-    name: postgresql-12-postgis-3
+    name: "postgresql-{{bioit_nrc_psql_version}}-postgis-3"
   tags: postGIS
 
 - name: Install bio perl package
@@ -682,6 +726,72 @@
         name: bigsdb-rest.service
         enabled: yes
   tags: rest_api
+
+- name: setup Mongodb for pathogen collection
+  block:
+    - name: adapt Mongo host and admin passphrase for dev/test
+      set_fact:
+        mongo_host: "{{ mongo_host_dt }}"
+        mongodb_admin_password: "{{ mongodb_admin_password_dt }}"
+      when: mongo_dtap == "dev" or mongo_dtap == "test"
+
+    - name: adapt Mongo host and admin passphrase for acc/prod
+      set_fact:
+        mongo_host: "{{ mongo_host_ap }}"
+        mongodb_admin_password: "{{ mongodb_admin_password_ap }}"
+      when: mongo_dtap == "acc" or mongo_dtap == "prod"
+
+    - name: choose Mongo passphrase for NRC user and DTAP
+      set_fact:
+        mongo_user_password: "{{ item.val }}"
+      loop: "{{ dtap_list|flatten(levels=1)  }}"
+      vars:
+        dtap_list:
+          - { val: "{{ mongo_user_pass_dev }}", dtap: dev }
+          - { val: "{{ mongo_user_pass_test }}", dtap: test }
+          - { val: "{{ mongo_user_pass_acc }}", dtap: acc }
+          - { val: "{{ mongo_user_pass_prod }}", dtap: prod }
+      when: mongo_dtap  == item.dtap
+
+    - debug:
+        var: mongo_host
+
+    - name: Get status of the replica set
+      community.mongodb.mongodb_status:
+        login_host: "{{ mongo_host.split(',')[0] }}"
+        login_user: admin
+        login_password: "{{ mongodb_admin_password }}"
+        replica_set: bioit-HERA
+        poll: 3
+        interval: 10
+      register: rs
+      delegate_to: "{{ mongo_host.split(',')[0] }}"
+
+    - name: Lookup PRIMARY replicaset member
+      set_fact:
+        primary: "{{ item.key.split('.')[0] }}"
+      loop: "{{ lookup('dict', rs.replicaset) }}"
+      when: "'PRIMARY' in item.value"
+
+    - name: create NRC user for the db
+      community.mongodb.mongodb_user:
+        login_host: "{{ primary }}"
+        login_user: admin
+        login_password: "{{ mongodb_admin_password }}"
+        login_port: 27017
+        database: "{{ species }}_{{ mongo_dtap }}"
+        name: "{{ species }}User"
+        password: "{{ mongo_user_password }}"
+        roles: readWrite
+      delegate_to: "{{ primary }}"
+
+    - name: replace string connection in config file
+      lineinfile:
+        path: "{{ bioit_bigs_home }}/bioit_mongodb_scripts/config/config.yml"
+        regexp: 'CONNECTION_STRING_BASE: to_be_replaced_by_ansible'
+        line: "CONNECTION_STRING_BASE: mongodb://{{ species }}User:{{ mongo_user_password }}@{{ mongo_host.split(',')[0] }}:27017,{{ mongo_host.split(',')[1] }}:27017,{{ mongo_host.split(',')[2] }}:27017/?authSource={{ species }}_{{ mongo_dtap }}&replicaSet=bioit-HERA"
+
+  tags: mongo_setup
 
 - name: populate databases
   block:

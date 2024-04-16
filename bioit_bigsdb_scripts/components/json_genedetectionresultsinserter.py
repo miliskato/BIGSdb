@@ -47,6 +47,7 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                     self._clusterdict, self._ncbi_ab_class_dict = self._create_clusterdict_current_db_version()
                     # Get hits
                     listofhits: List = self._sample_output_dict[self._scheme]['loci']
+                    report_name = self._report_access.name
                     """
                     this might look something like this currently: 
                     "ncbi_amr": {"loci": 
@@ -62,12 +63,15 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                                 listofhits[index][k] = v.replace("'", "")
                         with TblEavTextHidden(self._species) as isolates_eavth_psql_tbl:
                             isolates_eavth_psql_tbl.insert_hidden_isolate((self._isolatename, self._schemename_bigsdb, json.dumps(listofhits)))
-                        report_name = self._report_access.name
+
                         html_scheme_name = self._genedetectiondict[self._scheme]['schemename_html']
                         url = f'/galaxyreports/{self._species}/{report_name}/report.html#{html_scheme_name}'
-                        self._eavhtmltable = '<style>table.nice { text-align: center; border-spacing:0 }table.nice tr:nth-child(n+3) {background: #E4EFF3}table.nice tr:nth-child(2n+3) {background: #C1E6F3}</style>'
-                        self._eavhtmltable += '<table class="data nice"><tr><th>GeneCluster</th><th>Locus</th></tr>'
-                        self._eavhtmltable += f'<tr align="left"><td colspan="4"><a href="{url}" target="_blank">Full report</a></td></tr>'
+                        if not self._scheme.endswith('vfdb_core'):
+                            self._eavhtmltable = '<style>table.nice { text-align: center; border-spacing:0 }table.nice tr:nth-child(n+3) {background: #E4EFF3}table.nice tr:nth-child(2n+3) {background: #C1E6F3}</style>'
+                            self._eavhtmltable += f'<table class="data nice"><tr><th>GeneCluster</th><th>Locus</th></tr>'
+                            self._eavhtmltable += f'<tr align="left"><td colspan="4"><a href="{url}" target="_blank">Full report</a></td></tr>'
+                        else:
+                            self._eavhtmltable = f'<a href="{url}" target="_blank">Full report</a>'
 
                         clusterhitset = set()  # in case loci that were in different clusters at some point get in the same cluster
                         with TblAlleleDesignations(self._species) as isolates_ad_psql_tbl:
@@ -90,7 +94,9 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                                     isolates_ad_psql_tbl.insert_designation_by_isolatename((clusterhit, self._isolatename, '1'))
     
                                 clusterhitset.add(clusterhit)
-                                self._append_to_htmltable(hit, clusterhit)
+
+                                if not self._scheme.endswith('vfdb_core'):
+                                    self._append_to_htmltable(hit, clusterhit)
 
                                 """
                                 Part 2 for the AB schemes
@@ -113,12 +119,11 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
         Appends a row to the html table
         :param hit: hit dictionary
         :param clusterhit: current cluster of the hit
-        :param count_hits: index of the hit among others form the report
         :return: None
         """
         # append Cluster
         gene_cluster = clusterhit.split('Cluster_')[1]
-        locus_name: str = hit['Gene'] if self._scheme.endswith('vfdbcore') else hit['Locus']
+        locus_name: str = hit['Locus']
 
         self._eavhtmltable += f'<tr><td>{gene_cluster}</td><td>{locus_name}</td></tr>'
 
