@@ -66,7 +66,7 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
 
                         html_scheme_name = self._genedetectiondict[self._scheme]['schemename_html']
                         url = f'/galaxyreports/{self._species}/{report_name}/report.html#{html_scheme_name}'
-                        if not self._scheme.endswith('vfdbcore'):
+                        if not self._scheme.endswith('vfdb_core'):
                             self._eavhtmltable = '<style>table.nice { text-align: center; border-spacing:0 }table.nice tr:nth-child(n+3) {background: #E4EFF3}table.nice tr:nth-child(2n+3) {background: #C1E6F3}</style>'
                             self._eavhtmltable += f'<table class="data nice"><tr><th>GeneCluster</th><th>Locus</th></tr>'
                             self._eavhtmltable += f'<tr align="left"><td colspan="4"><a href="{url}" target="_blank">Full report</a></td></tr>'
@@ -95,7 +95,7 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
     
                                 clusterhitset.add(clusterhit)
 
-                                if not self._scheme.endswith('vfdbcore'):
+                                if not self._scheme.endswith('vfdb_core'):
                                     self._append_to_htmltable(hit, clusterhit)
 
                                 """
