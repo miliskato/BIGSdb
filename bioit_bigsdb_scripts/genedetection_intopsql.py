@@ -32,14 +32,16 @@ def _parse_arguments(specieslist: List[str]) -> argparse.Namespace:
 
 class GeneDetectionIntoPsql:
     """
-    Class containing function to insert gene detection loci and alleles and update them (weekly)
+    Initialises the class and runs the main function.
+    See also argparse function for variables and their requiredness.
+    :param species: commonly used bioit species name: either genus or specific like stec
+    :param bigsdb_config_data: the config data containing all configuration settings for bigsdb
+    :return: None
     """
-
     def __init__(self, bigsdb_config_data: Dict[str, Any], species: str) -> None:
         self._bigsdb_config_data = bigsdb_config_data
         self._species = species
         self._schemedict: Dict[str, Any] = self._bigsdb_config_data['species'][self._species]['genedetection_schemes']
-#        self._genedetectiondict: Union[None, Dict[str, Dict[str, str]]] = self._bigsdb_config_data['species_json'][self._species]['genedetection_schemes']
         self._gene_detection_insertion_and_recalculation()
         self._eavhtmltable = None
 
@@ -137,9 +139,9 @@ class GeneDetectionIntoPsql:
         Removes, recaculates and reinserts allele designations
         :return: None
         """
-        with (TblAlleleDesignations(self._species) as isolates_ad_psql_tbl, \
+        with TblAlleleDesignations(self._species) as isolates_ad_psql_tbl, \
                 TblEavText(self._species) as isolates_eavt_psql_tbl, \
-                TblHistory(self._species) as isolates_history_psql_tbl):
+                TblHistory(self._species) as isolates_history_psql_tbl:
             isolates_ad_psql_tbl.delete_designations((f"{self._schemedict[self._scheme]['schemename_bigsdb']}_GeneCluster%",))
             with TblEavTextHidden(self._species) as isolates_eavth_psql_tbl:
                 listofsamplesandhits = isolates_eavth_psql_tbl.select_hidden((self._schemedict[self._scheme]['schemename_bigsdb'],))
@@ -151,9 +153,13 @@ class GeneDetectionIntoPsql:
                     report_name = Path(report_dir).name
                     html_scheme_name = self._schemedict[self._scheme]['schemename_html']
                     url = f'/galaxyreports/{self._species}/{report_name}/report.html#{html_scheme_name}'
-                    self._eavhtmltable = '<style>table.nice { text-align: center; border-spacing:0 }table.nice tr:nth-child(n+3) {background: #E4EFF3}table.nice tr:nth-child(2n+3) {background: #C1E6F3}</style>'
-                    self._eavhtmltable += f'<table class="data nice"><tr><th>GeneCluster</th><th>Locus</th></tr>'
-                    self._eavhtmltable += f'<tr align="left"><td colspan="4"><a href="{url}" target="_blank">Full report</a></td></tr>'
+                    if not self._scheme.endswith('vfdbcore'):
+                        self._eavhtmltable = '<style>table.nice { text-align: center; border-spacing:0 }table.nice tr:nth-child(n+3) {background: #E4EFF3}table.nice tr:nth-child(2n+3) {background: #C1E6F3}</style>'
+                        self._eavhtmltable += f'<table class="data nice"><tr><th>GeneCluster</th><th>Locus</th></tr>'
+                        self._eavhtmltable += f'<tr align="left"><td colspan="4"><a href="{url}" target="_blank">Full report</a></td></tr>'
+                    else:
+                        self._eavhtmltable = f'<a href="{url}" target="_blank">Full report</a>'
+
                     clusterhitset = set()  # in case loci that were in different clusters at some point get in the same cluster
                     hits = json.loads(sampleandhits[1])
                     if len(hits) != 0:
