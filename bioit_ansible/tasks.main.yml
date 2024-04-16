@@ -1,6 +1,27 @@
 ---
 # src parameter: If path is a directory, it is copied recursively. In this case, if path ends with "/", only inside contents of that directory are copied to destination. Otherwise, if it does not end with "/", the directory itself with all contents is copied.
 
+- name: check version of postgres on the target VM
+  block:
+    - name: Get list of version directories
+      ansible.builtin.find:
+        paths: /etc/postgresql
+        file_type: directory
+      register: psql_dirlist
+
+    - name: Fail when more than one version is found
+      ansible.builtin.fail:
+        msg: Multiple PostgreSQL versions are installed at the same time! If this is correct, supply the version variable directly with the playbook as an extra_var.
+      when: psql_dirlist.matched > 1 and bioit_nrc_psql_version is not defined
+
+    - name: Set PSQL version
+      ansible.builtin.set_fact:
+        bioit_nrc_psql_version: "{{ psql_dirlist.files[0].path.split('/')[-1] }}"
+      when: bioit_nrc_psql_version is not defined
+
+    - debug:
+        var: bioit_nrc_psql_version
+
 - name: Assert if species given
   fail:
     msg: "'species' argument required in -e when running playbook"
@@ -14,6 +35,7 @@
       - neisseria
       - stec
       - salmonella
+      - yersinia
   fail:
     msg: "unsupported species requested, choose from {{ specieslist }}"
   when: species not in specieslist
@@ -93,8 +115,8 @@
       vars:
         var_list:
           - { to_adapt: microreact_token=to_be_replaced_by_ansible, with_value: "microreact_token={{ microreact_token }}" }
-          - { to_adapt: microreact_url_create=to_be_replaced_by_ansible, with_value: "microreact_url_create='https://{{ microreact_host }}/api/projects/create'" }
-          - { to_adapt: microreact_schema_converter=to_be_replaced_by_ansible, with_value: "microreact_schema_converter='https://{{ microreact_host }}/api/schema/convert'" }
+          - { to_adapt: microreact_url_create=to_be_replaced_by_ansible, with_value: "microreact_url_create=https://{{ microreact_host }}/api/projects/create" }
+          - { to_adapt: microreact_schema_converter=to_be_replaced_by_ansible, with_value: "microreact_schema_converter=https://{{ microreact_host }}/api/schema/convert" }
 
   tags: microreact_config
 
@@ -165,7 +187,7 @@
 
 - name: Add pg_ident configuration
   lineinfile:
-    path: "/etc/postgresql/12/main/pg_ident.conf"
+    path: "/etc/postgresql/{{bioit_nrc_psql_version}}/main/pg_ident.conf"
     insertafter: '# MAPNAME       SYSTEM-USERNAME         PG-USERNAME'
     line: "{{ item }}"
   loop:
@@ -177,7 +199,7 @@
 
 - name: Install postGIS
   ansible.builtin.apt:
-    name: postgresql-12-postgis-3
+    name: "postgresql-{{bioit_nrc_psql_version}}-postgis-3"
   tags: postGIS
 
 - name: Install bio perl package
@@ -693,11 +715,11 @@
         roles: readWrite
       delegate_to: "{{ primary }}"
 
-    - name: replace string connexion in config file
+    - name: replace string connection in config file
       lineinfile:
         path: "{{ bioit_bigs_home }}/bioit_mongodb_scripts/config/config.yml"
         regexp: 'CONNECTION_STRING_BASE: to_be_replaced_by_ansible'
-        line: "CONNECTION_STRING_BASE: mongodb://{{ species }}User:{{ mongo_user_password }}@{{ mongo_host.split(',')[0] }}:27017,{{ mongo_host.split(',')[1] }}:27017,{{ mongo_host.split(',')[2] }}:27017/?authSource={{ species }}_dev&replicaSet=bioit-HERA"
+        line: "CONNECTION_STRING_BASE: mongodb://{{ species }}User:{{ mongo_user_password }}@{{ mongo_host.split(',')[0] }}:27017,{{ mongo_host.split(',')[1] }}:27017,{{ mongo_host.split(',')[2] }}:27017/?authSource={{ species }}_{{ mongo_dtap }}&replicaSet=bioit-HERA"
 
   tags: mongo_setup
 
