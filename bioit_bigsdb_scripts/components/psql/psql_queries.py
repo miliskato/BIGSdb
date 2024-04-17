@@ -162,7 +162,7 @@ class PsqlQueries():
     ISO_DEL__TB_ISO_VAR_ISO_ISO: Final[str] = """
         DELETE FROM isolates WHERE isolate=%s AND id=(SELECT MAX(id) FROM isolates WHERE isolate=%s);"""
     ISO_INS__TB_ISO_VAR_ISO_ISO_ISO_DATE: Final[str] = """
-        INSERT INTO isolates(id, isolate, sender, curator, date_entered, datestamp, uploader, latest_analyis_date) 
+        INSERT INTO isolates(id, isolate, sender, curator, date_entered, datestamp, uploader, latest_analysis_date) 
         VALUES((SELECT CASE WHEN (SELECT MAX(id) FROM isolates) IS NULL THEN 1 
         ELSE (SELECT(SELECT MAX(id) FROM isolates)+1) END), %s, 1, 1, 
         (SELECT CURRENT_DATE),(SELECT CURRENT_DATE), 
