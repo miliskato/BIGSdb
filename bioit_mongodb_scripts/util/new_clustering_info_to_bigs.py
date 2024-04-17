@@ -163,7 +163,7 @@ class NewClusteringInfoToBigs:
                     TblProfileFields(self._species) as seqdef_profilefields_psql_table:
                 for st in self._new_st:
                     if int(st['cgST']) not in primary_fields:
-                        logging.info(f"start insert of {st['cgST']}")
+                        logging.info(f"Inserting cgST {st['cgST']} ...")
                         st_id = st['cgST']
                         # insertion of the st id into the profiles table
                         seqdef_profiles_psql_tbl.insert_profile(('cgMLST', st_id))
