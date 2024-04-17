@@ -187,11 +187,11 @@ class MongoToBigs:
             fasta_path_remote = Path(document['report_directory']) / 'assembly' / fasta_name
             with tempfile.NamedTemporaryFile(dir=mongo_config_data.get('temp_dir'), mode="w") as temp_fasta:
                 temp_fasta_path = Path(mongo_config_data.get('temp_dir')) / temp_fasta.name
-                scp_command = f"scp -i /home/bigsdb/.ssh/.id_rsa_reportsapi bigsdb@{mongo_config_data.get('azure_reportsapi_ip')}:{fasta_path_remote} {str(temp_fasta_path)}"
+                scp_command = f"scp -o StrictHostKeyChecking=no -i /home/bigsdb/.ssh/.id_rsa_reportsapi bigsdb@{mongo_config_data.get('azure_reportsapi_ip')}:{fasta_path_remote} {str(temp_fasta_path)}"
                 scp_cmd = Command(scp_command)
                 scp_cmd.run(Path(mongo_config_data.get('temp_dir')))
                 if scp_cmd.returncode != 0:
-                    raise Exception(f"scp command to copy fasta from Azure to onsite failed: {scp_cmd.stderr}")
+                    raise Exception(f"scp command to copy fasta from Azure to onsite failed: {scp_cmd.stderr}\nscp command: {scp_command}")
 
                 if results_type == 'new_isolate':
                     insert_assembly(document_id, self._species, temp_fasta_path)
