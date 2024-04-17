@@ -143,7 +143,7 @@
   copy:
     dest: /home/bigsdb/.ssh/.id_rsa_reportsapi
     content: "{{ bigsdb_azure_reportsapi_private_key.replace('\\n', '\n') }}"
-     mode: '0600'
+    mode: '0600'
 
 ## perl 5 is installed on Ubuntu by default.
 - name: Install packages
