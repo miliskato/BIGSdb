@@ -72,6 +72,11 @@
     shell: /bin/sh
     group: www-data
 
+- name: Change bigs home owner where git needs to be cloned to root to not get dubious ownership error
+  file:
+    path: "{{ bioit_bigs_home }}"
+    owner: root
+
 - name: Get updated files from git repository
   git:
     repo: "https://{{bioit_git_ro_user}}:{{ secret_bioit_git_ro_password }}@{{bioit_git_server}}/bigsdb/bigsdb.git"
