@@ -80,6 +80,11 @@
     force: true
   tags: gitupdate
 
+- name: Change git cloned repo owner to bigsdb for it to be able to write the distance matrix here
+  file:
+    path: "{{ bioit_bigs_home }}"
+    owner: bigsdb
+
 - name: Change Mongo dtap version in config based on playbook argument
   lineinfile:
     path: "{{ bioit_bigs_home }}/bioit_mongodb_scripts/config/config.yml"
