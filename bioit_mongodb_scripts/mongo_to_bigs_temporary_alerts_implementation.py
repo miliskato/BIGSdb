@@ -82,6 +82,9 @@ class MongoToBigsTemporaryAlertsImplementation:
         isolates_wo_isolationdate = \
             list(self._isolates_collection.with_options(read_concern=ReadConcern(level="majority")).
                  find({'technical_metadata.isolation_date': {'$exists': False}}, {'_id': 1, 'results.cgST': 1}))
+        if len(isolates_wo_isolationdate) == 0:
+            logging.info('No isolates without isolation date; no alerts to be computed')
+            return
         isolates_wo_isolationdate_dict = {x['_id']: x for x in isolates_wo_isolationdate}
         tuple_isolates_wo_isolationdate = tuple(isolates_wo_isolationdate_dict.keys())
 
