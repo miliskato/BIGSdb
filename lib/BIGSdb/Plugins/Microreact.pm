@@ -74,8 +74,8 @@ sub get_attributes {
 		help       => 'tooltips',
 		requires   => 'aligner,offline_jobs,js_tree,clustalw,microreact_token',
 		order      => 40,
-		mreact_host_url => $self->{'config'}->{'microreact_url_create'} // MICROREACT_URL
-		mreact_host_schema_converter => $self->{'config'}->{'microreact_schema_converter'} // MICROREACT_SCHEMA_CONVERTER
+		mreact_host_url => $self->{'config'}->{'microreact_url_create'} // MICROREACT_URL,
+		mreact_host_schema_converter => $self->{'config'}->{'microreact_schema_converter'} // MICROREACT_SCHEMA_CONVERTER,
 		min        => 2,
 		max        => $self->{'system'}->{'microreact_record_limit'} // $self->{'config'}->{'microreact_record_limit'}
 		  // MAX_RECORDS,
@@ -134,8 +134,9 @@ sub _microreact_upload {
 
 	my $email = Email::Valid->address( $job->{'email'} );
 	$upload_data->{'email'} = $email if $email;
+	my $url_converter = $self->get_attributes->{'mreact_host_schema_converter'};
 	my $converter_response = $uploader->post(
-		$mreact_host_schema_converter,
+		$url_converter,
 		'Content-Type' => 'application/json; charset=UTF-8',
 		Content        => encode_json($upload_data)
 	);
@@ -191,8 +192,10 @@ sub _microreact_upload {
 			title     => 'Timeline'
 		};
 	}
+
+	my $url_create = $self->get_attributes->{'mreact_host_url'};
 	my $upload_response = $uploader->post(
-		$mreact_host_url,
+		$url_create,
 		'Content-Type' => 'application/json; charset=UTF-8',
 		'Access-Token' => $self->{'config'}->{'microreact_token'},
 		Content        => encode_json($microreact_data)
