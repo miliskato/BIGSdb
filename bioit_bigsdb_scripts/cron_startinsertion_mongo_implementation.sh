@@ -28,11 +28,11 @@ do
   uploader=$(cat $dir/info.txt | grep -oPw "(?<='user': ')[^']*")
   insert_date=$(date +%m-%d-%Y_%H:%M:%S)
   {
-    $VENV_PYTHON_BIGSDB /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/htmltagger.py --htmlfilepath $dir/${species}/${sample_name}_${insert_date}/report.html --species $species
+    $VENV_PYTHON_BIGSDB /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/htmltagger.py --htmlfilepath $dir/report.html --species $species
     # !!! resequencings will break because they will not be able to access the fastafilepath to check the md5sum,
     # !!! i don't currently see a way around it without having to temporarily add remote md5sum commands to the mainmongo script.
     # todo for viral pathogens vcf paths do not exist; however we're far from accepting viral pathogens through galaxy, so am ignoring it for now
-    $VENV_PYTHON_BIGSDB /home/bigsdb/BIGSdb/bioit_mongodb_scripts/mainmongo.py --reportdirectorypath /results/${DTAP}/${species}/${sample_name}_${insert_date} --species ${species} --uploader_mail_address ${uploader} --jsonfilepath $dir/${species}/${sample_name}_${insert_date}/report.json --technical_id ${sample_name} --fastafilepath /results/${DTAP}/${species}/${sample_name}_${insert_date}/assembly/${sample_name}_contigs.fasta --vcffilepath  /results/${DTAP}/${species}/${sample_name}_${insert_date}/variant_calling/variants-${sample_name}-filtered.vcf --results_type new_isolate --vcffilepath_unfiltered  /results/${DTAP}/${species}/${sample_name}_${insert_date}/variant_calling/variants-${sample_name}-all.vcf --original_input_format fastq
+    $VENV_PYTHON_BIGSDB /home/bigsdb/BIGSdb/bioit_mongodb_scripts/mainmongo.py --reportdirectorypath /results/${DTAP}/${species}/${sample_name}_${insert_date} --species ${species} --uploader_mail_address ${uploader} --jsonfilepath $dir/report.json --technical_id ${sample_name} --fastafilepath /results/${DTAP}/${species}/${sample_name}_${insert_date}/assembly/${sample_name}_contigs.fasta --vcffilepath  /results/${DTAP}/${species}/${sample_name}_${insert_date}/variant_calling/variants-${sample_name}-filtered.vcf --results_type new_isolate --vcffilepath_unfiltered  /results/${DTAP}/${species}/${sample_name}_${insert_date}/variant_calling/variants-${sample_name}-all.vcf --original_input_format fastq
     scp -r -o StrictHostKeyChecking=no -i /home/bigsdb/.ssh/.id_rsa_reportsapi $dir bigsdb@$AZURE_REPORTSAPI_IP:/results/${DTAP}/${species}/${sample_name}_${insert_date}
   } 2>&1 | tee /scratch/bigsupload/mongo/$sample_name.mongodb_bigsdb_insertion.log
    scp -o StrictHostKeyChecking=no -i /home/bigsdb/.ssh/.id_rsa_reportsapi /scratch/bigsupload/mongo/$sample_name.mongodb_bigsdb_insertion.log bigsdb@$AZURE_REPORTSAPI_IP:/results/${DTAP}/${species}/${sample_name}_${insert_date}
