@@ -48,6 +48,7 @@ class MainInserter(JsonSuperClass):
         :return: None
         """
         with TblIsolates(self._species) as isolates_psql_tbl:
+            # todo all other columns
             isolates_psql_tbl.insert_isolate_newversion((self._isolatename, self._isolatename, self._isolatename,
                                                          datetime.datetime.strptime(self._sample_output_dict['analysis_date'], '%d/%m/%Y - %X').strftime('%Y-%m-%d')))
             isolates_psql_tbl.update_newversion([self._isolatename])

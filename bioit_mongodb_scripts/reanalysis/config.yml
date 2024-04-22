@@ -11,7 +11,7 @@ species:
     neisseria:
         lmod: camel_hera/0.1
         main_script: mainneisseriapipeline.py
-        options: ['-resfinder', '--ncbi-amr', '--mlst', '--rplf', '--bast', '--pora', '--porb', '--feta', '--fhbp', '--resistance-genes', '--vaccine-targets', '--cgmlst', '--serogroup']
+        options: ['--resfinder', '--ncbi-amr', '--mlst', '--rplf', '--bast', '--pora', '--porb', '--feta', '--fhbp', '--resistance-genes', '--vaccine-targets', '--cgmlst', '--serogroup']
     stec:
         lmod: camel_hera/0.1
         main_script: mainstecpipeline.py
@@ -19,7 +19,19 @@ species:
     salmonella:
         lmod: camel_hera/0.1
         main_script: mainsalmonellapipeline.py
-        options: ['--serotype', '--spifinder', '--mlst', '--cgmlst', '--resfinder', '--ncbi-amr', '--vfdb-core', '--plasmidfinder', '--cgmlst', '--pointfinder']
+        options: ['--serotype', '--spifinder', '--mlst', '--cgmlst', '--resfinder', '--ncbi-amr', '--vfdb-core', '--plasmidfinder', '--cgmlst', '--pointfinder', '--abritamr']
+    influenza_a:
+        lmod: camel_hera/0.1
+        main_script: mainviralconsensuspipeline.py
+        options: [ '--species influenza_a', '--ref-genome-db /db/pipelines/viral_consensus/ref_mash_dbs/influenza_a-gisaid' ]
+    influenza_b:
+        lmod: camel_hera/0.1
+        main_script: mainviralconsensuspipeline.py
+        options: [ '--species influenza_b', '--ref-genome-db /db/pipelines/viral_consensus/ref_mash_dbs/influenza_b-gisaid' ]
+    sars_cov_2:
+        lmod: camel_hera/0.1
+        main_script: mainviralconsensuspipeline.py
+        options: [ '--species sars_cov_2', '--fasta-ref /db/pipelines/viral_consensus/ref_genomes/sars_cov_2-Wuhan-Hu-1.fasta' ]
 
 mongodb:
     lmod: bioit_mongodb/0.1

@@ -1,27 +1,23 @@
+#!/usr/bin/env python
 import argparse
-import json
 import logging
 import os
-import random
 import re
-import string
 import subprocess
 import sys
-import yaml
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, Final, List
 
 import azure.batch as batch
 import azure.batch.models as batchmodels
-from azure.batch.models import (VirtualMachineConfiguration, ImageReference,
-                                BatchErrorException, StartTask, TaskSchedulingPolicy, TaskAddParameter,
+import yaml
+from azure.batch.models import (VirtualMachineConfiguration, BatchErrorException, TaskSchedulingPolicy,
+                                TaskAddParameter,
                                 NetworkConfiguration, OutputFile, OutputFileDestination, OutputFileUploadOptions,
                                 OutputFileBlobContainerDestination)
-from azure.common.credentials import ServicePrincipalCredentials
-from azure.identity import DefaultAzureCredential
-from azure.keyvault.secrets import SecretClient
-from azure.storage.blob import AccountSasPermissions, BlobServiceClient, generate_account_sas, ResourceTypes
+
+from bioit_mongodb_scripts.util_azure.connect_azure import ConnectAzure
 
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
@@ -32,8 +28,8 @@ from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data
 
 BATCH_POOL_NAME: Final[str] = 'reanalysis_pool_focal'
-BATCH_JOB_NAME_PREFIX: Final[str] = 'reanalysis_tasks_'
-AUTOSCALE_FORMULA = """$TargetLowPriorityNodes = max(0, min(20, $PendingTasks.GetSample(TimeInterval_Minute)));\n$NodeDeallocationOption = taskcompletion;"""
+BATCH_JOB_NAME_PREFIX: Final[str] = 'reanalysis_tasks_focal_'
+AUTOSCALE_FORMULA = """$TargetLowPriorityNodes = max(0, min(20, $PendingTasks.GetSample(TimeInterval_Minute*5)));\n$NodeDeallocationOption = taskcompletion;"""
 
 
 def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
@@ -47,7 +43,8 @@ def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     parser.add_argument('--species', required=False, type=str, choices=specieslist, default=specieslist,
                         nargs='+')  # this does allow for the same species multiple times but doesn't really matter, they're uniquely filtered using set() anyway
     parser.add_argument('--dtap', required=False, type=str, choices=['dev', 'test', 'acc', 'prod'],
-                        default=['dev', 'test', 'acc', 'prod'], nargs='+')  # this does allow for the same dtap multiple times but doesn't really matter, they're uniquely filtered using set() anyway
+                        default=['prod'],
+                        nargs='+')  # this does allow for the same dtap multiple times but doesn't really matter, they're uniquely filtered using set() anyway
     return parser.parse_args()
 
 
@@ -60,10 +57,10 @@ def wrapper_loop_dtap_and_species(speciess: List[str], dtaps: List[str]) -> None
     """
     for dtap in set(dtaps):
         for species in set(speciess):
-            _BatchPipelinesReanalysis(species, dtap)
+            BatchPipelinesReanalysis(species, dtap)
 
 
-class _BatchPipelinesReanalysis:
+class BatchPipelinesReanalysis:
     """
     This class contains the functionalities check for dbupdates, and depending on the pathogen launch a different pipeline
     on a new VM according to the last analysis date of the sample and the last dbupdate of each argument. 
@@ -88,44 +85,11 @@ class _BatchPipelinesReanalysis:
         # Read the reanalysis config
         with open(MONGO_REANALYSIS_CONFIG, encoding='utf-8') as handle:
             self._reanalysis_config = yaml.safe_load(handle)
-
-        self._credential = DefaultAzureCredential()  # this should take the Managed Identity (which needs to have 'Keyvault secrets user' permissions)
-        self._keyvault_client = SecretClient(vault_url=f"https://keyv-weu-{self._dtap}.vault.azure.net", credential=self._credential)
-
-        self._connect_to_storages()
-        self._connect_to_batch_client()
-
+        # Connect to keyvault, batch account and storages
+        self._connection_azure = ConnectAzure(self._dtap)
+        self._batch_client = self._connection_azure.connect_to_batch_client()
+        self._blob_service_client_input = self._connection_azure.connect_to_storages()
         self._batch_pipelines()
-
-    def _connect_to_storages(self) -> None:
-        """
-        Connects to the blob storage and the fileshare, which are needed to access the files.
-        :return: None
-        """
-        # Instantiate a BlobServiceClient
-        INPUT_STORAGE_CONNECTION_STRING = self._keyvault_client.get_secret(
-            'AZURE-STORAGE-CONNECTION-STRING-INPUT').value
-        self._blob_service_client_input = BlobServiceClient.from_connection_string(INPUT_STORAGE_CONNECTION_STRING)
-
-    def _connect_to_batch_client(self) -> None:
-        """
-        Connects to batch service.
-        :return: None
-        """
-        batch_url = f"https://baweu{self._dtap}herawgs.westeurope.batch.azure.com"
-
-        # # Specify Batch account and service principal account credentials
-        # Where to get the client secret and id: https://success.myshn.net/Skyhigh_CASB/Skyhigh_CASB_Sanctioned_Apps/Skyhigh_CASB_for_Office_365/Service_Principal_with_a_Secret_Key_and_Azure_API_Integration
-        # Initialize the Batch client with Azure AD authentication
-        creds = ServicePrincipalCredentials(
-            client_id=self._keyvault_client.get_secret('SP-MKDEV-AZURE-CLIENT-ID').value,
-            secret=self._keyvault_client.get_secret('SP-MKDEV-AZURE-CLIENT-SECRET').value,
-            tenant=self._keyvault_client.get_secret('TENANT-ID').value,
-            resource="https://batch.core.windows.net/"
-        )
-        # Managed identity in defaultcredential can not be used to authenticate to BatchServiceClient yet.
-        # The error it gives is: AttributeError: 'ManagedIdentityCredential' object has no attribute 'signed_session'
-        self._batch_client = batch.BatchServiceClient(creds, batch_url)
 
     def _batch_pipelines(self) -> None:
         """
@@ -138,10 +102,12 @@ class _BatchPipelinesReanalysis:
         job_name = f"{BATCH_JOB_NAME_PREFIX}{self._species}"
         self.__create_job(job_name)
 
-        date_args_dict = self.__collect_database_update_dates()
-
-        for maximal_analysis_date in date_args_dict:
-            self.__launch_tasks(maximal_analysis_date, date_args_dict, job_name)
+        if self._species not in ['sars_cov_2', 'influenza_a', 'influenza_b']:
+            date_args_dict = self.__collect_database_update_dates()
+            for maximal_analysis_date in date_args_dict:
+                self.__launch_tasks(maximal_analysis_date, date_args_dict, job_name)
+        else:
+            self.__launch_tasks_viral(job_name)
 
     def __create_pool(self) -> None:
         """
@@ -150,7 +116,7 @@ class _BatchPipelinesReanalysis:
         """
         # Create a new pool if none exists
         logging.info(f"Checking pool {BATCH_POOL_NAME}'s existence")
-        vm_size = 'Standard_D2a_v4'
+        vm_size = self._connection_azure.get_secret_value('BATCH-VM-SIZE')
         node_agent_sku_id = 'batch.node.ubuntu 20.04'
         # listing popular images: az vm image list --output table # https://learn.microsoft.com/en-us/azure/virtual-machines/linux/cli-ps-findimage#list-popular-images
         # image_ref = ImageReference(publisher='Canonical', offer='0001-com-ubuntu-server-jammy', sku='22_04-lts-gen2')
@@ -158,7 +124,7 @@ class _BatchPipelinesReanalysis:
         # Create an ImageReference which specifies the image from
         # Azure Compute Gallery to install on the nodes.
         image_ref = batchmodels.ImageReference(
-            virtual_machine_image_id=self._keyvault_client.get_secret('BATCH-IMAGE').value
+            virtual_machine_image_id=self._connection_azure.get_secret_value('BATCH-IMAGE')
         )
 
         vm_config = VirtualMachineConfiguration(image_reference=image_ref, node_agent_sku_id=node_agent_sku_id)
@@ -166,7 +132,7 @@ class _BatchPipelinesReanalysis:
         scheduling_policy = TaskSchedulingPolicy(node_fill_type='spread')
 
         network_configuration = NetworkConfiguration(
-            subnet_id=self._keyvault_client.get_secret('BATCH-SUBNET').value)
+            subnet_id=self._connection_azure.get_secret_value('BATCH-SUBNET'))
 
         try:
             self._batch_client.pool.get(BATCH_POOL_NAME)
@@ -174,18 +140,23 @@ class _BatchPipelinesReanalysis:
             if e.response.status_code == 404:
                 logging.info(f"Creating pool {BATCH_POOL_NAME}")
                 # https://learn.microsoft.com/en-us/python/api/azure-batch/azure.batch.models.pooladdparameter?view=azure-python
-                self._batch_client.pool.add(batch.models.PoolAddParameter(
-                    id=BATCH_POOL_NAME,
-                    virtual_machine_configuration=vm_config,
-                    vm_size=vm_size,
-                    task_scheduling_policy=scheduling_policy,
-                    # target_low_priority_nodes=0,  # can not be specified when using auto_scale
-                    enable_auto_scale=True,
-                    auto_scale_formula=AUTOSCALE_FORMULA,
-                    auto_scale_evaluation_interval=timedelta(minutes=5),
-                    task_slots_per_node=1,  # default is 1 but putting it here anyway in case they change the default
-                    network_configuration=network_configuration
-                ))
+                try:
+                    self._batch_client.pool.add(batch.models.PoolAddParameter(
+                        id=BATCH_POOL_NAME,
+                        virtual_machine_configuration=vm_config,
+                        vm_size=vm_size,
+                        task_scheduling_policy=scheduling_policy,
+                        # target_low_priority_nodes=0,  # can not be specified when using auto_scale
+                        enable_auto_scale=True,
+                        auto_scale_formula=AUTOSCALE_FORMULA,
+                        auto_scale_evaluation_interval=timedelta(minutes=5),
+                        task_slots_per_node=1,  # default is 1 but putting it here anyway in case they change the default
+                        network_configuration=network_configuration
+                    ))
+                except:  # if the pool doesn't exist yet, and multiple samples are submitted at the same time; then a first sample will succeed and the rest will fail
+                    logging.info(
+                        f"Pool '{BATCH_POOL_NAME}' was likely created a fraction of time ago; continuing with job creation..")
+                    pass
 
     def __create_job(self, job_name: str) -> None:
         """
@@ -208,7 +179,6 @@ class _BatchPipelinesReanalysis:
                     # on_task_failure=,
                     # on_all_tasks_complete='terminateJob' #25/05 we never terminate the job anymore as it can scale up to millions of tasks
                 )
-
                 self._batch_client.job.add(job)
 
     def __collect_database_update_dates(self) -> Dict[str, List]:
@@ -235,7 +205,7 @@ class _BatchPipelinesReanalysis:
                 shell=True)
             # query_date
             gitlog = subprocess.run(
-                "git log -n 1 --date=short -- . ':(exclude)scheme_metadata.json' ':(exclude)scheme_metadata.txt' ':(exclude)db_update_info.json'",
+                "git log -n 1 --date=short -- . ':(exclude)scheme_metadata.json' ':(exclude)scheme_metadata.txt' ':(exclude)db_update_info.json' ':(exclude)db_metadata.txt'",
                 shell=True, stdout=subprocess.PIPE).stdout.decode('utf-8')
             scheme_last_update = re.findall("[0-9]{4}-[0-9]{2}-[0-9]{2}", gitlog)[0]
             trigger_config['species'][self._species][scheme]["last_update"] = scheme_last_update
@@ -243,7 +213,8 @@ class _BatchPipelinesReanalysis:
                 date_scheme_dict[scheme_last_update].append(
                     trigger_config['species'][self._species][scheme]['cmd_argument'])
             else:
-                date_scheme_dict[scheme_last_update] = [trigger_config['species'][self._species][scheme]['cmd_argument']]
+                date_scheme_dict[scheme_last_update] = [
+                    trigger_config['species'][self._species][scheme]['cmd_argument']]
         # e.g. date_scheme_dict: {'2022-10-02': ['mlst', 'cgmlst', 'pcr-serogroup', 'metal-detergent', 'typing-virulence', 'typing-amr', 'species-confirmation',
         #                         '2022-08-14': ['ncbi-amr'],
         #                         '2022-07-03': ['resfinder'],
@@ -278,7 +249,8 @@ class _BatchPipelinesReanalysis:
             f"Submitting reanalysis for samples older than {maximal_analysis_date} and younger than {minimal_analysis_date} with arguments: {date_args_dict[maximal_analysis_date]} for {self._species}_{self._dtap}")
         # Retrieve isolates that need to be re-analyzed
         mongoinit = MongoInitialisation(self._species,
-                                        alternate_connection_string=self._keyvault_client.get_secret('MONGODB-CONNECTION-STRING').value,
+                                        alternate_connection_string=self._connection_azure.get_secret_value(
+                                            'MONGODB-CONNECTION-STRING'),
                                         alternate_dtap=self._dtap)
         isolates_collection, old_isolateresults_collection, \
             isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections()
@@ -286,9 +258,9 @@ class _BatchPipelinesReanalysis:
         documents_list = [doc for doc in
                           isolates_collection.find({'latest_analysis_date': {"$lt": maximal_analysis_date,
                                                                              "$gte": minimal_analysis_date}},
-                                                   {"_id": 1, "fasta_path": 1, "vcf_path": 1,
-                                                    "latest_analysis_date": 1, "report_directory": 1,
-                                                    "results.isolates_id": 1}
+                                                   {"_id": 1, "fasta_path": 1, "vcf_path": 1, "vcf_path_unfiltered": 1,
+                                                    "original_input_format": 1, "latest_analysis_date": 1,
+                                                    "report_directory": 1, "results.isolates_id": 1}
                                                    )
                           ]
         logging.info(f"{len(documents_list)} isolates to be reanalyzed for {self._species}_{self._dtap}")
@@ -299,6 +271,44 @@ class _BatchPipelinesReanalysis:
             self.___create_task(job_name, task_name, command)
         logging.info(
             f"Reanalysis submission for samples older than {maximal_analysis_date} with arguments: {date_args_dict[maximal_analysis_date]} completed")
+
+    def __launch_tasks_viral(self, job_name: str) -> None:
+        """
+        Launches the Azure Batch tasks for all viral samples
+        :param job_name: the Azure Batch job name
+        :return: None
+        """
+        # Retrieve isolates that need to be re-analyzed
+        mongoinit = MongoInitialisation(self._species,
+                                        alternate_connection_string=self._connection_azure.get_secret_value(
+                                            'MONGODB-CONNECTION-STRING'),
+                                        alternate_dtap=self._dtap)
+        isolates_collection, old_isolateresults_collection, \
+            isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections()
+        # query all the documents as a projection
+        fields_to_retrieve = {
+            "_id": 1,
+            "fasta_path": 1,
+            "vcf_path": 1,
+            "vcf_path_unfiltered": 1,
+            "original_input_format": 1,
+            "latest_analysis_date": 1,
+            "report_directory": 1,
+            "results.isolates_id": 1
+        }
+
+        documents_list = list(isolates_collection.find({}, fields_to_retrieve))
+
+        logging.info(f"{len(documents_list)} isolates to be reanalyzed for {self._species}_{self._dtap}")
+        analysis_arguments = [argument.replace('--', '') for argument in
+                              self._reanalysis_config['species'][self._species]['options']]
+        for mongodb_document in documents_list:
+            # Create a new task to execute a command on the VM
+            task_name = f"{mongodb_document['results']['isolates_id']}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+            command = self.___build_command(task_name, analysis_arguments, mongodb_document)
+            self.___create_task(job_name, task_name, command)
+        logging.info(
+            f"Reanalysis submission for {self._species} samples with arguments: {analysis_arguments} completed")
 
     def ___create_task(self, job_name: str, task_name: str, command: str) -> None:
         """
@@ -324,7 +334,7 @@ class _BatchPipelinesReanalysis:
                 file_pattern="../stderr.txt",
                 destination=OutputFileDestination(
                     container=OutputFileBlobContainerDestination(
-                        container_url=f"https://{INPUT_STORAGE_ACCOUNT_NAME}.blob.core.windows.net/batch-logs?{self._sas_token_blobstorage_input}",
+                        container_url=f"https://{INPUT_STORAGE_ACCOUNT_NAME}.blob.core.windows.net/batch-logs?{self._connection_azure.sas_token_blobstorage_input}",
                         path=f"{BATCH_POOL_NAME}/{job_name}/{task_name}_stderr.txt"
                     )
                 ),
@@ -355,8 +365,8 @@ class _BatchPipelinesReanalysis:
         We're creating the report dir before the smk pipe does it, because then if the smk fails for whatever reason,
         the stderr.txt and stdout.txt files can still be copied to the report_dir in the post_command
         """
-        report_dir = f'/scratch/scratch/report_dirs/new_isolate/{self._species}/{task_name}'
-        working_dir = f'/scratch/scratch/working_dirs/reanalysis/{self._species}/{task_name}_working'
+        report_dir = f'/scratch/scratch/{self._dtap}/report_dirs/reanalysis/{self._species}/{task_name}'
+        working_dir = f'/scratch/scratch/{self._dtap}/working_dirs/reanalysis/{self._species}/{task_name}_working'
         results_dir = mongodb_document['report_directory']
         base_command = ' '.join([
             f"module load {config_species['lmod']};",
@@ -364,24 +374,28 @@ class _BatchPipelinesReanalysis:
             f"cd {working_dir};"
             f"{config_species['main_script']} ",
             f"--fasta {mongodb_document['fasta_path']} ",
-            '--detection-method blast',
-            '--library NexteraPE',
+            '--detection-method blast' if self._species not in ['sars_cov_2', 'influenza_a', 'influenza_b'] else '',
+            '--library NexteraPE', # should be changed in the future?
             f'--working-dir {working_dir}',
             f'--output-dir {report_dir}',
             f"--output-html {report_dir}/report.html",
             f'--output-tsv {report_dir}/report.tsv',
             ' '.join([f"--{x}" for x in analysis_arguments]),
-            f'--threads 2',
-            f'--sample-name {isolate_id}'
+            '--threads 2',
+            f'--sample-name {isolate_id}',
+            f"--reanalysis-original-input {mongodb_document['original_input_format']}"
         ])
-        if self._species == 'mycobacterium':
-            base_command += f' --vcf-unfiltered {mongodb_document["vcf_path"]}'
+        if self._species == 'mycobacterium' and mongodb_document['original_input_format'] != 'fasta':
+            base_command += f' --vcf-unfiltered {mongodb_document["vcf_path_unfiltered"]}' if mongodb_document.get(
+                "vcf_path_unfiltered") else ''
         # Copy the stderr and stdout files from the temporary working dir to the fileshare because they
         # might contain more information than the camel.log
         post_command = f'cp $AZ_BATCH_TASK_DIR/std*.txt {report_dir}/'
         # Check if report.html exists, if it does, remove working directory to clean up and
         # stderr + stdout because they're not necessary
-        cleanup_command = f"if test -e {report_dir}/report.html ; then rm -r {working_dir}; rm {report_dir}/std*.txt; fi; rsync -a {report_dir}/ {results_dir}/; rm {results_dir}/camel.log"
+        cleanup_command = f"if test -e {report_dir}/report.html ; then rm -r {working_dir}; rm {report_dir}/std*.txt; fi; cd /scratch/scratch/; rsync -a {report_dir}/ {results_dir}/; rm {results_dir}/camel.log"
+        # the cd before rsync is necessary because else it will throw the error: rsync: getcwd(): No such file or directory (2)
+        unload_command = f"module unload {config_species['lmod']}"
         config_mongodb = self._reanalysis_config['mongodb']
         mongodb_command = ' '.join([
             f"module load {config_mongodb['lmod']};",
@@ -392,29 +406,14 @@ class _BatchPipelinesReanalysis:
             f"--technical_id {isolate_id}",
             f"--jsonfilepath {results_dir}/report.json",
             "--dont_send_email",
-            f"--alternate_connection_string {self._keyvault_client.get_secret('MONGODB-CONNECTION-STRING').value}",
-            f"--alternate_dtap {self._dtap}"
-                                    ])
-        task_command = f'/bin/bash -c "{pre_command}; {base_command}; {post_command}; {cleanup_command}; {mongodb_command}"'
+            f"--alternate_dtap {self._dtap}",
+            f"--alternate_connection_string {self._connection_azure.get_secret_value('MONGODB-CONNECTION-STRING')}"
+        ])
+        task_command = f'/bin/bash -c "{pre_command}; {base_command}; {post_command}; {cleanup_command}; {unload_command}; {mongodb_command}"'
         return task_command
-
-    @property
-    def _sas_token_blobstorage_input(self) -> str:
-        """
-        Generates a sas token for the input blob storage
-        :return: str
-        """
-        # SAS = shared access signatures
-        return generate_account_sas(account_name=self._blob_service_client_input.account_name,
-                                    account_key=self._blob_service_client_input.credential.account_key,
-                                    resource_types=ResourceTypes(service=True, container=True, object=True),
-                                    permission=AccountSasPermissions(read=True, write=True),
-                                    expiry=datetime.utcnow() + timedelta(hours=48))
-        # Issue: the 48 h here is a bottleneck, but any nr of hrs will be a bottleneck
 
 
 if __name__ == '__main__':
-
     # Configure stdout logging
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 

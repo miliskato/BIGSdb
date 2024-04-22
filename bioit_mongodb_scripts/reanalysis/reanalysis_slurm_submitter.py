@@ -109,7 +109,7 @@ def reanalysis_slurm_submitter(species: str, maximal_analysis_date: str, minimal
                 return reanalysis_outcome_dictionary
             else:
                 logging.info(f"Slurm submission for isolate '{isolate['_id']}' completed")
-                return json.loads(command_output.stdout.decode())  # This is the reanalysis_outcome_dictionary or at least it should be # todo test
+                return json.loads(command_output.stdout.decode())  # This is the reanalysis_outcome_dictionary or at least it should be
 
         # Slurm can schedule up to 10000 jobs, best to max 5000: reanalysis_triggers.py launches max 5, times 1000 below is 5000 max
         if documents_list != []:

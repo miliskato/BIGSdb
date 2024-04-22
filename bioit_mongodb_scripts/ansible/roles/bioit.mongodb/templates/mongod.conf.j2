@@ -15,12 +15,12 @@ systemLog:
 #  fork: true # not sure if should be false after all? default is false https://www.mongodb.com/docs/manual/reference/configuration-options/#mongodb-setting-processManagement.fork
 security:
   authorization: enabled #https://www.mongodb.com/docs/manual/core/authorization/
-  keyFile: {{ keyfilepath }} # todo
+  keyFile: {{ keyfilepath }}
 #  clusterIpSourceWhitelist:
 #    - #Ensure security.clusterIpSourceWhitelist includes the IP address or CIDR ranges that include the IP address of each replica set member or mongos in the deployment to ensure healthy communication between cluster components.
 #	- #Ensure security.clusterIpSourceWhitelist includes the IP address or CIDR ranges that include the IP address of each replica set member or mongos in the deployment to ensure healthy communication between cluster components.
 net:
-  bindIp: localhost,{{ inventory_hostname }} #todo # https://www.mongodb.com/docs/manual/reference/configuration-options/#mongodb-setting-net.bindIp # use DNS hostnames
+  bindIp: localhost,{{ inventory_hostname }}  # https://www.mongodb.com/docs/manual/reference/configuration-options/#mongodb-setting-net.bindIp # use DNS hostnames
   port: {{ port }} # https://www.mongodb.com/docs/manual/reference/configuration-options/#mongodb-setting-net.port
 replication:
   replSetName: {{ replica_set_name }}

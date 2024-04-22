@@ -1,7 +1,9 @@
+#!/usr/bin/env python
 import argparse
 import json
 import logging
 import re
+import shutil
 import socket
 import sys
 import tempfile
@@ -85,7 +87,6 @@ class HtmlreportGeneration:
                        f"{Path(__file__).name} fail on host {socket.gethostname()}")
             raise Exception(f"{exceptionmessage}\n{traceback.format_exc()}")
 
-
     def _htmlreport_generation(self):
         """
         Main function; finds the corresponding
@@ -98,7 +99,7 @@ class HtmlreportGeneration:
 
         with self.__create_temp_dir('temp_reporting') as dir_temp:
             # Dump the required json file
-            jsonfile = Path(f"{dir_temp}/{self._technical_id}_temp.json")
+            jsonfile = Path(dir_temp) / f"{self._technical_id}_temp.json"
             with jsonfile.open('w') as handle:
                 handle.write(json.dumps(requested_document['results']))
 
@@ -122,10 +123,12 @@ class HtmlreportGeneration:
             # run the command
             command.run(dir_temp)
 
+            # Moving the log to the report dir because debugging is pretty hard with a python temp dir
+            shutil.move(Path(dir_temp) / 'camel.log', dir_out / 'camel.log')
+
             if command.returncode != 0:
                 send_email(command.stderr)
                 raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}: {command.stderr}")
-
 
     def __create_temp_dir(self, prefix: str) -> tempfile.TemporaryDirectory:
         """
@@ -134,6 +137,7 @@ class HtmlreportGeneration:
         :return: Path to temporary directory
         """
         return tempfile.TemporaryDirectory(prefix=prefix, dir=self._mongo_config_data['temp_dir'])
+
 
 if __name__ == '__main__':
     # Configure stdout logging

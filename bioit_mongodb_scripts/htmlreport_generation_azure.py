@@ -11,8 +11,7 @@ import traceback
 from pathlib import Path
 from typing import List, Optional
 
-from azure.identity import DefaultAzureCredential
-from azure.keyvault.secrets import SecretClient
+from bioit_mongodb_scripts.util_azure.connect_azure import ConnectAzure
 
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
@@ -80,8 +79,7 @@ class HtmlreportGeneration:
             raise ValueError('if validation type is not null, need an analysis date')
 
         # Connect to keyvault
-        self._credential = DefaultAzureCredential()  # this should take the Managed Identity (which needs to have 'Keyvault secrets user' permissions)
-        self._keyvault_client = SecretClient(vault_url=f"https://keyv-weu-{self._dtap}.vault.azure.net", credential=self._credential)
+        self._connection_azure = ConnectAzure(self._dtap)
 
         # Parse config
         self._mongo_config_data = get_mongodb_config_data()
@@ -89,7 +87,7 @@ class HtmlreportGeneration:
         # Open collections
         self._mongoinit = MongoInitialisation(self._species, mongo_config_data=self._mongo_config_data,
                                               alternate_dtap=self._dtap,
-                                              alternate_connection_string=self._keyvault_client.get_secret('MONGODB-CONNECTION-STRING').value)
+                                              alternate_connection_string=self._connection_azure.get_secret_value('MONGODB-CONNECTION-STRING'))
         self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, \
             self._isolates_resequencing_collection = self._mongoinit.initialise_collections()
         self._headers_collection = self._mongoinit.initialise_headers_collection()
@@ -123,7 +121,7 @@ class HtmlreportGeneration:
             [self._technical_id, self._analysis_date if self._analysis_date else str(self._changed_version)])
         dir_out.mkdir(parents=True, exist_ok=True)
 
-        if requested_document['results'].get('results_version') and not requested_document['results']['results_version'] == 1: # badqc and reseq isolates do not have a results_version
+        if (requested_document['results'].get('results_version') and not requested_document['results']['results_version'] == 1): # badqc and reseq isolates do not have a results_version
             with self.__create_temp_dir('temp_reporting') as dir_temp:
                 # Dump the required json file
                 jsonfile = Path(dir_temp) / f"{self._technical_id}_temp.json"

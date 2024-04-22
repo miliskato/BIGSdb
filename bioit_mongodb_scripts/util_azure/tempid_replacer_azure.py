@@ -4,7 +4,6 @@ import hashlib
 import logging
 import socket
 import sys
-import traceback
 from pathlib import Path
 from typing import Any, Dict, List, Union
 
@@ -14,12 +13,13 @@ from Bio.SeqRecord import SeqRecord
 from pymongo.read_concern import ReadConcern
 from pymongo.write_concern import WriteConcern
 
+from bioit_mongodb_scripts.util_azure.connect_azure import ConnectAzure
+
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
-from bioit_bigsdb_scripts.components.psql import TblAlleleDesignations
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
-from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email
+from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data
 
 
 def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
@@ -29,39 +29,52 @@ def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     :return: Parsed arguments
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("--scheme", required=True, type=str, help='lower case scheme as in json reports/mongodb documents') #cgmlst / mlst
-    parser.add_argument("--species", required=True, type=str, choices=specieslist)
-    parser.add_argument('--alternate_connection_string', type=str,
-                        help=argparse.SUPPRESS)  # will replace connection string, only for small testing purposes
+    parser.add_argument("--scheme", required=True, type=str, choices=['mlst', 'cgmlst', 'mlst_warwick', 'mlst_pasteur'],
+                        default=['mlst', 'cgmlst', 'mlst_warwick', 'mlst_pasteur'], nargs='+',
+                        help='lower case scheme as in json reports/mongodb documents')
+    parser.add_argument("--species", required=True, type=str, choices=specieslist, default=specieslist, nargs='+')
+    parser.add_argument('--dtap', required=False, type=str, choices=['dev', 'test', 'acc', 'prod'],
+                        default=['prod'], nargs='+')  # this does allow for the same dtap multiple times but doesn't really matter, they're uniquely filtered using set() anyway
     return parser.parse_args()
 
 
-class TempidReplacer:
+def wrapper_loop_dtap_and_species_and_schemes(speciess: List[str], dtaps: List[str], schemes: List[str]) -> None:
+    """
+    Loops over all dtaps and species and schemes to replace the temporary identifiers accordingly.
+    :param speciess: commonly used bioit species name: either genus or specific like stec
+    :param dtaps: dev, test, acc, or prod
+    :param schemes: mlst, cgmlst, mlst_warwick, mlst_pasteur
+    :return: None
+    """
+    for dtap in set(dtaps):
+        for species in set(speciess):
+            for scheme in set(schemes):
+                TempidReplacerAzure(scheme, species, dtap)
+
+
+class TempidReplacerAzure:
     """
     Class containing definitions to check and replace temporary ids in MongoDB (and BIGSdb)
     """
-    def __init__(self, scheme: str, species: str, alternate_connection_string: Union[bool, str] = False,
-                 alternate_dtap: Union[str, None] = None):
+    def __init__(self, scheme: str, species: str, dtap: str) -> None:
         """
         Initalizes the class and executes the main function (auto-executable)
         :param scheme: scheme that unresolved hashes should be queried from
         :param species: commonly used bioit species name: either genus or specific like stec
-        :param alternate_connection_string: use alternate connection string, used for testing on the free Atlas Cluster
-        :param alternate_dtap: alternative dtap than what is in the config file
+        :param dtap: dtap to be used
         :return: None
         """
         self._scheme = scheme
         self._species = species
-        self._alternate_connection_string = alternate_connection_string
-        self._alternate_dtap = alternate_dtap
+        self._dtap = dtap
 
-        # parse config data
-        self._mongo_config_data = get_mongodb_config_data()
+        # Connect to keyvault
+        self._connection_azure = ConnectAzure(self._dtap)
+
         # Open collections
         self._mongoinit = MongoInitialisation(self._species,
-                                              alternate_connection_string=self._alternate_connection_string,
-                                              alternate_dtap=self._alternate_dtap,
-                                              mongo_config_data=self._mongo_config_data)
+                                              alternate_connection_string=self._connection_azure.get_secret_value('MONGODB-CONNECTION-STRING'),
+                                              alternate_dtap=self._dtap)
         self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, self._isolates_resequencing_collection = self._mongoinit.initialise_collections()
         self._hashed_ad_collection = self._mongoinit.initialise_hashing_collection()
         self._st_collection, self._cluster_membership_collection, self._cluster_merging_collection = self._mongoinit.initialise_clustering_collections()
@@ -75,7 +88,6 @@ class TempidReplacer:
             self._tempid_replacer()
         except Exception as exceptionmessage:
             exception_subject = f"{Path(__file__).name} fail on host {socket.gethostname()} for scheme {self._scheme}"
-            send_email(f"{exceptionmessage}\n{traceback.format_exc()}", subject=exception_subject)
             raise Exception(exception_subject)
 
     def _tempid_replacer(self) -> None:
@@ -106,11 +118,6 @@ class TempidReplacer:
                         hashed_allele = hashlib.md5(bytes(str(allele.seq), 'utf-8')).hexdigest()
                         if hashed_allele in hash_list:
                             self.__update_temp_to_real_mongodb(locus, allele, hashed_allele, hash_list, values)
-            if ('bigs' in socket.gethostname() or 'nrc' in socket.gethostname()) and self._alternate_connection_string is None:
-                with TblAlleleDesignations(self._species) as isolates_ad_psql_tbl:
-                    for hash_document in self._documents_list:
-                        if hash_document['resolved_AD'] != 0:
-                            isolates_ad_psql_tbl.update_designations((hash_document['resolved_AD'], hash_document['locus'], hash_document['hashed_allele']))
 
     def __query_hashes_of_scheme(self) -> List[Dict[str, Any]]:
         """
@@ -157,8 +164,6 @@ class TempidReplacer:
         if fasta_file.is_file():
             logging.info(f"opening fasta file: {fasta_file}")
         else:
-            send_email(f"Fasta file path for locus {locus} of species {self._species} "
-                       f"does not seem to adhere to the normal fasta path syntax")
             raise RuntimeError(f"Fasta file path for locus {locus} of species {self._species} "
                                f"does not seem to adhere to the normal fasta path syntax")
         return fasta_file
@@ -252,6 +257,4 @@ if __name__ == '__main__':
     args = parse_arguments(mongo_config_data['species'])
 
     # run main
-    TempidReplacer(args.scheme, args.species,
-                   alternate_connection_string=(True if args.alternate_connection_string else False))
-    
+    wrapper_loop_dtap_and_species_and_schemes(args.species, args.dtap, args.scheme)
