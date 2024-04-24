@@ -24,10 +24,10 @@ cd /scratch/galaxy/temp
 speciesline=$(cat $1 | awk '{print $1}' | grep -nw pipeline_name | awk -F ':' '{print $1}')
 species=$(cat $1 |  sed -n ${speciesline}p | awk '{print $2}' | tr '[:upper:]' '[:lower:]')
 
-#if [ $species == "mycobacterium" ] || [ $species == "listeria" ] || [ $species == "neisseria" ] || [ $species == "stec" ] || [ $species == "salmonella" ]; then :
-if [ $species == "neisseria" ]; then :
+#if [ $species == "mycobacterium" ] || [ $species == "listeria" ] || [ $species == "neisseria" ] || [ $species == "stec" ] || [ $species == "salmonella" ] || [ $species == "yersinia" ]; then :
+if [ $species == "neisseria" ] || [ $species == "salmonella" ]; then :
 else
-  printf '%s\n' "upload on nrc platform is only available for neisseria" >&2
+  printf '%s\n' "upload on nrc platform is only available for neisseria and salmonella" >&2
   exit
 fi
 
