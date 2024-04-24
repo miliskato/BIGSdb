@@ -1,0 +1,40 @@
+<tool id="azure_upload" name="Azure upload" version="0.1">
+        <description>Upload FQ files to Azure</description>
+        <command>
+        <![CDATA[
+        $__tool_directory__/run_azure_upload.sh
+
+        ## Input Files
+        --fq-fw $section_input.fastq_1
+        --fq-fw-name $section_input.fastq_1.name
+        --fq-rev $section_input.fastq_2
+        --fq-rev-name $section_input.fastq_1.name
+
+        ## Sample info
+        --sample-name "$section_input.sample_name"
+        --species "$section_input.species"
+        --isolation-date "$section_input.isolation_date"
+
+        ## Uploader info
+        --uploader-mail-address $__user_email__
+        ]]>
+    </command>
+    <inputs>
+        <section name="section_input" title="Input" expanded="True">
+            <param name="sample_name" type="text" size="20" label="Sample name"/>
+            <param name="fastq_1" type="data" format="fastq,fastqsanger.gz" label="Forward reads"/>
+            <param name="fastq_2" type="data" format="fastq,fastqsanger.gz" label="Reverse reads"/>
+            <param name="species" type="select" label="Pathogen" multiple="false" display="checkboxes">
+                <option value="neisseria" selected="false"><i>Neisseria meningitidis</i></option>
+                <option value="salmonella" selected="false"><i>Salmonella enterica</i></option>
+            </param>
+            <param name="isolation_date" type="text" label="Isolation date" help="Required format: DD-MM-YYYY, not enforcable by Galaxy. Required for clustering."/>
+        </section>
+    </inputs>
+    <outputs>
+        <data name="output_log" format="data" label="Azure upload report ${section_input.sample_name}" />
+    </outputs>
+    <help><![CDATA[
+        This tool uploads Fastq files to Azure to be automatically analyzed and inserted into their corresponding NRC platform. Only users with the required permissions can successfully execute this tool.
+    ]]></help>
+</tool>

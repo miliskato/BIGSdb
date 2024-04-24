@@ -957,6 +957,14 @@
         mode: 0777
       tags: galaxy_jail
 
+#    - name: creation of azure dir in jail
+#      ansible.builtin.file:
+#        path: /scratch/bigsupload/azure
+#        state: directory
+#        owner: galaxy
+#        mode: 0777
+#      tags: galaxy_jail
+
     - name: Touch list_of_isolates.txt
       ansible.builtin.file:
         path: /scratch/bigsupload/mongo/list_of_isolates.txt
