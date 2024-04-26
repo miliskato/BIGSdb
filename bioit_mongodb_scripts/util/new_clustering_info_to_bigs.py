@@ -272,6 +272,8 @@ class NewClusteringInfoToBigs:
                     distance_matrix = np.concatenate([distance_matrix, hd_np_array[:, :distance_matrix.shape[0]]],
                                                      axis=0)
                     distance_matrix = np.concatenate([distance_matrix, hd_np_array.T], axis=1)
+                    # Save the updated distance matrix
+                    np.save(str(self._naive_clustering_distance_matrix_file), distance_matrix)
             self.___update_all_existing_naive_clusterimplementations(full_calculation, cgmlst_diff_fields,
                                                                      distance_matrix)
 
