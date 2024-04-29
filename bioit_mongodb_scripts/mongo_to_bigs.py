@@ -195,7 +195,7 @@ class MongoToBigs:
 
                 if results_type == 'new_isolate':
                     insert_assembly(document_id, self._species, temp_fasta_path)
-                elif results_type == 'reanalysis' and document['validation']['type'] == 'resequencing':
+                elif results_type == 'reanalysis' and document.get('validation') and document['validation']['type'] == 'resequencing':
                     last_two_validation_dates = self._isolates_psql_tbl.select_validationdate_for_isolate((document_id,))
                     # select to check that the previous version's validation date is different from the current
                     if last_two_validation_dates[0][0] != last_two_validation_dates[1][0]:
