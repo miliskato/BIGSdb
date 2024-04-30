@@ -397,9 +397,11 @@ class BatchPipelinesReanalysis:
         # the cd before rsync is necessary because else it will throw the error: rsync: getcwd(): No such file or directory (2)
         unload_command = f"module unload {config_species['lmod']}"
         config_mongodb = self._reanalysis_config['mongodb']
+        lockfile = f"/scratch/scratch/{self._dtap}/mainmongo_{self._species}.lockfile"
         mongodb_command = ' '.join([
             f"module load {config_mongodb['lmod']};",
-            f"/usr/bin/flock -n /scratch/scratch/{self._dtap}/mainmongo_{self._species}.lockfile",
+            f"start_time=$(date +%s); while ! flock -n {lockfile} true && (( $(date +%s) - start_time < 3600 )); do sleep 1; done",
+            f"/usr/bin/flock -u {lockfile}",
             f"{config_mongodb['main_script']}",
             "--results_type reanalysis",
             f"--species {self._species}",
