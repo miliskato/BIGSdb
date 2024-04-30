@@ -39,13 +39,13 @@ class TblClassificationSchemes(DatabaseConnection):
         """
         Selects a scheme id by inclusion threshold.
         :param param: the inclusion threshold for which the scheme id is required
-        :return: None or a list of tuples of two strings (clustering scheme id and inclusion threshold)
+        :return: Empty list or a list of tuples of one in clustering scheme id
         """
         return self.execute_query(PsqlQueries.SEQ_SEL_CGSCHID_TB_CLSCH_VAR_INCTHR, param)
 
     def select_cgschemes(self) -> Union[List, List[Tuple[str, str]]]:
         """
-        Selects all scheme id and their inclusion tresholds
-        :return: None or a list of tuples of two strings (clustering scheme id and inclusion threshold)
+        Selects all scheme ids and their inclusion thresholds.
+        :return: Empty list or a list of tuples of two strings (clustering scheme id and inclusion threshold)
         """
         return self.execute(PsqlQueries.SEQ_SEL_CGSCHID_INCTHR_TB_CLSCH_VAR_)

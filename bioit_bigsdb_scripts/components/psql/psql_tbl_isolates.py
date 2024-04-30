@@ -71,14 +71,14 @@ class TblIsolates(DatabaseConnection):
         """
         self.execute_query(PsqlQueries.ISO_UPD_NEWV_TB_ISO_VAR_ISO, param)
 
-    def select_cgsts_of_two_latest_versions_of_isolate(self, param: Tuple[int, int, str]) -> List[Optional[Tuple[Any]]]:
+    def select_cgsts_of_two_latest_versions_of_isolate(self, param: Tuple[int, str]) -> List[Optional[Tuple[Any]]]:
         """
         Used for isolates where multiple versions exist; selects the cgsts of the two latest versions of an isolate,
         along with the isolate ids
         :param param: cgmlst scheme id, cgmlst scheme id, isolate name
         :return: None or list of tuple isolate_id and cgst
         """
-        return self.execute_query(PsqlQueries.ISO_SEL_ID_CGST_TB_ISO_VAR_SCHID_SCHID_ISO, param)
+        return self.execute_query(PsqlQueries.ISO_SEL_ID_CGST_TB_ISO_VAR_SCHID_ISO, param)
 
     def select_isolates_by_cgsts_and_between_dates(self, param: Tuple[int, Tuple[str, ...], str, str]) -> \
             List[Optional[Tuple[Any]]]:

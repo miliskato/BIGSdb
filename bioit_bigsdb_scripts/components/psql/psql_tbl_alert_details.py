@@ -12,6 +12,7 @@ class TblAlertDetails(DatabaseConnection):
         """
         Initialises this class by opening a database connection.
         :param species: commonly used bioit species name: either genus or specific like stec
+        :return: None
         """
         self._db_type = 'isolates'
         super().__init__(species, self._db_type)
