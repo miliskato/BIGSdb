@@ -120,7 +120,7 @@ class AlertsToBigs:
         for new_version in self._list_of_new_versions_inserted_in_bigsdb:
             with TblIsolates(self._species) as self._isolates_psql_tbl:
                 cgsts_tuples = self._isolates_psql_tbl.select_cgsts_of_two_latest_versions_of_isolate(
-                    (self._cgmlst_bigsdb_scheme_id, self._cgmlst_bigsdb_scheme_id, new_version['isolate_name']))
+                    (self._cgmlst_bigsdb_scheme_id, new_version['isolate_name']))
             previous_version_bigsdb_id = cgsts_tuples[1][0]
             with TblAlertDetails(self._species) as isolates_alertsdet_psql_tbl:
                 previous_version_warning_or_alert_info = isolates_alertsdet_psql_tbl.select_alert_for_isolate(

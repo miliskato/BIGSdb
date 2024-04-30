@@ -196,9 +196,9 @@ class PsqlQueries():
         LEFT JOIN temp_cscheme_%s on cgst = temp_cscheme_%s.profile_id
         WHERE new_version IS NULL AND temp_cscheme_%s.group_id = 
         (SELECT group_id FROM temp_cscheme_%s WHERE profile_id = %s);"""
-    ISO_SEL_ID_CGST_TB_ISO_VAR_SCHID_SCHID_ISO: Final[str] = """
+    ISO_SEL_ID_CGST_TB_ISO_VAR_SCHID_ISO: Final[str] = """
         SELECT isolates.id, cgst FROM isolates LEFT JOIN 
-        temp_isolates_scheme_fields_%s on isolates.id = temp_isolates_scheme_fields_%s.id 
+        temp_isolates_scheme_fields_%s USING (id)
         WHERE isolates.isolate = %s ORDER BY isolates.id DESC LIMIT 2;"""
     ISO_SEL_ISO_DATE_TB_ISO_VAR_ISOS: Final[str] = """
         SELECT isolate, isolation_date FROM isolates WHERE

@@ -18,7 +18,7 @@ class TblClassificationGroups(DatabaseConnection):
 
     def count_group(self, param: Tuple[str, str]) -> List[Tuple[int]]:
         """
-        Counts the nr of times a group_id occurs in a specific scheme with a specific group_id (0 or 1)
+        Counts the nr of times a group_id occurs in a specific scheme with a specific group_id (0 or 1).
         :param param: cluster group scheme id, group id
         :return: Count enclosed in a tuple and a list
         """
@@ -26,7 +26,7 @@ class TblClassificationGroups(DatabaseConnection):
 
     def inactivate_group(self, param: Tuple[str, str]) -> None:
         """
-        Updates a specific group to not be active anymore
+        Updates a specific group to not be active anymore.
         :param param: cluster group scheme id, group id
         :return: None
         """
@@ -34,7 +34,7 @@ class TblClassificationGroups(DatabaseConnection):
 
     def insert_group(self, param: Tuple[str, str]) -> None:
         """
-        Inserts a new group in a specific clustering group scheme
+        Inserts a new group in a specific clustering group scheme.
         :param param: cluster group scheme id, group id
         :return: None
         """
@@ -42,7 +42,7 @@ class TblClassificationGroups(DatabaseConnection):
 
     def delete_groups(self, param: Tuple[int]) -> None:
         """
-        Inserts a new group in a specific clustering group scheme
+        Deletes all classification groups belonging to specific clustering group scheme.
         :param param: cluster group scheme id
         :return: None
         """
