@@ -139,7 +139,7 @@ class MongoCustomClustering:
         distance_cluster = DistanceAndClusterComputer(self._species, self._mongo_config_data)
         cluster_thresholds_not_in_db = []
         for cluster_threshold in cluster_thresholds:
-            if len(list(self._cluster_membership_collection.find({'threshold': cluster_threshold}))):
+            if len(list(self._cluster_membership_collection.find({'threshold': cluster_threshold}))) < 1:
                 cluster_thresholds_not_in_db.append(cluster_threshold)
                 cluster_thresholds.remove(cluster_threshold)
         if cluster_thresholds_not_in_db:
