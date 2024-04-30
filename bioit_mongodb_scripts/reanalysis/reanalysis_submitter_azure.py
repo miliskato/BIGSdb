@@ -383,9 +383,11 @@ class _BatchPipelinesReanalysis:
         # stderr + stdout because they're not necessary
         cleanup_command = f"if test -e {report_dir}/report.html ; then rm -r {working_dir}; rm {report_dir}/std*.txt; fi; rsync -a {report_dir}/ {results_dir}/; rm {results_dir}/camel.log"
         config_mongodb = self._reanalysis_config['mongodb']
+        lockfile = f"/scratch/scratch/{self._dtap}/mainmongo_{self._species}.lockfile"
         mongodb_command = ' '.join([
             f"module load {config_mongodb['lmod']};",
-            f"/usr/bin/flock -n /scratch/scratch/{self._dtap}/mainmongo_{self._species}.lockfile",
+            f"start_time=$(date +%s); while ! flock -n {lockfile} true && (( $(date +%s) - start_time < 3600 )); do sleep 1; done",
+            f"/usr/bin/flock -u {lockfile}",
             f"{config_mongodb['main_script']}",
             "--results_type reanalysis",
             f"--species {self._species}",
