@@ -213,8 +213,12 @@ class DistanceAndClusterComputer:
             membership = []
             for index, hamming_distance in enumerate(self._hamming_distances[0][:-1]):
                 if hamming_distance <= thresh:
-                    membership.append(self._cluster_membership_collection.find_one({'cgST': self._sequence_types[index],
-                                                                                    'threshold': thresh})['clustering_membership'])
+                    membership_doc = self._cluster_membership_collection.find_one({'cgST': self._sequence_types[index],
+                                                                                   'threshold': thresh})
+                    if membership_doc is not None and membership_doc.get('clustering_membership'):
+                        membership.append(membership_doc['clustering_membership'])
+                    else:
+                        logging.warning(f"Queried cgST {self._sequence_types[index]}'s clustering membership for threshold {thresh} but could not find any...")
             membership = list(set(membership))
             if len(membership) > 1:
                 membership = [self._merge_clusters(membership, thresh)]
