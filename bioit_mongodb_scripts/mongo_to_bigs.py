@@ -152,25 +152,19 @@ class MongoToBigs:
             sample_presence = self._isolates_psql_tbl.count_isolate((document_id,))
             if sample_presence[0][0] == 0:
                 results_type = "new_isolate"
-                self._list_of_new_isolates_for_alerts.append(
-                    {'isolate_name': document_id, 'cgST': document['results'].get('cgST'),
-                     'isolation_date': document['results']['analysis_date']})  # todo change date to isolation_date
             elif sample_presence[0][0] == 1 and (Path(self._bigsdb_config_data['failsafe']['flag_dir']) / '.'.join(
                     [document_id, self._bigsdb_config_data['failsafe']['flag_append']])).is_file():
                 # isolate into bigsdb was started but failed during insertion.
                 # if argument "new_isolate" is passed to main_results_inserter and it finds the flag,
                 # it will remove the isolate and the flag, and then recreate the flag and start insertion again.
                 results_type = "new_isolate"
-                self._list_of_new_isolates_for_alerts.append(
-                    {'isolate_name': document_id, 'cgST': document['results'].get('cgST'),
-                     'isolation_date': document['results']['analysis_date']})  # todo change date to isolation_date
             else:
                 results_type = "reanalysis"
                 different_version = self.__check_if_reanalysis_different(document, document_id)
                 if different_version is False:
                     continue
-                self._list_of_new_versions_for_alerts.append({'isolate_name': document_id, 'cgST': document['results'].get('cgST'),
-                                                              'isolation_date': document['results']['analysis_date']})
+            self._list_of_new_versions_for_alerts.append({'isolate_name': document_id, 'cgST': document['results'].get('cgST'),
+                                                          'isolation_date': document['results']['analysis_date']})
 
             # continuation of for loop:
             # extract json file to be given to bigs
@@ -195,6 +189,7 @@ class MongoToBigs:
 
                 if results_type == 'new_isolate':
                     insert_assembly(document_id, self._species, temp_fasta_path)
+                    logging.info(f"Inserted new isolate {document_id} into bigsdb")
                 elif results_type == 'reanalysis' and document.get('validation') and document['validation']['type'] == 'resequencing':
                     last_two_validation_dates = self._isolates_psql_tbl.select_validationdate_for_isolate((document_id,))
                     # select to check that the previous version's validation date is different from the current
@@ -205,7 +200,7 @@ class MongoToBigs:
                         with TblSeqBinStats(self._species) as isolates_seqbinstats_psql_tbl:
                             isolates_seqbinstats_psql_tbl.revert_seqbinstats_newversion([document_id])
                         insert_assembly(document_id, self._species, temp_fasta_path)
-                logging.info(f"wrote new results version for {document_id} to bigsdb")
+                    logging.info(f"Wrote new results version for {document_id} to bigsdb")
 
         # Update cache again before alerts implementation because new isolates won't have cgST's but are needed for alerts implementation
         self._cache_command_object.run(Path(os.getcwd()))

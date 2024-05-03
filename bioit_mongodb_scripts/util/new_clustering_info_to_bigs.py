@@ -23,6 +23,10 @@ from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_conf
 
 
 class NewClusteringInfoToBigs:
+    """
+    Inserts all new clustering related info into Bigsdb, decides what is new based on a date that is stored
+    in the update metadata collection. This date is updated at the successful end of this script.
+    """
     def __init__(self, species: str, naive_clustering_distance_matrix_file: Path,
                  mongo_config_data: Dict[str, Any] = None) -> None:
         """
@@ -30,7 +34,7 @@ class NewClusteringInfoToBigs:
         :param species: commonly used bioit species name: either genus or specific like stec
         :param naive_clustering_distance_matrix_file: The path to the naive clustering cgmlst distance matrix file
         :param mongo_config_data: Use provided mongo_config_data, else get mongo_config_data from file
-        :return None
+        :return: None
         """
         self._species = species
         self._mongo_config_data = mongo_config_data if mongo_config_data else get_mongodb_config_data()
@@ -40,8 +44,8 @@ class NewClusteringInfoToBigs:
         self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, \
             self._isolates_resequencing_collection = self._mongoinit.initialise_collections()
         self._headers_collection = self._mongoinit.initialise_headers_collection()
-        self._st_collection, self._cluster_membership_collection, self._cluster_merging_collection = self._mongoinit.\
-            initialise_clustering_collections()
+        self._st_collection, self._cluster_membership_collection, self._cluster_merging_collection = \
+            self._mongoinit.initialise_clustering_collections()
         self._update_metadata_collection = self._mongoinit.initialise_update_collection()
         self._hashed_ad_collection = self._mongoinit.initialise_hashing_collection()
         # Open sequences psql table connection
@@ -84,7 +88,7 @@ class NewClusteringInfoToBigs:
 
     def _get_last_date_of_update(self) -> Optional[date]:
         """
-        Retrieve in mongo db the date of the last update.
+        Retrieve in MongoDB the date of the last update.
         :return: a date in iso UTC format
         """
         query = self._update_metadata_collection.find_one({'metadata': 'last_update', 'host': socket.gethostname()})
@@ -101,7 +105,7 @@ class NewClusteringInfoToBigs:
 
     def _get_new_st(self) -> List[Dict[str, Any]]:
         """
-        Retrieve the new sequence types from the mongo db sequence types collection which have been added since the
+        Retrieve the new sequence types from the MongoDB sequence types collection which have been added since the
         date of the last update.
         :return: A list of documents containing the information about the new sequence types.
         """
@@ -109,7 +113,7 @@ class NewClusteringInfoToBigs:
 
     def _get_st_headers(self) -> Dict[str, Any]:
         """
-        Retrieve the sequence types headers from the sequence type collection from Mongo DB
+        Retrieve the sequence types headers from the sequence type collection from MongoDB
         :return: The document (dict) containing the allele names as a list under the 'headers' key.
         This allele names header corresponds to the list of alleles in the profiles in the sequence_types collection.
         """

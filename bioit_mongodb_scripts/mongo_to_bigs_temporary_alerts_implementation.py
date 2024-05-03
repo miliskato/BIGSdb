@@ -46,9 +46,6 @@ class MongoToBigsTemporaryAlertsImplementation:
         :param mongo_config_data: Use provided mongo_config_data, else get mongo_config_data from file
         :return: None
         """
-        # Configure stdout logging
-        logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
-
         self._species = species
 
         # Parse MongoDB config
@@ -70,15 +67,16 @@ class MongoToBigsTemporaryAlertsImplementation:
             send_email(f"{exceptionmessage}\n{traceback.format_exc()}")
             raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}: {exceptionmessage}\n{traceback.format_exc()}")
 
-
     def _mongo_to_bigs_temporary_alerts_implementation(self) -> None:
         """
         Main function.
         See Class description.
+        :return: None
         """
         list_of_dicts_for_alerts = []
 
         # query all isolates without isolation date in mongodb
+        # (isolation date is added after alerts have been calculated, see the update_one below)
         isolates_wo_isolationdate = \
             list(self._isolates_collection.with_options(read_concern=ReadConcern(level="majority")).
                  find({'technical_metadata.isolation_date': {'$exists': False}}, {'_id': 1, 'results.cgST': 1}))
@@ -100,7 +98,6 @@ class MongoToBigsTemporaryAlertsImplementation:
             AlertsToBigs(list_of_dicts_for_alerts, [], self._species, self._cgmlst_bigsdb_scheme_id)
         else:
             logging.info('no alerts to be computed')
-
 
 
 if __name__ == '__main__':

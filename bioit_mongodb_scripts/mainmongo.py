@@ -428,7 +428,7 @@ class MainMongo:
                                           locus: str, scheme: str) -> str:
         """
         Finds the last temporary name for a hashed allele and returns a new id for the new allele to add.
-        :param hashed_ad_collection: hashed allele collection from mongo db
+        :param hashed_ad_collection: hashed allele collection from MongoDB
         :param locus: locus name
         :param scheme: scheme name
         :return: the name for the new temporary allele.
