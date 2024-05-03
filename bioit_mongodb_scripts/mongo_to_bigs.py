@@ -150,13 +150,12 @@ class MongoToBigs:
         for document in list_of_documents:
             document_id = document['results']['isolates_id']
             sample_presence = self._isolates_psql_tbl.count_isolate((document_id,))
-            if sample_presence[0][0] == 0:
-                results_type = "new_isolate"
-            elif sample_presence[0][0] == 1 and (Path(self._bigsdb_config_data['failsafe']['flag_dir']) / '.'.join(
-                    [document_id, self._bigsdb_config_data['failsafe']['flag_append']])).is_file():
-                # isolate into bigsdb was started but failed during insertion.
-                # if argument "new_isolate" is passed to main_results_inserter and it finds the flag,
-                # it will remove the isolate and the flag, and then recreate the flag and start insertion again.
+            # is_sample_failed: isolate into bigsdb was started but failed during insertion.
+            # if argument "new_isolate" is passed to main_results_inserter and it finds the flag,
+            # it will remove the isolate and the flag, and then recreate the flag and start insertion again.
+            if_sample_failed = sample_presence[0][0] == 1 and (Path(self._bigsdb_config_data['failsafe']['flag_dir']) / '.'.join(
+                    [document_id, self._bigsdb_config_data['failsafe']['flag_append']])).is_file()
+            if sample_presence[0][0] == 0 or if_sample_failed:
                 results_type = "new_isolate"
             else:
                 results_type = "reanalysis"
