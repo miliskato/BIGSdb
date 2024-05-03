@@ -25,7 +25,7 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         Collects all values for a given variable of interest across the entire collection.
         :param opened_collection: mongo opened collection
         :param variable_of_interest: variable to be collected in every document in the collection
-        :param filtering_cond: Optional: filtering expression for mongo db
+        :param filtering_cond: Optional: filtering expression for MongoDB
         :return: list of distinct values for a variable of interest
         """
         return opened_collection.distinct(variable_of_interest, filter=filtering_cond)
@@ -184,7 +184,7 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
     # @staticmethod
     # def adapt_isolates_id_in_mongodb(opened_collection: pymongo.collection.Collection, actual_id: str, new_id: str) -> None:
     #     """
-    #     Function to change the _id field of an isolate already upload to Mongo DB
+    #     Function to change the _id field of an isolate already upload to MongoDB
     #     :param actual_id: current id of the isolate
     #     :param new_id: new id to give to the isolate
     #     """
@@ -210,8 +210,8 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
     #     """
     #     query to retrieve a specific hc number from an isolate
     #     :param isolate_id: the id from the desired isolate
-    #     :param isolate_collection: the mongo db collection of isolates
-    #     :param hiercc_collection:  the mongo db collection of hiercc results
+    #     :param isolate_collection: the MongoDB collection of isolates
+    #     :param hiercc_collection:  the MongoDB collection of hiercc results
     #     :param hc_number: the hc number (starting with HC..) to be retrieved
     #     :return: the hc number of the cluster where the isolates is located.
     #     """
@@ -317,7 +317,7 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
             if len(old_versions) > 0:
                 old_versions_merged = old_versions[0]
                 if len(old_versions) > 1:
-                    for x in old_versions[1:-1]:
+                    for x in old_versions[1:]:
                         merge_nested_dicts(old_versions_merged, x)
                 merge_nested_dicts(current_version['results'], old_versions_merged)
             requested_document = current_version

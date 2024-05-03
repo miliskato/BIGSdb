@@ -18,7 +18,8 @@ function getCookieValue(cookieName) {
 }
 
 function get_jwt_preview(id, species, validation_type, res_time, get_zip, dtap, newWindow){
-    query_url = "/reportsapi" + "/get_html_report?isolate_id=" + id + '&date=' + res_time +"&species=" + species + "&get_zip=" + get_zip + "&dtap=" + dtap + "&validation_type=" + validation_type
+    // gets the html report from Azure through the API, if it fails, returns a failure message
+    query_url = "/reportsapi" + "/get_html_report?isolate_id=" + id + '&date=' + res_time + "&species=" + species + "&get_zip=" + get_zip + "&dtap=" + dtap + "&validation_type=" + validation_type
     console.log(query_url)
     $.ajax( query_url , {
         method: 'GET',
@@ -40,7 +41,8 @@ function get_jwt_preview(id, species, validation_type, res_time, get_zip, dtap, 
 }
 
 function get_jwt_zip(id, species, validation_type, res_time, get_zip, dtap, newWindow){
-    query_url = "/reportsapi" + "/get_html_report?isolate_id=" + id + '&date=' + res_time +"&species=" + species + "&get_zip=" + get_zip + "&dtap=" + dtap + "&validation_type=" + validation_type
+    // gets the html report from Azure through the API as a zip file, if it fails, returns a failure message
+    query_url = "/reportsapi" + "/get_html_report?isolate_id=" + id + '&date=' + res_time + "&species=" + species + "&get_zip=" + get_zip + "&dtap=" + dtap + "&validation_type=" + validation_type
     $.ajax( query_url , {
         method: 'GET',
         headers: {"x-access-token": localStorage.getItem('token')},
@@ -66,6 +68,7 @@ function get_jwt_zip(id, species, validation_type, res_time, get_zip, dtap, newW
 }
 
 function get_jwt_report (get_zip, validation_type_opt, id_opt, species_opt, date_opt){
+    //  Logs in to the api and gets the html report either in zip format or in a new web page
     if (arguments.length === 1) {
         var title = document.title
         var validation_type = 'null'
@@ -134,6 +137,7 @@ function get_jwt_report (get_zip, validation_type_opt, id_opt, species_opt, date
 }
 
 function get_subpart(rel_file_path){
+    // after a html report has been generated in a new browser page, this function is used to access subfiles such as alignments or the vcf
     query_url = "/reportsapi" + "/get_file?file_path=" + rel_file_path
     var file_extension = rel_file_path.split('.').pop();
     $.ajax( query_url , {
@@ -161,6 +165,7 @@ function get_subpart(rel_file_path){
 }
 
 function get_jwt_subpart(rel_file_path){
+    // wrapper with login ability around the get_subpart function
     $.ajax({
         url: "/reportsapi" + "/login",
         type: 'post',

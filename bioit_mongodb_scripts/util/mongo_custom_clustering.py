@@ -35,8 +35,8 @@ class MongoCustomClustering:
         # Open collections
         self._mongoinit = MongoInitialisation(self._species, mongo_config_data=self._mongo_config_data)
         self._headers_collection = self._mongoinit.initialise_headers_collection()
-        self._st_collection, self._cluster_membership_collection, self._cluster_merging_collection = self._mongoinit. \
-            initialise_clustering_collections()
+        self._st_collection, self._cluster_membership_collection, self._cluster_merging_collection = \
+            self._mongoinit.initialise_clustering_collections()
 
     def run_custom_clustering(self, cluster_thresholds: List[int]) -> Optional[int]:
         """
@@ -66,8 +66,8 @@ class MongoCustomClustering:
 
     def _check_order_of_cgmlst_profile(self, headers_collection: pymongo.collection.Collection) -> None:
         """
-        Checks if the order of the loci in the st to be added are the same as the one in the st_collection. If not, the,
-        it reorder the new st loci to correspond to the order of the st collection.
+        Checks if the order of the loci in the st to be added are the same as the one in the sequence types collection.
+        If not, reorders the new st loci to correspond to the order of the sequence types collection.
         :param headers_collection: the headers collection 
         :return: None
         """
@@ -92,7 +92,7 @@ class MongoCustomClustering:
     def _query_sequence_types(self, st_collection: pymongo.collection.Collection) -> Optional[int]:
         """
         Check if the cgmlst profile from the isolate is already stored in the sequence types collection
-        :param st_collection: the sequence type collection from mongo db.
+        :param st_collection: the sequence type collection from MongoDB.
         :return: the sequence type if it exists already in the db or None if it doesn't.
         """
         query_st = st_collection.find_one({'cgMLST': self._cgmlst_profile.cgmlst})

@@ -25,6 +25,7 @@ from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_conf
 def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     """
     Parses the command line arguments.
+    :param specieslist: list of all the species choices
     :return: Parsed arguments
     """
     argument_parser = argparse.ArgumentParser()
@@ -52,6 +53,7 @@ class HtmlreportGeneration:
         :param species: commonly used bioit species name: either genus or specific like stec
         :param technical_id: sample id/ isolates id
         :param dtap: dev, test, acc, or prod
+        :param validation_type: null, bad_quality or resequencing
         :param changed_version: changed version of the desired report
         :param analysis_date: desired date of the report, if it doesnt exist, get the closest more recent report date
         :return: None
@@ -103,7 +105,7 @@ class HtmlreportGeneration:
 
     def _htmlreport_generation(self):
         """
-        Main function; finds the corresponding
+        Main function; generates the requested report version and returns it.
         :return: None
         """
         if self._validation_type == 'bad_quality':
@@ -119,9 +121,9 @@ class HtmlreportGeneration:
         # Set the output dir
         dir_out = Path(self._mongo_config_data['temp_dir']) / self._dtap / self._species / '_'.join(
             [self._technical_id, self._analysis_date if self._analysis_date else str(self._changed_version)])
-        dir_out.mkdir(parents=True, exist_ok=True)
 
-        if (requested_document['results'].get('results_version') and not requested_document['results']['results_version'] == 1): # badqc and reseq isolates do not have a results_version
+        if requested_document['results'].get('results_version') and not requested_document['results']['results_version'] == 1: # badqc and reseq isolates do not have a results_version
+            dir_out.mkdir(parents=True, exist_ok=True)
             with self.__create_temp_dir('temp_reporting') as dir_temp:
                 # Dump the required json file
                 jsonfile = Path(dir_temp) / f"{self._technical_id}_temp.json"
@@ -152,13 +154,12 @@ class HtmlreportGeneration:
                     shutil.copyfile(Path(dir_temp) / 'camel.log', dir_out / 'camel.log')
                     raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}: {command.stderr}")
         else:  # if requested_document['results_version'] == 1:
-            dir_out.rmdir()
             shutil.copytree(requested_document['report_directory'], str(dir_out))
             pass
 
     def __create_temp_dir(self, prefix: str) -> tempfile.TemporaryDirectory:
         """
-        Creates a temporary
+        Creates a temporary directory.
         :param prefix: Directory prefix
         :return: Path to temporary directory
         """
