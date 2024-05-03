@@ -224,7 +224,7 @@ class AlertsToBigs:
                                     sliding_windows_by_weight.append((isolates_weight, window_start, window_end))
                             if len(sliding_windows_by_weight) == 0:
                                 # No sliding windows meeting the threshold were found
-                                logging.info(f"no sliding windows meeting the threshold criteria were found for isolate {isolate['isolate_name']} for {threshold_key}")
+                                logging.info(f"no sliding windows meeting the threshold criteria were found for isolate {isolate['isolate_name']}")
                                 continue
                             # sort the sliding windows so that the weights and dates are sorted in descending order
                             sliding_windows_by_weight.sort(reverse=True)
@@ -252,11 +252,10 @@ class AlertsToBigs:
                         if threshold_key == 'threshold_alert':
                             # if Alert is triggered, break the for loop because a warning would be redundant
                             if investigation_method == 'single linkage':
-                                with TblIsolates(self._species) as isolates_psql_tbl:
-                                    queried_isolates = isolates_psql_tbl.select_isolates_by_cluster_group(
-                                        (self._bigsdb_config_data['alerts'][self._species][
-                                             f'threshold_warning_classification_scheme_id'],
-                                         self._cgmlst_bigsdb_scheme_id, isolate['cgST']))
+                                queried_isolates = self._isolates_psql_tbl.select_isolates_by_cluster_group(
+                                    (self._bigsdb_config_data['alerts'][self._species][
+                                         f'threshold_warning_classification_scheme_id'],
+                                     self._cgmlst_bigsdb_scheme_id, isolate['cgST']))
                                 for isolate_tuple in queried_isolates:
                                     if isolate_tuple[1] == isolate['isolate_name']:
                                         subject_isolate_tuple = isolate_tuple
@@ -400,7 +399,7 @@ class AlertsToBigs:
         """
         Queries isolates according to the given input parameters.
         :param cgsts_as_tuple_of_str: cgSTs belonging within given threshold key's threshold
-        :param cgst: cgST of the current isolate
+       :param cgst: cgST of the current isolate
         :param isolation_date: isolation date of the current isolate
         :param investigation_method: 'distance matrix' or 'single linkage'
         :param subject: 'new_isolate' or 'affected_isolate'
