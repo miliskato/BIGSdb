@@ -59,16 +59,18 @@ class DbUpdatesReanalysis:
             self._execute_command(DEALLOCATE_VM)
 
     def _connect_azure(self) -> tuple[ConnectAzure, ConnectAzure]:
-        """"
+        """
         Connects to the keyvaults of the environments (dt or ap).
         return: connections to the keyvaults
         """
         if self._environment == 'dt':
             connection_azure_1 = ConnectAzure("dev")
             connection_azure_2 = ConnectAzure("test")
-        else:
+        elif self._environment == 'ap':
             connection_azure_1 = ConnectAzure("acc")
             connection_azure_2 = ConnectAzure("prod")
+        else:
+            raise Exception(f"Environment ({self._environment}) is not dt or ap")
         return connection_azure_1, connection_azure_2
 
     def _execute_dbupdates(self) -> None:
@@ -115,7 +117,7 @@ class DbUpdatesReanalysis:
                 if self._environment == 'dt':
                     TempidReplacerAzure(scheme, species, "dev")
                     TempidReplacerAzure(scheme, species, "test")
-                else:
+                if self._environment == 'ap':
                     TempidReplacerAzure(scheme, species, "acc")
                     TempidReplacerAzure(scheme, species, "prod")
 
@@ -128,7 +130,7 @@ class DbUpdatesReanalysis:
             if self._environment == 'dt':
                 BatchPipelinesReanalysis(species, "dev")
                 BatchPipelinesReanalysis(species, "test")
-            else:
+            if self._environment == 'ap':
                 BatchPipelinesReanalysis(species, "acc")
                 BatchPipelinesReanalysis(species, "prod")
 
@@ -251,5 +253,5 @@ if __name__ == "__main__":
     hostname = socket.gethostname()
     if 'dt' in hostname:
         DbUpdatesReanalysis(environment='dt')
-    else:
-        print("Execution of dbupdates and launching of reanalysis not yet implemented on ap.")
+    if 'ap' in hostname:
+        DbUpdatesReanalysis(environment='ap')
