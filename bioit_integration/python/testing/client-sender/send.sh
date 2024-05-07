@@ -1,0 +1,2 @@
+# Example command to access the app from any VM as long as you have the cert.pem file:
+# curl -XPOST --data "field01=value01&field02=value02" https://10.6.8.11:5000 --cacert /home/mikelchtermans/cert.pem

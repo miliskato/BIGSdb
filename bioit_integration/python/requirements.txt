@@ -1,0 +1,4 @@
+cryptograph==42.0.5
+Flask==3.0.3
+pymongo==4.3.3
+uWSGI==2.0.25.1
