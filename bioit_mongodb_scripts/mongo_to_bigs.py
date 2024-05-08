@@ -11,12 +11,13 @@ import sys
 import tempfile
 import traceback
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 import os
 
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
+from bioit_bigsdb_scripts.components.psql.databaseconnection import DatabaseConnection
 from bioit_bigsdb_scripts.components.psql import TblIsolates, TblEavTextHidden, TblSequenceBin, TblSeqBinStats, TblSchemes
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data
 from bioit_bigsdb_scripts.insert_assembly import insert_assembly
@@ -78,6 +79,11 @@ class MongoToBigs:
         # Prepare cgmlst cache updater command
         with TblSchemes(self._species, 'isolates') as isolates_schemes_psql_tbl:
             self._cgmlst_bigsdb_scheme_id = isolates_schemes_psql_tbl.select_scheme_id_cgmlst()[0][0]
+
+        # The cache command needs to be run using method 'full' once before being able to use it with method
+        # incremental, check it and execute full if it hadn't been executed yet
+        self._update_scheme_caches_full_once_if_needed()
+
         cache_command = f'/home/bigsdb/BIGSdb/scripts/maintenance/update_scheme_caches.pl ' \
                         f'--database bigsdb_{self._species}_isolates --schemes {self._cgmlst_bigsdb_scheme_id} ' \
                         f'--method incremental'
@@ -93,38 +99,38 @@ class MongoToBigs:
             self._mongo_to_bigs()
         except Exception as exceptionmessage1:
             """
-            if an insertion into bigsdb fails, the alerts for the succeeded insertions need to be evaluated,
+            If an insertion into bigsdb fails, the alerts for the succeeded insertions need to be evaluated,
             because else they would not be evaluated at all
             for this purpose the cache first needs to be updated after having inserted new isolates/cgsts
-            (the cgst needs to come from the seqdef db)
+            (the cgst needs to come from the seqdef db).
             """
-            traceback1 = traceback.format_exc()
+            self._exceptionmessage1 = exceptionmessage1
+            self._traceback1 = traceback.format_exc()
 
             # todo: disabled following code on 2024/04/08 because isolation date not yet in incoming metadata; to reenable when it does
-            # self._cache_command_object.run(Path(os.getcwd()))
-            # if self._cache_command_object.returncode != 0:
-            #     send_email(f"update of the cache to display the clustering failed on host {socket.gethostname()}")
-            #     raise RuntimeError(
-            #         f"update of the cache to display the clustering failed on host {socket.gethostname()}")
-            #
-            # # then run the alerts implementation for distance matrices
-            # # ofcourse this can fail too, therefore we encapsulate it in another try except
-            # if len(self._list_of_new_isolates_for_alerts + self._list_of_new_versions_for_alerts) > 0 and not \
-            #         self._exception_in_alerts:
-            #     try:
-            #         AlertsToBigs(self._list_of_new_isolates_for_alerts, self._list_of_new_versions_for_alerts,
-            #                      self._species, self._cgmlst_bigsdb_scheme_id)
-            #     except Exception as exceptionmessage2:
-            #         traceback2 = traceback.format_exc()
-            #         send_email(f"Failure 1: {exceptionmessage1}\n{traceback1}\n"
-            #                    f"Failure 2: {exceptionmessage2}\n{traceback2}",
-            #                    subject=f"{Path(__file__).name} double fail on host {socket.gethostname()}")
-            #         raise Exception(f"{Path(__file__).name} double fail on host {socket.gethostname()}: "
-            #                         f"Failure 1: {exceptionmessage1}\n{traceback1}\n"
-            #                         f"Failure 2: {exceptionmessage2}\n{traceback2}")
+            self.__run_alerts_to_bigs_upon_exception()
 
-            send_email(f"{exceptionmessage1}\n{traceback1}")
-            raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}: {exceptionmessage1}\n{traceback1}")
+            send_email(f"{self._exceptionmessage1}\n{self._traceback1}")
+            raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}: {self._exceptionmessage1}\n{self._traceback1}")
+
+    def _update_scheme_caches_full_once_if_needed(self) -> None:
+        """
+        Checks whether a full update of the scheme caches of the cgmlst scheme is needed (only the first time when
+        the table doesn't exist), and executes the full scheme cache update if needed.
+        :return: None
+        """
+        with DatabaseConnection(self._species, 'isolates') as isolates_psql_db:
+            temp_scheme_exists: List[Tuple[bool]] = isolates_psql_db.execute(f"SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'temp_scheme_{self._cgmlst_bigsdb_scheme_id}');")
+            if not temp_scheme_exists[0][0]:
+                cache_command = f'/home/bigsdb/BIGSdb/scripts/maintenance/update_scheme_caches.pl ' \
+                                f'--database bigsdb_{self._species}_isolates --schemes {self._cgmlst_bigsdb_scheme_id} ' \
+                                f'--method full'
+                cache_command_object = Command(cache_command)
+                cache_command_object.run(Path(os.getcwd()))
+                if cache_command_object.returncode != 0:
+                    send_email(f"update of the cache to display the clustering failed on host {socket.gethostname()}")
+                    raise RuntimeError(
+                        f"update of the cache to display the clustering failed on host {socket.gethostname()}")
 
     def _mongo_to_bigs(self) -> None:
         """
@@ -132,7 +138,6 @@ class MongoToBigs:
         If the current host is a bigsdb host, syncs all samples (or a single one if provided) with the bigsdb database
         :return: None
         """
-
         # call the autoexecutable function to insert new alleles and profiles
         NewClusteringInfoToBigs(self._species, Path(self._bigsdb_config_data['naive_clustering_distance_matrix_file'].replace('species', self._species)), mongo_config_data=self._mongo_config_data)
 
@@ -280,6 +285,35 @@ class MongoToBigs:
         self._isolates_psql_tbl.close()
 
 
+    def __run_alerts_to_bigs_upon_exception(self) -> None:
+        """
+        If an insertion into BIGSdb fails, the alerts for the succeeded insertions need to be evaluated,
+        because else they would not be evaluated at all
+        for this purpose the cache first needs to be updated after having inserted new isolates/cgsts
+        (the cgst needs to come from the seqdef db).
+        :return: None
+        """
+        self._cache_command_object.run(Path(os.getcwd()))
+        if self._cache_command_object.returncode != 0:
+            send_email(f"update of the cache to display the clustering failed on host {socket.gethostname()}")
+            raise RuntimeError(
+                f"update of the cache to display the clustering failed on host {socket.gethostname()}")
+
+        # then run the alerts implementation for distance matrices
+        # ofcourse this can fail too, therefore we encapsulate it in another try except
+        if len(self._list_of_new_isolates_for_alerts + self._list_of_new_versions_for_alerts) > 0 and not \
+                self._exception_in_alerts:
+            try:
+                AlertsToBigs(self._list_of_new_isolates_for_alerts, self._list_of_new_versions_for_alerts,
+                             self._species, self._cgmlst_bigsdb_scheme_id)
+            except Exception as exceptionmessage2:
+                traceback2 = traceback.format_exc()
+                send_email(f"Failure 1: {self._exceptionmessage1}\n{self._traceback1}\n"
+                           f"Failure 2: {exceptionmessage2}\n{traceback2}",
+                           subject=f"{Path(__file__).name} double fail on host {socket.gethostname()}")
+                raise Exception(f"{Path(__file__).name} double fail on host {socket.gethostname()}: "
+                                f"Failure 1: {self._exceptionmessage1}\n{self._traceback1}\n"
+                                f"Failure 2: {exceptionmessage2}\n{traceback2}")
 if __name__ == '__main__':
     # Configure stdout logging
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
