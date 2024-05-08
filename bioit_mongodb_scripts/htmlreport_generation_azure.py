@@ -55,7 +55,8 @@ class HtmlreportGeneration:
         :param dtap: dev, test, acc, or prod
         :param validation_type: null, bad_quality or resequencing
         :param changed_version: changed version of the desired report
-        :param analysis_date: desired date of the report, if it doesnt exist, get the closest more recent report date
+        :param analysis_date: desired date of the report (usually today but can query previous versions too (used in BIGSdb)),
+        if it doesn't exist, get the closest more recent report date
         :return: None
         """
         # Input parameters

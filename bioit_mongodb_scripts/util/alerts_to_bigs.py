@@ -157,8 +157,8 @@ class AlertsToBigs:
 
                 isolation_date = datetime.datetime.strptime(isolate['isolation_date'], '%d/%m/%Y - %X')
                 queried_isolates = self.___query_isolates_according_to_thresholds(cgsts_as_tuple_of_str, isolate['cgST'],
-                                                                isolation_date, investigation_method,
-                                                                'new_isolate', threshold_key)
+                                                                                  isolation_date, investigation_method,
+                                                                                  'new_isolate', threshold_key)
                 if len(queried_isolates) > 1:
                     subject_isolate_tuple = None
                     for isolate_tuple in queried_isolates:
@@ -520,7 +520,7 @@ class AlertsToBigs:
                 else:
                     url = f'generateUrlCgstDate("{self._species}", "{self._cgmlst_bigsdb_scheme_id}", ' \
                           f'["{cgsts_plaintext}"], "{start_date}", "{end_date}")'
-            else: # investigation_method == 'single linkage':
+            else:  # investigation_method == 'single linkage':
                 clgr_bigsdb_scheme_id = self._get_clgr_bigsdb_scheme_id(alert_type)
                 if self._timeframe_is_infinite:
                     url = f'generateUrlClgr("{self._species}", "{clgr_bigsdb_scheme_id}", "{subject_clgr}")'
@@ -542,7 +542,7 @@ class AlertsToBigs:
                      f'<div id="{cgsts_as_str}"><script type="text/javascript">addUrlToField({url}, '
                      f'"{cgsts_as_str}")</script>'))
                 isolates_alertsdetfo_psql_tbl.insert_alert_details_indices(('cgsts time independent', 5))
-            else: # investigation_method == 'single linkage':
+            else:  # investigation_method == 'single linkage':
                 clgr_bigsdb_scheme_id = self._get_clgr_bigsdb_scheme_id(alert_type)
                 url = f'generateUrlClgr("{self._species}", "{clgr_bigsdb_scheme_id}", "{subject_clgr}")'
                 isolates_alertsdet_psql_tbl.insert_alert_metadata(
@@ -595,7 +595,7 @@ class AlertsToBigs:
                 else:
                     url = f'generateUrlCgstDate("{self._species}", "{self._cgmlst_bigsdb_scheme_id}", ' \
                           f'["{cgsts_plaintext}"], "{start_date}", "{end_date}")'
-            else: # investigation_method == 'single linkage':
+            else:  # investigation_method == 'single linkage':
                 clgr_bigsdb_scheme_id = self._get_clgr_bigsdb_scheme_id(alert_type)
                 if self._timeframe_is_infinite:
                     url = f'generateUrlClgr("{self._species}", "{clgr_bigsdb_scheme_id}", "{subject_clgr}")'
