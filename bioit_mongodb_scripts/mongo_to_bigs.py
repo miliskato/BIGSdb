@@ -181,30 +181,33 @@ class MongoToBigs:
                 handle.write(json.dumps(document['results']))
             MainResultsInserter(document_id, self._uploader_mail_address, self._species, results_type, jsonfilepath=jsonfile, report_access=document['report_directory'])
             jsonfile.unlink()
-            fasta_name = Path(document['fasta_path']).name
-            fasta_path_remote = Path(document['report_directory']) / 'assembly' / fasta_name
-            with tempfile.NamedTemporaryFile(dir=mongo_config_data.get('temp_dir'), mode="w") as temp_fasta:
-                temp_fasta_path = Path(mongo_config_data.get('temp_dir')) / temp_fasta.name
-                scp_command = f"scp -o StrictHostKeyChecking=no -i /home/bigsdb/.ssh/.id_rsa_reportsapi bigsdb@{mongo_config_data.get('azure_reportsapi_ip')}:{fasta_path_remote} {str(temp_fasta_path)}"
-                scp_cmd = Command(scp_command)
-                scp_cmd.run(Path(mongo_config_data.get('temp_dir')))
-                if scp_cmd.returncode != 0:
-                    raise Exception(f"scp command to copy fasta from Azure to onsite failed: {scp_cmd.stderr}\nscp command: {scp_command}")
+            # In case of an actual reanalysis, the MainResultsInserter handles the assembly transfer between
+            # isolates and we do not want to scp the assembly from Azure
+            if not results_type == 'reanalysis' and not document.get('validation'):
+                fasta_name = Path(document['fasta_path']).name
+                fasta_path_remote = Path(document['report_directory']) / 'assembly' / fasta_name
+                with tempfile.NamedTemporaryFile(dir=mongo_config_data.get('temp_dir'), mode="w") as temp_fasta:
+                    temp_fasta_path = Path(mongo_config_data.get('temp_dir')) / temp_fasta.name
+                    scp_command = f"scp -o StrictHostKeyChecking=no -i /home/bigsdb/.ssh/.id_rsa_reportsapi bigsdb@{mongo_config_data.get('azure_reportsapi_ip')}:{fasta_path_remote} {str(temp_fasta_path)}"
+                    scp_cmd = Command(scp_command)
+                    scp_cmd.run(Path(mongo_config_data.get('temp_dir')))
+                    if scp_cmd.returncode != 0:
+                        raise Exception(f"scp command to copy fasta from Azure to onsite failed: {scp_cmd.stderr}\nscp command: {scp_command}")
 
-                if results_type == 'new_isolate':
-                    insert_assembly(document_id, self._species, temp_fasta_path)
-                    logging.info(f"Inserted new isolate {document_id} into bigsdb")
-                elif results_type == 'reanalysis' and document.get('validation') and document['validation']['type'] == 'resequencing':
-                    last_two_validation_dates = self._isolates_psql_tbl.select_validationdate_for_isolate((document_id,))
-                    # select to check that the previous version's validation date is different from the current
-                    if last_two_validation_dates[0][0] != last_two_validation_dates[1][0]:
-                        # revert the changes done in maininserter that move the assembly to the newest version
-                        with TblSequenceBin(self._species) as isolates_seqbin_psql_tbl:
-                            isolates_seqbin_psql_tbl.revert_sequencebin_newversion([document_id])
-                        with TblSeqBinStats(self._species) as isolates_seqbinstats_psql_tbl:
-                            isolates_seqbinstats_psql_tbl.revert_seqbinstats_newversion([document_id])
+                    if results_type == 'new_isolate':
                         insert_assembly(document_id, self._species, temp_fasta_path)
-                    logging.info(f"Wrote new results version for {document_id} to bigsdb")
+                        logging.info(f"Inserted new isolate {document_id} into bigsdb")
+                    elif results_type == 'reanalysis' and document.get('validation') and document['validation']['type'] == 'resequencing':
+                        last_two_validation_dates = self._isolates_psql_tbl.select_validationdate_for_isolate((document_id,))
+                        # select to check that the previous version's validation date is different from the current
+                        if last_two_validation_dates[0][0] != last_two_validation_dates[1][0]:
+                            # revert the changes done in maininserter that move the assembly to the newest version
+                            with TblSequenceBin(self._species) as isolates_seqbin_psql_tbl:
+                                isolates_seqbin_psql_tbl.revert_sequencebin_newversion([document_id])
+                            with TblSeqBinStats(self._species) as isolates_seqbinstats_psql_tbl:
+                                isolates_seqbinstats_psql_tbl.revert_seqbinstats_newversion([document_id])
+                            insert_assembly(document_id, self._species, temp_fasta_path)
+                        logging.info(f"Wrote new results version for {document_id} to bigsdb")
 
         # Update cache again before alerts implementation because new isolates won't have cgST's but are needed for alerts implementation
         self._cache_command_object.run(Path(os.getcwd()))
