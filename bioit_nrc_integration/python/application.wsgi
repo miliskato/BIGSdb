@@ -7,6 +7,7 @@ import jwt
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
+import socket
 from typing import Any, Callable, Dict, Iterable, Optional
 
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent.parent.parent
@@ -86,8 +87,9 @@ def return_token(environ: Dict[str, Any], start_response: Callable) -> Iterable[
         return [json.dumps(tokendict).encode()]
     else:
         status = '401 Unauthorized'
-        response_headers = [('Content-type', 'text/plain'), ('WWW-Authenticate', 'Basic realm="example"')]
+        response_headers = [('Content-type', 'text/plain')]
         start_response(status, response_headers)
+        send_email(f"Unauthorized request to NRC-integration VM {socket.gethostname()}")  # todo check if i can add remote address from where it failed once nginx solution is in place
         return [b"Authentication required."]
 
 
@@ -128,26 +130,37 @@ def handle_message(environ: Dict[str, Any], start_response: Callable) -> Iterabl
         # Read the request body
         request_body = environ['wsgi.input'].read()
         mapping_table_dict = json.loads(request_body.decode('utf-8'))
-        mongo_config_data = get_mongodb_config_data()
-        mongoinit = MongoInitialisation(species=mapping_table_dict['species'],
-                                        mongo_config_data=mongo_config_data,
-                                        alternate_dtap=mapping_table_dict['dtap'],
-                                        alternate_connection_string=mongo_config_data.get('CONNECTION_STRING_LOCAL'))
-        mapping_table_collection = mongoinit.initialise_mapping_table_collection()
-        mapping_table_collection.insert_one({'_id': mapping_table_dict['id'],
-                                             'id_pseudonymized': mapping_table_dict['id_pseudonymized']})
+        try:
+            mongo_config_data = get_mongodb_config_data()
+            mongoinit = MongoInitialisation(species=mapping_table_dict['species'],
+                                            mongo_config_data=mongo_config_data,
+                                            alternate_dtap=mapping_table_dict['dtap'],
+                                            alternate_connection_string=mongo_config_data.get('CONNECTION_STRING_LOCAL'))
+            mapping_table_collection = mongoinit.initialise_mapping_table_collection()
+            mapping_table_collection.insert_one({'_id': mapping_table_dict['id'],
+                                                 'id_pseudonymized': mapping_table_dict['id_pseudonymized']})
+            # Set the response status and headers
+            status = '200 OK'
+            response_headers = [('Content-type', 'text/plain')]
+            start_response(status, response_headers)
 
-        # Set the response status and headers
-        status = '200 OK'
-        response_headers = [('Content-type', 'text/plain')]
-        start_response(status, response_headers)
+            # Return a response
+            return [b"Message handled and inserted into MongoDB"]
+        except Exception as exceptionmessage:
+            # Set the response status and headers
+            status = '400 Bad Request'
+            response_headers = [('Content-type', 'text/plain')]
+            start_response(status, response_headers)
 
-        # Return a response
-        return [b"OK"]
+            # Return a response, because you can not use an f string in a b string, need to use encode
+            response_message = f"MongoDB insertion failed {exceptionmessage}"
+            send_email(response_message)
+            return [response_message.encode('utf-8')]
     else:
         status = '401 Unauthorized'
-        response_headers = [('Content-type', 'text/plain'), ('WWW-Authenticate', 'Basic realm="example"')]
+        response_headers = [('Content-type', 'text/plain')]
         start_response(status, response_headers)
+        send_email(f"Token absent or invalid") # todo check if i can add remote address from where it failed once nginx solution is in place
         return [b"Token absent or invalid"]
 
 

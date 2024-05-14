@@ -1,0 +1,82 @@
+---
+#- name: create bigsdb unix user
+#  ansible.builtin.user:
+#    name: bigsdb
+#    shell: /bin/sh
+#    group: www-data
+
+- name: check if dtap in list
+  vars:
+    dtaplist:
+      - devtest
+      - accprod
+  fail:
+    msg: "unsupported dtap requested, choose from {{ dtaplist }}"
+  when: dtap not in dtaplist
+
+
+- name: Assert if branch given
+  fail:
+    msg: "'branch' argument required in -e when running playbook"
+  when: branch is not defined
+
+- name: Get updated files from git repository
+  git:
+    repo: "https://{{bioit_git_ro_user}}:{{ secret_bioit_git_ro_password }}@{{bioit_git_server}}/bigsdb/bigsdb.git"
+    dest: "{{ bioit_bigs_home }}"
+    version: "{{ branch }}"
+    force: true
+
+- name: adapt Mongo host and admin passphrase for dev/test
+  set_fact:
+    mongo_host: "{{ vars['mongo_host_'+ dtap] }}"
+    mongodb_admin_password: "{{ vars['mongodb_admin_password_'+ dtap] }}"
+
+- name: replace the local mongodb connection string in the bioit_mongodb_scripts config file
+  lineinfile:
+    path: "{{ bioit_bigs_home }}/bioit_mongodb_scripts/config/config.yml"
+    regexp: 'CONNECTION_STRING_LOCAL: to_be_replaced_by_ansible'
+    line: "CONNECTION_STRING_LOCAL: mongodb://admin:{{ mongodb_admin_password }}@{{ mongo_host.split(',')[0] }}:27017,{{ mongo_host.split(',')[1] }}:27017,{{ mongo_host.split(',')[2] }}:27017/?replicaSet=bioit-HERA&authSource=admin"
+
+- name: Create Python virtual environment
+  pip:
+    requirements: "{{ bioit_bigs_home }}/bioit_nrc_integration/python/requirements.txt"
+    virtualenv: "{{ bioit_bigs_home }}/3.10PythonVenv"
+    virtualenv_python: python3.10
+
+- name: Install packages
+  apt:
+    name: "{{ packages }}"
+    state: latest
+  vars:
+    packages:
+      - apache2
+
+- name: Check if Python WSGI configuration is present in apache
+  shell: grep -q 'WSGIDaemonProcess' /etc/apache2/apache2.conf && echo "Line exists" || echo "Line doesn't exist"
+  register: python_wsgi_check
+  changed_when: false
+
+- name: Add Python WSGI configuration to apache, use port 7777 at random because it is free; Nginx will send messages to this port
+  ansible.builtin.lineinfile:
+    path: /etc/apache2/apache2.conf
+    line: |
+            <VirtualHost "{{ inventory_hostname }}.{{ host_domain }}":7777>
+              ServerAlias *
+
+                WSGIDaemonProcess myapp "python-home={{ bioit_bigs_home }}/3.10PythonVenv"
+                WSGIProcessGroup myapp
+                WSGIScriptAlias / "{{ bioit_bigs_home }}/bioit_nrc_integration/python/application.wsgi"
+
+                <Directory "{{ bioit_bigs_home }}">
+                    Require all granted
+                </Directory>
+            </VirtualHost>
+  when: python_wsgi_check.stdout.find("Line doesn't exist") != -1
+
+- name: Restart service apache2
+  ansible.builtin.systemd:
+    state: restarted
+    daemon_reload: yes
+    name: apache2
+...
