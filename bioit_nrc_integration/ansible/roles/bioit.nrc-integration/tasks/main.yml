@@ -27,6 +27,18 @@
     version: "{{ branch }}"
     force: true
 
+- name: add secret key to WSGI application
+  lineinfile:
+    path: "{{ bioit_bigs_home }}/bioit_nrc_integration/python/application.wsgi"
+    regexp: "SECRET_KEY = 'to_be_replaced_by_ansible'"
+    line: "SECRET_KEY = '{{ vars['nrc_integration_wsgi_secret_key_'+ dtap] }}'"
+
+- name: add secret password to WSGI application
+  lineinfile:
+    path: "{{ bioit_bigs_home }}/bioit_nrc_integration/python/application.wsgi"
+    regexp: "SECRET_PASSWORD = 'to_be_replaced_by_ansible'"
+    line: "SECRET_PASSWORD = '{{ vars['nrc_integration_wsgi_secret_password_'+ dtap] }}'"
+
 - name: adapt Mongo host and admin passphrase for dev/test
   set_fact:
     mongo_host: "{{ vars['mongo_host_'+ dtap] }}"

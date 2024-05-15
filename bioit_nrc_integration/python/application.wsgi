@@ -20,7 +20,7 @@ from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_conf
 # Secret key to sign the JWTs (keep this secure)
 SECRET_KEY = 'to_be_replaced_by_ansible'
 
-# Dictionary to store user passwords (in a real-world scenario, passwords should be securely hashed)
+# User password for the bioit user; can be modified later to also have a password for HD
 SECRET_PASSWORD = 'to_be_replaced_by_ansible'
 
 
