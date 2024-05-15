@@ -15,7 +15,6 @@ sys.path.append(str(PYTHONPATH))
 
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email
-# todo use send email?
 
 # Secret key to sign the JWTs (keep this secure)
 SECRET_KEY = 'to_be_replaced_by_ansible'
