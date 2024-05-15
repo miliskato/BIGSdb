@@ -178,7 +178,7 @@
   ansible.builtin.lineinfile:
     path: /etc/apache2/apache2.conf
     line: |
-            <VirtualHost "{{ inventory_hostname }}.{{ host_domain }}":80>
+            <VirtualHost {{ inventory_hostname }}.{{ host_domain }}:80>
               ServerAlias *
 
               ProxyPass "/reportsapi" "http://{{ azure_reportsapi_ip }}:9090" timeout=10000
