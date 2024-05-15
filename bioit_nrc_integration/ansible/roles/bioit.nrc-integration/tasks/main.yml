@@ -73,14 +73,14 @@
   ansible.builtin.lineinfile:
     path: /etc/apache2/apache2.conf
     line: |
-            <VirtualHost "{{ inventory_hostname }}.{{ host_domain }}":7777>
+            <VirtualHost {{ inventory_hostname }}.{{ host_domain }}:7777>
               ServerAlias *
 
-                WSGIDaemonProcess myapp "python-home={{ bioit_bigs_home }}/3.10PythonVenv"
+                WSGIDaemonProcess myapp python-home={{ bioit_bigs_home }}/3.10PythonVenv
                 WSGIProcessGroup myapp
-                WSGIScriptAlias / "{{ bioit_bigs_home }}/bioit_nrc_integration/python/application.wsgi"
+                WSGIScriptAlias / {{ bioit_bigs_home }}/bioit_nrc_integration/python/application.wsgi
 
-                <Directory "{{ bioit_bigs_home }}">
+                <Directory {{ bioit_bigs_home }}>
                     Require all granted
                 </Directory>
             </VirtualHost>
