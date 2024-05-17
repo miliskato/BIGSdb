@@ -80,6 +80,12 @@
     force: true
   tags: gitupdate
 
+- name: Change Mongo connection string in config based on host vars
+  lineinfile:
+    path: "{{ bioit_bigs_home }}/bioit_mongodb_scripts/config/config.yml"
+    regexp: 'CONNECTION_STRING_BASE: to_be_replaced_by_ansible'
+    line: "CONNECTION_STRING_BASE: {{ azure_mongo_connection_string }}"
+
 - name: Change Mongo dtap version in config based on playbook argument
   lineinfile:
     path: "{{ bioit_bigs_home }}/bioit_mongodb_scripts/config/config.yml"
@@ -119,6 +125,31 @@
           - { to_adapt: microreact_schema_converter=to_be_replaced_by_ansible, with_value: "microreact_schema_converter=https://{{ microreact_host }}/api/schema/convert" }
 
   tags: microreact_config
+
+- name: add azure reportsapi ip to mongodb config
+  lineinfile:
+    path: "{{ bioit_bigs_home }}/bioit_mongodb_scripts/config/config.yml"
+    regexp: 'azure_reportsapi_ip: to_be_replaced_by_ansible'
+    line: "azure_reportsapi_ip: {{ azure_reportsapi_ip }}"
+
+- name: create bigsdb .ssh directory
+  ansible.builtin.file:
+    dest: '/home/bigsdb/.ssh'
+    mode: 0700
+    owner: bigsdb
+
+- name: Create bigsdb rsa key to connect to azure reportsapi vm
+  ansible.builtin.file:
+    path: /home/bigsdb/.ssh/.id_rsa_reportsapi
+    state: touch
+    mode: "u=rw"
+    owner: bigsdb
+
+- name: Write secret private key to the file, replace literal linebreaks in secret by actual linebreaks
+  copy:
+    dest: /home/bigsdb/.ssh/.id_rsa_reportsapi
+    content: "{{ bigsdb_azure_reportsapi_private_key.replace('\\n', '\n') }}"
+    mode: '0600'
 
 ## perl 5 is installed on Ubuntu by default.
 - name: Install packages
@@ -178,6 +209,26 @@
   ansible.builtin.file:
     path: /etc/apache2/conf-enabled/javascript-common.conf
     state: absent
+
+- name: Execute a2enmod proxy_http command
+  command: sudo a2enmod proxy_http
+
+- name: Check if reportsapi proxy configuration is present in apache
+  shell: grep -q 'ProxyPass' /etc/apache2/apache2.conf && echo "Line exists" || echo "Line doesn't exist"
+  register: reportsapi_proxy_check
+  changed_when: false
+
+- name: Add reportsapi proxy configuration to apache
+  ansible.builtin.lineinfile:
+    path: /etc/apache2/apache2.conf
+    line: |
+            <VirtualHost {{ inventory_hostname }}.{{ host_domain }}:80>
+              ServerAlias *
+
+              ProxyPass "/reportsapi" "http://{{ azure_reportsapi_ip }}:9090" timeout=10000
+              ProxyPassReverse "/reportsapi" "http://{{ azure_reportsapi_ip }}:9090" timeout=10000
+            </VirtualHost>
+  when: reportsapi_proxy_check.stdout.find("Line doesn't exist") != -1
 
 - name: Restart service apache2
   ansible.builtin.systemd:
@@ -484,6 +535,26 @@
         group: root
         remote_src: yes
 
+    - name: add daily cronjob for temporary alerts implementation
+      cron:
+        name: "temporary_alerts_implementation"
+        minute: '0'
+        hour: '12'
+        weekday: '*'
+        job: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_mongodb_scripts/mongo_to_bigs_temporary_alerts_implementation.py --species {{ species }}"
+        user: 'bigsdb'
+        cron_file: temporary_alerts_implementation
+
+    - name: add hourly cronjob for mongo to bigs
+      cron:
+        name: "mongo_to_bigs_hourly"
+        minute: '0'
+        hour: '*/1'  # every hour
+        weekday: '*'
+        job: "/usr/bin/flock -n /tmp/mongo_to_bigs_hourly.lockfile {{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_mongodb_scripts/mongo_to_bigs.py --species {{ species }} --uploader_mail_address bioit@sciensano.be"
+        user: 'bigsdb'
+        cron_file: mongo_to_bigs_hourly
+
 - name: setup GrapeTree
   tags: installgt
   block:
@@ -768,7 +839,7 @@
             - "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_bigsdb_scripts/Typing_loci_intopsql.py --species {{ species }}"
             - "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_bigsdb_scripts/Typing_alleles_intopsql.py --species {{ species }}"
             - "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_bigsdb_scripts/Typing_schemeprofiles_intopsql.py --species {{ species }}"
-            - "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_bigsdb_scripts/genedetection_intopsql.py --species {{ species }}"
+            - "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_bigsdb_scripts/genedetection_intopsql.py --species {{ species }} --do_not_recalculate"
           tags: pop_db
 
 - name: setup reports and symlinks

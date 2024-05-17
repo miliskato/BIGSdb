@@ -91,7 +91,7 @@ class SampleValidationToMongo:
                 curator_mailadress: str = query[0][2]
                 validation_type: str = query[0][3]
                 results_type = self.__get_results_type(validation_type)
-                # GO into mongo DB
+                # GO into MongoDB
                 validation_dict = {
                     'outcome': outcome,
                     'curator': curator_mailadress,

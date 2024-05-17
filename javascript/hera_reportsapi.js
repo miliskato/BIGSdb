@@ -1,0 +1,189 @@
+//application for the api of HERA
+
+function getCookieValue(cookieName) {
+    // Split the document.cookie string into individual cookies
+    var cookies = document.cookie.split(';');
+
+    // Iterate through the cookies to find the one with the specified name
+    for (var i = 0; i < cookies.length; i++) {
+        var cookie = cookies[i].trim();
+        // Check if the cookie starts with the provided name
+        if (cookie.startsWith(cookieName + '=')) {
+            // Return the cookie value (substring after the '=' sign)
+            return cookie.substring(cookieName.length + 1);
+        }
+    }
+    // Return null if the cookie is not found
+    return null;
+}
+
+function get_jwt_preview(id, species, validation_type, res_time, get_zip, dtap, newWindow){
+    // gets the html report from Azure through the API, if it fails, returns a failure message
+    query_url = "/reportsapi" + "/get_html_report?isolate_id=" + id + '&date=' + res_time + "&species=" + species + "&get_zip=" + get_zip + "&dtap=" + dtap + "&validation_type=" + validation_type
+    console.log(query_url)
+    $.ajax( query_url , {
+        method: 'GET',
+        headers: {"x-access-token": localStorage.getItem('token')},
+        success:function(response){
+            // console.log(response);
+            //     var baseUrl = window.location.href.split('?')[0];
+            //     var blobContent = '<base href="' + baseUrl  + '">' + '<script src="' + baseUrl  + '/../../javascript/bigsdb.min.js">'+ response;
+            //     var blob = new Blob([blobContent], { type: 'text/html' });
+            //     newWindow.location.href = URL.createObjectURL(blob);
+            newWindow.document.body.innerHTML = '';  // in order to clear previous message
+            newWindow.document.write('<script src="/javascript/jquery.min.js"></script>' + '<script src="/javascript/hera_reportsapi.js"></script>' + response);
+           },
+        error:function(){
+        var blob = new Blob(['Failure to retrieve the report. Please resubmit the request to start again or submit a ticket to bioit@sciensano if it still fails'], { type: 'text/html' });
+        newWindow.location.href = URL.createObjectURL(blob);
+    }
+    });
+}
+
+function get_jwt_zip(id, species, validation_type, res_time, get_zip, dtap, newWindow){
+    // gets the html report from Azure through the API as a zip file, if it fails, returns a failure message
+    query_url = "/reportsapi" + "/get_html_report?isolate_id=" + id + '&date=' + res_time + "&species=" + species + "&get_zip=" + get_zip + "&dtap=" + dtap + "&validation_type=" + validation_type
+    $.ajax( query_url , {
+        method: 'GET',
+        headers: {"x-access-token": localStorage.getItem('token')},
+        cache:false,
+        xhrFields:{
+            responseType: 'blob'
+        },
+        success:function(response) {
+            filename = 'report_' + id +'_' + res_time + '_' + species +'.zip'
+            var blobUrl = newWindow.URL.createObjectURL(response);
+            const anchor = newWindow.document.createElement('a');
+            anchor.style.display = 'none';
+            anchor.href = blobUrl;
+            anchor.download = filename;
+            anchor.click();
+            newWindow.close(); //done to come back to original page
+        },
+        error:function(){
+            var blob = new Blob(['Failure to retrieve the report. Please resubmit the request to start again or submit a ticket to bioit@sciensano if it still fails'], { type: 'text/html' });
+            newWindow.location.href = URL.createObjectURL(blob);
+        }
+    });
+}
+
+function get_jwt_report (get_zip, validation_type_opt, id_opt, species_opt, date_opt){
+    //  Logs in to the api and gets the html report either in zip format or in a new web page
+    if (arguments.length === 1) {
+        var title = document.title
+        var validation_type = 'null'
+        var id = title.replace(/^.*\(|\).*$/g, '');
+        var species = title.replace(/^.*- /g, '').replace(' isolates', '').toLowerCase();
+        var date = 'null';
+    } else {
+        var validation_type = validation_type_opt
+        var id = id_opt
+        var species = species_opt
+        var date = date_opt
+    }
+    var dtap = window.location.hostname.match(/-(\w+)\./)?.[1] || null;
+    console.log(id);
+    console.log(species);
+    console.log(dtap);
+
+    const dt = document.querySelectorAll("dt");
+    const dd = document.querySelectorAll("dd");
+    //start the loading screen as we have now all the elements needed to start querying the api
+    var newWindow = window.open('',  '_blank');
+    newWindow.document.cookie = "global_bigsdb_users_auth=" + getCookieValue('global_bigsdb_users_auth') + ";"
+    var gifUrl = '/images/static/loading_icon.gif';
+    // Construct the HTML content with the loading message and GIF
+    var htmlContent = `
+      <div style="text-align: center; padding: 20px;">
+        <p style="font-size: 20px;">Retrieving your report, please wait...</p>
+        <img src="${gifUrl}" alt="Loading..."/>
+        <p style="font-size: 15px;">(This may take a while)</p>
+      </div>
+    `;
+    newWindow.document.write(htmlContent);
+    // var blob = new Blob([loadingMessage], { type: 'text/html' });
+    // newWindow.location.href = URL.createObjectURL(blob);
+    dt.forEach((el, index) => {
+        if (el.textContent.includes("latest analysis date") === true) {
+             console.log(dd[index].textContent);
+             date = dd[index].textContent;
+        }
+    })
+
+     $.ajax({
+        url: "/reportsapi" + '/login',
+        type: 'post',
+        data: {
+            "email": "bioit@sciensano.be",
+            "password": getCookieValue('global_bigsdb_users_auth')
+        },
+        headers: {
+            "Access-Control-Allow-Origin": "http://127.0.0.1:5000/login",
+        },
+        success: function (data) {
+            // console.log(data)
+            localStorage.setItem('token', data.token);
+        },
+        complete: function(){
+            if(get_zip === 'yes'){
+                get_jwt_zip(id, species, validation_type, date, get_zip, dtap, newWindow)
+            }else{
+                 get_jwt_preview(id, species, validation_type, date, get_zip, dtap, newWindow)
+            }
+        },
+        dataType: 'json'
+    });
+
+}
+
+function get_subpart(rel_file_path){
+    // after a html report has been generated in a new browser page, this function is used to access subfiles such as alignments or the vcf
+    query_url = "/reportsapi" + "/get_file?file_path=" + rel_file_path
+    var file_extension = rel_file_path.split('.').pop();
+    $.ajax( query_url , {
+        method: 'GET',
+        headers: {"x-access-token": localStorage.getItem('token')},
+        contentType: "octet/stream",
+        xhrFields:{
+            responseType: ''
+        },
+        success:function(response){
+            console.log(response);
+            var wnd = window.open("about:blank");
+            if(file_extension === 'html'){
+                wnd.document.write(response);
+                wnd.document.close();
+            }else{
+                wnd.document.write("<textarea disabled rows=100 cols=100>", response, "</textarea>")
+            }
+
+            },
+        error:function(){
+            document.write('Failure to retrieve the document. Please resubmit the request to start again or submit a ticket to bioit@sciensano if it still fails')
+        }
+    });
+}
+
+function get_jwt_subpart(rel_file_path){
+    // wrapper with login ability around the get_subpart function
+    $.ajax({
+        url: "/reportsapi" + "/login",
+        type: 'post',
+        data: {
+            "email": "bioit@sciensano.be",
+            "password": getCookieValue('global_bigsdb_users_auth')
+        },
+        headers: {
+            "Access-Control-Allow-Origin": "http://127.0.0.1:5000/login",
+        },
+        success: function (data) {
+            // console.log(data)
+            localStorage.setItem('token', data.token);
+        },
+        complete: function(){
+               get_subpart(rel_file_path)
+
+        },
+        dataType: 'json'
+    });
+}

@@ -89,6 +89,7 @@ sub print_menu {
 	$self->_print_login_menu_item;
 	$self->_print_query_menu_item if $options->{'dashboard'};
 	$self->_print_submissions_menu_item;
+	$self->_print_alerts_menu_item;
 	$self->_print_private_data_menu_item;
 	$self->_print_projects_menu_item;
 	$self->_print_downloads_menu_item;
@@ -626,6 +627,47 @@ sub _print_submissions_menu_item {
 	return;
 }
 
+sub _print_alerts_menu_item {
+	my ($self) = @_;
+	return
+	  if $self->{'config'}->{'disable_updates'}
+	  || ( $self->{'system'}->{'disable_updates'} // q() ) eq 'yes';
+	return if ( $self->{'system'}->{'submissions'} // '' ) ne 'yes';
+	my $set_id = $self->get_set_id // 0;
+	my $set_string =
+	  ( $self->{'system'}->{'sets'} // '' ) eq 'yes' ? qq(&amp;choose_set=1&amp;sets_list=$set_id) : q();
+	my $pending_warnings = $self->_get_pending_alert_count( 'warning' );
+	my $number_icon_warnings = q();
+	if ($pending_warnings) {
+		$pending_warnings = '99+' if $pending_warnings > 99;
+		$number_icon_warnings .=
+		  q(<span class="fa-stack" style="font-size:0.7em;letter-spacing:normal;margin:-0.5em 0 -0.2em 0.5em">);
+		$number_icon_warnings .= q(<span class="fas fa-circle fa-stack-2x warning_indicator"></span>);
+		$number_icon_warnings .= q(<span class="fa fa-stack-1x fa-stack-text" style="font-size:1.2em">)
+		  . qq($pending_warnings</span>);
+		$number_icon_warnings .= q(</span>);
+	}
+	my $pending_alerts = $self->_get_pending_alert_count( 'alert' );
+	my $number_icon_alerts         = q();
+	if ($pending_alerts) {
+		$pending_alerts = '99+' if $pending_alerts > 99;
+		$number_icon_alerts .=
+		  q(<span class="fa-stack" style="font-size:0.7em;letter-spacing:normal;margin:-0.5em 0 -0.2em 0.5em">);
+		$number_icon_alerts .= q(<span class="fas fa-circle fa-stack-2x alert_indicator"></span>);
+		$number_icon_alerts .= q(<span class="fa fa-stack-1x fa-stack-text" style="font-size:1.2em">)
+		  . qq($pending_alerts</span>);
+		$number_icon_alerts .= q(</span>);
+	}
+	$self->_print_menu_item(
+		{
+			icon  => 'fas fa-exclamation',
+			label => "OUTBREAK ALERTS $number_icon_warnings $number_icon_alerts",  # double icon works
+			href  => "$self->{'system'}->{'script_name'}?db=$self->{'instance'}&amp;page=alert$set_string"
+		}
+	);
+	return;
+}
+
 sub print_general_announcement {
 	my ( $self, $options ) = @_;
 	my $announcement_file = "$self->{'config_dir'}/announcement.html";
@@ -817,6 +859,22 @@ sub _get_pending_submission_count {
 			}
 		}
 		return $count;
+	}
+}
+
+sub _get_pending_alert_count {
+	my ($self, $alert_type) = @_;  #
+	return 0 if !$self->{'username'};
+	my $user_info = $self->{'datastore'}->get_user_info_from_username( $self->{'username'} );
+	return 0 if $user_info->{'status'} ne 'admin' && $user_info->{'status'} ne 'curator';
+	if ( $self->{'system'}->{'dbtype'} eq 'isolates' ) {
+		#return 0 if !$self->can_modify_table('isolates');
+		my $count = $self->{'datastore'}
+		  ->run_query( 'SELECT COUNT(*) FROM alerts WHERE (type,status)=(?,?)', [ $alert_type, 'pending' ] );
+		return $count;
+	} else {
+		my $count = 0;
+	return $count;
 	}
 }
 

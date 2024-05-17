@@ -22,7 +22,7 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         Collects all values for a given variable of interest across the entire collection.
         :param opened_collection: mongo opened collection
         :param variable_of_interest: variable to be collected in every document in the collection
-        :param filtering_cond: Optional: filtering expression for mongo db
+        :param filtering_cond: Optional: filtering expression for MongoDB
         :return: list of distinct values for a variable of interest
         """
         return opened_collection.distinct(variable_of_interest, filter=filtering_cond)
@@ -180,7 +180,7 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
     # @staticmethod
     # def adapt_isolates_id_in_mongodb(opened_collection: pymongo.collection.Collection, actual_id: str, new_id: str) -> None:
     #     """
-    #     Function to change the _id field of an isolate already upload to Mongo DB
+    #     Function to change the _id field of an isolate already upload to MongoDB
     #     :param actual_id: current id of the isolate
     #     :param new_id: new id to give to the isolate
     #     """
@@ -206,8 +206,8 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
     #     """
     #     query to retrieve a specific hc number from an isolate
     #     :param isolate_id: the id from the desired isolate
-    #     :param isolate_collection: the mongo db collection of isolates
-    #     :param hiercc_collection:  the mongo db collection of hiercc results
+    #     :param isolate_collection: the MongoDB collection of isolates
+    #     :param hiercc_collection:  the MongoDB collection of hiercc results
     #     :param hc_number: the hc number (starting with HC..) to be retrieved
     #     :return: the hc number of the cluster where the isolates is located.
     #     """
@@ -293,6 +293,8 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
             raise ValueError(f'if analysis_date is searchkey; searchvalue must be string in YYYY-MM-DD format')
         # 2. Query current results and check whether current results version is the one requested
         current_version = isolates_collection.with_options(read_concern=ReadConcern(level="majority")).find_one({'_id': isolate_id})
+        if current_version is None:
+            raise Exception(f"No isolate with id '{isolate_id}' could be found in MongoDB.")
         if searchkey == 'changed_version' and current_version['results'][searchkey] <= searchvalue:
             requested_document = current_version
         elif searchkey == 'analysis_date' and convert_dmyhms_to_ymd(current_version['results'][searchkey]) <= searchvalue:
@@ -311,7 +313,7 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
             if len(old_versions) > 0:
                 old_versions_merged = old_versions[0]
                 if len(old_versions) > 1:
-                    for x in old_versions[1:-1]:
+                    for x in old_versions[1:]:
                         merge_nested_dicts(old_versions_merged, x)
                 merge_nested_dicts(current_version['results'], old_versions_merged)
             requested_document = current_version

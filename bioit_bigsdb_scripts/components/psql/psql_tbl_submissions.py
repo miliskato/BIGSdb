@@ -33,7 +33,7 @@ class TblSubmissions(DatabaseConnection):
         """
         return self.execute_query(PsqlQueries.ISO_SEL_ID_VALUE_OUTCOME_EMAIL_TYPE_TB_SUB_VAR_SUBID, param)
 
-    def update_submission(self, param: Tuple[int, str]) -> None:
+    def update_submission(self, param: Tuple[str]) -> None:
         """
         Updates the submission status for a given submission
         :param param: variables to feed to the PSQL query, which also sanitizes these variables,

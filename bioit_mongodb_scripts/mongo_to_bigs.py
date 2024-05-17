@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # Hybrid between Bigs components and Mongodb components
 # to be executed on bigs host of choice
 # /home/bigsdb/BIGSdb/3.9PythonVenv/bin/python3.9 /home/mikelchtermans/Bigsdb_new/bioit_mongodb_scripts/mongo_to_bigs.py --species listeria --uploader_mail_address bioit@sciensano.be --pyvenvpythonpath /home/bigsdb/BIGSdb/3.9PythonVenv/bin/python3.9
@@ -7,24 +8,26 @@ import json
 import logging
 import socket
 import sys
+import tempfile
 import traceback
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 import os
 
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
-from bioit_bigsdb_scripts.components.psql import TblIsolates, TblEavTextHidden, TblSequenceBin, TblSeqBinStats
+from bioit_bigsdb_scripts.components.psql.databaseconnection import DatabaseConnection
+from bioit_bigsdb_scripts.components.psql import TblIsolates, TblEavTextHidden, TblSequenceBin, TblSeqBinStats, TblSchemes
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data
 from bioit_bigsdb_scripts.insert_assembly import insert_assembly
 from bioit_bigsdb_scripts.main_results_inserter import MainResultsInserter
+from bioit_mongodb_scripts.util.alerts_to_bigs import AlertsToBigs
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.mongo_querying import Mongoquerying
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email, convert_dmyhms_to_dateobj
-from bioit_mongodb_scripts.new_clustering_info_to_bigs import \
-    NewClusteringInfoToBigs
-from bioit_mongodb_scripts.samples_to_validation_bigs import samples_to_validation_bigs
+from bioit_mongodb_scripts.util.new_clustering_info_to_bigs import NewClusteringInfoToBigs
+from bioit_mongodb_scripts.util.samples_to_validation_bigs import samples_to_validation_bigs
 from bioit_mongodb_scripts.util.command.command import Command
 
 
@@ -73,12 +76,61 @@ class MongoToBigs:
         # Open Bigsdb isolates table
         self._isolates_psql_tbl = TblIsolates(self._species)
 
+        # Prepare cgmlst cache updater command
+        with TblSchemes(self._species, 'isolates') as isolates_schemes_psql_tbl:
+            self._cgmlst_bigsdb_scheme_id = isolates_schemes_psql_tbl.select_scheme_id_cgmlst()[0][0]
+
+        # The cache command needs to be run using method 'full' once before being able to use it with method
+        # incremental, check it and execute full if it hadn't been executed yet
+        self._update_scheme_caches_full_once_if_needed()
+
+        cache_command = f'/home/bigsdb/BIGSdb/scripts/maintenance/update_scheme_caches.pl ' \
+                        f'--database bigsdb_{self._species}_isolates --schemes {self._cgmlst_bigsdb_scheme_id} ' \
+                        f'--method incremental'
+        self._cache_command_object = Command(cache_command)
+
+        # Prepare
+        self._list_of_new_isolates_for_alerts = []
+        self._list_of_new_versions_for_alerts = []
+
         # Execute main function
+        self._exception_in_alerts = False
         try:
             self._mongo_to_bigs()
-        except Exception as exceptionmessage:
-            send_email(f"{exceptionmessage}\n{traceback.format_exc()}")
-            raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}: {exceptionmessage}\n{traceback.format_exc()}")
+        except Exception as exceptionmessage1:
+            """
+            If an insertion into bigsdb fails, the alerts for the succeeded insertions need to be evaluated,
+            because else they would not be evaluated at all
+            for this purpose the cache first needs to be updated after having inserted new isolates/cgsts
+            (the cgst needs to come from the seqdef db).
+            """
+            self._exceptionmessage1 = exceptionmessage1
+            self._traceback1 = traceback.format_exc()
+
+            # todo: disabled following code on 2024/04/08 because isolation date not yet in incoming metadata; to reenable when it does
+            self.__run_alerts_to_bigs_upon_exception()
+
+            send_email(f"{self._exceptionmessage1}\n{self._traceback1}")
+            raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}: {self._exceptionmessage1}\n{self._traceback1}")
+
+    def _update_scheme_caches_full_once_if_needed(self) -> None:
+        """
+        Checks whether a full update of the scheme caches of the cgmlst scheme is needed (only the first time when
+        the table doesn't exist), and executes the full scheme cache update if needed.
+        :return: None
+        """
+        with DatabaseConnection(self._species, 'isolates') as isolates_psql_db:
+            temp_scheme_exists: List[Tuple[bool]] = isolates_psql_db.execute(f"SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'temp_scheme_{self._cgmlst_bigsdb_scheme_id}');")
+            if not temp_scheme_exists[0][0]:
+                cache_command = f'/home/bigsdb/BIGSdb/scripts/maintenance/update_scheme_caches.pl ' \
+                                f'--database bigsdb_{self._species}_isolates --schemes {self._cgmlst_bigsdb_scheme_id} ' \
+                                f'--method full'
+                cache_command_object = Command(cache_command)
+                cache_command_object.run(Path(os.getcwd()))
+                if cache_command_object.returncode != 0:
+                    send_email(f"update of the cache to display the clustering failed on host {socket.gethostname()}")
+                    raise RuntimeError(
+                        f"update of the cache to display the clustering failed on host {socket.gethostname()}")
 
     def _mongo_to_bigs(self) -> None:
         """
@@ -86,39 +138,37 @@ class MongoToBigs:
         If the current host is a bigsdb host, syncs all samples (or a single one if provided) with the bigsdb database
         :return: None
         """
-
         # call the autoexecutable function to insert new alleles and profiles
-        NewClusteringInfoToBigs(self._species, mongo_config_data=self._mongo_config_data)
+        NewClusteringInfoToBigs(self._species, Path(self._bigsdb_config_data['naive_clustering_distance_matrix_file'].replace('species', self._species)), mongo_config_data=self._mongo_config_data)
 
         # update the bigsdb cache so the clustering schemes get updated
-        cache_command = f'/home/bigsdb/BIGSdb/scripts/maintenance/update_scheme_caches.pl ' \
-                        f'--database bigsdb_{self._species}_isolates --method full --schemes 2'
-        command = Command(cache_command)
-        command.run(Path(os.getcwd()))
-        if command.returncode != 0:
+        self._cache_command_object.run(Path(os.getcwd()))
+        if self._cache_command_object.returncode != 0:
             send_email(f"update of the cache to display the clustering failed on host {socket.gethostname()}")
             raise RuntimeError(f"update of the cache to display the clustering failed on host {socket.gethostname()}")
 
         # send bad samples from the badqc_isolates collection to BIGSdb
         samples_to_validation_bigs(self._species, mongo_config_data=self._mongo_config_data)
 
-        listofdocuments = self.__get_list_of_documents()
+        list_of_documents = self.__get_list_of_documents()
 
-        for document in listofdocuments:
+        for document in list_of_documents:
             document_id = document['results']['isolates_id']
             sample_presence = self._isolates_psql_tbl.count_isolate((document_id,))
-            if sample_presence[0][0] == 0:
-                results_type = "new_isolate"
-            elif sample_presence[0][0] == 1 and (Path(self._bigsdb_config_data['failsafe']['flag_dir']) / '.'.join(
-                    [document_id, self._bigsdb_config_data['failsafe']['flag_append']])).is_file():
-                # isolate into bigsdb was started but failed during insertion.
-                # if argument "new_isolate" is passed to main_results_inserter and it finds the flag, it will remove the isolate and the flag, and then recreate the flag and start insertion again.
+            # is_sample_failed: isolate into bigsdb was started but failed during insertion.
+            # if argument "new_isolate" is passed to main_results_inserter and it finds the flag,
+            # it will remove the isolate and the flag, and then recreate the flag and start insertion again.
+            if_sample_failed = sample_presence[0][0] == 1 and (Path(self._bigsdb_config_data['failsafe']['flag_dir']) / '.'.join(
+                    [document_id, self._bigsdb_config_data['failsafe']['flag_append']])).is_file()
+            if sample_presence[0][0] == 0 or if_sample_failed:
                 results_type = "new_isolate"
             else:
                 results_type = "reanalysis"
                 different_version = self.__check_if_reanalysis_different(document, document_id)
                 if different_version is False:
                     continue
+            self._list_of_new_versions_for_alerts.append({'isolate_name': document_id, 'cgST': document['results'].get('cgST'),
+                                                          'isolation_date': document['results']['analysis_date']})
 
             # continuation of for loop:
             # extract json file to be given to bigs
@@ -131,26 +181,53 @@ class MongoToBigs:
                 handle.write(json.dumps(document['results']))
             MainResultsInserter(document_id, self._uploader_mail_address, self._species, results_type, jsonfilepath=jsonfile, report_access=document['report_directory'])
             jsonfile.unlink()
-            fasta_name = Path(document['fasta_path']).name
-            fasta_dir = Path(document['report_directory']) / 'assembly' / fasta_name
-            if results_type == 'new_isolate':
-                insert_assembly(document_id, self._species, fasta_dir)
-            elif results_type == 'reanalysis' and document['validation']['type'] == 'resequencing':
-                last_two_validation_dates = self._isolates_psql_tbl.select_validationdate_for_isolate((document_id,))
-                # select to check that the previous version's validation date is different from the current
-                if last_two_validation_dates[0][0] != last_two_validation_dates[1][0]:
-                    # revert the changes done in maininserter that move the assembly to the newest version
-                    with TblSequenceBin(self._species) as isolates_seqbin_psql_tbl:
-                        isolates_seqbin_psql_tbl.revert_sequencebin_newversion([document_id])
-                    with TblSeqBinStats(self._species) as isolates_seqbinstats_psql_tbl:
-                        isolates_seqbinstats_psql_tbl.revert_seqbinstats_newversion([document_id])
-                    insert_assembly(document_id, self._species, fasta_dir)
-            logging.info(f"wrote new results version for {document_id} to bigsdb")
+            # In case of an actual reanalysis, the MainResultsInserter handles the assembly transfer between
+            # isolates and we do not want to scp the assembly from Azure
+            if not results_type == 'reanalysis' and not document.get('validation'):
+                fasta_name = Path(document['fasta_path']).name
+                fasta_path_remote = Path(document['report_directory']) / 'assembly' / fasta_name
+                with tempfile.NamedTemporaryFile(dir=mongo_config_data.get('temp_dir'), mode="w") as temp_fasta:
+                    temp_fasta_path = Path(mongo_config_data.get('temp_dir')) / temp_fasta.name
+                    scp_command = f"scp -o StrictHostKeyChecking=no -i /home/bigsdb/.ssh/.id_rsa_reportsapi bigsdb@{mongo_config_data.get('azure_reportsapi_ip')}:{fasta_path_remote} {str(temp_fasta_path)}"
+                    scp_cmd = Command(scp_command)
+                    scp_cmd.run(Path(mongo_config_data.get('temp_dir')))
+                    if scp_cmd.returncode != 0:
+                        raise Exception(f"scp command to copy fasta from Azure to onsite failed: {scp_cmd.stderr}\nscp command: {scp_command}")
+
+                    if results_type == 'new_isolate':
+                        insert_assembly(document_id, self._species, temp_fasta_path)
+                        logging.info(f"Inserted new isolate {document_id} into bigsdb")
+                    elif results_type == 'reanalysis' and document.get('validation') and document['validation']['type'] == 'resequencing':
+                        last_two_validation_dates = self._isolates_psql_tbl.select_validationdate_for_isolate((document_id,))
+                        # select to check that the previous version's validation date is different from the current
+                        if last_two_validation_dates[0][0] != last_two_validation_dates[1][0]:
+                            # revert the changes done in maininserter that move the assembly to the newest version
+                            with TblSequenceBin(self._species) as isolates_seqbin_psql_tbl:
+                                isolates_seqbin_psql_tbl.revert_sequencebin_newversion([document_id])
+                            with TblSeqBinStats(self._species) as isolates_seqbinstats_psql_tbl:
+                                isolates_seqbinstats_psql_tbl.revert_seqbinstats_newversion([document_id])
+                            insert_assembly(document_id, self._species, temp_fasta_path)
+                        logging.info(f"Wrote new results version for {document_id} to bigsdb")
+
+        # Update cache again before alerts implementation because new isolates won't have cgST's but are needed for alerts implementation
+        self._cache_command_object.run(Path(os.getcwd()))
+        if self._cache_command_object.returncode != 0:
+            send_email(f"update of the cache to display the clustering failed on host {socket.gethostname()}")
+            raise RuntimeError(f"update of the cache to display the clustering failed on host {socket.gethostname()}")
 
         list_of_isolates_in_bigs = self._isolates_psql_tbl.listing_isolates()
         with Path('/scratch/bigsupload/mongo/list_of_isolates.txt').open('w') as fileout:
             for item in list_of_isolates_in_bigs:
                 fileout.write(f"{item[0]}\n")
+
+        # Run Alerts to bigs after updating the cache because it accesses a SQL table that is updated by the cache updater.
+        # also run it after having inserted all isolates into bigsdb
+        # todo: disabled following code on 2024/04/08 because isolation date not yet in incoming metadata; to reenable when it does
+        # try:
+        #     if len(self._list_of_new_isolates_for_alerts + self._list_of_new_versions_for_alerts) > 0:
+        #         AlertsToBigs(self._list_of_new_isolates_for_alerts, self._list_of_new_versions_for_alerts, self._species, self._cgmlst_bigsdb_scheme_id)
+        # except:
+        #     self._exception_in_alerts = True
 
     def __get_list_of_documents(self) -> List[Dict[str, Any]]:
         """
@@ -160,14 +237,14 @@ class MongoToBigs:
         if self._single_sample_id:
             query_single = self._isolates_collection.find_one({'_id': self._single_sample_id})
             if query_single is not None:
-                listofdocuments = [query_single]
+                list_of_documents = [query_single]
             else:
                 send_email(f"Can not find document with _id '{self._single_sample_id}' in isolates")
                 raise Exception(f"Can not find document with _id '{self._single_sample_id}' in isolates")
 
         else:
-            listofdocuments = list(self._isolates_collection.find())
-        return listofdocuments
+            list_of_documents = list(self._isolates_collection.find())
+        return list_of_documents
 
     def __check_if_reanalysis_different(self, document: Dict[str, Any], document_id: str) -> bool:
         """
@@ -211,6 +288,35 @@ class MongoToBigs:
         self._isolates_psql_tbl.close()
 
 
+    def __run_alerts_to_bigs_upon_exception(self) -> None:
+        """
+        If an insertion into BIGSdb fails, the alerts for the succeeded insertions need to be evaluated,
+        because else they would not be evaluated at all
+        for this purpose the cache first needs to be updated after having inserted new isolates/cgsts
+        (the cgst needs to come from the seqdef db).
+        :return: None
+        """
+        self._cache_command_object.run(Path(os.getcwd()))
+        if self._cache_command_object.returncode != 0:
+            send_email(f"update of the cache to display the clustering failed on host {socket.gethostname()}")
+            raise RuntimeError(
+                f"update of the cache to display the clustering failed on host {socket.gethostname()}")
+
+        # then run the alerts implementation for distance matrices
+        # ofcourse this can fail too, therefore we encapsulate it in another try except
+        if len(self._list_of_new_isolates_for_alerts + self._list_of_new_versions_for_alerts) > 0 and not \
+                self._exception_in_alerts:
+            try:
+                AlertsToBigs(self._list_of_new_isolates_for_alerts, self._list_of_new_versions_for_alerts,
+                             self._species, self._cgmlst_bigsdb_scheme_id)
+            except Exception as exceptionmessage2:
+                traceback2 = traceback.format_exc()
+                send_email(f"Failure 1: {self._exceptionmessage1}\n{self._traceback1}\n"
+                           f"Failure 2: {exceptionmessage2}\n{traceback2}",
+                           subject=f"{Path(__file__).name} double fail on host {socket.gethostname()}")
+                raise Exception(f"{Path(__file__).name} double fail on host {socket.gethostname()}: "
+                                f"Failure 1: {self._exceptionmessage1}\n{self._traceback1}\n"
+                                f"Failure 2: {exceptionmessage2}\n{traceback2}")
 if __name__ == '__main__':
     # Configure stdout logging
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
@@ -225,6 +331,3 @@ if __name__ == '__main__':
     MongoToBigs(args.species, args.uploader_mail_address,
                 single_sample_id=(args.single_sample_id if args.single_sample_id else None),
                 mongo_config_data=mongo_config_data)
-
-
-

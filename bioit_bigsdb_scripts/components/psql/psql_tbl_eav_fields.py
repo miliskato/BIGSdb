@@ -29,7 +29,6 @@ class TblEavFields(DatabaseConnection):
     def select_fields_amr(self) -> List[Optional[Tuple[str]]]:
         """
         Selects all the fields in the mycobacterium-specific amr who category
-        :param param: variables to feed to the PSQL query, which also sanitizes these variables,
         necessary parameters visible in the PSQL query name and query
         :return: list of tuples containing one string
         """
@@ -60,3 +59,11 @@ class TblEavFields(DatabaseConnection):
         :return: list of tuples containing one string
         """
         return self.execute_query(PsqlQueries.ISO_SEL_FIELD_TB_EAVF_VAR_CAT, param)
+
+    def select_fields_cgmlstdifferences(self) -> List[Optional[Tuple[str]]]:
+        """
+        Selects all the fields concerning cgmlst differences
+        necessary parameters visible in the PSQL query name and query
+        :return: list of tuples containing one string
+        """
+        return self.select_fields_like(('cgMLST_differences_%',))

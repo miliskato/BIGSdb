@@ -6,7 +6,7 @@ from typing import Any, Dict, List
 
 from pymongo.write_concern import WriteConcern
 
-PYTHONPATH = Path(__file__).resolve().parent.parent
+PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
@@ -27,11 +27,10 @@ def _insert_submission_bigs(sample_docs: List[Dict[str, Any]], validation_type: 
             TblIsolateSubmissionFieldOrder(species) as isolates_isosubfo_psql_tbl:
         for doc in sample_docs:
             isolates_sub_psql_tbl.insert_submission((validation_type,))
-            html_path = doc['report_directory']
-            html_path = str(html_path).replace('/reports/', '/galaxyreports/')
-            html_link = f'<p><a href="{html_path}" target="_blank"> html report</a></p>'
-            # end of dev code
-            isolates_isosubiso_psql_tbl.insert_validation_metadata(('html_report', html_link))
+            api_button = f"""
+            <button onclick="get_jwt_report('no', '{validation_type}', '{doc['_id']}', '{species }', '{doc['latest_analysis_date']}')" class='small_submit'>Get report preview</button>
+            """
+            isolates_isosubiso_psql_tbl.insert_validation_metadata(('html_report', api_button))
             isolates_isosubiso_psql_tbl.insert_validation_metadata(('isolate_id', doc['_id']))
             isolates_isosubiso_psql_tbl.insert_validation_metadata(('validation_type', validation_type))
             # The indexes below are necessary, if they are not inserted the values above are not visible
