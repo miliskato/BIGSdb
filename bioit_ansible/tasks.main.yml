@@ -92,34 +92,6 @@
     regexp: 'dbpassword=to_be_replaced_by_ansible'
     line: "dbpassword={{ secret_bioit_bigs_postgresql_apache_password }}"
 
-- name: Configure microreact
-  block:
-    - name: Choose value for microreact token and host
-      set_fact:
-        microreact_token: "{{ microreact_token_dta }}"
-        microreact_host: "{{ microreact_common_host_dta }}"
-      when: mongo_dtap == "dev" or mongo_dtap == "test" or mongo_dtap == "acc"
-
-    - name: Choose value for microreact token and host when prod
-      set_fact:
-        microreact_token: "{{ microreact_token_prod }}"
-        microreact_host: "{{ unique_host_prod }}"
-      when: mongo_dtap == "prod"
-
-    - name: Add microreact urls according to DTAP and species if on prod
-      lineinfile:
-        path: "{{ bioit_bigs_home }}/conf/bigsdb.conf"
-        regex: "{{ item.to_adapt}}"
-        line: "{{ item.with_value }}"
-      loop: "{{ var_list|flatten(levels=1) }}"
-      vars:
-        var_list:
-          - { to_adapt: microreact_token=to_be_replaced_by_ansible, with_value: "microreact_token={{ microreact_token }}" }
-          - { to_adapt: microreact_url_create=to_be_replaced_by_ansible, with_value: "microreact_url_create=https://{{ microreact_host }}/api/projects/create" }
-          - { to_adapt: microreact_schema_converter=to_be_replaced_by_ansible, with_value: "microreact_schema_converter=https://{{ microreact_host }}/api/schema/convert" }
-
-  tags: microreact_config
-
 ## perl 5 is installed on Ubuntu by default.
 - name: Install packages
   apt:
@@ -250,6 +222,34 @@
     dest: "/var/www/html/{{ species }}.html"
     state: link
     force: true
+
+- name: Configure microreact
+  block:
+    - name: Choose value for microreact token and host
+      set_fact:
+        microreact_token: "{{ microreact_token_dta }}"
+        microreact_host: "{{ microreact_common_host_dta }}"
+      when: mongo_dtap == "dev" or mongo_dtap == "test" or mongo_dtap == "acc"
+
+    - name: Choose value for microreact token and host when prod
+      set_fact:
+        microreact_token: "{{ microreact_token_prod }}"
+        microreact_host: "{{ unique_host_prod }}"
+      when: mongo_dtap == "prod"
+
+    - name: Add microreact urls according to DTAP and species if on prod
+      lineinfile:
+        path: '/etc/bigsdb/bigsdb.conf'
+        regex: "{{ item.to_adapt}}"
+        line: "{{ item.with_value }}"
+      loop: "{{ var_list|flatten(levels=1) }}"
+      vars:
+        var_list:
+          - { to_adapt: microreact_token=to_be_replaced_by_ansible, with_value: "microreact_token={{ microreact_token }}" }
+          - { to_adapt: microreact_url_create=to_be_replaced_by_ansible, with_value: "microreact_url_create=https://{{ microreact_host }}/api/projects/create" }
+          - { to_adapt: microreact_schema_converter=to_be_replaced_by_ansible, with_value: "microreact_schema_converter=https://{{ microreact_host }}/api/schema/convert" }
+
+  tags: microreact_config
 
 - name: copy dbmate executable on host
   ansible.builtin.get_url:
@@ -801,6 +801,21 @@
     state: directory
     owner: root
     mode: 0777
+
+- name: adapt tmp dir for BIGSdb
+  block:
+    - name: change temp dir in bigsdb config file
+      lineinfile:
+        path: "/etc/bigsdb/bigsdb.conf"
+        regexp: 'secure_tmp_dir=/var/tmp'
+        line: 'secure_tmp_dir=/temp_bigs'
+
+    - name: adapt right for temp_bigs
+      ansible.builtin.file:
+        path: /temp_bigs
+        state: directory
+        mode: 0777
+  tags: temp_dir_bigs
 
 - name: create galaxy user
   block:
