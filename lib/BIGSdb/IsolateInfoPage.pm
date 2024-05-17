@@ -584,10 +584,6 @@ sub _print_plugin_buttons {
 		say $buffer;
 		say q(</div>);
 	}
-    say q(<div><span class="info_icon fas fa-2x fa-fw fa-file-medical-alt fa-pull-left" style="margin-top:-0.2em"></span>);
-    say q(<h2>Galaxy HTML report</h2>);
-    say q(<button onclick = "get_jwt_report('no')" class="small_submit" > Get report preview </button>);
-    say q(<button onclick = "get_jwt_report('yes')" class="small_submit" > Get report zip archive </button>);
 	return;
 }
 

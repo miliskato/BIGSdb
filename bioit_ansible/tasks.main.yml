@@ -80,12 +80,6 @@
     force: true
   tags: gitupdate
 
-- name: Change Mongo connection string in config based on host vars
-  lineinfile:
-    path: "{{ bioit_bigs_home }}/bioit_mongodb_scripts/config/config.yml"
-    regexp: 'CONNECTION_STRING_BASE: to_be_replaced_by_ansible'
-    line: "CONNECTION_STRING_BASE: {{ azure_mongo_connection_string }}"
-
 - name: Change Mongo dtap version in config based on playbook argument
   lineinfile:
     path: "{{ bioit_bigs_home }}/bioit_mongodb_scripts/config/config.yml"
@@ -126,30 +120,11 @@
 
   tags: microreact_config
 
-- name: add azure reportsapi ip to mongodb config
-  lineinfile:
-    path: "{{ bioit_bigs_home }}/bioit_mongodb_scripts/config/config.yml"
-    regexp: 'azure_reportsapi_ip: to_be_replaced_by_ansible'
-    line: "azure_reportsapi_ip: {{ azure_reportsapi_ip }}"
-
 - name: create bigsdb .ssh directory
   ansible.builtin.file:
     dest: '/home/bigsdb/.ssh'
     mode: 0700
     owner: bigsdb
-
-- name: Create bigsdb rsa key to connect to azure reportsapi vm
-  ansible.builtin.file:
-    path: /home/bigsdb/.ssh/.id_rsa_reportsapi
-    state: touch
-    mode: "u=rw"
-    owner: bigsdb
-
-- name: Write secret private key to the file, replace literal linebreaks in secret by actual linebreaks
-  copy:
-    dest: /home/bigsdb/.ssh/.id_rsa_reportsapi
-    content: "{{ bigsdb_azure_reportsapi_private_key.replace('\\n', '\n') }}"
-    mode: '0600'
 
 ## perl 5 is installed on Ubuntu by default.
 - name: Install packages
@@ -209,26 +184,6 @@
   ansible.builtin.file:
     path: /etc/apache2/conf-enabled/javascript-common.conf
     state: absent
-
-- name: Execute a2enmod proxy_http command
-  command: sudo a2enmod proxy_http
-
-- name: Check if reportsapi proxy configuration is present in apache
-  shell: grep -q 'ProxyPass' /etc/apache2/apache2.conf && echo "Line exists" || echo "Line doesn't exist"
-  register: reportsapi_proxy_check
-  changed_when: false
-
-- name: Add reportsapi proxy configuration to apache
-  ansible.builtin.lineinfile:
-    path: /etc/apache2/apache2.conf
-    line: |
-            <VirtualHost {{ inventory_hostname }}.{{ host_domain }}:80>
-              ServerAlias *
-
-              ProxyPass "/reportsapi" "http://{{ azure_reportsapi_ip }}:9090" timeout=10000
-              ProxyPassReverse "/reportsapi" "http://{{ azure_reportsapi_ip }}:9090" timeout=10000
-            </VirtualHost>
-  when: reportsapi_proxy_check.stdout.find("Line doesn't exist") != -1
 
 - name: Restart service apache2
   ansible.builtin.systemd:
