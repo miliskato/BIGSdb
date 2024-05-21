@@ -62,12 +62,12 @@
   register: python_wsgi_check
   changed_when: false
 
+# todo below not sure here if it will be localhost or not? if the return message also passes through nginx?
 - name: Add Python WSGI configuration to apache, use port 7777 at random because it is free; Nginx will send messages to this port
   ansible.builtin.lineinfile:
     path: /etc/apache2/apache2.conf
     line: |
-            <VirtualHost {{ inventory_hostname }}.{{ host_domain }}:7777>
-              ServerAlias *
+            <VirtualHost 127.0.0.1:7777>
 
                 WSGIDaemonProcess myapp python-home={{ bioit_bigs_home }}/3.10PythonVenv
                 WSGIProcessGroup myapp
@@ -78,6 +78,12 @@
                 </Directory>
             </VirtualHost>
   when: python_wsgi_check.stdout.find("Line doesn't exist") != -1
+
+- name: Change listening port from 80 to chosen 7777
+  lineinfile:
+    path: /etc/apache2/ports.conf
+    regexp: "Listen 80"
+    line: "Listen 7777"
 
 - name: Restart service apache2
   ansible.builtin.systemd:
