@@ -13,6 +13,43 @@
     msg: "'branch' argument required in -e when running playbook"
   when: branch is not defined
 
+# configure Nginx
+- name: Include bioit.galaxy.nginx/tasks/base.yml
+  include_role:
+    name: bioit.galaxy.nginx
+    tasks_from: base
+
+- name: Create sites-available directory because it does not exist
+  ansible.builtin.file:
+    path: /etc/nginx/sites-available/
+    state: directory
+    owner: root
+
+- name: Create sites-enabled directory because it does not exist
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/
+    state: directory
+    owner: root
+
+- name: Generate nginx conf for nrc integration from template
+  template:
+    src: templates/nrcint_nginx.conf.j2
+    dest: /etc/nginx/sites-available/nrcint
+
+- name: Soft link the nrc integration entry
+  file:
+    src: /etc/nginx/sites-available/nrcint
+    dest: /etc/nginx/sites-enabled/nrcint
+    state: link
+
+#- name: Include bioit.cerbot/tasks/main.yml
+#  include_role:
+#    name: bioit.certbot
+#    tasks_from: main
+
+- name: check nginx configuration
+  command: sudo nginx -t
+
 - name: Get updated files from git repository
   git:
     repo: "https://{{bioit_git_ro_user}}:{{ secret_bioit_git_ro_password }}@{{bioit_git_server}}/bigsdb/bigsdb.git"
@@ -55,7 +92,7 @@
   ansible.builtin.lineinfile:
     path: /etc/apache2/apache2.conf
     line: |
-            <VirtualHost 127.0.0.1:7777>
+            <VirtualHost 127.0.0.1:{{ apache_custom_port }}>
 
                 WSGIDaemonProcess myapp python-home={{ bioit_bigs_home }}/3.10PythonVenv
                 WSGIProcessGroup myapp
@@ -71,7 +108,7 @@
   lineinfile:
     path: /etc/apache2/ports.conf
     regexp: "Listen 80"
-    line: "Listen 7777"
+    line: "Listen {{ apache_custom_port }}"
 
 - name: Restart service apache2
   ansible.builtin.systemd:
