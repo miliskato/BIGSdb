@@ -19,18 +19,6 @@
     name: bioit.galaxy.nginx
     tasks_from: base
 
-- name: Create sites-available directory because it does not exist
-  ansible.builtin.file:
-    path: /etc/nginx/sites-available/
-    state: directory
-    owner: root
-
-- name: Create sites-enabled directory because it does not exist
-  ansible.builtin.file:
-    path: /etc/nginx/sites-enabled/
-    state: directory
-    owner: root
-
 - name: Generate nginx conf for nrc integration from template
   template:
     src: templates/nrcint_nginx.conf.j2
