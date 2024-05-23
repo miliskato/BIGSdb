@@ -252,10 +252,11 @@ class AlertsToBigs:
                         if threshold_key == 'threshold_alert':
                             # if Alert is triggered, break the for loop because a warning would be redundant
                             if investigation_method == 'single linkage':
-                                queried_isolates = self._isolates_psql_tbl.select_isolates_by_cluster_group(
-                                    (self._bigsdb_config_data['alerts'][self._species][
-                                         f'threshold_warning_classification_scheme_id'],
-                                     self._cgmlst_bigsdb_scheme_id, isolate['cgST']))
+                                with TblIsolates(self._species) as isolates_psql_tbl:
+                                    queried_isolates = isolates_psql_tbl.select_isolates_by_cluster_group(
+                                        (self._bigsdb_config_data['alerts'][self._species][
+                                             f'threshold_warning_classification_scheme_id'],
+                                         self._cgmlst_bigsdb_scheme_id, isolate['cgST']))
                                 for isolate_tuple in queried_isolates:
                                     if isolate_tuple[1] == isolate['isolate_name']:
                                         subject_isolate_tuple = isolate_tuple
