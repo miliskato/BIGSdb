@@ -1,0 +1,10 @@
+[program:qclabs]
+command={{ nrcint_venv }}/bin/uwsgi --ini /etc/uwsgi/apps-enabled/nrcint.ini
+directory={{ bioit_bigs_home }}
+user={{ uwsgi_user_name }}
+umask=022
+stopsignal=TERM
+autostart=true
+autorestart=true
+stderr_logfile=/var/log/supervisor_stderr.log
+stdout_logfile=/var/log/supervisor_stdout.log

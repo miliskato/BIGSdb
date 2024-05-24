@@ -1,5 +1,6 @@
 ---
 bioit_bigs_home: '/home/bigsdb/BIGSdb'
+nrcint_venv: "{{ bioit_bigs_home }}/nrcint_venv"
 mongo_host: ''
 mongo_host_devtest: 'bioit-mongo-d01.sciensano.be,bioit-mongo-d02.sciensano.be,bioit-mongo-d03.sciensano.be'
 mongo_host_accprod: 'bioit-mongo-p01.sciensano.be,bioit-mongo-p02.sciensano.be,bioit-mongo-p03.sciensano.be'
@@ -18,5 +19,7 @@ mongodb_admin_password_accprod: !vault |
           65386661633337346164646563343031336334356533346234613162663863376165636430353365
           6364353966643331350a666463633134323436333136346363316336336461613264383631386139
           32393565383330326266356632306333353066383532373632326563656466313263
-apache_custom_port: '7777'
+custom_listening_port: '7777'
+uwsgi_user_name: www-data
+uwsgi_group: www-data
 ...

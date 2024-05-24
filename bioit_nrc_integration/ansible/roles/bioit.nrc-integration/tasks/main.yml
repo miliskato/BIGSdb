@@ -13,6 +13,21 @@
     msg: "'branch' argument required in -e when running playbook"
   when: branch is not defined
 
+- name: Install system packages
+  apt:
+    name: "{{ packages }}"
+    state: latest
+  vars:
+    packages:
+      - python3.10-dev
+      - python3.10-venv
+      - virtualenv
+      - uwsgi
+      - uwsgi-plugin-python3
+      - libpcre3-dev # needed for uwsgi?
+      - supervisor
+      - git
+
 # configure Nginx
 - name: Include bioit.galaxy.nginx/tasks/base.yml
   include_role:
@@ -45,6 +60,42 @@
     version: "{{ branch }}"
     force: true
 
+- name: Change git cloned repo owner and group
+  file:
+    path: "{{ bioit_bigs_home }}"
+    owner: "{{ uwsgi_user_name }}"
+    group: "{{ uwsgi_group }}"
+    recurse: yes
+
+- name: Create config directory
+  file:
+    path: "{{ bioit_bigs_home  }}/bioit_nrc_integration/python/config"
+    state: directory
+    owner: "{{ uwsgi_user_name }}"
+    group: "{{ uwsgi_group }}"
+    mode: '775'
+
+- name: Include bioit.galaxy.supervisor/tasks/extra.yml
+  include_role:
+    name: bioit.galaxy.supervisor
+    tasks_from: extra
+
+- name: Generate supervisor conf.d for qclabs from template
+  template:
+    src: templates/nrcint_supervisord.conf.j2
+    dest: /etc/supervisor/conf.d/nrcint.conf
+
+- name: Generate uwsgi config from template
+  template:
+    src: templates/nrcint.ini.j2
+    dest: /etc/uwsgi/apps-available/nrcint.ini
+
+- name: Soft link the uwsgi qclabs entry
+  file:
+    src: /etc/uwsgi/apps-available/nrcint.ini
+    dest: /etc/uwsgi/apps-enabled/nrcint.ini
+    state: link
+
 - name: adapt Mongo host and admin passphrase for dev/test
   set_fact:
     mongo_host: "{{ vars['mongo_host_'+ dtap] }}"
@@ -59,38 +110,8 @@
 - name: Create Python virtual environment
   pip:
     requirements: "{{ bioit_bigs_home }}/bioit_nrc_integration/python/requirements.txt"
-    virtualenv: "{{ bioit_bigs_home }}/3.10PythonVenv"
+    virtualenv: "{{ nrcint_venv }}"
     virtualenv_python: python3.10
-
-- name: Install packages
-  apt:
-    name: "{{ packages }}"
-    state: latest
-  vars:
-    packages:
-      - apache2
-
-- name: Check if Python WSGI configuration is present in apache
-  shell: grep -q 'WSGIDaemonProcess' /etc/apache2/apache2.conf && echo "Line exists" || echo "Line doesn't exist"
-  register: python_wsgi_check
-  changed_when: false
-
-# todo below not sure here if it will be localhost or not? if the return message also passes through nginx?
-- name: Add Python WSGI configuration to apache, use port 7777 at random because it is free; Nginx will send messages to this port
-  ansible.builtin.lineinfile:
-    path: /etc/apache2/apache2.conf
-    line: |
-            <VirtualHost 127.0.0.1:{{ apache_custom_port }}>
-
-                WSGIDaemonProcess myapp python-home={{ bioit_bigs_home }}/3.10PythonVenv
-                WSGIProcessGroup myapp
-                WSGIScriptAlias / {{ bioit_bigs_home }}/bioit_nrc_integration/python/application.wsgi
-
-                <Directory {{ bioit_bigs_home }}>
-                    Require all granted
-                </Directory>
-            </VirtualHost>
-  when: python_wsgi_check.stdout.find("Line doesn't exist") != -1
 
 - name: Change listening port from 80 to chosen 7777
   lineinfile:
@@ -98,9 +119,8 @@
     regexp: "Listen 80"
     line: "Listen {{ apache_custom_port }}"
 
-- name: Restart service apache2
-  ansible.builtin.systemd:
+- name: restart nrcint supervisord
+  supervisorctl:
+    name: nrcint
     state: restarted
-    daemon_reload: yes
-    name: apache2
 ...

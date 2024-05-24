@@ -1,0 +1,18 @@
+[uwsgi]
+
+strict = true
+master = true
+chdir = {{ bioit_bigs_home }}
+module = wsgi:application
+logto = /var/log/nrcint.log
+logfile-chmod = 664
+log-date = true
+processes = 2
+uid = {{ uwsgi_user_name }}
+gid = {{ uwsgi_group }}
+socket = 127.0.0.1:{{ custom_listening_port }}
+chmod-socket = 664
+die-on-term = true
+enable-threads = true
+single-interpreter = true
+need-app = true
