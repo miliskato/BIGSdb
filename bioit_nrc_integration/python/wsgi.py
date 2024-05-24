@@ -1,16 +1,14 @@
-from wsgiref.simple_server import make_server
 import json
 import sys
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable
-
-CUSTOM_PORT='to_be_replaced_by_ansible'
 
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email
+
 
 def handle_message(environ: Dict[str, Any], start_response: Callable) -> Iterable[bytes]:
     """
@@ -63,4 +61,4 @@ def application(environ: Dict[str, Any], start_response: Callable) -> Iterable[b
 
 
 if __name__ == '__main__':
-    application = application()
+    app = application
