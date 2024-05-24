@@ -59,6 +59,3 @@ def application(environ: Dict[str, Any], start_response: Callable) -> Iterable[b
     if environ['REQUEST_METHOD'] == 'POST':
         return handle_message(environ, start_response)
 
-
-if __name__ == '__main__':
-    app = application

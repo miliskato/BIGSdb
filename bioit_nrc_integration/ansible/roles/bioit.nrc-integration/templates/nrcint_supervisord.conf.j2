@@ -1,6 +1,6 @@
-[program:qclabs]
+[program:nrcint]
 command={{ nrcint_venv }}/bin/uwsgi --ini /etc/uwsgi/apps-enabled/nrcint.ini
-directory={{ bioit_bigs_home }}
+directory={{ bioit_bigs_home }}/bioit_nrc_integration/python
 user={{ uwsgi_user_name }}
 umask=022
 stopsignal=TERM

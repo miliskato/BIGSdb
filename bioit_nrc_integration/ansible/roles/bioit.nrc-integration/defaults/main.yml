@@ -22,4 +22,5 @@ mongodb_admin_password_accprod: !vault |
 custom_listening_port: '7777'
 uwsgi_user_name: www-data
 uwsgi_group: www-data
+uwsgi_log_file: /var/log/nrcint_wsgi.log
 ...

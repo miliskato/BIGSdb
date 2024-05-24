@@ -8,7 +8,7 @@ server {
     add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;  # Force HTTPS
 
    location / {
-     proxy_pass http://localhost:{{ apache_custom_port }};
+     proxy_pass http://localhost:{{ custom_listening_port }};
      # to test if values below are compatible with apache or find resources to communicate securily with apache
      proxy_set_header Host $host;
      proxy_set_header X-Real-IP $remote_addr;

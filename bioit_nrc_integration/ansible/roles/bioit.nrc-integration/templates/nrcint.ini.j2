@@ -2,9 +2,9 @@
 
 strict = true
 master = true
-chdir = {{ bioit_bigs_home }}
-module = wsgi:app
-logto = /var/log/nrcint.log
+chdir = {{ bioit_bigs_home }}/bioit_nrc_integration/python
+module = wsgi:application
+logto = {{ uwsgi_log_file }}
 logfile-chmod = 664
 log-date = true
 processes = 2
