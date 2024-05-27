@@ -124,7 +124,7 @@
   ansible.builtin.file:
     path: "{{ uwsgi_log_file }}"
     state: touch
-    mode: "666"
+    mode: "u=rw,g=rw,o=rw"
     owner: "{{ uwsgi_user_name }}"
 
 - name: restart nrcint supervisord

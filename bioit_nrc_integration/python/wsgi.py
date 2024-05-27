@@ -19,7 +19,18 @@ def handle_message(environ: Dict[str, Any], start_response: Callable) -> Iterabl
     """
     # Read the request body
     request_body = environ['wsgi.input'].read()
-    mapping_table_dict = json.loads(request_body.decode('utf-8'))
+    try:
+        mapping_table_dict = json.loads(request_body.decode('utf-8'))
+    except Exception as exceptionmessage:
+        # Set the response status and headers
+        status = '400 Bad Request'
+        response_headers = [('Content-type', 'text/plain')]
+        start_response(status, response_headers)
+
+        # Return a response, because you can not use an f string in a b string, need to use encode
+        response_message = f"Invalid JSON"
+        send_email(response_message)
+        return [response_message.encode('utf-8')]
     try:
         mongo_config_data = get_mongodb_config_data()
         mongoinit = MongoInitialisation(species=mapping_table_dict['species'],
