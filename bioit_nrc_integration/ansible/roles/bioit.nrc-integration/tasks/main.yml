@@ -24,7 +24,7 @@
       - virtualenv
       - uwsgi
       - uwsgi-plugin-python3
-      - libpcre3-dev # needed for uwsgi?
+      - libpcre3-dev  # needed for uwsgi?
       - supervisor
       - git
 
@@ -45,10 +45,10 @@
     dest: /etc/nginx/sites-enabled/nrcint
     state: link
 
-#- name: Include bioit.cerbot/tasks/main.yml
-#  include_role:
-#    name: bioit.certbot
-#    tasks_from: main
+# - name: Include bioit.cerbot/tasks/main.yml
+#   include_role:
+#     name: bioit.certbot
+#     tasks_from: main
 
 - name: check nginx configuration
   command: sudo nginx -t
