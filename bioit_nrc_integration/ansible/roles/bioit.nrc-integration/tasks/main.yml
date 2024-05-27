@@ -39,7 +39,7 @@
     src: templates/nrcint_nginx.conf.j2
     dest: /etc/nginx/sites-available/nrcint
 
-- name: Soft link the nrc integration entry
+- name: Soft link the nrc integration nginx configuration
   file:
     src: /etc/nginx/sites-available/nrcint
     dest: /etc/nginx/sites-enabled/nrcint
@@ -53,7 +53,36 @@
 - name: check nginx configuration
   command: sudo nginx -t
 
-- name: Change git cloned repo owner and group
+- name: Include bioit.galaxy.supervisor/tasks/extra.yml
+  include_role:
+    name: bioit.galaxy.supervisor
+    tasks_from: extra
+
+- name: Generate supervisor conf.d for nrcint from template
+  template:
+    src: templates/nrcint_supervisord.conf.j2
+    dest: /etc/supervisor/conf.d/nrcint.conf
+
+- name: Generate uwsgi config from template
+  template:
+    src: templates/nrcint_uwsgi.ini.j2
+    dest: /etc/uwsgi/apps-available/nrcint.ini
+
+- name: Soft link the uwsgi nrcint entry
+  file:
+    src: /etc/uwsgi/apps-available/nrcint.ini
+    dest: /etc/uwsgi/apps-enabled/nrcint.ini
+    state: link
+
+- name: Create uwsgi log file
+  ansible.builtin.file:
+    path: "{{ uwsgi_log_file }}"
+    state: touch
+    mode: "u=rw,g=rw,o=rw"
+    owner: "{{ uwsgi_user_name }}"
+
+# Custom Python part
+- name: Change git cloned repo owner and group to be able to update the git repo
   file:
     path: "{{ bioit_bigs_home }}"
     owner: root
@@ -67,41 +96,12 @@
     version: "{{ branch }}"
     force: true
 
-- name: Change git cloned repo owner and group
+- name: Change git cloned repo owner and group to the uwsgi group to be able to use files inside
   file:
     path: "{{ bioit_bigs_home }}"
     owner: "{{ uwsgi_user_name }}"
     group: "{{ uwsgi_group }}"
     recurse: yes
-
-- name: Create config directory
-  file:
-    path: "{{ bioit_bigs_home  }}/bioit_nrc_integration/python/config"
-    state: directory
-    owner: "{{ uwsgi_user_name }}"
-    group: "{{ uwsgi_group }}"
-    mode: '775'
-
-- name: Include bioit.galaxy.supervisor/tasks/extra.yml
-  include_role:
-    name: bioit.galaxy.supervisor
-    tasks_from: extra
-
-- name: Generate supervisor conf.d for nrcint from template
-  template:
-    src: templates/nrcint_supervisord.conf.j2
-    dest: /etc/supervisor/conf.d/nrcint.conf
-
-- name: Generate uwsgi config from template
-  template:
-    src: templates/nrcint.ini.j2
-    dest: /etc/uwsgi/apps-available/nrcint.ini
-
-- name: Soft link the uwsgi nrcint entry
-  file:
-    src: /etc/uwsgi/apps-available/nrcint.ini
-    dest: /etc/uwsgi/apps-enabled/nrcint.ini
-    state: link
 
 - name: adapt Mongo host and admin passphrase for dev/test
   set_fact:
@@ -120,14 +120,7 @@
     virtualenv: "{{ nrcint_venv }}"
     virtualenv_python: python3.10
 
-- name: Create uwsgi log file
-  ansible.builtin.file:
-    path: "{{ uwsgi_log_file }}"
-    state: touch
-    mode: "u=rw,g=rw,o=rw"
-    owner: "{{ uwsgi_user_name }}"
-
-- name: restart nrcint supervisord
+- name: restart nrcint supervisord which manages WSGI
   supervisorctl:
     name: nrcint
     state: restarted
