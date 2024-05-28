@@ -9,7 +9,6 @@ def get_distance(data: np.array, func_name: str, start: int = 0) -> np.array:
     :param data: the array containing all the cgmlst profiles to compute the distances on
     :param func_name: the name of the function to use to compute the distances
     :param start: the first cgst for which the distances need to be computed
-    :param mongo_config_data: Use provided mongo_config_data, else get mongo_config_data from file
     :return: an array (matrix like) containing the different computed distances
     """
 

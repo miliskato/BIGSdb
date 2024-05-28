@@ -108,7 +108,7 @@ class MongoToBigs:
             self._traceback1 = traceback.format_exc()
 
             # todo: disabled following code on 2024/04/08 because isolation date not yet in incoming metadata; to reenable when it does
-            self.__run_alerts_to_bigs_upon_exception()
+            # self.__run_alerts_to_bigs_upon_exception()
 
             send_email(f"{self._exceptionmessage1}\n{self._traceback1}")
             raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}: {self._exceptionmessage1}\n{self._traceback1}")
