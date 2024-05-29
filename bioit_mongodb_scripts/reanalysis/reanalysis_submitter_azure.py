@@ -398,7 +398,7 @@ class BatchPipelinesReanalysis:
         post_command = f'cp $AZ_BATCH_TASK_DIR/std*.txt {report_dir}/'
         # Check if report.html exists, if it does, remove working directory to clean up and
         # stderr + stdout because they're not necessary
-        cleanup_command = f"if test -e {report_dir}/report.html ; then rm -r {working_dir}; rm {report_dir}/std*.txt; fi; cd $AZ_BATCH_TASK_DIR; rsync -a {report_dir}/ {results_dir}/; rm {results_dir}/camel.log; rm -r {report_dir}"
+        cleanup_command = f"if test -e {report_dir}/report.html ; then rm -r {working_dir}; rm {report_dir}/std*.txt; fi; cd $AZ_BATCH_TASK_DIR; rsync -a --no-p --no-o --no-g {report_dir}/ {results_dir}/; rm {results_dir}/camel.log; rm -r {report_dir}"
         # the cd before rsync is necessary because else it will throw the error: rsync: getcwd(): No such file or directory (2)
         unload_command = f"module unload {config_species['lmod']}"
         config_mongodb = self._reanalysis_config['mongodb']
