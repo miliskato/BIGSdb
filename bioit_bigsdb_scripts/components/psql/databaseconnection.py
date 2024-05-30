@@ -48,6 +48,8 @@ class DatabaseConnection:
         :return: None or query results
         """
         self._cursor.execute(query, params)
+        # import logging
+        # logging.info(self._cursor.query)  # if you ever want to see the filled in query for debugging purposes
         if query.strip().startswith('SELECT'):
             return self._cursor.fetchall()
 
