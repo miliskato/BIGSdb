@@ -31,7 +31,7 @@ function get_jwt_preview(id, species, validation_type, res_time, get_zip, dtap, 
             //     var blob = new Blob([blobContent], { type: 'text/html' });
             //     newWindow.location.href = URL.createObjectURL(blob);
             newWindow.document.body.innerHTML = '';  // in order to clear previous message
-            newWindow.document.write('<script src="/javascript/jquery.min.js"></script>' + '<script src="/javascript/hera_reportsapi.js"></script>' + response);
+            newWindow.document.write('<script src="/javascript/jquery.min.js"></script>' + '<script src="/javascript/hera_reportsapi.js"></script>' + response.replaceAll("to_be_replaced", id).replace(/<title>.*?<\/title>/i, "<title>" +id + "</title>"));
            },
         error:function(){
         var blob = new Blob(['Failure to retrieve the report. Please resubmit the request to start again or submit a ticket to bioit@sciensano if it still fails'], { type: 'text/html' });
@@ -151,10 +151,10 @@ function get_subpart(rel_file_path){
             console.log(response);
             var wnd = window.open("about:blank");
             if(file_extension === 'html'){
-                wnd.document.write(response);
+                wnd.document.write(response.replaceAll("to_be_replaced", document.title));
                 wnd.document.close();
             }else{
-                wnd.document.write("<textarea disabled rows=100 cols=100>", response, "</textarea>")
+                wnd.document.write("<textarea disabled rows=100 cols=100>", response.replaceAll("to_be_replaced", document.title), "</textarea>");
             }
 
             },
