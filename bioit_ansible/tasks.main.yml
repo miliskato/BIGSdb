@@ -394,7 +394,7 @@
 
 - name: setup cron
   block:
-    - name: Add crontrab entry for bigsjobs
+    - name: Add cron.d entry for bigsjobs
       cron:
         name: "bigsjobs.pl"
         minute: '*/1'        # every minute
@@ -404,7 +404,7 @@
         user: 'bigsdb'
         cron_file: bigsdb_jobs
 
-    - name: Add crontrab entry for galaxy tool output into mongoDB
+    - name: Add cron.d entry for galaxy tool output into mongoDB
       cron:
         name: "cron_startinsertion_mongo_implementation.sh"
         minute: '*/10'         # every 10 minutes
@@ -415,7 +415,7 @@
         cron_file: mongo_galaxy
       tags: cron_mongo
 
-    - name: Add crontrab entry for bigsdb upload tool
+    - name: Add cron.d entry for bigsdb upload tool
       cron:
         name: "cron_startinsertion_lab_metadata.sh"
         minute: '*/2'         # every 2 minute
@@ -433,7 +433,7 @@
         line: "/home/bigsdb/BIGSdb/3.9PythonVenv/bin/python3.9 /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/components/metadata_insertion_from_bigs.py --species {{ species }} "
       tags: bigs_upload_cron
 
-    - name: Add crontrab entry for global db
+    - name: Add cron.d entry for global db
       cron:
         name: "sync_user_dbase_users.pl"
         minute: '*/5'       # every 5 minutes
@@ -443,7 +443,7 @@
         user: 'bigsdb'
         cron_file: sync_globalbigsdbusers
 
-    - name: Add crontrab entry for hash replacer  # needs to run before database updates in bigs (and after automated cfr Bert)
+    - name: Add cron.d entries for hash replacer  # needs to run before database updates in bigs (and after automated cfr Bert)
       cron:
         name: "crontab for tempid_replacer"
         minute: '0'
@@ -464,7 +464,7 @@
           - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}//bioit_mongodb_scripts/tempid_replacer.py --scheme mlst_pasteur --species {{ species }}",
               filename: "{{ species }}_tempid_replacer_mlst_pasteur" }
 
-    - name: Add crontrab entry for database updates
+    - name: Add cron.d entries for database updates
       cron:
         name: "crontab for weekly database updates"
         minute: '00'
@@ -481,7 +481,7 @@
           - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_bigsdb_scripts/genedetection_intopsql.py --species {{ species }}",
               filename: "{{ species }}_genedetection_intopsql" }
 
-    - name: Add crontrab entry for database updates
+    - name: Add cron.d entry for database updates
       cron:
         name: "crontab for weekly database updates, profiles 30 minutes later than sequences"
         minute: '30'
