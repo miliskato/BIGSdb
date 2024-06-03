@@ -110,3 +110,11 @@ class MongoInitialisation:
         """
         headers_collection = self._open_mongo_collection(self.opened_mongo_database, "headers")
         return headers_collection
+
+    def initialise_mapping_table_collection(self) -> pymongo.collection.Collection:
+        """
+        Initialises collection containing mapping table of sample names and pseudonymized sample names.
+        :return: Opened mapping table collection
+        """
+        headers_collection = self._open_mongo_collection(self.opened_mongo_database, "mapping_table")
+        return headers_collection

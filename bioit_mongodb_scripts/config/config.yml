@@ -30,6 +30,7 @@ collections:
     - update_metadata
     - isolates_resequencing
     - headers
+    - mapping_table
 
 temp_dir: /scratch/temp
 
