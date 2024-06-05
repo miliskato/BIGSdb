@@ -1,5 +1,14 @@
 ---
 # Disclaimer: this role only works for exactly three replica set members provided by --limit to the playbook, if ever using more then to be defined in task "Initialise replicaset"
+- name: check if dtap in list
+  vars:
+    dtaplist:
+      - dt
+      - ap
+  fail:
+    msg: "unsupported dtap requested, choose from {{ dtaplist }}"
+  when: dtap not in dtaplist
+
 - name: Copy mongodb gpg key
   get_url:
     url: "{{ linux_repo }}/gpg_keys/mongodb-archive-keyring.gpg"
@@ -29,7 +38,6 @@
     - /var/lib/mongodb
     - "{{ keyfilebasepath }}"
 
-# ansible-vault encrypt_string 'vpjMcMDsIA7TJf87VXn4+0Z+YXa6qHz/no3hCmT974pMUMAbvxTV/fT8kwLMGeQwAL0zyOY0DednKm6aRQkBDJ0zwKSa953cR4OYwqJjbDRHeIrwijALcwdMVo7muc85rxvT1uxXS66Nwjtn01expRz3pmOCfxvnH5y3mc7mBIRBB5Ti8t7e6Uo0fZ1BbhaQKEIPym34jZOe4OqCf1/gTWh2SPwd0dSdxOl+EruoMs8+E304jr340K2l93BZht2oFciw4vlGcyJ+Ee542WV9Pa1T7kR9mRJza4ugqW4WxsHUuyJdkZib4zxNxrfWDPb58rvuHyo+p1vxmWnEhG+Zq0VAt7TuX6OzB5YhQMXFH4mHC8PiviYq7oFulFD6VjhhJbWlboyGFUHzEHr9V7Lmg3IVrPvRqaf/SfYFNlo6fwgcBAIo8UlR5UZFWS6AnA5jrbnh78vWz97C1be0Qd4Qh5nLIbOzPYnT6y6+MsjYWHjmq3b9A75YHeMncBtFuP+gM9LOUSrQBlH5IBTgPPJFZ0lzZNTJuVoiuER+VonqZf8b/I5z43CZ6i4tx+TPRKoiiQXLAAg/LKCJv1QuqdTF77P2scB6p1+TVYVqaqyCjOib2elz6mQtUX4RXk3OIKOTiqYWNbfUebkzhjkGz4j5g67o6YlZJh2L33M1d3PBbJf2zHGpmSrklE2kXvyDXGTmiizCdus9R26oT/ATmL20dwLhE92hEA2Zq7j8dVMiirETluBmP62B4QfvegISiXt94Zh6txuhGWP88iWb8g8Z55ZlvwCUBuFCxZOEvMP4MD3hnV4+sgwF23qFfTUND4VeJs3e8pkSEDWr7LrsaognNZY+Ex/35SHA+0tPw/eIgb9n+B+Wr6i6gZDCfKtBxPxF92+xXWYEiUTC3HrOUiXd2FjmJZ5dIaVujsNxxKQs5sZEHJXvSSkD7rPB54DZDKcmILXCq/81Zw9rVqbTWUiFQeM3lkht' --name 'secret_mongodb_keystring' --vault-password-file /etc/ansible/vault/bioit_vault_pass
 - name: Copy mongodb keyfile from vault
   ansible.builtin.copy:
     content: "{{ secret_mongodb_keystring }}"
@@ -46,7 +54,6 @@
     group: root
     mode: '0644'
 
-# enabled: Whether the unit should start on boot.
 - name: Start Mongod service
   ansible.builtin.systemd:
     state: started
@@ -70,7 +77,7 @@
   community.mongodb.mongodb_replicaset:
     login_host: localhost
     login_user: "{{ mongodb_admin_user }}"
-    login_password: "{{ mongodb_admin_password }}"
+    login_password: "{{ vars['mongodb_admin_password_'+dtap] }}"
     replica_set: "{{ replica_set_name }}"
     members:
       - "{{ play_hosts[0] }}:{{ port }}"
@@ -86,7 +93,24 @@
     interval: 10
   when: repl.changed == True
 
-# ansible-vault encrypt_string '8T1r7nQwXnMoP3A9ubsu' --name 'mongodb_admin_password'
+- name: create mongodump backup dir
+  ansible.builtin.file:
+    path: "{{ backup_dir }}"
+    state: directory
+    mode: "u=rwx,g=rwx,o=rwx"
+  when: inventory_hostname == play_hosts[0]
+
+- name: Add cron.d entry for daily mongodump for backup purposes
+  cron:
+    name: "cron.d job to create daily backup of mongo databases"
+    minute: '00'
+    hour: '5'
+    weekday: '*'
+    user: root
+    job: "mongodump -o {{ backup_dir }} --host '{{ replica_set_name }}/localhost:{{ port }}' -u 'admin' -p '{{ vars['mongodb_admin_password_'+dtap] }}' --authenticationDatabase 'admin' --gzip ; tar -zvcf {{ backup_dir }}/mongodump.tar.gz {{ backup_dir }}/*/ --remove-files"
+    cron_file: "mongodump_daily"
+  when: inventory_hostname == play_hosts[0]
+
 # ansible-galaxy collection install community.mongodb
 - name: Create MongoDB root user siteRootAdmin
   community.mongodb.mongodb_user:
@@ -94,7 +118,7 @@
     login_port: "{{ port }}"
     database: "admin"
     name: "{{ mongodb_admin_user }}"
-    password: "{{ mongodb_admin_password }}"
+    password: "{{ vars['mongodb_admin_password_'+dtap] }}"
     roles: "root"
   when: inventory_hostname == play_hosts[0]
 ...
