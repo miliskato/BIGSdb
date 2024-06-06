@@ -13,6 +13,9 @@ class PsqlQueries():
     .
     Group queries by database, then by crud, then by table, then alphabetically
     """
+    # General table existence check
+    SEL_TABLE_EXISTS: Final[str] = """SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = %s);"""
+
     # TBL alert details field order
     ISO_INS__TB_ALDEFO_VAR_FIELD_INDEX: Final[str] = """
         INSERT INTO alert_details_field_order(alert_id, field, index) 

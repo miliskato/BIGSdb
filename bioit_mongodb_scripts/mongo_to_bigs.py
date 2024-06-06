@@ -19,6 +19,7 @@ sys.path.append(str(PYTHONPATH))
 
 from bioit_bigsdb_scripts.components.psql.databaseconnection import DatabaseConnection
 from bioit_bigsdb_scripts.components.psql import TblIsolates, TblEavTextHidden, TblSequenceBin, TblSeqBinStats, TblSchemes
+from bioit_bigsdb_scripts.components.psql.psql_queries import PsqlQueries
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data
 from bioit_bigsdb_scripts.insert_assembly import insert_assembly
 from bioit_bigsdb_scripts.main_results_inserter import MainResultsInserter
@@ -80,10 +81,6 @@ class MongoToBigs:
         with TblSchemes(self._species, 'isolates') as isolates_schemes_psql_tbl:
             self._cgmlst_bigsdb_scheme_id = isolates_schemes_psql_tbl.select_scheme_id_cgmlst()[0][0]
 
-        # The cache command needs to be run using method 'full' once before being able to use it with method
-        # incremental, check it and execute full if it hadn't been executed yet
-        self._update_scheme_caches_full_once_if_needed()
-
         cache_command = f'/home/bigsdb/BIGSdb/scripts/maintenance/update_scheme_caches.pl ' \
                         f'--database bigsdb_{self._species}_isolates --schemes {self._cgmlst_bigsdb_scheme_id} ' \
                         f'--method incremental'
@@ -113,25 +110,6 @@ class MongoToBigs:
             send_email(f"{self._exceptionmessage1}\n{self._traceback1}")
             raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}: {self._exceptionmessage1}\n{self._traceback1}")
 
-    def _update_scheme_caches_full_once_if_needed(self) -> None:
-        """
-        Checks whether a full update of the scheme caches of the cgmlst scheme is needed (only the first time when
-        the table doesn't exist), and executes the full scheme cache update if needed.
-        :return: None
-        """
-        with DatabaseConnection(self._species, 'isolates') as isolates_psql_db:
-            temp_scheme_exists: List[Tuple[bool]] = isolates_psql_db.execute(f"SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'temp_scheme_{self._cgmlst_bigsdb_scheme_id}');")
-            if not temp_scheme_exists[0][0]:
-                cache_command = f'/home/bigsdb/BIGSdb/scripts/maintenance/update_scheme_caches.pl ' \
-                                f'--database bigsdb_{self._species}_isolates --schemes {self._cgmlst_bigsdb_scheme_id} ' \
-                                f'--method full'
-                cache_command_object = Command(cache_command)
-                cache_command_object.run(Path(os.getcwd()))
-                if cache_command_object.returncode != 0:
-                    send_email(f"update of the cache to display the clustering failed on host {socket.gethostname()}")
-                    raise RuntimeError(
-                        f"update of the cache to display the clustering failed on host {socket.gethostname()}")
-
     def _mongo_to_bigs(self) -> None:
         """
         Main function
@@ -141,11 +119,16 @@ class MongoToBigs:
         # call the autoexecutable function to insert new alleles and profiles
         NewClusteringInfoToBigs(self._species, Path(self._bigsdb_config_data['naive_clustering_distance_matrix_file'].replace('species', self._species)), mongo_config_data=self._mongo_config_data)
 
-        # update the bigsdb cache so the clustering schemes get updated
-        self._cache_command_object.run(Path(os.getcwd()))
-        if self._cache_command_object.returncode != 0:
-            send_email(f"update of the cache to display the clustering failed on host {socket.gethostname()}")
-            raise RuntimeError(f"update of the cache to display the clustering failed on host {socket.gethostname()}")
+        # The cache command needs to be run using method 'full' once before being able to use it with method
+        # incremental, check it and execute full if it hadn't been executed yet
+        bool_updated_full = self.__update_scheme_caches_full_once_if_needed()
+
+        if not bool_updated_full:
+            # update the bigsdb cache so the clustering schemes get updated
+            self._cache_command_object.run(Path(os.getcwd()))
+            if self._cache_command_object.returncode != 0:
+                send_email(f"update of the cache to display the clustering failed on host {socket.gethostname()}")
+                raise RuntimeError(f"update of the cache to display the clustering failed on host {socket.gethostname()}")
 
         # send bad samples from the badqc_isolates collection to BIGSdb
         samples_to_validation_bigs(self._species, mongo_config_data=self._mongo_config_data)
@@ -212,8 +195,8 @@ class MongoToBigs:
         # Update cache again before alerts implementation because new isolates won't have cgST's but are needed for alerts implementation
         self._cache_command_object.run(Path(os.getcwd()))
         if self._cache_command_object.returncode != 0:
-            send_email(f"update of the cache to display the clustering failed on host {socket.gethostname()}")
-            raise RuntimeError(f"update of the cache to display the clustering failed on host {socket.gethostname()}")
+            send_email(f"update of the cache to display the cgsts of new isolates failed on host {socket.gethostname()}")
+            raise RuntimeError(f"update of the cache to display the cgsts of new isolates failed on host {socket.gethostname()}")
 
         list_of_isolates_in_bigs = self._isolates_psql_tbl.listing_isolates()
         with Path('/scratch/bigsupload/mongo/list_of_isolates.txt').open('w') as fileout:
@@ -228,6 +211,29 @@ class MongoToBigs:
         #         AlertsToBigs(self._list_of_new_isolates_for_alerts, self._list_of_new_versions_for_alerts, self._species, self._cgmlst_bigsdb_scheme_id)
         # except:
         #     self._exception_in_alerts = True
+
+    def __update_scheme_caches_full_once_if_needed(self) -> bool:
+        """
+        Checks whether a full update of the scheme caches of the cgmlst scheme is needed (only the first time when
+        the table doesn't exist), and executes the full scheme cache update if needed.
+        :return: Whether the full cache command was executed
+        """
+        with DatabaseConnection(self._species, 'isolates') as isolates_psql_db:
+            temp_scheme_exists: List[Tuple[bool]] = isolates_psql_db.execute_query(PsqlQueries.SEL_TABLE_EXISTS,
+                                                                                   [f'temp_scheme_{self._cgmlst_bigsdb_scheme_id}',])
+            if not temp_scheme_exists[0][0]:
+                cache_command = f'/home/bigsdb/BIGSdb/scripts/maintenance/update_scheme_caches.pl ' \
+                                f'--database bigsdb_{self._species}_isolates --schemes {self._cgmlst_bigsdb_scheme_id} ' \
+                                f'--method full'
+                cache_command_object = Command(cache_command)
+                cache_command_object.run(Path(os.getcwd()))
+                if cache_command_object.returncode != 0:
+                    send_email(f"update of the cache to display the clustering failed on host {socket.gethostname()}")
+                    raise RuntimeError(
+                        f"update of the cache to display the clustering failed on host {socket.gethostname()}")
+                return True
+            else:
+                return False
 
     def __get_list_of_documents(self) -> List[Dict[str, Any]]:
         """
@@ -287,7 +293,6 @@ class MongoToBigs:
         """
         self._isolates_psql_tbl.close()
 
-
     def __run_alerts_to_bigs_upon_exception(self) -> None:
         """
         If an insertion into BIGSdb fails, the alerts for the succeeded insertions need to be evaluated,
@@ -317,6 +322,8 @@ class MongoToBigs:
                 raise Exception(f"{Path(__file__).name} double fail on host {socket.gethostname()}: "
                                 f"Failure 1: {self._exceptionmessage1}\n{self._traceback1}\n"
                                 f"Failure 2: {exceptionmessage2}\n{traceback2}")
+
+
 if __name__ == '__main__':
     # Configure stdout logging
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
