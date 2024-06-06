@@ -135,21 +135,12 @@ class MongoToBigs:
 
         list_of_documents = self.__get_list_of_documents()
 
+        # Main insertion into bigsdb for loop
         for document in list_of_documents:
             document_id = document['results']['isolates_id']
-            sample_presence = self._isolates_psql_tbl.count_isolate((document_id,))
-            # is_sample_failed: isolate into bigsdb was started but failed during insertion.
-            # if argument "new_isolate" is passed to main_results_inserter and it finds the flag,
-            # it will remove the isolate and the flag, and then recreate the flag and start insertion again.
-            if_sample_failed = sample_presence[0][0] == 1 and (Path(self._bigsdb_config_data['failsafe']['flag_dir']) / '.'.join(
-                    [document_id, self._bigsdb_config_data['failsafe']['flag_append']])).is_file()
-            if sample_presence[0][0] == 0 or if_sample_failed:
-                results_type = "new_isolate"
-            else:
-                results_type = "reanalysis"
-                different_version = self.__check_if_reanalysis_different(document, document_id)
-                if different_version is False:
-                    continue
+            results_type, skip_current_document = self.__get_results_type(document, document_id)
+            if skip_current_document:
+                continue
             self._list_of_new_versions_for_alerts.append({'isolate_name': document_id, 'cgST': document['results'].get('cgST'),
                                                           'isolation_date': document['results']['analysis_date']})
 
@@ -164,33 +155,8 @@ class MongoToBigs:
                 handle.write(json.dumps(document['results']))
             MainResultsInserter(document_id, self._uploader_mail_address, self._species, results_type, jsonfilepath=jsonfile, report_access=document['report_directory'])
             jsonfile.unlink()
-            # In case of an actual reanalysis, the MainResultsInserter handles the assembly transfer between
-            # isolates and we do not want to scp the assembly from Azure
-            if not results_type == 'reanalysis' and not document.get('validation'):
-                fasta_name = Path(document['fasta_path']).name
-                fasta_path_remote = Path(document['report_directory']) / 'assembly' / fasta_name
-                with tempfile.NamedTemporaryFile(dir=mongo_config_data.get('temp_dir'), mode="w") as temp_fasta:
-                    temp_fasta_path = Path(mongo_config_data.get('temp_dir')) / temp_fasta.name
-                    scp_command = f"scp -o StrictHostKeyChecking=no -i /home/bigsdb/.ssh/.id_rsa_reportsapi bigsdb@{mongo_config_data.get('azure_reportsapi_ip')}:{fasta_path_remote} {str(temp_fasta_path)}"
-                    scp_cmd = Command(scp_command)
-                    scp_cmd.run(Path(mongo_config_data.get('temp_dir')))
-                    if scp_cmd.returncode != 0:
-                        raise Exception(f"scp command to copy fasta from Azure to onsite failed: {scp_cmd.stderr}\nscp command: {scp_command}")
 
-                    if results_type == 'new_isolate':
-                        insert_assembly(document_id, self._species, temp_fasta_path)
-                        logging.info(f"Inserted new isolate {document_id} into bigsdb")
-                    elif results_type == 'reanalysis' and document.get('validation') and document['validation']['type'] == 'resequencing':
-                        last_two_validation_dates = self._isolates_psql_tbl.select_validationdate_for_isolate((document_id,))
-                        # select to check that the previous version's validation date is different from the current
-                        if last_two_validation_dates[0][0] != last_two_validation_dates[1][0]:
-                            # revert the changes done in maininserter that move the assembly to the newest version
-                            with TblSequenceBin(self._species) as isolates_seqbin_psql_tbl:
-                                isolates_seqbin_psql_tbl.revert_sequencebin_newversion([document_id])
-                            with TblSeqBinStats(self._species) as isolates_seqbinstats_psql_tbl:
-                                isolates_seqbinstats_psql_tbl.revert_seqbinstats_newversion([document_id])
-                            insert_assembly(document_id, self._species, temp_fasta_path)
-                        logging.info(f"Wrote new results version for {document_id} to bigsdb")
+            self.__insert_assembly_into_bigs(results_type, document, document_id)
 
         # Update cache again before alerts implementation because new isolates won't have cgST's but are needed for alerts implementation
         self._cache_command_object.run(Path(os.getcwd()))
@@ -220,7 +186,7 @@ class MongoToBigs:
         """
         with DatabaseConnection(self._species, 'isolates') as isolates_psql_db:
             temp_scheme_exists: List[Tuple[bool]] = isolates_psql_db.execute_query(PsqlQueries.SEL_TABLE_EXISTS,
-                                                                                   [f'temp_scheme_{self._cgmlst_bigsdb_scheme_id}',])
+                                                                                   (f'temp_scheme_{self._cgmlst_bigsdb_scheme_id}',))
             if not temp_scheme_exists[0][0]:
                 cache_command = f'/home/bigsdb/BIGSdb/scripts/maintenance/update_scheme_caches.pl ' \
                                 f'--database bigsdb_{self._species}_isolates --schemes {self._cgmlst_bigsdb_scheme_id} ' \
@@ -252,7 +218,31 @@ class MongoToBigs:
             list_of_documents = list(self._isolates_collection.find())
         return list_of_documents
 
-    def __check_if_reanalysis_different(self, document: Dict[str, Any], document_id: str) -> bool:
+    def __get_results_type(self, document: Dict[str, Any], document_id: str) -> Tuple[str, bool]:
+        """
+        Checks whether the document is a new_isolate or a reanalysis and whether the for loop should continue (bool output).
+        The for loop should continue to the next document if the reanalysis is not different.
+        :param document: dictionary of the results of the current isolate
+        :param document_id: the id of the isolate
+        :return: results_type and whether for loop should should continue to next sample (True) or proceed (False)
+        """
+        sample_presence = self._isolates_psql_tbl.count_isolate((document_id,))
+        # is_sample_failed: isolate into bigsdb was started but failed during insertion.
+        # if argument "new_isolate" is passed to main_results_inserter and it finds the flag,
+        # it will remove the isolate and the flag, and then recreate the flag and start insertion again.
+        if_sample_failed = sample_presence[0][0] == 1 and (
+                    Path(self._bigsdb_config_data['failsafe']['flag_dir']) / '.'.join(
+                     [document_id, self._bigsdb_config_data['failsafe']['flag_append']])).is_file()
+        if sample_presence[0][0] == 0 or if_sample_failed:
+            results_type = "new_isolate"
+        else:
+            results_type = "reanalysis"
+            different_version = self.___check_if_reanalysis_different(document, document_id)
+            if different_version is False:
+                return results_type, True
+        return results_type, False
+
+    def ___check_if_reanalysis_different(self, document: Dict[str, Any], document_id: str) -> bool:
         """
         Checks if the reanalysis is different or not, outside this function: continues the for loop,
         it is called in, to the next sample if not different
@@ -285,6 +275,45 @@ class MongoToBigs:
                 f"results version same in mongodb and bigsdb for sample {document_id}")
             different_version = False
         return different_version
+
+    def __insert_assembly_into_bigs(self, results_type: str, document: Dict[str, Any], document_id: str) -> None:
+        """
+        Fetches the assembly from Azure and inserts into bigsdb when applicable
+        :param results_type: new_isolate or reanalysis
+        :param document: dictionary of the results of the current isolate
+        :param document_id: the id of the isolate
+        :return: None
+        """
+        # In case of an actual reanalysis, the MainResultsInserter handles the assembly transfer between
+        # isolates and we do not want to scp the assembly from Azure
+        if not results_type == 'reanalysis' and not document.get('validation'):
+            fasta_name = Path(document['fasta_path']).name
+            fasta_path_remote = Path(document['report_directory']) / 'assembly' / fasta_name
+            with tempfile.NamedTemporaryFile(dir=self._mongo_config_data.get('temp_dir'), mode="w") as temp_fasta:
+                temp_fasta_path = Path(self._mongo_config_data.get('temp_dir')) / temp_fasta.name
+                scp_command = f"scp -o StrictHostKeyChecking=no -i /home/bigsdb/.ssh/.id_rsa_reportsapi bigsdb@{self._mongo_config_data.get('azure_reportsapi_ip')}:{fasta_path_remote} {str(temp_fasta_path)}"
+                scp_cmd = Command(scp_command)
+                scp_cmd.run(Path(self._mongo_config_data.get('temp_dir')))
+                if scp_cmd.returncode != 0:
+                    raise Exception(
+                        f"scp command to copy fasta from Azure to onsite failed: {scp_cmd.stderr}\nscp command: {scp_command}")
+
+                if results_type == 'new_isolate':
+                    insert_assembly(document_id, self._species, temp_fasta_path)
+                    logging.info(f"Inserted new isolate {document_id} into bigsdb")
+                elif results_type == 'reanalysis' and document.get('validation') and document['validation']['type'] == \
+                        'resequencing':
+                    last_two_validation_dates = self._isolates_psql_tbl.select_validationdate_for_isolate(
+                        (document_id,))
+                    # select to check that the previous version's validation date is different from the current
+                    if last_two_validation_dates[0][0] != last_two_validation_dates[1][0]:
+                        # revert the changes done in maininserter that move the assembly to the newest version
+                        with TblSequenceBin(self._species) as isolates_seqbin_psql_tbl:
+                            isolates_seqbin_psql_tbl.revert_sequencebin_newversion([document_id])
+                        with TblSeqBinStats(self._species) as isolates_seqbinstats_psql_tbl:
+                            isolates_seqbinstats_psql_tbl.revert_seqbinstats_newversion([document_id])
+                        insert_assembly(document_id, self._species, temp_fasta_path)
+                    logging.info(f"Wrote new results version for {document_id} to bigsdb")
 
     def __exit__(self) -> None:
         """
