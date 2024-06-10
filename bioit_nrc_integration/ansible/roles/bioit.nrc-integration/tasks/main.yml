@@ -80,6 +80,7 @@
     state: touch
     mode: "u=rw,g=rw,o=rw"
     owner: "{{ uwsgi_user_name }}"
+  become: yes
 
 # Custom Python part
 - name: Change git cloned repo owner and group to be able to update the git repo
@@ -88,6 +89,7 @@
     owner: root
     group: root
     recurse: yes
+  become: yes
 
 - name: Get updated files from git repository
   git:
@@ -95,6 +97,7 @@
     dest: "{{ bioit_bigs_home }}"
     version: "{{ branch }}"
     force: true
+  become: yes
 
 - name: Change git cloned repo owner and group to the uwsgi group to be able to use files inside
   file:
@@ -102,6 +105,7 @@
     owner: "{{ uwsgi_user_name }}"
     group: "{{ uwsgi_group }}"
     recurse: yes
+  become: yes
 
 - name: adapt Mongo host and admin passphrase for dev/test
   set_fact:
@@ -113,12 +117,14 @@
     path: "{{ bioit_bigs_home }}/bioit_mongodb_scripts/config/config.yml"
     regexp: 'CONNECTION_STRING_LOCAL: to_be_replaced_by_ansible'
     line: "CONNECTION_STRING_LOCAL: mongodb://admin:{{ mongodb_admin_password }}@{{ mongo_host.split(',')[0] }}:27017,{{ mongo_host.split(',')[1] }}:27017,{{ mongo_host.split(',')[2] }}:27017/?replicaSet=bioit-HERA&authSource=admin"
+  become: yes
 
 - name: Create Python virtual environment
   pip:
     requirements: "{{ bioit_bigs_home }}/bioit_nrc_integration/python/requirements.txt"
     virtualenv: "{{ nrcint_venv }}"
     virtualenv_python: python3.10
+  become: yes
 
 - name: restart nrcint supervisord which manages WSGI
   supervisorctl:
