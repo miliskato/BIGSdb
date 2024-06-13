@@ -9,4 +9,6 @@ species:
     dtap: "{{ dtap }}"
   - name: 'listeria'
     dtap: "{{ dtap }}"
+  - name: 'neisseria'
+    dtap: "{{ dtap }}"
 ...
