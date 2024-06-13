@@ -72,6 +72,11 @@
     shell: /bin/sh
     group: www-data
 
+- name: Change bigs home owner where git needs to be cloned to root to not get dubious ownership error
+  file:
+    path: "{{ bioit_bigs_home }}"
+    owner: root
+
 - name: Get updated files from git repository
   git:
     repo: "https://{{bioit_git_ro_user}}:{{ secret_bioit_git_ro_password }}@{{bioit_git_server}}/bigsdb/bigsdb.git"
@@ -79,6 +84,11 @@
     version: "{{ branch }}"
     force: true
   tags: gitupdate
+
+- name: Change git cloned repo owner to bigsdb for it to be able to write the distance matrix here
+  file:
+    path: "{{ bioit_bigs_home }}"
+    owner: bigsdb
 
 - name: Change Mongo dtap version in config based on playbook argument
   lineinfile:
@@ -288,32 +298,44 @@
 
 - name: setup temporary dir
   block:
+    - name: change temp dir in bigsdb config file
+      lineinfile:
+        path: "/etc/bigsdb/bigsdb.conf"
+        regexp: 'secure_tmp_dir=/var/tmp'
+        line: 'secure_tmp_dir=/temp_bigs'
+
+    - name: adapt right for temp_bigs
+      ansible.builtin.file:
+        path: /temp_bigs
+        state: directory
+        mode: 0777
+
     - name: create tmp dir
       ansible.builtin.file:
-        path: /var/www/tmp
-        state: directory
-        mode: "u=rwx,g=rwx,o=rwx"
-        owner: www-data
+        src: /temp_bigs
+        dest: /var/www/tmp
+        state: link
 
     - name: symlink tmp dir
       ansible.builtin.file:
-        src: /var/www/tmp
+        src: /temp_bigs
         dest: /var/www/html/tmp
         state: link
+  tags: temp_dir_bigs
 
-    - name: Touch bigsdb log
-      ansible.builtin.file:
-        path: /var/log/bigsdb.log
-        state: touch
-        mode: "u=rw,g=rw,o=r"
-        owner: www-data
+- name: Touch bigsdb log
+  ansible.builtin.file:
+    path: /var/log/bigsdb.log
+    state: touch
+    mode: "u=rw,g=rw,o=r"
+    owner: www-data
 
-    - name: Touch bigsdb_scripts.log
-      ansible.builtin.file:
-        path: /var/log/bigsdb_scripts.log
-        state: touch
-        mode: "u=rw,g=rw,o=rw"
-        owner: bigsdb
+- name: Touch bigsdb_scripts.log
+  ansible.builtin.file:
+    path: /var/log/bigsdb_scripts.log
+    state: touch
+    mode: "u=rw,g=rw,o=rw"
+    owner: bigsdb
 
 - name: setup offline jobs
   block:
@@ -483,6 +505,21 @@
         owner: root
         group: root
         remote_src: yes
+
+    - name: adapt tmp dir in cleaning cronjob
+      replace:
+        path: '/etc/cron.daily/periodically_remove_temporary_files'
+        regexp: "{{ item }}"
+        replace: /temp_bigs/
+      loop:
+        - { to_found: "\/var\/tmp/" }
+        - { to_found: \/var\/www\/tmp\/ }
+
+    - name: chmod cron job
+      ansible.builtin.file:
+        path: '/etc/cron.daily/periodically_remove_temporary_files'
+        mode: '0755'
+  tags: cron_jobs
 
 - name: setup GrapeTree
   tags: installgt
@@ -801,21 +838,6 @@
     state: directory
     owner: root
     mode: 0777
-
-- name: adapt tmp dir for BIGSdb
-  block:
-    - name: change temp dir in bigsdb config file
-      lineinfile:
-        path: "/etc/bigsdb/bigsdb.conf"
-        regexp: 'secure_tmp_dir=/var/tmp'
-        line: 'secure_tmp_dir=/temp_bigs'
-
-    - name: adapt right for temp_bigs
-      ansible.builtin.file:
-        path: /temp_bigs
-        state: directory
-        mode: 0777
-  tags: temp_dir_bigs
 
 - name: create galaxy user
   block:
