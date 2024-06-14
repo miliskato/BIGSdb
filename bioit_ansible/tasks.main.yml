@@ -519,6 +519,26 @@
       ansible.builtin.file:
         path: '/etc/cron.daily/periodically_remove_temporary_files'
         mode: '0755'
+
+    - name: add daily cronjob for temporary alerts implementation
+      cron:
+        name: "temporary_alerts_implementation"
+        minute: '0'
+        hour: '12'
+        weekday: '*'
+        job: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_mongodb_scripts/mongo_to_bigs_temporary_alerts_implementation.py --species {{ species }}"
+        user: 'bigsdb'
+        cron_file: temporary_alerts_implementation
+
+    - name: add hourly cronjob for mongo to bigs
+      cron:
+        name: "mongo_to_bigs_hourly"
+        minute: '0'
+        hour: '*/1'  # every hour
+        weekday: '*'
+        job: "/usr/bin/flock -n /tmp/mongo_to_bigs_hourly.lockfile {{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_mongodb_scripts/mongo_to_bigs.py --species {{ species }} --uploader_mail_address bioit@sciensano.be"
+        user: 'bigsdb'
+        cron_file: mongo_to_bigs_hourly
   tags: cron_jobs
 
 - name: setup GrapeTree
@@ -805,7 +825,7 @@
             - "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_bigsdb_scripts/Typing_loci_intopsql.py --species {{ species }}"
             - "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_bigsdb_scripts/Typing_alleles_intopsql.py --species {{ species }}"
             - "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_bigsdb_scripts/Typing_schemeprofiles_intopsql.py --species {{ species }}"
-            - "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_bigsdb_scripts/genedetection_intopsql.py --species {{ species }}"
+            - "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_bigsdb_scripts/genedetection_intopsql.py --species {{ species }} --do_not_recalculate"
           tags: pop_db
 
 - name: setup reports and symlinks
