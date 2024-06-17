@@ -27,20 +27,25 @@ def _parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     argument_parser = argparse.ArgumentParser()
     argument_parser.add_argument('--species', required=False, type=str,
                                  choices=specieslist, default=specieslist, nargs='+')  # this does allow for the same species multiple times but doesnt really matter, theyre uniquely filtered using set()
+    argument_parser.add_argument('--do_not_recalculate', required=False, action='store_true', default=False)  # Since 2024/03/29 this script accesses Mongo directly to recalculate, in some instances mongo is not instantiated yet when this script is called (moving from local to Azure), requiring the ability to disable the recalculation
     return argument_parser.parse_args()
 
 
 class GeneDetectionIntoPsql:
     """
-    Initialises the class and runs the main function.
-    See also argparse function for variables and their requiredness.
-    :param species: commonly used bioit species name: either genus or specific like stec
-    :param bigsdb_config_data: the config data containing all configuration settings for bigsdb
-    :return: None
+    Class containing function to insert gene detection loci and alleles and update them (weekly)
     """
-    def __init__(self, bigsdb_config_data: Dict[str, Any], species: str) -> None:
+
+    def __init__(self, bigsdb_config_data: Dict[str, Any], species: str, do_not_recalculate: bool) -> None:
+        """
+        Initialises this class and executes the main function: _gene_detection_insertion_and_recalculation
+        :param bigsdb_config_data: the bigsdb config data
+        :param species: commonly used bioit species name: either genus or specific like stec.
+        :param do_not_recalculate: Whether the recalculation step should be skipped or not.
+        """
         self._bigsdb_config_data = bigsdb_config_data
         self._species = species
+        self._do_not_recalculate = do_not_recalculate
         self._schemedict: Dict[str, Any] = self._bigsdb_config_data['species'][self._species]['genedetection_schemes']
         self._gene_detection_insertion_and_recalculation()
         self._eavhtmltable = None
@@ -61,7 +66,8 @@ class GeneDetectionIntoPsql:
 
                 self.__update_locus_descriptions()
 
-                self.__recalculate_allele_designations()
+                if not self._do_not_recalculate:
+                    self.__recalculate_allele_designations()
 
     def __create_necessary_dictionaries(self) -> None:
         """
@@ -219,7 +225,7 @@ if __name__ == '__main__':
 
     try:
         for species in set(args.species):
-            GeneDetectionIntoPsql(bigsdb_config_data, species)
+            GeneDetectionIntoPsql(bigsdb_config_data, species, args.do_not_recalculate)
     except Exception as exceptionmessage:
         send_email(f"{exceptionmessage}\n{traceback.format_exc()}")
         raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}")
