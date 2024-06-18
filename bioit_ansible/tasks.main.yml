@@ -72,10 +72,16 @@
     shell: /bin/sh
     group: www-data
 
+- name: Check if folder /home/bigsdb/BIGSdb already exists
+  stat:
+    path: "{{ bioit_bigs_home }}"
+  register: folder_stat
+
 - name: Change bigs home owner where git needs to be cloned to root to not get dubious ownership error
   file:
     path: "{{ bioit_bigs_home }}"
     owner: root
+  when: folder_stat.stat.exists and folder_stat.stat.isdir
 
 - name: Get updated files from git repository
   git:
@@ -298,32 +304,44 @@
 
 - name: setup temporary dir
   block:
+    - name: change temp dir in bigsdb config file
+      lineinfile:
+        path: "/etc/bigsdb/bigsdb.conf"
+        regexp: 'secure_tmp_dir=/var/tmp'
+        line: 'secure_tmp_dir=/temp_bigs'
+
+    - name: adapt right for temp_bigs
+      ansible.builtin.file:
+        path: /temp_bigs
+        state: directory
+        mode: 0777
+
     - name: create tmp dir
       ansible.builtin.file:
-        path: /var/www/tmp
-        state: directory
-        mode: "u=rwx,g=rwx,o=rwx"
-        owner: www-data
+        src: /temp_bigs
+        dest: /var/www/tmp
+        state: link
 
     - name: symlink tmp dir
       ansible.builtin.file:
-        src: /var/www/tmp
+        src: /temp_bigs
         dest: /var/www/html/tmp
         state: link
+  tags: temp_dir_bigs
 
-    - name: Touch bigsdb log
-      ansible.builtin.file:
-        path: /var/log/bigsdb.log
-        state: touch
-        mode: "u=rw,g=rw,o=r"
-        owner: www-data
+- name: Touch bigsdb log
+  ansible.builtin.file:
+    path: /var/log/bigsdb.log
+    state: touch
+    mode: "u=rw,g=rw,o=r"
+    owner: www-data
 
-    - name: Touch bigsdb_scripts.log
-      ansible.builtin.file:
-        path: /var/log/bigsdb_scripts.log
-        state: touch
-        mode: "u=rw,g=rw,o=rw"
-        owner: bigsdb
+- name: Touch bigsdb_scripts.log
+  ansible.builtin.file:
+    path: /var/log/bigsdb_scripts.log
+    state: touch
+    mode: "u=rw,g=rw,o=rw"
+    owner: bigsdb
 
 - name: setup offline jobs
   block:
@@ -494,6 +512,20 @@
         group: root
         remote_src: yes
 
+    - name: adapt tmp dir in cleaning cronjob
+      replace:
+        path: '/etc/cron.daily/periodically_remove_temporary_files'
+        regexp: "{{ item }}"
+        replace: /temp_bigs/
+      loop:
+        - \/var\/tmp/
+        - \/var\/www\/tmp\/
+
+    - name: chmod cron job
+      ansible.builtin.file:
+        path: '/etc/cron.daily/periodically_remove_temporary_files'
+        mode: '0755'
+
     - name: add daily cronjob for temporary alerts implementation
       cron:
         name: "temporary_alerts_implementation"
@@ -513,6 +545,18 @@
         job: "/usr/bin/flock -n /tmp/mongo_to_bigs_hourly.lockfile {{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_mongodb_scripts/mongo_to_bigs.py --species {{ species }} --uploader_mail_address bioit@sciensano.be"
         user: 'bigsdb'
         cron_file: mongo_to_bigs_hourly
+
+    - name: add hourly cronjob to check killed pid
+      cron:
+        name: "check_jobs_killed"
+        minute: '0'
+        hour: '*/1'  # every hour
+        weekday: '*'
+        job: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_bigsdb_scripts/check_jobs_killed.py"
+        user: 'root'
+        cron_file: check_jobs_killed
+
+  tags: cron_jobs
 
 - name: setup GrapeTree
   tags: installgt
@@ -924,6 +968,13 @@
         mode: 0644
         owner: bigsdb
       tags: isolates_touch
+
+    - name: chmod scractch folder (currently to open)
+      ansible.builtin.file:
+        path: /scratch
+        owner: root
+        group: root
+        mode: 0755
 
     - debug: msg="TODO manually; copy the private key to the right galaxy host manually in /home/galaxy/.ssh, chmod 0600 it !"
   tags: gal_user

@@ -233,7 +233,11 @@ class PsqlQueries():
         VALUES((SELECT MAX(id::int) FROM submissions), 1, %s, %s);"""
     ISO_SEL_ALL_TB_ISOSUBISO_VAR_SUBID: Final[str] = """
         SELECT * FROM isolate_submission_isolates WHERE submission_id=%s;"""
-
+    # TBL jobs
+    JOB_SEL_PID_STARTED_JOBS_TB_JOBS: Final[str] = """
+        SELECT pid, module, stage FROM jobs WHERE status = 'started' ;"""
+    JOBS_SET_FAILED_STATUS: Final[str] = """
+        UPDATE jobs SET status = 'failed' WHERE pid = %s;"""
     # TBL loci
     ISO_INS__TB_LOCI_VAR_LOCUS_DBNAME_DBID_URL: Final[str] = """
         INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, dbase_name, dbase_id, 
