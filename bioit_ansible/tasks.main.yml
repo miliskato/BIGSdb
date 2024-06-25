@@ -693,7 +693,7 @@
         state: link
 
     - name: symlink reports /results/dtap exists
-      stat:
+      ansible.builtin.file:
         src: /reports
         path: "/results/{{ mongo_dtap }}"
         state: link
