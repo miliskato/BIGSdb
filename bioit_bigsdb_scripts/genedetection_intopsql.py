@@ -159,7 +159,7 @@ class GeneDetectionIntoPsql:
                     report_name = Path(report_dir).name
                     html_scheme_name = self._schemedict[self._scheme]['schemename_html']
                     url = f'/galaxyreports/{self._species}/{report_name}/report.html#{html_scheme_name}'
-                    if not self._scheme.endswith('vfdbcore'):
+                    if not self._scheme.endswith('vfdbcore') and not self._scheme.endswith('virulencefinder'):
                         self._eavhtmltable = '<style>table.nice { text-align: center; border-spacing:0 }table.nice tr:nth-child(n+3) {background: #E4EFF3}table.nice tr:nth-child(2n+3) {background: #C1E6F3}</style>'
                         self._eavhtmltable += f'<table class="data nice"><tr><th>GeneCluster</th><th>Locus</th></tr>'
                         self._eavhtmltable += f'<tr align="left"><td colspan="4"><a href="{url}" target="_blank">Full report</a></td></tr>'
@@ -172,7 +172,7 @@ class GeneDetectionIntoPsql:
                         for y in range(len(hits)):
                             hit = '_'.join([hits[y]['Accession'], hits[y]['Locus']])
                             clusterhit = self._clusterdict[hit]
-                            if not self._scheme.endswith('vfdbcore'):
+                            if not self._scheme.endswith('vfdbcore') and not self._scheme.endswith('virulencefinder'):
                                 self.___append_to_htmltable(hits[y], clusterhit)
 
                             if clusterhit not in clusterhitset:

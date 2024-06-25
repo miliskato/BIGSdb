@@ -179,7 +179,7 @@ class MongoToBigs:
             jsonfile = Path(f"{mongo_config_data.get('temp_dir')}/{document_id}_temp.json")
             with jsonfile.open('w') as handle:
                 handle.write(json.dumps(document['results']))
-            MainResultsInserter(document_id, self._uploader_mail_address, self._species, results_type, jsonfilepath=jsonfile, report_access=document['report_directory'])
+            MainResultsInserter(document_id, self._uploader_mail_address, self._species, results_type, jsonfilepath=jsonfile, report_access=document['report_directory'], mongo_dtap=self._mongo_config_data['dtap'] )
             jsonfile.unlink()
             fasta_name = Path(document['fasta_path']).name
             fasta_dir = Path(document['report_directory']) / 'assembly' / fasta_name
@@ -253,7 +253,7 @@ class MongoToBigs:
             mongo_results_changed_version_bigs = 1
         else:
             mongo_results_changed_version_bigs = int(mongo_results_changed_version_bigs_query[0][0])
-        if convert_dmyhms_to_dateobj(document['results']['analysis_date']) > latest_analysis_date_bigs:
+        if convert_dmyhms_to_dateobj(document['results']['analysis_date']) > latest_analysi0909s_date_bigs:
             new_results = document['results']
             if new_results['changed_version'] == int(mongo_results_changed_version_bigs):
                 # results are same so do nothing

@@ -40,7 +40,7 @@ def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
 
 
 class MainResultsInserter:
-    def __init__(self, isolatename: str, uploader_mail_address: str, species: str, results_type: str, report_access: str,
+    def __init__(self, isolatename: str, uploader_mail_address: str, species: str, results_type: str, report_access: str, mongo_dtap: str,
                  jsonfilepath: Optional[Path] = None, tsvfilepath: Optional[Path] = None) -> None:
         """
         Initialises the class and runs the main function.
@@ -50,6 +50,7 @@ class MainResultsInserter:
         :param species: commonly used bioit species name: either genus or specific like stec
         :param results_type: results of sample
         :param report_access: report_directory from MongoDB
+        :param mongo_dtap: dtap from mongo config
         :param jsonfilepath: Path of the input json file
         :param tsvfilepath: Path of the input tsv file
         :return: None
@@ -60,6 +61,7 @@ class MainResultsInserter:
         self._species = species
         self._results_type = results_type
         self._report_access = report_access
+        self._mongo_dtap = mongo_dtap
         self._jsonfilepath = jsonfilepath
         self._tsvfilepath = tsvfilepath
 
@@ -92,7 +94,7 @@ class MainResultsInserter:
         # fail safe mechanism uses a flagfile to lock the isolate insertion and checks whether the previous insertion of the isolate succeeded.
         with TblIsolates(self._species) as isolates_psql_tbl:
             self.__fail_safe_mechanism(sample_output_dict['analysis_date'], isolates_psql_tbl)
-        maininserter = MainInserter(self._isolatename, self._species, sample_output_dict, self._bigsdb_config_data, self._report_access)
+        maininserter = MainInserter(self._isolatename, self._species, sample_output_dict, self._bigsdb_config_data, self._report_access, self._mongo_dtap)
         if self._results_type == 'new_isolate':
             maininserter.insert_new_isolate(self._uploader_mail_address)
         elif self._results_type == 'reanalysis':
