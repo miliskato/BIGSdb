@@ -390,174 +390,6 @@
         dest: /var/www/submissions
         state: link
 
-- name: setup cron
-  block:
-    - name: Add crontrab entry for bigsjobs
-      cron:
-        name: "bigsjobs.pl"
-        minute: '*/1'        # every minute
-        hour: '*'
-        weekday: '*'
-        job: 'xvfb-run -a /usr/local/bin/bigsjobs.pl'
-        user: 'bigsdb'
-        cron_file: bigsdb_jobs
-
-    - name: Add crontrab entry for galaxy tool output into BIGSdb
-      cron:
-        name: "cron_startinsertion.sh"
-        minute: '*/1'         # every minute
-        hour: '*'
-        weekday: '*'
-        job: 'bash /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/cron_startinsertion.sh'
-        user: 'root'
-        cron_file: bigsdb_galaxy
-
-    - name: Add crontrab entry for galaxy tool output into mongoDB
-      cron:
-        name: "cron_startinsertion_mongo_implementation.sh"
-        minute: '*/10'         # every 10 minutes
-        hour: '*'
-        weekday: '*'
-        job: 'bash /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/cron_startinsertion_mongo_implementation.sh'
-        user: 'root'
-        cron_file: mongo_galaxy
-      tags: cron_mongo
-
-    - name: Add crontrab entry for bigsdb upload tool
-      cron:
-        name: "cron_startinsertion_lab_metadata.sh"
-        minute: '*/2'         # every 2 minute
-        hour: '*'
-        weekday: '*'
-        job: 'bash /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/cron_startinsertion_lab_metadata.sh'
-        user: 'bigsdb'
-        cron_file: bigsdb_upload
-      tags: bigs_upload_cron
-
-    - name: Adapt specie in bash script related to bigsdb upload
-      lineinfile:
-        path: "{{ bioit_bigs_home }}/bioit_bigsdb_scripts/cron_startinsertion_lab_metadata.sh"
-        regexp: "--species to_be_replace_by_ansible"
-        line: "/home/bigsdb/BIGSdb/3.9PythonVenv/bin/python3.9 /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/components/metadata_insertion_from_bigs.py --species {{ species }} "
-      tags: bigs_upload_cron
-
-    - name: Add crontrab entry for global db
-      cron:
-        name: "sync_user_dbase_users.pl"
-        minute: '*/5'       # every 5 minutes
-        hour: '*'
-        weekday: '*'
-        job: 'perl /usr/local/bin/sync_user_dbase_users.pl --user_database pubmlst_bigsdb_users'
-        user: 'bigsdb'
-        cron_file: sync_globalbigsdbusers
-
-    - name: Add crontrab entry for hash replacer  # needs to run before database updates in bigs (and after automated cfr Bert)
-      cron:
-        name: "crontab for tempid_replacer"
-        minute: '0'
-        hour: '6'
-        weekday: '0'       # sunday morning
-        job: "{{ item.command }}"
-        user: 'bigsdb'
-        cron_file: "{{ item.filename }}"
-      loop: "{{ list_cron|flatten(levels=1) }}"
-      vars:
-        list_cron:
-          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}//bioit_mongodb_scripts/tempid_replacer.py --scheme cgmlst --species {{ species }}",
-              filename: "{{ species }}_tempid_replacer_cgmlst" }
-          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}//bioit_mongodb_scripts/tempid_replacer.py --scheme mlst --species {{ species }}",
-              filename: "{{ species }}_tempid_replacer_mlst" }
-          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}//bioit_mongodb_scripts/tempid_replacer.py --scheme mlst_warwick --species {{ species }}",
-              filename: "{{ species }}_tempid_replacer_mlst_warwick" }
-          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}//bioit_mongodb_scripts/tempid_replacer.py --scheme mlst_pasteur --species {{ species }}",
-              filename: "{{ species }}_tempid_replacer_mlst_pasteur" }
-
-    - name: Add crontrab entry for database updates
-      cron:
-        name: "crontab for weekly database updates"
-        minute: '00'
-        hour: '7'
-        weekday: '0'       # sunday morning
-        job: "{{ item.command }}"
-        user: 'bigsdb'
-        cron_file: "{{ item.filename }}"
-      loop: "{{ list_cron|flatten(levels=1) }}"
-      vars:
-        list_cron:
-          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_bigsdb_scripts/Typing_alleles_intopsql.py --species {{ species }}",
-              filename: "{{ species }}_alleles_intopsql" }
-          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_bigsdb_scripts/genedetection_intopsql.py --species {{ species }}",
-              filename: "{{ species }}_genedetection_intopsql" }
-
-    - name: Add crontrab entry for database updates
-      cron:
-        name: "crontab for weekly database updates, profiles 30 minutes later than sequences"
-        minute: '30'
-        hour: '7'
-        weekday: '0'       # sunday morning
-        job: "{{ item.command }}"
-        user: 'bigsdb'
-        cron_file: "{{ item.filename }}"
-      loop: "{{ list_cron|flatten(levels=1) }}"
-      vars:
-        list_cron:
-          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_bigsdb_scripts/Typing_schemeprofiles_intopsql.py --species {{ species }}",
-              filename: "{{ species }}_schemeprofiles_intopsql" }
-
-    - name: add daily cronjob
-      ansible.builtin.copy:
-        src: "{{ bioit_bigs_home }}/cron/cron.daily/periodically_remove_temporary_files"
-        dest: /etc/cron.daily/
-        owner: root
-        group: root
-        remote_src: yes
-
-    - name: adapt tmp dir in cleaning cronjob
-      replace:
-        path: '/etc/cron.daily/periodically_remove_temporary_files'
-        regexp: "{{ item }}"
-        replace: /temp_bigs/
-      loop:
-        - \/var\/tmp/
-        - \/var\/www\/tmp\/
-
-    - name: chmod cron job
-      ansible.builtin.file:
-        path: '/etc/cron.daily/periodically_remove_temporary_files'
-        mode: '0755'
-
-    - name: add daily cronjob for temporary alerts implementation
-      cron:
-        name: "temporary_alerts_implementation"
-        minute: '0'
-        hour: '12'
-        weekday: '*'
-        job: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_mongodb_scripts/mongo_to_bigs_temporary_alerts_implementation.py --species {{ species }}"
-        user: 'bigsdb'
-        cron_file: temporary_alerts_implementation
-
-    - name: add hourly cronjob for mongo to bigs
-      cron:
-        name: "mongo_to_bigs_hourly"
-        minute: '0'
-        hour: '*/1'  # every hour
-        weekday: '*'
-        job: "/usr/bin/flock -n /tmp/mongo_to_bigs_hourly.lockfile {{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_mongodb_scripts/mongo_to_bigs.py --species {{ species }} --uploader_mail_address bioit@sciensano.be"
-        user: 'bigsdb'
-        cron_file: mongo_to_bigs_hourly
-
-    - name: add hourly cronjob to check killed pid
-      cron:
-        name: "check_jobs_killed"
-        minute: '0'
-        hour: '*/1'  # every hour
-        weekday: '*'
-        job: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_bigsdb_scripts/check_jobs_killed.py"
-        user: 'root'
-        cron_file: check_jobs_killed
-
-  tags: cron_jobs
-
 - name: setup GrapeTree
   tags: installgt
   block:
@@ -849,7 +681,7 @@
   block:
     - name: create species dir
       ansible.builtin.file:
-        path: "/reports/{{ species}}"
+        path: "/reports/{{ species }}"
         state: directory
         mode: "u=rwx,g=rwx,o=rx"
         owner: www-data
@@ -859,6 +691,13 @@
         src: /reports
         dest: /var/www/html/galaxyreports
         state: link
+
+    - name: symlink reports /results/dtap exists
+      stat:
+        src: /reports
+        path: "/results/{{ mongo_dtap }}"
+        state: link
+
   tags: set_symlink
 
 - name: Restart service rest after all other steps
@@ -890,6 +729,174 @@
         state: directory
         mode: 0777
   tags: temp_dir_bigs
+
+- name: setup cron
+  block:
+    - name: Add crontrab entry for bigsjobs
+      cron:
+        name: "bigsjobs.pl"
+        minute: '*/1'        # every minute
+        hour: '*'
+        weekday: '*'
+        job: 'xvfb-run -a /usr/local/bin/bigsjobs.pl'
+        user: 'bigsdb'
+        cron_file: bigsdb_jobs
+
+    - name: Add crontrab entry for galaxy tool output into BIGSdb
+      cron:
+        name: "cron_startinsertion.sh"
+        minute: '*/1'         # every minute
+        hour: '*'
+        weekday: '*'
+        job: 'bash /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/cron_startinsertion.sh'
+        user: 'root'
+        cron_file: bigsdb_galaxy
+
+    - name: Add crontrab entry for galaxy tool output into mongoDB
+      cron:
+        name: "cron_startinsertion_mongo_implementation.sh"
+        minute: '*/10'         # every 10 minutes
+        hour: '*'
+        weekday: '*'
+        job: 'bash /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/cron_startinsertion_mongo_implementation.sh'
+        user: 'root'
+        cron_file: mongo_galaxy
+      tags: cron_mongo
+
+    - name: Add crontrab entry for bigsdb upload tool
+      cron:
+        name: "cron_startinsertion_lab_metadata.sh"
+        minute: '*/2'         # every 2 minute
+        hour: '*'
+        weekday: '*'
+        job: 'bash /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/cron_startinsertion_lab_metadata.sh'
+        user: 'bigsdb'
+        cron_file: bigsdb_upload
+      tags: bigs_upload_cron
+
+    - name: Adapt specie in bash script related to bigsdb upload
+      lineinfile:
+        path: "{{ bioit_bigs_home }}/bioit_bigsdb_scripts/cron_startinsertion_lab_metadata.sh"
+        regexp: "--species to_be_replace_by_ansible"
+        line: "/home/bigsdb/BIGSdb/3.9PythonVenv/bin/python3.9 /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/components/metadata_insertion_from_bigs.py --species {{ species }} "
+      tags: bigs_upload_cron
+
+    - name: Add crontrab entry for global db
+      cron:
+        name: "sync_user_dbase_users.pl"
+        minute: '*/5'       # every 5 minutes
+        hour: '*'
+        weekday: '*'
+        job: 'perl /usr/local/bin/sync_user_dbase_users.pl --user_database pubmlst_bigsdb_users'
+        user: 'bigsdb'
+        cron_file: sync_globalbigsdbusers
+
+    - name: Add crontrab entry for hash replacer  # needs to run before database updates in bigs (and after automated cfr Bert)
+      cron:
+        name: "crontab for tempid_replacer"
+        minute: '0'
+        hour: '6'
+        weekday: '0'       # sunday morning
+        job: "{{ item.command }}"
+        user: 'bigsdb'
+        cron_file: "{{ item.filename }}"
+      loop: "{{ list_cron|flatten(levels=1) }}"
+      vars:
+        list_cron:
+          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}//bioit_mongodb_scripts/tempid_replacer.py --scheme cgmlst --species {{ species }}",
+              filename: "{{ species }}_tempid_replacer_cgmlst" }
+          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}//bioit_mongodb_scripts/tempid_replacer.py --scheme mlst --species {{ species }}",
+              filename: "{{ species }}_tempid_replacer_mlst" }
+          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}//bioit_mongodb_scripts/tempid_replacer.py --scheme mlst_warwick --species {{ species }}",
+              filename: "{{ species }}_tempid_replacer_mlst_warwick" }
+          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}//bioit_mongodb_scripts/tempid_replacer.py --scheme mlst_pasteur --species {{ species }}",
+              filename: "{{ species }}_tempid_replacer_mlst_pasteur" }
+
+    - name: Add crontrab entry for database updates
+      cron:
+        name: "crontab for weekly database updates"
+        minute: '00'
+        hour: '7'
+        weekday: '0'       # sunday morning
+        job: "{{ item.command }}"
+        user: 'bigsdb'
+        cron_file: "{{ item.filename }}"
+      loop: "{{ list_cron|flatten(levels=1) }}"
+      vars:
+        list_cron:
+          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_bigsdb_scripts/Typing_alleles_intopsql.py --species {{ species }}",
+              filename: "{{ species }}_alleles_intopsql" }
+          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_bigsdb_scripts/genedetection_intopsql.py --species {{ species }}",
+              filename: "{{ species }}_genedetection_intopsql" }
+
+    - name: Add crontrab entry for database updates
+      cron:
+        name: "crontab for weekly database updates, profiles 30 minutes later than sequences"
+        minute: '30'
+        hour: '7'
+        weekday: '0'       # sunday morning
+        job: "{{ item.command }}"
+        user: 'bigsdb'
+        cron_file: "{{ item.filename }}"
+      loop: "{{ list_cron|flatten(levels=1) }}"
+      vars:
+        list_cron:
+          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_bigsdb_scripts/Typing_schemeprofiles_intopsql.py --species {{ species }}",
+              filename: "{{ species }}_schemeprofiles_intopsql" }
+
+    - name: add daily cronjob
+      ansible.builtin.copy:
+        src: "{{ bioit_bigs_home }}/cron/cron.daily/periodically_remove_temporary_files"
+        dest: /etc/cron.daily/
+        owner: root
+        group: root
+        remote_src: yes
+
+    - name: adapt tmp dir in cleaning cronjob
+      replace:
+        path: '/etc/cron.daily/periodically_remove_temporary_files'
+        regexp: "{{ item }}"
+        replace: /temp_bigs/
+      loop:
+        - \/var\/tmp/
+        - \/var\/www\/tmp\/
+
+    - name: chmod cron job
+      ansible.builtin.file:
+        path: '/etc/cron.daily/periodically_remove_temporary_files'
+        mode: '0755'
+
+    - name: add daily cronjob for temporary alerts implementation
+      cron:
+        name: "temporary_alerts_implementation"
+        minute: '0'
+        hour: '12'
+        weekday: '*'
+        job: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_mongodb_scripts/mongo_to_bigs_temporary_alerts_implementation.py --species {{ species }}"
+        user: 'bigsdb'
+        cron_file: temporary_alerts_implementation
+
+    - name: add hourly cronjob for mongo to bigs
+      cron:
+        name: "mongo_to_bigs_hourly"
+        minute: '0'
+        hour: '*/1'  # every hour
+        weekday: '*'
+        job: "/usr/bin/flock -n /tmp/mongo_to_bigs_hourly.lockfile {{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_mongodb_scripts/mongo_to_bigs.py --species {{ species }} --uploader_mail_address bioit@sciensano.be"
+        user: 'bigsdb'
+        cron_file: mongo_to_bigs_hourly
+
+    - name: add hourly cronjob to check killed pid
+      cron:
+        name: "check_jobs_killed"
+        minute: '0'
+        hour: '*/1'  # every hour
+        weekday: '*'
+        job: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_bigsdb_scripts/check_jobs_killed.py"
+        user: 'root'
+        cron_file: check_jobs_killed
+
+  tags: cron_jobs
 
 - name: create galaxy user
   block:
