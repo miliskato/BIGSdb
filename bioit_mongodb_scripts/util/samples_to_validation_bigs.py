@@ -11,7 +11,7 @@ sys.path.append(str(PYTHONPATH))
 
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_bigsdb_scripts.components.psql import TblSubmissions, TblIsolateSubmissionIsolates, \
-    TblIsolateSubmissionFieldOrder
+    TblIsolateSubmissionFieldOrder, TblMappingTable
 
 
 def _insert_submission_bigs(sample_docs: List[Dict[str, Any]], validation_type: str, species: str) -> None:
@@ -24,11 +24,13 @@ def _insert_submission_bigs(sample_docs: List[Dict[str, Any]], validation_type: 
     """
     with TblSubmissions(species) as isolates_sub_psql_tbl, \
             TblIsolateSubmissionIsolates(species) as isolates_isosubiso_psql_tbl, \
-            TblIsolateSubmissionFieldOrder(species) as isolates_isosubfo_psql_tbl:
+            TblIsolateSubmissionFieldOrder(species) as isolates_isosubfo_psql_tbl, \
+            TblMappingTable(species) as isolates_mapping_psql_tbl:
         for doc in sample_docs:
+            pseudo_id = isolates_mapping_psql_tbl.select_pseudoid_for_isolate((doc['_id'],))[0][0]
             isolates_sub_psql_tbl.insert_submission((validation_type,))
             api_button = f"""
-            <button onclick="get_jwt_report('no', '{validation_type}', '{doc['_id']}', '{species }', '{doc['latest_analysis_date']}')" class='small_submit'>Get report preview</button>
+            <button onclick="get_jwt_report('no', '{validation_type}', '{doc['_id']}', '{pseudo_id}', '{species }', '{doc['latest_analysis_date']}')" class='small_submit'>Get report preview</button>
             """
             isolates_isosubiso_psql_tbl.insert_validation_metadata(('html_report', api_button))
             isolates_isosubiso_psql_tbl.insert_validation_metadata(('isolate_id', doc['_id']))

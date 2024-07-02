@@ -576,6 +576,12 @@ sub print_page_content {
 				script => $javascript
 			}
 		);
+		# <body> start is printed at the end of _start_html, therefore we print the pseudo_id right after
+		# the function print_pseudo_id is only available on the IsolateInfoPage.pm, the code below checks if it exists (if IsolateInfoPage is making use of Page) and if it exists, then executes it
+		if (my $print_pseudo_id = $self->can('print_pseudo_id')) {
+            # Call the method if it exists
+            $self->$print_pseudo_id();
+        }
 		my $max_width            = $self->{'config'}->{'page_max_width'} // PAGE_MAX_WIDTH;
 		my $main_max_width       = $max_width - 15;
 		my $main_container_class = $self->{'login'} ? q( main_container_login) : q();
@@ -623,6 +629,7 @@ sub _start_html {
 		my $refresh_page = $self->{'refresh_page'} ? qq(; URL=$self->{'refresh_page'}) : q();
 		say qq(<meta http-equiv="refresh" content="$self->{'refresh'}$refresh_page" />);
 	}
+	say q(<meta name="pseudo_id" content="replacedbyisolateinfopagepm" />);
 	if ($meta) {
 		say $meta;
 	}
