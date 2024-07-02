@@ -176,10 +176,10 @@ class MongoToBigs:
                 # add validation metadata to results in order to be able to insert them into BIGSdb
                 document['results']['validation'] = document['validation']
             document = self._mongoquerying.revert_typinghitlists_to_dictionaries(document, self._headers_collection)
-            jsonfile = Path(f"{mongo_config_data.get('temp_dir')}/{document_id}_temp.json")
+            jsonfile = Path(f"{self._mongo_config_data.get('temp_dir')}/{document_id}_temp.json")
             with jsonfile.open('w') as handle:
                 handle.write(json.dumps(document['results']))
-            MainResultsInserter(document_id, self._uploader_mail_address, self._species, results_type, jsonfilepath=jsonfile, report_access=document['report_directory'], mongo_dtap=self._mongo_config_data['dtap'] )
+            MainResultsInserter(document_id, self._uploader_mail_address, self._species, results_type, jsonfilepath=jsonfile, report_access=document['report_directory'], vcf_path=document['vcf_path'], mongo_dtap=self._mongo_config_data['dtap'] )
             jsonfile.unlink()
             fasta_name = Path(document['fasta_path']).name
             fasta_dir = Path(document['report_directory']) / 'assembly' / fasta_name
@@ -224,11 +224,15 @@ class MongoToBigs:
         """
         if self._single_sample_id:
             query_single = self._isolates_collection.find_one({'_id': self._single_sample_id})
-            if query_single is not None:
-                list_of_documents = [query_single]
+            query_badqc = self._isolates_badqc_collection.find_one({'_id': self._single_sample_id})
+            query_reseq = self._isolates_resequencing_collection.find_one({'_id': self._single_sample_id})
+            if (query_single is not None) or (query_badqc is not None) or (query_reseq is not None):
+                list_of_documents = [query_single, query_reseq]
+                while None in list_of_documents:
+                    list_of_documents.remove(None)
             else:
-                send_email(f"Can not find document with _id '{self._single_sample_id}' in isolates")
-                raise Exception(f"Can not find document with _id '{self._single_sample_id}' in isolates")
+                send_email(f"Can not find document with _id '{self._single_sample_id}' in isolates or in badqc-reseq collection")
+                raise Exception(f"Can not find document with _id '{self._single_sample_id}' in isolates or in badqc-reseq collection")
 
         else:
             list_of_documents = list(self._isolates_collection.find())
