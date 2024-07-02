@@ -83,13 +83,13 @@ class SampleValidationToMongo:
         """
         # Connect to db and create cursor
         with TblSubmissions(self._species) as self._isolates_submissions_psql_tbl:
-            query: List[Tuple[Any]] = self._isolates_submissions_psql_tbl.select_closed_submission((self._sub_id,))
+            query: List[Tuple[Any]] = self._isolates_submissions_psql_tbl.select_closed_submission((str(self._sub_id),))
             if query:
                 # retrieve id of the isolate and curator id from BIGSdb
-                isolatename: str = query[0][0]
-                outcome: str = query[0][1]
-                curator_mailadress: str = query[0][2]
-                validation_type: str = query[0][3]
+                isolatename: str = query[0][1]
+                outcome: str = query[0][2]
+                curator_mailadress: str = query[0][3]
+                validation_type: str = query[0][4]
                 results_type = self.__get_results_type(validation_type)
                 # GO into MongoDB
                 validation_dict = {
@@ -98,18 +98,17 @@ class SampleValidationToMongo:
                     'type': results_type.split('_')[0],
                     'date': datetime.datetime.utcnow().strftime('%d/%m/%Y - %X')
                 }
-                if outcome == 'good':
-                    MainMongo(isolatename, self._species, results_type, subvaldict=validation_dict)
-                else:  # outcome == 'bad'
-                    if validation_type == 'bad_quality':
-                        self.__remove_id_from_document_to_be_unique_again_if_bad(self._isolates_badqc_collection,
+                if outcome == 'good' and ( validation_type == 'bad_quality' or validation_type == 'resequencing' ):
+                    MainMongo(isolatename, self._species, results_type, curator_mailadress, subvaldict=validation_dict)
+                elif validation_type == 'bad_quality':  # outcome == 'bad'
+                    self.__remove_id_from_document_to_be_unique_again_if_bad(self._isolates_badqc_collection,
                                                                                  isolatename, validation_dict)
-                    elif validation_type == 'resequencing':
-                        self.__remove_id_from_document_to_be_unique_again_if_bad(self._isolates_resequencing_collection,
+                elif validation_type == 'resequencing':
+                    self.__remove_id_from_document_to_be_unique_again_if_bad(self._isolates_resequencing_collection,
                                                                                  isolatename, validation_dict)
                 # update status once everything is finished
                 self._isolates_submissions_psql_tbl.update_submission((str(self._sub_id),))
-        MongoToBigs(self._species, single_sample_id=isolatename)
+                MongoToBigs(self._species, uploader_mail_address=curator_mailadress, single_sample_id=isolatename)
 
     @staticmethod
     def __get_results_type(validation_type: str) -> str:
