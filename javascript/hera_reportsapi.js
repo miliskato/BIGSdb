@@ -31,7 +31,11 @@ function get_jwt_preview(id, pseudo_id, species, validation_type, res_time, get_
             //     var blob = new Blob([blobContent], { type: 'text/html' });
             //     newWindow.location.href = URL.createObjectURL(blob);
             newWindow.document.body.innerHTML = '';  // in order to clear previous message
-            newWindow.document.write('<script src="/javascript/jquery.min.js"></script>' + '<script src="/javascript/hera_reportsapi.js"></script>' + '<meta name="pseudo_id" content="' + pseudo_id + '" />' + response.replaceAll(pseudo_id, id).replace(/<title>.*?<\/title>/i, "<title>" +id + "</title>")); // todo add onclick here
+            newWindow.document.write('<script src="/javascript/jquery.min.js"></script>' +
+                '<script src="/javascript/hera_reportsapi.js"></script>' +
+                '<meta name="pseudo_id" content="' + pseudo_id + '" />' +
+                '<style> /* Custom link class to enhance default anchor behavior */ .custom-link { color: blue; text-decoration: underline; cursor: pointer; } .custom-link.visited { color: purple; } .custom-link:active { color: red; } </style>' +
+                response.replaceAll(pseudo_id, id).replace(/<title>.*?<\/title>/i, "<title>" +id + "</title>"));
            },
         error:function(){
         var blob = new Blob(['Failure to retrieve the report. Please resubmit the request to start again or submit a ticket to bioit@sciensano if it still fails'], { type: 'text/html' });
