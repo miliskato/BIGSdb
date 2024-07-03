@@ -11,6 +11,7 @@ import traceback
 from pathlib import Path
 from typing import List, Optional
 
+from bioit_mongodb_scripts.util_azure.JSONEncoder import JSONEncoder
 from bioit_mongodb_scripts.util_azure.connect_azure import ConnectAzure
 
 PYTHONPATH = Path(__file__).resolve().parent.parent
@@ -129,7 +130,7 @@ class HtmlreportGeneration:
                 # Dump the required json file
                 jsonfile = Path(dir_temp) / f"{self._technical_id}_temp.json"
                 with jsonfile.open('w') as handle:
-                    handle.write(json.dumps(requested_document['results']))
+                    handle.write(json.dumps(requested_document['results'], cls=JSONEncoder))
 
                 # Create the command to re-analyze the datasets
                 base_command = ' '.join([
