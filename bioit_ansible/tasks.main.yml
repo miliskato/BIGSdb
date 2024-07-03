@@ -367,7 +367,7 @@
         regexp: 'secure_tmp_dir=/var/tmp'
         line: 'secure_tmp_dir=/temp_bigs'
 
-    - name: adapt right for temp_bigs
+    - name: adapt rights for temp_bigs
       ansible.builtin.file:
         path: /temp_bigs
         state: directory
@@ -822,10 +822,10 @@
         cron_file: bigsdb_upload
       tags: bigs_upload_cron
 
-    - name: Adapt species in bash script related to bigsdb upload
+    - name: Adapt specie in bash script related to bigsdb upload
       lineinfile:
         path: "{{ bioit_bigs_home }}/bioit_bigsdb_scripts/cron_startinsertion_lab_metadata.sh"
-        regexp: "--species to_be_replace_dby_ansible"
+        regexp: "--species to_be_replace_by_ansible"
         line: "/home/bigsdb/BIGSdb/3.9PythonVenv/bin/python3.9 /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/components/metadata_insertion_from_bigs.py --species {{ species }} "
       tags: bigs_upload_cron
 
@@ -899,6 +899,20 @@
         owner: root
         group: root
         remote_src: yes
+
+    - name: adapt tmp dir in cleaning cronjob
+      replace:
+        path: '/etc/cron.daily/periodically_remove_temporary_files'
+        regexp: "{{ item }}"
+        replace: /temp_bigs/
+      loop:
+        - \/var\/tmp/
+        - \/var\/www\/tmp\/
+
+    - name: chmod cron job
+      ansible.builtin.file:
+        path: '/etc/cron.daily/periodically_remove_temporary_files'
+        mode: "u=rwx,g=rx,o=rx"
 
     - name: add daily cronjob for temporary alerts implementation
       cron:

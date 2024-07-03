@@ -26,7 +26,7 @@ class DatabaseConnection:
         :return: None
         """
         self._db_type = db_type
-        if self._db_type != 'seqdef' and self._db_type != 'isolates':
+        if self._db_type != 'seqdef' and self._db_type != 'isolates' and self._db_type != 'jobs':
             raise ValueError('no such database type')
         # Read the global config
         bigsdb_config_data = get_bigsdb_config_data()
