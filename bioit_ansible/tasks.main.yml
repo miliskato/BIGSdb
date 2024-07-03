@@ -314,7 +314,7 @@
       ansible.builtin.file:
         path: /temp_bigs
         state: directory
-        mode: 0777
+        mode: "u=rwx,g=rwx,o=rwx"
 
     - name: create tmp dir
       ansible.builtin.file:
@@ -864,7 +864,7 @@
     - name: chmod cron job
       ansible.builtin.file:
         path: '/etc/cron.daily/periodically_remove_temporary_files'
-        mode: '0755'
+        mode: "u=rwx,g=rx,o=rx"
 
     - name: add daily cronjob for temporary alerts implementation
       cron:
@@ -976,7 +976,7 @@
         owner: bigsdb
       tags: isolates_touch
 
-    - name: chmod scractch folder (currently to open)
+    - name: chmod scratch folder (currently too open)
       ansible.builtin.file:
         path: /scratch
         owner: root
