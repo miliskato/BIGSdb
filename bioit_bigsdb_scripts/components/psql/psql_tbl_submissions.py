@@ -24,7 +24,7 @@ class TblSubmissions(DatabaseConnection):
         """
         self.execute_query(PsqlQueries.ISO_INS__TB_SUB_VAR_VALTYPE, param)
 
-    def select_closed_submission(self, param: Tuple[int]) -> List[Optional[Tuple[Union[int, str]]]]:
+    def select_closed_submission(self, param: Tuple[str]) -> List[Optional[Tuple[Union[int, str]]]]:
         """
         Selects all necessary values for closed submissions
         :param param: variables to feed to the PSQL query, which also sanitizes these variables,
