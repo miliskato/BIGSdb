@@ -23,6 +23,7 @@ class DatabaseConnection:
         :param species: commonly used bioit species name: either genus or specific like stec
         :param db_type: seqdef or isolates or jobs
         :param autocommit: if True every operation is done in a separate transaction
+        :return: None
         """
         self._db_type = db_type
         if self._db_type != 'seqdef' and self._db_type != 'isolates' and self._db_type != 'jobs':

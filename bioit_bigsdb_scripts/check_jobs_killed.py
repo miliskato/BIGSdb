@@ -19,7 +19,7 @@ with TblJobs() as jobs_jobs_psql_tbl:
             stage = job_tuple[2]
             if not (psutil.pid_exists(pid)):
                 jobs_jobs_psql_tbl.assigned_failed_status((pid,))
-                send_email(f"💥 Job with PID {pid} was turn to failed status (it was executing stage '{stage}' of '{module}')",
-                           subject=f"BISdb jobs killed on host {socket.gethostname()}")
+                send_email(f"Job with PID {pid} was turned to failed status (it was executing stage '{stage}' of '{module}')",
+                           subject=f"💥 BISdb jobs killed on host {socket.gethostname()}")
     except Exception as e:
         print(e)
