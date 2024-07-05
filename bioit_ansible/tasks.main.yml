@@ -102,6 +102,43 @@
     regexp: 'dbpassword=to_be_replaced_by_ansible'
     line: "dbpassword={{ secret_bioit_bigs_postgresql_apache_password }}"
 
+- name: add azure reportsapi ip to mongodb config
+  lineinfile:
+    path: "{{ bioit_bigs_home }}/bioit_mongodb_scripts/config/config.yml"
+    regexp: 'azure_reportsapi_ip: to_be_replaced_by_ansible'
+    line: "azure_reportsapi_ip: {{ azure_reportsapi_ip }}"
+
+- name: add azure reportsapi ip to galaxy cron tool
+  lineinfile:
+    path: "{{ bioit_bigs_home }}/bioit_bigsdb_scripts/cron_startinsertion_mongo_implementation.sh"
+    regexp: 'AZURE_REPORTSAPI_IP=to_be_replaced_by_ansible'
+    line: "AZURE_REPORTSAPI_IP={{ azure_reportsapi_ip }}"
+
+- name: Change Mongo dtap version in config based on playbook argument
+  lineinfile:
+    path: "{{ bioit_bigs_home }}/bioit_bigsdb_scripts/cron_startinsertion_mongo_implementation.sh"
+    regexp: 'DTAP=to_be_replaced_by_ansible'
+    line: "DTAP={{ mongo_dtap }}"
+
+- name: create bigsdb .ssh directory
+  ansible.builtin.file:
+    dest: '/home/bigsdb/.ssh'
+    mode: 0700
+    owner: bigsdb
+
+- name: Create bigsdb rsa key to connect to azure reportsapi vm
+  ansible.builtin.file:
+    path: /home/bigsdb/.ssh/.id_rsa_reportsapi
+    state: touch
+    mode: "u=rw"
+    owner: bigsdb
+
+- name: Write secret private key to the file, replace literal linebreaks in secret by actual linebreaks
+  copy:
+    dest: /home/bigsdb/.ssh/.id_rsa_reportsapi
+    content: "{{ bigsdb_azure_reportsapi_private_key.replace('\\n', '\n') }}"
+    mode: '0600'
+
 ## perl 5 is installed on Ubuntu by default.
 - name: Install packages
   apt:
