@@ -629,7 +629,6 @@ sub _start_html {
 		my $refresh_page = $self->{'refresh_page'} ? qq(; URL=$self->{'refresh_page'}) : q();
 		say qq(<meta http-equiv="refresh" content="$self->{'refresh'}$refresh_page" />);
 	}
-	say q(<meta name="pseudo_id" content="replacedbyisolateinfopagepm" />);
 	if ($meta) {
 		say $meta;
 	}
