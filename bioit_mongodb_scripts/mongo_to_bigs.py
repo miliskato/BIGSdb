@@ -17,7 +17,7 @@ import os
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
-from bioit_bigsdb_scripts.components.psql import TblIsolates, TblEavTextHidden, TblSequenceBin, TblSeqBinStats, TblSchemes
+from bioit_bigsdb_scripts.components.psql import TblIsolates, TblEavTextHidden, TblMappingTable, TblSequenceBin, TblSeqBinStats, TblSchemes
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data
 from bioit_bigsdb_scripts.insert_assembly import insert_assembly
 from bioit_bigsdb_scripts.main_results_inserter import MainResultsInserter
@@ -72,6 +72,10 @@ class MongoToBigs:
             self._isolates_resequencing_collection = self._mongoinit.initialise_collections()
         self._headers_collection = self._mongoinit.initialise_headers_collection()
         self._mongoquerying = Mongoquerying()
+        # Ope collections local MongoDB
+        self._mongoinit_local = MongoInitialisation(self._species, mongo_config_data=self._mongo_config_data,
+                                                    alternate_connection_string=self._mongo_config_data['CONNECTION_STRING_LOCAL'])
+        self._mappingtable_collection = self._mongoinit_local.initialise_mapping_table_collection()
         # Open Bigsdb isolates table
         self._isolates_psql_tbl = TblIsolates(self._species)
 
@@ -146,12 +150,14 @@ class MongoToBigs:
         samples_to_validation_bigs(self._species, mongo_config_data=self._mongo_config_data)
 
         list_of_documents = self.__get_list_of_documents()
-
         for document in list_of_documents:
-            document_id = document['results']['isolates_id']
+            document_id = self._mappingtable_collection.find_one({'pseudo_id': document['results']['isolates_id']})['_id']
             sample_presence = self._isolates_psql_tbl.count_isolate((document_id,))
             if sample_presence[0][0] == 0:
                 results_type = "new_isolate"
+                # Only in this case will the mapping values not be inserted yet, so insert them here
+                with TblMappingTable(self._species) as isolates_mapping_psql_tbl:
+                    isolates_mapping_psql_tbl.insert_mapping_for_isolate((document_id, document['results']['isolates_id']))
             elif sample_presence[0][0] == 1 and (Path(self._bigsdb_config_data['failsafe']['flag_dir']) / '.'.join(
                     [document_id, self._bigsdb_config_data['failsafe']['flag_append']])).is_file():
                 # isolate into bigsdb was started but failed during insertion.
@@ -228,7 +234,8 @@ class MongoToBigs:
         :return: list of documents (dictionaries)
         """
         if self._single_sample_id:
-            query_single = self._isolates_collection.find_one({'_id': self._single_sample_id})
+            pseudo_id = self._mappingtable_collection.find_one({'_id': self._single_sample_id})['pseudo_id']
+            query_single = self._isolates_collection.find_one({'_id': pseudo_id})
             if query_single is not None:
                 list_of_documents = [query_single]
             else:

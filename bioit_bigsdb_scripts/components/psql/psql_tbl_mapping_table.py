@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 from .databaseconnection import DatabaseConnection
 from .psql_queries import PsqlQueries
@@ -20,7 +20,16 @@ class TblMappingTable(DatabaseConnection):
         """
         Selects the pseudo_id of an isolate.
         :param param: variables to feed to the PSQL query, which also sanitizes these variables,
-        necessary parameters visible in the PSQL query name and query
+        necessary parameters visible in the PSQL query name and query, in this case the isolate name.
         :return: pseudo id as str
         """
         return self.execute_query(PsqlQueries.ISO_SEL_PSEUDOID_TB_MT_VAR_ISO, param)
+
+    def insert_mapping_for_isolate(self, param: Tuple[str, str]) -> None:
+        """
+        Inserts the isolate name + pseudo id pair for an isolate.
+        :param param: variables to feed to the PSQL query, which also sanitizes these variables,
+        necessary parameters visible in the PSQL query name and query
+        :return: None
+        """
+        return self.execute_query(PsqlQueries.ISO_INS__TB_MT_VAR_ISO_PSEUDOID, param)
