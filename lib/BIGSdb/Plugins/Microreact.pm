@@ -28,6 +28,7 @@ use strict;
 use warnings;
 use 5.010;
 use parent qw(BIGSdb::Plugins::ITOL);
+use parent qw(BIGSdb::Plugins::GrapeTree);
 use BIGSdb::Utils;
 use BIGSdb::Constants qw(COUNTRIES);
 use LWP::UserAgent;
@@ -89,11 +90,47 @@ sub get_attributes {
 
 sub run_job {
 	my ( $self, $job_id, $params ) = @_;
-	my $ret_val = $self->generate_tree_files( $job_id, $params );
-	my ( $message_html, $newick_file, $failed ) = @{$ret_val}{qw(message_html newick_file failed)};
-	if ( !$failed ) {
-		$self->_microreact_upload( $job_id, $params, $newick_file, \$message_html );
+	my $profile_file = "$self->{'config'}->{'tmp_dir'}/${job_id}_profiles.txt";
+	my $tree_file    = "$self->{'config'}->{'tmp_dir'}/${job_id}_tree.nwk";
+	my $ids          = $self->{'jobManager'}->get_job_isolates($job_id);
+	my $loci         = $self->{'jobManager'}->get_job_loci($job_id);
+
+	( $ids, my $missing ) = $self->filter_missing_isolates($ids);
+	if ( @$ids - @$missing < 3 ) {
+		$self->{'jobManager'}->update_job_status(
+			$job_id,
+			{
+				message_html =>
+				  q(<p class="statusbad">There are fewer than 3 valid ids in the list - microreact cannot be launched.</p>)
+			}
+		);
+		return;
 	}
+	$self->_generate_profile_file(
+		{
+			job_id   => $job_id,
+			file     => $profile_file,
+			isolates => $ids,
+			loci     => $loci,
+			params   => $params,
+		}
+	);
+	return if $self->{'exit'};
+	$self->_generate_mstree(
+		{
+			job_id   => $job_id,
+			profiles => $profile_file,
+			tree     => $tree_file
+		}
+	);
+
+	my $message_html = '<p>Job completed</p>';
+
+	#my $ret_val_orig = $self->generate_tree_files( $job_id, $params );
+	#my ( $message_html, $mstree_file, $failed ) = @{$ret_val}{qw(message_html ms_tree_file failed)};
+	#if ( !$failed ) {
+		$self->_microreact_upload( $job_id, $params, $tree_file, \$message_html );
+	#}
 	$self->{'jobManager'}->update_job_status( $job_id, { message_html => $message_html } ) if $message_html;
 	return;
 }
