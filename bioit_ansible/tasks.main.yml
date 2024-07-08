@@ -732,7 +732,7 @@
 
 - name: setup cron
   block:
-    - name: Add crontrab entry for bigsjobs
+    - name: Add crontab entry for bigsjobs
       cron:
         name: "bigsjobs.pl"
         minute: '*/1'        # every minute
@@ -742,7 +742,7 @@
         user: 'bigsdb'
         cron_file: bigsdb_jobs
 
-    - name: Add crontrab entry for galaxy tool output into BIGSdb
+    - name: Add crontab entry for galaxy tool output into BIGSdb
       cron:
         name: "cron_startinsertion.sh"
         minute: '*/1'         # every minute
@@ -752,7 +752,7 @@
         user: 'root'
         cron_file: bigsdb_galaxy
 
-    - name: Add crontrab entry for galaxy tool output into mongoDB
+    - name: Add crontab entry for galaxy tool output into mongoDB
       cron:
         name: "cron_startinsertion_mongo_implementation.sh"
         minute: '*/10'         # every 10 minutes
@@ -763,7 +763,7 @@
         cron_file: mongo_galaxy
       tags: cron_mongo
 
-    - name: Add crontrab entry for bigsdb upload tool
+    - name: Add crontab entry for bigsdb upload tool
       cron:
         name: "cron_startinsertion_lab_metadata.sh"
         minute: '*/2'         # every 2 minute
@@ -774,14 +774,14 @@
         cron_file: bigsdb_upload
       tags: bigs_upload_cron
 
-    - name: Adapt specie in bash script related to bigsdb upload
+    - name: Adapt species in bash script related to bigsdb upload
       lineinfile:
         path: "{{ bioit_bigs_home }}/bioit_bigsdb_scripts/cron_startinsertion_lab_metadata.sh"
-        regexp: "--species to_be_replace_by_ansible"
+        regexp: "--species to_be_replaced_by_ansible"
         line: "/home/bigsdb/BIGSdb/3.9PythonVenv/bin/python3.9 /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/components/metadata_insertion_from_bigs.py --species {{ species }} "
       tags: bigs_upload_cron
 
-    - name: Add crontrab entry for global db
+    - name: Add crontab entry for global db
       cron:
         name: "sync_user_dbase_users.pl"
         minute: '*/5'       # every 5 minutes
@@ -791,7 +791,7 @@
         user: 'bigsdb'
         cron_file: sync_globalbigsdbusers
 
-    - name: Add crontrab entry for hash replacer  # needs to run before database updates in bigs (and after automated cfr Bert)
+    - name: Add crontab entry for hash replacer  # needs to run before database updates in bigs (and after automated cfr Bert)
       cron:
         name: "crontab for tempid_replacer"
         minute: '0'
@@ -812,7 +812,7 @@
           - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}//bioit_mongodb_scripts/tempid_replacer.py --scheme mlst_pasteur --species {{ species }}",
               filename: "{{ species }}_tempid_replacer_mlst_pasteur" }
 
-    - name: Add crontrab entry for database updates
+    - name: Add crontab entry for database updates
       cron:
         name: "crontab for weekly database updates"
         minute: '00'
@@ -829,7 +829,7 @@
           - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_bigsdb_scripts/genedetection_intopsql.py --species {{ species }}",
               filename: "{{ species }}_genedetection_intopsql" }
 
-    - name: Add crontrab entry for database updates
+    - name: Add crontab entry for database updates
       cron:
         name: "crontab for weekly database updates, profiles 30 minutes later than sequences"
         minute: '30'
