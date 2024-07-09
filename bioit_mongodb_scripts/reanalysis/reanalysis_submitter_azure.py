@@ -172,7 +172,7 @@ class BatchPipelinesReanalysis:
                 job = batch.models.JobAddParameter(
                     id=job_name,
                     pool_info=batch.models.PoolInformation(pool_id=BATCH_POOL_NAME),
-                    # job preparation task was attempted to be used to shuttle the input files but didnt do anything without
+                    # job preparation task was attempted to be used to shuttle the input files but did not do anything without
                     # even providing an error, just kept on running indefinitely
                     # job_preparation_task=batch.models.JobPreparationTask(command_line=f'/bin/bash; -c "{install_azcopy_cmd}; {copy_command_1};{copy_command_2}"',
                     #                                                      wait_for_success=True),

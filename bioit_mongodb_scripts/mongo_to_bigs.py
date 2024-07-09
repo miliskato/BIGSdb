@@ -21,7 +21,7 @@ from bioit_bigsdb_scripts.components.psql import TblIsolates, TblEavTextHidden, 
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data
 from bioit_bigsdb_scripts.insert_assembly import insert_assembly
 from bioit_bigsdb_scripts.main_results_inserter import MainResultsInserter
-from bioit_mongodb_scripts.util.alerts_to_bigs import AlertsToBigs
+# from bioit_mongodb_scripts.util.alerts_to_bigs import AlertsToBigs
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.mongo_querying import Mongoquerying
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email, convert_dmyhms_to_dateobj
@@ -255,13 +255,13 @@ class MongoToBigs:
         :return: boolean whether version is different or not
         """
         latest_analysis_date_bigs = (self._isolates_psql_tbl.select_latestanalysisdate_for_isolate((document_id,)))[0][
-            0]  # this appearently is a datetime object
+            0]  # this apparently is a datetime object
         with TblEavTextHidden(self._species) as isolates_eavth_psql_tbl:
             mongo_results_changed_version_bigs_query = isolates_eavth_psql_tbl.select_mongo_resultsversion(
                 (document_id,))
         # as of 2022/12/22 mongo_results_version in bigs is changed version
         if len(mongo_results_changed_version_bigs_query) == 0:
-            # Accounting for old samples that didnt have a version yet
+            # Accounting for old samples that did not have a version yet
             mongo_results_changed_version_bigs = 1
         else:
             mongo_results_changed_version_bigs = int(mongo_results_changed_version_bigs_query[0][0])
