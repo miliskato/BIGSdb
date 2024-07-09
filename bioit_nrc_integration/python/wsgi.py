@@ -67,7 +67,7 @@ def insert_into_mongodb(mapping_table_dict: Dict[str, str], start_response: Call
                                         alternate_connection_string=mongo_config_data.get('CONNECTION_STRING_LOCAL'))
         mapping_table_collection = mongoinit.initialise_mapping_table_collection()
         mapping_table_collection.insert_one({'_id': mapping_table_dict['id'],
-                                             'id_pseudonymized': mapping_table_dict['id_pseudonymized']})
+                                             'pseudo_id': mapping_table_dict['pseudo_id']})
         # Set the response status and headers
         status = '200 OK'
         response_headers = [('Content-type', 'text/plain')]
