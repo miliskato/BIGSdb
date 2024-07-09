@@ -67,7 +67,7 @@ class TsvTypingResultsInserter:
                                                  f"1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE))")
             elif schemedict[scheme]['dirdb'] == '':
                 if scheme.endswith('pointfinder'):
-                    # for pointfinder, only hits that infer resistance are of importance, other hitsdo notgive any information.
+                    # for pointfinder, only hits that infer resistance are of importance, other hitsdo not give any information.
                     listofhits = sample_output_dict[schemedict[scheme]['tsvname']]
                     # this might look like this: [["drrA p.H309D", "CAC -> GAC", "H -> D", "Unknown", "-"], ["embA p.P958Q", "CCG -> CAG", "P -> Q", "Unknown", "-"], ["embB p.N13S", "AAT -> AGT", "N -> S", "Unknown", "-"], ["embB p.E378A", "GAG -> GCG", "E -> A", "Unknown", "-"], ["embC p.T270I", "ACC -> ATC", "T -> I", "Unknown", "-"], ["gyrA p.E21Q", "GAG -> CAG", "E -> Q", "Unknown", "-"], ["gyrA p.S95T", "AGC -> ACC", "S -> T", "Unknown", "-"], ["gyrA p.D639A", "GAC -> GCC", "D -> A", "Unknown", "-"], ["gyrA p.G668D", "GGC -> GAC", "G -> D", "Unknown", "-"], ["gyrB p.A403S", "GCG -> TCG", "A -> S", "Unknown", "-"], ["iniA p.N88S", "AAT -> AGT", "N -> S", "Unknown", "-"], ["iniA p.H481Q", "CAT -> CAG", "H -> Q", "Unknown", "-"], ["katG p.R463L", "CGG -> CTG", "R -> L", "Unknown", "-"], ["nuoA n.-95T>G", "T -> G", "Promoter mutations", "Unknown", "-"], ["pncA p.H57D", "CAC -> GAC", "H -> D", "PYRAZINAMIDE", "19209951"], ["rpsA p.A440T", "GCG -> ACG", "A -> T", "Unknown", "-"], ["ubiA p.E149D", "GAA -> GAC", "E -> D", "Unknown", "-"]]
                     if listofhits != '[]':

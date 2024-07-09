@@ -35,7 +35,7 @@ def _parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     parser.add_argument('--species', type=str, required=True, choices=specieslist, help='Species to re-analyze')
     parser.add_argument('--threads', type=int, default=8, help='Number of threads to use in total, only applicable when not using slurm since slurm knows how many threads are available')
     parser.add_argument('--pyvenvpythonpath', type=Path, help='eg /home/bigsdb/BIGSdb/3.9PythonVenv/bin/python3.9, required when using slurm')
-    parser.add_argument('--slurm', action='store_true', help='Run reanalyses using slurm,do notinclude to not use slurm')
+    parser.add_argument('--slurm', action='store_true', help='Run reanalyses using slurm,do not include to not use slurm')
     parser.add_argument('--alternate_connection_string', action='store_true', help=argparse.SUPPRESS)
     return parser.parse_args()
 

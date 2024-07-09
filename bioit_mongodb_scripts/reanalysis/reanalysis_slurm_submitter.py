@@ -104,7 +104,7 @@ def reanalysis_slurm_submitter(species: str, maximal_analysis_date: str, minimal
             command = Command(base_command)
             command_output = command.run(Path(os.getcwd()))
             if command.returncode != 0:
-                # if pipeline fails, send mail and continue to next sample,do notraise error # Since the mailbomb, do raise an error
+                # if pipeline fails, send mail and continue to next sample,do not raise error # Since the mailbomb, do raise an error
                 reanalysis_outcome_dictionary = {'Outcome': 'Fail', 'Isolate': isolate['_id'], 'Traceback': f"Error executing automatic reanalysis pipeline on {species}, {isolate['_id']}, stderr: {command.stderr}"}
                 return reanalysis_outcome_dictionary
             else:

@@ -203,7 +203,7 @@ def reanalysis_slurm(species: str, isolate: json.loads, threads: int = 8, analys
             # run the command
             command.run(dir_temp)
             if command.returncode != 0:
-                # if pipeline fails, send mail and continue to next sample,do notraise error # Since the mailbomb, do raise an error
+                # if pipeline fails, send mail and continue to next sample,do not raise error # Since the mailbomb, do raise an error
                 reanalysis_outcome_dictionary['Outcome'] = 'Fail'
                 reanalysis_outcome_dictionary['Traceback'] = f'Error executing automatic reanalysis pipeline on {species}, {isolate_id}, stderr: {command.stderr}'
                 return reanalysis_outcome_dictionary
