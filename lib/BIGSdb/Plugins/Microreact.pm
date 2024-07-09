@@ -126,11 +126,8 @@ sub run_job {
 
 	my $message_html = '<p>Job completed</p>';
 
-	#my $ret_val_orig = $self->generate_tree_files( $job_id, $params );
-	#my ( $message_html, $mstree_file, $failed ) = @{$ret_val}{qw(message_html ms_tree_file failed)};
-	#if ( !$failed ) {
-		$self->_microreact_upload( $job_id, $params, $tree_file, \$message_html );
-	#}
+
+	$self->_microreact_upload( $job_id, $params, $tree_file, \$message_html );
 	$self->{'jobManager'}->update_job_status( $job_id, { message_html => $message_html } ) if $message_html;
 	return;
 }
