@@ -1,6 +1,6 @@
 #Written by Keith Jolley
 #Copyright (c) 2015-2019, University of Oxford
-#E-mail: keith.jolley@zoo.ox.ac.uk
+#E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
 #
@@ -259,12 +259,14 @@ sub _create_submission {
 	);
 	my $sql = [];
 	$sql = $method{$type}->() if $method{$type};
+	my $dataset = ( $self->{'system'}->{'separate_dataset'} // q() ) eq 'yes' ? $self->{'instance'} : undef;
 	eval {
 		$self->{'db'}->do(
-			'INSERT INTO submissions (id,type,submitter,date_submitted,datestamp,status,email) VALUES (?,?,?,?,?,?,?)',
-			undef, $submission_id, $type, $submitter, 'now', 'now', 'pending', $email ? 'true' : 'false'
+			'INSERT INTO submissions (id,type,submitter,date_submitted,datestamp,status,email,dataset) '
+			  . 'VALUES (?,?,?,?,?,?,?,?)',
+			undef, $submission_id, $type, $submitter, 'now', 'now', 'pending', $email ? 'true' : 'false',
+			$dataset
 		);
-
 		foreach my $sql (@$sql) {
 			$self->{'db'}->do( $sql->{'statement'}, undef, @{ $sql->{'arguments'} } );
 		}

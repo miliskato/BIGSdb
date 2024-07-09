@@ -1,8 +1,8 @@
 #!/usr/bin/env perl
 #Send E-mail reminders to curators about pending submissions
 #Written by Keith Jolley
-#Copyright (c) 2016-2020, University of Oxford
-#E-mail: keith.jolley@zoo.ox.ac.uk
+#Copyright (c) 2016-2023, University of Oxford
+#E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
 #
@@ -19,7 +19,7 @@
 #You should have received a copy of the GNU General Public License
 #along with BIGSdb.  If not, see <http://www.gnu.org/licenses/>.
 #
-#Version: 20201016
+#Version: 20230714
 use strict;
 use warnings;
 use Carp;
@@ -42,19 +42,21 @@ use constant {
 	DOMAIN           => 'PubMLST',
 	SMTP_SERVER      => '127.0.0.1',
 	SMTP_PORT        => 25,
-	SENDER           => 'no_reply@pubmlst.org',
-
-	#Only remind about submissions last updated earlier than
-	AGE => 7
+	SENDER           => 'pubmlst@biology.ox.ac.uk',
 };
 #######End Local configuration################################
 my %opts;
-GetOptions( 'q|quiet' => \$opts{'q'}, 'h|help' => \$opts{'h'}, 't|test' => \$opts{'t'} )
-  or die("Error in command line arguments\n");
+GetOptions(
+	'd|days=i' => \$opts{'days'},
+	'q|quiet'  => \$opts{'q'},
+	'h|help'   => \$opts{'h'},
+	't|test'   => \$opts{'t'}
+) or die("Error in command line arguments\n");
 if ( $opts{'h'} ) {
 	show_help();
 	exit;
 }
+$opts{'days'} //= 7;
 main();
 
 #This must be run on the server hosting the databases
@@ -76,17 +78,17 @@ sub main {
 			  if !$name_by_email->{ $curator->{'email'} };
 
 			#Make shallow copy of hash, otherwise very weird things happen!
-			push @{ $dbase_by_email->{ $curator->{'email'} } }, { %{ $dbases->{$db_name} } };
+			push @{ $dbase_by_email->{ $curator->{'email'} } }, { %{ $dbases->{$db_name} }, key => $db_name };
 		}
 	}
 	foreach my $email ( sort keys %$dbase_by_email ) {
 		my $summary;
-		my %mentioned;
+		my $mentioned = {};
 		my $buffer;
 		foreach my $run (qw(answered new)) {
 			my $run_buffer;
 			foreach my $dbase ( @{ $dbase_by_email->{$email} } ) {
-				my $user_ids = $ids_by_email->{ $dbase->{'name'} }->{$email} // [];
+				my $user_ids = $ids_by_email->{ $dbase->{'key'} }->{$email} // [];
 				my @list;
 				foreach my $user_id (@$user_ids) {
 					my $submissions =
@@ -94,13 +96,18 @@ sub main {
 					  ? get_submissions_answered_by_curator( $dbase, $user_id )
 					  : get_new_submissions($dbase);
 					foreach my $submission (@$submissions) {
-						next if $mentioned{ $submission->{'id'} };
+						next
+						  if $dbase->{'key'} =~ /:(.*)$/x
+						  && defined $submission->{'dataset'}
+						  && $1 ne $submission->{'dataset'};
+						next if $mentioned->{ $dbase->{'description'} // $dbase->{'name'} }->{ $submission->{'id'} };
 						my $submission = get_submission_details( $dbase, $submission->{'id'} );
 						next if !( is_allowed_to_curate( $dbase, $submission, $user_id ) );
 						push @list,
 						  "$submission->{'description'}; submitted $submission->{'date_submitted'} "
 						  . "($submission->{'age'} days ago) by $submission->{'submitter_name'}";
-						$mentioned{ $submission->{'id'} } = 1;
+						$mentioned->{ $dbase->{'description'} // $dbase->{'name'} }->{ $submission->{'id'} } =
+						  1;
 					}
 				}
 				if (@list) {
@@ -138,10 +145,21 @@ sub main {
 
 sub is_allowed_to_curate {
 	my ( $dbase, $submission, $user_id ) = @_;
-	my $db = db_connect($dbase);
+	my $db     = db_connect($dbase);
 	my $status = $db->selectrow_array( q(SELECT status FROM users WHERE id=?), undef, $user_id );
 	return 1 if $status eq 'admin';
 	return   if $status ne 'curator';
+	if ( $dbase->{'key'} =~ /^(?:[\d\w_]+):([\d\w_]+)$/x ) {
+		my $dbase_config = $1;
+		return if $submission->{'dataset'} && $submission->{'dataset'} ne $dbase_config;
+		my $reg_configs =
+		  $db->selectcol_arrayref( q(SELECT dbase_config FROM curator_configs WHERE user_id=?), undef, $user_id );
+		$db->disconnect;
+		if (@$reg_configs) {
+			my %configs = map { $_ => 1 } @$reg_configs;
+			return if !$configs{$dbase_config};
+		}
+	}
 	my $is_allowed;
 	my %method = (
 		alleles => sub {
@@ -160,6 +178,9 @@ sub is_allowed_to_curate {
 			$is_allowed = is_isolate_curator( $dbase, $user_id );
 		},
 		genomes => sub {
+			$is_allowed = is_isolate_curator( $dbase, $user_id );
+		},
+		assemblies => sub {
 			$is_allowed = is_isolate_curator( $dbase, $user_id );
 		}
 	);
@@ -182,7 +203,7 @@ sub is_isolate_curator {
 
 sub get_message {
 	my ($section) = @_;
-	my ( $age, $domain ) = ( AGE, DOMAIN );
+	my $domain = DOMAIN;
 
 	#Tabs are included at end of lines to stop Outlook removing line breaks!
 	my %message = (
@@ -193,10 +214,10 @@ sub get_message {
 		  . qq(switched on. Please note that you may not be the only curator to\t\n)
 		  . qq(whom this message has been sent.\t\n\t\n),
 		answered => qq(You have sent correspondence for the following submissions which\t\n)
-		  . qq(have not been updated in $age days. Please either accept or reject\t\n)
+		  . qq(have not been updated in $opts{'days'} days. Please either accept or reject\t\n)
 		  . qq(each record, then close the submission.\n\n),
 		new => qq[The following submissions have not been answered by any curator and\t\n]
-		  . qq[have not been updated in $age days. Please handle these soon (either\t\n]
+		  . qq[have not been updated in $opts{'days'} days. Please handle these soon (either\t\n]
 		  . qq[assign or reject).\t\n\t\n]
 	);
 	return $message{$section};
@@ -246,6 +267,9 @@ sub get_submission_details {
 		genomes => sub {
 			add_isolate_submission_details( $dbase, $submission );
 		},
+		assemblies => sub {
+			add_assembly_submission_details( $dbase, $submission );
+		}
 	);
 	if ( $method{ $submission->{'type'} } ) {
 		$method{ $submission->{'type'} }->();
@@ -262,19 +286,29 @@ sub add_isolate_submission_details {
 	  $db->selectrow_array( q(SELECT COUNT(DISTINCT index) FROM isolate_submission_isolates WHERE submission_id=?),
 		undef, $submission->{'id'} );
 	my $plural = $isolate_count == 1 ? q() : q(s);
-	my $type = $submission->{'type'};
+	my $type   = $submission->{'type'};
 	$type =~ s/s$//x;
 	$submission->{'description'} = "$isolate_count $type$plural";
+	return;
+}
+
+sub add_assembly_submission_details {
+	my ( $dbase, $submission ) = @_;
+	my $db = db_connect($dbase);
+	my $assembly_count =
+	  $db->selectrow_array( q(SELECT COUNT(DISTINCT index) FROM assembly_submissions WHERE submission_id=?),
+		undef, $submission->{'id'} );
+	my $plural = $assembly_count == 1 ? q(y) : q(ies);
+	$submission->{'description'} = "$assembly_count assembl$plural";
 	return;
 }
 
 sub get_submissions_answered_by_curator {
 	my ( $dbase, $curator ) = @_;
 	my $db          = db_connect($dbase);
-	my $age_days    = AGE;
 	my $submissions = $db->selectall_arrayref(
-		qq(SELECT * FROM submissions WHERE status='pending' AND datestamp < NOW()-INTERVAL '$age_days days' AND id IN )
-		  . q((SELECT submission_id FROM messages WHERE user_id=?) ORDER BY id),
+		qq(SELECT * FROM submissions WHERE status='pending' AND datestamp < NOW()-INTERVAL '$opts{'days'} days')
+		  . q( AND id IN (SELECT submission_id FROM messages WHERE user_id=?) ORDER BY id),
 		{ Slice => {} },
 		$curator
 	);
@@ -285,9 +319,8 @@ sub get_submissions_answered_by_curator {
 sub get_new_submissions {
 	my ($dbase)     = @_;
 	my $db          = db_connect($dbase);
-	my $age_days    = AGE;
 	my $submissions = $db->selectall_arrayref(
-		qq(SELECT * FROM submissions WHERE status='pending' AND datestamp < NOW()-INTERVAL '$age_days days' )
+		qq(SELECT * FROM submissions WHERE status='pending' AND datestamp < NOW()-INTERVAL '$opts{'days'} days' )
 		  . q(AND id NOT IN (SELECT submission_id FROM messages WHERE user_id!=submissions.submitter) ORDER BY id),
 		{ Slice => {} }
 	);
@@ -325,7 +358,7 @@ sub get_remote_user {
 		port => $remote_db->{'dbase_port'} // 5432
 	};
 	my $db        = db_connect($att);
-	my $user_info = $db->selectrow_hashref( 'SELECT * FROM users WHERE user_name=?', undef, $user_name );
+	my $user_info = $db->selectrow_hashref( 'SELECT * FROM users WHERE user_name=?',         undef, $user_name );
 	my $prefs     = $db->selectrow_hashref( 'SELECT * FROM curator_prefs WHERE user_name=?', undef, $user_name );
 	$db->disconnect;
 	foreach my $key ( keys %$prefs ) {
@@ -335,10 +368,29 @@ sub get_remote_user {
 }
 
 sub db_connect {
-	my ($dbase) = @_;
-	my $db = DBI->connect( "DBI:Pg:host=$dbase->{'host'};port=$dbase->{'port'};dbname=$dbase->{'name'}",
+	my ($dbase)  = @_;
+	my $host_map = get_host_mapping();
+	my $host     = $host_map->{ $dbase->{'host'} } // $dbase->{'host'};
+	my $db       = DBI->connect( "DBI:Pg:host=$host;port=$dbase->{'port'};dbname=$dbase->{'name'}",
 		USER, undef, { AutoCommit => 0, RaiseError => 1, PrintError => 0, pg_enable_utf8 => 1 } );
 	return $db;
+}
+
+sub get_host_mapping {
+	my $mapping_file = CONFIG_DIR . '/host_mapping.conf';
+	my $map          = {};
+	if ( -e $mapping_file ) {
+		open( my $fh, '<', $mapping_file )
+		  || die "Cannot open $mapping_file for reading.\n";
+		while ( my $line = <$fh> ) {
+			next if $line =~ /^\s+$/x || $line =~ /^\#/x;
+			my ( $host, $mapped ) = split /\s+/x, $line;
+			next if !$host || !$mapped;
+			$map->{$host} = $mapped;
+		}
+		close $fh;
+	}
+	return $map;
 }
 
 sub get_databases_with_submissions {
@@ -354,10 +406,13 @@ sub get_databases_with_submissions {
 		my $submissions;
 		open( my $config_fh, '<', $config_file ) || croak "Cannot open $config_file";
 		while ( my $line = <$config_fh> ) {
-			foreach my $term (qw(db submissions description host port)) {
+			foreach my $term (qw(db submissions description host port separate_dataset)) {
 				if ( $line =~ /^\s*$term\s*="([^"]*)"/x ) {
 					$attributes{$term} = $1;
 				}
+			}
+			if ( ( $attributes{'separate_dataset'} // q() ) eq 'yes' ) {
+				$attributes{'key'} = "$attributes{'db'}:$dir";
 			}
 			$submissions = 1 if ( $attributes{'submissions'} // q() ) eq 'yes';
 		}
@@ -371,8 +426,8 @@ sub get_databases_with_submissions {
 			my %override_values;
 			while ( my $line = <$fh_override> ) {
 				next if $line =~ /^\#/x;
-				$line =~ s/^\s+//x;
-				$line =~ s/\s+$//x;
+				$line         =~ s/^\s+//x;
+				$line         =~ s/\s+$//x;
 				if ( $line =~ /^([^=\s]+)\s*=\s*"([^"]+)"$/x ) {
 					$override_values{$1} = $2;
 				}
@@ -381,14 +436,19 @@ sub get_databases_with_submissions {
 			if ( $override_values{'db'} ) {
 				$attributes{'db'} = $override_values{'db'};
 			}
+			if ( $override_values{'description'} ) {
+				$attributes{'description'} = $override_values{'description'};
+			}
+			if ( ( $override_values{'separate_dataset'} // q() ) eq 'yes' ) {
+				$attributes{'key'} = "$attributes{'db'}:$dir";
+			}
 			if ( $override_values{'submissions'} ) {
 				next if $override_values{'submissions'} ne 'yes';
-				$dbases{ $attributes{'db'} } = 1;
-				next;
+				$submissions = 1;
 			}
 		}
 		if ($submissions) {
-			$dbases{ $attributes{'db'} } = {
+			$dbases{ $attributes{'key'} // $attributes{'db'} } = {
 				name        => $attributes{'db'},
 				description => $attributes{'description'},
 				host        => $attributes{'host'} // 'localhost',
@@ -435,7 +495,7 @@ sub show_help {
 	my $termios = POSIX::Termios->new;
 	$termios->getattr;
 	my $ospeed = $termios->getospeed;
-	my $t = Tgetent Term::Cap { TERM => undef, OSPEED => $ospeed };
+	my $t      = Tgetent Term::Cap { TERM => undef, OSPEED => $ospeed };
 	my ( $norm, $bold, $under ) = map { $t->Tputs( $_, 1 ) } qw/me md us/;
 	say << "HELP";
 ${bold}NAME$norm
@@ -445,6 +505,9 @@ ${bold}SYNOPSIS$norm
     ${bold}nag_curators.pl$norm [${under}options$norm]
 
 ${bold}OPTIONS$norm
+${bold}-d, --days$norm [${under}DAYS$norm]
+    Report submissions for that older than specified number of days. Default 7.
+
 ${bold}-h, --help$norm
     This help page.
 

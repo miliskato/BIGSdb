@@ -1,7 +1,7 @@
 #GenePresence.pm - Gene presence/absence plugin for BIGSdb
 #Written by Keith Jolley
-#Copyright (c) 2010-2021, University of Oxford
-#E-mail: keith.jolley@zoo.ox.ac.uk
+#Copyright (c) 2010-2024, University of Oxford
+#E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
 #
@@ -35,12 +35,12 @@ use constant HEATMAP_MAX_HEIGHT => 10_000;
 sub get_attributes {
 	my ($self) = @_;
 	my %att = (
-		name             => 'Gene Presence',
+		name    => 'Gene Presence',
 		authors => [
 			{
 				name        => 'Keith Jolley',
 				affiliation => 'University of Oxford, UK',
-				email       => 'keith.jolley@zoo.ox.ac.uk',
+				email       => 'keith.jolley@biology.ox.ac.uk',
 			}
 		],
 		description      => 'Analyse presence/absence of loci for dataset generated from query results',
@@ -54,11 +54,11 @@ sub get_attributes {
 		menutext   => 'Gene presence',
 		module     => 'GenePresence',
 		url        => "$self->{'config'}->{'doclink'}/data_analysis/gene_presence.html",
-		version    => '2.0.14',
+		version    => '2.2.3',
 		dbtype     => 'isolates',
 		section    => 'analysis,postquery',
 		input      => 'query',
-		requires   => 'offline_jobs',
+		requires   => 'offline_jobs,seqbin',
 		help       => 'tooltips',
 		order      => 16,
 		image      => '/images/plugins/GenePresence/screenshot.png'
@@ -88,14 +88,13 @@ sub _print_interface {
 	  // $self->{'config'}->{'genepresence_record_limit'} // MAX_RECORDS;
 	$max_records = MAX_RECORDS if !BIGSdb::Utils::is_int($max_records);
 	my $max = BIGSdb::Utils::commify($max_records);
-	say qq(<p>Interactive analysis is limited to $max data points (isolates x loci). )
-	  . q(If you select more than this then output will be restricted to static tables.);
+	say qq(<p>Analysis is limited to $max data points (isolates x loci). );
 	say $q->start_form;
 	say q(<div class="scrollable"><div class="flex_container" style="justify-content:left">);
 	$self->print_seqbin_isolate_fieldset( { use_all => 1, selected_ids => $selected_ids, isolate_paste_list => 1 } );
 	$self->print_user_genome_upload_fieldset;
-	$self->print_isolates_locus_fieldset( { locus_paste_list => 1 } );
-	$self->print_recommended_scheme_fieldset;
+	$self->print_isolates_locus_fieldset( { locus_paste_list => 1, no_all_none => 1 } );
+	$self->print_recommended_scheme_fieldset( { no_clear => 1 } );
 	$self->print_scheme_fieldset;
 	$self->_print_parameters_fieldset;
 	$self->print_action_fieldset;
@@ -134,7 +133,7 @@ sub get_initiation_values {
 	if ( $q->param('heatmap') ) {
 		return { heatmap => 1, papaparse => 1, noCache => 1 };
 	}
-	return { 'jQuery.jstree' => 1 };
+	return { 'jQuery.jstree' => 1, 'jQuery.multiselect' => 1 };
 }
 
 sub _pivot_table {
@@ -324,6 +323,17 @@ sub run {
 			push @errors, q(You must either select one or more loci or schemes.);
 			$continue = 0;
 		}
+		if ( @$loci_selected * @$ids > MAX_RECORDS ) {
+			my $limit    = BIGSdb::Utils::commify(MAX_RECORDS);
+			my $selected = BIGSdb::Utils::commify( @$loci_selected * @$ids );
+			$self->print_bad_status(
+				{
+					message =>
+					  qq(Analysis is restricted to $limit records (isolates x loci). You have selected $selected.)
+				}
+			);
+			$continue = 0;
+		}
 		if (@errors) {
 			if ( @errors == 1 ) {
 				$self->print_bad_status( { message => qq(@errors) } );
@@ -388,6 +398,7 @@ sub run_job {
 	my $loci         = $self->{'jobManager'}->get_job_loci($job_id);
 	my $isolate_ids  = $self->{'jobManager'}->get_job_isolates($job_id);
 	my $user_genomes = $self->process_uploaded_genomes( $job_id, $isolate_ids, $params );
+
 	if ( !@$isolate_ids && !keys %$user_genomes ) {
 		$self->{'jobManager'}->update_job_status(
 			$job_id,
@@ -410,28 +421,15 @@ sub run_job {
 	$self->{'jobManager'}->update_job_status( $job_id, { stage => 'Generating output files', percent_complete => 80 } );
 	$self->_create_presence_output( $job_id, $data );
 	my $message;
-	my $record_count = @$isolate_ids * @$loci;
-	my $max_records  = $self->{'system'}->{'genepresence_record_limit'}
-	  // $self->{'config'}->{'genepresence_record_limit'} // MAX_RECORDS;
-	$max_records = MAX_RECORDS if !BIGSdb::Utils::is_int($max_records);
-
-	if ( $record_count > $max_records ) {
-		my $nice_max = BIGSdb::Utils::commify($max_records);
-		my $selected = BIGSdb::Utils::commify($record_count);
-		$message =
-		    qq(Interactive analysis is limited to $nice_max records (isolates x loci). )
-		  . qq(You have selected $selected. Output is limited to static tables.);
-	} else {
-		$self->_create_tsv_output( $job_id, $data );
-		$message =
-		    q(<p style="margin-top:2em;margin-bottom:2em">)
-		  . qq(<a href="$params->{'script_name'}?db=$self->{'instance'}&amp;page=plugin&amp;)
-		  . qq(name=GenePresence&amp;results=$job_id" target="_blank" )
-		  . q(class="launchbutton">Pivot Table</a> )
-		  . qq(<a href="$params->{'script_name'}?db=$self->{'instance'}&amp;page=plugin&amp;)
-		  . qq(name=GenePresence&amp;heatmap=$job_id" target="_blank" )
-		  . q(class="launchbutton">Heatmap</a></p>);
-	}
+	$self->_create_tsv_output( $job_id, $data );
+	$message =
+		q(<p style="margin-top:2em;margin-bottom:2em">)
+	  . qq(<a href="$params->{'script_name'}?db=$self->{'instance'}&amp;page=plugin&amp;)
+	  . qq(name=GenePresence&amp;results=$job_id" target="_blank" )
+	  . q(class="launchbutton">Pivot Table</a> )
+	  . qq(<a href="$params->{'script_name'}?db=$self->{'instance'}&amp;page=plugin&amp;)
+	  . qq(name=GenePresence&amp;heatmap=$job_id" target="_blank" )
+	  . q(class="launchbutton">Heatmap</a></p>);
 	$self->{'jobManager'}->update_job_status( $job_id, { message_html => $message } );
 	return;
 }
@@ -445,7 +443,7 @@ sub _create_tsv_output {
 	say $fh qq(id\t$self->{'system'}->{'labelfield'}\tlocus\tpresence\tcomplete\tknown allele\tdesignated\ttagged);
 	foreach my $record (@$data) {
 		my $mapped_id = $self->{'name_map'}->{ $record->{'id'} } // $record->{'id'};
-		my $label = $self->_get_label_field( $record->{'id'} );
+		my $label     = $self->_get_label_field( $record->{'id'} );
 		foreach my $locus (@$loci) {
 			my @output = ( $mapped_id, $label, $locus );
 			push @output, $record->{'loci'}->{$locus}->{$_}
@@ -531,13 +529,29 @@ sub _get_data {
 sub get_plugin_javascript {
 	my ($self) = @_;
 	my $q = $self->{'cgi'};
+	my $js;
+	if ( !$q->param('heatmap') && !$q->param('results') ) {
+		$js = << "END";
+\$(document).ready(function(){ 
+	\$('#locus,#recommended_schemes').multiselect({
+ 		classes: 'filter',
+ 		menuHeight: 250,
+ 		menuWidth: 400,
+ 		selectedList: 8
+  	}).multiselectfilter();
+  	\$("a#clear_user_upload").on("click", function(){
+  		\$("input#user_upload").val("");
+  	});
+}); 
+END
+	}
 	if ( $q->param('results') ) {
-		return $self->_get_pivot_table_js;
+		$js .= $self->_get_pivot_table_js;
 	}
 	if ( $q->param('heatmap') ) {
-		return $self->_get_heatmap_js;
+		$js .= $self->_get_heatmap_js;
 	}
-	return;
+	return $js;
 }
 
 sub _get_pivot_table_js {
@@ -632,7 +646,6 @@ var blur = $size->{'blur'};
 	        var wrapper = document.querySelector('#wrapper');
 			var tooltip = document.querySelector('#tooltip');
 			function updateTooltip(pageX, pageY, x, y, value) {
-				console.log("pageX:" + pageX + "; pageY:" + pageY + "; x:" + x + "; y:" + y);
 				var x_offset = (pageX > (\$(window).width() / 2)) ? -200 : 50;
 				var transl = 'translate(' + (x + x_offset) + 'px, ' + (y + 5) + 'px)';
 				tooltip.style.webkitTransform = transl;

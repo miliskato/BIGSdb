@@ -1,6 +1,6 @@
 #Written by Keith Jolley
-#Copyright (c) 2011-2022, University of Oxford
-#E-mail: keith.jolley@zoo.ox.ac.uk
+#Copyright (c) 2011-2023, University of Oxford
+#E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
 #
@@ -47,6 +47,8 @@ sub new {
 	$self->_initiate( $options->{'config_dir'} );
 	$self->{'dataConnector'}->initiate( $self->{'system'}, $self->{'config'} );
 	$self->_db_connect;
+	my $local_tz = $self->_run_query(q(SELECT current_setting('TIMEZONE')));
+	$self->{'local_tz'} = $local_tz;
 	return $self;
 }
 
@@ -78,8 +80,7 @@ sub _db_connect {
 	}
 	try {
 		$self->{'db'} = $self->{'dataConnector'}->get_connection( \%att );
-	}
-	catch {
+	} catch {
 		if ( $_->isa('BIGSdb::Exception::Database::Connection') ) {
 			$initiate_logger->error("Cannot connect to database '$self->{'config'}->{'jobs_db'}'");
 		} else {
@@ -117,7 +118,7 @@ sub add_job {
 	#jobs from them.  This will prevent a single user from flooding the queue and preventing other
 	#user jobs from running.
 	$priority += 2 if $self->_has_ip_address_got_queued_jobs( $params->{'ip_address'} );
-	my $id         = BIGSdb::Utils::get_random();
+	my $id         = $params->{'job_id'} // BIGSdb::Utils::get_random();
 	my $cgi_params = $params->{'parameters'};
 	$logger->logdie('CGI parameters not passed as a ref') if ref $cgi_params ne 'HASH';
 	foreach my $key ( keys %$cgi_params ) {
@@ -125,7 +126,7 @@ sub add_job {
 	}
 	delete $cgi_params->{$_} foreach qw(submit page update_options format dbase_config_dir instance);
 	my $fingerprint = $self->_make_job_fingerprint( $cgi_params, $params );
-	my $status = $self->_get_status( $params, $fingerprint );
+	my $status      = $self->_get_status( $params, $fingerprint );
 	eval {
 		$self->{'db'}->do(
 			'INSERT INTO jobs (id,dbase_config,username,email,ip_address,submit_time,start_time,module,status,'
@@ -193,7 +194,7 @@ sub add_job {
 sub _get_status {
 	my ( $self, $params, $fingerprint ) = @_;
 	return 'started' if $params->{'mark_started'};
-	my $duplicate_job = $self->_get_duplicate_job_id( $fingerprint, $params->{'username'}, $params->{'ip_address'} );
+	my $duplicate_job  = $self->_get_duplicate_job_id( $fingerprint, $params->{'username'}, $params->{'ip_address'} );
 	my $quota_exceeded = $self->_is_quota_exceeded($params);
 	my $status;
 	if ($duplicate_job) {
@@ -234,7 +235,12 @@ sub _make_job_fingerprint {
 	$buffer .= "profiles:@{ $params->{'profiles'} };"
 	  if defined $params->{'profiles'} && ref $params->{'profiles'} eq 'ARRAY';
 	$buffer .= "loci:@{ $params->{'loci'} };" if defined $params->{'loci'} && ref $params->{'loci'} eq 'ARRAY';
-	my $fingerprint = Digest::MD5::md5_hex($buffer);
+	my $fingerprint;
+	eval { $fingerprint = Digest::MD5::md5_hex($buffer); };
+	if ($@) {
+		$logger->error("$@ - Job fingerprint error. Buffer used: $buffer.");
+		$fingerprint = BIGSdb::Utils::random_string(32);
+	}
 	return $fingerprint;
 }
 
@@ -264,10 +270,19 @@ sub _is_quota_exceeded {
 
 sub _get_duplicate_job_id {
 	my ( $self, $fingerprint, $username, $ip_address ) = @_;
-	my $qry = q(SELECT id FROM jobs WHERE fingerprint=? AND (status='started' OR status='submitted') AND );
-	$qry .= $self->{'system'}->{'read_access'} eq 'public' ? 'ip_address=?' : 'username=?';
-	return $self->_run_query( $qry,
-		[ $fingerprint, ( $self->{'system'}->{'read_access'} eq 'public' ? $ip_address : $username ) ] );
+	my $qry              = q(SELECT id FROM jobs WHERE fingerprint=? AND (status='started' OR status='submitted') AND );
+	my $check_ip_address = ( $self->{'system'}->{'read_access'} eq 'public' && !$self->_jobs_require_login );
+	$qry .= $check_ip_address ? 'ip_address=?' : 'username=?';
+	return $self->_run_query( $qry, [ $fingerprint, ( $check_ip_address ? $ip_address : $username ) ] );
+}
+
+sub _jobs_require_login {
+	my ($self) = @_;
+	return if ( $self->{'system'}->{'jobs_require_login'} // q() ) eq 'no';
+	return
+	  if !( $self->{'config'}->{'jobs_require_login'}
+		|| ( $self->{'system'}->{'jobs_require_login'} // q() ) eq 'yes' );
+	return 1;
 }
 
 sub cancel_job {
@@ -449,7 +464,7 @@ sub get_job_loci {
 sub get_user_jobs {
 	my ( $self, $instance, $username, $days ) = @_;
 	my $qry =
-	    q[SELECT *,extract(epoch FROM now() - start_time) AS elapsed,extract(epoch FROM stop_time - ]
+		q[SELECT *,extract(epoch FROM now() - start_time) AS elapsed,extract(epoch FROM stop_time - ]
 	  . q[start_time) AS total_time FROM jobs WHERE (dbase_config,username)=(?,?) AND (submit_time > ]
 	  . qq[now()-interval '$days days' OR stop_time > now()-interval '$days days' OR status='started' OR ]
 	  . q[status='submitted') AND module != 'ManualScan' ORDER BY submit_time];
@@ -460,7 +475,7 @@ sub get_user_jobs {
 sub get_jobs_ahead_in_queue {
 	my ( $self, $job_id ) = @_;
 	my $qry =
-	    q[SELECT COUNT(j1.id) FROM jobs AS j1 INNER JOIN jobs AS j2 ON (j1.submit_time < j2.submit_time AND ]
+		q[SELECT COUNT(j1.id) FROM jobs AS j1 INNER JOIN jobs AS j2 ON (j1.submit_time < j2.submit_time AND ]
 	  . q[j2.priority <= j1.priority) OR j2.priority > j1.priority WHERE j2.id = ? AND j2.id != j1.id AND ]
 	  . q[j1.status='submitted'];
 	return $self->_run_query( $qry, $job_id );
@@ -475,8 +490,17 @@ sub _read_job_limits_file {
 		$logger->fatal( 'Unable to read or parse job_limits.conf file. Reason: ' . Config::Tiny->errstr );
 		$config = Config::Tiny->new();
 	}
+
+	#The conf file did not used to have sections, so support global limits if
+	#set in root.
 	foreach my $param ( keys %{ $config->{_} } ) {
-		$self->{'limits'}->{$param} = $config->{_}->{$param};
+		$self->{'limits'}->{'global'}->{$param} = $config->{_}->{$param};
+	}
+	foreach my $param ( keys %{ $config->{'global'} } ) {
+		$self->{'limits'}->{'global'}->{$param} = $config->{'global'}->{$param};
+	}
+	foreach my $param ( keys %{ $config->{'user'} } ) {
+		$self->{'limits'}->{'user'}->{$param} = $config->{'user'}->{$param};
 	}
 	return;
 }
@@ -485,16 +509,34 @@ sub get_next_job_id {
 	my ($self) = @_;
 	my $running = $self->_run_query( 'SELECT module,COUNT(*) AS count FROM jobs WHERE status=? GROUP BY module',
 		'started', { fetch => 'all_arrayref', slice => {} } );
-	my %running = map { $_->{'module'} => $_->{'count'} } @$running;
-	my $jobs = $self->_run_query( 'SELECT id,module FROM jobs WHERE status=? ORDER BY priority asc,submit_time asc',
+	my %total_running     = map { $_->{'module'} => $_->{'count'} } @$running;
+	my $running_user_jobs = $self->_run_query(
+		'SELECT module,username,COUNT(*) AS count FROM jobs WHERE '
+		  . 'status=? AND username IS NOT NULL GROUP BY module,username',
+		'started',
+		{ fetch => 'all_arrayref', slice => {} }
+	);
+	my $running_jobs_per_user;
+	foreach my $module_per_user (@$running_user_jobs) {
+		$running_jobs_per_user->{ $module_per_user->{'username'} }->{ $module_per_user->{'module'} } =
+		  $module_per_user->{'count'};
+	}
+	my $jobs =
+	  $self->_run_query( 'SELECT id,module,username FROM jobs WHERE status=? ORDER BY priority asc,submit_time asc',
 		'submitted', { fetch => 'all_arrayref', slice => {} } );
 	foreach my $job (@$jobs) {
-		if ( defined $self->{'limits'}->{ $job->{'module'} }
-			&& BIGSdb::Utils::is_int( $self->{'limits'}->{ $job->{'module'} } ) )
+		if ( defined $self->{'limits'}->{'global'}->{ $job->{'module'} }
+			&& BIGSdb::Utils::is_int( $self->{'limits'}->{'global'}->{ $job->{'module'} } ) )
 		{
 			next
-			  if defined $running{ $job->{'module'} }
-			  && $running{ $job->{'module'} } >= $self->{'limits'}->{ $job->{'module'} };
+			  if defined $total_running{ $job->{'module'} }
+			  && $total_running{ $job->{'module'} } >= $self->{'limits'}->{'global'}->{ $job->{'module'} };
+		}
+		if ( defined $job->{'username'} && defined $self->{'limits'}->{'user'}->{ $job->{'module'} } ) {
+			next
+			  if defined $running_jobs_per_user->{ $job->{'username'} }->{ $job->{'module'} }
+			  && $running_jobs_per_user->{ $job->{'username'} }->{ $job->{'module'} } >=
+			  $self->{'limits'}->{'user'}->{ $job->{'module'} };
 		}
 		return $job->{'id'};
 	}
@@ -550,6 +592,16 @@ sub get_job_temporal_data {
 		undef,
 		{ fetch => 'all_arrayref', slice => {} }
 	);
+}
+
+sub get_initial_queued {
+	my ( $self, $past_mins ) = @_;
+	my $qry =
+		qq[SET timezone TO '$self->{'local_tz'}';]
+	  . qq[SELECT COUNT(*) FROM jobs WHERE submit_time < now()-interval '$past_mins min' AND ]
+	  . qq[(start_time IS NULL OR start_time > now()-interval '$past_mins min') AND ]
+	  . q[(status NOT LIKE '%rejected%' AND status NOT IN ('cancelled','failed','terminated'))];
+	return $self->_run_query($qry);
 }
 
 sub get_period_timestamp {

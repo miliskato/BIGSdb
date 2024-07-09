@@ -1,7 +1,7 @@
 #ITol.pm - Phylogenetic tree plugin for BIGSdb
 #Written by Keith Jolley
-#Copyright (c) 2016-2022, University of Oxford
-#E-mail: keith.jolley@zoo.ox.ac.uk
+#Copyright (c) 2016-2024, University of Oxford
+#E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
 #
@@ -44,7 +44,7 @@ sub get_attributes {
 			{
 				name        => 'Keith Jolley',
 				affiliation => 'University of Oxford, UK',
-				email       => 'keith.jolley@zoo.ox.ac.uk',
+				email       => 'keith.jolley@biology.ox.ac.uk',
 			}
 		],
 		description      => 'Phylogenetic trees with data overlays',
@@ -58,7 +58,7 @@ sub get_attributes {
 		buttontext => 'iTOL',
 		menutext   => 'iTOL',
 		module     => 'ITOL',
-		version    => '1.5.7',
+		version    => '1.6.2',
 		dbtype     => 'isolates',
 		section    => 'third_party,postquery',
 		input      => 'query',
@@ -116,7 +116,7 @@ sub run {
 		$q->param( user_genome_filename => scalar $q->param('user_upload') );
 		my $user_upload;
 		if ( $q->param('user_upload') ) {
-			$user_upload = $self->_upload_user_file;
+			$user_upload = $self->upload_user_file;
 		}
 		if ( ( !@ids || @ids < 2 ) && !$user_upload ) {
 			push @errors, q(You must select at least two valid isolate ids.);
@@ -199,7 +199,7 @@ sub _print_interface {
 	my ( $self, $options ) = @_;
 	my $q                   = $self->{'cgi'};
 	my $max_records         = $options->{'max_records'} // MAX_RECORDS;
-	my $max_seqs            = $options->{'max_seqs'} // MAX_SEQS;
+	my $max_seqs            = $options->{'max_seqs'}    // MAX_SEQS;
 	my $commify_max_records = BIGSdb::Utils::commify($max_records);
 	my $commify_max_seqs    = BIGSdb::Utils::commify($max_seqs);
 	my $scheme_id           = $q->param('scheme_id');
@@ -219,8 +219,8 @@ sub _print_interface {
 
 	#Subclassed plugins may not yet support uploaded genomes.
 	$self->print_user_genome_upload_fieldset if ( $atts->{'supports'} // q() ) =~ /user_genomes/x;
-	$self->print_isolates_locus_fieldset( { locus_paste_list => 1 } );
-	$self->print_recommended_scheme_fieldset;
+	$self->print_isolates_locus_fieldset( { locus_paste_list => 1, no_all_none => 1 } );
+	$self->print_recommended_scheme_fieldset( { no_clear => 1 } );
 	$self->print_scheme_fieldset;
 	$self->print_extra_form_elements;
 	$self->print_action_fieldset( { no_reset => 1 } );
@@ -253,7 +253,7 @@ sub print_extra_form_elements {
 		}
 	);
 	say q(<fieldset style="float:left"><legend>iTOL data type</legend>);
-	my $q = $self->{'cgi'};
+	my $q      = $self->{'cgi'};
 	my $labels = { text_label => 'text labels', colour_strips => 'coloured strips' };
 	say $q->radio_group(
 		-name      => 'data_type',
@@ -278,13 +278,33 @@ sub _get_identifier_list {
 	return \@ids;
 }
 
+sub get_plugin_javascript {
+	my ($self) = @_;
+	my $buffer = << "END";
+
+\$(function () {
+	\$('#locus,#itol_dataset,#recommended_schemes').multiselect({
+ 		classes: 'filter',
+ 		menuHeight: 250,
+ 		menuWidth: 400,
+ 		selectedList: 8
+  	}).multiselectfilter();
+  	\$("a#clear_user_upload").on("click", function(){
+  		\$("input#user_upload").val("");
+  	});
+});
+
+END
+	return $buffer;
+}
+
 sub run_job {
 	my ( $self, $job_id, $params ) = @_;
 	my $ret_val = $self->generate_tree_files( $job_id, $params );
 	my ( $message_html, $fasta_file, $failed ) = @{$ret_val}{qw(message_html fasta_file failed )};
 	if ( !$failed ) {
 		my $identifiers = $self->_get_identifier_list($fasta_file);
-		my $itol_file = $self->_itol_upload( $job_id, $params, $identifiers, \$message_html );
+		my $itol_file   = $self->_itol_upload( $job_id, $params, $identifiers, \$message_html );
 		if ( $params->{'itol_dataset'} && -e $itol_file ) {
 			$self->{'jobManager'}->update_job_output( $job_id,
 				{ filename => "$job_id.zip", description => '30_iTOL datasets (Zip format)' } );
@@ -319,7 +339,6 @@ sub generate_tree_files {
 		$scan_data = $self->assemble_data_for_defined_loci(
 			{ job_id => $job_id, ids => $ids, user_genomes => $user_genomes, loci => $loci } );
 	};
-
 	if ($@) {
 		$logger->error($@);
 		if ( $@ =~ /No\ valid\ isolate\ ids/x ) {
@@ -372,7 +391,7 @@ sub generate_tree_files {
 		local $" = ', ';
 		if ( @$paralogous < 10 ) {
 			$message_html .=
-			    q(<p>The following loci are paralogous, resulting in multiple hits within at least one )
+				q(<p>The following loci are paralogous, resulting in multiple hits within at least one )
 			  . qq(isolate: @$paralogous. These have been removed from the analysis. See Excel output for )
 			  . qq(details.</p>\n);
 		} else {
@@ -420,8 +439,7 @@ sub generate_tree_files {
 			}
 			$failed = 1;
 		}
-	}
-	catch {
+	} catch {
 		if ( $_->isa('BIGSdb::Exception::File::CannotOpen') ) {
 			$logger->error('Cannot create FASTA file from XMFA.');
 			$failed = 1;
@@ -443,13 +461,13 @@ sub _generate_paralogous_report {
 	my @loci = sort keys %{ $scan_data->{'paralogous'} };
 	local $" = qq(\t);
 	my $text_file = "$self->{'config'}->{'tmp_dir'}/${job_id}_paralogous.txt";
-	open( my $fh, '>', $text_file ) || $logger->error("Cannot open $text_file for writing");
+	open( my $fh, '>:encoding(utf8)', $text_file ) || $logger->error("Cannot open $text_file for writing");
 	say $fh qq(id\t$self->{'system'}->{'labelfield'}\t@loci);
 	foreach my $isolate_id ( sort { $a <=> $b } keys %{ $scan_data->{'isolate_data'} } ) {
 		my $paralogous = $scan_data->{'isolate_data'}->{$isolate_id}->{'paralogous'};
 		next if !@$paralogous;
 		my %paralogous = map { $_ => 1 } @$paralogous;
-		my $name = $self->get_isolate_name_from_id($isolate_id);
+		my $name       = $self->get_isolate_name_from_id($isolate_id);
 		print $fh qq($isolate_id\t$name);
 		foreach my $locus (@loci) {
 			print $fh qq(\t);
@@ -594,7 +612,7 @@ sub _create_itol_dataset {
 		}
 	}
 	if ( $type eq 'scheme_field' ) {
-		my $set_id = $self->get_set_id;
+		my $set_id      = $self->get_set_id;
 		my $scheme_info = $self->{'datastore'}->get_scheme_info( $scheme_id, { set_id => $set_id } );
 		$scheme_field_desc = "$name ($scheme_info->{'name'})";
 		$scheme_temp_table = $self->_create_scheme_field_temp_table( \@ids, $scheme_id, $name );

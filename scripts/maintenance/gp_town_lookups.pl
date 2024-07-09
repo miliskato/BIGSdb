@@ -3,8 +3,8 @@
 #mapping.
 #
 #Written by Keith Jolley
-#Copyright (c) 2022, University of Oxford
-#E-mail: keith.jolley@zoo.ox.ac.uk
+#Copyright (c) 2022-2024, University of Oxford
+#E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
 #
@@ -21,7 +21,7 @@
 #You should have received a copy of the GNU General Public License
 #along with BIGSdb.  If not, see <http://www.gnu.org/licenses/>.
 #
-#Version: 20220613
+#Version: 20240531
 use strict;
 use warnings;
 use 5.010;
@@ -131,7 +131,9 @@ sub process_country {
 	my $country_field = $script->{'system'}->{'country_field'} // 'country';
 	my @matching_countries;
 	my $countries = COUNTRIES;
+	
 	foreach my $country_name ( sort keys %$countries ) {
+		next if !defined $countries->{$country_name}->{'iso2'};
 		push @matching_countries, $country_name if $countries->{$country_name}->{'iso2'} eq $iso2;
 	}
 	my @towns;
@@ -272,15 +274,16 @@ ${bold}--field$norm ${under}FIELD$norm
     'yes' in config.xml.
     
 ${bold}--geodataset$norm ${under}DIR$norm
-    Directory containing the Geonames dataset.
+    Directory containing the Geonames dataset - this can be found in the
+    BIGSdb datasets directory.
     
 ${bold}--help$norm
     This help page.
     
 ${bold}--min_population$norm ${under}POPULATION$norm
-    Set the minimum population for town to assign. Note that all entries in the
-    Geonames database has population, so setting this attribute may result in 
-    some values not being assigned, but can ensure that only high-confidence 
+    Set the minimum population for town to assign. Note that not all entries in
+    the Geonames database has population, so setting this attribute may result 
+    in some values not being assigned, but can ensure that only high-confidence
     values are used.
     
 ${bold}--quiet$norm

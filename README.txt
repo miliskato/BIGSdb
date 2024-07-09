@@ -1,3 +1,112 @@
+v1.47.0: *Added optional private data quotas to projects.
+         *Added embargoing for isolate submissions.
+v1.46.2: *BingMaps has been removed as an option for mapping as Microsoft are
+          retiring this service next year. It has been replaced with options
+          for MapTiler and ArcGIS maps.
+v1.46.1: *New SNPsites plugin - this provides a wrapper to the snp-sites tool
+          and can be applied across multiple loci to identify polymorphic sites
+          and allele counts within a dataset.
+v1.46.0: *Option to filter alleles, profiles, and isolates for non-logged in
+          users to records added before a specified date.
+         *Improved AJAX loading of isolate query interface.
+v1.45.0: *Added option to highlight private data in isolate exports.
+         *Added option for an admin to create customized isolate query forms
+          with pre-selected fields shown.
+         *Added separate options to require a user to be logged in to download
+          alleles and profiles using the web interface.
+v1.44.1: *Added option to show if assembly checks have passed in isolate 
+          results table.
+         *Added option to scannew.pl to only scan records that have passed
+          assembly checks.
+         *Added option to scannew.pl to not check private records.         
+v1.44.0: *Database indexes have been revised following a performance review.
+         *'Ignore' option has been removed for allele designations.
+         *Matching isolates at different LINcode thresholds are now shown 
+          within an isolate record is LINcode has been assigned.
+v1.43.3: *Added optional message to users to use API on the allele and profile
+          download page.
+         *Searchable dropdown boxes are now used for lists with large number 
+          of values.
+         *Dropdown lists of checkboxes now used for fields requiring 
+          multiselect.
+         *Javascript performance tweaks for background loading of isolate query
+          form elements.
+         *Optionally set a limit to the number of offline jobs that any single
+          user can run for individual plugins.
+v1.43.2: *Added additional logging information.
+         *cgST with fewest missing loci is now highlighted when isolate has 
+          multiple cgSTs.
+         *Dashboard now shown for bookmarked and publication queries.
+         *Added option for users to have to log-in to run offline jobs.
+         *Added option to tag incomplete loci at specified identity thresholds.
+         *Automatically set 'ambiguous read' flag on tags if sequence contains
+          non-A,G,T,C characters.
+         *JQuery.UI.multiselect now used for flag dropdown box on tag scan page. 
+          Only rows in current viewport are rendered as needed for performance.        
+v1.43.1: *Hotfix for isolate query modification trigger.
+v1.43.0: *Added optional web logging to record user accesses.
+         *Improved API logging to include client and usernames.
+v1.42.7: *Add new Reports plugin - this is used to generate customized genome
+          reports. See https://github.com/kjolley/Klebsiella_reports for
+          examples.
+         *Added option to silently reject alleles that fail similarity check
+          when batch uploading.
+         *Added option to make some fields expected for genome assemblies.
+         *Make the 'expand width' view persistent and allow its use for the
+          front-end dashboard.
+         *Add option to return partial sequence matches for scheme queries
+          using the API.
+v1.42.6: *Add list query to all table queries.
+         *N50 gridlines added to seqbin cumulative length display.
+         *Query and initialization optimizations to improve performance.
+         *Include selected fields in ReporTree partitions summary.
+v1.42.5: *New ReporTree plugin.
+v1.42.4: *Improve web-based sequence-scanning:
+          - Show position of first stop codon for complete CDS loci
+          - Optionally extract sequence to first stop codon if within a 
+            specified percentage of the length of the closest allele.
+v1.42.3: *Fix LINcode field export.
+v1.42.2: *Search isolates by SAVs or SNPs defined in typing database.
+         *Use caching for dashboard AJAX calls where possible.
+         *Add option to batch download full allele records via API.
+         *Fix for export of LINcode field values.
+v1.42.1: *Upgrade to FontAwesome 6.
+         *Added provenance completeness metrics - include fields in metric by
+          setting annotation_metric="yes" for a specific field in config.xml.
+         *Search isolates by allele extended attributes defined in typing
+          database.
+v1.42.0: *Option to define schemes that can include locus presence in profile
+          definitions.
+         *Mutation and SNP detection tools added to annotate allele 
+          definitions. Mutation presence can be queried in locus-specific
+          allele query interface.
+         *Add secure and httponly attributes to cookies.
+v1.41.3: *Add Kleborate plugin.
+v1.41.2: *Add choice of colour palettes to front-end and query dashboards.
+v1.41.1: *Option to define dashboard colours for specific field values.
+v1.41.0: *Bug fix for scheme field ordering in cache tables.
+v1.40.1: *Check, and add if necessary, field indexes on scheme cache tables.
+         *Add new index that speeds up scheme cache renewal.
+         *Fix flanking sequence export.
+         *Add --curator option to autotag.pl and scannew.pl scripts.
+v1.40.0: *Cache renewal now uses an embedded database stored procedure for
+          scheme field lookup, improving memory use.
+v1.39.1: *Improvements to scheme caching in isolate databases. This is now more
+          scalable for large databases. Manually refreshing the scheme is now
+          done in a forked process with updates displayed using AJAX calls.
+v1.39.0: *Export dashboard function which can be used to create TOML files for
+          setting up default primary, query, or project dashboards.
+         *Assembly submissions now allow users to submit genome assemblies via
+          the submission interface for adding to existing records.
+v1.38.1: *New project front-end dashboards.
+         *Query dashboard now shown for publication results. 
+         *New annotation status visualisation for dashboards.
+v1.38.0: *Support for limiting submissions and curators to a specific database
+          configuration.
+         *Added ability to hide fields in a specific configuration with a 
+          default value automatically set if provided.
+         *Added tab-delimited text and Excel outputs to rMLST species tool.
+v1.37.0: *Support for scheme fields with constrained allowed values.
 v1.36.7: *Option to show whether isolate is private in data exports.
 v1.36.6: *Improvement to define_profiles.pl script so that it assigns profiles
           even when there is an existing profile that matches but has more

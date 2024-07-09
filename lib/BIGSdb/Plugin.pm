@@ -1,6 +1,6 @@
 #Written by Keith Jolley
-#Copyright (c) 2010-2022, University of Oxford
-#E-mail: keith.jolley@zoo.ox.ac.uk
+#Copyright (c) 2010-2024, University of Oxford
+#E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
 #
@@ -36,7 +36,7 @@ sub get_attributes        { return {} }
 sub get_hidden_attributes { return [] }
 sub get_plugin_javascript { return q() }
 sub run                   { }
-sub run_job { }    #used to run offline job
+sub run_job               { }              #used to run offline job
 
 sub get_javascript {
 	my ($self) = @_;
@@ -47,14 +47,13 @@ sub get_javascript {
 		my $requires = $self->{'pluginManager'}->get_plugin($plugin_name)->get_attributes->{'requires'};
 		if ($requires) {
 			$tree_js =
-			    $requires =~ /js_tree/x || $self->{'jQuery.jstree'}
+				$requires =~ /js_tree/x || $self->{'jQuery.jstree'}
 			  ? $self->get_tree_javascript( { checkboxes => 1, check_schemes => 1, resizable => 1 } )
 			  : q();
 		} else {
 			$tree_js = q();
 		}
-	}
-	catch {
+	} catch {
 		if ( $_->isa('BIGSdb::Exception::Plugin::Invalid') ) {
 			my $message = $plugin_name ? "Plugin $plugin_name does not exist." : 'Plugin name not called.';
 			$tree_js = q();
@@ -176,7 +175,7 @@ sub print_content {
 }
 
 sub get_title {
-	my ($self) = @_;
+	my ($self)      = @_;
 	my $desc        = $self->get_db_description || 'BIGSdb';
 	my $plugin_name = $self->{'cgi'}->param('name');
 	my $att         = $self->{'pluginManager'}->get_plugin_attributes($plugin_name);
@@ -193,27 +192,49 @@ sub print_isolate_fields_fieldset {
 	my $fields         = $self->{'xmlHandler'}->get_field_list( { no_curate_only => !$is_curator } );
 	my $display_fields = [];
 	my $labels         = {};
+	my @group_list     = split /,/x, ( $self->{'system'}->{'field_groups'} // q() );
+	my $group_members  = {};
+	my $attributes     = $self->{'xmlHandler'}->get_all_field_attributes;
+
 	foreach my $field (@$fields) {
-		push @$display_fields, $field;
+		if ( $attributes->{$field}->{'group'} ) {
+			push @{ $group_members->{ $attributes->{$field}->{'group'} } }, $field;
+		} else {
+			push @{ $group_members->{'General'} }, $field;
+		}
 		my $label = $field;
 		$label =~ tr/_/ /;
 		$labels->{$field} = $label;
 		if ( $field eq $self->{'system'}->{'labelfield'} && !$options->{'no_aliases'} ) {
-			push @$display_fields, 'aliases';
+			push @{ $group_members->{'General'} }, 'aliases';
 		}
 		if ( $options->{'extended_attributes'} ) {
 			my $extended = $self->get_extended_attributes;
 			my $extatt   = $extended->{$field};
 			if ( ref $extatt eq 'ARRAY' ) {
 				foreach my $extended_attribute (@$extatt) {
-					push @$display_fields, "${field}___$extended_attribute";
+					if ( $attributes->{$field}->{'group'} ) {
+						push @{ $group_members->{ $attributes->{$field}->{'group'} } },
+						  "${field}___$extended_attribute";
+					} else {
+						push @{ $group_members->{'General'} }, "${field}___$extended_attribute";
+					}
 					( $labels->{"${field}___$extended_attribute"} = $extended_attribute ) =~ tr/_/ /;
 				}
 			}
 		}
 	}
+	my $q = $self->{'cgi'};
+	foreach my $group ( undef, @group_list ) {
+		my $name = $group // 'General';
+		$name =~ s/\|.+$//x;
+		if ( ref $group_members->{$name} ) {
+			push @$display_fields,
+			  $q->optgroup( -name => $name, -values => $group_members->{$name}, -labels => $labels );
+		}
+	}
 	say q(<fieldset style="float:left"><legend>Provenance fields</legend>);
-	say $self->popup_menu(
+	say $q->scrolling_list(
 		-name     => 'fields',
 		-id       => 'fields',
 		-values   => $display_fields,
@@ -222,34 +243,63 @@ sub print_isolate_fields_fieldset {
 		-size     => $options->{'size'} // 8,
 		-default  => $options->{'default'}
 	);
-	say q(<div style="text-align:center"><input type="button" onclick='listbox_selectall("fields",true)' )
-	  . q(value="All" style="margin-top:1em" class="small_submit" /><input type="button" )
-	  . q(onclick='listbox_selectall("fields",false)' value="None" style="margin:1em 0 0 0.2em" class="small_submit" />)
-	  . q(</div>);
+	if ( !$options->{'no_all_none'} ) {
+		say q(<div style="text-align:center">);
+		say q(<input type="button" onclick='listbox_selectall("fields",true)' )
+		  . q(value="All" style="margin-top:1em" class="small_submit" /><input type="button" )
+		  . q(onclick='listbox_selectall("fields",false)' value="None" style="margin:1em 0 0 0.2em" class="small_submit" />);
+		say q(</div>);
+	}
 	say q(</fieldset>);
 	return;
 }
 
 sub print_eav_fields_fieldset {
 	my ( $self, $options ) = @_;
-	my $eav_fields = $self->{'datastore'}->get_eav_fieldnames;
+	my $eav_fields = $self->{'datastore'}->get_eav_fields;
 	return if !@$eav_fields;
-	my $labels = {};
-	( $labels->{$_} = $_ ) =~ tr/_/ / foreach @$eav_fields;
+	my @group_list = split /,/x, ( $self->{'system'}->{'eav_groups'} // q() );
+	my $values     = [];
+	my $labels     = {};
+	my $q          = $self->{'cgi'};
+	if (@group_list) {
+		my $eav_groups    = { map { $_->{'field'} => $_->{'category'} } @$eav_fields };
+		my $group_members = {};
+		foreach my $eav_field (@$eav_fields) {
+			my $fieldname = $eav_field->{'field'};
+			( $labels->{$fieldname} = $fieldname ) =~ tr/_/ /;
+			if ( $eav_groups->{$fieldname} ) {
+				push @{ $group_members->{ $eav_groups->{$fieldname} } }, $fieldname;
+			} else {
+				push @{ $group_members->{'General'} }, $fieldname;
+			}
+		}
+		foreach my $group ( undef, @group_list ) {
+			my $name = $group // 'General';
+			$name =~ s/\|.+$//x;
+			if ( ref $group_members->{$name} ) {
+				push @$values, $q->optgroup( -name => $name, -values => $group_members->{$name}, -labels => $labels );
+			}
+		}
+	} else {
+		$values = $self->{'datastore'}->get_eav_fieldnames;
+	}
 	my $legend = $self->{'system'}->{'eav_fields'} // 'Secondary metadata';
 	say qq(<fieldset style="float:left"><legend>$legend</legend>);
-	say $self->popup_menu(
+	say $q->scrolling_list(
 		-name     => 'eav_fields',
 		-id       => 'eav_fields',
-		-values   => $eav_fields,
+		-values   => $values,
 		-labels   => $labels,
 		-multiple => 'true',
 		-size     => $options->{'size'} // 8,
 	);
-	say q(<div style="text-align:center"><input type="button" onclick='listbox_selectall("eav_fields",true)' )
-	  . q(value="All" style="margin-top:1em" class="small_submit" /><input type="button" )
-	  . q(onclick='listbox_selectall("eav_fields",false)' value="None" style="margin:1em 0 0 0.2em" )
-	  . q(class="small_submit" /></div>);
+	if ( !$options->{'no_all_none'} ) {
+		say q(<div style="text-align:center"><input type="button" onclick='listbox_selectall("eav_fields",true)' )
+		  . q(value="All" style="margin-top:1em" class="small_submit" /><input type="button" )
+		  . q(onclick='listbox_selectall("eav_fields",false)' value="None" style="margin:1em 0 0 0.2em" )
+		  . q(class="small_submit" /></div>);
+	}
 	say q(</fieldset>);
 	return;
 }
@@ -264,11 +314,7 @@ sub print_composite_fields_fieldset {
 		foreach my $field (@$composites) {
 			( $labels->{$field} = $field ) =~ tr/_/ /;
 		}
-		say q(<fieldset style="float:left"><legend>Composite fields);
-		say $self->get_tooltip( q(Composite fields - These are constructed from combinations of )
-			  . q(other fields (some of which may come from external databases). Including composite fields )
-			  . q(will slow down the processing.) );
-		say q(</legend>);
+		say q(<fieldset style="float:left"><legend>Composite fields</legend>);
 		say $self->popup_menu(
 			-name     => 'composite_fields',
 			-id       => 'composite_fields',
@@ -277,6 +323,9 @@ sub print_composite_fields_fieldset {
 			-multiple => 'true',
 			-class    => 'multiselect'
 		);
+		say $self->get_tooltip( q(Composite fields - These are constructed from combinations of )
+			  . q(other fields (some of which may come from external databases). Including composite fields )
+			  . q(will slow down the processing.) );
 		say q(</fieldset>);
 	}
 	return;
@@ -349,6 +398,8 @@ sub get_selected_fields {
 	my $set_id        = $self->get_set_id;
 	my $loci          = $self->{'datastore'}->get_loci( { set_id => $set_id } );
 	my $selected_loci = $self->get_selected_loci;
+	my ( $pasted_cleaned_loci, $invalid_loci ) = $self->get_loci_from_pasted_list( { dont_clear => 1 } );
+	push @$selected_loci, @$pasted_cleaned_loci;
 	my %selected_loci = map { $_ => 1 } @$selected_loci;
 	my %locus_seen;
 
@@ -360,7 +411,7 @@ sub get_selected_fields {
 	}
 	my $schemes = $self->{'datastore'}->run_query( 'SELECT id FROM schemes', undef, { fetch => 'col_arrayref' } );
 	foreach my $scheme_id (@$schemes) {
-		my $scheme_info = $self->{'datastore'}->get_scheme_info( $scheme_id, { get_pk => 1 } );
+		my $scheme_info    = $self->{'datastore'}->get_scheme_info( $scheme_id, { get_pk => 1 } );
 		my $scheme_members = $self->{'datastore'}->get_scheme_loci($scheme_id);
 		foreach my $member (@$scheme_members) {
 			if ( $q->param("s_$scheme_id") && $q->param('scheme_members') ) {
@@ -420,7 +471,7 @@ sub print_id_fieldset {
 	my ( $self, $options ) = @_;
 	$options->{'fieldname'} //= 'id';
 	my $list = $options->{'list'} // [];
-	my $q = $self->{'cgi'};
+	my $q    = $self->{'cgi'};
 	say qq(<fieldset style="float:left"><legend>Select $options->{'fieldname'}s</legend>);
 	local $" = "\n";
 	say q(<p style="padding-right:2em">Paste in list of ids to include, start a new<br />) . q(line for each.);
@@ -538,7 +589,7 @@ sub print_includes_fieldset {
 }
 
 sub print_scheme_locus_fieldset {
-	my ( $self, $scheme_id ) = @_;
+	my ( $self, $scheme_id, $options ) = @_;
 	my $locus_list = $self->{'datastore'}->get_scheme_loci($scheme_id);
 	my $set_id     = $self->get_set_id;
 	my %labels;
@@ -553,10 +604,12 @@ sub print_scheme_locus_fieldset {
 			-size     => 8,
 			-multiple => 'true'
 		);
-		say q(<div style="text-align:center"><input type="button" onclick='listbox_selectall("locus",true)' )
-		  . q(value="All" style="margin-top:1em" class="small_submit" /><input type="button" )
-		  . q(onclick='listbox_selectall("locus",false)' value="None" style="margin:1em 0 0 0.2em" )
-		  . q(class="small_submit" /></div>);
+		if ( !$options->{'no_all_none'} ) {
+			say q(<div style="text-align:center"><input type="button" onclick='listbox_selectall("locus",true)' )
+			  . q(value="All" style="margin-top:1em" class="small_submit" /><input type="button" )
+			  . q(onclick='listbox_selectall("locus",false)' value="None" style="margin:1em 0 0 0.2em" )
+			  . q(class="small_submit" /></div>);
+		}
 	} else {
 		say q(No loci available<br />for analysis);
 	}
@@ -567,11 +620,12 @@ sub print_scheme_locus_fieldset {
 sub print_scheme_fieldset {
 	my ( $self, $options ) = @_;
 	$options = {} if ref $options ne 'HASH';
-	my $q = $self->{'cgi'};
+	my $analysis_pref = $options->{'analysis_pref'} // 1;
+	my $q             = $self->{'cgi'};
 	say q(<fieldset id="scheme_fieldset" style="float:left"><legend>Schemes</legend>)
 	  . q(<noscript><p class="highlight">Enable Javascript to select schemes.</p></noscript>)
 	  . q(<div id="tree" class="tree" style="height:14em;width:20em">);
-	say $self->get_tree( undef, { no_link_out => 1, select_schemes => 1 } );
+	say $self->get_tree( undef, { no_link_out => 1, select_schemes => 1, analysis_pref => $analysis_pref } );
 	say q(</div>);
 	if ( $options->{'fields_or_loci'} ) {
 		say q(<div style="padding-top:1em"><ul><li>);
@@ -660,7 +714,7 @@ sub add_scheme_loci {
 
 	#Merge scheme loci into locus arrayref.  This deletes CGI params so don't call more than once.
 	my ( $self, $loci ) = @_;
-	my $q = $self->{'cgi'};
+	my $q          = $self->{'cgi'};
 	my $scheme_ids = $self->{'datastore'}->run_query( 'SELECT id FROM schemes', undef, { fetch => 'col_arrayref' } );
 	push @$scheme_ids, 0;
 	my @selected_schemes;
@@ -674,10 +728,10 @@ sub add_scheme_loci {
 		}
 	}
 	my %locus_selected = map { $_ => 1 } @$loci;
-	my $set_id = $self->get_set_id;
+	my $set_id         = $self->get_set_id;
 	foreach my $scheme_id (@selected_schemes) {
 		my $scheme_loci =
-		    $scheme_id
+			$scheme_id
 		  ? $self->{'datastore'}->get_scheme_loci($scheme_id)
 		  : $self->{'datastore'}->get_loci_in_no_scheme( { set_id => $set_id } );
 		foreach my $locus (@$scheme_loci) {
@@ -723,8 +777,8 @@ sub order_loci {
 
 #Set CGI param from scheme tree selections for passing to offline job.
 sub set_scheme_param {
-	my ($self) = @_;
-	my $q = $self->{'cgi'};
+	my ($self)     = @_;
+	my $q          = $self->{'cgi'};
 	my $scheme_ids = $self->{'datastore'}->run_query( 'SELECT id FROM schemes', undef, { fetch => 'col_arrayref' } );
 	push @$scheme_ids, 0;
 	my @selected_schemes;
@@ -797,8 +851,7 @@ sub get_scheme_field_values {
 		try {
 			$self->{'scheme_field_table'}->{$scheme_id} =
 			  $self->{'datastore'}->create_temp_isolate_scheme_fields_view($scheme_id);
-		}
-		catch {
+		} catch {
 			if ( $_->isa('BIGSdb::Exception::Database::Connection') ) {
 				$logger->error('Cannot copy data to temporary table.');
 			} else {
@@ -869,7 +922,7 @@ sub get_cscheme_field_value {
 	}
 	my @values;
 	if ( $self->{'cache'}->{'cscheme_field_cache_table_exists'}->{$cscheme_id} ) {
-		my $cscheme_group = $self->get_cscheme_value( $isolate_id, $cscheme_id );
+		my $cscheme_group  = $self->get_cscheme_value( $isolate_id, $cscheme_id );
 		my @cscheme_groups = split /;/x, $cscheme_group;
 		foreach my $group (@cscheme_groups) {
 			my $value = $self->{'datastore'}->run_query(
@@ -914,7 +967,7 @@ sub get_lincode {
 
 sub attempted_spam {
 	my ( $self, $str ) = @_;
-	return if !$str || !ref $str;
+	return   if !$str || !ref $str;
 	return 1 if $$str =~ /<\s*a\s*href/ix;    #Test for HTML links in submitted data
 	return;
 }
@@ -945,37 +998,44 @@ sub filter_missing_isolates {
 
 sub get_export_buttons {
 	my ( $self, $options ) = @_;
-	my $buffer = ();
+	my $buffer      = ();
 	my $div_display = $options->{'hide_div'} ? 'none' : 'block';
 	$buffer .= qq(<div id="export" style="display:$div_display;margin-top:1em">\n);
 	my %hide = $options->{'hide'} ? map { $_ => 1 } @{ $options->{'hide'} } : ();
 	if ( $options->{'table'} ) {
 		my $display = $hide{'table'} ? 'none' : 'inline';
-		my $table = EXPORT_TABLE;
+		my $table   = EXPORT_TABLE;
 		$buffer .= qq(<a id="export_table" title="Show as table" style="cursor:pointer;display:$display">$table</a>);
 	}
 	if ( $options->{'excel'} ) {
 		my $display = $hide{'excel'} ? 'none' : 'inline';
-		my $excel = EXCEL_FILE;
+		my $excel   = EXCEL_FILE;
 		$buffer .=
 		  qq(<a id="export_excel" title="Export Excel file" style="cursor:pointer;display:$display">$excel</a>);
 	}
 	if ( $options->{'text'} ) {
 		my $display = $hide{'text'} ? 'none' : 'inline';
-		my $text = TEXT_FILE;
+		my $text    = TEXT_FILE;
 		$buffer .= qq(<a id="export_text" title="Export text file" style="cursor:pointer;display:$display">$text</a>);
 	}
 	if ( $options->{'fasta'} ) {
 		my $display = $hide{'fasta'} ? 'none' : 'inline';
-		my $fasta = FASTA_FILE;
+		my $fasta   = FASTA_FILE;
 		$buffer .=
 		  qq(<a id="export_fasta" title="Export FASTA file" style="cursor:pointer;display:$display">$fasta</a>);
 	}
 	if ( $options->{'image'} ) {
 		my $display = $hide{'image'} ? 'none' : 'inline';
-		my $image = IMAGE_FILE;
+		my $image   = IMAGE_FILE;
 		$buffer .=
-		    q(<a id="export_image" title="Export SVG image file" )
+			q(<a id="export_image" title="Export SVG image file" )
+		  . qq(style="cursor:pointer;display:$display">$image</a>);
+	}
+	if ( $options->{'map_image'} ) {
+		my $display = $hide{'map_image'} ? 'none' : 'inline';
+		my $image   = IMAGE_FILE;
+		$buffer .=
+			q(<a id="export_map_image" title="Export PNG image file" )
 		  . qq(style="cursor:pointer;display:$display">$image</a>);
 	}
 	$buffer .= q(</div>);
@@ -983,7 +1043,7 @@ sub get_export_buttons {
 }
 
 sub print_recommended_scheme_fieldset {
-	my ($self) = @_;
+	my ( $self, $options ) = @_;
 	my $schemes =
 	  $self->{'datastore'}
 	  ->run_query( 'SELECT id FROM schemes WHERE recommended ORDER BY name', undef, { fetch => 'col_arrayref' } );
@@ -1004,9 +1064,11 @@ sub print_recommended_scheme_fieldset {
 		-size     => 5,
 		-multiple => 'true'
 	);
-	say
-	  q(<div style="text-align:center"><input type="button" onclick='listbox_selectall("recommended_schemes",false)' )
-	  . q(value="Clear" style="margin-top:1em" class="small_submit" /></div>);
+	if ( !$options->{'no_clear'} ) {
+		say q(<div style="text-align:center"><input type="button" )
+		  . q(onclick='listbox_selectall("recommended_schemes",false)' )
+		  . q(value="Clear" style="margin-top:1em" class="small_submit" /></div>);
+	}
 	say q(</fieldset>);
 	return;
 }
@@ -1039,6 +1101,8 @@ sub print_user_genome_upload_fieldset {
 		  . qq(used as the name of the isolate(s) in the output. Maximum upload size is $upload_limit.) );
 	say q(</p>);
 	say $q->filefield( -name => 'user_upload', -id => 'user_upload' );
+	say q(<a id="clear_user_upload" class="small_reset" title="Clear upload">)
+	  . q(<span><span class="far fa-trash-can"></span></span></a>);
 	say q(</fieldset>);
 	return;
 }
@@ -1108,18 +1172,19 @@ sub get_breadcrumbs {
 	my ($self)      = @_;
 	my $att         = $self->get_attributes;
 	my $breadcrumbs = [];
+	return $breadcrumbs if !$self->{'instance'};
 	if ( $self->{'system'}->{'webroot'} ) {
 		push @$breadcrumbs,
 		  {
 			label => $self->{'system'}->{'webroot_label'} // 'Organism',
-			href => $self->{'system'}->{'webroot'}
+			href  => $self->{'system'}->{'webroot'}
 		  };
 	}
 	push @$breadcrumbs,
 	  (
 		{
 			label => $self->{'system'}->{'formatted_description'} // $self->{'system'}->{'description'},
-			href => "$self->{'system'}->{'script_name'}?db=$self->{'instance'}"
+			href  => "$self->{'system'}->{'script_name'}?db=$self->{'instance'}"
 		},
 		{
 			label => 'Plugins',

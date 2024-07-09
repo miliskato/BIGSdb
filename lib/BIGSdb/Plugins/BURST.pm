@@ -1,7 +1,7 @@
 #BURST.pm - BURST plugin for BIGSdb
 #Written by Keith Jolley
-#Copyright (c) 2010-2022, University of Oxford
-#E-mail: keith.jolley@zoo.ox.ac.uk
+#Copyright (c) 2010-2024, University of Oxford
+#E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
 #
@@ -46,7 +46,7 @@ sub get_attributes {
 			{
 				name        => 'Keith Jolley',
 				affiliation => 'University of Oxford, UK',
-				email       => 'keith.jolley@zoo.ox.ac.uk',
+				email       => 'keith.jolley@biology.ox.ac.uk',
 			}
 		],
 		description      => 'Perform BURST cluster analysis on query results query results',
@@ -58,14 +58,14 @@ sub get_attributes {
 		buttontext          => 'BURST',
 		menutext            => 'BURST',
 		module              => 'BURST',
-		version             => '1.2.0',
+		version             => '1.2.3',
 		dbtype              => 'isolates,sequences',
 		seqdb_type          => 'schemes',
 		section             => 'postquery,analysis',
 		order               => 12,
 		system_flag         => 'BURST',
 		input               => 'query',
-		requires            => 'mogrify,pk_scheme',
+		requires            => 'pk_scheme',
 		min_scheme_loci     => 2,
 		max_scheme_loci     => 100,
 		url                 => "$self->{'config'}->{'doclink'}/data_analysis/burst.html",
@@ -86,7 +86,6 @@ sub run {
 	say q(<h1>BURST analysis</h1>);
 	my $pk;
 	if ( $self->{'system'}->{'dbtype'} eq 'sequences' && defined $scheme_id ) {
-
 		if ( !BIGSdb::Utils::is_int($scheme_id) ) {
 			$self->print_bad_status( { message => q(Scheme id must be an integer.), navbar => 1 } );
 			return;
@@ -228,7 +227,9 @@ sub _run_burst {
 	local $| = 1;
 	say q(<div class="hideonload"><p>Please wait - calculating (do not refresh) ...</p>)
 	  . q(<p><span class="wait_icon fas fa-sync-alt fa-spin fa-4x"></span></p></div>);
-	$self->{'mod_perl_request'}->rflush if $ENV{'MOD_PERL'};
+	if ( $ENV{'MOD_PERL'} ) {
+		eval { $self->{'mod_perl_request'}->rflush };
+	}
 	my ( $locus_count, $profiles_ref, $profile_freq_ref, $num_profiles ) =
 	  $self->_get_profile_array( $scheme_id, $pk, $list );
 	my ( $matrix_ref, $error ) = $self->_generate_distance_matrix( $locus_count, $num_profiles, $profiles_ref );
@@ -269,7 +270,7 @@ sub _get_profile_array {
 				$st, { cache => 'BURST::get_profile_array' } );
 			next if !ref $profile_ref;
 			my @profile = ( $pk_value, @$profile_ref );
-			my $j = 0;
+			my $j       = 0;
 			if ( $st_frequency{ $profile[0] } ) {
 				$st_frequency{ $profile[0] }++;
 			} else {
@@ -391,18 +392,17 @@ sub _recursive_search {
 	local $| = 1;
 	say q(<h2>Groups:</h2>);
 	say qq(<strong>Group definition: $grpdef or more matches</strong>);
-	if ( $self->{'config'}->{'mogrify_path'} ) {
-		say qq(<p>Groups with central $pk will be displayed as an image.</p>);
-	}
+	say qq(<p>Groups with central $pk will be displayed as an image.</p>);
 	my $td = 1;
 	my @groupSize;
+
 	for ( my $group = 0 ; $group < $ng ; $group++ ) {
 		my $thisGroupSize = 0;
 		my $maxslv        = 0;
 		my $noancestor    = 0;
 		my $ancestor      = 0;
 		if ( $ENV{'MOD_PERL'} ) {
-			$self->{'mod_perl_request'}->rflush;
+			eval { $self->{'mod_perl_request'}->rflush };
 			if ( $self->{'mod_perl_request'}->connection->aborted ) {
 				return;
 			}
@@ -506,7 +506,7 @@ sub _recursive_search {
 					say defined $result[1][$i] ? "<td>$result[1][$i]</td>" : '<td></td>';
 					say defined $result[2][$i] ? "<td>$result[2][$i]</td>" : '<td></td>';
 					say q(</tr>);
-					$td = $td == 1 ? 2 : 1;    #row stripes
+					$td = $td == 1 ? 2 : 1;              #row stripes
 					$st[$stCount] = $profiles[$i][0];
 					my $stCount2 = 0;
 
@@ -538,13 +538,11 @@ sub _recursive_search {
 					}
 				}
 			}
-			if ( $self->{'config'}->{'mogrify_path'} ) {
-				my $imageFile = $self->_create_group_graphic( \@st, \@grpDisMat, $at );
-				say q(<tr class="td2"><td colspan="5" style="border:1px dashed black">)
-				  . qq(<img src="/tmp/$imageFile.png" alt="BURST group" /></td></tr>);
-				say qq(<tr class="td1"><td colspan="5"><a href="/tmp/$imageFile.svg">)
-				  . q(SVG file</a> (right click to save)</td></tr>);
-			}
+			my $imageFile = $self->_create_group_graphic( \@st, \@grpDisMat, $at );
+			say q(<tr class="td2"><td colspan="5" style="border:1px dashed black">)
+			  . qq(<img src="/tmp/$imageFile.svg" alt="BURST group" /></td></tr>);
+			say qq(<tr class="td1"><td colspan="5"><a href="/tmp/$imageFile.svg">)
+			  . q(SVG file</a> (right click to save)</td></tr>);
 		}
 		say q(</table></div>) if ( $thisGroupSize > 1 );
 	}
@@ -704,7 +702,7 @@ SVG
 					( $x1, $y1, $x2, $y2 ) = $self->_offset_line( $x1, $y1, $x2, $y2, $unit );
 					$buffer .= qq(<line x1="$x1" y1="$y1" x2="$x2" y2="$y2" ) . q(stroke="black" stroke-width="1"/>);
 					$buffer .=
-					    qq(<circle stroke="black" fill="none" cx="$posnX->[$atPosn[$at]]" )
+						qq(<circle stroke="black" fill="none" cx="$posnX->[$atPosn[$at]]" )
 					  . qq(cy="$posnY->[$atPosn[$at]]" r=")
 					  . ( $unit / 2 ) . q("/>);
 				}
@@ -714,7 +712,7 @@ SVG
 	for my $at ( 1 .. $noAT ) {
 		my $k;
 		if ( $atPosn[$at] == 0 ) {    #unpositioned
-			                          #assign to lowest untaken posn
+									  #assign to lowest untaken posn
 			$k = 0;
 			while ( $posntaken[$k] ) {
 				$k++;
@@ -773,10 +771,6 @@ SVG
 	open( my $fh, '>', $svg_filename ) || $logger->error("Can't open $svg_filename for writing");
 	print $fh $buffer;
 	close $fh;
-	system( $self->{'config'}->{'mogrify_path'},
-		-format => 'png',
-		"$self->{'config'}->{'tmp_dir'}/$filename.svg", "$self->{'config'}->{'tmp_dir'}/$filename.png"
-	);
 	return $filename;
 }
 
@@ -790,31 +784,32 @@ sub _draw_slv_rings {
 	my $st_ref     = $args->{'st_ref'};
 	my $atList_ref = $args->{'atList_ref'};
 	my $buffer     = '';
+
 	for my $at ( 0 .. $noAT ) {
 
 		#Draw SLV ring
 		if ( $self->{'cgi'}->param('shade') ) {
 			$buffer .=
-			    qq(<circle stroke="black" fill="black" fill-opacity="0.1" cx="$posnX->[$atPosn_ref->[$at]]" )
+				qq(<circle stroke="black" fill="black" fill-opacity="0.1" cx="$posnX->[$atPosn_ref->[$at]]" )
 			  . qq(cy="$posnY->[$atPosn_ref->[$at]]" r=")
 			  . ( $unit / 2 )
 			  . qq("/>\n);
 		} else {
 			$buffer .=
-			    qq(<circle stroke="black" fill="none" cx="$posnX->[$atPosn_ref->[$at]]" )
+				qq(<circle stroke="black" fill="none" cx="$posnX->[$atPosn_ref->[$at]]" )
 			  . qq(cy="$posnY->[$atPosn_ref->[$at]]" r=")
 			  . ( $unit / 2 )
 			  . qq("/>\n);
 		}
 		if ( $self->{'cgi'}->param('shade') ) {
 			$buffer .=
-			    qq(<circle stroke="red" stroke-width="$unit" stroke-opacity="0.1" fill="none" )
+				qq(<circle stroke="red" stroke-width="$unit" stroke-opacity="0.1" fill="none" )
 			  . qq(cx="$posnX->[$atPosn_ref->[$at]]" cy="$posnY->[$atPosn_ref->[$at]]" r=")
 			  . ($unit)
 			  . qq("/>\n);
 		}
 		$buffer .=
-		    qq(<circle stroke="red" fill="none" cx="$posnX->[$atPosn_ref->[$at]]" )
+			qq(<circle stroke="red" fill="none" cx="$posnX->[$atPosn_ref->[$at]]" )
 		  . qq(cy="$posnY->[$atPosn_ref->[$at]]" r=")
 		  . ( 1.5 * $unit )
 		  . qq("/>\n);
@@ -857,13 +852,13 @@ sub _draw_ring_sts {
 				#draw outer circle if there are DLVs
 				if ( $self->{'cgi'}->param('shade') ) {
 					$buffer .=
-					    qq(<circle stroke="blue" stroke-width="$unit" stroke-opacity="0.1" fill="none" )
+						qq(<circle stroke="blue" stroke-width="$unit" stroke-opacity="0.1" fill="none" )
 					  . qq(cx="$posnX->[$atPosn_ref->[$at]]" cy="$posnY->[$atPosn_ref->[$at]]" r=")
 					  . ( 2 * $unit )
 					  . qq("/>\n);
 				}
 				$buffer .=
-				    qq(<circle stroke="blue" fill="none" cx="$posnX->[$atPosn_ref->[$at]]" )
+					qq(<circle stroke="blue" fill="none" cx="$posnX->[$atPosn_ref->[$at]]" )
 				  . qq(cy="$posnY->[$atPosn_ref->[$at]]" r=")
 				  . ( 2.5 * $unit )
 				  . qq("/>\n);
@@ -918,8 +913,8 @@ sub _draw_spokes {
 	my $atPosn_ref      = $args->{'atPosn_ref'};
 	my $at              = $args->{'at'};
 	my $buffer          = '';
-	for my $at ( 0 .. $noAT ) {
 
+	for my $at ( 0 .. $noAT ) {
 		for my $run ( 0 .. 4 ) {
 			my $run_vars = {
 				0 => [ 2, 1 ],
@@ -942,7 +937,7 @@ sub _draw_spokes {
 
 								#prevent proliferation of satellites
 								my $colour;
-								if ( $satellite == 2 ) {                         #DLVs only
+								if ( $satellite == 2 ) {    #DLVs only
 									( $colour, $distance ) = ( 'blue', 2 );
 								} else {
 
@@ -983,7 +978,7 @@ sub _draw_spokes {
 										$textOffset += 8;
 									} else {
 										$buffer .=
-										    qq(<text x="$posX_text" y=")
+											qq(<text x="$posX_text" y=")
 										  . ( $posY_text + $textOffset )
 										  . qq(" font-size="9">$st_ref->[$j]</text>\n);
 									}

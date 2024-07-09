@@ -1,6 +1,6 @@
 #Written by Keith Jolley
-#Copyright (c) 2010-2020, University of Oxford
-#E-mail: keith.jolley@zoo.ox.ac.uk
+#Copyright (c) 2010-2024, University of Oxford
+#E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
 #
@@ -181,7 +181,7 @@ sub _upload {
 	my $insert        = 1;
 	my ( $bad_field_buffer, $fields_with_values ) = $self->_check_upload_data( $scheme_id, $newdata );
 	my @extra_inserts;
-	my @new_pubmeds = split /\r?\n/x, $q->param('pubmed');
+	my @new_pubmeds  = split /\r?\n/x, $q->param('pubmed');
 	my $pubmed_error = 0;
 
 	foreach my $new (@new_pubmeds) {
@@ -217,7 +217,7 @@ sub _upload {
 		my $ret =
 		  $self->{'datastore'}->check_new_profile( $scheme_id, \%designations, $newdata->{"field:$primary_key"} );
 		$self->print_bad_status( { message => $ret->{'msg'} } ) if $ret->{'msg'};
-		$insert = 0 if $ret->{'exists'} || $ret->{'err'};
+		$insert = 0                                             if $ret->{'exists'} || $ret->{'err'};
 	}
 	if ($insert) {
 		my $pk_exists =
@@ -309,7 +309,7 @@ sub _upload {
 				my $submission_id = $q->param('submission_id');
 				if ($submission_id) {
 					my $url =
-					    qq($self->{'system'}->{'script_name'}?db=$self->{'instance'}&amp;page=submit&amp;)
+						qq($self->{'system'}->{'script_name'}?db=$self->{'instance'}&amp;page=submit&amp;)
 					  . qq(submission_id=$submission_id&amp;curate=1);
 					$detail = qq(Don't forget to <a href="$url">close the submission</a>!);
 				}
@@ -319,7 +319,7 @@ sub _upload {
 						detail        => $detail,
 						navbar        => 1,
 						submission_id => $submission_id,
-						more_url =>
+						more_url      =>
 						  qq($self->{'system'}->{'script_name'}?db=$self->{'instance'}&amp;page=profileAdd&amp;)
 						  . qq(scheme_id=$scheme_id)
 					}
@@ -338,11 +338,19 @@ sub _print_interface {
 	my $set_id      = $self->get_set_id;
 	my $scheme_info = $self->{'datastore'}->get_scheme_info( $scheme_id, { set_id => $set_id, get_pk => 1 } );
 	my $primary_key = $scheme_info->{'primary_key'};
-	my $msg =
-	  $scheme_info->{'allow_missing_loci'}
-	  ? q[ This scheme allows profile definitions to contain missing alleles (designate ]
-	  . q[these as '0') or ignored alleles (designate these as 'N').]
-	  : q[];
+	my $msg         = q();
+	my @allowed;
+	if ( $scheme_info->{'allow_missing_loci'} ) {
+		push @allowed, q(contain missing alleles (designate these as '0'));
+		push @allowed, q(ignored alleles (designate these as 'N'));
+	}
+	if ( $scheme_info->{'allow_presence'} ) {
+		push @allowed, q(show that a locus is present (designate these as 'P'));
+	}
+	if (@allowed) {
+		local $" = q(, or );
+		$msg = qq( This scheme allows profile definitions to @allowed.);
+	}
 	say q(<div class="box" id="queryform">);
 	say q(<div class="scrollable">);
 	my $icon = $self->get_form_icon( 'profiles', 'plus' );
@@ -354,21 +362,21 @@ sub _print_interface {
 	my $longest_name = BIGSdb::Utils::get_largest_string_length( [ @$loci, @$fields ] );
 	my $width        = int( 0.5 * $longest_name ) + 2;
 	$width = 15 if $width > 15;
-	$width = 6  if $width < 6;
+	$width = 7  if $width < 7;
 	print $q->start_form;
 	$q->param( sent => 1 );
 	say $q->hidden($_) foreach qw (page db sent scheme_id submission_id);
-	say q(<ul style="white-space:nowrap">);
+	say q(<ul>);
 	my ( $label, $title ) = $self->get_truncated_label( $primary_key, 24 );
 	my $title_attribute = $title ? qq( title="$title") : q();
-	say qq(<li><label for="field:$primary_key" class="form" style="width:${width}em"$title_attribute>$label: !</label>);
+	say qq(<li><label for="field_$primary_key" class="form" style="width:${width}em"$title_attribute>$label: !</label>);
 	my $pk_field_info = $self->{'datastore'}->get_scheme_field_info( $scheme_id, $primary_key );
-	my %html5_args = ( required => 'required' );
+	my %html5_args    = ( required => 'required' );
 	$html5_args{'type'} = 'number' if $pk_field_info->{'type'} eq 'integer';
 	say $self->textfield(
-		-name => "field:$primary_key",
-		-id   => "field:$primary_key",
-		-size => $pk_field_info->{'type'} eq 'integer' ? 10 : 30,
+		-name  => "field:$primary_key",
+		-id    => "field_$primary_key",
+		-size  => $pk_field_info->{'type'} eq 'integer' ? 10 : 30,
 		-value => $q->param("field:$primary_key") // $newdata->{$primary_key},
 		%html5_args
 	);
@@ -386,21 +394,21 @@ sub _print_interface {
 		my $cleaned = $self->clean_locus( $locus, { no_common_name => 1, strip_links => 1 } );
 		( $label, $title ) = $self->get_truncated_label( $cleaned, 24 );
 		$title_attribute = $title ? qq( title="$title") : q();
-		say qq(<li><label for="locus:$locus" class="form" style="width:${width}em"$title_attribute>$label: !</label>);
+		say qq(<li><label for="locus_$locus" class="form" style="width:${width}em"$title_attribute>$label: !</label>);
 		say $self->textfield(
 			-name  => "locus:$locus",
-			-id    => "locus:$locus",
+			-id    => "locus_$locus",
 			-size  => 10,
 			-value => $q->param("locus:$locus") // $newdata->{"locus:$locus"},
 			%html5_args
 		);
 		say q(</li>);
 	}
-	say qq(<li><label for="field:sender" class="form" style="width:${width}em">sender: !</label>);
+	say qq(<li><label for="field_sender" class="form" style="width:${width}em">sender: !</label>);
 	my ( $users, $user_names ) = $self->{'datastore'}->get_users;
 	say $self->popup_menu(
 		-name     => 'field:sender',
-		-id       => 'field:sender',
+		-id       => 'field_sender',
 		-values   => [ '', @$users ],
 		-labels   => $user_names,
 		-default  => $newdata->{'field:sender'},
@@ -409,20 +417,29 @@ sub _print_interface {
 	say q(</li>);
 	foreach my $field (@$fields) {
 		next if $field eq $primary_key;
-		$scheme_field_info = $self->{'datastore'}->get_scheme_field_info( $scheme_id, $field );
-		%html5_args = ();
+		$scheme_field_info  = $self->{'datastore'}->get_scheme_field_info( $scheme_id, $field );
+		%html5_args         = ();
 		$html5_args{'type'} = 'number' if $scheme_field_info->{'type'} eq 'integer';
 		( $label, $title ) = $self->get_truncated_label( $field, 24 );
 		$title_attribute = $title ? " title=\"$title\"" : '';
-		say qq(<li><label for="field:$field" class="form" style="width:${width}em"$title_attribute>$label: </label>);
-		say $self->textfield(
-			-name  => "field:$field",
-			-id    => "field:$field",
-			-size  => $scheme_field_info->{'type'} eq 'integer' ? 10 : 50,
-			-value => $newdata->{"field:$field"},
-			%html5_args
-		);
-
+		say qq(<li><label for="field_$field" class="form" style="width:${width}em"$title_attribute>$label: </label>);
+		if ( defined $scheme_field_info->{'option_list'} ) {
+			my @optlist = split /\|/x, $scheme_field_info->{'option_list'};
+			unshift @optlist, q();
+			say $self->popup_menu(
+				-name   => "field:$field",
+				-id     => "field_$field",
+				-values => \@optlist
+			);
+		} else {
+			say $self->textfield(
+				-name  => "field:$field",
+				-id    => "field_$field",
+				-size  => $scheme_field_info->{'type'} eq 'integer' ? 10 : 50,
+				-value => $newdata->{"field:$field"},
+				%html5_args
+			);
+		}
 		if ( $scheme_field_info->{'description'} ) {
 			say $self->get_tooltip(qq($label - $scheme_field_info->{'description'}));
 		}
@@ -450,7 +467,7 @@ sub _print_interface {
 sub _is_scheme_field_bad {
 	my ( $self, $scheme_id, $field, $value ) = @_;
 	my $scheme_field_info = $self->{'datastore'}->get_scheme_field_info( $scheme_id, $field );
-	if ( $scheme_field_info->{'primary_key'} && $value eq '' ) {
+	if ( $scheme_field_info->{'primary_key'} && $value eq q() ) {
 		return "Field '$field' is the primary key and requires a value.";
 	} elsif ( $value ne ''
 		&& $scheme_field_info->{'type'} eq 'integer'
@@ -459,8 +476,15 @@ sub _is_scheme_field_bad {
 		return qq(Field '$field' must be an integer.);
 	} elsif ( $value ne '' && $scheme_field_info->{'value_regex'} && $value !~ /$scheme_field_info->{'value_regex'}/x )
 	{
-		return "Field value is invalid - it must match the regular expression /$scheme_field_info->{'value_regex'}/.";
+		return "Field '$field' value is invalid - "
+		  . "it must match the regular expression /$scheme_field_info->{'value_regex'}/.";
 	}
+	if ( defined $scheme_field_info->{'option_list'} && $value ne q() ) {
+		my @optlist = split /\|/x, $scheme_field_info->{'option_list'};
+		my %optlist = map { $_ => 1 } @optlist;
+		return "Field '$field' value not in allowed list." if !$optlist{$value};
+	}
+	return;
 }
 
 sub is_locus_field_bad {
@@ -477,12 +501,21 @@ sub is_locus_field_bad {
 		my $scheme_info = $self->{'datastore'}->get_scheme_info($scheme_id);
 		if ( $scheme_info->{'allow_missing_loci'} ) {
 			if ( !$self->{'datastore'}->sequence_exists( $locus, $value ) ) {
-				$self->define_missing_allele( $locus, $value );
+				$self->{'datastore'}->define_missing_allele( $locus, $value );
 			}
 			return;
 		}
 		return "$mapped value is invalid - this scheme does not allow missing (0) or arbitrary alleles (N) "
 		  . 'in the profile.';
+	} elsif ($value eq 'P'){
+		my $scheme_info = $self->{'datastore'}->get_scheme_info($scheme_id);
+		if ( $scheme_info->{'allow_presence'} ) {
+			if ( !$self->{'datastore'}->sequence_exists( $locus, $value ) ) {
+				$self->{'datastore'}->define_missing_allele( $locus, $value );
+			}
+			return;
+		}
+		return "$mapped value is invalid - this scheme does not allow setting locus presence (P) in the profile.";
 	}
 	if ( $locus_info->{'allele_id_format'} eq 'integer' && !BIGSdb::Utils::is_int($value) ) {
 		return "Locus '$mapped' must be an integer.";
@@ -499,33 +532,13 @@ sub is_locus_field_bad {
 	return;
 }
 
-sub define_missing_allele {
-	my ( $self, $locus, $allele ) = @_;
-	my $seq;
-	if    ( $allele eq '0' ) { $seq = 'null allele' }
-	elsif ( $allele eq 'N' ) { $seq = 'arbitrary allele' }
-	else                     { return }
-	my $sql =
-	  $self->{'db'}
-	  ->prepare( 'INSERT INTO sequences (locus, allele_id, sequence, sender, curator, date_entered, datestamp, '
-		  . 'status) VALUES (?,?,?,?,?,?,?,?)' );
-	eval { $sql->execute( $locus, $allele, $seq, 0, 0, 'now', 'now', '' ) };
-	if ($@) {
-		$logger->error($@) if $@;
-		$self->{'db'}->rollback;
-		return;
-	}
-	$self->{'db'}->commit;
-	return;
-}
-
 sub update_profile_history {
 	my ( $self, $scheme_id, $profile_id, $action ) = @_;
 	return if !$action || !$scheme_id || !$profile_id;
 	my $curator_id = $self->get_curator_id;
 	eval {
 		$self->{'db'}
-		  ->do( 'INSERT INTO profile_history (scheme_id,profile_id,timestamp,action,curator) VALUES ' . '(?,?,?,?,?)',
+		  ->do( 'INSERT INTO profile_history (scheme_id,profile_id,timestamp,action,curator) VALUES (?,?,?,?,?)',
 			undef, $scheme_id, $profile_id, 'now', $action, $curator_id );
 	};
 	if ($@) {
@@ -535,5 +548,21 @@ sub update_profile_history {
 		$self->{'db'}->commit;
 	}
 	return;
+}
+
+sub get_javascript {
+	my ($self) = @_;
+	my $buffer = << "END";
+\$(function () {
+   \$('#field_sender').multiselect({
+  	classes: 'filter',
+ 	menuHeight: 250,
+ 	menuWidth: 400,
+ 	noneSelectedText: '',
+ 	selectedList: 1,
+  }).multiselectfilter();
+});
+END
+	return $buffer;
 }
 1;

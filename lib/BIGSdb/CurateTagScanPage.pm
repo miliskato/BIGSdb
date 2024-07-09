@@ -1,6 +1,6 @@
 #Written by Keith Jolley
-#Copyright (c) 2010-2022, University of Oxford
-#E-mail: keith.jolley@zoo.ox.ac.uk
+#Copyright (c) 2010-2024, University of Oxford
+#E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
 #
@@ -29,21 +29,25 @@ use Time::Duration;
 use BIGSdb::Constants qw(:interface SEQ_METHODS SEQ_FLAGS LOCUS_PATTERN);
 use BIGSdb::Offline::Scan;
 ##DEFAUT SCAN PARAMETERS#############
-my $MIN_IDENTITY       = 70;
-my $MIN_ALIGNMENT      = 50;
-my $WORD_SIZE          = 20;
-my $PARTIAL_MATCHES    = 1;
-my $LIMIT_MATCHES      = 200;
-my $LIMIT_TIME         = 5;
-my $PARTIAL_WHEN_EXACT = 'off';
-my $LOCI_TOGETHER      = 'off';
-my $TBLASTX            = 'off';
-my $HUNT               = 'off';
-my $OVERRIDE_VIEW      = 'off';
-my $RESCAN_ALLELES     = 'off';
-my $RESCAN_SEQS        = 'off';
-my $TYPE_ALLELES       = 'off';
-my $MARK_MISSING       = 'off';
+my $MIN_IDENTITY             = 70;
+my $MIN_ALIGNMENT            = 50;
+my $WORD_SIZE                = 20;
+my $PARTIAL_MATCHES          = 1;
+my $LIMIT_MATCHES            = 200;
+my $LIMIT_TIME               = 5;
+my $PARTIAL_WHEN_EXACT       = 'off';
+my $LOCI_TOGETHER            = 'off';
+my $TBLASTX                  = 'off';
+my $HUNT_START               = 'off';
+my $HUNT_STOP                = 'off';
+my $HUNT_STOP_PERCENT        = 5;
+my $CHECK_INCOMPLETE         = 'on';
+my $CHECK_INCOMPLETE_PERCENT = 100;
+my $OVERRIDE_VIEW            = 'off';
+my $RESCAN_ALLELES           = 'off';
+my $RESCAN_SEQS              = 'off';
+my $TYPE_ALLELES             = 'off';
+my $MARK_MISSING             = 'off';
 
 sub get_javascript {
 	my ($self) = @_;
@@ -52,10 +56,41 @@ sub get_javascript {
 	if ( !$self->{'cgi'}->param('tag') ) {
 		$buffer .= << "END";
 \$(function () {	
-		\$("html, body").animate({ scrollTop: \$(document).height()-\$(window).height() });	
-});			
+	\$("html, body").animate({ scrollTop: \$(document).height()-\$(window).height() });	
+	\$(window).on('resize scroll', function() {
+		render_multiselect();
+	});
+	\$("div.scrollable").on('scroll', function() {
+		render_multiselect();
+	});
+	render_multiselect();
+});	
+
+function render_multiselect(){
+	\$('.multiselect:inViewport').multiselect({
+		selectedList: 1,
+		header: false,
+		noneSelectedText: '',
+		menuHeight: 250,
+		classes: 'filter'	
+	});
+	\$('.multiselect:inViewport').multiselect("refresh");
+}
+
+\$.expr[':'].inViewport = function (el) {
+	el.style.display = '';
+    var rect = el.getBoundingClientRect();
+    return (
+        rect.top >= 0 &&
+        rect.left >= 0 &&
+        rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+        rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+    );
+};		
 END
 	}
+	my $q = $self->{'cgi'};
+	return $buffer if !$self->{'db'}->ping;    #Connection dropped because of forked process.
 	$buffer .= $self->get_list_javascript;
 	$buffer .= << "END";
 function use_defaults() {
@@ -67,7 +102,11 @@ function use_defaults() {
 	\$("#limit_time").val($LIMIT_TIME);
 	\$("#loci_together").prop(\"checked\",$check_values{$LOCI_TOGETHER});
 	\$("#tblastx").prop(\"checked\",$check_values{$TBLASTX});
-	\$("#hunt").prop(\"checked\",$check_values{$HUNT});
+	\$("#hunt_start").prop(\"checked\",$check_values{$HUNT_START});
+	\$("#hunt_stop").prop(\"checked\",$check_values{$HUNT_STOP});
+	\$("#hunt_stop_percent").val($HUNT_STOP_PERCENT);
+	\$("#check_incomplete").prop(\"checked\",$check_values{$CHECK_INCOMPLETE});
+	\$("#check_incomplete_percent").val($CHECK_INCOMPLETE_PERCENT);
 	\$("#partial_when_exact").prop(\"checked\",$check_values{$PARTIAL_WHEN_EXACT});
 	\$("#override_view").prop(\"checked\",$check_values{$OVERRIDE_VIEW});
 	\$("#rescan_alleles").prop(\"checked\",$check_values{$RESCAN_ALLELES});
@@ -102,11 +141,14 @@ sub _get_refresh_time {
 
 sub initiate {
 	my ($self) = @_;
-	$self->{$_} = 1 foreach qw (tooltips jQuery jQuery.jstree noCache);
-	$self->set_level1_breadcrumbs;
 	my $q = $self->{'cgi'};
+	$self->{$_} = 1 foreach qw (tooltips jQuery jQuery.multiselect noCache allowExpand);
+	if ( !$q->param('results') ) {
+		$self->{$_} = 1 foreach qw (jQuery.jstree);
+	}
+	$self->set_level1_breadcrumbs;
 	if ( $q->param('submit') ) {
-		my $loci = $self->_get_selected_loci;
+		my $loci        = $self->_get_selected_loci;
 		my @isolate_ids = split( "\0", ( $q->param('isolate_id') // '' ) );
 		my ( $pasted_cleaned_ids, $invalid_ids ) = $self->get_ids_from_pasted_list( { dont_clear => 1 } );
 		push @isolate_ids, @$pasted_cleaned_ids;
@@ -116,7 +158,7 @@ sub initiate {
 	if ( $q->param('submit') || $q->param('results') ) {
 		$self->{'scan_job'} = $q->param('scan') || BIGSdb::Utils::get_random();
 		my $scan_job = $self->{'scan_job'} =~ /^(BIGSdb_[0-9_]+)$/x ? $1 : undef;
-		my $status = $self->_read_status($scan_job);
+		my $status   = $self->_read_status($scan_job);
 		return if $status->{'server_busy'};
 		if ( !$status->{'stop_time'} ) {
 			if ( $status->{'start_time'} ) {
@@ -167,10 +209,10 @@ sub _request_stop {
 }
 
 sub _print_interface {
-	my ($self) = @_;
-	my $q = $self->{'cgi'};
-	my ( $ids, $labels ) = $self->get_isolates_with_seqbin;
-	if ( !@$ids ) {
+	my ($self)       = @_;
+	my $q            = $self->{'cgi'};
+	my $seqbin_count = $self->{'datastore'}->get_seqbin_count;
+	if ( !$seqbin_count ) {
 		$self->print_bad_status( { message => q(This database view contains no genomes.) } );
 		return;
 	} elsif ( !$self->can_modify_table('allele_sequences') ) {
@@ -214,7 +256,7 @@ sub _print_interface {
 	say q(<fieldset><legend>Schemes</legend>);
 	say q(<noscript><p class="highlight">Enable Javascript to select schemes.</p></noscript>);
 	say q(<div id="tree" class="tree" style="height:220px; width:20em">);
-	say $self->get_tree( undef, { no_link_out => 1, select_schemes => 1 } );
+	say $self->get_tree( undef, { no_link_out => 1, select_schemes => 1, analysis_pref => 1 } );
 	say q(</div></fieldset>);
 	$self->_print_parameter_fieldset($general_prefs);
 
@@ -295,7 +337,7 @@ sub _print_parameter_fieldset {
 		-name    => 'identity',
 		-id      => 'identity',
 		-values  => [ 50 .. 100 ],
-		-default => $general_prefs->{'scan_identity'} || $MIN_IDENTITY
+		-default => $general_prefs->{'scan_identity'} // $MIN_IDENTITY
 	);
 	say $self->get_tooltip(q(Minimum % identity - Match required for partial matching.));
 	say q(</li><li><label for="alignment" class="parameter">Min % alignment:</label>);
@@ -303,7 +345,7 @@ sub _print_parameter_fieldset {
 		-name    => 'alignment',
 		-id      => 'alignment',
 		-values  => [ 30 .. 100 ],
-		-default => $general_prefs->{'scan_alignment'} || $MIN_ALIGNMENT
+		-default => $general_prefs->{'scan_alignment'} // $MIN_ALIGNMENT
 	);
 	say $self->get_tooltip( q(Minimum % alignment - Percentage of allele sequence length )
 		  . q(required to be aligned for partial matching.) );
@@ -312,7 +354,7 @@ sub _print_parameter_fieldset {
 		-name    => 'word_size',
 		-id      => 'word_size',
 		-values  => [ 7 .. 30 ],
-		-default => $general_prefs->{'scan_word_size'} || $WORD_SIZE
+		-default => $general_prefs->{'scan_word_size'} // $WORD_SIZE
 	);
 	say $self->get_tooltip( q(BLASTN word size - This is the length of an exact match required )
 		  . q(to initiate an extension. Larger values increase speed at the expense of sensitivity.) );
@@ -321,14 +363,14 @@ sub _print_parameter_fieldset {
 		-name    => 'partial_matches',
 		-id      => 'partial_matches',
 		-values  => [ 1 .. 10 ],
-		-default => $general_prefs->{'scan_partial_matches'} || $PARTIAL_MATCHES
+		-default => $general_prefs->{'scan_partial_matches'} // $PARTIAL_MATCHES
 	);
 	say q( partial match(es)</li><li><label for="limit_matches" class="parameter">Stop after:</label>);
 	say $q->popup_menu(
 		-name    => 'limit_matches',
 		-id      => 'limit_matches',
 		-values  => [qw(10 20 30 40 50 100 200 500 1000 2000 5000 10000 20000)],
-		-default => $general_prefs->{'scan_limit_matches'} || $LIMIT_MATCHES
+		-default => $general_prefs->{'scan_limit_matches'} // $LIMIT_MATCHES
 	);
 	say q( new matches);
 	say $self->get_tooltip( q(Stop after matching - Limit the number of previously )
@@ -342,7 +384,7 @@ sub _print_parameter_fieldset {
 		-name    => 'limit_time',
 		-id      => 'limit_time',
 		-values  => [qw(1 2 5 10 15 30 60 120 180 240 300)],
-		-default => $general_prefs->{'scan_limit_time'} || $LIMIT_TIME
+		-default => $general_prefs->{'scan_limit_time'} // $LIMIT_TIME
 	);
 	say q( minute(s));
 	say $self->get_tooltip( q(Stop after time - Searches against lots of loci or for )
@@ -356,7 +398,7 @@ sub _print_parameter_fieldset {
 			-name    => 'loci_together',
 			-id      => 'loci_together',
 			-label   => 'Scan selected loci together',
-			-checked => ( $general_prefs->{'scan_loci_together'} && $general_prefs->{'scan_loci_together'} eq 'on' )
+			-checked => ( ( $general_prefs->{'scan_loci_together'} // q() ) eq 'on' )
 			? 'checked'
 			: ''
 		);
@@ -365,13 +407,13 @@ sub _print_parameter_fieldset {
 			  . q(the search space. This is less sensitive than scanning all alleles, so it may miss some matches.) );
 		say q(</li><li>);
 	}
-	if ( $self->{'system'}->{'tblastx_tagging'} && $self->{'system'}->{'tblastx_tagging'} eq 'yes' ) {
+	if ( ( $self->{'system'}->{'tblastx_tagging'} // q() ) eq 'yes' ) {
 		say q(<li><span class="warning">);
 		say $q->checkbox(
 			-name    => 'tblastx',
 			-id      => 'tblastx',
 			-label   => 'Use TBLASTX',
-			-checked => ( $general_prefs->{'scan_tblastx'} && $general_prefs->{'scan_tblastx'} eq 'on' )
+			-checked => ( ( $general_prefs->{'scan_tblastx'} // q() ) eq 'on' )
 			? 'checked'
 			: ''
 		);
@@ -386,31 +428,70 @@ sub _print_parameter_fieldset {
 	}
 	say q(<li>);
 	say $q->checkbox(
-		-name    => 'hunt',
-		-id      => 'hunt',
-		-label   => 'Hunt for nearby start and stop codons',
-		-checked => ( $general_prefs->{'scan_hunt'} && $general_prefs->{'scan_hunt'} eq 'on' ) ? 'checked' : ''
+		-name    => 'hunt_start',
+		-id      => 'hunt_start',
+		-label   => 'Hunt for nearby start codons',
+		-checked => ( ( $general_prefs->{'scan_hunt_start'} // q() ) eq 'on' )
+		? 'checked'
+		: ''
 	);
-	say $self->get_tooltip( q(Hunt for start/stop codons - If the aligned sequence is not an )
+	say $self->get_tooltip( q(Hunt for start codons - If the aligned sequence is not an )
 		  . q(exact match to an existing allele and is not a complete coding sequence with start and stop )
-		  . q(codons at the ends, selecting this option will hunt for these by walking in and out from the )
-		  . q(ends in complete codons for up to 6 amino acids.) );
+		  . q(codons at the ends, selecting this option will hunt for a start codon by walking in and out from the )
+		  . q(end in complete codons for up to 6 amino acids.) );
+	say q(</li><li>);
+	say $q->checkbox(
+		-name    => 'hunt_stop',
+		-id      => 'hunt_stop',
+		-label   => 'Hunt for stop codons within ',
+		-checked => ( ( $general_prefs->{'scan_hunt_stop'} // q() ) eq 'on' )
+		? 'checked'
+		: ''
+	);
+	say $q->popup_menu(
+		-name    => 'hunt_stop_percent',
+		-id      => 'hunt_stop_percent',
+		-values  => [ 1 .. 25 ],
+		-default => $general_prefs->{'scan_hunt_stop_percent'} // 5
+	);
+	say q(% length difference of match);
+	say $self->get_tooltip( q(Hunt for stop codons - If the aligned sequence is not an )
+		  . q(exact match to an existing allele and is not a complete coding sequence with start and stop )
+		  . q(codons at the ends, selecting this option will hunt for an in-frame stop codon within the )
+		  . q(specified %distance (either longer or shorter) of the matched allele length.) );
+	say q(</li><li>);
+	say $q->checkbox(
+		-name    => 'check_incomplete',
+		-id      => 'check_incomplete',
+		-label   => q(Check 'tag sequence' box for incomplete alleles matching at ),
+		-checked => ( ( $general_prefs->{'scan_check_incomplete'} // 'on' ) eq 'on' )
+		? 'checked'
+		: ''
+	);
+	say $q->popup_menu(
+		-name    => 'check_incomplete_percent',
+		-id      => 'check_incomplete_percent',
+		-values  => [ 90 .. 100 ],
+		-default => $general_prefs->{'scan_check_incomplete_percent'} // 100
+	);
+	say q(% identity to closest allele);
 	say q(</li><li>);
 	say $q->checkbox(
 		-name    => 'partial_when_exact',
 		-id      => 'partial_when_exact',
 		-label   => 'Return partial matches even when exact matches are found',
-		-checked => ( $general_prefs->{'partial_when_exact'} && $general_prefs->{'partial_when_exact'} eq 'on' )
+		-checked => ( ( $general_prefs->{'scan_partial_when_exact'} // q() ) eq 'on' )
 		? 'checked'
 		: q()
 	);
 	say q(</li><li>);
+
 	if ( $self->{'system'}->{'views'} ) {
 		say $q->checkbox(
 			-name    => 'override_view',
 			-id      => 'override_view',
 			-label   => 'Override locus view restrictions',
-			-checked => ( $general_prefs->{'scan_override_view'} && $general_prefs->{'scan_override_view'} eq 'on' )
+			-checked => ( ( $general_prefs->{'scan_override_view'} // q() ) eq 'on' )
 			? 'checked'
 			: q()
 		);
@@ -423,7 +504,7 @@ sub _print_parameter_fieldset {
 		-name    => 'rescan_alleles',
 		-id      => 'rescan_alleles',
 		-label   => 'Rescan even if allele designations are already set',
-		-checked => ( $general_prefs->{'scan_rescan_alleles'} && $general_prefs->{'scan_rescan_alleles'} eq 'on' )
+		-checked => ( ( $general_prefs->{'scan_rescan_alleles'} // q() ) eq 'on' )
 		? 'checked'
 		: q()
 	);
@@ -432,7 +513,7 @@ sub _print_parameter_fieldset {
 		-name    => 'rescan_seqs',
 		-id      => 'rescan_seqs',
 		-label   => 'Rescan even if allele sequences are tagged',
-		-checked => ( $general_prefs->{'scan_rescan_seqs'} && $general_prefs->{'scan_rescan_seqs'} eq 'on' )
+		-checked => ( ( $general_prefs->{'scan_rescan_seqs'} // q() ) eq 'on' )
 		? 'checked'
 		: q()
 	);
@@ -441,7 +522,7 @@ sub _print_parameter_fieldset {
 		-name    => 'type_alleles',
 		-id      => 'type_alleles',
 		-label   => 'Use only type alleles to identify locus',
-		-checked => ( $general_prefs->{'scan_type_alleles'} && $general_prefs->{'scan_type_alleles'} eq 'on' )
+		-checked => ( ( $general_prefs->{'scan_type_alleles'} // q() ) eq 'on' )
 		? 'checked'
 		: q()
 	);
@@ -455,7 +536,7 @@ sub _print_parameter_fieldset {
 		-name    => 'mark_missing',
 		-id      => 'mark_missing',
 		-label   => q(Mark missing sequences as provisional allele '0'),
-		-checked => ( $general_prefs->{'scan_mark_missing'} && $general_prefs->{'scan_mark_missing'} eq 'on' )
+		-checked => ( ( $general_prefs->{'scan_mark_missing'} // q() ) eq 'on' )
 		? 'checked'
 		: q()
 	);
@@ -476,8 +557,8 @@ sub _get_selected_loci {
 }
 
 sub _scan {
-	my ($self) = @_;
-	my $q = $self->{'cgi'};
+	my ($self)     = @_;
+	my $q          = $self->{'cgi'};
 	my $time_limit = ( int( $q->param('limit_time') ) || 5 ) * 60;
 	my $loci       = $self->_get_selected_loci;
 	my @ids        = $q->multi_param('isolate_id');
@@ -503,7 +584,9 @@ sub _scan {
 		my $dbname = $self->{'system'}->{'db'};
 		foreach (
 			qw (identity alignment word_size partial_matches limit_matches limit_time
-			tblastx hunt override_view rescan_alleles rescan_seqs type_alleles mark_missing loci_together)
+			tblastx hunt_start hunt_stop hunt_stop_percent partial_when_exact check_incomplete
+			check_incomplete_percent override_view rescan_alleles rescan_seqs type_alleles
+			mark_missing loci_together)
 		  )
 		{
 			my $value = ( defined $q->param($_) && $q->param($_) ne '' ) ? $q->param($_) : 'off';
@@ -519,13 +602,14 @@ sub _scan {
 	my $project_id   = $q->param('project_list');
 	my $curator_name = $self->get_curator_name;
 	my $user_info    = $self->{'datastore'}->get_user_info_from_username( $self->{'username'} );
-	my ( undef, $labels ) = $self->get_isolates_with_seqbin;
+	my ( undef, $labels ) = $self->get_isolates_with_seqbin( { id_list => \@ids, hyperlink => 1 } );
 
 	#Use double fork to prevent zombie processes on apache2-mpm-worker
 	defined( my $kid = fork ) or $logger->error('cannot fork');
 	if ($kid) {
 		waitpid( $kid, 0 );
 	} else {
+		$self->{'forked'} = 1;
 		defined( my $grandkid = fork ) or $logger->error('Kid cannot fork');
 		if ($grandkid) {
 			CORE::exit(0);
@@ -549,7 +633,6 @@ sub _scan {
 			$params->{'username'}   = $self->{'username'};
 			$params->{'email'}      = $user_info->{'email'};
 			$params->{'scannew'}    = 1;
-
 			if ( $params->{'loci_together'} ) {
 				$params->{'exemplar'}             = 1;
 				$params->{'scan_partial_matches'} = 100;
@@ -571,8 +654,7 @@ sub _scan {
 					}
 				);
 				$scan->db_disconnect;
-			}
-			catch {
+			} catch {
 				if ( $_->isa('BIGSdb::Exception::Server::Busy') ) {
 					my $status_file = "$self->{'config'}->{'secure_tmp_dir'}/$scan_job\_status.txt";
 					open( my $fh, '>', $status_file ) || $logger->error("Can't open $status_file for writing");
@@ -600,8 +682,8 @@ sub _tag {
 	my $scan_job          = $q->param('scan');
 	my $match_list        = $self->_read_matches($scan_job);
 	my $designation_added = {};
-	foreach my $match (@$match_list) {
 
+	foreach my $match (@$match_list) {
 		if ( $match =~ /^(\d+):(.+):(\d+)$/x ) {
 			my ( $isolate_id, $locus, $id ) = ( $1, $2, $3 );
 			next if !$self->is_allowed_to_view_isolate($isolate_id);
@@ -610,7 +692,7 @@ sub _tag {
 			if ( $q->param("id_$isolate_id\_$locus\_allele_$id")
 				&& defined $q->param("id_$isolate_id\_$locus\_allele_id_$id") )
 			{
-				my $allele_id = $q->param("id_$isolate_id\_$locus\_allele_id_$id");
+				my $allele_id      = $q->param("id_$isolate_id\_$locus\_allele_id_$id");
 				my $set_allele_ids = $self->{'datastore'}->get_allele_ids( $isolate_id, $locus );
 				my $seqbin_sender;
 				if ($seqbin_id) {    #Seqbin id may not exist if scanning for missing alleles.
@@ -764,7 +846,7 @@ sub _add_intron_updates {
 	my ( $self, $args ) = @_;
 	my ( $isolate_id, $locus, $id, $seqbin_id, $start, $end, $updates ) =
 	  @{$args}{qw(isolate_id locus id seqbin_id start end updates)};
-	my $q = $self->{'cgi'};
+	my $q       = $self->{'cgi'};
 	my $introns = $q->param("id_${isolate_id}_${locus}_introns_$id") // q();
 	return if !$introns;
 	my @introns = split /,/x, $introns;
@@ -826,7 +908,8 @@ sub _show_results {
 		say q(<div class="scrollable"><table class="resultstable"><tr><th>Isolate</th><th>Match</th>)
 		  . q(<th>Locus</th><th>Allele</th><th>% identity</th><th>Alignment length</th><th>Allele length</th>)
 		  . q(<th>E-value</th><th>Sequence bin id</th><th>Start</th><th>End</th><th>Predicted start</th>)
-		  . q(<th>Predicted end</th><th>Orientation</th><th>Designate allele</th><th>Tag sequence</th>)
+		  . q(<th>Predicted end</th><th>Orientation</th><th>First stop codon</th><th>Designate allele</th>)
+		  . q(<th>Tag sequence</th>)
 		  . q(<th>Flag);
 		say $self->get_tooltip(
 			q(Flag - Set a status flag for the sequence.  You need to also )
@@ -931,11 +1014,11 @@ sub _add_scheme_loci {
 	  $self->{'datastore'}->run_query( 'SELECT id FROM schemes ORDER BY id', undef, { fetch => 'col_arrayref' } );
 	push @$scheme_ids, 0;    #loci not belonging to a scheme.
 	my %locus_selected = map { $_ => 1 } @$loci_ref;
-	my $set_id = $self->get_set_id;
+	my $set_id         = $self->get_set_id;
 	foreach (@$scheme_ids) {
 		next if !$q->param("s_$_");
 		my $scheme_loci =
-		    $_
+			$_
 		  ? $self->{'datastore'}->get_scheme_loci($_)
 		  : $self->{'datastore'}->get_loci_in_no_scheme( { set_id => $set_id } );
 		foreach my $locus (@$scheme_loci) {
