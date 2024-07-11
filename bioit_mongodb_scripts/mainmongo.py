@@ -555,12 +555,12 @@ class MainMongo:
         changed_results = set()
         for mainkey in new_results:  # mainkey is assay or metadata
             if isinstance(new_results[mainkey], dict):
+                if mainkey not in current_results:
+                    logging.info(f"{mainkey} not in current results")
+                    any_result_changed = True
+                    changed_results.add(mainkey)
                 for subkey in new_results[mainkey]:
-                    if mainkey not in current_results:
-                        logging.info(f"{mainkey} not in current results")
-                        any_result_changed = True
-                        changed_results.add(mainkey)
-                    elif subkey == 'loci' or subkey == 'results' or subkey.startswith('hits'):
+                    if subkey == 'loci' or subkey == 'results' or subkey.startswith('hits'):  # TODO what with serogroup of Neisseria + is it normal that it is under informs_tools + seqsero Salmonella
                         if subkey not in current_results[mainkey] or new_results[mainkey][subkey] != \
                                 current_results[mainkey][subkey]:
                             logging.info(f"{mainkey}{subkey} different or not in old")
@@ -578,11 +578,12 @@ class MainMongo:
         :param new_results: to be inserted results
         :return: dictionary of deltas
         """
+        # TODO what with new keys in the new_results (not on assay level)?
         delta_new_old = {}
         for key, value in current_results.items():
             if key in new_results:
                 if isinstance(value, dict) and isinstance(new_results[key], dict):
-                    nested_delta = self.___nested_dict_delta(new_results[key], value)
+                    nested_delta = self.___nested_dict_delta(value, new_results[key])
                     if nested_delta:
                         delta_new_old[key] = nested_delta
                 elif new_results[key] != value:
