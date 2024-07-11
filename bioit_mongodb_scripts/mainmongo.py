@@ -68,6 +68,7 @@ class MainMongo:
         !! If parameters/arguments are added here, also add them to the argparse function!!
         :param technical_id: sample id/ isolates id
         :param species: commonly used bioit species name: either genus or specific like stec
+        :param uploader_mail_address: mail of the curator/uploader
         :param results_type: Any of 'new_isolate', 'reanalysis', 'badqc_validated', 'resequencing_validated'
         :param jsonfilepath: filepath of the json input file (output of pipeline)
         :param subvaldict: validation dictionary, received after validation through bigsdb (either results type badqc_validated or resequencing_validated')
@@ -182,6 +183,7 @@ class MainMongo:
             new_records = sample_doc['results']
             self._fastafilepath = sample_doc['fasta_path']
             self._vcffilepath = sample_doc['vcf_path']
+            self._reportdirectorypath = sample_doc['report_directory']
             self.__new_isolate_wrapper(new_records)
         elif self._results_type == "reanalysis" or self._results_type == 'resequencing_validated':
             try:
