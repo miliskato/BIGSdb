@@ -96,12 +96,12 @@ sub run_job {
 	my $loci         = $self->{'jobManager'}->get_job_loci($job_id);
 
 	( $ids, my $missing ) = $self->filter_missing_isolates($ids);
-	if ( @$ids - @$missing < 3 ) {
+	if ( @$ids - @$missing < 2 ) {
 		$self->{'jobManager'}->update_job_status(
 			$job_id,
 			{
 				message_html =>
-				  q(<p class="statusbad">There are fewer than 3 valid ids in the list - microreact cannot be launched.</p>)
+				  q(<p class="statusbad">There are fewer than 2 valid ids in the list - microreact cannot be launched.</p>)
 			}
 		);
 		return;
