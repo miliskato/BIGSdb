@@ -30,12 +30,6 @@ BEGIN
 END;
 $next_dashboard$ language plpgsql;
 
-CREATE TRIGGER trig_insert_dashboards
-BEFORE INSERT
-ON dashboards
-FOR EACH ROW
-EXECUTE PROCEDURE name_dashboard();
-
 -- migrate:down
 CREATE OR REPLACE FUNCTION next_dashboard(_guid text,_dbase_config text) RETURNS text AS $next_dashboard$
 DECLARE
