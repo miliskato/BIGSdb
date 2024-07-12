@@ -25,11 +25,9 @@ DROP INDEX seqbin_stats_n50_idx ;
 DROP INDEX seqbin_stats_l50_idx;
 DROP INDEX i_as2;
 
-ALTER TABLE sequence_flags (
-ON UPDATE CASCADE,
-CONSTRAINT sf_curator FOREIGN KEY (curator) REFERENCES users
+ALTER TABLE sequence_flags ADD CONSTRAINT sf_curator FOREIGN KEY (curator) REFERENCES users
 ON DELETE NO ACTION
-);
+ON UPDATE CASCADE;
 
 DROP INDEX i_ad4;
 
@@ -674,6 +672,6 @@ CREATE INDEX i_eavb1 ON eav_boolean(field,value);
 
 DROP FUNCTION get_isolate_scheme_fields;
 DROP TABLE db_attributes;
-DROP TABLE query_interfaces;
 DROP TABLE query_interface_fields;
+DROP TABLE query_interfaces;
 DROP TABLE embargo_history;
