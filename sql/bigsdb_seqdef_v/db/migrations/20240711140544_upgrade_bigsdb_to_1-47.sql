@@ -19,10 +19,13 @@ DROP INDEX i_s2;
 CREATE INDEX i_s2 ON sequences(exemplar,locus);
 CREATE INDEX i_s4 ON sequences(sender);
 
-ALTER TABLE schemes ALTER COLUMN allow_missing_loci boolean NOT NULL DEFAULT FALSE;
+ALTER TABLE schemes ALTER COLUMN allow_missing_loci SET NOT NULL;
+ALTER TABLE schemes ALTER COLUMN allow_missing_loci SET DEFAULT FALSE;
 ALTER TABLE schemes ADD COLUMN allow_presence boolean NOT NULL DEFAULT FALSE;
-ALTER TABLE schemes ALTER COLUMN no_submissions boolean NOT NULL DEFAULT FALSE;
-ALTER TABLE schemes ALTER COLUMN disable boolean NOT NULL DEFAULT FALSE;
+ALTER TABLE schemes ALTER COLUMN no_submissions SET NOT NULL;
+ALTER TABLE schemes ALTER COLUMN no_submissions SET DEFAULT FALSE;
+ALTER TABLE schemes ALTER COLUMN disable SET NOT NULL;
+ALTER TABLE schemes ALTER COLUMN disable SET DEFAULT FALSE;
 
 ALTER TABLE scheme_fields ADD COLUMN option_list text;
 
@@ -173,10 +176,13 @@ DROP INDEX i_s2;
 CREATE INDEX i_s2 ON sequences(exemplar) WHERE exemplar;
 DROP INDEX i_s4;
 
-ALTER TABLE schemes ALTER COLUMN allow_missing_loci boolean;
+ALTER TABLE schemes ALTER COLUMN allow_missing_loci DROP NOT NULL;
+ALTER TABLE schemes ALTER COLUMN allow_missing_loci DROP DEFAULT;
 ALTER TABLE schemes DROP COLUMN allow_presence;
-ALTER TABLE schemes ALTER COLUMN no_submissions boolean;
-ALTER TABLE schemes ALTER COLUMN disable boolean;
+ALTER TABLE schemes ALTER COLUMN no_submissions DROP NOT NULL;
+ALTER TABLE schemes ALTER COLUMN no_submissions DROP DEFAULT;
+ALTER TABLE schemes ALTER COLUMN disable DROP NOT NULL;
+ALTER TABLE schemes ALTER COLUMN disable DROP DEFAULT;
 
 ALTER TABLE scheme_fields DROP COLUMN option_list;
 
