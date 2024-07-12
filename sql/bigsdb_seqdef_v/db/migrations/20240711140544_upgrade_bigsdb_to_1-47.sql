@@ -228,7 +228,8 @@ CREATE OR REPLACE FUNCTION update_locus_stats() RETURNS TRIGGER AS $update_locus
 	END;
 $update_locus_stats$ LANGUAGE plpgsql;
 
-DROP TABLE peptide_mutations;
-DROP TABLE dna_mutations;
+DROP tABLE db_attributes;
 DROP TABLE sequences_dna_mutations;
-DROP TABLE db_attributes;
+DROP TABLE dna_mutations;
+DROP TABLE sequences_peptide_mutations;
+DROP TABLE peptide_mutations;
