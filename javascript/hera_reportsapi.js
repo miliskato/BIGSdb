@@ -44,8 +44,41 @@ function get_jwt_preview(id, pseudo_id, species, validation_type, res_time, get_
     });
 }
 
+function replacePseudoidById(content, pseudo_id, id) {
+    // Function to modify file content (similar to `sed`)
+    const regex = new RegExp(pseudo_id, 'g');
+    return content.replace(regex, id);
+}
+
+async function depseudonymizeZip(content, pseudo_id, id) {
+    // recursive function to replace the pseudo_id by id everywhere and return a new zip
+    // Create a new JSZip instance for the modified files
+    const newZip = new JSZip();
+    // Iterate over all files
+    for (const originalFilename in content.files) {
+        if (Object.prototype.hasOwnProperty.call(content.files, originalFilename)) {
+            const file = content.files[originalFilename];
+            if (file.dir) {
+            // If it's a directory, create the same structure in the new ZIP
+                const newDir = newZip.folder(replacePseudoidById(originalFilename, pseudo_id, id));
+                // Recursively process the directory
+                await depseudonymizeZip(file, newDir);
+            } else {
+                // If it's a file, read its content
+                let fileContent = await file.async('string');
+                // Modify the file content
+                fileContent = replacePseudoidById(fileContent, pseudo_id, id);
+                // Modify the filename if needed
+                const newFilename = replacePseudoidById(originalFilename, pseudo_id, id);
+                // Add the modified file to the new zip archive
+                newZip.file(newFilename, fileContent);
+            }
+        }
+    }
+    return newZip;
+}
+
 function get_jwt_zip(id, pseudo_id, species, validation_type, res_time, get_zip, dtap, newWindow){
-    // todo unzipping and rezipping (have code in chatgpt but hasnt been tested)
     // gets the html report from Azure through the API as a zip file, if it fails, returns a failure message
     query_url = "/reportsapi" + "/get_html_report?isolate_id=" + pseudo_id + '&date=' + res_time + "&species=" + species + "&get_zip=" + get_zip + "&dtap=" + dtap + "&validation_type=" + validation_type
     $.ajax( query_url , {
@@ -55,13 +88,24 @@ function get_jwt_zip(id, pseudo_id, species, validation_type, res_time, get_zip,
         xhrFields:{
             responseType: 'blob'
         },
-        success:function(response) {
-            filename = 'report_' + pseudo_id +'_' + res_time + '_' + species +'.zip'
-            var blobUrl = newWindow.URL.createObjectURL(response);
+        success: async function(response) {
+            // Create a Blob from the response
+            const blob = new Blob([response], { type: 'application/zip' });
+
+            // Convert Blob to ArrayBuffer and load content
+            const arrayBuffer = await blob.arrayBuffer();
+            const content = await jSZip.loadAsync(arrayBuffer);
+
+            // Run the recursive zip depseudonymizer
+            const newZip = await depseudonymizeZip(content, pseudo_id, id);
+
+            // Generate the new zip file & download it
+            const newZipContent = await newZip.generateAsync({ type: 'blob' });
+            var blobUrl = newWindow.URL.createObjectURL(newZipContent);
             const anchor = newWindow.document.createElement('a');
             anchor.style.display = 'none';
             anchor.href = blobUrl;
-            anchor.download = filename;
+            anchor.download = 'report_' + id + '_' + res_time + '_' + species + '.zip';
             anchor.click();
             newWindow.close(); //done to come back to original page
         },
