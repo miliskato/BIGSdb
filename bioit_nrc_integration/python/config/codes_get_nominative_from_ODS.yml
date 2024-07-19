@@ -1,0 +1,1576 @@
+pathogens:
+  HDBP0345_SLM_LAB: salmonella
+
+schema:
+  LAB:
+    IDC_PAT:
+      required: False
+      default: Unknown
+      translation: patient_id
+    DT_PAT_DOB:
+      required: False
+      default: Unknown # todo this needs to be a datetime field i believe, but what to set as default then?
+      translation: patient_birth_date
+    CD_PAT_SEX:
+      required: False
+      default: Unknown
+      translation: patient_sex
+      code_list: CD_PAT_SEX_codes
+    CD_PAT_PC: # todo has code list, but seeing as codes = zip doesn't really make sense to add?
+      required: False
+      default: Unknown
+      translation: patient_zip
+    CD_CNTRY: # todo has code list, codes available here https://docs.healthdata.be/documentation/hd4dp2-code-lists/country, is it worth it to translate two letter code to full name?
+      required: False
+      default: Unknown
+      translation: country
+    TX_LAB_SAMPLE_VAL:
+      required: True
+      translation: specimen
+    CD_LAB_PATHOGEN:
+      required: False
+      default: Unknown
+      translation: serovar_final
+      code_list: CD_LAB_PATHOGEN_codes
+    TX_LAB_CMNT_SPECIM:
+      required: False
+      default: N/A
+      translation: comment
+    TX_TTL_LAB_TEST:
+      todo: todo  # todo looking very complicated
+
+  CLIN:
+    CD_HOSPZ:
+      required: True
+      translation: hospitalisation
+      code_list: CD_HOSPZ_codes
+    CD_EVOL:
+      required: True
+      translation: outcome
+      code_list: CD_EVOL_codes
+    CD_ANTBIO:
+      required: True
+      translation: antibiotic_therapy
+      code_list: CD_ANTBIO_codes
+    CD_ANTBIO_SPECIF:
+      required: True
+      translation: antibiotic
+      code_list: CD_ANTBIO_SPECIF_codes
+    CD_EPILINK:
+      required: True
+      translation: link
+      code_list: CD_EPILINK_codes
+    CD_INFCT_CNRTY:  # todo has code list, codes available here https://docs.healthdata.be/documentation/hd4dp2-code-lists/country but they are text and in example they are ints...
+      required: False
+      default: BE # todo what should default be? Belgium? IN DCD this field is required if imported=True
+      translation: country_1 # todo according to DCD this can be multiple values and it does not give a maximum, in bigsdb country_1 and country_2 but not more? how to tackle this?
+
+code_lists:
+  CD_PAT_SEX_codes:
+    248152002: Female
+    248153007: Male
+    32570681000036106: Indeterminate sex
+    261665006: Unknown
+  CD_HOSPZ_codes:
+    32485007: Yes
+    373067005: No
+    261665006: Unknown
+  CD_EVOL_codes:
+    419099009: Died
+    OC0001: Unafvorable
+    OC0002: Favorable
+    371001000: Cured
+    261665006: Unknown
+  CD_ANTBIO_codes:
+    281789004: Yes
+    373067005: No
+    261665006: Unknown
+  CD_ANTBIO_SPECIF_codes:
+    31087008: Product containing ampicillin
+    96034006: Product containing azithromycin
+    3334000: Product containing cefotaxime
+    36893000: Product containing ceftazidime
+    57191001: Product containing chloramphenicol
+    7577004: Product containing ciprofloxacin
+    73074003: Product containing colistin
+    385574002: Product containing ertapenem
+    57752001: Product containing gentamicin
+    96062004: Product containing meropenem
+    70047000: Product containing sulfamethoxazole
+    66261008: Product containing tetracycline
+    418631002: Product containing tigecycline
+    32792001: Product containing trimethoprim
+    261665006: Unknown
+  CD_EPILINK_codes:
+    409699001: Human to human transmission
+    EL0001: Isolated case
+    416086007: Foodborne transmission
+    385432009: Not applicable
+    74964007: Other
+    261665006: Unknown
+  CD_LAB_PATHOGEN_codes:
+    70760001: Salmonella Potosi
+    90756007: Salmonella Presov
+    79264000: Salmonella Pramiso
+    54131009: Salmonella Praha
+    114582002: Salmonella Powell
+    10999003: Salmonella Potto
+    26894001: Salmonella Redlands
+    40114001: Salmonella Panama
+    68807006: Salmonella Preston
+    13615007: Salmonella Regent
+    3970007: Salmonella Quentin
+    74122008: Salmonella Portland
+    114642001: Salmonella Potengi
+    8544001: Salmonella Potsdam
+    31557009: Salmonella Pretoria
+    63396002: Salmonella Reading
+    87566000: Salmonella Quebec
+    82957002: Salmonella Rechovot
+    48126005: Salmonella Quinhon
+    54260008: Salmonella Redhill
+    2399004: Salmonella Quiniela
+    8860008: Salmonella Ramatgan
+    85576003: Salmonella Ramsey
+    56737002: Salmonella Raus
+    7730006: Salmonella Rawash
+    69716007: Salmonella Redba
+    44768008: Salmonella Putten
+    761001: Salmonella Runby
+    39603007: Salmonella Parkroyal
+    43078007: Salmonella Paris
+    32488009: Salmonella Paratyphi C
+    85908006: Salmonella Paratyphi B
+    79128009: Salmonella Paratyphi A
+    2356009: Salmonella Patience
+    65779004: Salmonella Papuana
+    37286001: Salmonella Penarth
+    56626006: Salmonella Palime
+    115661009: Salmonella Palamaner
+    43640009: Salmonella Pakistan
+    3154009: Salmonella Oyonnax
+    42410007: Salmonella Duisburg
+    70344002: Salmonella Cerro
+    67035008: Salmonella Oxford
+    47767006: Salmonella Overvecht
+    51799003: Salmonella Overschie
+    31669006: Salmonella Reinickendorf
+    114516009: Salmonella Planckendael
+    57101009: Salmonella Poona
+    23836008: Salmonella Pontypridd
+    112314009: Salmonella Pomona
+    114513001: Salmonella Poitiers
+    77349005: Salmonella Poeseldorf
+    3596001: Salmonella Poano
+    52941007: Salmonella Plymouth
+    43109001: Salmonella Pasing
+    114837006: Salmonella Ploufragan
+    114545006: Salmonella Portanigra
+    75173009: Salmonella Pisa
+    114267006: Salmonella Pietersburg
+    66714006: Salmonella Pharr
+    114557002: Salmonella Phaliron
+    114302000: Salmonella Petahtikve
+    42715001: Salmonella Perth
+    10183008: Salmonella Pensacola
+    114678006: Salmonella Penilla
+    70940001: Salmonella Sanjuan
+    45938004: Salmonella Saloniki
+    21146003: Salmonella Saphra
+    23333007: Salmonella Sao
+    1574002: Salmonella Santiago
+    36247005: Salmonella Santhiaba
+    114691007: Salmonella Santander
+    39775009: Salmonella Sanktmarx
+    36077005: Salmonella Sarajane
+    32854006: Salmonella Sanktgeorg
+    18711009: Salmonella Saugus
+    36588009: Salmonella Sangera
+    65807007: Salmonella Sangalkam
+    6156002: Salmonella Sanga
+    34051000: Salmonella Sandow
+    112287008: Salmonella Sandiego
+    69261007: Salmonella Sambre
+    25520000: Salmonella Ruiru
+    114348009: Salmonella Sanktjohann
+    78970007: Salmonella Seattle
+    114625007: Salmonella Serrekunda
+    4769009: Salmonella Seremban
+    114701009: Salmonella Senneville
+    18163008: Salmonella Senftenberg
+    24090006: Salmonella Senegal
+    3837003: Salmonella Sendai
+    59384004: Salmonella Selby
+    81834006: Salmonella Sekondi
+    82781001: Salmonella Sara
+    112319004: Salmonella Sedgwick
+    114395008: Salmonella Sculcoates
+    54469007: Salmonella Schwerin
+    45651006: Salmonella Schwarzengrund
+    114498006: Salmonella Schwabach
+    62656003: Salmonella Schoeneberg
+    41331008: Salmonella Schleissheim
+    91144009: Salmonella Schalkwijk
+    71107002: Salmonella Seegefeld
+    13421000: Salmonella Ried
+    114776003: Salmonella Samaru
+    21176005: Salmonella Rogy
+    57683009: Salmonella Rochdale
+    10704009: Salmonella Roan
+    14966006: Salmonella Riverside
+    72029002: Salmonella Rittersbach
+    114535009: Salmonella Rissen var 14+
+    51985007: Salmonella Rissen
+    44451005: Salmonella Roodepoort
+    15055006: Salmonella Riggil
+    1934000: Salmonella Ridge
+    84273002: Salmonella Rideau
+    31517006: Salmonella Richmond
+    31239009: Salmonella Rhydyfelin
+    404331006: Salmonella Rhone
+    29528000: Salmonella Reubeuss
+    84972004: Salmonella Remo
+    6459000: Salmonella Riogrande
+    86669006: Salmonella Overchurch
+    60242004: Salmonella Salford
+    2820001: Salmonella Saintpaul
+    416828006: Salmonella Saintemarie
+    41467000: Salmonella Sada
+    57053004: Salmonella Saboya
+    55395003: Salmonella Saarbruecken
+    71285002: Salmonella Ruzizi
+    52204003: Salmonella Romanby
+    55144007: Salmonella Rumford
+    58933004: Salmonella Remete
+    80456008: Salmonella Rubislaw
+    114591003: Salmonella Ruanda
+    8448001: Salmonella Rovaniemi
+    16723007: Salmonella Rottnest
+    114716007: Salmonella Rothenburgsort
+    48058002: Salmonella Rostock
+    28418000: Salmonella Rossleben
+    302740008: Salmonella Odienne
+    51130009: Salmonella Nakuru
+    75048007: Salmonella Nashua
+    48054000: Salmonella Narashino
+    45645001: Salmonella Napoli
+    114606009: Salmonella Nantes
+    71991008: Salmonella Nanga
+    46765008: Salmonella Nanergou
+    302673005: Salmonella Ngaparou
+    114499003: Salmonella Namibia
+    40821004: Salmonella Nchanga
+    83138004: Salmonella Nagoya
+    48831005: Salmonella Naestved
+    112288003: Salmonella Mura
+    78045009: Salmonella Mundonobo
+    114876007: Salmonella Namoda
+    19828009: Salmonella Neukoelln
+    64506004: Salmonella Oerlikon
+    84518004: Salmonella Newrochelle
+    56077000: Salmonella Newport
+    78243006: Salmonella Newmexico
+    10454004: Salmonella Newlands
+    114957006: Salmonella Newholland
+    114588003: Salmonella Natal
+    60527001: Salmonella Neumuenster
+    43551001: Salmonella Naware
+    30228001: Salmonella Neudorf
+    53285009: Salmonella Nessziona
+    32122000: Salmonella Nessa
+    37549003: Salmonella Neftenbach
+    60142007: Salmonella Ndolo
+    29449001: Salmonella Ndjamena
+    398409009: Salmonella Nchanga var 15+
+    114289005: Salmonella Muenster var 15+,34+
+    114723008: Salmonella Neunkirchen
+    64705003: Salmonella Mokola
+    80268001: Salmonella Montevideo
+    65132007: Salmonella Monschaui
+    32995008: Salmonella Mons
+    62686005: Salmonella Mono
+    9393004: Salmonella Molade
+    67092009: Salmonella Morehead
+    114327007: Salmonella Moers
+    78448004: Salmonella Moero
+    35244008: Salmonella Mocamedes
+    86837000: Salmonella Mkamba
+    114696002: Salmonella Mjordan
+    34237005: Salmonella Miyazaki
+    114324000: Salmonella Missouri
+    71733003: Salmonella Molesey
+    114932001: Salmonella Moundou
+    87019006: Salmonella Ngili
+    114273007: Salmonella Muenster var 15+
+    68916009: Salmonella Muenster
+    77584005: Salmonella Muenchen
+    59839006: Salmonella Mpouto
+    63734000: Salmonella Mowanjum
+    81493008: Salmonella Moussoro
+    13179007: Salmonella Montreal
+    114657008: Salmonella Mountmagnet
+    5778005: Salmonella Muguga
+    83560005: Salmonella Moualine
+    48020001: Salmonella Moscow
+    40288001: Salmonella Moroto
+    76356009: Salmonella Morotai
+    21618001: Salmonella Morocco
+    62314007: Salmonella Mornington
+    6663003: Salmonella Morningside
+    114675009: Salmonella Morillons
+    42921006: Salmonella Mountpleasant
+    2445005: Salmonella Olten
+    46667007: Salmonella Oranienburg
+    114713004: Salmonella Oran
+    40637008: Salmonella Ontario
+    65829006: Salmonella Onireke
+    9691005: Salmonella Onderstepoort
+    60789003: Salmonella Onarimon
+    46614007: Salmonella Ona
+    62272001: Salmonella Newyork
+    10762006: Salmonella Omifisan
+    17834009: Salmonella Ord
+    57924003: Salmonella Oldenburg
+    114633008: Salmonella Okerara
+    34732000: Salmonella Okefoko
+    56064009: Salmonella Okatie
+    4145004: Salmonella Ohlstedt
+    114533002: Salmonella Ohio var 14+
+    67210008: Salmonella Ohio
+    116054000: Salmonella Omuna
+    114817007: Salmonella Orleans
+    71614001: Salmonella Ouakam
+    9357001: Salmonella Ottawa
+    11342005: Salmonella Othmarschen
+    74964007: Other
+    52237001: Salmonella Osnabrueck
+    35454005: Salmonella Oslo
+    114536005: Salmonella Oranienburg var 14+
+    656008: Salmonella Os
+    114791001: Salmonella Orbe
+    53510005: Salmonella Orlando
+    51825008: Salmonella Oritamerin
+    114294005: Salmonella Orion var 15+, 34+
+    114285004: Salmonella Orion var 15+
+    32681008: Salmonella Orion
+    112309005: Salmonella Orientalis
+    64900004: Salmonella Ordonez
+    77022000: Salmonella Oskarshamn
+    29083003: Salmonella Nikolaifleet
+    56122007: Salmonella Ogbete
+    114603001: Salmonella Nordrhein
+    114502004: Salmonella Nola
+    67513009: Salmonella Njala
+    114296007: Salmonella Niumi
+    112285000: Salmonella Nitra
+    67231006: Salmonella Nimes
+    45714007: Salmonella Nordufer
+    29049005: Salmonella Niloese
+    87630008: Salmonella Norton
+    81740006: Salmonella Nijmegen
+    41176000: Salmonella Nigeria
+    66105008: Salmonella Nieukerk
+    114815004: Salmonella Niederoderwitz
+    82098006: Salmonella Niarembe
+    11958001: Salmonella Niamey
+    27008003: Salmonella Niakhar
+    65830001: Salmonella Ngor
+    26455007: Salmonella Nima
+    51716006: Salmonella Nyeko
+    40399001: Salmonella Oudwijk
+    509004: Salmonella Odozi
+    114697006: Salmonella Ockenheim
+    30686007: Salmonella Ochsenwerder
+    114310004: Salmonella Ochiogu
+    46735003: Salmonella Obogu
+    1009003: Salmonella Oakland
+    114507005: Salmonella Oakey
+    800007: Salmonella Offa
+    114275000: Salmonella Nyborg var 15+
+    48465004: Salmonella Nyborg
+    76350003: Salmonella Nyanza
+    34033001: Salmonella Nuatja
+    114555005: Salmonella Noya
+    52488001: Salmonella Nowawes
+    4868006: Salmonella Nottingham
+    10556004: Salmonella Norwich
+    302625000: Salmonella Winneba
+    40618004: Salmonella Visby
+    114490004: Salmonella Vuadens
+    114349001: Salmonella Vridi
+    114821000: Salmonella Voulte
+    14007002: Salmonella Vom
+    42016005: Salmonella Volta
+    62626007: Salmonella Volkmarsdorf
+    49114009: Salmonella Vogan
+    114283006: Salmonella Weltevreden var 15+
+    42391008: Salmonella Vitkin
+    114632003: Salmonella Wagadugu
+    112296008: Salmonella Virginia
+    5929008: Salmonella Virchow
+    48339002: Salmonella Vinohrady
+    15789003: Salmonella Vilvoorde
+    6851005: Salmonella Vietnam
+    58761004: Salmonella Victoriaborg
+    73249008: Salmonella Victoria
+    60462009: Salmonella Vleuten
+    61807004: Salmonella Warnemuende
+    26964008: Salmonella Welikade
+    54836002: Salmonella Wedding
+    28932006: Salmonella Wayne
+    28717009: Salmonella Waycross
+    86992008: Salmonella Washington
+    90403009: Salmonella Wa
+    64080004: Salmonella Warnow
+    302669007: Salmonella Waedenswil
+    114848004: Salmonella Warmsen
+    78528008: Salmonella Warengo
+    3624003: Salmonella Waral
+    34473000: Salmonella Wangata
+    9479007: Salmonella Wandsworth
+    24951009: Salmonella Wagenia
+    62532006: Salmonella Veneziana
+    6233000: Salmonella Warragul
+    82140000: Salmonella Uccle
+    114852004: Salmonella Verviers
+    25695005: Salmonella Umbilo
+    8428008: Salmonella Ullevi
+    81662001: Salmonella Uithof
+    69176009: Salmonella Uhlenhorst
+    11379008: Salmonella Ughelli
+    31900005: Salmonella Umhlatazana
+    2434007: Salmonella Uganda
+    261665006: Unknown
+    32244000: Salmonella Tyresoe
+    52730003: Salmonella Typhisuis
+    370578006: Salmonella Typhimurium var. Copenhagen
+    50136005: Salmonella Typhimurium
+    5595000: Salmonella Typhi
+    711005: Salmonella Tunis
+    114479009: Salmonella Tumodi
+    74707007: Salmonella Tudu
+    114282001: Salmonella Uganda var 15+
+    32716002: Salmonella Vaertan
+    114863001: Salmonella Wenatchee
+    53723000: Salmonella Vellore
+    114272002: Salmonella Vejle var 15+
+    39215001: Salmonella Vejle
+    114393001: Salmonella Vegesack
+    114771008: Salmonella Vaugirard
+    114681001: Salmonella Vanier
+    28865004: Salmonella Umhlali
+    114541002: Salmonella Valdosta
+    114777007: Salmonella Verona
+    42614009: Salmonella Uzaramo
+    46375008: Salmonella Utrecht
+    28124002: Salmonella Utah
+    84173008: Salmonella Usumbura
+    3801008: Salmonella Ursenbach
+    50428006: Salmonella Urbana
+    91123009: Salmonella Uppsala
+    3708006: Salmonella Uno
+    78256004: Salmonella Vancouver
+    54528001: Salmonella Yeerongpilly
+    36282006: Salmonella Yolo
+    58393009: Salmonella Yokoe
+    58146008: Salmonella Yoff
+    59794006: Salmonella Yerba
+    91661006: Salmonella Weltevreden
+    88931007: Salmonella Yehuda
+    114394007: Salmonella Yoruba
+    70689009: Salmonella Yarrabah
+    28090003: Salmonella Yarm
+    114672007: Salmonella Yardley
+    42781000: Salmonella Yaounde
+    23033001: Salmonella Yalding
+    112300009: Salmonella Yaba
+    1083004: Salmonella Wyldegreen
+    114761006: Salmonella Yekepa
+    11097007: Salmonella Zega
+    27268008: Salmonella species
+    165495004: Auto-agglutination of red blood cell
+    34434000: Salmonella Zwickau
+    24009000: Salmonella Zuilen
+    76778004: Salmonella Zongo
+    404481001: Salmonella Zinder
+    114403006: Salmonella Zigong
+    114856001: Salmonella Yopougon
+    86966001: Salmonella Zehlendorf
+    114434005: Salmonella Zaria
+    29090008: Salmonella Zanzibar
+    21816004: Salmonella Zaire
+    398550004: Salmonella Zaiman
+    69432009: Salmonella Zadar
+    27408007: Salmonella Yundum
+    6458008: Salmonella Yovokome
+    44844006: Salmonella Zerifin
+    114292009: Salmonella Westhampton var 15+, 34+
+    16380005: Salmonella Wuppertal
+    23727001: Salmonella Wil
+    21975008: Salmonella Wien
+    74115000: Salmonella Widemarsh
+    82829005: Salmonella Wichita
+    70223004: Salmonella Weybridge
+    71541000: Salmonella Westphalia
+    37420008: Salmonella Westminster
+    58973005: Salmonella Willemstad
+    114278003: Salmonella Westhampton var 15+
+    62099009: Salmonella Westhampton
+    56955001: Salmonella Westerstede
+    51480006: Salmonella Westeinde
+    48884009: Salmonella Weslaco
+    85698004: Salmonella Wernigerode
+    34107006: Salmonella Wentworth
+    72132002: Salmonella Weston
+    114506001: Salmonella Winston
+    29955002: Salmonella Tsevie
+    24666009: Salmonella Worthington
+    90157005: Salmonella Worb
+    114321008: Salmonella Woodinville
+    114377005: Salmonella Woodhull
+    18810002: Salmonella Wohlen
+    58979009: Salmonella Wisbech
+    32320000: Salmonella Wilhelmsburg
+    82496003: Salmonella Winterthur
+    62146001: Salmonella Wuiti
+    56093009: Salmonella Winnipeg
+    48578002: Salmonella Ablogame
+    1888009: Salmonella Wingrove
+    17330008: Salmonella Mississippi
+    6959008: Salmonella Windermere
+    17323002: Salmonella Wimborne
+    116058002: Salmonella Wilmington
+    75676000: Salmonella Wippra
+    8432002: Salmonella Sternschanze
+    75486009: Salmonella Stratford
+    72895000: Salmonella Strasbourg
+    75447005: Salmonella Straengnaes
+    4267007: Salmonella Stourbridge
+    51584000: Salmonella Stormont
+    114700005: Salmonella Stoneferry
+    114286003: Salmonella Stockholm var 15+
+    8379003: Salmonella Tucson
+    11738009: Salmonella Sterrenbos
+    302636007: Salmonella Stuttgart
+    86311006: Salmonella Stendal
+    77211008: Salmonella Stellingen
+    77145008: Salmonella Steinwerder
+    63800006: Salmonella Steinplatz
+    20314003: Salmonella Staoueli
+    47441000: Salmonella Stanleyville
+    88091007: Salmonella Stanley
+    15001007: Salmonella Stockholm
+    398620001: Salmonella enterica subsp. indica
+    114378000: Salmonella Sylvania
+    69027000: Salmonella Sya
+    302688000: Salmonella Svedvi
+    114655000: Salmonella Surrey
+    40465000: Salmonella Surat
+    20905000: Salmonella Sunnycove
+    11488000: Salmonella Sundsvall
+    114509008: Salmonella Strathcona
+    114822007: Salmonella Sudan
+    26685005: Salmonella Stuivenberg
+    398393000: Salmonella bongori
+    398371005: Salmonella enterica subsp. houtenae
+    398428002: Salmonella enterica subsp. diarizonae
+    398488004: Salmonella enterica subsp. salamae
+    398508004: Salmonella enterica subsp. Enterica
+    11139006: Salmonella Suberu
+    60677006: Salmonella Spartel
+    74705004: Salmonella Suelldorf
+    6302004: Salmonella Shipley
+    114721005: Salmonella Stachus
+    29019008: Salmonella Singapore
+    114563006: Salmonella Sindelfingen
+    8730009: Salmonella Sinchew
+    17233007: Salmonella Simi
+    114773006: Salmonella Sica
+    42648005: Salmonella Shubra
+    8058007: Salmonella Sinthia
+    69117009: Salmonella Shomolu
+    67851004: Salmonella Sipane
+    46323004: Salmonella Shikmonah
+    11062005: Salmonella Sherbrooke
+    55505009: Salmonella Sheffield
+    25382005: Salmonella Sharon
+    80058004: Salmonella Shannon
+    8922003: Salmonella Shanghai
+    398499002: Salmonella Shangani var 15+
+    69669000: Salmonella Shangani
+    53477002: Salmonella Shoreditch
+    57072004: Salmonella Solt
+    29173000: Salmonella Tado
+    114803003: Salmonella Spalentor
+    114271009: Salmonella Souza var 15+
+    12964005: Salmonella Souza
+    63485009: Salmonella Southbank
+    76983003: Salmonella Southampton
+    114668008: Salmonella Soumbedioune
+    71443004: Salmonella Sinstorf
+    49392000: Salmonella Somone
+    114832000: Salmonella Splott
+    16194002: Salmonella Solna
+    29335009: Salmonella Sokode
+    20862000: Salmonella Soerenga
+    50027009: Salmonella Soahanina
+    65303004: Salmonella Sloterdijk
+    51024006: Salmonella Sljeme
+    114313002: Salmonella Slade
+    43182007: Salmonella Skansen
+    80047008: Salmonella Tinda
+    25812007: Salmonella Thiaroye
+    71605006: Salmonella Toowong
+    69738009: Salmonella Tonev
+    76347001: Salmonella Tomelilla
+    85893005: Salmonella Tomegbe
+    13865001: Salmonella Tokoin
+    69123004: Salmonella Togo
+    9459004: Salmonella Toricada
+    77393005: Salmonella Tione
+    32365009: Salmonella Tornow
+    85424004: Salmonella Tilene
+    60834008: Salmonella Tilburg
+    114752006: Salmonella Tiko
+    83753002: Salmonella Tiergarten
+    114524004: Salmonella Tienba
+    114623000: Salmonella Tibati
+    4361005: Salmonella Thompson
+    21469008: Salmonella Szentes
+    64768003: Salmonella Togba
+    28623007: Salmonella Treforest
+    39761002: Salmonella Shamba
+    29189002: Salmonella Tschangu
+    749009: Salmonella Truro
+    44942009: Salmonella Trotha
+    114467009: Salmonella Tripoli
+    35091007: Salmonella Trimdon
+    114693005: Salmonella Torhout
+    114590002: Salmonella Treguier
+    81781003: Salmonella Thetford
+    10248003: Salmonella Travis
+    114859008: Salmonella Transvaal
+    74613008: Salmonella Trachau
+    114333003: Salmonella Tours
+    30335006: Salmonella Tounouma
+    17801007: Salmonella Toulon
+    42615005: Salmonella Toucra
+    77834007: Salmonella Toronto
+    114417002: Salmonella Trier
+    79475004: Salmonella Tamberma
+    114312007: Salmonella Thies
+    20268005: Salmonella Taunton
+    61549002: Salmonella Taset
+    52648003: Salmonella Tarshyne
+    91124003: Salmonella Tanzania
+    9952003: Salmonella Tanger
+    45578001: Salmonella Tananarive
+    23837004: Salmonella Tchad
+    2111007: Salmonella Tamilnadu
+    15553009: Salmonella Tchamba
+    57861008: Salmonella Tambacounda
+    26592005: Salmonella Tamale
+    85277006: Salmonella Tallahassee
+    33296009: Salmonella Taksony
+    57786005: Salmonella Takoradi
+    43662009: Salmonella Tafo
+    41227004: Salmonella Tshiongwe
+    114525003: Salmonella Tampico
+    61388001: Salmonella Teltow
+    64619006: Salmonella Thayngen
+    34464008: Salmonella Texas
+    29305002: Salmonella Teshie
+    29469006: Salmonella Tennyson
+    79153007: Salmonella Tennessee
+    114649005: Salmonella Tennenlohe
+    114438008: Salmonella Tendeba
+    114719000: Salmonella Taylor
+    114813006: Salmonella Tema
+    10280001: Salmonella Tabligbo
+    85143008: Salmonella Telhashomer
+    64636003: Salmonella Telelkebir
+    47688008: Salmonella Telaviv
+    80087003: Salmonella Teko
+    45802005: Salmonella Tejas
+    14424002: Salmonella Tees
+    36510009: Salmonella Teddington
+    54697006: Salmonella Techimani
+    19439003: Salmonella Giza
+    31608001: Salmonella Gatuni
+    59834001: Salmonella Gbadago
+    14145004: Salmonella Gdansk
+    114537001: Salmonella Gdansk var 14+
+    82784009: Salmonella Gege
+    22117007: Salmonella Georgia
+    65525006: Salmonella Gera
+    40703006: Salmonella Geraldton
+    114408002: Salmonella Gerland
+    18129006: Salmonella Ghana
+    51518009: Salmonella Giessen
+    71768003: Salmonella Give
+    114589006: Salmonella Franken
+    114293004: Salmonella Give var 15+, 34+
+    78474005: Salmonella Gateshead
+    51190006: Salmonella Glasgow
+    20266009: Salmonella Glidji
+    6327006: Salmonella Glostrup
+    88494007: Salmonella Gloucester
+    26622005: Salmonella Gnesta
+    32275009: Salmonella Godesberg
+    67457006: Salmonella Goelzau
+    114268001: Salmonella Goelzau var 15+
+    40681000: Salmonella Goeteborg
+    53230005: Salmonella Goettingen
+    8716004: Salmonella Gokul
+    16820003: Salmonella Goldcoast
+    114281008: Salmonella Give var 15+
+    29742006: Salmonella Gafsa
+    40685009: Salmonella Demerara
+    114670004: Salmonella Freefalls
+    13411008: Salmonella Freetown
+    76702004: Salmonella Freiburg
+    3312002: Salmonella Fresno
+    51128007: Salmonella Friedenau
+    85186008: Salmonella Friedrichsfelde
+    2872006: Salmonella Frintrop
+    41677008: Salmonella Fufu
+    114305003: Salmonella Fulda
+    6184007: Salmonella Fulica
+    76921003: Salmonella Gatow
+    85588001: Salmonella Gabon
+    52995002: Salmonella Gatineau
+    4614004: Salmonella Galiema
+    88944002: Salmonella Galil
+    42597008: Salmonella Gallen
+    370576005: Salmonella Gallinarum
+    3846009: Salmonella Gamaba
+    13794000: Salmonella Gambaga
+    66450003: Salmonella Gambia
+    59598006: Salmonella Gaminara
+    85538009: Salmonella Garba
+    39901006: Salmonella Garoli
+    62414008: Salmonella Gassi
+    78907006: Salmonella Good
+    35996004: Salmonella Fyris
+    38788001: Salmonella Havana
+    112290002: Salmonella Goma
+    7830000: Salmonella Hallfold
+    29429005: Salmonella Handen
+    40427007: Salmonella Hann
+    11926006: Salmonella Hannover
+    61079001: Salmonella Haouaria
+    91407001: Salmonella Harburg
+    114930009: Salmonella Harcourt
+    114629001: Salmonella Harleystreet
+    89271003: Salmonella Harrisonburg
+    26463008: Salmonella Hartford
+    24896001: Salmonella Harvestehude
+    88255008: Salmonella Haifa
+    63142006: Salmonella Hato
+    86698005: Salmonella Haga
+    114301007: Salmonella Hayindogo
+    38701009: Salmonella Heerlen
+    114733000: Salmonella Hegau
+    71865006: Salmonella Heidelberg
+    114906007: Salmonella Hemingford
+    114812001: Salmonella Hennekamp
+    37297001: Salmonella Hermannswerder
+    76657005: Salmonella Heron
+    64578002: Salmonella Herston
+    11188006: Salmonella Herzliya
+    13682001: Salmonella Hessarek
+    112294006: Salmonella Hidalgo
+    61304001: Salmonella Hatfield
+    59785000: Salmonella Guarapiranga
+    74092000: Salmonella Fortune
+    74958000: Salmonella Gori
+    50853000: Salmonella Goulfey
+    114703007: Salmonella Gouloumbo
+    66197006: Salmonella Goverdhan
+    21395009: Salmonella Grampian
+    114421009: Salmonella Grancanaria
+    114699009: Salmonella Grandhaven
+    36050001: Salmonella Granlo
+    9453003: Salmonella Graz
+    3335004: Salmonella Greiz
+    63058007: Salmonella Halle
+    22752009: Salmonella Grumpensis
+    84543005: Salmonella Gombe
+    81994008: Salmonella Guerin
+    90973003: Salmonella Guildford
+    71316008: Salmonella Guinea
+    42675003: Salmonella Gustavia
+    28879007: Salmonella Gwale
+    7467004: Salmonella Gwoza
+    64842001: Salmonella Haardt
+    49491006: Salmonella Hadar
+    114439000: Salmonella Hadejia
+    114483009: Salmonella Haduna
+    5908004: Salmonella Haelsingborg
+    65214003: Salmonella Haferbreite
+    4492008: Salmonella Groenekan
+    114299000: Salmonella Eastglam
+    77114009: Salmonella Dresden
+    90683001: Salmonella Driffield
+    62441003: Salmonella Drogana
+    62136003: Salmonella Dublin
+    77576006: Salmonella Duesseldorf
+    82666001: Salmonella Dugbe
+    72958001: Salmonella Dumfries
+    114564000: Salmonella Dunkwa
+    57664002: Salmonella Durban
+    56632001: Salmonella Durham
+    84287002: Salmonella Duval
+    1291002: Salmonella Frankfurt
+    34547007: Salmonella Eastbourne
+    42971009: Salmonella Dougi
+    56088006: Salmonella Eberswalde
+    16582001: Salmonella Eboko
+    54309009: Salmonella Ebrie
+    55246000: Salmonella Echa
+    55274005: Salmonella Edinburg
+    18717008: Salmonella Edmonton
+    69573008: Salmonella Egusi
+    31859003: Salmonella Egusitoo
+    25487003: Salmonella Eingedi
+    5372008: Salmonella Eko
+    15319009: Salmonella Ealing
+    21329006: Salmonella Djama
+    8249007: Salmonella Denver
+    37091006: Salmonella Derby
+    87693007: Salmonella Derkle
+    112305004: Salmonella Dessau
+    55485009: Salmonella Mishmarhaemek
+    49831004: Salmonella Deversoir
+    57322006: Salmonella Aberdeen
+    70194005: Salmonella Dieuppeul
+    19191009: Salmonella Diguel
+    90970000: Salmonella Diogoye
+    720961001: Salmonella Drac
+    44010000: Salmonella Djakarta
+    23271001: Salmonella Doulassame
+    760000: Salmonella Djelfa
+    32549009: Salmonella Djermaia
+    17036007: Salmonella Djibouti
+    36604000: Salmonella Djugu
+    77231007: Salmonella Doba
+    114683003: Salmonella Doel
+    3386009: Salmonella Doncaster
+    1921001: Salmonella Donna
+    74464001: Salmonella Doorn
+    114676005: Salmonella Douala
+    33136001: Salmonella Elisabethville
+    44109007: Salmonella Diourbel
+    31093000: Salmonella Ekotedo
+    57804003: Salmonella Fann
+    82938006: Salmonella Fanti
+    62365004: Salmonella Farakan
+    54749003: Salmonella Farcha
+    73321004: Salmonella Fareham
+    785859001: Salmonella Farmingdale
+    40311004: Salmonella Farmsen
+    114478001: Salmonella Farsta
+    53391009: Salmonella Fass
+    17611002: Salmonella Fayed
+    22899009: Salmonella Falkensee
+    49297008: Salmonella Ferruch
+    44012008: Salmonella Faji
+    114484003: Salmonella Finaghy
+    68108004: Salmonella Findorff
+    28285008: Salmonella Finkenwerder
+    75881007: Salmonella Fischerhuette
+    54984007: Salmonella Fischerkietz
+    32379001: Salmonella Fischerstrasse
+    19430004: Salmonella Fitzroy
+    398552007: Salmonella Florian
+    38849007: Salmonella Florida
+    19190005: Salmonella Flottbek
+    59107001: Salmonella Fluntern
+    91477002: Salmonella Fomeco
+    47679004: Salmonella Fortlamy
+    114778002: Salmonella Ferlo
+    51705004: Salmonella Eppendorf
+    11521007: Salmonella Hillingdon
+    66778003: Salmonella Elokate
+    60794003: Salmonella Elomrane
+    53814008: Salmonella Emek
+    25037003: Salmonella Emmastad
+    82241007: Salmonella Encino
+    45091005: Salmonella Enschede
+    86876004: Salmonella Entebbe
+    110378009: Salmonella enterica
+    73525009: Salmonella Enteritidis
+    5612008: Salmonella Enugu
+    43833005: Salmonella Fallowfield
+    81603009: Salmonella Epinay
+    2191008: Salmonella Ekpoui
+    69033009: Salmonella Escanaba
+    114570006: Salmonella Eschberg
+    12517002: Salmonella Eschweiler
+    4687003: Salmonella Essen
+    40998003: Salmonella Etterbeek
+    114337002: Salmonella Euston
+    398622009: Salmonella Everleigh
+    5369001: Salmonella Ezra
+    76968008: Salmonella Fajara
+    49029009: Salmonella Epicrates
+    302708009: Salmonella Kuntair
+    39664003: Salmonella Kottbus
+    89806001: Salmonella Kotte
+    114580005: Salmonella Kotu
+    5956005: Salmonella Kouka
+    67207001: Salmonella Koumra
+    61491002: Salmonella Kpeme
+    89423000: Salmonella Kralingen
+    86656007: Salmonella Krefeld
+    28013002: Salmonella Kristianstad
+    404480000: Salmonella Kua
+    32054007: Salmonella Kubacha
+    83016003: Salmonella Kuessel
+    4918004: Salmonella Hiduddify
+    64155002: Salmonella Kunduchi
+    18088003: Salmonella Korlebu
+    67346002: Salmonella Kuru
+    42816009: Salmonella Labadi
+    24289007: Salmonella Lagos
+    114618000: Salmonella Lamberhurst
+    90726003: Salmonella Lamin
+    734436009: Salmonella Lamphun
+    114437003: Salmonella Lancaster
+    87110008: Salmonella Landala
+    46793007: Salmonella Landau
+    20209004: Salmonella Landwasser
+    76337004: Salmonella Langenhorn
+    31469004: Salmonella Langensalza
+    58946009: Salmonella Kumasi
+    43942004: Salmonella Koenigstuhl
+    72119007: Salmonella Kingabwa
+    51008005: Salmonella Kingston
+    6086006: Salmonella Kinondoni
+    114307006: Salmonella Kinson
+    65422007: Salmonella Kintambo
+    62866008: Salmonella Kirkee
+    52492008: Salmonella Kisangani
+    29115000: Salmonella Kisarawe
+    62325003: Salmonella Kisii
+    87975009: Salmonella Kitenge
+    62340001: Salmonella Kivu
+    46953000: Salmonella Klouto
+    20567004: Salmonella Kortrijk
+    61329007: Salmonella Kodjovi
+    44834009: Salmonella Korovi
+    114462003: Salmonella Koessen
+    114854003: Salmonella Kofandoka
+    83795006: Salmonella Koketime
+    23790005: Salmonella Kokoli
+    79570007: Salmonella Kokomlemle
+    302667009: Salmonella Kolar
+    114562001: Salmonella Kolda
+    114690008: Salmonella Konolfingen
+    32310005: Salmonella Konstanz
+    15691000: Salmonella Korbol
+    51706003: Salmonella Lansing
+    280003: Salmonella Limete
+    24564002: Salmonella Livulu
+    114539003: Salmonella Livingstone var 14+
+    66713000: Salmonella Livingstone
+    25767003: Salmonella Liverpool
+    81614007: Salmonella Litchfield
+    31745002: Salmonella Lishabi
+    11750003: Salmonella Lisboa
+    80579007: Salmonella Linton
+    89085001: Salmonella Lingwala
+    66161002: Salmonella Linguere
+    25939003: Salmonella Lindi
+    17007007: Salmonella Llandoff
+    64078005: Salmonella Lindenburg
+    114839009: Salmonella Llobregat
+    114538006: Salmonella Lille var 14+
+    8307000: Salmonella Lille
+    67810001: Salmonella Lika
+    79596009: Salmonella Ligna
+    90363005: Salmonella Ligeo
+    114686006: Salmonella Libreville
+    64847007: Salmonella Lezennes
+    114295006: Salmonella Lexington var 15+, 34+
+    114287007: Salmonella Lexington var 15+
+    39877005: Salmonella Lexington
+    54693005: Salmonella Lerum
+    79344007: Salmonella Leopoldville
+    10096007: Salmonella Leoben
+    112308002: Salmonella Lindern
+    53656009: Salmonella Leiden
+    78280000: Salmonella Kimpese
+    114389007: Salmonella Laredo
+    58723002: Salmonella Larochelle
+    26443001: Salmonella Lattenkamp
+    11577009: Salmonella Lawndale
+    54295006: Salmonella Lawra
+    84293005: Salmonella Leatherhead
+    51820003: Salmonella Lechler
+    114956002: Salmonella Leda
+    114645004: Salmonella Leer
+    47685006: Salmonella Leeuwarden
+    64863004: Salmonella Ljubljana
+    37669003: Salmonella Langford
+    51312006: Salmonella Leipzig
+    15728008: Salmonella Leith
+    7943004: Salmonella Lekke
+    25040003: Salmonella Lene
+    398483008: Salmonella Lomalinda
+    21218005: Salmonella Lokstedt
+    61355008: Salmonella Logone
+    42355001: Salmonella Loenga
+    6768004: Salmonella Lodz
+    54021004: Salmonella Lode
+    22001003: Salmonella Lockleaze
+    14078008: Salmonella Loanda
+    67336004: Salmonella Legon
+    158005: Salmonella Irumu
+    49270001: Salmonella Jalisco
+    73981008: Salmonella Inchpark
+    44580003: Salmonella India
+    12278000: Salmonella Indiana
+    82071007: Salmonella Infantis
+    112291003: Salmonella Inganda
+    2440000: Salmonella Inglis
+    67259007: Salmonella Inpraw
+    57585007: Salmonella Inverness
+    55653004: Salmonella Ipeko
+    78550009: Salmonella Ipswich
+    114605008: Salmonella Irchel
+    63015008: Salmonella Ilugun
+    11893007: Salmonella Irigny
+    58845009: Salmonella Ilala
+    89032008: Salmonella Isangi
+    15337005: Salmonella Isaszeg
+    41533007: Salmonella Israel
+    35373008: Salmonella Istanbul
+    114383008: Salmonella Istoria
+    68632005: Salmonella Isuge
+    68937001: Salmonella Itami
+    32771001: Salmonella Ituri
+    86467002: Salmonella Itutaba
+    114406003: Salmonella Ivory
+    114922008: Salmonella Ivorycoast
+    114306002: Salmonella Kindia
+    112311001: Salmonella Irenea
+    114309009: Salmonella Honkong
+    22300006: Salmonella Hillsborough
+    14262001: Salmonella Hilversum
+    45512008: Salmonella Hindmarsh
+    70671008: Salmonella Hisingen
+    37093009: Salmonella Hissar
+    3316004: Salmonella Hithergreen
+    114624006: Salmonella Hoboken
+    74630005: Salmonella Hofit
+    2047005: Salmonella Hoghton
+    33613006: Salmonella Holcomb
+    114853009: Salmonella Imo
+    70004000: Salmonella Honelis
+    4005005: Salmonella Jamaica
+    9439003: Salmonella Horsham
+    12040007: Salmonella Huddinge
+    114463008: Salmonella Huettwillen
+    82997004: Salmonella Hull
+    63060009: Salmonella Huvudsta
+    67392004: Salmonella Hvittingfoss
+    1957006: Salmonella Hydra
+    3373000: Salmonella Ibadan
+    114659006: Salmonella Ibaragi
+    52400005: Salmonella Idikan
+    61191008: Salmonella Ikayi
+    52277009: Salmonella Ikeja
+    8051001: Salmonella Homosassa
+    8455004: Salmonella Kentucky
+    42061009: Salmonella Jaffna
+    114385001: Salmonella Kanifing
+    47732006: Salmonella Kano
+    82243005: Salmonella Kaolack
+    87578001: Salmonella Kapemba
+    72514007: Salmonella Karachi
+    42302007: Salmonella Karamoja
+    114926006: Salmonella Karaya
+    114428003: Salmonella Karlshamn
+    40305002: Salmonella Kasenyi
+    47223005: Salmonella Kassberg
+    48932004: Salmonella Kandla
+    83141008: Salmonella Kedougou
+    88455006: Salmonella Kande
+    91354003: Salmonella Kenya
+    65633001: Salmonella Kermel
+    16845000: Salmonella Keve
+    11901002: Salmonella Kiambu
+    6675008: Salmonella Kibi
+    26031006: Salmonella Kibusi
+    72828006: Salmonella Kidderminster
+    1245005: Salmonella Kiel
+    7747007: Salmonella Kikoma
+    68218004: Salmonella Kimberley
+    58045005: Salmonella Hillegersberg
+    54354005: Salmonella Kaapstad
+    114656004: Salmonella Jambur
+    8339007: Salmonella Jangwani
+    88022005: Salmonella Javiana
+    4794005: Salmonella Jedburgh
+    46867005: Salmonella Jericho
+    1812001: Salmonella Jerusalem
+    6350000: Salmonella Joal
+    47039009: Salmonella Jodhpur
+    47508001: Salmonella Johannesburg
+    79617006: Salmonella Jos
+    83893008: Salmonella Juba
+    85465004: Salmonella Kaneshie
+    29811007: Salmonella Jukestown
+    75090001: Salmonella Kimuenza
+    69006005: Salmonella Kabete
+    91398003: Salmonella Kaduna
+    14219002: Salmonella Kahla
+    114308001: Salmonella Kainji
+    10749007: Salmonella Kaitaan
+    89640003: Salmonella Kalamu
+    66585001: Salmonella Kalina
+    114551001: Salmonella Kallo
+    53459007: Salmonella Kalumburu
+    69712009: Salmonella Kambole
+    65805004: Salmonella Kamoru
+    80563006: Salmonella Kampala
+    45264001: Salmonella Jubilee
+    114284000: Salmonella Amager var 15+
+    81265007: Salmonella Albuquerque
+    67646007: Salmonella Alexanderplatz
+    68452003: Salmonella Alexanderpolder
+    38358008: Salmonella Alfort
+    50785006: Salmonella Alger
+    114298008: Salmonella Alkmaar
+    9433002: Salmonella Allandale
+    38762004: Salmonella Allerton
+    114729007: Salmonella Alma
+    89556001: Salmonella Alminko
+    112286004: Salmonella Altendorf
+    9004006: Salmonella Aderike
+    77822004: Salmonella Amager
+    75923007: Salmonella Albert
+    312000: Salmonella Amba
+    52511000: Salmonella Amersfoort
+    114534008: Salmonella Amersfoort var 14+
+    77842008: Salmonella Amherstiana
+    17464006: Salmonella Amina
+    75343005: Salmonella Aminatu
+    23865002: Salmonella Amounderness
+    39015005: Salmonella Amoutive
+    38658003: Salmonella Amsterdam
+    114277008: Salmonella Amsterdam var. 15+
+    12662006: Salmonella Amunigun
+    37261005: Salmonella Anatum
+    47229009: Salmonella Altona
+    13679006: Salmonella Ahanou
+    84106001: Salmonella Banana
+    37944001: Salmonella Adjame
+    3540008: Salmonella Aequatoria
+    2007003: Salmonella Aesch
+    56428001: Salmonella Aflao
+    57116007: Salmonella Africana
+    27543005: Salmonella Afula
+    60073009: Salmonella Agama
+    114402001: Salmonella Agbara
+    2286000: Salmonella Agbeni
+    59827003: Salmonella Agege
+    57255003: Salmonella Ago
+    48652000: Salmonella Agodi
+    48584004: Salmonella Akanji
+    87906009: Salmonella Anderlecht
+    72033009: Salmonella Albany
+    10112007: Salmonella Alamo
+    50111004: Salmonella Alagbon
+    404347008: Salmonella Alachua
+    80627004: Salmonella Agona
+    50823007: Salmonella Akuafo
+    8052008: Salmonella Agoueve
+    23131001: Salmonella Ajiobo
+    541005: Salmonella Ahuza
+    114787006: Salmonella Ahoutoue
+    70456000: Salmonella Ahmadi
+    19118002: Salmonella Ahepe
+    49721001: Salmonella Alabama
+    114414009: Salmonella Badgary
+    114274001: Salmonella Anatum var 15+
+    30892003: Salmonella Athinai
+    114322001: Salmonella Ati
+    59130007: Salmonella Augustenborg
+    16158001: Salmonella Austin
+    114889001: Salmonella Australia
+    26080001: Salmonella Avignon
+    35647006: Salmonella Avonmouth
+    30362003: Salmonella Ayinde
+    34256000: Salmonella Ayton
+    5610000: Salmonella Azteca
+    361397004: Salmonella Atento
+    5864000: Salmonella Baildon
+    114667003: Salmonella Dibra
+    27353005: Salmonella Bambylor
+    15549007: Salmonella Bamboye
+    83148002: Salmonella Bama
+    65850002: Salmonella Ball
+    19368001: Salmonella Babelsberg
+    42485005: Salmonella Bakau
+    62308000: Salmonella Baiboukoum
+    43575001: Salmonella Bahrenfeld
+    53308007: Salmonella Bahati
+    80728004: Salmonella Baguirmi
+    404317006: Salmonella Baguida
+    76354007: Salmonella Atakpame
+    81490006: Salmonella Balcones
+    114860003: Salmonella Aprad
+    71121000: Salmonella Adeoyo
+    79905007: Salmonella Anecho
+    86397006: Salmonella Anfo
+    3567002: Salmonella Angers
+    23032006: Salmonella Angoda
+    83254009: Salmonella Angouleme
+    69252007: Salmonella Ank
+    40216007: Salmonella Anna
+    21838002: Salmonella Annedal
+    88085005: Salmonella Antarctica
+    77787000: Salmonella Antonio
+    71520006: Salmonella Antsalova
+    89368009: Salmonella Antwerpen
+    128388007: Salmonella Paratyphi B var. Java
+    116059005: Salmonella Asylanta
+    49603005: Salmonella Assinie
+    56929002: Salmonella Assen
+    18578007: Salmonella Ashanti
+    46399008: Salmonella Apapa
+    114824008: Salmonella Arusha
+    51446008: Salmonella Apeyeme
+    78139003: Salmonella Arechavaleta
+    114386000: Salmonella Arapahoe
+    1037005: Salmonella Aragua
+    11325004: Salmonella Aqua
+    114290001: Salmonella Anatum var 15+, 34+
+    12837008: Salmonella Aschersleben
+    88149008: Salmonella Matadi
+    2599003: Salmonella Massenya
+    43409005: Salmonella Massakory
+    114493002: Salmonella Maska
+    81030003: Salmonella Masembe
+    19958004: Salmonella Marylebone
+    34778008: Salmonella Maryland
+    81807008: Salmonella Marshall
+    87619005: Salmonella Marseille
+    85398008: Salmonella Adime
+    45998001: Salmonella Maron
+    114834004: Salmonella Maritzburg
+    40157006: Salmonella Marienthal
+    22590000: Salmonella Maricopa
+    15844005: Salmonella Maracaibo
+    30290002: Salmonella Mara
+    66496006: Salmonella Mapo
+    114329005: Salmonella Mannheim
+    20073008: Salmonella Manhattan
+    21242009: Salmonella Mango
+    62773005: Salmonella Mandera
+    70605000: Salmonella Manchester
+    114338007: Salmonella Maroua
+    31592001: Salmonella Mendoza
+    84044008: Salmonella Minnesota
+    71711000: Salmonella Minna
+    75114008: Salmonella Mim
+    76212007: Salmonella Milwaukee
+    44994006: Salmonella Millesi
+    42709001: Salmonella Mikawasima
+    112307007: Salmonella Midway
+    71236007: Salmonella Middlesbrough
+    49079007: Salmonella Michigan
+    64802006: Salmonella Miami
+    77843003: Salmonella Mgulani
+    15091004: Salmonella Messina
+    2203005: Salmonella Meskin
+    43352009: Salmonella Mathura
+    404436000: Salmonella Melbourne
+    6065006: Salmonella Malstatt
+    709136002: Salmonella Maumee
+    61531002: Salmonella Mayday
+    9506004: Salmonella Mbandaka
+    20872002: Salmonella Mbao
+    11903004: Salmonella Mesbit
+    59099007: Salmonella Menston
+    60651003: Salmonella Meleagridis
+    398448009: Salmonella Meleagridis var 15+
+    114291002: Salmonella Meleagridis var 15+, 34+
+    50351007: Salmonella Memphis
+    5325008: Salmonella Menden
+    24680002: Salmonella Matopeni
+    48229006: Salmonella Meekatharra
+    75848006: Salmonella Abaetetuba
+    80326003: Salmonella Mampong
+    40645003: Salmonella Louisiana
+    58052007: Salmonella Louga
+    114486001: Salmonella Loubomo
+    59316007: Salmonella Losangeles
+    114280009: Salmonella London var 15+
+    2291004: Salmonella London
+    33765004: Salmonella Lomnava
+    17939003: Salmonella Lomita
+    28106004: Salmonella Lome
+    114638004: Salmonella Aachen
+    90712007: Salmonella Aarhus
+    114432009: Salmonella Lowestoft
+    114323006: Salmonella Abuja
+    10343005: Salmonella Adelaide
+    7717005: Salmonella Adana
+    27987009: Salmonella Adamstua
+    38130005: Salmonella Adamstown
+    112301008: Salmonella Adabraka
+    76073000: Salmonella Aba
+    50113001: Salmonella Accra
+    5937000: Salmonella Abadina
+    83318007: Salmonella Abortusovis
+    51488004: Salmonella Abortusequi
+    40369005: Salmonella Abony
+    64539001: Salmonella Abobo
+    74936002: Salmonella Abidjan
+    16346007: Salmonella Lubumbashi
+    114602006: Salmonella Ackwepe
+    8741006: Salmonella Madigan
+    15288005: Salmonella Banco
+    7516004: Salmonella Malmoe
+    71672005: Salmonella Malika
+    55107007: Salmonella Malaysia
+    4867001: Salmonella Malakal
+    33909002: Salmonella Makiso
+    114828006: Salmonella Makiling
+    78893002: Salmonella Maiduguri
+    302674004: Salmonella Mahina
+    45488002: Salmonella Magwa
+    24270007: Salmonella Magumeri
+    114550000: Salmonella Magherafelt
+    114477006: Salmonella Madras
+    62367007: Salmonella Lovelace
+    89425007: Salmonella Maastricht
+    65211006: Salmonella Luciana
+    85819008: Salmonella Luckenwalde
+    114427008: Salmonella Luedinghausen
+    66442007: Salmonella Luke
+    69111005: Salmonella Madjorio
+    64674006: Salmonella Lyon
+    43587008: Salmonella Madison
+    74649009: Salmonella Macallen
+    114599001: Salmonella Macclesfield
+    58215003: Salmonella Machaga
+    13009006: Salmonella Madelia
+    75515002: Salmonella Madiago
+    14993009: Salmonella Mampeza
+    398549004: Salmonella Lutetia
+    48704004: Salmonella Ceyco
+    6938001: Salmonella Carmel
+    57587004: Salmonella Carnac
+    48823000: Salmonella Carno
+    32624003: Salmonella Carrau
+    58006000: Salmonella Carswell
+    75329000: Salmonella Casablanca
+    39185004: Salmonella Casamance
+    114677001: Salmonella Catalunia
+    46292001: Salmonella Catanzaro
+    80841005: Salmonella Cayar
+    114554009: Salmonella Bsilla
+    36807005: Salmonella Canton
+    77961006: Salmonella Chagoua
+    83013006: Salmonella Chailey
+    63877008: Salmonella Champaign
+    748001: Salmonella Chandans
+    9818000: Salmonella Charity
+    57024000: Salmonella Charlottenburg
+    114596008: Salmonella Cheltenham
+    5461002: Salmonella Chester
+    64975005: Salmonella Chicago
+    76027002: Salmonella Chichiri
+    397502001: Salmonella enterica subsp. Arizonae
+    79910006: Salmonella Caen
+    51210001: Salmonella Banalia
+    22307009: Salmonella Budapest
+    22729005: Salmonella Bukavu
+    42173006: Salmonella Bukuru
+    21164005: Salmonella Bulgaria
+    37971001: Salmonella Bullbay
+    21081003: Salmonella Burgas
+    114770009: Salmonella Burundi
+    67282009: Salmonella Bury
+    31602000: Salmonella Businga
+    75196009: Salmonella enterica subspecies enterica serovar Butantan
+    114269009: Salmonella enterica subspecies enterica serovar Butantan var O:15+
+    114400009: Salmonella Cardoner
+    52981000: Salmonella Camberwell
+    22367006: Salmonella Chingola
+    28206007: Salmonella Cannstatt
+    75347006: Salmonella Cannonhill
+    114685005: Salmonella Cannobio
+    114750003: Salmonella Canary
+    45866006: Salmonella Butare
+    57428009: Salmonella Campinense
+    89839003: Salmonella Buzu
+    46189007: Salmonella Camberene
+    7031002: Salmonella California
+    65700004: Salmonella Calabar
+    69847009: Salmonella Cairns
+    67775006: Salmonella Cairina
+    90538009: Salmonella Caracas
+    581003: Salmonella Canada
+    15578008: Salmonella Dahlem
+    114512006: Salmonella Chile
+    69040005: Salmonella Cremieu
+    35203007: Salmonella Croft
+    12767007: Salmonella Crossness
+    55932005: Salmonella Cubana
+    21207005: Salmonella Cuckmere
+    11579007: Salmonella Cullingworth
+    114728004: Salmonella Cumberland
+    33172008: Salmonella Curacao
+    21436008: Salmonella Cyprus
+    64354008: Salmonella Czernyring
+    302653000: Salmonella Daarle
+    86511007: Salmonella Cotia
+    116053006: Salmonella Damman
+    114648002: Salmonella Delmenhorst
+    114604007: Salmonella Deckstein
+    55580001: Salmonella Daytona
+    114558007: Salmonella Daula
+    66863002: Salmonella Dabou
+    50772008: Salmonella Dan
+    54227005: Salmonella Dadzie
+    50273002: Salmonella Dallgow
+    10457006: Salmonella Dakota
+    23665004: Salmonella Dakar
+    114425000: Salmonella Dahra
+    9852002: Salmonella Dahomey
+    49452001: Salmonella Cotham
+    79238006: Salmonella Dapango
+    114407007: Salmonella Brunflo
+    89885000: Salmonella Chiredzi
+    30864008: Salmonella Chittagong
+    80232006: Salmonella Choleraesuis
+    416057009: Salmonella Choleraesuis var. Decatur
+    370577001: Salmonella Choleraesuis var. Kunzendorf
+    71357001: Salmonella Chomedey
+    30665007: Salmonella Christiansborg
+    47569006: Salmonella Clackamas
+    31564006: Salmonella Claibornei
+    10851004: Salmonella Clerkenwell
+    55975004: Salmonella Cleveland
+    88649009: Salmonella Colombo
+    45548005: Salmonella Corvallis
+    112302001: Salmonella Coquilhatville
+    34520002: Salmonella Coogee
+    114334009: Salmonella Connecticut
+    78780001: Salmonella Colorado
+    112298009: Salmonella Cochin
+    3835006: Salmonella Colobane
+    59551003: Salmonella Colindale
+    4311001: Salmonella Coleypark
+    16109000: Salmonella Coeln
+    112297004: Salmonella Cocody
+    67643004: Salmonella Chincol
+    80014004: Salmonella Concord
+    80177000: Salmonella Bignona
+    17019004: Salmonella Blijdorp
+    47420006: Salmonella Bere
+    57506006: Salmonella Bergedorf
+    14368004: Salmonella Bergen
+    114938002: Salmonella Bergues
+    20031000: Salmonella Berkeley
+    81684001: Salmonella Berlin
+    40697005: Salmonella Berta
+    31044005: Salmonella Bessi
+    116018004: Salmonella Bethune
+    35197009: Salmonella Biafra
+    29192003: Salmonella Benin
+    56040008: Salmonella Bietri
+    47143006: Salmonella Benguella
+    12334006: Salmonella Bijlmer
+    65463001: Salmonella Bilu
+    114874005: Salmonella Binche
+    78367001: Salmonella Bingerville
+    114882005: Salmonella Buckeye
+    33108006: Salmonella Birkenhead
+    84156006: Salmonella Dembe
+    2932003: Salmonella Bispebjerg
+    82647001: Salmonella Blegdam
+    114300008: Salmonella Bida
+    10874000: Salmonella Bassadji
+    12470005: Salmonella Bandia
+    75380004: Salmonella Bangkok
+    114572003: Salmonella Bangui
+    6328001: Salmonella Banjul
+    84346001: Salmonella Bardo
+    8044005: Salmonella Bareilly
+    69775004: Salmonella Bargny
+    53903009: Salmonella Barmbek
+    87933008: Salmonella Barranquilla
+    114958001: Salmonella Barry
+    114556006: Salmonella Benue
+    25000009: Salmonella Bassa
+    67874000: Salmonella Birmingham
+    114963002: Salmonella Batonrouge
+    33827003: Salmonella Battle
+    77511007: Salmonella Bazenheid
+    112295007: Salmonella Be
+    25535004: Salmonella Beaudesert
+    26003002: Salmonella Bedford
+    72072008: Salmonella Belem
+    83230004: Salmonella Belfast
+    20950003: Salmonella Bellevue
+    112299001: Salmonella Benfica
+    57389000: Salmonella Basingstoke
+    35225001: Salmonella Braenderup
+    5957001: Salmonella Binningen
+    82364007: Salmonella Bredeney
+    114559004: Salmonella Breda
+    34153004: Salmonella Brazzaville
+    47579008: Salmonella Brazos
+    49666004: Salmonella Brazil
+    12924006: Salmonella Breukelen
+    35529008: Salmonella Brancaster
+    66544006: Salmonella Brevik
+    75104004: Salmonella Bradford
+    21865009: Salmonella Bracknell
+    81938008: Salmonella Bovismorbificans
+    87089002: Salmonella Bousso
+    10353006: Salmonella Bournemouth
+    16888008: Salmonella Brandenburg
+    6432008: Salmonella Brive
+    35972009: Salmonella Brunei
+    21786003: Salmonella Bruck
+    60230009: Salmonella Broughton
+    302718004: Salmonella Brooklyn
+    9179000: Salmonella Bronx
+    13491009: Salmonella Brefet
+    114808007: Salmonella Broc
+    20442000: Salmonella Borreze
+    64456006: Salmonella Bristol
+    88121001: Salmonella Brisbane
+    114319003: Salmonella Brindisi
+    89716000: Salmonella Brikama
+    1804009: Salmonella Brijbhumi
+    46180006: Salmonella Brezany
+    81978001: Salmonella Bron
+    80508000: Salmonella Boecker
+    114836002: Salmonella Bolama
+    28141000: Salmonella Bolombo
+    73541005: Salmonella Bochum
+    18271002: Salmonella Bobo
+    45958003: Salmonella Blukwa
+    116057007: Salmonella Bloomsbury
+    302721002: Salmonella Bouake
+    53684004: Salmonella Blockley
+    114798007: Salmonella Borromea
+    13511005: Salmonella Bodjonegoro
+    20537005: Salmonella Bokanjac
+    114782000: Salmonella Bofflens
+    81340008: Salmonella Bolton
+    18913004: Salmonella Bonames
+    51196000: Salmonella Bonariensis
+    55290005: Salmonella Bonn
+    38676005: Salmonella Bootle
+    35504002: Salmonella Borbeck
+    114941006: Salmonella Bordeaux
+    86879006: Salmonella Blitta

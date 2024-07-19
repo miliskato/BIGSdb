@@ -13,6 +13,12 @@
     msg: "'branch' argument required in -e when running playbook"
   when: branch is not defined
 
+- name: remove get_nominative_from_ODS cronjob so that it does not interfere during deployment
+  ansible.builtin.file:
+    path: /etc/cron.d/get_nominative_from_ODS
+    state: absent
+  become: yes
+
 - name: Install system packages
   apt:
     name: "{{ packages }}"
@@ -130,4 +136,27 @@
   supervisorctl:
     name: nrcint
     state: restarted
+
+- name: replace the username and password in the get_nominative_from_ODS script
+  lineinfile:
+    path: "{{ bioit_bigs_home }}//bioit_nrc_integration/python/get_nominative_from_ODS.py"
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+  loop: "{{ list_variables|flatten(levels=1) }}"
+  vars:
+    list_variables:
+      - { regexp: "username = 'to_be_replaced_by_ansible'", line: "username = '{{ vars['nrc_integration_ODS_in_username_'+ dtap] }}'" }
+      - { regexp: "password = 'to_be_replaced_by_ansible'", line: "password = '{{ vars['nrc_integration_ODS_in_password_'+ dtap] }}'" }
+  become: yes
+
+- name: add cronjob for nominative data parser from ODS
+  cron:
+    name: "get_nominative_from_ODS"
+    minute: '*/10' # every 10 minutes
+    hour: '*'
+    weekday: '*'
+    job: "/usr/bin/flock -n /tmp/get_nominative_from_ODS.lockfile {{ nrcint_venv }}/bin/python3.10 {{ bioit_bigs_home }}//bioit_nrc_integration/python/get_nominative_from_ODS.py"
+    user: 'bigsdb'
+    cron_file: get_nominative_from_ODS
+  become: yes
 ...
