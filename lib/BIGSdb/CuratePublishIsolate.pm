@@ -1,6 +1,6 @@
 #Written by Keith Jolley
-#Copyright (c) 2017-2020, University of Oxford
-#E-mail: keith.jolley@zoo.ox.ac.uk
+#Copyright (c) 2017-2023, University of Oxford
+#E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
 #
@@ -83,7 +83,18 @@ sub _publish {
 	my $isolate_accessible = $self->{'datastore'}
 	  ->run_query( "SELECT EXISTS(SELECT * FROM $self->{'system'}->{'view'} WHERE id=?)", $isolate_id );
 	if ( $self->_is_owner($isolate_id) || ( $self->can_modify_table('isolates') && $isolate_accessible ) ) {
-		eval { $self->{'db'}->do( 'DELETE FROM private_isolates WHERE isolate_id=?', undef, $isolate_id ); };
+		my $embargo =
+		  $self->{'datastore'}->run_query( 'SELECT embargo FROM private_isolates WHERE isolate_id=?', $isolate_id );
+		my $curator_id = $self->get_curator_id;
+		eval {
+			$self->{'db'}->do( 'DELETE FROM private_isolates WHERE isolate_id=?', undef, $isolate_id );
+			if ( defined $embargo ) {
+				$self->{'db'}->do(
+					'INSERT INTO embargo_history (isolate_id,timestamp,action,embargo,curator) VALUES (?,?,?,?,?)',
+					undef, $isolate_id, 'now', 'Record made public', undef, $curator_id
+				);
+			}
+		};
 		if ($@) {
 			$logger->error($@);
 			$self->{'db'}->rollback;
@@ -144,6 +155,22 @@ sub _print_interface {
 		say $q->end_form;
 	}
 	say q(</div>);
+	return;
+}
+
+sub initiate {
+	my ($self) = @_;
+	$self->{$_} = 1 foreach qw(jQuery jQuery.columnizer);
+	my $field_attributes = $self->{'xmlHandler'}->get_all_field_attributes;
+	foreach my $field ( keys %$field_attributes ) {
+		if ( $field_attributes->{$field}->{'type'} eq 'geography_point'
+			|| ( $field_attributes->{$field}->{'geography_point_lookup'} // q() ) eq 'yes' )
+		{
+			$self->{'ol'} = 1;
+			last;
+		}
+	}
+	$self->set_level1_breadcrumbs;
 	return;
 }
 

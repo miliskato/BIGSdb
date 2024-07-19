@@ -1,7 +1,7 @@
 #Microreact.pm - Phylogenetic tree/data visualization plugin for BIGSdb
 #Written by Keith Jolley
-#Copyright (c) 2017-2022, University of Oxford
-#E-mail: keith.jolley@zoo.ox.ac.uk
+#Copyright (c) 2017-2024, University of Oxford
+#E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
 #
@@ -56,7 +56,7 @@ sub get_attributes {
 			{
 				name        => 'Keith Jolley',
 				affiliation => 'University of Oxford, UK',
-				email       => 'keith.jolley@zoo.ox.ac.uk',
+				email       => 'keith.jolley@biology.ox.ac.uk',
 			}
 		],
 		description      => 'Open data visualization and sharing for genomic epidemiology',
@@ -68,7 +68,7 @@ sub get_attributes {
 		buttontext => 'Microreact',
 		menutext   => 'Microreact',
 		module     => 'Microreact',
-		version    => '1.3.0',
+		version    => '1.4.0',
 		dbtype     => 'isolates',
 		section    => 'third_party,postquery',
 		input      => 'query',
@@ -96,12 +96,12 @@ sub run_job {
 	my $loci         = $self->{'jobManager'}->get_job_loci($job_id);
 
 	( $ids, my $missing ) = $self->filter_missing_isolates($ids);
-	if ( @$ids - @$missing < 2 ) {
+	if ( @$ids - @$missing < 3 ) {
 		$self->{'jobManager'}->update_job_status(
 			$job_id,
 			{
 				message_html =>
-				  q(<p class="statusbad">There are fewer than 2 valid ids in the list - microreact cannot be launched.</p>)
+				  q(<p class="statusbad">There are fewer than 3 valid ids in the list - microreact cannot be launched.</p>)
 			}
 		);
 		return;
@@ -474,5 +474,22 @@ sub print_info_panel {
 	  . q(<i>Microb Genom</i> <b>2:</b>e000093</a>.</p>);
 	say q(</div><div style="clear:both"></div></div>);
 	return;
+}
+
+sub get_plugin_javascript {
+	my ($self) = @_;
+	my $buffer = << "END";
+
+\$(function () {
+	\$('#locus,#recommended_schemes,#include_fields').multiselect({
+ 		classes: 'filter',
+ 		menuHeight: 250,
+ 		menuWidth: 400,
+ 		selectedList: 8
+  	}).multiselectfilter();
+});
+
+END
+	return $buffer;
 }
 1;

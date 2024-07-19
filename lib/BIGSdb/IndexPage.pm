@@ -1,6 +1,6 @@
 #Written by Keith Jolley
-#Copyright (c) 2010-2022, University of Oxford
-#E-mail: keith.jolley@zoo.ox.ac.uk
+#Copyright (c) 2010-2024, University of Oxford
+#E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
 #
@@ -43,7 +43,7 @@ sub initiate {
 		push @{ $self->{'breadcrumbs'} },
 		  {
 			label => $self->{'system'}->{'webroot_label'} // 'Organism',
-			href => $self->{'system'}->{'webroot'}
+			href  => $self->{'system'}->{'webroot'}
 		  };
 	}
 	push @{ $self->{'breadcrumbs'} },
@@ -52,10 +52,10 @@ sub initiate {
 }
 
 sub print_content {
-	my ($self)      = @_;
-	my $script_name = $self->{'system'}->{'script_name'};
-	my $q           = $self->{'cgi'};
-	my $desc = $self->get_db_description( { formatted => 1 } );
+	my ($self)                = @_;
+	my $script_name           = $self->{'system'}->{'script_name'};
+	my $q                     = $self->{'cgi'};
+	my $desc                  = $self->get_db_description( { formatted => 1 } );
 	my $max_width             = $self->{'config'}->{'page_max_width'} // PAGE_MAX_WIDTH;
 	my $index_panel_max_width = $max_width - 300;
 	my $title_max_width       = $max_width - 15;
@@ -65,7 +65,9 @@ sub print_content {
 	say qq(<div id="title_container" style="max-width:${title_max_width}px">);
 	say qq(<h1 style="padding-top:0.3em">$desc database</h1>);
 	$self->print_general_announcement;
-	$self->print_banner;
+	my $additional_message = $self->get_date_restriction_message;
+	$additional_message .= $self->get_embargo_message;
+	$self->print_banner( { additional_message => $additional_message } );
 
 	if ( ( $self->{'system'}->{'sets'} // '' ) eq 'yes' ) {
 		$self->print_set_section;
@@ -86,17 +88,17 @@ sub print_content {
 
 sub print_menu {
 	my ( $self, $options ) = @_;
-	$self->_print_login_menu_item;
-	$self->_print_query_menu_item if $options->{'dashboard'};
+	$self->print_login_menu_item;
+	$self->print_query_menu_item;
 	$self->_print_submissions_menu_item;
 	$self->_print_alerts_menu_item;
 	$self->_print_private_data_menu_item;
-	$self->_print_projects_menu_item;
+	$self->print_projects_menu_item;
 	$self->_print_downloads_menu_item;
 	$self->_print_plugin_menu_items;
-	$self->_print_options_menu_item;
-	$self->_print_info_menu_item;
-	$self->_print_related_database_menu_item;
+	$self->print_options_menu_item;
+	$self->print_info_menu_item;
+	$self->print_related_database_menu_item;
 	$self->_print_jobs_menu_item;
 	return;
 }
@@ -104,9 +106,9 @@ sub print_menu {
 sub print_panel_buttons {
 	my ($self) = @_;
 	return if !$self->{'config'}->{'enable_dashboard'} && ( $self->{'system'}->{'enable_dashboard'} // q() ) ne 'yes';
-	return if ($self->{'system'}->{'dbtype'} // q()) ne 'isolates';
+	return if ( $self->{'system'}->{'dbtype'} // q() ) ne 'isolates';
 	say q(<span class="icon_button"><a class="trigger_button" id="dashboard_toggle">)
-	  . q(<span class="fas fa-lg fa-th"></span><div class="icon_label">Dashboard</div></a></span>);
+	  . q(<span class="fas fa-lg fa-th"></span><span class="icon_label">Dashboard</span></a></span>);
 	return;
 }
 
@@ -133,35 +135,47 @@ sub _print_plugin_menu_items {
 	return;
 }
 
-sub _print_query_menu_item {
-	my ($self) = @_;
+sub print_query_menu_item {
+	my ( $self, $options ) = @_;
 	return if $self->{'system'}->{'dbtype'} ne 'isolates';
-	my $cache_string = $self->get_cache_string;
-	my $url_root     = "$self->{'system'}->{'script_name'}?db=$self->{'instance'}$cache_string&amp;";
-	my $links        = [
+	my $cache_string   = $self->get_cache_string;
+	my $url_root       = "$self->{'system'}->{'script_name'}?db=$self->{'instance'}$cache_string&amp;";
+	my $project_clause = $options->{'project_id'} ? "&amp;project_list=$options->{'project_id'}" : q();
+	my $links          = [
 		{
-			href => "${url_root}page=query",
+			href => "${url_root}page=query$project_clause",
 			text => 'Search database'
 		}
 	];
+	my $interfaces =
+	  $self->{'datastore'}->run_query( 'SELECT id,name,display_order FROM query_interfaces ORDER BY display_order,name',
+		undef, { fetch => 'all_arrayref', slice => {} } );
+	foreach my $interface (@$interfaces) {
+		push @$links,
+		  {
+			href => "${url_root}page=query&amp;interface=$interface->{'id'}$project_clause",
+			text => $interface->{'name'}
+		  };
+	}
 	my $set_id = $self->get_set_id;
-	my $loci = $self->{'datastore'}->get_loci( { set_id => $set_id, do_not_order => 1 } );
+	my $loci   = $self->{'datastore'}->get_loci( { set_id => $set_id, do_not_order => 1 } );
 	if (@$loci) {
 		push @$links,
 		  {
-			href => "${url_root}page=profiles",
+			href => "${url_root}page=profiles$project_clause",
 			text => 'Search by combinations of loci'
 		  };
 	}
-	if ( $self->{'username'} ) {
+	if ( $self->{'username'} && !$options->{'project_id'} ) {
 		my $user_info = $self->{'datastore'}->get_user_info_from_username( $self->{'username'} );
 		my $bookmarks = $self->{'datastore'}
 		  ->run_query( 'SELECT EXISTS(SELECT * FROM bookmarks WHERE user_id=?)', $user_info->{'id'} );
 		if ($bookmarks) {
-			push @$links, {
+			push @$links,
+			  {
 				href => "${url_root}page=bookmarks",
 				text => 'Bookmarked queries'
-			};
+			  };
 		}
 	}
 	$self->_print_menu_item(
@@ -192,20 +206,24 @@ sub _print_downloads_menu_item {
 			}
 		];
 	}
-	my $set_id = $self->get_set_id;
-	my $scheme_data = $self->{'datastore'}->get_scheme_list( { with_pk => 1, set_id => $set_id } );
-	if ( @$scheme_data == 1 ) {
-		push @$links,
-		  {
-			href => "${url_root}page=downloadProfiles&amp;scheme_id=$scheme_data->[0]->{'id'}",
-			text => "$scheme_data->[0]->{'name'} profiles"
-		  };
-	} elsif ( @$scheme_data > 1 ) {
-		push @$links,
-		  {
-			href => "${url_root}page=schemes",
-			text => 'Allelic profiles'
-		  };
+	if ( !( ( $self->{'system'}->{'disable_profile_downloads'} // q() ) eq 'yes' )
+		|| $self->is_admin )
+	{
+		my $set_id      = $self->get_set_id;
+		my $scheme_data = $self->{'datastore'}->get_scheme_list( { with_pk => 1, set_id => $set_id } );
+		if ( @$scheme_data == 1 ) {
+			push @$links,
+			  {
+				href => "${url_root}page=downloadProfiles&amp;scheme_id=$scheme_data->[0]->{'id'}",
+				text => "$scheme_data->[0]->{'name'} profiles"
+			  };
+		} elsif ( @$scheme_data > 1 ) {
+			push @$links,
+			  {
+				href => "${url_root}page=schemes",
+				text => 'Allelic profiles'
+			  };
+		}
 	}
 	return if !@$links;
 	$self->_print_menu_item(
@@ -218,7 +236,7 @@ sub _print_downloads_menu_item {
 	return;
 }
 
-sub _print_login_menu_item {
+sub print_login_menu_item {
 	my ($self) = @_;
 	my $login_requirement = $self->{'datastore'}->get_login_requirement;
 	return if $login_requirement == NOT_ALLOWED && !$self->{'needs_authentication'};
@@ -237,22 +255,26 @@ sub _print_login_menu_item {
 		);
 	}
 	if ( ( $self->{'system'}->{'authentication'} // q() ) eq 'builtin' && $self->{'username'} ) {
+		my $links = [];
+		if ( defined $user_info->{'user_db'} ) {
+			push @$links,
+			  {
+				href => "$self->{'system'}->{'script_name'}",
+				text => 'Modify profile'
+			  };
+		}
+		push @$links,
+		  {
+			href => "$self->{'system'}->{'script_name'}?${instance_clause}page=changePassword",
+			text => 'Change password'
+		  };
 		$self->_print_menu_item(
 			{
 				icon  => 'fas fa-sign-out-alt',
 				label => 'LOG OUT',
 				href  => "$self->{'system'}->{'script_name'}?${instance_clause}page=logout",
 				class => 'menu_item_login',
-				links => [
-					{
-						href => "$self->{'system'}->{'script_name'}",
-						text => 'Modify profile'
-					},
-					{
-						href => "$self->{'system'}->{'script_name'}?${instance_clause}page=changePassword",
-						text => 'Change password'
-					}
-				]
+				links => $links
 			}
 		);
 	}
@@ -270,7 +292,7 @@ sub _print_plugin_menu_item {
 	  $self->{'pluginManager'}->get_appropriate_plugin_names( $args->{'sections'}, $self->{'system'}->{'dbtype'},
 		undef, { set_id => $set_id, order => 'menutext' } );
 	return if !@$plugins;
-	my $links = [];
+	my $links       = [];
 	my $scheme_data = $self->get_scheme_data( { with_pk => 1 } );
 
 	foreach my $plugin (@$plugins) {
@@ -353,6 +375,7 @@ sub _print_jobs_menu_item {
 	return if !@$jobs;
 	my $job_count   = @$jobs;
 	my $number_icon = q();
+
 	if ($job_count) {
 		$job_count = '99+' if $job_count > 99;
 		$number_icon .= q(<span class="fa-stack" style="font-size:0.7em;margin:-0.5em 0 -0.2em 0.5em">);
@@ -479,8 +502,8 @@ sub _print_main_section {
 		my $scheme_data = $self->get_scheme_data( { with_pk => 1 } );
 
 		if (@$scheme_data) {
-			my $scheme_arg = @$scheme_data == 1 ? "&amp;scheme_id=$scheme_data->[0]->{'id'}" : '';
-			my $scheme_desc = @$scheme_data == 1 ? $scheme_data->[0]->{'name'} : '';
+			my $scheme_arg  = @$scheme_data == 1 ? "&amp;scheme_id=$scheme_data->[0]->{'id'}" : '';
+			my $scheme_desc = @$scheme_data == 1 ? $scheme_data->[0]->{'name'}                : '';
 			say q(<div class="flex_container index_panel_sequences">);
 			say q(<h2 style="text-align:center">Search for allelic profiles</h2>);
 			$self->_print_large_button_link(
@@ -522,14 +545,14 @@ sub _print_large_button_link {
 
 sub _get_label {
 	my ( $self, $number ) = @_;
-	return $number if $number < 100;
+	return $number                                          if $number < 100;
 	return qq(<span style="font-size:0.8em">$number</span>) if $number < 1000;
 	my $label = int( $number / 1000 );
 	$label = 9 if $label > 9;
 	return qq(<span style="font-size:0.8em">${label}K+</span>);
 }
 
-sub _print_options_menu_item {
+sub print_options_menu_item {
 	my ($self)       = @_;
 	my $cache_string = $self->get_cache_string;
 	my $links        = [
@@ -613,8 +636,8 @@ sub _print_submissions_menu_item {
 		$number_icon .=
 		  q(<span class="fa-stack" style="font-size:0.7em;letter-spacing:normal;margin:-0.5em 0 -0.2em 0.5em">);
 		$number_icon .= q(<span class="fas fa-circle fa-stack-2x submission_indicator"></span>);
-		$number_icon .= q(<span class="fa fa-stack-1x fa-stack-text" style="font-size:1.2em">)
-		  . qq($pending_submissions</span>);
+		$number_icon .=
+		  q(<span class="fa fa-stack-1x fa-stack-text" style="font-size:1.2em">) . qq($pending_submissions</span>);
 		$number_icon .= q(</span>);
 	}
 	$self->_print_menu_item(
@@ -679,7 +702,7 @@ sub print_general_announcement {
 	return;
 }
 
-sub _print_projects_menu_item {
+sub print_projects_menu_item {
 	my ($self) = @_;
 	return if $self->{'system'}->{'dbtype'} ne 'isolates';
 	my $cache_string = $self->get_cache_string;
@@ -728,7 +751,6 @@ sub _print_private_data_menu_item {
 	return if !$self->{'username'};
 	my $user_info = $self->{'datastore'}->get_user_info_from_username( $self->{'username'} );
 	return if !$user_info;
-	return if $user_info->{'status'} eq 'user' || !$self->can_modify_table('isolates');
 	my $limit                         = $self->{'datastore'}->get_user_private_isolate_limit( $user_info->{'id'} );
 	my $is_member_of_no_quota_project = $self->{'datastore'}->run_query(
 		'SELECT EXISTS(SELECT * FROM merged_project_users m JOIN projects p '
@@ -761,7 +783,7 @@ sub _print_private_data_menu_item {
 	return;
 }
 
-sub _print_info_menu_item {
+sub print_info_menu_item {
 	my ($self)       = @_;
 	my $cache_string = $self->get_cache_string;
 	my $links        = [
@@ -795,7 +817,7 @@ sub _print_info_menu_item {
 	return;
 }
 
-sub _print_related_database_menu_item {
+sub print_related_database_menu_item {
 	my ($self) = @_;
 	my $links = $self->get_related_databases;
 	return if !@$links;
@@ -830,16 +852,23 @@ sub _get_pending_submission_count {
 		  ->run_query( 'SELECT COUNT(*) FROM submissions WHERE (type,status)=(?,?)', [ 'isolates', 'pending' ] );
 		if ( $self->can_modify_table('sequence_bin') ) {
 			$count +=
-			  $self->{'datastore'}
-			  ->run_query( 'SELECT COUNT(*) FROM submissions WHERE (type,status)=(?,?)', [ 'genomes', 'pending' ] );
+			  $self->{'datastore'}->run_query(
+				'SELECT COUNT(*) FROM submissions WHERE (type,status)=(?,?) AND (dataset IS NULL OR dataset = ?)',
+				[ 'genomes', 'pending', $self->{'instance'} ] );
+			$count +=
+			  $self->{'datastore'}->run_query(
+				'SELECT COUNT(*) FROM submissions WHERE (type,status)=(?,?) AND (dataset IS NULL OR dataset = ?)',
+				[ 'assemblies', 'pending', $self->{'instance'} ] );
 		}
 		return $count;
 	} else {
-		my $count = 0;
-		my $allele_submissions =
-		  $self->{'datastore'}->run_query(
-			'SELECT a.locus FROM submissions s JOIN allele_submissions a ON s.id=a.submission_id WHERE s.status=?',
-			'pending', { fetch => 'col_arrayref' } );
+		my $count              = 0;
+		my $allele_submissions = $self->{'datastore'}->run_query(
+			'SELECT a.locus FROM submissions s JOIN allele_submissions a ON s.id=a.submission_id WHERE s.status=? '
+			  . 'AND (dataset IS NULL OR dataset = ?)',
+			[ 'pending', $self->{'instance'} ],
+			{ fetch => 'col_arrayref' }
+		);
 		foreach my $locus (@$allele_submissions) {
 			if (   $self->is_admin
 				|| $self->{'datastore'}->is_allowed_to_modify_locus_sequences( $locus, $user_info->{'id'} ) )
@@ -849,8 +878,8 @@ sub _get_pending_submission_count {
 		}
 		my $profile_submissions = $self->{'datastore'}->run_query(
 			'SELECT ps.scheme_id FROM submissions s JOIN profile_submissions ps '
-			  . 'ON s.id=ps.submission_id WHERE s.status=?',
-			'pending',
+			  . 'ON s.id=ps.submission_id WHERE s.status=? AND (dataset IS NULL OR dataset = ?)',
+			[ 'pending', $self->{'instance'} ],
 			{ fetch => 'col_arrayref' }
 		);
 		foreach my $scheme_id (@$profile_submissions) {

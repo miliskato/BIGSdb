@@ -1,7 +1,7 @@
 #Contigs.pm - Contig export and analysis plugin for BIGSdb
 #Written by Keith Jolley
-#Copyright (c) 2013-2021, University of Oxford
-#E-mail: keith.jolley@zoo.ox.ac.uk
+#Copyright (c) 2013-2024, University of Oxford
+#E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
 #
@@ -39,7 +39,7 @@ sub get_attributes {
 			{
 				name        => 'Keith Jolley',
 				affiliation => 'University of Oxford, UK',
-				email       => 'keith.jolley@zoo.ox.ac.uk',
+				email       => 'keith.jolley@biology.ox.ac.uk',
 			}
 		],
 		description      => 'Analyse and export contigs selected from query results',
@@ -47,21 +47,22 @@ sub get_attributes {
 		  . 'downloaded in FASTA format. They can also be downloaded in batch mode as a TAR file. The contigs included '
 		  . 'in the download can be filtered based on the percentage of the sequence that has been tagged with a '
 		  . 'locus so that poorly annotated regions can be analysed specifically.',
-		category     => 'Export',
-		buttontext   => 'Contigs',
-		menutext     => 'Contigs',
-		module       => 'Contigs',
-		url          => "$self->{'config'}->{'doclink'}/data_export/contig_export.html",
-		version      => '1.1.12',
-		dbtype       => 'isolates',
-		section      => 'export,postquery',
-		input        => 'query',
-		help         => 'tooltips',
-		order        => 20,
-		system_flag  => 'ContigExport',
-		tar_filename => 'contigs.tar',
-		requires     => 'seqbin',
-		image        => '/images/plugins/Contigs/screenshot.png'
+		category           => 'Export',
+		buttontext         => 'Contigs',
+		menutext           => 'Contigs',
+		module             => 'Contigs',
+		url                => "$self->{'config'}->{'doclink'}/data_export/contig_export.html",
+		version            => '1.2.0',
+		dbtype             => 'isolates',
+		section            => 'export,postquery',
+		input              => 'query',
+		help               => 'tooltips',
+		order              => 20,
+		system_flag        => 'ContigExport',
+		enabled_by_default => 1,
+		tar_filename       => 'contigs.tar',
+		requires           => 'seqbin',
+		image              => '/images/plugins/Contigs/screenshot.png'
 	);
 	return \%att;
 }
@@ -90,7 +91,7 @@ sub _get_contigs {
 		say q(Invalid percentage tagged threshold value passed.) if $single;
 		return \$buffer;
 	}
-	my $data = $self->_calculate( $isolate_id, { pc_untagged => $pc_untagged, get_contigs => 1 } );
+	my $data       = $self->_calculate( $isolate_id, { pc_untagged => $pc_untagged, get_contigs => 1 } );
 	my $export_seq = $match ? $data->{'match_seq'} : $data->{'non_match_seq'};
 	if ( !@$export_seq ) {
 		say q(No sequences matching selected criteria.) if $single;
@@ -116,6 +117,10 @@ sub run {
 		return;
 	}
 	say q(<h1>Contig analysis and export</h1>);
+	if ( ( $self->{'system'}->{'ContigExport'} // q() ) eq 'no' ) {
+		$self->print_bad_status( { message => q(Contig exports are disabled.) } );
+		return;
+	}
 	return if $self->has_set_changed;
 	if ( $q->param('submit') ) {
 		my $ids = $self->filter_list_to_ids( [ $q->multi_param('isolate_id') ] );
@@ -176,10 +181,10 @@ sub _run_analysis {
 	my $title = qq(Contigs with >=$pc_untagged\% sequence length untagged);
 	say qq(<h2>$title</h2><table class="tablesorter" id="sortTable"><thead>)
 	  . qq(<tr><th rowspan="2">id</th><th rowspan="2">$self->{'system'}->{'labelfield'}</th>)
-	  . q(<th rowspan="2">contigs</th><th colspan="2" class="{sorter: false}">matching contigs</th>)
-	  . qq(<th colspan="2" class="{sorter: false}">non-matching contigs</th></tr>\n<tr><th>count</th>)
-	  . q(<th class="{sorter: false}">download</th><th>count</th>)
-	  . q(<th class="{sorter: false}">download</th></tr></thead><tbody>);
+	  . q(<th rowspan="2">contigs</th><th colspan="2" class="sorter-false">matching contigs</th>)
+	  . qq(<th colspan="2" class="sorter-false">non-matching contigs</th></tr>\n<tr><th>count</th>)
+	  . q(<th class="sorter-false">download</th><th>count</th>)
+	  . q(<th class="sorter-false">download</th></tr></thead><tbody>);
 	my $filebuffer  = qq(id\t$self->{'system'}->{'labelfield'}\tcontigs\tmatching contigs\tnon-matching contigs\n);
 	my $label_field = $self->{'system'}->{'labelfield'};
 	my $isolate_sql = $self->{'db'}->prepare("SELECT $label_field FROM $self->{'system'}->{'view'} WHERE id=?");
@@ -215,7 +220,7 @@ sub _run_analysis {
 		$td = $td == 1 ? 2 : 1;
 
 		if ( $ENV{'MOD_PERL'} ) {
-			$self->{'mod_perl_request'}->rflush;
+			eval { $self->{'mod_perl_request'}->rflush };
 			return if $self->{'mod_perl_request'}->connection->aborted;
 		}
 	}
@@ -247,10 +252,10 @@ sub _calculate {
 	my ( $self, $isolate_id, $options ) = @_;
 	my $q = $self->{'cgi'};
 	my $qry =
-	    'SELECT id,GREATEST(r.length,length(s.sequence)) AS seq_length,original_designation FROM '
+		'SELECT id,GREATEST(r.length,length(s.sequence)) AS seq_length,original_designation FROM '
 	  . 'sequence_bin s LEFT JOIN remote_contigs r ON s.id=r.seqbin_id WHERE isolate_id=?';
 	my @criteria = ($isolate_id);
-	my $method = $q->param('seq_method_list') // $q->param('seq_method');
+	my $method   = $q->param('seq_method_list') // $q->param('seq_method');
 	if ($method) {
 		if ( !any { $_ eq $method } SEQ_METHODS ) {
 			$logger->error("Invalid method $method");
@@ -285,7 +290,7 @@ sub _calculate {
 			$match = 0;
 		}
 		if ( $options->{'get_contigs'} ) {
-			my $header = ( $q->param('header') // 1 ) == 1 ? ( $orig_designation || $seqbin_id ) : $seqbin_id;
+			my $header  = ( $q->param('header') // 1 ) == 1 ? ( $orig_designation || $seqbin_id ) : $seqbin_id;
 			my $seq_ref = $self->{'contigManager'}->get_contig($seqbin_id);
 			if ($match) {
 				push @match_seq, { seqbin_id => $header, sequence => $$seq_ref };
@@ -372,8 +377,10 @@ sub _batchDownload {
 		$tar->add_data( $error_file, 'No record list passed. Please repeat query.' );
 		if ( $ENV{'MOD_PERL'} ) {
 			my $tf = $tar->write;
-			$self->{'mod_perl_request'}->print($tf);
-			$self->{'mod_perl_request'}->rflush;
+			eval {
+				$self->{'mod_perl_request'}->print($tf);
+				$self->{'mod_perl_request'}->rflush;
+			};
 		} else {
 			$tar->write( \*STDOUT );
 		}
@@ -393,7 +400,7 @@ sub _batchDownload {
 			my $isolate_name = $self->get_isolate_name_from_id($id);
 			$isolate_name =~ s/\W/_/gx;
 			my $contig_file = "${id}_$isolate_name.fas";
-			my $data = $self->_get_contigs( { isolate_id => $id, pc_untagged => 0, match => 1 } );
+			my $data        = $self->_get_contigs( { isolate_id => $id, pc_untagged => 0, match => 1 } );
 
 			#Modified from Archive::Tar::Streamed to allow mod_perl support.
 			my $tar = Archive::Tar->new;
@@ -402,8 +409,10 @@ sub _batchDownload {
 			#Write out tar file except EOF block so that we can add additional files.
 			my $tf = $tar->write;
 			if ( $ENV{'MOD_PERL'} ) {
-				$self->{'mod_perl_request'}->print( substr $tf, 0, length($tf) - ( BLOCK * 2 ) );
-				$self->{'mod_perl_request'}->rflush;
+				eval {
+					$self->{'mod_perl_request'}->print( substr $tf, 0, length($tf) - ( BLOCK * 2 ) );
+					$self->{'mod_perl_request'}->rflush;
+				};
 			} else {
 				syswrite STDOUT, $tf, length($tf) - ( BLOCK * 2 );
 			}
@@ -411,8 +420,10 @@ sub _batchDownload {
 
 		#Add EOF block
 		if ( $ENV{'MOD_PERL'} ) {
-			$self->{'mod_perl_request'}->print(TAR_END);
-			$self->{'mod_perl_request'}->rflush;
+			eval {
+				$self->{'mod_perl_request'}->print(TAR_END);
+				$self->{'mod_perl_request'}->rflush;
+			};
 		} else {
 			syswrite STDOUT, TAR_END;
 		}

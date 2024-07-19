@@ -1,7 +1,7 @@
 #Parser.pm
 #Written by Keith Jolley
 #Copyright (c) 2010-2021, University of Oxford
-#E-mail: keith.jolley@zoo.ox.ac.uk
+#E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
 #
@@ -53,6 +53,7 @@ sub get_field_list {
 		next
 		  if $options->{'multivalue_only'}
 		  && ( $self->{'attributes'}->{$field}->{'multiple'} // q() ) ne 'yes';
+		next if !$options->{'show_hidden'} && ($self->{'attributes'}->{$field}->{'hide'} // q()) eq 'yes';
 		push @fields, $field;
 	}
 	return \@fields;

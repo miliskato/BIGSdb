@@ -42,6 +42,17 @@ Version 1.33: Change of isolate database structure.
 Version 1.34: Change of seqdef and isolate database structures.
 Version 1.35: Change of isolate database structure.
 Version 1.36: Optional additional table added to the isolate database structure.
+Version 1.37: Change of seqdef and isolate database structures.
+Version 1.38: Change of seqdef and isolate database structures.
+Version 1.39: Change of isolate and preference database structures.
+Version 1.40: Change of isolate database structure.
+Version 1.41: Change of isolate database structure.
+Version 1.42: Change of seqdef and isolate database structures.
+Version 1.43: Change of seqdef, REST, and authentication database structures.
+Version 1.44: Change of seqdef and isolate database structures.
+Version 1.45: Change of seqdef and isolate database structures.
+Version 1.46: Change of isolate database structure.
+Version 1.47: Change of isolate database structure.
 
 Details can be found below.
 
@@ -554,3 +565,106 @@ does not need to be installed.
 
 To add this table please first install PostGIS and then run the 
 isolatedb_geocoding.sql script against any isolate databases requiring it.
+
+Version 1.37
+------------
+There are changes to the sequence definition database structure to support 
+profile fields with constrained allowed values. There is also a small change
+to the isolate database structure, adding a foreign key constraint to the
+sequence_flags table.
+
+Please run the isolatedb_v1.37.sql script against isolate databases and the
+seqdefdb_v1.37.sql script against sequence definition databases.
+
+Version 1.38
+------------
+There are changes to the sequence definition and isolate database structures
+to support limiting both submissions and curators to specific database 
+configurations. This allows databases with harmonised fields to contain 
+multiple datasets, each with their own configuration, submissions and curators.
+
+Please run the isolatedb_v1.38.sql script against isolate databases and the
+seqdefdb_v1.38.sql script against sequence definition databases.
+
+Version 1.39
+------------
+There is a change to an embedded function in the preference database needed to
+fix the automated default naming of new dashboards in the case of a dashboard
+with a lower number having been removed.
+
+There is also a new table added to the isolate database to support submission
+of assemblies for existing records.
+
+Please run the prefs_v1.39.sql script against the prefs database (bigsdb_prefs
+by default) and the isolatedb_v1.39.sql script against isolate databases.
+
+Version 1.40
+------------
+There is a new stored procedure in the isolate databases needed for scheme 
+field lookup during cache renewal.
+
+Please run the isolatedb_v1.40.sql script against isolate databases.
+
+Version 1.41
+------------
+There is an updated stored procedure in the isolate databases needed for 
+scheme field lookup during cache renewal.
+
+Please run the isolatedb_v1.41.sql script against isolate databases.
+
+Version 1.42
+------------
+There are changes to the sequence definition and isolate database structures
+to support schemes using locus presence rather than just allelic variation.
+Changes to the seqdef database also support mutation and SNP detection tools
+that can be used to annotate allelic variants. 
+
+Please run the isolatedb_v1.42.sql script against isolate databases and the
+seqdefdb_v1.42.sql script against sequence definition databases.
+
+Version 1.43
+------------
+There are changes to the sequence definition, REST, and authentication database
+structures. These are for:
+seqdef:   fixed the locus stats function needed for when schemes include locus
+          presence/absence in their definitions.
+rest_db:  improved logging to include client and usernames.
+auth_db:  new log table to record web access.
+
+Please run the seqdefdb_v1.43.sql script against sequence definition databases;
+the rest_v1.43.sql against bigsdb_rest and auth_v1.43.sql against bigsdb_auth.
+
+Version 1.44
+------------
+There are changes to the sequence definition and isolate database structures
+to modify database indexes and to remove support for the 'ignore' status for
+allele designations.
+
+Please run the isolatedb_v1.44.sql script against isolate databases and the
+seqdefdb_v1.44.sql script against sequence definition databases.
+
+Version 1.45
+------------
+There are changes to the sequence definition and isolate database structures
+to add a db_attributes table for future possible automated version updating.
+New tables have also been added to the isolate database to support defining
+alternative isolate query forms with specific fields pre-selected.
+
+Please run the isolatedb_v1.45.sql script against isolate databases and the
+seqdefdb_v1.45.sql script against sequence definition databases.
+
+Version 1.46
+------------
+There is a fix for missing primary and foreign keys in scheme status cache 
+tables and the query_interface_fields table respectively in the isolate 
+databases.
+
+Please run the isolatedb_v1.46.sql script against isolate databases.
+
+Version 1.47
+------------
+There is are new fields and a new table to support embargoing of isolate
+records. There is also an update to the method that counts the number of loci
+defined for a scheme so that it optionally will not count allele '0'.
+
+Please run the isolatedb_v1.47.sql script against isolate databases.

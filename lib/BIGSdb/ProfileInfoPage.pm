@@ -1,6 +1,6 @@
 #Written by Keith Jolley
-#Copyright (c) 2010-2022, University of Oxford
-#E-mail: keith.jolley@zoo.ox.ac.uk
+#Copyright (c) 2010-2023, University of Oxford
+#E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
 #
@@ -92,7 +92,12 @@ sub print_content {
 		);
 	} else {
 		say q(<div class="box" id="resultspanel">);
+		say q(<div style="margin-bottom:1em">);
+		say $self->get_show_common_names_button();
+		say q(</div>);
 		say q(<div class="scrollable">);
+				
+		
 		$self->_print_profile( $scheme_id, $profile_id );
 		say $self->_get_ref_links( $scheme_id, $profile_id );
 		$self->_print_client_db_links( $scheme_id, $profile_id );
@@ -195,7 +200,7 @@ sub _print_client_db_links {
 		}
 		my $count;
 		if ( !( scalar keys %alleles ) ) {
-			$logger->error('No client database loci have been set.');
+			$logger->error("$self->{'instance'} - scheme $scheme_id: No client database loci have been set.");
 			$count = 0;
 		} else {
 			my $client_db = $self->{'datastore'}->get_client_db( $client->{'client_dbase_id'} );
@@ -217,7 +222,7 @@ sub _print_client_db_links {
 					designation_field1    => "s_$c_scheme_id\_$primary_key",
 					designation_operator1 => '=',
 					designation_value1    => $profile_id,
-					order                 => 'id',
+					order                 => 'f_id',
 					set_id                => 0,
 					submit                => 1
 				);
@@ -378,13 +383,13 @@ sub _print_profile {
 		$tooltip =
 		  $self->get_tooltip( qq($primary_key - $scheme_field_info->{'description'}), { style => 'color:white' } );
 	}
-	say qq(<dl class="profile"><dt>$primary_key$tooltip</dt><dd>$profile_id</dd></dl>);
+	say qq(<dl class="profile"><dt class="pk">$primary_key$tooltip</dt><dd>$profile_id</dd></dl>);
 	my $scheme_fields = $self->{'datastore'}->get_scheme_fields($scheme_id);
 	my $indices       = $self->{'datastore'}->get_scheme_locus_indices( $scheme_info->{'id'} );
 	foreach my $locus (@$loci) {
-		my $cleaned = $self->clean_locus($locus);
+		my $cleaned = $self->clean_locus($locus, { common_name_class => 'locus_common_name' });
 		my $value   = $data->{'profile'}->[ $indices->{$locus} ];
-		say qq(<dl class="profile"><dt>$cleaned</dt><dd><a href="$self->{'system'}->{'script_name'}?)
+		say qq(<dl class="profile"><dt class="locus">$cleaned</dt><dd><a href="$self->{'system'}->{'script_name'}?)
 		  . qq(db=$self->{'instance'}&amp;page=alleleInfo&amp;locus=$locus&amp;allele_id=$value">)
 		  . qq($value</a></dd></dl>);
 	}
@@ -399,6 +404,7 @@ sub _print_profile {
 		}
 		say qq(<dl class="profile"><dt>$cleaned</dt>);
 		$data->{ lc($field) } //= q(&nbsp;);
+		$data->{ lc($field) } = q(&nbsp;) if $data->{ lc($field) }  eq q();
 		say qq(<dd>$data->{lc($field)}</dd></dl>);
 	}
 	say q(</div>);
@@ -420,10 +426,10 @@ sub _print_profile {
 					email       => !$self->{'system'}->{'privacy'}
 				}
 			);
-			say qq(<dt>sender</dt><dd>$sender</dd>);
+			say qq(<dt>sender</dt><dd>$sender</dd>) if $sender;
 		} elsif ( $field eq 'curator' ) {
 			my $curator = $self->{'datastore'}->get_user_string( $data->{'curator'}, { affiliation => 1, email => 1 } );
-			say qq(<dt>curator</dt><dd>$curator</dd>);
+			say qq(<dt>curator</dt><dd>$curator</dd>) if $curator;
 			my ( $history, $num_changes ) = $self->_get_history( $scheme_id, $profile_id, 10 );
 			if ($num_changes) {
 				my $plural = $num_changes == 1 ? '' : 's';
@@ -540,7 +546,7 @@ sub _get_update_history {
 	my ( $history, undef ) = $self->_get_history( $scheme_id, $profile_id );
 	my $buffer;
 	if (@$history) {
-		$buffer .= qq(<table class=\"resultstable\"><tr><th>Timestamp</th><th>Curator</th><th>Action</th></tr>\n);
+		$buffer .= qq(<table class="resultstable"><tr><th>Timestamp</th><th>Curator</th><th>Action</th></tr>\n);
 		my $td = 1;
 		foreach (@$history) {
 			my $curator_info = $self->{'datastore'}->get_user_info( $_->{'curator'} );
@@ -569,11 +575,34 @@ sub get_javascript {
 	  } else {
 	  	\$('#profile').switchClass('expandable_retracted','expandable_expanded',1000, "easeInOutQuad", function(){
 	  		\$('#expand_profile').html('<span class="fas fa-chevron-up"></span>');
-	  	});
-	    
+	  	});	    
 	  }
 	});
+	\$( "#show_common_names" ).click(function() {
+		if (\$("span#show_common_names_text").css('display') == 'none'){
+			\$("span#show_common_names_text").css('display', 'inline');
+			\$("span#hide_common_names_text").css('display', 'none');
+		} else {
+			\$("span#show_common_names_text").css('display', 'none');
+			\$("span#hide_common_names_text").css('display', 'inline');
+		}
+		\$("span.locus_common_name").toggle();
+		set_profile_widths();
+	});
+	if (\$("span").hasClass('locus_common_name')){
+		\$("span#common_names_button").css('display', 'inline');
+	} 
+	set_profile_widths();
 });
+
+function set_profile_widths(){
+	\$("dl.profile dt.locus,dl.profile dt.pk").css("width","auto").css("max-width","none");
+	var maxWidth = Math.max.apply( null, \$("dl.profile dt.locus,dl.profile dt.pk").map( function () {
+    	return \$(this).outerWidth(true);
+	}).get() );
+	\$("dl.profile dt.locus,dl.profile dt.pk").css("width",'calc(' + maxWidth + 'px - 1em)')
+		.css("max-width",'calc(' + maxWidth + 'px - 1em)');	
+}
 
 END
 	return $buffer;

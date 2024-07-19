@@ -1,6 +1,6 @@
 #Written by Keith Jolley
-#Copyright (c) 2010-2022, University of Oxford
-#E-mail: keith.jolley@zoo.ox.ac.uk
+#Copyright (c) 2010-2024, University of Oxford
+#E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
 #
@@ -32,6 +32,14 @@ sub initiate {
 	return;
 }
 
+sub _downloads_disabled {
+	my ($self) = @_;
+	return 1
+	  if ( $self->{'system'}->{'disable_profile_downloads'} // q() ) eq 'yes'
+	  && !$self->is_admin;
+	return;
+}
+
 sub print_content {
 	my ($self)    = @_;
 	my $q         = $self->{'cgi'};
@@ -39,6 +47,10 @@ sub print_content {
 	my $set_id    = $self->get_set_id;
 	if ( $self->{'system'}->{'dbtype'} ne 'sequences' ) {
 		say q(This is not a sequence definition database.);
+		return;
+	}
+	if ( $self->_downloads_disabled ) {
+		say 'Profile downloads are disabled for this database.';
 		return;
 	}
 	if ( !$scheme_id ) {
@@ -65,11 +77,11 @@ sub print_content {
 	}
 	my $loci = $self->{'datastore'}->get_scheme_loci($scheme_id);
 	print $primary_key;
-	my @fields = ( $primary_key, 'profile' );
+	my @fields        = ( $primary_key, 'profile' );
 	my $locus_indices = $self->{'datastore'}->get_scheme_locus_indices($scheme_id);
 	my @order;
 	foreach my $locus (@$loci) {
-		my $locus_info = $self->{'datastore'}->get_locus_info( $locus, { set_id => $set_id } );
+		my $locus_info   = $self->{'datastore'}->get_locus_info( $locus, { set_id => $set_id } );
 		my $header_value = $locus_info->{'set_name'} // $locus;
 		print qq(\t$header_value);
 		push @order, $locus_indices->{$locus};
@@ -100,27 +112,35 @@ sub print_content {
 	local $" = q(,);
 	my $scheme_warehouse = qq(mv_scheme_$scheme_id);
 	my $pk_info          = $self->{'datastore'}->get_scheme_field_info( $scheme_id, $primary_key );
-	my $qry              = "SELECT @fields FROM $scheme_warehouse ORDER BY "
+	my $date_restriction = $self->{'datastore'}->get_date_restriction;
+	my $date_clause = $date_restriction ? qq(WHERE date_entered<='$date_restriction' ) : q();
+	my $qry              = "SELECT @fields FROM $scheme_warehouse ${date_clause}ORDER BY "
 	  . ( $pk_info->{'type'} eq 'integer' ? "CAST($primary_key AS int)" : $primary_key );
 	my $data = $self->{'datastore'}->run_query( $qry, undef, { fetch => 'all_arrayref' } );
 	local $" = qq(\t);
 	{
 		no warnings 'uninitialized';    #scheme field values may be undefined
 		foreach my $definition (@$data) {
-			my $pk      = shift @$definition;
-			my $profile = shift @$definition;
-			print qq($pk\t@$profile[@order]);
-			print qq(\t@$definition) if @$scheme_fields > 1;
-			foreach my $cg_schemes (@$cg_schemes) {
-				my $group_id = $c_groups->{ $cg_schemes->{'id'} }->{$pk} // q();
-				print qq(\t$group_id);
+			eval {
+				my $pk      = shift @$definition;
+				my $profile = shift @$definition;
+				print qq($pk\t@$profile[@order]);
+				print qq(\t@$definition) if @$scheme_fields > 1;
+				foreach my $cg_schemes (@$cg_schemes) {
+					my $group_id = $c_groups->{ $cg_schemes->{'id'} }->{$pk} // q();
+					print qq(\t$group_id);
+				}
+				if ($lincodes_defined) {
+					my $lincode = $lincodes->{$pk} // q();
+					print qq(\t$lincode);
+					$self->_print_lincode_fields( $scheme_id, $lincode_fields, $lincode );
+				}
+				print qq(\n);
+			};
+			if ($@) {
+				$logger->error($@) if $@ !~ /Broken\spipe/x && $@ !~ /connection\sabort/x;
+				last;
 			}
-			if ($lincodes_defined) {
-				my $lincode = $lincodes->{$pk} // q();
-				print qq(\t$lincode);
-				$self->_print_lincode_fields( $scheme_id, $lincode_fields, $lincode );
-			}
-			print qq(\n);
 		}
 	}
 	return;

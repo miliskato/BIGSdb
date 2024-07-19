@@ -1,6 +1,6 @@
 #Written by Keith Jolley
 #Copyright (c) 2014-2022, University of Oxford
-#E-mail: keith.jolley@zoo.ox.ac.uk
+#E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
 #
@@ -81,6 +81,8 @@ sub _get_db {
 	$routes->{'curators'}    = request->uri_for("$subdir/db/$db/curators");
 	$routes->{'submissions'} = request->uri_for("$subdir/db/$db/submissions")
 	  if ( $self->{'system'}->{'submissions'} // '' ) eq 'yes';
+	my $message = $self->get_date_restriction_message;
+	$routes->{'message'} = $message if $message;
 
 	if ( $self->{'system'}->{'dbtype'} eq 'isolates' ) {
 		$routes->{'isolates'} = request->uri_for("$subdir/db/$db/isolates");

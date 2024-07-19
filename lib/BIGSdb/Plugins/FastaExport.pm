@@ -1,7 +1,7 @@
 #FastaExport.pm - Plugin for BIGSdb
 #Written by Keith Jolley
-#Copyright (c) 2012-2020, University of Oxford
-#E-mail: keith.jolley@zoo.ox.ac.uk
+#Copyright (c) 2012-2024, University of Oxford
+#E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
 #
@@ -35,21 +35,24 @@ sub get_attributes {
 			{
 				name        => 'Keith Jolley',
 				affiliation => 'University of Oxford, UK',
-				email       => 'keith.jolley@zoo.ox.ac.uk',
+				email       => 'keith.jolley@biology.ox.ac.uk',
 			}
 		],
-		description => 'Export FASTA file of sequences following an allele attribute query',
-		category    => 'Export',
-		menutext    => 'Locus sequences',
-		buttontext  => 'FASTA',
-		module      => 'FastaExport',
-		version     => '2.0.2',
-		dbtype      => 'sequences',
-		seqdb_type  => 'sequences',
-		input       => 'query',
-		section     => 'export,postquery',
-		order       => 10,
-		image       => '/images/plugins/FastaExport/screenshot.png'
+		description        => 'Export FASTA file of sequences following an allele attribute query',
+		category           => 'Export',
+		menutext           => 'Locus sequences',
+		buttontext         => 'FASTA',
+		module             => 'FastaExport',
+		version            => '2.2.1',
+		dbtype             => 'sequences',
+		seqdb_type         => 'sequences',
+		input              => 'query',
+		section            => 'export,postquery',
+		order              => 10,
+		image              => '/images/plugins/FastaExport/screenshot.png',
+		enabled_by_default => 1,
+		allele_download    => 1,
+		system_flag        => 'FastaExport',
 	);
 	return \%att;
 }
@@ -67,12 +70,14 @@ sub _create_fasta_file {
 		$locus, { fetch => 'col_arrayref' } );
 	my $invalid = [];
 	open( my $fh, '>:encoding(utf8)', $full_path ) or $logger->error("Cannot open $full_path for writing.");
+	my $date_restriction = $self->{'datastore'}->get_date_restriction;
+	my $filtered         = 0;
 
 	foreach my $allele_id (@list) {
 		$allele_id =~ s/^\s+|\s+$//gx;
 		next if !length($allele_id);
 		my $seq_data = $self->{'datastore'}->run_query(
-			'SELECT allele_id,sequence FROM sequences WHERE (locus,allele_id)=(?,?)',
+			'SELECT allele_id,sequence,date_entered FROM sequences WHERE (locus,allele_id)=(?,?)',
 			[ $locus, $allele_id ],
 			{ fetch => 'row_hashref', cache => 'FastaExport::run' }
 		);
@@ -80,7 +85,11 @@ sub _create_fasta_file {
 			push @$invalid, $allele_id;
 			next;
 		}
-		my $header = qq(>${locus}_$seq_data->{'allele_id'});
+		if ( !$self->{'username'} && $date_restriction && $date_restriction lt $seq_data->{'date_entered'} ) {
+			$filtered++;
+			next;
+		}
+		my $header   = qq(>${locus}_$seq_data->{'allele_id'});
 		my %selected = map { $_ => 1 } $q->multi_param('extended');
 		foreach my $field (@$extended_fields) {
 			next if !$selected{$field};
@@ -132,6 +141,17 @@ sub _create_fasta_file {
 		say $fh $seq;
 	}
 	close $fh;
+	if ($filtered) {
+		say q(<div class="box statusbad"><p>);
+		if ( $filtered == 1 ) {
+			say qq($filtered allele was not included as it was submitted prior to $date_restriction. )
+			  . q(You will need to log in to include this.);
+		} else {
+			say qq($filtered alleles were not included as they were submitted prior to $date_restriction. )
+			  . q(You will need to log in to include these.);
+		}
+		say q(</p></div>);
+	}
 	if ( !-e $full_path ) {
 		$self->print_bad_status( { message => q(Sequence file could not be generated.) } );
 		$logger->error('Sequence file cannot be generated');
@@ -141,8 +161,8 @@ sub _create_fasta_file {
 
 sub run {
 	my ($self) = @_;
-	my $q = $self->{'cgi'};
-	my $locus = $q->param('locus') // q();
+	my $q      = $self->{'cgi'};
+	my $locus  = $q->param('locus') // q();
 	if ( $q->param('get_extended') && $locus ) {
 		$self->_get_extended($locus);
 		return;
@@ -152,6 +172,10 @@ sub run {
 		return;
 	}
 	say q(<h1>Export sequences in FASTA file</h1>);
+	if ( ( $self->{'system'}->{'FastaExport'} // q() ) eq 'no' ) {
+		$self->print_bad_status( { message => q(Allele downloads are disabled.) } );
+		return;
+	}
 	$locus =~ s/^cn_//x;
 	my $filename;
 	my $invalid = [];
@@ -172,7 +196,9 @@ sub run {
 			local $| = 1;
 			say q(<div class="hideonload"><p>Please wait - calculating (do not refresh) ...</p>)
 			  . q(<p><span class="wait_icon fas fa-sync-alt fa-spin fa-4x"></span></p></div>);
-			$self->{'mod_perl_request'}->rflush if $ENV{'MOD_PERL'};
+			if ( $ENV{'MOD_PERL'} ) {
+				eval { $self->{'mod_perl_request'}->rflush };
+			}
 			( $filename, $invalid ) = $self->_create_fasta_file( $locus, scalar $q->param('allele_ids') );
 			if (@$invalid) {
 				local $" = q(, );
@@ -180,8 +206,7 @@ sub run {
 					{
 						message => q(Invalid ids in selection),
 						detail  => BIGSdb::Utils::escape_html(
-							qq(The following sequence ids do not exist and have been removed: @$invalid.)
-						)
+							qq(The following sequence ids do not exist and have been removed: @$invalid.))
 					}
 				);
 			}
@@ -199,6 +224,10 @@ sub _print_interface {
 	my $list_file  = $q->param('list_file');
 	my $allele_ids = $self->get_allele_id_list( $query_file, $list_file );
 	my $set_id     = $self->get_set_id;
+	my $date_restriction_message = $self->get_date_restriction_message;
+	if ($date_restriction_message){
+		say qq(<div class="box banner">$date_restriction_message</div>);
+	}
 	say q(<div class="box" id="queryform"><div class="scrollable">);
 	my ( $display_loci, $labels ) = $self->{'datastore'}->get_locus_list( { set_id => $set_id } );
 	unshift @$display_loci, q();
@@ -355,10 +384,12 @@ sub _get_defined_alleles {
 	my $locus_info = $self->{'datastore'}->get_locus_info($locus);
 	my $format     = $locus_info->{'allele_id_format'} // 'text';
 	my $cast       = $format eq 'integer' ? 'CAST(allele_id AS integer)' : 'allele_id';
-	my $defined =
-	  $self->{'datastore'}
-	  ->run_query( "SELECT $cast FROM sequences WHERE locus=? AND allele_id NOT IN ('0','N') ORDER BY allele_id",
-		$locus, { fetch => 'col_arrayref' } );
+	my $defined    = $self->{'datastore'}->run_query(
+		qq(SELECT $cast FROM $self->{'system'}->{'temp_sequences_view'} WHERE locus=? )
+		  . q(AND allele_id NOT IN ('0','N') ORDER BY allele_id),
+		$locus,
+		{ fetch => 'col_arrayref' }
+	);
 	say $_ foreach @$defined;
 	return;
 }

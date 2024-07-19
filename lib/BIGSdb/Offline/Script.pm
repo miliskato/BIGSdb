@@ -1,6 +1,6 @@
 #Written by Keith Jolley
-#Copyright (c) 2011-2022, University of Oxford
-#E-mail: keith.jolley@zoo.ox.ac.uk
+#Copyright (c) 2011-2024, University of Oxford
+#E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
 #
@@ -26,7 +26,6 @@ use DBI;
 use Try::Tiny;
 use Log::Log4perl qw(get_logger);
 use List::MoreUtils qw(any uniq);
-use List::Util qw(shuffle);
 use Carp;
 use BIGSdb::Dataconnector;
 use BIGSdb::Datastore;
@@ -142,9 +141,9 @@ sub initiate_job_manager {
 		{
 			config_dir       => $self->{'config_dir'},
 			dbase_config_dir => $self->{'dbase_config_dir'},
-			host             => $self->{'config'}->{'dbhost'} // $self->{'host'} // 'localhost',
-			port             => $self->{'config'}->{'dbport'} // $self->{'port'} // 5432,
-			user             => $self->{'config'}->{'dbuser'} // $self->{'user'} // 'apache',
+			host             => $self->{'config'}->{'dbhost'}     // $self->{'host'}     // 'localhost',
+			port             => $self->{'config'}->{'dbport'}     // $self->{'port'}     // 5432,
+			user             => $self->{'config'}->{'dbuser'}     // $self->{'user'}     // 'apache',
 			password         => $self->{'config'}->{'dbpassword'} // $self->{'password'} // 'remote'
 		}
 	);
@@ -159,12 +158,11 @@ sub _go {
 	#refdb attribute has been renamed ref_db for consistency with other databases (refdb still works)
 	$self->{'config'}->{'ref_db'} //= $self->{'config'}->{'refdb'};
 	if ( !$self->{'options'}->{'always_run'} ) {
-		my $max_load = $self->{'config'}->{'max_load'} || 8;
+		my $max_load         = $self->{'config'}->{'max_load'} || 8;
 		my $max_load_webscan = $self->{'config'}->{'max_load_webscan'} || $self->{'config'}->{'max_load'} || 6;
 		try {
 			$load_average = $self->get_load_average;
-		}
-		catch {
+		} catch {
 			if ( $_->isa('BIGSdb::Exception::Data') ) {
 				$self->{'logger'}->fatal('Cannot determine load average ... aborting!');
 				exit;
@@ -216,11 +214,11 @@ sub get_isolates {
 	}
 	my $where_or_and = $options->{'with_seqbin'} ? 'AND' : 'WHERE';
 	if ( $self->{'options'}->{'p'} ) {
-		my @projects = split( ',', $self->{'options'}->{'p'} );
+		my @projects = split /\s*,\s*/x, $self->{'options'}->{'p'};
 		die "Invalid project list.\n" if any { !BIGSdb::Utils::is_int($_) } @projects;
 		$qry .= " $where_or_and $view.id IN (SELECT isolate_id FROM project_members WHERE project_id IN (@projects))";
 	} elsif ( $self->{'options'}->{'i'} ) {
-		my @ids = split( ',', $self->{'options'}->{'i'} );
+		my @ids = split /\s*,\s*/x, $self->{'options'}->{'i'};
 		die "Invalid isolate id list.\n" if any { !BIGSdb::Utils::is_int($_) } @ids;
 		$qry .= " $where_or_and $view.id IN (@ids)";
 	} elsif ( $self->{'options'}->{'isolate_list_file'} ) {
@@ -251,15 +249,21 @@ sub filter_and_sort_isolates {
 	my ( $self, $isolates ) = @_;
 	my @exclude_isolates;
 	if ( $self->{'options'}->{'I'} ) {
-		@exclude_isolates = split( ',', $self->{'options'}->{'I'} );
+		@exclude_isolates = split /\s*,\*/x, $self->{'options'}->{'I'};
+	}
+	if ( $self->{'options'}->{'no_private'} ) {
+		push @exclude_isolates, @{ $self->_get_private_isolates };
+		@exclude_isolates = uniq(@exclude_isolates);
+	}
+	if ( $self->{'options'}->{'assembly_checks'} ) {
+		push @exclude_isolates, @{ $self->_get_isolates_not_passed_assembly_checks };
+		@exclude_isolates = uniq(@exclude_isolates);
 	}
 	if ( $self->{'options'}->{'P'} ) {
 		push @exclude_isolates, @{ $self->_get_isolates_excluded_by_project };
 		@exclude_isolates = uniq(@exclude_isolates);
 	}
-	if ( $self->{'options'}->{'r'} ) {
-		@$isolates = shuffle(@$isolates);
-	} elsif ( $self->{'options'}->{'o'} ) {
+	if ( $self->{'options'}->{'o'} ) {
 		my $tag_date = $self->_get_last_tagged_date($isolates);
 		@$isolates = sort { $tag_date->{$a} cmp $tag_date->{$b} } @$isolates;
 	}
@@ -306,8 +310,8 @@ sub filter_and_sort_isolates {
 }
 
 sub _get_isolates_excluded_by_project {
-	my ($self) = @_;
-	my @projects = split( ',', $self->{'options'}->{'P'} );
+	my ($self)   = @_;
+	my @projects = split /\s*,\s*/x, $self->{'options'}->{'P'};
 	my @isolates;
 	foreach my $project_id (@projects) {
 		next if !BIGSdb::Utils::is_int($project_id);
@@ -316,6 +320,21 @@ sub _get_isolates_excluded_by_project {
 	}
 	@isolates = uniq(@isolates);
 	return \@isolates;
+}
+
+sub _get_private_isolates {
+	my ($self) = @_;
+	return $self->{'datastore'}
+	  ->run_query( 'SELECT DISTINCT(isolate_id) FROM private_isolates', undef, { fetch => 'col_arrayref' } );
+}
+
+sub _get_isolates_not_passed_assembly_checks {
+	my ($self) = @_;
+	return $self->{'datastore'}->run_query(
+		'SELECT isolate_id FROM seqbin_stats WHERE isolate_id NOT IN (SELECT isolate_id FROM last_run WHERE name=?) '
+		  . 'OR isolate_id IN (SELECT isolate_id FROM assembly_checks WHERE status=?)',
+		[ 'AssemblyChecks', 'fail' ], { fetch => 'col_arrayref' }
+	);
 }
 
 sub _get_last_tagged_date {
@@ -363,7 +382,7 @@ sub get_selected_loci {
 	$options = {} if ref $options ne 'HASH';
 	my %ignore;
 	if ( $self->{'options'}->{'L'} ) {
-		my @ignore = split( ',', $self->{'options'}->{'L'} );
+		my @ignore = split /\s*,\s*/x, $self->{'options'}->{'L'};
 		%ignore = map { $_ => 1 } @ignore;
 	}
 	my $qry;
@@ -385,7 +404,7 @@ sub get_selected_loci {
 	}
 	if ( $self->{'options'}->{'s'} || @group_schemes ) {
 		my @schemes;
-		@schemes = split( ',', $self->{'options'}->{'s'} ) if $self->{'options'}->{'s'};
+		@schemes = split /\s*,\s*/x, $self->{'options'}->{'s'} if $self->{'options'}->{'s'};
 		push @schemes, @group_schemes;
 		die "Invalid scheme list.\n" if any { !BIGSdb::Utils::is_int($_) } @schemes;
 		local $" = ',';
@@ -405,7 +424,7 @@ sub get_selected_loci {
 		my $temp_table = $self->{'datastore'}->create_temp_list_table_from_array( 'text', \@list );
 		$qry = "$loci_qry $and_or id IN (SELECT value FROM $temp_table) ORDER BY id";
 	} elsif ( $self->{'options'}->{'l'} ) {
-		my @loci = split( ',', $self->{'options'}->{'l'} );
+		my @loci = split /\s*,\s*/x, $self->{'options'}->{'l'};
 		foreach (@loci) {
 			$_ =~ s/'/\\'/gx;
 		}
@@ -443,17 +462,19 @@ sub delete_temp_files {
 sub add_job {
 	my ( $self, $module, $options ) = @_;
 	return
-	     if !$self->{'config'}->{'jobs_db'}
+		 if !$self->{'config'}->{'jobs_db'}
 	  || !$self->{'options'}->{'mark_job'}
 	  || !$self->{'config'}->{'record_scripts'};
 	$self->initiate_job_manager if $options->{'temp_init'};
 	( my $hostname = `hostname -s` ) =~ s/\s.*$//x;
 	my $job_id = $self->{'jobManager'}->add_job(
 		{
+			job_id       => $options->{'job_id'},
 			dbase_config => $self->{'instance'},
-			ip_address   => $hostname,
+			ip_address   => $options->{'ip_address'} // $hostname,
 			module       => $module,
-			username     => 'bigsdb',
+			username     => $options->{'username'} // 'bigsdb',
+			email        => $options->{'email'},
 			parameters   => {},
 			mark_started => 1,
 			no_progress  => 1
@@ -467,9 +488,9 @@ sub update_job {
 	my ( $self, $job_id, $options ) = @_;
 	return
 	  if !$self->{'config'}->{'jobs_db'} || !$self->{'options'}->{'mark_job'} || !$self->{'config'}->{'record_scripts'};
-	$self->initiate_job_manager if $options->{'temp_init'};
+	$self->initiate_job_manager                                               if $options->{'temp_init'};
 	$self->{'jobManager'}->update_job_status( $job_id, $options->{'status'} ) if $options->{'status'};
-	undef $self->{'jobManager'} if $options->{'temp_init'};
+	undef $self->{'jobManager'}                                               if $options->{'temp_init'};
 	return;
 }
 
@@ -490,5 +511,41 @@ sub stop_job {
 	);
 	undef $self->{'jobManager'} if $options->{'temp_init'};
 	return;
+}
+
+sub set_last_run_time {
+	my ( $self, $name, $isolate_id ) = @_;
+	eval {
+		$self->{'db'}->do(
+			'INSERT INTO last_run (name,isolate_id) VALUES (?,?) ON '
+			  . 'CONFLICT (name,isolate_id) DO UPDATE SET timestamp = now()',
+			undef, $name, $isolate_id
+		);
+	};
+	if ($@) {
+		$self->{'logger'}->error($@);
+		$self->{'db'}->rollback;
+	} else {
+		$self->{'db'}->commit;
+	}
+	return;
+}
+
+sub make_assembly_file {
+	my ( $self, $job_id, $isolate_id ) = @_;
+	if ( !defined $self->{'contigManager'} ) {
+		$self->{'logger'}->fatal('Contig manager is not set up.');
+	}
+	my $filename   = "$self->{'config'}->{'secure_tmp_dir'}/${job_id}_$isolate_id.fas";
+	my $seqbin_ids = $self->{'datastore'}->run_query( 'SELECT id FROM sequence_bin WHERE isolate_id=?',
+		$isolate_id, { fetch => 'col_arrayref', cache => 'make_assembly_file::get_seqbin_list' } );
+	my $contigs = $self->{'contigManager'}->get_contigs_by_list($seqbin_ids);
+	open( my $fh, '>', $filename ) || $self->{'logger'}->error("Cannot open $filename for writing.");
+	foreach my $contig_id ( sort { $a <=> $b } keys %$contigs ) {
+		say $fh ">$contig_id";
+		say $fh $contigs->{$contig_id};
+	}
+	close $fh;
+	return $filename;
 }
 1;

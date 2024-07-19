@@ -1,6 +1,6 @@
 #Written by Keith Jolley
-#Copyright (c) 2010-2022, University of Oxford
-#E-mail: keith.jolley@zoo.ox.ac.uk
+#Copyright (c) 2010-2024, University of Oxford
+#E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
 #
@@ -29,7 +29,7 @@ use Bio::SeqIO;
 use Bio::SeqFeature::Generic;
 use Excel::Writer::XLSX;
 use List::MoreUtils qw(uniq);
-use autouse 'Time::Local'  => qw(timelocal);
+use autouse 'Time::Local' => qw(timelocal);
 use constant MAX_4BYTE_INT => 2147483647;
 use Log::Log4perl qw(get_logger);
 my $logger = get_logger('BIGSdb.Page');
@@ -73,7 +73,7 @@ sub is_complete_cds {
 	my ( $seq, $options ) = @_;
 	my $check_seq = ref $seq eq 'SCALAR' ? uc($$seq) : uc($seq);
 	$check_seq =~ s/[\-\.\s]//gx;
-	my $first_codon = substr( $check_seq, 0, 3 );
+	my $first_codon  = substr( $check_seq, 0, 3 );
 	my $start_codons = $options->{'start_codons'} // [qw (ATG GTG TTG)];
 	my $stop_codons  = $options->{'stop_codons'}  // [qw (TAA TGA TAG)];
 	if ( none { $first_codon eq $_ } @$start_codons ) {
@@ -115,7 +115,7 @@ sub truncate_seq {
 	$length = 20 if !$length;
 	if ( length $$string_ref > $length ) {
 		my $start = substr( $$string_ref, 0, int( $length / 2 ) );
-		my $end = substr( $$string_ref, -int( $length / 2 ) );
+		my $end   = substr( $$string_ref, -int( $length / 2 ) );
 		return "$start ... $end";
 	} else {
 		return $$string_ref;
@@ -163,7 +163,7 @@ sub break_line {
 	my $orig_string = ref $string eq 'SCALAR' ? $$string : $string;
 	$orig_string //= q();
 	my @lines = $orig_string =~ /(.{1,$length})/gx;
-	my $seq = join( "\n", @lines );
+	my $seq   = join( "\n", @lines );
 	$seq =~ s/\n$//x;
 	return ref $string eq 'SCALAR' ? \$seq : $seq;
 }
@@ -176,7 +176,7 @@ sub decimal_place {
 #returns true if string is an acceptable date format
 sub is_date {
 	my ($qry) = @_;
-	return if ( !defined $qry || $qry eq '' );
+	return   if ( !defined $qry || $qry eq '' );
 	return 1 if $qry eq 'today' || $qry eq 'yesterday';
 	if ( $qry =~ /^(\d{4})-(\d{2})-(\d{2})$/x ) {
 		my ( $y, $m, $d ) = ( $1, $2, $3 );
@@ -198,7 +198,6 @@ sub is_bool {
 
 sub is_int {
 	my ( $N, $options ) = @_;
-	$options = {} if ref $options ne 'HASH';
 	return if ( !defined $N || $N eq '' );
 	return if $N =~ /[\x{ff10}-\x{ff19}]/x;    #Reject Unicode full width form
 	my ($sign) = '^\s* [-+]? \s*';
@@ -241,7 +240,7 @@ sub get_geography_point_coordinates {
 
 sub get_random {
 	return
-	    'BIGSdb_'
+		'BIGSdb_'
 	  . sprintf( '%06d',  $$ ) . '_'
 	  . sprintf( '%010d', int( rand(9999999999) ) ) . '_'
 	  . sprintf( '%05d',  int( rand(99999) ) );
@@ -417,7 +416,7 @@ sub text2excel {
 	} else {
 		( $excel_file = $text_file ) =~ s/txt$/xlsx/x;
 	}
-	my $workbook = Excel::Writer::XLSX->new($excel_file);
+	my $workbook    = Excel::Writer::XLSX->new($excel_file);
 	my $text_format = $workbook->add_format( num_format => '@' );
 	$text_format->set_align('center');
 	$workbook->set_tempdir( $options->{'tmp_dir'} ) if $options->{'tmp_dir'};
@@ -437,12 +436,13 @@ sub text2excel {
 	  || BIGSdb::Exception::File::CannotOpen->throw("Cannot open $text_file for reading");
 	my ( $row, $col ) = ( 0, 0 );
 	my %widths;
-	my $first_line = 1;
+	my $first_line     = 1;
 	my %special_values = map { $_ => 1 } ('=');    #We may need to add to this later.
+	my $max_col        = 1;
 
 	while ( my $line = <$text_fh> ) {
-		$line =~ s/\r?\n$//x;      #Remove terminal newline
-		$line =~ s/[\r\n]/ /gx;    #Replace internal newlines with spaces.
+		$line =~ s/\r?\n$//x;                      #Remove terminal newline
+		$line =~ s/[\r\n]/ /gx;                    #Replace internal newlines with spaces.
 		my $format = !$options->{'no_header'} && $row == 0 ? $header_format : $cell_format;
 		my @values = split /\t/x, $line;
 		foreach my $value (@values) {
@@ -459,6 +459,7 @@ sub text2excel {
 				}
 			}
 			$widths{$col} = length $value if length $value > ( $widths{$col} // 0 );
+			$max_col      = $col          if $col > $max_col;
 			$col++;
 		}
 		$col = 0;
@@ -473,26 +474,71 @@ sub text2excel {
 		$worksheet->set_column( $col, $col, $width );
 	}
 	$worksheet->freeze_panes( 1, 0 ) if !$options->{'no_header'};
+	if ( $options->{'conditional_formatting'} ) {
+		foreach my $formatting ( @{ $options->{'conditional_formatting'} } ) {
+			my $format     = $workbook->add_format( %{ $formatting->{'format'} } );
+			my $col_letter = get_excel_col_letter( $formatting->{'col'} + 1 );
+			if ( $formatting->{'apply_to_row'} ) {
+				$worksheet->conditional_formatting(
+					1, 0,
+					$row - 1,
+					$max_col,
+					{
+						type     => 'formula',
+						criteria => qq(=\$${col_letter}2="$formatting->{'value'}"),    #Don't anchor row
+						format   => $format
+					}
+				);
+			} else {
+				$worksheet->conditional_formatting(
+					1,
+					$formatting->{'col'},
+					$row,
+					$formatting->{'col'},
+					{
+						type     => 'cell',
+						criteria => 'equal to',
+						value    => $formatting->{'value'},
+						format   => $format
+					}
+				);
+			}
+		}
+	}
 	close $text_fh;
 	return $excel_file;
 }
 
+sub get_excel_col_letter {
+	my ($col_num) = @_;
+	my $col_letter = q();
+	while ($col_num) {
+		my $remainder = ( $col_num - 1 ) % 26;
+		$col_letter = chr( 65 + $remainder ) . $col_letter;
+		$col_num    = int( ( $col_num - $remainder ) / 26 );
+	}
+	return $col_letter;
+}
+
 sub fasta2genbank {
-	my ($fasta_file) = @_;
-	( my $genbank_file = $fasta_file ) =~ s/\.(fas|fasta)$/.gb/x;
-	my $in  = Bio::SeqIO->new( -file => $fasta_file,      -format => 'fasta' );
-	my $out = Bio::SeqIO->new( -file => ">$genbank_file", -format => 'genbank' );
+	my ($fasta_file, $max_locus_length) = @_;
+	( my $genbank_file = $fasta_file ) =~ s/\.(fa|fas|fasta|fna)$/.gb/x;
+	my $in         = Bio::SeqIO->new( -file => $fasta_file,      -format => 'fasta' );
+	my $out        = Bio::SeqIO->new( -file => ">$genbank_file", -format => 'genbank' );
 	my $start      = 1;
 	my $concat_seq = '';
 	my @features;
 	while ( my $seq_obj = $in->next_seq ) {
-		my $id = $seq_obj->primary_id;
+		my $id  = $seq_obj->primary_id;
 		my $seq = ( $seq_obj->primary_seq->seq =~ /(.*)/x ) ? $1 : undef;    #untaint
 		$seq =~ s/-//gx;
 		$concat_seq .= $seq;
 		my $length = length($seq);
-		my $end    = $start + $length - 1;
-		my $feat   = Bio::SeqFeature::Generic->new(
+		if ( $length > $max_locus_length ) {
+			BIGSdb::Exception::Data->throw("Locus too long - $length bp.");
+		}
+		my $end  = $start + $length - 1;
+		my $feat = Bio::SeqFeature::Generic->new(
 			-start       => $start,
 			-end         => $end,
 			-strand      => 1,
@@ -513,7 +559,7 @@ sub get_heatmap_colour_style {
 	my ( $value, $max_value, $options ) = @_;
 	$options = {} if ref $options ne 'HASH';
 	my $normalised = $max_value ? ( $value / $max_value ) : 0;    #Don't divide by zero.
-	my $colour = sprintf( '#%02x%02x%02x',
+	my $colour     = sprintf( '#%02x%02x%02x',
 		$normalised * 201 + 54,
 		abs( 0.5 - $normalised ) * 201 + 54,
 		( 1 - $normalised ) * 201 + 54 );
@@ -849,9 +895,21 @@ sub get_N_stats {
 sub escape_html {
 	my ($string) = @_;
 	return if !defined $string;
+	$string =~ s/\&/\&amp;/gx;
 	$string =~ s/"/\&quot;/gx;
 	$string =~ s/</\&lt;/gx;
 	$string =~ s/>/\&gt;/gx;
+	return $string;
+}
+
+sub unescape_html {
+	my ($string) = @_;
+	return if !defined $string;
+	$string =~ s/\&quot;/"/gx;
+	$string =~ s/\&lt;/</gx;
+	$string =~ s/\&gt;/>/gx;
+	$string =~ s/\&\#39;/'/gx;
+	$string =~ s/\&amp;/\&/gx;
 	return $string;
 }
 
@@ -882,7 +940,7 @@ sub get_nice_size {
 	$logger->logcarp('Size not passed') if !defined $size;
 	$decimal_places //= 1;
 	my @units = ( 'bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB' );
-	my $u = 0;
+	my $u     = 0;
 	$decimal_places = ( $decimal_places > 0 ) ? 10**$decimal_places : 1;
 	while ( $size > 1024 ) {
 		$size /= 1024;
@@ -903,6 +961,7 @@ sub slurp {
 sub remove_trailing_spaces_from_list {
 	my ($list) = @_;
 	foreach (@$list) {
+		next if !defined;
 		s/^\s*//x;
 		s/\s*$//x;
 	}
@@ -915,6 +974,18 @@ sub get_datestamp {
 	my $mon  = $date[4] + 1;
 	my $day  = $date[3];
 	return sprintf( '%d-%02d-%02d', $year, $mon, $day );
+}
+
+sub get_future_date {
+	my ( $months_to_add ) = @_;
+	my $datestamp = BIGSdb::Utils::get_datestamp();
+	my ( $year, $month, $day ) = split( '-', $datestamp );
+	$month += $months_to_add;
+	if ( $month > 12 ) {
+		$year += int( $month / 12 );
+		$month %= 12;
+	}
+	return sprintf( '%04d-%02d-%02d', $year, $month, $day );
 }
 
 sub get_timestamp {
@@ -948,9 +1019,9 @@ sub dictionary_sort {
 
 sub get_nice_duration {
 	my ($total_seconds) = @_;
-	my $hours = int( $total_seconds / 3600 );
-	my $minutes = int( ( $total_seconds - $hours * 3600 ) / 60 );
-	my $seconds = $total_seconds % 60;
+	my $hours           = int( $total_seconds / 3600 );
+	my $minutes         = int( ( $total_seconds - $hours * 3600 ) / 60 );
+	my $seconds         = $total_seconds % 60;
 	return sprintf( '%d:%02d:%02d', $hours, $minutes, $seconds );
 }
 
@@ -969,7 +1040,7 @@ sub sanitize_string {
 sub convert_html_table_to_text {
 	my ($html) = @_;
 	my $buffer = q();
-	my @lines = split /\n/x, $html;
+	my @lines  = split /\n/x, $html;
 	foreach my $line (@lines) {
 		$line =~ s/&rarr;/->/gx;
 		$line =~ s/<\/th><th.*?>/\t/gx;                      #Convert cell breaks to tabs
@@ -1006,5 +1077,10 @@ sub is_homopolymer {
 		return if uc( substr( $seq, $i - 1, 1 ) ) ne uc( substr( $seq, $i, 1 ) );
 	}
 	return 1;
+}
+
+sub round {
+	my ($number) = @_;
+	return int( $number + 0.5 * ( $number <=> 0 ) );
 }
 1;

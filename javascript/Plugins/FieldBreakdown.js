@@ -1,7 +1,7 @@
 /*FieldBreakdown.js - FieldBreakdown plugin for BIGSdb
 Written by Keith Jolley
-Copyright (c) 2018-2022, University of Oxford
-E-mail: keith.jolley@zoo.ox.ac.uk
+Copyright (c) 2018-2024, University of Oxford
+E-mail: keith.jolley@biology.ox.ac.uk
 
 This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
 
@@ -18,7 +18,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with BIGSdb.  If not, see <http://www.gnu.org/licenses/>.
 
-Version 2.5.3.
+Version 2.8.0.
 */
 
 var prefs_loaded;
@@ -109,13 +109,19 @@ $(function() {
 			loci: locus_list,
 			schemes: scheme_list
 		};
-
 		$.each(list[field_type], function(index, item) {
 			var value;
 			var label;
 			if (field_type == 'schemes') {
 				label = item.label;
 				value = item.field;
+			} else if (field_type == 'loci') {
+				value = item;
+				if (typeof locus_labels !== 'undefined' && locus_labels[item] != undefined) {
+					label = locus_labels[item];
+				} else {
+					label = item;
+				}
 			} else {
 				label = item.replace(/^.+\.\./, "");
 				value = item;
@@ -453,7 +459,12 @@ function load_pie(url, field, max_segments) {
 	if (typeof field == 'undefined') {
 		return;
 	}
+
 	var title = field.replace(/^.+\.\./, "");
+	var field_type = get_field_type();
+	if (field_type == 'loci' && typeof locus_labels !== 'undefined' && locus_labels[field] != undefined) {
+		title = locus_labels[field];
+	}
 
 	title = title.replace(/^s_\d+_/, "");
 	var f = d3.format(".1f");
@@ -811,40 +822,22 @@ function load_bar(url, field, rotate) {
 	});
 }
 
+
+
 function load_geography(url, field) {
 	$("#bb_chart").html("");
 	$("#geography").css("height", "400px");
-	const styles = ['RoadOnDemand', 'AerialWithLabelsOnDemand'];
-	const prefStyles = ['Map', 'Aerial'];
-	let layers = [];
-
-	if (bingmaps_api) {
-		let map_style = $("input[name='geography_view']:checked").val();
-		let i, ii;
-		for (i = 0, ii = styles.length; i < ii; ++i) {
-			layers.push(
-				new ol.layer.Tile({
-					visible: prefStyles[i] == map_style ? true : false,
-					preload: Infinity,
-					source: new ol.source.BingMaps({
-						key: bingmaps_api,
-						imagerySet: styles[i]
-					}),
-				})
-			);
-		}
-	} else {
-		layers.push(
-			new ol.layer.Tile({
-				source: new ol.source.OSM({
-					crossOrigin: null
-				})
-			})
-		);
+	let map_style = $("input[name='geography_view']:checked").val();
+	if (typeof map_style == 'undefined') {
+		map_style = 'Map';
 	}
+	let layers = get_ol_layers(mapping_option, map_style);
+
 	d3.json(url).then(function(jsonData) {
+		let attribution = new ol.control.Attribution({ collapsible: mapping_option < 3 ? false : true });
 		let map = new ol.Map({
 			target: 'geography',
+			controls: ol.control.defaults({ attribution: false }).extend([attribution]),
 			layers: layers,
 			view: new ol.View({
 				center: ol.proj.fromLonLat([0, 20]),
@@ -880,12 +873,26 @@ function load_geography(url, field) {
 				if ($("input[name='geography_view']:checked").val() == 'Aerial') {
 					layers[0].setVisible(false);
 					layers[1].setVisible(true);
+					if (typeof layers[2] !== 'undefined') {
+						layers[2].setVisible(true);
+					}
+					attribution.setCollapsible(true);
+					attribution.setCollapsed(true);
 				} else {
 					layers[0].setVisible(true);
 					layers[1].setVisible(false);
+					if (typeof layers[2] !== 'undefined') {
+						layers[2].setVisible(false);
+					}
+					if (mapping_option < 3) { //OSM
+						attribution.setCollapsible(false);
+						attribution.setCollapsed(false);
+					}
 				}
+				display_maptiler_logo();
 				set_prefs('map_style', $("input[name='geography_view']:checked").val());
 			});
+			display_maptiler_logo();
 			$(".marker_colour").off("click").click(function() {
 				set_prefs('marker_colour', this.id);
 				marker_colour = this.id;
@@ -902,8 +909,30 @@ function load_geography(url, field) {
 			});
 		});
 		$("#marker_size").slider({ min: 0, max: 10, value: marker_size });
-
+		if (mapping_option < 3) {
+			attribution.setCollapsible(map_style == 'Map' ? false : true);
+			attribution.setCollapsed(map_style == 'Map' ? false : true);
+		}
 	});
+
+}
+
+function display_maptiler_logo() {
+	if (mapping_option == 1) {
+		let map_style = $("input[name='geography_view']:checked").val();
+		if (!$("a#maptiler_logo").length) {
+			console.log('Adding logo');
+			$("div#geography").append(
+				'<a href="https://www.maptiler.com" id="maptiler_logo" '
+				+ 'style="display:none;position:absolute;left:10px;bottom:10px;z-index:10">'
+				+ '<img src="https://api.maptiler.com/resources/logo.svg" alt="MapTiler logo"></a>');
+		}
+		if (map_style == 'Map') {
+			$("a#maptiler_logo").hide()
+		} else {
+			$("a#maptiler_logo").show();
+		}
+	}
 }
 
 function get_marker_layer(jsonData) {

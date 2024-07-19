@@ -20,7 +20,7 @@ elements = [
 		display           = 'record_count',
 		name              = 'Isolate count',
 		width             = 2,
-		background_colour = '#79cafb',
+		background_colour = '#9bb5d0',
 		main_text_colour  = '#404040',
 		watermark         = 'fas fa-bacteria',
 		change_duration   = 'month',
@@ -32,7 +32,7 @@ elements = [
 		name              = 'Genome count',
 		genomes           = 1,
 		width             = 2,
-		background_colour = '#7ecc66',
+		background_colour = '#99ca92',
 		main_text_colour  = '#404040',
 		watermark         = 'fas fa-dna',
 		change_duration   = 'month',
@@ -107,3 +107,50 @@ elements = [
 		hide_mobile       = 1
 	}
 ]
+
+#By default elements are positioned to close gaps if possible
+#Set fill_gaps to 0 to always position elements in order.
+fill_gaps = 1
+
+#Use the following codes for setting record age (as defined by the
+#date_entered value).
+#	0 => 'all time',
+#	1 => 'past 5 years',
+#	2 => 'past 4 years',
+#	3 => 'past 3 years',
+#	4 => 'past 2 years',
+#	5 => 'past year',
+#	6 => 'past month',
+#	7 => 'past week'
+
+record_age = 0
+
+#The following palettes can be chosen:
+#	Category         
+#	Accent           
+#	Dark             
+#	Pastel1          
+#	Pastel2          
+#	Set1             
+#	Set2             
+#	Set3             
+#	Tableau          
+#	Spectral         
+#	Blues            
+#	Greens           
+#	Oranges          
+#	Purples          
+#	Reds             
+#	BlueGreen        
+#	BluePurple       
+#	GreenBlue        
+#	OrangeRed        
+#	PurpleBlueGreen  
+#	PurpleBlue       
+#	PurpleRed        
+#	RedPurple        
+#	YellowGreen      
+#	YellowOrangeBrown
+#	YellowOrangeRed  
+
+palette = 'Tableau'

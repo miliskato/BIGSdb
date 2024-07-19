@@ -1,6 +1,6 @@
 #Written by Keith Jolley
-#Copyright (c) 2015-2022, University of Oxford
-#E-mail: keith.jolley@zoo.ox.ac.uk
+#Copyright (c) 2015-2024, University of Oxford
+#E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
 #
@@ -23,7 +23,7 @@ use 5.010;
 use Bio::SeqIO;
 use File::Path qw(make_path remove_tree);
 use List::Util qw(max);
-use List::MoreUtils qw(any uniq);
+use List::MoreUtils qw(uniq);
 use Log::Log4perl qw(get_logger);
 use Email::Sender::Transport::SMTP;
 use Email::Sender::Simple qw(try_to_sendmail);
@@ -203,8 +203,11 @@ sub update_alert_datestamp {
 sub get_submission {
 	my ( $self, $submission_id ) = @_;
 	$logger->logcarp('No submission_id passed') if !$submission_id;
-	return $self->{'datastore'}->run_query( 'SELECT * FROM submissions WHERE id=?',
-		$submission_id, { fetch => 'row_hashref', cache => 'SubmissionHandler::get_submission' } );
+	return $self->{'datastore'}->run_query(
+		'SELECT * FROM submissions WHERE id=? AND (dataset IS NULL OR dataset = ?)',
+		[ $submission_id, $self->{'instance'} ],
+		{ fetch => 'row_hashref', cache => 'SubmissionHandler::get_submission' }
+	);
 }
 
 sub get_allele_submission {
@@ -288,6 +291,15 @@ sub get_isolate_submission {
 		push @isolates, $isolate_values;
 	}
 	my $submission = { order => $order, isolates => \@isolates };
+	return $submission;
+}
+
+sub get_assembly_submission {
+	my ( $self, $submission_id ) = @_;
+	$logger->logcarp('No submission_id passed') if !$submission_id;
+	my $submission = $self->{'datastore'}->run_query( 'SELECT * FROM assembly_submissions WHERE submission_id=?',
+		$submission_id,
+		{ fetch => 'all_arrayref', slice => {}, cache => 'SubmissionHandler::get_assembly_submission' } );
 	return $submission;
 }
 
@@ -379,7 +391,7 @@ sub write_isolate_csv {
 	my $isolates           = $isolate_submission->{'isolates'};
 	return if !@$isolates;
 	my $fields = $self->get_populated_fields( $isolates, $isolate_submission->{'order'} );
-	my $dir = $self->get_submission_dir($submission_id);
+	my $dir    = $self->get_submission_dir($submission_id);
 	$dir = $dir =~ /^($self->{'config'}->{'submission_dir'}\/BIGSdb[^\/]+$)/x ? $1 : undef;    #Untaint
 	$self->mkpath($dir);
 	my $filename = 'isolates.txt';
@@ -428,6 +440,22 @@ sub get_populated_fields {
 	return \@fields;
 }
 
+sub insert_message {
+	my ( $self, $submission_id, $user_id, $message ) = @_;
+	eval {
+		$self->{'db'}->do( 'INSERT INTO messages (submission_id,timestamp,user_id,message) VALUES (?,?,?,?)',
+			undef, $submission_id, 'now', $user_id, $message );
+	};
+	if ($@) {
+		$self->{'logger'}->error($@);
+		$self->{'db'}->rollback;
+	} else {
+		$self->{'db'}->commit;
+	}
+	return;
+}
+
+#Appends message to correspondence text file.
 sub append_message {
 	my ( $self, $submission_id, $user_id, $message ) = @_;
 	my $dir = $self->get_submission_dir($submission_id);
@@ -508,7 +536,7 @@ sub check_new_alleles_fasta {
 			}
 		}
 		my $seq_length = length $sequence;
-		my $units = $locus_info->{'data_type'} eq 'DNA' ? 'bp' : 'residues';
+		my $units      = $locus_info->{'data_type'} eq 'DNA' ? 'bp' : 'residues';
 		if ( !$options->{'ignore_length'} ) {
 			if ( !$locus_info->{'length_varies'} && $seq_length != $locus_info->{'length'} ) {
 				push @err,
@@ -540,7 +568,7 @@ sub check_new_alleles_fasta {
 				push @info, qq(Sequence "$seq_id" is $check->{'err'});
 			}
 		}
-		my $check = $self->_check_sequence_similarity( $locus, \$sequence );
+		my $check      = $self->_check_sequence_similarity( $locus, \$sequence );
 		my $display_id = BIGSdb::Utils::escape_html($seq_id);
 		if ( !$check->{'similar'} ) {
 			push @info,
@@ -594,7 +622,7 @@ sub check_new_profiles {
 	my ( $self, $scheme_id, $set_id, $profiles_csv_ref ) = @_;
 	my @err;
 	my @profiles;
-	my @rows = split /\n/x, $$profiles_csv_ref;
+	my @rows       = split /\n/x, $$profiles_csv_ref;
 	my $header_row = shift @rows;
 	$header_row //= q();
 	my $header_status = $self->_get_profile_header_positions( $header_row, $scheme_id, $set_id );
@@ -606,7 +634,7 @@ sub check_new_profiles {
 
 	foreach my $status (qw(missing duplicates)) {
 		if ( $header_status->{$status} ) {
-			my $list = $header_status->{$status};
+			my $list   = $header_status->{$status};
 			my $plural = @$list == 1 ? 'us' : 'i';
 			local $" = q(, );
 			push @err, "$err_message{$status} loc$plural: @$list.";
@@ -636,18 +664,33 @@ sub check_new_profiles {
 				$values[$i] =~ s/\s*$//x;
 				$values[$i] =~ s/"//gx;
 				next if !$field_by_pos{$i} || $field_by_pos{$i} eq 'id';
-				if ( $values[$i] eq q(N) && !$scheme_info->{'allow_missing_loci'} ) {
-					push @err, "$row_id: Arbitrary values (N) are not allowed for locus $field_by_pos{$i}.";
-				} elsif ( $values[$i] eq q() ) {
+				if ( $values[$i] eq q() ) {
 					push @err, "$row_id: No value for locus $field_by_pos{$i}.";
-				} else {
-					my $allele_exists = $self->{'datastore'}->sequence_exists( $field_by_pos{$i}, $values[$i] );
-					push @err, "$row_id: $field_by_pos{$i}:$values[$i] has not been defined." if !$allele_exists;
-					$designations->{ $field_by_pos{$i} } = $values[$i];
+					next;
 				}
+				my $allele_exists = $self->{'datastore'}->sequence_exists( $field_by_pos{$i}, $values[$i] );
+				if ( !$scheme_info->{'allow_missing_loci'} ) {
+					if ( $values[$i] eq q(N) ) {
+						push @err, "$row_id: Arbitrary values (N) are not allowed for locus $field_by_pos{$i}.";
+						next;
+					} elsif ( $values[$i] eq q(0) ) {
+						push @err, "$row_id: Missing values (0) are not allowed for locus $field_by_pos{$i}.";
+						next;
+					}
+				} elsif ( !$allele_exists && ( $values[$i] eq q(N) || $values[$i] eq q(0) ) ) {
+					$self->{'datastore'}->define_missing_allele( $field_by_pos{$i}, $values[$i] );
+					$allele_exists = 1;
+				}
+				if ( !$allele_exists ) {
+					push @err, "$row_id: $field_by_pos{$i}:$values[$i] has not been defined." if !$allele_exists;
+				}
+				$designations->{ $field_by_pos{$i} } = $values[$i];
 			}
-			my $profile_status = $self->{'datastore'}->check_new_profile( $scheme_id, $designations );
-			push @err, "$row_id: $profile_status->{'msg'}" if $profile_status->{'exists'};
+			if ( !@err ) {
+				my $profile_status = $self->{'datastore'}->check_new_profile( $scheme_id, $designations );
+				push @err, "$row_id: $profile_status->{'msg'}"
+				  if $profile_status->{'exists'} || $profile_status->{'err'};
+			}
 			push @profiles, { id => $row_id, %$designations };
 			$row_number++;
 		}
@@ -661,7 +704,7 @@ sub _get_profile_header_positions {
 	my ( $self, $header_row, $scheme_id, $set_id ) = @_;
 	$header_row =~ s/\s*$//x;
 	my ( @missing, @duplicates, %positions );
-	my $loci = $self->{'datastore'}->get_scheme_loci($scheme_id);
+	my $loci   = $self->{'datastore'}->get_scheme_loci($scheme_id);
 	my @header = split /\t/x, $header_row;
 	foreach my $locus (@$loci) {
 		for my $i ( 0 .. @header - 1 ) {
@@ -713,6 +756,10 @@ sub check_new_isolates {
 			$row =~ s/\s*$//x;
 			next if !$row;
 			$row_number++;
+			if ( $options->{'limit'} && $row_number > $options->{'limit'} ) {
+				push @err, "Record limit reached - please only submit up to $options->{'limit'} records at a time.";
+				last;
+			}
 			my @values = split /\t/x, $row;
 			my $row_id =
 			  defined $positions->{ $self->{'system'}->{'labelfield'} }
@@ -744,13 +791,13 @@ sub _get_isolate_header_positions {
 	$options = {} if ref $options ne 'HASH';
 	$header_row =~ s/\s*$//x;
 	my ( @unrecognized, @missing, @duplicates, %positions );
-	my @header = split /\t/x, $header_row;
+	my @header            = split /\t/x, $header_row;
 	my %not_accounted_for = map { $_ => 1 } @header;
 	for my $i ( 0 .. @header - 1 ) {
 		push @duplicates, $header[$i] if defined $positions{ $header[$i] };
 		$positions{ $header[$i] } = $i;
 	}
-	my $ret = { positions => \%positions };
+	my $ret    = { positions => \%positions };
 	my $fields = $self->{'xmlHandler'}->get_field_list;
 	if ( $options->{'genomes'} ) {
 		push @$fields, REQUIRED_GENOME_FIELDS;
@@ -763,7 +810,8 @@ sub _get_isolate_header_positions {
 		delete $not_accounted_for{$field};
 	}
 	foreach my $heading (@header) {
-		next if $self->{'datastore'}->is_locus($heading);
+		next if $self->{'datastore'}->is_locus( $heading, { set_id => $set_id } );
+		next if $self->_is_set_locus_name( $set_id, $heading );
 		next if $self->{'datastore'}->is_eav_field($heading);
 		next if $heading eq 'references';
 		next if $heading eq 'codon_table';
@@ -774,6 +822,13 @@ sub _get_isolate_header_positions {
 	$ret->{'duplicates'}   = [ uniq @duplicates ] if @duplicates;
 	$ret->{'unrecognized'} = \@unrecognized       if @unrecognized;
 	return $ret;
+}
+
+sub _is_set_locus_name {
+	my ( $self, $set_id, $value ) = @_;
+	return if !$set_id;
+	return $self->{'datastore'}
+	  ->run_query( 'SELECT EXISTS(SELECT * FROM set_loci WHERE (set_id,set_name)=(?,?))', [ $set_id, $value ] );
 }
 
 sub _strip_trailing_spaces {
@@ -802,7 +857,7 @@ sub _check_pubmed_ids {
 sub _check_aliases {
 	my ( $self, $positions, $values, $error ) = @_;
 	if ( defined $positions->{'aliases'} && $values->[ $positions->{'aliases'} ] ) {
-		my @aliases = split /;/x, $values->[ $positions->{'aliases'} ];
+		my @aliases    = split /;/x, $values->[ $positions->{'aliases'} ];
 		my %null_terms = map { lc($_) => 1 } NULL_TERMS;
 		foreach my $alias (@aliases) {
 			if ( $alias eq $values->[ $positions->{ $self->{'system'}->{'labelfield'} } ] ) {
@@ -821,11 +876,11 @@ sub _check_aliases {
 sub _check_codon_table {
 	my ( $self, $positions, $values, $error ) = @_;
 	return
-	     if !defined $positions->{'codon_table'}
+		 if !defined $positions->{'codon_table'}
 	  || !defined $values->[ $positions->{'codon_table'} ]
 	  || $values->[ $positions->{'codon_table'} ] eq q();
 	return if ( $self->{'system'}->{'alternative_codon_tables'} // q() ) ne 'yes';
-	my $tables = Bio::Tools::CodonTable->tables;
+	my $tables  = Bio::Tools::CodonTable->tables;
 	my %allowed = map { $_ => 1 } keys %$tables;
 	if ( !$allowed{ $values->[ $positions->{'codon_table'} ] } ) {
 		push @$error, 'codon_table - invalid table selected.';
@@ -833,30 +888,48 @@ sub _check_codon_table {
 	return;
 }
 
+sub _get_required_genome_fields {
+	my ($self) = @_;
+	if ( !$self->{'cache'}->{'required_genome_fields'} ) {
+		my $fields      = [];
+		my $prov_fields = $self->{'xmlHandler'}->get_field_list;
+		my $atts        = $self->{'xmlHandler'}->get_all_field_attributes;
+		foreach my $field (@$prov_fields) {
+			push @$fields, $field if ( $atts->{$field}->{'required'} // q() ) eq 'genome_required';
+		}
+		push @$fields, REQUIRED_GENOME_FIELDS;
+		$self->{'cache'}->{'required_genome_fields'} = $fields;
+	}
+	return $self->{'cache'}->{'required_genome_fields'};
+}
+
 sub _check_isolate_record {
 	my ( $self, $set_id, $positions, $values, $options ) = @_;
 	$options = {} if ref $options ne 'HASH';
-	my $fields = $self->{'xmlHandler'}->get_field_list;
+	my $provenance_fields = $self->{'xmlHandler'}->get_field_list;
+	my $fields            = [@$provenance_fields];
 	push @$fields, @{ $self->{'datastore'}->get_eav_fieldnames };
 	push @$fields, REQUIRED_GENOME_FIELDS if $options->{'genomes'};
 	my %do_not_include = map { $_ => 1 } qw(id sender curator date_entered datestamp);
 	my ( @missing, @error );
 	my $isolate = {};
 	$self->_strip_trailing_spaces($values);
+	my $required_genome_fields = $self->_get_required_genome_fields;
+	my %required_genome_fields = map { $_ => 1 } @$required_genome_fields;
 
 	foreach my $field (@$fields) {
 		next if $do_not_include{$field};
 		next if !defined $positions->{$field};
 		my $att = $self->{'xmlHandler'}->get_field_attributes($field);
-		$att->{'required'} = 'yes' if ( any { $field eq $_ } REQUIRED_GENOME_FIELDS ) && $options->{'genomes'};
-		$att->{'required'} = 'no' if $self->{'datastore'}->is_eav_field($field);
+		$att->{'required'} = 'yes' if $required_genome_fields{$field} && $options->{'genomes'};
+		$att->{'required'} = 'no'  if $self->{'datastore'}->is_eav_field($field);
 		if (  !( ( $att->{'required'} // 'yes' ) ne 'yes' )
 			&& ( !defined $values->[ $positions->{$field} ] || $values->[ $positions->{$field} ] eq '' ) )
 		{
 			push @missing, $field;
 		} else {
-			my $value = $values->[ $positions->{$field} ] // '';
-			my $status = $self->is_field_bad( 'isolates', $field, $value, undef, $set_id );
+			my $value  = $values->[ $positions->{$field} ] // '';
+			my $status = $self->is_field_bad( 'isolates', $field, $value, undef, $set_id, $options );
 			push @error, "$field: $status" if $status;
 		}
 	}
@@ -872,7 +945,7 @@ sub _check_isolate_record {
 			push @error, "locus $heading: doesn't match the required format";
 		}
 	}
-	my %newdata = map { $_ => $values->[ $positions->{$_} ] } keys %$positions;
+	my %newdata             = map { $_ => $values->[ $positions->{$_} ] } keys %$positions;
 	my $validation_failures = $self->run_validation_checks( \%newdata );
 	if (@$validation_failures) {
 		foreach my $failure (@$validation_failures) {
@@ -889,16 +962,16 @@ sub _check_isolate_record {
 }
 
 sub is_field_bad {
-	my ( $self, $table, $fieldname, $value, $flag, $set_id ) = @_;
+	my ( $self, $table, $fieldname, $value, $flag, $set_id, $options ) = @_;
 	if ( $self->{'system'}->{'dbtype'} eq 'isolates' && $table eq 'isolates' ) {
-		return $self->_is_field_bad_isolates( $fieldname, $value, $flag, $set_id );
+		return $self->_is_field_bad_isolates( $fieldname, $value, $flag, $set_id, $options );
 	} else {
 		return $self->_is_field_bad_other( $table, $fieldname, $value, $flag, $set_id );
 	}
 }
 
 sub _is_field_bad_isolates {
-	my ( $self, $fieldname, $value, $flag, $set_id ) = @_;
+	my ( $self, $fieldname, $value, $flag, $set_id, $options ) = @_;
 	$value //= q();
 	$flag  //= q();
 	if ( $flag eq 'update' ) {
@@ -933,9 +1006,16 @@ sub _is_field_bad_isolates {
 	$thisfield->{'required'} //= 'yes';
 	my %optional_fields = map { $_ => 1 } qw(aliases codon_table references assembly_filename sequence_method);
 	if ( $value eq '' ) {
-		if ( $optional_fields{$fieldname} || ( $thisfield->{'required'} eq 'no' ) ) {
+		if (
+			$optional_fields{$fieldname}
+			|| ( $thisfield->{'required'} eq 'no'
+				|| ( $thisfield->{'required'} =~ /^genome/x && !$options->{'genomes'} ) )
+		  )
+		{
 			return;
-		} elsif ( $thisfield->{'required'} eq 'expected' ) {
+		} elsif ( $thisfield->{'required'} eq 'expected'
+			|| ( $thisfield->{'required'} eq 'genome_expected' && $options->{'genomes'} ) )
+		{
 			return q(is an expected field and cannot be left blank. Enter 'null' if value is unknown.);
 		} else {
 			return 'is a required field and cannot be left blank.';
@@ -947,13 +1027,13 @@ sub _is_field_bad_isolates {
 	my @insert_checks = qw(date_entered id_exists);
 	foreach my $insert_check (@insert_checks) {
 		next if !( ( $flag // q() ) eq 'insert' );
-		my $method = "_check_isolate_$insert_check";
+		my $method  = "_check_isolate_$insert_check";
 		my $message = $self->$method( $fieldname, $value );
 		return $message if $message;
 	}
 	my @checks = qw(sender regex datestamp integer date float boolean geography_point optlist length optional);
 	foreach my $check (@checks) {
-		my $method = "_check_isolate_$check";
+		my $method  = "_check_isolate_$check";
 		my $message = $self->$method( $fieldname, $value );
 		return $message if $message;
 	}
@@ -967,9 +1047,12 @@ sub run_validation_checks {
 	}
 	my $failures = [];
 	foreach my $rule ( @{ $self->{'validation_rules'} } ) {
-		if ( $rule->{'sub'}->($values) ) {
-			push @$failures, $rule->{'failure_message'};
-		}
+		eval {
+			if ( $rule->{'sub'}->($values) ) {
+				push @$failures, $rule->{'failure_message'};
+			}
+		};
+		$logger->error($@) if $@;
 	}
 	return $failures;
 }
@@ -1050,7 +1133,7 @@ sub _null_condition_sub {
 	my ( $self, $condition ) = @_;
 	return sub {
 		my ($values) = @_;
-		my $value = $values->{ $condition->{'field'} } //= q();
+		my $value    = $values->{ $condition->{'field'} } //= q();
 		if ( $condition->{'operator'} eq '=' ) {
 			if ( ref $value ) {
 				return @$value > 0 ? 0 : 1;
@@ -1300,20 +1383,22 @@ sub _check_isolate_sender {    ## no critic (ProhibitUnusedPrivateSubroutines) #
 	return;
 }
 
-sub _check_isolate_regex {     ## no critic (ProhibitUnusedPrivateSubroutines) #Called by dispatch table
+sub _check_isolate_regex {    ## no critic (ProhibitUnusedPrivateSubroutines) #Called by dispatch table
 	my ( $self, $field, $value ) = @_;
 	my $thisfield = $self->{'cache'}->{'field_attributes'}->{$field};
 	$logger->error("$field attributes not cached") if !$thisfield;
-	return if !$thisfield->{'regex'};
+	return                                         if !$thisfield->{'regex'};
 	if ( ( $thisfield->{'multiple'} // q() ) eq 'yes' && !ref $value ) {
 		$value = [ split /;/x, $value ];
 		s/^\s+|\s+$//gx foreach @$value;
 	}
 	my @values = ref $value ? @$value : ($value);
 	foreach my $this_value (@values) {
-		if ( $this_value !~ /^$thisfield->{'regex'}$/x ) {
+		$this_value =~ s/^\s+|\s+$//gx;
+		next if $thisfield->{'required'} =~ /expected/x && lc($value) eq 'null';
+		if ( $this_value !~ /$thisfield->{'regex'}/x ) {
 			if ( !( $thisfield->{'required'} eq 'no' && $value eq q() ) ) {
-				return 'does not conform to the required formatting.';
+				return "does not conform to the required formatting (Regex is: $thisfield->{'regex'}).";
 			}
 		}
 	}
@@ -1342,9 +1427,9 @@ sub _check_isolate_date_entered {    ## no critic (ProhibitUnusedPrivateSubrouti
 }
 
 #Make sure id number has not been used previously
-sub _check_isolate_id_exists {       ## no critic (ProhibitUnusedPrivateSubroutines) #Called by dispatch table
+sub _check_isolate_id_exists {    ## no critic (ProhibitUnusedPrivateSubroutines) #Called by dispatch table
 	my ( $self, $field, $value ) = @_;
-	return if $field ne 'id';
+	return                            if $field ne 'id';
 	return "$value is not an integer" if !BIGSdb::Utils::is_int($value);
 	my $exists = $self->{'datastore'}->run_query( 'SELECT EXISTS(SELECT * FROM isolates WHERE id=?)',
 		$value, { cache => 'CuratePage::is_field_bad_isolates::id_exists' } );
@@ -1363,14 +1448,14 @@ sub _check_isolate_integer {    ## no critic (ProhibitUnusedPrivateSubroutines) 
 	my ( $self, $field, $value ) = @_;
 	my $thisfield = $self->{'cache'}->{'field_attributes'}->{$field};
 	$logger->error("$field attributes not cached") if !$thisfield;
-	return if $thisfield->{'type'} !~ /^int/x;
+	return                                         if $thisfield->{'type'} !~ /^int/x;
 	if ( ( $thisfield->{'multiple'} // q() ) eq 'yes' && !ref $value ) {
 		$value = [ split /;/x, $value ];
 		s/^\s+|\s+$//gx foreach @$value;
 	}
 	my @values = ref $value ? @$value : ($value);
 	foreach my $this_value (@values) {
-		if ( !BIGSdb::Utils::is_int($this_value) ) { return 'must be an integer' }
+		if    ( !BIGSdb::Utils::is_int($this_value) ) { return 'must be an integer' }
 		elsif ( defined $thisfield->{'min'} && $this_value < $thisfield->{'min'} ) {
 			return "must be equal to or larger than $thisfield->{'min'}";
 		} elsif ( defined $thisfield->{'max'} && $this_value > $thisfield->{'max'} ) {
@@ -1384,7 +1469,7 @@ sub _check_isolate_date {    ## no critic (ProhibitUnusedPrivateSubroutines) #Ca
 	my ( $self, $field, $value ) = @_;
 	my $thisfield = $self->{'cache'}->{'field_attributes'}->{$field};
 	$logger->error("$field attributes not cached") if !$thisfield;
-	return if $thisfield->{'type'} ne 'date';
+	return                                         if $thisfield->{'type'} ne 'date';
 	if ( ( $thisfield->{'multiple'} // q() ) eq 'yes' && !ref $value ) {
 		$value = [ split /;/x, $value ];
 		s/^\s+|\s+$//gx foreach @$value;
@@ -1408,7 +1493,7 @@ sub _check_isolate_float {    ## no critic (ProhibitUnusedPrivateSubroutines) #C
 	my ( $self, $field, $value ) = @_;
 	my $thisfield = $self->{'cache'}->{'field_attributes'}->{$field};
 	$logger->error("$field attributes not cached") if !$thisfield;
-	return if $thisfield->{'type'} ne 'float';
+	return                                         if $thisfield->{'type'} ne 'float';
 	if ( ( $thisfield->{'multiple'} // q() ) eq 'yes' && !ref $value ) {
 		$value = [ split /;/x, $value ];
 		s/^\s+|\s+$//gx foreach @$value;
@@ -1430,7 +1515,7 @@ sub _check_isolate_boolean {    ## no critic (ProhibitUnusedPrivateSubroutines) 
 	my ( $self, $field, $value ) = @_;
 	my $thisfield = $self->{'cache'}->{'field_attributes'}->{$field};
 	$logger->error("$field attributes not cached") if !$thisfield;
-	return if $thisfield->{'type'} !~ /^bool/x;
+	return                                         if $thisfield->{'type'} !~ /^bool/x;
 	if ( $thisfield->{'type'} =~ /^bool/x && !BIGSdb::Utils::is_bool($value) ) {
 		return 'must be a valid boolean value - true, false, 1, or 0';
 	}
@@ -1441,7 +1526,7 @@ sub _check_isolate_geography_point {    ## no critic (ProhibitUnusedPrivateSubro
 	my ( $self, $field, $value ) = @_;
 	my $thisfield = $self->{'cache'}->{'field_attributes'}->{$field};
 	$logger->error("$field attributes not cached") if !$thisfield;
-	return if $thisfield->{'type'} ne 'geography_point';
+	return                                         if $thisfield->{'type'} ne 'geography_point';
 	if ( $value =~ /^\s*(\-?\d+\.?\d*)\s*,\s*(\-?\d+\.?\d*)\s*$/x ) {
 		my ( $lat, $long ) = ( $1, $2 );
 		if ( defined $lat && !defined $long ) {
@@ -1460,8 +1545,8 @@ sub _check_isolate_optlist {    ## no critic (ProhibitUnusedPrivateSubroutines) 
 	my ( $self, $field, $value ) = @_;
 	my $thisfield = $self->{'cache'}->{'field_attributes'}->{$field};
 	$logger->error("$field attributes not cached") if !$thisfield;
-	$thisfield->{'optlist'} = 'yes' if $field eq 'sequence_method';
-	return if ( $thisfield->{'optlist'} // q() ) ne 'yes';
+	$thisfield->{'optlist'} = 'yes'                if $field eq 'sequence_method';
+	return                                         if ( $thisfield->{'optlist'} // q() ) ne 'yes';
 	my $options;
 	if ( $self->{'cache'}->{'field_attributes'}->{$field}->{'option_list_values'} ) {
 		$options = $self->{'cache'}->{'field_attributes'}->{$field}->{'option_list_values'};
@@ -1551,20 +1636,20 @@ sub _is_field_bad_other {
 	$thisfield->{'type'} ||= 'text';
 	my @checks_by_attribute = qw(required integer boolean float regex optlist length);
 	foreach my $check (@checks_by_attribute) {
-		my $method = "_check_other_$check";
+		my $method  = "_check_other_$check";
 		my $message = $self->$method( $thisfield, $value );
 		return $message if $message;
 	}
 	my @checks_by_fieldname = qw(sender datestamp);
 	foreach my $check (@checks_by_fieldname) {
-		my $method = "_check_other_$check";
+		my $method  = "_check_other_$check";
 		my $message = $self->$method( $fieldname, $value );
 		return $message if $message;
 	}
 	my @insert_checks = qw(date_entered);
 	foreach my $insert_check (@insert_checks) {
 		next if !( ( $flag // q() ) eq 'insert' );
-		my $method = "_check_other_$insert_check";
+		my $method  = "_check_other_$insert_check";
 		my $message = $self->$method( $fieldname, $value );
 		return $message if $message;
 	}
@@ -1629,7 +1714,7 @@ sub _check_other_integer {    ## no critic (ProhibitUnusedPrivateSubroutines) #C
 }
 
 #Make sure floats fields really are floats
-sub _check_other_float {      ## no critic (ProhibitUnusedPrivateSubroutines) #Called by dispatch table
+sub _check_other_float {    ## no critic (ProhibitUnusedPrivateSubroutines) #Called by dispatch table
 	my ( $self, $thisfield, $value ) = @_;
 	return if !defined $value || $value eq q();
 	if ( $thisfield->{'type'} eq 'float' && !BIGSdb::Utils::is_float($value) ) {
@@ -1649,7 +1734,7 @@ sub _check_other_boolean {    ## no critic (ProhibitUnusedPrivateSubroutines) #C
 }
 
 #Make sure sender is in database
-sub _check_other_sender {     ## no critic (ProhibitUnusedPrivateSubroutines) #Called by dispatch table
+sub _check_other_sender {    ## no critic (ProhibitUnusedPrivateSubroutines) #Called by dispatch table
 	my ( $self, $field, $value ) = @_;
 	if ( $field eq 'sender' or $field eq 'sequenced_by' ) {
 		my $exists = $self->{'datastore'}->run_query( 'SELECT EXISTS(SELECT * FROM users WHERE id=?)',
@@ -1666,9 +1751,9 @@ sub _check_other_sender {     ## no critic (ProhibitUnusedPrivateSubroutines) #C
 sub _check_other_regex {    ## no critic (ProhibitUnusedPrivateSubroutines) #Called by dispatch table
 	my ( $self, $thisfield, $value ) = @_;
 	return if !$thisfield->{'regex'};
-	if ( $value !~ /^$thisfield->{regex}$/x ) {
+	if ( $value !~ /$thisfield->{regex}/x ) {
 		if ( $thisfield->{'required'} && $value ne q() ) {
-			return 'does not conform to the required formatting.';
+			return "does not conform to the required formatting. Regex is: $thisfield->{regex}";
 		}
 	}
 	return;
@@ -1768,10 +1853,10 @@ sub email {
 	foreach (qw(sender recipient message)) {
 		$logger->logdie("No $_") if !$params->{$_};
 	}
-	my $domain     = $self->{'config'}->{'domain'} // DEFAULT_DOMAIN;
+	my $domain         = $self->{'config'}->{'domain'}                  // DEFAULT_DOMAIN;
 	my $sender_address = $self->{'config'}->{'automated_email_address'} // "no_reply\@$domain";
-	my $sender     = $self->{'datastore'}->get_user_info( $params->{'sender'} );
-	my $recipient  = $self->{'datastore'}->get_user_info( $params->{'recipient'} );
+	my $sender         = $self->{'datastore'}->get_user_info( $params->{'sender'} );
+	my $recipient      = $self->{'datastore'}->get_user_info( $params->{'recipient'} );
 	foreach my $user ( $sender, $recipient ) {
 		my $address = Email::Valid->address( $user->{'email'} );
 		if ( !$address ) {
@@ -1779,7 +1864,7 @@ sub email {
 			return;
 		}
 	}
-	my $subject = qq([$sender->{'email'}] ) . ( $params->{'subject'} // "Submission#$submission_id" );
+	my $subject   = qq([$sender->{'email'}] ) . ( $params->{'subject'} // "Submission#$submission_id" );
 	my $transport = Email::Sender::Transport::SMTP->new(
 		{ host => $self->{'config'}->{'smtp_server'} // 'localhost', port => $self->{'config'}->{'smtp_port'} // 25, }
 	);
@@ -1814,14 +1899,15 @@ sub _get_digest_summary {
 	my ( $self, $submission_id, $options ) = @_;
 	my $submission = $self->get_submission($submission_id);
 	my %methods    = (
-		alleles  => '_get_allele_submission_summary',
-		profiles => '_get_profile_submission_summary',
-		isolates => '_get_isolate_submission_summary',
-		genomes  => '_get_genome_submission_summary'
+		alleles    => '_get_allele_submission_summary',
+		profiles   => '_get_profile_submission_summary',
+		isolates   => '_get_isolate_submission_summary',
+		genomes    => '_get_genome_submission_summary',
+		assemblies => '_get_assembly_submission_summary'
 	);
 	my $msg = q();
 	if ( $methods{ $submission->{'type'} } ) {
-		my $method = $methods{ $submission->{'type'} };
+		my $method  = $methods{ $submission->{'type'} };
 		my $summary = $self->$method( $submission_id, { single_line => 1 } );
 		$msg = $summary if $summary;
 	}
@@ -1839,7 +1925,10 @@ sub get_text_summary {
 		datestamp      => 'Last updated',
 		status         => 'Status',
 	);
-	my $msg = $self->_get_text_heading('Submission status');
+	my $msg =
+		'This message is sent from an automated account, please do not reply directly. If you wish to '
+	  . "add any correspondence then please enter this using the message box on the submission page.\n\n";
+	$msg .= $self->_get_text_heading('Submission status');
 	foreach my $field (qw (id type date_submitted datestamp status)) {
 		$msg .= "$fields{$field}: $submission->{$field}\n";
 	}
@@ -1891,7 +1980,7 @@ sub get_text_summary {
 	return $msg;
 }
 
-sub _get_curators {
+sub get_curators {
 	my ( $self, $submission_id ) = @_;
 	my $submission = $self->get_submission($submission_id);
 	return [] if !$submission;
@@ -1935,7 +2024,7 @@ sub _get_curators {
 sub curator_wants_digests {
 	my ( $self, $curator_id ) = @_;
 	my $curator_username = $self->{'datastore'}->run_query( 'SELECT user_name FROM users WHERE id=?', $curator_id );
-	my $curator_info = $self->{'datastore'}->get_user_info_from_username($curator_username);
+	my $curator_info     = $self->{'datastore'}->get_user_info_from_username($curator_username);
 	return $curator_info->{'submission_digests'} && $curator_info->{'user_db'};
 }
 
@@ -1943,10 +2032,15 @@ sub notify_curators {
 	my ( $self, $submission_id ) = @_;
 	return if !$self->{'config'}->{'smtp_server'};
 	my $submission = $self->get_submission($submission_id);
-	my $curators   = $self->_get_curators($submission_id);
+	my $curators   = $self->get_curators($submission_id);
 	foreach my $curator_id (@$curators) {
+		my $curator_configs =
+		  $self->{'datastore'}->run_query( 'SELECT dbase_config FROM curator_configs WHERE user_id=?',
+			$curator_id, { fetch => 'col_arrayref' } );
+		my %curator_configs = map { $_ => 1 } @$curator_configs;
+		next if keys %curator_configs && !$curator_configs{ $self->{'instance'} };
 		if ( $self->curator_wants_digests($curator_id) ) {
-			my $message = $self->_get_digest_summary( $submission_id, { messages => 1 } );
+			my $message        = $self->_get_digest_summary( $submission_id, { messages => 1 } );
 			my $submitter_name = $self->{'datastore'}->get_user_string( $submission->{'submitter'} );
 			my $curator_username =
 			  $self->{'datastore'}->run_query( 'SELECT user_name FROM users WHERE id=?', $curator_id );
@@ -1974,7 +2068,7 @@ sub notify_curators {
 			next;
 		}
 		next if !$self->can_email_curator($curator_id);
-		my $desc = $self->{'system'}->{'description'} || 'BIGSdb';
+		my $desc    = $self->{'system'}->{'description'} || 'BIGSdb';
 		my $message = qq(This message has been sent to curators/admins of the $desc database with privileges )
 		  . qq(required to curate this submission.\n\n);
 		my $user_info = $self->{'datastore'}->get_user_info($curator_id);
@@ -1983,7 +2077,7 @@ sub notify_curators {
 			&& $self->{'config'}->{'registration_address'} )
 		{
 			$message .=
-			    q(If you are receiving too many of these messages, please note that you can choose to receive )
+				q(If you are receiving too many of these messages, please note that you can choose to receive )
 			  . q(summary digests instead. You can update the frequency of digests or suspend them for a period )
 			  . qq(of time from the account settings page ($self->{'config'}->{'registration_address'}).\n\n);
 		}
@@ -2109,7 +2203,7 @@ sub _get_profile_submission_summary {    ## no critic (ProhibitUnusedPrivateSubr
 	my ( $self, $submission_id, $options ) = @_;
 	my $profile_submission = $self->get_profile_submission($submission_id);
 	return if !$profile_submission;
-	my $scheme_info = $self->{'datastore'}->get_scheme_info( $profile_submission->{'scheme_id'}, { get_pk => 1 } );
+	my $scheme_info   = $self->{'datastore'}->get_scheme_info( $profile_submission->{'scheme_id'}, { get_pk => 1 } );
 	my $profile_count = @{ $profile_submission->{'profiles'} };
 	if ( $options->{'single_line'} ) {
 		return qq(Scheme: $scheme_info->{'name'}; Profiles:$profile_count);
@@ -2144,7 +2238,7 @@ sub _get_isolate_submission_summary {    ## no critic (ProhibitUnusedPrivateSubr
 	return $return_buffer;
 }
 
-sub _get_genome_submission_summary {     ## no critic (ProhibitUnusedPrivateSubroutines) #Called by dispatch table
+sub _get_genome_submission_summary {    ## no critic (ProhibitUnusedPrivateSubroutines) #Called by dispatch table
 	my ( $self, $submission_id, $options ) = @_;
 	my $isolate_submission = $self->get_isolate_submission($submission_id);
 	my $isolate_count      = @{ $isolate_submission->{'isolates'} };
@@ -2153,6 +2247,18 @@ sub _get_genome_submission_summary {     ## no critic (ProhibitUnusedPrivateSubr
 	}
 	my $return_buffer = $self->_get_text_heading( 'Data summary', { blank_line_before => 1 } );
 	$return_buffer .= "Isolate count: $isolate_count\n";
+	return $return_buffer;
+}
+
+sub _get_assembly_submission_summary {    ## no critic (ProhibitUnusedPrivateSubroutines) #Called by dispatch table
+	my ( $self, $submission_id, $options ) = @_;
+	my $assembly_submission = $self->get_assembly_submission($submission_id);
+	my $assembly_count      = @$assembly_submission;
+	if ( $options->{'single_line'} ) {
+		return qq(Assemblies: $assembly_count);
+	}
+	my $return_buffer = $self->_get_text_heading( 'Data summary', { blank_line_before => 1 } );
+	$return_buffer .= "Assembly count: $assembly_count\n";
 	return $return_buffer;
 }
 
@@ -2187,8 +2293,7 @@ sub calc_assembly_stats {
 		} else {
 			$contigs = BIGSdb::Utils::read_fasta($fasta);
 		}
-	}
-	catch {
+	} catch {
 		$logger->error($_);
 		$error = 1;
 	};

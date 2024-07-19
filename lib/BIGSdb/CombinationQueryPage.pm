@@ -1,6 +1,6 @@
 #Written by Keith Jolley
-#Copyright (c) 2010-2021, University of Oxford
-#E-mail: keith.jolley@zoo.ox.ac.uk
+#Copyright (c) 2010-2024, University of Oxford
+#E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
 #
@@ -47,19 +47,26 @@ sub get_help_url {
 }
 
 sub print_content {
-	my ($self) = @_;
-	my $system = $self->{'system'};
-	my $q      = $self->{'cgi'};
+	my ($self)    = @_;
+	my $system    = $self->{'system'};
+	my $q         = $self->{'cgi'};
 	my $scheme_id = $q->param('scheme_id') // 0;
-	my $desc = $self->get_db_description;
+	my $desc      = $self->get_db_description;
 	$self->populate_submission_params;
 	if ( ( $self->{'system'}->{'dbtype'} // q() ) eq 'isolates' ) {
 		if ( $q->param('add_to_project') ) {
 			$self->add_to_project;
 		}
 		if ( $q->param('publish') ) {
+			$self->confirm_publication;
+			return;
+		}
+		if ( $q->param('confirm_publish') ) {
 			$self->publish;
 		}
+#		if ( $q->param('publish') ) {
+#			$self->publish;
+#		}
 	}
 	my $title = $self->get_title;
 	say qq(<h1>$title</h1>);
@@ -104,6 +111,59 @@ sub print_content {
 	return;
 }
 
+sub _loci_have_common_names {
+	my ( $self, $scheme_id ) = @_;
+	if ($scheme_id) {
+		return $self->{'datastore'}->run_query(
+			'SELECT EXISTS(SELECT id FROM loci l JOIN scheme_members sm ON l.id=sm.locus '
+			  . 'WHERE scheme_id=? AND common_name IS NOT NULL)',
+			$scheme_id
+		);
+	}
+	return $self->{'datastore'}->run_query('SELECT EXISTS(SELECT id FROM loci WHERE common_name IS NOT NULL)');
+}
+
+sub _get_show_common_names_button {
+	my ($self) = @_;
+	return
+		q(<span id="common_names_button" style="margin-left:1em;margin-bottom:1em;display:block">)
+	  . q(<a id="show_common_names" class="small_submit" style="cursor:pointer">)
+	  . q(<span id="show_common_names_text" style="display:inline"><span class="fa fas fa-eye"></span> )
+	  . q(Show</span><span id="hide_common_names_text" style="display:none">)
+	  . q(<span class="fa fas fa-eye-slash"></span> Hide</span> )
+	  . q(common names</a></span>);
+}
+
+sub get_javascript {
+	my ($self) = @_;
+	my $buffer   = $self->SUPER::get_javascript;
+	$buffer .= << "END";
+\$(function () {
+	\$( "#show_common_names" ).click(function() {
+		if (\$("span#show_common_names_text").css('display') == 'none'){
+			\$("span#show_common_names_text").css('display', 'inline');
+			\$("span#hide_common_names_text").css('display', 'none');
+		} else {
+			\$("span#show_common_names_text").css('display', 'none');
+			\$("span#hide_common_names_text").css('display', 'inline');
+		}
+		\$("span.locus_common_name").toggle();
+		set_profile_widths();
+	});
+	\$("dl.profile input").css("border","0");
+});
+function set_profile_widths(){
+	\$("dl.profile dt").css("width","auto").css("max-width","none");
+	var maxWidth = Math.max.apply( null, \$("dl.profile dt").map( function () {
+    	return \$(this).outerWidth(true);
+	}).get() );
+	\$("dl.profile dt").css("width",'calc(' + maxWidth + 'px - 1em)')
+		.css("max-width",'calc(' + maxWidth + 'px - 1em)');	
+}
+END
+	return $buffer;
+}
+
 sub _autofill {
 	my ( $self, $scheme_id ) = @_;
 	my $scheme_info = $self->{'datastore'}->get_scheme_info( $scheme_id, { get_pk => 1 } );
@@ -125,8 +185,7 @@ sub _autofill {
 				foreach my $locus (@$loci) {
 					$q->param( "l_$locus" => $loci_values->[ $indices->{$locus} ] );
 				}
-			}
-			catch {
+			} catch {
 				if ( $_->isa('BIGSdb::Exception::Database::Configuration') ) {
 					push @errors, 'Error retrieving information from remote database - check configuration.';
 				} else {
@@ -146,15 +205,6 @@ sub _autofill {
 	return \@errors;
 }
 
-sub _get_col_width {
-	my ( $self, $has_pk, $all_integers ) = @_;
-	if ($has_pk) {
-		return $all_integers ? 7 : 4;
-	} else {
-		return $all_integers ? 14 : 7;
-	}
-}
-
 sub _print_interface {
 	my ( $self, $scheme_id ) = @_;
 	my $q = $self->{'cgi'};
@@ -163,18 +213,31 @@ sub _print_interface {
 	my $primary_key = $scheme_info->{'primary_key'};
 	my $set_id      = $self->get_set_id;
 	my $loci =
-	    $scheme_id
+		$scheme_id
 	  ? $self->{'datastore'}->get_scheme_loci($scheme_id)
-	  : $self->{'datastore'}->get_loci( { query_pref => 1, set_id => $set_id } );
+	  : $self->{'datastore'}->get_loci( { query_pref => 1, set_id => $set_id, do_not_order => 1 } );
+	if ( !$scheme_id ) {
+		@$loci = sort @$loci;    #Otherwise it's sorted by scheme order.
+	}
 	my $scheme_fields;
 	$scheme_fields = $self->{'datastore'}->get_scheme_fields($scheme_id) if $scheme_id;
 	my $errors = [];
-
 	if ( $primary_key && $q->param('Autofill') ) {
 		$errors = $self->_autofill( $scheme_id, $loci );
 	}
 	say q(<div class="scrollable">);
+	if ( $self->{'system'}->{'dbtype'} eq 'isolates' && $scheme_info->{'allow_presence'} ) {
+		say q(<p>Note that although this scheme allows profiles to be defined by locus presence )
+		  . q((including incomplete sequences), results here will only include isolates where allele )
+		  . q(designations have been assigned.</p>);
+	}
 	say $q->start_form;
+
+	#Hidden button fires if user presses Enter but it mimics clicking the Search button (which is not
+	#the first button on the page). Otherwise, the 'Autofill' button would be used.
+	say q(<button style="overflow: visible !important; height: 0 !important; width: 0 !important; margin: 0 )
+	  . q(!important; border: 0 !important; padding: 0 !important; display: block !important;" )
+	  . q(type="submit" name="submit" value="Search"></button>);
 	$self->_print_profile_table_fieldset( $scheme_id, $loci );
 	if (
 		$primary_key
@@ -263,6 +326,9 @@ sub _print_profile_table_fieldset {
 	my $q           = $self->{'cgi'};
 	say q(<fieldset id="profile_fieldset" style="float:left"><legend>Please enter your )
 	  . q(allelic profile below. Blank loci will be ignored.</legend>);
+	if ( $self->_loci_have_common_names($scheme_id) ) {
+		say $self->_get_show_common_names_button;
+	}
 	my $all_integers = 1;
 	foreach my $locus (@$loci) {
 		my $locus_info = $self->{'datastore'}->get_locus_info($locus);
@@ -275,21 +341,12 @@ sub _print_profile_table_fieldset {
 	my (%label);
 	foreach my $locus (@$loci) {
 		push @display_loci, "l_$locus";
-		my $cleaned_locus = $self->clean_locus($locus);
+		my $cleaned_locus = $self->clean_locus( $locus, { common_name_class => 'locus_common_name' } );
 		$label{"l_$locus"} = $cleaned_locus;
-		if ( !$scheme_id && $self->{'prefs'}->{'locus_alias'} && $self->{'system'}->{'dbtype'} eq 'isolates' ) {
-			my $locus_aliases = $self->{'datastore'}->get_locus_aliases($locus);
-			foreach my $alias (@$locus_aliases) {
-				my $value = "la_$locus||$alias";
-				push @display_loci, $value;
-				$alias =~ tr/_/ /;
-				$label{$value} = qq($alias<br /><span class="comment">[$cleaned_locus]</span>);
-			}
-		}
 	}
 	my $class = $all_integers ? 'int_entry' : 'allele_entry';
 	foreach my $locus (@display_loci) {
-		say q(<dl class="profile" style="float:left">);
+		say q(<dl class="locus_combinations" style="float:left">);
 		say qq(<dt>$label{$locus}</dt>);
 		say q(<dd style="min-height:initial">);
 		say $q->textfield( -name => $locus, -class => $class, -style => 'text-align:center' );
@@ -323,7 +380,7 @@ sub _generate_query {
 						$1, { fetch => 'col_arrayref' } );
 					local $" = ', ';
 					push @errors,
-					    "Locus $1 has been defined with more than one value (due to an "
+						"Locus $1 has been defined with more than one value (due to an "
 					  . 'alias for this locus also being used). The following alias(es) exist '
 					  . "for this locus: @$aliases";
 					next;
@@ -344,10 +401,18 @@ sub _generate_query {
 				&& !BIGSdb::Utils::is_int( $values{$locus} )
 			)
 			&& !( $scheme_info->{'allow_missing_loci'} && $values{$locus} eq 'N' )
+			&& !( $scheme_info->{'allow_presence'}     && $values{$locus} eq 'P' )
 		  )
 		{
-			my $arbitrary_msg = $scheme_info->{'allow_missing_loci'} ? ' Arbitrary values (N) may also be used.' : '';
-			push @errors, "$locus is an integer field.$arbitrary_msg";
+			my @can_use;
+			push @can_use, 'arbitrary values (N)' if $scheme_info->{'allow_missing_loci'};
+			push @can_use, 'locus presence (P)'   if $scheme_info->{'allow_presence'};
+			my $arbitrary_msg = q();
+			if (@can_use) {
+				local $" = ' and ';
+				$arbitrary_msg = ucfirst(qq(@can_use may also be used.));
+			}
+			push @errors, "$locus is an integer field. $arbitrary_msg";
 			next;
 		}
 		next if $values{$locus} eq '';
@@ -355,6 +420,8 @@ sub _generate_query {
 		my $locus_qry;
 		if ( $values{$locus} eq 'N' ) {
 			$locus_qry = "($table.locus=E'$cleaned_locus'";    #don't match allele_id because it can be anything
+		} elsif ( $values{$locus} eq 'P' ) {
+			$locus_qry = "($table.locus=E'$cleaned_locus' AND ($table.allele_id != '0')";
 		} else {
 			my $arbitrary_clause = $scheme_info->{'allow_missing_loci'} ? q(,'N') : q();
 			$locus_qry =
@@ -377,11 +444,11 @@ sub _generate_query {
 			#not using DISTINCT if we don't need it.
 			my $count_item = $scheme_info->{'allow_missing_loci'} ? 'DISTINCT(ad.locus)' : '*';
 			$create_temp_table =
-			    "CREATE TEMP TABLE count_table AS SELECT $view.id,COUNT($count_item) AS count FROM $view "
+				"CREATE TEMP TABLE count_table AS SELECT $view.id,COUNT($count_item) AS count FROM $view "
 			  . "JOIN allele_designations ad ON $view.id=ad.isolate_id WHERE @lqry GROUP BY $view.id";
 		} else {
 			$create_temp_table =
-			    'CREATE TEMP TABLE count_table AS SELECT pm.profile_id AS id,COUNT(*) AS count FROM profile_members pm '
+				'CREATE TEMP TABLE count_table AS SELECT pm.profile_id AS id,COUNT(*) AS count FROM profile_members pm '
 			  . "WHERE pm.scheme_id=$scheme_id AND (@lqry) GROUP BY pm.profile_id";
 		}
 		$create_temp_table .= ';CREATE INDEX ON count_table(count)';
@@ -390,14 +457,14 @@ sub _generate_query {
 			my $match = $self->{'datastore'}->run_query('SELECT MAX(count) FROM count_table');
 			if ($match) {
 				$required_matches = $match;
-				$msg = $self->_get_match_msg( $match, scalar @lqry );
+				$msg              = $self->_get_match_msg( $match, scalar @lqry );
 			}
 		}
 		if ( $self->{'system'}->{'dbtype'} eq 'isolates' ) {
 			$qry = "SELECT * FROM $view WHERE $view.id IN (SELECT id FROM count_table WHERE count>=$required_matches)";
 		} else {
 			$qry =
-			    "SELECT * FROM $scheme_warehouse WHERE $scheme_warehouse.$scheme_info->{'primary_key'} IN "
+				"SELECT * FROM $scheme_warehouse WHERE $scheme_warehouse.$scheme_info->{'primary_key'} IN "
 			  . "(SELECT id FROM count_table WHERE count>=$required_matches)";
 		}
 	}
@@ -458,7 +525,7 @@ sub _add_query_ordering {
 		$$qry_ref .= " $dir,$view.id;";
 	} else {
 		my $scheme_info = $self->{'datastore'}->get_scheme_info( $scheme_id, { get_pk => 1 } );
-		my $pk_info = $self->{'datastore'}->get_scheme_field_info( $scheme_id, $scheme_info->{'primary_key'} );
+		my $pk_info     = $self->{'datastore'}->get_scheme_field_info( $scheme_id, $scheme_info->{'primary_key'} );
 		my $profile_id_field =
 		  $pk_info->{'type'} eq 'integer'
 		  ? "lpad($scheme_info->{'primary_key'},20,'0')"
@@ -515,7 +582,7 @@ sub _run_query {
 		push @hidden_attributes, $_ foreach qw(scheme matches project_list);
 		my $set_id = $self->get_set_id;
 		my $loci =
-		    $scheme_id
+			$scheme_id
 		  ? $self->{'datastore'}->get_scheme_loci($scheme_id)
 		  : $self->{'datastore'}->get_loci( { query_pref => 1, set_id => $set_id } );
 		foreach my $locus (@$loci) {
@@ -523,7 +590,7 @@ sub _run_query {
 		}
 		push @hidden_attributes, qw(scheme_id matches_list temp_table_file);
 		my $table = $self->{'system'}->{'dbtype'} eq 'isolates' ? $self->{'system'}->{'view'} : 'profiles';
-		my $args = { table => $table, query => $qry, message => $msg, hidden_attributes => \@hidden_attributes };
+		my $args  = { table => $table, query => $qry, message => $msg, hidden_attributes => \@hidden_attributes };
 		$args->{'passed_qry_file'} = $q->param('query_file') if defined $q->param('query_file');
 		$self->paged_display($args);
 	} else {

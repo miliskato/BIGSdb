@@ -1,6 +1,6 @@
 #Written by Keith Jolley
-#Copyright (c) 2010-2022, University of Oxford
-#E-mail: keith.jolley@zoo.ox.ac.uk
+#Copyright (c) 2010-2024, University of Oxford
+#E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
 #
@@ -36,7 +36,8 @@ sub print_content {
 	say q(<h1>Bacterial Isolate Genome Sequence Database (BIGSdb)</h1>);
 	$self->print_about_bigsdb;
 	$self->_print_plugins;
-	$self->_print_software_versions;
+	my $q = $self->{'cgi'};
+	$self->_print_software_versions if $q->param('details');
 	return;
 }
 
@@ -54,7 +55,7 @@ sub print_about_bigsdb {
 <span class="main_icon far fa-copyright fa-3x fa-pull-left"></span>
 <ul style="margin-left:3em">
 <li>Written by Keith Jolley</li>
-<li>Copyright &copy; University of Oxford, 2010-2022.</li>
+<li>Copyright &copy; University of Oxford, 2010-2024.</li>
 <li><a href="http://www.biomedcentral.com/1471-2105/11/595">
 Jolley &amp; Maiden <i>BMC Bioinformatics</i> 2010, <b>11:</b>595</a></li>
 </ul>
@@ -158,7 +159,7 @@ sub _print_plugins {
 				push @authors, $author;
 			}
 		}
-		my $name = defined $attr->{'url'} ? qq{<a href="$attr->{'url'}">$attr->{'name'}</a>} : $attr->{'name'};
+		my $name       = defined $attr->{'url'} ? qq{<a href="$attr->{'url'}">$attr->{'name'}</a>} : $attr->{'name'};
 		my $row_buffer = qq(<td>$name</td><td>@authors</td><td>$attr->{'description'}</td><td>$attr->{'version'}</td>);
 		if ( $disabled_reason{$plugin} ) {
 			$disabled_buffer .= qq(<tr class="td$dtd">$row_buffer<td>$disabled_reason{$plugin}</td></tr>);
@@ -178,7 +179,6 @@ sub _print_plugins {
 			say q(</table>);
 		}
 		say q(</div>);
-		
 		if ($disabled_buffer) {
 			say q(<h3>Disabled plugins</h3>);
 			say q(<div class="scrollable">);
@@ -188,7 +188,6 @@ sub _print_plugins {
 			say q(</table>);
 			say q(</div>);
 		}
-		
 	}
 	say q(</div>);
 	return;
@@ -203,9 +202,8 @@ sub _reason_plugin_disabled {
 		return 'Offline job manager not running.'
 		  if !$self->{'config'}->{'jobs_db'}
 		  && $attr->{'requires'} =~ /offline_jobs/;
-		my %program_name =
-		  ( emboss => 'EMBOSS', mafft => 'MAFFT', muscle => 'MUSCLE', mogrify => 'ImageMagick mogrify' );
-		foreach my $program (qw(emboss muscle mogrify)) {
+		my %program_name = ( emboss => 'EMBOSS', mafft => 'MAFFT', muscle => 'MUSCLE' );
+		foreach my $program (qw(emboss muscle)) {
 			return "$program_name{$program} not installed."
 			  if !$self->{'config'}->{"${program}_path"}
 			  && $attr->{'requires'} =~ /$program/x;
@@ -222,8 +220,11 @@ sub _reason_plugin_disabled {
 	  if (
 		   !( ( $self->{'system'}->{'all_plugins'} // '' ) eq 'yes' )
 		&& $attr->{'system_flag'}
-		&& (  !$self->{'system'}->{ $attr->{'system_flag'} }
-			|| $self->{'system'}->{ $attr->{'system_flag'} } eq 'no' )
+		&& (
+			  !$self->{'system'}->{ $attr->{'system_flag'} }
+			|| $self->{'system'}->{ $attr->{'system_flag'} } eq 'no'
+		)
+		|| ( $attr->{'explicit_enable'} && ( $self->{'system'}->{ $attr->{'system_flag'} } // q() ) ne 'yes' )
 	  );
 	return;
 }
@@ -244,15 +245,15 @@ sub _print_software_versions {
 		say qq(<li>$ENV{'MOD_PERL'}</li>);
 	}
 	my $blast_version = $self->_get_blast_version;
-	if ($blast_version){
+	if ($blast_version) {
 		say qq(<li>BLAST: $blast_version</li>);
 	}
 	my $muscle_version = $self->_get_muscle_version;
-	if ($muscle_version){
+	if ($muscle_version) {
 		say qq(<li>MUSCLE: $muscle_version</li>);
 	}
 	my $mafft_version = $self->_get_mafft_version;
-	if ($mafft_version){
+	if ($mafft_version) {
 		say qq(<li>MAFFT: $mafft_version</li>);
 	}
 	say q(</ul>);
@@ -261,10 +262,14 @@ sub _print_software_versions {
 }
 
 sub _get_blast_version {
-	my ($self) = @_;
-	my $cmd = "$self->{'config'}->{'blast+_path'}/blastn -version";
-	my $version_output = `$cmd`;
-	if ($version_output =~ /blastn:\s([\d\.\+]+)/x){
+	my ($self)       = @_;
+	my $cmd          = "$self->{'config'}->{'blast+_path'}/blastn -version";
+	my $prefix       = BIGSdb::Utils::get_random();
+	my $version_file = "$self->{'config'}->{'secure_tmp_dir'}/$prefix";
+	system "$cmd > $version_file";
+	my $version_output = BIGSdb::Utils::slurp($version_file);
+	unlink $version_file;
+	if ( $$version_output =~ /blastn:\s([\d\.\+]+)/x ) {
 		return $1;
 	}
 	$logger->error('Cannot determine BLAST version');
@@ -274,9 +279,14 @@ sub _get_blast_version {
 sub _get_muscle_version {
 	my ($self) = @_;
 	return if !defined $self->{'config'}->{'muscle_path'};
-	my $cmd = "$self->{'config'}->{'muscle_path'} -version";
-	my $version_output = `$cmd`;
-	if ($version_output =~ /MUSCLE\sv([\d\.]+)/x){
+	my $cmd          = "$self->{'config'}->{'muscle_path'} -version";
+	my $prefix       = BIGSdb::Utils::get_random();
+	my $version_file = "$self->{'config'}->{'secure_tmp_dir'}/$prefix";
+	system "$cmd > $version_file";
+	my $version_output = BIGSdb::Utils::slurp($version_file);
+	unlink $version_file;
+
+	if ( $$version_output =~ /MUSCLE\sv([\d\.]+)/x ) {
 		return $1;
 	}
 	$logger->error('Cannot determine MUSCLE version');
@@ -286,9 +296,14 @@ sub _get_muscle_version {
 sub _get_mafft_version {
 	my ($self) = @_;
 	return if !defined $self->{'config'}->{'mafft_path'};
-	my $cmd = "$self->{'config'}->{'mafft_path'} --version 2>&1";
-	my $version_output = `$cmd`;
-	if ($version_output =~ /v([\d\.]+)/x){
+	my $cmd          = "$self->{'config'}->{'mafft_path'} --version";
+	my $prefix       = BIGSdb::Utils::get_random();
+	my $version_file = "$self->{'config'}->{'secure_tmp_dir'}/$prefix";
+	system "$cmd > $version_file 2>&1";
+	my $version_output = BIGSdb::Utils::slurp($version_file);
+	unlink $version_file;
+
+	if ( $$version_output =~ /v([\d\.]+)/x ) {
 		return $1;
 	}
 	$logger->error('Cannot determine MAFFT version');

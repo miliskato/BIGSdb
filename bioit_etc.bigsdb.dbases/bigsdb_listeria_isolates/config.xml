@@ -14,8 +14,8 @@
  all_plugins="yes"
  microreact_year_field="isolation_date"
  tblastx_tagging="yes"
+ eav_groups="Gene detection|fas fa-search,galaxy report|fas fa-file-medical-alt,Antibiotic resistance|fas fa-angle-right,SPIFinder|fas fa-angle-right,pointfinder|fas fa-pills"
  field_groups="Curation history|fas fa-history,nominative metadata|fas fa-search"
- eav_groups="Gene detection|fas fa-search,galaxy report|fas fa-file-medical-alt"
  user_projects="yes"
  submissions="yes"
  genome_submissions="no"
@@ -23,17 +23,17 @@
 >
 </system>
 <field type="int" required="yes" length="5" maindisplay="yes" comments="primary key">id</field>
-<field type="text" required="yes" length="20" maindisplay="yes" comments="isolate name">isolate</field>
+<field type="text" required="yes" length="40" maindisplay="yes" comments="isolate name">isolate</field>
 <field type="int" required="yes" length="4" maindisplay="no" group ="Curation history" comments="sender unique name, link to users">sender</field>
 <field type="int" required="yes" length="4" maindisplay="no" group ="Curation history" comments="curator who entered data,link to users">curator</field>
-<field type="date" required="yes" length="10" maindisplay="no" group ="Curation history" comments="latest analysis date">latest_analysis_date</field>
-<field type="date" required="yes" length="10" maindisplay="no" group ="Curation history" comments="date first entered">date_entered</field>
-<field type="date" required="yes" length="10" maindisplay="no" group ="Curation history" comments="date last modified">datestamp</field>
-<field type="text" required="yes" length="20" maindisplay="no" group ="Curation history" comments="uploader through Galaxy">uploader</field>
-<field type="text" required="yes" length="20" maindisplay="no" group ="Curation history" comments="validation type">validation_type</field>
-<field type="text" required="yes" length="40" maindisplay="no" group ="Curation history" comments="curator that validated this sample">validation_curator</field>
-<field type="date" required="yes" length="10" maindisplay="no" group ="Curation history" comments="date of curation">validation_date</field>
-<field type="text" required="no" length="60" maindisplay="no" group ="nominative metadata" comments="client name">client_name</field>
+<field type="date" required="no" length="10" maindisplay="no" group ="Curation history" comments="latest analysis date">latest_analysis_date</field>
+<field type="date" required="no" length="10" maindisplay="no" group ="Curation history" comments="date first entered">date_entered</field>
+<field type="date" required="no" length="10" maindisplay="no" group ="Curation history" comments="date last modified">datestamp</field>
+<field type="text" required="no" length="40" maindisplay="no" group ="Curation history" comments="uploader through Galaxy">uploader</field>
+<field type="text" required="no" length="20" maindisplay="no" group ="Curation history" comments="validation type">validation_type</field>
+<field type="text" required="no" length="40" maindisplay="no" group ="Curation history" comments="curator that validated this sample">validation_curator</field>
+<field type="date" required="no" length="10" maindisplay="no" group ="Curation history" comments="date of curation">validation_date</field>
+<field type="text" required="no" length="100" maindisplay="no" group ="nominative metadata" comments="client name">client_name</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="client zip">client_zip</field>
 <field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="sample client reference">sample_client_reference</field>
 <field type="date" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="isolation date">isolation_date</field>
@@ -41,9 +41,9 @@
 <field type="int" required="no" length="2" maindisplay="no" group ="nominative metadata" comments="isolation month">month_of_isolation</field>
 <field type="int" required="no" length="4" maindisplay="no" group ="nominative metadata" comments="isolation year">year_of_isolation</field>
 <field type="text" required="no" length="20" maindisplay="no" group ="nominative metadata" comments="origine">origine</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="patient ID">patient_id</field>
+<field type="text" required="no" length="20" maindisplay="no" group ="nominative metadata" comments="patient ID">patient_id</field>
 <field type="date" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="patient birth date">patient_birth_date</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="client zip">client_zip</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" geography_point_lookup="yes" comments="patient zip">patient_zip</field>
 <field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="province">province</field>
 <field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="region">region</field>
 <field type="float" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="latitude">latitude</field>

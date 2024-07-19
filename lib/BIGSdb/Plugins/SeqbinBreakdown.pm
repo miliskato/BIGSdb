@@ -1,7 +1,7 @@
 #SeqbinBreakdown.pm - SeqbinBreakdown plugin for BIGSdb
 #Written by Keith Jolley
-#Copyright (c) 2010-2021, University of Oxford
-#E-mail: keith.jolley@zoo.ox.ac.uk
+#Copyright (c) 2010-2024, University of Oxford
+#E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
 #
@@ -23,7 +23,7 @@ use warnings;
 use 5.010;
 use parent qw(BIGSdb::Plugin BIGSdb::SeqbinPage);
 use Log::Log4perl qw(get_logger);
-use POSIX qw(ceil lround);
+use POSIX qw(ceil);
 use JSON;
 my $logger = get_logger('BIGSdb.Plugins');
 use BIGSdb::Constants qw(SEQ_METHODS :interface);
@@ -40,7 +40,7 @@ sub get_attributes {
 			{
 				name        => 'Keith Jolley',
 				affiliation => 'University of Oxford, UK',
-				email       => 'keith.jolley@zoo.ox.ac.uk',
+				email       => 'keith.jolley@biology.ox.ac.uk',
 			}
 		],
 		description      => 'Breakdown of sequence bin contig properties',
@@ -53,7 +53,7 @@ sub get_attributes {
 		menutext    => 'Sequence bin breakdown',
 		module      => 'SeqbinBreakdown',
 		url         => "$self->{'config'}->{'doclink'}/data_analysis/seqbin_breakdown.html",
-		version     => '1.7.0',
+		version     => '1.8.2',
 		dbtype      => 'isolates',
 		section     => 'breakdown,postquery',
 		input       => 'query',
@@ -66,7 +66,13 @@ sub get_attributes {
 }
 
 sub get_initiation_values {
-	return { 'jQuery.jstree' => 1, 'jQuery.tablesort' => 1, billboard => 1, tooltips => 1 };
+	return {
+		'jQuery.jstree'      => 1,
+		'jQuery.tablesort'   => 1,
+		'jQuery.multiselect' => 1,
+		billboard            => 1,
+		tooltips             => 1
+	};
 }
 
 sub set_pref_requirements {
@@ -74,6 +80,23 @@ sub set_pref_requirements {
 	$self->{'pref_requirements'} =
 	  { general => 1, main_display => 0, isolate_display => 0, analysis => 1, query_field => 0 };
 	return;
+}
+
+sub get_plugin_javascript {
+	my ($self) = @_;
+	my $buffer = << "END";
+
+\$(function () {
+	\$('#locus,#recommended_schemes').multiselect({
+ 		classes: 'filter',
+ 		menuHeight: 250,
+ 		menuWidth: 400,
+ 		selectedList: 8
+  	}).multiselectfilter();
+});
+
+END
+	return $buffer;
 }
 
 sub run {
@@ -121,8 +144,9 @@ sub run {
 				$q->delete('isolate_paste_list');
 				$q->delete('isolate_id');
 				my $set_id = $self->get_set_id;
-				$params->{'set_id'} = $set_id if $set_id;
+				$params->{'set_id'}      = $set_id if $set_id;
 				$params->{'script_name'} = $self->{'system'}->{'script_name'};
+				$params->{'curate'}      = 1 if $self->{'curate'};
 				my $att       = $self->get_attributes;
 				my $user_info = $self->{'datastore'}->get_user_info_from_username( $self->{'username'} );
 				my $job_id    = $self->{'jobManager'}->add_job(
@@ -183,7 +207,7 @@ sub run_job {
 		$td = $td == 1 ? 2 : 1;
 		$self->_update_totals( $data, $contig_info );
 		$html_message =
-		    qq(<p>Loci selected: $locus_count</p>)
+			qq(<p>Loci selected: $locus_count</p>)
 		  . q(<div class="scrollable">)
 		  . $self->_get_html_table_header($params)
 		  . $html_buffer
@@ -269,7 +293,7 @@ sub _print_interface {
 		$selected_ids = [];
 	}
 	my $seqbin_exists =
-	  $self->{'datastore'}->run_query("SELECT EXISTS(SELECT * FROM sequence_bin WHERE isolate_id IN ($qry))");
+	  $self->{'datastore'}->run_query("SELECT EXISTS(SELECT * FROM seqbin_stats WHERE isolate_id IN ($qry))");
 	if ( !$seqbin_exists ) {
 		$self->print_bad_status(
 			{
@@ -285,8 +309,8 @@ sub _print_interface {
 	say $q->start_form;
 	say q(<div class="flex_container" style="justify-content:left">);
 	$self->print_seqbin_isolate_fieldset( { selected_ids => $selected_ids, isolate_paste_list => 1 } );
-	$self->print_isolates_locus_fieldset( { locus_paste_list => 1 } );
-	$self->print_recommended_scheme_fieldset;
+	$self->print_isolates_locus_fieldset( { locus_paste_list => 1, no_all_none => 1 } );
+	$self->print_recommended_scheme_fieldset( { no_clear => 1 } );
 	$self->print_scheme_fieldset;
 	$self->_print_options_fieldset;
 	$self->print_action_fieldset( { name => 'SeqbinBreakdown' } );
@@ -336,7 +360,7 @@ sub _print_table {
 		$td = $td == 1 ? 2 : 1;
 		$self->_update_totals( $data, $contig_info );
 		if ( $ENV{'MOD_PERL'} ) {
-			$self->{'mod_perl_request'}->rflush;
+			eval { $self->{'mod_perl_request'}->rflush };
 			return if $self->{'mod_perl_request'}->connection->aborted;
 		}
 	}
@@ -378,13 +402,13 @@ sub _get_html_table_header {
 	my ( $self, $options ) = @_;
 	$options = {} if ref $options ne 'HASH';
 	my $labelfield = ucfirst( $self->{'system'}->{'labelfield'} );
-	my $gc = $options->{'gc'} ? q(<th>Mean %GC</th>) : q();
+	my $gc         = $options->{'gc'} ? q(<th>Mean %GC</th>) : q();
 	my $buffer =
-	    q(<table class="tablesorter" id="sortTable"><thead>)
+		q(<table class="tablesorter" id="sortTable"><thead>)
 	  . qq(<tr><th>Isolate id</th><th>$labelfield</th><th>Contigs</th><th>Total length</th>);
 	if ( $options->{'contig_analysis'} ) {
 		$buffer .=
-		    q(<th>Min</th><th>Max</th><th>Mean</th><th>&sigma;</th><th>N50</th><th>L50</th>)
+			q(<th>Min</th><th>Max</th><th>Mean</th><th>&sigma;</th><th>N50</th><th>L50</th>)
 		  . q(<th>N90</th><th>L90</th><th>N95</th><th>L95</th>);
 	}
 	$buffer .= $gc;
@@ -481,7 +505,7 @@ sub _get_isolate_contig_data {
 	if ( $options->{'contig_analysis'} ) {
 		$data->{'min'}     = $lengths->[-1];
 		$data->{'max'}     = $lengths->[0];
-		$data->{'mean'}    = lround( $length / @$contig_ids );
+		$data->{'mean'}    = BIGSdb::Utils::round( $length / @$contig_ids );
 		$data->{'stddev'}  = $self->_get_stddev($lengths);
 		$data->{'n_stats'} = BIGSdb::Utils::get_N_stats( $length, $lengths );
 		$data->{'lengths'} = $lengths;
@@ -509,8 +533,13 @@ sub _get_isolate_contig_data {
 			$gc += () = $contigs->{$contig_id} =~ /[GCgc]/gx;
 			$at += () = $contigs->{$contig_id} =~ /[ATat]/gx;
 		}
-		my $gc_value = $gc / ( $gc + $at );
-		$data->{'gc'} = BIGSdb::Utils::decimal_place( ( $gc_value // 0 ) * 100, 1 );
+		if ( $gc + $at ) {
+			my $gc_value = $gc / ( $gc + $at );
+			$data->{'gc'} = BIGSdb::Utils::decimal_place( ( $gc_value // 0 ) * 100, 2 );
+		} else {
+			$logger->error("$self->{'instance'} id-$isolate_id reports no nucleotide characters in seqbin.");
+			$data->{'gc'} = q();
+		}
 	}
 	return $data;
 }
@@ -647,6 +676,6 @@ sub _get_stddev {
 		$sqtotal += ( $mean - $value )**2;
 	}
 	my $std = ( $sqtotal / ( @$values - 1 ) )**0.5;
-	return lround($std);
+	return BIGSdb::Utils::round($std);
 }
 1;

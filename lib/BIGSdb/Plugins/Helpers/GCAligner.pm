@@ -1,6 +1,6 @@
 #Written by Keith Jolley
-#Copyright (c) 2019, University of Oxford
-#E-mail: keith.jolley@zoo.ox.ac.uk
+#Copyright (c) 2019-2023, University of Oxford
+#E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
 #
@@ -64,6 +64,7 @@ sub run {
 	my $ids                    = $self->{'ids'};
 	my $loci                   = $self->{'params'}->{'align_all'} ? $scan_data->{'loci'} : $scan_data->{'variable'};
 	my $filtered_loci          = [];
+
 	if ( $self->{'no_paralogous'} ) {
 		my %paralogous = map { $_ => 1 } keys %{ $scan_data->{'paralogous'} };
 		foreach my $locus (@$loci) {
@@ -142,6 +143,10 @@ sub _process_alignment {
 
 	if ( -e $aligned_out ) {
 		my $align = Bio::AlignIO->new( -format => 'clustalw', -file => $aligned_out )->next_aln;
+		if ( !defined $align ) {
+			$self->{'logger'}->error("Job $job_id: No alignment generated for $locus.");
+			return;
+		}
 		my ( %id_has_seq, $seq_length );
 		my $xmfa_buffer;
 		my $clean_locus = $self->{'clean_loci'}->{$locus}->{'no_common'};
@@ -215,7 +220,7 @@ sub _run_alignment {
 	foreach my $id (@$ids) {
 		push @$ids_to_align, $id;
 		my $identifier = $self->{'name_map'}->{$id} // $id;
-		my $seq = $scan_data->{'isolate_data'}->{$id}->{'sequences'}->{$locus};
+		my $seq        = $scan_data->{'isolate_data'}->{$id}->{'sequences'}->{$locus};
 		if ($seq) {
 			$seq_count++;
 			say $fasta_fh ">$identifier";
@@ -230,29 +235,38 @@ sub _run_alignment {
 		unlink $fasta_file;
 		return ( $aligned_out, $core_locus );
 	}
-	if (   $self->{'params'}->{'aligner'} eq 'MAFFT'
-		&& $self->{'config'}->{'mafft_path'}
-		&& -e $fasta_file
-		&& -s $fasta_file )
-	{
-		my $threads =
-		  BIGSdb::Utils::is_int( $self->{'config'}->{'mafft_threads'} ) ? $self->{'config'}->{'mafft_threads'} : 1;
-		system( "$self->{'config'}->{'mafft_path'} --thread $threads --quiet "
-			  . "--preservecase --clustalout $fasta_file > $aligned_out" );
-	} elsif ( $self->{'params'}->{'aligner'} eq 'MUSCLE'
-		&& $self->{'config'}->{'muscle_path'}
-		&& -e $fasta_file
-		&& -s $fasta_file )
-	{
-		my $max_mb = $self->{'config'}->{'max_muscle_mb'} // MAX_MUSCLE_MB;
-		system( $self->{'config'}->{'muscle_path'},
-			-in    => $fasta_file,
-			-out   => $aligned_out,
-			-maxmb => $max_mb,
-			'-quiet', '-clwstrict'
-		);
+	my $aligner = $self->{'params'}->{'aligner'};
+	if ( !defined $aligner ) {
+		foreach my $program (qw(mafft muscle)) {
+			if ( $self->{'config'}->{"${program}_path"} ) {
+				$aligner = $program;
+				last;
+			}
+		}
+	}
+	if ( -e $fasta_file && -s $fasta_file ) {
+		if (   $aligner eq 'MAFFT'
+			&& $self->{'config'}->{'mafft_path'} )
+		{
+			my $threads =
+			  BIGSdb::Utils::is_int( $self->{'config'}->{'mafft_threads'} ) ? $self->{'config'}->{'mafft_threads'} : 1;
+			system( "$self->{'config'}->{'mafft_path'} --thread $threads --quiet "
+				  . "--preservecase --clustalout $fasta_file > $aligned_out" );
+		} elsif ( $aligner eq 'MUSCLE'
+			&& $self->{'config'}->{'muscle_path'} )
+		{
+			my $max_mb = $self->{'config'}->{'max_muscle_mb'} // MAX_MUSCLE_MB;
+			system( $self->{'config'}->{'muscle_path'},
+				-in    => $fasta_file,
+				-out   => $aligned_out,
+				-maxmb => $max_mb,
+				'-quiet', '-clwstrict'
+			);
+		} else {
+			$self->{'logger'}->error('No aligner selected');
+		}
 	} else {
-		$self->{'logger'}->error('No aligner selected');
+		$self->{'logger'}->error("File $fasta_file does not exist or is empty.");
 	}
 	unlink $fasta_file;
 	return ( $aligned_out, $core_locus );
@@ -267,7 +281,7 @@ sub _run_infoalign {
 		my $outfile = "$self->{'config'}->{'secure_tmp_dir'}/$prefix.infoalign";
 		system( "$self->{'config'}->{'emboss_path'}/infoalign -sequence $alignment -outfile $outfile -nousa "
 			  . '-nosimcount -noweight -nodescription 2> /dev/null' );
-		open( my $fh_stats, '>>', $align_stats_file )
+		open( my $fh_stats, '>>:encoding(utf8)', $align_stats_file )
 		  or $self->{'logger'}->error("Cannot open output file $align_stats_file for appending");
 		my $heading_locus = $self->{'clean_loci'}->{$locus}->{'common'};
 		print $fh_stats "$heading_locus\n";

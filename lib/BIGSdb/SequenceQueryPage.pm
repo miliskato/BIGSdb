@@ -1,6 +1,6 @@
 #Written by Keith Jolley
-#Copyright (c) 2010-2020, University of Oxford
-#E-mail: keith.jolley@zoo.ox.ac.uk
+#Copyright (c) 2010-2024, University of Oxford
+#E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
 #
@@ -49,12 +49,12 @@ sub _get_text {
 	my $q    = $self->{'cgi'};
 	my $page = $q->param('page');
 	my $buffer =
-	    q(Please paste in your sequence)
+		q(Please paste in your sequence)
 	  . ( $page eq 'batchSequenceQuery' ? 's' : '' )
 	  . q( to query against the database. );
 	if ( !$q->param('simple') ) {
 		$buffer .=
-		    q(Query sequences will be checked first for an exact match against the chosen (or all) loci - )
+			q(Query sequences will be checked first for an exact match against the chosen (or all) loci - )
 		  . q(they do not need to be trimmed. The nearest partial matches will be identified if an exact )
 		  . q(match is not found. You can query using either DNA or peptide sequences. );
 		$buffer .= $self->get_tooltip( q(Query sequence - Your query sequence is assumed to be DNA if it contains )
@@ -78,10 +78,18 @@ sub get_javascript {
 \$(function () {
 	\$(document).ajaxComplete(function() {
 		initiate();
-		
 	});
 	initiate();
-
+	\$("select#locus").multiselect({
+		header: "Please select...",
+		noneSelectedText: "Please select...",
+		selectedList: 1,
+		buttonWidth: '>=200',
+		menuHeight: 250,
+		classes: 'filter'
+	}).multiselectfilter({
+		placeholder: 'Search'
+	});
 });
 
 function initiate() {
@@ -147,7 +155,8 @@ sub _print_interface {
 
 	if ( !$q->param('simple') ) {
 		say q(<fieldset><legend>Please select locus/scheme</legend>);
-		my ( $display_loci, $cleaned ) = $self->{'datastore'}->get_locus_list( { set_id => $set_id } );
+		my ( $display_loci, $cleaned ) =
+		  $self->{'datastore'}->get_locus_list( { set_id => $set_id, no_list_by_common_name => 1 } );
 		my $scheme_list = $self->get_scheme_data;
 		my %order;
 		my @schemes_and_groups;
@@ -173,7 +182,10 @@ sub _print_interface {
 		unshift @$display_loci, @schemes_and_groups;
 		unshift @$display_loci, 0;
 		$cleaned->{0} = 'All loci';
-		say $q->popup_menu( -name => 'locus', -values => $display_loci, -labels => $cleaned );
+
+		#Following is eval'd because it may take a while to populate when a very large number of loci are defined.
+		#If the user closes the connection while the page is loading it would otherwise lead to a 500 error.
+		eval { say $q->popup_menu( -name => 'locus', -id => 'locus', -values => $display_loci, -labels => $cleaned ) };
 		say q(</fieldset>);
 		say q(<fieldset><legend>Order results by</legend>);
 		say $q->popup_menu( -name => 'order', -values => [ ( 'locus', 'best match' ) ] );
@@ -248,12 +260,14 @@ sub print_content {
 	$self->_print_interface;
 	if ( $q->param('submit') ) {
 		if ($sequence) {
-			$self->_run_query( \$sequence );
+			my $seq_ref = $self->_strip_invalid_chars( \$sequence );
+			$self->_run_query($seq_ref);
 		} elsif ( $q->param('fasta_upload') ) {
 			my $upload_file = $self->_upload_fasta_file;
 			my $full_path   = "$self->{'config'}->{'secure_tmp_dir'}/$upload_file";
 			if ( -e $full_path ) {
-				$self->_run_query( BIGSdb::Utils::slurp($full_path) );
+				my $seq_ref = $self->_strip_invalid_chars( BIGSdb::Utils::slurp($full_path) );
+				$self->_run_query($seq_ref);
 				unlink $full_path;
 			}
 		} elsif ( $q->param('accession') ) {
@@ -262,8 +276,7 @@ sub print_content {
 				if ($acc_seq) {
 					$self->_run_query( \$acc_seq );
 				}
-			}
-			catch {
+			} catch {
 				if ( $_->isa('BIGSdb::Exception::Data') ) {
 					$logger->debug($_);
 					if ( $_ =~ /INVALID_ACCESSION/x ) {
@@ -286,15 +299,16 @@ sub _upload_fasta_file {
 	my $temp     = BIGSdb::Utils::get_random();
 	my $filename = "$self->{'config'}->{'secure_tmp_dir'}/${temp}_upload.fas";
 	my $buffer;
-	my $fh2 = $self->{'cgi'}->upload('fasta_upload');
+	my $q = $self->{'cgi'};
+	$q->cgi_error and $logger->error( $q->cgi_error );
+	my $fh2 = $q->upload('fasta_upload');
 	binmode $fh2;
 	read( $fh2, $buffer, $self->{'config'}->{'max_upload_size'} );
 	my $ft        = File::Type->new;
 	my $file_type = $ft->checktype_contents($buffer);
 	my $method    = {
 		'application/x-gzip' => sub { gunzip \$buffer => $filename or $logger->error("gunzip failed: $GunzipError"); },
-		'application/zip' =>
-		  sub { unzip \$buffer => $filename or $logger->error("unzip failed: $UnzipError"); }
+		'application/zip'    => sub { unzip \$buffer  => $filename or $logger->error("unzip failed: $UnzipError"); }
 	};
 
 	if ( $method->{$file_type} ) {
@@ -317,8 +331,7 @@ sub _upload_accession {
 	try {
 		my $seq_obj = $seq_db->get_Seq_by_acc($accession);
 		$sequence = $seq_obj->seq;
-	}
-	catch {
+	} catch {
 		my $err = shift;
 		$logger->debug($err);
 		BIGSdb::Exception::Data->throw('INVALID_ACCESSION');
@@ -345,6 +358,23 @@ sub _run_query {
 	return;
 }
 
+sub _strip_invalid_chars {
+	my ( $self, $seq_ref ) = @_;
+	my @lines   = split /\n/x, $$seq_ref;
+	my $new_seq = q();
+	foreach my $line (@lines) {
+		if ( $line !~ /^>/x ) {
+			$line =~ s/\s//gx;
+			$line =~ s/\-//gx;
+		} else {
+			$line =~ s/\s*$//x;
+			$line =~ s/\s/_/gx;
+		}
+		$new_seq .= qq($line\n);
+	}
+	return \$new_seq;
+}
+
 sub _invalid_query {
 	my ( $self, $seq_ref ) = @_;
 	my $type = BIGSdb::Utils::sequence_type($seq_ref);
@@ -367,7 +397,7 @@ sub _invalid_query {
 sub _blast_now {
 	my ( $self, $seq_ref, $loci ) = @_;
 	my $results = $self->_run_blast( $seq_ref, $loci, 1 );
-	my $q = $self->{'cgi'};
+	my $q       = $self->{'cgi'};
 	if ( $q->param('page') eq 'sequenceQuery' && $self->{'system'}->{'web_hook_seq_query'} ) {
 		my $results_prefix    = BIGSdb::Utils::get_random();
 		my $results_json_file = "$self->{'config'}->{'secure_tmp_dir'}/${results_prefix}.json";
@@ -432,8 +462,7 @@ sub _blast_fork {
 					$self->_write_results_file( $results_file, $results->{'html'} );
 				}
 				$self->_update_status_file( $status_file, 'complete' );
-			}
-			catch {
+			} catch {
 				if ( $_->isa('BIGSdb::Exception::Server::Busy') ) {
 					my $too_busy = q(<div class="box" id="statusbad"><p>The server is currently too busy to run )
 					  . q(your query. Please try again in a few minutes.</p></div>);
@@ -514,7 +543,7 @@ END
 
 sub _run_blast {
 	my ( $self, $seq_ref, $loci, $always_run ) = @_;
-	my $q = $self->{'cgi'};
+	my $q        = $self->{'cgi'};
 	my $exemplar = ( $self->{'system'}->{'exemplars'} // q() ) eq 'yes' ? 1 : 0;
 	$exemplar = 0 if @$loci == 1;    #We need to be able to find the nearest match if not exact.
 	my $keep_partials = $q->param('page') eq 'batchSequenceQuery' ? 1 : 0;
@@ -551,8 +580,7 @@ sub _run_blast {
 	my $error;
 	try {
 		$html = $seq_qry_obj->run($$seq_ref);
-	}
-	catch {
+	} catch {
 		$error = $_;
 	};
 	if ($error) {
@@ -582,10 +610,10 @@ sub _run_blast {
 }
 
 sub _get_selected_loci {
-	my ($self) = @_;
-	my $q = $self->{'cgi'};
+	my ($self)    = @_;
+	my $q         = $self->{'cgi'};
 	my $selection = $self->{'system'}->{'kiosk_locus'} // $q->param('locus');
-	my $set_id = $self->get_set_id;
+	my $set_id    = $self->get_set_id;
 	if ( $selection eq '0' ) {
 		$self->{'select_type'} = 'all';
 		return $self->{'datastore'}->get_loci( { set_id => $set_id } );
@@ -617,7 +645,7 @@ sub _get_selected_loci {
 
 sub initiate {
 	my ($self) = @_;
-	$self->{$_} = 1 foreach qw (jQuery);
+	$self->{$_} = 1 foreach qw (jQuery jQuery.multiselect);
 	if ( $self->{'system'}->{'kiosk'} ) {
 		$self->set_level0_breadcrumbs;
 	} else {

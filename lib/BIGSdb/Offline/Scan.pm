@@ -1,6 +1,6 @@
 #Written by Keith Jolley
-#Copyright (c) 2010-2022, University of Oxford
-#E-mail: keith.jolley@zoo.ox.ac.uk
+#Copyright (c) 2010-2024, University of Oxford
+#E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
 #
@@ -80,10 +80,9 @@ sub blast_multiple_loci {
 			next LOCUS if $locus_info->{'data_type'} ne $data_type;
 			my $continue = 1;
 			try {
-				$pcr_products->{$locus} = $self->_get_pcr_products( $locus, $temp_infile, $params );
+				$pcr_products->{$locus}  = $self->_get_pcr_products( $locus, $temp_infile, $params );
 				$probe_matches->{$locus} = $self->_get_probe_matches( $locus, $temp_infile, $params );
-			}
-			catch {
+			} catch {
 				if ( $_->isa('BIGSdb::Exception::Data') ) {
 					$continue = 0;
 				} else {
@@ -96,16 +95,16 @@ sub blast_multiple_loci {
 			push @locus_list, $locus;
 		}
 		next DATATYPE if !@locus_list;
-		my $program = $self->_get_program( $data_type, $params );
+		my $program        = $self->_get_program( $data_type, $params );
 		my $temp_fastafile = "$self->{'config'}->{'secure_tmp_dir'}/${locus_prefix}_fastafile_$data_type.txt";
 		$self->_create_fasta_index( \@locus_list, $temp_fastafile,
 			{ exemplar => $params->{'exemplar'}, type_alleles => $params->{'type_alleles'}, multiple_loci => 1 } );
 		return if !-e $temp_fastafile || -z $temp_fastafile;
 		$self->{'db'}->commit;    #prevent idle in transaction table locks
-		my $word_size = $self->_get_word_size( $program, undef, $params );
+		my $word_size     = $self->_get_word_size( $program, undef, $params );
 		my $blast_threads = $self->{'config'}->{'blast_threads'} || 1;
-		my $filter = $program eq 'blastn' ? 'dust' : 'seg';
-		my %params = (
+		my $filter        = $program eq 'blastn' ? 'dust' : 'seg';
+		my %params        = (
 			-num_threads     => $blast_threads,
 			-max_target_seqs => 1000 *
 			  @locus_list,   #Set high for longer alleles that partially match and score higher than exact short alleles
@@ -189,10 +188,9 @@ sub blast {
 	my ( $probe_matches, $pcr_products );
 	my $continue = 1;
 	try {
-		$pcr_products = $self->_get_pcr_products( $locus, $temp_infile, $params );
+		$pcr_products  = $self->_get_pcr_products( $locus, $temp_infile, $params );
 		$probe_matches = $self->_get_probe_matches( $locus, $temp_infile, $params );
-	}
-	catch {
+	} catch {
 		if ( $_->isa('BIGSdb::Exception::Data') ) {
 			$continue = 0;
 		} else {
@@ -203,13 +201,13 @@ sub blast {
 	$self->{'db'}->commit;    #prevent idle in transaction table locks
 	return if !-e $temp_fastafile || -z $temp_fastafile;
 	$params->{'exact_matches_only'} = $self->exact_matches_only($params);
-	my $word_size = $self->_get_word_size( $program, $locus, $params );
+	my $word_size     = $self->_get_word_size( $program, $locus, $params );
 	my $blast_threads = $self->{'config'}->{'blast_threads'} || 1;
-	my $filter = $program eq 'blastn' ? 'dust' : 'seg';
-	my %params = (
-		-num_threads => $blast_threads,
+	my $filter        = $program eq 'blastn' ? 'dust' : 'seg';
+	my %params        = (
+		-num_threads     => $blast_threads,
 		-max_target_seqs =>
-		  1000,    #Set high for longer alleles that partially match and score higher than exact short alleles
+		  1500,    #Set high for longer alleles that partially match and score higher than exact short alleles
 		-word_size => $word_size,
 		-db        => $temp_fastafile,
 		-query     => $temp_infile,
@@ -322,7 +320,7 @@ sub _lookup_partial_matches {
 	$partial_matches->{$locus} //= [];
 	return if !@{ $partial_matches->{$locus} };
 	my %already_matched_alleles = map { $_->{'allele'} => 1 } @{ $exact_matches->{$locus} };
-	my $locus_info = $self->{'datastore'}->get_locus_info($locus);
+	my $locus_info              = $self->{'datastore'}->get_locus_info($locus);
 	foreach my $match ( @{ $partial_matches->{$locus} } ) {
 		my $seq = $self->extract_seq_from_match($match);
 		if ( $locus_info->{'data_type'} eq 'peptide' ) {
@@ -330,7 +328,7 @@ sub _lookup_partial_matches {
 			$seq = $seq_obj->translate->seq;
 		}
 		my $allele_id =
-		    $locus_info->{'dbase_name'}
+			$locus_info->{'dbase_name'}
 		  ? $self->{'datastore'}->get_locus($locus)->get_allele_id_from_sequence( \$seq )
 		  : undef;
 		if ( defined $allele_id && !$already_matched_alleles{$allele_id} ) {
@@ -342,7 +340,6 @@ sub _lookup_partial_matches {
 			$match->{'end'}                  = $match->{'predicted_end'};
 			$match->{'length'}               = abs( $match->{'predicted_end'} - $match->{'predicted_start'} ) + 1;
 			if ( $locus_info->{'match_longest'} && @{ $exact_matches->{$locus} } ) {
-
 				if ( $match->{'length'} > $exact_matches->{$locus}->[0]->{'length'} ) {
 					@{ $exact_matches->{$locus} } = ($match);
 				}
@@ -400,8 +397,7 @@ sub _create_fasta_index {
 						$self->{'min_allele_length'}->{$locus} = $allele_length;
 					}
 				}
-			}
-			catch {
+			} catch {
 				if ( $_->isa('BIGSdb::Exception::Database::Configuration') ) {
 					$ok = 0;
 				} else {
@@ -596,7 +592,7 @@ sub run_script {
 	my @isolate_list = split( "\0", $params->{'isolate_id'} );
 	BIGSdb::Exception::Data->throw('Invalid isolate_ids passed') if !@isolate_list;
 	my $filtered_list = $self->_filter_ids_by_project( \@isolate_list, $options->{'project_id'} );
-	my $loci = $self->{'options'}->{'loci'};
+	my $loci          = $self->{'options'}->{'loci'};
 	BIGSdb::Exception::Data->throw('Invalid loci passed') if ref $loci ne 'ARRAY';
 	$self->{'system'}->{'script_name'} = $self->{'options'}->{'script_name'};
 	my ( @js, @js2, @js3, @js4 );
@@ -641,7 +637,7 @@ sub run_script {
 	if ($match) {
 		open( my $fh, '>>', $table_file ) || $logger->error("Can't open $table_file for appending");
 		local $" = ';';
-		say $fh q(<tr class="td">) . ( q(<td></td>) x 14 ) . q(<td style="white-space:nowrap">);
+		say $fh q(<tr class="td">) . ( q(<td></td>) x 15 ) . q(<td style="white-space:nowrap">);
 		say $fh qq(<input type="button" value="All" onclick='@js' class="small_submit" />) if @js;
 		say $fh qq(<input type="button" value="None" onclick='@js2' class="small_submit" />)
 		  if @js2;
@@ -655,7 +651,7 @@ sub run_script {
 	my $stop_time = time;
 	$self->_write_status( $options->{'scan_job'}, 'allele_off_contig:1' ) if $show_key;
 	$self->_write_status( $options->{'scan_job'}, "new_matches:$match" );
-	$self->_write_status( $options->{'scan_job'}, 'new_seqs_found:1' )    if $new_seqs_found;
+	$self->_write_status( $options->{'scan_job'}, 'new_seqs_found:1' ) if $new_seqs_found;
 	my @isolates_to_tag = sort { $a <=> $b } keys %isolates_to_tag;
 	local $" = ',';
 	$self->_write_status( $options->{'scan_job'}, "tag_isolates:@isolates_to_tag" );
@@ -687,8 +683,7 @@ sub _add_job {
 				no_progress  => 1
 			}
 		);
-	}
-	catch {
+	} catch {
 		$logger->error($_);
 	};
 	undef $self->{'jobManager'};
@@ -725,6 +720,7 @@ sub _scan_locus_by_locus {
 	my $params      = $self->{'params'};
 	my $td          = 1;
 	my $new_alleles = {};
+
 	foreach my $isolate_id (@$isolates) {
 		my %locus_used;
 		last if $self->_reached_limit( $isolate_id, $start_time, $match, $options );
@@ -805,8 +801,8 @@ sub _analyse_blast_results {
 			);
 			$row_buffer .= $buffer;
 			$new_matches{$match_key} = 1;
-			$$show_key = 1 if $off_end;
-			$$td_ref = $$td_ref == 1 ? 2 : 1;
+			$$show_key               = 1 if $off_end;
+			$$td_ref                 = $$td_ref == 1 ? 2 : 1;
 			$self->_write_match( $options->{'scan_job'}, "$isolate_id:$locus:$i" );
 			$i++;
 		}
@@ -867,7 +863,8 @@ sub _analyse_blast_results {
 		}
 	}
 	if ($row_buffer) {
-		open( my $fh, '>>', $table_file ) || $logger->error("Can't open $table_file for appending");
+		open( my $fh, '>>:encoding(utf8)', $table_file )
+		  || $logger->error("Cannot open $table_file for appending");
 		say $fh $row_buffer;
 		close $fh;
 	}
@@ -886,6 +883,7 @@ sub _scan_loci_together {
 	my $params      = $self->{'params'};
 	my $td          = 1;
 	my $new_alleles = {};
+
 	foreach my $isolate_id (@$isolates) {
 		my %locus_used;
 		last if $self->_reached_limit( $isolate_id, $start_time, $match, $options );
@@ -946,16 +944,23 @@ sub _check_if_new {
 	$$new_seqs_found = 1;
 	my $new = 1;
 	$new = 0 if any { $seq eq $_ } @{ $new_alleles->{$locus} };
+	my $set_id = $self->get_set_id;
 	if ($new) {
+		my $set_name = $self->{'datastore'}->run_query(
+			'SELECT set_name FROM set_loci WHERE (set_id,locus)=(?,?)',
+			[ $set_id, $locus ],
+			{ cache => 'Scan::_check_if_new::set_name' }
+		);
+		my $locus_name = $set_name // $locus;
 		push @{ $new_alleles->{$locus} }, $seq;
 		open( my $seqs_fh, '>>', $seq_filename )
 		  or $logger->error("Can't open $seq_filename for appending");
-		say $seqs_fh "$locus\t\tWGS: automated extract (BIGSdb)\t$seq";
+		say $seqs_fh "$locus_name\t\tWGS: automated extract (BIGSdb)\t$seq";
 		close $seqs_fh;
 		open( $seqs_fh, '>>', $fasta_filename )
 		  or $logger->error("Can't open $seq_filename for appending");
 		say $seqs_fh
-		  qq(>${locus}_seqbin_$match->{'seqbin_id'}_$match->{'start'}-$match->{'end'}_isolate_id_$isolate_id);
+		  qq(>${locus_name}_seqbin_$match->{'seqbin_id'}_$match->{'start'}-$match->{'end'}_isolate_id_$isolate_id);
 		say $seqs_fh qq($seq);
 		close $seqs_fh;
 	}
@@ -1021,31 +1026,42 @@ sub _get_row {
 	my $new_designation  = 0;
 	my $existing_alleles = $self->{'datastore'}->get_allele_ids( $isolate_id, $locus );
 	my %existing         = map { $_ => 1 } @$existing_alleles;
+
 	if ( $existing{ $match->{'allele'} } ) {
 		$tooltip = $self->_get_designation_tooltip( $isolate_id, $locus, 'existing' );
 	} elsif ( $match->{'allele'} && @$existing_alleles && !$existing{ $match->{'allele'} } ) {
 		$tooltip = $self->_get_designation_tooltip( $isolate_id, $locus, 'clashing' );
 	}
-	my $hunt_for_start_end = ( !$exact && $params->{'hunt'} ) ? 1 : 0;
-	my $original_start     = $match->{'predicted_start'};
-	my $original_end       = $match->{'predicted_end'};
-	my $buffer             = q();
-	my $hunter             = $self->_hunt_for_start_and_stop_codons(
+	my $hunt_for_start = ( !$exact && $params->{'hunt_start'} ) ? 1 : 0;
+	my $hunt_for_stop  = ( !$exact && $params->{'hunt_stop'} )  ? 1 : 0;
+	my $original_start = $match->{'predicted_start'};
+	my $original_end   = $match->{'predicted_end'};
+	my $buffer         = q();
+	my $hunter         = $self->_hunt_for_start_and_stop_codons(
 		{
-			hunt_for_start_end => $hunt_for_start_end,
-			isolate_id         => $isolate_id,
-			locus              => $locus,
-			match              => $match,
-			original_start     => $original_start,
-			original_end       => $original_end,
-			exact_ref          => \$exact
+			hunt_for_start        => $hunt_for_start,
+			hunt_for_stop         => $hunt_for_stop,
+			hunt_for_stop_percent => $params->{'hunt_stop_percent'} // 5,
+			isolate_id            => $isolate_id,
+			locus                 => $locus,
+			match                 => $match,
+			original_start        => $original_start,
+			original_end          => $original_end,
+			exact_ref             => \$exact
 		}
 	);
 	my $cleaned_locus = $self->clean_locus($locus);
 	my $locus_info    = $self->{'datastore'}->get_locus_info($locus);
-	my $translate     = ( $locus_info->{'coding_sequence'} || $locus_info->{'data_type'} eq 'peptide' ) ? 1 : 0;
-	my $orf           = $locus_info->{'orf'} // 1;
+	my $seq           = $self->extract_seq_from_match($match);
 
+	if ( $seq =~ /[^GATCU]/ix ) {
+		$match->{'ambiguous'} = 1;
+	}
+	if ( $locus_info->{'complete_cds'} ) {
+		$match->{'first_stop'} = $self->_get_position_of_first_stop_codon( $isolate_id, \$seq );
+	}
+	my $translate = ( $locus_info->{'coding_sequence'} || $locus_info->{'data_type'} eq 'peptide' ) ? 1 : 0;
+	my $orf       = $locus_info->{'orf'} // 1;
 	if ($warning) {
 		$buffer .= q(<tr class="warning">);
 		$exact = 0;
@@ -1073,20 +1089,32 @@ sub _get_row {
 	$match->{'reverse'} //= 0;
 	my $intron_arg = $self->_get_intron_arg($match);
 	my $url =
-	    qq($self->{'system'}->{'script_name'}?db=$self->{'instance'}&amp;page=extractedSequence&amp;)
+		qq($self->{'system'}->{'script_name'}?db=$self->{'instance'}&amp;page=extractedSequence&amp;)
 	  . qq(seqbin_id=$match->{'seqbin_id'}&amp;start=$hunter->{'predicted_start'}&amp;)
 	  . qq(end=$hunter->{'predicted_end'}&amp;reverse=$match->{'reverse'}&amp;translate=$translate&amp;)
 	  . qq(locus=$locus&amp;orf=$orf$intron_arg);
 	$buffer .=
-	    qq($match->{'predicted_end'} <a target="_blank" class="extract_tooltip" )
+		qq($match->{'predicted_end'} <a target="_blank" class="extract_tooltip" )
 	  . qq(href="$url" style="white-space:nowrap">)
 	  . qq(extract <span class="fas fa-arrow-circle-right"></span></a>$hunter->{'complete_tooltip'}</td>);
 	my $arrow = $self->_get_dir_arrow( $match->{'reverse'} );
-	$buffer .= qq(<td>$arrow</td><td>);
-	my $seq_disabled = 0;
+	$buffer .= qq(<td>$arrow</td>);
+
+	if ( $match->{'first_stop'} ) {
+		my $max = $match->{'first_stop'};
+		$max = $match->{'length'} if $match->{'length'} > $max;
+		my $min    = int( 0.5 * $match->{'length'} );
+		my $middle = int( 0.8 * $max );
+		my $colour =
+		  BIGSdb::Utils::get_percent_colour( $match->{'first_stop'}, { min => $min, max => $max, middle => $middle } );
+		$buffer .=
+		  qq(<td><span style="background:#${colour}40;border:1px solid #ccc">$match->{'first_stop'}</span></td>);
+	} else {
+		$buffer .= $locus_info->{'complete_cds'} ? q(<td>-</td>) : q(<td>N/A</td>);
+	}
+	$buffer .= q(<td>);
 	$cleaned_locus = $self->clean_checkbox_id($locus);
 	$cleaned_locus =~ s/\\/\\\\/gx;
-
 	if (   $exact
 		&& ( !@$existing_alleles || !$existing{ $match->{'allele'} } )
 		&& $match->{'allele'} ne 'ref'
@@ -1107,6 +1135,27 @@ sub _get_row {
 		  $q->checkbox( -name => "id_${isolate_id}_${locus}_allele_$id", -label => '', disabled => 'disabled' );
 	}
 	$buffer .= q(</td><td>);
+	$buffer .= $self->_get_tag_checkbox(
+		{
+			%$args,
+			locus_info      => $locus_info,
+			cleaned_locus   => $cleaned_locus,
+			hunter          => $hunter,
+			new_designation => $new_designation
+		}
+	);
+	$buffer .= q(</td></tr>);
+	return ( $buffer, $hunter->{'off_end'}, $new_designation );
+}
+
+sub _get_tag_checkbox {
+	my ( $self, $args ) = @_;
+	my ( $isolate_id, $locus, $locus_info, $cleaned_locus, $id, $match, $hunter, $exact, $js3, $js4, $new_designation )
+	  = @{$args}{qw (isolate_id locus locus_info cleaned_locus id match hunter exact js3 js4 new_designation)};
+	my $params = $self->{'params'};
+	my $buffer;
+	my $seq_disabled             = 0;
+	my $q                        = $self->{'cgi'};
 	my $existing_allele_sequence = $self->{'datastore'}->run_query(
 		'SELECT id FROM allele_sequences WHERE (seqbin_id,locus,start_pos,end_pos)=(?,?,?,?)',
 		[ $match->{'seqbin_id'}, $locus, $hunter->{'predicted_start'}, $hunter->{'predicted_end'} ],
@@ -1117,29 +1166,28 @@ sub _get_row {
 			-name    => "id_${isolate_id}_${locus}_sequence_$id",
 			-id      => "id_${isolate_id}_${cleaned_locus}_sequence_$id",
 			-label   => '',
-			-checked => $exact || ( $hunter->{'off_end'} && $match->{'identity'} == 100 )
+			-checked => (
+				$exact
+				  || ( $hunter->{'off_end'}
+					&& ( $params->{'check_incomplete'} // 'off' ) eq 'on'
+					&& $match->{'identity'} >= ( $params->{'check_incomplete_percent'} // 100 ) )
+				  || ( $match->{'ambiguous'} && $locus_info->{'complete_cds'} && $hunter->{'CDS'} )
+			)
 		);
 		push @$js3, qq(\$("#id_${isolate_id}_${cleaned_locus}_sequence_$id").prop("checked",true));
 		push @$js4, qq(\$("#id_${isolate_id}_${cleaned_locus}_sequence_$id").prop("checked",false));
 		$new_designation = 1;
 		$buffer .= q(</td><td>);
 		my $default_flags = $self->_get_match_flags( $locus, $match, $exact );
-		if (@$default_flags) {
-			$buffer .= $self->popup_menu(
-				-name     => "id_${isolate_id}_${locus}_sequence_${id}_flag",
-				-id       => "id_${isolate_id}_${cleaned_locus}_sequence_${id}_flag",
-				-values   => [SEQ_FLAGS],
-				-default  => $default_flags,
-				-multiple => 'true',
-			);
-		} else {
-			$buffer .= $q->popup_menu(
-				-name    => "id_${isolate_id}_${locus}_sequence_${id}_flag",
-				-id      => "id_${isolate_id}_${cleaned_locus}_sequence_${id}_flag",
-				-values  => [ '', SEQ_FLAGS ],
-				-default => $default_flags,
-			);
-		}
+		$buffer .= $self->popup_menu(
+			-name     => "id_${isolate_id}_${locus}_sequence_${id}_flag",
+			-id       => "id_${isolate_id}_${cleaned_locus}_sequence_${id}_flag",
+			-values   => [SEQ_FLAGS],
+			-default  => $default_flags,
+			-multiple => 'true',
+			-class    => 'multiselect',
+			-style    => 'height:1px;visibility:hidden'
+		);
 	} else {
 		$buffer .=
 		  $q->checkbox( -name => "id_${isolate_id}_${locus}_sequence_$id", -label => '', disabled => 'disabled' );
@@ -1156,13 +1204,26 @@ sub _get_row {
 		$buffer .= $q->hidden( "id_${isolate_id}_${locus}_reverse_$id"   => $match->{'reverse'} );
 		$buffer .= $q->hidden( "id_${isolate_id}_${locus}_complete_$id"  => 1 ) if !$hunter->{'off_end'};
 		$buffer .= $q->hidden( "id_${isolate_id}_${locus}_seqbin_id_$id" => $match->{'seqbin_id'} );
-		$intron_arg = $self->_get_intron_arg( $match, { hidden => 1 } );
+		my $intron_arg = $self->_get_intron_arg( $match, { hidden => 1 } );
 		if ($intron_arg) {
 			$buffer .= $q->hidden( "id_${isolate_id}_${locus}_introns_$id" => $intron_arg );
 		}
 	}
-	$buffer .= q(</td></tr>);
-	return ( $buffer, $hunter->{'off_end'}, $new_designation );
+	return $buffer;
+}
+
+sub _get_position_of_first_stop_codon {
+	my ( $self, $isolate_id, $seq_ref ) = @_;
+	return if !$$seq_ref;
+	my $stop_codons = $self->{'datastore'}->get_stop_codons( { isolate_id => $isolate_id } );
+	my %stop_codons = map { $_ => 1 } @$stop_codons;
+	for ( my $i = 0 ; $i < length $$seq_ref ; $i += 3 ) {
+		my $codon = substr( $$seq_ref, $i, 3 );
+		if ( $stop_codons{$codon} ) {
+			return $i + 1;
+		}
+	}
+	return;
 }
 
 sub _get_match_flags {
@@ -1173,6 +1234,9 @@ sub _get_match_flags {
 	}
 	if ( $match->{'introns'} && @{ $match->{'introns'} } ) {
 		push @$flags, 'introns';
+	}
+	if ( $match->{'ambiguous'} ) {
+		push @$flags, 'ambiguous read';
 	}
 	return $flags;
 }
@@ -1206,8 +1270,14 @@ sub _get_dir_arrow {
 
 sub _hunt_for_start_and_stop_codons {
 	my ( $self, $args ) = @_;
-	my ( $hunt_for_start_end, $locus, $match, $original_start, $original_end, $exact_ref, $isolate_id ) =
-	  @{$args}{qw(hunt_for_start_end locus match original_start original_end exact_ref isolate_id)};
+	my (
+		$hunt_for_start, $hunt_for_stop, $hunt_for_stop_percent, $locus, $match,
+		$original_start, $original_end,  $exact_ref,             $isolate_id
+	  )
+	  = @{$args}{
+		qw(hunt_for_start hunt_for_stop hunt_for_stop_percent locus match original_start original_end
+		  exact_ref isolate_id)
+	  };
 	my ( $off_end, $predicted_start, $predicted_end, $complete_gene );
 	my $complete_tooltip = q();
 	my $seqbin_length    = $self->{'datastore'}->run_query(
@@ -1219,42 +1289,42 @@ sub _hunt_for_start_and_stop_codons {
 	my ( $first_codon_is_start, $last_codon_is_stop );
 	my $start_codons = $self->{'datastore'}->get_start_codons( { locus => $locus, isolate_id => $isolate_id } );
 	my %start_codons = map { $_ => 1 } @$start_codons;
-	my $stop_codons = $self->{'datastore'}->get_stop_codons( { isolate_id => $isolate_id } );
-	my %stop_codons = map { $_ => 1 } @$stop_codons;
+	my $stop_codons  = $self->{'datastore'}->get_stop_codons( { isolate_id => $isolate_id } );
+	my %stop_codons  = map { $_ => 1 } @$stop_codons;
 
 	#Hunt for nearby start and stop codons.  Walk in from each end by 3 bases, then out by 3 bases, then in by 6 etc.
-	my @runs = $hunt_for_start_end ? qw (-3 3 -6 6 -9 9 -12 12 -15 15 -18 18) : ();
+	my @runs = $hunt_for_start ? qw (-3 3 -6 6 -9 9 -12 12 -15 15 -18 18) : ();
   RUN: foreach my $offset ( 0, @runs ) {
-		my @end_to_adjust = $hunt_for_start_end ? ( 1, 2 ) : (0);
+		my @end_to_adjust = $hunt_for_start ? ( 1, 2 ) : (0);
 		foreach my $end (@end_to_adjust) {
 
 			#Don't change start position if already start codon
 			if ( $end == 1 ) {
-				next if $match->{'reverse'}  && $first_codon_is_start;
-				next if !$match->{'reverse'} && $last_codon_is_stop;
+				next if $match->{'reverse'} && $first_codon_is_start;
+				next if !$match->{'reverse'};                           # && $last_codon_is_stop;
 				$match->{'predicted_end'} = $original_end + $offset;
 			} elsif ( $end == 2 ) {
 				next if !$match->{'reverse'} && $first_codon_is_start;
-				next if $match->{'reverse'}  && $last_codon_is_stop;
+				next if $match->{'reverse'};                             #  && $last_codon_is_stop;
 				$match->{'predicted_start'} = $original_start + $offset;
 			}
-			$off_end = 1 if $self->_is_off_end( $match, $seqbin_length );
+			$off_end         = 1 if $self->_is_off_end( $match, $seqbin_length );
 			$predicted_start = $match->{'predicted_start'};
 			$predicted_start =~ s/\*//x;
 			$predicted_end = $match->{'predicted_end'};
 			$predicted_end =~ s/\*//x;
 			my $seq = $self->extract_seq_from_match($match);
 			if ($seq) {
-				$off_end = 1 if $seq =~ /^N/x || $seq =~ /N$/x;    #Incomplete if Ns are end (scaffolding)
+				$off_end              = 1 if $seq =~ /^N/x || $seq =~ /N$/x;    #Incomplete if Ns are end (scaffolding)
 				$first_codon_is_start = 1 if $start_codons{ substr( $seq, 0, 3 ) };
-				$last_codon_is_stop = 1 if $stop_codons{ substr( $seq, -3 ) };
-				($complete_gene) = $self->is_complete_gene( $seq, { locus => $locus,isolate_id=>$isolate_id } );
+				$last_codon_is_stop   = 1 if $stop_codons{ substr( $seq, -3 ) };
+				($complete_gene) = $self->is_complete_gene( $seq, { locus => $locus, isolate_id => $isolate_id } );
 				if ($complete_gene) {
 					$complete_tooltip = q(<a class="cds" title="CDS - this is a complete coding sequence )
 					  . q(including start and terminating stop codons with no internal stop codons.">CDS</a>);
 					my $locus_info = $self->{'datastore'}->get_locus_info($locus);
 					my $allele_id =
-					    $locus_info->{'dbase_name'}
+						$locus_info->{'dbase_name'}
 					  ? $self->{'datastore'}->get_locus($locus)->get_allele_id_from_sequence( \$seq )
 					  : undef;
 					if ( defined $allele_id ) {
@@ -1269,7 +1339,36 @@ sub _hunt_for_start_and_stop_codons {
 			}
 		}
 	}
-	if ( $hunt_for_start_end && !$complete_gene ) {
+	if ($hunt_for_stop) {
+		my $length_diff    = int( $match->{'length'} * $hunt_for_stop_percent / 100 );
+		my $extended_match = {%$match};
+		if ( $match->{'reverse'} ) {
+			$extended_match->{'predicted_start'} = $match->{'predicted_start'} - $length_diff;
+		} else {
+			$extended_match->{'predicted_end'} = $match->{'predicted_end'} + $length_diff;
+		}
+		my $seq = $self->extract_seq_from_match($extended_match);
+		for ( my $i = 0 ; $i <= ( $match->{'length'} + $length_diff ) ; $i += 3 ) {
+			next if $i < $match->{'length'} - $length_diff;
+			if ( $stop_codons{ substr( $seq, $i, 3 ) } ) {
+				if ( $match->{'reverse'} ) {
+					$predicted_start = $predicted_end - $i - 2;
+					$match->{'predicted_start'} = $predicted_start;
+				} else {
+					$predicted_end = $predicted_start + $i + 2;
+					$match->{'predicted_end'} = $predicted_end;
+				}
+				$seq = $self->extract_seq_from_match($match);
+				($complete_gene) = $self->is_complete_gene( $seq, { locus => $locus, isolate_id => $isolate_id } );
+				if ($complete_gene) {
+					$complete_tooltip = q(<a class="cds" title="CDS - this is a complete coding sequence )
+					  . q(including start and terminating stop codons with no internal stop codons.">CDS</a>);
+				}
+				last;
+			}
+		}
+	}
+	if ( ( $hunt_for_start || $hunt_for_stop ) && !$complete_gene ) {
 		$match->{'predicted_end'}   = $original_end;
 		$predicted_end              = $original_end;
 		$match->{'predicted_start'} = $original_start;
@@ -1289,7 +1388,8 @@ sub _hunt_for_start_and_stop_codons {
 		off_end          => $off_end,
 		predicted_start  => $predicted_start,
 		predicted_end    => $predicted_end,
-		complete_tooltip => $complete_tooltip
+		complete_tooltip => $complete_tooltip,
+		CDS              => $complete_gene
 	};
 }
 
@@ -1331,7 +1431,7 @@ sub _get_missing_row {
 	$buffer .= q(<tr class="provisional">);
 	$buffer .= q(<td>) . ( $labels->{$isolate_id} || $isolate_id ) . qq(</td><td>missing</td><td>$cleaned_locus</td>);
 	$buffer .= q(<td>0</td>);
-	$buffer .= ( q(<td></td>) x 10 ) . q(<td>);
+	$buffer .= ( q(<td></td>) x 11 ) . q(<td>);
 	$cleaned_locus = $self->clean_checkbox_id($locus);
 	$cleaned_locus =~ s/\\/\\\\/gx;
 	$buffer .= $q->checkbox(
@@ -1424,8 +1524,10 @@ sub _parse_blast_exact {
 				$match->{'e-value'}         = $record->[10];
 				$match->{'length'}          = abs( $match->{'predicted_end'} - $match->{'predicted_start'} ) + 1;
 				next RECORD
-				  if $matched_already->{$locus}->{ $match->{'allele'} }->{ $match->{'predicted_start'} };
-				$matched_already->{$locus}->{ $match->{'allele'} }->{ $match->{'predicted_start'} }           = 1;
+				  if $matched_already->{$locus}->{ $match->{'allele'} }->{ $match->{'seqbin_id'} }
+				  ->{ $match->{'predicted_start'} };
+				$matched_already->{$locus}->{ $match->{'allele'} }->{ $match->{'seqbin_id'} }
+				  ->{ $match->{'predicted_start'} } = 1;
 				$region_matched_already->{$locus}->{ $match->{'seqbin_id'} }->{ $match->{'predicted_start'} } = 1;
 
 				if ( $locus_info->{$locus}->{'match_longest'} && @{ $matches->{$locus} } ) {
@@ -1759,8 +1861,8 @@ sub _get_designation_tooltip {
 		$text  = 'conflict';
 	}
 	my $designations = $self->{'datastore'}->get_allele_designations( $isolate_id, $locus );
-	my $plural = @$designations == 1 ? '' : 's';
-	my $buffer = "Existing designation$plural - ";
+	my $plural       = @$designations == 1 ? '' : 's';
+	my $buffer       = "Existing designation$plural - ";
 	foreach my $designation (@$designations) {
 		my $sender = $self->{'datastore'}->get_user_info( $designation->{'sender'} );
 		$buffer .= "allele: $designation->{'allele_id'} ";
@@ -1815,7 +1917,6 @@ sub _write_match {
 	#Write matches to a file in secure_tmp that can be read by tagging page.
 	my ( $self, $scan_job, $data, $options ) = @_;
 	$data //= '';
-	$options = {} if ref $options ne 'HASH';
 	my $match_file = "$self->{'config'}->{'secure_tmp_dir'}/$scan_job\_matches.txt";
 	unlink $match_file if $options->{'reset'};
 	open( my $fh, '>>', $match_file ) || $logger->error("Can't open $match_file for appending");
@@ -1912,8 +2013,8 @@ sub _simulate_hybridization {
 			$probe->{'max_mismatch'} += $delta;
 			$probe->{'max_mismatch'} = 0 if $probe->{'max_mismatch'} < 0;
 		}
-		$probe->{'max_gaps'} = 0 if !$probe->{'max_gaps'};
-		$probe->{'min_alignment'} = length $probe->{'sequence'} if !$probe->{'min_alignment'};
+		$probe->{'max_gaps'}          = 0                           if !$probe->{'max_gaps'};
+		$probe->{'min_alignment'}     = length $probe->{'sequence'} if !$probe->{'min_alignment'};
 		$probe_info{ $probe->{'id'} } = $probe;
 	}
 	close $fh;

@@ -1,6 +1,6 @@
 #Written by Keith Jolley
-#Copyright (c) 2010-2022, University of Oxford
-#E-mail: keith.jolley@zoo.ox.ac.uk
+#Copyright (c) 2010-2024, University of Oxford
+#E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
 #
@@ -175,6 +175,7 @@ sub print_page {
 		contigManager     => $self->{'contigManager'},
 		dataConnector     => $self->{'dataConnector'},
 		mod_perl_request  => $self->{'mod_perl_request'},
+		assembly_checks   => $self->{'assembly_checks'},
 		curate            => 1
 	);
 	my $page;
@@ -259,6 +260,7 @@ sub print_page {
 		}
 		$page = "BIGSdb::$classes{$self->{'page'}}"->new(%page_attributes);
 		$page->print_page_content;
+		$self->log_call( { curate => 1 } );
 		return;
 	}
 	$page_attributes{'error'} = 'unknown';
