@@ -330,7 +330,7 @@
     dest: /usr/local/bin/
     owner: root
     group: root
-    mode: '0755'
+    mode: "u=rwx,g=rx,o=rx"
   tags: dbmate
 
 - name: setup core db's 1
@@ -771,7 +771,7 @@
     path: /scratch/temp/
     state: directory
     owner: root
-    mode: 0777
+    mode: "u=rwx,g=rwx,o=rwx"
 
 - name: adapt tmp dir for BIGSdb
   block:
@@ -785,7 +785,7 @@
       ansible.builtin.file:
         path: /temp_bigs
         state: directory
-        mode: 0777
+        mode: "u=rwx,g=rwx,o=rwx"
   tags: temp_dir_bigs
 
 - name: setup cron
@@ -822,10 +822,10 @@
         cron_file: bigsdb_upload
       tags: bigs_upload_cron
 
-    - name: Adapt specie in bash script related to bigsdb upload
+    - name: Adapt species in bash script related to bigsdb upload
       lineinfile:
         path: "{{ bioit_bigs_home }}/bioit_bigsdb_scripts/cron_startinsertion_lab_metadata.sh"
-        regexp: "--species to_be_replace_by_ansible"
+        regexp: "--species to_be_replaced_by_ansible"
         line: "/home/bigsdb/BIGSdb/3.9PythonVenv/bin/python3.9 /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/components/metadata_insertion_from_bigs.py --species {{ species }} "
       tags: bigs_upload_cron
 
@@ -959,7 +959,7 @@
         path: /home/galaxy/mongo
         state: directory
         owner: galaxy
-        mode: 0777
+        mode: "u=rwx,g=rwx,o=rwx"
 
     - name: generate SSH key galaxy user
       user:
@@ -977,7 +977,7 @@
         dest: /home/galaxy/.ssh/authorized_keys
         owner: galaxy
         group: galaxy
-        mode: '0640'
+        mode: "u=rw,g=r"
         remote_src: yes
 
     - name: mkdir folder for jail
@@ -985,7 +985,7 @@
         path: /scratch/bigsupload
         state: directory
         owner: root
-        mode: 0751
+        mode: "u=rwx,g=rx,o=x"
       tags: galaxy_jail
 
     - name: creation of jail section for galaxy
@@ -1005,7 +1005,7 @@
         path: /scratch/bigsupload/mongo
         state: directory
         owner: galaxy
-        mode: 0777
+        mode: "u=rwx,g=rwx,o=rwx"
       tags: galaxy_jail
 
     - name: creation of not_json dir in jail
@@ -1013,14 +1013,14 @@
         path: /scratch/bigsupload/not_json
         state: directory
         owner: galaxy
-        mode: 0777
+        mode: "u=rwx,g=rwx,o=rwx"
       tags: galaxy_jail
 
     - name: Touch list_of_isolates.txt
       ansible.builtin.file:
         path: /scratch/bigsupload/mongo/list_of_isolates.txt
         state: touch
-        mode: 0644
+        mode: "u=rw,g=r,o=r"
         owner: bigsdb
       tags: isolates_touch
 
@@ -1029,7 +1029,7 @@
         path: /scratch
         owner: root
         group: root
-        mode: 0755
+        mode: "u=rwx,g=rx,o=rx"
 
     - debug: msg="TODO manually; copy the private key to the right galaxy host manually in /home/galaxy/.ssh, chmod 0600 it !"
   tags: gal_user
