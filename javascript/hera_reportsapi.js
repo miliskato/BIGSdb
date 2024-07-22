@@ -44,35 +44,27 @@ function get_jwt_preview(id, pseudo_id, species, validation_type, res_time, get_
     });
 }
 
-function replacePseudoidById(content, pseudo_id, id) {
+function replacePseudoIdByID(content, pseudo_id, id) {
     // Function to modify file content (similar to `sed`)
     const regex = new RegExp(pseudo_id, 'g');
     return content.replace(regex, id);
 }
 
 async function depseudonymizeZip(content, pseudo_id, id) {
-    // recursive function to replace the pseudo_id by id everywhere and return a new zip
+    // function to replace the pseudo_id by id everywhere and return a new zip
     // Create a new JSZip instance for the modified files
     const newZip = new JSZip();
     // Iterate over all files
     for (const originalFilename in content.files) {
         if (Object.prototype.hasOwnProperty.call(content.files, originalFilename)) {
             const file = content.files[originalFilename];
-            if (file.dir) {
-            // If it's a directory, create the same structure in the new ZIP
-                const newDir = newZip.folder(replacePseudoidById(originalFilename, pseudo_id, id));
-                // Recursively process the directory
-                await depseudonymizeZip(file, newDir);
-            } else {
-                // If it's a file, read its content
-                let fileContent = await file.async('string');
-                // Modify the file content
-                fileContent = replacePseudoidById(fileContent, pseudo_id, id);
-                // Modify the filename if needed
-                const newFilename = replacePseudoidById(originalFilename, pseudo_id, id);
-                // Add the modified file to the new zip archive
-                newZip.file(newFilename, fileContent);
-            }
+            let fileContent = await file.async('string');
+            // Modify the file content
+            fileContent = replacePseudoIdByID(fileContent, pseudo_id, id);
+            // Modify the filename/directory name if needed
+            const newFilename = replacePseudoIdByID(originalFilename, pseudo_id, id);
+            // Add the modified file / directory to the new zip archive
+            newZip.file(newFilename, fileContent);
         }
     }
     return newZip;
@@ -94,7 +86,7 @@ function get_jwt_zip(id, pseudo_id, species, validation_type, res_time, get_zip,
 
             // Convert Blob to ArrayBuffer and load content
             const arrayBuffer = await blob.arrayBuffer();
-            const content = await jSZip.loadAsync(arrayBuffer);
+            const content = await JSZip.loadAsync(arrayBuffer);
 
             // Run the recursive zip depseudonymizer
             const newZip = await depseudonymizeZip(content, pseudo_id, id);
