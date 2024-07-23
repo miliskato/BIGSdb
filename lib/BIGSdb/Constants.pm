@@ -1,6 +1,6 @@
 #Written by Keith Jolley
-#Copyright (c) 2015-2022, University of Oxford
-#E-mail: keith.jolley@zoo.ox.ac.uk
+#Copyright (c) 2015-2024, University of Oxford
+#E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
 #
@@ -37,7 +37,7 @@ use constant MAX_SPLITS_TAXA           => 150;
 use constant MAX_MUSCLE_MB             => 4 * 1024;    #4GB
 use constant MAX_ISOLATES_DROPDOWN     => 1000;
 use constant MAX_EAV_FIELD_LIST        => 100;
-use constant MAX_LOCUS_ORDER_BY        => 2000;
+use constant MAX_LOCUS_ORDER_BY        => 500;
 use constant MAX_LOCI_NON_CACHE_SCHEME => 30;
 use constant MIN_CONTIG_LENGTH         => 100;
 use constant MIN_GENOME_SIZE           => 1_000_000;
@@ -52,13 +52,21 @@ use constant SEQ_METHODS => (
 	'Illumina + ONT hybrid',
 	'Illumina + PacBio hybrid',
 	'Ion Torrent', 'Oxford Nanopore',
-	'PacBio', 'Sanger', 'Solexa', 'SOLiD', 'other'
+	'PacBio', 'Sanger', 'Solexa', 'SOLiD', 'other', 'unknown'
 );
 push @EXPORT_OK, qw(SEQ_METHODS);
 
 #Codons
 use constant DEFAULT_CODON_TABLE => 11;
 push @EXPORT_OK, qw(DEFAULT_CODON_TABLE);
+
+#Isolate embargoes
+use constant DEFAULT_EMBARGO     => 12;
+use constant MAX_INITIAL_EMBARGO => 24;
+use constant MAX_EMBARGO         => 48;
+@values = qw(DEFAULT_EMBARGO MAX_INITIAL_EMBARGO MAX_EMBARGO);
+push @EXPORT_OK, @values;
+$EXPORT_TAGS{'embargo'} = [@values];
 
 #Interface
 use constant FACE_STYLE => (
@@ -82,6 +90,7 @@ use constant UPLOAD               => q(<span class="fas fa-upload" style="color:
 use constant UPLOAD_CHANGE_CONFIG => q(<span class="fas fa-upload" style="color:#800"></span>);
 use constant QUERY                => q(<span class="fas fa-search" style="color:#44a"></span>);
 use constant USERS                => q(<span class="fas fa-users" style="color:#a4a"></span>);
+use constant PENDING              => q(<span class="fa fa-hourglass-half" style="color:#888"></span>);
 use constant GOOD                 => q(<span class="statusgood fas fa-check"></span>);
 use constant BAD                  => q(<span class="statusbad fas fa-times"></span>);
 use constant MEH                  => q(<span class="statusmeh fas fa-minus"></span>);
@@ -172,6 +181,14 @@ use constant ALIGN_FILE => q(<span class="fa-stack fa-2x export">)
 use constant CODE_FILE => q(<span class="fa-stack fa-2x export">)
   . q(<span class="fas fa-square fa-stack-2x export_code"></span>)
   . q(<span class="fas fa-file-code fa-stack-1x fa-inverse"></span></span>);
+use constant PDF_FILE => q(<span class="fa-stack fa-2x export">)
+  . q(<span class="fas fa-square fa-stack-2x export_pdf"></span>)
+  . q(<span class="fas fa-file-pdf fa-stack-1x fa-inverse"></span></span>);
+use constant HTML_FILE => q(<span class="fa-stack fa-2x export">)
+  . q(<span class="fas fa-square fa-stack-2x export_html"></span>)
+  . q(<span class="fas fa-file-code fa-stack-1x fa-inverse" style="margin-top:-0.2em"></span>)
+  . q(<span class="fas fa-stack-text fa-stack-1x" style="font-size:0.4em;)
+  . q(margin-top:1.5em">HTML</span></span>);
 use constant SUBMIT_BUTTON => q(<span class="fa-stack fa-2x upload">)
   . q(<span class="fas fa-square fa-stack-2x upload_button"></span>)
   . q(<span class="fas fa-upload fa-stack-1x fa-inverse" style="margin-top:-0.2em"></span>)
@@ -198,9 +215,9 @@ use constant WARNING_TOOLTIP => q(<span class="fa-stack">)
 use constant FLANKING => qw(0 20 50 100 200 500 1000 2000 5000 10000 25000 50000);
 use constant MAX_ROWS => 20;
 @values = qw(FACE_STYLE SHOW HIDE SAVE SAVING UP DOWN LEFT RIGHT
-  EDIT DELETE ADD COMPARE UPLOAD UPLOAD_CHANGE_CONFIG QUERY USERS GOOD BAD MEH TRUE FALSE BAN DOWNLOAD
+  EDIT DELETE ADD COMPARE UPLOAD UPLOAD_CHANGE_CONFIG QUERY USERS PENDING GOOD BAD MEH TRUE FALSE BAN DOWNLOAD
   BACK QUERY_MORE EDIT_MORE UPLOAD_CONTIGS LINK_CONTIGS MORE HOME RELOAD KEY EYE_SHOW EYE_HIDE
-  CURATE EXPORT_TABLE EXCEL_FILE TEXT_FILE FASTA_FILE FASTA_FLANKING_FILE
+  CURATE EXPORT_TABLE EXCEL_FILE TEXT_FILE FASTA_FILE FASTA_FLANKING_FILE PDF_FILE HTML_FILE
   EMBL_FILE GBK_FILE GFF3_FILE MISC_FILE ARCHIVE_FILE IMAGE_FILE ALIGN_FILE CODE_FILE FLANKING
   SUBMIT_BUTTON MAX_ROWS LOCK UNLOCK FIRST PREVIOUS NEXT LAST TOOLTIP WARNING_TOOLTIP);
 push @EXPORT_OK, @values;
@@ -271,7 +288,7 @@ push @EXPORT_OK, qw(DATABANKS);
 
 #Permissions
 use constant SUBMITTER_ALLOWED_PERMISSIONS => qw(modify_isolates modify_sequences tag_sequences designate_alleles
-  only_private disable_access);
+  only_private disable_access delete_all);
 push @EXPORT_OK, qw(SUBMITTER_ALLOWED_PERMISSIONS);
 
 #Submissions
@@ -293,7 +310,8 @@ use constant MAX_CONTIGS              => 1000;
 use constant MIN_N50                  => 10_000;
 use constant MIN_TOTAL_LENGTH         => 1_000_000;
 use constant MAX_TOTAL_LENGTH         => 15_000_000;
-use constant NULL_TERMS               => ( 'none', 'N/A', 'NA', '-', '.', 'not applicable', 'no value' );
+use constant NULL_TERMS               =>
+  ( 'none', 'N/A', 'NA', '-', '.', 'not applicable', 'no value', 'unknown', 'unk', 'not known', 'null' );
 @values = qw (SUBMISSIONS_DELETED_DAYS COVERAGE READ_LENGTH ASSEMBLY REQUIRES_READ_LENGTH
   REQUIRES_COVERAGE REQUIRED_GENOME_FIELDS DAILY_REST_LIMIT TOTAL_PENDING_LIMIT DAILY_PENDING_LIMIT NULL_TERMS
   WARN_MAX_CONTIGS WARN_MIN_N50 WARN_MIN_TOTAL_LENGTH WARN_MAX_TOTAL_LENGTH MAX_CONTIGS MIN_N50 MIN_TOTAL_LENGTH
@@ -303,7 +321,7 @@ push @EXPORT_OK, @values;
 $EXPORT_TAGS{'submissions'} = [@values];
 
 #Schemes
-use constant SCHEME_FLAGS => ( 'experimental', 'in development', 'please cite', 'unpublished' );
+use constant SCHEME_FLAGS        => ( 'experimental', 'in development', 'please cite', 'unpublished' );
 use constant SCHEME_FLAG_COLOURS => {
 	'please cite'    => '#990000',
 	'experimental'   => '#4c9900',
@@ -329,7 +347,7 @@ $EXPORT_TAGS{'accounts'} = [qw(NEW_ACCOUNT_VALIDATION_TIMEOUT_MINS INACTIVE_ACCO
 #ISO 3166-1 country codes
 use constant COUNTRIES => {
 	q(Afghanistan)                                  => { iso2 => q(AF), iso3 => q(AFG), continent => q(Asia) },
-	q(Åland Islands)                               => { iso2 => q(AX), iso3 => q(ALA), continent => q(Europe) },
+	q(Åland Islands)                                => { iso2 => q(AX), iso3 => q(ALA), continent => q(Europe) },
 	q(Albania)                                      => { iso2 => q(AL), iso3 => q(ALB), continent => q(Europe) },
 	q(Algeria)                                      => { iso2 => q(DZ), iso3 => q(DZA), continent => q(Africa) },
 	q(American Samoa)                               => { iso2 => q(AS), iso3 => q(ASM), continent => q(Oceania) },
@@ -387,7 +405,7 @@ use constant COUNTRIES => {
 	q(Costa Rica)                                   => { iso2 => q(CR), iso3 => q(CRI), continent => q(North America) },
 	q(Croatia)                                      => { iso2 => q(HR), iso3 => q(HRV), continent => q(Europe) },
 	q(Cuba)                                         => { iso2 => q(CU), iso3 => q(CUB), continent => q(North America) },
-	q(Curaçao)                                     => { iso2 => q(CW), iso3 => q(CUW), continent => q(North America) },
+	q(Curaçao)                                      => { iso2 => q(CW), iso3 => q(CUW), continent => q(North America) },
 	q(Cyprus)                                       => { iso2 => q(CY), iso3 => q(CYP), continent => q(Europe) },
 	q(Czech Republic)                               => { iso2 => q(CZ), iso3 => q(CZE), continent => q(Europe) },
 	q(Denmark)                                      => { iso2 => q(DK), iso3 => q(DNK), continent => q(Europe) },
@@ -507,13 +525,13 @@ use constant COUNTRIES => {
 	q(Portugal)                                     => { iso2 => q(PT), iso3 => q(PRT), continent => q(Europe) },
 	q(Puerto Rico)                                  => { iso2 => q(PR), iso3 => q(PRI), continent => q(North America) },
 	q(Qatar)                                        => { iso2 => q(QA), iso3 => q(QAT), continent => q(Asia) },
-	q(Réunion)                                     => { iso2 => q(RE), iso3 => q(REU), continent => q(Africa) },
+	q(Réunion)                                      => { iso2 => q(RE), iso3 => q(REU), continent => q(Africa) },
 	q(Romania)                                      => { iso2 => q(RO), iso3 => q(ROU), continent => q(Europe) },
 	q(Russia)                                       => { iso2 => q(RU), iso3 => q(RUS), continent => q(Asia) },
 	q(Russia [Asia])                                => { iso2 => q(RU), iso3 => q(RUS), continent => q(Asia) },
 	q(Russia [Europe])                              => { iso2 => q(RU), iso3 => q(RUS), continent => q(Europe) },
 	q(Rwanda)                                       => { iso2 => q(RW), iso3 => q(RWA), continent => q(Africa) },
-	q(Saint Barthélemy)                            => { iso2 => q(BL), iso3 => q(BLM), continent => q(North America) },
+	q(Saint Barthélemy)                             => { iso2 => q(BL), iso3 => q(BLM), continent => q(North America) },
 	q(Saint Helena)                                 => { iso2 => q(SH), iso3 => q(SHN), continent => q(Africa) },
 	q(Saint Kitts and Nevis)                        => { iso2 => q(KN), iso3 => q(KNA), continent => q(North America) },
 	q(Saint Lucia)                                  => { iso2 => q(LC), iso3 => q(LCA), continent => q(North America) },
@@ -522,7 +540,7 @@ use constant COUNTRIES => {
 	q(Saint Vincent and the Grenadines)             => { iso2 => q(VC), iso3 => q(VCT), continent => q(North America) },
 	q(Samoa)                                        => { iso2 => q(WS), iso3 => q(WSM), continent => q(Oceania) },
 	q(San Marino)                                   => { iso2 => q(SM), iso3 => q(SMR), continent => q(Europe) },
-	q(São Tomé and Príncipe)                     => { iso2 => q(ST), iso3 => q(STP), continent => q(Africa) },
+	q(São Tomé and Príncipe)                        => { iso2 => q(ST), iso3 => q(STP), continent => q(Africa) },
 	q(Sark)                                         => { iso2 => q(CQ), iso3 => q(),    continent => q(Europe) },
 	q(Saudi Arabia)                                 => { iso2 => q(SA), iso3 => q(SAU), continent => q(Asia) },
 	q(Senegal)                                      => { iso2 => q(SN), iso3 => q(SEN), continent => q(Africa) },
@@ -603,7 +621,7 @@ use constant DEFAULT_FRONTEND_DASHBOARD => [
 		display           => 'record_count',
 		name              => 'Isolate count',
 		width             => 2,
-		background_colour => '#79cafb',
+		background_colour => '#9bb5d0',
 		main_text_colour  => '#404040',
 		watermark         => 'fas fa-bacteria',
 		change_duration   => 'month',
@@ -614,7 +632,7 @@ use constant DEFAULT_FRONTEND_DASHBOARD => [
 		name              => 'Genome count',
 		genomes           => 1,
 		width             => 2,
-		background_colour => '#7ecc66',
+		background_colour => '#99ca92',
 		main_text_colour  => '#404040',
 		watermark         => 'fas fa-dna',
 		change_duration   => 'month',

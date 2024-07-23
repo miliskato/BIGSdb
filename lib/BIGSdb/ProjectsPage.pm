@@ -1,6 +1,6 @@
 #Written by Keith Jolley
-#Copyright (c) 2014-2020, University of Oxford
-#E-mail: keith.jolley@zoo.ox.ac.uk
+#Copyright (c) 2014-2023, University of Oxford
+#E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
 #
@@ -33,15 +33,18 @@ sub initiate {
 
 sub print_content {
 	my ($self) = @_;
-	my $q = $self->{'cgi'};
-	my $desc = $self->get_db_description( { formatted => 1 } );
+	my $q      = $self->{'cgi'};
+	my $desc   = $self->get_db_description( { formatted => 1 } );
 	say "<h1>Main projects defined in the $desc database</h1>";
-	my $projects = $self->{'datastore'}->run_query(
-		'SELECT * FROM projects WHERE list AND id IN (SELECT project_id FROM project_members WHERE isolate_id IN '
-		  . "(SELECT id FROM $self->{'system'}->{'view'})) ORDER BY id",
-		undef,
-		{ fetch => 'all_arrayref', slice => {} }
-	);
+	my $date_restriction_message = $self->get_date_restriction_message;
+	if ( !$self->{'username'} && $date_restriction_message ) {
+		say qq(<div class="box banner">$date_restriction_message</div>);
+	}
+	my $qry =
+		'SELECT * FROM projects p WHERE '
+	  . "EXISTS(SELECT 1 FROM project_members pm JOIN $self->{'system'}->{'view'} v ON "
+	  . 'pm.isolate_id=v.id JOIN projects ON p.id=pm.project_id) AND list ORDER BY id';
+	my $projects = $self->{'datastore'}->run_query( $qry, undef, { fetch => 'all_arrayref', slice => {} } );
 	if ( !@$projects ) {
 		$self->print_bad_status(
 			{ message => q(There are no listable projects defined in this database.), navbar => 1 } );
@@ -49,19 +52,23 @@ sub print_content {
 	}
 	say q(<div class="box" id="resultstable"><div class="scrollable">);
 	say q(<table class="tablesorter" id="sortTable">);
-	say q(<thead><tr><th>Project id</th><th>Short description</th><th class="{sorter: false}">Full description</th>)
-	  . q(<th>Isolates</th><th class="{sorter: false}">Browse</th></tr></thead><tbody>);
+	say q(<thead><tr><th>Project id</th><th>Short description</th><th class="sorter-false">Full description</th>)
+	  . q(<th>Isolates</th><th class="sorter-false">Dashboard</th><th class="sorter-false">Browse</th></tr></thead><tbody>);
 	my $td = 1;
 	foreach my $project (@$projects) {
 		my $isolates = $self->{'datastore'}->run_query(
-			'SELECT COUNT(*) FROM project_members WHERE project_id=? AND isolate_id IN '
-			  . "(SELECT id FROM $self->{'system'}->{'view'} WHERE new_version IS NULL)",
+			"SELECT COUNT(*) FROM project_members pm JOIN $self->{'system'}->{'view'} v "
+			  . 'ON pm.isolate_id=v.id WHERE pm.project_id=? AND new_version IS NULL',
 			$project->{'id'},
 			{ cache => 'ProjectsPage::print_content' }
 		);
 		$project->{'full_description'} //= q();
-		say qq(<tr class="td$td"><td>$project->{'id'}</td><td>$project->{'short_description'}</td>)
-		  . qq(<td>$project->{'full_description'}</td><td>$isolates</td><td>);
+		say qq(<tr class="td$td"><td>$project->{'id'}</td>)
+		  . qq(<td style="text-align:left">$project->{'short_description'}</td>)
+		  . qq(<td style="text-align:left">$project->{'full_description'}</td><td>$isolates</td><td>);
+		say qq(<a href="$self->{'system'}->{'script_name'}?db=$self->{'instance'}&amp;page=project&amp;)
+		  . qq(project_id=$project->{'id'}"><span class="fas fa-th action browse">)
+		  . q(</span></a></td><td>);
 		say qq(<a href="$self->{'system'}->{'script_name'}?db=$self->{'instance'}&amp;page=query&amp;)
 		  . qq(project_list=$project->{'id'}&amp;submit=1"><span class="fas fa-binoculars action browse">)
 		  . q(</span></a></td></tr>);

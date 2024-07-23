@@ -2,8 +2,8 @@
 #Define LINcodes from cgMLST profiles
 #Written by Keith Jolley
 #Based on code by Melanie Hennart (https://gitlab.pasteur.fr/BEBP/LINcoding).
-#Copyright (c) 2022, University of Oxford
-#E-mail: keith.jolley@zoo.ox.ac.uk
+#Copyright (c) 2022-2023, University of Oxford
+#E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
 #
@@ -20,7 +20,7 @@
 #You should have received a copy of the GNU General Public License
 #along with BIGSdb.  If not, see <http://www.gnu.org/licenses/>.
 #
-#Version: 20220701
+#Version: 20230222
 use strict;
 use warnings;
 use 5.010;
@@ -81,11 +81,14 @@ my $script = BIGSdb::Offline::Script->new(
 	}
 );
 check_db();
+check_if_script_already_running();
 $opts{'batch_size'} //= 10_000;
 if ( $opts{'log'} ) {
 	initiate_log_file( $opts{'log'} );
 }
 main();
+undef $script;
+remove_lock_file();
 
 sub main {
 	local $| = 1;
@@ -122,8 +125,9 @@ sub adjust_prim_order {
 	my %missing = ( N => 0 );
 
 	foreach my $profile_id (@$new_profiles) {
-		my $profile_array = $script->{'datastore'}
-		  ->run_query( "SELECT profile FROM mv_scheme_$opts{'scheme_id'} WHERE $pk=?", $profile_id );
+		my $profile_array =
+		  $script->{'datastore'}->run_query( "SELECT profile FROM mv_scheme_$opts{'scheme_id'} WHERE $pk=?",
+			$profile_id, { cache => 'Lincodes::getprofile' } );
 		$_ = $missing{$_} // $_ foreach @$profile_array;
 		my $profile = pdl($profile_array);
 		for my $i ( 0 .. @$assigned_profile_ids - 1 ) {
@@ -174,8 +178,8 @@ sub assign_lincodes {
 	my %missing     = ( N => 0 );
 	foreach my $profile_id (@$profiles_to_assign) {
 		my $lincode;
-		my $profile = $script->{'datastore'}
-		  ->run_query( "SELECT profile FROM mv_scheme_$opts{'scheme_id'} WHERE $pk=?", $profile_id );
+		my $profile = $script->{'datastore'}->run_query( "SELECT profile FROM mv_scheme_$opts{'scheme_id'} WHERE $pk=?",
+			$profile_id, { cache => 'Lincodes::getprofile' } );
 		$_ = $missing{$_} // $_ foreach @$profile;
 		if ( !@{ $definitions->{'profile_ids'} } ) {
 			$lincode = [ (0) x @{ $thresholds->{'diffs'} } ];
@@ -357,20 +361,20 @@ sub get_profile_order_term {
 
 sub get_prim_order {
 	my ($profiles) = @_;
-	##no critic (ProhibitMismatchedOperators) - PDL uses .= assignment.
 	my ( $filename, $index, $dismat ) = get_distance_matrix($profiles);
 	return $index                      if @$index == 1;
 	print 'Calculating PRIM order ...' if !$opts{'quiet'};
 	print "\n"                         if @$index >= 500;
 	my $start_time = time;
 	for my $i ( 0 .. @$index - 1 ) {
-		$dismat->range( [ $i, $i ] ) .= 999;
+		$dismat->set( $i, $i, 999 );
 	}
 	my $ind = $dismat->flat->minimum_ind;
 	my ( $x, $y ) = ( int( $ind / @$index ), $ind - int( $ind / @$index ) * @$index );
 	my $index_order = [ $x, $y ];
 	my $profile_order = [ $index->[$x], $index->[$y] ];
-	$dismat->range( [ $x, $y ] ) .= $dismat->range( [ $y, $x ] ) .= 999;
+	$dismat->set( $x, $y, 999 );
+	$dismat->set( $y, $x, 999 );
 	while ( @$profile_order != @$index ) {
 		my $min = 101;
 		my $v_min;
@@ -383,7 +387,8 @@ sub get_prim_order {
 		}
 		my $k = $dismat->slice($v_min)->flat->minimum_ind;
 		for my $i (@$index_order) {
-			$dismat->range( [ $i, $k ] ) .= $dismat->range( [ $k, $i ] ) .= 999;
+			$dismat->set( $i, $k, 999 );
+			$dismat->set( $k, $i, 999 );
 		}
 		push @$index_order,   $k;
 		push @$profile_order, $index->[$k];
@@ -468,8 +473,8 @@ sub get_distance_matrix {
 			  dims( where( $prof1, $prof2, ( $prof1 != $prof2 ) & ( $prof1 != 0 ) & ( $prof2 != 0 ) ) );
 			my ($missing_in_either) = dims( where( $prof1, $prof2, ( $prof1 == 0 ) | ( $prof2 == 0 ) ) );
 			my $distance = 100 * $diffs / ( $locus_count - $missing_in_either );
-			$dismat->range( [ $i, $j ] ) .= $distance;
-			$dismat->range( [ $j, $i ] ) .= $distance;
+			$dismat->set( $i, $j, $distance );
+			$dismat->set( $j, $i, $distance );
 		}
 	}
 	say 'Done.' if !$opts{'quiet'};
@@ -509,6 +514,40 @@ sub check_db {
 		$logger->error("LINcodes are not defined for scheme $opts{'scheme_id'}.");
 		exit;
 	}
+}
+sub check_if_script_already_running {
+	my $lock_file = get_lock_file();
+	if ( -e $lock_file ) {
+		open( my $fh, '<', $lock_file ) || $logger->error("Cannot open lock file $lock_file for reading");
+		my $pid = <$fh>;
+		close $fh;
+		my $pid_exists = kill( 0, $pid );
+		if ( !$pid_exists ) {
+			say 'Lock file exists but process is no longer running - deleting lock.'
+			  if !$opts{'quiet'};
+			unlink $lock_file;
+		} else {
+			say 'Script already running with these parameters - terminating.' if !$opts{'quiet'};
+			exit(1);
+		}
+	}
+	open( my $fh, '>', $lock_file ) || $logger->error("Cannot open lock file $lock_file for writing");
+	say $fh $$;
+	close $fh;
+	return;
+}
+
+sub get_lock_file {
+	my $hash      = Digest::MD5::md5_hex("$0||$opts{'d'}||$opts{'scheme_id'}");
+	my $lock_dir  = $script->{'config'}->{'lock_dir'} // LOCK_DIR;
+	my $lock_file = "$lock_dir/BIGSdb_lincodes_$hash";
+	return $lock_file;
+}
+
+sub remove_lock_file {
+	my $lock_file = get_lock_file();
+	unlink $lock_file;
+	return;
 }
 
 sub show_help {

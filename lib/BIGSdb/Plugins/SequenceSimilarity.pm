@@ -1,8 +1,8 @@
 #SequenceSimilarity.pm - Plugin for BIGSdb
 #This requires the SequenceComparison plugin
 #Written by Keith Jolley
-#Copyright (c) 2010-2020, University of Oxford
-#E-mail: keith.jolley@zoo.ox.ac.uk
+#Copyright (c) 2010-2024, University of Oxford
+#E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
 #
@@ -35,7 +35,7 @@ sub get_attributes {
 			{
 				name        => 'Keith Jolley',
 				affiliation => 'University of Oxford, UK',
-				email       => 'keith.jolley@zoo.ox.ac.uk',
+				email       => 'keith.jolley@biology.ox.ac.uk',
 			}
 		],
 		description      => 'Find sequences most similar to selected allele',
@@ -46,10 +46,9 @@ sub get_attributes {
 		category => 'Analysis',
 		menutext => 'Sequence similarity',
 		module   => 'SequenceSimilarity',
-		url =>
-		  "$self->{'config'}->{'doclink'}/data_query/0050_investigating_allele_differences.html#sequence-similarity"
-		,
-		version    => '1.1.3',
+		url      =>
+		  "$self->{'config'}->{'doclink'}/data_query/0050_investigating_allele_differences.html#sequence-similarity",
+		version    => '1.2.0',
 		dbtype     => 'sequences',
 		seqdb_type => 'sequences',
 		section    => 'analysis',
@@ -59,15 +58,20 @@ sub get_attributes {
 	return \%att;
 }
 
+sub get_initiation_values {
+	return { 'jQuery.tablesort' => 1, 'jQuery.multiselect' => 1 };
+}
+
 sub run {
 	my ($self) = @_;
-	my $q = $self->{'cgi'};
-	my $locus = $q->param('locus') || '';
+	my $q      = $self->{'cgi'};
+	my $locus  = $q->param('locus') || '';
 	$locus =~ s/^cn_//x;
 	my $allele = $q->param('allele');
 	say q(<h1>Find most similar alleles</h1>);
 	my $set_id = $self->get_set_id;
-	my ( $display_loci, $cleaned ) = $self->{'datastore'}->get_locus_list( { set_id => $set_id } );
+	my ( $display_loci, $cleaned ) =
+	  $self->{'datastore'}->get_locus_list( { set_id => $set_id, no_list_by_common_name => 1 } );
 
 	if ( !@$display_loci ) {
 		$self->print_bad_status( { message => q(No loci have been defined for this database.), navbar => 1 } );
@@ -121,7 +125,7 @@ sub run {
 	my $blast_obj  = $self->_get_blast_obj($locus);
 	$blast_obj->blast( $seq_ref, { num_results => $num_results + 1 } );
 	my $partial_matches = $blast_obj->get_partial_matches( { details => 1 } );
-	my $matches = ref $partial_matches->{$locus} eq 'ARRAY' ? $partial_matches->{$locus} : [];
+	my $matches         = ref $partial_matches->{$locus} eq 'ARRAY' ? $partial_matches->{$locus} : [];
 	say q(<div class="box resultstable">);
 	say qq(<h2>$cleanlocus-$allele</h2>);
 
@@ -132,7 +136,7 @@ sub run {
 		foreach my $match (@$matches) {
 			next if $match->{'allele'} eq $allele;
 			my $length = length $$seq_ref;
-			say qq(<tr class="td$td"><td><a href="$self->{'script_name'}?db=$self->{'instance'}&amp;)
+			say qq(<tr class="td$td"><td><a href="$self->{'system'}->{'script_name'}?db=$self->{'instance'}&amp;)
 			  . qq(page=alleleInfo&amp;locus=$locus&amp;allele_id=$match->{'allele'}">)
 			  . qq($cleanlocus: $match->{'allele'}</a></td><td>$match->{'identity'}</td>)
 			  . qq(<td>$match->{'mismatches'}</td><td>$match->{'gaps'}</td><td>$match->{'alignment'}/$length)
@@ -179,5 +183,19 @@ sub _get_blast_obj {
 		}
 	);
 	return $blast_obj;
+}
+
+sub get_plugin_javascript {
+	my $buffer = << "END";
+\$(function () {
+  	\$('#locus').multiselect({
+ 		classes: 'filter',
+ 		menuHeight: 350,
+ 		menuWidth: 400,
+ 		selectedList: 1,
+  	}).multiselectfilter();
+});
+END
+	return $buffer;
 }
 1;

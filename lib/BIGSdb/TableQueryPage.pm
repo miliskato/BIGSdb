@@ -1,6 +1,6 @@
 #Written by Keith Jolley
-#Copyright (c) 2010-2022, University of Oxford
-#E-mail: keith.jolley@zoo.ox.ac.uk
+#Copyright (c) 2010-2024, University of Oxford
+#E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
 #
@@ -28,12 +28,22 @@ use BIGSdb::Constants qw(SEQ_FLAGS ALLELE_FLAGS OPERATORS :interface);
 
 sub initiate {
 	my ($self) = @_;
-	if ( $self->{'cgi'}->param('no_header') ) {
+	my $q = $self->{'cgi'};
+	if ( $q->param('no_header') ) {
 		$self->{'type'} = 'no_header';
 		return;
 	}
-	$self->{$_} = 1 foreach (qw (tooltips jQuery jQuery.coolfieldset jQuery.multiselect));
 	$self->set_level1_breadcrumbs;
+	my $table = $q->param('table');
+	$self->{$_} = 1 foreach (qw (noCache tooltips jQuery jQuery.coolfieldset jQuery.multiselect));
+	if ( !$q->param('save_options') ) {
+		my $guid = $self->get_guid;
+		return if !$guid;
+		return if !$self->{'datastore'}->is_table($table);
+		my $value =
+		  $self->{'prefstore'}->get_general_pref( $guid, $self->{'system'}->{'db'}, "${table}_list_fieldset" );
+		$self->{'prefs'}->{"${table}_list_fieldset"} = ( $value // '' ) eq 'on' ? 1 : 0;
+	}
 	return;
 }
 
@@ -69,9 +79,12 @@ sub print_content {
 	my ($self) = @_;
 	my $system = $self->{'system'};
 	my $q      = $self->{'cgi'};
-	my $table = $q->param('table') || '';
+	my $table  = $q->param('table') || '';
 	if ( $q->param('no_header') ) {
 		$self->_ajax_content($table);
+		return;
+	} elsif ( $q->param('save_options') ) {
+		$self->_save_options;
 		return;
 	}
 	if ( $table eq 'isolates'
@@ -111,8 +124,8 @@ sub print_content {
 
 sub get_title {
 	my ($self) = @_;
-	my $table = $self->{'cgi'}->param('table');
-	my %title = ( sequences => 'Sequence attribute search' );
+	my $table  = $self->{'cgi'}->param('table');
+	my %title  = ( sequences => 'Sequence attribute search' );
 	if ( $title{$table} ) {
 		return $title{$table};
 	}
@@ -121,9 +134,10 @@ sub get_title {
 }
 
 sub get_javascript {
-	my ($self) = @_;
+	my ($self)          = @_;
 	my $filter_collapse = $self->filters_selected ? 'false' : 'true';
-	my $buffer = $self->SUPER::get_javascript;
+	my $panel_js        = $self->get_javascript_panel(qw(list));
+	my $buffer          = $self->SUPER::get_javascript;
 	$buffer .= << "END";
 \$(function () {
   	\$('#filters_fieldset').coolfieldset({speed:"fast", collapsed:$filter_collapse});
@@ -133,6 +147,18 @@ sub get_javascript {
   		+ "values can be searched using the term 'null'. </p><h3>Number of fields</h3><p>Add more fields by clicking the '+' button."
   		+ "</p><h3>Query modifier</h3><p>Select 'AND' for the isolate query to match ALL search terms, 'OR' to match ANY of these terms."
   		+ "</p>" );
+  	$panel_js
+  	\$("select.filter").multiselect({
+		header: "Please select...",
+		noneSelectedText: "Please select...",
+		selectedList: 1,
+		menuHeight: 250,
+		menuWidth: 300,
+		classes: 'filter'
+	});
+	\$("select.filter.search").multiselectfilter({
+		placeholder: 'Search'
+	});
 });
   	
 function loadContent(url) {
@@ -194,7 +220,7 @@ sub _get_select_items {
 sub _print_table_fields {
 	my ( $self, $table, $row, $max_rows, $select_items, $labels ) = @_;
 	my $q = $self->{'cgi'};
-	say q(<span style="white-space:nowrap">);
+	say q(<span style="display:flex">);
 	print $q->popup_menu( -name => "s$row", -values => $select_items, -labels => $labels, -class => 'fieldlist' );
 	print $q->popup_menu( -name => "y$row", -values => [OPERATORS] );
 	say $q->textfield( -name => "t$row", -class => 'value_entry' );
@@ -229,7 +255,7 @@ sub _print_interface {
 	my ( $select_items, $labels, $order_by, $attributes ) = $self->_get_select_items($table);
 	say q(<div class="box" id="queryform"><div class="scrollable">);
 	my $table_fields = $self->_highest_entered_fields || 1;
-	my $cleaned = $table;
+	my $cleaned      = $table;
 	$cleaned =~ tr/_/ /;
 
 	if ( $table eq 'sequences' ) {
@@ -247,7 +273,8 @@ sub _print_interface {
 		}
 	}
 	say q(<p>Please enter your search criteria below (or leave blank and submit to return all records).);
-	if ( !$self->{'curate'} ) {
+	my %customisable = map { $_ => 1 } qw(loci schemes scheme_fields);
+	if ( !$self->{'curate'} && $customisable{$table} ) {
 		say qq( Matching $cleaned will be returned and you will then be )
 		  . q(able to update their display and query settings.);
 	}
@@ -276,50 +303,10 @@ sub _print_interface {
 	say $self->get_number_records_control;
 	say q(</li></ul></fieldset>);
 	say q(<div style="clear:both"></div>);
-	my @filters;
-	foreach my $att (@$attributes) {
-		( my $tooltip = $att->{'tooltip'} ) =~ tr/_/ /;
-		my $sub = 'Select a value to filter your search to only those with the selected attribute.';
-		$tooltip =~ s/ - / filter - $sub/x;
-		if ( $att->{'dropdown_query'} ) {
-			my $dropdown_filter = $self->_get_dropdown_filter( $table, $att );
-			
-			push @filters, $dropdown_filter if $dropdown_filter;
-		} elsif ( $att->{'optlist'} ) {
-			
-			my @options = split /;/x, $att->{'optlist'};
-			push @filters, $self->get_filter( $att->{'name'}, \@options );
-		} elsif ( $att->{'type'} eq 'bool' ) {
-			push @filters, $self->get_filter( $att->{'name'}, [qw(true false)], { tooltip => $tooltip } );
-		}
-	}
-	my $filter_method = {
-		loci                => sub { return $self->get_scheme_filter },
-		allele_designations => sub { return $self->get_scheme_filter },
-		schemes             => sub { return $self->get_scheme_filter },
-		isolate_aliases     => sub { return $self->get_project_filter },
-		sequences           => sub { return $self->_get_sequence_filters },
-		locus_descriptions  => sub { return $self->_get_locus_description_filter },
-		allele_sequences    => sub { return $self->_get_allele_sequences_filters }
-	};
-	if ( $filter_method->{$table} ) {
-		my $table_filters = $filter_method->{$table}->();
-		if ($table_filters) {
-			push @filters, ref $table_filters ? @$table_filters : $table_filters;
-		}
-	}
-	if (@filters) {
-		if ( @filters > 2 ) {
-			say q(<fieldset id="filters_fieldset" style="float:left;display:none" class="coolfieldset">)
-			  . q(<legend>Filter query by</legend>);
-		} else {
-			say q(<fieldset style="float:left"><legend>Filter query by</legend>);
-		}
-		say q(<div><ul>);
-		say qq(<li><span style="white-space:nowrap">$_</span></li>) foreach @filters;
-		say q(</ul></div></fieldset>);
-	}
+	$self->_print_filter_fieldset( $table, $attributes );
+	$self->_print_list_fieldset( $table, $attributes );
 	$self->print_action_fieldset( { page => 'tableQuery', table => $table, submit_label => 'Search' } );
+	$self->_print_modify_search_fieldset;
 	say $q->end_form;
 	say q(</div></div>);
 	return;
@@ -457,7 +444,7 @@ sub _get_user_table_values {
 sub _sanitize_order_field {
 	my ( $self, $table ) = @_;
 	my ( undef, undef, $order_by, undef ) = $self->_get_select_items($table);
-	my $q = $self->{'cgi'};
+	my $q       = $self->{'cgi'};
 	my %allowed = map { $_ => 1 } @$order_by;
 	$q->delete('order') if defined $q->param('order') && !$allowed{ $q->param('order') };
 	return;
@@ -474,6 +461,7 @@ sub _run_query {
 	my $attributes = $self->{'datastore'}->get_table_field_attributes($table);
 	my $set_id     = $self->get_set_id;
 	$self->_sanitize_order_field($table);
+	my ( $list_file, $data_type );
 
 	if ( !defined $q->param('query_file') ) {
 		( $qry, $errors ) = $self->_generate_query($table);
@@ -484,6 +472,7 @@ sub _run_query {
 		$self->_modify_seqbin_for_view( $table, \$qry );
 		$self->_modify_loci_for_sets( $table, \$qry );
 		$self->_modify_schemes_for_sets( $table, \$qry );
+		( $list_file, $data_type ) = $self->_modify_by_list( $table, \$qry );
 		$self->_filter_query_by_scheme( $table, \$qry );
 		$self->_filter_query_by_project( $table, \$qry );
 		$self->_filter_query_by_common_name( $table, \$qry );
@@ -496,18 +485,18 @@ sub _run_query {
 		if ( $table eq 'sequences' ) {
 
 			#Alleles can be set to 0 or N for arbitrary profile definitions
-			$qry2 .= " AND $table.allele_id NOT IN ('0', 'N')";
+			$qry2 .= " AND $table.allele_id NOT IN ('0', 'N', 'P')";
 		}
 		$qry2 .= " ORDER BY $table.";
 		my $default_order;
-		if    ( $table eq 'sequences' )       { $default_order = 'locus' }
-		elsif ( $table eq 'history' )         { $default_order = 'timestamp' }
-		elsif ( $table eq 'profile_history' ) { $default_order = 'timestamp' }
-		else                                  { $default_order = 'id' }
+		my %history_tables = map { $_ => 1 } qw(history profile_history embargo_history);
+		if    ( $table eq 'sequences' )   { $default_order = 'locus' }
+		elsif ( $history_tables{$table} ) { $default_order = 'timestamp' }
+		else                              { $default_order = 'id' }
 		my $order = $q->param('order') || $default_order;
 		$qry2 .= $order;
 		$qry2 =~ s/sequences.sequence_length/length(sequences.sequence)/gx if $table eq 'sequences';
-		my $dir = ( $q->param('direction') // '' ) eq 'descending' ? 'desc' : 'asc';
+		my $dir          = ( $q->param('direction') // '' ) eq 'descending' ? 'desc' : 'asc';
 		my @primary_keys = $self->{'datastore'}->get_primary_keys($table);
 		local $" = ",$table.";
 		$qry2 .= " $dir";
@@ -520,7 +509,7 @@ sub _run_query {
 				#sort by integers first, then alphabetically.
 				my $field = "${table}.allele_id";
 				$qry2 .=
-				    qq(,COALESCE(SUBSTRING($field FROM '^(\\d+)')::INTEGER, 99999999),)
+					qq(,COALESCE(SUBSTRING($field FROM '^(\\d+)')::INTEGER, 99999999),)
 				  . qq(SUBSTRING($field FROM '^\\d* *(.*"?")(\\d+)"?"\$'),)
 				  . qq(COALESCE(SUBSTRING($field FROM '(\\d+)\$')::INTEGER, 0),$field);
 			} else {
@@ -530,14 +519,20 @@ sub _run_query {
 		$qry2 .= ';';
 	} else {
 		$qry2 = $self->get_query_from_temp_file( scalar $q->param('query_file') );
+		if ( $q->param('list_file') && $q->param('datatype') ) {
+			$self->{'datastore'}->create_temp_list_table( scalar $q->param('datatype'), scalar $q->param('list_file') );
+		}
 	}
+	$q->param( list_file => $list_file ) if $list_file;
+	$q->param( datatype  => $data_type ) if $data_type;
 	my @hidden_attributes;
 	push @hidden_attributes, 'c0';
 	foreach my $i ( 1 .. MAX_ROWS ) {
 		push @hidden_attributes, "s$i", "t$i", "y$i";
 	}
 	push @hidden_attributes, $_->{'name'} . '_list' foreach (@$attributes);
-	push @hidden_attributes, qw (sequence_flag_list duplicates_list common_name_list scheme_id_list);
+	push @hidden_attributes,
+	  qw (sequence_flag_list duplicates_list common_name_list scheme_id_list list_file datatype list);
 	if (@$errors) {
 		local $" = q(<br />);
 		$self->print_bad_status( { message => q(Problem with search criteria:), detail => qq(@$errors) } );
@@ -578,7 +573,11 @@ sub _filter_query_by_scheme {
 		my $set_clause = $set_id ? "WHERE scheme_id IN (SELECT scheme_id FROM set_schemes WHERE set_id=$set_id)" : '';
 		$sub_qry = "$identifier NOT IN (SELECT $field FROM scheme_members $set_clause)";
 	} else {
-		$sub_qry = "$identifier IN (SELECT $field FROM scheme_members WHERE scheme_id = $scheme_id)";
+		if ( $table eq 'schemes' ) {
+			$sub_qry = "$identifier = $scheme_id";
+		} else {
+			$sub_qry = "$identifier IN (SELECT $field FROM scheme_members WHERE scheme_id = $scheme_id)";
+		}
 	}
 	if ($$qry_ref) {
 		$$qry_ref .= " AND ($sub_qry)";
@@ -612,7 +611,7 @@ sub _filter_query_by_common_name {
 	my $common_name = $q->param('common_name_list');
 	$common_name =~ s/'/\\'/gx;
 	my $sub_qry =
-	    'locus_descriptions.locus IN (SELECT locus FROM locus_descriptions JOIN loci ON loci.id = '
+		'locus_descriptions.locus IN (SELECT locus FROM locus_descriptions JOIN loci ON loci.id = '
 	  . "locus_descriptions.locus WHERE common_name = E'$common_name')";
 	if ($$qry_ref) {
 		$$qry_ref .= " AND ($sub_qry)";
@@ -636,7 +635,7 @@ sub _filter_query_by_sequence_filters {
 				  . 'LEFT JOIN sequence_flags ON sequence_flags.id = allele_sequences.id WHERE flag IS NULL)';
 			} else {
 				$flag_qry =
-				    'allele_sequences.id IN (SELECT allele_sequences.id FROM allele_sequences JOIN sequence_flags ON '
+					'allele_sequences.id IN (SELECT allele_sequences.id FROM allele_sequences JOIN sequence_flags ON '
 				  . 'sequence_flags.id = allele_sequences.id';
 				if ( any { $q->param('sequence_flag_list') eq $_ } SEQ_FLAGS ) {
 					my $flag = $q->param('sequence_flag_list');
@@ -648,12 +647,12 @@ sub _filter_query_by_sequence_filters {
 		}
 		if ( $q->param('duplicates_list') ne '' ) {
 			my $match = BIGSdb::Utils::is_int( $q->param('duplicates_list') ) ? $q->param('duplicates_list') : 1;
-			my $not = $match == 1 ? 'NOT' : '';
+			my $not   = $match == 1                                           ? 'NOT'                        : '';
 
 			#no dups == NOT 2 or more
 			$match = 2 if $match == 1;
 			my $dup_qry =
-			    'allele_sequences.id IN (SELECT allele_sequences.id WHERE '
+				'allele_sequences.id IN (SELECT allele_sequences.id WHERE '
 			  . "(allele_sequences.locus,allele_sequences.isolate_id) $not IN (SELECT "
 			  . "locus,isolate_id FROM allele_sequences GROUP BY locus,isolate_id HAVING count(*)>=$match))";
 			push @clauses, $dup_qry;
@@ -665,7 +664,7 @@ sub _filter_query_by_sequence_filters {
 			} else {
 				my $scheme_id = $q->param('scheme_id_list');
 				$scheme_qry =
-				    'allele_sequences.locus IN (SELECT DISTINCT allele_sequences.locus FROM '
+					'allele_sequences.locus IN (SELECT DISTINCT allele_sequences.locus FROM '
 				  . 'allele_sequences JOIN scheme_members ON allele_sequences.locus = scheme_members.locus '
 				  . "WHERE scheme_id=$scheme_id)";
 			}
@@ -686,7 +685,7 @@ sub _filter_query_by_allele_definition_filters {
 	my ( $self, $table, $qry_ref ) = @_;
 	return if $table ne 'sequences';
 	my $q = $self->{'cgi'};
-	return if ( $q->param('allele_flag_list') // '' ) eq '';
+	return if ( $q->param('allele_flag_list')       // '' ) eq '';
 	return if ( $self->{'system'}->{'allele_flags'} // '' ) ne 'yes';
 	my $sub_qry;
 	if ( $q->param('allele_flag_list') eq 'no flag' ) {
@@ -709,7 +708,7 @@ sub _filter_query_by_allele_definition_filters {
 
 sub _process_dropdown_filters {
 	my ( $self, $qry, $table, $attributes ) = @_;
-	my $q = $self->{'cgi'};
+	my $q                 = $self->{'cgi'};
 	my %user_remote_field = map { $_ => 1 } qw(surname first_name);
 	foreach my $att (@$attributes) {
 		my $name  = $att->{'name'};
@@ -767,7 +766,7 @@ sub _get_field_attributes {
 sub _check_invalid_fieldname {
 	my ( $self, $table, $field, $errors ) = @_;
 	my $attributes     = $self->{'datastore'}->get_table_field_attributes($table);
-	my @sender_fields  = ( 'sender (id)', 'sender (surname)', 'sender (first_name)', 'sender (affiliation)', );
+	my @sender_fields  = ( 'sender (id)',  'sender (surname)',  'sender (first_name)',  'sender (affiliation)', );
 	my @curator_fields = ( 'curator (id)', 'curator (surname)', 'curator (first_name)', 'curator (affiliation)' );
 	my @user_fields    = ( 'user_id (id)', 'user_id (surname)', 'user_id (first_name)', 'user_id (affiliation)' );
 	my %allowed        = map { $_->{'name'} => 1 } @$attributes;
@@ -779,9 +778,9 @@ sub _check_invalid_fieldname {
 		  ->run_query( q(SELECT 'ext_'||key FROM sequence_attributes), undef, { fetch => 'col_arrayref' } );
 	}
 	my $additional = {
-		sequences => [ qw(sequence_length), @sender_fields ],
-		sequence_bin => [ @$extended, @sender_fields, $self->{'system'}->{'labelfield'} ],
-		allele_designations => [ @sender_fields,                    $self->{'system'}->{'labelfield'} ],
+		sequences           => [ qw(sequence_length), @sender_fields ],
+		sequence_bin        => [ @$extended,     @sender_fields, $self->{'system'}->{'labelfield'} ],
+		allele_designations => [ @sender_fields, $self->{'system'}->{'labelfield'} ],
 		allele_sequences    => [ $self->{'system'}->{'labelfield'} ],
 		project_members     => [ $self->{'system'}->{'labelfield'} ],
 		history             => [ $self->{'system'}->{'labelfield'} ],
@@ -789,6 +788,7 @@ sub _check_invalid_fieldname {
 		refs                => [ $self->{'system'}->{'labelfield'} ],
 		user_group_members  => [@user_fields],
 		profile_history     => ['timestamp (date)'],
+		embargo_history     => ['timestamp (date)'],
 		history             => [ $self->{'system'}->{'labelfield'}, 'timestamp (date)' ]
 	};
 	if ( $additional->{$table} ) {
@@ -812,7 +812,7 @@ sub _generate_query {
 	my $q = $self->{'cgi'};
 	my $qry;
 	my $errors      = [];
-	my $andor       = $q->param('c0');
+	my $andor       = $q->param('c0') // 'AND';
 	my $first_value = 1;
 	my $set_id      = $self->get_set_id;
 	foreach my $i ( 1 .. MAX_ROWS ) {
@@ -820,7 +820,7 @@ sub _generate_query {
 		my $field = $q->param("s$i") // q();
 		next if $self->_check_invalid_fieldname( $table, $field, $errors );
 		my $operator = $q->param("y$i") // '=';
-		my $text = $q->param("t$i");
+		my $text     = $q->param("t$i");
 		$text = $self->_modify_locus_in_sets( $field, $text );
 		$self->process_value( \$text );
 		my ( $thisfield, $clean_fieldname ) = $self->_get_field_attributes( $table, $field );
@@ -853,6 +853,7 @@ sub _generate_query {
 		$self->_modify_query_standard_field($args);
 		$qry = $self->_modify_user_fields_in_remote_user_dbs( $qry, $field, $operator, $text );
 	}
+	$qry = qq(($qry)) if $qry;
 	return ( $qry, $errors );
 }
 
@@ -866,7 +867,8 @@ sub _modify_query_standard_field {
 			if ( lc($text) eq 'null' ) {
 				$$qry_ref .= "$table.$field is not null";
 			} else {
-				$$qry_ref .= $thisfield->{'type'} ne 'text'
+				$$qry_ref .=
+				  $thisfield->{'type'} ne 'text'
 				  ? "(NOT $table.$field = '$text'"
 				  : "(NOT upper($table.$field) = upper(E'$text')";
 				$$qry_ref .= " OR $table.$field IS NULL)";
@@ -974,7 +976,6 @@ sub _modify_query_search_by_isolate {
 	my $att     = $self->{'xmlHandler'}->get_field_attributes( $self->{'system'}->{'labelfield'} );
 	my %methods = (
 		NOT => sub {
-
 			if ( $text eq '<blank>' || lc($text) eq 'null' ) {
 				$$qry_ref .= "$field is not null";
 			} else {
@@ -1000,7 +1001,7 @@ sub _modify_query_search_by_isolate {
 				$$qry_ref .= "CAST($field AS text) LIKE E'$text\%'";
 			} else {
 				$$qry_ref .=
-				    "upper($field) LIKE upper(E'$text\%') OR $self->{'system'}->{'view'}.id IN (SELECT isolate_id FROM "
+					"upper($field) LIKE upper(E'$text\%') OR $self->{'system'}->{'view'}.id IN (SELECT isolate_id FROM "
 				  . "isolate_aliases WHERE upper(alias) LIKE upper(E'$text\%'))";
 			}
 		},
@@ -1009,7 +1010,7 @@ sub _modify_query_search_by_isolate {
 				$$qry_ref .= "CAST($field AS text) LIKE E'\%$text'";
 			} else {
 				$$qry_ref .=
-				    "upper($field) LIKE upper(E'\%$text') OR $self->{'system'}->{'view'}.id IN (SELECT isolate_id FROM "
+					"upper($field) LIKE upper(E'\%$text') OR $self->{'system'}->{'view'}.id IN (SELECT isolate_id FROM "
 				  . "isolate_aliases WHERE upper(alias) LIKE upper(E'\%$text'))";
 			}
 		},
@@ -1158,7 +1159,7 @@ sub _modify_user_fields_in_remote_user_dbs {
 	return $qry if !@user_names;
 	local $" = q(',E');
 	$and_or = 'AND NOT' if $operator =~ /NOT/;
-	$qry = qq(($qry $and_or user_name IN (E'@user_names')));
+	$qry    = qq(($qry $and_or user_name IN (E'@user_names')));
 	return $qry;
 }
 
@@ -1197,7 +1198,7 @@ sub _modify_loci_for_sets {
 	if ($set_id) {
 		$$qry_ref .= q[ AND] if $$qry_ref;
 		$$qry_ref .=
-		    qq[ ($table.$identifier IN (SELECT locus FROM scheme_members WHERE scheme_id IN (SELECT ]
+			qq[ ($table.$identifier IN (SELECT locus FROM scheme_members WHERE scheme_id IN (SELECT ]
 		  . qq[scheme_id FROM set_schemes WHERE set_id=$set_id)) OR $table.$identifier IN (SELECT locus FROM ]
 		  . qq[set_loci WHERE set_id=$set_id))];
 	}
@@ -1217,6 +1218,50 @@ sub _modify_schemes_for_sets {
 		$$qry_ref .= " ($table.$identifier IN (SELECT scheme_id FROM set_schemes WHERE set_id=$set_id))";
 	}
 	return;
+}
+
+sub _modify_by_list {
+	my ( $self, $table, $qry_ref ) = @_;
+	my $q = $self->{'cgi'};
+	return if !$q->param('list');
+	my $field      = $q->param('attribute');
+	my $attributes = $self->{'datastore'}->get_table_field_attributes($table);
+	if ( !defined $attributes ) {
+		$logger->error("No attributes found for $table $field");
+		return;
+	}
+	my $type;
+	foreach my $att (@$attributes) {
+		next if $att->{'name'} ne $field;
+		$type = $att->{'type'};
+	}
+	if ( !defined $type ) {
+		$logger->error("No type defined for $table $field");
+		return;
+	}
+	my @list = split /\n/x, $q->param('list');
+	@list = uniq @list;
+	BIGSdb::Utils::remove_trailing_spaces_from_list( \@list );
+	my $cleaned_list = $self->clean_list( $type, \@list );
+	if ( !@$cleaned_list ) {    #List exists but there is nothing valid in there. Return no results.
+		$$qry_ref .= ' AND FALSE';
+		return;
+	}
+	my $temp_table =
+	  $self->{'datastore'}->create_temp_list_table_from_array( $type, $cleaned_list, { table => 'temp_list' } );
+	my $list_file = BIGSdb::Utils::get_random() . '.list';
+	my $full_path = "$self->{'config'}->{'secure_tmp_dir'}/$list_file";
+	open( my $fh, '>:encoding(utf8)', $full_path ) || $logger->error("Cannot open $full_path for writing");
+	say $fh $_ foreach @$cleaned_list;
+	close $fh;
+	if ($$qry_ref) {
+		$$qry_ref .= ' AND ';
+	}
+	$$qry_ref .=
+	  $type eq 'text'
+	  ? "(UPPER($field) IN (SELECT value FROM $temp_table))"
+	  : "($field IN (SELECT value FROM $temp_table))";
+	return $list_file, $type;
 }
 
 sub print_additional_headerbar_functions {
@@ -1263,5 +1308,124 @@ sub _highest_entered_fields {
 		$highest = $_ if defined $q->param("t$_") && $q->param("t$_") ne '';
 	}
 	return $highest;
+}
+
+sub _print_modify_search_fieldset {
+	my ($self) = @_;
+	my $q      = $self->{'cgi'};
+	my $table  = $q->param('table');
+	say q(<div id="modify_panel" class="panel">);
+	say q(<a class="trigger" id="close_trigger" href="#"><span class="fas fa-lg fa-times"></span></a>);
+	say q(<h2>Modify form parameters</h2>);
+	say q(<p style="white-space:nowrap">Click to add or remove additional query terms:</p>)
+	  . q(<ul style="list-style:none;margin-left:-2em">);
+	my $list_fieldset_display = $self->{'prefs'}->{"${table}_list_fieldset"}
+	  || $q->param('list') ? HIDE : SHOW;
+	say qq(<li><a href="" class="button fieldset_trigger" id="show_list">$list_fieldset_display</a>);
+	say q(Attribute values list</li>);
+	say q(</ul>);
+	my $save = SAVE;
+	say qq(<a id="save_options" class="button" href="$self->{'system'}->{'script_name'}?db=$self->{'instance'}&amp;)
+	  . qq(page=tableQuery&amp;table=$table&amp;save_options=1" style="display:none">$save</a> <span id="saving">)
+	  . q(</span><br />);
+	say q(</div>);
+	return;
+}
+
+sub print_panel_buttons {
+	my ($self) = @_;
+	my $q = $self->{'cgi'};
+	if (   !defined $q->param('currentpage')
+		|| ( defined $q->param('pagejump') && $q->param('pagejump') eq '1' )
+		|| $q->param('First') )
+	{
+		say q(<span class="icon_button"><a class="trigger_button" id="panel_trigger" style="display:none">)
+		  . q(<span class="fas fa-lg fa-wrench"></span><span class="icon_label">Modify form</span></a></span>);
+	}
+	return;
+}
+
+sub _print_filter_fieldset {
+	my ( $self, $table, $attributes ) = @_;
+	my @filters;
+	foreach my $att (@$attributes) {
+		( my $tooltip = $att->{'tooltip'} ) =~ tr/_/ /;
+		my $sub = 'Select a value to filter your search to only those with the selected attribute.';
+		$tooltip =~ s/ - / filter - $sub/x;
+		if ( $att->{'dropdown_query'} ) {
+			my $dropdown_filter = $self->_get_dropdown_filter( $table, $att );
+			push @filters, $dropdown_filter if $dropdown_filter;
+		} elsif ( $att->{'optlist'} ) {
+			my @options = split /;/x, $att->{'optlist'};
+			push @filters, $self->get_filter( $att->{'name'}, \@options );
+		} elsif ( $att->{'type'} eq 'bool' ) {
+			push @filters, $self->get_filter( $att->{'name'}, [qw(true false)], { tooltip => $tooltip } );
+		}
+	}
+	my $filter_method = {
+		loci                => sub { return $self->get_scheme_filter },
+		allele_designations => sub { return $self->get_scheme_filter },
+		schemes             => sub { return $self->get_scheme_filter },
+		isolate_aliases     => sub { return $self->get_project_filter },
+		sequences           => sub { return $self->_get_sequence_filters },
+		locus_descriptions  => sub { return $self->_get_locus_description_filter },
+		allele_sequences    => sub { return $self->_get_allele_sequences_filters }
+	};
+	if ( $filter_method->{$table} ) {
+		my $table_filters = $filter_method->{$table}->();
+		if ($table_filters) {
+			push @filters, ref $table_filters ? @$table_filters : $table_filters;
+		}
+	}
+	if (@filters) {
+		if ( @filters > 2 ) {
+			say q(<fieldset id="filters_fieldset" style="float:left;display:none" class="coolfieldset">)
+			  . q(<legend>Filter query by</legend>);
+		} else {
+			say q(<fieldset style="float:left"><legend>Filter query by</legend>);
+		}
+		say q(<div><ul>);
+		say qq(<li>$_</li>) foreach @filters;
+		say q(</ul></div></fieldset>);
+	}
+	return;
+}
+
+sub _print_list_fieldset {
+	my ( $self, $table, $attributes ) = @_;
+	my $field_list = [];
+	foreach my $att (@$attributes) {
+		next if $att->{'hide_query'};
+		next if $att->{'type'} eq 'bool';
+		push @$field_list, $att->{'name'};
+	}
+	my $q       = $self->{'cgi'};
+	my $display = $self->{'prefs'}->{"${table}_list_fieldset"}
+	  || $q->param('list') ? 'inline' : 'none';
+	say qq(<fieldset id="list_fieldset" style="float:left;display:$display"><legend>Attribute values list</legend>);
+	say q(Field:);
+	say $q->popup_menu( -name => 'attribute', -values => $field_list );
+	say q(<br />);
+	say $q->textarea(
+		-name        => 'list',
+		-id          => 'list',
+		-rows        => 6,
+		-style       => 'width:100%',
+		-placeholder => 'Enter list of values (one per line)...'
+	);
+	say q(</fieldset>);
+	return;
+}
+
+sub _save_options {
+	my ($self) = @_;
+	my $q      = $self->{'cgi'};
+	my $guid   = $self->get_guid;
+	my $table  = $q->param('table');
+	return if !$self->{'datastore'}->is_table($table);
+	return if !$guid;
+	my $value = $q->param('list') ? 'on' : 'off';
+	$self->{'prefstore'}->set_general( $guid, $self->{'system'}->{'db'}, "${table}_list_fieldset", $value );
+	return;
 }
 1;

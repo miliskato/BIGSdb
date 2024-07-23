@@ -1,7 +1,7 @@
 #ProfileExport.pm - Plugin for BIGSdb
 #Written by Keith Jolley
-#Copyright (c) 2018-2022, University of Oxford
-#E-mail: keith.jolley@zoo.ox.ac.uk
+#Copyright (c) 2018-2024, University of Oxford
+#E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
 #
@@ -34,23 +34,26 @@ sub get_attributes {
 			{
 				name        => 'Keith Jolley',
 				affiliation => 'University of Oxford, UK',
-				email       => 'keith.jolley@zoo.ox.ac.uk',
+				email       => 'keith.jolley@biology.ox.ac.uk',
 			}
 		],
-		description => 'Export file of allelic profile definitions following a scheme query',
-		category    => 'Export',
-		menutext    => 'Profiles',
-		buttontext  => 'Profiles',
-		module      => 'ProfileExport',
-		version     => '1.3.2',
-		dbtype      => 'sequences',
-		seqdb_type  => 'schemes',
-		input       => 'query',
-		section     => 'profile_info,export,postquery',
-		url         => "$self->{'config'}->{'doclink'}/data_export/profile_export.html",
-		requires    => 'offline_jobs',
-		order       => 15,
-		image       => '/images/plugins/ProfileExport/screenshot.png'
+		description        => 'Export file of allelic profile definitions following a scheme query',
+		category           => 'Export',
+		menutext           => 'Profiles',
+		buttontext         => 'Profiles',
+		module             => 'ProfileExport',
+		version            => '1.5.1',
+		dbtype             => 'sequences',
+		seqdb_type         => 'schemes',
+		input              => 'query',
+		section            => 'profile_info,export,postquery',
+		url                => "$self->{'config'}->{'doclink'}/data_export/profile_export.html",
+		requires           => 'offline_jobs',
+		order              => 15,
+		image              => '/images/plugins/ProfileExport/screenshot.png',
+		system_flag        => 'ProfileExport',
+		profile_download   => 1,
+		enabled_by_default => 1
 	);
 	return \%att;
 }
@@ -61,8 +64,16 @@ sub run {
 	my $scheme_id = $q->param('scheme_id');
 	say q(<h1>Export allelic profiles</h1>);
 	return if $self->has_set_changed;
+	if ( ( $self->{'system'}->{'ProfileExport'} // q() ) eq 'no' ) {
+		$self->print_bad_status( { message => q(Profile downloads are disabled.) } );
+		return;
+	}
 	return if defined $scheme_id && $self->is_scheme_invalid( $scheme_id, { with_pk => 1 } );
+	my $date_restriction_message = $self->get_date_restriction_message;
 	if ( !$q->param('submit') ) {
+		if ($date_restriction_message) {
+			say qq(<div class="box banner">$date_restriction_message</div>);
+		}
 		$self->print_scheme_section( { with_pk => 1 } );
 		$scheme_id = $q->param('scheme_id');    #Will be set by scheme section method
 	}
@@ -176,8 +187,11 @@ sub run_job {
 	my $progress         = 0;
 	my $progress_max     = 50;
 	my @problem_ids;
-	my @header = ($pk);
-	my $loci   = $self->{'datastore'}->get_scheme_loci($scheme_id);
+	my @restricted_ids;
+	my @header           = ($pk);
+	my $loci             = $self->{'datastore'}->get_scheme_loci($scheme_id);
+	my $date_restriction = $self->{'datastore'}->get_date_restriction;
+	my $job              = $self->{'jobManager'}->get_job($job_id);
 
 	foreach my $locus (@$loci) {
 		my $locus_name = $self->clean_locus( $locus, { text_output => 1, no_common_name => 1 } );
@@ -223,6 +237,10 @@ sub run_job {
 			push @problem_ids, $profile_id;
 			next;
 		}
+		if ( !$job->{'username'} && $date_restriction && $date_restriction lt $data->{'date_entered'} ) {
+			push @restricted_ids, $profile_id;
+			next;
+		}
 		my $pk_value = $data->{ lc($pk) };
 		$buffer .= $pk_value;
 		foreach my $locus (@$loci) {
@@ -245,16 +263,16 @@ sub run_job {
 		if ( $params->{'include_sender'} ) {
 			my $sender = $self->{'datastore'}->get_user_info( $data->{'sender'} );
 			my $name   = $sender->{'first_name'};
-			$name .= q( ) if $name;
-			$name .= $sender->{'surname'} // q();
+			$name   .= q( ) if $name;
+			$name   .= $sender->{'surname'} // q();
 			$buffer .= qq(\t$name);
 			$buffer .= $sender->{'affiliation'} ? qq(\t$sender->{'affiliation'}) : qq(\t);
 		}
 		if ( $params->{'include_curator'} ) {
 			my $curator = $self->{'datastore'}->get_user_info( $data->{'curator'} );
 			my $name    = $curator->{'first_name'};
-			$name .= q( ) if $name;
-			$name .= $curator->{'surname'} // q();
+			$name   .= q( ) if $name;
+			$name   .= $curator->{'surname'} // q();
 			$buffer .= qq(\t$name);
 			$buffer .= $curator->{'affiliation'} ? qq(\t$curator->{'affiliation'}) : qq(\t);
 		}
@@ -277,10 +295,17 @@ sub run_job {
 	  or $logger->error("Cannot open output file $filename for writing");
 	say $fh $buffer;
 	close $fh;
-	if (@problem_ids) {
+	if ( @problem_ids || @restricted_ids ) {
 		local $" = q(, );
-		my $html =
-		  qq(<p class="statusbad">The following profiles are not valid and have been excluded: @problem_ids.</p>);
+		my $html;
+		if (@problem_ids) {
+			$html = q(<p class="statusbad">The following profiles are not valid and have been excluded: )
+			  . qq(@problem_ids.</p>);
+		}
+		if (@restricted_ids) {
+			$html .= q(<p class="statusbad">The following profiles are restricted and have been excluded - )
+			  . qq(you need to log in to include these: @restricted_ids.</p>);
+		}
 		$self->{'jobManager'}->update_job_status( $job_id, { message_html => $html } );
 	}
 	$self->{'jobManager'}->update_job_status( $job_id, { stage => 'Creating Excel file' } );
@@ -317,7 +342,7 @@ sub _get_lincode_values {
 	local $" = q(_);
 	push @$values, qq(@$lincode);
 	my $join_table =
-	    q[lincodes LEFT JOIN lincode_prefixes ON lincodes.scheme_id=lincode_prefixes.scheme_id AND (]
+		q[lincodes LEFT JOIN lincode_prefixes ON lincodes.scheme_id=lincode_prefixes.scheme_id AND (]
 	  . q[array_to_string(lincodes.lincode,'_') LIKE (REPLACE(lincode_prefixes.prefix,'_',E'\\\_') || E'\\\_' || '%') ]
 	  . q[OR array_to_string(lincodes.lincode,'_') = lincode_prefixes.prefix)];
 	foreach my $field (@$fields) {
@@ -336,8 +361,7 @@ sub _get_lincode_values {
 		  : 'value';
 		my $field_values = $self->{'datastore'}->run_query(
 			"SELECT DISTINCT(value) FROM $join_table WHERE "
-			  . "(lincodes.scheme_id,lincode_prefixes.field,lincodes.lincode)=(?,?,?) ORDER BY $order"
-			,
+			  . "(lincodes.scheme_id,lincode_prefixes.field,lincodes.lincode)=(?,?,?) ORDER BY $order",
 			[ $scheme_id, $field, $lincode ],
 			{ fetch => 'col_arrayref' }
 		);

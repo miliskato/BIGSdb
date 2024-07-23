@@ -1,6 +1,6 @@
 #Written by Keith Jolley
-#(c) 2010-2020, University of Oxford
-#E-mail: keith.jolley@zoo.ox.ac.uk
+#(c) 2010-2023, University of Oxford
+#E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
 #
@@ -93,11 +93,11 @@ sub get_title {
 
 sub initiate {
 	my ($self) = @_;
-	$self->{$_} = 1 foreach qw(jQuery noCache CryptoJS.MD5 login);
+	$self->{$_}           = 1 foreach qw(jQuery noCache CryptoJS.MD5 login);
 	$self->{'ip_addr'}    = $ENV{'REMOTE_ADDR'};
 	$self->{'user_agent'} = $ENV{'HTTP_USER_AGENT'};
 	my $unvalidated_user = $self->_get_unvalidated_username;
-	my $database = $self->_get_site_database($unvalidated_user) // $self->{'system'}->{'db'};
+	my $database         = $self->_get_site_database($unvalidated_user) // $self->{'system'}->{'db'};
 
 	#Create per database cookies to prevent problems when opening two sessions with
 	#different credentials.
@@ -284,8 +284,8 @@ sub _print_login_form {
 	say q(</h1>);
 	my $reg_file = "$self->{'dbase_config_dir'}/$self->{'instance'}/registration.html";
 	$self->print_file($reg_file) if -e $reg_file;
-	say $q->start_form( -onSubmit => q(password.value=password_field.value; password_field.value=''; )
-		  . q(password.value=CryptoJS.MD5(password.value+user.value); return true) );
+	say $q->start_form( -onSubmit => q(password.value=password_field.value.trim();password_field.value=''; )
+		  . q(user.value=user.value.trim();password.value=CryptoJS.MD5(password.value+user.value);return true) );
 	say q(<fieldset style="float:left;display:block;border-top:0">);
 	say q(<ul>);
 
@@ -333,6 +333,7 @@ sub _get_domain_dropdown {
 	my $user_dbs = $self->{'config'}->{'site_user_dbs'};
 	my $values   = [];
 	my $labels   = {};
+
 	foreach my $user_db (@$user_dbs) {
 		push @$values, $user_db->{'dbase'};
 		$labels->{ $user_db->{'dbase'} } = $user_db->{'name'};
@@ -478,7 +479,7 @@ sub get_password_hash {
 	my ( $self, $name, $options ) = @_;
 	return if !$name;
 	my $dbase_name = $options->{'dbase_name'} // $self->get_user_db_name($name);
-	my $password = $self->{'datastore'}->run_query(
+	my $password   = $self->{'datastore'}->run_query(
 		'SELECT password,algorithm,salt,cost,reset_password FROM users WHERE dbase=? AND name=?',
 		[ $dbase_name, $name ],
 		{ db => $self->{'auth_db'}, fetch => 'row_hashref' }
@@ -674,7 +675,14 @@ sub _shift2 {
 
 sub _make_cookie {
 	my ( $self, $query, $cookie, $value, $expires ) = @_;
-	return $query->cookie( -name => $cookie, -value => $value, -expires => $expires, -path => '/', );
+	return $query->cookie(
+		-name     => $cookie,
+		-value    => $value,
+		-expires  => $expires,
+		-path     => '/',
+		-httponly => 1,
+		-secure   => $self->{'config'}->{'secure_cookies'} ? 1 : 0
+	);
 }
 
 sub _get_unvalidated_username {

@@ -1,6 +1,6 @@
 #Written by Keith Jolley
-#Copyright (c) 2014-2022, University of Oxford
-#E-mail: keith.jolley@zoo.ox.ac.uk
+#Copyright (c) 2014-2024, University of Oxford
+#E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
 #
@@ -137,7 +137,6 @@ sub _before {
 	$self->{'request_path'}   = $request_path;
 	$self->{'request_method'} = request->method;
 	foreach my $dir ( @{ setting('api_dirs') } ) {
-
 		if ( $request_path =~ /^$dir/x ) {
 			set subdir => $dir;
 			last;
@@ -165,7 +164,7 @@ sub _before {
 	}
 	$self->set_system_overrides;
 	$ENV{'PATH'} = '/bin:/usr/bin';    ## no critic (RequireLocalizedPunctuationVars) #so we don't foul taint check
-	delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};    # Make %ENV safer
+	delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};           # Make %ENV safer
 	$self->{'system'}->{'read_access'} ||= 'public';    #everyone can view by default
 	$self->_set_db_params;
 	if ( ( $self->{'system'}->{'dbtype'} // '' ) eq 'isolates' ) {
@@ -227,6 +226,16 @@ sub reconnect {
 	return;
 }
 
+sub get_date_restriction_message {
+	my $self = setting('self');
+	my $date_restriction = $self->{'datastore'}->get_date_restriction;
+	if ($date_restriction && !$self->{'username'}){
+		return 'Please note that you are currently restricted to accessing data that was submitted '
+		. "on or prior to $date_restriction. Please authenticate to access the full dataset."
+	}
+	return
+}
+
 sub _log_call {
 	my $self = setting('self');
 	return if !$self->{'config'}->{'rest_log_to_db'};
@@ -235,10 +244,12 @@ sub _log_call {
 	my $ip_address = _get_ip_address();
 	eval {
 		$self->{'log_db'}->do(
-			'INSERT INTO log (timestamp,ip_address,method,route,duration) VALUES (?,?,?,?,?)',
+			'INSERT INTO log (timestamp,ip_address,client,user_name,method,route,duration) VALUES (?,?,?,?,?,?,?)',
 			undef,
 			'now',
 			$ip_address,
+			$self->{'client_name'},
+			$self->{'username'},
 			$self->{'request_method'},
 			$self->{'request_path'},
 			int( 1000 * tv_interval( $self->{'start_time'} ) )
@@ -294,6 +305,7 @@ sub _check_kiosk {
 		$logger->error("db not defined: Request: $request_path");
 	}
 	if ( $self->{'system'}->{'rest_kiosk'} eq 'sequenceQuery' ) {
+		$db //= '{db}';
 		my @allowed_routes = (
 			"POST /db/$db/loci/{locus}/sequence",
 			"POST /db/$db/sequence",
@@ -345,7 +357,7 @@ sub get_page_values {
 		  ? $headers->{'x-offset'}
 		  : 0;
 	} else {
-		$page = ( BIGSdb::Utils::is_int( param('page') ) && param('page') > 0 ) ? param('page') : 1;
+		$page   = ( BIGSdb::Utils::is_int( param('page') ) && param('page') > 0 ) ? param('page') : 1;
 		$offset = ( $page - 1 ) * $self->{'page_size'};
 	}
 	return {
@@ -359,6 +371,7 @@ sub _after {
 	my $self = setting('self');
 	$self->_log_call;
 	undef $self->{'username'};
+	undef $self->{'client_name'};
 	if ( $self->{'time_since_last_call_ms'} > IDLE_DROP_CONNECTION_MS ) {
 		$self->{'dataConnector'}->drop_all_connections;
 		undef $self->{'log_db'};
@@ -372,6 +385,7 @@ sub _after_error {
 	my $self = setting('self');
 	$self->_log_call;
 	undef $self->{'username'};
+	undef $self->{'client_name'};
 	$self->{'dataConnector'}->drop_all_connections( $self->{'do_not_drop'} );
 	return;
 }
@@ -386,7 +400,7 @@ sub _is_authorized {
 	my $client = $self->{'datastore'}->run_query(
 		'SELECT * FROM clients WHERE client_id=?',
 		param('oauth_consumer_key'),
-		{ db => $self->{'auth_db'}, fetch => 'row_hashref', cache => 'REST::get_client_secret' }
+		{ db => $self->{'auth_db'}, fetch => 'row_hashref', cache => 'REST::get_client' }
 	);
 	if ( !$client->{'client_secret'} ) {
 		send_error( 'Unrecognized client', 403 );
@@ -434,7 +448,6 @@ sub _is_authorized {
 			extra_params    => $extra_params
 		);
 	};
-
 	if ($@) {
 		if ( $@ =~ /Missing\ required\ parameter\ \'(\w+?)\'/x ) {
 			send_error( "Invalid token request. Missing required parameter: $1.", 400 );
@@ -526,7 +539,6 @@ sub get_set_id {
 #Set view if defined in set.
 sub _initiate_view {
 	my ($self) = @_;
-	return if ( $self->{'system'}->{'dbtype'} // '' ) ne 'isolates';
 	my $args = {};
 	$args->{'username'} = $self->{'username'} if $self->{'username'};
 	my $set_id = $self->get_set_id;
@@ -541,8 +553,8 @@ sub get_resources {
 	my $groups = $self->{'datastore'}->run_query( 'SELECT * FROM groups ORDER BY name',
 		undef, { fetch => 'all_arrayref', slice => {}, cache => 'REST::Interface::get_resources::groups' } );
 	my $resources       = [];
-	my $show_all        = params->{'show_all'} ? 1 : 0;
-	my $show_all_clause = $show_all ? q() : q( AND hide = FALSE);
+	my $show_all        = params->{'show_all'} ? 1   : 0;
+	my $show_all_clause = $show_all            ? q() : q( AND hide = FALSE);
 	foreach my $group (@$groups) {
 		my $group_resources = $self->{'datastore'}->run_query(
 			'SELECT g.dbase_config FROM group_resources g JOIN resources r ON '
@@ -577,6 +589,7 @@ sub get_paging {
 	my $args            = request->query_parameters;
 	my $arg_string      = q();
 	my %ignore          = map { $_ => 1 } qw(page page_size);
+
 	foreach my $key ( sort keys %$args ) {
 		next if $ignore{$key};
 		next if $key =~ /^oauth/x;
@@ -586,14 +599,14 @@ sub get_paging {
 		$paging->{'first'} =
 		  request->uri_base . "$route${first_separator}page=1&page_size=$self->{'page_size'}$arg_string";
 		$paging->{'previous'} =
-		    request->uri_base
+			request->uri_base
 		  . "$route${first_separator}page="
 		  . ( $page - 1 )
 		  . "&page_size=$self->{'page_size'}$arg_string";
 	}
 	if ( $page < $pages ) {
 		$paging->{'next'} =
-		    request->uri_base
+			request->uri_base
 		  . "$route${first_separator}page="
 		  . ( $page + 1 )
 		  . "&page_size=$self->{'page_size'}$arg_string";
@@ -684,8 +697,7 @@ sub check_load_average {
 	my $max_load = $self->{'config'}->{'max_load'} // 8;
 	try {
 		$load_average = $self->get_load_average;
-	}
-	catch {
+	} catch {
 		if ( $_->isa('BIGSdb::Exception::Data') ) {
 			$self->{'logger'}->fatal('Cannot determine load average ... aborting!');
 			exit;
@@ -718,14 +730,17 @@ sub is_curator {
 sub add_filters {
 	my ( $self, $qry, $allowed_args, $options ) = @_;
 	my $params = params;
-	my ( $added_after, $added_on, $updated_after, $updated_on, $alleles_added_after, $alleles_updated_after,
-		$alleles_added_reldate, $alleles_updated_reldate, $added_reldate, $updated_reldate)
+	my (
+		$added_after,         $added_on,              $updated_after,         $updated_on,
+		$alleles_added_after, $alleles_updated_after, $alleles_added_reldate, $alleles_updated_reldate,
+		$added_reldate,       $updated_reldate
+	  )
 	  = @{$params}{
 		qw(added_after added_on updated_after updated_on alleles_added_after alleles_updated_after
 		  alleles_added_reldate alleles_updated_reldate added_reldate updated_reldate)
 	  };
 	my @terms;
-	my $id = $options->{'id'} // 'id';
+	my $id      = $options->{'id'} // 'id';
 	my %methods = (
 		added_after => sub {
 			push @terms, qq(date_entered>'$added_after') if BIGSdb::Utils::is_date($added_after);
@@ -734,7 +749,7 @@ sub add_filters {
 			if ( BIGSdb::Utils::is_int($added_reldate) ) {
 				my $t         = localtime() - $added_reldate * ONE_DAY;
 				my $datestamp = $t->ymd;
-				push @terms, qq(date_entered>='$datestamp')
+				push @terms, qq(date_entered>='$datestamp');
 			}
 		},
 		added_on => sub {
@@ -747,7 +762,7 @@ sub add_filters {
 			if ( BIGSdb::Utils::is_int($updated_reldate) ) {
 				my $t         = localtime() - $updated_reldate * ONE_DAY;
 				my $datestamp = $t->ymd;
-				push @terms, qq(datestamp>='$datestamp')
+				push @terms, qq(datestamp>='$datestamp');
 			}
 		},
 		updated_on => sub {

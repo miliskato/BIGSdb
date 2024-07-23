@@ -1,7 +1,7 @@
 #DatabaseFields.pm - Database field description plugin for BIGSdb
 #Written by Keith Jolley
-#Copyright (c) 2010-2021, University of Oxford
-#E-mail: keith.jolley@zoo.ox.ac.uk
+#Copyright (c) 2010-2024, University of Oxford
+#E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
 #
@@ -33,7 +33,7 @@ sub get_attributes {
 			{
 				name        => 'Keith Jolley',
 				affiliation => 'University of Oxford, UK',
-				email       => 'keith.jolley@zoo.ox.ac.uk',
+				email       => 'keith.jolley@biology.ox.ac.uk',
 			}
 		],
 		description      => 'Display description of fields defined for the current database',
@@ -42,7 +42,7 @@ sub get_attributes {
 		  . 'the field is compulsory or optional and the maximum length of values is displayed.',
 		menutext => 'Description of database fields',
 		module   => 'DatabaseFields',
-		version  => '1.1.4',
+		version  => '1.1.9',
 		section  => 'miscellaneous',
 		order    => 10,
 		dbtype   => 'isolates',
@@ -88,38 +88,47 @@ sub _provenance_print_fields {
 	my $set_id     = $self->get_set_id;
 	my $is_curator = $self->is_curator;
 	my $field_list = $self->{'xmlHandler'}->get_field_list( { no_curate_only => !$is_curator } );
-	my $td = 1;
+	my $td         = 1;
 	say q(<table class="tablesorter" style="margin-bottom:1em"><thead>);
-	say q(<tr><th>field name</th><th>comments</th><th>data type</th><th class="{sorter: false}">)
-	  . q(allowed values</th><th>required</th><th>maximum length (characters)</th></tr></thead><tbody>);
+	say q(<tr><th>field name</th><th>comments</th><th>data type</th><th class="sorter-false">)
+	  . q(allowed values</th><th>required</th><th class="sorter-false">maximum length (characters)</th>)
+	  . q(</tr></thead><tbody>);
 
 	foreach my $field (@$field_list) {
 		my $thisfield = $self->{'xmlHandler'}->get_field_attributes($field);
 		$thisfield->{'type'} = 'integer' if $thisfield->{'type'} =~ /^int/x;
 		$thisfield->{'comments'} //= '';
-		if ($thisfield->{'warning'}){
+		if ( $thisfield->{'warning'} ) {
 			$thisfield->{'comments'} .= qq(<div class="field_warning">$thisfield->{'warning'}</div>);
 		}
-		say qq(<tr class="td$td"><td>$field</td><td class="field_comment">$thisfield->{'comments'}</td>);
+		say qq(<tr class="td$td"><td>$field</td><td style="text-align:left">$thisfield->{'comments'}</td>);
 		my $multiple = ( $thisfield->{'multiple'} // q() ) eq 'yes' ? q( (multiple)) : q();
 		say qq(<td>$thisfield->{'type'}$multiple</td>);
 		say q(<td>);
 		$self->_print_allowed_values($field);
 		say q(</td>);
-		my %required_allowed = map { $_ => 1 } qw(yes no expected);
-		my $required = $required_allowed{ $thisfield->{'required'} } ? $thisfield->{'required'} : 'yes';
-		say qq(<td>$required</td>);
+		my %required_allowed = map { $_ => 1 } qw(yes no expected genome_required genome_expected);
+		$thisfield->{'required'} //= 'yes';
+		my $required       = $required_allowed{ $thisfield->{'required'} } ? $thisfield->{'required'} : 'yes';
+		my %required_label = (
+			genome_required => q(if submitting a genome assembly),
+			genome_expected => q(expected if submitting a genome assembly)
+		);
+		my $value = $required_label{$required} // $required;
+		say qq(<td>$value</td>);
 		my $length = $thisfield->{'length'} // q(-);
 		$length = q(-) if ( $thisfield->{'optlist'} // q() ) eq 'yes';
 		say qq(<td>$length</td>);
 		say q(</tr>);
 		$td = $td == 1 ? 2 : 1;
+
 		if ( $field eq $self->{'system'}->{'labelfield'} ) {
-			say qq(<tr class="td$td"><td>aliases</td><td>alternative names for $self->{'system'}->{'labelfield'}</td>)
+			say qq(<tr class="td$td"><td>aliases</td>)
+			  . qq(<td style="text-align:left">alternative names for $self->{'system'}->{'labelfield'}</td>)
 			  . q(<td>text (multiple)</td><td>-</td><td>no</td><td>-</td></tr>);
 			$td = $td == 1 ? 2 : 1;
 			say qq(<tr class="td$td"><td>references</td>)
-			  . q(<td>PubMed ids that link to publications that describe or include record</td>)
+			  . q(<td style="text-align:left">PubMed ids that link to publications that describe or include record</td>)
 			  . q(<td>integer (multiple)</td><td>-</td><td>no</td><td>-</td></tr>);
 			$td = $td == 1 ? 2 : 1;
 		}
@@ -129,7 +138,7 @@ sub _provenance_print_fields {
 }
 
 sub _print_eav_fields {
-	my ($self) = @_;
+	my ($self)        = @_;
 	my $field_name    = $self->{'system'}->{'eav_fields'} // 'secondary metadata';
 	my $uc_field_name = ucfirst($field_name);
 	my $icon          = $self->{'system'}->{'eav_field_icon'} // 'fas fa-microscope';
@@ -140,7 +149,6 @@ sub _print_eav_fields {
 	  . qq(</span><h2 style="display:inline">$uc_field_name</h2>);
 	my $eav_fields = $self->{'datastore'}->get_eav_fields;
 	foreach my $cat (@$categories) {
-
 		if ( @$categories && $categories->[0] ) {
 			my $group_icon = $self->get_eav_group_icon($cat);
 			say q(<div style="margin-top:1.5em;padding-left:0.5em">);
@@ -154,16 +162,18 @@ sub _print_eav_fields {
 		}
 		my $td = 1;
 		say q(<table class="tablesorter" style="margin-top:1em"><thead>);
-		say q(<tr><th>field name</th><th>comments</th><th>data type</th><th class="{sorter: false}">)
-		  . q(allowed values</th><th>required</th><th>maximum length (characters)</th></tr></thead><tbody>);
+		say q(<tr><th>field name</th><th>comments</th><th>data type</th><th class="sorter-false">)
+		  . q(allowed values</th><th>required</th><th class="sorter-false">maximum length (characters)</th>)
+		  . q(</tr></thead><tbody>);
 		foreach my $field (@$eav_fields) {
 			if ( $field->{'category'} ) {
 				next if !$cat || $cat ne $field->{'category'};
 			} else {
 				next if $cat;
 			}
-			$field->{'description'} //= q(-);
-			say qq(<tr class="td$td"><td>$field->{'field'}</td><td>$field->{'description'}</td>);
+			$field->{'description'} //= q();
+			say qq(<tr class="td$td"><td>$field->{'field'}</td>)
+			  . qq(<td style="text-align:left">$field->{'description'}</td>);
 			say qq(<td>$field->{'value_format'}</td>);
 			if ( $field->{'option_list'} ) {
 				my @values = split /;/x, $field->{'option_list'};
@@ -235,8 +245,13 @@ sub _print_allowed_values {
 		  . q(field=f_curator" target="_blank">Click for list of curator ids</a>);
 		return;
 	}
-	if (($thisfield->{'type'} // q()) eq 'geography_point'){
+	if ( ( $thisfield->{'type'} // q() ) eq 'geography_point' ) {
 		say q(latitude [min: -90; max: 90], longitude [min: -180; max: 180]);
+		return;
+	}
+	if ( ( $thisfield->{'regex'} ) ) {
+		say q(Must match <a target="_blank" href="https://en.wikipedia.org/wiki/Regular_expression">)
+		  . qq(regular expression</a>: $thisfield->{'regex'});
 		return;
 	}
 	print q(-);

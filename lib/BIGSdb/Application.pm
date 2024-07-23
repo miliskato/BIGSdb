@@ -1,6 +1,6 @@
 #Written by Keith Jolley
-#(c) 2010-2022, University of Oxford
-#E-mail: keith.jolley@zoo.ox.ac.uk
+#(c) 2010-2024, University of Oxford
+#E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
 #
@@ -20,7 +20,7 @@ package BIGSdb::Application;
 use strict;
 use warnings;
 use 5.010;
-use version; our $VERSION = version->declare('v1.36.8');
+use version; our $VERSION = version->declare('v1.47.0');
 use Apache2::Connection;
 use parent qw(BIGSdb::BaseApplication);
 use BIGSdb::AjaxAnalysis;
@@ -63,6 +63,7 @@ use BIGSdb::PluginSummaryPage;
 use BIGSdb::PrivateRecordsPage;
 use BIGSdb::ProfileInfoPage;
 use BIGSdb::ProfileQueryPage;
+use BIGSdb::ProjectPage;
 use BIGSdb::ProjectsPage;
 use BIGSdb::PubQueryPage;
 use BIGSdb::QueryPage;
@@ -88,9 +89,9 @@ use Config::Tiny;
 use Try::Tiny;
 use constant PAGES_NEEDING_AUTHENTICATION => qw(authorizeClient changePassword userProjects bookmarks
   submit alert login logout);
-use constant PAGES_NEEDING_JOB_MANAGER        => qw(plugin job jobs index dashboard login logout options ajaxJobs);
+use constant PAGES_NEEDING_JOB_MANAGER => qw(plugin job jobs index dashboard project login logout options ajaxJobs);
 use constant PAGES_NEEDING_SUBMISSION_HANDLER => qw(submit alert batchAddFasta profileAdd profileBatchAdd batchAdd
-  batchAddSequences batchIsolateUpdate isolateAdd isolateUpdate index logout);
+  batchAddSequences batchIsolateUpdate batchAddSeqbin isolateAdd isolateUpdate index logout);
 use constant PAGES_NOT_NEEDING_PLUGINS => qw(ajaxJobs jobMonitor ajaxRest restMonitor);
 
 sub new {
@@ -128,11 +129,14 @@ sub new {
 	$self->{'dataConnector'}->initiate( $self->{'system'}, $self->{'config'} );
 	$self->{'pages_needing_authentication'} = { map { $_ => 1 } PAGES_NEEDING_AUTHENTICATION };
 	$self->{'pages_needing_authentication'}->{'user'} = 1 if $self->{'config'}->{'site_user_dbs'};
+
+	foreach my $page (qw(downloadAlleles downloadProfiles)) {
+		$self->{'pages_needing_authentication'}->{$page} = 1 if $self->_download_requires_authentication($page);
+	}
 	my $q = $self->{'cgi'};
 	$self->initiate_authdb
 	  if $self->{'config'}->{'site_user_dbs'} || ( $self->{'system'}->{'authentication'} // q() ) eq 'builtin';
 	my %job_manager_pages = map { $_ => 1 } PAGES_NEEDING_JOB_MANAGER;
-
 	if ( $self->{'instance'} && !$self->{'error'} ) {
 		$self->db_connect;
 		if ( $self->{'db'} ) {
@@ -174,16 +178,30 @@ sub new {
 			}
 		}
 	}
+	$self->{'pages_needing_authentication'}->{'project'} = 1 if $self->_private_project_passed;
 	$self->app_specific_initiation;
 	$self->print_page;
 	$self->_db_disconnect;
 
 	#Prevent apache appending its own error pages.
 	if ( $self->{'handled_error'} && $ENV{'MOD_PERL'} ) {
-		$self->{'mod_perl_request'}->rflush;
-		$self->{'mod_perl_request'}->status(200);
+		eval {
+			$self->{'mod_perl_request'}->rflush;
+			$self->{'mod_perl_request'}->status(200);
+		};
 	}
 	return $self;
+}
+
+sub _private_project_passed {
+	my ($self)     = @_;
+	my $q          = $self->{'cgi'};
+	my $page       = $q->param('page') // q();
+	my $project_id = $q->param('project_id');
+	return if $page ne 'project';
+	return if ( $self->{'system'}->{'dbtype'} // q() ) ne 'isolates';
+	return if !BIGSdb::Utils::is_int($project_id);
+	return $self->{'datastore'}->run_query( 'SELECT private FROM projects WHERE id=?', $project_id );
 }
 
 sub _initiate {
@@ -271,7 +289,7 @@ sub _initiate {
 		$self->{'system'}->{'labelfield'} //= 'isolate';
 		if ( !$self->{'xmlHandler'}->is_field( $self->{'system'}->{'labelfield'} ) ) {
 			$logger->error(
-				    qq(The defined labelfield '$self->{'system'}->{'labelfield'}' does not exist in the database. )
+					qq(The defined labelfield '$self->{'system'}->{'labelfield'}' does not exist in the database. )
 				  . q(Please set the labelfield attribute in the system tag of the database XML file.) );
 		}
 	}
@@ -293,16 +311,15 @@ sub _setup_prefstore {
 	my ($self) = @_;
 	my %att = (
 		dbase_name => $self->{'config'}->{'prefs_db'},
-		host       => $self->{'config'}->{'dbhost'} // $self->{'system'}->{'host'},
-		port       => $self->{'config'}->{'dbport'} // $self->{'system'}->{'port'},
-		user       => $self->{'config'}->{'dbuser'} // $self->{'system'}->{'user'},
+		host       => $self->{'config'}->{'dbhost'}     // $self->{'system'}->{'host'},
+		port       => $self->{'config'}->{'dbport'}     // $self->{'system'}->{'port'},
+		user       => $self->{'config'}->{'dbuser'}     // $self->{'system'}->{'user'},
 		password   => $self->{'config'}->{'dbpassword'} // $self->{'system'}->{'password'},
 	);
 	my $pref_db;
 	try {
 		$pref_db = $self->{'dataConnector'}->get_connection( \%att );
-	}
-	catch {
+	} catch {
 		if ( $_->isa('BIGSdb::Exception::Database::Connection') ) {
 			$logger->fatal("Cannot connect to preferences database '$self->{'config'}->{'prefs_db'}'");
 		} else {
@@ -335,8 +352,8 @@ sub _check_kiosk_page {
 
 #This is not for the REST interface, just web pages that are used to monitor the REST interface.
 sub _is_rest_page {
-	my ($self) = @_;
-	my $q = $self->{'cgi'};
+	my ($self)    = @_;
+	my $q         = $self->{'cgi'};
 	my %rest_page = map { $_ => 1 } qw(ajaxRest restMonitor);
 	if ( $rest_page{ $q->param('page') } ) {
 		$self->{'system'}->{'dbtype'} = 'rest';
@@ -348,8 +365,8 @@ sub _is_rest_page {
 }
 
 sub _is_job_page {
-	my ($self) = @_;
-	my $q = $self->{'cgi'};
+	my ($self)   = @_;
+	my $q        = $self->{'cgi'};
 	my %job_page = map { $_ => 1 } qw(ajaxJobs jobMonitor);
 	if ( $job_page{ $q->param('page') } ) {
 		$self->{'system'}->{'dbtype'} = 'job';
@@ -384,18 +401,26 @@ sub _rewrite_page {
 	return if !$self->{'config'}->{'enable_dashboard'} && ( $self->{'system'}->{'enable_dashboard'} // q() ) ne 'yes';
 	return if ( $self->{'system'}->{'enable_dashboard'} // q() ) eq 'no';
 	my $guid = $self->_get_guid;
-	return if !$guid;
+	if ( !$guid ) {
+		$self->_set_default_dashboard_view;
+		return;
+	}
 	my $dashboard_pref =
 	  $self->{'prefstore'}->get_general_dashboard_switch_pref( $guid, $self->{'instance'}, 'default' );
-
 	if ( defined $dashboard_pref ) {
 		$self->{'page'} = 'dashboard' if $dashboard_pref;
 	} else {
-		if ( defined $self->{'system'}->{'default_dashboard_view'} ) {
-			$self->{'page'} = 'dashboard' if $self->{'system'}->{'default_dashboard_view'} eq 'yes';
-		} else {
-			$self->{'page'} = 'dashboard' if $self->{'config'}->{'default_dashboard_view'};
-		}
+		$self->_set_default_dashboard_view;
+	}
+	return;
+}
+
+sub _set_default_dashboard_view {
+	my ($self) = @_;
+	if ( defined $self->{'system'}->{'default_dashboard_view'} ) {
+		$self->{'page'} = 'dashboard' if $self->{'system'}->{'default_dashboard_view'} eq 'yes';
+	} else {
+		$self->{'page'} = 'dashboard' if $self->{'config'}->{'default_dashboard_view'};
 	}
 	return;
 }
@@ -416,7 +441,7 @@ sub print_page {
 	my $set_options = 0;
 	my $cookies;
 	my $query_page = ( $self->{'system'}->{'dbtype'} // '' ) eq 'isolates' ? 'IsolateQueryPage' : 'ProfileQueryPage';
-	my %classes = (
+	my %classes    = (
 		ajaxAnalysis       => 'AjaxAnalysis',
 		ajaxJobs           => 'AjaxJobs',
 		ajaxPrefs          => 'AjaxPrefs',
@@ -461,6 +486,7 @@ sub print_page {
 		privateRecords     => 'PrivateRecordsPage',
 		profileInfo        => 'ProfileInfoPage',
 		profiles           => 'CombinationQueryPage',
+		project            => 'ProjectPage',
 		projects           => 'ProjectsPage',
 		recordInfo         => 'RecordInfoPage',
 		registration       => 'UserRegistrationPage',
@@ -506,6 +532,7 @@ sub print_page {
 	);
 	my $continue = 1;
 	my $auth_cookies_ref;
+
 	if ( $self->{'error'} ) {
 		$page_attributes{'error'}              = $self->{'error'};
 		$page_attributes{'max_upload_size_mb'} = $self->{'max_upload_size_mb'};
@@ -564,16 +591,135 @@ sub print_page {
 	if ( $page_attributes{'error'} ) {
 		$self->{'handled_error'} = 1;
 	}
+	$self->log_call;
+	return;
+}
+
+sub log_call {
+	my ( $self, $options ) = @_;
+	return if !$self->{'config'}->{'web_log_to_db'};
+	my $q = $self->{'cgi'};
+	return if $q->param('ajax');        #We don't want to log every AJAX update on dashboard for instance.
+	return if $q->param('no_header');
+	return if $q->param('results');
+	my $page   = $self->{'page'};
+	my %ignore = map { $_ => 1 } qw(ajaxAnalysis ajaxJobs ajaxRest idList);
+	return if $ignore{$page};
+	my $method = {
+		plugin => sub {
+			if ( defined $q->param('name') ) {
+				my $name = $q->param('name');
+				$page = "plugin [$name]";
+			}
+		},
+		tableQuery => sub {
+			if ( defined $q->param('table') ) {
+				my $table = $q->param('table');
+				$page = "$page [$table]";
+			}
+		},
+		downloadAlleles => sub {
+			if ( defined $q->param('locus') ) {
+				my $locus = $q->param('locus');
+				$page = "$page [$locus]";
+			}
+		},
+		downloadProfiles => sub {
+			if ( defined $q->param('scheme_id') ) {
+				my $scheme_id = $q->param('scheme_id');
+				$page = "$page [scheme $scheme_id]";
+			}
+		},
+		downloadSeqbin => sub {
+			if ( defined $q->param('isolate_id') ) {
+				my $isolate_id = $q->param('isolate_id');
+				$page = "$page [id: $isolate_id]";
+			}
+		},
+		info => sub {
+			if ( defined $q->param('id') ) {
+				my $isolate_id = $q->param('id');
+				$page = "$page [id: $isolate_id]";
+			}
+		},
+	};
+	if ( $method->{$page} ) {
+		$method->{$page}->();
+	}
+	return if !$self->{'auth_db'}->ping;    #Connection dropped because of forked process.
+	eval {
+		$self->{'auth_db'}->do(
+			'INSERT INTO log (timestamp,ip_address,user_name,curate,method,dbase_config,page) VALUES (?,?,?,?,?,?,?)',
+			undef, 'now', $ENV{'REMOTE_ADDR'}, $self->{'username'}, ( $options->{'curate'} ? 'true' : 'false' ),
+			$q->request_method, $self->{'instance'}, $page
+		);
+	};
+	if ($@) {
+		$logger->error("Cannot log page access. $@");
+		$self->{'auth_db'}->rollback;
+	} else {
+		$self->{'auth_db'}->commit;
+	}
 	return;
 }
 
 sub app_specific_initiation {
-	my ($self) = @_;
-	my $q = $self->{'cgi'};
+	my ($self)     = @_;
+	my $q          = $self->{'cgi'};
 	my %no_plugins = map { $_ => 1 } PAGES_NOT_NEEDING_PLUGINS;
 	return if $no_plugins{ $q->param('page') };
 	$self->initiate_plugins;
 	return;
+}
+
+sub _plugin_requires_authentication {
+	my ($self) = @_;
+	my $q = $self->{'cgi'};
+	return if ( $self->{'page'} // q() ) ne 'plugin';
+	my $plugin_name = $q->param('name');
+	return if !defined $plugin_name;
+	return 1
+	  if $self->{'pluginManager'}->{'attributes'}->{$plugin_name}->{'allele_download'}
+	  && (
+		( $self->{'system'}->{'allele_downloads_require_login'} // q() ) eq 'yes'
+		|| ( $self->{'config'}->{'allele_downloads_require_login'}
+			&& ( $self->{'system'}->{'allele_downloads_require_login'} // q() ) ne 'no' )
+	  );
+	return 1
+	  if $self->{'pluginManager'}->{'attributes'}->{$plugin_name}->{'profile_download'}
+	  && (
+		( $self->{'system'}->{'profile_downloads_require_login'} // q() ) eq 'yes'
+		|| ( $self->{'config'}->{'profile_downloads_require_login'}
+			&& ( $self->{'system'}->{'profile_downloads_require_login'} // q() ) ne 'no' )
+	  );
+	return if ( $self->{'system'}->{'jobs_require_login'} // q() ) eq 'no';
+	return
+	  if !( $self->{'config'}->{'jobs_require_login'}
+		|| ( $self->{'system'}->{'jobs_require_login'} // q() ) eq 'yes' );
+	return 1
+	  if ( $self->{'pluginManager'}->{'attributes'}->{$plugin_name}->{'requires'} // q() ) =~ /offline_jobs/x;
+	return;
+}
+
+sub _download_requires_authentication {
+	my ( $self, $page ) = @_;
+	my $q              = $self->{'cgi'};
+	my %download_pages = map { $_ => 1 } qw(downloadAlleles downloadProfiles);
+	return if !$download_pages{$page};
+	my $attributes = {
+		downloadAlleles  => 'allele_downloads_require_login',
+		downloadProfiles => 'profile_downloads_require_login'
+	};
+	my $additional_param = {
+		downloadAlleles  => 'locus',
+		downloadProfiles => 'scheme_id'
+	};
+	return if !$q->param( $additional_param->{$page} );
+	return if ( $self->{'system'}->{ $attributes->{$page} } // q() ) eq 'no';
+	return
+	  if !( $self->{'config'}->{ $attributes->{$page} }
+		|| ( $self->{'system'}->{ $attributes->{$page} } // q() ) eq 'yes' );
+	return 1;
 }
 
 sub authenticate {
@@ -608,20 +754,22 @@ sub authenticate {
 			$self->{'page'} = 'index';
 			$logging_out = 1;
 		}
-		my $login_requirement = $self->{'datastore'}->get_login_requirement;
+		my $login_requirement              = $self->{'datastore'}->get_login_requirement;
+		my $plugin_requires_authentication = $self->_plugin_requires_authentication;
 		if (   $login_requirement != NOT_ALLOWED
-			|| $self->{'pages_needing_authentication'}->{ $self->{'page'} } )
+			|| $self->{'pages_needing_authentication'}->{ $self->{'page'} }
+			|| $plugin_requires_authentication )
 		{
 			try {
 				BIGSdb::Exception::Authentication->throw('logging out') if $logging_out;
 				$page_attributes->{'username'} = $page->login_from_cookie;
-				$self->{'page'} = 'changePassword' if $self->{'system'}->{'password_update_required'};
-			}
-			catch {
+				$self->{'page'}                = 'changePassword' if $self->{'system'}->{'password_update_required'};
+			} catch {
 				if ( $_->isa('BIGSdb::Exception::Authentication') ) {
 					$logger->debug('No cookie set - asking for log in');
 					if (   $login_requirement == REQUIRED
-						|| $self->{'pages_needing_authentication'}->{ $self->{'page'} } )
+						|| $self->{'pages_needing_authentication'}->{ $self->{'page'} }
+						|| $plugin_requires_authentication )
 					{
 						if ( $q->param('no_header') ) {
 							$page_attributes->{'error'} = 'ajaxLoggedOut';
@@ -634,8 +782,7 @@ sub authenticate {
 							try {
 								( $page_attributes->{'username'}, $auth_cookies_ref, $reset_password ) =
 								  $page->secure_login($args);
-							}
-							catch {    #failed again
+							} catch {    #failed again
 								$authenticated = 0;
 							};
 						}

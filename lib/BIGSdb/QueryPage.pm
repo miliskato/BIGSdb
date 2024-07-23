@@ -1,6 +1,6 @@
 #Written by Keith Jolley
-#Copyright (c) 2010-2022, University of Oxford
-#E-mail: keith.jolley@zoo.ox.ac.uk
+#Copyright (c) 2010-2023, University of Oxford
+#E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
 #
@@ -46,8 +46,9 @@ sub set_pref_requirements {
 
 sub get_javascript_panel {
 	my ( $self, @fieldsets ) = @_;
+	local $" = q(",");
+	my $fieldset_string = qq("@fieldsets");
 	my $button_text_js;
-	my $button_toggle_js;
 	my $new_url    = 'this.href';
 	my %clear_form = (
 		list       => q[$("#list").val('')],
@@ -55,35 +56,58 @@ sub get_javascript_panel {
 		provenance => q[$('[id^="prov_value"]').val('')],
 		phenotypic => q[$('[id^="phenotypic_value"]').val('')],
 		allele     => q[$('[id^="value"]').val('')],
+		mutations  => q[$('[id^="mutation_value"]').val('')],
 		scheme     => q[$('[id^="value"]').val('')],
-		allele_designations =>
-q[$('[id^="designation_field"]').val(''),$('[id^="designation_operator"]').val(''),$('[id^="designation_value"]').val('')],
-		allele_count    => q[$('[id^="allele_count"]').val('')],
-		allele_status   => q[$('[id^="allele_status"]').val('')],
-		tags            => q[$('[id^="tag"]').val('')],
-		tag_count       => q[$('[id^="tag_count"]').val('')],
-		seqbin          => q[$('[id^="seqbin_value"]').val('');$('[id^="seqbin_field"]').val('')],
-		assembly_checks => q[$('[id^="assembly_checks_value"]').val('');$('[id^="assembly_checks_field"]').val('')],
+		allele_designations => q[$('select[id^="designation_field"]').multiselect("uncheckAll"),]
+		  . q[$('[id^="designation_operator"]').val(''),]
+		  . q[$('[id^="designation_value"]').val('')],
+		sequence_variation => q[$('[id^="sequence_variation"]').val('')],
+		allele_count       => q[$('select[id^="allele_count_field"]').multiselect("uncheckAll"),]
+		  . q[$('[id^="allele_count_operator"]').val(''),]
+		  . q[$('[id^="allele_count_value"]').val('')],
+		allele_status => q[$('select[id^="allele_status_field"]').multiselect("uncheckAll"),]
+		  . q[$('[id^="allele_status_value"]').val('')],
+		tags      => q[$('select[id^="tag_field"]').multiselect("uncheckAll"),] . q[$('[id^="tag_value"]').val('')],
+		tag_count => q[$('select[id^="tag_count_field"]').multiselect("uncheckAll"),]
+		  . q[$('[id^="tag_count_operator"]').val(''),]
+		  . q[$('[id^="tag_count_value"]').val('')],
+		,
+		seqbin            => q[$('[id^="seqbin_value"]').val('');$('[id^="seqbin_field"]').val('')],
+		assembly_checks   => q[$('[id^="assembly_checks_value"]').val('');$('[id^="assembly_checks_field"]').val('')],
 		annotation_status =>
-		  q[$('[id^="annotation_status_value"]').val('');$('[id^="annotation_status_field"]').val('')]
+		  q[$('[id^="annotation_status_value"]').val('');$('[id^="annotation_status_field"]').val('')],
+		scheme => q[$('[id^="t"]').val('')],
 	);
+	my @clear_form_directives;
+	foreach my $fieldset (@fieldsets) {
+		push @clear_form_directives, qq(        $fieldset: function(){$clear_form{$fieldset}});
+	}
+	local $" = qq(,\n);
+	my $clear_form_values = qq(@clear_form_directives);
 	my ( $show, $hide, $save, $saving ) = ( SHOW, HIDE, SAVE, SAVING );
 	foreach my $fieldset (@fieldsets) {
-		$button_text_js   .= qq(        var $fieldset = \$("#show_$fieldset").html() == '$show' ? 0 : 1;\n);
-		$new_url          .= qq( + "\&$fieldset=" + $fieldset);
-		$button_toggle_js .= qq[    \$("#show_$fieldset").click(function(event) {\n];
-		$button_toggle_js .= qq[       event.preventDefault();\n];
-		$button_toggle_js .= qq[       if(\$(this).html() == '$hide'){\n];
-		$button_toggle_js .= qq[          $clear_form{$fieldset};\n];
-		$button_toggle_js .= qq[       }\n];
-		$button_toggle_js .= qq[       \$("#${fieldset}_fieldset").toggle(100);\n];
-		$button_toggle_js .= qq[       \$(this).html(\$(this).html() == '$show' ? '$hide' : '$show');\n];
-		$button_toggle_js .= qq[       \$("a#save_options").fadeIn();\n];
-		$button_toggle_js .= qq[       return false;\n];
-		$button_toggle_js .= qq[    });\n];
+		$button_text_js .= qq(        var $fieldset = \$("#show_$fieldset").html() == show ? 0 : 1;\n);
+		$new_url        .= qq( + "\&$fieldset=" + $fieldset);
 	}
 	my $buffer = <<"END";
-	$button_toggle_js
+	var show = '$show';
+	var hide = '$hide';
+	var fieldsets = [$fieldset_string];
+	var clear_form = {
+$clear_form_values
+	};
+	\$(".fieldset_trigger").click(function(event) {
+		let fieldset = this.id.replace('show_','');
+		event.preventDefault();
+		if(\$(this).html() == hide){
+			clear_form[fieldset]();
+		}
+		\$("#" + fieldset + "_fieldset").toggle(100);
+		\$(this).html(\$(this).html() == show ? hide : show);
+		\$("a#save_options").fadeIn();
+		return false;
+	});
+	
 	\$("#panel_trigger,#close_trigger").click(function(){			
 		\$("#modify_panel").toggle("slide",{direction:"right"},"fast");
 		return false;
@@ -91,18 +115,18 @@ q[$('[id^="designation_field"]').val(''),$('[id^="designation_operator"]').val('
 	\$("#panel_trigger").show();
 	\$("a#save_options").click(function(event){		
 		event.preventDefault();
-		$button_text_js
+$button_text_js
 	  	\$(this).attr('href', function(){  	
 	  		\$("a#save_options").html('$saving').animate({backgroundColor: "#99d"},100).animate({backgroundColor: "#f0f0f0"},100);
 	  		\$("span#saving").text('Saving...');
 	  		var new_url = $new_url;
-		  		\$.ajax({
+		  	\$.ajax({
 	  			url : new_url,
 	  			success: function () {	  				
 	  				\$("a#save_options").hide();
 	  				\$("span#saving").text('');
 	  				\$("a#save_options").html('$save');
-	  				\$(".panel").toggle("slide",{direction:"right"},"fast");
+	  				\$("#modify_panel").toggle("slide",{direction:"right"},"fast");
 	  			}
 	  		});
 	   	});
@@ -119,12 +143,12 @@ sub get_javascript {
 \$(function () {
 	\$('div#queryform').on('click', 'a[data-rel=ajax]',function(){
   		\$(this).attr('href', function(){
-    		return(this.href.replace(/(.*)/, "javascript:loadContent\('\$1\'\)"));
+     		return(this.href.replace(/(.*)/, "javascript:loadContent\('\$1\'\)"));
     	});
   	});
-  	\$(document).mouseup(function(e) {
-
-		
+  	
+  	//Close panel
+	\$(document).mouseup(function(e) {
 		// if the target of the click isn't the container nor a
 		// descendant of the container
 		var trigger = \$("#panel_trigger");
@@ -144,7 +168,7 @@ sub get_javascript {
  
 function add_rows(url,list_name,row_name,row,field_heading,button_id){
 	var new_row = row+1;
-	\$("ul#"+list_name).append('<li id="' + row_name + row + '" />');
+	\$("ul#"+list_name).append('<li id="' + row_name + row + '"></li>');
 	\$("li#"+row_name+row).html('<span class="fas fa-spinner fa-spin fa-lg fa-fw"></span> Loading ...').load(url);
 	url = url.replace(/row=\\d+/,'row='+new_row);
 	\$("#"+button_id).attr('href',url);
@@ -190,7 +214,7 @@ sub search_users {
 	my ( $self, $name, $operator, $text, $table ) = @_;
 	my ( $field, $suffix ) = split / /, $name;
 	$suffix =~ s/[\(\)\s]//gx;
-	my $qry = 'SELECT id FROM users WHERE ';
+	my $qry    = 'SELECT id FROM users WHERE ';
 	my $equals = $suffix ne 'id' ? "upper($suffix) = upper(E'$text')" : "$suffix = E'$text'";
 	my $contains =
 	  $suffix ne 'id' ? "upper($suffix) LIKE upper(E'\%$text\%')" : "CAST($suffix AS text) LIKE (E'\%$text\%')";
@@ -268,7 +292,7 @@ sub check_format {
 			},
 			date => sub {
 				my %invalid_operator = map { $_ => 1 } ( 'contains', 'NOT contain', 'starts with', 'ends with' );
-				my $operator = $data->{'operator'};
+				my $operator         = $data->{'operator'};
 				if ( $invalid_operator{$operator} ) {
 					$error = qq(Searching a date field cannot be done for the '$operator' operator.);
 				} elsif ( !BIGSdb::Utils::is_date( $data->{'text'} ) ) {
@@ -306,14 +330,15 @@ sub clean_list {
 	my @new_list;
 	foreach my $value (@$list) {
 		$value =~ tr/[\x{ff10}-\x{ff19}]/[0-9]/;    #Convert Unicode full width integers
-		next if lc($data_type) =~ /^int/x           && !BIGSdb::Utils::is_int($value);
-		next if lc($data_type) =~ /^bool/x          && !BIGSdb::Utils::is_bool($value);
-		next if lc($data_type) eq 'date'            && !BIGSdb::Utils::is_date($value);
-		next if lc($data_type) eq 'float'           && !BIGSdb::Utils::is_float($value);
-		if (lc($data_type) eq 'geography_point'){
+		next if lc($data_type) =~ /^int/x  && !BIGSdb::Utils::is_int($value);
+		next if lc($data_type) =~ /^bool/x && !BIGSdb::Utils::is_bool($value);
+		next if lc($data_type) eq 'date'  && !BIGSdb::Utils::is_date($value);
+		next if lc($data_type) eq 'float' && !BIGSdb::Utils::is_float($value);
+		if ( lc($data_type) eq 'geography_point' ) {
 			next if !BIGSdb::Utils::is_geography_point($value);
 			my $coordinates = BIGSdb::Utils::get_geography_point_coordinates($value);
-			$value = $self->{'datastore'}->convert_coordinates_to_geography($coordinates->{'latitude'},$coordinates->{'longitude'});
+			$value = $self->{'datastore'}
+			  ->convert_coordinates_to_geography( $coordinates->{'latitude'}, $coordinates->{'longitude'} );
 		}
 		push @new_list, uc($value);
 	}
