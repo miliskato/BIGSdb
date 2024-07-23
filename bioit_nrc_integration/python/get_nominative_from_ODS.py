@@ -169,7 +169,7 @@ class MainNominativeDataParserFromOds:
 
                         if filetype == 'LAB':
                             self.__calculate_age_fields(data, data_translated)
-                            self.__parse_complex_labtest_results()
+                            self.__parse_complex_labtest_results(data, data_translated)
                         if filetype == 'CLIN':
                             self.__parse_complex_country_field(data, data_translated)
                         # loop over schema
