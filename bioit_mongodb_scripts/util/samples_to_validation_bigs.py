@@ -27,7 +27,7 @@ def _insert_submission_bigs(sample_docs: List[Dict[str, Any]], validation_type: 
             TblIsolateSubmissionFieldOrder(species) as isolates_isosubfo_psql_tbl, \
             TblMappingTable(species) as isolates_mapping_psql_tbl:
         for doc in sample_docs:
-            pseudo_id = isolates_mapping_psql_tbl.select_pseudoid_for_isolate((doc['_id'],))[0][0]
+            pseudo_id = isolates_mapping_psql_tbl.select_pseudo_id_for_isolate((doc['_id'],))[0][0]
             isolates_sub_psql_tbl.insert_submission((validation_type,))
             api_button = f"""
             <button onclick="get_jwt_report('no', '{validation_type}', '{doc['_id']}', '{pseudo_id}', '{species }', '{doc['latest_analysis_date']}')" class='small_submit'>Get report preview</button>

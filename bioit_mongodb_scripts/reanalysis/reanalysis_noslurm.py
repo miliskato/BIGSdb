@@ -66,7 +66,7 @@ def _fail_safe_mechanism(isolatename: str, config: Dict[str, Any], reanalysis_ou
         if flagfilepath.is_file():
             with flagfilepath.open('r') as handle:
                 tmp_dir_fail = handle.readlines()[0]
-            logging.warning(f"fail safe mechanism detects that the reanalysis for sample {isolatename} was started but didnt finish. Removing tmp_dir {tmp_dir_fail}.")
+            logging.warning(f"fail safe mechanism detects that the reanalysis for sample {isolatename} was started but did not finish. Removing tmp_dir {tmp_dir_fail}.")
             shutil.rmtree(Path(tmp_dir_fail))
             # remove flagfilepath with wrong tmp dir in case reanalysis fails again
             flagfilepath.unlink()

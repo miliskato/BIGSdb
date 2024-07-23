@@ -179,6 +179,7 @@ sub _get_javascript_paths {
 		push @$js, { src => "$relative_js_path/jquery-ui.min.js", defer   => 1, version => '1.12.1' };
 		push @$js, { src => "$relative_js_path/bigsdb.min.js",    defer   => 1, version => '20210628' };
 		push @$js, { src => "$relative_js_path/hera_dynamic_query.js"};
+		push @$js, { src => "$relative_js_path/jszip.js"};
 		# only import hera_reportsapi.js if logged in
 		if ( $self->{'username'} ) {
 		    push @$js, { src => "$relative_js_path/hera_reportsapi.js"};
