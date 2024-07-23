@@ -4,41 +4,34 @@ pathogens:
 schema:
   LAB:
     IDC_PAT:
-      required: False
-      default: Unknown
+      required: False # default is empty in bigsdb
       translation: patient_id
     DT_PAT_DOB:
-      required: False
-      default: Unknown # todo this needs to be a datetime field i believe, but what to set as default then?
+      required: False # default is empty in bigsdb # todo this needs to be in YYYY-MM-DD format
       translation: patient_birth_date
     CD_PAT_SEX:
       required: False
-      default: Unknown
+      default: Unknown # in saltest UNK but in DCD list Unknown
       translation: patient_sex
       code_list: CD_PAT_SEX_codes
-    CD_PAT_PC: # todo has code list, but seeing as codes = zip doesn't really make sense to add?
+    CD_PAT_PC: # has code list, but seeing as codes = zip doesn't really make sense to add
       required: False
       default: Unknown
       translation: patient_zip
-    CD_CNTRY: # todo has code list, codes available here https://docs.healthdata.be/documentation/hd4dp2-code-lists/country, is it worth it to translate two letter code to full name?
+    CD_CNTRY: # default is empty in bigsdb
       required: False
-      default: Unknown
       translation: country
     TX_LAB_SAMPLE_VAL:
       required: True
       translation: specimen
-    CD_LAB_PATHOGEN:
-      required: False
-      default: Unknown
-      translation: serovar_final
-      code_list: CD_LAB_PATHOGEN_codes
+#    CD_LAB_PATHOGEN: # default is empty in bigsdb
+#      required: False
+#      translation: serovar_final
+#      code_list: CD_LAB_PATHOGEN_codes
     TX_LAB_CMNT_SPECIM:
       required: False
       default: N/A
       translation: comment
-    TX_TTL_LAB_TEST:
-      todo: todo  # todo looking very complicated
-
   CLIN:
     CD_HOSPZ:
       required: True
@@ -60,10 +53,10 @@ schema:
       required: True
       translation: link
       code_list: CD_EPILINK_codes
-    CD_INFCT_CNRTY:  # todo has code list, codes available here https://docs.healthdata.be/documentation/hd4dp2-code-lists/country but they are text and in example they are ints...
-      required: False
-      default: BE # todo what should default be? Belgium? IN DCD this field is required if imported=True
-      translation: country_1 # todo according to DCD this can be multiple values and it does not give a maximum, in bigsdb country_1 and country_2 but not more? how to tackle this?
+    CD_PROB_NAM:
+      required: True
+      translation: clinical_info
+      code_list: CD_PROB_NAM_codes
 
 code_lists:
   CD_PAT_SEX_codes:
@@ -108,7 +101,33 @@ code_lists:
     385432009: Not applicable
     74964007: Other
     261665006: Unknown
-  CD_LAB_PATHOGEN_codes:
+  CD_PROB_NAM_codes:
+    84387000: Asymptomatic
+    25374005: Gastroenteritis
+    91302008: Sepsis
+    68566005: Urinary tract infection
+    261665006: Unknown
+  TX_TTL_LAB_TEST_combinations:  # CD_LAB_TEST_METH, CD_LAB_TEST_CODE, value_field, code_list, translation # todo for the numeric ones need unit? where is the unit code list?
+    - CD_LAB_TEST_METH: '117871005'
+      CD_LAB_TEST_CODE: ''
+      value_field: 'CD_LAB_TEST_RSLT_QL'
+      code_list: 'serovar_codes'
+      translation: 'serovar_final'  # todo need to see example because unclear what will be in the mandatory CD_LAB_TEST_CODE field
+    - CD_LAB_TEST_METH: '117871005' # todo how to differentiate between other serotype field?
+      CD_LAB_TEST_CODE: ''
+      value_field: 'CD_LAB_TEST_RSLT_QL'
+      code_list: 'serovar_codes'
+      translation: 'aggl_serogroup'
+    - CD_LAB_TEST_METH: '409588007'
+      CD_LAB_TEST_CODE: ''
+      value_field: 'CD_LAB_TEST_RSLT_TXT'
+      translation: 'mlva_profile'
+    - # todo others
+  labtest_codes:
+    83185005: Susceptible
+    11896004: Intermediate
+    30714006: Resistant
+  serovar_codes:
     70760001: Salmonella Potosi
     90756007: Salmonella Presov
     79264000: Salmonella Pramiso

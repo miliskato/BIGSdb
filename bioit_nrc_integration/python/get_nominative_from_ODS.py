@@ -1,10 +1,12 @@
 import json
 import logging
+import math
 import socket
 import sys
 import tempfile
 import traceback
 import yaml
+from datetime import datetime
 from pathlib import Path
 
 import paramiko
@@ -165,11 +167,16 @@ class MainNominativeDataParserFromOds:
                             contents = json.load(handle)
                         data = contents['data']
 
+                        if filetype == 'LAB':
+                            self.__calculate_age_fields(data, data_translated)
+                            self.__parse_complex_labtest_results()
+                        if filetype == 'CLIN':
+                            self.__parse_complex_country_field(data, data_translated)
                         # loop over schema
                         for hd_key, hd_key_property_dict in self._translation_codes['schema'][filetype]:
                             # Get value capitalisation agnostically
                             unprocessed_value = data.get(hd_key.lower()) if data.get(hd_key.lower()) else data.get(hd_key)
-                            if data.get(unprocessed_value):
+                            if unprocessed_value:
                                 if hd_key_property_dict.get('code_list'):
                                     value = self._translation_codes['code_lists'][hd_key_property_dict['code_list']][unprocessed_value]
                                 else:
@@ -177,7 +184,8 @@ class MainNominativeDataParserFromOds:
                                 data_translated[hd_key_property_dict['translation']] = value
                             else:
                                 if hd_key_property_dict['required'] is False:
-                                    data_translated[hd_key_property_dict['translation']] = hd_key_property_dict['default']
+                                    if hd_key_property_dict.get('default'):
+                                        data_translated[hd_key_property_dict['translation']] = hd_key_property_dict['default']
                                 else:
                                     raise f"key {hd_key} is missing but is required in {filetype} file!!"
                         data_unprocessed[filetype] = data
@@ -191,6 +199,79 @@ class MainNominativeDataParserFromOds:
                     unprocessed_nominative_labtest_metadata_collection.insert_one(data_unprocessed['LAB'])
                     unprocessed_nominative_clinical_metadata_collection.insert_one(data_unprocessed['CLIN'])
                     self._files_processed.extend([pair["LAB"], pair["CLIN"]])
+
+    @staticmethod
+    def __calculate_age_fields(data, data_translated) -> None:
+        """
+        Calculates the two age fields patient_age and patient_age_group from the DOB and the collection date.
+        :param data: original unprocessed data
+        :param data_translated: translated data to be inserted in MongoDB to be inserted in BIGSdb
+        :return: None
+        """
+        # DOB is not a mandatory field so it can be missing
+        if data.get('DT_PAT_DOB'.lower()):
+            # Calculate the number of years
+            # Average year length considering leap years = 365.25 days
+            patient_age = math.floor((datetime.strptime(data['DT_LAB_COLLCN'.lower()], "%Y-%m-%dT%H:%M:%S") -
+                                      datetime.strptime(data['DT_PAT_DOB'.lower()], "%Y-%m-%d")).days / 365.25)
+            data_translated['patient_age'] = patient_age
+            age_groups = [
+                ("1 and below", 0, 1),
+                ("Between 2 and 4", 2, 4),
+                ("Between 5 and 9", 5, 9),
+                ("Between 10 and 14", 10, 14),
+                ("Between 15 and 19", 15, 19),
+                ("Between 20 and 24", 20, 24),
+                ("Between 25 and 44", 25, 44),
+                ("Between 45 and 64", 45, 64),
+                ("65 and above", 64, 150)
+            ]
+            data_translated['patient_age_group'] = next(
+                (group for group, start, end in age_groups if start <= patient_age <= end))
+        else:
+            # in Salmonella test unknowns for patient_age and patient_age_group are encoded as UNK
+            data_translated['patient_age'] = 'UNK'
+            data_translated['patient_age_group'] = 'UNK'
+
+    def __parse_complex_labtest_results(self, data, data_translated) -> None:
+        """
+        Parses the
+        e.g. "tx_ttl_lab_test": [{"dt_lab_test": "2024-03-25T12:00:00",  "tx_lab_rr_ll": "ref low",  "tx_lab_rr_ul": "ref up",  "cd_lab_pnl_batt": "385432009",  "cd_lab_rslt_sta": "corrected",  "cd_lab_reslt_tpe": "19851009",  "cd_lab_rslt_flag": "260405006",  "cd_lab_test_code": "468-9",  "cd_lab_test_meth": "14788002",  "ms_lab_rr_ll_val": 11.00000,  "ms_lab_rr_ul_val": 150.00000,  "cd_lab_rr_ll_unit": "385432009",  "cd_lab_rr_ul_unit": "385432009",  "cd_lab_intrpr_meth": "261665006",  "tx_lab_rslt_intrpr": "Test 3 interpretation",  "tx_lab_test_rslt_id": "Test Result 3",  "cd_lab_test_rslt_sta": "preliminary",  "tx_lab_cmnt_test_rslt": "Lab Test 3 comment",  "ms_lab_test_rslt_qn_val": 99.00000,  "cd_lab_test_rslt_qn_unit": "385432009"}, {"dt_lab_test": "2024-02-06T12:00:00",  "tx_lab_rr_ll": "lower limit",  "tx_lab_rr_ul": "Ref upper Range",  "cd_lab_pnl_batt": "385432009",  "cd_lab_rslt_sta": "registered",  "cd_lab_reslt_tpe": "252275004",  "cd_lab_rslt_flag": "281300000",  "cd_lab_test_code": "TC0031",  "cd_lab_test_meth": "363779003",  "ms_lab_rr_ll_val": 55.00000,  "ms_lab_rr_ul_val": 66.00000,  "cd_lab_rr_ll_unit": "385432009",  "cd_lab_rr_ul_unit": "385432009",  "cd_lab_intrpr_meth": "IM0001",  "tx_lab_rslt_intrpr": "Res Interpretation",  "cd_lab_test_rslt_ql": "83185005",  "tx_lab_test_rslt_id": "TestResID",  "cd_lab_test_rslt_sta": "preliminary",  "tx_lab_cmnt_test_rslt": "Lab Test comment"}]
+        :param data: original unprocessed data
+        :param data_translated: translated data to be inserted in MongoDB to be inserted in BIGSdb
+        :return: None
+        """
+        labtest_list_of_result_dicts = data.get('TX_TTL_LAB_TEST'.lower())
+        if labtest_list_of_result_dicts:
+            for labtest_result_dict in labtest_list_of_result_dicts:
+                labtest_result_combinations = self._translation_codes['code_lists']['TX_TTL_LAB_TEST_combinations']
+                labtest_dict = next((labtest_dict for labtest_dict in labtest_result_combinations if
+                                     # CD_LAB_TEST_METH is mandatory I believe
+                                     labtest_dict['CD_LAB_TEST_METH'] == labtest_result_dict.get('CD_LAB_TEST_METH'.lower())
+                                     # CD_LAB_TEST_CODE seems to be optional; if '' in code list then .get results in False
+                                     # e.g. for serotyping this field does not seem to be filled because there are no subtests
+                                     and labtest_dict.get('CD_LAB_TEST_CODE') and
+                                     labtest_dict['CD_LAB_TEST_CODE'] == labtest_result_dict.get('CD_LAB_TEST_CODE'.lower())))
+
+                if labtest_dict.get('code_list'):
+                    data_translated[labtest_dict['translation']] = self._translation_codes['code_lists'][labtest_dict['code_list']][labtest_result_dict[labtest_dict['value_field'.lower()]]]
+                else:
+                    data_translated[labtest_dict['translation']] = labtest_result_dict.get(labtest_dict['value_field'].lower())
+
+    @staticmethod
+    def __parse_complex_country_field(data, data_translated) -> None:
+        """
+        Parses the optional infection country field list which didn't really fit in the main codes schema,
+        e.g. "cd_infct_cntry": [{"cd_infct_cntry": "130337"}, {"cd_infct_cntry": "130328"}]
+        :param data: original unprocessed data
+        :param data_translated: translated data to be inserted in MongoDB to be inserted in BIGSdb
+        :return: None
+        """
+        country_dicts_list = data.get('CD_INFCT_CNRTY'.lower())
+        if country_dicts_list:
+            for index, country_dict in enumerate(country_dicts_list):
+                for key, value in country_dict:
+                    data_translated[f"country_{index + 1}"] = value  # todo possibly translate using missing codelist
 
     def _close_sftp_connection(self) -> None:
         """
