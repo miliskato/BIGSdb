@@ -370,6 +370,7 @@ class BatchPipelinesReanalysis:
         results_dir = mongodb_document['report_directory']
         base_command = ' '.join([
             f"module load {config_species['lmod']};",
+            'pipeline_hash=$(git --git-dir=$PYTHONPATH/.git rev-parse --short=10 HEAD);',  # need to be double "
             f"mkdir -p {working_dir};",
             f"cd {working_dir};"
             f"{config_species['main_script']} ",
@@ -406,6 +407,7 @@ class BatchPipelinesReanalysis:
             "--results_type reanalysis",
             f"--species {self._species}",
             f"--technical_id {isolate_id}",
+            "--pipeline_hash $pipeline_hash",
             f"--jsonfilepath {results_dir}/report.json",
             "--dont_send_email",
             f"--alternate_dtap {self._dtap}",
