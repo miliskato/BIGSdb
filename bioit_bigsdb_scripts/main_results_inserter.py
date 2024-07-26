@@ -167,11 +167,7 @@ class MainResultsInserter:
                 if nr_of_versions > 1:
                     isolates_psql_tbl.revert_newversion((self._isolatename,))
                     isolates_psql_tbl.delete_isolate([self._isolatename])
-                    isolates_psql_tbl.insert_isolate_newversion((self._isolatename, self._isolatename, self._isolatename,
-                                                                 datetime.datetime.strptime(analysis_date,
-                                                                                            '%d/%m/%Y - %X').strftime(
-                                                                     '%Y-%m-%d')))
-                    isolates_psql_tbl.update_newversion([self._isolatename])
+                    isolates_psql_tbl.insert_isolate_newversion(( datetime.datetime.strptime(analysis_date,'%d/%m/%Y - %X').strftime('%Y-%m-%d'), self._isolatename))
                 else:
                     isolates_psql_tbl.delete_isolate([self._isolatename])
             else:

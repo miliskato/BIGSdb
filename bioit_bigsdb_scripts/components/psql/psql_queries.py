@@ -142,13 +142,13 @@ class PsqlQueries():
     # TBL extended attribute values text hidden
     ISO_INS__TB_EAVTH_VAR_ISO_FIELD_VAL: Final[str] = """
         INSERT INTO eav_text_hidden(isolate_id, field, value) 
-        VALUES((SELECT MAX(id) FROM isolates WHERE isolate=%s), %s, %s);"""
+        VALUES((SELECT id FROM isolates WHERE isolate=%s), %s, %s);"""
     ISO_SEL_ID_VAL_ISO_TB_EAVTH_VAR_FIELD: Final[str] = """
         SELECT eav_text_hidden.isolate_id, eav_text_hidden.value, isolates.isolate FROM eav_text_hidden 
         LEFT JOIN isolates ON isolates.id = eav_text_hidden.isolate_id WHERE eav_text_hidden.field = %s;"""
     ISO_SEL_VERSION_TB_EAVTH_VAR_ISO: Final[str] = """
         SELECT value FROM eav_text_hidden WHERE field='mongo_results_version' AND 
-        isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate=%s);"""
+        isolate_id=(SELECT id FROM isolates WHERE isolate=%s);"""
 
     # TBL history
     ISO_INS__TB_HIST_VAR_ID_MESS: Final[str] = """
@@ -156,17 +156,14 @@ class PsqlQueries():
         VALUES(%s, (SELECT NOW()::TIMESTAMP), %s, 1);"""
     ISO_INS__TB_HIST_VAR_ISO_MESS: Final[str] = """
         INSERT INTO history(isolate_id, timestamp, action, curator) 
-        VALUES((SELECT MAX(id) FROM isolates WHERE isolate=%s),(SELECT NOW()::TIMESTAMP), %s, 1);"""
+        VALUES((SELECT id FROM isolates WHERE isolate=%s),(SELECT NOW()::TIMESTAMP), %s, 1);"""
 
     # TBL isolates
     ISO_DEL__TB_ISO_VAR_ISO_ISO: Final[str] = """
         DELETE FROM isolates WHERE isolate=%s AND id=(SELECT MAX(id) FROM isolates WHERE isolate=%s);"""
     ISO_INS__TB_ISO_VAR_ISO_ISO_ISO_DATE: Final[str] = """
-        INSERT INTO isolates(id, isolate, sender, curator, date_entered, datestamp, uploader, latest_analysis_date) 
-        VALUES((SELECT CASE WHEN (SELECT MAX(id) FROM isolates) IS NULL THEN 1 
-        ELSE (SELECT(SELECT MAX(id) FROM isolates)+1) END), %s, 1, 1, 
-        (SELECT CURRENT_DATE),(SELECT CURRENT_DATE), 
-        (SELECT uploader FROM isolates WHERE isolate=%s AND id=(SELECT MAX(id) FROM isolates WHERE isolate=%s)), %s);"""
+        ALTER TABLE isolates SET(date_entered, datestamp, latest_analysis_date) 
+        VALUES((SELECT CURRENT_DATE),(SELECT CURRENT_DATE), %s) WHERE isolate=%s;"""
     ISO_INS__TB_ISO_VAR_ISO_UPL_DATE: Final[str] = """
         INSERT INTO isolates(id, 
         isolate, sender, curator, date_entered, datestamp, uploader, latest_analysis_date)
@@ -203,16 +200,12 @@ class PsqlQueries():
     ISO_SEL_ISO_DATE_TB_ISO_VAR_ISOS: Final[str] = """
         SELECT isolate, isolation_date FROM isolates WHERE
         isolate IN %s AND isolation_date IS NOT NULL AND new_version IS NULL;"""
-    ISO_SEL_MAXID_TB_ISO_VAR_ISO: Final[str] = """SELECT MAX(id) FROM isolates WHERE isolate=%s;"""
+    ISO_SEL_ID_TB_ISO_VAR_ISO: Final[str] = """SELECT id FROM isolates WHERE isolate=%s;"""
     ISO_SEL_VALDATES_TB_ISO_VAR_ISO: Final[str] = """
         SELECT validation_date FROM isolates WHERE isolate=%s ORDER BY id DESC LIMIT 2;"""
     ISO_UPD_NEWV_TB_ISO_VAR_ISO: Final[str] = """
         UPDATE isolates SET new_version=NULL WHERE 
         id=(SELECT MIN(id) FROM isolates WHERE id IN (SELECT id FROM isolates WHERE isolate=%s ORDER BY id DESC LIMIT 2));"""
-    ISO_UPD_NEWV_TB_ISO_VAR_ISO_ISO_ISO: Final[str] = """
-        UPDATE isolates SET new_version=(SELECT MAX(id) FROM isolates WHERE isolate=%s) 
-        WHERE isolate=%s AND new_version IS NULL AND 
-        id!=(SELECT MAX(id) FROM isolates WHERE isolate=%s);"""
     ISO_UPD_VALTYPE_VALCUR_VALDATE_TB_ISO_VAR_ID: Final[str] = """
         UPDATE isolates SET 
         validation_type = %s, 
@@ -287,12 +280,6 @@ class PsqlQueries():
         VALUES((SELECT id FROM schemes WHERE name=%s), 
         %s, %s, %s, 1, (SELECT CURRENT_DATE));"""
 
-    # TBL project members
-    ISO_INS__TB_PROJMEM_VAR_ISO_ISO: Final[str] = """
-        INSERT INTO project_members(project_id, isolate_id, curator, datestamp)
-        SELECT project_id, (SELECT MAX(id) FROM isolates WHERE isolate=%s), curator, datestamp
-        from project_members WHERE isolate_id=(SELECT MIN(id) FROM isolates WHERE id in (SELECT id FROM isolates WHERE isolate=%s ORDER BY id DESC LIMIT 2));"""
-
     # TBL schemes
     UNI_SEL_ID_TB_SCHEME_VAR_: Final[str] = """
         SELECT id FROM schemes WHERE name = 'cgMLST';"""
@@ -330,24 +317,16 @@ class PsqlQueries():
         remote_contig, sequence, original_designation, sender, 
         curator, date_entered, datestamp) 
         VALUES((SELECT CASE WHEN (SELECT MAX(id) FROM sequence_bin) IS NULL THEN 1 ELSE (SELECT(SELECT MAX(id) FROM sequence_bin)+1) END), 
-        (SELECT MAX(id) FROM isolates WHERE isolate=%s), 
+        (SELECT id FROM isolates WHERE isolate=%s), 
         'f', %s, %s, 1, 
         1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE));"""
     ISO_SEL_COUNT_TB_SEQBIN_VAR_ISO: Final[str] = """
-        SELECT COUNT(*) FROM sequence_bin WHERE isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate=%s);"""
-    ISO_UPD__TB_SEQBIN_VAR_ISO_ISO: Final[str] = """
-        UPDATE sequence_bin SET isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate=%s) 
-        WHERE isolate_id=(SELECT MIN(id) FROM isolates WHERE id in (SELECT id FROM isolates WHERE isolate=%s 
-        ORDER BY id DESC LIMIT 2));"""
+        SELECT COUNT(*) FROM sequence_bin WHERE isolate_id=(SELECT id FROM isolates WHERE isolate=%s);"""
     ISO_UPD_REVERSE_TB_SEQBIN_VAR_ISO_ISO: Final[str] = """
         UPDATE sequence_bin SET isolate_id=(SELECT MIN(id) FROM isolates WHERE id in (SELECT id FROM isolates WHERE isolate=%s ORDER BY id DESC LIMIT 2)) 
         WHERE isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate=%s);"""
 
     # TBL seq bin stats
-    ISO_UPD__TB_SEQBINSTATS_VAR_ISO_ISO: Final[str] = """
-        UPDATE seqbin_stats SET isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate=%s) 
-        WHERE isolate_id=(SELECT MIN(id) FROM isolates WHERE id in (SELECT id FROM isolates WHERE isolate=%s 
-        ORDER BY id DESC LIMIT 2));"""
     ISO_UPD_REVERSE_TB_SEQBINSTATS_VAR_ISO_ISO: Final[str] = """
         UPDATE seqbin_stats SET isolate_id=(SELECT MIN(id) FROM isolates WHERE id in (SELECT id FROM isolates WHERE isolate=%s ORDER BY id DESC LIMIT 2)) 
         WHERE isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate=%s);"""

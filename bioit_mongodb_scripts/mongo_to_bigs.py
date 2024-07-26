@@ -188,7 +188,8 @@ class MongoToBigs:
             elif results_type == 'reanalysis' and document['validation']['type'] == 'resequencing':
                 last_two_validation_dates = self._isolates_psql_tbl.select_validationdate_for_isolate((document_id,))
                 # select to check that the previous version's validation date is different from the current
-                if last_two_validation_dates[0][0] != last_two_validation_dates[1][0]:
+                if len(last_two_validation_dates) == 2 and last_two_validation_dates[0][0] != last_two_validation_dates[1][0]:
+                    # add check for length as I think sometimes their will be only one validation date (the one for sequencing).
                     # revert the changes done in maininserter that move the assembly to the newest version
                     with TblSequenceBin(self._species) as isolates_seqbin_psql_tbl:
                         isolates_seqbin_psql_tbl.revert_sequencebin_newversion([document_id])
@@ -246,17 +247,11 @@ class MongoToBigs:
         :param document_id: name of the isolate
         :return: boolean whether version is different or not
         """
-        latest_analysis_date_bigs = (self._isolates_psql_tbl.select_latestanalysisdate_for_isolate((document_id,)))[0][
-            0]  # this appearently is a datetime object
+        latest_analysis_date_bigs = (self._isolates_psql_tbl.select_latestanalysisdate_for_isolate((document_id,)))[0][0]  #this is a datetime object
         with TblEavTextHidden(self._species) as isolates_eavth_psql_tbl:
-            mongo_results_changed_version_bigs_query = isolates_eavth_psql_tbl.select_mongo_resultsversion(
-                (document_id,))
+            mongo_results_changed_version_bigs_query = isolates_eavth_psql_tbl.select_mongo_resultsversion((document_id,))
         # as of 2022/12/22 mongo_results_version in bigs is changed version
-        if len(mongo_results_changed_version_bigs_query) == 0:
-            # Accounting for old samples that didnt have a version yet
-            mongo_results_changed_version_bigs = 1
-        else:
-            mongo_results_changed_version_bigs = int(mongo_results_changed_version_bigs_query[0][0])
+        mongo_results_changed_version_bigs = int(mongo_results_changed_version_bigs_query[0][0])
         if convert_dmyhms_to_dateobj(document['results']['analysis_date']) > latest_analysis_date_bigs:
             new_results = document['results']
             if new_results['changed_version'] == int(mongo_results_changed_version_bigs):
