@@ -39,6 +39,7 @@
       - libpcre3-dev  # needed for uwsgi?
       - supervisor
       - git
+  become: yes
 
 # configure Nginx
 - name: Include bioit.galaxy.nginx/tasks/base.yml
@@ -80,6 +81,7 @@
   template:
     src: templates/nrcint_uwsgi.ini.j2
     dest: /etc/uwsgi/apps-available/nrcint.ini
+  become: yes
 
 - name: Soft link the uwsgi nrcint entry
   file:
@@ -138,12 +140,14 @@
     path: "{{ bioit_bigs_home }}/bioit_mongodb_scripts/config/config.yml"
     regexp: 'CONNECTION_STRING_AZURE: to_be_replaced_by_ansible'
     line: "CONNECTION_STRING_AZURE: mongodb+srv://admin:{{ mongodb_admin_password }}@{{ mongo_azure_private_endpoint }}.mongodb.net/?retryWrites=true&w=majority"
+  become: yes
 
 - name: Change Mongo dtap version in config based on playbook argument, HD only has 2 environments; test and prod. Files sent by HD are consumable and can only go in one of these two mongo databases. Files sent to HD can only be sent from one of these two DB to avoid duplications and confusion.
   lineinfile:
     path: "{{ bioit_bigs_home }}/bioit_mongodb_scripts/config/config.yml"
     regexp: 'dtap: to_be_replaced_by_ansible'
     line: "dtap: {{ 'test' if dtap == 'devtest' else 'prod' }}"
+  become: yes
 
 - name: Create Python virtual environment
   pip:
@@ -156,6 +160,7 @@
   supervisorctl:
     name: nrcint
     state: restarted
+  become: yes
 
 - name: replace the username and password in the get_nominative_from_ODS script
   lineinfile:
@@ -185,7 +190,7 @@
   lineinfile:
     path: "{{ bioit_bigs_home }}//bioit_nrc_integration/python/send_mapping_table_to_ODS.py"
     regexp: "password = 'to_be_replaced_by_ansible'"
-    line: "password = '{{ vars['nrc_integration_DWH_out_password_'+ dtap] }}'"
+    line: "password = '{{ nrc_integration_DWH_out_password }}'"
   become: yes
 
 - name: add cronjob for nominative data parser from ODS
@@ -207,6 +212,6 @@
     weekday: '*'
     job: "/usr/bin/flock -n /tmp/main_sender_to_HD.lockfile {{ nrcint_venv }}/bin/python3.10 {{ bioit_bigs_home }}//bioit_nrc_integration/python/main_sender_to_HD.py"
     user: 'bigsdb'
-    cron_file: get_nominative_from_ODS
+    cron_file: main_sender_to_HD
   become: yes
 ...
