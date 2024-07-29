@@ -41,7 +41,7 @@ class MainNominativeDataParserFromOds:
 
     def __init__(self) -> None:
         """
-        Intialises this class and executes the main function.
+        Initialises this class and executes the main function.
         :return: None
         """
         # initialize lists of successful and failed filenames:
@@ -52,15 +52,15 @@ class MainNominativeDataParserFromOds:
         # initialize dictionary to match CLIN and LAB files by business key
         self._files_by_business_key_by_species = {}
 
-        # initialize ssh & sftp
-        self._ssh, self._sftp = self._open_sftp_connection()
-
         # get mongodb config data
         self._mongo_config_data = get_mongodb_config_data()
 
         # get HD ODS dictionaries to be able to translate to useable text
         with (Path(__file__).resolve().parent / 'config' / 'codes_get_nominative_from_ODS.yml').open('r') as handle:
             self._translation_codes = yaml.safe_load(handle)
+
+        # initialize ssh & sftp
+        self._ssh, self._sftp = self._open_sftp_connection()
 
         try:
             with tempfile.TemporaryDirectory(dir='/tmp') as self._temp_json_dir:
@@ -83,7 +83,8 @@ class MainNominativeDataParserFromOds:
             send_email(f"{exceptionmessage}\n{traceback.format_exc()}")
             raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}: {exceptionmessage}\n{traceback.format_exc()}")
 
-    def _open_sftp_connection(self) -> (paramiko.SSHClient, paramiko.SFTPClient):
+    @staticmethod
+    def _open_sftp_connection() -> (paramiko.SSHClient, paramiko.SFTPClient):
         """
         Opens an SSH and SFTP connection using variables defined as constants at the top of this script.
         :return: an ssh and sftp client for further use
@@ -149,14 +150,14 @@ class MainNominativeDataParserFromOds:
         Parses all downloaded JSON files and inserts them into MongoDB
         :return: None
         """
-        for species, business_key_dicts in self._files_by_business_key_by_species:
+        for species, business_key_dicts in self._files_by_business_key_by_species.items():
             mongoinit_local = MongoInitialisation(species, mongo_config_data=self._mongo_config_data,
                                                   alternate_connection_string=self._mongo_config_data[
                                                       'CONNECTION_STRING_LOCAL'])
             nominative_labtest_clinical_metadata_collection = mongoinit_local.initialise_nominative_labtest_clinical_metadata_collection()
             unprocessed_nominative_labtest_metadata_collection = mongoinit_local.initialise_unprocessed_nominative_labtest_metadata_collection()
             unprocessed_nominative_clinical_metadata_collection = mongoinit_local.initialise_unprocessed_nominative_clinical_metadata_collection()
-            for business_key, pair in business_key_dicts:
+            for business_key, pair in business_key_dicts.items():
                 # initialise translation dict
                 data_translated = {'_id': business_key}
                 # initialise unprocessed data dict
@@ -173,7 +174,7 @@ class MainNominativeDataParserFromOds:
                         if filetype == 'CLIN':
                             self.__parse_complex_country_field(data, data_translated)
                         # loop over schema
-                        for hd_key, hd_key_property_dict in self._translation_codes['schema'][filetype]:
+                        for hd_key, hd_key_property_dict in self._translation_codes['schema'][filetype].items():
                             # Get value capitalisation agnostically
                             unprocessed_value = data.get(hd_key.lower()) if data.get(hd_key.lower()) else data.get(hd_key)
                             if unprocessed_value:
@@ -262,7 +263,7 @@ class MainNominativeDataParserFromOds:
     def __parse_complex_country_field(data, data_translated) -> None:
         """
         Parses the optional infection country field list which didn't really fit in the main codes schema,
-        e.g. "cd_infct_cntry": [{"cd_infct_cntry": "130337"}, {"cd_infct_cntry": "130328"}]
+        e.g. "cd_infct_cntry": [{"cd_infct_cntry": "FR"}, {"cd_infct_cntry": "US"}]
         :param data: original unprocessed data
         :param data_translated: translated data to be inserted in MongoDB to be inserted in BIGSdb
         :return: None
@@ -270,8 +271,8 @@ class MainNominativeDataParserFromOds:
         country_dicts_list = data.get('CD_INFCT_CNRTY'.lower())
         if country_dicts_list:
             for index, country_dict in enumerate(country_dicts_list):
-                for key, value in country_dict:
-                    data_translated[f"country_{index + 1}"] = value  # todo possibly translate using missing codelist
+                for key, value in country_dict.items():
+                    data_translated[f"country_{index + 1}"] = value
 
     def _close_sftp_connection(self) -> None:
         """
