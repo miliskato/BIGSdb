@@ -59,10 +59,10 @@ class MainNominativeDataParserFromOds:
         with (Path(__file__).resolve().parent / 'config' / 'codes_get_nominative_from_ODS.yml').open('r') as handle:
             self._translation_codes = yaml.safe_load(handle)
 
-        # initialize ssh & sftp
-        self._ssh, self._sftp = self._open_sftp_connection()
-
         try:
+            # initialize ssh & sftp
+            self._ssh, self._sftp = self._open_sftp_connection()
+
             with tempfile.TemporaryDirectory(dir='/tmp') as self._temp_json_dir:
                 self._download_json_files()
                 # close after downloading the json files to not risk reaching the inactivity time limit
