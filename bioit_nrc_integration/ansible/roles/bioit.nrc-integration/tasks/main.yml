@@ -50,6 +50,7 @@
   template:
     src: templates/nrcint_nginx.conf.j2
     dest: /etc/nginx/sites-available/nrcint
+  become: yes
 
 - name: Soft link the nrc integration nginx configuration
   file:
