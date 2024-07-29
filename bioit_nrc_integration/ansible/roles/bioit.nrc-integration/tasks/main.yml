@@ -58,10 +58,10 @@
     dest: /etc/nginx/sites-enabled/nrcint
     state: link
 
- - name: Include bioit.cerbot/tasks/main.yml
-   include_role:
-     name: bioit.certbot
-     tasks_from: main
+- name: Include bioit.cerbot/tasks/main.yml
+  include_role:
+    name: bioit.certbot
+    tasks_from: main
 
 - name: check nginx configuration
   command: sudo nginx -t
