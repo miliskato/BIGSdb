@@ -196,7 +196,7 @@
 - name: add cronjob for nominative data parser from ODS
   cron:
     name: "get_nominative_from_ODS"
-    minute: '*/10' # every 10 minutes
+    minute: '*/10'  # every 10 minutes
     hour: '*'
     weekday: '*'
     job: "/usr/bin/flock -n /tmp/get_nominative_from_ODS.lockfile {{ nrcint_venv }}/bin/python3.10 {{ bioit_bigs_home }}//bioit_nrc_integration/python/get_nominative_from_ODS.py"
@@ -207,7 +207,7 @@
 - name: add cronjob for main sender to HD
   cron:
     name: "main_sender_to_HD"
-    minute: '*/10' # every 10 minutes
+    minute: '*/10'  # every 10 minutes
     hour: '*'
     weekday: '*'
     job: "/usr/bin/flock -n /tmp/main_sender_to_HD.lockfile {{ nrcint_venv }}/bin/python3.10 {{ bioit_bigs_home }}//bioit_nrc_integration/python/main_sender_to_HD.py"
