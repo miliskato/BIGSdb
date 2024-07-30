@@ -2,6 +2,7 @@ import json
 import logging
 import math
 import socket
+import stat
 import sys
 import tempfile
 import traceback
@@ -106,7 +107,10 @@ class MainNominativeDataParserFromOds:
         :return: None
         """
         # List all files in the remote directory
-        self._files_remote = self._sftp.listdir('upload')
+        files_and_dirs = self._sftp.listdir_attr('upload')
+
+        # Filter out directories, only list files
+        self._files_remote = [entry.filename for entry in files_and_dirs if not stat.S_ISDIR(entry.st_mode)]
         logging.info(self._files_remote)
 
         # Download each file
