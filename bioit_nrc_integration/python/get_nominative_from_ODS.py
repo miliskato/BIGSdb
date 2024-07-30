@@ -202,7 +202,7 @@ class MainNominativeDataParserFromOds:
                         # todo discuss if error message needs to be appended?
                         self._files_error.append(pair[filetype])
                         failed = True
-                        break
+                        # break # do not break; check both files to see if they both need to be moved to the error folder
                 if not failed:
                     # Insert all documents into MongoDB after having succesfully parsed the matching files
                     nominative_labtest_clinical_metadata_collection.insert_one(data_translated)
