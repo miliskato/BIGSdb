@@ -166,6 +166,7 @@ class MainNominativeDataParserFromOds:
                 data_translated = {'_id': business_key}
                 # initialise unprocessed data dict
                 data_unprocessed = {'CLIN': {}, 'LAB': {}}
+                failed = False
                 for filetype in ['CLIN', 'LAB']:
                     try:
                         with Path(f'{self._temp_json_dir}/{pair[filetype]}').open('r') as handle:
@@ -196,9 +197,13 @@ class MainNominativeDataParserFromOds:
                         data_unprocessed[filetype] = data
                         # add id to be able to find in MongoDB
                         data_unprocessed[filetype]['_id'] = business_key
-                    except:
+                    except Exception as exceptionmessage:
+                        logging.info(f"{exceptionmessage}\n{traceback.format_exc()}")
                         # todo discuss if error message needs to be appended?
                         self._files_error.append(pair[filetype])
+                        failed = True
+                        break
+                if not failed:
                     # Insert all documents into MongoDB after having succesfully parsed the matching files
                     nominative_labtest_clinical_metadata_collection.insert_one(data_translated)
                     unprocessed_nominative_labtest_metadata_collection.insert_one(data_unprocessed['LAB'])

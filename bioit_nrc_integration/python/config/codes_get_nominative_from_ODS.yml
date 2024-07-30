@@ -54,10 +54,10 @@ schema:
       required: True
       translation: link
       code_list: CD_EPILINK_codes
-    CD_PROB_NAM:
-      required: True
-      translation: clinical_info
-      code_list: CD_PROB_NAM_codes
+#    CD_PROB_NAM: # todo this is a list?
+#      required: True
+#      translation: clinical_info
+#      code_list: CD_PROB_NAM_codes
 
 code_lists:
   CD_PAT_SEX_codes:
