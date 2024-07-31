@@ -290,9 +290,9 @@ class MainMongo:
                 self.___write_document(self._isolates_resequencing_collection, new_isolate)
         else:
             send_email(
-                f"A duplicate resequencing for  {self._technical_id} was submitted to the isolates_resequencing ",
+                f"The resequencing for  {self._technical_id} was identical to the original isolate or to a previously submitted resequencing",
                 dont_send_email=self._dont_send_email)
-            raise MongoResequencingAlreadyExistsError(f"A duplicate resequencing for  {self._technical_id} was submitted to the isolates_resequencing ")
+            raise MongoResequencingAlreadyExistsError(f"The resequencing for  {self._technical_id} was identical to the original isolate or to a previously submitted resequencing")
 
     def __new_reanalysis_wrapper(self, current_results_document: Dict[str, Any], new_results_document: Dict[str, Any]) -> None:
         """
