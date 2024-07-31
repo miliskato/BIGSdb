@@ -175,31 +175,29 @@ class PsqlQueries():
     ISO_SEL_ID_ISO_DATE_CGST_TB_ISO_VAR_SCHID_SCHID_SCHID_CGSTS_DATE1_DATE2: Final[str] = """
         SELECT isolates.id, isolates.isolate, isolates.isolation_date, cgst FROM isolates LEFT JOIN 
         temp_isolates_scheme_fields_%s ON isolates.id = temp_isolates_scheme_fields_%s.id 
-        WHERE new_version IS NULL AND temp_isolates_scheme_fields_%s.cgst IN %s AND isolates.isolation_date>%s AND isolates.isolation_date<=%s;"""
+        WHERE temp_isolates_scheme_fields_%s.cgst IN %s AND isolates.isolation_date>%s AND isolates.isolation_date<=%s;"""
     ISO_SEL_ID_ISO_DATE_CGST_TB_ISO_VAR_SCHID_SCHID_SCHID_CGSTS: Final[str] = """
         SELECT isolates.id, isolates.isolate, isolates.isolation_date, cgst FROM isolates LEFT JOIN 
         temp_isolates_scheme_fields_%s ON isolates.id = temp_isolates_scheme_fields_%s.id 
-        WHERE new_version IS NULL AND temp_isolates_scheme_fields_%s.cgst IN %s;"""
+        WHERE temp_isolates_scheme_fields_%s.cgst IN %s;"""
     ISO_SEL_ID_ISO_DATE_CGST_CLGR_TB_ISO_VAR_CSCHID_SCHID_SCHID_CSCHID_CSCHID_CSCHID_CSCHID_CGST_DATE1_DATE2: Final[str] = """
         SELECT isolates.id, isolates.isolate, isolates.isolation_date, cgst, temp_cscheme_%s.group_id FROM isolates LEFT JOIN 
         temp_isolates_scheme_fields_%s ON isolates.id = temp_isolates_scheme_fields_%s.id 
         LEFT JOIN temp_cscheme_%s on cgst = temp_cscheme_%s.profile_id
-        WHERE new_version IS NULL AND temp_cscheme_%s.group_id = 
-        (SELECT group_id FROM temp_cscheme_%s WHERE profile_id = %s)
+        WHERE temp_cscheme_%s.group_id = (SELECT group_id FROM temp_cscheme_%s WHERE profile_id = %s)
         AND isolates.isolation_date>%s AND isolates.isolation_date<=%s;"""
     ISO_SEL_ID_ISO_DATE_CGST_CLGR_TB_ISO_VAR_CSCHID_SCHID_SCHID_CSCHID_CSCHID_CSCHID_CSCHID_CGST: Final[str] = """
         SELECT isolates.id, isolates.isolate, isolates.isolation_date, cgst, temp_cscheme_%s.group_id FROM isolates LEFT JOIN 
         temp_isolates_scheme_fields_%s ON isolates.id = temp_isolates_scheme_fields_%s.id 
         LEFT JOIN temp_cscheme_%s on cgst = temp_cscheme_%s.profile_id
-        WHERE new_version IS NULL AND temp_cscheme_%s.group_id = 
-        (SELECT group_id FROM temp_cscheme_%s WHERE profile_id = %s);"""
+        WHERE temp_cscheme_%s.group_id = (SELECT group_id FROM temp_cscheme_%s WHERE profile_id = %s);"""
     ISO_SEL_ID_CGST_TB_ISO_VAR_SCHID_ISO: Final[str] = """
         SELECT isolates.id, cgst FROM isolates LEFT JOIN 
         temp_isolates_scheme_fields_%s USING (id)
         WHERE isolates.isolate = %s ORDER BY isolates.id DESC LIMIT 2;"""
     ISO_SEL_ISO_DATE_TB_ISO_VAR_ISOS: Final[str] = """
         SELECT isolate, isolation_date FROM isolates WHERE
-        isolate IN %s AND isolation_date IS NOT NULL AND new_version IS NULL;"""
+        isolate IN %s AND isolation_date IS NOT NULL;"""
     ISO_SEL_ID_TB_ISO_VAR_ISO: Final[str] = """SELECT id FROM isolates WHERE isolate=%s;"""
     ISO_SEL_VALDATES_TB_ISO_VAR_ISO: Final[str] = """
         SELECT validation_date FROM isolates WHERE isolate=%s ORDER BY id DESC LIMIT 2;"""
@@ -218,12 +216,12 @@ class PsqlQueries():
     # TBL isolate submission field order
     ISO_INS__TB_ISOSUBFO_VAR_FIELD_INDEX: Final[str] = """
         INSERT INTO isolate_submission_field_order(submission_id, field, index) 
-        VALUES((SELECT MAX(id::int) FROM submissions), %s, %s);"""
+        VALUES((SELECT MAX(id::int) FROM submissions WHERE id ~ '^[0-9]+$'), %s, %s);"""
 
     # TBL isolate submission isolates
     ISO_INS__TB_ISOSUBISO_VAR_FIELD_VALUE: Final[str] = """
         INSERT INTO isolate_submission_isolates (submission_id, index, field, value) 
-        VALUES((SELECT MAX(id::int) FROM submissions), 1, %s, %s);"""
+        VALUES((SELECT MAX(id::int) FROM submissions WHERE id ~ '^[0-9]+$'), 1, %s, %s);"""
     ISO_SEL_ALL_TB_ISOSUBISO_VAR_SUBID: Final[str] = """
         SELECT * FROM isolate_submission_isolates WHERE submission_id=%s;"""
     # TBL jobs
@@ -344,7 +342,7 @@ class PsqlQueries():
         INSERT INTO submissions(id, 
         type,submitter, date_submitted, 
         datestamp, status, email, validation_type) 
-        VALUES ((SELECT CASE WHEN (SELECT MAX(id::int) FROM submissions) IS NULL THEN 1 ELSE (SELECT(SELECT MAX(id::int) FROM submissions)+1) END), 
+        VALUES ((SELECT CASE WHEN (SELECT MAX(id::int) FROM submissions WHERE id ~ '^[0-9]+$') IS NULL THEN 1 ELSE (SELECT(SELECT MAX(id::int) FROM submissions WHERE id ~ '^[0-9]+$')+1) END), 
         'isolates', 1, (SELECT CURRENT_DATE), 
         (SELECT CURRENT_DATE), 'pending', true, %s);"""
     ISO_SEL_ID_TB_SUB_VAR_STATUS: Final[str] = """
