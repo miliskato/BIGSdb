@@ -338,7 +338,7 @@ class NewClusteringInfoToBigs:
                                                  if _dict['results'].get('cgST') == cgst]:
                                 bigsdb_id_isolate = isolates_psql_tbl.select_id_for_isolate((technical_id,))
                                 # it is possible that new isolates have not been added to bigsdb yet with old cgSTs
-                                if bigsdb_id_isolate[0][0] is not None:
+                                if len(bigsdb_id_isolate) > 0:
                                     isolates_eavt_psql_tbl.insert_eav_id((
                                         str(bigsdb_id_isolate[0][0]),
                                         field[0], html))
