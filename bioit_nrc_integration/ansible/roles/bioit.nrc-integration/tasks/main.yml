@@ -188,7 +188,7 @@
 
 - name: replace the password in the send_genomic_to_DWH script (username is the same)
   lineinfile:
-    path: "{{ bioit_bigs_home }}//bioit_nrc_integration/python/send_mapping_table_to_ODS.py"
+    path: "{{ bioit_bigs_home }}//bioit_nrc_integration/python/send_genomic_to_DWH.py"
     regexp: "password = 'to_be_replaced_by_ansible'"
     line: "password = '{{ nrc_integration_DWH_out_password }}'"
   become: yes

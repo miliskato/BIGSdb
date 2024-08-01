@@ -25,7 +25,7 @@ with (Path(__file__).resolve().parent / 'config' / 'codes_send_genomic_to_DWH.ym
 fail_log_dict = {}
 for species in mongo_config_data['species']:
     # Only process pathogens which have been defined in the genomic code translation config file
-    if translation_codes_genomic.get(species):
+    if not translation_codes_genomic.get(species):
         continue
 
     mongoinit_local = MongoInitialisation(species, mongo_config_data=mongo_config_data,
