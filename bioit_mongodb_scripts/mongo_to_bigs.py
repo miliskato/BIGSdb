@@ -81,12 +81,12 @@ class MongoToBigs:
             self._cgmlst_bigsdb_scheme_id = isolates_schemes_psql_tbl.select_scheme_id_cgmlst()[0][0]
 
         # The cache command needs to be run using method 'full' once before being able to use it with method
-        # incremental, check it and execute full if it hadn't been executed yet
+        # daily, check it and execute full if it hadn't been executed yet
         self._update_scheme_caches_full_once_if_needed()
 
         cache_command = f'/home/bigsdb/BIGSdb/scripts/maintenance/update_scheme_caches.pl ' \
                         f'--database bigsdb_{self._species}_isolates --schemes {self._cgmlst_bigsdb_scheme_id} ' \
-                        f'--method incremental'
+                        f'--method daily'
         self._cache_command_object = Command(cache_command)
 
         # Prepare
