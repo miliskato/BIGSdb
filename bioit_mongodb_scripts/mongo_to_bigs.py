@@ -18,12 +18,12 @@ PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
 from bioit_bigsdb_scripts.components.psql.databaseconnection import DatabaseConnection
-from bioit_bigsdb_scripts.components.psql import TblIsolates, TblEavTextHidden, TblSequenceBin, TblSeqBinStats, TblSchemes
+from bioit_bigsdb_scripts.components.psql import TblIsolates, TblEavTextHidden, TblMappingTable, TblSequenceBin, TblSeqBinStats, TblSchemes
 from bioit_bigsdb_scripts.components.psql.psql_queries import PsqlQueries
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data
 from bioit_bigsdb_scripts.insert_assembly import insert_assembly
 from bioit_bigsdb_scripts.main_results_inserter import MainResultsInserter
-from bioit_mongodb_scripts.util.alerts_to_bigs import AlertsToBigs
+# from bioit_mongodb_scripts.util.alerts_to_bigs import AlertsToBigs
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.mongo_querying import Mongoquerying
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email, convert_dmyhms_to_dateobj
@@ -74,6 +74,10 @@ class MongoToBigs:
             self._isolates_resequencing_collection = self._mongoinit.initialise_collections()
         self._headers_collection = self._mongoinit.initialise_headers_collection()
         self._mongoquerying = Mongoquerying()
+        # Ope collections local MongoDB
+        self._mongoinit_local = MongoInitialisation(self._species, mongo_config_data=self._mongo_config_data,
+                                                    alternate_connection_string=self._mongo_config_data['CONNECTION_STRING_LOCAL'])
+        self._mappingtable_collection = self._mongoinit_local.initialise_mapping_table_collection()
         # Open Bigsdb isolates table
         self._isolates_psql_tbl = TblIsolates(self._species)
 
@@ -207,7 +211,8 @@ class MongoToBigs:
         :return: list of documents (dictionaries)
         """
         if self._single_sample_id:
-            query_single = self._isolates_collection.find_one({'_id': self._single_sample_id})
+            pseudo_id = self._mappingtable_collection.find_one({'_id': self._single_sample_id})['pseudo_id']
+            query_single = self._isolates_collection.find_one({'_id': pseudo_id})
             if query_single is not None:
                 list_of_documents = [query_single]
             else:
@@ -251,13 +256,13 @@ class MongoToBigs:
         :return: boolean whether version is different or not
         """
         latest_analysis_date_bigs = (self._isolates_psql_tbl.select_latestanalysisdate_for_isolate((document_id,)))[0][
-            0]  # this appearently is a datetime object
+            0]  # this apparently is a datetime object
         with TblEavTextHidden(self._species) as isolates_eavth_psql_tbl:
             mongo_results_changed_version_bigs_query = isolates_eavth_psql_tbl.select_mongo_resultsversion(
                 (document_id,))
         # as of 2022/12/22 mongo_results_version in bigs is changed version
         if len(mongo_results_changed_version_bigs_query) == 0:
-            # Accounting for old samples that didnt have a version yet
+            # Accounting for old samples that did not have a version yet
             mongo_results_changed_version_bigs = 1
         else:
             mongo_results_changed_version_bigs = int(mongo_results_changed_version_bigs_query[0][0])

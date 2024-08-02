@@ -18,6 +18,7 @@ from .psql_tbl_isolate_submission_isolates import TblIsolateSubmissionIsolates
 from .psql_tbl_isolates import TblIsolates
 from .psql_tbl_loci import TblLoci
 from .psql_tbl_locus_descriptions import TblLocusDescriptions
+from .psql_tbl_mapping_table import TblMappingTable
 from .psql_tbl_profile_fields import TblProfileFields
 from .psql_tbl_profile_members import TblProfileMembers
 from .psql_tbl_profiles import TblProfiles

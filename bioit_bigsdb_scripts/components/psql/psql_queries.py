@@ -261,6 +261,12 @@ class PsqlQueries():
         INSERT INTO locus_descriptions(locus, product, description, datestamp, curator) 
         VALUES(%s, %s, %s ,(SELECT CURRENT_DATE), 1);"""
 
+    # TBL mapping table
+    ISO_INS__TB_MT_VAR_ISO_PSEUDOID: Final[str] = """
+        INSERT INTO mapping_table(isolate, pseudo_id) VALUES(%s, %s);"""
+    ISO_SEL_PSEUDOID_TB_MT_VAR_ISO: Final[str] = """
+        SELECT pseudo_id FROM mapping_table WHERE isolate=%s;"""
+
     # TBL profiles
     SEQ_DEL__TB_PROF_VAR_SCHEME_PROFID: Final[str] = """
         DELETE FROM profiles WHERE scheme_id=(SELECT id FROM schemes WHERE name=%s)

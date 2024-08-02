@@ -162,7 +162,7 @@ class MainResultsInserter:
             flagfilepath = self.___make_flagfilepath()
             if flagfilepath.is_file():
                 logging.warning(
-                    f"fail safe mechanism detects that the bigsdb insertion for sample {self._isolatename} was started but didnt finish. Removing {self._isolatename} from Bigsdb to be able to restart inserting.")
+                    f"fail safe mechanism detects that the bigsdb insertion for sample {self._isolatename} was started but did not finish. Removing {self._isolatename} from Bigsdb to be able to restart inserting.")
                 nr_of_versions: int = isolates_psql_tbl.count_isolate((self._isolatename,))[0][0]
                 if nr_of_versions > 1:
                     isolates_psql_tbl.revert_newversion((self._isolatename,))

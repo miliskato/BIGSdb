@@ -1,8 +1,7 @@
 ---
-#  ansible-playbook /etc/ansible_bioit/playbook/bioit/bioit-nrc-integration.yml -e "target=bioit-nrcint-dt branch=dev dtap=devtest" --vault-password-file "/etc/ansible_bioit/vault/bioit_vault_pass"
+#  ansible-playbook /etc/ansible_bioit/playbook/bioit/bioit-nrc-integration.yml -e "target=dev_MK_NRC_integration branch=dev dtap=devtest" --vault-password-file "/etc/ansible_bioit/vault/bioit_vault_pass"
 - hosts: "{{ target }}"
   gather_facts: True
-  become: yes
 
   roles:
     - { name: bioit.nrc-integration }

@@ -1,0 +1,24 @@
+server {
+
+    # 80 will be replaced by 443 to certbot
+    listen 80;
+    # ansible_fqdn = {{ inventory_hostname }}.{{ host_domain }}
+    server_name {{ ansible_fqdn }};
+
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;  # Force HTTPS
+
+   location / {
+     proxy_pass http://localhost:{{ custom_listening_port }};
+     # to test if values below are compatible with apache or find resources to communicate securily with apache
+     proxy_set_header Host $host;
+     proxy_set_header X-Real-IP $remote_addr;
+     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  }
+
+    error_page 503 = @maintenance;
+
+    location @maintenance {
+        root /etc/nginx/html;
+        try_files $uri /503_on.html =503;
+    }
+}

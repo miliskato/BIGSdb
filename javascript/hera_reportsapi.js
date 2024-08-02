@@ -17,9 +17,9 @@ function getCookieValue(cookieName) {
     return null;
 }
 
-function get_jwt_preview(id, species, validation_type, res_time, get_zip, dtap, newWindow){
+function get_jwt_preview(id, pseudo_id, species, validation_type, res_time, get_zip, dtap, newWindow){
     // gets the html report from Azure through the API, if it fails, returns a failure message
-    query_url = "/reportsapi" + "/get_html_report?isolate_id=" + id + '&date=' + res_time + "&species=" + species + "&get_zip=" + get_zip + "&dtap=" + dtap + "&validation_type=" + validation_type
+    query_url = "/reportsapi" + "/get_html_report?isolate_id=" + pseudo_id + '&date=' + res_time + "&species=" + species + "&get_zip=" + get_zip + "&dtap=" + dtap + "&validation_type=" + validation_type
     console.log(query_url)
     $.ajax( query_url , {
         method: 'GET',
@@ -31,7 +31,11 @@ function get_jwt_preview(id, species, validation_type, res_time, get_zip, dtap, 
             //     var blob = new Blob([blobContent], { type: 'text/html' });
             //     newWindow.location.href = URL.createObjectURL(blob);
             newWindow.document.body.innerHTML = '';  // in order to clear previous message
-            newWindow.document.write('<script src="/javascript/jquery.min.js"></script>' + '<script src="/javascript/hera_reportsapi.js"></script>' + response.replaceAll("to_be_replaced", id).replace(/<title>.*?<\/title>/i, "<title>" +id + "</title>"));
+            newWindow.document.write('<script src="/javascript/jquery.min.js"></script>' +
+                '<script src="/javascript/hera_reportsapi.js"></script>' +
+                '<meta name="pseudo_id" content="' + pseudo_id + '" />' +
+                '<style> /* Custom link class to enhance default anchor behavior */ .custom-link { color: blue; text-decoration: underline; cursor: pointer; } .custom-link.visited { color: purple; } .custom-link:active { color: red; } </style>' +
+                response.replaceAll(pseudo_id, id).replace(/<title>.*?<\/title>/i, "<title>" +id + "</title>"));
            },
         error:function(){
         var blob = new Blob(['Failure to retrieve the report. Please resubmit the request to start again or submit a ticket to bioit@sciensano if it still fails'], { type: 'text/html' });
@@ -40,9 +44,43 @@ function get_jwt_preview(id, species, validation_type, res_time, get_zip, dtap, 
     });
 }
 
-function get_jwt_zip(id, species, validation_type, res_time, get_zip, dtap, newWindow){
+function replacePseudoidById(content, pseudo_id, id) {
+    // Function to modify file content (similar to `sed`)
+    const regex = new RegExp(pseudo_id, 'g');
+    return content.replace(regex, id);
+}
+
+async function depseudonymizeZip(content, pseudo_id, id) {
+    // recursive function to replace the pseudo_id by id everywhere and return a new zip
+    // Create a new JSZip instance for the modified files
+    const newZip = new JSZip();
+    // Iterate over all files
+    for (const originalFilename in content.files) {
+        if (Object.prototype.hasOwnProperty.call(content.files, originalFilename)) {
+            const file = content.files[originalFilename];
+            if (file.dir) {
+            // If it's a directory, create the same structure in the new ZIP
+                const newDir = newZip.folder(replacePseudoidById(originalFilename, pseudo_id, id));
+                // Recursively process the directory
+                await depseudonymizeZip(file, newDir);
+            } else {
+                // If it's a file, read its content
+                let fileContent = await file.async('string');
+                // Modify the file content
+                fileContent = replacePseudoidById(fileContent, pseudo_id, id);
+                // Modify the filename if needed
+                const newFilename = replacePseudoidById(originalFilename, pseudo_id, id);
+                // Add the modified file to the new zip archive
+                newZip.file(newFilename, fileContent);
+            }
+        }
+    }
+    return newZip;
+}
+
+function get_jwt_zip(id, pseudo_id, species, validation_type, res_time, get_zip, dtap, newWindow){
     // gets the html report from Azure through the API as a zip file, if it fails, returns a failure message
-    query_url = "/reportsapi" + "/get_html_report?isolate_id=" + id + '&date=' + res_time + "&species=" + species + "&get_zip=" + get_zip + "&dtap=" + dtap + "&validation_type=" + validation_type
+    query_url = "/reportsapi" + "/get_html_report?isolate_id=" + pseudo_id + '&date=' + res_time + "&species=" + species + "&get_zip=" + get_zip + "&dtap=" + dtap + "&validation_type=" + validation_type
     $.ajax( query_url , {
         method: 'GET',
         headers: {"x-access-token": localStorage.getItem('token')},
@@ -50,13 +88,24 @@ function get_jwt_zip(id, species, validation_type, res_time, get_zip, dtap, newW
         xhrFields:{
             responseType: 'blob'
         },
-        success:function(response) {
-            filename = 'report_' + id +'_' + res_time + '_' + species +'.zip'
-            var blobUrl = newWindow.URL.createObjectURL(response);
+        success: async function(response) {
+            // Create a Blob from the response
+            const blob = new Blob([response], { type: 'application/zip' });
+
+            // Convert Blob to ArrayBuffer and load content
+            const arrayBuffer = await blob.arrayBuffer();
+            const content = await jSZip.loadAsync(arrayBuffer);
+
+            // Run the recursive zip depseudonymizer
+            const newZip = await depseudonymizeZip(content, pseudo_id, id);
+
+            // Generate the new zip file & download it
+            const newZipContent = await newZip.generateAsync({ type: 'blob' });
+            var blobUrl = newWindow.URL.createObjectURL(newZipContent);
             const anchor = newWindow.document.createElement('a');
             anchor.style.display = 'none';
             anchor.href = blobUrl;
-            anchor.download = filename;
+            anchor.download = 'report_' + id + '_' + res_time + '_' + species + '.zip';
             anchor.click();
             newWindow.close(); //done to come back to original page
         },
@@ -67,22 +116,25 @@ function get_jwt_zip(id, species, validation_type, res_time, get_zip, dtap, newW
     });
 }
 
-function get_jwt_report (get_zip, validation_type_opt, id_opt, species_opt, date_opt){
+function get_jwt_report (get_zip, validation_type_opt, id_opt, pseudo_id_opt, species_opt, date_opt){
     //  Logs in to the api and gets the html report either in zip format or in a new web page
     if (arguments.length === 1) {
         var title = document.title
         var validation_type = 'null'
         var id = title.replace(/^.*\(|\).*$/g, '');
+        var pseudo_id = document.querySelector('body meta[name="pseudo_id"]').content; // query pseudo id from page which is put there by the IsolateInfoPage.pm
         var species = title.replace(/^.*- /g, '').replace(' isolates', '').toLowerCase();
         var date = 'null';
     } else {
         var validation_type = validation_type_opt
         var id = id_opt
+        var pseudo_id = pseudo_id_opt
         var species = species_opt
         var date = date_opt
     }
     var dtap = window.location.hostname.match(/-(\w+)\./)?.[1] || null;
     console.log(id);
+    console.log(pseudo_id)
     console.log(species);
     console.log(dtap);
 
@@ -126,9 +178,9 @@ function get_jwt_report (get_zip, validation_type_opt, id_opt, species_opt, date
         },
         complete: function(){
             if(get_zip === 'yes'){
-                get_jwt_zip(id, species, validation_type, date, get_zip, dtap, newWindow)
+                get_jwt_zip(id, pseudo_id, species, validation_type, date, get_zip, dtap, newWindow)
             }else{
-                 get_jwt_preview(id, species, validation_type, date, get_zip, dtap, newWindow)
+                 get_jwt_preview(id, pseudo_id, species, validation_type, date, get_zip, dtap, newWindow)
             }
         },
         dataType: 'json'
@@ -138,7 +190,8 @@ function get_jwt_report (get_zip, validation_type_opt, id_opt, species_opt, date
 
 function get_subpart(rel_file_path){
     // after a html report has been generated in a new browser page, this function is used to access subfiles such as alignments or the vcf
-    query_url = "/reportsapi" + "/get_file?file_path=" + rel_file_path
+    var pseudo_id = document.querySelector('body meta[name="pseudo_id"]').content;
+    query_url = "/reportsapi" + "/get_file?file_path=" + rel_file_path.replaceAll(document.title, pseudo_id)
     var file_extension = rel_file_path.split('.').pop();
     $.ajax( query_url , {
         method: 'GET',
@@ -148,13 +201,12 @@ function get_subpart(rel_file_path){
             responseType: ''
         },
         success:function(response){
-            console.log(response);
             var wnd = window.open("about:blank");
             if(file_extension === 'html'){
-                wnd.document.write(response.replaceAll("to_be_replaced", document.title));
+                wnd.document.write(response.replaceAll(pseudo_id, document.title));
                 wnd.document.close();
             }else{
-                wnd.document.write("<textarea disabled rows=100 cols=100>", response.replaceAll("to_be_replaced", document.title), "</textarea>");
+                wnd.document.write("<textarea disabled rows=100 cols=100>", response.replaceAll(pseudo_id, document.title), "</textarea>");
             }
 
             },

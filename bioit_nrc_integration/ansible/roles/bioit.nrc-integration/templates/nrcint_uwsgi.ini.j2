@@ -1,0 +1,19 @@
+[uwsgi]
+
+strict = true
+master = true
+chdir = {{ bioit_bigs_home }}/bioit_nrc_integration/python
+module = wsgi:application
+logto = {{ uwsgi_log_file }}
+logfile-chmod = 664
+log-date = true
+processes = 1
+uid = {{ uwsgi_user_name }}
+gid = {{ uwsgi_group }}
+http = 127.0.0.1:{{ custom_listening_port }} # this needs to be socket in combination with special uwsgi nginx, but for testing purposes without nginx and for our special version, socket should be replaced by http, see also https://stackoverflow.com/questions/41704951/empty-reply-from-server-for-flask-uwsgi-setup
+chmod-socket = 664
+die-on-term = true
+enable-threads = true
+single-interpreter = true
+need-app = true
+buffer-size = 32768

@@ -177,6 +177,7 @@ sub _get_javascript_paths {
 		push @$js, { src => "$relative_js_path/jquery-ui.min.js", defer   => 1, version => '1.12.1' };
 		push @$js, { src => "$relative_js_path/bigsdb.min.js",    defer   => 1, version => '20231205' };
 		push @$js, { src => "$relative_js_path/hera_dynamic_query.js"};
+		push @$js, { src => "$relative_js_path/jszip.js"};
 		# only import hera_reportsapi.js if logged in
 		if ( $self->{'username'} ) {
 		    push @$js, { src => "$relative_js_path/hera_reportsapi.js"};
@@ -673,13 +674,18 @@ sub print_page_content {
 				script => $javascript
 			}
 		);
+		# <body> start is printed at the end of _start_html, therefore we print the pseudo_id right after
+		# the function print_pseudo_id is only available on the IsolateInfoPage.pm, the code below checks if it exists (if IsolateInfoPage is making use of Page) and if it exists, then executes it
+		if (my $print_pseudo_id = $self->can('print_pseudo_id')) {
+            # Call the method if it exists
+            $self->$print_pseudo_id();
+        }
 		my $max_width      = $self->{'config'}->{'page_max_width'} // PAGE_MAX_WIDTH;
 		my $main_max_width = $max_width - 15;
 		my $main_max_width_style =
 		  $self->{'prefs'}->{'expandPage'}
 		  ? q(calc(100vw - 40px))
-		  : qq(${main_max_width}px);
-		my $main_container_class = $self->{'login'} ? q( main_container_login) : q();
+		  : qq(${main_max_width}px);		my $main_container_class = $self->{'login'} ? q( main_container_login) : q();
 		my $main_content_class   = $self->{'login'} ? q( main_content_login)   : q();
 
 		if ( $self->{'system'}->{'db'} && $self->{'instance'} ) {

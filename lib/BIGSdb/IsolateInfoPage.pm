@@ -474,6 +474,18 @@ sub _print_separate_scheme_data {
 	return;
 }
 
+# function to print the pseudo id so that it is accessible to be able to use in the reports api
+sub print_pseudo_id {
+    my ($self)     = @_;
+    my $q          = $self->{'cgi'};
+    my $isolate_id = $q->param('id');
+    my $data =
+      $self->{'datastore'}
+      ->run_query( "SELECT * FROM isolates LEFT JOIN mapping_table ON isolates.isolate = mapping_table.isolate WHERE id=?", $isolate_id, { fetch => 'row_hashref' } );
+    my $identifier = $data->{'pseudo_id'};  # defaults to / if empty
+    say qq(<meta name="pseudo_id" content=$identifier />);
+}
+
 sub print_content {
 	my ($self)      = @_;
 	my $q           = $self->{'cgi'};

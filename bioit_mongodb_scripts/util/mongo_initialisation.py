@@ -16,7 +16,7 @@ class MongoInitialisation:
         """
         Initialises this class and opens the species/dtap specific mongo database
         :param species: commonly used bioit species name: either genus or specific like stec
-        :param alternate_connection_string: Use the alternate connection string, which connects to the testing Atlas Cluster
+        :param alternate_connection_string: Use the alternate connection string, which connects to the testing Atlas Cluster or provide a custom connection string
         :param alternate_dtap: alternative dtap than what is in the config file
         :param mongo_config_data: Use provided mongo_config_data, else get mongo_config_data from file
         """

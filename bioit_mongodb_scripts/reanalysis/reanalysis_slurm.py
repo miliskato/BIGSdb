@@ -64,7 +64,7 @@ def _fail_safe_mechanism(isolatename: str, config: dict, reanalysis_outcome_dict
         if flagfilepath.is_file():
             with flagfilepath.open('r') as handle:
                 tmp_dir_fail = handle.readlines()[0]
-            logging.warning(f"fail safe mechanism detects that the reanalysis for sample {isolatename} was started but didnt finish. Removing tmp_dir {tmp_dir_fail}.")
+            logging.warning(f"fail safe mechanism detects that the reanalysis for sample {isolatename} was started but did not finish. Removing tmp_dir {tmp_dir_fail}.")
             shutil.rmtree(Path(tmp_dir_fail))
             # remove flagfilepath with wrong tmp dir in case reanalysis fails again
             flagfilepath.unlink()
@@ -203,7 +203,7 @@ def reanalysis_slurm(species: str, isolate: json.loads, threads: int = 8, analys
             # run the command
             command.run(dir_temp)
             if command.returncode != 0:
-                # if pipeline fails, send mail and continue to next sample, dont raise error # Since the mailbomb, do raise an error
+                # if pipeline fails, send mail and continue to next sample,do not raise error # Since the mailbomb, do raise an error
                 reanalysis_outcome_dictionary['Outcome'] = 'Fail'
                 reanalysis_outcome_dictionary['Traceback'] = f'Error executing automatic reanalysis pipeline on {species}, {isolate_id}, stderr: {command.stderr}'
                 return reanalysis_outcome_dictionary
