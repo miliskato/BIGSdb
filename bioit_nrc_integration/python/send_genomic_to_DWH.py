@@ -3,6 +3,7 @@ import logging
 import sys
 import tempfile
 import yaml
+from copy import deepcopy
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -95,7 +96,7 @@ class SendGenomicToDWH:
         :param dict_path: ordered list of the path in the dictionary
         :return: str
         """
-        current = self._document
+        current = deepcopy(self._document)
         for key in dict_path:
             current = current.get(key)
             if not current:

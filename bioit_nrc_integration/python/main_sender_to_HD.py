@@ -28,14 +28,15 @@ for species in mongo_config_data['species']:
     if not translation_codes_genomic.get(species):
         continue
 
+    mongoinit_azure = MongoInitialisation(species, mongo_config_data=mongo_config_data)
+    isolates_collection, old_isolateresults_collection, isolates_badqc_collection, \
+        isolates_resequencing_collection = mongoinit_azure.initialise_collections()
+
     mongoinit_local = MongoInitialisation(species, mongo_config_data=mongo_config_data,
                                           alternate_connection_string=mongo_config_data['CONNECTION_STRING_LOCAL'])
     # Seeing as there is no validation for all samples in place yet, I'm going to assume here that the validation info can be found in the mapping table collection
     # todo
     mapping_table_collection = mongoinit_local.initialise_mapping_table_collection()
-    mongoinit_azure = MongoInitialisation(species, mongo_config_data=mongo_config_data)
-    isolates_collection, old_isolateresults_collection, isolates_badqc_collection, \
-        isolates_resequencing_collection = mongoinit_azure.initialise_collections()
 
     # get documents that need to be sent
     list_of_unsent_validated_documents = mapping_table_collection.find({'validated': True, 'sent_to_ODS_and_DWH': {'$ne': True}})
@@ -56,7 +57,7 @@ for species in mongo_config_data['species']:
                 document_genomic['_id'] = document['_id']
                 document_genomic['pseudo_id'] = document['pseudo_id']
 
-                SendGenomicToDWH(document, mongo_config_data, species)
+                SendGenomicToDWH(document_genomic, mongo_config_data, species)
 
                 # technically overkill to add this field here because right after sent_to_ODS_and_DWH is updated,
                 # but it is added for clarity and so that the order of sending can be changed easily too

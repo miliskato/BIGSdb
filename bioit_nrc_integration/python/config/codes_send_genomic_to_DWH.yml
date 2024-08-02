@@ -42,17 +42,17 @@ salmonella:
     - results
     - genotyphi
     - results
-    - genotyphi_INCHI1A_susceptibility
+    - genotyphi_IncHI1A_susceptibility
   CD_GENTPE_INCHI1BR27_SUSC:
     - results
     - genotyphi
     - results
-    - genotyphi_INCHI1BR27_susceptibility
+    - genotyphi_IncHI1BR27_susceptibility
   CD_GENTPE_INCY_SUSC:
     - results
     - genotyphi
     - results
-    - genotyphi_INCY_susceptibility
+    - genotyphi_IncY_susceptibility
   CD_GENTPE_AMNGLY_SUSC:
     - results
     - genotyphi
@@ -62,7 +62,7 @@ salmonella:
     - results
     - genotyphi
     - results
-    - genotyphi_AZI_susceptibility
+    - genotyphi_azithromycin_susceptibility
   CD_GENTPE_BLAC_SUSC:
     - results
     - genotyphi
@@ -92,19 +92,19 @@ salmonella:
     - results
     - genotyphi
     - results
-    - genotyphi_SULFON_susceptibility
+    - genotyphi_sulfonamides_susceptibility
   CD_GENTPE_TETRACY_SUSC:
     - results
     - genotyphi
     - results
-    - genotyphi_TETRACY_susceptibility
+    - genotyphi_tetracycline_susceptibility
   CD_GENTPE_TRIMETH_SUSC:
     - results
     - genotyphi
     - results
-    - genotyphi_TRIMETH_susceptibility
+    - genotyphi_trimethoprim_susceptibility
   CD_GENTPE_Z66_SUSC:
     - results
     - genotyphi
     - results
-    - genotyphi_Z66_susceptibility
+    - genotyphi_z66_susceptibility

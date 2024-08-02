@@ -125,21 +125,22 @@
 - name: adapt Mongo host and admin passphrase for dev/test
   set_fact:
     mongo_host: "{{ vars['mongo_host_'+ dtap] }}"
-    mongodb_admin_password: "{{ vars['mongodb_admin_password_'+ dtap] }}"
+    mongodb_admin_password_local: "{{ vars['mongodb_admin_password_local_'+ dtap] }}"
+    mongodb_admin_password_azure: "{{ vars['mongodb_admin_password_azure_'+ dtap] }}"
     mongo_azure_private_endpoint: "{{ vars['mongo_azure_private_endpoint_'+ dtap] }}"
 
 - name: replace the local mongodb connection string in the bioit_mongodb_scripts config file
   lineinfile:
     path: "{{ bioit_bigs_home }}/bioit_mongodb_scripts/config/config.yml"
     regexp: 'CONNECTION_STRING_LOCAL: to_be_replaced_by_ansible'
-    line: "CONNECTION_STRING_LOCAL: mongodb://admin:{{ mongodb_admin_password }}@{{ mongo_host.split(',')[0] }}:27017,{{ mongo_host.split(',')[1] }}:27017,{{ mongo_host.split(',')[2] }}:27017/?replicaSet=bioit-HERA&authSource=admin"
+    line: "CONNECTION_STRING_LOCAL: mongodb://admin:{{ mongodb_admin_password_local }}@{{ mongo_host.split(',')[0] }}:27017,{{ mongo_host.split(',')[1] }}:27017,{{ mongo_host.split(',')[2] }}:27017/?replicaSet=bioit-HERA&authSource=admin"
   become: yes
 
 - name: replace azure connection string in config file
   lineinfile:
     path: "{{ bioit_bigs_home }}/bioit_mongodb_scripts/config/config.yml"
     regexp: 'CONNECTION_STRING_AZURE: to_be_replaced_by_ansible'
-    line: "CONNECTION_STRING_AZURE: mongodb+srv://admin:{{ mongodb_admin_password }}@{{ mongo_azure_private_endpoint }}.mongodb.net/?retryWrites=true&w=majority"
+    line: "CONNECTION_STRING_AZURE: mongodb+srv://admin:{{ mongodb_admin_password_azure }}@{{ mongo_azure_private_endpoint }}.mongodb.net/?retryWrites=true&w=majority"
   become: yes
 
 - name: Change Mongo dtap version in config based on playbook argument, HD only has 2 environments; test and prod. Files sent by HD are consumable and can only go in one of these two mongo databases. Files sent to HD can only be sent from one of these two DB to avoid duplications and confusion.
