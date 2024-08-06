@@ -36,6 +36,7 @@ species:
 mongodb:
     lmod: bioit_mongodb/0.1
     main_script: mainmongo.py
+    report_script: parsehtml.py
 
 failsafe:
   flag_dir: /scratch/temp/flags
