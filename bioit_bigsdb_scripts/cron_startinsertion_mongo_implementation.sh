@@ -31,4 +31,6 @@ do
 ##    $VENV_PYTHON_BIGSDB /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/cgmlst_similar_isolates.py --isolatename $sample_name --species $species
   } 2>&1 | tee /scratch/bigsupload/mongo/$sample_name.mongodb_bigsdb_insertion.log
   mv /scratch/bigsupload/mongo/$sample_name.mongodb_bigsdb_insertion.log /reports/$species/${sample_name}_${insert_date}/
+  chown -R galaxy:galaxy /reports/$species/${sample_name}_${insert_date} # to ensure galaxy is user and group of all the files into the report dir
+  chmod -R 770 /reports/$species/${sample_name}_${insert_date} #to get group permission = rwx in case a rsync should be performed by www-data user (which belongs to galaxy group)
 done

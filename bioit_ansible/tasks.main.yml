@@ -683,8 +683,26 @@
       ansible.builtin.file:
         path: "/reports/{{ species }}"
         state: directory
-        mode: "u=rwx,g=rwx,o=rx"
+        mode: "u=rwx,g=rwx,o="
         owner: www-data
+        group: www-data
+      tags: add_to_group
+
+    - name: adapt owner and group for reports dir
+      ansible.builtin.file:
+        path: "/reports/"
+        state: directory
+        mode: "u=rwx,g=rwx,o="
+        owner: www-data
+        group: www-data
+      tags: add_to_group
+
+    - name:
+      ansible.builtin.user:
+            name: www-data
+            groups: galaxy
+            append: yes
+      tags: add_to_group
 
     - name: symlink reports
       ansible.builtin.file:
