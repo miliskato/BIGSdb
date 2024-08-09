@@ -64,7 +64,7 @@ class MainInserter(JsonSuperClass):
             local_path = 'reports'
             galaxy_report_access = mongo_report_field.replace(local_path,"galaxyreports")
             azure_path = f'results/{dtap}'
-            galaxy_report_access = mongo_report_field.replace(azure_path, "galaxyreports")
+            galaxy_report_access = galaxy_report_access.replace(azure_path, "galaxyreports")
 
             vcf_access = self._vcf_path.replace(local_path,"galaxyreports")
             vcf_access = self._vcf_path.replace(azure_path, "galaxyreports")
