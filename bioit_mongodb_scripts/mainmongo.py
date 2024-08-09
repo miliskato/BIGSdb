@@ -159,7 +159,7 @@ class MainMongo:
         :return: None
         """
         # Configure stdout logging
-        logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
+        logging.basicConfig(level=logging.WARNING, stream=sys.stdout)
 
         # If statement for results_type
         if self._results_type == "new_isolate":
@@ -286,7 +286,6 @@ class MainMongo:
             else:
                 new_records["isolates_id"] = self._technical_id
                 new_isolate = self.___new_isolate(new_records)
-                new_isolate = self.___convert_typinghitdictionaries_to_lists(new_isolate)
                 self.___write_document(self._isolates_resequencing_collection, new_isolate)
         else:
             send_email(
@@ -346,7 +345,7 @@ class MainMongo:
         if self._results_type == 'resequencing_validated':
             new_results['validation'] = self._subvaldict
             report_dir_merging_cmd = ' '.join([
-                "rsync -a",
+                "rsync -aO",
                 f"{new_results_document['report_directory']}/",
                 f"{current_results_document['report_directory']}/"
             ])
@@ -559,8 +558,8 @@ class MainMongo:
         """
         This function aims to reduce the memory usage of hits' metadata by only storing the metadata once in a separate collection
         and storing the results in a list instead.
-        Be wary, this method does not create a deepcopy, therefore changes are applied to the input docuemnt
-        even if the return value's name is modified
+        Be wary, this method does not create a deepcopy, therefore changes are applied to the input document
+        even if the returned value's name is modified
         :return: The converted input document
         """
         hit_metadata: Union[None, Dict[str, Union[object, str, List[str]]]] = self._headers_collection.find_one({'type': 'hit_metadata'})
