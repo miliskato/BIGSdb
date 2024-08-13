@@ -9,6 +9,7 @@ import traceback
 import yaml
 from datetime import datetime
 from pathlib import Path
+from typing import Any, Dict, List, Optional, Union
 
 import paramiko
 
@@ -178,10 +179,11 @@ class MainNominativeDataParserFromOds:
                             self.__parse_complex_labtest_results(data_unprocessed, data_translated)
                         if filetype == 'CLIN':
                             self.__parse_complex_country_field(data_unprocessed, data_translated)
+                            if species == 'salmonella':
+                                self.__parse_salmonella_symptom_fields(data_unprocessed, data_translated)
                         # loop over schema
                         for hd_key, hd_key_property_dict in self._translation_codes['schema'][filetype].items():
-                            # Get value capitalisation agnostically
-                            unprocessed_value = data_unprocessed.get(hd_key.lower()) if data_unprocessed.get(hd_key.lower()) else data_unprocessed.get(hd_key)
+                            unprocessed_value = self.__get_value_by_capitalization_agnostic_key(data_unprocessed, hd_key)
                             if unprocessed_value:
                                 if hd_key_property_dict.get('code_list'):
                                     value = self._translation_codes['code_lists'][hd_key_property_dict['code_list']][unprocessed_value]
@@ -231,12 +233,13 @@ class MainNominativeDataParserFromOds:
         :param data_translated: translated data to be inserted in MongoDB to be inserted in BIGSdb
         :return: None
         """
-        # DOB is not a mandatory field so it can be missing
-        if data.get('DT_PAT_DOB'.lower()):
+        # DOB is not a mandatory field so it can be missing = None
+        dob = MainNominativeDataParserFromOds.__get_value_by_capitalization_agnostic_key(data, 'DT_PAT_DOB')
+        if dob:
             # Calculate the number of years
             # Average year length considering leap years = 365.25 days
-            patient_age = math.floor((datetime.strptime(data['DT_LAB_COLLCN'.lower()], "%Y-%m-%dT%H:%M:%S") -
-                                      datetime.strptime(data['DT_PAT_DOB'.lower()], "%Y-%m-%d")).days / 365.25)
+            patient_age = math.floor((datetime.strptime(MainNominativeDataParserFromOds.__get_value_by_capitalization_agnostic_key(data, 'DT_LAB_COLLCN'), "%Y-%m-%dT%H:%M:%S") -
+                                      datetime.strptime(dob, "%Y-%m-%d")).days / 365.25)
             data_translated['patient_age'] = patient_age
             age_groups = [
                 ("Below 1", 0, 0),
@@ -258,13 +261,13 @@ class MainNominativeDataParserFromOds:
 
     def __parse_complex_labtest_results(self, data, data_translated) -> None:
         """
-        Parses the
+        Parses the labtest results from a complex list of dictionaries # todo
         e.g. "tx_ttl_lab_test": [{"dt_lab_test": "2024-03-25T12:00:00",  "tx_lab_rr_ll": "ref low",  "tx_lab_rr_ul": "ref up",  "cd_lab_pnl_batt": "385432009",  "cd_lab_rslt_sta": "corrected",  "cd_lab_reslt_tpe": "19851009",  "cd_lab_rslt_flag": "260405006",  "cd_lab_test_code": "468-9",  "cd_lab_test_meth": "14788002",  "ms_lab_rr_ll_val": 11.00000,  "ms_lab_rr_ul_val": 150.00000,  "cd_lab_rr_ll_unit": "385432009",  "cd_lab_rr_ul_unit": "385432009",  "cd_lab_intrpr_meth": "261665006",  "tx_lab_rslt_intrpr": "Test 3 interpretation",  "tx_lab_test_rslt_id": "Test Result 3",  "cd_lab_test_rslt_sta": "preliminary",  "tx_lab_cmnt_test_rslt": "Lab Test 3 comment",  "ms_lab_test_rslt_qn_val": 99.00000,  "cd_lab_test_rslt_qn_unit": "385432009"}, {"dt_lab_test": "2024-02-06T12:00:00",  "tx_lab_rr_ll": "lower limit",  "tx_lab_rr_ul": "Ref upper Range",  "cd_lab_pnl_batt": "385432009",  "cd_lab_rslt_sta": "registered",  "cd_lab_reslt_tpe": "252275004",  "cd_lab_rslt_flag": "281300000",  "cd_lab_test_code": "TC0031",  "cd_lab_test_meth": "363779003",  "ms_lab_rr_ll_val": 55.00000,  "ms_lab_rr_ul_val": 66.00000,  "cd_lab_rr_ll_unit": "385432009",  "cd_lab_rr_ul_unit": "385432009",  "cd_lab_intrpr_meth": "IM0001",  "tx_lab_rslt_intrpr": "Res Interpretation",  "cd_lab_test_rslt_ql": "83185005",  "tx_lab_test_rslt_id": "TestResID",  "cd_lab_test_rslt_sta": "preliminary",  "tx_lab_cmnt_test_rslt": "Lab Test comment"}]
         :param data: original unprocessed data
         :param data_translated: translated data to be inserted in MongoDB to be inserted in BIGSdb
         :return: None
         """
-        labtest_list_of_result_dicts = data.get('TX_TTL_LAB_TEST'.lower())
+        labtest_list_of_result_dicts = self.__get_value_by_capitalization_agnostic_key(data, 'TX_TTL_LAB_TEST')
         if labtest_list_of_result_dicts:
             for labtest_result_dict in labtest_list_of_result_dicts:
                 labtest_result_combinations = self._translation_codes['code_lists']['TX_TTL_LAB_TEST_combinations']
@@ -290,11 +293,39 @@ class MainNominativeDataParserFromOds:
         :param data_translated: translated data to be inserted in MongoDB to be inserted in BIGSdb
         :return: None
         """
-        country_dicts_list = data.get('CD_INFCT_CNRTY'.lower())
+        country_dicts_list = MainNominativeDataParserFromOds.__get_value_by_capitalization_agnostic_key(data, 'CD_INFCT_CNRTY')
         if country_dicts_list:
             for index, country_dict in enumerate(country_dicts_list):
                 for key, value in country_dict.items():
                     data_translated[f"country_{index + 1}"] = value
+
+    def __parse_salmonella_symptom_fields(self, data, data_translated) -> None:
+        """
+        Parses the mandatory symptom field list which didn't really fit in the main codes schema,
+        e.g. "tx_ttl_symp": [{"cd_prob_nam": "25374005"}, {"cd_prob_nam": "91302008"}]
+        :param data: original unprocessed data
+        :param data_translated: translated data to be inserted in MongoDB to be inserted in BIGSdb
+        :return: None
+        """
+        symptom_list_of_dicts: List[Dict[str, str]] = self.__get_value_by_capitalization_agnostic_key(data, 'TXT_TTL_SYMP')
+        for symptom_dict in symptom_list_of_dicts:
+            symptom_code = self.__get_value_by_capitalization_agnostic_key(symptom_dict, 'CD_PROB_NAM')
+            symptom_code_translation = self._translation_codes['CD_PROB_NAM_codes'][symptom_code]
+            # todo these 5 symptom_ fields need to be added to the salmonella isolates table and the clinical_info field should be removed.
+            data_translated[f"symptom_{symptom_code_translation.replace(' ', '_').lower()}"] = "Yes"
+
+    @staticmethod
+    def __get_value_by_capitalization_agnostic_key(search_dictionary: Dict[str, Any], target_key: str) -> Optional[Union[Dict[str, Any], List[Any], str]]:
+        """
+        Searches a key capitalization agnostically in a dictionary because the ODS could not confirm that they were always going to send lower or uppercase keys.
+        :param search_dictionary: the dictionary that the key should
+        :param target_key: key that should capitalization agnostically be found in the search_dictionary
+        :return: The value for the key lookup, or None if it isn't found.
+        """
+        if search_dictionary.get(target_key.lower()):
+            return search_dictionary.get(target_key.lower())
+        else:
+            return search_dictionary.get(target_key.upper())
 
     def _close_sftp_connection(self) -> None:
         """
