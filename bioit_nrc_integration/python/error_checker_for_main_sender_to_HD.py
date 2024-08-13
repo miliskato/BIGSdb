@@ -64,10 +64,13 @@ class ErrorCheckerForMainSenderToHD:
         for healthdata_receiver in ['ODS', 'DWH']:
             ssh, sftp = self.__open_sftp_connection(healthdata_receiver)
             folder_path = 'error'
-            if healthdata_receiver == 'DWH':
-                folder_path = 'from_hd/' + \
+            if healthdata_receiver == 'ODS':
+                folder_path = 'upload/' + folder_path
+            else:  # if healthdata_receiver == 'DWH':
+                folder_path = 'to_hd/' + \
                               f"{self._mongo_config_data['dtap'] + '/' if self._mongo_config_data['dtap'] != 'prod' else ''}" + \
                               folder_path
+
             # List all files in the remote directory
             files_and_dirs = sftp.listdir_attr(folder_path)
 
@@ -97,8 +100,10 @@ class ErrorCheckerForMainSenderToHD:
         for healthdata_receiver in ['ODS', 'DWH']:
             ssh, sftp = self.__open_sftp_connection(healthdata_receiver)
             folder_path = 'processed'
-            if healthdata_receiver == 'DWH':
-                folder_path = 'from_hd/' + \
+            if healthdata_receiver == 'ODS':
+                folder_path = 'upload/' + folder_path
+            else:  # if healthdata_receiver == 'DWH':
+                folder_path = 'to_hd/' + \
                               f"{self._mongo_config_data['dtap'] + '/' if self._mongo_config_data['dtap'] != 'prod' else ''}" + \
                               folder_path
 
