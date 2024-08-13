@@ -1,0 +1,75 @@
+listeria:
+  mlst: Classic MLST
+  cgmlst: cgMLST
+  pcr-serogroup: PCR-serogroup
+  metal-detergent: Metal and detergent resistance
+  typing-virulence: Virulence
+  typing-amr: Antibiotic resistance
+  species-confirmation: Species confirmation
+  ncbi-amr: NCBI AMR genes (NDARO)
+  resfinder: ResFinder
+  virulencefinder: VirulenceFinder - Listeria
+  vfdb-core: Virulence Factor DB - Core
+  plasmidfinder: PlasmidFinder - Gram positive
+mycobacterium:
+  mlst: Classic MLST (PubMLST)
+  cgmlst: cgMLST (PubMLST)
+  ncbi-16s: NCBI-16S
+  51snp: 51 SNP-based
+  amr: AMR detection
+  hsp65: hsp65-based differentiation
+  snp-lineage: SNP lineage
+  snpit: Snpit
+  pointfinder: PointFinder (PointFinder 20190227)
+neisseria:
+  mlst: Classic MLST
+  cgmlst: cgMLST
+  rplf: rplF (50S) Species identification
+  bast: Bexsero antigen sequence typing (BAST)
+  pora: PorA variable regions
+  porb: porB
+  feta: FetA
+  resistance-genes: Antibiotic resistance
+  vaccine-targets: Vaccine targets
+  fhbp: Factor-H binding protein (fHbp)
+  ncbi-amr: NCBI AMR genes (NDARO)
+  resfinder: ResFinder
+  serogroup: Serogroup determination
+stec:
+  mlst-warwick: Classic MLST (Warwick)
+  mlst-pasteur: Classic MLST (Pasteur)
+  cgmlst: cgMLST
+  serotype:
+    - SerotypeFinder - H-type
+    - SerotypeFinder - O-type
+    - Detected serotype
+  ncbi-amr: NCBI AMR genes (NDARO)
+  resfinder: ResFinder
+  plasmidfinder: PlasmidFinder - Enterobacteriales
+  virulencefinder:
+    - VirulenceFinder - E. coli
+    - VirulenceFinder - Shiga-toxin genes
+  pointfinder: PointFinder (PointFinder 20190227)
+salmonella:
+  mlst: Classic MLST
+  cgmlst: cgMLST
+  spifinder: SPIFinder (SPIFinder 0.1)
+  serotype: Serotyping (SISTR 1.1.1)
+  abritamr: abriTAMR (AbriTAMR run 1.0.13)
+  ncbi-amr: NCBI AMR genes (NDARO)
+  resfinder: ResFinder
+  plasmidfinder: PlasmidFinder - Enterobacteriales
+  vfdb-core: Virulence Factor DB - Core
+  pointfinder: PointFinder (PointFinder 20190227)
+sars_cov_2:
+  sars_cov_2:
+    - Nextclade (Nextclade 2.14.0)
+    - Subtype determination (mash screen 2.3)
+influenza_a:
+  influenza_a:
+    - Nextclade (Nextclade 2.14.0)
+    - Subtype determination (mash screen 2.3)
+influenza_b:
+  influenza_b:
+    - Nextclade (Nextclade 2.14.0)
+    - Subtype determination (mash screen 2.3)
