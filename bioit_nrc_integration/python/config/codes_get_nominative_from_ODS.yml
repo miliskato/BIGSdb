@@ -4,6 +4,9 @@ pathogens:
 
 schema:
   LAB:
+    TX_BUSINESS_KEY:
+      required: True
+      translation: _id
     IDC_PAT:
       required: False # default is empty in bigsdb
       translation: patient_id
@@ -34,6 +37,9 @@ schema:
       default: N/A
       translation: comment
   CLIN:
+    TX_BUSINESS_KEY:
+      required: True
+      translation: _id
     CD_HOSPZ:
       required: True
       translation: hospitalisation

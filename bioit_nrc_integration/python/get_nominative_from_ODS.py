@@ -17,29 +17,17 @@ sys.path.append(str(PYTHONPATH))
 
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email
+from bioit_nrc_integration.python.config import SFTP_CREDENTIALS_HD, CODES_NOMINATIVE_ODS
 
 # Configure stdout logging
 logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
-# SFTP connection parameters
-hostname = 'hera-dc.healthdata.be'
-port = 2222  # Default SFTP port
-username = 'to_be_replaced_by_ansible'
-password = 'to_be_replaced_by_ansible'
-
-# Create an SSH client
-ssh = paramiko.SSHClient()
-ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
-
-# def move_file_sftp(sftp, filename, success: bool) -> None:
 
 class MainNominativeDataParserFromOds:
     """
     Class that downloads all nominative metadata JSONs from the ODS SFTP, parses them, inserts the contents in MongoDB if valid,
     and finally moves them to the correct sftp location based on whether the parsing was successful, either 'processed' or 'error'.
     """
-
     def __init__(self) -> None:
         """
         Initialises this class and executes the main function.
@@ -49,16 +37,20 @@ class MainNominativeDataParserFromOds:
         self._files_remote = []
         self._files_processed = []
         self._files_error = []
+        self._files_error_logs = {}
 
         # initialize dictionary to match CLIN and LAB files by business key
-        self._files_by_business_key_by_species = {}
+        self._files_by_filetype_by_species = {}
 
         # get mongodb config data
         self._mongo_config_data = get_mongodb_config_data()
 
         # get HD ODS dictionaries to be able to translate to useable text
-        with (Path(__file__).resolve().parent / 'config' / 'codes_get_nominative_from_ODS.yml').open('r') as handle:
+        with CODES_NOMINATIVE_ODS.open('r') as handle:
             self._translation_codes = yaml.safe_load(handle)
+        # get sftp credentials
+        with SFTP_CREDENTIALS_HD.open('r') as handle:
+            self._sftp_credentials_hd = yaml.safe_load(handle)
 
         try:
             # initialize ssh & sftp
@@ -69,25 +61,32 @@ class MainNominativeDataParserFromOds:
                 # close after downloading the json files to not risk reaching the inactivity time limit
                 self._close_sftp_connection()
 
-                self._match_files_according_to_business_key_and_group_by_pathogen()
+                self.group_files_by_pathogen_and_type()
                 self._process_json_files()
 
             # reinitialize ssh & sftp
             self._ssh, self._sftp = self._open_sftp_connection()
 
+            # todo I need to make sure that these are moved when they're inserted in MongoDB else this will raise errors
             # In SFTP moving is done by renaming; move files to right folder according to success
             # for file in self._files_processed:
             #     self._sftp.rename(f'upload/test/{file}', f'upload/processed/{file}')
             # for file in self._files_error:
             #     self._sftp.rename(f'upload/test/{file}', f'upload/error/{file}')
+            # for filename, contents in self._files_error_logs.items():
+            #     error_log_filename = '.'.join(filename.split('.')[:-1]) + '.log'
+            #     error_log_file = Path(self._temp_json_dir) / error_log_filename
+            #     with error_log_file.open('w') as handle:
+            #         handle.write(contents)
+            #     self._sftp.upload(str(error_log_file), f'upload/error/{error_log_filename}')
+
         except Exception as exceptionmessage:
             send_email(f"{exceptionmessage}\n{traceback.format_exc()}")
-            raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}: {exceptionmessage}\n{traceback.format_exc()}")
+            raise
 
-    @staticmethod
-    def _open_sftp_connection() -> (paramiko.SSHClient, paramiko.SFTPClient):
+    def _open_sftp_connection(self) -> (paramiko.SSHClient, paramiko.SFTPClient):
         """
-        Opens an SSH and SFTP connection using variables defined as constants at the top of this script.
+        Opens an SSH and SFTP connection using variables defined in the sftp credentials configuration file.
         :return: an ssh and sftp client for further use
         """
         # Create an SSH client
@@ -95,7 +94,10 @@ class MainNominativeDataParserFromOds:
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
         # Connect to the server
-        ssh.connect(hostname, port, username, password)
+        ssh.connect(self._sftp_credentials_hd['hostname_get_nominative_from_ODS'], 
+                    self._sftp_credentials_hd['port_get_nominative_from_ODS'], 
+                    self._sftp_credentials_hd['username_get_nominative_from_ODS'], 
+                    self._sftp_credentials_hd['password_get_nominative_from_ODS'])
 
         # Create an SFTP session
         sftp = ssh.open_sftp()
@@ -118,70 +120,68 @@ class MainNominativeDataParserFromOds:
             self._sftp.get(f'upload/{file}', f'{self._temp_json_dir}/{file}')
             logging.info(f'Downloaded: {file}')
 
-    def _match_files_according_to_business_key_and_group_by_pathogen(self):
+    def group_files_by_pathogen_and_type(self):
         """
         The filenames uploaded by the HD ODS do not have any significance except for the CLIN or LAB part.
-        Files therefore need to be matched based on their tx_business_key 's.
-        This function parses all downloaded JSON files and tries to match the business keys and groups them by pathogen.
+        Files therefore need to be grouped by this CLIN or LAB because they are parsed differently ( because they
+        contain different fields) and by pathogen which is found in the file itself.
+        This function parses all downloaded JSON files and groups them by filetype (filename) and by pathogen (file contents).
         :return: None
         """
-        files_by_business_key = {}
         for file in self._files_remote:
             filetype = 'CLIN' if '_CLIN_' in file else 'LAB' if '_LAB_' in file else None
             if not filetype:
                 # ignore files that do not contain either CLIN or LAB in their filename
                 continue
-            with Path(f'{self._temp_json_dir}/{file}').open('r') as handle:
-                contents = json.load(handle)
-                business_key = contents['data']['tx_business_key']
-                species = self._translation_codes['pathogens'][contents['metadata']['data_collection']]
-            if not files_by_business_key.get(species):
+            try:
+                with Path(f'{self._temp_json_dir}/{file}').open('r') as handle:
+                    contents = json.load(handle)
+                    species = self._translation_codes['pathogens'][contents['metadata']['data_collection']]
+            except Exception as exceptionmessage:
+                logging.info(f"{exceptionmessage}\n{traceback.format_exc()}")
+                self._files_error.append(file)
+                self._files_error_logs[file] = f"{exceptionmessage}\n{traceback.format_exc()}"
+                continue  # move on to next file
+            if not self._files_by_filetype_by_species.get(species):
                 # initialise pathogen key
-                files_by_business_key[species] = {}
-            if not files_by_business_key[species].get(contents['data']['tx_business_key']):
+                self._files_by_filetype_by_species[species] = {}
+            if not self._files_by_filetype_by_species[species].get(filetype):
                 # add first file
-                files_by_business_key[species][business_key] = {filetype: file}
+                self._files_by_filetype_by_species[species][filetype] = [file]
             else:
                 # add second file
-                files_by_business_key[species][business_key][filetype] = file
-        # only retain the matched files (length of business_key dict is 2 because there is 
-        # one value for CLIN and one for LAB)
-        self._files_by_business_key_by_species = {k: {sub_k: sub_v for sub_k, sub_v in v.items() if len(sub_v) == 2} 
-                                                  for k, v in files_by_business_key.items()}
+                self._files_by_filetype_by_species[species][filetype].append(file)
 
     def _process_json_files(self):
         """
         Parses all downloaded JSON files and inserts them into MongoDB
         :return: None
         """
-        for species, business_key_dicts in self._files_by_business_key_by_species.items():
+        for species, filetypes_dict in self._files_by_filetype_by_species.items():
             mongoinit_local = MongoInitialisation(species, mongo_config_data=self._mongo_config_data,
                                                   alternate_connection_string=self._mongo_config_data[
                                                       'CONNECTION_STRING_LOCAL'])
             nominative_labtest_clinical_metadata_collection = mongoinit_local.initialise_nominative_labtest_clinical_metadata_collection()
             unprocessed_nominative_labtest_metadata_collection = mongoinit_local.initialise_unprocessed_nominative_labtest_metadata_collection()
             unprocessed_nominative_clinical_metadata_collection = mongoinit_local.initialise_unprocessed_nominative_clinical_metadata_collection()
-            for business_key, pair in business_key_dicts.items():
-                # initialise translation dict
-                data_translated = {'_id': business_key}
-                # initialise unprocessed data dict
-                data_unprocessed = {'CLIN': {}, 'LAB': {}}
-                failed = False
-                for filetype in ['CLIN', 'LAB']:
+            for filetype, files in filetypes_dict.items():
+                for file in files:
+                    # initialise translation dict
+                    data_translated = {}
                     try:
-                        with Path(f'{self._temp_json_dir}/{pair[filetype]}').open('r') as handle:
+                        with Path(f'{self._temp_json_dir}/{file}').open('r') as handle:
                             contents = json.load(handle)
-                        data = contents['data']
+                        data_unprocessed = contents['data']
 
                         if filetype == 'LAB':
-                            self.__calculate_age_fields(data, data_translated)
-                            self.__parse_complex_labtest_results(data, data_translated)
+                            self.__calculate_age_fields(data_unprocessed, data_translated)
+                            self.__parse_complex_labtest_results(data_unprocessed, data_translated)
                         if filetype == 'CLIN':
-                            self.__parse_complex_country_field(data, data_translated)
+                            self.__parse_complex_country_field(data_unprocessed, data_translated)
                         # loop over schema
                         for hd_key, hd_key_property_dict in self._translation_codes['schema'][filetype].items():
                             # Get value capitalisation agnostically
-                            unprocessed_value = data.get(hd_key.lower()) if data.get(hd_key.lower()) else data.get(hd_key)
+                            unprocessed_value = data_unprocessed.get(hd_key.lower()) if data_unprocessed.get(hd_key.lower()) else data_unprocessed.get(hd_key)
                             if unprocessed_value:
                                 if hd_key_property_dict.get('code_list'):
                                     value = self._translation_codes['code_lists'][hd_key_property_dict['code_list']][unprocessed_value]
@@ -194,21 +194,34 @@ class MainNominativeDataParserFromOds:
                                         data_translated[hd_key_property_dict['translation']] = hd_key_property_dict['default']
                                 else:
                                     raise f"key {hd_key} is missing but is required in {filetype} file!!"
-                        data_unprocessed[filetype] = data
                         # add id to be able to find in MongoDB
-                        data_unprocessed[filetype]['_id'] = business_key
+                        data_unprocessed['_id'] = data_translated['_id']  # data_translated['_id'] == data_unprocessed['TX_BUSINESS_KEY']
                     except Exception as exceptionmessage:
                         logging.info(f"{exceptionmessage}\n{traceback.format_exc()}")
-                        # todo discuss if error message needs to be appended?
-                        self._files_error.append(pair[filetype])
-                        failed = True
-                        # break # do not break; check both files to see if they both need to be moved to the error folder
-                if not failed:
+                        self._files_error.append(file)
+                        self._files_error_logs[file] = f"{exceptionmessage}\n{traceback.format_exc()}"
+                        continue  # do not insert in MongoDB and move on to next file
                     # Insert all documents into MongoDB after having succesfully parsed the matching files
-                    nominative_labtest_clinical_metadata_collection.insert_one(data_translated)
-                    unprocessed_nominative_labtest_metadata_collection.insert_one(data_unprocessed['LAB'])
-                    unprocessed_nominative_clinical_metadata_collection.insert_one(data_unprocessed['CLIN'])
-                    self._files_processed.extend([pair["LAB"], pair["CLIN"]])
+                    if not nominative_labtest_clinical_metadata_collection.find_one({'_id': data_translated['_id']}):
+                        # Insert CLIN or LAB, whichever is first
+                        nominative_labtest_clinical_metadata_collection.insert_one(data_translated)
+                    else:
+                        # Insert CLIN or LAB, whichever is second
+                        data_translated.pop('_id')
+                        nominative_labtest_clinical_metadata_collection.update_one({'_id': data_translated['_id']},
+                                                                                   {**data_translated})
+
+                    # if one of these raises a MongoDuplicationError possibly because the documents have been
+                    # inserted into MongoDB previously but failed before moving them to the
+                    # processed sftp location, then the entire flow is stopped.
+                    # If the error were to be caught and an email sent per failure, then a lot of emails might be sent.
+                    # Alternatively, I could try to aggregate these DuplicationErrors and send one aggregated mail
+                    # todo ?
+                    if filetype == 'LAB':
+                        unprocessed_nominative_labtest_metadata_collection.insert_one(data_unprocessed['LAB'])
+                    if filetype == 'CLIN':
+                        unprocessed_nominative_clinical_metadata_collection.insert_one(data_unprocessed['CLIN'])
+                    self._files_processed.append(file)
 
     @staticmethod
     def __calculate_age_fields(data, data_translated) -> None:
@@ -226,8 +239,8 @@ class MainNominativeDataParserFromOds:
                                       datetime.strptime(data['DT_PAT_DOB'.lower()], "%Y-%m-%d")).days / 365.25)
             data_translated['patient_age'] = patient_age
             age_groups = [
-                ("1 and below", 0, 1),
-                ("Between 2 and 4", 2, 4),
+                ("Below 1", 0, 0),
+                ("Between 2 and 4", 1, 4),
                 ("Between 5 and 9", 5, 9),
                 ("Between 10 and 14", 10, 14),
                 ("Between 15 and 19", 15, 19),

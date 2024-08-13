@@ -13,16 +13,15 @@
     msg: "'branch' argument required in -e when running playbook"
   when: branch is not defined
 
-- name: remove get_nominative_from_ODS cronjob so that it does not interfere during deployment
+- name: remove cronjobs so that they do not interfere during deployment
   ansible.builtin.file:
-    path: /etc/cron.d/get_nominative_from_ODS
+    path: "{{ file_paths }}"
     state: absent
-  become: yes
-
-- name: remove main_sender_to_HD cronjob so that it does not interfere during deployment
-  ansible.builtin.file:
-    path: /etc/cron.d/main_sender_to_HD
-    state: absent
+  vars:
+    file_paths:
+      - /etc/cron.d/get_nominative_from_ODS
+      - /etc/cron.d/main_sender_to_HD
+      - /etc/cron.d/error_checker_for_main_sender_to_HD
   become: yes
 
 - name: Install system packages
@@ -163,42 +162,26 @@
     state: restarted
   become: yes
 
-- name: replace the username and password in the get_nominative_from_ODS script
+- name: replace the usernames and passwords in the sftp credentials config
   lineinfile:
-    path: "{{ bioit_bigs_home }}//bioit_nrc_integration/python/get_nominative_from_ODS.py"
+    path: "{{ bioit_bigs_home }}//bioit_nrc_integration/python/config/sftp_credentials.yml"
     regexp: "{{ item.regexp }}"
     line: "{{ item.line }}"
   loop: "{{ list_variables|flatten(levels=1) }}"
   vars:
     list_variables:
-      - { regexp: "username = 'to_be_replaced_by_ansible'", line: "username = '{{ vars['nrc_integration_ODS_in_username_'+ dtap] }}'" }
-      - { regexp: "password = 'to_be_replaced_by_ansible'", line: "password = '{{ vars['nrc_integration_ODS_in_password_'+ dtap] }}'" }
-  become: yes
-
-- name: replace the username and password in the send_mapping_table_to_ODS script
-  lineinfile:
-    path: "{{ bioit_bigs_home }}//bioit_nrc_integration/python/send_mapping_table_to_ODS.py"
-    regexp: "{{ item.regexp }}"
-    line: "{{ item.line }}"
-  loop: "{{ list_variables|flatten(levels=1) }}"
-  vars:
-    list_variables:
-      - { regexp: "username = 'to_be_replaced_by_ansible'", line: "username = '{{ vars['nrc_integration_ODS_out_username_'+ dtap] }}'" }
-      - { regexp: "password = 'to_be_replaced_by_ansible'", line: "password = '{{ vars['nrc_integration_ODS_out_password_'+ dtap] }}'" }
-  become: yes
-
-- name: replace the password in the send_genomic_to_DWH script (username is the same)
-  lineinfile:
-    path: "{{ bioit_bigs_home }}//bioit_nrc_integration/python/send_genomic_to_DWH.py"
-    regexp: "password = 'to_be_replaced_by_ansible'"
-    line: "password = '{{ nrc_integration_DWH_out_password }}'"
+      - { regexp: "username_get_nominative_from_ODS: to_be_replaced_by_ansible", line: "username = '{{ vars['nrc_integration_ODS_in_username_'+ dtap] }}'" }
+      - { regexp: "password_get_nominative_from_ODS: to_be_replaced_by_ansible", line: "password = '{{ vars['nrc_integration_ODS_in_password_'+ dtap] }}'" }
+      - { regexp: "username_send_mapping_table_to_ODS: to_be_replaced_by_ansible", line: "username = '{{ vars['nrc_integration_ODS_out_username_'+ dtap] }}'" }
+      - { regexp: "password_send_mapping_table_to_ODS: to_be_replaced_by_ansible", line: "password = '{{ vars['nrc_integration_ODS_out_password_'+ dtap] }}'" }
+      - { regexp: "password_send_genomic_to_DWH: to_be_replaced_by_ansible", line: "password = '{{ nrc_integration_DWH_out_password }}'" }
   become: yes
 
 - name: add cronjob for nominative data parser from ODS
   cron:
     name: "get_nominative_from_ODS"
-    minute: '*/10'  # every 10 minutes
-    hour: '*'
+    minute: '0'
+    hour: '*/1' # every hour
     weekday: '*'
     job: "/usr/bin/flock -n /tmp/get_nominative_from_ODS.lockfile {{ nrcint_venv }}/bin/python3.10 {{ bioit_bigs_home }}//bioit_nrc_integration/python/get_nominative_from_ODS.py"
     user: 'bigsdb'
@@ -208,11 +191,23 @@
 - name: add cronjob for main sender to HD
   cron:
     name: "main_sender_to_HD"
-    minute: '*/10'  # every 10 minutes
-    hour: '*'
+    minute: '5'
+    hour: '*/1' # every hour
     weekday: '*'
     job: "/usr/bin/flock -n /tmp/main_sender_to_HD.lockfile {{ nrcint_venv }}/bin/python3.10 {{ bioit_bigs_home }}//bioit_nrc_integration/python/main_sender_to_HD.py"
     user: 'bigsdb'
     cron_file: main_sender_to_HD
   become: yes
+
+- name: add cronjob for error checker for main sender to HD
+  cron:
+    name: "error_checker_for_main_sender_to_HD"
+    minute: '10'
+    hour: '*/12' # every hour
+    weekday: '*'
+    job: "/usr/bin/flock -n /tmp/error_checker_for_main_sender_to_HD.lockfile {{ nrcint_venv }}/bin/python3.10 {{ bioit_bigs_home }}//bioit_nrc_integration/python/error_checker_for_main_sender_to_HD.py"
+    user: 'bigsdb'
+    cron_file: error_checker_for_main_sender_to_HD
+  become: yes
+
 ...

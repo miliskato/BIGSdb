@@ -11,6 +11,7 @@ sys.path.append(str(PYTHONPATH))
 
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email
+from bioit_nrc_integration.python.config import CODES_GENOMIC_DWH
 from bioit_nrc_integration.python.send_mapping_table_to_ODS import SendMappingTableToODS
 from bioit_nrc_integration.python.send_genomic_to_DWH import SendGenomicToDWH
 
@@ -19,7 +20,7 @@ logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
 mongo_config_data = get_mongodb_config_data()
 
-with (Path(__file__).resolve().parent / 'config' / 'codes_send_genomic_to_DWH.yml').open('r') as handle:
+with CODES_GENOMIC_DWH.open('r') as handle:
     translation_codes_genomic = yaml.safe_load(handle)
 
 fail_log_dict = {}
@@ -47,7 +48,7 @@ for species in mongo_config_data['species']:
     for document in list_of_unsent_validated_documents:
         try:
             if not document.get('sent_to_ODS'):
-                SendMappingTableToODS(document)
+                SendMappingTableToODS(document, species)
                 # todo uncomment mapping_table_collection.update_one({'_id': document['_id']},
                                                     # todo uncomment {"$set": {"sent_to_ODS": True}})
 
@@ -56,6 +57,7 @@ for species in mongo_config_data['species']:
                 document_genomic = isolates_collection.find_one({'_id': document['pseudo_id']})
                 document_genomic['_id'] = document['_id']
                 document_genomic['pseudo_id'] = document['pseudo_id']
+                document_genomic['TX_BUSINESS_KEY'] = document['TX_BUSINESS_KEY']
 
                 SendGenomicToDWH(document_genomic, mongo_config_data, species)
 
