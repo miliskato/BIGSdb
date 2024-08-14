@@ -8,8 +8,9 @@ import yaml
 from bs4 import BeautifulSoup, Tag
 
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data
+from bioit_mongodb_scripts.reanalysis import PARSING_ARGUMENTS
 
-PYTHONPATH = Path(__file__).resolve().parent.parent
+PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
 
@@ -78,7 +79,7 @@ class ParseHtml:
         :return: list of the changed arguments
         """
         new_arguments = []
-        with Path('arguments.yml').open('r') as handle:
+        with Path(PARSING_ARGUMENTS).open('r') as handle:
             codes_dict = yaml.safe_load(handle)
             if self._species in codes_dict:
                 for analysis_argument in self._analysis_arguments:

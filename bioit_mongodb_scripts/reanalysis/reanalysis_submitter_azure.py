@@ -393,6 +393,7 @@ class BatchPipelinesReanalysis:
         if self._species == 'mycobacterium' and mongodb_document['original_input_format'] != 'fasta':
             base_command += f' --vcf-unfiltered {mongodb_document["vcf_path_unfiltered"]}' if mongodb_document.get(
                 "vcf_path_unfiltered") else ''
+        unload_command = f"module unload {config_species['lmod']}"
         config_mongodb = self._reanalysis_config['mongodb']
         report_command = ' '.join([
             f"module load {config_mongodb['lmod']};",
@@ -410,7 +411,6 @@ class BatchPipelinesReanalysis:
         # stderr + stdout because they're not necessary
         cleanup_command = f"if test -e {report_dir}/report.html ; then rm -r {working_dir}; rm {report_dir}/std*.txt; fi; cd $AZ_BATCH_TASK_DIR; rsync -a --no-p --no-o --no-g {report_dir}/ {results_dir}/; rm {results_dir}/camel.log; rm -r {report_dir}"
         # the cd before rsync is necessary because else it will throw the error: rsync: getcwd(): No such file or directory (2)
-        unload_command = f"module unload {config_species['lmod']}"
         lockfile = f"/scratch/scratch/{self._dtap}/mainmongo_{self._species}.lockfile"
         mongodb_command = ' '.join([
             f"module load {config_mongodb['lmod']};",
@@ -426,7 +426,7 @@ class BatchPipelinesReanalysis:
             f"--alternate_dtap {self._dtap}",
             f"--alternate_connection_string {self._connection_azure.get_secret_value('MONGODB-CONNECTION-STRING')}"
         ])
-        task_command = f'/bin/bash -c "{pre_command}; {trap_command}; {base_command}; {report_command}; {post_command}; {cleanup_command}; {unload_command}; {mongodb_command}"'
+        task_command = f'/bin/bash -c "{pre_command}; {trap_command}; {base_command}; {unload_command}; {report_command}; {post_command}; {cleanup_command}; {mongodb_command}"'
         return task_command
 
 
