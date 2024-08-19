@@ -23,14 +23,17 @@ class SendMappingTableToODS:
     Class to convert a mapping table to HD variables and to send this converted table as a
     JSON file to the ODS over SFTP.
     """
-    def __init__(self, mapping_table: Dict[str, str], species: str) -> None:
+    def __init__(self, mapping_table: Dict[str, str], species: str, alternate_dtap: str = None) -> None:
         """
         Initialises this class and executes the main function.
         :param mapping_table: MongoDB document originating from the local mapping table collection.
         :param species: commonly used bioit species name: either genus or specific like stec.
+        :param alternate_dtap: alternative dtap (should take test or prod from mongo config) in case we want to test dev or acc
         :return: None
         """
         self._mapping_table = mapping_table
+        self._species = species
+        self._alternate_dtap = alternate_dtap
         # initialize ssh & sftp
         self._ssh, self._sftp = self._open_sftp_connection()
 
@@ -43,9 +46,9 @@ class SendMappingTableToODS:
         mapping_table_healthdata_names = {'data': {'TX_SAMPLE_ID ': self._mapping_table['_id'],
                                                    'TX_BIOIT_TECHNICAL_ID': self._mapping_table['pseudo_id'],
                                                    'TX_BUSINESS_KEY': self._mapping_table['TX_BUSINESS_KEY']},
-                                          'metadata': {'version': self._translation_codes['pathogens'][species]['dcd_version'],
-                                                       'data_collection': self._translation_codes['pathogens'][species]['dcd_code'],
-                                                       'dcd_name': self._translation_codes['pathogens'][species]['dcd_name']
+                                          'metadata': {'version': self._translation_codes['pathogens'][self._species]['dcd_version'],
+                                                       'data_collection': self._translation_codes['pathogens'][self._species]['dcd_code'],
+                                                       'dcd_name': self._translation_codes['pathogens'][self._species]['dcd_name']
                                                        }
                                           }
         with tempfile.TemporaryDirectory(dir='/tmp') as temp_json_dir:
@@ -55,7 +58,7 @@ class SendMappingTableToODS:
                 handle.write(json.dumps(mapping_table_healthdata_names))
 
             # Upload the file
-            remote_path = f'upload/{jsonfile.name}'
+            remote_path = f"upload/{self._alternate_dtap + '/' if self._alternate_dtap else ''}{jsonfile.name}"
             logging.info(mapping_table_healthdata_names)  # todo uncomment self._sftp.put(str(jsonfile), remote_path)
             logging.info(f"File uploaded successfully to {remote_path}")
 

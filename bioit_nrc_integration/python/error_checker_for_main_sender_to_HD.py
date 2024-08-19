@@ -2,7 +2,6 @@
 
 import json
 import logging
-import math
 import stat
 import sys
 import tempfile
@@ -31,17 +30,23 @@ class ErrorCheckerForMainSenderToHD:
     """
     During discussions with both ODS and DWH it was decided that input files that failed would be moved to the error
     folder together with a log file with the same name but log appendix. This function checks if new errors were raised
-    and prompts manual investigation through email preferably every 12h
+    and prompts manual investigation through email preferably every 12h.
     """
-    def __init__(self) -> None:
+    def __init__(self, test_dummy: bool = False, alternate_dtap: str = None) -> None:
         """
         Initializes this class and executes the main function.
+        :param test_dummy: Whether the test dummy should be processed or if the main function should run normally
+        :param alternate_dtap: alternative dtap (should take test or prod from mongo config) in case we want to test dev or acc
+        :return: None
         """
-        self._mongo_config_data = mongo_config_data
+        self._test_dummy = test_dummy
+        self._alternate_dtap = alternate_dtap
+
+        self._mongo_config_data = get_mongodb_config_data()
         # get sftp credentials
         with SFTP_CREDENTIALS_HD.open('r') as handle:
             self._sftp_credentials_hd = yaml.safe_load(handle)
-        # get HD ODS dictionaries to be able to translate to useable text
+        # get HD ODS dictionaries to be able to translate to usable text
         with CODES_GENOMIC_DWH.open('r') as handle:
             self._translation_codes = yaml.safe_load(handle)
 
@@ -65,10 +70,12 @@ class ErrorCheckerForMainSenderToHD:
             ssh, sftp = self.__open_sftp_connection(healthdata_receiver)
             folder_path = 'error'
             if healthdata_receiver == 'ODS':
-                folder_path = 'upload/' + folder_path
+                folder_path = 'upload/' + \
+                              f"{self._alternate_dtap + '/' if self._alternate_dtap else ''}" + \
+                              folder_path
             else:  # if healthdata_receiver == 'DWH':
                 folder_path = 'to_hd/' + \
-                              f"{self._mongo_config_data['dtap'] + '/' if self._mongo_config_data['dtap'] != 'prod' else ''}" + \
+                              f"{self._alternate_dtap + '/' if self._alternate_dtap else self._mongo_config_data['dtap'] + '/' if self._mongo_config_data['dtap'] != 'prod' else ''}" + \
                               folder_path
 
             # List all files in the remote directory
@@ -101,10 +108,12 @@ class ErrorCheckerForMainSenderToHD:
             ssh, sftp = self.__open_sftp_connection(healthdata_receiver)
             folder_path = 'processed'
             if healthdata_receiver == 'ODS':
-                folder_path = 'upload/' + folder_path
+                folder_path = 'upload/' + \
+                              f"{self._alternate_dtap + '/' if self._alternate_dtap else ''}" + \
+                              folder_path
             else:  # if healthdata_receiver == 'DWH':
                 folder_path = 'to_hd/' + \
-                              f"{self._mongo_config_data['dtap'] + '/' if self._mongo_config_data['dtap'] != 'prod' else ''}" + \
+                              f"{self._alternate_dtap + '/' if self._alternate_dtap else self._mongo_config_data['dtap'] + '/' if self._mongo_config_data['dtap'] != 'prod' else ''}" + \
                               folder_path
 
             # List all files in the remote directory
@@ -112,6 +121,8 @@ class ErrorCheckerForMainSenderToHD:
 
             # Filter out directories, only list files
             files_remote = [entry.filename for entry in files_and_dirs if not stat.S_ISDIR(entry.st_mode)]
+            if self._test_dummy:
+                self._files_remote = [file for file in self._files_remote if file.startswith('test_dummy')]
             logging.info(files_remote)
 
             with tempfile.TemporaryDirectory(dir='/tmp') as temp_json_dir:
@@ -127,7 +138,8 @@ class ErrorCheckerForMainSenderToHD:
                     species = next(pathogen for pathogen, details in self._translation_codes['pathogens'].items() if details['dcd_name'] == dcd_name)
                     # Open correct pathogen specific MongoDB database
                     mongoinit_local = MongoInitialisation(species, mongo_config_data=self._mongo_config_data,
-                                                          alternate_connection_string=self._mongo_config_data['CONNECTION_STRING_LOCAL'])
+                                                          alternate_connection_string=self._mongo_config_data['CONNECTION_STRING_LOCAL'],
+                                                          alternate_dtap=self._alternate_dtap)
                     mapping_table_collection = mongoinit_local.initialise_mapping_table_collection()
                     mapping_table_collection.update_one({'TX_BUSINESS_KEY': contents['data']['TX_BUSINESS_KEY']},
                                                         {"$set": {f"accepted_by_{healthdata_receiver}": True}})

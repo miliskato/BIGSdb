@@ -1,7 +1,6 @@
 import json
 import logging
 import math
-import socket
 import stat
 import sys
 import tempfile
@@ -29,18 +28,26 @@ class MainNominativeDataParserFromOds:
     Class that downloads all nominative metadata JSONs from the ODS SFTP, parses them, inserts the contents in MongoDB if valid,
     and finally moves them to the correct sftp location based on whether the parsing was successful, either 'processed' or 'error'.
     """
-    def __init__(self) -> None:
+    def __init__(self, test_dummy: bool = False, alternate_dtap: str = None) -> None:
         """
         Initialises this class and executes the main function.
+        :param test_dummy: Whether the test dummy should be processed or if the main function should run normally
+        :param alternate_dtap: alternative dtap (should take test or prod from mongo config) in case we want to test dev or acc
         :return: None
         """
+        self._test_dummy = test_dummy
+        self._alternate_dtap = alternate_dtap
+        
         # initialize lists of successful and failed filenames:
         self._files_remote = []
         self._files_processed = []
         self._files_error = []
         self._files_error_logs = {}
+        
+        # set base sftp dir
+        self._base_sftp_dir = f"upload/{self._alternate_dtap + '/' if self._alternate_dtap else ''}"
 
-        # initialize dictionary to match CLIN and LAB files by business key
+        # initialize dictionary to match CLIN and LAB files by pathogen
         self._files_by_filetype_by_species = {}
 
         # get mongodb config data
@@ -70,16 +77,16 @@ class MainNominativeDataParserFromOds:
 
             # todo I need to make sure that these are moved when they're inserted in MongoDB else this will raise errors
             # In SFTP moving is done by renaming; move files to right folder according to success
-            # for file in self._files_processed:
-            #     self._sftp.rename(f'upload/test/{file}', f'upload/processed/{file}')
-            # for file in self._files_error:
-            #     self._sftp.rename(f'upload/test/{file}', f'upload/error/{file}')
-            # for filename, contents in self._files_error_logs.items():
-            #     error_log_filename = '.'.join(filename.split('.')[:-1]) + '.log'
-            #     error_log_file = Path(self._temp_json_dir) / error_log_filename
-            #     with error_log_file.open('w') as handle:
-            #         handle.write(contents)
-            #     self._sftp.upload(str(error_log_file), f'upload/error/{error_log_filename}')
+            for file in self._files_processed:
+                self._sftp.rename(f'{self._base_sftp_dir}{file}', f'{self._base_sftp_dir}processed/{file}')
+            for file in self._files_error:
+                self._sftp.rename(f'{self._base_sftp_dir}{file}', f'{self._base_sftp_dir}error/{file}')
+            for filename, contents in self._files_error_logs.items():
+                error_log_filename = '.'.join(filename.split('.')[:-1]) + '.log'
+                error_log_file = Path(self._temp_json_dir) / error_log_filename
+                with error_log_file.open('w') as handle:
+                    handle.write(contents)
+                self._sftp.upload(str(error_log_file), f'{self._base_sftp_dir}error/{error_log_filename}')
 
         except Exception as exceptionmessage:
             send_email(f"{exceptionmessage}\n{traceback.format_exc()}")
@@ -109,16 +116,18 @@ class MainNominativeDataParserFromOds:
         Downloads all new files because in sftp files can not be read, so they need to be downloaded.
         :return: None
         """
-        # List all files in the remote directory
+        # List all files in the remote directory non-recursively
         files_and_dirs = self._sftp.listdir_attr('upload')
 
         # Filter out directories, only list files
         self._files_remote = [entry.filename for entry in files_and_dirs if not stat.S_ISDIR(entry.st_mode)]
+        if self._test_dummy:
+            self._files_remote = [file for file in self._files_remote if file.startswith('test_dummy')]
         logging.info(self._files_remote)
 
         # Download each file
         for file in self._files_remote:
-            self._sftp.get(f'upload/{file}', f'{self._temp_json_dir}/{file}')
+            self._sftp.get(f'{self._base_sftp_dir}{file}', f'{self._temp_json_dir}/{file}')
             logging.info(f'Downloaded: {file}')
 
     def group_files_by_pathogen_and_type(self):
@@ -155,13 +164,14 @@ class MainNominativeDataParserFromOds:
 
     def _process_json_files(self):
         """
-        Parses all downloaded JSON files and inserts them into MongoDB
+        Parses all downloaded JSON files and inserts them into MongoDB.
         :return: None
         """
         for species, filetypes_dict in self._files_by_filetype_by_species.items():
             mongoinit_local = MongoInitialisation(species, mongo_config_data=self._mongo_config_data,
                                                   alternate_connection_string=self._mongo_config_data[
-                                                      'CONNECTION_STRING_LOCAL'])
+                                                      'CONNECTION_STRING_LOCAL'],
+                                                  alternate_dtap=self._alternate_dtap)
             nominative_labtest_clinical_metadata_collection = mongoinit_local.initialise_nominative_labtest_clinical_metadata_collection()
             unprocessed_nominative_labtest_metadata_collection = mongoinit_local.initialise_unprocessed_nominative_labtest_metadata_collection()
             unprocessed_nominative_clinical_metadata_collection = mongoinit_local.initialise_unprocessed_nominative_clinical_metadata_collection()
@@ -259,7 +269,7 @@ class MainNominativeDataParserFromOds:
             data_translated['patient_age'] = 'UNK'
             data_translated['patient_age_group'] = 'UNK'
 
-    def __parse_complex_labtest_results(self, data, data_translated) -> None:
+    def __parse_complex_labtest_results(self, data: Dict[str, Any], data_translated: Dict[str, Any]) -> None:
         """
         Parses the labtest results from a complex list of dictionaries # todo
         e.g. "tx_ttl_lab_test": [{"dt_lab_test": "2024-03-25T12:00:00",  "tx_lab_rr_ll": "ref low",  "tx_lab_rr_ul": "ref up",  "cd_lab_pnl_batt": "385432009",  "cd_lab_rslt_sta": "corrected",  "cd_lab_reslt_tpe": "19851009",  "cd_lab_rslt_flag": "260405006",  "cd_lab_test_code": "468-9",  "cd_lab_test_meth": "14788002",  "ms_lab_rr_ll_val": 11.00000,  "ms_lab_rr_ul_val": 150.00000,  "cd_lab_rr_ll_unit": "385432009",  "cd_lab_rr_ul_unit": "385432009",  "cd_lab_intrpr_meth": "261665006",  "tx_lab_rslt_intrpr": "Test 3 interpretation",  "tx_lab_test_rslt_id": "Test Result 3",  "cd_lab_test_rslt_sta": "preliminary",  "tx_lab_cmnt_test_rslt": "Lab Test 3 comment",  "ms_lab_test_rslt_qn_val": 99.00000,  "cd_lab_test_rslt_qn_unit": "385432009"}, {"dt_lab_test": "2024-02-06T12:00:00",  "tx_lab_rr_ll": "lower limit",  "tx_lab_rr_ul": "Ref upper Range",  "cd_lab_pnl_batt": "385432009",  "cd_lab_rslt_sta": "registered",  "cd_lab_reslt_tpe": "252275004",  "cd_lab_rslt_flag": "281300000",  "cd_lab_test_code": "TC0031",  "cd_lab_test_meth": "363779003",  "ms_lab_rr_ll_val": 55.00000,  "ms_lab_rr_ul_val": 66.00000,  "cd_lab_rr_ll_unit": "385432009",  "cd_lab_rr_ul_unit": "385432009",  "cd_lab_intrpr_meth": "IM0001",  "tx_lab_rslt_intrpr": "Res Interpretation",  "cd_lab_test_rslt_ql": "83185005",  "tx_lab_test_rslt_id": "TestResID",  "cd_lab_test_rslt_sta": "preliminary",  "tx_lab_cmnt_test_rslt": "Lab Test comment"}]
@@ -285,7 +295,7 @@ class MainNominativeDataParserFromOds:
                     data_translated[labtest_dict['translation']] = labtest_result_dict.get(labtest_dict['value_field'].lower())
 
     @staticmethod
-    def __parse_complex_country_field(data, data_translated) -> None:
+    def __parse_complex_country_field(data: Dict[str, Any], data_translated: Dict[str, Any]) -> None:
         """
         Parses the optional infection country field list which didn't really fit in the main codes schema,
         e.g. "cd_infct_cntry": [{"cd_infct_cntry": "FR"}, {"cd_infct_cntry": "US"}]
@@ -293,13 +303,13 @@ class MainNominativeDataParserFromOds:
         :param data_translated: translated data to be inserted in MongoDB to be inserted in BIGSdb
         :return: None
         """
-        country_dicts_list = MainNominativeDataParserFromOds.__get_value_by_capitalization_agnostic_key(data, 'CD_INFCT_CNRTY')
+        country_dicts_list: List[Dict[str, Any]] = MainNominativeDataParserFromOds.__get_value_by_capitalization_agnostic_key(data, 'CD_INFCT_CNRTY')
         if country_dicts_list:
             for index, country_dict in enumerate(country_dicts_list):
                 for key, value in country_dict.items():
                     data_translated[f"country_{index + 1}"] = value
 
-    def __parse_salmonella_symptom_fields(self, data, data_translated) -> None:
+    def __parse_salmonella_symptom_fields(self, data: Dict[str, Any], data_translated: Dict[str, Any]) -> None:
         """
         Parses the mandatory symptom field list which didn't really fit in the main codes schema,
         e.g. "tx_ttl_symp": [{"cd_prob_nam": "25374005"}, {"cd_prob_nam": "91302008"}]

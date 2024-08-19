@@ -24,17 +24,21 @@ class SendGenomicToDWH:
     Class to get all required values for a pathogen from a MongoDB document and
     to send these values as a JSON file to the DWH over SFTP.
     """
-    def __init__(self, document: Dict[str, Any], mongo_config_data: Dict[str, Any], species: str) -> None:
+    def __init__(self, document: Dict[str, Any], mongo_config_data: Dict[str, Any], species: str,
+                 alternate_dtap: str = None) -> None:
         """
         Initialises this class and executes the main function.
         :param document: MongoDB document for a single sample.
         :param mongo_config_data: the MongoDB configuration file.
         :param species: commonly used bioit species name: either genus or specific like stec.
+        :param alternate_dtap: alternative dtap (should take test or prod from mongo config) in case we want to test dev
+        or acc
         :return: None
         """
         self._document = document
         self._mongo_config_data = mongo_config_data
         self._species = species
+        self._alternate_dtap = alternate_dtap
 
         # get HD ODS dictionaries to be able to translate to useable text
         with CODES_GENOMIC_DWH.open('r') as handle:
@@ -101,9 +105,9 @@ class SendGenomicToDWH:
             # Upload the file
             # Created the dev, test, and acc folders manually
             remote_path = f"to_hd/" \
-                          f"{self._mongo_config_data['dtap'] + '/' if self._mongo_config_data['dtap'] != 'prod' else ''}" \
+                          f"{self._alternate_dtap + '/' if self._alternate_dtap else self._mongo_config_data['dtap'] + '/' if self._mongo_config_data['dtap'] != 'prod' else ''}" \
                           f"{jsonfile.name}"
-            logging.info(output_json_dict)  # todo uncomment self._sftp.put(str(jsonfile), remote_path)
+            self._sftp.put(str(jsonfile), remote_path)
             logging.info(f"File uploaded successfully to {remote_path}")
 
     def __access_value(self, dict_path: List) -> str:

@@ -19,7 +19,7 @@
  "tx_lab_sample": "ID123",
  "cd_infct_cntry": [{"cd_infct_cntry": "FR"},
  {"cd_infct_cntry": "US"}],
- "tx_business_key": "72.02.21-282.32ID123",
+ "tx_business_key": "HCO_test_dummy_salmonella",
  "cd_antbio_specif": "10345210227",
  "id_te_hdbp0345_slm_clin": 11},
  "metadata": {"version": "V1.0.4",
