@@ -42,4 +42,6 @@ failsafe:
   flag_dir: /scratch/temp/flags
   flag_append: reanalysis_start_flag
 
+assembly_size_threshold: 9000000
+
 threads_per_job: 1
