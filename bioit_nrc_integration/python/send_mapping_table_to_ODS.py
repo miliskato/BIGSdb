@@ -34,14 +34,15 @@ class SendMappingTableToODS:
         self._mapping_table = mapping_table
         self._species = species
         self._alternate_dtap = alternate_dtap
-        # initialize ssh & sftp
-        self._ssh, self._sftp = self._open_sftp_connection()
 
         # get sftp credentials
         with SFTP_CREDENTIALS_HD.open('r') as handle:
             self._sftp_credentials_hd = yaml.safe_load(handle)
         with CODES_GENOMIC_DWH.open('r') as handle:
             self._translation_codes = yaml.safe_load(handle)
+
+        # initialize ssh & sftp
+        self._ssh, self._sftp = self._open_sftp_connection()
             
         mapping_table_healthdata_names = {'data': {'TX_SAMPLE_ID ': self._mapping_table['_id'],
                                                    'TX_BIOIT_TECHNICAL_ID': self._mapping_table['pseudo_id'],
@@ -58,8 +59,8 @@ class SendMappingTableToODS:
                 handle.write(json.dumps(mapping_table_healthdata_names))
 
             # Upload the file
-            remote_path = f"upload/{self._alternate_dtap + '/' if self._alternate_dtap else ''}{jsonfile.name}"
-            logging.info(mapping_table_healthdata_names)  # todo uncomment self._sftp.put(str(jsonfile), remote_path)
+            remote_path = f"upload/{(self._alternate_dtap + '/') if self._alternate_dtap else ''}{jsonfile.name}"
+            self._sftp.put(str(jsonfile), remote_path)
             logging.info(f"File uploaded successfully to {remote_path}")
 
             # Close the SFTP session

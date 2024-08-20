@@ -181,7 +181,7 @@
   cron:
     name: "get_nominative_from_ODS"
     minute: '0'
-    hour: '*/1' # every hour
+    hour: '*/1'  # every hour
     weekday: '*'
     job: "/usr/bin/flock -n /tmp/get_nominative_from_ODS.lockfile {{ nrcint_venv }}/bin/python3.10 {{ bioit_bigs_home }}//bioit_nrc_integration/python/get_nominative_from_ODS.py"
     user: 'bigsdb'
@@ -192,7 +192,7 @@
   cron:
     name: "main_sender_to_HD"
     minute: '5'
-    hour: '*/1' # every hour
+    hour: '*/1'  # every hour
     weekday: '*'
     job: "/usr/bin/flock -n /tmp/main_sender_to_HD.lockfile {{ nrcint_venv }}/bin/python3.10 {{ bioit_bigs_home }}//bioit_nrc_integration/python/main_sender_to_HD.py"
     user: 'bigsdb'
@@ -203,7 +203,7 @@
   cron:
     name: "error_checker_for_main_sender_to_HD"
     minute: '10'
-    hour: '*/12' # every hour
+    hour: '*/12'  # every hour
     weekday: '*'
     job: "/usr/bin/flock -n /tmp/error_checker_for_main_sender_to_HD.lockfile {{ nrcint_venv }}/bin/python3.10 {{ bioit_bigs_home }}//bioit_nrc_integration/python/error_checker_for_main_sender_to_HD.py"
     user: 'bigsdb'

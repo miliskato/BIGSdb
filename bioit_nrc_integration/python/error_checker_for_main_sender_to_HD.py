@@ -71,11 +71,11 @@ class ErrorCheckerForMainSenderToHD:
             folder_path = 'error'
             if healthdata_receiver == 'ODS':
                 folder_path = 'upload/' + \
-                              f"{self._alternate_dtap + '/' if self._alternate_dtap else ''}" + \
+                              f"{(self._alternate_dtap + '/') if self._alternate_dtap else ''}" + \
                               folder_path
             else:  # if healthdata_receiver == 'DWH':
                 folder_path = 'to_hd/' + \
-                              f"{self._alternate_dtap + '/' if self._alternate_dtap else self._mongo_config_data['dtap'] + '/' if self._mongo_config_data['dtap'] != 'prod' else ''}" + \
+                              f"{(self._alternate_dtap + '/') if self._alternate_dtap else (self._mongo_config_data['dtap'] + '/') if self._mongo_config_data['dtap'] != 'prod' else ''}" + \
                               folder_path
 
             # List all files in the remote directory
@@ -109,11 +109,11 @@ class ErrorCheckerForMainSenderToHD:
             folder_path = 'processed'
             if healthdata_receiver == 'ODS':
                 folder_path = 'upload/' + \
-                              f"{self._alternate_dtap + '/' if self._alternate_dtap else ''}" + \
+                              f"{(self._alternate_dtap + '/') if self._alternate_dtap else ''}" + \
                               folder_path
             else:  # if healthdata_receiver == 'DWH':
                 folder_path = 'to_hd/' + \
-                              f"{self._alternate_dtap + '/' if self._alternate_dtap else self._mongo_config_data['dtap'] + '/' if self._mongo_config_data['dtap'] != 'prod' else ''}" + \
+                              f"{(self._alternate_dtap + '/') if self._alternate_dtap else (self._mongo_config_data['dtap'] + '/') if self._mongo_config_data['dtap'] != 'prod' else ''}" + \
                               folder_path
 
             # List all files in the remote directory
@@ -122,7 +122,7 @@ class ErrorCheckerForMainSenderToHD:
             # Filter out directories, only list files
             files_remote = [entry.filename for entry in files_and_dirs if not stat.S_ISDIR(entry.st_mode)]
             if self._test_dummy:
-                self._files_remote = [file for file in self._files_remote if file.startswith('test_dummy')]
+                files_remote = [file for file in files_remote if file.startswith('test_dummy')]
             logging.info(files_remote)
 
             with tempfile.TemporaryDirectory(dir='/tmp') as temp_json_dir:
@@ -131,8 +131,8 @@ class ErrorCheckerForMainSenderToHD:
                     sftp.get(f'{folder_path}/{file}', f'{temp_json_dir}/{file}')
                     logging.info(f'Downloaded: {file}')
 
-                    with Path(f'{temp_json_dir}/{file}') as handle:
-                        contents = json.loads(handle)
+                    with Path(f'{temp_json_dir}/{file}').open('r') as handle:
+                        contents = json.load(handle)
                     dcd_name = contents['metadata']['dcd_name']
                     # get species name based on dcd name which is a metadata value in both outgoing DCDs
                     species = next(pathogen for pathogen, details in self._translation_codes['pathogens'].items() if details['dcd_name'] == dcd_name)
@@ -141,8 +141,12 @@ class ErrorCheckerForMainSenderToHD:
                                                           alternate_connection_string=self._mongo_config_data['CONNECTION_STRING_LOCAL'],
                                                           alternate_dtap=self._alternate_dtap)
                     mapping_table_collection = mongoinit_local.initialise_mapping_table_collection()
-                    mapping_table_collection.update_one({'TX_BUSINESS_KEY': contents['data']['TX_BUSINESS_KEY']},
-                                                        {"$set": {f"accepted_by_{healthdata_receiver}": True}})
+                    if healthdata_receiver == 'ODS':
+                        mapping_table_collection.update_one({'TX_BUSINESS_KEY': contents['data']['TX_BUSINESS_KEY']},
+                                                            {"$set": {f"accepted_by_{healthdata_receiver}": True}})
+                    else:  # if healthdata_receiver == 'DWH':
+                        mapping_table_collection.update_one({'pseudo_id': contents['data']['TX_BIOIT_TECHNICAL_ID']},
+                                                            {"$set": {f"accepted_by_{healthdata_receiver}": True}})
                     # Remove sftp file in processed folder once acknowledged and inserted into MongoDB local
                     sftp.remove(f'{folder_path}/{file}')
 

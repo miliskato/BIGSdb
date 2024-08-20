@@ -90,8 +90,12 @@ class SendGenomicToDWH:
             for variable, list_path in self._translation_codes[self._species].items():
                 data_dict[variable] = self.__access_value(list_path)
                 if 'CD_GENTPE' in variable:
-                    # I have at least noticed one instance where an R was lowercase
-                    data_dict[variable] = (data_dict[variable]).upper()
+                    if not data_dict[variable]:
+                        # The genotyphi fields are optional
+                        data_dict.pop(variable)
+                    else:
+                        # I have at least noticed one instance where an R was lowercase
+                        data_dict[variable] = (data_dict[variable]).upper()
         output_json_dict = {'metadata': {'version': self._translation_codes['pathogens'][self._species]['dcd_version'],
                                          'data_collection': self._translation_codes['pathogens'][self._species]['dcd_code'],
                                          'dcd_name': self._translation_codes['pathogens'][self._species]['dcd_name']},
@@ -105,7 +109,7 @@ class SendGenomicToDWH:
             # Upload the file
             # Created the dev, test, and acc folders manually
             remote_path = f"to_hd/" \
-                          f"{self._alternate_dtap + '/' if self._alternate_dtap else self._mongo_config_data['dtap'] + '/' if self._mongo_config_data['dtap'] != 'prod' else ''}" \
+                          f"{(self._alternate_dtap + '/') if self._alternate_dtap else (self._mongo_config_data['dtap'] + '/') if self._mongo_config_data['dtap'] != 'prod' else ''}" \
                           f"{jsonfile.name}"
             self._sftp.put(str(jsonfile), remote_path)
             logging.info(f"File uploaded successfully to {remote_path}")

@@ -11,16 +11,16 @@ schema:
       required: False # default is empty in bigsdb
       translation: patient_id
     DT_PAT_DOB:
-      required: False # default is empty in bigsdb # todo this needs to be in YYYY-MM-DD format
+      required: False # default is empty in bigsdb
       translation: patient_birth_date
     CD_PAT_SEX:
       required: False
-      default: Unknown # in saltest UNK but in DCD list Unknown
+      default: 'Unknown' # in saltest UNK but in DCD list 'Unknown'
       translation: patient_sex
       code_list: CD_PAT_SEX_codes
     CD_PAT_PC: # has code list, but seeing as codes = zip doesn't really make sense to add
       required: False
-      default: Unknown
+      default: 'Unknown'
       translation: patient_zip
     CD_CNTRY: # default is empty in bigsdb
       required: False
@@ -28,14 +28,14 @@ schema:
     TX_LAB_SAMPLE_VAL:
       required: True
       translation: specimen
-#    CD_LAB_PATHOGEN: # default is empty in bigsdb
-#      required: False
-#      translation: serovar_final
-#      code_list: CD_LAB_PATHOGEN_codes
     TX_LAB_CMNT_SPECIM:
       required: False
       default: N/A
       translation: comment
+    CD_LAB_PATHOGEN:
+      required: False
+      translation: serovar_final  # todo confirm that this is indeed that variable
+      code_list: serovar_codes
   CLIN:
     TX_BUSINESS_KEY:
       required: True
@@ -70,21 +70,21 @@ code_lists:
     248152002: Female
     248153007: Male
     32570681000036106: Indeterminate sex
-    261665006: Unknown
+    261665006: 'Unknown'
   CD_HOSPZ_codes:
-    32485007: Yes
-    373067005: No
-    261665006: Unknown
+    32485007: 'Yes'
+    373067005: 'No'
+    261665006: 'Unknown'
   CD_EVOL_codes:
     419099009: Died
-    OC0001: Unafvorable
+    OC0001: Unfavorable
     OC0002: Favorable
     371001000: Cured
-    261665006: Unknown
+    261665006: 'Unknown'
   CD_ANTBIO_codes:
-    281789004: Yes
-    373067005: No
-    261665006: Unknown
+    281789004: 'Yes'
+    373067005: 'No'
+    261665006: 'Unknown'
   CD_ANTBIO_SPECIF_codes:
     31087008: Product containing ampicillin
     96034006: Product containing azithromycin
@@ -100,36 +100,102 @@ code_lists:
     66261008: Product containing tetracycline
     418631002: Product containing tigecycline
     32792001: Product containing trimethoprim
-    261665006: Unknown
+    261665006: 'Unknown'
   CD_EPILINK_codes:
     409699001: Human to human transmission
     EL0001: Isolated case
     416086007: Foodborne transmission
     385432009: Not applicable
     74964007: Other
-    261665006: Unknown
+    261665006: 'Unknown'
   CD_PROB_NAM_codes:
     84387000: Asymptomatic
     25374005: Gastroenteritis
     91302008: Sepsis
     68566005: Urinary tract infection
-    261665006: Unknown
+    261665006: 'Unknown'
   TX_TTL_LAB_TEST_combinations:  # CD_LAB_TEST_METH, CD_LAB_TEST_CODE, value_field, code_list, translation # todo for the numeric ones need unit? where is the unit code list?
     - CD_LAB_TEST_METH: '117871005'
-      CD_LAB_TEST_CODE: ''
+      CD_LAB_TEST_CODE: null
       value_field: 'CD_LAB_TEST_RSLT_QL'
       code_list: 'serovar_codes'
-      translation: 'serovar_final'  # todo need to see example because unclear what will be in the mandatory CD_LAB_TEST_CODE field
-    - CD_LAB_TEST_METH: '117871005' # todo how to differentiate between other serotype field?
-      CD_LAB_TEST_CODE: ''
-      value_field: 'CD_LAB_TEST_RSLT_QL'
-      code_list: 'serovar_codes'
-      translation: 'aggl_serogroup'
+      translation: 'aggl_serogroup'  # todo confirm that this is indeed that variable
     - CD_LAB_TEST_METH: '409588007'
-      CD_LAB_TEST_CODE: ''
+      CD_LAB_TEST_CODE: null
       value_field: 'CD_LAB_TEST_RSLT_TXT'
       translation: 'mlva_profile'
-    - # todo others
+    - CD_LAB_TEST_METH: '14788002'
+      CD_LAB_TEST_CODE: '18864-9'
+      value_field: 'CD_LAB_TEST_RSLT_QL'
+      code_list: 'labtest_codes'
+      translation: 'mic_amp_1'  # todo the 1 stands for interpretation, although this is maybe a comprehension mistake and should have been i instead of 1; Florian asked that for every antibiotic both 1 and not 1 are added to bigsdb (currently not both for many)
+    - CD_LAB_TEST_METH: '14788002'
+      CD_LAB_TEST_CODE: '18866-4'
+      value_field: 'CD_LAB_TEST_RSLT_QL'
+      code_list: 'labtest_codes'
+      translation: 'mic_azm_1'
+    - CD_LAB_TEST_METH: '14788002'
+      CD_LAB_TEST_CODE: '18886-2'
+      value_field: 'CD_LAB_TEST_RSLT_QL'
+      code_list: 'labtest_codes'
+      translation: 'mic_cox_1'
+    - CD_LAB_TEST_METH: '14788002'
+      CD_LAB_TEST_CODE: '18893-8'
+      value_field: 'CD_LAB_TEST_RSLT_QL'
+      code_list: 'labtest_codes'
+      translation: 'mic_caz_1'
+    - CD_LAB_TEST_METH: '14788002'
+      CD_LAB_TEST_CODE: '18903-5'
+      value_field: 'CD_LAB_TEST_RSLT_QL'
+      code_list: 'labtest_codes'
+      translation: 'mic_chl_1'
+    - CD_LAB_TEST_METH: '14788002'
+      CD_LAB_TEST_CODE: '18906-8'
+      value_field: 'CD_LAB_TEST_RSLT_QL'
+      code_list: 'labtest_codes'
+      translation: 'mic_cip_1'
+    - CD_LAB_TEST_METH: '14788002'
+      CD_LAB_TEST_CODE: '18912-6'
+      value_field: 'CD_LAB_TEST_RSLT_QL'
+      code_list: 'labtest_codes'
+      translation: 'mic_col_1'
+    - CD_LAB_TEST_METH: '14788002'
+      CD_LAB_TEST_CODE: '35802-8'
+      value_field: 'CD_LAB_TEST_RSLT_QL'
+      code_list: 'labtest_codes'
+      translation: 'mic_etp_1'
+    - CD_LAB_TEST_METH: '14788002'
+      CD_LAB_TEST_CODE: '18928-2'
+      value_field: 'CD_LAB_TEST_RSLT_QL'
+      code_list: 'labtest_codes'
+      translation: 'mic_gmn_1'
+    - CD_LAB_TEST_METH: '14788002'
+      CD_LAB_TEST_CODE: '18943-1'
+      value_field: 'CD_LAB_TEST_RSLT_QL'
+      code_list: 'labtest_codes'
+      translation: 'mic_mem_1'
+    - CD_LAB_TEST_METH: '14788002'
+      CD_LAB_TEST_CODE: '18985-2'
+      value_field: 'CD_LAB_TEST_RSLT_QL'
+      code_list: 'labtest_codes'
+      translation: 'mic_smx_1'
+    - CD_LAB_TEST_METH: '14788002'
+      CD_LAB_TEST_CODE: '18993-6'
+      value_field: 'CD_LAB_TEST_RSLT_QL'
+      code_list: 'labtest_codes'
+      translation: 'mic_tet_1'
+    - CD_LAB_TEST_METH: '14788002'
+      CD_LAB_TEST_CODE: '42357-4'
+      value_field: 'CD_LAB_TEST_RSLT_QL'
+      code_list: 'labtest_codes'
+      translation: 'mic_tgc_1'
+    - CD_LAB_TEST_METH: '14788002'
+      CD_LAB_TEST_CODE: '18997-7'
+      value_field: 'CD_LAB_TEST_RSLT_QL'
+      code_list: 'labtest_codes'
+      translation: 'mic_tmp_1'
+    # todo others with quantitative once added to DCD
+    # todo mic resistances
   labtest_codes:
     83185005: Susceptible
     11896004: Intermediate
@@ -466,7 +532,7 @@ code_lists:
     11379008: Salmonella Ughelli
     31900005: Salmonella Umhlatazana
     2434007: Salmonella Uganda
-    261665006: Unknown
+    261665006: 'Unknown'
     32244000: Salmonella Tyresoe
     52730003: Salmonella Typhisuis
     370578006: Salmonella Typhimurium var. Copenhagen

@@ -45,7 +45,7 @@ class MainNominativeDataParserFromOds:
         self._files_error_logs = {}
         
         # set base sftp dir
-        self._base_sftp_dir = f"upload/{self._alternate_dtap + '/' if self._alternate_dtap else ''}"
+        self._base_sftp_dir = f"upload/{(self._alternate_dtap + '/') if self._alternate_dtap else ''}"
 
         # initialize dictionary to match CLIN and LAB files by pathogen
         self._files_by_filetype_by_species = {}
@@ -72,21 +72,21 @@ class MainNominativeDataParserFromOds:
                 self.group_files_by_pathogen_and_type()
                 self._process_json_files()
 
-            # reinitialize ssh & sftp
-            self._ssh, self._sftp = self._open_sftp_connection()
+                # reinitialize ssh & sftp
+                self._ssh, self._sftp = self._open_sftp_connection()
 
-            # todo I need to make sure that these are moved when they're inserted in MongoDB else this will raise errors
-            # In SFTP moving is done by renaming; move files to right folder according to success
-            for file in self._files_processed:
-                self._sftp.rename(f'{self._base_sftp_dir}{file}', f'{self._base_sftp_dir}processed/{file}')
-            for file in self._files_error:
-                self._sftp.rename(f'{self._base_sftp_dir}{file}', f'{self._base_sftp_dir}error/{file}')
-            for filename, contents in self._files_error_logs.items():
-                error_log_filename = '.'.join(filename.split('.')[:-1]) + '.log'
-                error_log_file = Path(self._temp_json_dir) / error_log_filename
-                with error_log_file.open('w') as handle:
-                    handle.write(contents)
-                self._sftp.upload(str(error_log_file), f'{self._base_sftp_dir}error/{error_log_filename}')
+                # todo I need to make sure that these are moved when they're inserted in MongoDB else this will raise errors
+                # In SFTP moving is done by renaming; move files to right folder according to success
+                for file in self._files_processed:
+                    self._sftp.rename(f'{self._base_sftp_dir}{file}', f'{self._base_sftp_dir}processed/{file}')
+                for file in self._files_error:
+                    self._sftp.rename(f'{self._base_sftp_dir}{file}', f'{self._base_sftp_dir}error/{file}')
+                for filename, contents in self._files_error_logs.items():
+                    error_log_filename = '.'.join(filename.split('.')[:-1]) + '.log'
+                    error_log_file = Path(self._temp_json_dir) / error_log_filename
+                    with error_log_file.open('w') as handle:
+                        handle.write(contents)
+                    self._sftp.put(str(error_log_file), f'{self._base_sftp_dir}error/{error_log_filename}')
 
         except Exception as exceptionmessage:
             send_email(f"{exceptionmessage}\n{traceback.format_exc()}")
@@ -117,7 +117,10 @@ class MainNominativeDataParserFromOds:
         :return: None
         """
         # List all files in the remote directory non-recursively
-        files_and_dirs = self._sftp.listdir_attr('upload')
+        folder = 'upload'
+        if self._alternate_dtap:
+            folder = folder + '/' + self._alternate_dtap
+        files_and_dirs = self._sftp.listdir_attr(folder)
 
         # Filter out directories, only list files
         self._files_remote = [entry.filename for entry in files_and_dirs if not stat.S_ISDIR(entry.st_mode)]
@@ -196,7 +199,7 @@ class MainNominativeDataParserFromOds:
                             unprocessed_value = self.__get_value_by_capitalization_agnostic_key(data_unprocessed, hd_key)
                             if unprocessed_value:
                                 if hd_key_property_dict.get('code_list'):
-                                    value = self._translation_codes['code_lists'][hd_key_property_dict['code_list']][unprocessed_value]
+                                    value = self._translation_codes['code_lists'][hd_key_property_dict['code_list']][self.__cast_as_int_if_int(unprocessed_value)]
                                 else:
                                     value = unprocessed_value
                                 data_translated[hd_key_property_dict['translation']] = value
@@ -219,9 +222,10 @@ class MainNominativeDataParserFromOds:
                         nominative_labtest_clinical_metadata_collection.insert_one(data_translated)
                     else:
                         # Insert CLIN or LAB, whichever is second
+                        id = data_translated['_id']
                         data_translated.pop('_id')
-                        nominative_labtest_clinical_metadata_collection.update_one({'_id': data_translated['_id']},
-                                                                                   {**data_translated})
+                        nominative_labtest_clinical_metadata_collection.update_one({'_id': id},
+                                                                                   {'$set': {**data_translated}})
 
                     # if one of these raises a MongoDuplicationError possibly because the documents have been
                     # inserted into MongoDB previously but failed before moving them to the
@@ -230,9 +234,9 @@ class MainNominativeDataParserFromOds:
                     # Alternatively, I could try to aggregate these DuplicationErrors and send one aggregated mail
                     # todo ?
                     if filetype == 'LAB':
-                        unprocessed_nominative_labtest_metadata_collection.insert_one(data_unprocessed['LAB'])
+                        unprocessed_nominative_labtest_metadata_collection.insert_one(data_unprocessed)
                     if filetype == 'CLIN':
-                        unprocessed_nominative_clinical_metadata_collection.insert_one(data_unprocessed['CLIN'])
+                        unprocessed_nominative_clinical_metadata_collection.insert_one(data_unprocessed)
                     self._files_processed.append(file)
 
     @staticmethod
@@ -252,7 +256,7 @@ class MainNominativeDataParserFromOds:
                                       datetime.strptime(dob, "%Y-%m-%d")).days / 365.25)
             data_translated['patient_age'] = patient_age
             age_groups = [
-                ("Below 1", 0, 0),
+                ("Below 1", -1, 0),
                 ("Between 2 and 4", 1, 4),
                 ("Between 5 and 9", 5, 9),
                 ("Between 10 and 14", 10, 14),
@@ -283,16 +287,15 @@ class MainNominativeDataParserFromOds:
                 labtest_result_combinations = self._translation_codes['code_lists']['TX_TTL_LAB_TEST_combinations']
                 labtest_dict = next((labtest_dict for labtest_dict in labtest_result_combinations if
                                      # CD_LAB_TEST_METH is mandatory I believe
-                                     labtest_dict['CD_LAB_TEST_METH'] == labtest_result_dict.get('CD_LAB_TEST_METH'.lower())
-                                     # CD_LAB_TEST_CODE seems to be optional; if '' in code list then .get results in False
+                                     labtest_dict['CD_LAB_TEST_METH'] == self.__get_value_by_capitalization_agnostic_key(labtest_result_dict, 'CD_LAB_TEST_METH')
+                                     # CD_LAB_TEST_CODE seems to be optional; if null in code list then .get results in False
                                      # e.g. for serotyping this field does not seem to be filled because there are no subtests
-                                     and labtest_dict.get('CD_LAB_TEST_CODE') and
-                                     labtest_dict['CD_LAB_TEST_CODE'] == labtest_result_dict.get('CD_LAB_TEST_CODE'.lower())))
+                                     and not labtest_dict.get('CD_LAB_TEST_CODE') or labtest_dict.get('CD_LAB_TEST_CODE') == self.__get_value_by_capitalization_agnostic_key(labtest_result_dict, 'CD_LAB_TEST_CODE')))
 
                 if labtest_dict.get('code_list'):
-                    data_translated[labtest_dict['translation']] = self._translation_codes['code_lists'][labtest_dict['code_list']][labtest_result_dict[labtest_dict['value_field'.lower()]]]
+                    data_translated[labtest_dict['translation']] = self._translation_codes['code_lists'][labtest_dict['code_list']][self.__cast_as_int_if_int(self.__get_value_by_capitalization_agnostic_key(labtest_result_dict, labtest_dict['value_field']))]
                 else:
-                    data_translated[labtest_dict['translation']] = labtest_result_dict.get(labtest_dict['value_field'].lower())
+                    data_translated[labtest_dict['translation']] = self.__get_value_by_capitalization_agnostic_key(labtest_result_dict, labtest_dict['value_field'])
 
     @staticmethod
     def __parse_complex_country_field(data: Dict[str, Any], data_translated: Dict[str, Any]) -> None:
@@ -317,10 +320,10 @@ class MainNominativeDataParserFromOds:
         :param data_translated: translated data to be inserted in MongoDB to be inserted in BIGSdb
         :return: None
         """
-        symptom_list_of_dicts: List[Dict[str, str]] = self.__get_value_by_capitalization_agnostic_key(data, 'TXT_TTL_SYMP')
+        symptom_list_of_dicts: List[Dict[str, str]] = self.__get_value_by_capitalization_agnostic_key(data, 'TX_TTL_SYMP')
         for symptom_dict in symptom_list_of_dicts:
             symptom_code = self.__get_value_by_capitalization_agnostic_key(symptom_dict, 'CD_PROB_NAM')
-            symptom_code_translation = self._translation_codes['CD_PROB_NAM_codes'][symptom_code]
+            symptom_code_translation = self._translation_codes['code_lists']['CD_PROB_NAM_codes'][self.__cast_as_int_if_int(symptom_code)]
             # todo these 5 symptom_ fields need to be added to the salmonella isolates table and the clinical_info field should be removed.
             data_translated[f"symptom_{symptom_code_translation.replace(' ', '_').lower()}"] = "Yes"
 
@@ -336,6 +339,20 @@ class MainNominativeDataParserFromOds:
             return search_dictionary.get(target_key.lower())
         else:
             return search_dictionary.get(target_key.upper())
+
+    @staticmethod
+    def __cast_as_int_if_int(possible_int: str) -> Union[int, str]:
+        """
+        In the code lists in yaml, keys are ints if they are only consist of numbers.
+        In order to be able to access the int keys, strings need to be cast as ints if they are.
+        This function does exactly that.
+        :param possible_int: string value
+        :return: int if string contains only digits and str if not
+        """
+        if possible_int.isdigit():
+            return int(possible_int)
+        else:
+            return possible_int
 
     def _close_sftp_connection(self) -> None:
         """

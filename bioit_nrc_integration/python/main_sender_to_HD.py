@@ -81,7 +81,7 @@ class MainSenderToHD:
             for document in list_of_unsent_validated_documents:
                 try:
                     if not document.get('sent_to_ODS'):
-                        SendMappingTableToODS(document, species)
+                        SendMappingTableToODS(document, species, alternate_dtap=self._alternate_dtap)
                         mapping_table_collection.update_one({'_id': document['_id']},
                                                             {"$set": {"sent_to_ODS": True}})
 
@@ -92,7 +92,7 @@ class MainSenderToHD:
                         document_genomic['pseudo_id'] = document['pseudo_id']
                         document_genomic['TX_BUSINESS_KEY'] = document['TX_BUSINESS_KEY']
 
-                        SendGenomicToDWH(document_genomic, self._mongo_config_data, species)
+                        SendGenomicToDWH(document_genomic, self._mongo_config_data, species, alternate_dtap=self._alternate_dtap)
 
                         # technically overkill to add this field here because right after sent_to_ODS_and_DWH is updated,
                         # but it is added for clarity and so that the order of sending can be changed easily too

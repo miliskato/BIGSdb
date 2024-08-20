@@ -31,7 +31,7 @@ mongo_config_data = get_mongodb_config_data()
 
 DTAP = 'dev'  # should only be dev or acc
 
-for species, species_testfiles in testfiles_dict:
+for species, species_testfiles in testfiles_dict.items():
     mongoinit_azure = MongoInitialisation(species, mongo_config_data=mongo_config_data,
                                           alternate_dtap=DTAP)
     isolates_collection, old_isolateresults_collection, isolates_badqc_collection, \
@@ -56,9 +56,9 @@ for species, species_testfiles in testfiles_dict:
     # Create an SFTP session
     sftp = ssh.open_sftp()
     sftp.put(str(testfiles_folder / species_testfiles['get_nominative_from_ODS_CLIN']),
-             f"upload/{DTAP}/test_dummy_{species}_CLIN.json")
+             f"upload/{DTAP}/test_dummy_{species}_CLIN_.json")
     sftp.put(str(testfiles_folder / species_testfiles['get_nominative_from_ODS_LAB']),
-             f"upload/{DTAP}/test_dummy_{species}_LAB.json")
+             f"upload/{DTAP}/test_dummy_{species}_LAB_.json")
 
     """
     Run Nominative data parser on CLIN and LAB files uploaded to ODS
@@ -68,8 +68,8 @@ for species, species_testfiles in testfiles_dict:
     """
     After successful parsing the file is moved to the processed folder, remove it from there to clean up.
     """
-    sftp.remove(f"upload/{DTAP}/processed/test_dummy_{species}_CLIN.json")
-    sftp.remove(f"upload/{DTAP}/processed/test_dummy_{species}_LAB.json")
+    sftp.remove(f"upload/{DTAP}/processed/test_dummy_{species}_CLIN_.json")
+    sftp.remove(f"upload/{DTAP}/processed/test_dummy_{species}_LAB_.json")
     sftp.close()
     ssh.close()
 
@@ -77,7 +77,7 @@ for species, species_testfiles in testfiles_dict:
     Insert dummy genomic report JSON into remote isolates collection, skip MainMongo.
     """
     with (testfiles_folder / species_testfiles['genomic_json_report']).open('r') as handle:
-        dummy_genomic_report = json.loads(handle)
+        dummy_genomic_report = json.load(handle)
     isolates_collection.insert_one(dummy_genomic_report)
 
     """
@@ -85,7 +85,7 @@ for species, species_testfiles in testfiles_dict:
     discover in order to be able to send it.
     """
     with (testfiles_folder / species_testfiles['mapping_table']).open('r') as handle:
-        dummy_mapping_table = json.loads(handle)
+        dummy_mapping_table = json.load(handle)
     mapping_table_collection.insert_one(dummy_mapping_table)
 
     """
