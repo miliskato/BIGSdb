@@ -27,7 +27,7 @@ from bioit_mongodb_scripts.reanalysis.reanalysis_triggers import TRIGGER_CONFIG
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data
 
-BATCH_POOL_NAME: Final[str] = 'reanalysis_pool_focal'
+BATCH_POOL_NAME: Final[str] = 'analysis_pool_focal'
 BATCH_JOB_NAME_PREFIX: Final[str] = 'reanalysis_tasks_focal_'
 AUTOSCALE_FORMULA = """$TargetLowPriorityNodes = max(0, min(20, $PendingTasks.GetSample(TimeInterval_Minute*5)));\n$NodeDeallocationOption = taskcompletion;"""
 
