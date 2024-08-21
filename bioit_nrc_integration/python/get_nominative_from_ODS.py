@@ -290,7 +290,7 @@ class MainNominativeDataParserFromOds:
                                      labtest_dict['CD_LAB_TEST_METH'] == self.__get_value_by_capitalization_agnostic_key(labtest_result_dict, 'CD_LAB_TEST_METH')
                                      # CD_LAB_TEST_CODE seems to be optional; if null in code list then .get results in False
                                      # e.g. for serotyping this field does not seem to be filled because there are no subtests
-                                     and not labtest_dict.get('CD_LAB_TEST_CODE') or labtest_dict.get('CD_LAB_TEST_CODE') == self.__get_value_by_capitalization_agnostic_key(labtest_result_dict, 'CD_LAB_TEST_CODE')))
+                                     and (not labtest_dict.get('CD_LAB_TEST_CODE') or labtest_dict.get('CD_LAB_TEST_CODE') == self.__get_value_by_capitalization_agnostic_key(labtest_result_dict, 'CD_LAB_TEST_CODE'))))
 
                 if labtest_dict.get('code_list'):
                     data_translated[labtest_dict['translation']] = self._translation_codes['code_lists'][labtest_dict['code_list']][self.__cast_as_int_if_int(self.__get_value_by_capitalization_agnostic_key(labtest_result_dict, labtest_dict['value_field']))]
