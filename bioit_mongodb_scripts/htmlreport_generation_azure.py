@@ -123,9 +123,12 @@ class HtmlreportGeneration:
         # Set the output dir
         dir_out = Path(self._mongo_config_data['temp_dir']) / self._dtap / self._species / '_'.join(
             [self._technical_id, self._analysis_date if self._analysis_date else str(self._changed_version)])
+        dir_out.mkdir(parents=True, exist_ok=True)
 
-        if requested_document['results'].get('results_version') and not requested_document['results']['results_version'] == 1: # badqc and reseq isolates do not have a results_version
-            dir_out.mkdir(parents=True, exist_ok=True)
+        number_of_old_isolate_results = self._mongoquerying.retrieve_number_of_old_isolate_results(
+            self._technical_id, self._old_isolateresults_collection, self._validation_type)
+
+        if number_of_old_isolate_results > 0:  # badqc and reseq isolates do not have old_isolate_results
             with self.__create_temp_dir('temp_reporting') as dir_temp:
                 # Dump the required json file
                 jsonfile = Path(dir_temp) / f"{self._technical_id}_temp.json"
@@ -156,6 +159,7 @@ class HtmlreportGeneration:
                     shutil.copyfile(Path(dir_temp) / 'camel.log', dir_out / 'camel.log')
                     raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}: {command.stderr}")
         else:  # if requested_document['results_version'] == 1:
+            dir_out.rmdir()
             shutil.copytree(requested_document['report_directory'], str(dir_out))
             pass
 
