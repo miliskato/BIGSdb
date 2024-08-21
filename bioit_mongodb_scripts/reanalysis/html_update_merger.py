@@ -2,7 +2,7 @@
 import argparse
 import sys
 from pathlib import Path
-from typing import List, Union
+from typing import List, Union, Optional
 
 import yaml
 from bs4 import BeautifulSoup, Tag
@@ -17,36 +17,39 @@ sys.path.append(str(PYTHONPATH))
 def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     """
     Parses the command line arguments.
+    :param specieslist: list of all the species choices
     :return: Parsed arguments
     """
     parser = argparse.ArgumentParser()
     parser.add_argument("--species", required=True, type=str, choices=specieslist)
-    parser.add_argument("--html1", required=True, type=Path)
-    parser.add_argument("--html2", required=True, type=Path)
+    parser.add_argument("--base-html", required=True, type=Path)
+    parser.add_argument("--updated-html", required=True, type=Path)
     parser.add_argument("--analysis-arguments", required=True, nargs='+', type=str)
-    parser.add_argument("--new-file", required=True, type=Path)
+    parser.add_argument("--new-file", required=False, type=Path)
     return parser.parse_args()
 
 
-class ParseHtml:
+class HtmlUpdateMerger:
     """
     Parses the old and new html report and replaces the sections that changed with regard to the old report.
     """
-    def __init__(self, html1: Path, html2: Path, analysis_arguments: List[str], species: str, new_file: Path) -> None:
+    def __init__(self, base_html: Path, updated_html: Path, analysis_arguments: List[str], species: str,
+                 new_file: Optional[Path]) -> None:
         """
         Initializes this class and executes the main function.
-        :param html1: Path to the first html report
-        :param html2: Path to the second html report
+        :param base_html: Path to the base html report
+        :param updated_html: Path to the updated html report
         :param analysis_arguments: analysis arguments
         :param species: commonly used bioit species name: either genus or specific like stec
         :param new_file: Path to the new html report
         :return: None
         """
-        self._html1 = html1
-        self._html2 = html2
+        self._base_html = base_html
+        self._updated_html = updated_html
         self._analysis_arguments = analysis_arguments
         self._species = species
-        self._new_file = new_file
+        self._new_file = new_file if new_file else updated_html
+        # Execute main function
         self._adapt_html()
 
     def _adapt_html(self) -> None:
@@ -54,13 +57,13 @@ class ParseHtml:
         Adapts the html report.
         :return: None
         """
-        soup1 = self.__load_html(self._html1)
-        soup2 = self.__load_html(self._html2)
-        new_arguments = self.__change_arguments()
+        soup_base = self.__load_html(self._base_html)
+        soup_updated = self.__load_html(self._updated_html)
+        new_arguments = self.__convert_arguments_to_headers()
         for analysis_argument in new_arguments:
-            soup1 = self.__replace_section(soup1, soup2, analysis_argument)
-        with open(self._new_file, 'w', encoding='utf-8') as file:
-            file.write(str(soup1))
+            soup_base = self.__replace_section(soup_base, soup_updated, analysis_argument)
+        with self._new_file.open('w') as handle:
+            handle.write(str(soup_base))
 
     @staticmethod
     def __load_html(filename: Path) -> BeautifulSoup:
@@ -69,19 +72,19 @@ class ParseHtml:
         :param filename: Path to the file that has to be loaded
         :return: BeautifulSoup object
         """
-        with open(filename, 'r', encoding='utf-8') as file:
-            soup = BeautifulSoup(file, 'lxml')
+        with filename.open('r') as handle:
+            soup = BeautifulSoup(handle, 'lxml')
         return soup
 
-    def __change_arguments(self) -> List[str]:
+    def __convert_arguments_to_headers(self) -> List[str]:
         """
         Changes the arguments into the strings used in the header of the report.
         :return: list of the changed arguments
         """
         new_arguments = []
-        with Path(PARSING_ARGUMENTS).open('r') as handle:
+        with PARSING_ARGUMENTS.open('r') as handle:
             codes_dict = yaml.safe_load(handle)
-            if self._species in codes_dict:
+            if codes_dict.get(self._species):
                 for analysis_argument in self._analysis_arguments:
                     if analysis_argument in codes_dict[self._species]:
                         value = codes_dict[self._species][analysis_argument]
@@ -101,7 +104,7 @@ class ParseHtml:
         """
         section_to_replace = self.___find_section_by_header(soup1, header_text)
         new_section = self.___find_section_by_header(soup2, header_text)
-        # Replace these section
+        # Replace this section
         if section_to_replace and new_section:
             section_to_replace.replace_with(new_section)
         return soup1
@@ -130,8 +133,8 @@ if __name__ == '__main__':
     args = parse_arguments(mongo_config_data['species'])
 
     # Run main
-    ParseHtml(args.html1,
-              args.html2,
-              args.analysis_arguments,
-              args.species,
-              args.new_file)
+    HtmlUpdateMerger(args.base_html,
+                     args.updated_html,
+                     args.analysis_arguments,
+                     args.species,
+                     args.new_file)

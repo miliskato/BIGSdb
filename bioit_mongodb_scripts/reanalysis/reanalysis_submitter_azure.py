@@ -398,11 +398,10 @@ class BatchPipelinesReanalysis:
         report_command = ' '.join([
             f"module load {config_mongodb['lmod']};",
             f"{config_mongodb['report_script']}",
-            f"--html1 {results_dir}/report.html",
-            f"--html2 {report_dir}/report.html",
+            f"--base-html {results_dir}/report.html",
+            f"--updated-html {report_dir}/report.html",
             f"--species {self._species}",
-            f"--analysis-arguments {' '.join(analysis_arguments)}",
-            f"--new-file {report_dir}/report.html"
+            f"--analysis-arguments {' '.join(analysis_arguments)}"
         ])
         # Copy the stderr and stdout files from the temporary working dir to the fileshare because they
         # might contain more information than the camel.log
@@ -413,7 +412,6 @@ class BatchPipelinesReanalysis:
         # the cd before rsync is necessary because else it will throw the error: rsync: getcwd(): No such file or directory (2)
         lockfile = f"/scratch/scratch/{self._dtap}/mainmongo_{self._species}.lockfile"
         mongodb_command = ' '.join([
-            f"module load {config_mongodb['lmod']};",
             f"start_time=$(date +%s); while ! /usr/bin/flock -n {lockfile} true && (( $(date +%s) - start_time < 3600 )); do sleep 1; done;",
             f"/usr/bin/flock -u {lockfile}",
             f"{config_mongodb['main_script']}",
