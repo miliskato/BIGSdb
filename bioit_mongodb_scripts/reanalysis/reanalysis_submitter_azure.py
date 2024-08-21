@@ -266,7 +266,7 @@ class BatchPipelinesReanalysis:
         logging.info(f"{len(documents_list)} isolates to be reanalyzed for {self._species}_{self._dtap}")
         for mongodb_document in documents_list:
             # Create a new task to execute a command on the VM
-            task_name = f"{mongodb_document['results']['isolates_id']}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+            task_name = f"{mongodb_document['results']['isolates_id'][:43]}_{datetime.now().strftime('%Y%m%d%H%M%S%f')}"
             command = self.___build_command(task_name, date_args_dict[maximal_analysis_date], mongodb_document)
             self.___create_task(job_name, task_name, command)
         logging.info(
@@ -304,7 +304,7 @@ class BatchPipelinesReanalysis:
                               self._reanalysis_config['species'][self._species]['options']]
         for mongodb_document in documents_list:
             # Create a new task to execute a command on the VM
-            task_name = f"{mongodb_document['results']['isolates_id']}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+            task_name = f"{mongodb_document['results']['isolates_id'][:43]}_{datetime.now().strftime('%Y%m%d%H%M%S%f')}"
             command = self.___build_command(task_name, analysis_arguments, mongodb_document)
             self.___create_task(job_name, task_name, command)
         logging.info(
