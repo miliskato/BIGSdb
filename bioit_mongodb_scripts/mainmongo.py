@@ -50,8 +50,8 @@ def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     parser.add_argument("--vcffilepath_unfiltered", required=False, type=str)  # not mandatory because of reanalysis
     parser.add_argument("--original_input_format", required=False, type=str) # maybe later change it to choices
     parser.add_argument("--technical_id", required=True, type=str)
+    parser.add_argument("--technical_metadata_path", required=False, type=Path) # not mandatory because of reanalysis
     parser.add_argument("--pipeline_hash", required=True, type=str)  # Required for DCD NRC->DWH
-    parser.add_argument("--technical_metadata", required=False, type=Path) # not mandatory because of reanalysis
     parser.add_argument('--alternate_connection_string', type=str, help=argparse.SUPPRESS)  # will replace connection string, only for small testing purposes
     parser.add_argument('--alternate_dtap', choices=['dev', 'test', 'acc', 'prod'], help=argparse.SUPPRESS)  # will replace connection string, only for small testing purposes
     parser.add_argument('--dont_send_email', action='store_true', help=argparse.SUPPRESS)  # will not send emails, mainly used for blocking the reanalysis spam
@@ -63,7 +63,7 @@ class MainMongo:
     """
     Class containing definitions to insert samples into MongoDB
     """
-    def __init__(self, technical_id: str, species: str, results_type: str, uploader_mail_address: str, pipeline_hash: str, technical_metadata: Path = None, jsonfilepath: Path = None,
+    def __init__(self, technical_id: str, species: str, results_type: str, uploader_mail_address: str, pipeline_hash: str, technical_metadata_path: Path = None, jsonfilepath: Path = None,
                  subvaldict: Dict[str, str] = None, reportdirectorypath: Path = None, fastafilepath: Path = None,
                  vcffilepath: Path = None, vcffilepath_unfiltered: Path = None, original_input_format: str = None, alternate_connection_string: Union[bool, str] = False, alternate_dtap: Union[str, None] = None,
                  dont_send_email: bool = False, mongo_config_data: Dict[str, Any] = None) -> None:
@@ -74,8 +74,8 @@ class MainMongo:
         :param species: commonly used bioit species name: either genus or specific like stec
         :param results_type: Any of 'new_isolate', 'reanalysis', 'badqc_validated', 'resequencing_validated'
         :param uploader_mail_address: the mail address of the uploader
-        :param pipeline_hash: 10 character commit hash of the camel version used for this sample.
-        :param technical_metadata: filepath of the json metadata file
+        :param pipeline_hash: 10 first characters of the git hash of the pipeline used
+        :param technical_metadata_path: filepath of the json metadata file
         :param jsonfilepath: filepath of the json input file (output of pipeline)
         :param subvaldict: validation dictionary, received after validation through bigsdb (either results type badqc_validated or resequencing_validated')
         :param reportdirectorypath: absolute path to where the directory containing all files required for html are stored (only required for new_isolate)
@@ -91,11 +91,11 @@ class MainMongo:
         # Input parameters
         self._uploader_mail_address = uploader_mail_address
         self._technical_id = technical_id
-        self._technical_metadata = technical_metadata
         self._species = species
         self._pipeline_hash = pipeline_hash
         self._is_viral = self._species in ['influenza_a', 'influenza_b', 'sars_cov_2']
         self._results_type = results_type
+        self._technical_metadata_path = technical_metadata_path
         self._jsonfilepath = jsonfilepath
         self._subvaldict = subvaldict
         self._reportdirectorypath = reportdirectorypath
@@ -155,6 +155,8 @@ class MainMongo:
             raise Exception('fastafilepath necessary when using results_type new_isolate')
         if self._results_type == 'new_isolate' and self._species == 'mycobacterium' and not self._vcffilepath:
             raise Exception('vcffilepath necessary when using results_type new_isolate')
+        if self._results_type == 'new_isolate' and not self._technical_metadata_path:
+            raise Exception('technical metadata path necessary when using results_type new_isolate')
         # the below check is already handled in mongo initialisation
         # if self._alternate_dtap and self._alternate_dtap not in ['dev', 'test', 'acc', 'prod']:
         #     raise Exception('alternate dtap needs to be a valid choice between; dev, test, acc, prod')
@@ -231,8 +233,7 @@ class MainMongo:
                 for qc_type in new_records['qc']:
                     for key in new_records['qc'][qc_type]:
                         if key.endswith('status') and new_records['qc'][qc_type][key] == 'Failed':
-                            #good_sample_quality = False
-                            continue  # todo temp fix: on NRC platform, once a sample is uploaded, it is considered of good quality.
+                            good_sample_quality = False
             except KeyError:
                 send_email(
                     f"No qc values found in the given results for {self._technical_id}\n{traceback.format_exc()}",
@@ -407,7 +408,7 @@ class MainMongo:
         :param results: results dictionary to be inserted
         :return: dictionary with results under results key and metadata keys at the same level of the results key
         """
-        metadata = self.___retrieve_technical_metadata(results)
+        technical_metadata = self.___retrieve_technical_metadata(results)
         results["pipeline_hash"] = self._pipeline_hash
         results["results_version"] = 1  # this version always increments
         results["changed_version"] = 1  # this version only increments whenever something actually changed
@@ -420,7 +421,7 @@ class MainMongo:
                             "previous_latest_results_document": None,
                             "creation_date": datetime.utcnow(),
                             "latest_analysis_date": convert_dmyhms_to_ymd(results["analysis_date"]),
-                            "technical_metadata": metadata,
+                            "technical_metadata": technical_metadata,
                             "results": results}
         return new_isolate_dict
 
@@ -428,13 +429,15 @@ class MainMongo:
         """
         Load the technical metadata in a dictionary and fill in fields that are used when FASTA input is used if
         the input is FASTQ.
+        :params results: results dictionary
+        :return: dictionary with the technical metadata
         """
-        with Path(self._technical_metadata).open('r') as handle:
+        with Path(self._technical_metadata_path).open('r') as handle:
             metadata = json.load(handle)
         if str(self._original_input_format) == 'fastq':
             tx_seq_fltr_meth = ', '.join([f"downsample factor: {results['downsampling']['downsample_factor']}",
                                           f"trimming: {results['trimming']['informs_tools']['Trimmomatic']['_name']}",
-                                          f"filtering of assembly: {results['assembly']['informs_tools']['Seqtk seq']['_name']}" # TODO checken of dit klopt
+                                          f"filtering of assembly: {results['assembly']['informs_tools']['Seqtk seq']['_name']}"
                                           ])
             cd_seq_assy_meth = 'SPAdes'
             tx_seq_assy_meth_ver = results['assembly']['informs_tools']['spades']['_version']
@@ -602,9 +605,9 @@ class MainMongo:
 
     def ___convert_typinghitdictionaries_to_lists(self, document: Dict[str, Any]) -> Dict[str, Any]:
         """
-        This function aims to reduce the memory usage of hits' metadata by only storing the metadata once in a separate collection
-        and storing the results in a list instead.
-        Be wary, this method does not create a deepcopy, therefore changes are applied to the input docuemnt
+        This function aims to reduce the memory usage of hits' metadata by only storing the metadata once in a separate
+        collection and storing the results in a list instead.
+        Be wary, this method does not create a deepcopy, therefore changes are applied to the input document
         even if the return value's name is modified
         :return: The converted input document
         """
@@ -660,7 +663,7 @@ if __name__ == '__main__':
               args.results_type,
               args.uploader_mail_address,
               args.pipeline_hash,
-              technical_metadata=(args.technical_metadata if args.technical_metadata else None),
+              technical_metadata_path=(args.technical_metadata_path if args.technical_metadata_path else None),
               jsonfilepath=(args.jsonfilepath if args.jsonfilepath else None), 
               subvaldict=(args.subvaldict if args.subvaldict else None),
               reportdirectorypath=(args.reportdirectorypath if args.reportdirectorypath else None), 
