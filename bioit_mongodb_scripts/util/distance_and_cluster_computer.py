@@ -88,7 +88,7 @@ class DistanceAndClusterComputer:
         if mode == 'full':
             start = 0
         elif mode == 'last_st':
-            if number_of_new_sts < 1:
+            if not (isinstance(number_of_new_sts, int) and number_of_new_sts >= 1):
                 raise ValueError("number_of_new_sts must be natural number")
             start = len(self._cgmlst_profiles) - number_of_new_sts
         else:

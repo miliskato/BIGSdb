@@ -39,6 +39,23 @@ ON UPDATE CASCADE
 
 GRANT SELECT,UPDATE,INSERT,DELETE ON permissions TO apache;
 
+CREATE TABLE curator_configs (
+user_id integer NOT NULL,
+dbase_config text NOT NULL,
+curator integer NOT NULL,
+datestamp date NOT NULL,
+PRIMARY KEY (user_id,dbase_config),
+CONSTRAINT cc_user_id FOREIGN KEY (user_id) REFERENCES users
+ON DELETE CASCADE
+ON UPDATE CASCADE,
+CONSTRAINT cc_curator FOREIGN KEY (curator) REFERENCES users
+ON DELETE NO ACTION
+ON UPDATE CASCADE
+);
+
+GRANT SELECT,UPDATE,INSERT,DELETE ON curator_configs TO apache;
+
+
 CREATE TABLE user_groups (
 id integer NOT NULL UNIQUE,
 description text NOT NULL UNIQUE,
@@ -137,6 +154,7 @@ ON UPDATE CASCADE
 
 CREATE INDEX i_i1 ON isolates (datestamp);
 CREATE INDEX i_i2 ON isolates(new_version);
+CREATE INDEX i_i_date_entered ON isolates(date_entered);
 GRANT SELECT,UPDATE,INSERT,DELETE ON isolates TO apache;
 
 CREATE TABLE isolate_aliases (
@@ -197,6 +215,7 @@ isolate_display boolean NOT NULL,
 list boolean NOT NULL,
 private boolean NOT NULL,
 no_quota boolean NOT NULL,
+quota int,
 restrict_user boolean NOT NULL,
 restrict_usergroup boolean NOT NULL,
 curate_config text,
@@ -281,6 +300,7 @@ CREATE TABLE private_isolates (
 isolate_id integer NOT NULL,
 user_id integer NOT NULL,
 request_publish boolean NOT NULL DEFAULT FALSE,
+embargo date NOT NULL,
 datestamp date NOT NULL,
 PRIMARY KEY (isolate_id),
 CONSTRAINT pi_isolate_id FOREIGN KEY (isolate_id) REFERENCES isolates
@@ -341,8 +361,8 @@ ON UPDATE CASCADE
 );
 CREATE INDEX ON seqbin_stats(contigs);
 CREATE INDEX ON seqbin_stats(total_length);
-CREATE INDEX ON seqbin_stats(n50);
-CREATE INDEX ON seqbin_stats(l50);
+--CREATE INDEX ON seqbin_stats(n50);
+--CREATE INDEX ON seqbin_stats(l50);
 
 GRANT SELECT,INSERT,UPDATE,DELETE ON seqbin_stats TO apache;
 
@@ -359,7 +379,7 @@ ON UPDATE CASCADE
 
 GRANT SELECT,UPDATE,INSERT,DELETE ON remote_contigs TO apache;
 
-CREATE OR REPLACE LANGUAGE 'plpgsql';
+CREATE OR REPLACE LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION check_sequence_bin() RETURNS TRIGGER AS $check_sequence_bin$
 	BEGIN
@@ -862,7 +882,7 @@ ON UPDATE CASCADE
 );
 
 CREATE INDEX i_as1 ON allele_sequences (locus);
-CREATE INDEX i_as2 ON allele_sequences (datestamp);
+--CREATE INDEX i_as2 ON allele_sequences (datestamp);
 CREATE INDEX i_as3 ON allele_sequences (isolate_id);
 CREATE INDEX i_as_curator ON allele_sequences(curator);
 
@@ -905,6 +925,9 @@ curator int NOT NULL,
 PRIMARY KEY (id,flag),
 CONSTRAINT sf_fkeys FOREIGN KEY(id) REFERENCES allele_sequences
 ON DELETE CASCADE
+ON UPDATE CASCADE,
+CONSTRAINT sf_curator FOREIGN KEY (curator) REFERENCES users
+ON DELETE NO ACTION
 ON UPDATE CASCADE
 );
 
@@ -953,7 +976,7 @@ ON UPDATE CASCADE
 -- Index i_ad1 (isolate_id) removed as not necessary (covered by pkey index)
 -- Index i_ad2 (locus) removed as not necessary (covered by i_ad3)
 CREATE INDEX i_ad3 ON allele_designations (locus,allele_id);
-CREATE INDEX i_ad4 ON allele_designations (datestamp);
+--CREATE INDEX i_ad4 ON allele_designations (datestamp);
 CREATE INDEX i_ad5 ON allele_designations (UPPER(locus));
 CREATE INDEX i_ad_sender ON allele_designations(sender);
 CREATE INDEX i_ad_curator ON allele_designations(curator);
@@ -965,6 +988,7 @@ id int NOT NULL UNIQUE,
 name text NOT NULL,
 description text,
 allow_missing_loci boolean NOT NULL DEFAULT FALSE,
+allow_presence boolean NOT NULL DEFAULT FALSE,
 dbase_name text,
 dbase_host text,
 dbase_port int,
@@ -982,6 +1006,7 @@ recommended boolean NOT NULL DEFAULT FALSE,
 quality_metric boolean NOT NULL DEFAULT FALSE,
 quality_metric_good_threshold int,
 quality_metric_bad_threshold int,
+quality_metric_count_zero boolean NOT NULL DEFAULT FALSE,
 curator int NOT NULL,
 date_entered date NOT NULL,
 datestamp date NOT NULL,
@@ -1190,6 +1215,7 @@ ON UPDATE CASCADE
 );
 
 --CREATE INDEX i_h1 ON history (isolate_id) removed as not necessary (covered by pkey index)
+CREATE INDEX ON history USING brin(timestamp);
 GRANT SELECT,UPDATE,INSERT,DELETE ON history TO apache;
 
 CREATE TABLE sets (
@@ -1277,6 +1303,8 @@ status text NOT NULL,
 curator int,
 outcome text,
 email boolean,
+dataset text,
+embargo int,
 PRIMARY KEY(id),
 CONSTRAINT s_submitter FOREIGN KEY (submitter) REFERENCES users
 ON DELETE CASCADE
@@ -1328,6 +1356,21 @@ ON UPDATE CASCADE
 );
 
 GRANT SELECT,UPDATE,INSERT,DELETE ON isolate_submission_field_order TO apache;
+
+CREATE TABLE assembly_submissions (
+submission_id text NOT NULL,
+index int NOT NULL,
+isolate_id int NOT NULL,
+isolate text NOT NULL,
+sequence_method text NOT NULL,
+filename text NOT NULL,
+PRIMARY KEY(submission_id,isolate_id),
+CONSTRAINT ags_submission_id FOREIGN KEY (submission_id) REFERENCES submissions
+ON DELETE CASCADE
+ON UPDATE CASCADE
+);
+
+GRANT SELECT,UPDATE,INSERT,DELETE ON assembly_submissions TO apache;
 
 CREATE TABLE retired_isolates (
 isolate_id int NOT NULL,
@@ -1467,8 +1510,8 @@ RETURNS VOID AS $$
 			modify_qry:=' ';
 		END IF;
 		EXECUTE('CREATE TEMP TABLE ad AS SELECT isolate_id,locus,allele_id FROM allele_designations '
-		|| 'WHERE locus IN (SELECT locus FROM scheme_members WHERE scheme_id=$1) AND status!=$2'||modify_qry
-		|| ';CREATE INDEX ON ad(isolate_id,locus)') USING _scheme_id,'ignore';
+		|| 'WHERE locus IN (SELECT locus FROM scheme_members WHERE scheme_id=$1)'||modify_qry
+		|| ';CREATE INDEX ON ad(isolate_id,locus)') USING _scheme_id;
 		EXECUTE('SELECT ARRAY(SELECT locus FROM scheme_warehouse_indices WHERE scheme_id=$1 ORDER BY index)') 
 		INTO loci USING _scheme_id;
 		scheme_locus_count:=array_length(loci,1);
@@ -1588,9 +1631,12 @@ RETURNS VOID AS $$
 		ELSE
 			modify_qry:=' ';
 		END IF;
+		IF scheme_info.quality_metric_count_zero IS FALSE THEN
+			modify_qry:='AND allele_id <> ''0''';
+		END IF;
 		EXECUTE('CREATE TEMP TABLE ad AS SELECT isolate_id,locus,allele_id FROM allele_designations '
-		|| 'WHERE locus IN (SELECT locus FROM scheme_members WHERE scheme_id=$1) AND status!=$2'||modify_qry
-		|| ';CREATE INDEX ON ad(isolate_id,locus)') USING _scheme_id,'ignore';
+		|| 'WHERE locus IN (SELECT locus FROM scheme_members WHERE scheme_id=$1)'||modify_qry
+		|| ';CREATE INDEX ON ad(isolate_id,locus)') USING _scheme_id;
 		EXECUTE(FORMAT('CREATE %s %s AS SELECT %I.id, COUNT(DISTINCT locus) AS locus_count FROM %I JOIN ad '
 		||'ON %I.id=ad.isolate_id AND locus IN (SELECT locus FROM scheme_members WHERE scheme_id=%s) GROUP BY %I.id;'
 	  	,table_type,cache_table_temp,_view,_view,_view,_scheme_id,_view));
@@ -1692,7 +1738,7 @@ ON DELETE CASCADE
 ON UPDATE CASCADE
 );
 
-CREATE INDEX i_eavi1 ON eav_int(field,value);
+--CREATE INDEX i_eavi1 ON eav_int(field,value);
 GRANT SELECT,UPDATE,INSERT,DELETE ON eav_int TO apache;
 
 CREATE TABLE eav_float (
@@ -1708,7 +1754,7 @@ ON DELETE CASCADE
 ON UPDATE CASCADE
 );
 
-CREATE INDEX i_eavf1 ON eav_float(field,value);
+--CREATE INDEX i_eavf1 ON eav_float(field,value);
 GRANT SELECT,UPDATE,INSERT,DELETE ON eav_float TO apache;
 
 CREATE TABLE eav_text (
@@ -1724,7 +1770,7 @@ ON DELETE CASCADE
 ON UPDATE CASCADE
 );
 
-CREATE INDEX i_eavt1 ON eav_text(field,value);
+--CREATE INDEX i_eavt1 ON eav_text(field,value);
 GRANT SELECT,UPDATE,INSERT,DELETE ON eav_text TO apache;
 
 CREATE TABLE eav_date (
@@ -1740,7 +1786,7 @@ ON DELETE CASCADE
 ON UPDATE CASCADE
 );
 
-CREATE INDEX i_eavd1 ON eav_date(field,value);
+--CREATE INDEX i_eavd1 ON eav_date(field,value);
 GRANT SELECT,UPDATE,INSERT,DELETE ON eav_date TO apache;
 
 CREATE TABLE eav_boolean (
@@ -1756,7 +1802,7 @@ ON DELETE CASCADE
 ON UPDATE CASCADE
 );
 
-CREATE INDEX i_eavb1 ON eav_boolean(field,value);
+--CREATE INDEX i_eavb1 ON eav_boolean(field,value);
 GRANT SELECT,UPDATE,INSERT,DELETE ON eav_boolean TO apache;
 
 CREATE TABLE validation_conditions (
@@ -1964,4 +2010,137 @@ ON UPDATE CASCADE
 );
 
 GRANT SELECT,UPDATE,INSERT,DELETE ON codon_tables TO apache;
+
+CREATE OR REPLACE FUNCTION get_isolate_scheme_fields(_isolate_id int,_scheme_id int) 
+RETURNS SETOF record AS $$
+	--This assumes that a scheme cache table exists (e.g. temp_scheme_1) and is up-to-date.
+	--This will be the case during cache renewal since this table is created as the first
+	--step in this.
+	DECLARE
+ 		scheme_table text;
+		fields text[];
+ 		scheme_info RECORD;
+ 		loci text[];
+ 		scheme_fields text;
+ 		designation text;
+ 		qry text;
+ 		max_missing int;
+ 		missing int := 0;
+ 		is_missing boolean;
+
+	BEGIN
+		EXECUTE('SELECT * FROM schemes WHERE id=$1') INTO scheme_info USING _scheme_id;
+		IF (scheme_info.id IS NULL) THEN
+			RAISE EXCEPTION 'Scheme % does not exist.', _scheme_id;
+		END IF;
+
+		scheme_table:='temp_scheme_' || _scheme_id;
+		
+		IF NOT EXISTS(SELECT * FROM information_schema.tables WHERE table_name=scheme_table) THEN
+			RAISE EXCEPTION 'Scheme cache table % does not exist.', scheme_table;
+		END IF;
+		
+		EXECUTE('SELECT ARRAY(SELECT field FROM scheme_fields WHERE scheme_id=$1 ORDER BY field_order,field)') 
+		INTO fields USING _scheme_id;
+		IF ARRAY_UPPER(fields,1) IS NULL THEN
+			RAISE EXCEPTION 'Scheme has no fields.';
+		END IF;
+		
+		scheme_fields:='';
+		
+		FOR i IN 1 .. ARRAY_UPPER(fields,1) LOOP
+			IF i>1 THEN 
+				scheme_fields:=scheme_fields||',';
+			END IF;
+			scheme_fields:=scheme_fields||fields[i];
+		END LOOP;
+		
+		EXECUTE(FORMAT('SELECT max(missing_loci) FROM %I',scheme_table)) INTO max_missing;
+		
+		EXECUTE('SELECT ARRAY(SELECT locus FROM scheme_warehouse_indices WHERE scheme_id=$1 ORDER BY index)') 
+		INTO loci USING _scheme_id;
+
+		qry:=FORMAT('SELECT %s FROM %I WHERE ',scheme_fields,scheme_table);
+	
+		FOR i in 1 .. ARRAY_UPPER(loci,1) LOOP
+			IF i>1 THEN
+				qry:=qry || ' AND ';
+			END IF;
+			qry:=qry || 'profile[' || i || '] IN (''N''';
+			is_missing:=TRUE;
+			FOR designation IN SELECT allele_id FROM allele_designations WHERE (isolate_id,locus)=(_isolate_id,loci[i])			
+			LOOP
+				is_missing:=FALSE;
+				designation=REPLACE(designation,'''','''''');
+				qry:=qry || ',''' || designation || '''';
+			END LOOP;
+			qry:=qry || ')';
+			IF (is_missing) THEN
+				missing:=missing+1;
+			END IF;
+			IF (missing > max_missing) THEN
+				RETURN;
+			END IF;
+		END LOOP;
+		RETURN QUERY EXECUTE qry;	
+ 	END;
+$$ LANGUAGE plpgsql;
+
+CREATE TABLE db_attributes (
+field text NOT NULL,
+value text NOT NULL,
+PRIMARY KEY(field)
+);
+
+GRANT SELECT,UPDATE,INSERT,DELETE ON db_attributes TO apache;
+
+INSERT INTO db_attributes (field,value) VALUES ('version','47');
+INSERT INTO db_attributes (field,value) VALUES ('type','isolates');
+
+CREATE TABLE query_interfaces (
+id int NOT NULL,
+name text NOT NULL,
+display_order int,
+curator int NOT NULL,
+datestamp date NOT NULL,
+PRIMARY KEY (id),
+CONSTRAINT qi_curator FOREIGN KEY (curator) REFERENCES users
+ON DELETE NO ACTION
+ON UPDATE CASCADE
+);
+GRANT SELECT,UPDATE,INSERT,DELETE ON query_interfaces TO apache;
+
+CREATE TABLE query_interface_fields (
+id int NOT NULL,
+field text NOT NULL,
+display_order int,
+curator int NOT NULL,
+datestamp date NOT NULL,
+PRIMARY KEY(id,field),
+CONSTRAINT qif_curator FOREIGN KEY (curator) REFERENCES users
+ON DELETE NO ACTION
+ON UPDATE CASCADE,
+CONSTRAINT qif_id FOREIGN KEY (id) REFERENCES query_interfaces
+ON DELETE CASCADE
+ON UPDATE CASCADE
+);
+GRANT SELECT,UPDATE,INSERT,DELETE ON query_interface_fields TO apache;
+
+CREATE TABLE embargo_history (
+isolate_id int NOT NULL,
+timestamp timestamp NOT NULL,
+action text NOT NULL,
+embargo date,
+curator int NOT NULL,
+PRIMARY KEY(isolate_id, timestamp),
+CONSTRAINT eh_curator FOREIGN KEY (curator) REFERENCES users
+ON DELETE NO ACTION
+ON UPDATE CASCADE,
+CONSTRAINT eh_isolate FOREIGN KEY (isolate_id) REFERENCES isolates
+ON DELETE CASCADE
+ON UPDATE CASCADE
+);
+
+CREATE INDEX ON embargo_history USING brin(timestamp);
+GRANT SELECT,UPDATE,INSERT,DELETE ON embargo_history TO apache;
 

@@ -1,7 +1,7 @@
 #Export.pm - Export plugin for BIGSdb
 #Written by Keith Jolley
-#Copyright (c) 2010-2022, University of Oxford
-#E-mail: keith.jolley@zoo.ox.ac.uk
+#Copyright (c) 2010-2024, University of Oxford
+#E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
 #
@@ -27,6 +27,7 @@ my $logger = get_logger('BIGSdb.Plugins');
 use BIGSdb::Constants qw(:interface);
 use Try::Tiny;
 use List::MoreUtils qw(uniq);
+use Bio::Seq;
 use Bio::Tools::SeqStats;
 use constant MAX_INSTANT_RUN         => 2000;
 use constant MAX_DEFAULT_DATA_POINTS => 25_000_000;
@@ -39,32 +40,34 @@ sub get_attributes {
 			{
 				name        => 'Keith Jolley',
 				affiliation => 'University of Oxford, UK',
-				email       => 'keith.jolley@zoo.ox.ac.uk',
+				email       => 'keith.jolley@biology.ox.ac.uk',
 			}
 		],
 		description      => 'Export dataset generated from query results',
 		full_description => 'The Export plugin creates a download file of any primary metadata, secondary metadata, '
 		  . 'allele designations, scheme designations, or publications for isolates within a selected dataset or '
 		  . 'for the whole database. The output file is in Excel format.',
-		category   => 'Export',
-		buttontext => 'Dataset',
-		menutext   => 'Dataset',
-		module     => 'Export',
-		version    => '1.9.1',
-		dbtype     => 'isolates',
-		section    => 'export,postquery',
-		url        => "$self->{'config'}->{'doclink'}/data_export/isolate_export.html",
-		input      => 'query',
-		requires   => 'ref_db,js_tree',
-		help       => 'tooltips',
-		image      => '/images/plugins/Export/screenshot.png',
-		order      => 15
+		category           => 'Export',
+		buttontext         => 'Dataset',
+		menutext           => 'Dataset',
+		module             => 'Export',
+		version            => '1.13.0',
+		dbtype             => 'isolates',
+		section            => 'export,postquery',
+		url                => "$self->{'config'}->{'doclink'}/data_export/isolate_export.html",
+		input              => 'query',
+		requires           => 'ref_db,js_tree,offline_jobs',
+		help               => 'tooltips',
+		image              => '/images/plugins/Export/screenshot.png',
+		order              => 15,
+		system_flag        => 'DatasetExport',
+		enabled_by_default => 1
 	);
 	return \%att;
 }
 
 sub get_initiation_values {
-	return { 'jQuery.jstree' => 1 };
+	return { 'jQuery.jstree' => 1, 'jQuery.multiselect' => 1 };
 }
 
 sub get_plugin_javascript {
@@ -81,9 +84,39 @@ function enable_private_controls(){
 	\$("input:radio[name='private_name']").prop("disabled", !(\$("#private_owner").prop("checked") && \$("#private_record").prop("checked")));
 }
 
+function enable_tag_controls(){	
+	if (\$("#oneline").prop("checked")){
+		\$("#indicate_tags").prop("checked", false);
+		\$("#indicate_tags").prop("disabled", true);
+	} else {
+		\$("#indicate_tags").prop("disabled", false);
+	}
+	if (\$("#indicate_tags").prop("checked")){
+		\$("input:radio[name='indicate_tags_when']").prop("disabled", false);
+	} else {
+		\$("input:radio[name='indicate_tags_when']").prop("disabled", true);
+	}
+}
+
 \$(document).ready(function(){ 
 	enable_ref_controls();
 	enable_private_controls();
+	enable_tag_controls();
+	\$('#fields,#eav_fields,#composite_fields,#locus,#classification_schemes').multiselect({
+ 		classes: 'filter',
+ 		menuHeight: 250,
+ 		menuWidth: 400,
+ 		selectedList: 8
+  	});
+ 	\$('#locus').multiselectfilter();
+ 	\$("span#example_private").css("background",\$('#private_bg').val());
+ 	\$("span#example_private").css("color",\$('#private_fg').val());
+ 	\$('#private_bg').on('change',function(){
+ 		\$("span#example_private").css("background",\$('#private_bg').val());
+ 	});
+ 	\$('#private_fg').on('change',function(){
+ 		\$("span#example_private").css("color",\$('#private_fg').val());
+ 	});
 }); 
 END
 	return $js;
@@ -111,19 +144,41 @@ sub _print_ref_fields {
 	return;
 }
 
-sub _print_private_fieldset {
+sub _may_access_private_records {
 	my ($self) = @_;
-	my $q = $self->{'cgi'};
+	return if !defined $self->{'username'};
 	my $private =
 	  $self->{'datastore'}->run_query(
 		"SELECT EXISTS(SELECT * FROM private_isolates p JOIN $self->{'system'}->{'view'} v ON p.isolate_id=v.id)");
-	return if !$private;
+	return $private;
+}
+
+sub _print_private_fieldset {
+	my ($self) = @_;
+	return if !$self->_may_access_private_records;
+	my $bg_private_colour;
+	my $fg_private_colour;
+	eval {
+		my $guid = $self->get_guid;
+		if ($guid) {
+			$bg_private_colour =
+			  $self->{'prefstore'}
+			  ->get_plugin_attribute( $guid, $self->{'system'}->{'db'}, 'Export', 'bg_private_colour' );
+			$fg_private_colour =
+			  $self->{'prefstore'}
+			  ->get_plugin_attribute( $guid, $self->{'system'}->{'db'}, 'Export', 'fg_private_colour' );
+		}
+	};
+	my $bg = $bg_private_colour // '#cc3956';
+	my $fg = $fg_private_colour // '#ffffff';
+	my $q  = $self->{'cgi'};
 	say q(<fieldset style="float:left"><legend>Private records</legend><ul><li>);
 	say $q->checkbox(
 		-name     => 'private_record',
 		-id       => 'private_record',
 		-value    => 'checked',
 		-label    => 'Indicate private records',
+		-checked  => 1,
 		-onChange => 'enable_private_controls()'
 	);
 	say q(</li><li>);
@@ -132,6 +187,7 @@ sub _print_private_fieldset {
 		-id       => 'private_owner',
 		-value    => 'checked',
 		-label    => 'List owner',
+		-checked  => 1,
 		-onChange => 'enable_private_controls()'
 	);
 	say q(</li><li>);
@@ -140,9 +196,18 @@ sub _print_private_fieldset {
 		-id        => 'private_name',
 		-values    => [ 'user_id', 'name' ],
 		-labels    => { user_id => 'user id', name => 'name/affiliation' },
-		-default   => 'user_id',
+		-default   => 'name',
 		-linebreak => 'true'
 	);
+	say q(</li></li>);
+	say qq(<input type="color" name="private_fg" id="private_fg" value="$fg" )
+	  . q(style="width:30px;height:15px"> Text colour);
+	say q(</li><li>);
+	say qq(<input type="color" name="private_bg" id="private_bg" value="$bg" )
+	  . q(style="width:30px;height:15px"> Background colour);
+	say q(</li></li>);
+	say
+qq(<span id="example_private" style="border:1px solid #aaa;background:$bg;color:$fg;padding:0 0.2em">example private record</span>);
 	say q(</li></ul></fieldset>);
 	return;
 }
@@ -152,19 +217,36 @@ sub _print_options {
 	my $q = $self->{'cgi'};
 	say q(<fieldset style="float:left"><legend>Options</legend><ul></li>);
 	say $q->checkbox(
-		-name  => 'indicate_tags',
-		-id    => 'indicate_tags',
-		-label => 'Indicate sequence status if no allele defined'
+		-name     => 'indicate_tags',
+		-id       => 'indicate_tags',
+		-label    => 'Indicate sequence status',
+		-onChange => 'enable_tag_controls()'
 	);
 	say $self->get_tooltip( q(Indicate sequence status - Where alleles have not been designated but the )
 		  . q(sequence has been tagged in the sequence bin, [S] will be shown. If the tagged sequence is incomplete )
-		  . q(then [I] will also be shown.) );
+		  . q(then [I] will also be shown. if more than one sequence tag is found, the number of tags will be )
+		  . q(indicated with a number after the S or I.) );
+	say q(<ul><li>);
+	say $q->radio_group(
+		-name      => 'indicate_tags_when',
+		-id        => 'indicate_tags_when',
+		-values    => [ 'no_designation', 'always' ],
+		-labels    => { no_designation => 'if no allele defined', always => 'always' },
+		-default   => 'no_designation',
+		-linebreak => 'true'
+	);
+	say q(</li></ul>);
 	say q(</li><li>);
 	say $q->checkbox( -name => 'common_names', -id => 'common_names', -label => 'Include locus common names' );
 	say q(</li><li>);
 	say $q->checkbox( -name => 'alleles', -id => 'alleles', -label => 'Export allele numbers', -checked => 'checked' );
 	say q(</li><li>);
-	say $q->checkbox( -name => 'oneline', -id => 'oneline', -label => 'Use one row per field' );
+	say $q->checkbox(
+		-name     => 'oneline',
+		-id       => 'oneline',
+		-label    => 'Use one row per field',
+		-onChange => 'enable_tag_controls()'
+	);
 	say q(</li><li>);
 	say $q->checkbox(
 		-name  => 'labelfield',
@@ -203,11 +285,6 @@ sub _print_classification_scheme_fields {
 		-multiple => 'true',
 		-style    => 'width:100%'
 	);
-	say
-	  q(<div style="text-align:center"><input type="button" onclick='listbox_selectall("classification_schemes",true)' )
-	  . q(value="All" style="margin-top:1em" class="small_submit" /><input type="button" )
-	  . q(onclick='listbox_selectall("classification_schemes",false)' value="None" style="margin:1em 0 0 0.2em" )
-	  . q(class="small_submit" /></div>);
 	say q(</fieldset>);
 	return;
 }
@@ -228,12 +305,35 @@ sub _print_molwt_options {
 	return;
 }
 
+sub _update_prefs {
+	my ($self) = @_;
+	return if !$self->_may_access_private_records;
+	my $q    = $self->{'cgi'};
+	my $guid = $self->get_guid;
+	eval {
+		if ( $q->param('private_bg') ) {
+			$self->{'prefstore'}->set_plugin_attribute( $guid, $self->{'system'}->{'db'},
+				'Export', 'bg_private_colour', scalar $q->param('private_bg') );
+		}
+		if ( $q->param('private_fg') ) {
+			$self->{'prefstore'}->set_plugin_attribute( $guid, $self->{'system'}->{'db'},
+				'Export', 'fg_private_colour', scalar $q->param('private_fg') );
+		}
+	};
+	return;
+}
+
 sub run {
 	my ($self) = @_;
 	my $q = $self->{'cgi'};
 	say q(<h1>Export dataset</h1>);
+	if ( ( $self->{'system'}->{'DatasetExport'} // q() ) eq 'no' ) {
+		$self->print_bad_status( { message => q(Dataset exports are disabled.) } );
+		return;
+	}
 	return if $self->has_set_changed;
 	if ( $q->param('submit') ) {
+		$self->_update_prefs;
 		my $selected_fields = $self->get_selected_fields( { lincodes => 1, lincode_fields => 1 } );
 		$q->delete('classification_schemes');
 		push @$selected_fields, 'm_references'   if $q->param('m_references');
@@ -266,8 +366,8 @@ sub run {
 		$q->delete('isolate_id');
 		my $set_id = $self->get_set_id;
 		my $params = $q->Vars;
-		$params->{'set_id'} = $set_id if $set_id;
-		$params->{'curate'} = 1       if $self->{'curate'};
+		$params->{'set_id'}      = $set_id if $set_id;
+		$params->{'curate'}      = 1       if $self->{'curate'};
 		$params->{'script_name'} = $self->{'system'}->{'script_name'};
 		local $" = '||';
 		$params->{'selected_fields'} = "@$selected_fields";
@@ -311,12 +411,19 @@ sub run {
 		say q( done</p>);
 		my ( $excel_file, $text_file ) = ( EXCEL_FILE, TEXT_FILE );
 		print qq(<p><a href="/tmp/$filename" target="_blank" title="Tab-delimited text file">$text_file</a>);
+		my $format = $self->_get_excel_formatting(
+			{
+				private_bg => scalar $q->param('private_bg'),
+				private_fg => scalar $q->param('private_fg')
+			}
+		);
 		my $excel = BIGSdb::Utils::text2excel(
 			$full_path,
 			{
-				worksheet   => 'Export',
-				tmp_dir     => $self->{'config'}->{'secure_tmp_dir'},
-				text_fields => $self->{'system'}->{'labelfield'}
+				worksheet              => 'Export',
+				tmp_dir                => $self->{'config'}->{'secure_tmp_dir'},
+				text_fields            => $self->{'system'}->{'labelfield'},
+				conditional_formatting => $format
 			}
 		);
 		say qq(<a href="/tmp/$prefix.xlsx" target="_blank" title="Excel file">$excel_file</a>)
@@ -327,6 +434,24 @@ sub run {
 	}
 	$self->_print_interface;
 	return;
+}
+
+sub _get_excel_formatting {
+	my ( $self, $args ) = @_;
+	my $format = [];
+	if ( $self->{'private_col'} ) {
+		push @$format,
+		  {
+			col    => $self->{'private_col'},
+			value  => 'true',
+			format => {
+				bg_color => $args->{'private_bg'} // '#cc3956',
+				color    => $args->{'private_fg'} // '#ffffff'
+			},
+			apply_to_row => 1
+		  };
+	}
+	return $format;
 }
 
 sub _print_interface {
@@ -358,12 +483,13 @@ sub _print_interface {
 	}
 	say $q->start_form;
 	$self->print_seqbin_isolate_fieldset( { use_all => 1, selected_ids => $selected_ids, isolate_paste_list => 1 } );
-	$self->print_isolate_fields_fieldset( { extended_attributes => 1, default => ['id'] } );
-	$self->print_eav_fields_fieldset;
+	$self->print_isolate_fields_fieldset(
+		{ extended_attributes => 1, default => [ 'id', $self->{'system'}->{'labelfield'} ], no_all_none => 1 } );
+	$self->print_eav_fields_fieldset( { no_all_none => 1 } );
 	$self->print_composite_fields_fieldset;
 	$self->_print_ref_fields;
 	$self->_print_private_fieldset;
-	$self->print_isolates_locus_fieldset;
+	$self->print_isolates_locus_fieldset( { locus_paste_list => 1, no_all_none => 1 } );
 	$self->print_scheme_fieldset( { fields_or_loci => 1 } );
 	$self->_print_classification_scheme_fields;
 	$self->_print_options;
@@ -385,7 +511,7 @@ sub run_job {
 	local @SIG{qw (INT TERM HUP)} = ( sub { $self->{'exit'} = 1 } ) x 3;
 	$self->{'system'}->{'script_name'} = $params->{'script_name'};
 	my $filename = "$self->{'config'}->{'tmp_dir'}/$job_id.txt";
-	my @fields = split /\|\|/x, $params->{'selected_fields'};
+	my @fields   = split /\|\|/x, $params->{'selected_fields'};
 	$params->{'job_id'} = $job_id;
 	my $ids = $self->{'jobManager'}->get_job_isolates($job_id);
 	my $limit =
@@ -425,12 +551,19 @@ sub run_job {
 		);
 		$self->{'jobManager'}->update_job_status( $job_id, { stage => 'Creating Excel file' } );
 		$self->{'db'}->commit;                               #prevent idle in transaction table locks
+		my $format = $self->_get_excel_formatting(
+			{
+				private_bg => $params->{'private_bg'},
+				private_fg => $params->{'private_fg'}
+			}
+		);
 		my $excel_file = BIGSdb::Utils::text2excel(
 			$filename,
 			{
-				worksheet   => 'Export',
-				tmp_dir     => $self->{'config'}->{'secure_tmp_dir'},
-				text_fields => $self->{'system'}->{'labelfield'}
+				worksheet              => 'Export',
+				tmp_dir                => $self->{'config'}->{'secure_tmp_dir'},
+				text_fields            => $self->{'system'}->{'labelfield'},
+				conditional_formatting => $format
 			}
 		);
 		if ( -e $excel_file ) {
@@ -480,7 +613,7 @@ sub _write_tab_text {
 			print q( ) if !$j;
 		}
 		if ( !$i && $ENV{'MOD_PERL'} ) {
-			$self->{'mod_perl_request'}->rflush;
+			eval { $self->{'mod_perl_request'}->rflush };
 			return if $self->{'mod_perl_request'}->connection->aborted;
 		}
 		my $first          = 1;
@@ -500,7 +633,7 @@ sub _write_tab_text {
 				private_owner         => qr/^private_owner$/x
 			};
 			my $methods = {
-				field     => sub { $self->_write_field( $fh,     $1, \%data, $first, $params ) },
+				field     => sub { $self->_write_field( $fh, $1, \%data, $first, $params ) },
 				eav_field => sub { $self->_write_eav_field( $fh, $1, \%data, $first, $params ) },
 				locus     => sub {
 					$self->_write_allele(
@@ -591,6 +724,7 @@ sub _get_header {
 	} else {
 		my $first = 1;
 		my %schemes;
+		my $i = 0;
 		foreach (@$fields) {
 			my $field = $_;    #don't modify @$fields
 			if ( $field =~ /^s_(\d+)_f/x || $field =~ /^lin_(\d+)$/x || $field =~ /^lin_(\d+)_(.+)$/x ) {
@@ -642,6 +776,8 @@ sub _get_header {
 				$buffer .= $field;
 			}
 			$first = 0;
+			$self->{'private_col'} = $i if $field eq 'private_record';
+			$i++;
 		}
 		if ($first) {
 			$buffer .= 'Make sure you select an option for locus export.';
@@ -734,21 +870,35 @@ sub _write_allele {
 	my ( $fh, $locus, $data, $all_allele_ids, $first_col, $params ) =
 	  @{$args}{qw(fh locus data all_allele_ids first params)};
 	my @unsorted_allele_ids = defined $all_allele_ids->{$locus} ? @{ $all_allele_ids->{$locus} } : (q());
-	my $allele_ids = $self->_sort_alleles( $locus, \@unsorted_allele_ids );
+	my $allele_ids          = $self->_sort_alleles( $locus, \@unsorted_allele_ids );
 	if ( $params->{'alleles'} ) {
 		my $first_allele = 1;
+		my $seq_tag      = q();
 		foreach my $allele_id (@$allele_ids) {
-			if ( $allele_id eq q() ) {
-				if ( $params->{'indicate_tags'} ) {
-					my $tag = $self->{'datastore'}->run_query(
-						'SELECT id,complete FROM allele_sequences WHERE (isolate_id,locus)=(?,?) '
-						  . 'ORDER BY complete desc LIMIT 1',
-						[ $data->{'id'}, $locus ],
-						{ fetch => 'row_hashref', cache => 'Export::write_allele::tag' }
-					);
-					if ($tag) {
-						$allele_id .= '[S]';
-						$allele_id .= '[I]' if !$tag->{'complete'};
+			if (
+				$params->{'indicate_tags'}
+				&& (   ( $allele_id eq q() && ( $params->{'indicate_tags_when'} // q() ) eq 'no_designation' )
+					|| ( $params->{'indicate_tags_when'} // q() ) eq 'always' )
+			  )
+			{
+				my $tags = $self->{'datastore'}->run_query(
+					'SELECT id,complete FROM allele_sequences WHERE (isolate_id,locus)=(?,?) '
+					  . 'ORDER BY complete desc',
+					[ $data->{'id'}, $locus ],
+					{ fetch => 'all_arrayref', slice => {}, cache => 'Export::write_allele::tag' }
+				);
+				my $seq_count        = 0;
+				my $incomplete_count = 0;
+				foreach my $tag (@$tags) {
+					$seq_count++;
+					$incomplete_count++ if !$tag->{'complete'};
+				}
+				if ($seq_count) {
+					$seq_count = q() if $seq_count <= 1;
+					$seq_tag   = "[S$seq_count]";
+					if ($incomplete_count) {
+						$incomplete_count = q() if $incomplete_count <= 1;
+						$seq_tag .= "[I$incomplete_count]";
 					}
 				}
 			}
@@ -782,6 +932,7 @@ sub _write_allele {
 			}
 			$first_allele = 0;
 		}
+		print $fh $seq_tag if !$params->{'oneline'};
 	}
 	if ( $params->{'molwt'} ) {
 		my $first_allele = 1;
@@ -815,7 +966,6 @@ sub _write_scheme_field {
 	@$values = ('') if !@$values;
 	my $first_value = 1;
 	foreach my $value (@$values) {
-
 		if ( $params->{'oneline'} ) {
 			next if !defined $value || $value eq q();
 			print $fh $self->_get_id_one_line( $data, $params );
@@ -840,27 +990,20 @@ sub _write_lincode {
 	my ( $fh, $scheme_id, $data, $first_col, $params ) =
 	  @{$args}{qw(fh scheme_id data first params )};
 	my $scheme_info = $self->{'datastore'}->get_scheme_info($scheme_id);
-	my $lincodes    = $self->get_lincode( $data->{'id'}, $scheme_id );
-	my $values      = [];
-	foreach my $lincode (@$lincodes) {
-		local $" = q(_);
-		push @$values, qq(@$lincode);
-	}
+	my $lincode     = $self->{'datastore'}->get_lincode_value( $data->{'id'}, $scheme_id );
 
 	#LINcode fields are always calculated after the LINcode itself, so
 	#we can just cache the last LINcode value rather than re-calculating it.
-	$self->{'cache'}->{'current_lincode'} = $values;
+	$self->{'cache'}->{'current_lincode'} = $lincode;
+	local $" = q(_);
 	if ( $params->{'oneline'} ) {
-		foreach my $value (@$values) {
-			print $fh $self->_get_id_one_line( $data, $params );
-			print $fh "LINcode ($scheme_info->{'name'})\t";
-			print $fh $value if defined $value;
-			print $fh qq(\n);
-		}
+		print $fh $self->_get_id_one_line( $data, $params );
+		print $fh "LINcode ($scheme_info->{'name'})\t";
+		print $fh qq(@$lincode) if defined $lincode;
+		print $fh qq(\n);
 	} else {
-		print $fh qq(\t) if !$first_col;
-		local $" = q(; );
-		print $fh qq(@$values) if @$values;
+		print $fh qq(\t)        if !$first_col;
+		print $fh qq(@$lincode) if defined $lincode;
 	}
 	return;
 }
@@ -886,14 +1029,15 @@ sub _write_lincode_field {
 	foreach my $prefix (@prefixes) {
 
 		#LINcode is always calculated immediately before LINcode fields so we have cached the
-		#LINcode value(s) in $self->{'cache'}->{'current_lincode'}.
-		foreach my $lincode ( @{ $self->{'cache'}->{'current_lincode'} } ) {
-			if (   $lincode eq $prefix
-				|| $lincode =~ /^${prefix}_/x && !$used{ $prefix_values->{$field}->{$prefix} } )
-			{
-				push @values, $prefix_values->{$field}->{$prefix};
-				$used{ $prefix_values->{$field}->{$prefix} } = 1;
-			}
+		#LINcode value in $self->{'cache'}->{'current_lincode'}.
+		last if !ref $self->{'cache'}->{'current_lincode'};
+		local $" = q(_);
+		my $lincode = qq(@{ $self->{'cache'}->{'current_lincode'}});
+		if (   $lincode eq $prefix
+			|| $lincode =~ /^${prefix}_/x && !$used{ $prefix_values->{$field}->{$prefix} } )
+		{
+			push @values, $prefix_values->{$field}->{$prefix};
+			$used{ $prefix_values->{$field}->{$prefix} } = 1;
 		}
 	}
 	@values = sort @values;
@@ -1013,7 +1157,7 @@ sub _write_private_owner {
 		$data->{'id'}, { cache => 'Export::write_private_owner' } );
 	if ( defined $value ) {
 		$value =
-		    $params->{'private_name'} eq 'name'
+			$params->{'private_name'} eq 'name'
 		  ? $self->{'datastore'}->get_user_string( $value, { affiliation => 1 } )
 		  : $value;
 	}
@@ -1041,14 +1185,16 @@ sub _get_molwt {
 			if ( $allele ne '0' ) {
 				$seq_ref = $locus->get_allele_sequence($allele);
 			}
-		}
-		catch {    #do nothing
+		} catch {    #do nothing
 		};
 		my $seq = BIGSdb::Utils::chop_seq( $$seq_ref, $locus_info->{'orf'} || 1 );
 		if ($met) {
 			$seq =~ s/^(TTG|GTG)/ATG/x;
 		}
-		$peptide = Bio::Perl::translate_as_string($seq) if $seq;
+		if ($seq) {
+			my $seq_obj = Bio::Seq->new( -seq => $seq, -alphabet => 'dna' );
+			$peptide = $seq_obj->translate->seq;
+		}
 	} else {
 		$peptide = ${ $locus->get_allele_sequence($allele) };
 	}
@@ -1059,8 +1205,7 @@ sub _get_molwt {
 		my $seq_stats = Bio::Tools::SeqStats->new($seqobj);
 		my $stats     = $seq_stats->get_mol_wt;
 		$weight = $stats->[0];
-	}
-	catch {
+	} catch {
 		$weight = q(-);
 	};
 	return $weight;

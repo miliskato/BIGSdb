@@ -1,6 +1,6 @@
 ---
 
-# - debug: msg="{{item.0.name}} {{item.1}} {{ vars['pass_'+item.0.name+'_'+item.1] }}"
+# - debug: msg="{{item.0.name}} {{item.1}} {{ vars['pass_' + item.0.name + '_' + item.1] }}"
 #   with_subelements:
 #     - "{{ species }}"
 #     - dtap
@@ -11,8 +11,7 @@
     api_username: "axfbixno"
     api_password: "{{ mongodb_master_api_password_axfbixno }}"
     username: "{{ item.0.name + 'User_' + item.1 }}"  # e.g. salmonellaUser_dev
-    password: "{{ vars['mongodb_nrc_pass_'+item.0.name+'_'+item.1] }}"  # e.g. "{{ mongodb_nrc_pass_salmonella_dev }}"
-    # database_name: "{{ item.0.name + '_' + item.1 }}"  # e.g. salmonella_dev
+    password: "{{ vars['mongodb_nrc_pass_' + item.0.name + '_' + item.1] }}"  # e.g. "{{ mongodb_nrc_pass_salmonella_dev }}"
     roles:
       - database_name: "{{ item.0.name + '_' + item.1 }}"  # e.g. salmonella_dev
         role_name: "readWrite"

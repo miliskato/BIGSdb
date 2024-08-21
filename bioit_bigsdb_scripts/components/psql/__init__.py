@@ -29,3 +29,4 @@ from .psql_tbl_seq_bin_stats import TblSeqBinStats
 from .psql_tbl_sequence_bin import TblSequenceBin
 from .psql_tbl_sequences import TblSequences
 from .psql_tbl_submissions import TblSubmissions
+from .psql_tbl_jobs import TblJobs

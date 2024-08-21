@@ -39,7 +39,7 @@ class TblClassificationSchemes(DatabaseConnection):
         """
         Selects a scheme id by inclusion threshold.
         :param param: the inclusion threshold for which the scheme id is required
-        :return: Empty list or a list of tuples of one in clustering scheme id
+        :return: Empty list or a list of tuples containing one string, namely the clustering scheme id
         """
         return self.execute_query(PsqlQueries.SEQ_SEL_CGSCHID_TB_CLSCH_VAR_INCTHR, param)
 

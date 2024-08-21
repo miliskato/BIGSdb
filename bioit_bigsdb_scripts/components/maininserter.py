@@ -13,17 +13,20 @@ class MainInserter(JsonSuperClass):
     Class containing defintions used to insert metadata results for both json and tsv input
     """
 
-    def __init__(self, isolatename: str, species: str, sample_output_dict: Dict[str, Any], config_data: Dict[str, Any], report_access: str) -> None:
+    def __init__(self, isolatename: str, species: str, sample_output_dict: Dict[str, Any], config_data: Dict[str, Any], report_access: str, vcf_path: str, mongo_dtap: str) -> None:
         """
         :param isolatename: name of the isolate
         :param species: commonly used bioit species name: either genus or specific like stec
         :param sample_output_dict: results of sample
-        :param config_data: the bigsdb config data
-        :param report_access: report_directory field from mongoDB
+        :param report_access: report_directory from MongoDB
+        :param vcf_path: subdirectory containing the vcf file
+        :param mongo_dtap: dtap from mongo config
         :return: None
         """
         super().__init__(isolatename, species, sample_output_dict, config_data)
         self._report_access = report_access
+        self._vcf_path = vcf_path
+        self._mongo_dtap = mongo_dtap
     
     def insert_new_isolate(self, uploader_mail_address: str) -> None:
         """
@@ -67,14 +70,22 @@ class MainInserter(JsonSuperClass):
         with TblEavText(self._species) as self._isolates_eavt_psql_tbl,\
                 TblIsolates(self._species) as self.isolates_psql_tbl:
             mongo_report_field = self._report_access
-            galaxy_report_access = mongo_report_field.replace("reports","galaxyreports")
+            dtap = self._mongo_dtap
+            local_path = 'reports'
+            galaxy_report_access = mongo_report_field.replace(local_path,"galaxyreports")
+            azure_path = f'results/{dtap}'
+            galaxy_report_access = mongo_report_field.replace(azure_path, "galaxyreports")
+
+            vcf_access = self._vcf_path.replace(local_path,"galaxyreports")
+            vcf_access = self._vcf_path.replace(azure_path, "galaxyreports")
+            vcf_unfiltered_access = vcf_access.replace('filtered','all')
 
             reportlink = f'<p><a href="{galaxy_report_access}/report.html" target="_blank"> html report</a></p>'
             self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'html', reportlink))
             self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'tsv', reportlink.replace('html', 'tsv')))
-            vcflink_unfiltered = f'<p><a href="{galaxy_report_access}/variant_calling/variants-{self._isolatename}-all.vcf" target="_blank">VCF unfiltered</a></p>'
+            vcflink_unfiltered = f'<p><a href="{vcf_unfiltered_access}" target="_blank">VCF unfiltered</a></p>'
             self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'VCF_unfiltered', vcflink_unfiltered))
-            vcflink_filtered = f'<p><a href="{galaxy_report_access}/variant_calling/variants-{self._isolatename}-filtered.vcf" target="_blank">VCF filtered</a></p>'
+            vcflink_filtered = f'<p><a href="{vcf_access}" target="_blank">VCF filtered</a></p>'
             self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'VCF_filtered', vcflink_filtered))
             isolate_id = self.isolates_psql_tbl.select_maxid_for_isolate((self._isolatename,))[0][0]
             assemblylink = f'<p><a href="/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_{self._species}_isolates&page=plugin&name=Contigs&format=text&isolate_id={isolate_id}&match=1&pc_untagged=0&min_length=&header=1l" target="_blank">assembly</a></p>'

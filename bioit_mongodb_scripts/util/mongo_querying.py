@@ -309,11 +309,12 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
             if searchkey == 'changed_version':
                 old_versions = old_isolateresults_collection.with_options(read_concern=ReadConcern(level="majority")).\
                     find({'isolates_id': isolate_id, searchkey: {'$gte': searchvalue}})
-                old_versions = sorted(old_versions, key=lambda x: convert_dmyhms_to_ymd(x['analysis_date']))
+                old_versions = sorted(old_versions, key=lambda x: convert_dmyhms_to_ymd(x['analysis_date']), reverse=True)
             else:  # key == 'analysis_date'
                 old_versions = old_isolateresults_collection.with_options(read_concern=ReadConcern(level="majority")).\
                     find({'isolates_id': isolate_id})
-                old_versions = sorted([x for x in old_versions if convert_dmyhms_to_ymd(x['analysis_date']) > searchvalue], key=lambda x: convert_dmyhms_to_ymd(x['analysis_date']))
+                # sort from most recent to oldest
+                old_versions = sorted([x for x in old_versions if convert_dmyhms_to_ymd(x['analysis_date']) >= searchvalue], key=lambda x: convert_dmyhms_to_ymd(x['analysis_date']), reverse=True)
             if len(old_versions) > 0:
                 old_versions_merged = old_versions[0]
                 if len(old_versions) > 1:
@@ -325,3 +326,20 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         requested_document = self.revert_typinghitlists_to_dictionaries(requested_document, headers_collection)
         requested_document['latest_analysis_date'] = requested_document['results']['analysis_date']
         return requested_document
+
+    @staticmethod
+    def retrieve_number_of_old_isolate_results(isolate_id: str, old_isolateresults_collection: pymongo.collection.Collection, validation_type: str) -> int:
+        """
+        Retrieves the number of old isolate results for a specific isolate_id.
+        param old_isolateresults_collection: pymongo collection of old isolate results
+        param validation_type: null, bad_quality or resequencing
+        return: number of old isolate results for a specific isolate_id
+        """
+        if validation_type == 'null':
+            old_versions = old_isolateresults_collection.with_options(read_concern=ReadConcern(level="majority")). \
+                find({'isolates_id': isolate_id})
+            old_versions = [x for x in old_versions if x is not None]
+            number_of_old_versions = len(old_versions)
+        else:
+            number_of_old_versions = 0
+        return number_of_old_versions

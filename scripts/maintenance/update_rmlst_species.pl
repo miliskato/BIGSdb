@@ -1,8 +1,8 @@
 #!/usr/bin/env perl
 #Perform/update species id check and store results in isolate database.
 #Written by Keith Jolley
-#Copyright (c) 2021-2022, University of Oxford
-#E-mail: keith.jolley@zoo.ox.ac.uk
+#Copyright (c) 2021-2023, University of Oxford
+#E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
 #
@@ -19,7 +19,7 @@
 #You should have received a copy of the GNU General Public License
 #along with BIGSdb.  If not, see <http://www.gnu.org/licenses/>.
 #
-#Version: 20220913
+#Version: 20230310
 use strict;
 use warnings;
 use 5.010;
@@ -42,6 +42,7 @@ use MIME::Base64;
 use LWP::UserAgent;
 use Config::Tiny;
 use JSON;
+use constant MODULE_NAME => 'RMLSTSpecies';
 use Getopt::Long qw(:config no_ignore_case);
 my %opts;
 GetOptions(
@@ -102,7 +103,7 @@ sub get_dbs {
 				options          => {}
 			}
 		);
-		next if ( $script->{'system'}->{'dbtype'} // q() ) ne 'isolates';
+		next if ( $script->{'system'}->{'dbtype'}       // q() ) ne 'isolates';
 		next if ( $script->{'system'}->{'rMLSTSpecies'} // q() ) eq 'no';
 		if ( !$script->{'db'} ) {
 			$logger->error("Skipping $dir ... database does not exist.");
@@ -131,10 +132,10 @@ sub check_db {
 		$logger->error("$config is not an isolate database.");
 		return;
 	}
-	my $min_genome_size =
-	  $script->{'system'}->{'min_genome_size'} // $script->{'config'}->{'min_genome_size'} // MIN_GENOME_SIZE;
+	my $min_genome_size = $script->{'system'}->{'min_genome_size'} // $script->{'config'}->{'min_genome_size'}
+	  // MIN_GENOME_SIZE;
 	my $qry =
-	    q[SELECT ss.isolate_id FROM seqbin_stats ss LEFT JOIN analysis_results ar ON ss.isolate_id=ar.isolate_id ]
+		q[SELECT ss.isolate_id FROM seqbin_stats ss LEFT JOIN analysis_results ar ON ss.isolate_id=ar.isolate_id ]
 	  . q[AND ar.name=? LEFT JOIN last_run lr ON ss.isolate_id=lr.isolate_id AND lr.name=? ]
 	  . q[WHERE ss.total_length>=? AND (ar.datestamp IS NULL ];
 	if ( $opts{'refresh_days'} ) {
@@ -150,7 +151,7 @@ sub check_db {
 	  $script->{'datastore'}
 	  ->run_query( $qry, [ 'RMLSTSpecies', 'RMLSTSpecies', $min_genome_size ], { fetch => 'col_arrayref' } );
 	my $plural = @$ids == 1 ? q() : q(s);
-	my $count = @$ids;
+	my $count  = @$ids;
 	return if !$count;
 	my $job_id = $script->add_job( 'RMLSTSpecies (offline)', { temp_init => 1 } );
 	say qq(\n$config: $count genome$plural to analyse) if !$opts{'quiet'};
@@ -179,9 +180,14 @@ sub check_db {
 		1 => 'genome sequence'
 	);
 	my @scan_genome = defined $id_obj->rmlst_scheme_exists ? ( 0, 1 ) : (1);
+	my $i           = 0;
   ISOLATE: foreach my $isolate_id (@$ids) {
+		my $progress = int( ( $i * 100 ) / $count );
+		$script->update_job( $job_id,
+			{ status => { stage => "Checking id-$isolate_id", percent_complete => $progress }, temp_init => 1 } )
+		  ;
 	  RUN: foreach my $run (@scan_genome) {
-			last ISOLATE if $EXIT;
+			last ISOLATE                                      if $EXIT;
 			print "Scanning id-$isolate_id $label{$run} ... " if !$opts{'quiet'};
 			$id_obj->set_scan_genome($run);
 			my $result = $id_obj->run($isolate_id);
@@ -197,7 +203,8 @@ sub check_db {
 				say q(no match.) if !$opts{'quiet'};
 			}
 		}
-		set_last_run_time( $script, $isolate_id );
+		$script->set_last_run_time( MODULE_NAME, $isolate_id );
+		$i++;
 	}
 	$script->stop_job( $job_id, { temp_init => 1 } );
 	return;
@@ -225,24 +232,6 @@ sub store_result {
 	return;
 }
 
-sub set_last_run_time {
-	my ( $script, $isolate_id ) = @_;
-	eval {
-		$script->{'db'}->do(
-			'INSERT INTO last_run (name,isolate_id) VALUES (?,?) ON '
-			  . 'CONFLICT (name,isolate_id) DO UPDATE SET timestamp = now()',
-			undef, 'RMLSTSpecies', $isolate_id
-		);
-	};
-	if ($@) {
-		$logger->error($@);
-		$script->{'db'}->rollback;
-	} else {
-		$script->{'db'}->commit;
-	}
-	return;
-}
-
 sub get_lock_file {
 	my $config_dir = CONFIG_DIR;
 	my $config     = Config::Tiny->read("$config_dir/bigsdb.conf");
@@ -250,7 +239,7 @@ sub get_lock_file {
 		$logger->fatal( 'Unable to read or parse bigsdb.conf file. Reason: ' . Config::Tiny->errstr );
 		$config = Config::Tiny->new();
 	}
-	my $lock_dir = $config->{_}->{'lock_dir'} // LOCK_DIR;
+	my $lock_dir  = $config->{_}->{'lock_dir'} // LOCK_DIR;
 	my $lock_file = "$lock_dir/update_rmlst_species";
 	return $lock_file;
 }
@@ -273,7 +262,7 @@ sub check_if_script_already_running {
 			  if !$opts{'quiet'};
 			unlink $lock_file;
 		} else {
-			say 'Script already running with these parameters - terminating.' if !$opts{'quiet'};
+			say 'Script already running - terminating.' if !$opts{'quiet'};
 			exit(1);
 		}
 	}
@@ -287,7 +276,7 @@ sub show_help {
 	my $termios = POSIX::Termios->new;
 	$termios->getattr;
 	my $ospeed = $termios->getospeed;
-	my $t = Tgetent Term::Cap { TERM => undef, OSPEED => $ospeed };
+	my $t      = Tgetent Term::Cap { TERM => undef, OSPEED => $ospeed };
 	my ( $norm, $bold, $under ) = map { $t->Tputs( $_, 1 ) } qw/me md us/;
 	say << "HELP";
 ${bold}NAME$norm

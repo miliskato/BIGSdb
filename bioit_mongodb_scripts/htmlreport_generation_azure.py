@@ -11,6 +11,7 @@ import traceback
 from pathlib import Path
 from typing import List, Optional
 
+from bioit_mongodb_scripts.util_azure.JSONEncoder import JSONEncoder
 from bioit_mongodb_scripts.util_azure.connect_azure import ConnectAzure
 
 PYTHONPATH = Path(__file__).resolve().parent.parent
@@ -55,7 +56,8 @@ class HtmlreportGeneration:
         :param dtap: dev, test, acc, or prod
         :param validation_type: null, bad_quality or resequencing
         :param changed_version: changed version of the desired report
-        :param analysis_date: desired date of the report, if it doesnt exist, get the closest more recent report date
+        :param analysis_date: desired date of the report (usually today but can query previous versions too (used in BIGSdb)),
+        if it doesn't exist, get the closest more recent report date
         :return: None
         """
         # Input parameters
@@ -121,14 +123,17 @@ class HtmlreportGeneration:
         # Set the output dir
         dir_out = Path(self._mongo_config_data['temp_dir']) / self._dtap / self._species / '_'.join(
             [self._technical_id, self._analysis_date if self._analysis_date else str(self._changed_version)])
+        dir_out.mkdir(parents=True, exist_ok=True)
 
-        if requested_document['results'].get('results_version') and not requested_document['results']['results_version'] == 1: # badqc and reseq isolates do not have a results_version
-            dir_out.mkdir(parents=True, exist_ok=True)
+        number_of_old_isolate_results = self._mongoquerying.retrieve_number_of_old_isolate_results(
+            self._technical_id, self._old_isolateresults_collection, self._validation_type)
+
+        if number_of_old_isolate_results > 0:  # badqc and reseq isolates do not have old_isolate_results
             with self.__create_temp_dir('temp_reporting') as dir_temp:
                 # Dump the required json file
                 jsonfile = Path(dir_temp) / f"{self._technical_id}_temp.json"
                 with jsonfile.open('w') as handle:
-                    handle.write(json.dumps(requested_document['results']))
+                    handle.write(json.dumps(requested_document['results'], cls=JSONEncoder))
 
                 # Create the command to re-analyze the datasets
                 base_command = ' '.join([
@@ -154,6 +159,7 @@ class HtmlreportGeneration:
                     shutil.copyfile(Path(dir_temp) / 'camel.log', dir_out / 'camel.log')
                     raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}: {command.stderr}")
         else:  # if requested_document['results_version'] == 1:
+            dir_out.rmdir()
             shutil.copytree(requested_document['report_directory'], str(dir_out))
             pass
 

@@ -1,6 +1,6 @@
 #Written by Keith Jolley
 #Copyright (c) 2020-2022, University of Oxford
-#E-mail: keith.jolley@zoo.ox.ac.uk
+#E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
 #
@@ -111,7 +111,10 @@ sub make_rest_call {
 	my $support  = [];
 	my ( $rST, $species );
 	if ( $response->is_success ) {
-		$data = decode_json( $response->content );
+		eval { $data = decode_json( $response->content ); };
+		if ($@) {
+			$self->{'logger'}->error("Invalid JSON from API. $@");
+		}
 		if ( $data->{'taxon_prediction'} ) {
 			foreach my $prediction ( @{ $data->{'taxon_prediction'} } ) {
 				push @$rank,     $prediction->{'rank'};
@@ -171,10 +174,13 @@ sub _get_rmlst_designations {
 		[ $isolate_id, $scheme_id ],
 		{ fetch => 'all_arrayref', slice => {} }
 	);
-	my $values = {};
+	my $values    = {};
+	my $locus_map = $self->{'datastore'}->run_query( 'SELECT locus,profile_name FROM scheme_members WHERE scheme_id=?',
+		$scheme_id, { fetch => 'all_arrayref', slice => {} } );
+	my %map = map { $_->{'locus'} => $_->{'profile_name'} // $_->{'locus'} } @$locus_map;
 	foreach my $designation (@$designations) {
 		next if !$designation->{'allele_id'};
-		push @{ $values->{ $designation->{'locus'} } }, { allele => $designation->{'allele_id'} };
+		push @{ $values->{ $map{ $designation->{'locus'} } } }, { allele => $designation->{'allele_id'} };
 	}
 	return $values;
 }

@@ -3,7 +3,7 @@
 #Designed for uploading cgMLST profiles to the seqdef database.
 #Written by Keith Jolley
 #Copyright (c) 2016-2022, University of Oxford
-#E-mail: keith.jolley@zoo.ox.ac.uk
+#E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
 #
@@ -20,7 +20,7 @@
 #You should have received a copy of the GNU General Public License
 #along with BIGSdb.  If not, see <http://www.gnu.org/licenses/>.
 #
-#Version: 20220913
+#Version: 20221102
 use strict;
 use warnings;
 use 5.010;
@@ -115,7 +115,11 @@ sub main {
 	my $scheme_info  = $script->{'datastore'}->get_scheme_info( $opts{'scheme_id'} );
 	my $view         = $scheme_info->{'view'};
 	my $need_to_refresh_cache;
+	my $EXIT = 0;
+	local @SIG{qw (INT TERM HUP)} = ( sub { $EXIT = 1 } ) x 3;    #Mark job as finished on kill signals
+
 	foreach my $isolate_id (@$isolate_list) {
+		last if $EXIT;
 		next if defined_in_cache($isolate_id);
 		next if filtered_out_by_view( $view, $isolate_id );
 		my ( $profile, $designations, $missing ) = get_profile($isolate_id);
@@ -123,10 +127,10 @@ sub main {
 		my $field_values =
 		  $scheme->get_field_values_by_designations( $designations,
 			{ dont_match_missing_loci => $opts{'match_missing'} ? 0 : 1 } );
-		next if @$field_values;    #Already defined
+		next if @$field_values;                                   #Already defined
 		my $retval = define_new_profile($designations);
-		if ( $retval->{'status'} == 1 ) {
 
+		if ( $retval->{'status'} == 1 ) {
 			if ( !$opts{'quiet'} ) {
 				print "Isolate id: $isolate_id; ";
 				say $retval->{'message'};
@@ -155,7 +159,7 @@ sub main {
 			}
 		}
 	}
-	refresh_caches() if $need_to_refresh_cache;
+	refresh_caches() if $need_to_refresh_cache && !$EXIT;
 	return;
 }
 
@@ -198,10 +202,11 @@ sub define_new_profile {
 		my @allele_data;
 		foreach my $locus (@$loci) {
 			my $locus_name = $locus->{'profile_name'} // $locus->{'locus'};
-			my $allele_id = $designations->{ $locus->{'locus'} }->[0]->{'allele_id'};
+			my $allele_id = $designations->{$locus_name}->[0]->{'allele_id'};
 			$allele_id = 'N' if $allele_id eq '0';
 			if ( allele_exists( $locus_name, $allele_id ) ) {
-				push @allele_data, [ $locus_name, $scheme_id, $next_pk, $allele_id, DEFINER_USER, 'now' ];
+				push @allele_data,
+				  [ $locus_name, $scheme_id, $next_pk, $allele_id, DEFINER_USER, 'now' ];
 			} else {
 				$message = "Allele $locus->{'locus'}-$allele_id has not been defined.";
 				$failed  = 1;
@@ -327,6 +332,7 @@ sub get_profile {
 				[ $opts{'scheme_id'}, $profile_locus ],
 				{ cache => 'get_profile:profile_name' }
 			);
+			$script->{'cache'}->{'locus_labels'}->{ $locus_name // $profile_locus } = $profile_locus;
 			push @{ $script->{'cache'}->{'scheme_loci'} }, ( $locus_name // $profile_locus );
 		}
 	}
@@ -342,8 +348,9 @@ sub get_profile {
 			$value = $opts{'ignore_multiple_hits'} ? 'N' : $locus_designations->[0]->{'allele_id'};
 		}
 		push @profile, $value;
-		$missing++ if $value eq 'N';
-		$designations->{$locus} = [ { allele_id => $value, status => 'confirmed' } ];
+		$missing++ if $value eq 'N' || $value eq '0';
+		$designations->{ $script->{'cache'}->{'locus_labels'}->{$locus} } =
+		  [ { allele_id => $value, status => 'confirmed' } ];
 	}
 	return \@profile, $designations, $missing;
 }

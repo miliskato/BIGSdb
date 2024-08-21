@@ -1,6 +1,6 @@
 #Written by Keith Jolley
-#Copyright (c) 2010-2020, University of Oxford
-#E-mail: keith.jolley@zoo.ox.ac.uk
+#Copyright (c) 2010-2023, University of Oxford
+#E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
 #
@@ -67,9 +67,18 @@ sub print_content {
 		$self->print_bad_status( { message => q(This sequence does not exist.), navbar => 1 } );
 		return;
 	}
-	my $length = length( $seq_ref->{'sequence'} );
-	my $seq    = BIGSdb::Utils::split_line( $seq_ref->{'sequence'} );
-	my $data   = [];
+	my $length           = length( $seq_ref->{'sequence'} );
+	my $seq              = BIGSdb::Utils::split_line( $seq_ref->{'sequence'} );
+	my $data             = [];
+	my $date_restriction = $self->{'datastore'}->get_date_restriction;
+	my $restricted;
+	if ( $date_restriction && $date_restriction lt $seq_ref->{'date_entered'} ) {
+		$restricted = 1;
+		my $date_restriction_message = $self->get_date_restriction_message;
+		if ($date_restriction_message) {
+			say qq(<div class="box banner">$date_restriction_message</div>);
+		}
+	}
 	say q(<div class="box" id="resultspanel">);
 	say q(<div class="scrollable">);
 	say q(<div><span class="info_icon fas fa-2x fa-fw fa-globe fa-pull-left" style="margin-top:-0.2em"></span>);
@@ -81,7 +90,6 @@ sub print_content {
 		href  => qq($self->{'system'}->{'script_name'}?db=$self->{'instance'}&amp;page=locusInfo&amp;locus=$locus)
 	  };
 	push @$data, { title => 'allele', data => $allele_id };
-
 	if ( $allele_id eq '0' ) {
 		push @$data,
 		  {
@@ -92,51 +100,54 @@ sub print_content {
 		push @$data,
 		  {
 			title => 'description',
-			data  => q(This is an arbitrary allele.  When included in a profile it means that this locus is ignored.)
+			data  => q(This is an arbitrary allele. When included in a profile it means that this locus is ignored.)
+		  };
+	} elsif ( $allele_id eq 'P' ) {
+		push @$data,
+		  {
+			title => 'description',
+			data  => q(When included in a profile it means that this locus is present )
+			  . q((it may or may not have an allele designated and it may be incomplete).)
 		  };
 	} else {
-		push @$data,
-		  (
-			{ title => 'sequence',     data => $seq, class => 'seq' },
-			{ title => 'length',       data => $length },
-			{ title => 'status',       data => $seq_ref->{'status'} },
-			{ title => 'date entered', data => $seq_ref->{'date_entered'} },
-			{ title => 'datestamp',    data => $seq_ref->{'datestamp'} }
-		  );
-		my $sender = $self->{'datastore'}->get_user_string(
-			$seq_ref->{'sender'},
-			{
-				affiliation => ( $seq_ref->{'sender'} != $seq_ref->{'curator'} ),
-				email       => !$self->{'system'}->{'privacy'}
-			}
-		);
-		push @$data, { title => 'sender', data => $sender };
-		my $curator = $self->{'datastore'}->get_user_string( $seq_ref->{'curator'}, { affiliation => 1, email => 1 } );
-		push @$data, { title => 'curator', data => $curator };
-	}
-	push @$data, { title => 'comments', data => $seq_ref->{'comments'} } if $seq_ref->{'comments'};
-	my $flags = $self->_get_flags( $locus, $allele_id );
-	push @$data, { title => 'flags', data => $flags } if $flags;
-	my $extended_attributes = $self->{'datastore'}->get_allele_extended_attributes( $locus, $allele_id );
-	my $extended_att_urls =
-	  $self->{'datastore'}->run_query( 'SELECT field,url FROM locus_extended_attributes WHERE locus=?',
-		$locus, { fetch => 'all_hashref', key => 'field' } );
-	foreach my $ext (@$extended_attributes) {
-		my $cleaned_field = $ext->{'field'};
-		$cleaned_field =~ tr/_/ /;
-		if ( $cleaned_field =~ /sequence$/x ) {
-			my $ext_seq = BIGSdb::Utils::split_line( $ext->{'value'} );
-			push @$data, { title => $cleaned_field, data => $ext_seq, class => 'seq' };
+		if ($restricted) {
+			push @$data,
+			  { title => 'sequence',     data => 'UNAVAILABLE' },
+			  { title => 'date entered', data => $seq_ref->{'date_entered'} },
+			  { title => 'datestamp',    data => $seq_ref->{'datestamp'} };
 		} else {
-			my $url = $extended_att_urls->{ $ext->{'field'} }->{'url'};
-			if ($url) {
-				$url =~ s/\[\?\]/$ext->{'value'}/gx;
-			}
-			push @$data, { title => $cleaned_field, data => $ext->{'value'}, href => $url };
+			push @$data,
+			  (
+				{ title => 'sequence',     data => $seq, class => 'seq' },
+				{ title => 'length',       data => $length },
+				{ title => 'status',       data => $seq_ref->{'status'} },
+				{ title => 'date entered', data => $seq_ref->{'date_entered'} },
+				{ title => 'datestamp',    data => $seq_ref->{'datestamp'} }
+			  );
+			my $sender = $self->{'datastore'}->get_user_string(
+				$seq_ref->{'sender'},
+				{
+					affiliation => ( $seq_ref->{'sender'} != $seq_ref->{'curator'} ),
+					email       => !$self->{'system'}->{'privacy'}
+				}
+			);
+			push @$data, { title => 'sender', data => $sender } if $sender;
+			my $curator =
+			  $self->{'datastore'}->get_user_string( $seq_ref->{'curator'}, { affiliation => 1, email => 1 } );
+			push @$data, { title => 'curator', data => $curator } if $curator;
 		}
+	}
+	if ( !$restricted ) {
+		push @$data, { title => 'comments', data => $seq_ref->{'comments'} } if $seq_ref->{'comments'};
+		my $flags = $self->_get_flags( $locus, $allele_id );
+		push @$data, { title => 'flags', data => $flags } if $flags;
+		my $extended_attributes = $self->_get_extended_attributes( $locus, $allele_id );
+		push @$data, @$extended_attributes;
 	}
 	say $self->get_list_block($data);
 	say q(</div>);
+	$self->_print_nucleotide_mutations( $locus, $allele_id );
+	$self->_print_peptide_mutations( $locus, $allele_id );
 	$self->_print_accessions( $locus, $allele_id );
 	$self->_print_ref_links( $locus, $allele_id );
 	my $qry         = 'SELECT schemes.* FROM schemes LEFT JOIN scheme_members ON schemes.id=scheme_id WHERE locus=?';
@@ -146,6 +157,7 @@ sub print_content {
 	if (@$scheme_list) {
 		my $profiles_list = [];
 		foreach my $scheme (@$scheme_list) {
+			next if $self->{'prefs'}->{'disable_schemes'}->{ $scheme->{'id'} };
 			my $scheme_info =
 			  $self->{'datastore'}->get_scheme_info( $scheme->{'id'}, { set_id => $set_id, get_pk => 1 } );
 			next if !$scheme_info->{'primary_key'};
@@ -187,6 +199,30 @@ sub print_content {
 	return;
 }
 
+sub _get_extended_attributes {
+	my ( $self, $locus, $allele_id ) = @_;
+	my $data                = [];
+	my $extended_attributes = $self->{'datastore'}->get_allele_extended_attributes( $locus, $allele_id );
+	my $extended_att_urls =
+	  $self->{'datastore'}->run_query( 'SELECT field,url FROM locus_extended_attributes WHERE locus=?',
+		$locus, { fetch => 'all_hashref', key => 'field' } );
+	foreach my $ext (@$extended_attributes) {
+		my $cleaned_field = $ext->{'field'};
+		$cleaned_field =~ tr/_/ /;
+		if ( $cleaned_field =~ /sequence$/x ) {
+			my $ext_seq = BIGSdb::Utils::split_line( $ext->{'value'} );
+			push @$data, { title => $cleaned_field, data => $ext_seq, class => 'seq' };
+		} else {
+			my $url = $extended_att_urls->{ $ext->{'field'} }->{'url'};
+			if ($url) {
+				$url =~ s/\[\?\]/$ext->{'value'}/gx;
+			}
+			push @$data, { title => $cleaned_field, data => $ext->{'value'}, href => $url };
+		}
+	}
+	return $data;
+}
+
 sub _print_client_database_data {
 	my ( $self, $locus, $allele_id ) = @_;
 	my $q   = $self->{'cgi'};
@@ -212,7 +248,7 @@ sub _print_client_database_data {
 					designation_field1    => 'l_' . ( $client->{'locus_alias'} || $locus ),
 					designation_operator1 => '=',
 					designation_value1    => $allele_id,
-					order                 => 'id',
+					order                 => 'f_id',
 					set_id                => 0,
 					submit                => 1
 				);
@@ -230,8 +266,7 @@ sub _print_client_database_data {
 				local $" = ' ';
 				$buffer .= $q->hidden($_)
 				  foreach qw (db page designation_field1 designation_operator1 designation_value1 order set_id submit);
-				$buffer .=
-				  $q->submit( -label => "$isolate_count isolate$plural", -class => 'small_submit' );
+				$buffer .= $q->submit( -label => "$isolate_count isolate$plural", -class => 'small_submit' );
 				$buffer .= $q->end_form;
 			}
 			$buffer .= q(</dd>);
@@ -288,7 +323,7 @@ sub _print_accessions {
 	my $hide = @$accession_list > 15;
 	if (@$accession_list) {
 		my $plural = @$accession_list > 1 ? q(s) : q();
-		my $count = @$accession_list;
+		my $count  = @$accession_list;
 		my ( $display, $offset );
 		if ( @$accession_list > 4 ) {
 			$display = 'none';
@@ -322,6 +357,101 @@ sub _print_accessions {
 	return;
 }
 
+sub _print_nucleotide_mutations {
+	my ( $self, $locus, $allele_id ) = @_;
+	my $list = [];
+	my $dna_mutations =
+	  $self->{'datastore'}->run_query( 'SELECT * FROM dna_mutations WHERE locus=? ORDER BY reported_position,id',
+		$locus, { fetch => 'all_arrayref', slice => {} } );
+	return if !@$dna_mutations;
+	foreach my $mutation (@$dna_mutations) {
+		my $data = $self->{'datastore'}->run_query(
+			'SELECT * FROM sequences_dna_mutations WHERE (locus,allele_id,mutation_id)=(?,?,?)',
+			[ $locus, $allele_id, $mutation->{'id'} ],
+			{ fetch => 'row_hashref', cache => 'AlleleInfoPage::get_sequence_dna_mutation' }
+		);
+		if ($data) {
+			my $value;
+			if ( $data->{'is_wild_type'} ) {
+				$value = "WT ($data->{'nucleotide'})";
+			} elsif ( $data->{'is_mutation'} ) {
+				( my $wt = $mutation->{'wild_type_nuc'} ) =~ s/;//gx;
+				$value = "$wt$mutation->{'reported_position'}$data->{'nucleotide'}";
+			} else {
+				next;
+			}
+			push @$list,
+			  {
+				title => "position $mutation->{'reported_position'}",
+				data  => $value
+			  };
+		}
+	}
+	return if !@$list;
+	my $plural = @$list > 1 ? q(s) : q();
+	my $count  = @$list;
+	my ( $display, $offset );
+	if ( @$list > 4 ) {
+		$display = 'none';
+		$offset  = 0.1;
+	} else {
+		$display = 'block';
+		$offset  = -0.1;
+	}
+	say q(<span class="info_icon fas fa-2x fa-fw fa-star-of-life fa-pull-left" )
+	  . qq(style="margin-top:${offset}em"></span>);
+	say qq(<h2 style="display:inline">Single nucleotide polymorphism$plural ($count)</h2>);
+	say $self->get_list_block($list);
+	return;
+}
+
+sub _print_peptide_mutations {
+	my ( $self, $locus, $allele_id ) = @_;
+	my $list = [];
+	my $peptide_mutations =
+	  $self->{'datastore'}->run_query( 'SELECT * FROM peptide_mutations WHERE locus=? ORDER BY reported_position,id',
+		$locus, { fetch => 'all_arrayref', slice => {} } );
+	return if !@$peptide_mutations;
+	foreach my $mutation (@$peptide_mutations) {
+		my $data = $self->{'datastore'}->run_query(
+			'SELECT * FROM sequences_peptide_mutations WHERE (locus,allele_id,mutation_id)=(?,?,?)',
+			[ $locus, $allele_id, $mutation->{'id'} ],
+			{ fetch => 'row_hashref', cache => 'AlleleInfoPage::get_sequence_peptide_mutation' }
+		);
+		if ($data) {
+			my $value;
+			if ( $data->{'is_wild_type'} ) {
+				$value = "WT ($data->{'amino_acid'})";
+			} elsif ( $data->{'is_mutation'} ) {
+				( my $wt = $mutation->{'wild_type_aa'} ) =~ s/;//gx;
+				$value = "$wt$mutation->{'reported_position'}$data->{'amino_acid'}";
+			} else {
+				next;
+			}
+			push @$list,
+			  {
+				title => "position $mutation->{'reported_position'}",
+				data  => $value
+			  };
+		}
+	}
+	return if !@$list;
+	my $count = @$list;
+	my ( $display, $offset );
+	if ( @$list > 4 ) {
+		$display = 'none';
+		$offset  = 0.1;
+	} else {
+		$display = 'block';
+		$offset  = -0.1;
+	}
+	say q(<span class="info_icon fas fa-2x fa-fw fa-star-of-life fa-pull-left" )
+	  . qq(style="margin-top:${offset}em"></span>);
+	say qq(<h2 style="display:inline">Single amino acid variation ($count)</h2>);
+	say $self->get_list_block($list);
+	return;
+}
+
 sub _print_ref_links {
 	my ( $self, $locus, $allele_id ) = @_;
 	my $pmids = $self->{'datastore'}->run_query(
@@ -331,7 +461,7 @@ sub _print_ref_links {
 	);
 	my $hide = @$pmids > 4;
 	if (@$pmids) {
-		my $count = @$pmids;
+		my $count  = @$pmids;
 		my $plural = $count > 1 ? q(s) : q();
 		say q(<div><span class="info_icon far fa-2x fa-fw fa-newspaper fa-pull-left" )
 		  . q(style="margin-top:-0.2em"></span>);
@@ -369,7 +499,7 @@ sub get_javascript {
 	    
 	  }
 	});
-	\$('#expand_references').on('click', function(){	  
+	\$('#expand_references').on('click', function(){
 	  if (\$('#references').hasClass('expandable_expanded')) {
 	  	\$('#references').switchClass('expandable_expanded','expandable_retracted',1000, "easeInOutQuad", function(){
 	  		\$('#expand_references').html('<span class="fas fa-chevron-down"></span>');

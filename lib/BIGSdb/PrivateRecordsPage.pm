@@ -1,6 +1,6 @@
 #Written by Keith Jolley
-#Copyright (c) 2017-2020, University of Oxford
-#E-mail: keith.jolley@zoo.ox.ac.uk
+#Copyright (c) 2017-2024, University of Oxford
+#E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
 #
@@ -46,15 +46,6 @@ sub print_content {
 		$self->print_bad_status( { message => q(You are not a recognized user.), navbar => 1 } );
 		return;
 	}
-	if ( $user_info->{'status'} eq 'user' || !$self->can_modify_table('isolates') ) {
-		$self->print_bad_status(
-			{
-				message => q(Your account does not have permission to upload private records.),
-				navbar  => 1
-			}
-		);
-		return;
-	}
 	$self->_print_limits( $user_info->{'id'} );
 	$self->_print_projects( $user_info->{'id'} );
 	return;
@@ -66,13 +57,20 @@ sub _print_limits {
 	say q(<span class="main_icon fas fa-lock fa-3x fa-pull-left"></span>);
 	say q(<h2>Limits</h2>);
 	my $private       = $self->{'datastore'}->get_private_isolate_count($user_id);
+	my $embargoed     = $self->{'datastore'}->get_embargoed_isolate_count( $user_id );
 	my $total_private = $self->{'datastore'}->run_query(
 		'SELECT COUNT(*) FROM private_isolates pi WHERE user_id=? AND EXISTS(SELECT 1 '
 		  . "FROM $self->{'system'}->{'view'} v WHERE v.id=pi.isolate_id)",
 		$user_id
 	);
-	my $limit = $self->{'datastore'}->get_user_private_isolate_limit($user_id);
-	say q(<p>Accounts have a quota for the number of private records that they can upload. )
+	my $limit              = $self->{'datastore'}->get_user_private_isolate_limit($user_id);
+	my $embargo_attributes = $self->{'datastore'}->get_embargo_attributes;
+	my $embargo_clause =
+	  $embargo_attributes->{'embargo_enabled'}
+	  ? 'Isolates with an embargo set are private but do not count against the quota as they will be made '
+	  . 'public when the embargo date is reached. '
+	  : q();
+	say qq(<p>Accounts have a quota for the number of private records that they can upload. $embargo_clause)
 	  . q(Uploading of private data to some registered projects may not count against your quota.<p>);
 	my $available = $limit - $private;
 	$available = 0 if $available < 0;
@@ -81,17 +79,30 @@ sub _print_limits {
 			title => 'Records (total)',
 			data  => BIGSdb::Utils::commify($total_private),
 			href  => qq($self->{'system'}->{'script_name'}?db=$self->{'instance'}&amp;)
-			  . q(page=query&amp;private_records_list=1&amp;include_old=on&amp;submit=1)
-		},
+			  . q(page=query&amp;private_records_list=2&amp;include_old=on&amp;submit=1)
+		}
+	];
+
+	if ( $embargo_attributes->{'embargo_enabled'} ) {
+		push @$list,
+		  {
+			title => 'Records (embargoed)',
+			data  => BIGSdb::Utils::commify($embargoed),
+			href  => qq($self->{'system'}->{'script_name'}?db=$self->{'instance'}&amp;)
+			  . q(page=query&amp;private_records_list=6&amp;include_old=on&amp;submit=1)
+		  };
+	}
+	push @$list,
+	  (
 		{
 			title => 'Records (quota)',
 			data  => BIGSdb::Utils::commify($private),
 			href  => qq($self->{'system'}->{'script_name'}?db=$self->{'instance'}&amp;)
-			  . q(page=query&amp;private_records_list=2&amp;include_old=on&amp;submit=1)
+			  . q(page=query&amp;private_records_list=3&amp;include_old=on&amp;submit=1)
 		},
 		{ title => 'Quota',          data => BIGSdb::Utils::commify($limit) },
 		{ title => 'You can upload', data => BIGSdb::Utils::commify($available) }
-	];
+	  );
 	say $self->get_list_block($list);
 	my $projects = $self->{'datastore'}->run_query(
 		'SELECT p.id,p.short_description,p.full_description,p.no_quota FROM projects p JOIN merged_project_users m ON '
@@ -99,7 +110,6 @@ sub _print_limits {
 		$user_id,
 		{ fetch => 'all_arrayref', slice => {} }
 	);
-
 	if ($available) {
 		say q(<span class="main_icon fas fa-upload fa-3x fa-pull-left"></span>);
 		say q(<h2>Upload</h2>);
@@ -114,7 +124,8 @@ sub _print_limits {
 		say q(</ul>);
 	}
 	my $private_isolates = $self->{'datastore'}->get_user_private_isolate_limit($user_id);
-	if ($user_id) {
+	my $user_info        = $self->{'datastore'}->get_user_info($user_id);
+	if ( $user_id && $user_info->{'status'} ne 'user' && $self->can_modify_table('isolates') ) {
 		say q(<span class="main_icon fas fa-pencil-alt fa-3x fa-pull-left"></span>);
 		say q(<h2>Curate</h2>);
 		say q(<ul style="margin-left:25px;list-style:none">)
@@ -143,7 +154,7 @@ sub _get_upload_link {
 sub _print_projects {
 	my ( $self, $user_id ) = @_;
 	my $projects = $self->{'datastore'}->run_query(
-		'SELECT p.id,p.short_description,p.full_description,p.no_quota,p.curate_config FROM projects p '
+		'SELECT p.id,p.short_description,p.full_description,p.quota,p.no_quota,p.curate_config FROM projects p '
 		  . 'JOIN merged_project_users m ON p.id=m.project_id WHERE m.user_id=? AND m.modify ORDER BY '
 		  . 'UPPER(short_description)',
 		$user_id,
@@ -162,8 +173,10 @@ sub _print_projects {
 		  . q(to projects that are excluded from the personal quota</p>);
 	}
 	say q(<div class="scrollable"><table class="resultstable"><tr><th>Project</th><th>Description</th><th>Users</th>)
-	  . q(<th>Isolates</th><th>Quota free</th><th>Browse</th><th>Upload</th></tr>);
-	my $td = 1;
+	  . q(<th>Isolates</th><th>Project quota</th><th>Quota free</th><th>Browse</th><th>Upload</th></tr>);
+	my $td         = 1;
+	my $user_info  = $self->{'datastore'}->get_user_info($user_id);
+	my $can_modify = $self->can_modify_table('isolates');
 	foreach my $project (@$projects) {
 		$project->{'full_description'} //= q();
 		my $users = $self->{'datastore'}->run_query( 'SELECT COUNT(*) FROM merged_project_users WHERE project_id=?',
@@ -174,20 +187,37 @@ sub _print_projects {
 			$project->{'id'},
 			{ cache => 'PrivateRecordsPage::isolate_count' }
 		);
+		my $project_quota = q();
+		my $project_quota_remaining;
+		if ( $project->{'quota'} && !$project->{'no_quota'} ) {
+			my $private_records = $self->{'datastore'}->run_query(
+				'SELECT COUNT(*) FROM project_members pm JOIN private_isolates pi ON '
+				  . 'pm.isolate_id=pi.isolate_id WHERE pm.project_id=?',
+				$project->{'id'},
+				{ cache => 'PrivateRecordsPage::private_in_project_count' }
+			);
+			$project_quota_remaining = $project->{'quota'} - $private_records;
+			$project_quota_remaining = 0 if $project_quota_remaining < 0;
+			$project_quota           = "$project_quota_remaining remaining ($project->{'quota'} total)";
+		}
 		my $quota_free = $project->{'no_quota'} ? GOOD : q();
-		say qq(<tr class="td$td"><td>$project->{'short_description'}</td><td>$project->{'full_description'}</td>)
-		  . qq(<td>$users</td><td>$isolates</td><td>$quota_free</td>);
+		say qq(<tr class="td$td"><td style="text-align:left">$project->{'short_description'}</td>)
+		  . qq(<td style="text-align:left">$project->{'full_description'}</td>)
+		  . qq(<td>$users</td><td>$isolates</td><td>$project_quota</td><td>$quota_free</td>);
 		say $isolates
 		  ? qq(<td><a href="$self->{'system'}->{'script_name'}?db=$self->{'instance'}&amp;page=query&amp;)
 		  . qq(project_list=$project->{'id'}&amp;submit=1"><span class="fas fa-binoculars action browse">)
 		  . q(</span></a></td>)
 		  : q(<td></td>);
-		my $can_upload = $project->{'no_quota'} || $available > 0;
+		my $can_upload =
+			 ( $project->{'no_quota'} || $available > 0 || $project_quota_remaining )
+		  && $user_info->{'status'} ne 'user'
+		  && $can_modify;
 		my ( $BAN, $UPLOAD, $UPLOAD_CHANGE_CONFIG ) = ( BAN, UPLOAD, UPLOAD_CHANGE_CONFIG );
-		my $switch_config = $project->{'curate_config'} && $project->{'curate_config'} ne $self->{'instance'};
-		my $upload_icon = $switch_config ? UPLOAD_CHANGE_CONFIG : UPLOAD;
+		my $switch_config    = $project->{'curate_config'} && $project->{'curate_config'} ne $self->{'instance'};
+		my $upload_icon      = $switch_config ? UPLOAD_CHANGE_CONFIG : UPLOAD;
 		my $upload_link_root = $self->_get_upload_link( { instance => $project->{'curate_config'} } );
-		my $comment = $switch_config ? q(<br />[switch config]) : q();
+		my $comment          = $switch_config ? q(<br />[switch config]) : q();
 		say $can_upload
 		  ? qq(<td><a href="$upload_link_root&amp;project_id=$project->{'id'}" class="action">$upload_icon</a>$comment</td>)
 		  : qq(<td>$BAN</td>);

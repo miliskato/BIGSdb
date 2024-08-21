@@ -1,6 +1,6 @@
 #Written by Keith Jolley
-#Copyright (c) 2014-2022, University of Oxford
-#E-mail: keith.jolley@zoo.ox.ac.uk
+#Copyright (c) 2014-2024, University of Oxford
+#E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
 #
@@ -22,7 +22,7 @@ use warnings;
 use 5.010;
 use JSON;
 use MIME::Base64;
-use Dancer2 appname        => 'BIGSdb::REST::Interface';
+use Dancer2 appname => 'BIGSdb::REST::Interface';
 use constant MAX_QUERY_SEQ => 5000;
 
 #Scheme routes
@@ -73,8 +73,8 @@ sub _get_schemes_breakdown {
 		{ fetch => 'all_arrayref', slice => {} }
 	);
 	if ($set_id) {
-		my $schemes = $self->{'datastore'}->get_scheme_list( { set_id => $set_id } );
-		my %scheme_name = map { $_->{'id'} => $_->{'name'} } @$schemes;
+		my $schemes         = $self->{'datastore'}->get_scheme_list( { set_id => $set_id } );
+		my %scheme_name     = map { $_->{'id'} => $_->{'name'} } @$schemes;
 		my $filtered_values = [];
 		foreach my $value (@$values) {
 			next if !$scheme_name{ $value->{'scheme_id'} };
@@ -170,6 +170,8 @@ sub _get_scheme {
 		}
 		$values->{'classification_schemes'} = $c_schemes;
 	}
+	my $message = $self->get_date_restriction_message;
+	$values->{'message'} = $message if $message;
 	return $values;
 }
 
@@ -185,8 +187,8 @@ sub _get_scheme_loci {
 	my $qry =
 	  $self->add_filters( 'SELECT locus FROM scheme_members WHERE scheme_id=?', $allowed_filters, { id => 'locus' } );
 	$qry .= ' ORDER BY field_order,locus';
-	my $loci = $self->{'datastore'}->run_query( $qry, $scheme_id, { fetch => 'col_arrayref' } );
-	my $values = { records => int(@$loci) };
+	my $loci        = $self->{'datastore'}->run_query( $qry, $scheme_id, { fetch => 'col_arrayref' } );
+	my $values      = { records => int(@$loci) };
 	my $locus_links = [];
 
 	foreach my $locus (@$loci) {
@@ -202,7 +204,7 @@ sub _get_scheme_field {
 	my $params = params;
 	my ( $db, $scheme_id, $field ) = @{$params}{qw(db scheme field)};
 	$self->check_scheme($scheme_id);
-	my $values = {};
+	my $values     = {};
 	my $field_info = $self->{'datastore'}->get_scheme_field_info( $scheme_id, $field );
 	if ( !$field_info ) {
 		send_error( "Scheme field $field does not exist in scheme $scheme_id.", 404 );
@@ -217,8 +219,8 @@ sub _get_scheme_field {
 sub _query_scheme_sequence {
 	my $self   = setting('self');
 	my $params = params;
-	my ( $db, $scheme_id, $sequence, $details, $base64 ) =
-	  @{$params}{qw(db scheme sequence details base64)};
+	my ( $db, $scheme_id, $sequence, $details, $partial_matches, $base64 ) =
+	  @{$params}{qw(db scheme sequence details partial_matches base64)};
 	$self->check_post_payload;
 	$self->check_load_average;
 	$self->check_seqdef_database;
@@ -227,6 +229,12 @@ sub _query_scheme_sequence {
 
 	if ( !$sequence ) {
 		send_error( 'Required field missing: sequence.', 400 );
+	}
+	if ($base64) {
+		eval { BIGSdb::Utils::read_fasta( \$sequence, { allow_peptide => 1 } ); };
+		if ($@) {
+			send_error( 'Sequence is not a valid FASTA file.', 400 );
+		}
 	}
 	my $num_sequences = ( $sequence =~ tr/>// );
 	if ( $num_sequences > MAX_QUERY_SEQ ) {
@@ -237,19 +245,92 @@ sub _query_scheme_sequence {
 	$self->{'dataConnector'}->drop_all_connections;    #Don't keep connections open while waiting for BLAST.
 	my $blast_obj = $self->get_blast_object($loci);
 	$blast_obj->blast( \$sequence );
-	my $matches = $blast_obj->get_exact_matches( { details => $details } );
 	$self->reconnect;
-	return _process_matches( $db, $scheme_id, $matches, $details );
+	return _process_sequence_matches( $db, $scheme_id, $blast_obj, $details, undef, $partial_matches );
 }
 
-sub _process_matches {
+sub _process_sequence_matches {
+	my ( $db, $scheme_id, $blast_obj, $details, $options, $check_partials ) = @_;
+	my $self          = setting('self');
+	my $set_id        = $self->get_set_id;
+	my $subdir        = setting('subdir');
+	my $exact_matches = $blast_obj->get_exact_matches( { details => $details } );
+	my ( $exacts, $designations ) = _process_exact_matches(
+		{
+			db      => $db,
+			set_id  => $set_id,
+			matches => $exact_matches,
+			details => $details,
+			options => $options
+		}
+	);
+	my $partials = {};
+	if ($check_partials) {
+		my $loci = $self->{'datastore'}->get_scheme_loci($scheme_id);
+		foreach my $locus (@$loci) {
+			if ( !defined $exact_matches->{$locus} ) {
+				my $partial = $blast_obj->get_best_partial_match($locus);
+				if ($partial) {
+					$partials->{$locus} = $partial;
+				}
+			}
+		}
+	}
+	my $values = {};
+	$values->{'exact_matches'}   = $exacts   if keys %$exacts;
+	$values->{'partial_matches'} = $partials if keys %$partials;
+	my $field_values = _get_scheme_fields( $scheme_id, $designations );
+	if ( keys %$field_values ) {
+		$values->{'fields'} = $field_values;
+	}
+	if ($details) {
+		my $analysis = _run_seq_query_script($values);
+		if ($analysis) {
+			my $heading = $self->{'system'}->{'rest_hook_seq_query_heading'} // 'analysis';
+			$values->{$heading} = $analysis;
+		}
+	}
+	return $values;
+}
+
+sub _process_designation_matches {
 	my ( $db, $scheme_id, $matches, $details, $options ) = @_;
+	my $self   = setting('self');
+	my $set_id = $self->get_set_id;
+	my $subdir = setting('subdir');
+	return {} if ref $matches ne 'HASH';
+	my ( $exacts, $designations ) = _process_exact_matches(
+		{
+			db      => $db,
+			set_id  => $set_id,
+			matches => $matches,
+			details => $details,
+			options => $options
+		}
+	);
+	my $values       = { exact_matches => $exacts };
+	my $field_values = _get_scheme_fields( $scheme_id, $designations );
+
+	if ( keys %$field_values ) {
+		$values->{'fields'} = $field_values;
+	}
+	if ($details) {
+		my $analysis = _run_seq_query_script($values);
+		if ($analysis) {
+			my $heading = $self->{'system'}->{'rest_hook_seq_query_heading'} // 'analysis';
+			$values->{$heading} = $analysis;
+		}
+	}
+	return $values;
+}
+
+sub _process_exact_matches {
+	my ($args) = @_;
+	my ( $db, $set_id, $matches, $details, $options ) = @$args{qw(db set_id matches details options)};
 	my $self         = setting('self');
-	my $set_id       = $self->get_set_id;
 	my $subdir       = setting('subdir');
 	my $exacts       = {};
 	my $designations = {};
-	return {} if ref $matches ne 'HASH';
 	foreach my $locus ( keys %$matches ) {
 		my $locus_name = $locus;
 		if ($set_id) {
@@ -281,19 +362,7 @@ sub _process_matches {
 		$exacts->{$locus_name}  = $alleles;
 		$designations->{$locus} = $alleles;    #Don't use set name for scheme field lookup.
 	}
-	my $values = { exact_matches => $exacts };
-	my $field_values = _get_scheme_fields( $scheme_id, $designations );
-	if ( keys %$field_values ) {
-		$values->{'fields'} = $field_values;
-	}
-	if ($details) {
-		my $analysis = _run_seq_query_script($values);
-		if ($analysis) {
-			my $heading = $self->{'system'}->{'rest_hook_seq_query_heading'} // 'analysis';
-			$values->{$heading} = $analysis;
-		}
-	}
-	return $values;
+	return ( $exacts, $designations );
 }
 
 sub _query_scheme_designations {
@@ -308,7 +377,7 @@ sub _query_scheme_designations {
 	if ( !$designations ) {
 		send_error( 'Required field missing: designations.', 400 );
 	}
-	return _process_matches( $db, $scheme_id, $designations, 1, { designations_only => 1 } );
+	return _process_designation_matches( $db, $scheme_id, $designations, 1, { designations_only => 1 } );
 }
 
 sub _run_seq_query_script {

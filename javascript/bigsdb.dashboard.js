@@ -1,7 +1,7 @@
 /**
  * Written by Keith Jolley 
- * Copyright (c) 2021-2022, University of Oxford 
- * E-mail: keith.jolley@zoo.ox.ac.uk
+ * Copyright (c) 2021-2024, University of Oxford 
+ * E-mail: keith.jolley@biology.ox.ac.uk
  * 
  * This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
  * 
@@ -25,7 +25,6 @@ const MOBILE_WIDTH = 480;
 
 $(function() {
 	showOrHideElements();
-
 	$("select#add_field,label[for='add_field']").css("display", "inline");
 	var fill_gaps = $("#fill_gaps").prop('checked');
 	var open_new = $("#open_new").prop('checked');
@@ -57,14 +56,20 @@ $(function() {
 			$("#record_age").html(recordAgeLabels[ui.value]);
 		},
 		change: function(event, ui) {
+			var age_url = url + "&page=dashboard&updateDashboard=1&type=" + dashboard_type;
+			age_url += "&attribute=record_age&value=" + ui.value;
+			if (typeof projectId !== 'undefined') {
+				age_url += "&project_id=" + projectId;
+			}
 			$.ajax({
-				url: url + "&page=dashboard&updateDashboard=1&type=" + dashboard_type + "&attribute=record_age&value=" + ui.value
+				url: age_url
 			}).done(function(json) {
 				$("#loaded_dashboard").val(JSON.parse(json).dashboard_name);
 				$("#loaded_dashboard").prop("disabled", false);
 				$("#delete_dashboard").css("display", "inline");
 				$("#filter_age").html(recordAgeLabels[ui.value]);
 				reloadAllElements();
+				bumpVersion();
 			});
 		}
 	});
@@ -91,8 +96,13 @@ $(function() {
 		} catch (err) {
 			// Grid is empty.
 		}
+		var gaps_url = url + "&page=dashboard&updateDashboard=1&type=" + dashboard_type;
+		if (typeof projectId !== 'undefined') {
+			gaps_url += "&project_id=" + projectId;
+		}
+		gaps_url += "&attribute=fill_gaps&value=" + (fill_gaps ? 1 : 0);
 		$.ajax({
-			url: url + "&page=dashboard&updateDashboard=1&type=" + dashboard_type + "&attribute=fill_gaps&value=" + (fill_gaps ? 1 : 0)
+			url: gaps_url
 		}).done(function(json) {
 			updateDashboardName(JSON.parse(json).dashboard_name);
 		});
@@ -123,26 +133,55 @@ $(function() {
 	});
 	$("#include_old_versions").change(function() {
 		var include_old_versions = $("#include_old_versions").prop('checked');
+		var old_url = url + "&page=dashboard&updateDashboard=1&type=" + dashboard_type;
+		if (typeof projectId !== 'undefined') {
+			old_url += "&project_id=" + projectId;
+		}
+		old_url += "&attribute=include_old_versions&value=" + (include_old_versions ? 1 : 0);
 		$.ajax({
-			url: url + "&page=dashboard&updateDashboard=1&type=" + dashboard_type + "&attribute=include_old_versions&value=" +
-				(include_old_versions ? 1 : 0)
+			url: old_url
 		}).done(function(json) {
 			updateDashboardName(JSON.parse(json).dashboard_name);
 			$("#filter_versions").html(include_old_versions ? 'all' : 'current');
+			reloadAllElements();
+			bumpVersion();
+		});
+	});
+	$("#dashboard_palette").change(function() {
+		var name = $("#dashboard_palette").val();
+		var change_dashboard_url = url + "&page=dashboard&updateDashboard=1&type=" + dashboard_type;
+		if (typeof projectId !== 'undefined') {
+			change_dashboard_url += "&project_id=" + projectId;
+		}
+		change_dashboard_url += "&attribute=palette&value=" + name;
+		$.ajax({
+			url: change_dashboard_url
+		}).done(function(json) {
+			updateDashboardName(JSON.parse(json).dashboard_name);
+			bumpVersion();
 			reloadAllElements();
 		});
 	});
 	$("#loaded_dashboard").change(function() {
 		var name = $("#loaded_dashboard").val();
+		var rename_url = url + "&page=dashboard&type=" + dashboard_type;
+		if (typeof projectId !== 'undefined') {
+			rename_url += "&project_id=" + projectId;
+		}
+		rename_url += "&updateDashboardName=" + encodeURIComponent(name);
 		if (name.length) {
-			$.ajax(url + "&page=dashboard&type=" + dashboard_type + "&updateDashboardName=" + encodeURIComponent(name));
+			$.ajax(rename_url);
 		}
 	});
 
 	$("#switch_dashboard").change(function() {
 		var id = $("#switch_dashboard").val();
+		var switch_url = url + "&page=dashboard&setActiveDashboard=" + id + "&type=" + dashboard_type;
+		if (typeof projectId !== 'undefined') {
+			switch_url += "&project_id=" + projectId;
+		}
 		$.ajax({
-			url: url + "&page=dashboard&setActiveDashboard=" + id + "&type=" + dashboard_type
+			url: switch_url
 		}).done(function() {
 			//Prevent form reload message on Firefox - simulate click of the submit button instead.
 			if ($("input#search").length) {
@@ -222,7 +261,7 @@ $(function() {
 		var id = $(this).attr('id');
 		var attribute = 'marker_size';
 		var element_id = id.replace("_" + value, "");
-		var value = $(this).slider("option","value");
+		var value = $(this).slider("option", "value");
 		var element_id = id.replace("_" + attribute, "");
 		changeElementAttribute(grid, element_id, attribute, value);
 	});
@@ -252,6 +291,19 @@ $(function() {
 		setGridMargins(grid)
 		loadNewElements();
 	});
+	$('a#expand_trigger').click(function(event) {
+		//It takes slightly longer to re-organise elements when page width is very large,
+		//so add a longer delay.
+		let delay = 250;
+		if ($("#main_container").width() > 2000) {
+			delay = 500;
+		}
+		setTimeout(
+			function() {
+				setGridMargins(grid);
+				grid.refreshItems().layout();
+			}, delay);
+	});
 	setGridMargins(grid);
 	window.dispatchEvent(new Event('resize'));
 });
@@ -278,6 +330,9 @@ function getDataQueryParams(id) {
 		params['prov_operator1'] = '>=';
 		params['prov_value1'] = datestamps[recordAgeIndex];
 	}
+	if (typeof projectId !== 'undefined') {
+		params['project_list'] = projectId;
+	}
 	return params;
 }
 
@@ -291,7 +346,27 @@ function getDataExplorerParams(id) {
 	if (elements[id]['specific_values'] != null) {
 		params['specific_values'] = elements[id]['specific_values'];
 	}
+	if (typeof projectId !== 'undefined') {
+		params['project_id'] = projectId;
+	}
 	return params;
+}
+
+function bumpVersion() {
+	version = Date.now();
+	$.ajax({
+		url: url,
+		type: 'POST',
+		data: {
+			db: instance,
+			page: "dashboard",
+			updateDashboard: 1,
+			type: dashboard_type,
+			project_id: (typeof projectId !== 'undefined' ? projectId : null),
+			attribute: "version",
+			value: version
+		},
+	});
 }
 
 function updateDashboardName(name) {
@@ -368,7 +443,7 @@ function clean_value(value) {
 			return el != null && el != '';
 		});
 	} else {
-		if (typeof value === 'string'){
+		if (typeof value === 'string') {
 			value = value.trim();
 		}
 	}
@@ -416,7 +491,12 @@ function addElement(grid, id) {
 	if (Object.keys(elements).length === 0) {
 		$("div#empty").html("");
 	}
-	var add_url = url + "&page=dashboard&type=" + dashboard_type + "&new=" + id;
+	var add_url = url + "&page=dashboard&type=" + dashboard_type;
+	if (typeof projectId !== 'undefined') {
+		add_url += "&project_id=" + projectId;
+	}
+
+	add_url += "&new=" + id;
 	var field = $("#add_field").val();
 	if (field) {
 		add_url += "&field=" + field;
@@ -452,7 +532,11 @@ function addElement(grid, id) {
 function editElement(grid, id, setup) {
 	$("span#control_" + id).hide();
 	$("span#wait_" + id).show();
-	$.get(url + "&page=dashboard&type=" + dashboard_type + "&control=" + id, function(html) {
+	var edit_url = url + "&page=dashboard&type=" + dashboard_type + "&control=" + id;
+	if (typeof projectId !== 'undefined') {
+		edit_url += "&project_id=" + projectId;
+	}
+	$.get(edit_url, function(html) {
 		$(html).appendTo('body').modal();
 		if ($("#edit_elements").prop("checked")) {
 			$("span#control_" + id).show();
@@ -487,7 +571,7 @@ function showOrHideControlElements(id) {
 	var breakdown_display = $("#" + id + "_breakdown_display").val();
 
 	//Hide all elements initially.
-	$("fieldset#change_duration_control,fieldset#design_control,"
+	$("fieldset#change_duration_control,fieldset#design_control,fieldset#order_control,fieldset#orientation_control,"
 		+ "li#value_selector,li#breakdown_display_selector,li#specific_value_display_selector,"
 		+ "li#top_value_selector,li#watermark_control,li#palette_control,li#text_colour_control,"
 		+ "li#background_colour_control,li.gauge_colour,li#bar_colour_type,li#chart_colour,"
@@ -520,7 +604,8 @@ function showOrHideControlElements(id) {
 	} else if (visualisation_type === 'breakdown') {
 		$("li#breakdown_display_selector").css("display", "block");
 		if (breakdown_display === 'bar') {
-			$("fieldset#design_control,li#bar_colour_type").css("display", "inline");
+			$("fieldset#design_control,fieldset#order_control,fieldset#orientation_control,li#bar_colour_type")
+				.css("display", "inline");
 			var bar_colour_type = $("input[name='" + id + "_bar_colour_type']:checked").val();
 			if (bar_colour_type === "continuous") {
 				$("li#chart_colour").css("display", "block");
@@ -592,7 +677,11 @@ function checkAndShowVisualisation(grid, id) {
 }
 
 function reloadElement(id) {
-	var reload_url = url + "&page=dashboard&type=" + dashboard_type + "&element=" + id;
+	var reload_url = url + "&page=dashboard&ajax=1&type=" + dashboard_type + "&v=" + version;
+	if (typeof projectId !== 'undefined') {
+		reload_url += "&project_id=" + projectId;
+	}
+	reload_url += "&element=" + id;
 	if (qryFile != null && qryFile.length) {
 		reload_url += "&qry_file=" + qryFile;
 	}
@@ -668,6 +757,7 @@ function saveElements(grid) {
 		page: "dashboard",
 		updateDashboard: 1,
 		type: dashboard_type,
+		project_id: (typeof projectId !== 'undefined' ? projectId : null),
 		attribute: "elements",
 		value: JSON.stringify(elements)
 	});
@@ -683,6 +773,7 @@ function saveAndReloadElement(grid, id) {
 			page: "dashboard",
 			updateDashboard: 1,
 			type: dashboard_type,
+			project_id: (typeof projectId !== 'undefined' ? projectId : null),
 			attribute: "elements",
 			value: JSON.stringify(elements)
 		},
@@ -697,6 +788,7 @@ function saveAndReloadElement(grid, id) {
 				setGridMargins(grid);
 			}
 			updateDashboardName(JSON.parse(json).dashboard_name);
+			bumpVersion();
 		}
 	});
 }
@@ -753,6 +845,7 @@ function saveLayout(grid) {
 					page: "dashboard",
 					updateDashboard: 1,
 					type: dashboard_type,
+					project_id: (typeof projectId !== 'undefined' ? projectId : null),
 					attribute: "order",
 					value: layout
 				},
@@ -767,7 +860,11 @@ function saveLayout(grid) {
 
 function resetDefaults() {
 	$("#modify_dashboard_panel").toggle("slide", { direction: "right" }, "fast");
-	$.get(url + "&resetDefaults=1&type=" + dashboard_type, function() {
+	var reset_url = url + "&resetDefaults=1&type=" + dashboard_type;
+	if (typeof projectId !== 'undefined') {
+		reset_url += "&project_id=" + projectId;
+	}
+	$.get(reset_url, function() {
 		//Prevent form reload message on Firefox - simulate click of the submit button instead.
 		if ($("input#search").length) {
 			$("input#search").trigger('click');
@@ -795,8 +892,12 @@ function resetSeqbinRange(id) {
 }
 
 function createNew() {
+	var new_url = url + "&newDashboard=1&type=" + dashboard_type;
+	if (typeof projectId !== 'undefined') {
+		new_url += "&project_id=" + projectId;
+	}
 	$.ajax({
-		url: url + "&newDashboard=1&type=" + dashboard_type,
+		url: new_url,
 		type: 'GET',
 		success: function() {
 			//Prevent form reload message on Firefox - simulate click of the submit button instead.
@@ -831,8 +932,7 @@ function get_marker_layer(jsonData, colour, size) {
 		});
 		pstyles.push(pstyle);
 	}
-//	let thresholds = [1, 2, 5, 10, 25, 50, 100, 250, 500];
-	let thresholds = [1, 25, 100, 500];
+	let thresholds = [1, 2, 5, 10, 25, 50, 100, 250, 500];
 	let features = [];
 	jsonData.forEach(function(e) {
 		let coordinates = (e.label.match(/(\-?\d+\.?\d*),\s*(\-?\d+\.?\d*)/));
@@ -867,3 +967,32 @@ function get_marker_layer(jsonData, colour, size) {
 function commify(x) {
 	return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
+
+//https://gist.github.com/krabs-github/ec56e4f1c12cddf86ae9c551aa9d9e04
+function lightOrDark(color) {
+	// If RGB --> Convert it to HEX: http://gist.github.com/983661
+	color = +("0x" + color.slice(1).replace(
+		color.length < 5 && /./g, '$&$&'
+	)
+	);
+
+	r = color >> 16;
+	g = color >> 8 & 255;
+	b = color & 255;
+
+	// HSP equation from http://alienryderflex.com/hsp.html
+	hsp = Math.sqrt(
+		0.299 * (r * r) +
+		0.587 * (g * g) +
+		0.114 * (b * b)
+	);
+
+	// Using the HSP value, determine whether the color is light or dark
+	if (hsp > 127.5) {
+		return 'light';
+	}
+	else {
+		return 'dark';
+	}
+}
+

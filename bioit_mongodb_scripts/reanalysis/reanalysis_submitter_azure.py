@@ -266,7 +266,7 @@ class BatchPipelinesReanalysis:
         logging.info(f"{len(documents_list)} isolates to be reanalyzed for {self._species}_{self._dtap}")
         for mongodb_document in documents_list:
             # Create a new task to execute a command on the VM
-            task_name = f"{mongodb_document['results']['isolates_id']}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+            task_name = f"{mongodb_document['results']['isolates_id'][:43]}_{datetime.now().strftime('%Y%m%d%H%M%S%f')}"
             command = self.___build_command(task_name, date_args_dict[maximal_analysis_date], mongodb_document)
             self.___create_task(job_name, task_name, command)
         logging.info(
@@ -304,7 +304,7 @@ class BatchPipelinesReanalysis:
                               self._reanalysis_config['species'][self._species]['options']]
         for mongodb_document in documents_list:
             # Create a new task to execute a command on the VM
-            task_name = f"{mongodb_document['results']['isolates_id']}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+            task_name = f"{mongodb_document['results']['isolates_id'][:43]}_{datetime.now().strftime('%Y%m%d%H%M%S%f')}"
             command = self.___build_command(task_name, analysis_arguments, mongodb_document)
             self.___create_task(job_name, task_name, command)
         logging.info(
@@ -356,8 +356,15 @@ class BatchPipelinesReanalysis:
         :param mongodb_document: The mongodb document of the to be reanalyzed sample
         :return: command
         """
+        report_dir = f'$AZ_BATCH_TASK_DIR/{self._dtap}/report_dirs/reanalysis/{self._species}/{task_name}'
+        working_dir = f'$AZ_BATCH_TASK_DIR/{self._dtap}/working_dirs/reanalysis/{self._species}/{task_name}_working'
+        results_dir = mongodb_document['report_directory']
         # pre command to load lmod and to stop commands upon failure (set -o errexit)
-        pre_command = 'export MODULEPATH=/etc/lmod/modules; source /etc/profile.d/lmod.sh; set -o errexit'
+        pre_command = 'export MODULEPATH=/etc/lmod/modules; source /etc/profile.d/lmod.sh'
+        trap_command = (f'trap \'mkdir -p /scratch/scratch/{self._dtap}/errors/reanalysis/{self._species}/{task_name}; '
+                        f'if test -e {working_dir}; then cp -r {working_dir} /scratch/scratch/{self._dtap}/errors/reanalysis/{self._species}/{task_name}; rm -r {working_dir}; fi; '
+                        f'if test -e {report_dir}; then cp -r {report_dir} /scratch/scratch/{self._dtap}/errors/reanalysis/{self._species}/{task_name}; rm -r {report_dir}; fi; '
+                        f'exit 1\' ERR')
         # Create the command to re-analyze the datasets
         config_species = self._reanalysis_config['species'][self._species]
         isolate_id = mongodb_document['results']['isolates_id']
@@ -365,11 +372,9 @@ class BatchPipelinesReanalysis:
         We're creating the report dir before the smk pipe does it, because then if the smk fails for whatever reason,
         the stderr.txt and stdout.txt files can still be copied to the report_dir in the post_command
         """
-        report_dir = f'/scratch/scratch/{self._dtap}/report_dirs/reanalysis/{self._species}/{task_name}'
-        working_dir = f'/scratch/scratch/{self._dtap}/working_dirs/reanalysis/{self._species}/{task_name}_working'
-        results_dir = mongodb_document['report_directory']
         base_command = ' '.join([
             f"module load {config_species['lmod']};",
+            'pipeline_hash=$(git --git-dir=$PYTHONPATH/.git rev-parse --short=10 HEAD);',  # need to be double "
             f"mkdir -p {working_dir};",
             f"cd {working_dir};"
             f"{config_species['main_script']} ",
@@ -393,7 +398,7 @@ class BatchPipelinesReanalysis:
         post_command = f'cp $AZ_BATCH_TASK_DIR/std*.txt {report_dir}/'
         # Check if report.html exists, if it does, remove working directory to clean up and
         # stderr + stdout because they're not necessary
-        cleanup_command = f"if test -e {report_dir}/report.html ; then rm -r {working_dir}; rm {report_dir}/std*.txt; fi; cd /scratch/scratch/; rsync -a {report_dir}/ {results_dir}/; rm {results_dir}/camel.log"
+        cleanup_command = f"if test -e {report_dir}/report.html ; then rm -r {working_dir}; rm {report_dir}/std*.txt; fi; cd $AZ_BATCH_TASK_DIR; rsync -a --no-p --no-o --no-g {report_dir}/ {results_dir}/; rm {results_dir}/camel.log; rm -r {report_dir}"
         # the cd before rsync is necessary because else it will throw the error: rsync: getcwd(): No such file or directory (2)
         unload_command = f"module unload {config_species['lmod']}"
         config_mongodb = self._reanalysis_config['mongodb']
@@ -406,12 +411,13 @@ class BatchPipelinesReanalysis:
             "--results_type reanalysis",
             f"--species {self._species}",
             f"--technical_id {isolate_id}",
+            "--pipeline_hash $pipeline_hash",
             f"--jsonfilepath {results_dir}/report.json",
             "--dont_send_email",
             f"--alternate_dtap {self._dtap}",
             f"--alternate_connection_string {self._connection_azure.get_secret_value('MONGODB-CONNECTION-STRING')}"
         ])
-        task_command = f'/bin/bash -c "{pre_command}; {base_command}; {post_command}; {cleanup_command}; {unload_command}; {mongodb_command}"'
+        task_command = f'/bin/bash -c "{pre_command}; {trap_command}; {base_command}; {post_command}; {cleanup_command}; {unload_command}; {mongodb_command}"'
         return task_command
 
 

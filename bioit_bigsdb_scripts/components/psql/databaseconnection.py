@@ -21,20 +21,26 @@ class DatabaseConnection:
         """
         Initialises a database connection
         :param species: commonly used bioit species name: either genus or specific like stec
-        :param db_type: seqdef or isolates
+        :param db_type: seqdef or isolates or jobs
+        :param autocommit: if True every operation is done in a separate transaction
+        :return: None
         """
         self._db_type = db_type
-        if self._db_type != 'seqdef' and self._db_type != 'isolates':
+        if self._db_type != 'seqdef' and self._db_type != 'isolates' and self._db_type != 'jobs':
             raise ValueError('no such database type')
         # Read the global config
         bigsdb_config_data = get_bigsdb_config_data()
+
+        database = "bigsdb_jobs" if self._db_type == 'jobs' else f"bigsdb_{species}_{self._db_type}";
+
         try:
             self._connection: psycopg2.extensions.connection = \
-                psycopg2.connect(database=f"bigsdb_{species}_{self._db_type}", user="apache",
+                psycopg2.connect(database=database, user="apache",
                                  password=bigsdb_config_data.get('postgresql_apache_pass'),
                                  host="127.0.0.1", port="")
         except Exception:
             raise RuntimeError(f"Could not connect to {species}'s databases")
+
         self._connection.autocommit = autocommit
         self._cursor: psycopg2.extensions.cursor = self._connection.cursor()
         self.name = self._cursor.name
@@ -48,6 +54,8 @@ class DatabaseConnection:
         :return: None or query results
         """
         self._cursor.execute(query, params)
+        # import logging
+        # logging.info(self._cursor.query)  # if you ever want to see the filled in query for debugging purposes
         if query.strip().startswith('SELECT'):
             return self._cursor.fetchall()
 

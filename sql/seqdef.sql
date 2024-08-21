@@ -63,6 +63,22 @@ ON UPDATE CASCADE
 
 GRANT SELECT,UPDATE,INSERT,DELETE ON permissions TO apache;
 
+CREATE TABLE curator_configs (
+user_id integer NOT NULL,
+dbase_config text NOT NULL,
+curator integer NOT NULL,
+datestamp date NOT NULL,
+PRIMARY KEY (user_id,dbase_config),
+CONSTRAINT cc_user_id FOREIGN KEY (user_id) REFERENCES users
+ON DELETE CASCADE
+ON UPDATE CASCADE,
+CONSTRAINT cc_curator FOREIGN KEY (curator) REFERENCES users
+ON DELETE NO ACTION
+ON UPDATE CASCADE
+);
+
+GRANT SELECT,UPDATE,INSERT,DELETE ON curator_configs TO apache;
+
 CREATE TABLE user_groups (
 id integer NOT NULL UNIQUE,
 description text NOT NULL UNIQUE,
@@ -338,8 +354,9 @@ ON UPDATE CASCADE
 );
 
 CREATE UNIQUE INDEX i_s1 ON sequences(locus,md5(sequence));
-CREATE INDEX i_s2 ON sequences(exemplar) WHERE exemplar;
+CREATE INDEX i_s2 ON sequences(exemplar,locus);
 CREATE INDEX i_s3 ON sequences USING brin(datestamp); 
+CREATE INDEX i_s4 ON sequences(sender);
 GRANT SELECT,UPDATE,INSERT,DELETE ON sequences TO apache;
 
 CREATE TABLE sequence_extended_attributes (
@@ -384,12 +401,13 @@ CREATE TABLE schemes (
 id int NOT NULL UNIQUE,
 name text NOT NULL,
 description text,
-allow_missing_loci boolean,
+allow_missing_loci boolean NOT NULL DEFAULT FALSE,
+allow_presence boolean NOT NULL DEFAULT FALSE,
 max_missing int,
 display_order int,
 display boolean,
-no_submissions boolean,
-disable boolean,
+no_submissions boolean NOT NULL DEFAULT FALSE,
+disable boolean NOT NULL DEFAULT FALSE,
 curator int NOT NULL,
 date_entered date NOT NULL,
 datestamp date NOT NULL,
@@ -427,6 +445,7 @@ field text NOT NULL,
 type text NOT NULL,
 value_regex text,
 description text,
+option_list text,
 field_order int,
 index boolean,
 dropdown boolean NOT NULL,
@@ -603,7 +622,7 @@ ON DELETE CASCADE
 ON UPDATE CASCADE
 );
 
-CREATE INDEX i_sr1 ON sequence_refs (pubmed_id);
+--CREATE INDEX i_sr1 ON sequence_refs (pubmed_id);
 --CREATE INDEX i_sr2 ON sequence_refs (locus,allele_id) removed as not necessary (covered by pkey index)
 
 GRANT SELECT,UPDATE,INSERT,DELETE ON sequence_refs TO apache;
@@ -624,7 +643,7 @@ ON DELETE CASCADE
 ON UPDATE CASCADE
 );
 
-CREATE INDEX i_a1 ON accession (databank,databank_id);
+--CREATE INDEX i_a1 ON accession (databank,databank_id);
 --CREATE INDEX i_a2 ON accession (locus,allele_id) removed as not necessary (covered by pkey index)
 
 GRANT SELECT,UPDATE,INSERT,DELETE ON accession TO apache;
@@ -648,7 +667,7 @@ ON DELETE NO ACTION
 ON UPDATE CASCADE
 );
 
-CREATE INDEX i_p1 ON profiles ((lpad(profile_id,20,'0')));
+--CREATE INDEX i_p1 ON profiles ((lpad(profile_id,20,'0')));
 
 GRANT SELECT,UPDATE,INSERT,DELETE ON profiles TO apache;
 
@@ -676,7 +695,8 @@ ON UPDATE CASCADE
 
 CREATE INDEX i_pm1 ON profile_members (scheme_id,profile_id);
 --CREATE INDEX i_pm2 ON profile_members (scheme_id,locus) removed as not necessary (covered by pkey index)
-CREATE INDEX i_pm3 ON profile_members (allele_id);
+--CREATE INDEX i_pm3 ON profile_members (allele_id);
+CREATE INDEX i_pm4 ON profile_members(locus,allele_id,scheme_id);
 
 GRANT SELECT,UPDATE,INSERT,DELETE ON profile_members TO apache;
 ALTER TABLE profile_members OWNER TO apache;
@@ -702,7 +722,7 @@ ON UPDATE CASCADE
 
 CREATE INDEX i_pf1 ON profile_fields (scheme_id,profile_id);
 --CREATE INDEX i_pf2 ON profile_fields (scheme_id,scheme_field) removed as not necessary (covered by pkey index)
-CREATE INDEX i_pf3 ON profile_fields (value);
+--CREATE INDEX i_pf3 ON profile_fields (value);
 GRANT SELECT,UPDATE,INSERT,DELETE ON profile_fields TO apache;
 
 CREATE TABLE profile_refs (
@@ -720,7 +740,7 @@ ON DELETE CASCADE
 ON UPDATE CASCADE
 );
 
-CREATE INDEX i_pr1 ON profile_refs (pubmed_id);
+--CREATE INDEX i_pr1 ON profile_refs (pubmed_id);
 --CREATE INDEX i_pr2 ON profile_refs (scheme_id,profile_id) removed as not necessary (covered by pkey index)
 GRANT SELECT,UPDATE,INSERT,DELETE ON profile_refs TO apache;
 
@@ -811,6 +831,7 @@ status text NOT NULL,
 curator int,
 outcome text,
 email boolean,
+dataset text,
 PRIMARY KEY(id),
 CONSTRAINT s_submitter FOREIGN KEY (submitter) REFERENCES users
 ON DELETE CASCADE
@@ -935,7 +956,7 @@ ON UPDATE CASCADE
 
 GRANT SELECT,UPDATE,INSERT,DELETE ON retired_allele_ids TO apache;
 
-CREATE OR REPLACE LANGUAGE 'plpgsql';
+CREATE OR REPLACE LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION check_retired_alleles() RETURNS TRIGGER AS $check_retired_alleles$
 	BEGIN
@@ -1003,18 +1024,18 @@ CREATE OR REPLACE FUNCTION update_locus_stats() RETURNS TRIGGER AS $update_locus
 		current_datestamp date;
 		allele_length integer;
 	BEGIN
-		IF (TG_OP = 'DELETE' AND OLD.allele_id NOT IN ('0','N')) THEN
+		IF (TG_OP = 'DELETE' AND OLD.allele_id NOT IN ('0','N','P')) THEN
 			PERFORM locus FROM sequences WHERE locus=OLD.locus;
 			IF NOT FOUND THEN  --There are no more alleles for this locus.
 				UPDATE locus_stats SET datestamp=null,allele_count=0,min_length=null,max_length=null WHERE locus=OLD.locus;
 			ELSE
 				SELECT MIN(LENGTH(sequence)),MAX(LENGTH(sequence)),MAX(datestamp) INTO 
 				current_min_length,current_max_length,current_datestamp FROM sequences WHERE 
-				locus=OLD.locus AND allele_id NOT IN ('0','N');
+				locus=OLD.locus AND allele_id NOT IN ('0','N','P');
 				UPDATE locus_stats SET datestamp=current_datestamp,allele_count=allele_count-1,
 				min_length=current_min_length,max_length=current_max_length WHERE locus=OLD.locus;
 			END IF;
-		ELSIF (TG_OP = 'INSERT' AND NEW.allele_id NOT IN ('0','N')) THEN
+		ELSIF (TG_OP = 'INSERT' AND NEW.allele_id NOT IN ('0','N','P')) THEN
 			UPDATE locus_stats SET datestamp='now',allele_count=allele_count+1 WHERE locus=NEW.locus;
 			SELECT min_length,max_length INTO current_min_length,current_max_length FROM locus_stats WHERE locus=NEW.locus;
 			allele_length := LENGTH(NEW.sequence);
@@ -1631,3 +1652,101 @@ ON UPDATE CASCADE
 );
 
 GRANT SELECT,UPDATE,INSERT,DELETE ON lincode_prefixes TO apache;
+
+CREATE TABLE peptide_mutations (
+id int NOT NULL UNIQUE,
+locus text NOT NULL,
+wild_type_allele_id text,
+reported_position int NOT NULL,
+locus_position int NOT NULL,
+wild_type_aa text NOT NULL,
+variant_aa text NOT NULL,
+flanking_length int NOT NULL,
+curator integer NOT NULL,
+datestamp date NOT NULL,
+PRIMARY KEY (id),
+CONSTRAINT pm_wild_type_allele_id FOREIGN KEY (locus,wild_type_allele_id) REFERENCES sequences(locus,allele_id)
+ON DELETE NO ACTION
+ON UPDATE CASCADE,
+CONSTRAINT pm_curator FOREIGN KEY (curator) REFERENCES users
+ON DELETE NO ACTION
+ON UPDATE CASCADE
+);
+
+GRANT SELECT,UPDATE,INSERT,DELETE ON peptide_mutations TO apache;
+
+CREATE TABLE sequences_peptide_mutations (
+locus text NOT NULL,
+allele_id text NOT NULL,
+mutation_id int NOT NULL,
+amino_acid char(1) NOT NULL,
+is_wild_type boolean NOT NULL,
+is_mutation boolean NOT NULL,
+curator integer NOT NULL,
+datestamp date NOT NULL,
+PRIMARY KEY(locus, allele_id, mutation_id),
+CONSTRAINT spm_sequences FOREIGN KEY (locus,allele_id) REFERENCES sequences
+ON DELETE CASCADE
+ON UPDATE CASCADE,
+CONSTRAINT spm_mutation_id FOREIGN KEY (mutation_id) REFERENCES peptide_mutations
+ON DELETE CASCADE
+ON UPDATE CASCADE,
+CONSTRAINT spm_curator FOREIGN KEY (curator) REFERENCES users
+ON DELETE NO ACTION
+ON UPDATE CASCADE
+);
+
+GRANT SELECT,UPDATE,INSERT,DELETE ON sequences_peptide_mutations TO apache;
+
+CREATE TABLE dna_mutations (
+id int NOT NULL UNIQUE,
+locus text NOT NULL,
+wild_type_allele_id text,
+reported_position int NOT NULL,
+locus_position int NOT NULL,
+wild_type_nuc text NOT NULL,
+variant_nuc text NOT NULL,
+flanking_length int NOT NULL,
+curator integer NOT NULL,
+datestamp date NOT NULL,
+PRIMARY KEY (id),
+CONSTRAINT dm_curator FOREIGN KEY (curator) REFERENCES users
+ON DELETE NO ACTION
+ON UPDATE CASCADE
+);
+
+GRANT SELECT,UPDATE,INSERT,DELETE ON dna_mutations TO apache;
+
+CREATE TABLE sequences_dna_mutations (
+locus text NOT NULL,
+allele_id text NOT NULL,
+mutation_id int NOT NULL,
+nucleotide char(1) NOT NULL,
+is_wild_type boolean NOT NULL,
+is_mutation boolean NOT NULL,
+curator integer NOT NULL,
+datestamp date NOT NULL,
+PRIMARY KEY(locus, allele_id, mutation_id),
+CONSTRAINT sdm_sequences FOREIGN KEY (locus,allele_id) REFERENCES sequences
+ON DELETE CASCADE
+ON UPDATE CASCADE,
+CONSTRAINT sdm_mutation_id FOREIGN KEY (mutation_id) REFERENCES dna_mutations
+ON DELETE CASCADE
+ON UPDATE CASCADE,
+CONSTRAINT sdm_curator FOREIGN KEY (curator) REFERENCES users
+ON DELETE NO ACTION
+ON UPDATE CASCADE
+);
+
+GRANT SELECT,UPDATE,INSERT,DELETE ON sequences_dna_mutations TO apache;
+
+CREATE TABLE db_attributes (
+field text NOT NULL,
+value text NOT NULL,
+PRIMARY KEY(field)
+);
+
+GRANT SELECT,UPDATE,INSERT,DELETE ON db_attributes TO apache;
+
+INSERT INTO db_attributes (field,value) VALUES ('version','45');
+INSERT INTO db_attributes (field,value) VALUES ('type','seqdef');

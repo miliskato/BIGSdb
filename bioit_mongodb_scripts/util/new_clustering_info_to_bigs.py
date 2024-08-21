@@ -24,7 +24,7 @@ from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_conf
 
 class NewClusteringInfoToBigs:
     """
-    Inserts all new clustering related info into Bigsdb, decides what is new based on a date that is stored
+    Inserts all new clustering related info into BIGSdb, decides what is new based on a date that is stored
     in the update metadata collection. This date is updated at the successful end of this script.
     """
     def __init__(self, species: str, naive_clustering_distance_matrix_file: Path,

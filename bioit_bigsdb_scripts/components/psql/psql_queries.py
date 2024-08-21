@@ -13,6 +13,9 @@ class PsqlQueries():
     .
     Group queries by database, then by crud, then by table, then alphabetically
     """
+    # General table existence check
+    SEL_TABLE_EXISTS: Final[str] = """SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = %s);"""
+
     # TBL alert details field order
     ISO_INS__TB_ALDEFO_VAR_FIELD_INDEX: Final[str] = """
         INSERT INTO alert_details_field_order(alert_id, field, index) 
@@ -233,7 +236,11 @@ class PsqlQueries():
         VALUES((SELECT MAX(id::int) FROM submissions), 1, %s, %s);"""
     ISO_SEL_ALL_TB_ISOSUBISO_VAR_SUBID: Final[str] = """
         SELECT * FROM isolate_submission_isolates WHERE submission_id=%s;"""
-
+    # TBL jobs
+    JOB_SEL_PID_STARTED_JOBS_TB_JOBS: Final[str] = """
+        SELECT pid, module, stage FROM jobs WHERE status = 'started' ;"""
+    JOBS_SET_FAILED_STATUS: Final[str] = """
+        UPDATE jobs SET status = 'failed' WHERE pid = %s;"""
     # TBL loci
     ISO_INS__TB_LOCI_VAR_LOCUS_DBNAME_DBID_URL: Final[str] = """
         INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, dbase_name, dbase_id, 
@@ -360,7 +367,7 @@ class PsqlQueries():
         FROM submissions 
         LEFT JOIN users ON users.id = submissions.curator 
         LEFT JOIN isolate_submission_isolates ON isolate_submission_isolates.submission_id = submissions.id 
-        WHERE submissions.status='closed' and isolate_submission_isolates.field='isolate_id';"""
+        WHERE submissions.status='closed' and isolate_submission_isolates.field='isolate_id' and submissions.id=%s;"""
     ISO_UPD_STATUS_TB_SUB_VAR_ID: Final[str] = """
         UPDATE submissions SET status='validation_sent_to_bioit_platform' WHERE id=%s;"""
     ISO_INS__TB_SUB_VAR_VALTYPE: Final[str] = """

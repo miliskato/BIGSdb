@@ -1,6 +1,6 @@
 #Written by Keith Jolley
-#Copyright (c) 2010-2020, University of Oxford
-#E-mail: keith.jolley@zoo.ox.ac.uk
+#Copyright (c) 2010-2024, University of Oxford
+#E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
 #
@@ -174,7 +174,9 @@ sub print_content {
 			}
 		}
 		if ( $q->param('render') ) {
-			say q(<h1>Download allele sequences</h1><div class="box" id="resultstable"><div class="scrollable">);
+			say q(<h1>Download allele sequences</h1>);
+			$self->_print_api_message;
+			say q(<div class="box" id="resultstable"><div class="scrollable">);
 		}
 		my $scheme_info = $self->{'datastore'}->get_scheme_info( $scheme_id, { set_id => $set_id } );
 		$self->_print_scheme_table($scheme_id);
@@ -222,6 +224,7 @@ sub print_content {
 		$self->print_bad_status( { message => q(No loci have been defined for this database.), navbar => 1 } );
 		return;
 	}
+	$self->_print_api_message;
 	say q(<div class="box" id="resultstable">);
 	if ( $q->param('tree') ) {
 		say qq(<p>Select loci by scheme | <a href="$self->{'system'}->{'script_name'}?db=$self->{'instance'}&amp;)
@@ -243,6 +246,30 @@ sub print_content {
 		$self->_print_all_loci_by_scheme;
 	}
 	say q(</div>);
+	return;
+}
+
+sub _print_api_message {
+	my ($self) = @_;
+	my $date_restriction_message = $self->get_date_restriction_message;
+	if ( $self->{'config'}->{'rest_url'} ) {
+		my $url = "$self->{'config'}->{'rest_url'}/db/$self->{'instance'}";
+		say q(<div class="box" id="message">);
+		say q(<h2>Programmatic access</h2>);
+		say q(<p>Please note that if you are scripting downloads of alleles then you should use the )
+		  . qq(<a href="$url" target="_blank">application programming interface (API)</a> to do this.</p>);
+		my $doc_url = 'https://bigsdb.readthedocs.io/en/latest/rest.html';
+		my $fasta_url =
+			'https://bigsdb.readthedocs.io/en/latest/rest.html#'
+		  . 'get-db-database-loci-locus-alleles-fasta-download-alleles-in-fasta-format';
+		say qq(<p>See the API <a href="$doc_url" target="_blank">documentation</a> for more details - in particular, )
+		  . qq(the method call for <a href="$fasta_url" target="_blank">downloading a FASTA file</a> for a specified )
+		  . q(locus.</p>);
+		say $date_restriction_message if $date_restriction_message;
+		say q(</div>);
+	} elsif ($date_restriction_message) {
+		say qq(<div class="box banner">$date_restriction_message</div>);
+	}
 	return;
 }
 
@@ -281,7 +308,7 @@ sub _print_scheme_table {
 	my ( $self, $scheme_id ) = @_;
 	my $set_id = $self->get_set_id;
 	my $loci =
-	    $scheme_id
+		$scheme_id
 	  ? $self->{'datastore'}->get_scheme_loci($scheme_id)
 	  : $self->{'datastore'}->get_loci_in_no_scheme( { set_id => $set_id } );
 	my $td = 1;
@@ -339,21 +366,27 @@ sub _print_scheme_table {
 		}
 	);
 	foreach my $locus (@$loci) {
-		$self->_print_locus_row(
-			$locus,
-			$self->clean_locus($locus),
-			{
-				td             => $td,
-				descs_exist    => $scheme_descs_exist,
-				aliases_exist  => $scheme_aliases_exist,
-				curators_exist => $scheme_curators_exist,
-				scheme         => $scheme_info->{'name'}
-			}
-		);
+		eval {
+			$self->_print_locus_row(
+				$locus,
+				$self->clean_locus($locus),
+				{
+					td             => $td,
+					descs_exist    => $scheme_descs_exist,
+					aliases_exist  => $scheme_aliases_exist,
+					curators_exist => $scheme_curators_exist,
+					scheme         => $scheme_info->{'name'}
+				}
+			);
+		};
+		if ($@) {
+			$logger->error($@) if $@ !~ /Broken\spipe/x && $@ !~ /connection\sabort/x;
+			return;
+		}
 		$td = $td == 1 ? 2 : 1;
 		if ( $ENV{'MOD_PERL'} ) {
 			return if $self->{'mod_perl_request'}->connection->aborted;
-			$self->{'mod_perl_request'}->rflush;
+			eval { $self->{'mod_perl_request'}->rflush };
 		}
 	}
 	say q(</table></div>);
@@ -367,13 +400,15 @@ sub get_title {
 
 sub _print_sequences {
 	my ( $self, $locus ) = @_;
-	my $set_id = $self->get_set_id;
+	my $set_id     = $self->get_set_id;
 	my $locus_info = $self->{'datastore'}->get_locus_info( $locus, { set_id => $set_id } );
 	( my $cleaned = $locus_info->{'set_name'} // $locus ) =~ s/^_//x;
 	$cleaned =~ tr/ /_/;
-	my $qry = q(SELECT allele_id,sequence FROM sequences WHERE locus=? AND allele_id NOT IN ('0', 'N') ORDER BY )
+	my $qry = qq(SELECT allele_id,sequence FROM $self->{'system'}->{'temp_sequences_view'} WHERE locus=? )
+	  . q(AND allele_id NOT IN ('0', 'N', 'P') ORDER BY )
 	  . ( $locus_info->{'allele_id_format'} eq 'integer' ? q(CAST(allele_id AS int)) : q(allele_id) );
 	my $alleles = $self->{'datastore'}->run_query( $qry, $locus, { fetch => 'all_arrayref' } );
+
 	if ( !@$alleles ) {
 		say 'Cannot retrieve sequences.';
 		return;
@@ -505,7 +540,7 @@ sub _print_locus_row {
 		my $first = 1;
 		print q(<td>);
 		foreach my $curator_id ( sort { $info->{$a}->{'surname'} cmp $info->{$b}->{'surname'} } @$locus_curators ) {
-			print ', ' if !$first;
+			print ', '            if !$first;
 			$curator_list .= '; ' if !$first;
 			my $first_initial =
 			  $info->{$curator_id}->{'first_name'} ? substr( $info->{$curator_id}->{'first_name'}, 0, 1 ) . q(. ) : q();
@@ -522,13 +557,13 @@ sub _print_locus_row {
 	say "<td>$last_updated</td></tr>";
 	if ( !$self->{'text_buffer'} ) {
 		$self->{'text_buffer'} .=
-		    ( $options->{'scheme'} ? "scheme\t" : '' )
+			( $options->{'scheme'} ? "scheme\t" : '' )
 		  . "locus\tdata type\talleles\tlength varies\tstandard length\tmin length (setting)\t"
 		  . "max length (setting)\tmin length\tmax_length\tfull name/product\taliases\tcurators\n";
 	}
 	local $" = '; ';
 	$self->{'text_buffer'} .=
-	    ( $options->{'scheme'} ? "$options->{'scheme'}\t" : '' )
+		( $options->{'scheme'} ? "$options->{'scheme'}\t" : '' )
 	  . "$locus\t$locus_info->{'data_type'}\t$count\t"
 	  . ( $locus_info->{'length_varies'} ? 'true' : 'false' ) . qq(\t)
 	  . ( $locus_info->{'length'}     // '' ) . qq(\t)
@@ -548,7 +583,7 @@ sub _print_alphabetical_list {
 	foreach my $letter ( 0 .. 9, 'A' .. 'Z', q('), q(_) ) {
 		if ( $ENV{'MOD_PERL'} ) {
 			return if $self->{'mod_perl_request'}->connection->aborted;
-			$self->{'mod_perl_request'}->rflush;
+			eval { $self->{'mod_perl_request'}->rflush };
 		}
 		my ( $main, $common, $aliases ) = $self->_get_loci_by_letter($letter);
 		if ( @$main || @$common || @$aliases ) {
@@ -619,10 +654,12 @@ sub _get_loci_by_letter {
 		"$letter%",
 		{ fetch => 'all_arrayref', slice => {}, cache => 'DownloadAllelePage::get_loci_by_letter::common' } );
 	$set_clause =~ s/ id IN/ locus IN/g;
-	my $aliases =
-	  $self->{'datastore'}->run_query( "SELECT locus,alias FROM locus_aliases WHERE alias ILIKE ? $set_clause",
+	my $aliases = $self->{'datastore'}->run_query(
+		'SELECT locus,alias FROM locus_aliases la JOIN loci l ON la.locus=l.id WHERE locus!=alias '
+		  . "AND common_name!=alias AND alias ILIKE ? $set_clause",
 		"$letter%",
-		{ fetch => 'all_arrayref', slice => {}, cache => 'DownloadAllelePage::get_loci_by_letter::aliases' } );
+		{ fetch => 'all_arrayref', slice => {}, cache => 'DownloadAllelePage::get_loci_by_letter::aliases' }
+	);
 	return ( $main, $common, $aliases );
 }
 1;

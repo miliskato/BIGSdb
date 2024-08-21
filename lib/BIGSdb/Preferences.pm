@@ -1,6 +1,6 @@
 #Written by Keith Jolley
-#Copyright (c) 2010-2022, University of Oxford
-#E-mail: keith.jolley@zoo.ox.ac.uk
+#Copyright (c) 2010-2024, University of Oxford
+#E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
 #
@@ -202,7 +202,10 @@ sub set_general {
 
 sub get_all_general_prefs {
 	my ( $self, $guid, $dbase ) = @_;
-	BIGSdb::Exception::Database::NoRecord->throw('No guid passed') if !$guid;
+	if ( !$guid ) {
+		$logger->logcarp('No guid passed');
+		BIGSdb::Exception::Database::NoRecord->throw('No guid passed');
+	}
 	my $sql = $self->{'db'}->prepare('SELECT attribute,value FROM general WHERE (guid,dbase)=(?,?)');
 	my $values;
 	eval { $sql->execute( $guid, $dbase ) };
@@ -219,7 +222,10 @@ sub get_all_general_prefs {
 
 sub get_general_pref {
 	my ( $self, $guid, $dbase, $attribute ) = @_;
-	BIGSdb::Exception::Database::NoRecord->throw('No guid passed') if !$guid;
+	if ( !$guid ) {
+		$logger->logcarp('No guid passed');
+		BIGSdb::Exception::Database::NoRecord->throw('No guid passed');
+	}
 	my $sql = $self->{'db'}->prepare('SELECT value FROM general WHERE (guid,dbase,attribute)=(?,?,?)');
 	eval { $sql->execute( $guid, $dbase, $attribute ) };
 	$logger->error($@) if $@;
@@ -229,7 +235,10 @@ sub get_general_pref {
 
 sub get_all_field_prefs {
 	my ( $self, $guid, $dbase ) = @_;
-	BIGSdb::Exception::Database::NoRecord->throw('No guid passed') if !$guid;
+	if ( !$guid ) {
+		$logger->logcarp('No guid passed');
+		BIGSdb::Exception::Database::NoRecord->throw('No guid passed');
+	}
 	my $sql    = $self->{'db'}->prepare('SELECT field,action,value FROM field WHERE (guid,dbase)=(?,?)');
 	my $values = {};
 	eval { $sql->execute( $guid, $dbase ) };
@@ -246,7 +255,10 @@ sub get_all_field_prefs {
 
 sub get_all_locus_prefs {
 	my ( $self, $guid, $dbname ) = @_;
-	BIGSdb::Exception::Database::NoRecord->throw('No guid passed') if !$guid;
+	if ( !$guid ) {
+		$logger->logcarp('No guid passed');
+		BIGSdb::Exception::Database::NoRecord->throw('No guid passed');
+	}
 	my $prefs = {};
 	my $sql   = $self->{'db'}->prepare('SELECT locus,action,value FROM locus WHERE (guid,dbase)=(?,?)');
 	eval { $sql->execute( $guid, $dbname ) };
@@ -437,7 +449,7 @@ sub get_all_scheme_prefs {
 		BIGSdb::Exception::Prefstore->throw('Cannot execute get scheme all attribute query');
 	}
 	my $values = {};
-	my $data = $sql->fetchall_arrayref( {} );
+	my $data   = $sql->fetchall_arrayref( {} );
 	foreach my $pref (@$data) {
 		$values->{ $pref->{'scheme_id'} }->{ $pref->{'action'} } = $pref->{'value'};
 	}
@@ -453,7 +465,7 @@ sub get_all_scheme_field_prefs {
 		BIGSdb::Exception::Prefstore->throw('Cannot execute get all scheme fields attribute query');
 	}
 	my $values = {};
-	my $data = $sql->fetchall_arrayref( {} );
+	my $data   = $sql->fetchall_arrayref( {} );
 	foreach my $pref (@$data) {
 		$values->{ $pref->{'scheme_id'} }->{ $pref->{'field'} }->{ $pref->{'action'} } = $pref->{'value'};
 	}
@@ -462,7 +474,10 @@ sub get_all_scheme_field_prefs {
 
 sub get_plugin_attributes {
 	my ( $self, $guid, $dbase, $plugin ) = @_;
-	BIGSdb::Exception::Prefstore::NoGUID->throw('No guid passed') if !$guid;
+	if ( !$guid ) {
+		$logger->logcarp('No guid passed');
+		BIGSdb::Exception::Database::NoRecord->throw('No guid passed');
+	}
 	my $sql = $self->{'db'}->prepare('SELECT attribute,value FROM plugin WHERE (guid,dbase,plugin)=(?,?,?)');
 	eval { $sql->execute( $guid, $dbase, $plugin ) };
 	if ($@) {
@@ -470,7 +485,7 @@ sub get_plugin_attributes {
 		BIGSdb::Exception::Prefstore->throw('Cannot execute get plugin attributes query');
 	}
 	my $values = {};
-	my $data = $sql->fetchall_arrayref( {} );
+	my $data   = $sql->fetchall_arrayref( {} );
 	foreach my $prefs (@$data) {
 		$values->{ $prefs->{'attribute'} } = $prefs->{'value'};
 	}
@@ -479,7 +494,10 @@ sub get_plugin_attributes {
 
 sub get_plugin_attribute {
 	my ( $self, $guid, $dbase, $plugin, $attribute ) = @_;
-	BIGSdb::Exception::Prefstore::NoGUID->throw('No guid passed') if !$guid;
+	if ( !$guid ) {
+		$logger->logcarp('No guid passed');
+		BIGSdb::Exception::Database::NoRecord->throw('No guid passed');
+	}
 	if ( !$self->{'sql'}->{'get_plugin_attribute'} ) {
 		$self->{'sql'}->{'get_plugin_attribute'} =
 		  $self->{'db'}->prepare('SELECT value FROM plugin WHERE (guid,dbase,plugin,attribute)=(?,?,?,?)');
@@ -533,7 +551,7 @@ sub get_general_dashboard_prefs {
 		BIGSdb::Exception::Prefstore->throw('Cannot execute get primary dashboard query');
 	}
 	my $values = {};
-	my $data = $sql->fetchall_arrayref( {} );
+	my $data   = $sql->fetchall_arrayref( {} );
 	foreach my $prefs (@$data) {
 		$values->{ $prefs->{'attribute'} } = $prefs->{'value'};
 	}
@@ -542,7 +560,10 @@ sub get_general_dashboard_prefs {
 
 sub get_general_dashboard_switch_pref {
 	my ( $self, $guid, $dbase_config, $attribute ) = @_;
-	BIGSdb::Exception::Database::NoRecord->throw('No guid passed') if !$guid;
+	if ( !$guid ) {
+		$logger->logcarp('No guid passed');
+		BIGSdb::Exception::Database::NoRecord->throw('No guid passed');
+	}
 	my $sql =
 	  $self->{'db'}->prepare('SELECT value FROM dashboard_switches WHERE (guid,dbase_config,attribute)=(?,?,?)');
 	eval { $sql->execute( $guid, $dbase_config, $attribute ) };
@@ -574,7 +595,10 @@ sub set_general_dashboard_switch_pref {
 
 sub get_active_dashboard {
 	my ( $self, $guid, $dbase_config, $type, $value ) = @_;
-	BIGSdb::Exception::Database::NoRecord->throw('No guid passed') if !$guid;
+	if ( !$guid ) {
+		$logger->logcarp('No guid passed');
+		BIGSdb::Exception::Database::NoRecord->throw('No guid passed');
+	}
 	my $sql = $self->{'db'}->prepare('SELECT id FROM active_dashboards WHERE (guid,dbase_config,type,value)=(?,?,?,?)');
 	eval { $sql->execute( $guid, $dbase_config, $type, $value ) };
 	$logger->logcarp($@) if $@;
@@ -619,7 +643,10 @@ sub get_dashboard {
 
 sub initiate_new_dashboard {
 	my ( $self, $guid, $dbase_config, $type, $value ) = @_;
-	BIGSdb::Exception::Database::NoRecord->throw('No guid passed') if !$guid;
+	if ( !$guid ) {
+		$logger->logcarp('No guid passed');
+		BIGSdb::Exception::Database::NoRecord->throw('No guid passed');
+	}
 	if ( !$self->_guid_exists($guid) ) {
 		$self->_add_existing_guid($guid);
 	}
@@ -650,9 +677,34 @@ sub initiate_new_dashboard {
 	return $id;
 }
 
+sub reset_active_dashboard {
+	my ( $self, $guid, $dbase_config, $type, $value ) = @_;
+	if ( !$guid ) {
+		$logger->logcarp('No guid passed');
+		BIGSdb::Exception::Database::NoRecord->throw('No guid passed');
+	}
+	if ( !$self->_guid_exists($guid) ) {
+		$self->_add_existing_guid($guid);
+	}
+	eval {
+		$self->{'db'}->do( 'DELETE FROM active_dashboards WHERE (guid,dbase_config,type,value)=(?,?,?,?)',
+			undef, $guid, $dbase_config, $type, $value );
+	};
+	if ($@) {
+		$logger->logcarp($@);
+		$self->{'db'}->rollback;
+		BIGSdb::Exception::Prefstore->throw('Could not reset active dashboard');
+	}
+	$self->{'db'}->commit;
+	return;
+}
+
 sub set_active_dashboard {
 	my ( $self, $guid, $dbase_config, $id, $type, $value ) = @_;
-	BIGSdb::Exception::Database::NoRecord->throw('No guid passed') if !$guid;
+	if ( !$guid ) {
+		$logger->logcarp('No guid passed');
+		BIGSdb::Exception::Database::NoRecord->throw('No guid passed');
+	}
 	if ( !$self->_guid_exists($guid) ) {
 		$self->_add_existing_guid($guid);
 	}
@@ -679,11 +731,18 @@ sub set_active_dashboard {
 
 sub update_dashboard_attribute {
 	my ( $self, $id, $guid, $dbase_config, $attribute, $value ) = @_;
-	BIGSdb::Exception::Database::NoRecord->throw('No guid passed') if !$guid;
+	if ( !$guid ) {
+		$logger->logcarp('No guid passed');
+		BIGSdb::Exception::Database::NoRecord->throw('No guid passed');
+	}
 	if ( !$self->_guid_exists($guid) ) {
 		$self->_add_existing_guid($guid);
 	}
 	eval {
+		#Elements are passed as JSON already.
+		if ( !BIGSdb::Utils::is_int($value) && $attribute eq 'palette' ) {
+			$value = qq("$value");
+		}
 		$self->{'db'}->do(
 			qq[UPDATE dashboards SET data = jsonb_set(data, '{$attribute}', ?) ]
 			  . q[WHERE (guid,dbase_config,id)=(?,?,?)],
@@ -701,11 +760,14 @@ sub update_dashboard_attribute {
 
 sub update_dashboard_name {
 	my ( $self, $id, $guid, $dbase_config, $name ) = @_;
-	BIGSdb::Exception::Database::NoRecord->throw('No guid passed') if !$guid;
+	if ( !$guid ) {
+		$logger->logcarp('No guid passed');
+		BIGSdb::Exception::Database::NoRecord->throw('No guid passed');
+	}
 	if ( !$self->_guid_exists($guid) ) {
 		$self->_add_existing_guid($guid);
 	}
-	my $names = $self->get_dashboard_names( $guid, $dbase_config );
+	my $names    = $self->get_dashboard_names( $guid, $dbase_config );
 	my %existing = map { $_ => 1 } @$names;
 	if ( $existing{$name} ) {
 		$logger->error("Dashboard $name already exists for this user.");
@@ -810,10 +872,12 @@ sub delete_scheme {
 
 sub update_datestamp {
 	my ( $self, $guid ) = @_;
+	my $datestamp = BIGSdb::Utils::get_datestamp();
 	if ( !$self->{'sql'}->{'update_datestamp'} ) {
-		$self->{'sql'}->{'update_datestamp'} = $self->{'db'}->prepare('UPDATE guid SET last_accessed=? WHERE guid=?');
+		$self->{'sql'}->{'update_datestamp'} =
+		  $self->{'db'}->prepare('UPDATE guid SET last_accessed=? WHERE guid=? AND last_accessed <> ?');
 	}
-	eval { $self->{'sql'}->{'update_datestamp'}->execute( 'now', $guid ) };
+	eval { $self->{'sql'}->{'update_datestamp'}->execute( 'now', $guid, $datestamp ) };
 	if ($@) {
 		$logger->error($@);
 		$self->{'db'}->rollback;

@@ -1,7 +1,7 @@
 #SequenceExport.pm - Export concatenated sequences/XMFA file plugin for BIGSdb
 #Written by Keith Jolley
-#Copyright (c) 2010-2022, University of Oxford
-#E-mail: keith.jolley@zoo.ox.ac.uk
+#Copyright (c) 2010-2024, University of Oxford
+#E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
 #
@@ -26,7 +26,6 @@ use Log::Log4perl qw(get_logger);
 my $logger = get_logger('BIGSdb.Plugins');
 use Try::Tiny;
 use List::MoreUtils qw(any none uniq);
-use Bio::Perl;
 use Bio::Seq;
 use Bio::SeqIO;
 use Bio::AlignIO;
@@ -40,33 +39,35 @@ use constant SEQ_SOURCE          => 'seqbin id + position';
 sub get_attributes {
 	my ($self) = @_;
 	my $seqdef = ( $self->{'system'}->{'dbtype'} // q() ) eq 'sequences';
-	my %att = (
+	my %att    = (
 		name    => 'Sequence Export',
 		authors => [
 			{
 				name        => 'Keith Jolley',
 				affiliation => 'University of Oxford, UK',
-				email       => 'keith.jolley@zoo.ox.ac.uk',
+				email       => 'keith.jolley@biology.ox.ac.uk',
 			}
 		],
 		description      => 'Export concatenated allele sequences in XMFA and FASTA formats',
 		full_description => 'This plugin creates concatenated XMFA and FASTA files of selected loci for a particular '
 		  . 'dataset. These sequences can optionally be aligned, using either MAFFT or MUSCLE, facilitating quick '
 		  . 'analysis of the outputs in third-party phylogenetic analysis packages.',
-		category   => 'Export',
-		buttontext => 'Sequences',
-		menutext   => $seqdef ? 'Profile sequences' : 'Sequences',
-		module     => 'SequenceExport',
-		version    => '1.7.0',
-		dbtype     => 'isolates,sequences',
-		seqdb_type => 'schemes',
-		section    => 'isolate_info,profile_info,export,postquery',
-		url        => "$self->{'config'}->{'doclink'}/data_export/sequence_export.html",
-		input      => 'query',
-		help       => 'tooltips',
-		requires   => 'aligner,offline_jobs,js_tree',
-		image      => '/images/plugins/SequenceExport/screenshot.png',
-		order      => 22,
+		category           => 'Export',
+		buttontext         => 'Sequences',
+		menutext           => $seqdef ? 'Profile sequences' : 'Sequences',
+		module             => 'SequenceExport',
+		version            => '1.9.1',
+		dbtype             => 'isolates,sequences',
+		seqdb_type         => 'schemes',
+		section            => 'isolate_info,profile_info,export,postquery',
+		url                => "$self->{'config'}->{'doclink'}/data_export/sequence_export.html",
+		input              => 'query',
+		help               => 'tooltips',
+		requires           => $seqdef ? 'aligner,offline_jobs' : 'aligner,offline_jobs,js_tree',
+		image              => '/images/plugins/SequenceExport/screenshot.png',
+		order              => 22,
+		system_flag        => 'SequenceExport',
+		enabled_by_default => 1
 	);
 	return \%att;
 }
@@ -80,20 +81,23 @@ sub set_pref_requirements {
 
 sub get_initiation_values {
 	my ($self) = @_;
-	return { 'jQuery.jstree' => ( $self->{'system'}->{'dbtype'} eq 'isolates' ? 1 : 0 ) };
+	return { 'jQuery.jstree' => ( $self->{'system'}->{'dbtype'} eq 'isolates' ? 1 : 0 ), 'jQuery.multiselect' => 1 };
 }
 
 sub run {
-	my ($self)     = @_;
-	my $q          = $self->{'cgi'};
-	my $query_file = $q->param('query_file');
-	my $scheme_id  = $q->param('scheme_id');
-	my $max_seqs = $self->{'system'}->{'seq_export_limit'} // DEFAULT_SEQ_LIMIT;
+	my ($self)        = @_;
+	my $q             = $self->{'cgi'};
+	my $query_file    = $q->param('query_file');
+	my $scheme_id     = $q->param('scheme_id');
+	my $max_seqs      = $self->{'system'}->{'seq_export_limit'} // DEFAULT_SEQ_LIMIT;
 	my $commified_max = BIGSdb::Utils::commify($max_seqs);
 	say q(<h1>Export allele sequences in XMFA/concatenated FASTA formats</h1>);
+	if ( ( $self->{'system'}->{'SequenceExport'} // q() ) eq 'no' ) {
+		$self->print_bad_status( { message => q(Sequence exports are disabled.) } );
+		return;
+	}
 	return if $self->has_set_changed;
 	my $pk;
-
 	if ( $self->{'system'}->{'dbtype'} eq 'isolates' ) {
 		$pk = 'id';
 	} else {
@@ -132,16 +136,17 @@ sub run {
 			my $params = $q->Vars;
 			$params->{'pk'}     = $pk;
 			$params->{'set_id'} = $self->get_set_id;
+			$params->{'curate'} = 1 if $self->{'curate'};
 			my @list = split /[\r\n]+/x, $q->param('list');
 			@list = uniq @list;
 			if ( !@list ) {
 				if ( $self->{'system'}->{'dbtype'} eq 'isolates' ) {
-					my $qry = "SELECT id FROM $self->{'system'}->{'view'} ORDER BY id";
+					my $qry     = "SELECT id FROM $self->{'system'}->{'view'} ORDER BY id";
 					my $id_list = $self->{'datastore'}->run_query( $qry, undef, { fetch => 'col_arrayref' } );
 					@list = @$id_list;
 				} else {
 					my $pk_info = $self->{'datastore'}->get_scheme_field_info( $scheme_id, $pk );
-					my $qry = 'SELECT profile_id FROM profiles WHERE scheme_id=? ORDER BY ';
+					my $qry     = 'SELECT profile_id FROM profiles WHERE scheme_id=? ORDER BY ';
 					$qry .= $pk_info->{'type'} eq 'integer' ? 'CAST(profile_id AS INT)' : 'profile_id';
 					my $id_list = $self->{'datastore'}->run_query( $qry, $scheme_id, { fetch => 'col_arrayref' } );
 					@list = @$id_list;
@@ -230,10 +235,10 @@ sub _print_interface {
 	$self->_print_includes_fieldset($scheme_id);
 
 	if ( $self->{'system'}->{'dbtype'} eq 'isolates' ) {
-		$self->print_isolates_locus_fieldset( { locus_paste_list => 1 } );
+		$self->print_isolates_locus_fieldset( { no_all_none => 1, locus_paste_list => 1 } );
 		$self->print_scheme_fieldset;
 	} else {
-		$self->print_scheme_locus_fieldset($scheme_id);
+		$self->print_scheme_locus_fieldset( $scheme_id, { no_all_none => 1 } );
 	}
 	say q(<fieldset style="float:left"><legend>Options</legend>);
 	if ( $self->{'system'}->{'dbtype'} eq 'isolates' ) {
@@ -325,7 +330,7 @@ sub _print_includes_fieldset {
 		);
 	} else {
 		my $scheme_fields = $self->{'datastore'}->get_scheme_fields($scheme_id);
-		my $scheme_info = $self->{'datastore'}->get_scheme_info( $scheme_id, { get_pk => 1 } );
+		my $scheme_info   = $self->{'datastore'}->get_scheme_info( $scheme_id, { get_pk => 1 } );
 		foreach (@$scheme_fields) {
 			push @fields, $_ if $_ ne $scheme_info->{'primary_key'};
 		}
@@ -381,8 +386,9 @@ sub _run_job_profiles {
 	my $filename  = "$self->{'config'}->{'tmp_dir'}/$job_id\.xmfa";
 	open( my $fh, '>', $filename )
 	  or $logger->error("Can't open output file $filename for writing");
-	my $includes = $self->_get_includes($params);
-	my @problem_ids;
+	my $includes       = $self->_get_includes($params);
+	my $problem_ids    = [];
+	my $restricted_ids = [];
 	my %problem_id_checked;
 	my $start = 1;
 	my $end;
@@ -391,6 +397,8 @@ sub _run_job_profiles {
 	my $selected_loci    = $self->order_loci( $loci, { scheme_id => $scheme_id } );
 	my $ids              = $self->{'jobManager'}->get_job_profiles( $job_id, $scheme_id );
 	my $scheme_warehouse = "mv_scheme_$scheme_id";
+	my $job              = $self->{'jobManager'}->get_job($job_id);
+	my $date_restriction = $self->{'datastore'}->get_date_restriction;
 	my $progress         = 0;
 
 	foreach my $locus_name (@$selected_loci) {
@@ -402,8 +410,7 @@ sub _run_job_profiles {
 		my $locus_info = $self->{'datastore'}->get_locus_info($locus_name);
 		try {
 			$locus = $self->{'datastore'}->get_locus($locus_name);
-		}
-		catch {
+		} catch {
 			if ( $_->isa('BIGSdb::Exception::Data') ) {
 				$logger->warn("Invalid locus '$locus_name' passed.");
 			} else {
@@ -420,6 +427,12 @@ sub _run_job_profiles {
 			my $profile_id = $profile_data->{ lc($pk) };
 			my $header;
 			if ( defined $profile_id ) {
+				if ( !$job->{'username'} && $date_restriction && $date_restriction lt $profile_data->{'date_entered'} )
+				{
+					push @$restricted_ids, $profile_id if !$problem_id_checked{$id};
+					$problem_id_checked{$id} = 1;
+					next;
+				}
 				$header = ">$profile_id";
 				if (@$includes) {
 					foreach my $field (@$includes) {
@@ -428,13 +441,11 @@ sub _run_job_profiles {
 						$header .= "|$value";
 					}
 				}
-			}
-			if ($profile_id) {
 				my $allele_id =
 				  $self->{'datastore'}->get_profile_allele_designation( $scheme_id, $id, $locus_name )->{'allele_id'};
 				my $allele_seq_ref = $self->{'datastore'}->get_sequence( $locus_name, $allele_id );
 				say $fh_unaligned $header;
-				if ( $allele_id eq '0' || $allele_id eq 'N' ) {
+				if ( $allele_id eq '0' || $allele_id eq 'N' || $allele_id eq 'P' ) {
 					say $fh_unaligned 'N';
 					$no_seq{$id} = 1;
 				} else {
@@ -442,7 +453,7 @@ sub _run_job_profiles {
 					say $fh_unaligned $seq;
 				}
 			} else {
-				push @problem_ids, $id if !$problem_id_checked{$id};
+				push @$problem_ids, $id if !$problem_id_checked{$id};
 				$problem_id_checked{$id} = 1;
 				next;
 			}
@@ -472,7 +483,16 @@ sub _run_job_profiles {
 		unlink $filename;
 		return;
 	}
-	$self->_output( $job_id, $params, \@problem_ids, $no_output, $filename );
+	$self->_output(
+		{
+			job_id         => $job_id,
+			params         => $params,
+			problem_ids    => $problem_ids,
+			restricted_ids => $restricted_ids,
+			no_output      => $no_output,
+			filename       => $filename
+		}
+	);
 	return;
 }
 
@@ -497,7 +517,15 @@ sub _run_job_isolates {
 		unlink $filename;
 		return;
 	}
-	$self->_output( $job_id, $params, $ret_val->{'problem_ids'}, $ret_val->{'no_output'}, $filename );
+	$self->_output(
+		{
+			job_id      => $job_id,
+			params      => $params,
+			problem_ids => $ret_val->{'problem_ids'},
+			no_output   => $ret_val->{'no_output'},
+			filename    => $filename
+		}
+	);
 	return;
 }
 
@@ -537,8 +565,7 @@ sub _make_isolate_seq_file {
 		my $locus_info = $self->{'datastore'}->get_locus_info($locus_name);
 		try {
 			$locus = $self->{'datastore'}->get_locus($locus_name);
-		}
-		catch {
+		} catch {
 			if ( $_->isa('BIGSdb::Exception::Data') ) {
 				$logger->warn("Invalid locus '$locus_name' passed.");
 			} else {
@@ -554,17 +581,16 @@ sub _make_isolate_seq_file {
 			my $include_values = [];
 			try {
 				$include_values = $self->_get_included_values( $includes, $id, $problem_ids );
-			}
-			catch {
+			} catch {
 				no warnings 'exiting';
 				next ISOLATE;
 			};
 			my $allele_seq = $self->_get_allele_seq( $id, $locus, $locus_name, $locus_info );
 			my $seqbin_seq;
 			my $seqbin_pos = q();
-			my $tag        = $tag_data->{$locus}->{$id};
+			my $tag        = $tag_data->{$locus_name}->{$id};
 			if ( $tag->{'seqbin_id'} ) {
-				my ( $reverse, $seqbin_id, $start_pos, $end_pos ) = @{$tag}{qw(seqbin_id start_pos end_pos reverse)};
+				my ( $reverse, $seqbin_id, $start_pos, $end_pos ) = @{$tag}{qw(reverse seqbin_id start_pos end_pos)};
 				my $seq_ref = $self->{'contigManager'}->get_contig_fragment(
 					{
 						seqbin_id => $seqbin_id,
@@ -576,7 +602,7 @@ sub _make_isolate_seq_file {
 				);
 				my $five_prime  = $reverse ? 'downstream' : 'upstream';
 				my $three_prime = $reverse ? 'upstream'   : 'downstream';
-				$seqbin_seq .= $seq_ref->{$five_prime}  if $seq_ref->{$five_prime};
+				$seqbin_seq .= $seq_ref->{$five_prime} if $seq_ref->{$five_prime};
 				$seqbin_seq .= $seq_ref->{'seq'};
 				$seqbin_seq .= $seq_ref->{$three_prime} if $seq_ref->{$three_prime};
 				$seqbin_pos = "${seqbin_id}_$start_pos" if $seqbin_seq;
@@ -650,8 +676,8 @@ sub _get_allele_seq {
 					$logger->error("$self->{'system'}->{'db'} id-$id $locus_name-$allele_id does not exist.");
 				}
 			}
-		}
-		catch { };    #do nothing
+		} catch {
+		};    #do nothing
 	}
 	return $allele_seq;
 }
@@ -692,6 +718,9 @@ sub _translate_seq_if_required {
 	if ( $locus_info->{'data_type'} eq 'DNA' ) {
 		if ( $params->{'in_frame'} || $params->{'translate'} ) {
 			$seq = BIGSdb::Utils::chop_seq( $seq, $locus_info->{'orf'} // 1 );
+			if ( !length($seq) ) {
+				$seq = 'NNN';
+			}
 		}
 		if ( $params->{'translate'} ) {
 			my $seq_obj = Bio::Seq->new( -seq => $seq, -alphabet => 'dna' );
@@ -712,9 +741,9 @@ sub _get_tag_data {
 	my ( $self, $ids, $loci, $params ) = @_;
 	my $temp_isolate_table = $self->{'datastore'}->create_temp_list_table_from_array( 'int',  $ids );
 	my $temp_locus_table   = $self->{'datastore'}->create_temp_list_table_from_array( 'text', $loci );
-	my $ignore_seqflags   = $params->{'ignore_seqflags'}   ? 'AND flag IS NULL' : '';
-	my $ignore_incomplete = $params->{'ignore_incomplete'} ? 'AND complete'     : '';
-	my $data              = $self->{'datastore'}->run_query(
+	my $ignore_seqflags    = $params->{'ignore_seqflags'}   ? 'AND flag IS NULL' : '';
+	my $ignore_incomplete  = $params->{'ignore_incomplete'} ? 'AND complete'     : '';
+	my $data               = $self->{'datastore'}->run_query(
 		'SELECT locus,isolate_id,reverse,seqbin_id,start_pos,end_pos FROM allele_sequences a '
 		  . "JOIN $temp_isolate_table i ON a.isolate_id=i.value JOIN $temp_locus_table l ON a.locus=l.value "
 		  . 'LEFT JOIN sequence_flags sf ON a.id=sf.id '
@@ -724,7 +753,6 @@ sub _get_tag_data {
 	);
 	my $ordered = {};
 	foreach my $record (@$data) {
-
 		if ( !defined $ordered->{ $record->{'locus'} }->{ $record->{'isolate_id'} } ) {
 			$ordered->{ $record->{'locus'} }->{ $record->{'isolate_id'} } = {
 				seqbin_id => $record->{'seqbin_id'},
@@ -738,11 +766,18 @@ sub _get_tag_data {
 }
 
 sub _output {
-	my ( $self, $job_id, $params, $problem_ids, $no_output, $filename ) = @_;
+	my ( $self, $args ) = @_;
+	my ( $job_id, $params, $problem_ids, $restricted_ids, $no_output, $filename ) =
+	  @{$args}{qw(job_id params problem_ids restricted_ids no_output filename)};
 	my $message_html;
 	if (@$problem_ids) {
 		local $" = ', ';
-		$message_html = "<p>The following ids could not be processed (they do not exist): @$problem_ids.</p>\n";
+		$message_html = qq(<p>The following ids could not be processed (they do not exist): @$problem_ids.</p>\n);
+	}
+	if (ref $restricted_ids && @$restricted_ids) {
+		local $" = ', ';
+		$message_html .= q(<p>The following profiles are restricted and have been excluded - )
+		  . qq(you need to log in to include these: @$restricted_ids.</p>\n);
 	}
 	if ($no_output) {
 		$message_html .=
@@ -771,8 +806,7 @@ sub _output {
 					}
 				);
 			}
-		}
-		catch {
+		} catch {
 			if ( $_->isa('BIGSdb::Exception::File::CannotOpen') ) {
 				$logger->error('Cannot create FASTA file from XMFA.');
 			} else {
@@ -790,12 +824,21 @@ sub _append_sequences {
 	my ( $fh, $output_locus_name, $params, $aligned_file, $temp_file, $start, $end, $no_output_ref, $no_seq ) =
 	  @{$args}{qw(fh output_locus_name params aligned_file temp_file start end no_output_ref no_seq)};
 	my $output_file;
-	if ( $params->{'align'} && $params->{'aligner'} eq 'MAFFT' && -e $temp_file && -s $temp_file ) {
+	my $aligner = $params->{'aligner'};
+	if ( !defined $aligner ) {
+		foreach my $program (qw(mafft muscle)) {
+			if ( $self->{'config'}->{"${program}_path"} ) {
+				$aligner = $program;
+				last;
+			}
+		}
+	}
+	if ( $params->{'align'} && $aligner eq 'MAFFT' && -e $temp_file && -s $temp_file ) {
 		my $threads =
 		  BIGSdb::Utils::is_int( $self->{'config'}->{'mafft_threads'} ) ? $self->{'config'}->{'mafft_threads'} : 1;
 		system("$self->{'config'}->{'mafft_path'} --thread $threads --quiet --preservecase $temp_file > $aligned_file");
 		$output_file = $aligned_file;
-	} elsif ( $params->{'align'} && $params->{'aligner'} eq 'MUSCLE' && -e $temp_file && -s $temp_file ) {
+	} elsif ( $params->{'align'} && $aligner eq 'MUSCLE' && -e $temp_file && -s $temp_file ) {
 		my $max_mb = $self->{'config'}->{'max_muscle_mb'} // MAX_MUSCLE_MB;
 		system( $self->{'config'}->{'muscle_path'},
 			-in    => $temp_file,
@@ -831,6 +874,10 @@ sub get_field_value {
 	my ( $self, $isolate_data, $field ) = @_;
 	my $value;
 	$value = $isolate_data->{ lc($field) } // '';
+	if ( ref $value eq 'ARRAY' ) {
+		local $" = q(; );
+		$value = qq(@$value);
+	}
 	$value =~ tr/ /_/;
 	$value =~ tr/(/_/;
 	$value =~ tr/)/_/;
@@ -853,6 +900,13 @@ function enable_aligner(){
 	\$("#align").change(function(e) {
 		enable_aligner();
 	});
+	\$('#locus,#include_fields').multiselect({
+		noneSelectedText: "",
+ 		classes: 'filter',
+ 		menuHeight: 250,
+ 		menuWidth: 400,
+ 		selectedList: 8
+  	});
 });
 END
 	return $buffer;
