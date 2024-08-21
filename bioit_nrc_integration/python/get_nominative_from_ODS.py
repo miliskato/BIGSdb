@@ -75,7 +75,6 @@ class MainNominativeDataParserFromOds:
                 # reinitialize ssh & sftp
                 self._ssh, self._sftp = self._open_sftp_connection()
 
-                # todo I need to make sure that these are moved when they're inserted in MongoDB else this will raise errors
                 # In SFTP moving is done by renaming; move files to right folder according to success
                 for file in self._files_processed:
                     self._sftp.rename(f'{self._base_sftp_dir}{file}', f'{self._base_sftp_dir}processed/{file}')
