@@ -202,6 +202,7 @@ class MainMongo:
             self._vcffilepath = sample_doc['vcf_path']
             self._vcffilepath_unfiltered = sample_doc['vcf_path_unfiltered']
             self._original_input_format = sample_doc['original_input_format']
+            self._pipeline_hash = sample_doc['pipeline_hash']
             self.__new_isolate_wrapper(new_records)
         elif self._results_type == "reanalysis" or self._results_type == 'resequencing_validated':
             try:
