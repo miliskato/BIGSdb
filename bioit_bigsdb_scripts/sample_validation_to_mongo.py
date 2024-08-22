@@ -98,14 +98,14 @@ class SampleValidationToMongo:
                     'type': results_type.split('_')[0],
                     'date': datetime.datetime.utcnow().strftime('%d/%m/%Y - %X')
                 }
-                if outcome == 'good' and ( validation_type == 'bad_quality' or validation_type == 'resequencing' ):
+                if outcome == 'good' and (validation_type == 'bad_quality' or validation_type == 'resequencing'):
                     MainMongo(isolatename, self._species, results_type, curator_mailadress, subvaldict=validation_dict)
                 elif validation_type == 'bad_quality':  # outcome == 'bad'
                     self.__remove_id_from_document_to_be_unique_again_if_bad(self._isolates_badqc_collection,
-                                                                                 isolatename, validation_dict)
+                                                                             isolatename, validation_dict)
                 elif validation_type == 'resequencing':
                     self.__remove_id_from_document_to_be_unique_again_if_bad(self._isolates_resequencing_collection,
-                                                                                 isolatename, validation_dict)
+                                                                             isolatename, validation_dict)
                 # update status once everything is finished
                 self._isolates_submissions_psql_tbl.update_submission((str(self._sub_id),))
                 MongoToBigs(self._species, uploader_mail_address=curator_mailadress, single_sample_id=isolatename)

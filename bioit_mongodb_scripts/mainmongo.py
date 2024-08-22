@@ -63,7 +63,7 @@ class MainMongo:
     """
     Class containing definitions to insert samples into MongoDB
     """
-    def __init__(self, technical_id: str, species: str, results_type: str, uploader_mail_address: str, pipeline_hash: str, technical_metadata_path: Path = None, jsonfilepath: Path = None,
+    def __init__(self, technical_id: str, species: str, results_type: str, uploader_mail_address: str, pipeline_hash: str = None, technical_metadata_path: Path = None, jsonfilepath: Path = None,
                  subvaldict: Dict[str, str] = None, reportdirectorypath: Path = None, fastafilepath: Path = None,
                  vcffilepath: Path = None, vcffilepath_unfiltered: Path = None, original_input_format: str = None, alternate_connection_string: Union[bool, str] = False, alternate_dtap: Union[str, None] = None,
                  dont_send_email: bool = False, mongo_config_data: Dict[str, Any] = None) -> None:
@@ -143,7 +143,9 @@ class MainMongo:
         if self._results_type == 'badqc_validated' and not self._subvaldict:
             raise Exception('subvaldict necessary when using results_type badqc_validated')
         if self._results_type == 'resequencing_validated' and not self._subvaldict:
-            raise Exception('subvaldict necessary when using results_type badqc_validated')
+            raise Exception('subvaldict necessary when using results_type resequencing_validated')
+        if not self._subvaldict and not self._pipeline_hash:
+            raise Exception('pipeline hash argument is necessary when not the input is not a validated sample')
         if self._results_type == 'new_isolate' and not self._jsonfilepath:
             raise Exception('jsonfilepath necessary when using results_type new_isolate')
         if self._results_type == 'reanalysis' and not self._jsonfilepath:
@@ -662,7 +664,7 @@ if __name__ == '__main__':
               args.species,
               args.results_type,
               args.uploader_mail_address,
-              args.pipeline_hash,
+              pipeline_hash=args.pipeline_hash,
               technical_metadata_path=(args.technical_metadata_path if args.technical_metadata_path else None),
               jsonfilepath=(args.jsonfilepath if args.jsonfilepath else None), 
               subvaldict=(args.subvaldict if args.subvaldict else None),
