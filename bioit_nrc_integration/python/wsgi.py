@@ -67,14 +67,28 @@ def insert_into_mongodb(mapping_table_dict: Dict[str, str], start_response: Call
                                         alternate_connection_string=mongo_config_data.get('CONNECTION_STRING_LOCAL'))
         mapping_table_collection = mongoinit.initialise_mapping_table_collection()
         mapping_table_collection.insert_one({'_id': mapping_table_dict['id'],
-                                             'pseudo_id': mapping_table_dict['pseudo_id']})
-        # Set the response status and headers
-        status = '200 OK'
-        response_headers = [('Content-type', 'text/plain')]
-        start_response(status, response_headers)
+                                             'pseudo_id': mapping_table_dict['pseudo_id'],
+                                             'TX_BUSINESS_KEY': mapping_table_dict['TX_BUSINESS_KEY']})
+        already_present = mapping_table_collection.find_one({'_id': mapping_table_dict['id']})
+        if not already_present:
+            mapping_table_collection.insert_one({'_id': mapping_table_dict['id'],
+                                                 'pseudo_id': mapping_table_dict['pseudo_id'],
+                                                 'TX_BUSINESS_KEY': mapping_table_dict['TX_BUSINESS_KEY']})
+            # Set the response status and headers
+            status = '200 OK'
+            response_headers = [('Content-type', 'text/plain')]
+            start_response(status, response_headers)
 
-        # Return a response
-        return [b"Message handled and inserted into MongoDB"]
+            # Return a response
+            return [b"Message handled and inserted into MongoDB"]
+        else:
+            # Set custom status code
+            status = '299 OK'
+            response_headers = [('Content-type', 'text/plain')]
+            start_response(status, response_headers)
+
+            # Return the already present pseudo_id for the given id
+            return [already_present['pseudo_id'].encode('utf-8')]
     except Exception as exceptionmessage:
         # Set the response status and headers
         status = '400 Bad Request'
