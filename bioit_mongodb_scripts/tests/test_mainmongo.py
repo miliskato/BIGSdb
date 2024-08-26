@@ -65,10 +65,13 @@ if __name__ == '__main__':
                          'results_type': results_type,
                          'jsonfilepath': '/'.join([source, 'inputfiles', filename]),
                          'alternate_connection_string': True,
+                         'uploader_mail_address': 'test',
+                         'pipeline_hash': 'testtest',
                          'mongo_config_data': mongo_config_data}
             if results_type == 'new_isolate':
                 arguments['reportdirectorypath'] = '/'.join([source, 'inputfiles'])
                 arguments['fastafilepath'] = '/'.join([source, 'inputfiles', 'listeria_assembly_filtered.fasta'])
+                arguments['technical_metadata_path'] = '/'.join([source, 'inputfiles', 'technical_metadata.json'])
             return arguments
 
         """
