@@ -106,11 +106,6 @@ class TempidReplacer:
                         hashed_allele = hashlib.md5(bytes(str(allele.seq), 'utf-8')).hexdigest()
                         if hashed_allele in hash_list:
                             self.__update_temp_to_real_mongodb(locus, allele, hashed_allele, hash_list, values)
-            if ('bigs' in socket.gethostname() or 'nrc' in socket.gethostname()) and self._alternate_connection_string is None:
-                with TblAlleleDesignations(self._species) as isolates_ad_psql_tbl:
-                    for hash_document in self._documents_list:
-                        if hash_document['resolved_AD'] != 0:
-                            isolates_ad_psql_tbl.update_designations((hash_document['resolved_AD'], hash_document['locus'], hash_document['hashed_allele']))
 
     def __query_hashes_of_scheme(self) -> List[Dict[str, Any]]:
         """
