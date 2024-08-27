@@ -66,9 +66,6 @@ def insert_into_mongodb(mapping_table_dict: Dict[str, str], start_response: Call
                                         alternate_dtap=mapping_table_dict['dtap'],
                                         alternate_connection_string=mongo_config_data.get('CONNECTION_STRING_LOCAL'))
         mapping_table_collection = mongoinit.initialise_mapping_table_collection()
-        mapping_table_collection.insert_one({'_id': mapping_table_dict['id'],
-                                             'pseudo_id': mapping_table_dict['pseudo_id'],
-                                             'TX_BUSINESS_KEY': mapping_table_dict['TX_BUSINESS_KEY']})
         already_present = mapping_table_collection.find_one({'_id': mapping_table_dict['id']})
         if not already_present:
             mapping_table_collection.insert_one({'_id': mapping_table_dict['id'],
