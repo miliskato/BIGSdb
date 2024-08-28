@@ -1,0 +1,25 @@
+{
+    "metadata": {
+        "version": "1.0.0",
+        "data_collection": "HDBP0041",
+        "dcd_name": "BIOIT_SLM"
+    },
+    "data": {
+        "TX_BIOIT_TECHNICAL_ID": "test_dummy_salmonella_pseudonymized",
+        "CD_HCO_NIHDI": "82860665",
+        "TX_PIPELINE_NAM": "salmonella pipeline",
+        "TX_PIPELINE_VER": "0.2",
+        "TX_PIPELINE_HASH": null,
+        "DT_PIPELINE_ANAL": "2024-08-01T13:40:14",
+        "TX_MLST_ST": "316",
+        "CD_GENTPE_INCFIAHI1_SUSC": "S",
+        "CD_GENTPE_INCHI1A_SUSC": "S",
+        "CD_GENTPE_INCHI1BR27_SUSC": "S",
+        "CD_GENTPE_INCY_SUSC": "S",
+        "CD_GENTPE_AZI_SUSC": "S",
+        "CD_GENTPE_SULFON_SUSC": "S",
+        "CD_GENTPE_TETRACY_SUSC": "S",
+        "CD_GENTPE_TRIMETH_SUSC": "R",
+        "CD_GENTPE_Z66_SUSC": "S"
+    }
+}
