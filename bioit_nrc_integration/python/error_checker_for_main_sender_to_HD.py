@@ -17,16 +17,13 @@ sys.path.append(str(PYTHONPATH))
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email
 from bioit_nrc_integration.python.config import SFTP_CREDENTIALS_HD, CODES_GENOMIC_DWH
+from bioit_nrc_integration.python.util.sftp_connection import SFTPConnection
 
 # Configure stdout logging
 logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
-mongo_config_data = get_mongodb_config_data()
 
-fail_log_dict = {}
-
-
-class ErrorCheckerForMainSenderToHD:
+class ErrorCheckerForMainSenderToHD(SFTPConnection):
     """
     During discussions with both ODS and DWH it was decided that input files that failed would be moved to the error
     folder together with a log file with the same name but log appendix. This function checks if new errors were raised
@@ -39,6 +36,8 @@ class ErrorCheckerForMainSenderToHD:
         :param alternate_dtap: alternative dtap (should take test or prod from mongo config) in case we want to test dev or acc
         :return: None
         """
+        super().__init__()
+
         self._test_dummy = test_dummy
         self._alternate_dtap = alternate_dtap
 
@@ -67,23 +66,13 @@ class ErrorCheckerForMainSenderToHD:
         :return: None
         """
         for healthdata_receiver in ['ODS', 'DWH']:
-            ssh, sftp = self.__open_sftp_connection(healthdata_receiver)
-            folder_path = 'error'
-            if healthdata_receiver == 'ODS':
-                folder_path = 'upload/' + \
-                              f"{(self._alternate_dtap + '/') if self._alternate_dtap else ''}" + \
-                              folder_path
-            else:  # if healthdata_receiver == 'DWH':
-                folder_path = 'to_hd/' + \
-                              f"{(self._alternate_dtap + '/') if self._alternate_dtap else (self._mongo_config_data['dtap'] + '/') if self._mongo_config_data['dtap'] != 'prod' else ''}" + \
-                              folder_path
+            ssh, sftp, folder_path = self.__open_sftp_and_set_folder_path(healthdata_receiver, 'error')
 
             # List all files in the remote directory
             files_and_dirs = sftp.listdir_attr(folder_path)
 
             # close SFTP after having received necessary info
-            sftp.close()
-            ssh.close()
+            self._close_sftp_connection(ssh, sftp)
 
             # Filter out directories, only list files
             error_files_count = sum(entry.filename for entry in files_and_dirs if not stat.S_ISDIR(entry.st_mode))
@@ -105,16 +94,7 @@ class ErrorCheckerForMainSenderToHD:
         :return: None
         """
         for healthdata_receiver in ['ODS', 'DWH']:
-            ssh, sftp = self.__open_sftp_connection(healthdata_receiver)
-            folder_path = 'processed'
-            if healthdata_receiver == 'ODS':
-                folder_path = 'upload/' + \
-                              f"{(self._alternate_dtap + '/') if self._alternate_dtap else ''}" + \
-                              folder_path
-            else:  # if healthdata_receiver == 'DWH':
-                folder_path = 'to_hd/' + \
-                              f"{(self._alternate_dtap + '/') if self._alternate_dtap else (self._mongo_config_data['dtap'] + '/') if self._mongo_config_data['dtap'] != 'prod' else ''}" + \
-                              folder_path
+            ssh, sftp, folder_path = self.__open_sftp_and_set_folder_path(healthdata_receiver, 'processed')
 
             # List all files in the remote directory
             files_and_dirs = sftp.listdir_attr(folder_path)
@@ -151,34 +131,34 @@ class ErrorCheckerForMainSenderToHD:
                     sftp.remove(f'{folder_path}/{file}')
 
             # close SFTP after having executed the function
-            sftp.close()
-            ssh.close()
+            self._close_sftp_connection(ssh, sftp)
 
-    def __open_sftp_connection(self, healthdata_receiver: str) -> (paramiko.SSHClient, paramiko.SFTPClient):
+    def __open_sftp_and_set_folder_path(self, healthdata_receiver: str, folder: str) -> (paramiko.SSHClient, paramiko.SFTPClient, str):
         """
-        Opens an SSH and SFTP connection using variables defined in the sftp credentials configuration file.
-        :param healthdata_receiver: either DWH or ODS
-        :return: an ssh and sftp client for further use
+        opens sftp and sets folder path for a given healthdata receiver
+        :param healthdata_receiver: ODS or DWH:
+        :param folder: desired folder in sftp location, error or processed
+        :return: ssh, sftp, folder_path as str
         """
-        # Create an SSH client
-        ssh = paramiko.SSHClient()
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
-        # Connect to the server
         if healthdata_receiver == 'ODS':
-            ssh.connect(self._sftp_credentials_hd['hostname_send_mapping_table_to_ODS'],
-                        self._sftp_credentials_hd['port_send_mapping_table_to_ODS'],
-                        self._sftp_credentials_hd['username_send_mapping_table_to_ODS'],
-                        self._sftp_credentials_hd['password_send_mapping_table_to_ODS'])
+            ssh, sftp = self._open_sftp_connection(
+                self._sftp_credentials_hd['hostname_send_mapping_table_to_ODS'],
+                self._sftp_credentials_hd['port_send_mapping_table_to_ODS'],
+                self._sftp_credentials_hd['username_send_mapping_table_to_ODS'],
+                self._sftp_credentials_hd['password_send_mapping_table_to_ODS'])
+            folder_path = 'upload/' + \
+                          f"{(self._alternate_dtap + '/') if self._alternate_dtap else ''}" + \
+                          folder
         else:  # if healthdata_receiver == 'DWH':
-            ssh.connect(self._sftp_credentials_hd['hostname_send_genomic_to_DWH'],
-                        self._sftp_credentials_hd['port_send_genomic_to_DWH'],
-                        self._sftp_credentials_hd['username_send_genomic_to_DWH'],
-                        self._sftp_credentials_hd['password_send_genomic_to_DWH'])
-
-        # Create an SFTP session
-        sftp = ssh.open_sftp()
-        return ssh, sftp
+            ssh, sftp = self._open_sftp_connection(
+                self._sftp_credentials_hd['hostname_send_genomic_to_DWH'],
+                self._sftp_credentials_hd['port_send_genomic_to_DWH'],
+                self._sftp_credentials_hd['username_send_genomic_to_DWH'],
+                self._sftp_credentials_hd['password_send_genomic_to_DWH'])
+            folder_path = 'to_hd/' + \
+                          f"{(self._alternate_dtap + '/') if self._alternate_dtap else (self._mongo_config_data['dtap'] + '/') if self._mongo_config_data['dtap'] != 'prod' else ''}" + \
+                          folder
+        return ssh, sftp, folder_path
 
 
 if __name__ == '__main__':

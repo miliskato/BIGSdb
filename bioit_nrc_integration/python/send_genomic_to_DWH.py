@@ -8,18 +8,18 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List
 
-import paramiko
 
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
 from bioit_nrc_integration.python.config import SFTP_CREDENTIALS_HD, CODES_GENOMIC_DWH
+from bioit_nrc_integration.python.util.sftp_connection import SFTPConnection
 
 # Configure stdout logging
 logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
 
-class SendGenomicToDWH:
+class SendGenomicToDWH(SFTPConnection):
     """
     Class to get all required values for a pathogen from a MongoDB document and
     to send these values as a JSON file to the DWH over SFTP.
@@ -35,6 +35,8 @@ class SendGenomicToDWH:
         or acc
         :return: None
         """
+        super().__init__()
+
         self._document = document
         self._mongo_config_data = mongo_config_data
         self._species = species
@@ -48,35 +50,22 @@ class SendGenomicToDWH:
             self._sftp_credentials_hd = yaml.safe_load(handle)
 
         # initialize ssh & sftp
-        self._ssh, self._sftp = self._open_sftp_connection()
+        self._ssh, self._sftp = self._open_sftp_connection(
+            self._sftp_credentials_hd['hostname_send_genomic_to_DWH'],
+            self._sftp_credentials_hd['port_send_genomic_to_DWH'],
+            self._sftp_credentials_hd['username_send_genomic_to_DWH'],
+            self._sftp_credentials_hd['password_send_genomic_to_DWH'])
 
+        self._output_json_dict = self._create_output_json_dict()
+        
         self._send_genomic_to_dwh()
 
-        self._close_sftp_connection()
+        self._close_sftp_connection(self._ssh, self._sftp)
 
-    def _open_sftp_connection(self) -> (paramiko.SSHClient, paramiko.SFTPClient):
-        """
-        Opens an SSH and SFTP connection using variables defined in the sftp credentials configuration file.
-        :return: an ssh and sftp client for further use
-        """
-        # Create an SSH client
-        ssh = paramiko.SSHClient()
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
-        # Connect to the server
-        ssh.connect(self._sftp_credentials_hd['hostname_send_genomic_to_DWH'], 
-                    self._sftp_credentials_hd['port_send_genomic_to_DWH'], 
-                    self._sftp_credentials_hd['username_send_genomic_to_DWH'], 
-                    self._sftp_credentials_hd['password_send_genomic_to_DWH'])
-
-        # Create an SFTP session
-        sftp = ssh.open_sftp()
-        return ssh, sftp
-
-    def _send_genomic_to_dwh(self) -> None:
-        """
-        Main function to send the genomic indicators to the HealthData DataWareHouse.
-        :return: None
+    def _create_output_json_dict(self) -> Dict[str, Any]:
+        """"
+        Finds the required values for the DWH in the document and puts them in a dictionary with the right format.
+        :return: output dictionary in the right format ready to be sent to the DWH
         """
         data_dict = {}
         for variable, list_path in self._translation_codes['common'].items():
@@ -96,15 +85,21 @@ class SendGenomicToDWH:
                     else:
                         # I have at least noticed one instance where an R was lowercase
                         data_dict[variable] = (data_dict[variable]).upper()
-        output_json_dict = {'metadata': {'version': self._translation_codes['pathogens'][self._species]['dcd_version'],
-                                         'data_collection': self._translation_codes['pathogens'][self._species]['dcd_code'],
-                                         'dcd_name': self._translation_codes['pathogens'][self._species]['dcd_name']},
-                            'data': data_dict}
+        return {'metadata': {'version': self._translation_codes['pathogens'][self._species]['dcd_version'],
+                             'data_collection': self._translation_codes['pathogens'][self._species]['dcd_code'],
+                             'dcd_name': self._translation_codes['pathogens'][self._species]['dcd_name']},
+                'data': data_dict}
+    
+    def _send_genomic_to_dwh(self) -> None:
+        """
+        Main function to send the genomic indicators to the HealthData DataWareHouse.
+        :return: None
+        """ 
         with tempfile.TemporaryDirectory(dir='/tmp') as temp_json_dir:
             # business key is not allowed to be in the filename according to Sébastien Pendeville
             jsonfile = Path(temp_json_dir) / f"{self._document['pseudo_id']}.json"
             with jsonfile.open('w') as handle:
-                handle.write(json.dumps(output_json_dict))
+                handle.write(json.dumps(self._output_json_dict))
 
             # Upload the file
             # Created the dev, test, and acc folders manually
@@ -127,17 +122,9 @@ class SendGenomicToDWH:
                 break
         return current
 
-    def _close_sftp_connection(self) -> None:
-        """
-        Closes the SSH and SFTP clients created by _open_sftp_connection.
-        :return: None
-        """
-        self._sftp.close()
-        self._ssh.close()
-
     def __exit__(self) -> None:
         """
         Closes the SSH and SFTP clients upon exit.
         :return: None
         """
-        self._close_sftp_connection()
+        self._close_sftp_connection(self._ssh, self._sftp)
