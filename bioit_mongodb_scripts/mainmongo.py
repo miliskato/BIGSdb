@@ -666,7 +666,7 @@ if __name__ == '__main__':
               technical_metadata_path=(args.technical_metadata_path if args.technical_metadata_path else None),
               jsonfilepath=(args.jsonfilepath if args.jsonfilepath else None), 
               subvaldict=(args.subvaldict if args.subvaldict else None),
-              reportdirectorypath=(args.reportdirectorypath if args.reportdirectorypath else None), 
+              reportdirectorypath=(args.reportdirectorypath if args.reportdirectorypath else None),
               fastafilepath=(args.fastafilepath if args.fastafilepath else None), 
               vcffilepath=(args.vcffilepath if args.vcffilepath else None),
               vcffilepath_unfiltered=(args.vcffilepath_unfiltered if args.vcffilepath_unfiltered else None),

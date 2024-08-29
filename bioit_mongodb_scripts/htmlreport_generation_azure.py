@@ -54,10 +54,9 @@ class HtmlreportGeneration:
         :param species: commonly used bioit species name: either genus or specific like stec
         :param technical_id: sample id/ isolates id
         :param dtap: dev, test, acc, or prod
-        :param validation_type: null, bad_quality or resequencing
         :param changed_version: changed version of the desired report
         :param analysis_date: desired date of the report (usually today but can query previous versions too (used in BIGSdb)),
-        if it doesn't exist, get the closest more recent report date
+        if it doesnt exist, get the closest more recent report date
         :return: None
         """
         # Input parameters
