@@ -685,7 +685,8 @@ sub print_page_content {
 		my $main_max_width_style =
 		  $self->{'prefs'}->{'expandPage'}
 		  ? q(calc(100vw - 40px))
-		  : qq(${main_max_width}px);		my $main_container_class = $self->{'login'} ? q( main_container_login) : q();
+		  : qq(${main_max_width}px);
+		my $main_container_class = $self->{'login'} ? q( main_container_login) : q();
 		my $main_content_class   = $self->{'login'} ? q( main_content_login)   : q();
 
 		if ( $self->{'system'}->{'db'} && $self->{'instance'} ) {
