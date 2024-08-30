@@ -17,6 +17,11 @@ species:
     - influenza_b
     - sars_cov_2
 
+viral_species:
+    - influenza_a
+    - influenza_b
+    - sars_cov_2
+
 dtap: to_be_replaced_by_ansible
 
 collections:

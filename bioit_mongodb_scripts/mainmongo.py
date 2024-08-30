@@ -408,7 +408,7 @@ class MainMongo:
         :param results: results dictionary to be inserted
         :return: dictionary with results under results key and metadata keys at the same level of the results key
         """
-        technical_metadata = self.___retrieve_technical_metadata(results)
+        technical_metadata = self.___retrieve_technical_metadata(results) if self._species not in self._mongo_config_data['viral_species'] else 'to be determined'
         results["pipeline_hash"] = self._pipeline_hash
         results["results_version"] = 1  # this version always increments
         results["changed_version"] = 1  # this version only increments whenever something actually changed
