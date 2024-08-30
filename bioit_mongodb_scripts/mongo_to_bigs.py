@@ -108,8 +108,7 @@ class MongoToBigs:
             self._exceptionmessage1 = exceptionmessage1
             self._traceback1 = traceback.format_exc()
 
-            # todo: disabled following code on 2024/04/08 because isolation date not yet in incoming metadata; to reenable when it does
-            # self.__run_alerts_to_bigs_upon_exception()
+            self._run_alerts_to_bigs_upon_exception()
 
             send_email(f"{self._exceptionmessage1}\n{self._traceback1}")
             raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}: {self._exceptionmessage1}\n{self._traceback1}")
@@ -145,8 +144,14 @@ class MongoToBigs:
             results_type, skip_current_document = self.__get_results_type(document, document_id)
             if skip_current_document:
                 continue
-            self._list_of_new_versions_for_alerts.append({'isolate_name': document_id, 'cgST': document['results'].get('cgST'),
-                                                          'isolation_date': document['results']['analysis_date']})
+            if results_type == 'new_isolate':
+                self._list_of_new_isolates_for_alerts.append(
+                    {'isolate_name': document_id, 'cgST': document['results'].get('cgST'),
+                     'isolation_date': document['technical_metadata']['DT_ISOL']})
+
+            else:  # if results_type == 'reanalysis':
+                self._list_of_new_versions_for_alerts.append({'isolate_name': document_id, 'cgST': document['results'].get('cgST'),
+                                                              'isolation_date': document['technical_metadata']['DT_ISOL']})
 
             # continuation of for loop:
             # extract json file to be given to bigs
@@ -168,19 +173,13 @@ class MongoToBigs:
             send_email(f"update of the cache to display the cgsts of new isolates failed on host {socket.gethostname()}")
             raise RuntimeError(f"update of the cache to display the cgsts of new isolates failed on host {socket.gethostname()}")
 
-        list_of_isolates_in_bigs = self._isolates_psql_tbl.listing_isolates()
-        with Path('/scratch/bigsupload/mongo/list_of_isolates.txt').open('w') as fileout:
-            for item in list_of_isolates_in_bigs:
-                fileout.write(f"{item[0]}\n")
-
         # Run Alerts to bigs after updating the cache because it accesses a SQL table that is updated by the cache updater.
         # also run it after having inserted all isolates into bigsdb
-        # todo: disabled following code on 2024/04/08 because isolation date not yet in incoming metadata; to reenable when it does
-        # try:
-        #     if len(self._list_of_new_isolates_for_alerts + self._list_of_new_versions_for_alerts) > 0:
-        #         AlertsToBigs(self._list_of_new_isolates_for_alerts, self._list_of_new_versions_for_alerts, self._species, self._cgmlst_bigsdb_scheme_id)
-        # except:
-        #     self._exception_in_alerts = True
+        try:
+            if len(self._list_of_new_isolates_for_alerts + self._list_of_new_versions_for_alerts) > 0:
+                AlertsToBigs(self._list_of_new_isolates_for_alerts, self._list_of_new_versions_for_alerts, self._species, self._cgmlst_bigsdb_scheme_id)
+        except:
+            self._exception_in_alerts = True
 
     def __update_scheme_caches_full_once_if_needed(self) -> bool:
         """
@@ -331,7 +330,7 @@ class MongoToBigs:
         """
         self._isolates_psql_tbl.close()
 
-    def __run_alerts_to_bigs_upon_exception(self) -> None:
+    def _run_alerts_to_bigs_upon_exception(self) -> None:
         """
         If an insertion into BIGSdb fails, the alerts for the succeeded insertions need to be evaluated,
         because else they would not be evaluated at all
