@@ -171,13 +171,18 @@ class GeneDetectionIntoPsql:
                     if len(hits) != 0:
                         for y in range(len(hits)):
                             hit = '_'.join([hits[y]['Accession'], hits[y]['Locus']])
-                            clusterhit = self._clusterdict[hit]
-                            if not self._scheme.endswith('vfdbcore') and not self._scheme.endswith('virulencefinder'):
-                                self.___append_to_htmltable(hits[y], clusterhit)
+                            if hit in self._clusterdict:
+                                clusterhit = self._clusterdict[hit]
+                                if not self._scheme.endswith('vfdbcore') and not self._scheme.endswith('virulencefinder'):
+                                    self.___append_to_htmltable(hits[y], clusterhit)
 
-                            if clusterhit not in clusterhitset:
-                                isolates_ad_psql_tbl.insert_designation_by_isolateid((clusterhit, isolate_id, '1'))
-                                clusterhitset.add(clusterhit)
+                                if clusterhit not in clusterhitset:
+                                    isolates_ad_psql_tbl.insert_designation_by_isolateid((clusterhit, isolate_id, '1'))
+                                    clusterhitset.add(clusterhit)
+                            else:
+                                send_email(f"{hit} is not a valid key for self._clusterdict. The locus {hits[y]['Locus']} was found in isolate {isolate_name}\nCheck if it's due to the update of {self._scheme}",
+                                           f"{Path(__file__).name} issue on host {socket.gethostname()}")
+
 
                     self._eavhtmltable += f'</table>'
                     isolates_eavt_psql_tbl.delete_eav(
