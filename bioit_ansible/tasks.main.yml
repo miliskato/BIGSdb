@@ -308,7 +308,7 @@
       ansible.builtin.file:
         path: /temp_bigs
         state: directory
-        mode: "u=rwx,g=rwx,o="
+        mode: "u=rwx,g=rwx,o=---"
         owner: bigsdb
         group: www-data
 
@@ -318,7 +318,7 @@
         state: directory
         owner: bigsdb
         group: www-data
-        mode: "u=rwx,g=rwx,o="
+        mode: "u=rwx,g=rwx,o=---"
 
     - name: create subdir for output files
       ansible.builtin.file:
@@ -326,7 +326,7 @@
         state: directory
         owner: bigsdb
         group: www-data
-        mode: "u=rwx,g=rwx,o="
+        mode: "u=rwx,g=rwx,o=---"
 
     - name: create link to output files subdir
       ansible.builtin.file:
@@ -690,7 +690,7 @@
       ansible.builtin.file:
         path: "/reports/{{ species }}"
         state: directory
-        mode: "u=rwx,g=rwx,o="
+        mode: "u=rwx,g=rwx,o=---"
         owner: www-data
         group: www-data
       tags: add_to_group
@@ -699,7 +699,7 @@
       ansible.builtin.file:
         path: "/reports/"
         state: directory
-        mode: "u=rwx,g=rwx,o="
+        mode: "u=rwx,g=rwx,o=---"
         owner: www-data
         group: www-data
       tags: add_to_group
