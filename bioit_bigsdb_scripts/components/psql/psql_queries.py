@@ -52,12 +52,12 @@ class PsqlQueries():
         INSERT INTO allele_designations(locus, isolate_id, 
         allele_id, status, method, sender, 
         curator, date_entered, datestamp) 
-        VALUES(%s, (SELECT MAX(id) FROM isolates WHERE isolate=%s), 
+        VALUES(%s, (SELECT id FROM isolates WHERE isolate=%s), 
         %s, 'confirmed', 'automatic', 1, 
         1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE));"""
     ISO_SEL_COUNT_TB_AD_VAR_LOCUS_ISO_ALLELE: Final[str] = """
         SELECT COUNT(*) FROM allele_designations WHERE 
-        locus=%s AND isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate=%s) AND allele_id=%s;"""
+        locus=%s AND isolate_id=(SELECT id FROM isolates WHERE isolate=%s) AND allele_id=%s;"""
     ISO_UPD_ALLELE_TB_AD_VAR_LOCUS_ALLELE: Final[str] = """
         UPDATE allele_designations SET allele_id = %s WHERE locus=%s AND allele_id=%s;"""
 
@@ -124,7 +124,7 @@ class PsqlQueries():
     # TBL extended attribute values bool
     ISO_INS__TB_EAVB_VAR_ISO_FIELD_VAL: Final[str] = """
         INSERT INTO eav_boolean(isolate_id, field, value) 
-        VALUES((SELECT MAX(id) FROM isolates WHERE isolate=%s), %s, %s);"""
+        VALUES((SELECT id FROM isolates WHERE isolate=%s), %s, %s);"""
 
     # TBL extended attribute values text
     ISO_DEL__TB_EAVT_VAR_ID_FIELD: Final[str] = """DELETE FROM eav_text WHERE isolate_id=%s AND field=%s;"""
@@ -132,7 +132,7 @@ class PsqlQueries():
         INSERT INTO eav_text(isolate_id, field, value) VALUES(%s, %s, %s);"""
     ISO_INS__TB_EAVT_VAR_ISO_FIELD_VAL: Final[str] = """
         INSERT INTO eav_text(isolate_id, field, value) 
-        VALUES((SELECT MAX(id) FROM isolates WHERE isolate=%s), %s, %s);"""
+        VALUES((SELECT id FROM isolates WHERE isolate=%s), %s, %s);"""
     ISO_UPD_VAL_TB_EAVT_VAR_ID_FIELD: Final[str] = """
         UPDATE eav_text SET value = %s WHERE isolate_id=%s AND field=%s;"""
     ISO_SEL_COUNT_TB_EAVT_VAR_ID_FIELD: Final[str] = """
@@ -160,10 +160,10 @@ class PsqlQueries():
 
     # TBL isolates
     ISO_DEL__TB_ISO_VAR_ISO_ISO: Final[str] = """
-        DELETE FROM isolates WHERE isolate=%s AND id=(SELECT MAX(id) FROM isolates WHERE isolate=%s);"""
-    ISO_INS__TB_ISO_VAR_ISO_ISO_ISO_DATE: Final[str] = """
-        ALTER TABLE isolates SET(date_entered, datestamp, latest_analysis_date) 
-        VALUES((SELECT CURRENT_DATE),(SELECT CURRENT_DATE), %s) WHERE isolate=%s;"""
+        DELETE FROM isolates WHERE isolate=%s;"""
+    ISO_UPD__TB_ISO_VAR_ISO_ISO_ISO_DATE: Final[str] = """
+        UPDATE isolates SET (date_entered, datestamp, latest_analysis_date) = 
+        ((SELECT CURRENT_DATE),(SELECT CURRENT_DATE), %s) WHERE isolate=%s;"""
     ISO_INS__TB_ISO_VAR_ISO_UPL_DATE: Final[str] = """
         INSERT INTO isolates(id, 
         isolate, sender, curator, date_entered, datestamp, uploader, latest_analysis_date)
@@ -171,7 +171,7 @@ class PsqlQueries():
         %s, 1, 1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE), %s, %s);"""
     ISO_SEL_COUNT_TB_ISO_VAR_ISO: Final[str] = """SELECT COUNT(*) FROM isolates WHERE isolate=%s;"""
     ISO_SEL_ANADATE_TB_ISO_VAR_ISO: Final[str] = """
-        SELECT latest_analysis_date FROM isolates WHERE id=(SELECT MAX(id) FROM isolates WHERE isolate=%s);"""
+        SELECT latest_analysis_date FROM isolates WHERE id=(SELECT id FROM isolates WHERE isolate=%s);"""
     ISO_SEL_ID_ISO_DATE_CGST_TB_ISO_VAR_SCHID_SCHID_SCHID_CGSTS_DATE1_DATE2: Final[str] = """
         SELECT isolates.id, isolates.isolate, isolates.isolation_date, cgst FROM isolates LEFT JOIN 
         temp_isolates_scheme_fields_%s ON isolates.id = temp_isolates_scheme_fields_%s.id 
@@ -321,8 +321,7 @@ class PsqlQueries():
     ISO_SEL_COUNT_TB_SEQBIN_VAR_ISO: Final[str] = """
         SELECT COUNT(*) FROM sequence_bin WHERE isolate_id=(SELECT id FROM isolates WHERE isolate=%s);"""
     ISO_UPD_REVERSE_TB_SEQBIN_VAR_ISO_ISO: Final[str] = """
-        UPDATE sequence_bin SET isolate_id=(SELECT MIN(id) FROM isolates WHERE id in (SELECT id FROM isolates WHERE isolate=%s ORDER BY id DESC LIMIT 2)) 
-        WHERE isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate=%s);"""
+        UPDATE sequence_bin SET isolate_id=(SELECT id FROM isolates WHERE isolate=%s);"""
 
     # TBL seq bin stats
     ISO_UPD_REVERSE_TB_SEQBINSTATS_VAR_ISO_ISO: Final[str] = """

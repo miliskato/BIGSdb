@@ -53,14 +53,14 @@ class TblIsolates(DatabaseConnection):
         """
         self.execute_query(PsqlQueries.ISO_INS__TB_ISO_VAR_ISO_UPL_DATE, param)
 
-    def insert_isolate_newversion(self, param: Tuple[str, str, str, str]) -> None:
+    def update_isolate_analysis_date(self, param: Tuple[str, str, str, str]) -> None:
         """
         Inserts a new isolate version
         :param param: variables to feed to the PSQL query, which also sanitizes these variables,
         necessary parameters visible in the PSQL query name and query
         :return: None
         """
-        self.execute_query(PsqlQueries.ISO_INS__TB_ISO_VAR_ISO_ISO_ISO_DATE, param)
+        self.execute_query(PsqlQueries.ISO_UPD__TB_ISO_VAR_ISO_ISO_ISO_DATE, param)
 
     def revert_newversion(self, param: Tuple[str]) -> None:
         """
@@ -144,7 +144,7 @@ class TblIsolates(DatabaseConnection):
     def select_id_for_isolate(self, param: Tuple[str]) -> List[Tuple[Optional[int]]]:
         """
         Selects the id of the latest isolate version
-        :param param: variables to feed to the PSQL query: isolate_id
+        :param param: variables to feed to the PSQL query: isolate name
         :return: natural number
         """
         return self.execute_query(PsqlQueries.ISO_SEL_ID_TB_ISO_VAR_ISO, param)

@@ -4,7 +4,7 @@ import socket
 from typing import Any, Dict
 
 from .json_superclass import JsonSuperClass
-from .psql import TblEavTextHidden, TblEavText, TblIsolates, TblHistory, TblSequenceBin, TblSeqBinStats
+from .psql import TblEavTextHidden, TblEavText, TblIsolates, TblHistory
 
 
 class MainInserter(JsonSuperClass):
@@ -49,7 +49,7 @@ class MainInserter(JsonSuperClass):
         :return: None
         """
         with TblIsolates(self._species) as isolates_psql_tbl:
-            isolates_psql_tbl.insert_isolate_newversion((datetime.datetime.strptime(self._sample_output_dict['analysis_date'], '%d/%m/%Y - %X').strftime('%Y-%m-%d'), self._isolatename))
+            isolates_psql_tbl.update_isolate_analysis_date((datetime.datetime.strptime(self._sample_output_dict['analysis_date'], '%d/%m/%Y - %X').strftime('%Y-%m-%d'), self._isolatename))
 
 
     def insert_main_metadata(self) -> None:
