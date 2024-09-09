@@ -12,7 +12,7 @@ job_run_date=$(date +%m-%d-%Y_%H:%M:%S)
 # $3 output file
 # $5 fastq-hash (can be in tsv) # not done yet
 
-if grep -q $2 /db/galaxy_bigsdb_access/approved_users.txt; then :
+if grep -q $2 /db/galaxy_bigsdb_access/approved_users_nrc.txt; then :
 else
   printf '%s\n' "${2} is not an approved user" >&2
   exit
@@ -84,6 +84,7 @@ cp $htmlfilename ./${sample_name}/report.html
 cp -r $htmlfilefolder/* ./${sample_name}/
 touch ./${sample_name}/info.txt
 echo "{'sample_name': '${sample_name}', 'species': '${species}', 'user': '$2'}" > ./${sample_name}/info.txt
+chmod 770 -R ./${sample_name}
 tar -cf ${sample_name}.tar ./${sample_name}/
 md5sum ${sample_name}.tar > ${sample_name}_md5.txt
 
