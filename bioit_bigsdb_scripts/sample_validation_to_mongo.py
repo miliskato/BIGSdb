@@ -108,7 +108,7 @@ class SampleValidationToMongo:
                                                                                  isolatename, validation_dict)
                 # update status once everything is finished
                 self._isolates_submissions_psql_tbl.update_submission((str(self._sub_id),))
-                MongoToBigs(self._species, single_sample_id=isolatename)
+                MongoToBigs(self._species, uploader_mail_address=curator_mailadress, single_sample_id=isolatename)
 
     @staticmethod
     def __get_results_type(validation_type: str) -> str:

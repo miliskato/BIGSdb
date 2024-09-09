@@ -316,5 +316,6 @@ if __name__ == '__main__':
     args = parse_arguments(mongo_config_data['species'])
 
     # run main
-    MongoToBigs(args.species, single_sample_id=(args.single_sample_id if args.single_sample_id else None),
+    MongoToBigs(args.species, args.uploader_mail_address,
+                single_sample_id=(args.single_sample_id if args.single_sample_id else None),
                 mongo_config_data=mongo_config_data)
