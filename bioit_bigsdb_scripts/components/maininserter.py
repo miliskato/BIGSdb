@@ -4,8 +4,7 @@ import socket
 from typing import Any, Dict
 
 from .json_superclass import JsonSuperClass
-from .psql import TblEavTextHidden, TblEavText, TblIsolates, TblHistory, TblSequenceBin, TblSeqBinStats, \
-    TblProjectMembers
+from .psql import TblEavTextHidden, TblEavText, TblIsolates, TblHistory
 
 
 class MainInserter(JsonSuperClass):
@@ -35,7 +34,6 @@ class MainInserter(JsonSuperClass):
         :return: None
         """
         with TblIsolates(self._species) as isolates_psql_tbl:
-            isolates_psql_tbl.count_isolate((self._isolatename,))
             sample_presence = isolates_psql_tbl.count_isolate((self._isolatename,))
             if sample_presence[0][0] == 0:
                 isolates_psql_tbl.insert_isolate((self._isolatename, uploader_mail_address,
@@ -51,16 +49,8 @@ class MainInserter(JsonSuperClass):
         :return: None
         """
         with TblIsolates(self._species) as isolates_psql_tbl:
-            # todo all other columns
-            isolates_psql_tbl.insert_isolate_newversion((self._isolatename, self._isolatename, self._isolatename,
-                                                         datetime.datetime.strptime(self._sample_output_dict['analysis_date'], '%d/%m/%Y - %X').strftime('%Y-%m-%d')))
-            isolates_psql_tbl.update_newversion([self._isolatename])
-            with TblSequenceBin(self._species) as isolates_seqbin_psql_tbl:
-                isolates_seqbin_psql_tbl.update_sequencebin_newversion([self._isolatename])
-            with TblSeqBinStats(self._species) as isolates_seqbinstats_psql_tbl:
-                isolates_seqbinstats_psql_tbl.update_seqbinstats_newversion([self._isolatename])
-        with TblProjectMembers(self._species) as isolates_projectmembers_psql_tbl:
-            isolates_projectmembers_psql_tbl.add_newversion_projectmembers([self._isolatename])
+            isolates_psql_tbl.update_isolate_analysis_date((datetime.datetime.strptime(self._sample_output_dict['analysis_date'], '%d/%m/%Y - %X').strftime('%Y-%m-%d'), self._isolatename))
+
 
     def insert_main_metadata(self) -> None:
         """
@@ -74,7 +64,7 @@ class MainInserter(JsonSuperClass):
             local_path = 'reports'
             galaxy_report_access = mongo_report_field.replace(local_path,"galaxyreports")
             azure_path = f'results/{dtap}'
-            galaxy_report_access = mongo_report_field.replace(azure_path, "galaxyreports")
+            galaxy_report_access = galaxy_report_access.replace(azure_path, "galaxyreports")
 
             vcf_access = self._vcf_path.replace(local_path,"galaxyreports")
             vcf_access = self._vcf_path.replace(azure_path, "galaxyreports")
@@ -87,7 +77,7 @@ class MainInserter(JsonSuperClass):
             self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'VCF_unfiltered', vcflink_unfiltered))
             vcflink_filtered = f'<p><a href="{vcf_access}" target="_blank">VCF filtered</a></p>'
             self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'VCF_filtered', vcflink_filtered))
-            isolate_id = self.isolates_psql_tbl.select_maxid_for_isolate((self._isolatename,))[0][0]
+            isolate_id = self.isolates_psql_tbl.select_id_for_isolate((self._isolatename,))[0][0]
             assemblylink = f'<p><a href="/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_{self._species}_isolates&page=plugin&name=Contigs&format=text&isolate_id={isolate_id}&match=1&pc_untagged=0&min_length=&header=1l" target="_blank">assembly</a></p>'
             self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'assembly', assemblylink))
             self._insert_species_specific_metadata()

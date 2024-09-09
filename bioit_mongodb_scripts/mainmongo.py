@@ -174,7 +174,7 @@ class MainMongo:
         :return: None
         """
         # Configure stdout logging
-        logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
+        logging.basicConfig(level=logging.WARNING, stream=sys.stdout)
 
         # If statement for results_type
         if self._results_type == "new_isolate":
@@ -302,13 +302,12 @@ class MainMongo:
             else:
                 new_records["isolates_id"] = self._technical_id
                 new_isolate = self.___new_isolate(new_records)
-                new_isolate = self.___convert_typinghitdictionaries_to_lists(new_isolate)
                 self.___write_document(self._isolates_resequencing_collection, new_isolate)
         else:
             send_email(
-                f"A duplicate resequencing for  {self._technical_id} was submitted to the isolates_resequencing ",
+                f"The resequencing for  {self._technical_id} was identical to the original isolate or to a previously submitted resequencing",
                 dont_send_email=self._dont_send_email)
-            raise MongoResequencingAlreadyExistsError(f"A duplicate resequencing for  {self._technical_id} was submitted to the isolates_resequencing ")
+            raise MongoResequencingAlreadyExistsError(f"The resequencing for  {self._technical_id} was identical to the original isolate or to a previously submitted resequencing")
 
     def __new_reanalysis_wrapper(self, current_results_document: Dict[str, Any], new_results_document: Dict[str, Any]) -> None:
         """
@@ -363,7 +362,7 @@ class MainMongo:
         if self._results_type == 'resequencing_validated':
             new_results['validation'] = self._subvaldict
             report_dir_merging_cmd = ' '.join([
-                "rsync -a",
+                "rsync -a --no-p --no-o --no-g",
                 f"{new_results_document['report_directory']}/",
                 f"{current_results_document['report_directory']}/"
             ])

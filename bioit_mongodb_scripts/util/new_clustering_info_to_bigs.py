@@ -336,11 +336,11 @@ class NewClusteringInfoToBigs:
                                                                            cgmlst_bigsdb_scheme_id, field[0])
                             for technical_id in [_dict['_id'] for _dict in cgsts_per_isolate
                                                  if _dict['results'].get('cgST') == cgst]:
-                                bigsdb_maxid_isolate = isolates_psql_tbl.select_maxid_for_isolate((technical_id,))
+                                bigsdb_id_isolate = isolates_psql_tbl.select_id_for_isolate((technical_id,))
                                 # it is possible that new isolates have not been added to bigsdb yet with old cgSTs
-                                if bigsdb_maxid_isolate[0][0] is not None:
+                                if len(bigsdb_id_isolate) > 0:
                                     isolates_eavt_psql_tbl.insert_eav_id((
-                                        str(bigsdb_maxid_isolate[0][0]),
+                                        str(bigsdb_id_isolate[0][0]),
                                         field[0], html))
             else:
                 if len(self._new_st) > 0:
@@ -366,11 +366,11 @@ class NewClusteringInfoToBigs:
                             #                                              cgmlst_bigsdb_scheme_id)
                             # for technical_id in [_dict['_id'] for _dict in cgsts_per_isolate
                             #                      if _dict['results'].get('cgST') == cgst]:
-                            #     bigsdb_maxid_isolate = isolates_psql_tbl.select_maxid_for_isolate((technical_id,))
+                            #     bigsdb_id_isolate = isolates_psql_tbl.select_id_for_isolate((technical_id,))
                             #     # it is possible that new isolates have not been added to bigsdb yet with old cgSTs
-                            #     if len(bigsdb_maxid_isolate) > 0:
+                            #     if len(bigsdb_id_isolate) > 0:
                             #         isolates_eavt_psql_tbl.update_eav_id((
-                            #             html, str(bigsdb_maxid_isolate[0][0]),
+                            #             html, str(bigsdb_id_isolate[0][0]),
                             #             field[0]))
                     with TblIsolates(self._species) as isolates_psql_tbl, TblEavText(
                             self._species) as isolates_eavt_psql_tbl:
@@ -388,19 +388,19 @@ class NewClusteringInfoToBigs:
                                                                                cgmlst_bigsdb_scheme_id, field[0])
                                 for technical_id in [_dict['_id'] for _dict in cgsts_per_isolate
                                                      if _dict['results'].get('cgST') == cgst]:
-                                    bigsdb_maxid_isolate = isolates_psql_tbl.select_maxid_for_isolate((technical_id,))
+                                    bigsdb_id_isolate = isolates_psql_tbl.select_id_for_isolate((technical_id,))
                                     # it is possible that new isolates have not been added to bigsdb yet with old cgSTs
-                                    if len(bigsdb_maxid_isolate) > 0:
-                                        if isolates_eavt_psql_tbl.select_count_eav_id((str(bigsdb_maxid_isolate[0][0]),
+                                    if len(bigsdb_id_isolate) > 0:
+                                        if isolates_eavt_psql_tbl.select_count_eav_id((str(bigsdb_id_isolate[0][0]),
                                                                                        field[0]))[0][0] > 0:
                                             isolates_eavt_psql_tbl.update_eav_id((
-                                                html, str(bigsdb_maxid_isolate[0][0]),
+                                                html, str(bigsdb_id_isolate[0][0]),
                                                 field[0]))
                                         else:
                                             # it is also possible that the isolates in question do not have the fields
                                             # yet because no cgST's were close up until now
                                             isolates_eavt_psql_tbl.insert_eav_id((
-                                                str(bigsdb_maxid_isolate[0][0]),
+                                                str(bigsdb_id_isolate[0][0]),
                                                 field[0], html))
 
     def ____generate_htmlelement_cgstquery(self, cgsts: List[int], cgmlst_bigsdb_scheme_id: int,

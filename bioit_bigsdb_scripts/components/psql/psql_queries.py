@@ -55,12 +55,12 @@ class PsqlQueries():
         INSERT INTO allele_designations(locus, isolate_id, 
         allele_id, status, method, sender, 
         curator, date_entered, datestamp) 
-        VALUES(%s, (SELECT MAX(id) FROM isolates WHERE isolate=%s), 
+        VALUES(%s, (SELECT id FROM isolates WHERE isolate=%s), 
         %s, 'confirmed', 'automatic', 1, 
         1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE));"""
     ISO_SEL_COUNT_TB_AD_VAR_LOCUS_ISO_ALLELE: Final[str] = """
         SELECT COUNT(*) FROM allele_designations WHERE 
-        locus=%s AND isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate=%s) AND allele_id=%s;"""
+        locus=%s AND isolate_id=(SELECT id FROM isolates WHERE isolate=%s) AND allele_id=%s;"""
     ISO_UPD_ALLELE_TB_AD_VAR_LOCUS_ALLELE: Final[str] = """
         UPDATE allele_designations SET allele_id = %s WHERE locus=%s AND allele_id=%s;"""
 
@@ -127,7 +127,7 @@ class PsqlQueries():
     # TBL extended attribute values bool
     ISO_INS__TB_EAVB_VAR_ISO_FIELD_VAL: Final[str] = """
         INSERT INTO eav_boolean(isolate_id, field, value) 
-        VALUES((SELECT MAX(id) FROM isolates WHERE isolate=%s), %s, %s);"""
+        VALUES((SELECT id FROM isolates WHERE isolate=%s), %s, %s);"""
 
     # TBL extended attribute values text
     ISO_DEL__TB_EAVT_VAR_ID_FIELD: Final[str] = """DELETE FROM eav_text WHERE isolate_id=%s AND field=%s;"""
@@ -135,7 +135,7 @@ class PsqlQueries():
         INSERT INTO eav_text(isolate_id, field, value) VALUES(%s, %s, %s);"""
     ISO_INS__TB_EAVT_VAR_ISO_FIELD_VAL: Final[str] = """
         INSERT INTO eav_text(isolate_id, field, value) 
-        VALUES((SELECT MAX(id) FROM isolates WHERE isolate=%s), %s, %s);"""
+        VALUES((SELECT id FROM isolates WHERE isolate=%s), %s, %s);"""
     ISO_UPD_VAL_TB_EAVT_VAR_ID_FIELD: Final[str] = """
         UPDATE eav_text SET value = %s WHERE isolate_id=%s AND field=%s;"""
     ISO_SEL_COUNT_TB_EAVT_VAR_ID_FIELD: Final[str] = """
@@ -145,13 +145,13 @@ class PsqlQueries():
     # TBL extended attribute values text hidden
     ISO_INS__TB_EAVTH_VAR_ISO_FIELD_VAL: Final[str] = """
         INSERT INTO eav_text_hidden(isolate_id, field, value) 
-        VALUES((SELECT MAX(id) FROM isolates WHERE isolate=%s), %s, %s);"""
+        VALUES((SELECT id FROM isolates WHERE isolate=%s), %s, %s);"""
     ISO_SEL_ID_VAL_ISO_TB_EAVTH_VAR_FIELD: Final[str] = """
         SELECT eav_text_hidden.isolate_id, eav_text_hidden.value, isolates.isolate FROM eav_text_hidden 
         LEFT JOIN isolates ON isolates.id = eav_text_hidden.isolate_id WHERE eav_text_hidden.field = %s;"""
     ISO_SEL_VERSION_TB_EAVTH_VAR_ISO: Final[str] = """
         SELECT value FROM eav_text_hidden WHERE field='mongo_results_version' AND 
-        isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate=%s);"""
+        isolate_id=(SELECT id FROM isolates WHERE isolate=%s);"""
 
     # TBL history
     ISO_INS__TB_HIST_VAR_ID_MESS: Final[str] = """
@@ -159,17 +159,14 @@ class PsqlQueries():
         VALUES(%s, (SELECT NOW()::TIMESTAMP), %s, 1);"""
     ISO_INS__TB_HIST_VAR_ISO_MESS: Final[str] = """
         INSERT INTO history(isolate_id, timestamp, action, curator) 
-        VALUES((SELECT MAX(id) FROM isolates WHERE isolate=%s),(SELECT NOW()::TIMESTAMP), %s, 1);"""
+        VALUES((SELECT id FROM isolates WHERE isolate=%s),(SELECT NOW()::TIMESTAMP), %s, 1);"""
 
     # TBL isolates
     ISO_DEL__TB_ISO_VAR_ISO_ISO: Final[str] = """
-        DELETE FROM isolates WHERE isolate=%s AND id=(SELECT MAX(id) FROM isolates WHERE isolate=%s);"""
-    ISO_INS__TB_ISO_VAR_ISO_ISO_ISO_DATE: Final[str] = """
-        INSERT INTO isolates(id, isolate, sender, curator, date_entered, datestamp, uploader, latest_analysis_date) 
-        VALUES((SELECT CASE WHEN (SELECT MAX(id) FROM isolates) IS NULL THEN 1 
-        ELSE (SELECT(SELECT MAX(id) FROM isolates)+1) END), %s, 1, 1, 
-        (SELECT CURRENT_DATE),(SELECT CURRENT_DATE), 
-        (SELECT uploader FROM isolates WHERE isolate=%s AND id=(SELECT MAX(id) FROM isolates WHERE isolate=%s)), %s);"""
+        DELETE FROM isolates WHERE isolate=%s;"""
+    ISO_UPD__TB_ISO_VAR_ISO_ISO_ISO_DATE: Final[str] = """
+        UPDATE isolates SET (date_entered, datestamp, latest_analysis_date) = 
+        ((SELECT CURRENT_DATE),(SELECT CURRENT_DATE), %s) WHERE isolate=%s;"""
     ISO_INS__TB_ISO_VAR_ISO_UPL_DATE: Final[str] = """
         INSERT INTO isolates(id, 
         isolate, sender, curator, date_entered, datestamp, uploader, latest_analysis_date)
@@ -177,45 +174,39 @@ class PsqlQueries():
         %s, 1, 1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE), %s, %s);"""
     ISO_SEL_COUNT_TB_ISO_VAR_ISO: Final[str] = """SELECT COUNT(*) FROM isolates WHERE isolate=%s;"""
     ISO_SEL_ANADATE_TB_ISO_VAR_ISO: Final[str] = """
-        SELECT latest_analysis_date FROM isolates WHERE id=(SELECT MAX(id) FROM isolates WHERE isolate=%s);"""
+        SELECT latest_analysis_date FROM isolates WHERE id=(SELECT id FROM isolates WHERE isolate=%s);"""
     ISO_SEL_ID_ISO_DATE_CGST_TB_ISO_VAR_SCHID_SCHID_SCHID_CGSTS_DATE1_DATE2: Final[str] = """
         SELECT isolates.id, isolates.isolate, isolates.isolation_date, cgst FROM isolates LEFT JOIN 
         temp_isolates_scheme_fields_%s ON isolates.id = temp_isolates_scheme_fields_%s.id 
-        WHERE new_version IS NULL AND temp_isolates_scheme_fields_%s.cgst IN %s AND isolates.isolation_date>%s AND isolates.isolation_date<=%s;"""
+        WHERE temp_isolates_scheme_fields_%s.cgst IN %s AND isolates.isolation_date>%s AND isolates.isolation_date<=%s;"""
     ISO_SEL_ID_ISO_DATE_CGST_TB_ISO_VAR_SCHID_SCHID_SCHID_CGSTS: Final[str] = """
         SELECT isolates.id, isolates.isolate, isolates.isolation_date, cgst FROM isolates LEFT JOIN 
         temp_isolates_scheme_fields_%s ON isolates.id = temp_isolates_scheme_fields_%s.id 
-        WHERE new_version IS NULL AND temp_isolates_scheme_fields_%s.cgst IN %s;"""
+        WHERE temp_isolates_scheme_fields_%s.cgst IN %s;"""
     ISO_SEL_ID_ISO_DATE_CGST_CLGR_TB_ISO_VAR_CSCHID_SCHID_SCHID_CSCHID_CSCHID_CSCHID_CSCHID_CGST_DATE1_DATE2: Final[str] = """
         SELECT isolates.id, isolates.isolate, isolates.isolation_date, cgst, temp_cscheme_%s.group_id FROM isolates LEFT JOIN 
         temp_isolates_scheme_fields_%s ON isolates.id = temp_isolates_scheme_fields_%s.id 
         LEFT JOIN temp_cscheme_%s on cgst = temp_cscheme_%s.profile_id
-        WHERE new_version IS NULL AND temp_cscheme_%s.group_id = 
-        (SELECT group_id FROM temp_cscheme_%s WHERE profile_id = %s)
+        WHERE temp_cscheme_%s.group_id = (SELECT group_id FROM temp_cscheme_%s WHERE profile_id = %s)
         AND isolates.isolation_date>%s AND isolates.isolation_date<=%s;"""
     ISO_SEL_ID_ISO_DATE_CGST_CLGR_TB_ISO_VAR_CSCHID_SCHID_SCHID_CSCHID_CSCHID_CSCHID_CSCHID_CGST: Final[str] = """
         SELECT isolates.id, isolates.isolate, isolates.isolation_date, cgst, temp_cscheme_%s.group_id FROM isolates LEFT JOIN 
         temp_isolates_scheme_fields_%s ON isolates.id = temp_isolates_scheme_fields_%s.id 
         LEFT JOIN temp_cscheme_%s on cgst = temp_cscheme_%s.profile_id
-        WHERE new_version IS NULL AND temp_cscheme_%s.group_id = 
-        (SELECT group_id FROM temp_cscheme_%s WHERE profile_id = %s);"""
+        WHERE temp_cscheme_%s.group_id = (SELECT group_id FROM temp_cscheme_%s WHERE profile_id = %s);"""
     ISO_SEL_ID_CGST_TB_ISO_VAR_SCHID_ISO: Final[str] = """
         SELECT isolates.id, cgst FROM isolates LEFT JOIN 
         temp_isolates_scheme_fields_%s USING (id)
         WHERE isolates.isolate = %s ORDER BY isolates.id DESC LIMIT 2;"""
     ISO_SEL_ISO_DATE_TB_ISO_VAR_ISOS: Final[str] = """
         SELECT isolate, isolation_date FROM isolates WHERE
-        isolate IN %s AND isolation_date IS NOT NULL AND new_version IS NULL;"""
-    ISO_SEL_MAXID_TB_ISO_VAR_ISO: Final[str] = """SELECT MAX(id) FROM isolates WHERE isolate=%s;"""
+        isolate IN %s AND isolation_date IS NOT NULL;"""
+    ISO_SEL_ID_TB_ISO_VAR_ISO: Final[str] = """SELECT id FROM isolates WHERE isolate=%s;"""
     ISO_SEL_VALDATES_TB_ISO_VAR_ISO: Final[str] = """
         SELECT validation_date FROM isolates WHERE isolate=%s ORDER BY id DESC LIMIT 2;"""
     ISO_UPD_NEWV_TB_ISO_VAR_ISO: Final[str] = """
         UPDATE isolates SET new_version=NULL WHERE 
         id=(SELECT MIN(id) FROM isolates WHERE id IN (SELECT id FROM isolates WHERE isolate=%s ORDER BY id DESC LIMIT 2));"""
-    ISO_UPD_NEWV_TB_ISO_VAR_ISO_ISO_ISO: Final[str] = """
-        UPDATE isolates SET new_version=(SELECT MAX(id) FROM isolates WHERE isolate=%s) 
-        WHERE isolate=%s AND new_version IS NULL AND 
-        id!=(SELECT MAX(id) FROM isolates WHERE isolate=%s);"""
     ISO_UPD_VALTYPE_VALCUR_VALDATE_TB_ISO_VAR_ID: Final[str] = """
         UPDATE isolates SET 
         validation_type = %s, 
@@ -228,12 +219,12 @@ class PsqlQueries():
     # TBL isolate submission field order
     ISO_INS__TB_ISOSUBFO_VAR_FIELD_INDEX: Final[str] = """
         INSERT INTO isolate_submission_field_order(submission_id, field, index) 
-        VALUES((SELECT MAX(id::int) FROM submissions), %s, %s);"""
+        VALUES((SELECT MAX(id::int) FROM submissions WHERE id ~ '^[0-9]+$'), %s, %s);"""
 
     # TBL isolate submission isolates
     ISO_INS__TB_ISOSUBISO_VAR_FIELD_VALUE: Final[str] = """
         INSERT INTO isolate_submission_isolates (submission_id, index, field, value) 
-        VALUES((SELECT MAX(id::int) FROM submissions), 1, %s, %s);"""
+        VALUES((SELECT MAX(id::int) FROM submissions WHERE id ~ '^[0-9]+$'), 1, %s, %s);"""
     ISO_SEL_ALL_TB_ISOSUBISO_VAR_SUBID: Final[str] = """
         SELECT * FROM isolate_submission_isolates WHERE submission_id=%s;"""
     # TBL jobs
@@ -296,12 +287,6 @@ class PsqlQueries():
         VALUES((SELECT id FROM schemes WHERE name=%s), 
         %s, %s, %s, 1, (SELECT CURRENT_DATE));"""
 
-    # TBL project members
-    ISO_INS__TB_PROJMEM_VAR_ISO_ISO: Final[str] = """
-        INSERT INTO project_members(project_id, isolate_id, curator, datestamp)
-        SELECT project_id, (SELECT MAX(id) FROM isolates WHERE isolate=%s), curator, datestamp
-        from project_members WHERE isolate_id=(SELECT MIN(id) FROM isolates WHERE id in (SELECT id FROM isolates WHERE isolate=%s ORDER BY id DESC LIMIT 2));"""
-
     # TBL schemes
     UNI_SEL_ID_TB_SCHEME_VAR_: Final[str] = """
         SELECT id FROM schemes WHERE name = 'cgMLST';"""
@@ -339,24 +324,15 @@ class PsqlQueries():
         remote_contig, sequence, original_designation, sender, 
         curator, date_entered, datestamp) 
         VALUES((SELECT CASE WHEN (SELECT MAX(id) FROM sequence_bin) IS NULL THEN 1 ELSE (SELECT(SELECT MAX(id) FROM sequence_bin)+1) END), 
-        (SELECT MAX(id) FROM isolates WHERE isolate=%s), 
+        (SELECT id FROM isolates WHERE isolate=%s), 
         'f', %s, %s, 1, 
         1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE));"""
     ISO_SEL_COUNT_TB_SEQBIN_VAR_ISO: Final[str] = """
-        SELECT COUNT(*) FROM sequence_bin WHERE isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate=%s);"""
-    ISO_UPD__TB_SEQBIN_VAR_ISO_ISO: Final[str] = """
-        UPDATE sequence_bin SET isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate=%s) 
-        WHERE isolate_id=(SELECT MIN(id) FROM isolates WHERE id in (SELECT id FROM isolates WHERE isolate=%s 
-        ORDER BY id DESC LIMIT 2));"""
+        SELECT COUNT(*) FROM sequence_bin WHERE isolate_id=(SELECT id FROM isolates WHERE isolate=%s);"""
     ISO_UPD_REVERSE_TB_SEQBIN_VAR_ISO_ISO: Final[str] = """
-        UPDATE sequence_bin SET isolate_id=(SELECT MIN(id) FROM isolates WHERE id in (SELECT id FROM isolates WHERE isolate=%s ORDER BY id DESC LIMIT 2)) 
-        WHERE isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate=%s);"""
+        UPDATE sequence_bin SET isolate_id=(SELECT id FROM isolates WHERE isolate=%s);"""
 
     # TBL seq bin stats
-    ISO_UPD__TB_SEQBINSTATS_VAR_ISO_ISO: Final[str] = """
-        UPDATE seqbin_stats SET isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate=%s) 
-        WHERE isolate_id=(SELECT MIN(id) FROM isolates WHERE id in (SELECT id FROM isolates WHERE isolate=%s 
-        ORDER BY id DESC LIMIT 2));"""
     ISO_UPD_REVERSE_TB_SEQBINSTATS_VAR_ISO_ISO: Final[str] = """
         UPDATE seqbin_stats SET isolate_id=(SELECT MIN(id) FROM isolates WHERE id in (SELECT id FROM isolates WHERE isolate=%s ORDER BY id DESC LIMIT 2)) 
         WHERE isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate=%s);"""
@@ -374,7 +350,7 @@ class PsqlQueries():
         INSERT INTO submissions(id, 
         type,submitter, date_submitted, 
         datestamp, status, email, validation_type) 
-        VALUES ((SELECT CASE WHEN (SELECT MAX(id::int) FROM submissions) IS NULL THEN 1 ELSE (SELECT(SELECT MAX(id::int) FROM submissions)+1) END), 
+        VALUES ((SELECT CASE WHEN (SELECT MAX(id::int) FROM submissions WHERE id ~ '^[0-9]+$') IS NULL THEN 1 ELSE (SELECT(SELECT MAX(id::int) FROM submissions WHERE id ~ '^[0-9]+$')+1) END), 
         'isolates', 1, (SELECT CURRENT_DATE), 
         (SELECT CURRENT_DATE), 'pending', true, %s);"""
     ISO_SEL_ID_TB_SUB_VAR_STATUS: Final[str] = """

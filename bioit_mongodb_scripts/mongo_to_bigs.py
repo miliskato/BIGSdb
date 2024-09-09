@@ -85,9 +85,11 @@ class MongoToBigs:
         with TblSchemes(self._species, 'isolates') as isolates_schemes_psql_tbl:
             self._cgmlst_bigsdb_scheme_id = isolates_schemes_psql_tbl.select_scheme_id_cgmlst()[0][0]
 
+        # TODO check if full cache is still need in specific situation
+
         cache_command = f'/home/bigsdb/BIGSdb/scripts/maintenance/update_scheme_caches.pl ' \
                         f'--database bigsdb_{self._species}_isolates --schemes {self._cgmlst_bigsdb_scheme_id} ' \
-                        f'--method incremental'
+                        f'--method daily'
         self._cache_command_object = Command(cache_command)
 
         # Prepare
@@ -258,17 +260,11 @@ class MongoToBigs:
         :param document_id: name of the isolate
         :return: boolean whether version is different or not
         """
-        latest_analysis_date_bigs = (self._isolates_psql_tbl.select_latestanalysisdate_for_isolate((document_id,)))[0][
-            0]  # this apparently is a datetime object
+        latest_analysis_date_bigs = (self._isolates_psql_tbl.select_latestanalysisdate_for_isolate((document_id,)))[0][0]  #this is a datetime object
         with TblEavTextHidden(self._species) as isolates_eavth_psql_tbl:
-            mongo_results_changed_version_bigs_query = isolates_eavth_psql_tbl.select_mongo_resultsversion(
-                (document_id,))
+            mongo_results_changed_version_bigs_query = isolates_eavth_psql_tbl.select_mongo_resultsversion((document_id,))
         # as of 2022/12/22 mongo_results_version in bigs is changed version
-        if len(mongo_results_changed_version_bigs_query) == 0:
-            # Accounting for old samples that did not have a version yet
-            mongo_results_changed_version_bigs = 1
-        else:
-            mongo_results_changed_version_bigs = int(mongo_results_changed_version_bigs_query[0][0])
+        mongo_results_changed_version_bigs = int(mongo_results_changed_version_bigs_query[0][0])
         if convert_dmyhms_to_dateobj(document['results']['analysis_date']) > latest_analysis_date_bigs:
             new_results = document['results']
             if new_results['changed_version'] == int(mongo_results_changed_version_bigs):
