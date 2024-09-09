@@ -117,6 +117,9 @@ species:
         dirdb: /db/sequence_typing/mycobacterium/cgmlst
         tsvname: cgmlst
         schemename_bigsdb: cgMLST
+      mycobacterium_spoligotyping:
+        dirdb: ''
+        tsvname: spoligotype_binary
       mycobacterium_51SNPassay:
         dirdb: ''
         tsvname: 51SNP
@@ -372,6 +375,8 @@ species_json:
         type: regular
       cgmlst:
         type: regular
+      spoligotyping:
+        type: irregular
       51SNP:
         type: irregular
       csb_rd:
