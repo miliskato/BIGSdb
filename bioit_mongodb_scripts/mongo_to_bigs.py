@@ -188,14 +188,15 @@ class MongoToBigs:
             elif results_type == 'reanalysis' and document['validation']['type'] == 'resequencing':
                 last_two_validation_dates = self._isolates_psql_tbl.select_validationdate_for_isolate((document_id,))
                 # select to check that the previous version's validation date is different from the current
-                if len(last_two_validation_dates) == 2 and last_two_validation_dates[0][0] != last_two_validation_dates[1][0]:
-                    # add check for length as I think sometimes there will be only one validation date (the one for sequencing).
-                    # revert the changes done in maininserter that move the assembly to the newest version
-                    with TblSequenceBin(self._species) as isolates_seqbin_psql_tbl:
-                        isolates_seqbin_psql_tbl.revert_sequencebin_newversion([document_id])
-                    with TblSeqBinStats(self._species) as isolates_seqbinstats_psql_tbl:
-                        isolates_seqbinstats_psql_tbl.revert_seqbinstats_newversion([document_id])
-                    insert_assembly(document_id, self._species, fasta_dir)
+                if False: #just keeping this part until reanalysis is tested
+                    if last_two_validation_dates[0][0] != last_two_validation_dates[1][0]:
+                        # add check for length as I think sometimes there will be only one validation date (the one for sequencing).
+                        # revert the changes done in maininserter that move the assembly to the newest version
+                        with TblSequenceBin(self._species) as isolates_seqbin_psql_tbl:
+                            isolates_seqbin_psql_tbl.revert_sequencebin_newversion([document_id])
+                        with TblSeqBinStats(self._species) as isolates_seqbinstats_psql_tbl:
+                            isolates_seqbinstats_psql_tbl.revert_seqbinstats_newversion([document_id])
+                        insert_assembly(document_id, self._species, fasta_dir)
             logging.info(f"wrote new results version for {document_id} to bigsdb")
 
         # Update cache again before alerts implementation because new isolates won't have cgST's but are needed for alerts implementation

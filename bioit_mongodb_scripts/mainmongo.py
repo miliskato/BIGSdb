@@ -345,7 +345,7 @@ class MainMongo:
         if self._results_type == 'resequencing_validated':
             new_results['validation'] = self._subvaldict
             report_dir_merging_cmd = ' '.join([
-                "rsync -aO",
+                "rsync -a --no-p --no-o --no-g",
                 f"{new_results_document['report_directory']}/",
                 f"{current_results_document['report_directory']}/"
             ])
