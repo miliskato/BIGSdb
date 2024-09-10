@@ -9,6 +9,7 @@ from .psql_tbl_classification_groups import TblClassificationGroups
 from .psql_tbl_classification_schemes import TblClassificationSchemes
 from .psql_tbl_client_dbase_loci import TblClientDbaseLoci
 from .psql_tbl_eav_boolean import TblEavBoolean
+from .psql_tbl_eav_int import TblEavInt
 from .psql_tbl_eav_fields import TblEavFields
 from .psql_tbl_eav_text import TblEavText
 from .psql_tbl_eav_text_hidden import TblEavTextHidden

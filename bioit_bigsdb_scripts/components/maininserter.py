@@ -4,7 +4,7 @@ import socket
 from typing import Any, Dict
 
 from .json_superclass import JsonSuperClass
-from .psql import TblEavTextHidden, TblEavText, TblIsolates, TblHistory
+from .psql import TblEavTextHidden, TblEavInt TblEavText, TblIsolates, TblHistory
 
 
 class MainInserter(JsonSuperClass):
