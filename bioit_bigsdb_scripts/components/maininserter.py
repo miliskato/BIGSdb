@@ -4,7 +4,7 @@ import socket
 from typing import Any, Dict
 
 from .json_superclass import JsonSuperClass
-from .psql import TblEavTextHidden, TblEavInt TblEavText, TblIsolates, TblHistory
+from .psql import TblEavTextHidden, TblEavInt, TblEavText, TblIsolates, TblHistory
 
 
 class MainInserter(JsonSuperClass):
@@ -58,7 +58,7 @@ class MainInserter(JsonSuperClass):
         :return: None
         """
         with TblEavText(self._species) as self._isolates_eavt_psql_tbl,\
-                TblIsolates(self._species) as self.isolates_psql_tbl:
+                TblIsolates(self._species) as self.isolates_psql_tbl, TblEavInt(self._species) as self._isolates_eavi_psql_tbl:
             mongo_report_field = self._report_access
             dtap = self._mongo_dtap
             local_path = 'reports'
@@ -117,10 +117,10 @@ class MainInserter(JsonSuperClass):
                 self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'snpit_sublineage', self._sample_output_dict['snpit']['snpit_sublineage']))
                 self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'snpit_percent_matched', self._sample_output_dict['snpit']['snpit_percent_matched']))
             elif 'snp_lineage' in self._sample_output_dict:
-                self._isolates_eavt_psql_tbl.insert_eav_int_isolate((self._isolatename, 'lineage_4', self._sample_output_dict['snp_lineage']['detected_lineage_by_level']['0']['count']))
-                self._isolates_eavt_psql_tbl.insert_eav_int_isolate((self._isolatename, 'lineage_4.1', self._sample_output_dict['snp_lineage']['detected_lineage_by_level']['1']['count']))
-                self._isolates_eavt_psql_tbl.insert_eav_int_isolate((self._isolatename, 'lineage4.1.2', self._sample_output_dict['snp_lineage']['detected_lineage_by_level']['2']['count']))
-                self._isolates_eavt_psql_tbl.insert_eav_int_isolate((self._isolatename, 'lineage4.1.2.1', self._sample_output_dict['snp_lineage']['detected_lineage_by_level']['3']['count']))
+                self._isolates_eavi_psql_tbl.insert_eav_int_isolate((self._isolatename, 'lineage_4', self._sample_output_dict['snp_lineage']['detected_lineage_by_level']['0']['count']))
+                self._isolates_eavi_psql_tbl.insert_eav_int_isolate((self._isolatename, 'lineage_4.1', self._sample_output_dict['snp_lineage']['detected_lineage_by_level']['1']['count']))
+                self._isolates_eavi_psql_tbl.insert_eav_int_isolate((self._isolatename, 'lineage4.1.2', self._sample_output_dict['snp_lineage']['detected_lineage_by_level']['2']['count']))
+                self._isolates_eavi_psql_tbl.insert_eav_int_isolate((self._isolatename, 'lineage4.1.2.1', self._sample_output_dict['snp_lineage']['detected_lineage_by_level']['3']['count']))
         elif self._species == 'stec':
             if 'serotype' in self._sample_output_dict:
                 # json input
