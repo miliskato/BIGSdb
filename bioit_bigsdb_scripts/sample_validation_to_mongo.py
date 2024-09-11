@@ -99,7 +99,7 @@ class SampleValidationToMongo:
                     'date': datetime.datetime.utcnow().strftime('%d/%m/%Y - %X')
                 }
                 if outcome == 'good' and ( validation_type == 'bad_quality' or validation_type == 'resequencing' ):
-                    MainMongo(isolatename, self._species, results_type, curator_mailadress, subvaldict=validation_dict)
+                    MainMongo(isolatename, self._species, results_type, subvaldict=validation_dict)
                 elif validation_type == 'bad_quality':  # outcome == 'bad'
                     self.__remove_id_from_document_to_be_unique_again_if_bad(self._isolates_badqc_collection,
                                                                                  isolatename, validation_dict)

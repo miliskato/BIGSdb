@@ -55,7 +55,6 @@ def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     parser.add_argument('--alternate_connection_string', type=str, help=argparse.SUPPRESS)  # will replace connection string, only for small testing purposes
     parser.add_argument('--alternate_dtap', choices=['dev', 'test', 'acc', 'prod'], help=argparse.SUPPRESS)  # will replace connection string, only for small testing purposes
     parser.add_argument('--dont_send_email', action='store_true', help=argparse.SUPPRESS)  # will not send emails, mainly used for blocking the reanalysis spam
-    parser.add_argument('--uploader_mail_address', required=True, type=str)
     return parser.parse_args()
 
 
@@ -63,7 +62,7 @@ class MainMongo:
     """
     Class containing definitions to insert samples into MongoDB
     """
-    def __init__(self, technical_id: str, species: str, results_type: str, uploader_mail_address: str, pipeline_hash: str, technical_metadata_path: Path = None, jsonfilepath: Path = None,
+    def __init__(self, technical_id: str, species: str, results_type: str, jsonfilepath: Path = None,
                  subvaldict: Dict[str, str] = None, reportdirectorypath: Path = None, fastafilepath: Path = None,
                  vcffilepath: Path = None, vcffilepath_unfiltered: Path = None, original_input_format: str = None, alternate_connection_string: Union[bool, str] = False, alternate_dtap: Union[str, None] = None,
                  dont_send_email: bool = False, mongo_config_data: Dict[str, Any] = None) -> None:
@@ -89,7 +88,6 @@ class MainMongo:
         :return: None
         """
         # Input parameters
-        self._uploader_mail_address = uploader_mail_address
         self._technical_id = technical_id
         self._species = species
         self._pipeline_hash = pipeline_hash
@@ -519,7 +517,6 @@ class MainMongo:
                                                                          "resolved_AD": 0,
                                                                          "temp_allele_name": temp_allele,
                                                                          "insertion_date": datetime.utcnow(),
-                                                                         "uploader_email": self._uploader_mail_address
                                                                           })
                             results[typing_scheme]['loci'][locus_index]['Allele'] = temp_allele  # replace the name of the allele in the results (no hash anymore)
                         else:
@@ -661,7 +658,6 @@ if __name__ == '__main__':
     MainMongo(args.technical_id,
               args.species,
               args.results_type,
-              args.uploader_mail_address,
               args.pipeline_hash,
               technical_metadata_path=(args.technical_metadata_path if args.technical_metadata_path else None),
               jsonfilepath=(args.jsonfilepath if args.jsonfilepath else None), 
