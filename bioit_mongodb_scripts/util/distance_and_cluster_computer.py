@@ -33,7 +33,7 @@ class DistanceAndClusterComputer:
         self._mongo_config_data = mongo_config_data if mongo_config_data else get_mongodb_config_data()
         self._st_to_use = st_to_use
         # Open collections
-        self._mongoinit = MongoInitialisation(self._species, mongo_config_data=self._mongo_config_data, selected_connection_string='CONNECTION_STRING_AZURE'
+        self._mongoinit = MongoInitialisation(self._species, mongo_config_data=self._mongo_config_data, selected_connection_string='CONNECTION_STRING_AZURE')
         self._headers_collection = self._mongoinit.initialise_headers_collection()
         self._st_collection, self._cluster_membership_collection, self._cluster_merging_collection = \
             self._mongoinit.initialise_clustering_collections()
