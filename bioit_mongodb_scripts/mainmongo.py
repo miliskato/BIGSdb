@@ -111,7 +111,7 @@ class MainMongo:
         # needed in mongoinit and there it can be retrieved by itself
 
         # Open collections
-        self._mongoinit = MongoInitialisation(self._species,selected_connection_string=self.connection_string,
+        self._mongoinit = MongoInitialisation(self._species,selected_connection_string=self._connection_string,
                                               alternate_connection_string=self._alternate_connection_string,
                                               alternate_dtap=self._alternate_dtap,
                                               mongo_config_data=self._mongo_config_data)
