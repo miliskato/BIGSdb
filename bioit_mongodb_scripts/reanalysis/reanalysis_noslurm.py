@@ -35,6 +35,7 @@ def _parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     parser.add_argument('--analysis_arguments', nargs='+', required=False, help='analysis arguments stripped off --, e.g. "--analysis_arguments cgmlst mlst"')
     parser.add_argument('--maximal_analysis_date', type=str, required=True, help='YYYY-MM-DD')
     parser.add_argument('--minimal_analysis_date', type=str, required=True, help='YYYY-MM-DD')
+    parser.add_argument('--connection_string', type=str, required=False, help='one of the connection string variable from config file')
     parser.add_argument('--alternate_connection_string', action='store_true', help=argparse.SUPPRESS)
     return parser.parse_args()
 
@@ -96,7 +97,7 @@ def _delete_flagfile(isolatename: str, config: Dict[str, Any], reanalysis_outcom
         return reanalysis_outcome_dictionary
 
 def reanalysis_noslurm(species: str, maximal_analysis_date: str, minimal_analysis_date: str, threads: int = 8,
-                       analysis_arguments: List[str] = None, alternate_connection_string: bool = False) -> None:
+                       analysis_arguments: List[str] = None, connection_string: str = None, alternate_connection_string: str = None) -> None:
     """
     Main function
     See argparse function for variables and their requiredness
@@ -105,6 +106,7 @@ def reanalysis_noslurm(species: str, maximal_analysis_date: str, minimal_analysi
     :param minimal_analysis_date: minimal analysis date of sample
     :param threads: number of total threads to use for reanalysis
     :param analysis_arguments: list of analysis arguments passed to the species specific pipeline
+    :param connection_string: connection string from config file selected to open the connection
     :param alternate_connection_string: whether to use the alternate connection string for testing purposes
     :return: None
     """
@@ -123,7 +125,7 @@ def reanalysis_noslurm(species: str, maximal_analysis_date: str, minimal_analysi
         start_time_reanalysis = datetime.datetime.utcnow()
 
         # Retrieve isolates that need to be re-analyzed
-        mongoinit = MongoInitialisation(species, alternate_connection_string=alternate_connection_string,
+        mongoinit = MongoInitialisation(species, selected_connection_string=connection_string, alternate_connection_string=alternate_connection_string,
                                         mongo_config_data=mongo_config_data)
         isolates_collection, old_isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections()
         # query all the documents
@@ -253,7 +255,7 @@ def reanalysis_noslurm(species: str, maximal_analysis_date: str, minimal_analysi
                         # run the command
                         MainMongo(**arguments)
                         logging.info(f"Mongodb insertion for isolate '{isolate_id}' completed")
-                        if alternate_connection_string is False:
+                        if isinstance(alternate_connection_string,str) :
                             try:
                                 # shutil doesnt throw an error, but simply stops. Therefore it has to be put inside a try except
                                 logging.info(
@@ -345,7 +347,8 @@ if __name__ == '__main__':
                        args.minimal_analysis_date,
                        threads=args.threads,
                        analysis_arguments=(args.analysis_arguments if args.analysis_arguments else None),
-                       alternate_connection_string=(True if args.alternate_connection_string else False))
+                       connection_string=(args.connection_string if args.connection_string else 'CONNECTION_STRING_AZURE'),
+                       alternate_connection_string=(args.alternate_connection_string if args.alternate_connection_string else None))
 
 '''
 To be ignored for mongodb, leaving the code in case useful later

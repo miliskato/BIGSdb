@@ -71,7 +71,7 @@ class HtmlreportGeneration:
         self._mongo_config_data = get_mongodb_config_data()
 
         # Open collections
-        self._mongoinit = MongoInitialisation(self._species, mongo_config_data=self._mongo_config_data)
+        self._mongoinit = MongoInitialisation(self._species, mongo_config_data=self._mongo_config_data,selected_connection_string='CONNECTION_STRING_AZURE')
         self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, \
         self._isolates_resequencing_collection = self._mongoinit.initialise_collections()
         self._headers_collection = self._mongoinit.initialise_headers_collection()

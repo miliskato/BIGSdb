@@ -58,7 +58,7 @@ class SampleValidationToMongo:
         self._species = species
 
         # Open collections
-        self._mongoinit = MongoInitialisation(self._species)
+        self._mongoinit = MongoInitialisation(self._species,selected_connection_string='CONNECTION_STRING_AZURE')
         self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, self._isolates_resequencing_collection = self._mongoinit.initialise_collections()
 
         # Run main

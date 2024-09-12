@@ -52,6 +52,7 @@ def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     parser.add_argument("--technical_id", required=True, type=str)
     parser.add_argument("--technical_metadata_path", required=False, type=Path) # not mandatory because of reanalysis
     parser.add_argument("--pipeline_hash", required=True, type=str)  # Required for DCD NRC->DWH
+    parser.add_argument('--connection_string', required=True, type=str)  # will replace connection string, only for small testing purposes
     parser.add_argument('--alternate_connection_string', type=str, help=argparse.SUPPRESS)  # will replace connection string, only for small testing purposes
     parser.add_argument('--alternate_dtap', choices=['dev', 'test', 'acc', 'prod'], help=argparse.SUPPRESS)  # will replace connection string, only for small testing purposes
     parser.add_argument('--dont_send_email', action='store_true', help=argparse.SUPPRESS)  # will not send emails, mainly used for blocking the reanalysis spam
@@ -101,6 +102,7 @@ class MainMongo:
         self._vcffilepath = vcffilepath
         self._vcffilepath_unfiltered = vcffilepath_unfiltered
         self._original_input_format = original_input_format
+        self._connection_string = connection_string
         self._alternate_connection_string = alternate_connection_string
         self._alternate_dtap = alternate_dtap
         self._dont_send_email = dont_send_email
@@ -108,7 +110,7 @@ class MainMongo:
         # needed in mongoinit and there it can be retrieved by itself
 
         # Open collections
-        self._mongoinit = MongoInitialisation(self._species,
+        self._mongoinit = MongoInitialisation(self._species,selected_connection_string=self.connection_string,
                                               alternate_connection_string=self._alternate_connection_string,
                                               alternate_dtap=self._alternate_dtap,
                                               mongo_config_data=self._mongo_config_data)
@@ -667,7 +669,8 @@ if __name__ == '__main__':
               vcffilepath=(args.vcffilepath if args.vcffilepath else None),
               vcffilepath_unfiltered=(args.vcffilepath_unfiltered if args.vcffilepath_unfiltered else None),
               original_input_format=(args.original_input_format if args.original_input_format else None),
-              alternate_connection_string=(args.alternate_connection_string if args.alternate_connection_string else False),
+              connection_string=(args.connection_string if args.connection_string else 'CONNECTION_STRING_AZURE')
+              alternate_connection_string=(args.alternate_connection_string if args.alternate_connection_string else None),
               alternate_dtap=args.alternate_dtap,
               dont_send_email=(True if args.dont_send_email else False),
               mongo_config_data=mongo_config_data)

@@ -42,7 +42,7 @@ def _parse_arguments(specieslist: list) -> argparse.Namespace:
 
 
 def reanalysis_slurm_submitter(species: str, maximal_analysis_date: str, minimal_analysis_date: str, pyvenvpythonpath: str,
-                               threads_per_job: int = 1, analysis_arguments: List[str] = None, alternate_connection_string: bool = False) -> None:
+                               threads_per_job: int = 1, analysis_arguments: List[str] = None, connection_string: str = None, alternate_connection_string: str = None) -> None:
     """
     Main function
     Dispatches slurm jobs for samples to be reanalyzed, last analyzed between given dates, and for given analysis arguments
@@ -53,6 +53,7 @@ def reanalysis_slurm_submitter(species: str, maximal_analysis_date: str, minimal
     :param pyvenvpythonpath: path of the python virtual environment, needed by slurm
     :param threads_per_job: threads per job
     :param analysis_arguments: analysis arguments in a list
+    :param connection_string: selected variable for connection strings from the config file for mongodb
     :param alternate_connection_string: whe
     :return:
     """
@@ -71,7 +72,7 @@ def reanalysis_slurm_submitter(species: str, maximal_analysis_date: str, minimal
         start_time_reanalysis = datetime.datetime.utcnow()
 
         # Retrieve isolates that need to be re-analyzed
-        mongoinit = MongoInitialisation(species, alternate_connection_string=alternate_connection_string)
+        mongoinit = MongoInitialisation(species, selected_connection_string=connection_string, alternate_connection_string=alternate_connection_string)
         isolates_collection, old_isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections()
         # query all the documents as a projection
         documents_list = [doc for doc in
@@ -163,4 +164,5 @@ if __name__ == '__main__':
                                args.pyvenvpythonpath,
                                threads_per_job=args.threads_per_job,
                                analysis_arguments=(args.analysis_arguments if args.analysis_arguments else None),
-                               alternate_connection_string=(True if args.alternate_connection_string else False))
+                               connection_string=(args.connection_string if args.connection_string else None),
+                               alternate_connection_string=(args.alternate_connection_string if args.alternate_connection_string else None))

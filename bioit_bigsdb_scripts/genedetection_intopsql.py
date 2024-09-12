@@ -198,7 +198,7 @@ class GeneDetectionIntoPsql:
         :param samplename: name of the isolate
         :return: report name for the isolate
         """
-        mongoinit = MongoInitialisation(species=self._species, mongo_config_data=get_mongodb_config_data())
+        mongoinit = MongoInitialisation(species=self._species, mongo_config_data=get_mongodb_config_data(),selected_connection_string='CONNECTION_STRING_AZURE')
         isolates_collection, old_isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections()
         isolate_report_path = Mongoquerying.query_docs_by_ids(opened_collection=isolates_collection, ids=[samplename])
         return isolate_report_path[0]['report_directory']
