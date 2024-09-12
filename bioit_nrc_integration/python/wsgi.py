@@ -62,9 +62,9 @@ def insert_into_mongodb(mapping_table_dict: Dict[str, str], start_response: Call
     try:
         mongo_config_data = get_mongodb_config_data()
         mongoinit = MongoInitialisation(species=mapping_table_dict['species'],
+                                        selected_connection_string='CONNECTION_STRING_LOCAL',
                                         mongo_config_data=mongo_config_data,
-                                        alternate_dtap=mapping_table_dict['dtap'],
-                                        alternate_connection_string=mongo_config_data.get('CONNECTION_STRING_LOCAL'))
+                                        alternate_dtap=mapping_table_dict['dtap'])
         mapping_table_collection = mongoinit.initialise_mapping_table_collection()
         mapping_table_collection.insert_one({'_id': mapping_table_dict['id'],
                                              'pseudo_id': mapping_table_dict['pseudo_id']})

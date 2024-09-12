@@ -37,7 +37,7 @@ if __name__ == '__main__':
         logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
         # Open collections
-        mongoinit = MongoInitialisation('listeria', alternate_connection_string=True,
+        mongoinit = MongoInitialisation('listeria', selected_connection_string='CONNECTION_STRING_ALTERNATE',
                                         mongo_config_data=mongo_config_data)
         isolates_collection, old_isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = \
             mongoinit.initialise_collections()

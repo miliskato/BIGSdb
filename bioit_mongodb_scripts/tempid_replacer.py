@@ -31,8 +31,8 @@ def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--scheme", required=True, type=str, help='lower case scheme as in json reports/mongodb documents') #cgmlst / mlst
     parser.add_argument("--species", required=True, type=str, choices=specieslist)
-    parser.add_argument('--alternate_connection_string', type=str,
-                        help=argparse.SUPPRESS)  # will replace connection string, only for small testing purposes
+    parser.add_argument("--connection_string", required=True, type=str, help='connection string variable from the config file')
+
     return parser.parse_args()
 
 
@@ -40,7 +40,7 @@ class TempidReplacer:
     """
     Class containing definitions to check and replace temporary ids in MongoDB (and BIGSdb)
     """
-    def __init__(self, scheme: str, species: str, alternate_connection_string: Union[bool, str] = False,
+    def __init__(self, scheme: str, species: str, connection_string: str = None,
                  alternate_dtap: Union[str, None] = None):
         """
         Initalizes the class and executes the main function (auto-executable)
@@ -52,14 +52,14 @@ class TempidReplacer:
         """
         self._scheme = scheme
         self._species = species
-        self._alternate_connection_string = alternate_connection_string
+        self._connection_string = connection_string
         self._alternate_dtap = alternate_dtap
 
         # parse config data
         self._mongo_config_data = get_mongodb_config_data()
         # Open collections
         self._mongoinit = MongoInitialisation(self._species,
-                                              alternate_connection_string=self._alternate_connection_string,
+                                              selected_connection_string=self._connection_string,
                                               alternate_dtap=self._alternate_dtap,
                                               mongo_config_data=self._mongo_config_data)
         self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, self._isolates_resequencing_collection = self._mongoinit.initialise_collections()

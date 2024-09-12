@@ -50,7 +50,7 @@ def samples_to_validation_bigs(species: str, mongo_config_data: Dict[str, Any] =
     :return: None
     """
     # Open collections
-    mongoinit = MongoInitialisation(species, mongo_config_data=mongo_config_data)
+    mongoinit = MongoInitialisation(species, mongo_config_data=mongo_config_data, selected_connection_string='CONNECTION_STRING_AZURE')
     isolates_collection, old_isolateresults_collection, isolates_badqc_collection, \
         isolates_resequencing_collection = mongoinit.initialise_collections()
 
