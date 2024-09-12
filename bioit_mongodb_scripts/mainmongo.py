@@ -63,9 +63,9 @@ class MainMongo:
     """
     Class containing definitions to insert samples into MongoDB
     """
-    def __init__(self, technical_id: str, species: str, results_type: str, jsonfilepath: Path = None,
-                 subvaldict: Dict[str, str] = None, reportdirectorypath: Path = None, fastafilepath: Path = None,
-                 vcffilepath: Path = None, vcffilepath_unfiltered: Path = None, original_input_format: str = None, alternate_connection_string: Union[bool, str] = False, alternate_dtap: Union[str, None] = None,
+    def __init__(self, technical_id: str, species: str, results_type: str, pipeline_hash: str, jsonfilepath: Path = None,
+                 subvaldict: Dict[str, str] = None, technical_metadata_path: Path = None ,reportdirectorypath: Path = None, fastafilepath: Path = None,
+                 vcffilepath: Path = None, vcffilepath_unfiltered: Path = None, original_input_format: str = None, connection_string: str = None, alternate_connection_string: str = None, alternate_dtap: Union[str, None] = None,
                  dont_send_email: bool = False, mongo_config_data: Dict[str, Any] = None) -> None:
         """
         Intialises this class and executes the main function which will insert/update the sample in a mongodb collection containing isolates
@@ -83,6 +83,7 @@ class MainMongo:
         :param vcffilepath: absolute path to where the filtered VCF file is stored (only required for new_isolate)
         :param vcffilepath_unfiltered: absolute path to where the unfiltered VCF file is stored (only required for new_isolate)
         :param original_input_format: original input that was given to run the first analysis
+        :param connection_string: connection string variable from the config file
         :param alternate_connection_string: use given alternate connection string, used for testing on the free Atlas Cluster
         :param alternate_dtap: alternative dtap than what is in the config file
         :param mongo_config_data: Pass provided mongo_config_data to MongoInitialisation, else get mongo_config_data from file
