@@ -45,17 +45,11 @@ class AlertsToBigs:
         """
         Distance matrix evaluation
         """
-        self._cgst_isolatecount_dict: Dict[int, int] = {}
-        self._cgst_date_isolatecount_dict: Dict[tuple[int, str], int] = {}
-
         self._evaluate_warning_and_alert_for_investigation_method('distance matrix')
 
         """
         Single linkage evaluation
         """
-        self._clgr_isolatecount_dict: Dict[int, int] = {}
-        self._clgr_date_isolatecount_dict: Dict[tuple[int, str], int] = {}
-
         self._evaluate_warning_and_alert_for_investigation_method('single linkage')
 
     def _evaluate_warning_and_alert_for_investigation_method(self, investigation_method: str) -> None:
@@ -263,7 +257,9 @@ class AlertsToBigs:
                          self._cgmlst_bigsdb_scheme_id, str(cgst)))
                     # all cluster groups are the same in the query; take 4th element (cluster group) of first
                     # tuple, which always has to exist because the isolate itself is definitely queried)
-                    self._clgr_isolatecount_dict[queried_isolates[0][4]] = len(queried_isolates)
+                    # Condition to skip it for first insertion of new cgST clust in which case the tuple is empty
+                    if len(queried_isolates) >= 1:
+                        self._clgr_isolatecount_dict[queried_isolates[0][4]] = len(queried_isolates)
             else:
                 start_date = (isolation_date - self._timedelta_timeframe).strftime('%Y-%m-%d')
                 end_date = (isolation_date + self._timedelta_timeframe).strftime('%Y-%m-%d')

@@ -204,7 +204,7 @@ class NewClusteringInfoToBigs:
                 cg_scheme_id = threshold_bigsdbcgschemeid_dict[int(cl_membership['threshold'])]
                 profile_id = cl_membership['cgST']
                 group_id = cl_membership['clustering_membership']
-                seqdef_clgr_psql_tbl.count_group((cg_scheme_id, group_id))
+                #seqdef_clgr_psql_tbl.count_group((cg_scheme_id, group_id))
                 query_group_exists = seqdef_clgr_psql_tbl.count_group((cg_scheme_id, group_id))
                 if query_group_exists[0][0] == 0:
                     seqdef_clgr_psql_tbl.insert_group((cg_scheme_id, group_id))

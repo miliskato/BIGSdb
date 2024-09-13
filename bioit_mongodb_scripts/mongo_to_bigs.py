@@ -166,7 +166,7 @@ class MongoToBigs:
             jsonfile = Path(f"{self._mongo_config_data.get('temp_dir')}/{document_id}_temp.json")
             with jsonfile.open('w') as handle:
                 handle.write(json.dumps(document['results']))
-            MainResultsInserter(document_id, self._uploader_mail_address, self._species, results_type, jsonfilepath=jsonfile, report_access=document['report_directory'])
+            MainResultsInserter(document_id, self._uploader_mail_address, self._species, results_type, vcf_path=document['vcf_path'], jsonfilepath=jsonfile, report_access=document['report_directory'], mongo_dtap=self._mongo_config_data.get('dtap'))
             jsonfile.unlink()
 
             self.__insert_assembly_into_bigs(results_type, document, document_id)
