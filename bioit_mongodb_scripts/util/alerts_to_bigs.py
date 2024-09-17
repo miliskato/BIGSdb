@@ -132,7 +132,7 @@ class AlertsToBigs:
                 cgsts = [x + 1 for x in indices]
                 cgsts_as_tuple_of_str = tuple(str(x + 1) for x in indices)
 
-                isolation_date = datetime.datetime.strptime(isolate['isolation_date'], '%d/%m/%Y - %X')
+                isolation_date = datetime.datetime.strptime(isolate['isolation_date'], '%d/%m/%Y')
                 queried_isolates = self.___query_isolates_according_to_thresholds(cgsts_as_tuple_of_str, isolate['cgST'],
                                                                                   isolation_date, investigation_method,
                                                                                   threshold_key)
