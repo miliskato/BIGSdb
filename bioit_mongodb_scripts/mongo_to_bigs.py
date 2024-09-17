@@ -222,9 +222,12 @@ class MongoToBigs:
                 list_of_documents = [query_single, query_reseq]
                 while None in list_of_documents:
                     list_of_documents.remove(None)
+                for document in list_of_documents:
+                    document['isolate_id']=self._single_sample_id
             else:
                 send_email(f"Can not find document with _id '{self._single_sample_id}' in isolates or in badqc-reseq collection")
                 raise Exception(f"Can not find document with _id '{self._single_sample_id}' in isolates or in badqc-reseq collection")
+
 
         else:
             list_of_documents = list(self._isolates_collection.find())
