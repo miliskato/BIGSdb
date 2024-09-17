@@ -144,7 +144,7 @@ class MongoToBigs:
 
         # Main insertion into bigsdb for loop
         for document in list_of_documents:
-            document_id = document['results']['isolates_id']
+            document_id = document['isolate_id']
             results_type, skip_current_document = self.__get_results_type(document, document_id)
             if skip_current_document:
                 continue
@@ -228,6 +228,9 @@ class MongoToBigs:
 
         else:
             list_of_documents = list(self._isolates_collection.find())
+            for document in list_of_documents:
+                isolate_id = self._mappingtable_collection.find_one({'pseudo_id': document['_id']})['_id']
+                document['isolate_id']=isolate_id
         return list_of_documents
 
     def __get_results_type(self, document: Dict[str, Any], document_id: str) -> Tuple[str, bool]:
