@@ -42,7 +42,7 @@ class TblIsolates(DatabaseConnection):
         necessary parameters visible in the PSQL query name and query
         :return: None
         """
-        self.execute_query(PsqlQueries.ISO_DEL__TB_ISO_VAR_ISO_ISO, param * 2)
+        self.execute_query(PsqlQueries.ISO_DEL__TB_ISO_VAR_ISO_ISO, param)
 
     def insert_isolate(self, param: Tuple[str, str, str]) -> None:
         """

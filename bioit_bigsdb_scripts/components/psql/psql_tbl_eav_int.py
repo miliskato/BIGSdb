@@ -17,7 +17,7 @@ class TblEavInt(DatabaseConnection):
         self._db_type = 'isolates'
         super().__init__(species, self._db_type)
 
-    def insert_eav_int_isolate(self, param: Tuple[str, str, str]) -> None:
+    def insert_eav_int_isolate(self, param: Tuple[str, str, int]) -> None:
         """
         Inserts a metadata field in the NCBI 16S category
         :param param: variables to feed to the PSQL query, which also sanitizes these variables,
