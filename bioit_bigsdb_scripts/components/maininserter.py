@@ -116,11 +116,11 @@ class MainInserter(JsonSuperClass):
                 self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'snpit_lineage', self._sample_output_dict['snpit']['snpit_lineage']))
                 self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'snpit_sublineage', self._sample_output_dict['snpit']['snpit_sublineage']))
                 self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'snpit_percent_matched', self._sample_output_dict['snpit']['snpit_percent_matched']))
-            elif 'snp_lineage' in self._sample_output_dict:
-                self._isolates_eavi_psql_tbl.insert_eav_int_isolate((self._isolatename, 'lineage_4', self._sample_output_dict['snp_lineage']['detected_lineage_by_level']['0']['count']))
-                self._isolates_eavi_psql_tbl.insert_eav_int_isolate((self._isolatename, 'lineage_4.1', self._sample_output_dict['snp_lineage']['detected_lineage_by_level']['1']['count']))
-                self._isolates_eavi_psql_tbl.insert_eav_int_isolate((self._isolatename, 'lineage4.1.2', self._sample_output_dict['snp_lineage']['detected_lineage_by_level']['2']['count']))
-                self._isolates_eavi_psql_tbl.insert_eav_int_isolate((self._isolatename, 'lineage4.1.2.1', self._sample_output_dict['snp_lineage']['detected_lineage_by_level']['3']['count']))
+            if 'snp_lineage' in self._sample_output_dict:
+                lineage_dict = self._sample_output_dict['snp_lineage']['detected_lineage_by_level']
+                lineage_keys = list({e for e in lineage_dict if lineage_dict[e]})
+                for k in lineage_keys:
+                    self._isolates_eavi_psql_tbl.insert_eav_int_isolate((self._isolatename, lineage_dict[k]['lineage']['id_'], lineage_dict[k]['count']))
         elif self._species == 'stec':
             if 'serotype' in self._sample_output_dict:
                 # json input
