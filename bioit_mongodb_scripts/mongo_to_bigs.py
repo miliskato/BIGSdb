@@ -170,6 +170,8 @@ class MongoToBigs:
             jsonfile.unlink()
 
             self.__insert_assembly_into_bigs(results_type, document, document_id)
+            with TblMappingTable(self._species) as isolates_mapping_psql_tbl:
+                isolates_mapping_psql_tbl.insert_mapping_for_isolate((document_id,document['_id'],))
 
         # Update cache again before alerts implementation because new isolates won't have cgST's but are needed for alerts implementation
         self._cache_command_object.run(Path(os.getcwd()))
