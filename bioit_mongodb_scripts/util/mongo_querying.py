@@ -9,6 +9,7 @@ from typing import Any, Dict, List, Optional, Union
 import pymongo
 from pymongo.read_concern import ReadConcern
 from .python_utility_functions import convert_dmyhms_to_ymd, merge_nested_dicts
+from ..model.json_model import MongoRecordDict, JsonReportDict
 
 
 class Mongoquerying(object, metaclass=abc.ABCMeta):
@@ -59,31 +60,8 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
                                        self.query_docs_by_ids(opened_isolates_collection,
                                                               technicalids)])
 
-    def query_typing_results_by_technicalids_and_scheme(self, opened_isolates_collection: pymongo.collection.Collection,
-                                                        opened_headers_collection: pymongo.collection.Collection,
-                                                        scheme: str = 'cgmlst', technicalids: Optional[List[str]] = None) -> List[List[Union[str, int]]]:
-        """
-        Returns a list of lists wherein the first list is the header [isolate, locus1, locus2, ...] and the subsequent lists are the results of all isolates in technical ids
-        :param opened_isolates_collection: mongo opened isolate collection
-        :param opened_headers_collection: mongo opened headers collection
-        :param technicalids: technical ids list, default calculated in function and is all ids
-        :param scheme: schemename as string
-        :return: List of n lists with first list header and subsesequent lists results of samples
-        """
-        listofresultlists = []
-        for doc_index, doc in enumerate(self.query_docs_by_ids(opened_isolates_collection, technicalids)):
-            resultlist = self.singledoc_typing_results_by_technicalids_and_scheme(doc, scheme, opened_headers_collection, doc_index)
-            if doc_index == 0:
-                # double list with header and first document's results needs to be preserved
-                listofresultlists = resultlist
-            else:
-                # double list serves no use, because it only has one inner list, inner list needs
-                # to be appended to the list which contains the list of headers
-                listofresultlists.append(resultlist[0])
-        return listofresultlists
-
     @staticmethod
-    def singledoc_typing_results_by_technicalids_and_scheme(document: Dict[str, Any], scheme: str, headers_collection: pymongo.collection.Collection, doc_index: int = 0) -> List[List[Union[str, int]]]:
+    def singledoc_typing_results_by_technicalids_and_scheme(json_report: JsonReportDict, isolate: str, scheme: str, headers_collection: pymongo.collection.Collection, doc_index: int = 0) -> List[List[Union[str, int]]]:
         """
 
         :param document: document where all results are found under the 'results' key
@@ -93,57 +71,70 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         :return: Either List of 2 lists with first list header and second list; first documents typing allele
         designations OR List of 1 list with only the latter
         """
+
+        scheme_loci = json_report[scheme]['loci']
+
+        if isinstance(scheme_loci, list):
+            return Mongoquerying.create_scheme_profile_from_json(doc_index, isolate, scheme_loci)
+        elif isinstance(scheme_loci, dict):
+            return Mongoquerying.create_scheme_profile_from_mongo(doc_index, headers_collection, isolate, scheme, scheme_loci)
+
+    @staticmethod
+    def create_scheme_profile_from_mongo(doc_index, headers_collection, isolate, scheme, scheme_loci: Dict[str, Any]):
         listofresultlists = []
-        if isinstance(document['results'][scheme]['loci'], list):
-            # This is the original input provided by the pipeline
-            if doc_index == 0:
-                header = ["isolate_id"]
-                for locus in document['results'][scheme]['loci']:
-                    header.append(locus['Locus'])
-                listofresultlists.append(header)
-            resultlist = [document['_id']]
-            for locus in document['results'][scheme]['loci']:
-                allele_id = locus['Allele']
-                if locus['% Identity'] == '100.00' and eval(locus['HSP/Locus length']) == 1.0:  # what about possibility to write the eval to the mongodb document, this is not a possibility because then we lose the length information
-                    if '_temp_' not in allele_id:
-                        if allele_id != '?' and allele_id != '-':
-                            resultlist.append(int(allele_id))
-                        else:
-                            resultlist.append(0)
+        # This is the modified list of dicts to dict with list values created by
+        # __convert_typinghitdictionaries_to_lists in mainmongo after the consulatancy session
+        if doc_index == 0:
+            header = ["isolate_id"]
+            for locus in sorted(scheme_loci):
+                header.append(locus)
+            listofresultlists.append(header)
+        hit_metadata_document = headers_collection.find_one({'type': 'hit_metadata'})
+        allele_index = hit_metadata_document[f"{scheme}_loci"].index('Allele')
+        identity_index = hit_metadata_document[f"{scheme}_loci"].index('% Identity')
+        length_index = hit_metadata_document[f"{scheme}_loci"].index('HSP/Locus length')
+        resultlist = [isolate]
+        for locus in sorted(scheme_loci):
+            allele_id = scheme_loci[locus][allele_index]
+            if scheme_loci[locus][identity_index] == '100.00' and \
+                    eval(scheme_loci[locus][length_index]) == 1.0:
+                if '_temp_' not in allele_id:
+                    if allele_id != '?' and allele_id != '-':
+                        resultlist.append(int(allele_id))
                     else:
-                        resultlist.append(allele_id)
+                        resultlist.append(0)
                 else:
-                    resultlist.append(0)
-            listofresultlists.append(resultlist)
-            return listofresultlists
-        elif isinstance(document['results'][scheme]['loci'], dict):
-            # This is the modified list of dicts to dict with list values created by
-            # __convert_typinghitdictionaries_to_lists in mainmongo after the consulatancy session
-            if doc_index == 0:
-                header = ["isolate_id"]
-                for locus in sorted(document['results'][scheme]['loci']):
-                    header.append(locus)
-                listofresultlists.append(header)
-            hit_metadata_document = headers_collection.find_one({'type': 'hit_metadata'})
-            allele_index = hit_metadata_document[f"{scheme}_loci"].index('Allele')
-            identity_index = hit_metadata_document[f"{scheme}_loci"].index('% Identity')
-            length_index = hit_metadata_document[f"{scheme}_loci"].index('HSP/Locus length')
-            resultlist = [document['_id']]
-            for locus in sorted(document['results'][scheme]['loci']):
-                allele_id = document['results'][scheme]['loci'][locus][allele_index]
-                if document['results'][scheme]['loci'][locus][identity_index] == '100.00' and \
-                        eval(document['results'][scheme]['loci'][locus][length_index]) == 1.0:
-                    if '_temp_' not in allele_id:
-                        if allele_id != '?' and allele_id != '-':
-                            resultlist.append(int(allele_id))
-                        else:
-                            resultlist.append(0)
+                    resultlist.append(allele_id)
+            else:
+                resultlist.append(0)
+        listofresultlists.append(resultlist)
+        return listofresultlists
+
+    @staticmethod
+    def create_scheme_profile_from_json(doc_index, isolate, scheme_loci):
+        listofresultlists = []
+        # This is the original input provided by the pipeline
+        if doc_index == 0:
+            header = ["isolate_id"]
+            for locus in scheme_loci:
+                header.append(locus['Locus'])
+            listofresultlists.append(header)
+        resultlist = [isolate]
+        for locus in scheme_loci:
+            allele_id = locus['Allele']
+            # what about possibility to write the eval to the mongodb document, this is not a possibility because then we lose the length information
+            if locus['% Identity'] == '100.00' and eval(locus['HSP/Locus length']) == 1.0:
+                if '_temp_' not in allele_id:
+                    if allele_id != '?' and allele_id != '-':
+                        resultlist.append(int(allele_id))
                     else:
-                        resultlist.append(allele_id)
+                        resultlist.append(0)
                 else:
-                    resultlist.append(0)
-            listofresultlists.append(resultlist)
-            return listofresultlists
+                    resultlist.append(allele_id)
+            else:
+                resultlist.append(0)
+        listofresultlists.append(resultlist)
+        return listofresultlists
 
     # @staticmethod
     # def adapt_isolates_id_in_mongodb(opened_collection: pymongo.collection.Collection, actual_id: str, new_id: str) -> None:
