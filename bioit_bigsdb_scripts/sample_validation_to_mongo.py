@@ -61,6 +61,10 @@ class SampleValidationToMongo:
         self._mongoinit = MongoInitialisation(self._species,selected_connection_string='CONNECTION_STRING_AZURE')
         self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, self._isolates_resequencing_collection = self._mongoinit.initialise_collections()
 
+        #open local mongo instance to get the mapping
+        self._mongoinit_local = MongoInitialisation(self._species, selected_connection_string='CONNECTION_STRING_LOCAL')
+        self._mapping_collection = self._mongoinit_local.initialise_mapping_table_collection()
+
         # Run main
         try:
             self._sample_validation_to_mongo()
@@ -90,7 +94,9 @@ class SampleValidationToMongo:
                 outcome: str = query[0][2]
                 curator_mailadress: str = query[0][3]
                 validation_type: str = query[0][4]
+                pipeline_hash: str = query[1][1]
                 results_type = self.__get_results_type(validation_type)
+                pseudo_id = self._mapping_collection.find_one({"_id": isolatename})['pseudo_id']
                 # GO into MongoDB
                 validation_dict = {
                     'outcome': outcome,
@@ -99,7 +105,7 @@ class SampleValidationToMongo:
                     'date': datetime.datetime.utcnow().strftime('%d/%m/%Y - %X')
                 }
                 if outcome == 'good' and ( validation_type == 'bad_quality' or validation_type == 'resequencing' ):
-                    MainMongo(isolatename, self._species, results_type, subvaldict=validation_dict)
+                    MainMongo(pseudo_id, self._species, results_type, pipeline_hash, subvaldict=validation_dict, connection_string='CONNECTION_STRING_AZURE')
                 elif validation_type == 'bad_quality':  # outcome == 'bad'
                     self.__remove_id_from_document_to_be_unique_again_if_bad(self._isolates_badqc_collection,
                                                                                  isolatename, validation_dict)
