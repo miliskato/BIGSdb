@@ -86,7 +86,7 @@ class SendMappingTableToODS(SFTPConnection):
             self._sftp.put(str(jsonfile), remote_path)
             logging.info(f"File uploaded successfully to {remote_path}")
 
-    def __exit__(self) -> None:
+    def __del__(self) -> None:
         """
         Closes the SSH and SFTP clients upon exit.
         :return: None

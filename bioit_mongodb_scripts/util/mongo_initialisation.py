@@ -113,7 +113,8 @@ class MongoInitialisation:
 
     def initialise_mapping_table_collection(self) -> pymongo.collection.Collection:
         """
-        Initialises collection containing mapping table of sample names and pseudonymized sample names and business keys.
+        Initialises collection containing mapping table of sample names and pseudonymized sample names and
+        business keys.
         :return: Opened mapping table collection
         """
         mapping_table_collection = self._open_mongo_collection(self.opened_mongo_database, "mapping_table")

@@ -10,6 +10,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
+from pymongo.errors import DuplicateKeyError
+
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
@@ -118,7 +120,8 @@ class MainNominativeDataParserFromOds(SFTPConnection):
         The filenames uploaded by the HD ODS do not have any significance except for the CLIN or LAB part.
         Files therefore need to be grouped by this CLIN or LAB because they are parsed differently ( because they
         contain different fields) and by pathogen which is found in the file itself.
-        This function parses all downloaded JSON files and groups them by filetype (filename) and by pathogen (file contents).
+        This function parses all downloaded JSON files and groups them by filetype (filename) and
+        by pathogen (file contents).
         :return: None
         """
         for file in self._files_remote:
@@ -170,26 +173,24 @@ class MainNominativeDataParserFromOds(SFTPConnection):
                         self._files_error_logs[file] = f"{exceptionmessage}\n{traceback.format_exc()}"
                         continue  # do not insert in MongoDB and move on to next file
                     # Insert document into MongoDB after having successfully parsed the matching files
-                    if not nominative_labtest_clinical_metadata_collection.find_one({'_id': data_translated['_id']}):
-                        # Insert CLIN or LAB, whichever is first
-                        nominative_labtest_clinical_metadata_collection.insert_one(data_translated)
-                    else:
-                        # Insert CLIN or LAB, whichever is second
-                        identifier = data_translated['_id']
-                        data_translated.pop('_id')
-                        nominative_labtest_clinical_metadata_collection.update_one({'_id': identifier},
-                                                                                   {'$set': {**data_translated}})
+                    # use upsert to create the document if it doesn't exist and update if it does
+                    nominative_labtest_clinical_metadata_collection.update_one({'_id': data_translated['_id']},
+                                                                               {'$set': {**data_translated}},
+                                                                               upsert=True)
 
-                    # if one of these raises a MongoDuplicationError possibly because the documents have been
+                    # if one of these raises a pymongo DuplicateKeyError possibly because the documents have been
                     # inserted into MongoDB previously but failed before moving them to the
                     # processed sftp location, then the entire flow is stopped.
                     # If the error were to be caught and an email sent per failure, then a lot of emails might be sent.
-                    # Alternatively, I could try to aggregate these DuplicationErrors and send one aggregated mail
-                    # todo ?
-                    if filetype == 'LAB':
-                        unprocessed_nominative_labtest_metadata_collection.insert_one(data_unprocessed)
-                    if filetype == 'CLIN':
-                        unprocessed_nominative_clinical_metadata_collection.insert_one(data_unprocessed)
+                    # Therefore, as a solution, duplicate key errors are skipped. If another error occurs
+                    # (can not currently imagine one), then (a lot of) emails might be sent after all
+                    try:
+                        if filetype == 'LAB':
+                            unprocessed_nominative_labtest_metadata_collection.insert_one(data_unprocessed)
+                        if filetype == 'CLIN':
+                            unprocessed_nominative_clinical_metadata_collection.insert_one(data_unprocessed)
+                    except DuplicateKeyError:
+                        pass
                     self._files_processed.append(file)
 
     def __parse_input_json(self, data_unprocessed: Dict[str, Any], data_translated: Dict[str, Any], filetype: str, species: str) -> None:
@@ -294,7 +295,7 @@ class MainNominativeDataParserFromOds(SFTPConnection):
         :param data_translated: translated data to be inserted in MongoDB to be inserted in BIGSdb
         :return: None
         """
-        country_dicts_list: List[Dict[str, Any]] = MainNominativeDataParserFromOds.___get_value_by_capitalization_agnostic_key(data_unprocessed, 'CD_INFCT_CNRTY')
+        country_dicts_list: List[Dict[str, str]] = MainNominativeDataParserFromOds.___get_value_by_capitalization_agnostic_key(data_unprocessed, 'CD_INFCT_CNRTY')
         if country_dicts_list:
             for index, country_dict in enumerate(country_dicts_list):
                 for key, value in country_dict.items():
@@ -318,7 +319,8 @@ class MainNominativeDataParserFromOds(SFTPConnection):
     @staticmethod
     def ___get_value_by_capitalization_agnostic_key(search_dictionary: Dict[str, Any], target_key: str) -> Optional[Union[Dict[str, Any], List[Any], str]]:
         """
-        Searches a key capitalization agnostically in a dictionary because the ODS could not confirm that they were always going to send lower or uppercase keys.
+        Searches a key capitalization agnostically in a dictionary because the ODS could not confirm that they were
+        always going to send lower or uppercase keys.
         :param search_dictionary: the dictionary that should contain the target_key
         :param target_key: key that should capitalization agnostically be found in the search_dictionary
         :return: The value for the key lookup, or None if it isn't found.
@@ -359,7 +361,7 @@ class MainNominativeDataParserFromOds(SFTPConnection):
                 handle.write(contents)
             self._sftp.put(str(error_log_file), f'{self._base_sftp_dir}error/{error_log_filename}')
 
-    def __exit__(self) -> None:
+    def __del__(self) -> None:
         """
         Closes the SSH and SFTP clients upon exit.
         :return: None

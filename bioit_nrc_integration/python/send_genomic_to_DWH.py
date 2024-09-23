@@ -122,7 +122,7 @@ class SendGenomicToDWH(SFTPConnection):
                 break
         return current
 
-    def __exit__(self) -> None:
+    def __del__(self) -> None:
         """
         Closes the SSH and SFTP clients upon exit.
         :return: None

@@ -432,7 +432,7 @@ class NewClusteringInfoToBigs:
             {'metadata': 'last_update', 'host': socket.gethostname()}, {
                 "$set": {'last_update_date': self._current_update_date}})
 
-    def __exit__(self) -> None:
+    def __del__(self) -> None:
         """
         Closes the isolates psql table when the class is closed
         :return: None

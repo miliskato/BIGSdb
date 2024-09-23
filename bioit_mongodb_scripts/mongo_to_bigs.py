@@ -320,7 +320,7 @@ class MongoToBigs:
                         insert_assembly(document_id, self._species, temp_fasta_path)
                     logging.info(f"Wrote new results version for {document_id} to bigsdb")
 
-    def __exit__(self) -> None:
+    def __del__(self) -> None:
         """
         Closes the isolates psql table when the class is closed
         :return: None
