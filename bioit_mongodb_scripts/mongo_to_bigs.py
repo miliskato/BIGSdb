@@ -14,6 +14,8 @@ from pathlib import Path
 from typing import Any, Dict, List, Tuple
 import os
 
+from bioit_mongodb_scripts.model.json_model import MongoRecordDict
+
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
@@ -144,7 +146,6 @@ class MongoToBigs:
 
         # Main insertion into bigsdb for loop
         for document in list_of_documents:
-            document_id = document['isolate_id']
             results_type, skip_current_document = self.__get_results_type(document, document_id)
             if skip_current_document:
                 continue
@@ -210,35 +211,33 @@ class MongoToBigs:
             else:
                 return False
 
-    def __get_list_of_documents(self) -> List[Dict[str, Any]]:
+    def __get_list_of_documents(self) -> List[MongoRecordDict]:
         """
         Gets the list of documents, = all if no single_sample_id, else list of single document
         :return: list of documents (dictionaries)
         """
         if self._single_sample_id:
             pseudo_id = self._mappingtable_collection.find_one({'_id': self._single_sample_id})['pseudo_id']
-            query_single = self._isolates_collection.find_one({'_id': pseudo_id})
-            query_badqc = self._isolates_badqc_collection.find_one({'_id': pseudo_id})
-            query_reseq = self._isolates_resequencing_collection.find_one({'_id': pseudo_id})
-            if (query_single is not None) or (query_badqc is not None) or (query_reseq is not None):
-                list_of_documents = [query_single, query_reseq]
-                while None in list_of_documents:
-                    list_of_documents.remove(None)
-                for document in list_of_documents:
-                    document['isolate_id']=self._single_sample_id
+            query_single = MongoRecordDict(self._isolates_collection.find_one({'_id': pseudo_id}))
+            query_badqc = MongoRecordDict(self._isolates_badqc_collection.find_one({'_id': pseudo_id}))
+            query_reseq = MongoRecordDict(self._isolates_resequencing_collection.find_one({'_id': pseudo_id}))
+            list_of_documents = list(filter(None,[query_single,query_reseq]))
+
+            for document in list_of_documents:
+                document.set_isolate_id(self._single_sample_id)
             else:
                 send_email(f"Can not find document with _id '{self._single_sample_id}' in isolates or in badqc-reseq collection")
                 raise Exception(f"Can not find document with _id '{self._single_sample_id}' in isolates or in badqc-reseq collection")
 
-
         else:
-            list_of_documents = list(self._isolates_collection.find())
+            list_of_documents = list(map(lambda x: MongoRecordDict(x), self._isolates_collection.find()))
             for document in list_of_documents:
                 isolate_id = self._mappingtable_collection.find_one({'pseudo_id': document['_id']})['_id']
-                document['isolate_id']=isolate_id
+                document.set_isolate_id(isolate_id)
+
         return list_of_documents
 
-    def __get_results_type(self, document: Dict[str, Any], document_id: str) -> Tuple[str, bool]:
+    def __get_results_type(self, document: MongoRecordDict, document_id: str) -> Tuple[str, bool]:
         """
         Checks whether the document is a new_isolate or a reanalysis and whether the for loop should continue (bool output).
         The for loop should continue to the next document if the reanalysis is not different.

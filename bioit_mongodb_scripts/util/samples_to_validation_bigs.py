@@ -6,6 +6,8 @@ from typing import Any, Dict, List
 
 from pymongo.write_concern import WriteConcern
 
+from bioit_mongodb_scripts.model.json_model import MongoRecordDict
+
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
@@ -14,7 +16,7 @@ from bioit_bigsdb_scripts.components.psql import TblSubmissions, TblIsolateSubmi
     TblIsolateSubmissionFieldOrder, TblMappingTable
 
 
-def _insert_submission_bigs(sample_docs: List[Dict[str, Any]], validation_type: str, species: str, mongo_config_data: Dict[str, Any] ) -> None:
+def _insert_submission_bigs(sample_docs: List[MongoRecordDict], validation_type: str, species: str, mongo_config_data: Dict[str, Any] ) -> None:
     """
     Inserts a given list of submissions into bigsdb
     :param sample_docs: list of documents to be submitted
@@ -30,14 +32,13 @@ def _insert_submission_bigs(sample_docs: List[Dict[str, Any]], validation_type: 
             TblIsolateSubmissionIsolates(species) as isolates_isosubiso_psql_tbl, \
             TblIsolateSubmissionFieldOrder(species) as isolates_isosubfo_psql_tbl:
     #        TblMappingTable(species) as isolates_mapping_psql_tbl:
-        for doc in sample_docs:
-            isolate_id = mappingtable_collection.find_one({'pseudo_id': doc['_id']})['_id']
-            doc['isolate_id'] = isolate_id
+        for mongo_record in sample_docs:
+            isolate_id = mappingtable_collection.find_one({'pseudo_id': mongo_record['_id']})['_id']
             isolates_sub_psql_tbl.insert_submission((validation_type,))
             api_button = f"""
-            <button onclick="get_jwt_report('no', '{validation_type}', '{isolate_id}', '{doc['_id']}', '{species}', '{doc['latest_analysis_date']}')" class='small_submit'>Get report preview</button>
+            <button onclick="get_jwt_report('no', '{validation_type}', '{isolate_id}', '{mongo_record['_id']}', '{species}', '{mongo_record['latest_analysis_date']}')" class='small_submit'>Get report preview</button>
             """
-            pipeline_hash=doc['results']['pipeline_hash']
+            pipeline_hash=mongo_record['results']['pipeline_hash']
 
             isolates_isosubiso_psql_tbl.insert_validation_metadata(('html_report', api_button))
             isolates_isosubiso_psql_tbl.insert_validation_metadata(('isolate_id', isolate_id))
@@ -69,9 +70,9 @@ def samples_to_validation_bigs(species: str, mongo_config_data: Dict[str, Any] =
     query = update_collection.find_one({'metadata': 'last_validation_to_bigs_update', 'host': socket.gethostname()})
     last_run_date = query['last_update_date'] if query else datetime.datetime(1970, 1, 1)  # unix time
     current_date = datetime.datetime.utcnow()
-    bad_samples = list(isolates_badqc_collection.find({'creation_date': {'$gt': last_run_date}}))
+    bad_samples = list(map(lambda x: MongoRecordDict(x),isolates_badqc_collection.find({'creation_date': {'$gt': last_run_date}})))
     _insert_submission_bigs(bad_samples, 'bad_quality', species, mongo_config_data)
-    resequencing_samples = list(isolates_resequencing_collection.find({'creation_date': {'$gt': last_run_date}}))
+    resequencing_samples = list(map(lambda x: MongoRecordDict(x),isolates_resequencing_collection.find({'creation_date': {'$gt': last_run_date}})))
     _insert_submission_bigs(resequencing_samples, 'resequencing', species, mongo_config_data)
     # update last date of update
     if query:
