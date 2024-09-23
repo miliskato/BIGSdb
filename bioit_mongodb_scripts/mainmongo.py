@@ -251,7 +251,7 @@ class MainMongo:
                 mongo_records['results']['cgST'] = cg_sequence_type
             if self._results_type == 'badqc_validated':
                 mongo_records['validation'] = self._subvaldict
-                self._isolates_badqc_collection.delete_one({'_id': mongo_records["isolates_id"]})
+                self._isolates_badqc_collection.delete_one({'_id': mongo_records["_id"]})
             self.___write_document(self._isolates_collection, mongo_records)
             logging.info(f"Wrote new isolate {self._technical_id} and its result to {self._species} database")
         else:

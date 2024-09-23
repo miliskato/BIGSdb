@@ -29,5 +29,5 @@ class MongoRecordDict(BridgeDict):
         return self.get('_id')
 
     def get_json_results(self) -> JsonReportDict:
-        return JsonReportDict.from_json(self.get("results"))
-
+        #return JsonReportDict.from_json(self.get("results"))
+        return JsonReportDict(self.get("results"))
