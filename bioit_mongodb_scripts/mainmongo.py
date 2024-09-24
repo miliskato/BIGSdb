@@ -93,7 +93,6 @@ class MainMongo:
         self._technical_id = technical_id
         self._species = species
         self._pipeline_hash = pipeline_hash
-        self._is_viral = self._species in ['influenza_a', 'influenza_b', 'sars_cov_2']
         self._results_type = results_type
         self._technical_metadata_path = technical_metadata_path
         self._jsonfilepath = jsonfilepath
@@ -229,7 +228,7 @@ class MainMongo:
         """
         new_records["isolates_id"] = self._technical_id
         good_sample_quality = True
-        if self._results_type == 'new_isolate' and not self._is_viral:  # viral pathogens do not have a qc section
+        if self._results_type == 'new_isolate' and self._species not in self._mongo_config_data['viral_species']:  # viral pathogens do not have a qc section
             try:
                 for qc_type in new_records['qc']:
                     for key in new_records['qc'][qc_type]:
@@ -409,7 +408,7 @@ class MainMongo:
         :param results: results dictionary to be inserted
         :return: dictionary with results under results key and metadata keys at the same level of the results key
         """
-        technical_metadata = self.___retrieve_technical_metadata(results)
+        technical_metadata = self.___retrieve_technical_metadata(results) if self._species not in self._mongo_config_data['viral_species'] else 'to be determined'
         results["pipeline_hash"] = self._pipeline_hash
         results["results_version"] = 1  # this version always increments
         results["changed_version"] = 1  # this version only increments whenever something actually changed
