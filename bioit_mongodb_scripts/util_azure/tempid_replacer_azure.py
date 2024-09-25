@@ -73,7 +73,7 @@ class TempidReplacerAzure:
 
         # Open collections
         self._mongoinit = MongoInitialisation(self._species,
-                                              alternate_connection_string=self._connection_azure.get_secret_value('MONGODB-CONNECTION-STRING'),
+                                              selected_connection_string='CONNECTION_STRING_AZURE',
                                               alternate_dtap=self._dtap)
         self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, self._isolates_resequencing_collection = self._mongoinit.initialise_collections()
         self._hashed_ad_collection = self._mongoinit.initialise_hashing_collection()

@@ -1,21 +1,14 @@
 import logging
 import os
-import smtplib
-import socket
 import sys
 import traceback
-from email.message import EmailMessage
 from pathlib import Path
 from typing import Dict
-
-import yaml
 
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
 from bioit_mongodb_scripts.mainmongo import MainMongo
-from bioit_mongodb_scripts.reanalysis.reanalysis_noslurm import reanalysis_noslurm
-from bioit_mongodb_scripts.reanalysis.reanalysis_triggers.reanalysis_triggers import reanalysis_triggers
 from bioit_mongodb_scripts.tempid_replacer import TempidReplacer
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email
@@ -64,8 +57,7 @@ if __name__ == '__main__':
                          'species': 'listeria',
                          'results_type': results_type,
                          'jsonfilepath': '/'.join([source, 'inputfiles', filename]),
-                         'alternate_connection_string': True,
-                         'uploader_mail_address': 'test',
+                         'connection_string': 'CONNECTION_STRING_ALTERNATE',
                          'pipeline_hash': 'testtest',
                          'mongo_config_data': mongo_config_data}
             if results_type == 'new_isolate':
@@ -94,7 +86,7 @@ if __name__ == '__main__':
         """
         Test hash replacer
         """
-        TempidReplacer('cgmlst', 'listeria', alternate_connection_string=True)
+        TempidReplacer('cgmlst', 'listeria', connection_string='CONNECTION_STRING_ALTERNATE')
 
     except Exception as exceptionmessage:
         send_email(f"{exceptionmessage}\n{traceback.format_exc()}")

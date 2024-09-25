@@ -11,26 +11,22 @@ class MongoInitialisation:
     """
     Class containing all queries for Mongo
     """
-    def __init__(self, species: str, selected_connection_string: str = None, alternate_connection_string: str = None, alternate_dtap:
-                 Union[str, None] = None, mongo_config_data: Dict[str, Any] = None):
+    def __init__(self, species: str, selected_connection_string: str = None, alternate_dtap: Union[str, None] = None,
+                 mongo_config_data: Dict[str, Any] = None):
         """
         Initialises this class and opens the species/dtap specific mongo database
         :param species: commonly used bioit species name: either genus or specific like stec
         :param selected_connection_string: to select the connection string from the config file that should be used to initialize the connection
-        :param alternate_connection_string: Use the alternate connection string, which connects to the testing Atlas Cluster or provide a custom connection string
         :param alternate_dtap: alternative dtap than what is in the config file
         :param mongo_config_data: Use provided mongo_config_data, else get mongo_config_data from file
         """
         self._mongo_config_data = mongo_config_data if mongo_config_data else get_mongodb_config_data()
 
-        if isinstance(alternate_connection_string, str):
-            self.connection_string = alternate_connection_string
+        if selected_connection_string not in ['CONNECTION_STRING_ALTERNATE', 'CONNECTION_STRING_AZURE',
+                                              'CONNECTION_STRING_LOCAL']:
+            raise NameError(f"Use of undefined connection_string variable in _open_mongo_database")
         else:
-            if selected_connection_string not in ['CONNECTION_STRING_ALTERNATE', 'CONNECTION_STRING_AZURE',
-                                                       'CONNECTION_STRING_LOCAL']:
-                raise NameError(f"used of undefined connection_string variable in _open_mongo_database")
-            else:
-                self.connection_string = self._mongo_config_data[selected_connection_string]
+            self.connection_string = self._mongo_config_data[selected_connection_string]
         if alternate_dtap:
             self._mongo_config_data['dtap'] = alternate_dtap
         self.opened_mongo_database = self._open_mongo_database(species)

@@ -40,13 +40,12 @@ class TempidReplacer:
     """
     Class containing definitions to check and replace temporary ids in MongoDB (and BIGSdb)
     """
-    def __init__(self, scheme: str, species: str, connection_string: str = None,
-                 alternate_dtap: Union[str, None] = None):
+    def __init__(self, scheme: str, species: str, connection_string: str, alternate_dtap: Union[str, None] = None):
         """
         Initalizes the class and executes the main function (auto-executable)
         :param scheme: scheme that unresolved hashes should be queried from
         :param species: commonly used bioit species name: either genus or specific like stec
-        :param alternate_connection_string: use alternate connection string, used for testing on the free Atlas Cluster
+        :param connection_string: connection string variable from the config file
         :param alternate_dtap: alternative dtap than what is in the config file
         :return: None
         """
@@ -106,7 +105,7 @@ class TempidReplacer:
                         hashed_allele = hashlib.md5(bytes(str(allele.seq), 'utf-8')).hexdigest()
                         if hashed_allele in hash_list:
                             self.__update_temp_to_real_mongodb(locus, allele, hashed_allele, hash_list, values)
-            if ('bigs' in socket.gethostname() or 'nrc' in socket.gethostname()) and self._alternate_connection_string is None:
+            if ('bigs' in socket.gethostname() or 'nrc' in socket.gethostname()) and self._connection_string is not 'CONNECTION_STRING_ALTERNATE':
                 with TblAlleleDesignations(self._species) as isolates_ad_psql_tbl:
                     for hash_document in self._documents_list:
                         if hash_document['resolved_AD'] != 0:
@@ -252,6 +251,5 @@ if __name__ == '__main__':
     args = parse_arguments(mongo_config_data['species'])
 
     # run main
-    TempidReplacer(args.scheme, args.species,
-                   alternate_connection_string=(True if args.alternate_connection_string else False))
+    TempidReplacer(args.scheme, args.species, connection_string=args.connection_string)
     

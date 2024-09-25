@@ -55,7 +55,6 @@ def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     parser.add_argument("--technical_metadata_path", required=False, type=Path) # not mandatory because of reanalysis
     parser.add_argument("--pipeline_hash", required=True, type=str)  # Required for DCD NRC->DWH
     parser.add_argument('--connection_string', required=False, type=str)  # will replace connection string, only for small testing purposes
-    parser.add_argument('--alternate_connection_string', type=str, help=argparse.SUPPRESS)  # will replace connection string, only for small testing purposes
     parser.add_argument('--alternate_dtap', choices=['dev', 'test', 'acc', 'prod'], help=argparse.SUPPRESS)  # will replace connection string, only for small testing purposes
     parser.add_argument('--dont_send_email', action='store_true', help=argparse.SUPPRESS)  # will not send emails, mainly used for blocking the reanalysis spam
     return parser.parse_args()
@@ -66,8 +65,8 @@ class MainMongo:
     Class containing definitions to insert samples into MongoDB
     """
     def __init__(self, technical_id: str, species: str, results_type: str, pipeline_hash: str, jsonfilepath: Path = None,
-                 subvaldict: Dict[str, str] = None, technical_metadata_path: Path = None, reportdirectorypath: Path = None, fastafilepath: Path = None,
-                 vcffilepath: Path = None, vcffilepath_unfiltered: Path = None, original_input_format: str = None, connection_string: str = None, alternate_connection_string: str = None, alternate_dtap: Union[str, None] = None,
+                 subvaldict: Dict[str, str] = None, technical_metadata_path: Path = None ,reportdirectorypath: Path = None, fastafilepath: Path = None,
+                 vcffilepath: Path = None, vcffilepath_unfiltered: Path = None, original_input_format: str = None, connection_string: str = None, alternate_dtap: Union[str, None] = None,
                  dont_send_email: bool = False, mongo_config_data: Dict[str, Any] = None) -> None:
         """
         Intialises this class and executes the main function which will insert/update the sample in a mongodb collection containing isolates
@@ -85,7 +84,6 @@ class MainMongo:
         :param vcffilepath_unfiltered: absolute path to where the unfiltered VCF file is stored (only required for new_isolate)
         :param original_input_format: original input that was given to run the first analysis
         :param connection_string: connection string variable from the config file
-        :param alternate_connection_string: use given alternate connection string, used for testing on the free Atlas Cluster
         :param alternate_dtap: alternative dtap than what is in the config file
         :param mongo_config_data: Pass provided mongo_config_data to MongoInitialisation, else get mongo_config_data from file
         :return: None
@@ -94,7 +92,6 @@ class MainMongo:
         self._technical_id = technical_id
         self._species = species
         self._pipeline_hash = pipeline_hash
-        self._is_viral = self._species in ['influenza_a', 'influenza_b', 'sars_cov_2']
         self._results_type = results_type
         self._technical_metadata_path = technical_metadata_path
         self._jsonfilepath = jsonfilepath
@@ -105,15 +102,14 @@ class MainMongo:
         self._vcffilepath_unfiltered = vcffilepath_unfiltered
         self._original_input_format = original_input_format
         self._connection_string = connection_string
-        self._alternate_connection_string = alternate_connection_string
         self._alternate_dtap = alternate_dtap
         self._dont_send_email = dont_send_email
         self._mongo_config_data = mongo_config_data  # no need to get if not provided because it is only
         # needed in mongoinit and there it can be retrieved by itself
 
         # Open collections
-        self._mongoinit = MongoInitialisation(self._species,selected_connection_string=self._connection_string,
-                                              alternate_connection_string=self._alternate_connection_string,
+        self._mongoinit = MongoInitialisation(self._species,
+                                              selected_connection_string=self._connection_string,
                                               alternate_dtap=self._alternate_dtap,
                                               mongo_config_data=self._mongo_config_data)
         self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, \
@@ -224,7 +220,7 @@ class MainMongo:
         mongo_records = self.___initialize_mongo_record(json_report)
 
         good_sample_quality = True
-        if self._results_type == 'new_isolate' and not self._is_viral:  # viral pathogens do not have a qc section
+		if self._results_type == 'new_isolate' and self._species not in self._mongo_config_data['viral_species']:  # viral pathogens do not have a qc section
             good_sample_quality = self.is_good_quality(json_report)
 
         self.__process_mongo_record(mongo_records, good_sample_quality)
@@ -664,7 +660,6 @@ if __name__ == '__main__':
               vcffilepath_unfiltered=(args.vcffilepath_unfiltered if args.vcffilepath_unfiltered else None),
               original_input_format=(args.original_input_format if args.original_input_format else None),
               connection_string=(args.connection_string if args.connection_string else 'CONNECTION_STRING_AZURE'),
-              alternate_connection_string=(args.alternate_connection_string if args.alternate_connection_string else None),
               alternate_dtap=args.alternate_dtap,
               dont_send_email=(True if args.dont_send_email else False),
               mongo_config_data=mongo_config_data)
