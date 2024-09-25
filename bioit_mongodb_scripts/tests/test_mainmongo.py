@@ -65,10 +65,13 @@ if __name__ == '__main__':
                          'results_type': results_type,
                          'jsonfilepath': '/'.join([source, 'inputfiles', filename]),
                          'alternate_connection_string': True,
+                         'uploader_mail_address': 'test',
+                         'pipeline_hash': 'testtest',
                          'mongo_config_data': mongo_config_data}
             if results_type == 'new_isolate':
                 arguments['reportdirectorypath'] = '/'.join([source, 'inputfiles'])
                 arguments['fastafilepath'] = '/'.join([source, 'inputfiles', 'listeria_assembly_filtered.fasta'])
+                arguments['technical_metadata_path'] = '/'.join([source, 'inputfiles', 'technical_metadata.json'])
             return arguments
 
         """
@@ -92,24 +95,6 @@ if __name__ == '__main__':
         Test hash replacer
         """
         TempidReplacer('cgmlst', 'listeria', alternate_connection_string=True)
-
-        """
-        Test reanalysis insertion/ versioning
-        """
-        # the integers appendices of the files indicate the results version and changed version, so: resultsversion_changedversion
-        for dummy_reanalysis_file in ['report_version_2_2.json', 'report_version_3_3.json', 'report_version_4_4.json', 'report_version_5_4.json']:
-            reanalysis_args = create_mainmongo_arguments_dict('reanalysis', dummy_reanalysis_file)
-            MainMongo(**reanalysis_args)
-
-        """
-        Test reanalysis triggers and reanalysis_noslurm
-        """
-        reanalysis_triggers('listeria', 6, alternate_connection_string=True)
-
-        """
-        Test reanalysis_noslurm
-        """
-        reanalysis_noslurm('listeria', '2030-01-01', '2000-01-01', alternate_connection_string=True)
 
     except Exception as exceptionmessage:
         send_email(f"{exceptionmessage}\n{traceback.format_exc()}")

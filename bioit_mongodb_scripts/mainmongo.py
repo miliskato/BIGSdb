@@ -93,7 +93,6 @@ class MainMongo:
         self._technical_id = technical_id
         self._species = species
         self._pipeline_hash = pipeline_hash
-        self._is_viral = self._species in ['influenza_a', 'influenza_b', 'sars_cov_2']
         self._results_type = results_type
         self._technical_metadata_path = technical_metadata_path
         self._jsonfilepath = jsonfilepath
@@ -203,6 +202,7 @@ class MainMongo:
             self._vcffilepath_unfiltered = sample_doc['vcf_path_unfiltered']
             self._original_input_format = sample_doc['original_input_format']
             self._pipeline_hash = sample_doc['pipeline_hash']
+            self._reportdirectorypath = sample_doc['report_directory']
             self.__new_isolate_wrapper(new_records)
         elif self._results_type == "reanalysis" or self._results_type == 'resequencing_validated':
             try:
@@ -231,7 +231,7 @@ class MainMongo:
         """
         new_records["isolates_id"] = self._technical_id
         good_sample_quality = True
-        if self._results_type == 'new_isolate' and not self._is_viral:  # viral pathogens do not have a qc section
+        if self._results_type == 'new_isolate' and self._species not in self._mongo_config_data['viral_species']:  # viral pathogens do not have a qc section
             try:
                 for qc_type in new_records['qc']:
                     for key in new_records['qc'][qc_type]:
@@ -411,7 +411,7 @@ class MainMongo:
         :param results: results dictionary to be inserted
         :return: dictionary with results under results key and metadata keys at the same level of the results key
         """
-        technical_metadata = self.___retrieve_technical_metadata(results)
+        technical_metadata = self.___retrieve_technical_metadata(results) if self._species not in self._mongo_config_data['viral_species'] else 'to be determined'
         results["pipeline_hash"] = self._pipeline_hash
         results["results_version"] = 1  # this version always increments
         results["changed_version"] = 1  # this version only increments whenever something actually changed
@@ -669,7 +669,7 @@ if __name__ == '__main__':
               technical_metadata_path=(args.technical_metadata_path if args.technical_metadata_path else None),
               jsonfilepath=(args.jsonfilepath if args.jsonfilepath else None), 
               subvaldict=(args.subvaldict if args.subvaldict else None),
-              reportdirectorypath=(args.reportdirectorypath if args.reportdirectorypath else None), 
+              reportdirectorypath=(args.reportdirectorypath if args.reportdirectorypath else None),
               fastafilepath=(args.fastafilepath if args.fastafilepath else None), 
               vcffilepath=(args.vcffilepath if args.vcffilepath else None),
               vcffilepath_unfiltered=(args.vcffilepath_unfiltered if args.vcffilepath_unfiltered else None),

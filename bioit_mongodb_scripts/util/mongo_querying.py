@@ -2,12 +2,11 @@ import abc
 import logging
 import re
 import sys
-from typing import Any, Dict, List, Union, Optional, Mapping
-from copy import deepcopy
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, Tuple, Mapping
 
 import pymongo
 from pymongo.read_concern import ReadConcern
+
 from .python_utility_functions import convert_dmyhms_to_ymd, merge_nested_dicts
 
 
@@ -277,7 +276,7 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
     def get_any_results_version(self, isolate_id: str, searchkey: str, searchvalue: Union[str, int],
                                 isolates_collection: pymongo.collection.Collection,
                                 old_isolateresults_collection: pymongo.collection.Collection,
-                                headers_collection: pymongo.collection.Collection) -> Dict[str, Any]:
+                                headers_collection: pymongo.collection.Collection) -> Tuple[Dict[str, Any], bool]:
         """
         Gets any results version for a given isolate_id
         :param isolate_id: name of the isolate corresponding to the _id key in the isolates collection
@@ -286,7 +285,7 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         :param isolates_collection: pymongo main isolates collection
         :param old_isolateresults_collection: pymongo collection of old isolate results
         :param headers_collection: pymongo collection containing the headers for various lists
-        :return: document of the requested version
+        :return: document of the requested version and boolean stating whether this is the latest results version or not
         """
         # 1. Check input
         if searchkey not in ['changed_version', 'analysis_date']:
@@ -301,8 +300,10 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
             raise Exception(f"No isolate with id '{isolate_id}' could be found in MongoDB.")
         if searchkey == 'changed_version' and current_version['results'][searchkey] <= searchvalue:
             requested_document = current_version
+            latest_version = True
         elif searchkey == 'analysis_date' and convert_dmyhms_to_ymd(current_version['results'][searchkey]) <= searchvalue:
             requested_document = current_version
+            latest_version = True
         # 3. Query all old results up until the requested value, if the requested value is a date,
         # and the date is not an exact date that the sample has a version, the first more recent result will be selected
         else:
@@ -322,24 +323,8 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
                         merge_nested_dicts(old_versions_merged, x)
                 merge_nested_dicts(current_version['results'], old_versions_merged)
             requested_document = current_version
+            latest_version = False
         # 4. Revert the effective dict to list storage to a readable format for the html reporter
         requested_document = self.revert_typinghitlists_to_dictionaries(requested_document, headers_collection)
         requested_document['latest_analysis_date'] = requested_document['results']['analysis_date']
-        return requested_document
-
-    @staticmethod
-    def retrieve_number_of_old_isolate_results(isolate_id: str, old_isolateresults_collection: pymongo.collection.Collection, validation_type: str) -> int:
-        """
-        Retrieves the number of old isolate results for a specific isolate_id.
-        param old_isolateresults_collection: pymongo collection of old isolate results
-        param validation_type: null, bad_quality or resequencing
-        return: number of old isolate results for a specific isolate_id
-        """
-        if validation_type == 'null':
-            old_versions = old_isolateresults_collection.with_options(read_concern=ReadConcern(level="majority")). \
-                find({'isolates_id': isolate_id})
-            old_versions = [x for x in old_versions if x is not None]
-            number_of_old_versions = len(old_versions)
-        else:
-            number_of_old_versions = 0
-        return number_of_old_versions
+        return requested_document, latest_version

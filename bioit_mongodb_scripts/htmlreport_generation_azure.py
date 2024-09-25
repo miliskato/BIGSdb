@@ -54,10 +54,9 @@ class HtmlreportGeneration:
         :param species: commonly used bioit species name: either genus or specific like stec
         :param technical_id: sample id/ isolates id
         :param dtap: dev, test, acc, or prod
-        :param validation_type: null, bad_quality or resequencing
         :param changed_version: changed version of the desired report
         :param analysis_date: desired date of the report (usually today but can query previous versions too (used in BIGSdb)),
-        if it doesn't exist, get the closest more recent report date
+        if it doesnt exist, get the closest more recent report date
         :return: None
         """
         # Input parameters
@@ -112,10 +111,12 @@ class HtmlreportGeneration:
         """
         if self._validation_type == 'bad_quality':
             requested_document = self._isolates_badqc_collection.find_one({'_id': self._technical_id, 'latest_analysis_date': self._analysis_date})
+            latest_version = True
         elif self._validation_type == 'resequencing':
             requested_document = self._isolates_resequencing_collection.find_one({'_id': self._technical_id, 'latest_analysis_date': self._analysis_date})
+            latest_version = True
         else:  # self._validation_type == 'null':
-            requested_document = self._mongoquerying.get_any_results_version(
+            requested_document, latest_version = self._mongoquerying.get_any_results_version(
                 self._technical_id, 'analysis_date' if self._analysis_date else 'changed_version',
                 self._analysis_date if self._analysis_date else self._changed_version,
                 self._isolates_collection, self._old_isolateresults_collection, self._headers_collection)
@@ -125,10 +126,7 @@ class HtmlreportGeneration:
             [self._technical_id, self._analysis_date if self._analysis_date else str(self._changed_version)])
         dir_out.mkdir(parents=True, exist_ok=True)
 
-        number_of_old_isolate_results = self._mongoquerying.retrieve_number_of_old_isolate_results(
-            self._technical_id, self._old_isolateresults_collection, self._validation_type)
-
-        if number_of_old_isolate_results > 0:  # badqc and reseq isolates do not have old_isolate_results
+        if not latest_version:  # badqc and reseq isolates do not have old_isolate_results
             with self.__create_temp_dir('temp_reporting') as dir_temp:
                 # Dump the required json file
                 jsonfile = Path(dir_temp) / f"{self._technical_id}_temp.json"

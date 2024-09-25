@@ -19,7 +19,7 @@ species:
     salmonella:
         lmod: camel_hera/0.1
         main_script: mainsalmonellapipeline.py
-        options: ['--serotype', '--spifinder', '--mlst', '--cgmlst', '--resfinder', '--ncbi-amr', '--vfdb-core', '--plasmidfinder', '--cgmlst', '--pointfinder', '--abritamr']
+        options: ['--serotype', '--spifinder', '--mlst', '--cgmlst', '--resfinder', '--ncbi-amr', '--vfdb-core', '--plasmidfinder', '--pointfinder', '--abritamr']
     influenza_a:
         lmod: camel_hera/0.1
         main_script: mainviralconsensuspipeline.py
@@ -36,6 +36,7 @@ species:
 mongodb:
     lmod: bioit_mongodb/0.1
     main_script: mainmongo.py
+    report_script: html_update_merger.py
 
 failsafe:
   flag_dir: /scratch/temp/flags

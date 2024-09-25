@@ -17,6 +17,11 @@ species:
     - influenza_b
     - sars_cov_2
 
+viral_species:
+    - influenza_a
+    - influenza_b
+    - sars_cov_2
+
 dtap: to_be_replaced_by_ansible
 
 collections:
@@ -35,8 +40,13 @@ collections:
     - unprocessed_nominative_labtest_metadata
     - unprocessed_nominative_clinical_metadata
 
+module_name:
+    - mongo_bigs_dbs/0.1
+
 temp_dir: /scratch/temp
 
 htmlreporterpipeline:
     lmod: camel_hera/0.1
     main_script: mainhtmlreporterpipeline.py
+
+azure_reportsapi_ip: to_be_replaced_by_ansible
