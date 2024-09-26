@@ -6,7 +6,7 @@ import yaml
 from copy import deepcopy
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
@@ -109,11 +109,11 @@ class SendGenomicToDWH(SFTPConnection):
             self._sftp.put(str(jsonfile), remote_path)
             logging.info(f"File uploaded successfully to {remote_path}")
 
-    def __access_value(self, dict_path: List) -> str:
+    def __access_value(self, dict_path: List) -> Optional[str]:
         """
         Given a dictionary path as a list, gets the value of this dictionary path from the input document.
         :param dict_path: ordered list of the path in the dictionary
-        :return: str
+        :return: str or None
         """
         current = deepcopy(self._document)
         for key in dict_path:

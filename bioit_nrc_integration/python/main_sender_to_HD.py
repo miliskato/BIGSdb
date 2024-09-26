@@ -65,9 +65,12 @@ class MainSenderToHD:
             mapping_table_collection, isolates_collection = self.__open_mapping_table_and_isolates_collection(species)
 
             # get documents that need to be sent
-            list_of_unsent_validated_documents = mapping_table_collection.find({'validated': True, 'sent_to_ODS_and_DWH': {'$ne': True}})
+            list_of_unsent_validated_documents = isolates_collection.find({'validated': True,
+                                                                           'sent_to_ODS_and_DWH': {'$ne': True},
+                                                                           'changed_since_sent_to_DWH': {'$ne': False}})
             if self._test_dummy:
-                list_of_unsent_validated_documents = [mapping_dict for mapping_dict in list_of_unsent_validated_documents if mapping_dict['_id'].startswith('test_dummy')]
+                list_of_unsent_validated_documents = [mapping_dict for mapping_dict in list_of_unsent_validated_documents if
+                                                      mapping_dict['_id'].startswith('test_dummy_salmonella_pseudonymized')]
 
             self._fail_log_dict[species] = {'fail_counter': 0,
                                             'fail_logs': '',
@@ -75,8 +78,7 @@ class MainSenderToHD:
             
             for document in list_of_unsent_validated_documents:
                 try:
-                    self.__trigger_sending_to_ods_and_dwh(document, species, mapping_table_collection, 
-                                                          isolates_collection)
+                    self.__trigger_sending_to_ods_and_dwh(document, species, mapping_table_collection)
                 except Exception as exceptionmessage:
                     self._fail_log_dict[species]['fail_counter'] += 1
                     self._fail_log_dict[species]['fail_ids'].append(document['_id'])
@@ -102,30 +104,29 @@ class MainSenderToHD:
                                               alternate_connection_string=self._mongo_config_data[
                                                   'CONNECTION_STRING_LOCAL'],
                                               alternate_dtap=self._alternate_dtap)
-        # Seeing as there is no validation for all samples in place yet, I'm going to assume here that the validation info can be found in the mapping table collection
+        # Seeing as there is no validation for all samples in place yet, I'm going to assume here that the validation info can be found in the isolates collection
         # todo
         mapping_table_collection = mongoinit_local.initialise_mapping_table_collection()
         return mapping_table_collection, isolates_collection
 
-    def __trigger_sending_to_ods_and_dwh(self, document_mapping_table: Dict[str, Any], species: str, 
-                                         mapping_table_collection: pymongo.collection.Collection, 
-                                         isolates_collection: pymongo.collection.Collection) -> None:
+    def __trigger_sending_to_ods_and_dwh(self, document_genomic: Dict[str, Any], species: str,
+                                         mapping_table_collection: pymongo.collection.Collection) -> None:
         """
         Triggers the scripts to send the data to the ODS and DWH if they have not been sent yet
-        :param document_mapping_table: mapping table document
+        :param document_genomic: genomic document
         :param species: commonly used bioit species name: either genus or specific like stec
         :param mapping_table_collection: local MongoDB collection storing the mapping table
-        :param isolates_collection: remote MongoDB collection containing the genomic indicators
         :return: None
         """
-        if not document_mapping_table.get('sent_to_ODS'):
+        document_mapping_table = mapping_table_collection.find_one({'pseudo_id': document_genomic['_id']})
+        if not document_genomic.get('sent_to_ODS'):
+            document_mapping_table = mapping_table_collection.find_one({'pseudo_id': document_genomic['_id']})
             SendMappingTableToODS(document_mapping_table, species, alternate_dtap=self._alternate_dtap)
             mapping_table_collection.update_one({'_id': document_mapping_table['_id']},
                                                 {"$set": {"sent_to_ODS": True}})
         
-        if not document_mapping_table.get('sent_to_DWH'):
+        if not document_genomic.get('sent_to_DWH') or document_genomic.get('changed_since_sent_to_DWH'):
             # Get the genomic document and transform it into a non-pseudonymized one
-            document_genomic = isolates_collection.find_one({'_id': document_mapping_table['pseudo_id']})
             document_genomic['_id'] = document_mapping_table['_id']
             document_genomic['pseudo_id'] = document_mapping_table['pseudo_id']
             document_genomic['TX_BUSINESS_KEY'] = document_mapping_table['TX_BUSINESS_KEY']
@@ -134,10 +135,10 @@ class MainSenderToHD:
         
             # technically overkill to add this field here because right after sent_to_ODS_and_DWH is updated,
             # but it is added for clarity and so that the order of sending can be changed easily too
-            mapping_table_collection.update_one({'_id': document_mapping_table['_id']},
-                                                {"$set": {"sent_to_DWH": True}})
+            mapping_table_collection.update_one({'_id': document_genomic['_id']},
+                                                {"$set": {"sent_to_DWH": True, "changed_since_sent_to_DWH": False}})
         
-        mapping_table_collection.update_one({'_id': document_mapping_table['_id']},
+        mapping_table_collection.update_one({'_id': document_genomic['_id']},
                                             {"$set": {"sent_to_ODS_and_DWH": True}})
 
     def __send_email_if_failures(self) -> None:

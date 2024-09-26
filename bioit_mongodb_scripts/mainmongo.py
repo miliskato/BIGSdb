@@ -8,9 +8,11 @@ import shutil
 import socket
 import sys
 import traceback
+import yaml
+from copy import deepcopy
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Tuple, Optional, Union
 
 # import dnspython
 # somehow this package is a requirement without actually needing to be imported, probably imported in pymongo
@@ -22,6 +24,7 @@ PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
 from bioit_mongodb_scripts.config import CLUSTERING_CONFIG
+from bioit_nrc_integration.python.config import CODES_GENOMIC_DWH
 from bioit_mongodb_scripts.util.command.command import Command
 from bioit_mongodb_scripts.util.error import *
 from bioit_mongodb_scripts.util.mongo_custom_clustering import MongoCustomClustering
@@ -389,7 +392,27 @@ class MainMongo:
                          "latest_analysis_date": convert_dmyhms_to_ymd(new_results["results.analysis_date"]),
                          "previous_latest_results_document": self.___write_document(self._old_isolateresults_collection,
                                                                                     deltas_new_old)}})
+        # after having updated the isolates collection, check for changes for HD DWH to respect the order of execution.
+        self.___check_if_any_results_for_hd_dwh_changed(deltas_new_old)
         logging.info(f"Wrote new results and linked to isolate {self._technical_id} in {self._species}")
+
+    def ___check_if_any_results_for_hd_dwh_changed(self, deltas_new_old: Dict[str, Any]) -> None:
+        """
+        Checks if any of the genomic indicators to send to DWH have changed and sets the field
+        'changed_since_sent_to_DWH's value to true in the local MongoDB if
+        :param deltas_new_old: the deltas between the new and the old results; what needs to be applied on the
+        new results to get the old results back.
+        :return: None
+        """
+        with CODES_GENOMIC_DWH.open('r') as handle:
+            translation_codes = yaml.safe_load(handle)
+        for variable, list_path in translation_codes[self._species].items():
+            list_path = list_path[1:]  # skip the first value which is always 'results' and is not in the delta
+            if self.____access_value_in_dict(list_path, deltas_new_old):
+                self._isolates_collection.update_one({'_id': deltas_new_old['isolates_id']},
+                                                     {'$set': {'changed_since_sent_to_DWH': True,
+                                                               'changes_accepted_by_DWH': False}})
+                break  # break the loop once at least one change has been discovered
 
     @staticmethod
     def ___write_document(opened_collection: pymongo.collection.Collection, json_input: Dict[str, Any]) -> str:
@@ -605,6 +628,21 @@ class MainMongo:
             delta_new_old['results_version'] = current_results['results_version']
             delta_new_old['changed_version'] = current_results['changed_version']
         return delta_new_old
+
+    @staticmethod
+    def ____access_value_in_dict(dict_path: List, search_dict: Dict[str, Any]) -> Optional[str]:
+        """
+        Given a dictionary path as a list, gets the value of this dictionary path from the given search dictionary.
+        :param dict_path: ordered list of the path in the dictionary
+        :param search_dict: The dictionary in which to search for the dict_path
+        :return: str or None
+        """
+        current = deepcopy(search_dict)
+        for key in dict_path:
+            current = current.get(key)
+            if not current:
+                break
+        return current
 
     def ___convert_typinghitdictionaries_to_lists(self, document: Dict[str, Any]) -> Dict[str, Any]:
         """

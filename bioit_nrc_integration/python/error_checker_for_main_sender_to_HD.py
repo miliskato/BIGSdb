@@ -117,16 +117,21 @@ class ErrorCheckerForMainSenderToHD(SFTPConnection):
                     # get species name based on dcd name which is a metadata value in both outgoing DCDs
                     species = next(pathogen for pathogen, details in self._translation_codes['pathogens'].items() if details['dcd_name'] == dcd_name)
                     # Open correct pathogen specific MongoDB database
-                    mongoinit_local = MongoInitialisation(species, mongo_config_data=self._mongo_config_data,
-                                                          alternate_connection_string=self._mongo_config_data['CONNECTION_STRING_LOCAL'],
+                    mongoinit_azure = MongoInitialisation(species, mongo_config_data=self._mongo_config_data,
+                                                          alternate_connection_string=self._mongo_config_data['CONNECTION_STRING_AZURE'],
                                                           alternate_dtap=self._alternate_dtap)
-                    mapping_table_collection = mongoinit_local.initialise_mapping_table_collection()
+                    isolates_collection, old_isolateresults_collection, isolates_badqc_collection, \
+                        isolates_resequencing_collection = mongoinit_azure.initialise_collections()
                     if healthdata_receiver == 'ODS':
-                        mapping_table_collection.update_one({'TX_BUSINESS_KEY': contents['data']['TX_BUSINESS_KEY']},
-                                                            {"$set": {f"accepted_by_{healthdata_receiver}": True}})
+                        isolates_collection.update_one({'_id': contents['data']['TX_BIOIT_TECHNICAL_ID']},
+                                                       {"$set": {f"accepted_by_{healthdata_receiver}": True}})
                     else:  # if healthdata_receiver == 'DWH':
-                        mapping_table_collection.update_one({'pseudo_id': contents['data']['TX_BIOIT_TECHNICAL_ID']},
-                                                            {"$set": {f"accepted_by_{healthdata_receiver}": True}})
+                        isolates_collection.update_one({'_id': contents['data']['TX_BIOIT_TECHNICAL_ID']},
+                                                       {"$set": {f"accepted_by_{healthdata_receiver}": True,  # this field means that the data were accepted at least once by the DWH
+                                                                 f"changes_accepted_by_{healthdata_receiver}": True}})
+                        # the 'changes_accepted_by_DWH' field interplays with 'changed_since_sent_to_DWH' that is set by MainMongo and modified by main_sender_to_HD;
+                        # every time a reanalysis detects a change in the sendable fields, both the changed and accepted fields are set to True and False respectively.
+                        # At this point in the script they would be False and True respectively again which is the end-state.
                     # Remove sftp file in processed folder once acknowledged and inserted into MongoDB local
                     sftp.remove(f'{folder_path}/{file}')
 

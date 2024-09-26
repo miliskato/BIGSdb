@@ -9,6 +9,7 @@ import yaml
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
+from bioit_mongodb_scripts.mainmongo import MainMongo
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data
 from bioit_nrc_integration.python.config import SFTP_CREDENTIALS_HD
@@ -135,10 +136,46 @@ for species, species_testfiles in testfiles_dict.items():
     ErrorCheckerForMainSenderToHD(test_dummy=True, alternate_dtap=DTAP)
 
     """
+    Run MainMongo for reanalysis
+    """
+    MainMongo(dummy_genomic_report['_id'], 'salmonella', 'reanalysis', 'bioit@sciensano.be', pipeline_hash='0123456789', jsonfilepath=testfiles_folder / species_testfiles['genomic_json_reanalysis_report'], alternate_dtap=DTAP)
+
+    """
+    Run main sender after reanalysis
+    """
+    MainSenderToHD(test_dummy=True, alternate_dtap=DTAP)
+
+    """
+    Move DWH files to processed folder as if HD had done it again
+    """
+    # Create an SSH client
+    ssh_dwh = paramiko.SSHClient()
+    ssh_dwh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    # Connect to the server
+    ssh_dwh.connect(sftp_credentials_hd['hostname_send_genomic_to_DWH'],
+                    sftp_credentials_hd['port_send_genomic_to_DWH'],
+                    sftp_credentials_hd['username_send_genomic_to_DWH'],
+                    sftp_credentials_hd['password_send_genomic_to_DWH'])
+    # Create an SFTP session
+    sftp_dwh = ssh_dwh.open_sftp()
+
+    sftp_dwh.rename(f"to_hd/{DTAP}/{dummy_mapping_table['pseudo_id']}.json",
+                    f"to_hd/{DTAP}/processed/{dummy_mapping_table['pseudo_id']}.json")
+
+    sftp_dwh.close()
+    ssh_dwh.close()
+
+    """
+    Run main error checker and processed acknowledger again after reanalysis resending
+    """
+    ErrorCheckerForMainSenderToHD(test_dummy=True, alternate_dtap=DTAP)
+
+    """
     Clean up both MongoDBs
     """
     # MongoDB Azure
     isolates_collection.delete_one({'_id': dummy_genomic_report['_id']})  # id = pseudo_id
+    old_isolateresults_collection.delete_one({'isolates_id': dummy_genomic_report['_id']})  # id = pseudo_id
 
     # MongoDB local
     mapping_table_collection.delete_one({'_id': dummy_mapping_table['_id']})  # id = id
