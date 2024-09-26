@@ -29,10 +29,11 @@ class MongoRecordDict(BridgeDict):
         return self.get('_id')
 
     def set_isolate_id(self, isolate_id: str) :
-        self['isolate_id'] = isolate_id
+        self['isolates_id'] = isolate_id
 
-    def get_isolate_id(self) -> Union[str, None] :
-        return self['isolate_id']
+    def get_validation_type(self) -> str:
+        return self.get('validation',{}).get('type',None)
 
     def get_json_results(self) -> JsonReportDict:
         return JsonReportDict(self.get("results"))
+

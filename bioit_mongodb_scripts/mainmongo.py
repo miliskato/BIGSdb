@@ -66,7 +66,7 @@ class MainMongo:
     Class containing definitions to insert samples into MongoDB
     """
     def __init__(self, technical_id: str, species: str, results_type: str, pipeline_hash: str, jsonfilepath: Path = None,
-                 subvaldict: Dict[str, str] = None, technical_metadata_path: Path = None ,reportdirectorypath: Path = None, fastafilepath: Path = None,
+                 subvaldict: Dict[str, str] = None, technical_metadata_path: Path = None, reportdirectorypath: Path = None, fastafilepath: Path = None,
                  vcffilepath: Path = None, vcffilepath_unfiltered: Path = None, original_input_format: str = None, connection_string: str = None, alternate_connection_string: str = None, alternate_dtap: Union[str, None] = None,
                  dont_send_email: bool = False, mongo_config_data: Dict[str, Any] = None) -> None:
         """
@@ -198,7 +198,6 @@ class MainMongo:
                     self.__process_json_report(new_json_report)
         elif self._results_type == 'badqc_validated':
             sample_doc = MongoRecordDict(self._isolates_badqc_collection.find_one({"_id": self._technical_id}))
-#            new_records = sample_doc['results']
             self.__process_mongo_record(sample_doc)
 
         elif self._results_type == "reanalysis" or self._results_type == 'resequencing_validated':
@@ -216,12 +215,12 @@ class MainMongo:
                 json_report = JsonReportDict.from_json(self._jsonfilepath)
             else:  # self._results_type == 'resequencing_validated'
                 existing_mongo_record = MongoRecordDict(self._isolates_resequencing_collection.find_one({"_id": self._technical_id}))
-                json_report = JsonReportDict(existing_mongo_record["results"])
+                json_report = existing_mongo_record.get_json_results()
 
             self.__new_reanalysis_wrapper(current_results_document, json_report)
 
     def __process_json_report(self, json_report: JsonReportDict) -> MongoRecordDict:
-        input["isolates_id"] = self._technical_id  # it's a duplication of _id, do we need it ?
+        json_report["isolates_id"] = self._technical_id  # it's a duplication of _id, do we need it ?
         mongo_records = self.___initialize_mongo_record(json_report)
 
         good_sample_quality = True
@@ -234,7 +233,7 @@ class MainMongo:
     def __process_mongo_record(self, mongo_records: MongoRecordDict, good_sample_quality: bool = True):
         """
         Handles and inserts new isolates, whether that be actual new isolates or validated bad samples
-        :param input: results dictionary that is modified and inserted
+        :param mongo_records: results dic coming from mongo
         :return: None
         """
 
@@ -259,7 +258,7 @@ class MainMongo:
             logging.warning(
                 f"New isolate {self._technical_id} failed quality control for one or more checks. It's results were written to the 'isolates_badqc' collection in the {self._species} database")
 
-    def is_good_quality(self, new_json_report: JsonReportDict):
+    def is_good_quality(self, new_json_report: JsonReportDict) -> bool:
         qc = new_json_report.get('qc')
         if qc is None:
             send_email(f"No qc values found in the given results for {self._technical_id}\n{traceback.format_exc()}", dont_send_email=self._dont_send_email)
@@ -336,8 +335,7 @@ class MainMongo:
             send_email(f"These ({self._technical_id})results seem to be older than the current results\n{traceback.format_exc()}", dont_send_email=self._dont_send_email)
             raise MongoReanalysisDateError(
                 f"{Path(__file__).name} fail on host {socket.gethostname()}: These ({self._technical_id})results seem to be older than the current results")
-        any_result_changed_new_old, unchanged_results_new_old, changed_results_new_old = \
-            self.___check_if_results_changed(current_results, new_json_report)
+        any_result_changed_new_old, unchanged_results_new_old, changed_results_new_old = self.___check_if_results_changed(current_results, new_json_report)
         # Update new results if really a reanalysis/resequencing where at least one field changed
         if 'cgmlst' in changed_results_new_old:
 
@@ -351,7 +349,6 @@ class MainMongo:
             new_json_report["cgST"] = sequence_type
         deltas_new_old = self.___nested_dict_delta(current_results, new_json_report)
         new_results = self.___prepend_string_dot_to_dict_keys(new_json_report, 'results')
-        new_results["results.isolates_id"] = self._technical_id
         new_results["results.results_version"] = current_results["results_version"] + 1
         new_results["results.pipeline_hash"] = self._pipeline_hash
         if any_result_changed_new_old is True:
@@ -377,7 +374,7 @@ class MainMongo:
             else:
                 # Removing the temporary working dir and the remaining files that were not kept
                 shutil.rmtree(Path(new_json_report['report_directory']))
-                logging.info(f"Resequecing directory {new_json_report['report_directory']} deletion for isolate '{self._technical_id}' completed")
+                logging.info(f"Resequencing directory {new_json_report['report_directory']} deletion for isolate '{self._technical_id}' completed")
             # Remove the isolate from the resequencing collection to allow for new resequencings
             self._isolates_resequencing_collection.delete_one({'_id': self._technical_id})
         self._isolates_collection.with_options(write_concern=WriteConcern(w="majority")).update_one(
@@ -386,11 +383,11 @@ class MainMongo:
                          "results.results_changed_since_last_version": any_result_changed_new_old,
                          "latest_analysis_date": convert_dmyhms_to_ymd(new_results["results.analysis_date"]),
                          "previous_latest_results_document": self.___write_document(self._old_isolateresults_collection,
-                                                                                    deltas_new_old)}})
+                                                                                    MongoRecordDict(dict(deltas_new_old)))}})
         logging.info(f"Wrote new results and linked to isolate {self._technical_id} in {self._species}")
 
     @staticmethod
-    def ___write_document(opened_collection: pymongo.collection.Collection, json_input: Dict[str, Any]) -> str:
+    def ___write_document(opened_collection: pymongo.collection.Collection, json_input: MongoRecordDict) -> str:
         """
         Write a document into a collection. if the provided document doesnt contain an _id key, then it is autogenerated
         else the would be autogenerated _id field is overwritten by the one provided
@@ -426,15 +423,14 @@ class MainMongo:
             "technical_metadata": technical_metadata,
             "results": results})
 
-    def ___retrieve_technical_metadata(self, results: Dict[str, Any]) -> Dict[str, Any]:
+    def ___retrieve_technical_metadata(self, results: JsonReportDict) -> JsonReportDict:
         """
         Load the technical metadata in a dictionary and fill in fields that are used when FASTA input is used if
         the input is FASTQ.
         :params results: results dictionary
         :return: dictionary with the technical metadata
         """
-        with Path(self._technical_metadata_path).open('r') as handle:
-            metadata = json.load(handle)
+        metadata = JsonReportDict.from_json(self._technical_metadata_path)
         if str(self._original_input_format) == 'fastq':
             tx_seq_fltr_meth = ', '.join([f"downsample factor: {results['downsampling']['downsample_factor']}",
                                           f"trimming: {results['trimming']['informs_tools']['Trimmomatic']['_name']}",
@@ -512,7 +508,7 @@ class MainMongo:
                         if existing_document is None:
                             temp_allele = self.___max_temp_allele_name_new_entry(hashed_ad_collection, allele_info['Locus'],
                                                                                  typing_scheme)
-                            self.___write_document(hashed_ad_collection, {"scheme": typing_scheme,
+                            self.___write_document(hashed_ad_collection, MongoRecordDict({"scheme": typing_scheme,
                                                                          "locus": allele_info['Locus'],
                                                                          "hashed_allele": allele_info['Allele'],
                                                                          "allele_sequence": allele_info['Allele_sequence'],
@@ -520,7 +516,7 @@ class MainMongo:
                                                                          "resolved_AD": 0,
                                                                          "temp_allele_name": temp_allele,
                                                                          "insertion_date": datetime.utcnow(),
-                                                                          })
+                                                                          }))
                             json_report[typing_scheme]['loci'][locus_index]['Allele'] = temp_allele  # replace the name of the allele in the results (no hash anymore)
                         else:
                             temp_allele = existing_document["temp_allele_name"]
@@ -572,7 +568,7 @@ class MainMongo:
                     unchanged_results.add(mainkey)
         return any_result_changed, unchanged_results, changed_results
 
-    def ___nested_dict_delta(self, current_results: JsonReportDict, new_results: JsonReportDict) -> Dict[str, Any]:
+    def ___nested_dict_delta(self, current_results: JsonReportDict, new_results: JsonReportDict) -> JsonReportDict:
         """
         This function calculates the delta between the new results and the current results;
         it returns the changes needed to get from the new results to the current results.
@@ -581,11 +577,11 @@ class MainMongo:
         :return: dictionary of deltas
         """
         # TODO what with new keys in the new_results (not on assay level)?
-        delta_new_old = {}
+        delta_new_old = JsonReportDict({})
         for key, value in current_results.items():
             if key in new_results:
                 if isinstance(value, dict) and isinstance(new_results[key], dict):
-                    nested_delta = self.___nested_dict_delta(value, new_results[key])
+                    nested_delta = self.___nested_dict_delta(JsonReportDict(value), new_results[key])
                     if nested_delta:
                         delta_new_old[key] = nested_delta
                 elif new_results[key] != value:

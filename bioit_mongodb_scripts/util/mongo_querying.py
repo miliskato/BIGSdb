@@ -176,7 +176,7 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
     #     return hc_data.get_hc_number(hc_number)
 
     @staticmethod
-    def revert_typinghitlists_to_dictionaries(document: Dict[str, Any], headers_collection: pymongo.collection.Collection) -> Dict[str, Any]:
+    def revert_typinghitlists_to_dictionaries(document: MongoRecordDict, headers_collection: pymongo.collection.Collection) -> None:
         """
         This function restores the lists of hit metadata (Allele, %id, length etc.) to dictionaries which are more
         easily readable and required for bigsdb
@@ -189,8 +189,9 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         hit_metadata: Union[None, Dict[str, Union[object, str, List[str]]]] = headers_collection.find_one({'type': 'hit_metadata'})
         if hit_metadata is None:
             # no header so can not revert anything
-            return document
-        results_to_modify = (document['results'] if 'results' in document else document)  # this is not a deepcopy so results will be modified in document as well
+            return
+        results_to_modify=document.get_json_results()
+        #results_to_modify = (document['results'] if 'results' in document else document)  # this is not a deepcopy so results will be modified in document as well
         for mainkey in results_to_modify:  # mainkey is assay or metadata
             if isinstance(results_to_modify[mainkey], dict):
                 for subkey in results_to_modify[mainkey]:
@@ -205,12 +206,11 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
                                 single_hit_dictionary['Locus'] = locus
                                 meta_hit_list.append(single_hit_dictionary)
                             results_to_modify[mainkey][subkey] = meta_hit_list
-        return document
 
     def get_any_results_version(self, isolate_id: str, searchkey: str, searchvalue: Union[str, int],
                                 isolates_collection: pymongo.collection.Collection,
                                 old_isolateresults_collection: pymongo.collection.Collection,
-                                headers_collection: pymongo.collection.Collection) -> Dict[str, Any]:
+                                headers_collection: pymongo.collection.Collection) -> MongoRecordDict:
         """
         Gets any results version for a given isolate_id
         :param isolate_id: name of the isolate corresponding to the _id key in the isolates collection
@@ -229,7 +229,7 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         if searchkey == 'analysis_date' and not isinstance(searchvalue, str) and not re.match(r'^\d{4}-\d{2}-\d{2}$', searchvalue):
             raise ValueError(f'if analysis_date is searchkey; searchvalue must be string in YYYY-MM-DD format')
         # 2. Query current results and check whether current results version is the one requested
-        current_version = isolates_collection.with_options(read_concern=ReadConcern(level="majority")).find_one({'_id': isolate_id})
+        current_version = MongoRecordDict(isolates_collection.with_options(read_concern=ReadConcern(level="majority")).find_one({'_id': isolate_id}))
         if current_version is None:
             raise Exception(f"No isolate with id '{isolate_id}' could be found in MongoDB.")
         if searchkey == 'changed_version' and current_version['results'][searchkey] <= searchvalue:
@@ -240,12 +240,12 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         # and the date is not an exact date that the sample has a version, the first more recent result will be selected
         else:
             if searchkey == 'changed_version':
-                old_versions = old_isolateresults_collection.with_options(read_concern=ReadConcern(level="majority")).\
-                    find({'isolates_id': isolate_id, searchkey: {'$gte': searchvalue}})
+                old_versions = list(map(lambda x: MongoRecordDict(x), old_isolateresults_collection.with_options(read_concern=ReadConcern(level="majority")).\
+                    find({'isolates_id': isolate_id, searchkey: {'$gte': searchvalue}})))
                 old_versions = sorted(old_versions, key=lambda x: convert_dmyhms_to_ymd(x['analysis_date']), reverse=True)
             else:  # key == 'analysis_date'
-                old_versions = old_isolateresults_collection.with_options(read_concern=ReadConcern(level="majority")).\
-                    find({'isolates_id': isolate_id})
+                old_versions = list(map(lambda x: MongoRecordDict(x), old_isolateresults_collection.with_options(read_concern=ReadConcern(level="majority")).\
+                    find({'isolates_id': isolate_id})))
                 # sort from most recent to oldest
                 old_versions = sorted([x for x in old_versions if convert_dmyhms_to_ymd(x['analysis_date']) >= searchvalue], key=lambda x: convert_dmyhms_to_ymd(x['analysis_date']), reverse=True)
             if len(old_versions) > 0:
@@ -256,7 +256,7 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
                 merge_nested_dicts(current_version['results'], old_versions_merged)
             requested_document = current_version
         # 4. Revert the effective dict to list storage to a readable format for the html reporter
-        requested_document = self.revert_typinghitlists_to_dictionaries(requested_document, headers_collection)
+        self.revert_typinghitlists_to_dictionaries(requested_document, headers_collection)
         requested_document['latest_analysis_date'] = requested_document['results']['analysis_date']
         return requested_document
 
