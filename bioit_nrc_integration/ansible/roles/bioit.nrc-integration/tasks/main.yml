@@ -156,6 +156,13 @@
     virtualenv_python: python3.10
   become: yes
 
+- name: Install bioit_mongodb_scripts requirements to be able to use MainMongo in the test all script (not needed elsewhere)
+  pip:
+    requirements: "{{ bioit_bigs_home }}/bioit_mongodb_scripts/requirements.txt"
+    virtualenv: "{{ nrcint_venv }}"
+    virtualenv_python: python3.10
+  become: yes
+
 - name: restart nrcint supervisord which manages WSGI
   supervisorctl:
     name: nrcint
