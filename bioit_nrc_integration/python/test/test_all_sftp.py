@@ -75,15 +75,17 @@ for species, species_testfiles in testfiles_dict.items():
     ssh.close()
 
     """
-    Insert dummy genomic report JSON into remote isolates collection, skip MainMongo.
+    Insert dummy genomic report JSON into remote isolates collection, skip MainMongo. 
+    Use 'validated' = true value to mimic validation
     """
     with (testfiles_folder / species_testfiles['genomic_json_report']).open('r') as handle:
         dummy_genomic_report = json.load(handle)
+        dummy_genomic_report['validated'] = True
     isolates_collection.insert_one(dummy_genomic_report)
 
     """
-    Insert mapping table with validated=True into mapping table collection for the main sender to be able to 
-    discover in order to be able to send it.
+    Insert mapping table for the main sender to be able to 
+    discover and send it.
     """
     with (testfiles_folder / species_testfiles['mapping_table']).open('r') as handle:
         dummy_mapping_table = json.load(handle)
