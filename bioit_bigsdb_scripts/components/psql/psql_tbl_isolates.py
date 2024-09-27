@@ -53,7 +53,7 @@ class TblIsolates(DatabaseConnection):
         """
         self.execute_query(PsqlQueries.ISO_INS__TB_ISO_VAR_ISO_UPL_DATE, param)
 
-    def update_isolate_analysis_date(self, param: Tuple[str, str, str, str]) -> None:
+    def update_isolate_analysis_date(self, param: Tuple[str, str]) -> None:
         """
         Inserts a new isolate version
         :param param: variables to feed to the PSQL query, which also sanitizes these variables,

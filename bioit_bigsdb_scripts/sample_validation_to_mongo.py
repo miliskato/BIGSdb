@@ -95,9 +95,9 @@ class SampleValidationToMongo:
                 curator_mailadress: str = query[0][3]
                 validation_type: str = query[0][4]
                 pipeline_hash: str = query[1][1]
-                results_type = self.__get_results_type(validation_type)
+                results_type = self.__get_results_type(validation_type) #badqc_validated or resequencing_validated
                 pseudo_id = self._mapping_collection.find_one({"_id": isolatename})['pseudo_id']
-                # GO into MongoDB
+                # GO into MongoDB so type in Mongo might be either badqc or resequencing
                 validation_dict = {
                     'outcome': outcome,
                     'curator': curator_mailadress,

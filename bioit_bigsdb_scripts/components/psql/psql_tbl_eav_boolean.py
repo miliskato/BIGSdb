@@ -25,3 +25,11 @@ class TblEavBoolean(DatabaseConnection):
         :return: None
         """
         self.execute_query(PsqlQueries.ISO_INS__TB_EAVB_VAR_ISO_FIELD_VAL, param)
+
+    def delete_eavbool_for_isolate(self, param: Tuple[str]) -> None:
+        """
+        Delete all boolean metadata value for a specific isolate
+        :param param: isolate_id
+        :return: None
+        """
+        self.execute_query(PsqlQueries.ISO_DEL__TB_EAVB_VAR_ISOLATE_ID, param)

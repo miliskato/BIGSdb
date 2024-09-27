@@ -44,6 +44,7 @@ class PsqlQueries():
 
     # TBL allele designations
     ISO_DEL__TB_AD_VAR_LOCUS: Final[str] = """DELETE FROM allele_designations WHERE locus LIKE %s;"""
+    ISO_DEL__TB_AD_VAR_ISOLATE_ID: Final[str] = """DELETE FROM allele_designations WHERE isolate_id LIKE %s;"""
     ISO_INS__TB_AD_VAR_LOCUS_ID_ALLELE: Final[str] = """
         INSERT INTO allele_designations(locus, isolate_id, 
         allele_id, status, method, sender, 
@@ -128,12 +129,15 @@ class PsqlQueries():
     ISO_INS__TB_EAVB_VAR_ISO_FIELD_VAL: Final[str] = """
         INSERT INTO eav_boolean(isolate_id, field, value) 
         VALUES((SELECT id FROM isolates WHERE isolate=%s), %s, %s);"""
+    ISO_DEL__TB_EAVB_VAR_ISOLATE_ID: Final[str] = """
+        DELETE FROM eav_boolean where isolate_id = %s;"""
 
     # TBL extended attribute values int
     ISO_INS__TB_EAVI_VAR_ISO_FIELD_VAL: Final[str] = """
         INSERT INTO eav_int(isolate_id, field, value) 
         VALUES((SELECT id FROM isolates WHERE isolate=%s), %s, %s);"""
     # TBL extended attribute values text
+    ISO_DEL__TB_EAVT_ALL: Final[str] = """DELETE FROM eav_text WHERE isolate_id=%s;"""
     ISO_DEL__TB_EAVT_VAR_ID_FIELD: Final[str] = """DELETE FROM eav_text WHERE isolate_id=%s AND field=%s;"""
     ISO_INS__TB_EAVT_VAR_ID_FIELD_VAL: Final[str] = """
         INSERT INTO eav_text(isolate_id, field, value) VALUES(%s, %s, %s);"""
@@ -331,6 +335,8 @@ class PsqlQueries():
         (SELECT id FROM isolates WHERE isolate=%s), 
         'f', %s, %s, 1, 
         1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE));"""
+    ISO_DEL__TB_SEQBIN_VAR_ISO: Final[str] = """
+        DELETE FROM sequence_bin WHERE isolate=%s;"""
     ISO_SEL_COUNT_TB_SEQBIN_VAR_ISO: Final[str] = """
         SELECT COUNT(*) FROM sequence_bin WHERE isolate_id=(SELECT id FROM isolates WHERE isolate=%s);"""
     ISO_UPD_REVERSE_TB_SEQBIN_VAR_ISO_ISO: Final[str] = """

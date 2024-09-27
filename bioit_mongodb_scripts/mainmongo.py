@@ -338,8 +338,6 @@ class MainMongo:
         any_result_changed_new_old, unchanged_results_new_old, changed_results_new_old = self.___check_if_results_changed(current_results, new_json_report)
         # Update new results if really a reanalysis/resequencing where at least one field changed
         if 'cgmlst' in changed_results_new_old:
-
-
             clustering_input = self._mongoquerying.singledoc_typing_results_by_technicalids_and_scheme(new_json_report, self._technical_id, "cgmlst", self._headers_collection)
             custom_clustering = MongoCustomClustering(clustering_input[0], clustering_input[1],
                                                       self._species, self._mongo_config_data)
@@ -349,6 +347,7 @@ class MainMongo:
             new_json_report["cgST"] = sequence_type
         deltas_new_old = self.___nested_dict_delta(current_results, new_json_report)
         new_results = self.___prepend_string_dot_to_dict_keys(new_json_report, 'results')
+        new_results["results.isolates_id"] = self._technical_id
         new_results["results.results_version"] = current_results["results_version"] + 1
         new_results["results.pipeline_hash"] = self._pipeline_hash
         if any_result_changed_new_old is True:

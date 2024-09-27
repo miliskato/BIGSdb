@@ -4,9 +4,11 @@ import socket
 import sys
 import traceback
 from pathlib import Path
-from typing import List
+from typing import List, Literal
 
 from Bio import SeqIO
+
+from bioit_mongodb_scripts.model.json_model import ResultType
 
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
@@ -28,14 +30,16 @@ def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     return argument_parser.parse_args()
 
 
-def insert_assembly(isolatename: str, species: str, fastafilepath: Path) -> None:
+def insert_assembly(isolatename: str, species: str, fastafilepath: Path, results_type: ResultType) -> None:
     """
     Inserts an assembly for a given sample in bigsdb
     :param isolatename: name of the isolate in bigsdb
     :param species: commonly used bioit species name: either genus or specific like stec
     :param fastafilepath: path of the fasta file
+    :param results_type: string defining if we are handling a new isolates or a positively validated badqc / reseq.
     :return: None
     """
+
     try:
         # Connect to db and create cursors
         with TblIsolates(species) as isolates_psql_tbl, TblSequenceBin(species) as isolates_seqbin_psql_tbl:
@@ -47,15 +51,11 @@ def insert_assembly(isolatename: str, species: str, fastafilepath: Path) -> None
                 sys.exit()
 
             presentcontigs = isolates_seqbin_psql_tbl.count_sequencebin((isolatename,))
-            if presentcontigs[0][0] == 0:
-                for record in SeqIO.parse(fastafilepath, "fasta"):
-                    # add the record to the dictionary with the ID as the key and the sequence as the value
-                    isolates_seqbin_psql_tbl.insert_sequencebin((isolatename, str(record.seq), record.id))
-            else:
-                send_email(f"isolate {isolatename} already contains assembly records!",
-                           f'{Path(__file__).name}: Error inserting assembly of {species} pipeline to bigsdb for '
-                           f'sample {isolatename} on host {socket.gethostname()}.')
-                sys.exit()
+            if presentcontigs[0][0] != 0 and results_type == 'resequencing':
+                isolates_seqbin_psql_tbl.delete_sequencebin((isolatename,))
+            for record in SeqIO.parse(fastafilepath, "fasta"):
+                # add the record to the dictionary with the ID as the key and the sequence as the value
+                isolates_seqbin_psql_tbl.insert_sequencebin((isolatename, str(record.seq), record.id))
 
     except Exception as exceptionmessage:
         send_email(f"{exceptionmessage}\n{traceback.format_exc()}",

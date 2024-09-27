@@ -7,6 +7,8 @@ import traceback
 from pathlib import Path
 from typing import Any, Dict, List, Tuple, Union
 
+from bioit_mongodb_scripts.model.json_model import JsonReportDict
+
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
@@ -116,7 +118,7 @@ class GeneDetectionIntoPsql:
         Inserts all the loci (clusters), scheme members and alleles (dummy boolean) in seqdef and isolate dbs if they are not present
         :return: None
         """
-        json_superclass_instance = JsonSuperClass('dummyname', self._species, {'dummydictkey': 'dummydictvalue'}, config_data=self._bigsdb_config_data)
+        json_superclass_instance = JsonSuperClass('dummyname', self._species, JsonReportDict({'dummydictkey': 'dummydictvalue'}), config_data=self._bigsdb_config_data)
         with TblSequences(self._species) as seqdef_sequences_psql_tbl, TblLoci(self._species, 'seqdef') as seqdef_loci_psql_tbl:
             for cluster in self._clusterlist:
                 present: List[Tuple[int]] = seqdef_loci_psql_tbl.count_locus((cluster,))

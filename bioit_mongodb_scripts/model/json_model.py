@@ -1,7 +1,9 @@
 from collections import UserDict
 from pathlib import Path
-from typing import List, Dict, Union, Any
+from typing import Dict, Union, Any, Literal
 import json
+
+ResultType = Literal['new_isolate','badqc','resequencing','reanalysis']
 
 class BridgeDict(UserDict):
     source: Dict[str, Any]
@@ -31,7 +33,7 @@ class MongoRecordDict(BridgeDict):
     def set_isolate_id(self, isolate_id: str) :
         self['isolates_id'] = isolate_id
 
-    def get_validation_type(self) -> str:
+    def get_validation_type(self) -> ResultType:
         return self.get('validation',{}).get('type',None)
 
     def get_json_results(self) -> JsonReportDict:

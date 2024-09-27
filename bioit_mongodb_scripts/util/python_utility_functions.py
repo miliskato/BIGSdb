@@ -10,6 +10,8 @@ from typing import Any, Dict, List, Union
 
 import yaml
 
+from bioit_mongodb_scripts.model.json_model import MongoRecordDict
+
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
@@ -71,7 +73,7 @@ def convert_dmyhms_to_dateobj(datetimestring: str) -> datetime.date:
     """
     return datetime.strptime(datetimestring, '%d/%m/%Y - %X').date()
 
-def merge_nested_dicts(target_dict: Dict[str, Any], merging_dict: Dict[str, Any]) -> Dict[str, Any]:
+def merge_nested_dicts(target_dict: MongoRecordDict, merging_dict: MongoRecordDict) -> Dict[str, Any]:
     """
     Merges a nested dictionary into another target nested dictionary, seeing as this does not create a deepcopy,
     changes are applied regardless of if the output is captured
