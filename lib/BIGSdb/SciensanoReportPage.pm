@@ -20,15 +20,17 @@ package BIGSdb::SciensanoReportPage;
 use strict;
 use warnings;
 use 5.010;
-use parent qw(BIGSdb::TreeViewPage);
+use parent qw(BIGSdb::Page);
 use BIGSdb::Constants qw(:interface :limits COUNTRIES DEFAULT_CODON_TABLE NULL_TERMS);
 use BIGSdb::JSContent;
 use Log::Log4perl qw(get_logger);
 use Try::Tiny;
 use List::MoreUtils qw(none uniq);
+use HTTP::Request ();
 use JSON;
 use Template;
 use Bio::Tools::CodonTable;
+use Data::Dumper;
 my $logger = get_logger('BIGSdb.Page');
 use constant ISOLATE_SUMMARY     => 1;
 use constant LOCUS_SUMMARY       => 2;
@@ -50,31 +52,68 @@ sub get_help_url {
 
 sub initiate {
 	my ($self) = @_;
-	if ( $self->{'cgi'}->param('no_header') ) {
-		$self->{'type'}    = 'no_header';
-		$self->{'noCache'} = 1;
-		return;
+	my $q = $self->{'cgi'};
+	my $get_zip  = $q->param('get_zip');
+
+	if ($get_zip == 'yes') {
+		$self->{'type'} = 'tar';
+	} else {
+		$self->{'type'} = 'no_header';
 	}
-	$self->{$_} = 1 foreach qw(jQuery jQuery.jstree jQuery.columnizer);
-	my $field_attributes = $self->{'xmlHandler'}->get_all_field_attributes;
-	foreach my $field ( keys %$field_attributes ) {
-		if ( $field_attributes->{$field}->{'type'} eq 'geography_point'
-			|| ( $field_attributes->{$field}->{'geography_point_lookup'} // q() ) eq 'yes' )
-		{
-			$self->{'ol'} = 1;
-			last;
-		}
-	}
-	$self->set_level1_breadcrumbs;
+
+	$self->{'noCache'} = 1;
+
 	return;
+}
+
+sub print_page_content {
+	my ($self) = @_;
+	my $q = $self->{'cgi'};
+	my $isolate_id  = $q->param('id');
+
+	my $get_zip  = $q->param('get_zip');
+	my $content_type = 'text/html';
+	if ($get_zip eq 'yes') {
+		$content_type = 'application/zip';
+	}
+
+	$self->{'isolate_data'} = $self->{'datastore'}->run_query( "SELECT * FROM $self->{'system'}->{'view'} WHERE id=?", $isolate_id, { fetch => 'row_hashref' } );
+	my $identifier = $self->{'isolate_data'}->{'isolate'};
+
+	$q->charset('UTF-8');
+	if ( !$q->cookie( -name => 'guid' ) && $self->{'prefstore'} ) {
+		my $guid = $self->{'prefstore'}->get_new_guid;
+		push @{ $self->{'cookies'} },
+		  $q->cookie(
+			-name     => 'guid',
+			-value    => $guid,
+			-expires  => '+10y',
+			-httponly => 1,
+			-secure   => $self->{'config'}->{'secure_cookies'} ? 1 : 0
+		  );
+		$self->{'setOptions'} = 1;
+	}
+	my %header_options;
+	$header_options{'-cookie'}  = $self->{'cookies'} if $self->{'cookies'};
+	$header_options{'-expires'} = '+1h'              if !$self->{'noCache'};
+
+	$header_options{'-type'} = $content_type;
+
+	if ($content_type eq 'application/zip') {
+		$header_options{'-attachment'} = 'report-'.$isolate_id.'-'.$identifier.'.zip';
+	}
+	my %utf8_types = map { $_ => 1 } qw(no_header text json);
+	binmode STDOUT, ':encoding(utf8)' if $utf8_types{ $self->{'type'} };
+	print $q->header( \%header_options );
+
+	$self->print_content;
 }
 
 sub print_content {
 	my ($self)      = @_;
 	my $q           = $self->{'cgi'};
 	my $isolate_id  = $q->param('id');
-	my $set_id      = $self->get_set_id;
-	my $scheme_data = $self->{'datastore'}->get_scheme_list( { set_id => $set_id } );
+
 	if ( !defined $isolate_id || $isolate_id eq '' ) {
 		say q(<h1>Isolate information</h1>);
 		say q(<div class="box statusbad"><p>No isolate id provided.</p></div>);
@@ -89,10 +128,8 @@ sub print_content {
 		$self->print_bad_status( { message => q(This function can only be called for isolate databases.) } );
 		return;
 	}
-	my $data =
-	  $self->{'datastore'}
-	  ->run_query( "SELECT * FROM $self->{'system'}->{'view'} WHERE id=?", $isolate_id, { fetch => 'row_hashref' } );
-	if ( !$data ) {
+	my $data = $self->{'isolate_data'};
+	if ( !$self->{'isolate_data'} ) {
 		say qq(<h1>Isolate information: id-$isolate_id</h1>);
 		$self->print_bad_status( { message => q(The database contains no record of this isolate.) } );
 		return;
@@ -114,21 +151,68 @@ sub print_content {
 		$identifier = qq(id $data->{'id'});
 	}
 
-	say qq(<h1>Report for $identifier</h1>);
-	# ICI
-	say q(<div class="box" id="resultspanel">);
-	say q(wololo);
-	$self->display_pseudo_id();
+	#say qq(<h1>Report for $identifier</h1>);
+	my $bigsdb_users_auth = $self->{'cgi'}->cookie( -name => 'global_bigsdb_users_auth' );
+	my $pseudo_id = $self->get_pseudo_id();
 
 	# Call azure to get token
+	my $login_url = 'http://172.23.3.72:9090/login';
+
+	my $ua = LWP::UserAgent->new();
+	my $login_response = $ua->post(
+		$login_url,
+		Content_Type => 'form-data',
+		Content =>
+		{
+			'email' => 'bioit@sciensano.be',
+			'password' => $bigsdb_users_auth
+		}
+	);
+
+	if (!$login_response->is_success) {
+		my $mess = $login_response->message;
+		say qq(Unable to authenticate to report api: $mess);
+		return
+	}
+
+	my $login_response_data = decode_json($login_response->content);
+	my $report_api_token = $login_response_data->{token};
+
+	my $description = $self->{'system'}->{'description'};
+	my $species = lc($description =~ s/ isolates//r);
+
+	my $dtap = 'dev';
+	my $res_time = 'null';
+	my $validation_type = 'null';
 
 	# Call azure to fetch report
+	my $get_zip  = $q->param('get_zip');
+	if ($get_zip != 'yes') {
+		$get_zip = 'no';
+	}
 
-	say q(</div>);
+	my $report_url = "http://172.23.3.72:9090/get_html_report?isolate_id=".$pseudo_id.'&date='.$res_time."&species=".$species."&get_zip=".$get_zip."&dtap=".$dtap."&validation_type=".$validation_type;
+	my $report_response = $ua->get(
+		$report_url,
+		'x-access-token' => $report_api_token
+	);
+
+	my $content = $report_response->content;
+	if ($report_response->is_success) {
+		$content =~ s/<td>$pseudo_id<\/td>/<td>$pseudo_id - $identifier<\/td>/;
+		say $content;
+	} else {
+		my $mess = $report_response->message;
+		my $code = $report_response->code;
+		say qq(<p>Unable to generate report: $mess ($code)</p>);
+		say qq(<p>$content</p>);
+		return
+	}
+
 	return;
 }
 
-sub display_pseudo_id {
+sub get_pseudo_id {
     my ($self)     = @_;
     my $q          = $self->{'cgi'};
     my $isolate_id = $q->param('id');
@@ -136,7 +220,8 @@ sub display_pseudo_id {
       $self->{'datastore'}
       ->run_query( "SELECT * FROM isolates LEFT JOIN mapping_table ON isolates.isolate = mapping_table.isolate WHERE id=?", $isolate_id, { fetch => 'row_hashref' } );
     my $identifier = $data->{'pseudo_id'};  # defaults to / if empty
-    say qq(<p>Pseudo id: $identifier</p>);
+    #say qq(<p>Pseudo id: $identifier</p>);
+	return $identifier;
 }
 
 sub get_title {
