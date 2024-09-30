@@ -13,8 +13,6 @@ from pathlib import Path
 from typing import Any, Dict, List, Tuple
 import os
 
-from bioit_mongodb_scripts.model.json_model import MongoRecordDict, ResultType
-
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
@@ -24,6 +22,7 @@ from bioit_bigsdb_scripts.components.psql.psql_queries import PsqlQueries
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data
 from bioit_bigsdb_scripts.insert_assembly import insert_assembly
 from bioit_bigsdb_scripts.main_results_inserter import MainResultsInserter
+from bioit_mongodb_scripts.model.json_model import MongoRecordDict, ResultType
 from bioit_mongodb_scripts.util.alerts_to_bigs import AlertsToBigs
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.mongo_querying import Mongoquerying
@@ -146,8 +145,8 @@ class MongoToBigs:
         # Main insertion into bigsdb for loop
         for document in list_of_documents:
             isolate_id = self._mappingtable_collection.find_one({'pseudo_id': document['_id']})['_id']
-            results_type, skip_current_document = self.__get_results_type(document, isolate_id)
-            if skip_current_document:
+            results_type, new_document_version = self.__get_results_type(document, isolate_id)
+            if not new_document_version:
                 continue
 
             self.add_isolate_cgst_to_alert_lists(document, isolate_id, results_type)
@@ -238,7 +237,7 @@ class MongoToBigs:
                     document.set_isolate_id(pseudo_id)
 
         else:
-            list_of_documents = map(lambda x: MongoRecordDict(x), self._isolates_collection.find())
+            list_of_documents = list(map(lambda x: MongoRecordDict(x), self._isolates_collection.find()))
             for document in list_of_documents:
                 document.set_isolate_id(document['_id'])
 
@@ -260,6 +259,7 @@ class MongoToBigs:
                     Path(self._bigsdb_config_data['failsafe']['flag_dir']) / '.'.join(
                      [isolate_id, self._bigsdb_config_data['failsafe']['flag_append']])).is_file()
 
+        different_version=True
         if sample_presence[0][0] == 0 or if_sample_failed:
             results_type = "new_isolate"
         elif document.get_validation_type():
@@ -267,9 +267,8 @@ class MongoToBigs:
         else:
             results_type = "reanalysis"
             different_version = self.___check_if_reanalysis_different(document, isolate_id)
-            if different_version is False:
-                return results_type, True
-        return results_type, False
+
+        return results_type, different_version
 
     def ___check_if_reanalysis_different(self, document: MongoRecordDict, isolate_id: str) -> bool:
         """
