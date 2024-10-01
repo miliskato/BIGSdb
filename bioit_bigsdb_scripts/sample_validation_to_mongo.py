@@ -24,7 +24,6 @@ from bioit_bigsdb_scripts.components.psql import TblSubmissions
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data, send_email
 from bioit_mongodb_scripts.mainmongo import MainMongo
 from bioit_mongodb_scripts.mongo_to_bigs import MongoToBigs
-from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 
 
@@ -59,12 +58,8 @@ class SampleValidationToMongo:
         self._species = species
 
         # Open collections
-        mongoinit = MongoInitialisation(self._species)
-        self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, self._isolates_resequencing_collection = mongoinit.initialise_collections()
-
-        mongo_config_data = get_mongodb_config_data()
-        mongoinit_local = MongoInitialisation(self._species, alternate_connection_string=mongo_config_data['CONNECTION_STRING_LOCAL'])
-        self._mappingtable_collection = mongoinit_local.initialise_mapping_table_collection()
+        self._mongoinit = MongoInitialisation(self._species)
+        self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, self._isolates_resequencing_collection = self._mongoinit.initialise_collections()
 
         # Run main
         try:
@@ -103,15 +98,14 @@ class SampleValidationToMongo:
                     'type': results_type.split('_')[0],
                     'date': datetime.datetime.utcnow().strftime('%d/%m/%Y - %X')
                 }
-                pseudo_id = self._mappingtable_collection.find_one({'_id': isolatename})['pseudo_id']
                 if outcome == 'good' and (validation_type == 'bad_quality' or validation_type == 'resequencing'):
-                    MainMongo(pseudo_id, self._species, results_type, curator_mailadress, subvaldict=validation_dict)
+                    MainMongo(isolatename, self._species, results_type, curator_mailadress, subvaldict=validation_dict)
                 elif validation_type == 'bad_quality':  # outcome == 'bad'
                     self.__remove_id_from_document_to_be_unique_again_if_bad(self._isolates_badqc_collection,
-                                                                             pseudo_id, validation_dict)
+                                                                             isolatename, validation_dict)
                 elif validation_type == 'resequencing':
                     self.__remove_id_from_document_to_be_unique_again_if_bad(self._isolates_resequencing_collection,
-                                                                             pseudo_id, validation_dict)
+                                                                             isolatename, validation_dict)
                 # update status once everything is finished
                 self._isolates_submissions_psql_tbl.update_submission((str(self._sub_id),))
                 MongoToBigs(self._species, uploader_mail_address=curator_mailadress, single_sample_id=isolatename)
