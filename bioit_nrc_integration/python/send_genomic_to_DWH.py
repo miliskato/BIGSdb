@@ -13,6 +13,7 @@ PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
 from bioit_nrc_integration.python.config import SFTP_CREDENTIALS_HD, CODES_GENOMIC_DWH
+from bioit_nrc_integration.python.util.python_utility_functions import send_dictionary_to_ods_or_dwh
 from bioit_nrc_integration.python.util.sftp_connection import SFTPConnection
 
 # Configure stdout logging
@@ -40,7 +41,12 @@ class SendGenomicToDWH(SFTPConnection):
         self._document = document
         self._mongo_config_data = mongo_config_data
         self._species = species
-        self._alternate_dtap = alternate_dtap
+        if alternate_dtap:
+            self._alternate_dtap = alternate_dtap
+        elif self._mongo_config_data['dtap'] != 'prod':
+            self._alternate_dtap = self._mongo_config_data['dtap']
+        else:
+            self._alternate_dtap = None
 
         # get HD ODS dictionaries to be able to translate to useable text
         with CODES_GENOMIC_DWH.open('r') as handle:
@@ -58,7 +64,8 @@ class SendGenomicToDWH(SFTPConnection):
 
         self._output_json_dict = self._create_output_json_dict()
         
-        self._send_genomic_to_dwh()
+        send_dictionary_to_ods_or_dwh(self._document['pseudo_id'], 'DWH', self._output_json_dict, self._sftp,
+                                      alternate_dtap=self._alternate_dtap)
 
         self._close_sftp_connection(self._ssh, self._sftp)
 
@@ -89,25 +96,6 @@ class SendGenomicToDWH(SFTPConnection):
                              'data_collection': self._translation_codes['pathogens'][self._species]['dcd_code'],
                              'dcd_name': self._translation_codes['pathogens'][self._species]['dcd_name']},
                 'data': data_dict}
-    
-    def _send_genomic_to_dwh(self) -> None:
-        """
-        Main function to send the genomic indicators to the HealthData DataWareHouse.
-        :return: None
-        """ 
-        with tempfile.TemporaryDirectory(dir='/tmp') as temp_json_dir:
-            # business key is not allowed to be in the filename according to Sébastien Pendeville
-            jsonfile = Path(temp_json_dir) / f"{self._document['pseudo_id']}.json"
-            with jsonfile.open('w') as handle:
-                handle.write(json.dumps(self._output_json_dict))
-
-            # Upload the file
-            # Created the dev, test, and acc folders manually
-            remote_path = f"to_hd/" \
-                          f"{(self._alternate_dtap + '/') if self._alternate_dtap else (self._mongo_config_data['dtap'] + '/') if self._mongo_config_data['dtap'] != 'prod' else ''}" \
-                          f"{jsonfile.name}"
-            self._sftp.put(str(jsonfile), remote_path)
-            logging.info(f"File uploaded successfully to {remote_path}")
 
     def __access_value(self, dict_path: List) -> Optional[str]:
         """

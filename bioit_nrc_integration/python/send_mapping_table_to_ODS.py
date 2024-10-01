@@ -14,6 +14,7 @@ sys.path.append(str(PYTHONPATH))
 logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
 from bioit_nrc_integration.python.config import SFTP_CREDENTIALS_HD, CODES_GENOMIC_DWH
+from bioit_nrc_integration.python.util.python_utility_functions import send_dictionary_to_ods_or_dwh
 from bioit_nrc_integration.python.util.sftp_connection import SFTPConnection
 
 
@@ -51,7 +52,9 @@ class SendMappingTableToODS(SFTPConnection):
 
         self._mapping_table_with_healthdata_names = self._create_mapping_table_with_healthdata_names()
 
-        self._send_mapping_table_to_ods()
+        send_dictionary_to_ods_or_dwh(self._mapping_table['pseudo_id'], 'ODS',
+                                      self._mapping_table_with_healthdata_names, self._sftp,
+                                      alternate_dtap=self._alternate_dtap)
 
         # Close the SFTP session
         self._close_sftp_connection(self._ssh, self._sftp)
@@ -69,22 +72,6 @@ class SendMappingTableToODS(SFTPConnection):
                              'dcd_name': self._translation_codes['pathogens'][self._species]['dcd_name']
                              }
                 }
-
-    def _send_mapping_table_to_ods(self) -> None:
-        """
-        Sends the mapping table to the ODS
-        :return: None
-        """
-        with tempfile.TemporaryDirectory(dir='/tmp') as temp_json_dir:
-            # business key is not allowed to be in the filename according to Sébastien Pendeville
-            jsonfile = Path(temp_json_dir) / f"{self._mapping_table['pseudo_id']}.json"
-            with jsonfile.open('w') as handle:
-                handle.write(json.dumps(self._mapping_table_with_healthdata_names))
-
-            # Upload the file
-            remote_path = f"upload/{(self._alternate_dtap + '/') if self._alternate_dtap else ''}{jsonfile.name}"
-            self._sftp.put(str(jsonfile), remote_path)
-            logging.info(f"File uploaded successfully to {remote_path}")
 
     def __del__(self) -> None:
         """
