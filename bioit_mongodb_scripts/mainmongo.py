@@ -66,7 +66,7 @@ class MainMongo:
     """
     Class containing definitions to insert samples into MongoDB
     """
-    def __init__(self, technical_id: str, species: str, results_type: str, uploader_mail_address: str, pipeline_hash: str = None, technical_metadata_path: Path = None, jsonfilepath: Path = None,
+    def __init__(self, technical_id: str, species: str, results_type: str, uploader_mail_address: str, pipeline_hash: str, technical_metadata_path: Path = None, jsonfilepath: Path = None,
                  subvaldict: Dict[str, str] = None, reportdirectorypath: Path = None, fastafilepath: Path = None,
                  vcffilepath: Path = None, vcffilepath_unfiltered: Path = None, original_input_format: str = None, alternate_connection_string: Union[bool, str] = False, alternate_dtap: Union[str, None] = None,
                  dont_send_email: bool = False, mongo_config_data: Dict[str, Any] = None) -> None:
@@ -146,8 +146,6 @@ class MainMongo:
             raise Exception('subvaldict necessary when using results_type badqc_validated')
         if self._results_type == 'resequencing_validated' and not self._subvaldict:
             raise Exception('subvaldict necessary when using results_type resequencing_validated')
-        if not self._subvaldict and not self._pipeline_hash:
-            raise Exception('pipeline hash argument is necessary when not the input is not a validated sample')
         if self._results_type == 'new_isolate' and not self._jsonfilepath:
             raise Exception('jsonfilepath necessary when using results_type new_isolate')
         if self._results_type == 'reanalysis' and not self._jsonfilepath:
@@ -204,7 +202,6 @@ class MainMongo:
             self._vcffilepath = sample_doc['vcf_path']
             self._vcffilepath_unfiltered = sample_doc['vcf_path_unfiltered']
             self._original_input_format = sample_doc['original_input_format']
-            self._pipeline_hash = sample_doc['pipeline_hash']
             self._reportdirectorypath = sample_doc['report_directory']
             self.__new_isolate_wrapper(new_records)
         elif self._results_type == "reanalysis" or self._results_type == 'resequencing_validated':
@@ -703,7 +700,7 @@ if __name__ == '__main__':
               args.species,
               args.results_type,
               args.uploader_mail_address,
-              pipeline_hash=args.pipeline_hash,
+              args.pipeline_hash,
               technical_metadata_path=(args.technical_metadata_path if args.technical_metadata_path else None),
               jsonfilepath=(args.jsonfilepath if args.jsonfilepath else None), 
               subvaldict=(args.subvaldict if args.subvaldict else None),
