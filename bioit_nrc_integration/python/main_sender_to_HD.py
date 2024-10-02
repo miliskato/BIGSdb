@@ -66,11 +66,13 @@ class MainSenderToHD:
 
             # get documents that need to be sent
             list_of_unsent_validated_documents = isolates_collection.find({'validated': True,
-                                                                           'sent_to_ODS_and_DWH': {'$ne': True},
-                                                                           'changed_since_sent_to_DWH': {'$ne': False}})
+                                                                           '$or': [
+                                                                               {'sent_to_ODS_and_DWH': {'$ne': True}},
+                                                                               {'changed_since_sent_to_DWH': {'$ne': False}}
+                                                                            ]})
             if self._test_dummy:
-                list_of_unsent_validated_documents = [mapping_dict for mapping_dict in list_of_unsent_validated_documents if
-                                                      mapping_dict['_id'].startswith('test_dummy_salmonella_pseudonymized')]
+                list_of_unsent_validated_documents = [genomic_document for genomic_document in list_of_unsent_validated_documents if
+                                                      genomic_document['_id'].startswith('test_dummy')]
 
             self._fail_log_dict[species] = {'fail_counter': 0,
                                             'fail_logs': '',
@@ -78,7 +80,8 @@ class MainSenderToHD:
             
             for document in list_of_unsent_validated_documents:
                 try:
-                    self.__trigger_sending_to_ods_and_dwh(document, species, mapping_table_collection)
+                    self.__trigger_sending_to_ods_and_dwh(document, species, mapping_table_collection,
+                                                          isolates_collection)
                 except Exception as exceptionmessage:
                     self._fail_log_dict[species]['fail_counter'] += 1
                     self._fail_log_dict[species]['fail_ids'].append(document['_id'])
@@ -110,20 +113,21 @@ class MainSenderToHD:
         return mapping_table_collection, isolates_collection
 
     def __trigger_sending_to_ods_and_dwh(self, document_genomic: Dict[str, Any], species: str,
-                                         mapping_table_collection: pymongo.collection.Collection) -> None:
+                                         mapping_table_collection: pymongo.collection.Collection,
+                                         isolates_collection: pymongo.collection.Collection) -> None:
         """
         Triggers the scripts to send the data to the ODS and DWH if they have not been sent yet
         :param document_genomic: genomic document
         :param species: commonly used bioit species name: either genus or specific like stec
         :param mapping_table_collection: local MongoDB collection storing the mapping table
+        :param isolates_collection: remote MongoDB collection storing the genomic indicators
         :return: None
         """
         document_mapping_table = mapping_table_collection.find_one({'pseudo_id': document_genomic['_id']})
         if not document_genomic.get('sent_to_ODS'):
-            document_mapping_table = mapping_table_collection.find_one({'pseudo_id': document_genomic['_id']})
             SendMappingTableToODS(document_mapping_table, species, alternate_dtap=self._alternate_dtap)
-            mapping_table_collection.update_one({'_id': document_mapping_table['_id']},
-                                                {"$set": {"sent_to_ODS": True}})
+            isolates_collection.update_one({'_id': document_genomic['_id']},
+                                           {"$set": {"sent_to_ODS": True}})
         
         if not document_genomic.get('sent_to_DWH') or document_genomic.get('changed_since_sent_to_DWH'):
             # Get the genomic document and transform it into a non-pseudonymized one
@@ -135,11 +139,11 @@ class MainSenderToHD:
         
             # technically overkill to add this field here because right after sent_to_ODS_and_DWH is updated,
             # but it is added for clarity and so that the order of sending can be changed easily too
-            mapping_table_collection.update_one({'_id': document_genomic['_id']},
-                                                {"$set": {"sent_to_DWH": True, "changed_since_sent_to_DWH": False}})
+            isolates_collection.update_one({'_id': document_genomic['_id']},
+                                           {"$set": {"sent_to_DWH": True, "changed_since_sent_to_DWH": False}})
         
-        mapping_table_collection.update_one({'_id': document_genomic['_id']},
-                                            {"$set": {"sent_to_ODS_and_DWH": True}})
+        isolates_collection.update_one({'_id': document_genomic['_id']},
+                                       {"$set": {"sent_to_ODS_and_DWH": True}})
 
     def __send_email_if_failures(self) -> None:
         """
