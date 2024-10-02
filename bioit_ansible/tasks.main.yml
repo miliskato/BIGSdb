@@ -839,26 +839,16 @@
         user: 'bigsdb'
         cron_file: sync_globalbigsdbusers
 
-    - name: Add cron.d entries for hash replacer  # needs to run before database updates in bigs (and after automated cfr Bert)
-      cron:
-        name: "crontab for tempid_replacer"
-        minute: '0'
-        hour: '6'
-        weekday: '0'       # sunday morning
-        job: "{{ item.command }}"
-        user: 'bigsdb'
-        cron_file: "{{ item.filename }}"
-      loop: "{{ list_cron|flatten(levels=1) }}"
+    - name: Remove cron.d entries for hash replacer  # Runs on Azure in the combination
+      ansible.builtin.file:
+        path: "{{ file_paths }}"
+        state: absent
       vars:
-        list_cron:
-          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}//bioit_mongodb_scripts/tempid_replacer.py --scheme cgmlst --species {{ species }}",
-              filename: "{{ species }}_tempid_replacer_cgmlst" }
-          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}//bioit_mongodb_scripts/tempid_replacer.py --scheme mlst --species {{ species }}",
-              filename: "{{ species }}_tempid_replacer_mlst" }
-          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}//bioit_mongodb_scripts/tempid_replacer.py --scheme mlst_warwick --species {{ species }}",
-              filename: "{{ species }}_tempid_replacer_mlst_warwick" }
-          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}//bioit_mongodb_scripts/tempid_replacer.py --scheme mlst_pasteur --species {{ species }}",
-              filename: "{{ species }}_tempid_replacer_mlst_pasteur" }
+        file_paths:
+          - "/etc/cron.d/{{ species }}_tempid_replacer_cgmlst"
+          - "/etc/cron.d/{{ species }}_tempid_replacer_mlst"
+          - "/etc/cron.d/{{ species }}_tempid_replacer_mlst_warwick"
+          - "/etc/cron.d/{{ species }}_tempid_replacer_mlst_pasteur"
 
     - name: Add cron.d entries for database updates
       cron:
