@@ -192,7 +192,7 @@ class MongoToBigs:
         indicated as such by Azure: "resolved_AD".
         :return: None
         """
-        documents_list = [document for document in self._hashed_ad_collection.find({'scheme': {'$in': ['mlst', 'cgmlst', 'mlst_warwick', 'mlst_pasteur']},  # todo Yersinia special scheme names?
+        documents_list = [document for document in self._hashed_ad_collection.find({'scheme': {'$in': self._mongo_config_data['schemes_sequence_typing']},  # todo Yersinia special scheme names?
                                                                                     'resolved_AD': {'$ne': 0},
                                                                                     'replaced_in_bigs_date': {'$exists': False}})]
 
