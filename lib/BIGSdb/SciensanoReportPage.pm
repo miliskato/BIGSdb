@@ -67,18 +67,22 @@ sub initiate {
 }
 
 sub print_page_content {
+
 	my ($self) = @_;
 	my $q = $self->{'cgi'};
-	my $isolate_id  = $q->param('id');
-
+	my $isolate_id   = $q->param('id');
 	my $get_zip  = $q->param('get_zip');
 	my $content_type = 'text/html';
+
 	if ($get_zip eq 'yes') {
 		$content_type = 'application/zip';
 	}
 
-	$self->{'isolate_data'} = $self->{'datastore'}->run_query( "SELECT * FROM $self->{'system'}->{'view'} WHERE id=?", $isolate_id, { fetch => 'row_hashref' } );
-	my $identifier = $self->{'isolate_data'}->{'isolate'};
+	my $identifier;
+	if (defined($isolate_id)){
+		$self->{'isolate_data'} = $self->{'datastore'}->run_query( "SELECT * FROM $self->{'system'}->{'view'} WHERE id=?", $isolate_id, { fetch => 'row_hashref' } );
+		 $identifier = $self->{'isolate_data'}->{'isolate'};
+	}
 
 	$q->charset('UTF-8');
 	if ( !$q->cookie( -name => 'guid' ) && $self->{'prefstore'} ) {
@@ -113,47 +117,55 @@ sub print_content {
 	my ($self)      = @_;
 	my $q           = $self->{'cgi'};
 	my $isolate_id  = $q->param('id');
+	my $pseudo_id   = $q->param('pseudo_id');
 
-	if ( !defined $isolate_id || $isolate_id eq '' ) {
-		say q(<h1>Isolate information</h1>);
-		say q(<div class="box statusbad"><p>No isolate id provided.</p></div>);
-		return;
-	} elsif ( !BIGSdb::Utils::is_int($isolate_id) ) {
-		say q(<h1>Isolate information</h1>);
-		$self->print_bad_status( { message => q(Isolate id must be an integer.) } );
-		return;
-	}
+	my $has_isolate_id = (defined $isolate_id);# && ($isolate_id ne '');
+	my $has_pseudo_id = (defined $pseudo_id);# && $pseudo_id ne '');
+
 	if ( $self->{'system'}->{'dbtype'} ne 'isolates' ) {
 		say q(<h1>Isolate information</h1>);
-		$self->print_bad_status( { message => q(This function can only be called for isolate databases.) } );
+		$self->print_bad_status({ message => q(This function can only be called for isolate databases.) });
 		return;
-	}
-	my $data = $self->{'isolate_data'};
-	if ( !$self->{'isolate_data'} ) {
-		say qq(<h1>Isolate information: id-$isolate_id</h1>);
-		$self->print_bad_status( { message => q(The database contains no record of this isolate.) } );
-		return;
-	} elsif ( !$self->is_allowed_to_view_isolate($isolate_id) ) {
-		say q(<h1>Isolate information</h1>);
-		$self->print_bad_status(
-			{
-				message => q(Your user account does not have permission to view this record.),
-			}
-		);
-		return;
-	}
-	my $identifier;
-	if ( ( $data->{ $self->{'system'}->{'labelfield'} } // q() ) ne q() ) {
-		my $field = $self->{'system'}->{'labelfield'};
-		$field =~ tr/_/ /;
-		$identifier = qq($field $data->{lc($self->{'system'}->{'labelfield'})} (id:$data->{'id'}));
-	} else {
-		$identifier = qq(id $data->{'id'});
 	}
 
-	#say qq(<h1>Report for $identifier</h1>);
+	my $data;
+
+	if ( !$has_isolate_id && !$has_pseudo_id ) {
+		say q(<h1>Isolate information</h1>);
+	 	say q(<div class="box statusbad"><p>No isolate id provided.</p></div>);
+	 	return;
+	 } elsif ( $has_isolate_id eq "1" && !BIGSdb::Utils::is_int($isolate_id)) {
+	 	say q(<h1>Isolate information</h1>);
+	 	$self->print_bad_status( { message => q(Isolate id must be an integer.) } );
+	 	return;
+	} elsif ( $has_isolate_id eq "1" ) {
+	 	$data = $self->{'isolate_data'};
+	 	if (!$self->{'isolate_data'}) {
+	 		say qq(<h1>Isolate information: id-$isolate_id</h1>);
+	 		$self->print_bad_status( { message => q(The database contains no record of this isolate.) } );
+	 		return;
+	 	}
+	 	elsif (!$self->is_allowed_to_view_isolate($isolate_id)) {
+	 		say q(<h1>Isolate information</h1>);
+	 		$self->print_bad_status( { message => q(Your user account does not have permission to view this record.) } );
+	 		return;
+	 	}
+	 }
+
 	my $bigsdb_users_auth = $self->{'cgi'}->cookie( -name => 'global_bigsdb_users_auth' );
-	my $pseudo_id = $self->get_pseudo_id();
+
+	my $identifier;
+	if (!$has_pseudo_id) {
+		$pseudo_id = $self->get_pseudo_id();
+		if (( $data->{ $self->{'system'}->{'labelfield'} } // q()) ne q()) {
+			my $field = $self->{'system'}->{'labelfield'};
+			$field =~ tr/_/ /;
+			$identifier = qq($field $data->{lc($self->{'system'}->{'labelfield'})} (id:$data->{'id'}));
+		}
+		else {
+			$identifier = qq(id $data->{'id'});
+		}
+	}
 
 	# Call azure to get token
 	my $login_url = 'http://172.23.3.72:9090/login';
@@ -181,16 +193,23 @@ sub print_content {
 	my $description = $self->{'system'}->{'description'};
 	my $species = lc($description =~ s/ isolates//r);
 
-	my $dtap = 'dev';
-	my $res_time = 'null';
-	my $validation_type = 'null';
+	my $dtap=get_dtap();
 
-	# Call azure to fetch report
+	my $res_time = 'null';
+		if ($q->param('submit_date')) {
+			$res_time = $q->param('submit_date')
+		}
+	my $validation_type = 'null';
+		if ($q->param('validation_type')) {
+			$validation_type = $q->param('validation_type');
+		}
+
 	my $get_zip  = $q->param('get_zip');
 	if ($get_zip != 'yes') {
 		$get_zip = 'no';
 	}
 
+	# Call azure to fetch report
 	my $report_url = "http://172.23.3.72:9090/get_html_report?isolate_id=".$pseudo_id.'&date='.$res_time."&species=".$species."&get_zip=".$get_zip."&dtap=".$dtap."&validation_type=".$validation_type;
 	my $report_response = $ua->get(
 		$report_url,
@@ -208,8 +227,14 @@ sub print_content {
 		say qq(<p>$content</p>);
 		return
 	}
-
 	return;
+}
+
+sub get_dtap {
+	my $hostname = $ENV{HTTP_HOST};
+	my @dtap_match=$hostname =~ m/dev|test|acc|prod/g;
+	my $dtap_found = $dtap_match[0];
+	return $dtap_found;
 }
 
 sub get_pseudo_id {
@@ -217,10 +242,8 @@ sub get_pseudo_id {
     my $q          = $self->{'cgi'};
     my $isolate_id = $q->param('id');
     my $data =
-      $self->{'datastore'}
-      ->run_query( "SELECT * FROM isolates LEFT JOIN mapping_table ON isolates.isolate = mapping_table.isolate WHERE id=?", $isolate_id, { fetch => 'row_hashref' } );
+      $self->{'datastore'}->run_query( "SELECT * FROM isolates LEFT JOIN mapping_table ON isolates.isolate = mapping_table.isolate WHERE id=?", $isolate_id, { fetch => 'row_hashref' } );
     my $identifier = $data->{'pseudo_id'};  # defaults to / if empty
-    #say qq(<p>Pseudo id: $identifier</p>);
 	return $identifier;
 }
 
