@@ -17,7 +17,6 @@ from pymongo.write_concern import WriteConcern
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
-from bioit_bigsdb_scripts.components.psql import TblAlleleDesignations
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email
 
@@ -106,11 +105,6 @@ class TempidReplacer:
                         hashed_allele = hashlib.md5(bytes(str(allele.seq), 'utf-8')).hexdigest()
                         if hashed_allele in hash_list:
                             self.__update_temp_to_real_mongodb(locus, allele, hashed_allele, hash_list, values)
-            if ('bigs' in socket.gethostname() or 'nrc' in socket.gethostname()) and self._alternate_connection_string is None:
-                with TblAlleleDesignations(self._species) as isolates_ad_psql_tbl:
-                    for hash_document in self._documents_list:
-                        if hash_document['resolved_AD'] != 0:
-                            isolates_ad_psql_tbl.update_designations((hash_document['resolved_AD'], hash_document['locus'], hash_document['hashed_allele']))
 
     def __query_hashes_of_scheme(self) -> List[Dict[str, Any]]:
         """
@@ -150,10 +144,10 @@ class TempidReplacer:
         """
         if self._species == 'stec':
             fasta_file = Path(
-                f"/var/lib/.bioit_database_azure/sequence_typing/ecoli/{self._scheme.replace('-', '_')}/{locus}/{locus}.fasta")
+                f"/db/sequence_typing/ecoli/{self._scheme.replace('-', '_')}/{locus}/{locus}.fasta")
         else:
             fasta_file = Path(
-                f"/var/lib/.bioit_database_azure/sequence_typing/{self._species}/{self._scheme.replace('-', '_')}/{locus}/{locus}.fasta")
+                f"/db/sequence_typing/{self._species}/{self._scheme.replace('-', '_')}/{locus}/{locus}.fasta")
         if fasta_file.is_file():
             logging.info(f"opening fasta file: {fasta_file}")
         else:
