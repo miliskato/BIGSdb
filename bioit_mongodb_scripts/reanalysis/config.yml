@@ -42,7 +42,7 @@ failsafe:
   flag_dir: /scratch/temp/flags
   flag_append: reanalysis_start_flag
 
-reference_assembly_size:
+reference_genome_size:
     listeria: 2986663
     mycobacterium: 4485135
     neisseria: 2188343
