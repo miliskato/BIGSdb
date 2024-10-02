@@ -13,8 +13,6 @@ from pathlib import Path
 from typing import Any, Dict, List, Tuple
 import os
 
-from bioit_mongodb_scripts.model.json_model import MongoRecordDict, ResultType
-
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
@@ -24,6 +22,7 @@ from bioit_bigsdb_scripts.components.psql.psql_queries import PsqlQueries
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data
 from bioit_bigsdb_scripts.insert_assembly import insert_assembly
 from bioit_bigsdb_scripts.main_results_inserter import MainResultsInserter
+from bioit_mongodb_scripts.model.json_model import MongoRecordDict, ResultType
 from bioit_mongodb_scripts.util.alerts_to_bigs import AlertsToBigs
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.mongo_querying import Mongoquerying
@@ -232,10 +231,9 @@ class MongoToBigs:
             if not query_single:
                 send_email(f"Can not find document with _id '{self._single_sample_id}', check the validation status")
                 raise Exception(f"Can not find document with _id '{self._single_sample_id}'")
-            else:
-                list_of_documents = [query_single]
-                for document in list_of_documents:
-                    document.set_isolate_id(pseudo_id)
+            list_of_documents = [query_single]
+            for document in list_of_documents:
+                document.set_isolate_id(pseudo_id)
 
         else:
             list_of_documents = map(lambda x: MongoRecordDict(x), self._isolates_collection.find())

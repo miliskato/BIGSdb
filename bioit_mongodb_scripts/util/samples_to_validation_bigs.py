@@ -13,7 +13,7 @@ sys.path.append(str(PYTHONPATH))
 
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_bigsdb_scripts.components.psql import TblSubmissions, TblIsolateSubmissionIsolates, \
-    TblIsolateSubmissionFieldOrder, TblMappingTable
+    TblIsolateSubmissionFieldOrder
 
 
 def _insert_submission_bigs(sample_docs: List[MongoRecordDict], validation_type: str, species: str, mongo_config_data: Dict[str, Any] ) -> None:
@@ -35,12 +35,12 @@ def _insert_submission_bigs(sample_docs: List[MongoRecordDict], validation_type:
         for mongo_record in sample_docs:
             isolate_id = mappingtable_collection.find_one({'pseudo_id': mongo_record['_id']})['_id']
             isolates_sub_psql_tbl.insert_submission((validation_type,))
-            api_button = f"""
-            <button onclick="get_jwt_report('no', '{validation_type}', '{isolate_id}', '{mongo_record['_id']}', '{species}', '{mongo_record['latest_analysis_date']}')" class='small_submit'>Get report preview</button>
+            report_link = f"""
+            <a href="/cgi-bin/bigsdb/bigsdb.pl?page=sciensanoReport&db=bigsdb_{species}_isolates&pseudo_id={mongo_record['_id']}&getzip=no&submit_date={mongo_record['latest_analysis_date']}&validation_type={validation_type}" target = "_blank" class="small_submit"> Get report preview </a>
             """
             pipeline_hash=mongo_record['results']['pipeline_hash']
 
-            isolates_isosubiso_psql_tbl.insert_validation_metadata(('html_report', api_button))
+            isolates_isosubiso_psql_tbl.insert_validation_metadata(('html_report', report_link))
             isolates_isosubiso_psql_tbl.insert_validation_metadata(('isolate_id', isolate_id))
             isolates_isosubiso_psql_tbl.insert_validation_metadata(('validation_type', validation_type))
             isolates_isosubiso_psql_tbl.insert_validation_metadata(('pipeline_hash', pipeline_hash))

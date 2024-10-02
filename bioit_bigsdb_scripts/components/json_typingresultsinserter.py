@@ -1,13 +1,14 @@
 import logging
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Optional
 
 import requests
 
 from bioit_mongodb_scripts.model.json_model import JsonReportDict
 from .json_superclass import JsonSuperClass
-from .psql import TblAlleleDesignations, TblHistory, TblEavBoolean, TblEavText, TblEavFields, TblSchemeMembers
+from .psql import TblAlleleDesignations, TblHistory, TblEavBoolean, TblEavText, TblEavFields, TblSchemeMembers, \
+    TblIsolates
 
 
 class JsonTypingResultsInserter(JsonSuperClass):
@@ -102,12 +103,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
                         antibiotic_reformatted = '_'.join(
                             ['POINTFINDER', re.sub('-| ', '_', antibiotic).upper()])
                         mutation = re.sub('[.]| ', '_', result['Mutation'])
-                        report_name = self._report_access.name
-                        eavhtmltable = eavhtmltable + ''.join(
-                            [f'<tr><td><a href="/galaxyreports/{self._species}/', report_name,
-                             '/report.html#',
-                             self._schemedict[self._scheme]['schemename_html'], '" target="_blank">',
-                             result['Mutation'], '</a></td>'])
+                        eavhtmltable = (f'<tr><td><a href="/cgi-bin/bigsdb/bigsdb.pl?page=sciensanoReport&db=bigsdb_{self._species}_isolates/&id={self.___get_isolate_id()}&getzip=no" target="_blank"></a></td>')
                         eavhtmltable = eavhtmltable + ''.join(['<td>', antibiotic, '</td></tr>'])
                         self.insert_locus_if_needed(antibiotic_reformatted,
                                                     self._schemedict[self._scheme]['schemename_bigsdb'])
@@ -116,6 +112,14 @@ class JsonTypingResultsInserter(JsonSuperClass):
                             (antibiotic_reformatted, self._isolatename, mutation))
             eavhtmltable = eavhtmltable + '</table>'
             self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'pointfinder_hits', eavhtmltable))
+
+    def ___get_isolate_id(self) -> List[Tuple[Optional[int]]]:
+        """
+        return BIGSdb id of the isolate
+        """
+        with TblIsolates(self._species) as isolates_tbl:
+            id = isolates_tbl.select_id_for_isolate(self._isolatename)
+        return id
 
     def __process_irregular_typing_scheme_mycobacterium_specific(self) -> None:
         """
