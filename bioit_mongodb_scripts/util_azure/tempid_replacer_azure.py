@@ -14,11 +14,11 @@ from Bio.SeqRecord import SeqRecord
 from pymongo.read_concern import ReadConcern
 from pymongo.write_concern import WriteConcern
 
-from bioit_mongodb_scripts.util_azure.connect_azure import ConnectAzure
 
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
+from bioit_mongodb_scripts.util_azure.connect_azure import ConnectAzure
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data
 
@@ -259,11 +259,9 @@ class TempidReplacerAzure:
         :return: None
         """
         self._update_metadata_collection.update_one(
-            {'_id': 'last_dbupdate_date'},
+            {'metadata': 'last_dbupdate_date'},
             {'$set': {
-                'metadata': 'last_dbupdate_date',
-                'last_update_date': datetime.datetime.utcnow(),
-                'host': socket.gethostname()}
+                'last_update_date': datetime.datetime.utcnow()}
              },
             upsert=True
         )
