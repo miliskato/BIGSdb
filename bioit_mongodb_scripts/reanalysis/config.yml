@@ -42,6 +42,14 @@ failsafe:
   flag_dir: /scratch/temp/flags
   flag_append: reanalysis_start_flag
 
-assembly_size_threshold: 9000000
+reference_assembly_size:
+    listeria: 2986663
+    mycobacterium: 4485135
+    neisseria: 2188343
+    stec: 5577201
+    salmonella: 4926939
+    influenza_a: 14340  # no reference genome
+    influenza_b: 14475 # no reference genome
+    sars_cov_2: 30427
 
 threads_per_job: 1
