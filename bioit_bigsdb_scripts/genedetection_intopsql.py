@@ -33,27 +33,31 @@ def _parse_arguments(specieslist: List[str]) -> argparse.Namespace:
 
 class GeneDetectionIntoPsql:
     """
-    Class containing function to insert gene detection loci and alleles and update them (weekly)
+    Class containing function to insert gene detection loci and alleles and update them 
     """
-
-    def __init__(self, bigsdb_config_data: Dict[str, Any], species: str, do_not_recalculate: bool) -> None:
+    def __init__(self, species_list: List[str], do_not_recalculate: bool) -> None:
         """
         Initialises this class and executes the main function: _gene_detection_insertion_and_recalculation
-        :param bigsdb_config_data: the bigsdb config data
-        :param species: commonly used bioit species name: either genus or specific like stec.
+        :param species_list: LIST OF commonly used bioit species name: either genus or specific like stec.
         :param do_not_recalculate: Whether the recalculation step should be skipped or not.
         """
-        self._bigsdb_config_data = bigsdb_config_data
-        self._species = species
+        self._bigsdb_config_data = get_bigsdb_config_data()
+        self._species_list = species_list
         self._do_not_recalculate = do_not_recalculate
-        self._schemedict: Dict[str, Any] = self._bigsdb_config_data['species'][self._species]['genedetection_schemes']
-        self._gene_detection_insertion_and_recalculation()
-        self._eavhtmltable = None
+        try:
+            for species in set(self._species_list):
+                self._schemedict: Dict[str, Any] = self._bigsdb_config_data['species'][species].get('genedetection_schemes')
+                self._gene_detection_insertion_and_recalculation(species)
+                self._eavhtmltable = None
+        except Exception as exceptionmessage:
+            send_email(f"{exceptionmessage}\n{traceback.format_exc()}")
+            raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}")
 
-    def _gene_detection_insertion_and_recalculation(self) -> None:
+    def _gene_detection_insertion_and_recalculation(self, species: str) -> None:
         """
         Inserts gene detection loci and alleles and recalculates existing loci/alleles
         Recalculation pertains the Clusters which are recalculated weekly on often 80% identity
+        :param species: commonly used bioit species name: either genus or specific like stec.
         :return: None
         """
         if self._schemedict is not None:
@@ -62,12 +66,12 @@ class GeneDetectionIntoPsql:
 
                 self.__create_necessary_dictionaries()
 
-                self.__insert_loci_and_alleles()
+                self.__insert_loci_and_alleles(species)
 
-                self.__update_locus_descriptions()
+                self.__update_locus_descriptions(species)
 
                 if not self._do_not_recalculate:
-                    self.__recalculate_allele_designations()
+                    self.__recalculate_allele_designations(species)
 
     def __create_necessary_dictionaries(self) -> None:
         """
@@ -111,13 +115,14 @@ class GeneDetectionIntoPsql:
                         (sequencedictlist[sequencename]['gene']).replace("'", ""))
         self._clusterlist = list(self._descriptiondict.keys())
 
-    def __insert_loci_and_alleles(self) -> None:
+    def __insert_loci_and_alleles(self, species: str) -> None:
         """
-        Inserts all the loci (clusters), scheme members and alleles (dummy boolean) in seqdef and isolate dbs if they are not present
+        Inserts all the loci (clusters), scheme members and alleles (dummy boolean) in seqdef and isolate dbs if they are not 
+        :param species: commonly used bioit species name: either genus or specific like stec.
         :return: None
         """
-        json_superclass_instance = JsonSuperClass('dummyname', self._species, {'dummydictkey': 'dummydictvalue'}, config_data=self._bigsdb_config_data)
-        with TblSequences(self._species) as seqdef_sequences_psql_tbl, TblLoci(self._species, 'seqdef') as seqdef_loci_psql_tbl:
+        json_superclass_instance = JsonSuperClass('dummyname', species, {'dummydictkey': 'dummydictvalue'}, config_data=self._bigsdb_config_data)
+        with TblSequences(species) as seqdef_sequences_psql_tbl, TblLoci(species, 'seqdef') as seqdef_loci_psql_tbl:
             for cluster in self._clusterlist:
                 present: List[Tuple[int]] = seqdef_loci_psql_tbl.count_locus((cluster,))
                 if present[0][0] == 0:
@@ -128,37 +133,39 @@ class GeneDetectionIntoPsql:
                 else:
                     continue
 
-    def __update_locus_descriptions(self) -> None:
+    def __update_locus_descriptions(self, species: str) -> None:
         """
         Updates the locus descriptions to the new database version
+        :param species: commonly used bioit species name: either genus or specific like stec.
         :return: None
         """
-        with TblLocusDescriptions(self._species) as seqdef_locdescr_psql_tbl:
+        with TblLocusDescriptions(species) as seqdef_locdescr_psql_tbl:
             seqdef_locdescr_psql_tbl.delete_locus_description((f"{self._schemedict[self._scheme]['schemename_bigsdb']}_GeneCluster%",))
             for cluster, description in self._descriptiondict.items():
                 # convert list to more meaningfull and aesthatically pleasing string
                 descriptionstring = ' '.join(['Contains genes:', ', '.join([x for x in description])])
                 seqdef_locdescr_psql_tbl.insert_locus_description((cluster, descriptionstring.replace('Contains genes:', ''), descriptionstring))
 
-    def __recalculate_allele_designations(self) -> None:
+    def __recalculate_allele_designations(self, species: str) -> None:
         """
         Removes, recaculates and reinserts allele designations
+        :param species: commonly used bioit species name: either genus or specific like stec.
         :return: None
         """
-        with TblAlleleDesignations(self._species) as isolates_ad_psql_tbl, \
-                TblEavText(self._species) as isolates_eavt_psql_tbl, \
-                TblHistory(self._species) as isolates_history_psql_tbl:
+        with TblAlleleDesignations(species) as isolates_ad_psql_tbl, \
+                TblEavText(species) as isolates_eavt_psql_tbl, \
+                TblHistory(species) as isolates_history_psql_tbl:
             isolates_ad_psql_tbl.delete_designations((f"{self._schemedict[self._scheme]['schemename_bigsdb']}_GeneCluster%",))
-            with TblEavTextHidden(self._species) as isolates_eavth_psql_tbl:
+            with TblEavTextHidden(species) as isolates_eavth_psql_tbl:
                 listofsamplesandhits = isolates_eavth_psql_tbl.select_hidden((self._schemedict[self._scheme]['schemename_bigsdb'],))
             if len(listofsamplesandhits) > 0:
                 for sampleandhits in listofsamplesandhits:
                     isolate_id: str = sampleandhits[0]
                     isolate_name: str = sampleandhits[2]
-                    report_dir: str = self.___get_report_name_from_mongo(isolate_name)
+                    report_dir: str = self.___get_report_name_from_mongo(isolate_name, species)
                     report_name = Path(report_dir).name
                     html_scheme_name = self._schemedict[self._scheme]['schemename_html']
-                    url = f'/galaxyreports/{self._species}/{report_name}/report.html#{html_scheme_name}'
+                    url = f'/galaxyreports/{species}/{report_name}/report.html#{html_scheme_name}'
                     if not self._scheme.endswith('vfdbcore') and not self._scheme.endswith('virulencefinder'):
                         self._eavhtmltable = '<style>table.nice { text-align: center; border-spacing:0 }table.nice tr:nth-child(n+3) {background: #E4EFF3}table.nice tr:nth-child(2n+3) {background: #C1E6F3}</style>'
                         self._eavhtmltable += f'<table class="data nice"><tr><th>GeneCluster</th><th>Locus</th></tr>'
@@ -187,13 +194,15 @@ class GeneDetectionIntoPsql:
                     isolates_history_psql_tbl.insert_history_id(
                         (isolate_id, 'Gene detection results reevaluated after database update'))
 
-    def ___get_report_name_from_mongo(self, samplename: str) -> Union[str, Path]:
+    @staticmethod
+    def ___get_report_name_from_mongo(samplename: str, species: str) -> Union[str, Path]:
         """
         Get the name of the html report for the given isolate
         :param samplename: name of the isolate
+        :param species: commonly used bioit species name: either genus or specific like stec.
         :return: report name for the isolate
         """
-        mongoinit = MongoInitialisation(species=self._species, mongo_config_data=get_mongodb_config_data())
+        mongoinit = MongoInitialisation(species=species, mongo_config_data=get_mongodb_config_data())
         isolates_collection, old_isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections()
         isolate_report_path = Mongoquerying.query_docs_by_ids(opened_collection=isolates_collection, ids=[samplename])
         return isolate_report_path[0]['report_directory']
@@ -223,9 +232,4 @@ if __name__ == '__main__':
     # Parse arguments
     args = _parse_arguments(list(bigsdb_config_data['species']))
 
-    try:
-        for species in set(args.species):
-            GeneDetectionIntoPsql(bigsdb_config_data, species, args.do_not_recalculate)
-    except Exception as exceptionmessage:
-        send_email(f"{exceptionmessage}\n{traceback.format_exc()}")
-        raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}")
+    GeneDetectionIntoPsql(args.species, args.do_not_recalculate)

@@ -23,7 +23,10 @@ from bioit_bigsdb_scripts.components.psql import TblAlleleDesignations, TblIsola
 from bioit_bigsdb_scripts.components.psql.psql_queries import PsqlQueries
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data
 from bioit_bigsdb_scripts.insert_assembly import insert_assembly
+from bioit_bigsdb_scripts.genedetection_intopsql import GeneDetectionIntoPsql
 from bioit_bigsdb_scripts.main_results_inserter import MainResultsInserter
+from bioit_bigsdb_scripts.Typing_alleles_intopsql import TypingAllelesIntoPsql
+from bioit_bigsdb_scripts.Typing_schemeprofiles_intopsql import TypingSchemeProfilesIntoPsql
 from bioit_mongodb_scripts.util.alerts_to_bigs import AlertsToBigs
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.mongo_querying import Mongoquerying
@@ -75,6 +78,7 @@ class MongoToBigs:
             self._isolates_resequencing_collection = self._mongoinit.initialise_collections()
         self._headers_collection = self._mongoinit.initialise_headers_collection()
         self._hashed_ad_collection = self._mongoinit.initialise_hashing_collection()
+        self._update_metadata_collection = self._mongoinit.initialise_update_collection()
         self._mongoquerying = Mongoquerying()
         # Ope collections local MongoDB
         self._mongoinit_local = MongoInitialisation(self._species, mongo_config_data=self._mongo_config_data,
@@ -121,8 +125,8 @@ class MongoToBigs:
         If the current host is a bigsdb host, syncs all samples (or a single one if provided) with the bigsdb database
         :return: None
         """
-        # Run the temporary id replacer
-        self.__replace_tempids()
+        # Check if dbs were updated and update bigsdb accordingly
+        self.__update_bigsdb_psql_if_needed()
 
         # call the autoexecutable function to insert new alleles and profiles
         NewClusteringInfoToBigs(self._species, Path(self._bigsdb_config_data['naive_clustering_distance_matrix_file'].replace('species', self._species)), mongo_config_data=self._mongo_config_data)
@@ -186,7 +190,26 @@ class MongoToBigs:
         except:
             self._exception_in_alerts = True
 
-    def __replace_tempids(self) -> None:
+    def __update_bigsdb_psql_if_needed(self) -> None:
+        """
+        This function checks whether a new dbupdate occured in Azure and updates all info in Bigsdb accordingly.
+        :return: None
+        """
+        last_schema_update_date_document = self._update_metadata_collection.find_one({'metadata': 'last_dbupdate_insertion_date'})
+        last_dbupdate_date = self._update_metadata_collection.find_one({'metadata': 'last_dbupdate_date'})['last_dbupdate_date']
+        if not last_schema_update_date_document or last_dbupdate_date > last_schema_update_date_document['last_dbupdate_insertion_date']:
+            # Run the temporary id replacer
+            self.___replace_tempids()
+
+            # Insert new typing alleles, typing profiles & gene detection alleles into psql
+            TypingAllelesIntoPsql([self._species])
+            TypingSchemeProfilesIntoPsql([self._species])
+            GeneDetectionIntoPsql([self._species], do_not_recalculate=True)
+            # update last insertion date
+            self._update_metadata_collection.update_one({'metadata': 'last_dbupdate_insertion_date'},
+                                                        {'$set': {'last_dbupdate_insertion_date': datetime.datetime.utcnow()}})
+
+    def ___replace_tempids(self) -> None:
         """
         Replaces the temporary ids of alleles in bigsdb by actual allele numbers found in Pubmlst/Enterobase and
         indicated as such by Azure: "resolved_AD".
