@@ -836,10 +836,9 @@
 
     - name: Remove cron.d entries for hash replacer  # Runs on Azure in the combination
       ansible.builtin.file:
-        path: "{{ file_paths }}"
+        path: "{{ item }}"
         state: absent
-      vars:
-        file_paths:
+      with_items:
           - "/etc/cron.d/{{ species }}_tempid_replacer_cgmlst"
           - "/etc/cron.d/{{ species }}_tempid_replacer_mlst"
           - "/etc/cron.d/{{ species }}_tempid_replacer_mlst_warwick"
@@ -847,13 +846,12 @@
 
     - name: Remove cron.d entries for database updates
       ansible.builtin.file:
-        path: "{{ file_paths }}"
+        path: "{{ item }}"
         state: absent
-      vars:
-        file_paths:
-          - "{{ species }}_alleles_intopsql"
-          - "{{ species }}_schemeprofiles_intopsql"
-          - "{{ species }}_genedetection_intopsql"
+      with_items:
+        - "/etc/cron.d/{{ species }}_alleles_intopsql"
+        - "/etc/cron.d/{{ species }}_schemeprofiles_intopsql"
+        - "/etc/cron.d/{{ species }}_genedetection_intopsql"
 
     - name: add daily cronjob
       ansible.builtin.copy:
