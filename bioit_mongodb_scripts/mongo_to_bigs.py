@@ -4,6 +4,7 @@
 # /home/bigsdb/BIGSdb/3.9PythonVenv/bin/python3.9 /home/mikelchtermans/Bigsdb_new/bioit_mongodb_scripts/mongo_to_bigs.py --species listeria --uploader_mail_address bioit@sciensano.be --pyvenvpythonpath /home/bigsdb/BIGSdb/3.9PythonVenv/bin/python3.9
 
 import argparse
+import datetime
 import json
 import logging
 import socket
@@ -18,7 +19,7 @@ PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
 from bioit_bigsdb_scripts.components.psql.databaseconnection import DatabaseConnection
-from bioit_bigsdb_scripts.components.psql import TblIsolates, TblEavTextHidden, TblMappingTable, TblSequenceBin, TblSeqBinStats, TblSchemes
+from bioit_bigsdb_scripts.components.psql import TblAlleleDesignations, TblIsolates, TblEavTextHidden, TblMappingTable, TblSequenceBin, TblSeqBinStats, TblSchemes
 from bioit_bigsdb_scripts.components.psql.psql_queries import PsqlQueries
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data
 from bioit_bigsdb_scripts.insert_assembly import insert_assembly
@@ -73,6 +74,7 @@ class MongoToBigs:
         self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, \
             self._isolates_resequencing_collection = self._mongoinit.initialise_collections()
         self._headers_collection = self._mongoinit.initialise_headers_collection()
+        self._hashed_ad_collection = self._mongoinit.initialise_hashing_collection()
         self._mongoquerying = Mongoquerying()
         # Ope collections local MongoDB
         self._mongoinit_local = MongoInitialisation(self._species, mongo_config_data=self._mongo_config_data,
@@ -119,6 +121,9 @@ class MongoToBigs:
         If the current host is a bigsdb host, syncs all samples (or a single one if provided) with the bigsdb database
         :return: None
         """
+        # Run the temporary id replacer
+        self.__replace_tempids()
+
         # call the autoexecutable function to insert new alleles and profiles
         NewClusteringInfoToBigs(self._species, Path(self._bigsdb_config_data['naive_clustering_distance_matrix_file'].replace('species', self._species)), mongo_config_data=self._mongo_config_data)
 
@@ -180,6 +185,23 @@ class MongoToBigs:
                 AlertsToBigs(self._list_of_new_isolates_for_alerts, self._list_of_new_versions_for_alerts, self._species, self._cgmlst_bigsdb_scheme_id)
         except:
             self._exception_in_alerts = True
+
+    def __replace_tempids(self) -> None:
+        """
+        Replaces the temporary ids of alleles in bigsdb by actual allele numbers found in Pubmlst/Enterobase and
+        indicated as such by Azure: "resolved_AD".
+        :return: None
+        """
+        documents_list = [document for document in self._hashed_ad_collection.find({'scheme': {'$in': ['mlst', 'cgmlst', 'mlst_warwick', 'mlst_pasteur']},  # todo Yersinia special scheme names?
+                                                                                    'resolved_AD': {'$ne': 0},
+                                                                                    'replaced_in_bigs_date': {'$exists': False}})]
+
+        with TblAlleleDesignations(self._species) as isolates_ad_psql_tbl:
+            for hash_document in documents_list:
+                isolates_ad_psql_tbl.update_designations(
+                    (hash_document['resolved_AD'], hash_document['locus'], hash_document['hashed_allele']))
+        self._hashed_ad_collection.update_many({'_id': {'$in': [hash_document['_id'] for hash_document in documents_list]}},
+                                               {'$set': {'replaced_in_bigs_date': datetime.datetime.now()}})
 
     def __update_scheme_caches_full_once_if_needed(self) -> bool:
         """
