@@ -37,6 +37,8 @@ class TypingAllelesIntoPsql:
         """
         self._species_list = species_list
 
+        self._bigsdb_config_data = get_bigsdb_config_data()
+
         try:
             self._insert_alleles()
         except Exception as exceptionmessage:
@@ -50,7 +52,7 @@ class TypingAllelesIntoPsql:
         """
         for species in set(self._species_list):
             with TblAlleleDesignations(species) as isolates_ad_psql_tbl, TblSequences(species) as seqdef_sequences_psql_tbl:
-                schemedict: Dict[str, Dict[str, str]] = bigsdb_config_data['species'][species]['typing_schemes']
+                schemedict: Dict[str, Dict[str, str]] = self._bigsdb_config_data['species'][species]['typing_schemes']
                 for scheme in schemedict:
                     if schemedict[scheme].get('dirdb'):
                         dirs: List[Path] = [x for x in Path(schemedict[scheme]['dirdb']).iterdir() if x.is_dir() and not x.name.startswith('.')]

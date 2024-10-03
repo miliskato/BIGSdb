@@ -196,8 +196,8 @@ class MongoToBigs:
         :return: None
         """
         last_schema_update_date_document = self._update_metadata_collection.find_one({'metadata': 'last_dbupdate_insertion_date'})
-        last_dbupdate_date = self._update_metadata_collection.find_one({'metadata': 'last_dbupdate_date'})['last_dbupdate_date']
-        if not last_schema_update_date_document or last_dbupdate_date > last_schema_update_date_document['last_dbupdate_insertion_date']:
+        last_dbupdate_date = self._update_metadata_collection.find_one({'metadata': 'last_dbupdate_date'})['last_update_date']
+        if not last_schema_update_date_document or last_dbupdate_date > last_schema_update_date_document['last_update_date']:
             # Run the temporary id replacer
             self.___replace_tempids()
 
@@ -207,7 +207,8 @@ class MongoToBigs:
             GeneDetectionIntoPsql([self._species], do_not_recalculate=True)
             # update last insertion date
             self._update_metadata_collection.update_one({'metadata': 'last_dbupdate_insertion_date'},
-                                                        {'$set': {'last_dbupdate_insertion_date': datetime.datetime.utcnow()}})
+                                                        {'$set': {'last_update_date': datetime.datetime.utcnow()}},
+                                                        upsert=True)
 
     def ___replace_tempids(self) -> None:
         """

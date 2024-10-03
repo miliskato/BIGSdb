@@ -66,6 +66,8 @@ class TypingSchemeProfilesIntoPsql:
         """
         self._species_list = species_list
 
+        self._bigsdb_config_data = get_bigsdb_config_data()
+
         try:
             self._insert_all_profiles()
         except Exception as exceptionmessage:
@@ -133,7 +135,7 @@ class TypingSchemeProfilesIntoPsql:
         """
         for species in set(self._species_list):
             with TblProfiles(species) as seqdef_profiles_psql_tbl:
-                schemedict: Dict[str, Dict[str, str]] = bigsdb_config_data['species'][species]['typing_schemes']
+                schemedict: Dict[str, Dict[str, str]] = self._bigsdb_config_data['species'][species]['typing_schemes']
                 for scheme in schemedict:
                     if schemedict[scheme].get('scheme_fields'):
                         with Path('/'.join([schemedict[scheme]['dirdb'], PROFILE_FILE])).open('r') as handle:
