@@ -11,7 +11,7 @@ class MongoInitialisation:
     """
     Class containing all queries for Mongo
     """
-    def __init__(self, species: str, selected_connection_string: str = None, alternate_dtap: Union[str, None] = None,
+    def __init__(self, species: str, selected_connection_string: str, alternate_dtap: Union[str, None] = None,
                  mongo_config_data: Dict[str, Any] = None):
         """
         Initialises this class and opens the species/dtap specific mongo database
@@ -37,7 +37,6 @@ class MongoInitialisation:
         :param species: commonly used bioit species name: either genus or specific like stec
         :return: opened database object
         """
-
         try:
             self.client = MongoClient(self.connection_string)
         except Exception:

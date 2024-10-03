@@ -17,6 +17,14 @@ class TblEavInt(DatabaseConnection):
         self._db_type = 'isolates'
         super().__init__(species, self._db_type)
 
+    def delete_eav_int_for_isolate(self, param: Tuple[str]) -> None:
+        """
+        Delete all eav int values for a specific isolate id
+        :param param: isolate id of the isolate
+        :return: None
+        """
+        self.execute_query(PsqlQueries.ISO_DEL__TB_EAVI_VAR_ISOLATE_ID, param)
+
     def insert_eav_int_isolate(self, param: Tuple[str, str, int]) -> None:
         """
         Inserts a metadata field in the NCBI 16S category

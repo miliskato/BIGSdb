@@ -4,18 +4,16 @@ import socket
 import sys
 import traceback
 from pathlib import Path
-from typing import List, Literal
+from typing import List
 
 from Bio import SeqIO
-
-from bioit_mongodb_scripts.model.json_model import ResultType
 
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
 from bioit_bigsdb_scripts.components.psql import TblIsolates, TblSequenceBin
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data, send_email
-
+from bioit_mongodb_scripts.model.json_model import ResultType
 
 def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     """
@@ -27,6 +25,7 @@ def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     argument_parser.add_argument('--fastafilepath', required=True, type=Path)
     argument_parser.add_argument('--species', required=True, type=str, choices=specieslist)
     argument_parser.add_argument('--isolatename', required=True, type=str)
+    argument_parser.add_argument('--results_type', required=True, type=ResultType)
     return argument_parser.parse_args()
 
 
@@ -39,7 +38,6 @@ def insert_assembly(isolatename: str, species: str, fastafilepath: Path, results
     :param results_type: string defining if we are handling a new isolates or a positively validated badqc / reseq.
     :return: None
     """
-
     try:
         # Connect to db and create cursors
         with TblIsolates(species) as isolates_psql_tbl, TblSequenceBin(species) as isolates_seqbin_psql_tbl:
@@ -75,4 +73,4 @@ if __name__ == '__main__':
     args = parse_arguments(list(bigsdb_config_data['species']))
 
     # run main
-    insert_assembly(args.isolatename, args.species, args.fastafilepath)
+    insert_assembly(args.isolatename, args.species, args.fastafilepath, args.results_type)

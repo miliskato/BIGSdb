@@ -118,7 +118,6 @@ class MainMongo:
             self._mongoinit.initialise_clustering_collections()
         self._headers_collection = self._mongoinit.initialise_headers_collection()
 
-
         # Open querying class instance
         self._mongoquerying = Mongoquerying()
 
@@ -216,6 +215,11 @@ class MainMongo:
             self.__new_reanalysis_wrapper(current_results_document, json_report)
 
     def __process_json_report(self, json_report: JsonReportDict) -> MongoRecordDict:
+        """
+        Function handling the convertion of the initial json report in a Mongo Document stored in MongoDB
+        :param json_report: json report containing the results from the pipeline
+        :return: a MongoRecordDict object (containing extra data in comparison to the original report)
+        """
         json_report["isolates_id"] = self._technical_id
         mongo_records = self.___initialize_mongo_record(json_report)
 
@@ -226,13 +230,13 @@ class MainMongo:
         self.__process_mongo_record(mongo_records, good_sample_quality)
         return mongo_records
 
-    def __process_mongo_record(self, mongo_records: MongoRecordDict, good_sample_quality: bool = True):
+    def __process_mongo_record(self, mongo_records: MongoRecordDict, good_sample_quality: bool = True) -> None:
         """
         Handles and inserts new isolates, whether that be actual new isolates or validated bad samples
-        :param mongo_records: results dic coming from mongo
+        :param mongo_records: results dictionary coming from mongo
+        :param good_sample_quality: boolean indicating whether the sample quality is good or bad
         :return: None
         """
-
         if good_sample_quality:
             json_report = mongo_records.get_json_results()
             self.___find_hashes_in_results_and_add_to_collection(json_report, 'new_isolate')
@@ -255,6 +259,11 @@ class MainMongo:
                 f"New isolate {self._technical_id} failed quality control for one or more checks. It's results were written to the 'isolates_badqc' collection in the {self._species} database")
 
     def is_good_quality(self, new_json_report: JsonReportDict) -> bool:
+        """
+        Evaluates the quality of the isolates based on qc from camel
+        :param new_json_report: json report containing the results from the pipeline
+        :return : True (if good quality) or False (if bad quality)
+        """
         qc = new_json_report.get('qc')
         if qc is None:
             send_email(f"No qc values found in the given results for {self._technical_id}\n{traceback.format_exc()}", dont_send_email=self._dont_send_email)
@@ -318,7 +327,6 @@ class MainMongo:
         :param new_json_report: the new results document dict, under results for reanalysis, all for resequencing
         :return: None
         """
-
         self.___find_hashes_in_results_and_add_to_collection(new_json_report, 'reanalysis')
         self.___convert_typinghitdictionaries_to_lists(new_json_report)
 
@@ -328,9 +336,9 @@ class MainMongo:
             raise MongoReanalysisDateError(
                 f"{Path(__file__).name} fail on host {socket.gethostname()}: This ({self._technical_id}) is not a reanalysis but the same results")
         elif convert_dmyhms_to_ymd(new_json_report["analysis_date"]) < convert_dmyhms_to_ymd(current_results["analysis_date"]):
-            send_email(f"These ({self._technical_id})results seem to be older than the current results\n{traceback.format_exc()}", dont_send_email=self._dont_send_email)
+            send_email(f"These ({self._technical_id}) results seem to be older than the current results\n{traceback.format_exc()}", dont_send_email=self._dont_send_email)
             raise MongoReanalysisDateError(
-                f"{Path(__file__).name} fail on host {socket.gethostname()}: These ({self._technical_id})results seem to be older than the current results")
+                f"{Path(__file__).name} fail on host {socket.gethostname()}: These ({self._technical_id}) results seem to be older than the current results")
         any_result_changed_new_old, unchanged_results_new_old, changed_results_new_old = self.___check_if_results_changed(current_results, new_json_report)
         # Update new results if really a reanalysis/resequencing where at least one field changed
         if 'cgmlst' in changed_results_new_old:
@@ -354,27 +362,28 @@ class MainMongo:
                 f"New results are not different from current results for {self._technical_id} in {self._species}, updating analysis dates and db versions.")
         if self._results_type == 'resequencing_validated':
             new_results['validation'] = self._subvaldict
-            report_dir_merging_cmd = ' '.join([
-                "rsync -a --no-p --no-o --no-g",
-                f"{new_json_report['report_directory']}/",
-                f"{current_results_document['report_directory']}/"
-            ])
-            command = Command(report_dir_merging_cmd)
-            # run the command
-            command.run(current_results_document['report_directory'])
-            logging.info(f"merging the report directories of original and resequencing for isolate '{self._technical_id}'")
-            if command.returncode != 0:
-                send_email(f"Could not 'git' merge dir {new_json_report['report_directory']} into dir {current_results_document['report_directory']}", dont_send_email=self._dont_send_email)
-                raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}: Could not 'git' merge dir {new_json_report['report_directory']} into dir {current_results_document['report_directory']}")
-            else:
-                # Removing the temporary working dir and the remaining files that were not kept
-                shutil.rmtree(Path(new_json_report['report_directory']))
-                logging.info(f"Resequencing directory {new_json_report['report_directory']} deletion for isolate '{self._technical_id}' completed")
+            # report_dir_merging_cmd = ' '.join([
+            #     "rsync -a --no-p --no-o --no-g",
+            #     f"{new_json_report['report_directory']}/",
+            #     f"{current_results_document['report_directory']}/"
+            # ])
+            # command = Command(report_dir_merging_cmd)
+            # # run the command
+            # command.run(current_results_document['report_directory'])
+            # logging.info(f"merging the report directories of original and resequencing for isolate '{self._technical_id}'")
+            # if command.returncode != 0:
+            #     send_email(f"Could not 'git' merge dir {new_json_report['report_directory']} into dir {current_results_document['report_directory']}", dont_send_email=self._dont_send_email)
+            #     raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}: Could not 'git' merge dir {new_json_report['report_directory']} into dir {current_results_document['report_directory']}")
+            # else:
+            #     # Removing the temporary working dir and the remaining files that were not kept
+            #     shutil.rmtree(Path(new_json_report['report_directory']))
+            #     logging.info(f"Resequencing directory {new_json_report['report_directory']} deletion for isolate '{self._technical_id}' completed")
             # Remove the isolate from the resequencing collection to allow for new resequencings
             self._isolates_resequencing_collection.delete_one({'_id': self._technical_id})
         self._isolates_collection.with_options(write_concern=WriteConcern(w="majority")).update_one(
             {"_id": self._technical_id}, {
                 "$set": {**new_results,
+                         "report_directory": new_json_report['report_directory'],
                          "results.results_changed_since_last_version": any_result_changed_new_old,
                          "latest_analysis_date": convert_dmyhms_to_ymd(new_results["results.analysis_date"]),
                          "previous_latest_results_document": self.___write_document(self._old_isolateresults_collection,
@@ -591,6 +600,7 @@ class MainMongo:
             delta_new_old['isolates_id'] = current_results['isolates_id']
             delta_new_old['results_version'] = current_results['results_version']
             delta_new_old['changed_version'] = current_results['changed_version']
+        delta_new_old['report_directory'] = current_results['report_directory']
         return delta_new_old
 
     def ___convert_typinghitdictionaries_to_lists(self, json_report: JsonReportDict):

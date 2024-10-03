@@ -5,20 +5,20 @@ import traceback
 from pathlib import Path
 from typing import Literal
 
-from bioit_mongodb_scripts.model.json_model import JsonReportDict, MongoRecordDict
-
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
 from bioit_bigsdb_scripts.components.maininserter import MainInserter
 from bioit_bigsdb_scripts.components.json_typingresultsinserter import JsonTypingResultsInserter
 from bioit_bigsdb_scripts.components.json_genedetectionresultsinserter import JsonGeneDetectionResultsInserter
-from bioit_bigsdb_scripts.components.psql import TblIsolates, TblAlleleDesignations, TblEavText, TblEavBoolean
+from bioit_bigsdb_scripts.components.psql import TblIsolates, TblAlleleDesignations, TblEavText, TblEavBoolean, \
+    TblEavInt
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data, send_email
+from bioit_mongodb_scripts.model.json_model import JsonReportDict, ResultType
 from bioit_mongodb_scripts.util.python_utility_functions import send_email
 
 class MainResultsInserter:
-    def __init__(self, isolatename: str, uploader_mail_address: str, species: str, results_type: Literal['new_isolate','badqc','resequencing','reanalysis'], report_access: str, vcf_path: str, mongo_dtap: str,
+    def __init__(self, isolatename: str, uploader_mail_address: str, species: str, results_type: ResultType, report_access: str, vcf_path: str, mongo_dtap: str,
                  json_results: JsonReportDict) -> None:
         """
         Initialises the class and runs the main function.
@@ -31,7 +31,6 @@ class MainResultsInserter:
         :param vcf_path: subdirectory containing the vcf file
         :param mongo_dtap: dtap from mongo config
         :param json_results: results for the isolate
-        :param mongo_record: records from mongo for this isolate
         :return: None
         """
         # Input parameters
@@ -43,6 +42,8 @@ class MainResultsInserter:
         self._vcf_path = vcf_path
         self._mongo_dtap = mongo_dtap
         self._json_report = json_results
+
+        self._bigsdb_config_data = get_bigsdb_config_data()
 
         # Execute main function
         try:
@@ -57,17 +58,10 @@ class MainResultsInserter:
         Main function, inserts isolate and its results into BIGSdb.
         :return: None
         """
-        self._bigsdb_config_data = get_bigsdb_config_data()
-    
-        # parse input
-
         # fail safe mechanism is initated before inserting the isolate
         # fail safe mechanism uses a flagfile to lock the isolate insertion and checks whether the previous insertion of the isolate succeeded.
         with TblIsolates(self._species) as isolates_psql_tbl:
             self.__fail_safe_mechanism(isolates_psql_tbl)
-
-        ####################fonction qui ne reprends que les différences:
-
 
         maininserter = MainInserter(self._isolatename, self._species, self._json_report, self._bigsdb_config_data, self._report_access, self._vcf_path, self._mongo_dtap)
         if self._results_type == 'new_isolate' or self._results_type == 'badqc':
@@ -95,7 +89,7 @@ class MainResultsInserter:
         else insertion is started and flag file is present: remove highest version of sample and
          reinsert if multiple versions, if only one version, sample is reinserted in the main workflow below
         :param isolates_psql_tbl: isolates db isolates table/ connection instance for a given species
-        :return: flag file present
+        :return: None
         """
         try:
             if not Path(self._bigsdb_config_data['failsafe']['flag_dir']).is_dir():
@@ -136,9 +130,9 @@ class MainResultsInserter:
         """
         if self._results_type == 'reanalysis ' or self._results_type == 'resequencing':
             with TblAlleleDesignations(self._species) as isolates_ad_psql_tbl, TblEavText(
-                    self._species) as isolates_eavt_psql_tbl, TblEavBoolean as isolates_eavb_psql_tbl:
+                    self._species) as isolates_eavt_psql_tbl, TblEavBoolean(self._species) as isolates_eavb_psql_tbl, TblEavInt(
+                self._species) as isolates_eavi_psql_tbl:
                 isolates_ad_psql_tbl.delete_all_designations_of_isolate((self._isolatename,))
                 isolates_eavt_psql_tbl.delete_all_eav_by_isolate_id((self._isolatename,))
                 isolates_eavb_psql_tbl.delete_eavbool_for_isolate((self._isolatename,))
-
-
+                isolates_eavi_psql_tbl.delete_eav_int_for_isolate((self._isolatename,))

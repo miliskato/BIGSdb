@@ -1,31 +1,31 @@
 import datetime
-import sys
 import socket
+import sys
 from pathlib import Path
 from typing import Any, Dict, List
 
 from pymongo.write_concern import WriteConcern
 
-from bioit_mongodb_scripts.model.json_model import MongoRecordDict
-
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
+from bioit_mongodb_scripts.model.json_model import MongoRecordDict
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_bigsdb_scripts.components.psql import TblSubmissions, TblIsolateSubmissionIsolates, \
-    TblIsolateSubmissionFieldOrder, TblMappingTable
+    TblIsolateSubmissionFieldOrder
 
 
-def _insert_submission_bigs(sample_docs: List[MongoRecordDict], validation_type: str, species: str, mongo_config_data: Dict[str, Any] ) -> None:
+def _insert_submission_bigs(sample_docs: List[MongoRecordDict], validation_type: str, species: str, mongo_config_data: Dict[str, Any]) -> None:
     """
     Inserts a given list of submissions into bigsdb
     :param sample_docs: list of documents to be submitted
     :param validation_type: either bad_quality or resequencing
     :param species: commonly used bioit species name: either genus or specific like stec
+    :param mongo_config_data: Use provided mongo_config_data, else get mongo_config_data from file
     :return: None
     """
     mongoinit_local = MongoInitialisation(species, mongo_config_data=mongo_config_data,
-                                                selected_connection_string='CONNECTION_STRING_LOCAL')
+                                          selected_connection_string='CONNECTION_STRING_LOCAL')
     mappingtable_collection = mongoinit_local.initialise_mapping_table_collection()
 
     with TblSubmissions(species) as isolates_sub_psql_tbl, \
@@ -38,7 +38,7 @@ def _insert_submission_bigs(sample_docs: List[MongoRecordDict], validation_type:
             api_button = f"""
             <button onclick="get_jwt_report('no', '{validation_type}', '{isolate_id}', '{mongo_record['_id']}', '{species}', '{mongo_record['latest_analysis_date']}')" class='small_submit'>Get report preview</button>
             """
-            pipeline_hash=mongo_record['results']['pipeline_hash']
+            pipeline_hash = mongo_record['results']['pipeline_hash']
 
             isolates_isosubiso_psql_tbl.insert_validation_metadata(('html_report', api_button))
             isolates_isosubiso_psql_tbl.insert_validation_metadata(('isolate_id', isolate_id))
