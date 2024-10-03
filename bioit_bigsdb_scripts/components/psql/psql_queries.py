@@ -137,7 +137,7 @@ class PsqlQueries():
         INSERT INTO eav_int(isolate_id, field, value) 
         VALUES((SELECT id FROM isolates WHERE isolate=%s), %s, %s);"""
     # TBL extended attribute values text
-    ISO_DEL__TB_EAVT_ALL: Final[str] = """DELETE FROM eav_text WHERE isolate_id=%s;"""
+    ISO_DEL__TB_EAVT_VAR_ISOLATE_ID: Final[str] = """DELETE FROM eav_text WHERE isolate_id=%s;"""
     ISO_DEL__TB_EAVT_VAR_ID_FIELD: Final[str] = """DELETE FROM eav_text WHERE isolate_id=%s AND field=%s;"""
     ISO_INS__TB_EAVT_VAR_ID_FIELD_VAL: Final[str] = """
         INSERT INTO eav_text(isolate_id, field, value) VALUES(%s, %s, %s);"""

@@ -216,11 +216,11 @@ class MainMongo:
             self.__new_reanalysis_wrapper(current_results_document, json_report)
 
     def __process_json_report(self, json_report: JsonReportDict) -> MongoRecordDict:
-        json_report["isolates_id"] = self._technical_id  # it's a duplication of _id, do we need it ?
+        json_report["isolates_id"] = self._technical_id
         mongo_records = self.___initialize_mongo_record(json_report)
 
         good_sample_quality = True
-		if self._results_type == 'new_isolate' and self._species not in self._mongo_config_data['viral_species']:  # viral pathogens do not have a qc section
+        if self._results_type == 'new_isolate' and self._species not in self._mongo_config_data['viral_species']:  # viral pathogens do not have a qc section
             good_sample_quality = self.is_good_quality(json_report)
 
         self.__process_mongo_record(mongo_records, good_sample_quality)
