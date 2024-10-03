@@ -396,7 +396,7 @@ class MainMongo:
     def ___check_if_any_results_for_hd_dwh_changed(self, deltas_new_old: Dict[str, Any]) -> None:
         """
         Checks if any of the genomic indicators to send to DWH have changed and sets the field
-        'changed_since_sent_to_DWH's value to true in the local MongoDB if
+        'changed_since_sent_to_DWH's value to true in the local MongoDB if any have
         :param deltas_new_old: the deltas between the new and the old results; what needs to be applied on the
         new results to get the old results back.
         :return: None

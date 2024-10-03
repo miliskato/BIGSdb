@@ -84,8 +84,7 @@ for species, species_testfiles in testfiles_dict.items():
     isolates_collection.insert_one(dummy_genomic_report)
 
     """
-    Insert mapping table for the main sender to be able to 
-    discover and send it.
+    Insert mapping table for the main sender to be able to discover and send it.
     """
     with (testfiles_folder / species_testfiles['mapping_table']).open('r') as handle:
         dummy_mapping_table = json.load(handle)
