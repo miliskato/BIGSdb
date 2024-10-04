@@ -1,13 +1,12 @@
-import json
+import logging
 import logging
 import sys
-import tempfile
-import yaml
 from copy import deepcopy
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+import yaml
 
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
@@ -44,6 +43,12 @@ class SendGenomicToDWH(SFTPConnection):
         if alternate_dtap:
             self._alternate_dtap = alternate_dtap
         elif self._mongo_config_data['dtap'] != 'prod':
+            """
+            The DWH only provided credentials for prod.
+            The root folder in every sftp environment is the drop off location for the cycle for which it is meant.
+            in order to tackle being able to test dev, test, and acc, all of these are created as separate folders
+            in the DWH location.
+            """
             self._alternate_dtap = self._mongo_config_data['dtap']
         else:
             self._alternate_dtap = None
@@ -64,7 +69,7 @@ class SendGenomicToDWH(SFTPConnection):
 
         self._output_json_dict = self._create_output_json_dict()
         
-        send_dictionary_to_ods_or_dwh(self._document['pseudo_id'], 'DWH', self._output_json_dict, self._sftp,
+        send_dictionary_to_ods_or_dwh('DWH', self._output_json_dict, self._sftp,
                                       alternate_dtap=self._alternate_dtap)
 
         self._close_sftp_connection(self._ssh, self._sftp)

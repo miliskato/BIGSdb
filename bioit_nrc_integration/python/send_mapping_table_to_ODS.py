@@ -1,10 +1,9 @@
-import json
 import logging
 import sys
-import tempfile
-import yaml
 from pathlib import Path
 from typing import Any, Dict
+
+import yaml
 
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
@@ -52,8 +51,7 @@ class SendMappingTableToODS(SFTPConnection):
 
         self._mapping_table_with_healthdata_names = self._create_mapping_table_with_healthdata_names()
 
-        send_dictionary_to_ods_or_dwh(self._mapping_table['pseudo_id'], 'ODS',
-                                      self._mapping_table_with_healthdata_names, self._sftp,
+        send_dictionary_to_ods_or_dwh('ODS', self._mapping_table_with_healthdata_names, self._sftp,
                                       alternate_dtap=self._alternate_dtap)
 
         # Close the SFTP session
