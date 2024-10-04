@@ -72,8 +72,8 @@ def samples_to_validation_bigs(species: str, mongo_config_data: Dict[str, Any] =
     current_date = datetime.datetime.utcnow()
     bad_samples = list(map(lambda x: MongoRecordDict(x),isolates_badqc_collection.find({'creation_date': {'$gt': last_run_date}})))
     _insert_submission_bigs(bad_samples, 'bad_quality', species, mongo_config_data)
-    resequencing_samples = list(map(lambda x: MongoRecordDict(x),isolates_resequencing_collection.find({'creation_date': {'$gt': last_run_date}})))
-    _insert_submission_bigs(resequencing_samples, 'resequencing', species, mongo_config_data)
+    # resequencing_samples = list(map(lambda x: MongoRecordDict(x),isolates_resequencing_collection.find({'creation_date': {'$gt': last_run_date}})))
+    # _insert_submission_bigs(resequencing_samples, 'resequencing', species, mongo_config_data)
     # update last date of update
     if query:
         update_collection.with_options(write_concern=WriteConcern(w="majority")).find_one_and_update(
