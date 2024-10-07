@@ -207,7 +207,7 @@ class PsqlQueries():
     ISO_SEL_ID_CGST_TB_ISO_VAR_SCHID_ISO: Final[str] = """
         SELECT isolates.id, cgst FROM isolates LEFT JOIN 
         temp_isolates_scheme_fields_%s USING (id)
-        WHERE isolates.isolate = %s ORDER BY isolates.id DESC LIMIT 2;"""
+        WHERE isolates.isolate = %s;"""
     ISO_SEL_ISO_DATE_TB_ISO_VAR_ISOS: Final[str] = """
         SELECT isolate, isolation_date FROM isolates WHERE
         isolate IN %s AND isolation_date IS NOT NULL;"""

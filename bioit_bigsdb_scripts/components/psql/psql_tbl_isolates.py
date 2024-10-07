@@ -71,12 +71,11 @@ class TblIsolates(DatabaseConnection):
         """
         self.execute_query(PsqlQueries.ISO_UPD_NEWV_TB_ISO_VAR_ISO, param)
 
-    def select_cgsts_of_two_latest_versions_of_isolate(self, param: Tuple[int, str]) -> List[Optional[Tuple[Any]]]:
+    def select_current_cgst_of_isolate(self, param: Tuple[int, str]) -> Optional[Tuple[Any]]:
         """
-        Used for isolates where multiple versions exist; selects the cgsts of the two latest versions of an isolate,
-        along with the isolate ids
+        Select the cgst found in BIGSdb for the current isolate and return it along with its isolate id
         :param param: cgmlst scheme id, cgmlst scheme id, isolate name
-        :return: None or list of tuple isolate_id and cgst
+        :return: None or tuple containing the isolate_id and its cgst
         """
         return self.execute_query(PsqlQueries.ISO_SEL_ID_CGST_TB_ISO_VAR_SCHID_ISO, param)
 
