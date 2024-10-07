@@ -152,45 +152,6 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         listofresultlists.append(resultlist)
         return listofresultlists
 
-    # @staticmethod
-    # def adapt_isolates_id_in_mongodb(opened_collection: pymongo.collection.Collection, actual_id: str, new_id: str) -> None:
-    #     """
-    #     Function to change the _id field of an isolate already upload to MongoDB
-    #     :param actual_id: current id of the isolate
-    #     :param new_id: new id to give to the isolate
-    #     """
-    #     var copy = db.isolates_badqc.findOne({_id: 'S17BD00190'})
-    #     copy._id = 'S23BDtest'
-    #     db.isolates_badqc.insert(copy)
-
-    # def find_isolates_cgmlst_distance(self, isolate_id: str, distance_threshold: int, isolate_collection,
-    #                                   distance_matrix_collection) -> list:
-    #     isolate_sequence_type = isolate_collection.with_options(read_concern=ReadConcern(level="majority")).find_one({"_id": isolate_id})['HierCC_cgST']
-    #     distance_query = DistanceMatrixQuery(isolate_id, isolate_sequence_type, distance_threshold,
-    #                                          distance_matrix_collection)
-    #     st_under_threshold = distance_query.run_distance_query()
-    #     sample_id_below_threshold = []
-    #     for st in st_under_threshold:
-    #         query = isolate_collection.with_options(read_concern=ReadConcern(level="majority")).find({'HierCC_cgST': st})
-    #         for result in query:
-    #             sample_id_below_threshold.append(result['_id'])
-    #     return sample_id_below_threshold
-    #
-    # def find_HC_numbers_for_isolate(self, isolate_id: str, isolate_collection, hiercc_collection,
-    #                                 hc_number: str) -> int:
-    #     """
-    #     query to retrieve a specific hc number from an isolate
-    #     :param isolate_id: the id from the desired isolate
-    #     :param isolate_collection: the MongoDB collection of isolates
-    #     :param hiercc_collection:  the MongoDB collection of hiercc results
-    #     :param hc_number: the hc number (starting with HC..) to be retrieved
-    #     :return: the hc number of the cluster where the isolates is located.
-    #     """
-    #     isolate_sequence_type = isolate_collection.with_options(read_concern=ReadConcern(level="majority")).find_one({"_id": isolate_id})['HierCC_ST']
-    #     hc_numbers = hiercc_collection.with_options(read_concern=ReadConcern(level="majority")).find({"ST": isolate_sequence_type})
-    #     hc_data = HCNumbersData(isolate_sequence_type, hc_numbers)
-    #     return hc_data.get_hc_number(hc_number)
-
     @staticmethod
     def revert_typinghitlists_to_dictionaries(document: MongoRecordDict, headers_collection: pymongo.collection.Collection) -> None:
         """
