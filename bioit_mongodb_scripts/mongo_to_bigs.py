@@ -178,12 +178,13 @@ class MongoToBigs:
             self._exception_in_alerts = True
 
 
-    def add_isolate_cgst_to_alert_lists(self, document: MongoRecordDict, isolate_id: str, results_type: ResultType):
+    def add_isolate_cgst_to_alert_lists(self, document: MongoRecordDict, isolate_id: str, results_type: ResultType) -> None:
         """
-        function to append isolateid, cgST, dt_of_isolation to a list that will be used to re-compute BIGSdb alerts
+        Function to append isolate_id, cgST, and date_of_isolation to a list that will be used to re-compute BIGSdb alerts
         :param document: Mongo record from isolate collection
         :param isolate_id: isolate id (as found in BIGSdb)
         :param results_type: one of the following string: 'new_isolate','badqc','resequencing','reanalysis'
+        :return: None
         """
         if results_type == 'new_isolate' or results_type == 'badqc':
             self._list_of_new_isolates_for_alerts.append(

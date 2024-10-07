@@ -361,7 +361,7 @@
 
 - name: setup temporary dir
   block:
-    - name: adapt right for temp_bigs
+    - name: adapt rights for temp_bigs
       ansible.builtin.file:
         path: /temp_bigs
         state: directory
@@ -748,15 +748,6 @@
             - "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_bigsdb_scripts/Typing_schemeprofiles_intopsql.py --species {{ species }}"
             - "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_bigsdb_scripts/genedetection_intopsql.py --species {{ species }} --do_not_recalculate"
           tags: pop_db
-
-- name: setup reports and symlinks
-  block:
-    - name: symlink reports
-      ansible.builtin.file:
-        src: /reports
-        dest: /var/www/html/galaxyreports
-        state: link
-  tags: set_symlink
 
 - name: Restart service rest after all other steps
   ansible.builtin.systemd:

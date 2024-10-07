@@ -10,13 +10,11 @@ from typing import Any, Dict, List, Union
 
 import yaml
 
-from bioit_mongodb_scripts.model.json_model import MongoRecordDict
-
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
 from bioit_mongodb_scripts.config import MONGO_CONFIG
-
+from bioit_mongodb_scripts.model.json_model import MongoRecordDict
 
 def get_mongodb_config_data() -> Dict[str, Union[str, List[Any], Dict[str, Union[str, Dict[str, Any]]]]]:
     """

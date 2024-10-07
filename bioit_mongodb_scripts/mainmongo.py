@@ -4,7 +4,6 @@ import hashlib
 import json
 import logging
 import re
-import shutil
 import socket
 import sys
 import traceback
@@ -18,13 +17,11 @@ import pymongo
 from pymongo.read_concern import ReadConcern
 from pymongo.write_concern import WriteConcern
 
-from bioit_mongodb_scripts.model.json_model import JsonReportDict, MongoRecordDict
-
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
 from bioit_mongodb_scripts.config import CLUSTERING_CONFIG
-from bioit_mongodb_scripts.util.command.command import Command
+from bioit_mongodb_scripts.model.json_model import JsonReportDict, MongoRecordDict
 from bioit_mongodb_scripts.util.error import *
 from bioit_mongodb_scripts.util.mongo_custom_clustering import MongoCustomClustering
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
