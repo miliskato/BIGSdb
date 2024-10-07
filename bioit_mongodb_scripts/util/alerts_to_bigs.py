@@ -117,7 +117,8 @@ class AlertsToBigs:
             # order of keys below is important, if alert is triggered we'll break because warning will be redundant
             for threshold_key in ['threshold_alert', 'threshold_warning']:
                 # get all cgSTs within distance, includes self
-                similar_cgsts_from_matrix = self.get_similar_cgsts_from_matrix(threshold_key, isolate['cgST'])
+                distance_threshold = self._bigsdb_config_data['alerts'][self._species][threshold_key]
+                similar_cgsts_from_matrix = self.get_similar_cgsts_from_matrix(distance_threshold, isolate['cgST'])
 
                 isolation_date = datetime.datetime.strptime(isolate['isolation_date'], '%d/%m/%Y')
                 queried_isolates = self.___query_isolates_according_to_thresholds(similar_cgsts_from_matrix, isolate['cgST'],
@@ -128,7 +129,7 @@ class AlertsToBigs:
                     for isolate_tuple in queried_isolates:
                         if isolate_tuple[1] == isolate['isolate_name']:
                             subject_isolate_tuple = isolate_tuple
-                    #spurious indent ?
+                            break
                     if subject_isolate_tuple is None:
                         exceptionmessage = f"While evaluating alerts, the tuple for the subject isolate " \
                                            f"{isolate['isolate_name']} was not found in the output of the sql query"
@@ -140,14 +141,14 @@ class AlertsToBigs:
                             if not isolate.get('alert_id'):  # check if we're not dealing with reanalysis/resequencing
                                 self.___insert_item_into_alerts(threshold_key.split('_')[-1],
                                                                 investigation_method, subject_isolate_tuple,
-                                                                cgsts, distance_threshold)
+                                                                similar_cgsts_from_matrix, distance_threshold)
                             else:
                                 if threshold_key == 'threshold_alert' and \
                                         isolate.get('previous_version_alert_type') == 'warning':
                                     self.___update_warning_to_alert(str(isolate['alert_id']),
                                                                     str(distance_threshold))
                                 self.___update_variable_details_for_alert(
-                                    str(isolate['alert_id']), cgsts,
+                                    str(isolate['alert_id']), similar_cgsts_from_matrix,
                                     investigation_method,
                                     threshold_key.split('_')[-1],
                                     subject_clgr=queried_isolates[0][4] if investigation_method == 'single linkage' else None)
@@ -191,7 +192,7 @@ class AlertsToBigs:
                             if not isolate.get('alert_id'):  # check if we're not dealing with reanalysis/resequencing
                                 self.___insert_item_into_alerts(threshold_key.split('_')[-1],
                                                                 investigation_method, subject_isolate_tuple,
-                                                                cgsts, distance_threshold,
+                                                                similar_cgsts_from_matrix, distance_threshold,
                                                                 sliding_windows_by_weight[0][1].strftime('%Y-%m-%d'),
                                                                 sliding_windows_by_weight[0][2].strftime('%Y-%m-%d'))
                             else:
@@ -200,7 +201,7 @@ class AlertsToBigs:
                                     self.___update_warning_to_alert(str(isolate['alert_id']),
                                                                     str(distance_threshold))
                                 self.___update_variable_details_for_alert(
-                                    str(isolate['alert_id']), cgsts,
+                                    str(isolate['alert_id']), similar_cgsts_from_matrix,
                                     investigation_method,
                                     threshold_key.split('_')[-1],
                                     sliding_windows_by_weight[0][1].strftime('%Y-%m-%d'),
@@ -219,15 +220,12 @@ class AlertsToBigs:
                                          self._cgmlst_bigsdb_scheme_id, isolate['cgST']))
                             break
 
-    def get_similar_cgsts_from_matrix(self, threshold_key: str, isolate_cgst: int) -> tuple[str, ...]:
+    def get_similar_cgsts_from_matrix(self, distance_threshold: int, isolate_cgst: int) -> List[str]:
         row_cgst = self._distance_matrix[isolate_cgst - 1]
-        distance_threshold = self._bigsdb_config_data['alerts'][self._species][threshold_key]
         indices_for_similar_cgsts = np.where(row_cgst <= distance_threshold)[0]
-        cgsts = [x + 1 for x in indices_for_similar_cgsts]
-        cgsts_as_tuple_of_str = tuple(str(x + 1) for x in indices_for_similar_cgsts)
-        return cgsts_as_tuple_of_str
+        return [str(x + 1) for x in indices_for_similar_cgsts]
 
-    def ___query_isolates_according_to_thresholds(self, cgsts_as_tuple_of_str: tuple[str, ...], cgst_of_current_isolate: int, isolation_date: datetime.datetime,
+    def ___query_isolates_according_to_thresholds(self, cgsts_as_tuple_of_str: List[str], cgst_of_current_isolate: int, isolation_date: datetime.datetime,
                                                   investigation_method: str, threshold_key: str) -> List[Optional[Tuple[Any]]]:
         """
         Queries isolates according to the given input parameters.
@@ -238,7 +236,65 @@ class AlertsToBigs:
         :param threshold_key: 'threshold_alert' or 'threshold_warning'
         :return: List of tuples of queried isolates
         """
-        with TblIsolates(self._species) as self._isolates_psql_tbl:
+        if investigation_method == 'distance matrix':
+            queried_isolates = self.____get_queried_isolates_with_distance_matrix(tuple(cgsts_as_tuple_of_str), isolation_date)
+        else:
+            queried_isolates = self.____get_queried_isolates_with_single_linkage(cgst_of_current_isolate, isolation_date, threshold_key)
+        return queried_isolates
+
+    def ____get_queried_isolates_with_distance_matrix(self, cgsts_as_tuple_of_str: tuple[str, ...], isolation_date: datetime.datetime) -> List[Optional[Tuple[Any]]]:
+        """
+        Return isolates belonging to the alert according to the matrix method
+        :param cgsts_as_tuple_of_str: Tuple containing similar cgsts from the distance matrix based on a specific threshold
+        :param isolation_date: isolation date of the isolate under evaluation for alerts
+        :return: List of tuples of queried isolates
+        """
+        with TblIsolates(self._species) as isolates_psql_tbl:
+            if self._timeframe_is_infinite:
+                queried_isolates = isolates_psql_tbl.select_isolates_by_cgsts(
+                    (self._cgmlst_bigsdb_scheme_id, cgsts_as_tuple_of_str))
+            else:
+                start_date = (isolation_date - self._timedelta_timeframe).strftime('%Y-%m-%d')
+                end_date = (isolation_date + self._timedelta_timeframe).strftime('%Y-%m-%d')
+                queried_isolates = isolates_psql_tbl.select_isolates_by_cgsts_and_between_dates(
+                    (self._cgmlst_bigsdb_scheme_id, cgsts_as_tuple_of_str, start_date, end_date))
+        return queried_isolates
+
+    def ____get_queried_isolates_with_single_linkage(self, cgst_of_current_isolate: int, isolation_date: datetime.datetime, threshold_key: str) -> List[Optional[Tuple[Any]]]:
+        """
+        Return isolates belonging to the alert according to the single linkage method
+        :param cgst_of_current_isolate: cgST of the current isolate
+        :param isolation_date: isolation date of the isolate under evaluation for alerts
+        :param threshold_key: 'threshold_alert' or 'threshold_warning'
+        :return: List of tuples of queried isolates
+        """
+        with TblIsolates(self._species) as isolates_psql_tbl:
+            if self._timeframe_is_infinite:
+                queried_isolates = isolates_psql_tbl.select_isolates_by_cluster_group(
+                    (self._bigsdb_config_data['alerts'][self._species][
+                         f'{threshold_key}_classification_scheme_id'],
+                     self._cgmlst_bigsdb_scheme_id, str(cgst_of_current_isolate)))
+                # all cluster groups are the same in the query; take 4th element (cluster group) of first
+                # tuple, which always has to exist because the isolate itself is definitely queried)
+                # Condition to skip it for first insertion of new cgST clust in which case the tuple is empty
+
+            else:
+                start_date = (isolation_date - self._timedelta_timeframe).strftime('%Y-%m-%d')
+                end_date = (isolation_date + self._timedelta_timeframe).strftime('%Y-%m-%d')
+                queried_isolates: list[Optional[tuple[Any]]] = isolates_psql_tbl. \
+                    select_isolates_by_cluster_group_and_between_dates(
+                    (self._bigsdb_config_data['alerts'][self._species][
+                         f'{threshold_key}_classification_scheme_id'],
+                     self._cgmlst_bigsdb_scheme_id, str(cgst_of_current_isolate), start_date, end_date))
+        return queried_isolates
+
+
+
+
+
+
+
+    with TblIsolates(self._species) as self._isolates_psql_tbl:
             if self._timeframe_is_infinite:
                 if investigation_method == 'distance matrix':
                     queried_isolates = self._isolates_psql_tbl.select_isolates_by_cgsts(
@@ -288,7 +344,7 @@ class AlertsToBigs:
                                                                      'isolate_id', alert_id))
 
     def ___insert_item_into_alerts(self, alert_type: str, investigation_method: str, subject_isolate_tuple: Tuple[Any],
-                                   cgsts: List[int], threshold: int, start_date: str = None,
+                                   cgsts: List[str], threshold: int, start_date: str = None,
                                    end_date: str = None) -> None:
         """
         Inserts a new alert/warning (=type) into the alerts table, and its details in the alert_details table
@@ -339,7 +395,7 @@ class AlertsToBigs:
 
             if investigation_method == 'distance matrix':
                 # insert all trigger subjects with javascript href
-                cgsts_plaintext = '","'.join(str(x) for x in cgsts)
+                cgsts_plaintext = '","'.join(cgsts)
                 if self._timeframe_is_infinite:
                     url = f'generateUrlCgst("{self._species}", "{self._cgmlst_bigsdb_scheme_id}", ["{cgsts_plaintext}"])'
                 else:
@@ -360,7 +416,7 @@ class AlertsToBigs:
 
             if investigation_method == 'distance matrix':
                 # insert all isolates with query cgsts, independent of timeframe
-                cgsts_as_str = ','.join(str(x) for x in cgsts)
+                cgsts_as_str = ','.join(cgsts)
                 url = f'generateUrlCgst("{self._species}", "{self._cgmlst_bigsdb_scheme_id}", ["{cgsts_plaintext}"])'
                 isolates_alertsdet_psql_tbl.insert_alert_metadata(
                     ('cgsts time independent',
@@ -388,7 +444,7 @@ class AlertsToBigs:
             # don't add it to the field order, and it will not be shown in the gui
             isolates_alertsdet_psql_tbl.insert_alert_metadata(('isolate_id', subject_bigsdb_id))
 
-    def ___update_variable_details_for_alert(self, alert_id: str, cgsts: List[int], investigation_method: str,
+    def ___update_variable_details_for_alert(self, alert_id: str, cgsts: List[str], investigation_method: str,
                                              alert_type: str, start_date: str = None, end_date: str = None,
                                              subject_clgr: str = None) -> None:
         """
@@ -404,11 +460,11 @@ class AlertsToBigs:
         """
         with TblAlertDetails(self._species) as isolates_alertsdet_psql_tbl:
             # update all trigger subjects with javascript href
-            cgsts_plaintext = '","'.join(str(x) for x in cgsts)
+            cgsts_plaintext = '","'.join(cgsts)
 
             if investigation_method == 'distance matrix':
                 # insert all isolates with query cgsts, independent of timeframe
-                cgsts_as_str = ','.join(str(x) for x in cgsts)
+                cgsts_as_str = ','.join(cgsts)
                 url = f'generateUrlCgst("{self._species}", "{self._cgmlst_bigsdb_scheme_id}", ["{cgsts_plaintext}"])'
                 isolates_alertsdet_psql_tbl.update_details_for_alert_id(
                     (f'<div id="{cgsts_as_str}"><script type="text/javascript">addUrlToField({url}, '
