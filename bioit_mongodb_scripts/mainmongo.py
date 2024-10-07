@@ -247,16 +247,7 @@ class MainMongo:
             self.___find_hashes_in_results_and_add_to_collection(json_report, 'new_isolate')
             self.___convert_typinghitdictionaries_to_lists(json_report)
             if 'cgmlst' in json_report:
-                clustering_input = self._mongoquerying.singledoc_typing_results_by_technicalids_and_scheme(json_report,
-                                                                                                           mongo_records.get_id(),
-                                                                                                           "cgmlst",
-                                                                                                           self._headers_collection)
-                custom_clustering = MongoCustomClustering(clustering_input[0], clustering_input[1], self._species,
-                                                          mongo_config_data=self._mongo_config_data)
-                logging.info(f"Running the clustering for the isolate {self._technical_id}")
-                sp_thresholds = f"clustering_thresholds_{self._species}"
-                cg_sequence_type = custom_clustering.run_custom_clustering(CLUSTERING_CONFIG[sp_thresholds])
-                mongo_records['results']['cgST'] = cg_sequence_type
+                self.__define_cgst_and_run_clustering(json_report)
         if good_sample_quality:
             if self._results_type == 'badqc_validated':
                 mongo_records['validation'] = self._subvaldict
@@ -329,14 +320,7 @@ class MainMongo:
                 self.___find_hashes_in_results_and_add_to_collection(new_json_report, 'reanalysis')
                 self.___convert_typinghitdictionaries_to_lists(new_json_report)
                 if 'cgmlst' in new_json_report:
-                    clustering_input = self._mongoquerying.singledoc_typing_results_by_technicalids_and_scheme(
-                        new_json_report, self._technical_id, "cgmlst", self._headers_collection)
-                    custom_clustering = MongoCustomClustering(clustering_input[0], clustering_input[1],
-                                                              self._species, self._mongo_config_data)
-                    logging.info(f"Running the clustering for the isolate {self._technical_id}")
-                    sp_thresholds = f"clustering_thresholds_{self._species}"
-                    sequence_type = custom_clustering.run_custom_clustering(CLUSTERING_CONFIG[sp_thresholds])
-                    new_json_report["cgST"] = sequence_type
+                    self.__define_cgst_and_run_clustering(new_json_report)
                 self.___write_document(self._isolates_resequencing_collection, new_isolate)
         else:
             send_email(
@@ -351,7 +335,7 @@ class MainMongo:
         :param new_json_report: the new results document dict, under results for reanalysis, all for resequencing
         :return: None
         """
-        if not new_json_report.get('cgST'):  # == resequencing_validated
+        if not new_json_report.get('cgST'):  # != resequencing_validated, == reanalysis
             self.___find_hashes_in_results_and_add_to_collection(new_json_report, 'reanalysis')
             self.___convert_typinghitdictionaries_to_lists(new_json_report)
 
@@ -367,13 +351,7 @@ class MainMongo:
         any_result_changed_new_old, unchanged_results_new_old, changed_results_new_old = self.___check_if_results_changed(current_results, new_json_report)
         # Update new results if really a reanalysis/resequencing where at least one field changed
         if 'cgmlst' in changed_results_new_old and not new_json_report.get('cgST'):
-            clustering_input = self._mongoquerying.singledoc_typing_results_by_technicalids_and_scheme(new_json_report, self._technical_id, "cgmlst", self._headers_collection)
-            custom_clustering = MongoCustomClustering(clustering_input[0], clustering_input[1],
-                                                      self._species, self._mongo_config_data)
-            logging.info(f"Running the clustering for the isolate {self._technical_id}")
-            sp_thresholds = f"clustering_thresholds_{self._species}"
-            sequence_type = custom_clustering.run_custom_clustering(CLUSTERING_CONFIG[sp_thresholds])
-            new_json_report["cgST"] = sequence_type
+            self.__define_cgst_and_run_clustering(new_json_report)
         deltas_new_old = self.___nested_dict_delta(current_results, new_json_report)
         new_results = self.___prepend_string_dot_to_dict_keys(new_json_report, 'results')
         new_results["results.isolates_id"] = self._technical_id
@@ -671,6 +649,23 @@ class MainMongo:
                                 meta_hit_dictionary[single_hit_dictionary['Locus']] = [single_hit_dictionary[metadata]
                                                                                        for metadata in hit_header_list]
                             results_to_modify[mainkey][subkey] = meta_hit_dictionary
+
+    def __define_cgst_and_run_clustering(self, json_report: JsonReportDict) -> None:
+        """
+        Defines the cgST and clusters this cgST with the other cgST's in the database.
+        :param json_report: json dict containing all results which are found under the 'results' key
+        :return: None
+        """
+        clustering_input = self._mongoquerying.singledoc_typing_results_by_technicalids_and_scheme(json_report,
+                                                                                                   self._technical_id,
+                                                                                                   "cgmlst",
+                                                                                                   self._headers_collection)
+        custom_clustering = MongoCustomClustering(clustering_input[0], clustering_input[1],
+                                                  self._species, self._mongo_config_data)
+        logging.info(f"Running the clustering for the isolate {self._technical_id}")
+        sp_thresholds = f"clustering_thresholds_{self._species}"
+        sequence_type = custom_clustering.run_custom_clustering(CLUSTERING_CONFIG[sp_thresholds])
+        json_report["cgST"] = sequence_type
 
 
 if __name__ == '__main__':
