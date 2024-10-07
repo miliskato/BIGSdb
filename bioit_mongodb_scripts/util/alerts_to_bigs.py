@@ -288,44 +288,6 @@ class AlertsToBigs:
                      self._cgmlst_bigsdb_scheme_id, str(cgst_of_current_isolate), start_date, end_date))
         return queried_isolates
 
-
-
-
-
-
-
-    with TblIsolates(self._species) as self._isolates_psql_tbl:
-            if self._timeframe_is_infinite:
-                if investigation_method == 'distance matrix':
-                    queried_isolates = self._isolates_psql_tbl.select_isolates_by_cgsts(
-                        (self._cgmlst_bigsdb_scheme_id, cgsts_as_tuple_of_str))
-
-                else:  # investigation_method == 'single linkage':
-                    queried_isolates = self._isolates_psql_tbl.select_isolates_by_cluster_group(
-                        (self._bigsdb_config_data['alerts'][self._species][
-                             f'{threshold_key}_classification_scheme_id'],
-                         self._cgmlst_bigsdb_scheme_id, str(cgst_of_current_isolate)))
-                    # all cluster groups are the same in the query; take 4th element (cluster group) of first
-                    # tuple, which always has to exist because the isolate itself is definitely queried)
-                    # Condition to skip it for first insertion of new cgST clust in which case the tuple is empty
-
-            else:
-                start_date = (isolation_date - self._timedelta_timeframe).strftime('%Y-%m-%d')
-                end_date = (isolation_date + self._timedelta_timeframe).strftime('%Y-%m-%d')
-                if investigation_method == 'distance matrix':
-                    queried_isolates = self._isolates_psql_tbl.select_isolates_by_cgsts_and_between_dates(
-                        (self._cgmlst_bigsdb_scheme_id, cgsts_as_tuple_of_str, start_date, end_date))
-
-
-                else:  # investigation_method == 'single linkage':
-                    queried_isolates: list[Optional[tuple[Any]]] = self._isolates_psql_tbl. \
-                        select_isolates_by_cluster_group_and_between_dates(
-                        (self._bigsdb_config_data['alerts'][self._species][
-                             f'{threshold_key}_classification_scheme_id'],
-                         self._cgmlst_bigsdb_scheme_id, str(cgst_of_current_isolate), start_date, end_date))
-
-            return queried_isolates
-
     def ___update_identifiers_for_alert(self, alert_id: str, new_isolate_bigsdb_id: str, isolate_name: str) -> None:
         """
         Updates id related fields for a given alert.
