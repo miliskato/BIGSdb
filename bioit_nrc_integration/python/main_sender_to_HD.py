@@ -65,7 +65,7 @@ class MainSenderToHD:
             mapping_table_collection, isolates_collection = self.__open_mapping_table_and_isolates_collection(species)
 
             # get documents that need to be sent
-            list_of_unsent_validated_documents = isolates_collection.find({'validated': True,
+            list_of_unsent_validated_documents = isolates_collection.find({'validation.outcome': 'good',
                                                                            '$or': [
                                                                                {'sent_to_ODS_and_DWH': {'$ne': True}},
                                                                                {'changed_since_sent_to_DWH': {'$ne': False}}

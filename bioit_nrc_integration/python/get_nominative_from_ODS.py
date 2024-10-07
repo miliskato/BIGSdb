@@ -264,13 +264,19 @@ class MainNominativeDataParserFromOds(SFTPConnection):
 
     def ___parse_complex_labtest_results(self, data_unprocessed: Dict[str, Any], data_translated: Dict[str, Any]) -> None:
         """
-        Parses the labtest results from a complex list of dictionaries # todo
+        Parses the labtest results from a complex list of dictionaries.
+        For quantitative results, it is apparently not important to also add the unit, these are therefore ignored.
         e.g. "tx_ttl_lab_test": [{"dt_lab_test": "2024-03-25T12:00:00",  "tx_lab_rr_ll": "ref low",  "tx_lab_rr_ul": "ref up",  "cd_lab_pnl_batt": "385432009",  "cd_lab_rslt_sta": "corrected",  "cd_lab_reslt_tpe": "19851009",  "cd_lab_rslt_flag": "260405006",  "cd_lab_test_code": "468-9",  "cd_lab_test_meth": "14788002",  "ms_lab_rr_ll_val": 11.00000,  "ms_lab_rr_ul_val": 150.00000,  "cd_lab_rr_ll_unit": "385432009",  "cd_lab_rr_ul_unit": "385432009",  "cd_lab_intrpr_meth": "261665006",  "tx_lab_rslt_intrpr": "Test 3 interpretation",  "tx_lab_test_rslt_id": "Test Result 3",  "cd_lab_test_rslt_sta": "preliminary",  "tx_lab_cmnt_test_rslt": "Lab Test 3 comment",  "ms_lab_test_rslt_qn_val": 99.00000,  "cd_lab_test_rslt_qn_unit": "385432009"}, {"dt_lab_test": "2024-02-06T12:00:00",  "tx_lab_rr_ll": "lower limit",  "tx_lab_rr_ul": "Ref upper Range",  "cd_lab_pnl_batt": "385432009",  "cd_lab_rslt_sta": "registered",  "cd_lab_reslt_tpe": "252275004",  "cd_lab_rslt_flag": "281300000",  "cd_lab_test_code": "TC0031",  "cd_lab_test_meth": "363779003",  "ms_lab_rr_ll_val": 55.00000,  "ms_lab_rr_ul_val": 66.00000,  "cd_lab_rr_ll_unit": "385432009",  "cd_lab_rr_ul_unit": "385432009",  "cd_lab_intrpr_meth": "IM0001",  "tx_lab_rslt_intrpr": "Res Interpretation",  "cd_lab_test_rslt_ql": "83185005",  "tx_lab_test_rslt_id": "TestResID",  "cd_lab_test_rslt_sta": "preliminary",  "tx_lab_cmnt_test_rslt": "Lab Test comment"}]
         :param data_unprocessed: original unprocessed data
         :param data_translated: translated data to be inserted in MongoDB to be inserted in BIGSdb
         :return: None
         """
         labtest_list_of_result_dicts = self.___get_value_by_capitalization_agnostic_key(data_unprocessed, 'TX_TTL_LAB_TEST')
+        """
+        The mic_resistances field should be a string concatenation of all resistant antibiotics. All resistant ones will 
+        be stored in the mic_resistances_list, ordered alphabetically and concatenated with spaces in between.
+        """
+        mic_resistances_list: List[str] = []
         if labtest_list_of_result_dicts:
             for labtest_result_dict in labtest_list_of_result_dicts:
                 labtest_result_combinations = self._translation_codes['code_lists']['TX_TTL_LAB_TEST_combinations']
@@ -283,8 +289,13 @@ class MainNominativeDataParserFromOds(SFTPConnection):
 
                 if labtest_dict.get('code_list'):
                     data_translated[labtest_dict['translation']] = self._translation_codes['code_lists'][labtest_dict['code_list']][self.___cast_as_int_if_int(self.___get_value_by_capitalization_agnostic_key(labtest_result_dict, labtest_dict['value_field']))]
+                    if labtest_dict['translation'].startswith('mic_') and labtest_dict['translation'].endswith('_I') and data_translated[labtest_dict['translation']] == 'Resistant':
+                        mic_resistances_list.append((labtest_dict['translation'].split('_'))[1])
                 else:
                     data_translated[labtest_dict['translation']] = self.___get_value_by_capitalization_agnostic_key(labtest_result_dict, labtest_dict['value_field'])
+        if mic_resistances_list:
+            mic_resistances_list.sort()
+            data_translated['mic_resistances'] = ' '.join([resistance for resistance in mic_resistances_list])
 
     @staticmethod
     def ___parse_complex_country_field(data_unprocessed: Dict[str, Any], data_translated: Dict[str, Any]) -> None:
@@ -313,7 +324,6 @@ class MainNominativeDataParserFromOds(SFTPConnection):
         for symptom_dict in symptom_list_of_dicts:
             symptom_code = self.___get_value_by_capitalization_agnostic_key(symptom_dict, 'CD_PROB_NAM')
             symptom_code_translation = self._translation_codes['code_lists']['CD_PROB_NAM_codes'][self.___cast_as_int_if_int(symptom_code)]
-            # todo these 5 symptom_ fields need to be added to the salmonella isolates table and the clinical_info field should be removed.
             data_translated[f"symptom_{symptom_code_translation.replace(' ', '_').lower()}"] = "Yes"
 
     @staticmethod

@@ -80,7 +80,7 @@ for species, species_testfiles in testfiles_dict.items():
     """
     with (testfiles_folder / species_testfiles['genomic_json_report']).open('r') as handle:
         dummy_genomic_report = json.load(handle)
-        dummy_genomic_report['validated'] = True
+        dummy_genomic_report['validation'] = {'outcome': 'good'}
     isolates_collection.insert_one(dummy_genomic_report)
 
     """

@@ -27,6 +27,7 @@ from bioit_bigsdb_scripts.main_results_inserter import MainResultsInserter
 from bioit_mongodb_scripts.util.alerts_to_bigs import AlertsToBigs
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.mongo_querying import Mongoquerying
+from bioit_mongodb_scripts.util.mongo_to_bigs_nominative import MongoToBigsNominative
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email, convert_dmyhms_to_dateobj
 from bioit_mongodb_scripts.util.new_clustering_info_to_bigs import NewClusteringInfoToBigs
 from bioit_mongodb_scripts.util.samples_to_validation_bigs import samples_to_validation_bigs
@@ -177,6 +178,9 @@ class MongoToBigs:
         if self._cache_command_object.returncode != 0:
             send_email(f"update of the cache to display the cgsts of new isolates failed on host {socket.gethostname()}")
             raise RuntimeError(f"update of the cache to display the cgsts of new isolates failed on host {socket.gethostname()}")
+
+        # Insert nominative and labtest metadata after having done everything else except the alerts in order to not break the alerts 'failsafe'
+        MongoToBigsNominative(self._species)
 
         # Run Alerts to bigs after updating the cache because it accesses a SQL table that is updated by the cache updater.
         # also run it after having inserted all isolates into bigsdb
