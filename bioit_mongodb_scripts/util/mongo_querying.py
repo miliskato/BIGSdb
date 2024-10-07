@@ -1,13 +1,11 @@
 import abc
-import logging
 import re
-import sys
-from typing import Any, Dict, List, Union, Optional, Mapping
-from copy import deepcopy
 from typing import Any, Dict, List, Optional, Union
+from typing import Mapping
 
 import pymongo
 from pymongo.read_concern import ReadConcern
+
 from .python_utility_functions import convert_dmyhms_to_ymd, merge_nested_dicts
 from ..model.json_model import MongoRecordDict, JsonReportDict
 
@@ -30,7 +28,6 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         :return: list of distinct values for a variable of interest
         """
         return opened_collection.distinct(variable_of_interest, filter=filtering_cond)
-
 
     @staticmethod
     def query_docs_by_ids(opened_collection: pymongo.collection.Collection, ids: Optional[List[str]] = None) -> List[Dict[str, Any]]:
@@ -63,8 +60,9 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
     @staticmethod
     def singledoc_typing_results_by_technicalids_and_scheme(json_report: JsonReportDict, isolate: str, scheme: str, headers_collection: pymongo.collection.Collection, doc_index: int = 0) -> List[List[Union[str, int]]]:
         """
-
-        :param document: document where all results are found under the 'results' key
+        Return data required for clustering purpose: [optional(headers (locus names) from the scheme), corresponding alleles found in the given isolate]
+        :param json_report: json dict containing all results which are found under the 'results' key
+        :param isolate: str corresponding to the isolate name stored in _id from mongo isolates collection
         :param scheme: Typing scheme of interest
         :param headers_collection: mongo opened headers collection
         :param doc_index: document index if list of documents. If doc_index = 0 will also provide a header
@@ -80,7 +78,17 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
             return Mongoquerying.create_scheme_profile_from_mongo(doc_index, headers_collection, isolate, scheme, scheme_loci)
 
     @staticmethod
-    def create_scheme_profile_from_mongo(doc_index, headers_collection, isolate, scheme, scheme_loci: Dict[str, Any]):
+    def create_scheme_profile_from_mongo(doc_index:int, headers_collection: pymongo.collection.Collection, isolate: str, scheme: str, scheme_loci: Dict[str, Any]) -> List[List[Union[str, int]]]:
+        """
+        return a list of allele definition for the given isolate and scheme, and optionally, the header corresponding to
+        this profile (containing the locus name of the scheme)
+        :param doc_index: document index if list of documents. If doc_index = 0 will also provide a header
+        :param headers_collection: mongo opened headers collection
+        :param isolate: str corresponding to the isolate name stored in _id from mongo isolates collection
+        :param scheme: Typing scheme of interest
+        :param scheme_loci: Dict containing scheme loci
+        :return: list of allele found for this scheme in the given isolate + optionally the corresponding loci name
+        """
         listofresultlists = []
         # This is the modified list of dicts to dict with list values created by
         # __convert_typinghitdictionaries_to_lists in mainmongo after the consulatancy session
@@ -111,7 +119,15 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         return listofresultlists
 
     @staticmethod
-    def create_scheme_profile_from_json(doc_index, isolate, scheme_loci):
+    def create_scheme_profile_from_json(doc_index: int ,isolate: str, scheme_loci: List[str]) -> List[List[Union[str, int]]]:
+        """
+        return a list of allele definition for the given isolate and scheme, and optionally, the header corresponding to
+        this profile (containing the locus name of the scheme)
+        :param doc_index: document index
+        :param isolate: str corresponding to the isolate name stored in _id from mongo isolates collection
+        :param scheme_loci: Typing scheme of interest
+        :return:  list of allele found for this scheme in the given isolate + optionally the corresponding loci name
+        """
         listofresultlists = []
         # This is the original input provided by the pipeline
         if doc_index == 0:

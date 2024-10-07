@@ -57,6 +57,7 @@ def convert_dmyhms_to_ymd(datetimestring: str) -> str:
     """
     return datetime.strptime(datetimestring, '%d/%m/%Y - %X').strftime('%Y-%m-%d')
 
+
 def convert_ymd_to_dmyhms(datetimestring: str) -> str:
     """
     Revert SQL or other YMD to Camel's custom datetime notation
@@ -64,6 +65,7 @@ def convert_ymd_to_dmyhms(datetimestring: str) -> str:
     :return: datetime string in '%d/%m/%Y - %X'
     """
     return datetime.strptime(datetimestring, '%Y-%m-%d').strftime('%d/%m/%Y - %X')
+
 
 def convert_dmyhms_to_dateobj(datetimestring: str) -> datetime.date:
     """
@@ -73,7 +75,8 @@ def convert_dmyhms_to_dateobj(datetimestring: str) -> datetime.date:
     """
     return datetime.strptime(datetimestring, '%d/%m/%Y - %X').date()
 
-def merge_nested_dicts(target_dict: MongoRecordDict, merging_dict: MongoRecordDict) -> Dict[str, Any]:
+
+def merge_nested_dicts(target_dict: MongoRecordDict, merging_dict: MongoRecordDict) -> MongoRecordDict:
     """
     Merges a nested dictionary into another target nested dictionary, seeing as this does not create a deepcopy,
     changes are applied regardless of if the output is captured
@@ -82,7 +85,7 @@ def merge_nested_dicts(target_dict: MongoRecordDict, merging_dict: MongoRecordDi
     :return: merged target directory
     """
     for key, value in merging_dict.items():
-        if key in target_dict and isinstance(target_dict[key], dict) and isinstance(value, dict):
+        if key in target_dict and isinstance(target_dict[key], MongoRecordDict) and isinstance(value, MongoRecordDict):
             merge_nested_dicts(target_dict[key], value)
         else:
             target_dict[key] = value

@@ -87,8 +87,6 @@ class MongoToBigs:
         with TblSchemes(self._species, 'isolates') as isolates_schemes_psql_tbl:
             self._cgmlst_bigsdb_scheme_id = isolates_schemes_psql_tbl.select_scheme_id_cgmlst()[0][0]
 
-        # TODO check if full cache is still need in specific situation
-
         cache_command = f'/home/bigsdb/BIGSdb/scripts/maintenance/update_scheme_caches.pl ' \
                         f'--database bigsdb_{self._species}_isolates --schemes {self._cgmlst_bigsdb_scheme_id} ' \
                         f'--method daily'
@@ -163,7 +161,7 @@ class MongoToBigs:
 
             self.__insert_assembly_into_bigs(results_type, document, isolate_id)
             with TblMappingTable(self._species) as isolates_mapping_psql_tbl:
-                isolates_mapping_psql_tbl.insert_mapping_for_isolate((isolate_id,document['_id'],))
+                isolates_mapping_psql_tbl.insert_mapping_for_isolate((isolate_id, document['_id'],))
 
         # Update cache again before alerts implementation because new isolates won't have cgST's but are needed for alerts implementation
         self._cache_command_object.run(Path(os.getcwd()))
@@ -259,11 +257,12 @@ class MongoToBigs:
                     Path(self._bigsdb_config_data['failsafe']['flag_dir']) / '.'.join(
                      [isolate_id, self._bigsdb_config_data['failsafe']['flag_append']])).is_file()
 
-        different_version=True
+        different_version = True
         if sample_presence[0][0] == 0 or if_sample_failed:
             results_type = "new_isolate"
         elif document.get_validation_type():
             results_type = document.get_validation_type()
+            different_version = self.___check_if_reanalysis_different(document, isolate_id)
         else:
             results_type = "reanalysis"
             different_version = self.___check_if_reanalysis_different(document, isolate_id)

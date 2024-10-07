@@ -52,7 +52,6 @@ class MainInserter(JsonSuperClass):
         with TblIsolates(self._species) as isolates_psql_tbl:
             isolates_psql_tbl.update_isolate_analysis_date((datetime.datetime.strptime(self._json_report_dict['analysis_date'], '%d/%m/%Y - %X').strftime('%Y-%m-%d'), self._isolatename))
 
-
     def insert_main_metadata(self) -> None:
         """
         Inserts the main metadata into bigsdb for an isolate

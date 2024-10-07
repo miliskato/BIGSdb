@@ -32,7 +32,7 @@ class TblEavText(DatabaseConnection):
         :param param: isolate id of the isolate
         :return: None
         """
-        self.execute_query(PsqlQueries.ISO_DEL__TB_EAVT_ALL, param)
+        self.execute_query(PsqlQueries.ISO_DEL__TB_EAVT_VAR_ISOLATE_ID, param)
 
     def insert_eav_id(self, param: Tuple[str, str, str]) -> None:
         """

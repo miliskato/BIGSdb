@@ -1,4 +1,4 @@
-from typing import Any, List, Tuple, Union
+from typing import List, Tuple
 
 from .databaseconnection import DatabaseConnection
 from .psql_queries import PsqlQueries
@@ -25,7 +25,7 @@ class TblSequenceBin(DatabaseConnection):
         """
         return self.execute_query(PsqlQueries.ISO_SEL_COUNT_TB_SEQBIN_VAR_ISO, param)
 
-    def delete_sequencebin(self,param: Tuple[str]) -> None:
+    def delete_sequencebin(self, param: Tuple[str]) -> None:
         """
         Delete sequence/contig from the isolates db for a given isolate
         :param param: isolate id
