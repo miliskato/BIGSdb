@@ -38,17 +38,14 @@ def _insert_submission_bigs(sample_docs: List[MongoRecordDict], validation_type:
             api_button = f"""
             <button onclick="get_jwt_report('no', '{validation_type}', '{isolate_id}', '{mongo_record['_id']}', '{species}', '{mongo_record['latest_analysis_date']}')" class='small_submit'>Get report preview</button>
             """
-            pipeline_hash = mongo_record['results']['pipeline_hash']
 
             isolates_isosubiso_psql_tbl.insert_validation_metadata(('html_report', api_button))
             isolates_isosubiso_psql_tbl.insert_validation_metadata(('isolate_id', isolate_id))
             isolates_isosubiso_psql_tbl.insert_validation_metadata(('validation_type', validation_type))
-            isolates_isosubiso_psql_tbl.insert_validation_metadata(('pipeline_hash', pipeline_hash))
             # The indexes below are necessary, if they are not inserted the values above are not visible
             isolates_isosubfo_psql_tbl.insert_validation_indexes(('html_report', 1))
             isolates_isosubfo_psql_tbl.insert_validation_indexes(('isolate_id', 2))
             isolates_isosubfo_psql_tbl.insert_validation_indexes(('validation_type', 3))
-            isolates_isosubfo_psql_tbl.insert_validation_indexes(('pipeline_hash', 4))
 
 
 def samples_to_validation_bigs(species: str, mongo_config_data: Dict[str, Any] = None) -> None:

@@ -94,7 +94,6 @@ class SampleValidationToMongo:
                 outcome: str = query[0][2]
                 curator_mailadress: str = query[0][3]
                 validation_type: str = query[0][4]
-                pipeline_hash: str = query[1][1]
                 results_type = self.__get_results_type(validation_type) #badqc_validated or resequencing_validated
                 pseudo_id = self._mapping_collection.find_one({"_id": isolatename})['pseudo_id']
                 # GO into MongoDB so type in Mongo might be either badqc or resequencing
@@ -105,7 +104,7 @@ class SampleValidationToMongo:
                     'date': datetime.datetime.utcnow().strftime('%d/%m/%Y - %X')
                 }
                 if outcome == 'good' and (validation_type == 'bad_quality' or validation_type == 'resequencing'):
-                    MainMongo(pseudo_id, self._species, results_type, pipeline_hash, subvaldict=validation_dict, connection_string='CONNECTION_STRING_AZURE')
+                    MainMongo(pseudo_id, self._species, results_type, subvaldict=validation_dict, connection_string='CONNECTION_STRING_AZURE')
                 elif validation_type == 'bad_quality':  # outcome == 'bad'
                     self.__remove_id_from_document_to_be_unique_again_if_bad(self._isolates_badqc_collection,
                                                                                  pseudo_id, validation_dict)

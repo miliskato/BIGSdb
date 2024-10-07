@@ -64,7 +64,7 @@ class MainMongo:
     """
     Class containing definitions to insert samples into MongoDB
     """
-    def __init__(self, technical_id: str, species: str, results_type: str, pipeline_hash: str, jsonfilepath: Path = None,
+    def __init__(self, technical_id: str, species: str, results_type: str, pipeline_hash: str = None, jsonfilepath: Path = None,
                  subvaldict: Dict[str, str] = None, technical_metadata_path: Path = None ,reportdirectorypath: Path = None, fastafilepath: Path = None,
                  vcffilepath: Path = None, vcffilepath_unfiltered: Path = None, original_input_format: str = None, connection_string: str = None, alternate_dtap: Union[str, None] = None,
                  dont_send_email: bool = False, mongo_config_data: Dict[str, Any] = None) -> None:
@@ -74,7 +74,7 @@ class MainMongo:
         :param technical_id: sample id/ isolates id
         :param species: commonly used bioit species name: either genus or specific like stec
         :param results_type: Any of 'new_isolate', 'reanalysis', 'badqc_validated', 'resequencing_validated'
-        :param pipeline_hash: 10 first characters of the git hash of the pipeline used
+        :param pipeline_hash: 10 first characters of the git hash of the pipeline used can be optional in case of validation
         :param technical_metadata_path: filepath of the json metadata file
         :param jsonfilepath: filepath of the json input file (output of pipeline)
         :param subvaldict: validation dictionary, received after validation through bigsdb (either results type badqc_validated or resequencing_validated')
@@ -155,6 +155,11 @@ class MainMongo:
             raise Exception('vcffilepath necessary when using results_type new_isolate')
         if self._results_type == 'new_isolate' and not self._technical_metadata_path:
             raise Exception('technical metadata path necessary when using results_type new_isolate')
+        if self._results_type != 'badqc_validated' and not self._pipeline_hash:
+            raise Exception('pipeline_hash necessary when using results_type badqc_validated')
+        if self._results_type != 'resequencing_validated' and not self._pipeline_hash:
+            raise Exception('pipeline_hash necessary when using results_type resequencing_validated')
+
         # the below check is already handled in mongo initialisation
         # if self._alternate_dtap and self._alternate_dtap not in ['dev', 'test', 'acc', 'prod']:
         #     raise Exception('alternate dtap needs to be a valid choice between; dev, test, acc, prod')
