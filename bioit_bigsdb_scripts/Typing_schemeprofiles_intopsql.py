@@ -57,7 +57,7 @@ def _parse_arguments(specieslist: List[str]) -> argparse.Namespace:
 
 class TypingSchemeProfilesIntoPsql:
     """
-    Class containing function to insert typing alleles and update them
+    Class containing function to insert typing scheme profiles.
     """
     def __init__(self, species_list: List[str]) -> None:
         """

@@ -14,6 +14,7 @@ sys.path.append(str(PYTHONPATH))
 from bioit_bigsdb_scripts.components.psql import TblSequences, TblAlleleDesignations
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data, send_email
 
+
 def _parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     """
     Parses the command line arguments.
@@ -33,7 +34,7 @@ class TypingAllelesIntoPsql:
     def __init__(self, species_list: List[str]) -> None:
         """
         Initialises this class and executes the main function: _insert_alleles
-        :param species: LIST OF commonly used bioit species name: either genus or specific like stec.
+        :param species_list: LIST OF commonly used bioit species name: either genus or specific like stec.
         """
         self._species_list = species_list
 
