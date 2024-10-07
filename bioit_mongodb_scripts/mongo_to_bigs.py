@@ -262,6 +262,7 @@ class MongoToBigs:
             results_type = "new_isolate"
         elif document.get_validation_type():
             results_type = document.get_validation_type()
+            different_version = self.___check_if_reanalysis_different(document, isolate_id)
         else:
             results_type = "reanalysis"
             different_version = self.___check_if_reanalysis_different(document, isolate_id)
