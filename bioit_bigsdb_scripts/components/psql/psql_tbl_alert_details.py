@@ -25,7 +25,7 @@ class TblAlertDetails(DatabaseConnection):
         """
         self.execute_query(PsqlQueries.ISO_INS__TB_ALDE_VAR_FIELD_VALUE, param)
 
-    def select_alert_for_isolate(self, param: Tuple[str, str]) -> Optional[List[Tuple[int, str, str]]]:
+    def select_alert_for_isolate(self, param: Tuple[str, str]) -> Optional[List[Tuple[int, str]]]:
         """
         Selects the alert id and the alert type (warning/alert) based on the isolate id and computation method.
         :param param: isolate bigsdb id as str, alert computation method (single linkage/distance matrix)

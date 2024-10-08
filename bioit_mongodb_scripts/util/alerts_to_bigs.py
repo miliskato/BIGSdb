@@ -118,7 +118,7 @@ class AlertsToBigs:
             for threshold_key in ['threshold_alert', 'threshold_warning']:
                 # get all cgSTs within distance, includes self
                 distance_threshold = self._bigsdb_config_data['alerts'][self._species][threshold_key]
-                similar_cgsts_from_matrix = self.get_similar_cgsts_from_matrix(distance_threshold, isolate['cgST'])
+                similar_cgsts_from_matrix = self.___get_similar_cgsts_from_matrix(distance_threshold, isolate['cgST'])
 
                 isolation_date = datetime.datetime.strptime(isolate['isolation_date'], '%d/%m/%Y')
                 queried_isolates = self.___query_isolates_according_to_thresholds(similar_cgsts_from_matrix, isolate['cgST'],
@@ -220,7 +220,13 @@ class AlertsToBigs:
                                          self._cgmlst_bigsdb_scheme_id, isolate['cgST']))
                             break
 
-    def get_similar_cgsts_from_matrix(self, distance_threshold: int, isolate_cgst: int) -> List[str]:
+    def ___get_similar_cgsts_from_matrix(self, distance_threshold: int, isolate_cgst: int) -> List[str]:
+        """
+        Returns cgsts with <= dist_threshold diff with current isolate cgst based on the distance matrix
+        :param distance_threshold: distance threshold from config file
+        :param isolate_cgst: cgst of the current isolate
+        :return: list of similar cgsts
+        """
         row_cgst = self._distance_matrix[isolate_cgst - 1]
         indices_for_similar_cgsts = np.where(row_cgst <= distance_threshold)[0]
         return [str(x + 1) for x in indices_for_similar_cgsts]
@@ -312,8 +318,8 @@ class AlertsToBigs:
         Inserts a new alert/warning (=type) into the alerts table, and its details in the alert_details table
         :param alert_type: warning/alert
         :param investigation_method: distance matrix or single linkage
-        :param subject_isolate_tuple: subject isolate tuple containing bigsdb_id, isolate name, isolation date, and
-        the cgst of the subject
+        :param subject_isolate_tuple: subject isolate tuple containing bigsdb isolate id, isolate name, isolation date,
+        and the cgst of the subject
         :param cgsts: involved cgsts for this particular subject
         :param threshold: threshold; pathogen-specific threshold associated with the alert/warning
         :param start_date: str in YYYY-MM-DD format, pathogen specific timeframe start date
@@ -321,7 +327,7 @@ class AlertsToBigs:
         :return: None
         """
         # unpack psql output tuple
-        subject_bigsdb_id = subject_isolate_tuple[0]
+        subject_isolate_id = subject_isolate_tuple[0]
         subject_isolate_name = subject_isolate_tuple[1]
         subject_isolation_date = subject_isolate_tuple[2]
         subject_cgst = subject_isolate_tuple[3]
@@ -340,7 +346,7 @@ class AlertsToBigs:
             isolates_alertsdet_psql_tbl.insert_alert_metadata(
                 ('trigger',
                  f'<p><a href="/cgi-bin/bigsdb/bigsdb.pl?page=info&db=bigsdb_{self._species}_isolates&id='
-                 f'{subject_bigsdb_id}" target="_blank">{subject_isolate_name}</a></p>'))
+                 f'{subject_isolate_id}" target="_blank">{subject_isolate_name}</a></p>'))
             isolates_alertsdetfo_psql_tbl.insert_alert_details_indices(('trigger', 1))
 
             # insert trigger subject isolation date
@@ -404,7 +410,7 @@ class AlertsToBigs:
 
             # insert isolate id for backend information;
             # don't add it to the field order, and it will not be shown in the gui
-            isolates_alertsdet_psql_tbl.insert_alert_metadata(('isolate_id', subject_bigsdb_id))
+            isolates_alertsdet_psql_tbl.insert_alert_metadata(('isolate_id', subject_isolate_id))
 
     def ___update_variable_details_for_alert(self, alert_id: str, cgsts: List[str], investigation_method: str,
                                              alert_type: str, start_date: str = None, end_date: str = None,
