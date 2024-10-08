@@ -59,7 +59,7 @@ class MongoToBigs:
         :return: None
         """
         # Configure stdout logging
-        logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
+        logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 
         self._species = species
         self._single_sample_id = single_sample_id
@@ -323,18 +323,19 @@ class MongoToBigs:
                 insert_assembly(isolate_id, self._species, temp_fasta_path, results_type)
                 logging.info(f"Inserted assembly for isolate {isolate_id} into bigsdb")
 
-                if document.get_validation_type() == 'resequencing': #is it the place to check that isolation date are different, I don't think so
-                    last_two_validation_dates = self._isolates_psql_tbl.select_validationdate_for_isolate(
-                        (isolate_id,))
-                    # select to check that the previous version's validation date is different from the current
-                    if last_two_validation_dates[0][0] != last_two_validation_dates[1][0]:
-                        # revert the changes done in maininserter that move the assembly to the newest version
-                        with TblSequenceBin(self._species) as isolates_seqbin_psql_tbl:
-                            isolates_seqbin_psql_tbl.revert_sequencebin_newversion([isolate_id])
-                        with TblSeqBinStats(self._species) as isolates_seqbinstats_psql_tbl:
-                            isolates_seqbinstats_psql_tbl.revert_seqbinstats_newversion([isolate_id])
-                        insert_assembly(isolate_id, self._species, temp_fasta_path, results_type)
-                    logging.info(f"Wrote new results version for {isolate_id} to bigsdb")
+                # The resequencing is for now disable as also commented in samples_to_validation_bigs.py
+                # if document.get_validation_type() == 'resequencing': #is it the place to check that isolation date are different, I don't think so
+                #     last_two_validation_dates = self._isolates_psql_tbl.select_validationdate_for_isolate(
+                #         (isolate_id,))
+                #     # select to check that the previous version's validation date is different from the current
+                #     if last_two_validation_dates[0][0] != last_two_validation_dates[1][0]:
+                #         # revert the changes done in maininserter that move the assembly to the newest version
+                #         with TblSequenceBin(self._species) as isolates_seqbin_psql_tbl:
+                #             isolates_seqbin_psql_tbl.revert_sequencebin_newversion([isolate_id])
+                #         with TblSeqBinStats(self._species) as isolates_seqbinstats_psql_tbl:
+                #             isolates_seqbinstats_psql_tbl.revert_seqbinstats_newversion([isolate_id])
+                #         insert_assembly(isolate_id, self._species, temp_fasta_path, results_type)
+                #     logging.info(f"Wrote new results version for {isolate_id} to bigsdb")
 
     def __exit__(self) -> None:
         """

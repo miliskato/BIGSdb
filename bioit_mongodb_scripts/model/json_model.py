@@ -13,8 +13,6 @@ class BridgeDict(UserDict):
     This class is used to get modifications applied to JsonReportDict also
     inherited to the original MongoRecordDict (after use of get_json_results()).
     """
-    source: Dict[str, Any]
-
     def __init__(self, source: Dict[str, Any]):
         self.source = source
         super().__init__(source)
@@ -34,8 +32,8 @@ class JsonReportDict(BridgeDict):
     Also includes the open method for json file
     """
     @staticmethod
-    def from_json(path: Union[str, Path]) -> 'JsonReportDict':
-        with open(path, 'r') as f:
+    def from_json(path: Path) -> 'JsonReportDict':
+        with path.open('r') as f:
             return JsonReportDict(json.load(f))
 
 

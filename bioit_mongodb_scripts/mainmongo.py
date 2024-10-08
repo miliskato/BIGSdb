@@ -152,10 +152,8 @@ class MainMongo:
             raise Exception('vcffilepath necessary when using results_type new_isolate')
         if self._results_type == 'new_isolate' and not self._technical_metadata_path:
             raise Exception('technical metadata path necessary when using results_type new_isolate')
-        if self._results_type != 'badqc_validated' and not self._pipeline_hash:
-            raise Exception('pipeline_hash necessary when using results_type badqc_validated')
-        if self._results_type != 'resequencing_validated' and not self._pipeline_hash:
-            raise Exception('pipeline_hash necessary when using results_type resequencing_validated')
+        if self._results_type not in ['badqc_validated','resequencing_validation'] and not self._pipeline_hash:
+            raise Exception('pipeline_hash not provided although mandatory for this result_type')
 
         # the below check is already handled in mongo initialisation
         # if self._alternate_dtap and self._alternate_dtap not in ['dev', 'test', 'acc', 'prod']:
@@ -364,22 +362,7 @@ class MainMongo:
                 f"New results are not different from current results for {self._technical_id} in {self._species}, updating analysis dates and db versions.")
         if self._results_type == 'resequencing_validated':
             new_results['validation'] = self._subvaldict
-            # report_dir_merging_cmd = ' '.join([
-            #     "rsync -a --no-p --no-o --no-g",
-            #     f"{new_json_report['report_directory']}/",
-            #     f"{current_results_document['report_directory']}/"
-            # ])
-            # command = Command(report_dir_merging_cmd)
-            # # run the command
-            # command.run(current_results_document['report_directory'])
-            # logging.info(f"merging the report directories of original and resequencing for isolate '{self._technical_id}'")
-            # if command.returncode != 0:
-            #     send_email(f"Could not 'git' merge dir {new_json_report['report_directory']} into dir {current_results_document['report_directory']}", dont_send_email=self._dont_send_email)
-            #     raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}: Could not 'git' merge dir {new_json_report['report_directory']} into dir {current_results_document['report_directory']}")
-            # else:
-            #     # Removing the temporary working dir and the remaining files that were not kept
-            #     shutil.rmtree(Path(new_json_report['report_directory']))
-            #     logging.info(f"Resequencing directory {new_json_report['report_directory']} deletion for isolate '{self._technical_id}' completed")
+
             # Remove the isolate from the resequencing collection to allow for new resequencings
             self._isolates_resequencing_collection.delete_one({'_id': self._technical_id})
         self._isolates_collection.with_options(write_concern=WriteConcern(w="majority")).update_one(
