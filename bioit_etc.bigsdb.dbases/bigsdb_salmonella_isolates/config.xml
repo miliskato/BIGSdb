@@ -50,7 +50,7 @@
 <field type="int" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="patient age">patient_age</field> # not found in DCD but can be calculated from DT_PAT_DOB and DT_LAB_COLLCN to get age at infection if this is the goal
 <field type="text" required="no" length="30" maindisplay="no" group ="nominative metadata" comments="patient age group">patient_age_group</field> # not found in DCD but can be calculated from DT_PAT_DOB and DT_LAB_COLLCN to get age at infection if this is the goal
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="recently stay abroad">recently_stayed_abroad</field> # not found in DCD
-<field type="text" required="no" length="25" maindisplay="no" group ="nominative metadata" comments="country 1">country_I</field> # CD_INFCT_CNRTY ?
+<field type="text" required="no" length="25" maindisplay="no" group ="nominative metadata" comments="country 1">country_1</field> # CD_INFCT_CNRTY ?
 <field type="text" required="no" length="25" maindisplay="no" group ="nominative metadata" comments="country 2">country_2</field> # not found in DCD
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="hospitalisation">hospitalisation</field> # found
 <field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="specimen">specimen</field> # found
