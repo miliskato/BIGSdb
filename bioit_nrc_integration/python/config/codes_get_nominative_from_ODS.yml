@@ -32,10 +32,10 @@ schema:
       required: False
       default: N/A
       translation: comment
-    CD_LAB_PATHOGEN:
-      required: False
-      translation: serovar_final
-      code_list: serovar_codes
+#    CD_LAB_PATHOGEN:  # todo disable until Florain confirms what this is
+#      required: False
+#      translation: aggl_serogroup
+#      code_list: serovar_codes
   CLIN:
     TX_BUSINESS_KEY:
       required: True
@@ -119,7 +119,7 @@ code_lists:
       CD_LAB_TEST_CODE: null
       value_field: 'CD_LAB_TEST_RSLT_QL'
       code_list: 'serovar_codes'
-      translation: 'aggl_serogroup'  # todo confirm that this is indeed that variable
+      translation: 'serovar_final'
     - CD_LAB_TEST_METH: '409588007'
       CD_LAB_TEST_CODE: null
       value_field: 'CD_LAB_TEST_RSLT_TXT'

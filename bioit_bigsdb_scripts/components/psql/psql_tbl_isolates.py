@@ -181,11 +181,18 @@ class TblIsolates(DatabaseConnection):
         :metadata_mapping : db<->json fields mapping for the species
         :return: the update query
         """
-        set_list = []
+        # Initialize an empty list to hold formatted key-value pairs
+        kv_pair_list = []
+
+        # Iterate over the keys in the metadata_mapping and create key-value pair strings
         for key in metadata_mapping:
-            set_list.append(str(key + "=%s"))
-        sets = ', '.join(map(str, set_list))
-        return str.format(PsqlQueries.ISO_INSERT_GENERIC_LAB_METADATA_TEMPLATE, sets)
+            kv_pair_list.append(f"{key}=%s")
+
+        # Join all the key-value pairs into a single string, separated by commas
+        kv_pair_list_as_str = ', '.join(kv_pair_list)
+
+        # Return the formatted query string using the template and the sets
+        return PsqlQueries.ISO_INSERT_GENERIC_LAB_METADATA_TEMPLATE.format(kv_pair_list_as_str)
 
     def update_nomin_metadata(self, query: str, param: List[str]) -> None:
         """

@@ -146,7 +146,7 @@ class MongoToBigs:
 
         # Main insertion into bigsdb for loop
         for document in list_of_documents:
-            document_id = document['results']['isolates_id']
+            document_id = self._mappingtable_collection.find_one({'pseudo_id': document['results']['isolates_id']})['_id']
             results_type, skip_current_document = self.__get_results_type(document, document_id)
             if skip_current_document:
                 continue
@@ -168,7 +168,7 @@ class MongoToBigs:
             jsonfile = Path(f"{self._mongo_config_data.get('temp_dir')}/{document_id}_temp.json")
             with jsonfile.open('w') as handle:
                 handle.write(json.dumps(document['results']))
-            MainResultsInserter(document_id, self._uploader_mail_address, self._species, results_type, jsonfilepath=jsonfile, report_access=document['report_directory'])
+            MainResultsInserter(document_id, self._uploader_mail_address, self._species, results_type, jsonfilepath=jsonfile, report_access=document['report_directory'], vcf_path=document['vcf_path'], mongo_dtap=self._mongo_config_data['dtap'])
             jsonfile.unlink()
 
             self.__insert_assembly_into_bigs(results_type, document, document_id)
@@ -180,7 +180,7 @@ class MongoToBigs:
             raise RuntimeError(f"update of the cache to display the cgsts of new isolates failed on host {socket.gethostname()}")
 
         # Insert nominative and labtest metadata after having done everything else except the alerts in order to not break the alerts 'failsafe'
-        MongoToBigsNominative(self._species)
+        MongoToBigsNominative(self._species, self._mongo_config_data, dont_send_email=True)
 
         # Run Alerts to bigs after updating the cache because it accesses a SQL table that is updated by the cache updater.
         # also run it after having inserted all isolates into bigsdb
