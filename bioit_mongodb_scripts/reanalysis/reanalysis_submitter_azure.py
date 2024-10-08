@@ -321,7 +321,7 @@ class BatchPipelinesReanalysis:
         :return: None
         """
         logging.info(f"Creating task {task_name} in job {job_name}")
-        INPUT_STORAGE_ACCOUNT_NAME = f"dlsweu{self._dtap}processing"
+        input_storage_account_name = f"dlsweu{self._dtap}processing"
         task = TaskAddParameter(
             id=task_name,  # (task name == job name) because  we are only using one task per job
             command_line=command,
@@ -334,7 +334,7 @@ class BatchPipelinesReanalysis:
                 file_pattern="../stderr.txt",
                 destination=OutputFileDestination(
                     container=OutputFileBlobContainerDestination(
-                        container_url=f"https://{INPUT_STORAGE_ACCOUNT_NAME}.blob.core.windows.net/batch-logs?{self._connection_azure.sas_token_blobstorage_input}",
+                        container_url=f"https://{input_storage_account_name}.blob.core.windows.net/batch-logs?{self._connection_azure.sas_token_blobstorage_input}",
                         path=f"{BATCH_POOL_NAME}/{job_name}/{task_name}_stderr.txt"
                     )
                 ),
