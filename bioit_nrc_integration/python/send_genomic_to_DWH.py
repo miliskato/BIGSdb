@@ -1,15 +1,15 @@
 import logging
 import sys
-from copy import deepcopy
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 import yaml
 
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
+from bioit_mongodb_scripts.util.python_utility_functions import access_value_in_dict_using_list_as_dictpath
 from bioit_nrc_integration.python.config import SFTP_CREDENTIALS_HD, CODES_GENOMIC_DWH
 from bioit_nrc_integration.python.util.python_utility_functions import send_dictionary_to_ods_or_dwh
 from bioit_nrc_integration.python.util.sftp_connection import SFTPConnection
@@ -78,7 +78,7 @@ class SendGenomicToDWH(SFTPConnection):
         """
         data_dict = {}
         for variable, list_path in self._translation_codes['common'].items():
-            data_dict[variable] = self.__access_value(list_path)
+            data_dict[variable] = access_value_in_dict_using_list_as_dictpath(list_path, self._document)
         # although the DT_PIPELINE_ANAL is common, it can not be processed regularly using
         # the previous function because it needs to be converted
         data_dict['DT_PIPELINE_ANAL'] = datetime.strptime(self._document['results']['analysis_date'],
@@ -86,7 +86,7 @@ class SendGenomicToDWH(SFTPConnection):
 
         if self._translation_codes.get(self._species):
             for variable, list_path in self._translation_codes[self._species].items():
-                data_dict[variable] = self.__access_value(list_path)
+                data_dict[variable] = access_value_in_dict_using_list_as_dictpath(list_path, self._document)
                 if 'CD_GENTPE' in variable:
                     if not data_dict[variable]:
                         # The genotyphi fields are optional
@@ -98,19 +98,6 @@ class SendGenomicToDWH(SFTPConnection):
                              'data_collection': self._translation_codes['pathogens'][self._species]['dcd_code'],
                              'dcd_name': self._translation_codes['pathogens'][self._species]['dcd_name']},
                 'data': data_dict}
-
-    def __access_value(self, dict_path: List) -> Optional[str]:
-        """
-        Given a dictionary path as a list, gets the value of this dictionary path from the input document.
-        :param dict_path: ordered list of the path in the dictionary
-        :return: str or None
-        """
-        current = deepcopy(self._document)
-        for key in dict_path:
-            current = current.get(key)
-            if not current:
-                break
-        return current
 
     def __del__(self) -> None:
         """

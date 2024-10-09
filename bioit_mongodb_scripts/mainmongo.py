@@ -8,15 +8,14 @@ import shutil
 import socket
 import sys
 import traceback
-import yaml
-from copy import deepcopy
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Tuple, Optional, Union
+from typing import Any, Dict, List, Tuple, Union
 
 # import dnspython
 # somehow this package is a requirement without actually needing to be imported, probably imported in pymongo
 import pymongo
+import yaml
 from pymongo.read_concern import ReadConcern
 from pymongo.write_concern import WriteConcern
 
@@ -30,7 +29,8 @@ from bioit_mongodb_scripts.util.error import *
 from bioit_mongodb_scripts.util.mongo_custom_clustering import MongoCustomClustering
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.mongo_querying import Mongoquerying
-from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email, convert_dmyhms_to_ymd
+from bioit_mongodb_scripts.util.python_utility_functions import access_value_in_dict_using_list_as_dictpath, \
+    convert_dmyhms_to_ymd, get_mongodb_config_data, send_email
 
 
 def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
@@ -405,7 +405,7 @@ class MainMongo:
             translation_codes = yaml.safe_load(handle)
         for variable, list_path in translation_codes[self._species].items():
             list_path = list_path[1:]  # skip the first value which is always 'results' and is not in the delta
-            if self.____access_value_in_dict(list_path, deltas_new_old):
+            if access_value_in_dict_using_list_as_dictpath(list_path, deltas_new_old):
                 self._isolates_collection.update_one({'_id': deltas_new_old['isolates_id']},
                                                      {'$set': {'changed_since_sent_to_DWH': True,
                                                                'changes_accepted_by_DWH': False}})
@@ -625,21 +625,6 @@ class MainMongo:
             delta_new_old['results_version'] = current_results['results_version']
             delta_new_old['changed_version'] = current_results['changed_version']
         return delta_new_old
-
-    @staticmethod
-    def ____access_value_in_dict(dict_path: List, search_dict: Dict[str, Any]) -> Optional[str]:
-        """
-        Given a dictionary path as a list, gets the value of this dictionary path from the given search dictionary.
-        :param dict_path: ordered list of the path in the dictionary
-        :param search_dict: The dictionary in which to search for the dict_path
-        :return: str or None
-        """
-        current = deepcopy(search_dict)
-        for key in dict_path:
-            current = current.get(key)
-            if not current:
-                break
-        return current
 
     def ___convert_typinghitdictionaries_to_lists(self, document: Dict[str, Any]) -> Dict[str, Any]:
         """
