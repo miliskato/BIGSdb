@@ -1,12 +1,10 @@
+import json
 from collections import UserDict
 from pathlib import Path
-from typing import Dict, Union, Any, Literal
-import json
+from typing import Dict, Any, Literal, Union
 
 ResultType = Literal['new_isolate', 'badqc', 'resequencing', 'reanalysis']
-"""
-Literal type containing the authorized strings for results type definition
-"""
+
 
 class BridgeDict(UserDict):
     """
@@ -33,23 +31,36 @@ class JsonReportDict(BridgeDict):
     """
     @staticmethod
     def from_json(path: Path) -> 'JsonReportDict':
+        """
+        Opens the json file in a JsonReportDict object
+        :param path: path to the json file
+        :return: JsonReportDict object
+        """
         with path.open('r') as f:
             return JsonReportDict(json.load(f))
 
 
 class MongoRecordDict(BridgeDict):
     """
-    Class to handle document extracted from MongoDB, light typing for code clarity
+    Class to handle documents extracted from MongoDB, light typing for code clarity
     Also includes relevant methods for this object
     """
     def get_id(self) -> str:
+        """return the _id field from mongoDB"""
         return self.get('_id')
 
-    def set_isolate_id(self, isolate_id: str):
+    def set_isolate_id(self, isolate_id: str) -> None:
+        """
+        Set the value for the isolates_id key
+        :param isolate_id: isolate id
+        :return: None
+        """
         self['isolates_id'] = isolate_id
 
-    def get_validation_type(self) -> ResultType:
+    def get_validation_type(self) -> Union[ResultType|None]:
+        """return validation type info from Mongo document if present"""
         return self.get('validation',{}).get('type',None)
 
     def get_json_results(self) -> JsonReportDict:
+        """return the results section of the Mongo document as a JsonReportDict object"""
         return JsonReportDict(self.get("results"))

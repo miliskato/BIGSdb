@@ -73,14 +73,14 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         scheme_loci = json_report[scheme]['loci']
 
         if isinstance(scheme_loci, list):
-            return Mongoquerying.create_scheme_profile_from_json(doc_index, isolate, scheme_loci)
+            return Mongoquerying._create_scheme_profile_from_json(doc_index, isolate, scheme_loci)
         elif isinstance(scheme_loci, dict):
-            return Mongoquerying.create_scheme_profile_from_mongo(doc_index, headers_collection, isolate, scheme, scheme_loci)
+            return Mongoquerying._create_scheme_profile_from_mongo(doc_index, headers_collection, isolate, scheme, scheme_loci)
 
     @staticmethod
-    def create_scheme_profile_from_mongo(doc_index:int, headers_collection: pymongo.collection.Collection, isolate: str, scheme: str, scheme_loci: Dict[str, Any]) -> List[List[Union[str, int]]]:
+    def _create_scheme_profile_from_mongo(doc_index:int, headers_collection: pymongo.collection.Collection, isolate: str, scheme: str, scheme_loci: Dict[str, Any]) -> List[List[Union[str, int]]]:
         """
-        return a list of allele definition for the given isolate and scheme, and optionally, the header corresponding to
+        return a list of allele designations for the given isolate and scheme, and optionally, the header corresponding to
         this profile (containing the locus name of the scheme)
         :param doc_index: document index if list of documents. If doc_index = 0 will also provide a header
         :param headers_collection: mongo opened headers collection
@@ -119,9 +119,9 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         return listofresultlists
 
     @staticmethod
-    def create_scheme_profile_from_json(doc_index: int ,isolate: str, scheme_loci: List[str]) -> List[List[Union[str, int]]]:
+    def _create_scheme_profile_from_json(doc_index: int, isolate: str, scheme_loci: List[str]) -> List[List[Union[str, int]]]:
         """
-        return a list of allele definition for the given isolate and scheme, and optionally, the header corresponding to
+        return a list of allele designations for the given isolate and scheme, and optionally, the header corresponding to
         this profile (containing the locus name of the scheme)
         :param doc_index: document index
         :param isolate: str corresponding to the isolate name stored in _id from mongo isolates collection

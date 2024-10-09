@@ -83,7 +83,7 @@ def merge_nested_dicts(target_dict: MongoRecordDict, merging_dict: MongoRecordDi
     :return: merged target directory
     """
     for key, value in merging_dict.items():
-        if key in target_dict and isinstance(target_dict[key], MongoRecordDict) and isinstance(value, MongoRecordDict):
+        if key in target_dict and isinstance(target_dict[key], Dict) and isinstance(value, Dict):
             merge_nested_dicts(target_dict[key], value)
         else:
             target_dict[key] = value
