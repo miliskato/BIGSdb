@@ -7,14 +7,14 @@ import traceback
 from pathlib import Path
 from typing import Any, Dict, List, Tuple, Union
 
-from bioit_mongodb_scripts.model.json_model import JsonReportDict
-
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
 from bioit_bigsdb_scripts.components.json_superclass import JsonSuperClass
 from bioit_bigsdb_scripts.components.psql import TblLocusDescriptions, TblLoci, TblSequences, TblAlleleDesignations, TblEavText, TblEavTextHidden, TblHistory
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data, send_email
+from bioit_bigsdb_scripts.utils.url_helper import UrlHelper
+from bioit_mongodb_scripts.model.json_model import JsonReportDict
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data
 from bioit_mongodb_scripts.util.mongo_querying import Mongoquerying
@@ -157,16 +157,14 @@ class GeneDetectionIntoPsql:
                 for sampleandhits in listofsamplesandhits:
                     isolate_id: str = sampleandhits[0]
                     isolate_name: str = sampleandhits[2]
-                    report_dir: str = self.___get_report_name_from_mongo(isolate_name)
-                    report_name = Path(report_dir).name
                     html_scheme_name = self._schemedict[self._scheme]['schemename_html']
-                    url = f'/galaxyreports/{self._species}/{report_name}/report.html#{html_scheme_name}'
+                    report_url = UrlHelper.report_for_isolate(self._species,isolate_id,html_scheme_name)
                     if not self._scheme.endswith('vfdbcore') and not self._scheme.endswith('virulencefinder'):
                         self._eavhtmltable = '<style>table.nice { text-align: center; border-spacing:0 }table.nice tr:nth-child(n+3) {background: #E4EFF3}table.nice tr:nth-child(2n+3) {background: #C1E6F3}</style>'
                         self._eavhtmltable += f'<table class="data nice"><tr><th>GeneCluster</th><th>Locus</th></tr>'
-                        self._eavhtmltable += f'<tr align="left"><td colspan="4"><a href="{url}" target="_blank">Full report</a></td></tr>'
+                        self._eavhtmltable += f'<tr align="left"><td colspan="4"><a href="{report_url}" target="_blank">Full report</a></td></tr>'
                     else:
-                        self._eavhtmltable = f'<a href="{url}" target="_blank">Full report</a>'
+                        self._eavhtmltable = f'<a href="{report_url}" target="_blank">Full report</a>'
 
                     clusterhitset = set()  # in case loci that were in different clusters at some point get in the same cluster
                     hits = json.loads(sampleandhits[1])

@@ -9,6 +9,7 @@ from bioit_mongodb_scripts.model.json_model import JsonReportDict
 from .json_superclass import JsonSuperClass
 from .psql import TblAlleleDesignations, TblHistory, TblEavBoolean, TblEavText, TblEavFields, TblSchemeMembers, \
     TblIsolates
+from ..utils.url_helper import UrlHelper
 
 
 class JsonTypingResultsInserter(JsonSuperClass):
@@ -103,7 +104,8 @@ class JsonTypingResultsInserter(JsonSuperClass):
                         antibiotic_reformatted = '_'.join(
                             ['POINTFINDER', re.sub('-| ', '_', antibiotic).upper()])
                         mutation = re.sub('[.]| ', '_', result['Mutation'])
-                        eavhtmltable = (f'<tr><td><a href="/cgi-bin/bigsdb/bigsdb.pl?page=sciensanoReport&db=bigsdb_{self._species}_isolates/&id={self.___get_isolate_id()}&getzip=no" target="_blank"></a></td>')
+                        report_url = UrlHelper.report_for_isolate(self._species, self.___get_isolate_id())
+                        eavhtmltable = (f'<tr><td><a href="{report_url}" target="_blank">{antibiotic}</a></td>')
                         eavhtmltable = eavhtmltable + ''.join(['<td>', antibiotic, '</td></tr>'])
                         self.insert_locus_if_needed(antibiotic_reformatted,
                                                     self._schemedict[self._scheme]['schemename_bigsdb'])
@@ -113,13 +115,13 @@ class JsonTypingResultsInserter(JsonSuperClass):
             eavhtmltable = eavhtmltable + '</table>'
             self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'pointfinder_hits', eavhtmltable))
 
-    def ___get_isolate_id(self) -> List[Tuple[Optional[int]]]:
+    def ___get_isolate_id(self) -> str:
         """
         return BIGSdb id of the isolate
         """
         with TblIsolates(self._species) as isolates_tbl:
-            id = isolates_tbl.select_id_for_isolate(self._isolatename)
-        return id
+            id = isolates_tbl.select_id_for_isolate((self._isolatename,))
+        return str(id[0][0])
 
     def __process_irregular_typing_scheme_mycobacterium_specific(self) -> None:
         """

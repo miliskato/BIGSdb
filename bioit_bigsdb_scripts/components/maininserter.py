@@ -6,6 +6,7 @@ from typing import Any, Dict
 from bioit_mongodb_scripts.model.json_model import JsonReportDict
 from .json_superclass import JsonSuperClass
 from .psql import TblEavTextHidden, TblEavInt, TblEavText, TblIsolates, TblHistory
+from ..utils.url_helper import UrlHelper
 
 
 class MainInserter(JsonSuperClass):
@@ -63,7 +64,9 @@ class MainInserter(JsonSuperClass):
             mongo_report_field = self._report_access
             dtap = self._mongo_dtap
             local_path = 'reports'
-            #TODO adapt to point to bigsdb page if this option works
+
+            #TODO: ask what should replaced the url to get vcf
+
             galaxy_report_access = mongo_report_field.replace(local_path,"galaxyreports")
             azure_path = f'results/{dtap}'
             galaxy_report_access = galaxy_report_access.replace(azure_path, "galaxyreports")
@@ -72,9 +75,12 @@ class MainInserter(JsonSuperClass):
             vcf_access = self._vcf_path.replace(azure_path, "galaxyreports")
             vcf_unfiltered_access = vcf_access.replace('filtered','all')
 
-            reportlink = f'<p><a href="{galaxy_report_access}/report.html" target="_blank"> html report</a></p>'
-            self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'html', reportlink))
-            self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'tsv', reportlink.replace('html', 'tsv')))
+            with TblIsolates(self._species) as isolates_psql_tbl:
+                isolate_id = isolates_psql_tbl.select_id_for_isolate((self._isolatename,))
+            report_url = UrlHelper.report_for_isolate(self._species, str(isolate_id[0][0]))
+            report_link = f'<p><a href="{report_url}" target="_blank"> html report</a></p>'
+            self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'html', report_link))
+            self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'tsv', report_link.replace('html', 'tsv')))
             vcflink_unfiltered = f'<p><a href="{vcf_unfiltered_access}" target="_blank">VCF unfiltered</a></p>'
             self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'VCF_unfiltered', vcflink_unfiltered))
             vcflink_filtered = f'<p><a href="{vcf_access}" target="_blank">VCF filtered</a></p>'
