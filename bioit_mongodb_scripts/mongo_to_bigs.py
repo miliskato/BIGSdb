@@ -157,7 +157,7 @@ class MongoToBigs:
             self._mongoquerying.revert_typinghitlists_to_dictionaries(document, self._headers_collection)
             jsonfile = document.get_json_results()
 
-            MainResultsInserter(isolate_id, self._uploader_mail_address, self._species, results_type, vcf_path=document['vcf_path'], json_results=jsonfile, report_access=document['report_directory'], mongo_dtap=self._mongo_config_data.get('dtap'))
+            MainResultsInserter(isolate_id, self._uploader_mail_address, self._species, results_type, vcf_path=document['vcf_path'], json_results=jsonfile, report_access=document['report_directory'], mongo_dtap=self._mongo_config_data.get('dtap'), isolation_date=document['technical_metadata']['DT_ISOL'])
 
             self.__insert_assembly_into_bigs(results_type, document, isolate_id)
             with TblMappingTable(self._species) as isolates_mapping_psql_tbl:

@@ -44,14 +44,15 @@ class TblIsolates(DatabaseConnection):
         """
         self.execute_query(PsqlQueries.ISO_DEL__TB_ISO_VAR_ISO_ISO, param)
 
-    def insert_isolate(self, param: Tuple[str, str, str]) -> None:
+    def insert_isolate(self, param: Tuple[str, str, str, str]) -> None:
         """
         Inserts a new isolate
         :param param: variables to feed to the PSQL query, which also sanitizes these variables,
-        necessary parameters visible in the PSQL query name and query
+        necessary parameters visible in the PSQL query name and query; isolate name, curator,
+        latest_analysis_date, isolation_date
         :return: None
         """
-        self.execute_query(PsqlQueries.ISO_INS__TB_ISO_VAR_ISO_UPL_DATE, param)
+        self.execute_query(PsqlQueries.ISO_INS__TB_ISO_VAR_ISO_UPL_DATE_ISODATE, param)
 
     def update_isolate_analysis_date(self, param: Tuple[str, str]) -> None:
         """
