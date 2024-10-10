@@ -19,7 +19,7 @@ from bioit_mongodb_scripts.util.python_utility_functions import send_email
 
 class MainResultsInserter:
     def __init__(self, isolatename: str, uploader_mail_address: str, species: str, results_type: ResultType, report_access: str, vcf_path: str, mongo_dtap: str,
-                 json_results: JsonReportDict) -> None:
+                 json_results: JsonReportDict, isolation_date: str) -> None:
         """
         Initialises the class and runs the main function.
         See also argparse function for variables and their requiredness.
@@ -31,6 +31,7 @@ class MainResultsInserter:
         :param vcf_path: subdirectory containing the vcf file
         :param mongo_dtap: dtap from mongo config
         :param json_results: results for the isolate
+        :param isolation_date: isolation date as str as DD/MM/YYYY
         :return: None
         """
         # Input parameters
@@ -42,6 +43,7 @@ class MainResultsInserter:
         self._vcf_path = vcf_path
         self._mongo_dtap = mongo_dtap
         self._json_report = json_results
+        self._isolation_date = isolation_date
 
         self._bigsdb_config_data = get_bigsdb_config_data()
 
@@ -65,7 +67,7 @@ class MainResultsInserter:
 
         maininserter = MainInserter(self._isolatename, self._species, self._json_report, self._bigsdb_config_data, self._report_access, self._vcf_path, self._mongo_dtap)
         if self._results_type == 'new_isolate' or self._results_type == 'badqc':
-            maininserter.insert_new_isolate(self._uploader_mail_address)
+            maininserter.insert_new_isolate(self._uploader_mail_address, self._isolation_date)
         elif self._results_type == 'reanalysis' or self._results_type == 'resequencing':
             self._handle_reanalysis_and_reseq()
             maininserter.update_isolate_analysis_date()
