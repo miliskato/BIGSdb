@@ -35,22 +35,27 @@ class GeneDetectionIntoPsql:
     """
     Class containing function to insert gene detection loci and alleles and update them 
     """
-    def __init__(self, species_list: List[str], do_not_recalculate: bool) -> None:
+    def __init__(self, species_list: List[str], do_not_recalculate: bool, dont_send_email: bool = False) -> None:
         """
         Initialises this class and executes the main function: _gene_detection_insertion_and_recalculation
-        :param species_list: LIST OF commonly used bioit species name: either genus or specific like stec.
+        :param species_list: list of commonly used bioit species name: either genus or specific like stec.
         :param do_not_recalculate: Whether the recalculation step should be skipped or not.
+        :param dont_send_email: do not send emails, only log
+        :return: None
         """
-        self._bigsdb_config_data = get_bigsdb_config_data()
         self._species_list = species_list
         self._do_not_recalculate = do_not_recalculate
+        self._dont_send_email = dont_send_email
+
+        self._bigsdb_config_data = get_bigsdb_config_data()
+
         try:
             for species in set(self._species_list):
                 self._schemedict: Dict[str, Any] = self._bigsdb_config_data['species'][species].get('genedetection_schemes')
                 self._gene_detection_insertion_and_recalculation(species)
                 self._eavhtmltable = None
         except Exception as exceptionmessage:
-            send_email(f"{exceptionmessage}\n{traceback.format_exc()}")
+            send_email(f"{exceptionmessage}\n{traceback.format_exc()}", dont_send_email=self._dont_send_email)
             raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}")
 
     def _gene_detection_insertion_and_recalculation(self, species: str) -> None:

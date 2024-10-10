@@ -26,6 +26,7 @@ from bioit_bigsdb_scripts.insert_assembly import insert_assembly
 from bioit_bigsdb_scripts.genedetection_intopsql import GeneDetectionIntoPsql
 from bioit_bigsdb_scripts.main_results_inserter import MainResultsInserter
 from bioit_bigsdb_scripts.Typing_alleles_intopsql import TypingAllelesIntoPsql
+from bioit_bigsdb_scripts.Typing_loci_intopsql import TypingLociIntoPsql
 from bioit_bigsdb_scripts.Typing_schemeprofiles_intopsql import TypingSchemeProfilesIntoPsql
 from bioit_mongodb_scripts.util.alerts_to_bigs import AlertsToBigs
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
@@ -201,10 +202,11 @@ class MongoToBigs:
             # Run the temporary id replacer
             self.___replace_tempids()
 
-            # Insert new typing alleles, typing profiles & gene detection alleles into psql
-            TypingAllelesIntoPsql([self._species])
-            TypingSchemeProfilesIntoPsql([self._species])
-            GeneDetectionIntoPsql([self._species], do_not_recalculate=True)
+            # Insert new typing loci, alleles, typing profiles & gene detection alleles into psql
+            TypingLociIntoPsql([self._species], dont_send_email=True)
+            TypingAllelesIntoPsql([self._species], dont_send_email=True)
+            TypingSchemeProfilesIntoPsql([self._species], dont_send_email=True)
+            GeneDetectionIntoPsql([self._species], do_not_recalculate=True, dont_send_email=True)
             # update last insertion date
             self._update_metadata_collection.update_one({'metadata': 'last_dbupdate_insertion_date'},
                                                         {'$set': {'last_update_date': datetime.datetime.utcnow()}},

@@ -732,11 +732,6 @@
             virtualenv: "{{ bioit_bigs_home }}/3.9PythonVenv"
             virtualenv_python: python3.9
 
-        # checks are present in the scripts
-        - name: insert loci
-          shell: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_bigsdb_scripts/Typing_loci_intopsql.py --species {{ species }}"
-          tags: pop_db
-
 - name: setup reports and symlinks
   block:
     - name: create species dir

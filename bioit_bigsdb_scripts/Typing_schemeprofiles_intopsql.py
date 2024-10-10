@@ -29,49 +29,27 @@ def _parse_arguments(specieslist: List[str]) -> argparse.Namespace:
                                  nargs='+')  # this does allow for the same species multiple times but doesnt really matter, theyre uniquely filtered using set()
     return argument_parser.parse_args()
 
-# three tables are important:
-
-# 1. profiles:
-#  scheme_id | profile_id | sender | curator | date_entered | datestamp
-# -----------+------------+--------+---------+--------------+------------
-#          1 | 1          |      1 |       1 | 2022-03-03   | 2022-03-03
-
-# 2. profile_fields:
-#  scheme_id | scheme_field | profile_id | value | curator | datestamp
-# -----------+--------------+------------+-------+---------+------------
-#          1 | testextra    | 1          | GZ5   |       1 | 2022-03-03
-#          1 | ST           | 1          | 1     |       1 | 2022-03-03
-
-# 3. profile_members:
-#  scheme_id | locus | profile_id | allele_id | curator | datestamp
-# -----------+-------+------------+-----------+---------+------------
-#          1 | aroC  | 1          | 1         |       1 | 2022-03-03
-#          1 | dnaN  | 1          | 1         |       1 | 2022-03-03
-#          1 | hemD  | 1          | 1         |       1 | 2022-03-03
-#          1 | hisD  | 1          | 5         |       1 | 2022-03-03
-#          1 | purE  | 1          | 6         |       1 | 2022-03-03
-#          1 | sucA  | 1          | 8         |       1 | 2022-03-03
-#          1 | thrA  | 1          | 4         |       1 | 2022-03-03
-#
-
 
 class TypingSchemeProfilesIntoPsql:
     """
     Class containing function to insert typing scheme profiles.
     """
-    def __init__(self, species_list: List[str]) -> None:
+    def __init__(self, species_list: List[str], dont_send_email: bool = False) -> None:
         """
         Initialises this class and executes the main function: _insert_alleles
-        :param species_list: LIST OF commonly used bioit species name: either genus or specific like stec.
+        :param species_list: list of commonly used bioit species name: either genus or specific like stec.
+        :param dont_send_email: do not send emails, only log
+        :return: None
         """
         self._species_list = species_list
+        self._dont_send_email = dont_send_email
 
         self._bigsdb_config_data = get_bigsdb_config_data()
 
         try:
             self._insert_all_profiles()
         except Exception as exceptionmessage:
-            send_email(f"{exceptionmessage}\n{traceback.format_exc()}")
+            send_email(f"{exceptionmessage}\n{traceback.format_exc()}", dont_send_email=self._dont_send_email)
             raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}")
 
     @staticmethod

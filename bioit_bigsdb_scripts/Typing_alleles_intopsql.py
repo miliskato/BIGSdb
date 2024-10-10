@@ -31,19 +31,22 @@ class TypingAllelesIntoPsql:
     """
     Class containing function to insert typing alleles and update them
     """
-    def __init__(self, species_list: List[str]) -> None:
+    def __init__(self, species_list: List[str], dont_send_email: bool = False) -> None:
         """
         Initialises this class and executes the main function: _insert_alleles
-        :param species_list: LIST OF commonly used bioit species name: either genus or specific like stec.
+        :param species_list: list of commonly used bioit species name: either genus or specific like stec.
+        :param dont_send_email: do not send emails, only log
+        :return: None
         """
         self._species_list = species_list
+        self._dont_send_email = dont_send_email
 
         self._bigsdb_config_data = get_bigsdb_config_data()
 
         try:
             self._insert_alleles()
         except Exception as exceptionmessage:
-            send_email(f"{exceptionmessage}\n{traceback.format_exc()}")
+            send_email(f"{exceptionmessage}\n{traceback.format_exc()}", dont_send_email=self._dont_send_email)
             raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}")
 
     def _insert_alleles(self) -> None:
