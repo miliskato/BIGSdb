@@ -280,10 +280,6 @@ class AlertsToBigs:
                     (self._bigsdb_config_data['alerts'][self._species][
                          f'{threshold_key}_classification_scheme_id'],
                      self._cgmlst_bigsdb_scheme_id, str(cgst_of_current_isolate)))
-                # all cluster groups are the same in the query; take 4th element (cluster group) of first
-                # tuple, which always has to exist because the isolate itself is definitely queried)
-                # Condition to skip it for first insertion of new cgST clust in which case the tuple is empty
-
             else:
                 start_date = (isolation_date - self._timedelta_timeframe).strftime('%Y-%m-%d')
                 end_date = (isolation_date + self._timedelta_timeframe).strftime('%Y-%m-%d')

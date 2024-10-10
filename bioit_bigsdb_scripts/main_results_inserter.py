@@ -3,7 +3,6 @@ import socket
 import sys
 import traceback
 from pathlib import Path
-from typing import Literal
 
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
@@ -16,6 +15,7 @@ from bioit_bigsdb_scripts.components.psql import TblIsolates, TblAlleleDesignati
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data, send_email
 from bioit_mongodb_scripts.model.json_model import JsonReportDict, ResultType
 from bioit_mongodb_scripts.util.python_utility_functions import send_email
+
 
 class MainResultsInserter:
     def __init__(self, isolatename: str, uploader_mail_address: str, species: str, results_type: ResultType, report_access: str, vcf_path: str, mongo_dtap: str,
@@ -129,9 +129,9 @@ class MainResultsInserter:
         This should avoid error from postgres while reinserting new version of these results
         """
         if self._results_type == 'reanalysis ' or self._results_type == 'resequencing':
-            with TblAlleleDesignations(self._species) as isolates_ad_psql_tbl, TblEavText(
-                    self._species) as isolates_eavt_psql_tbl, TblEavBoolean(self._species) as isolates_eavb_psql_tbl, TblEavInt(
-                self._species) as isolates_eavi_psql_tbl:
+            with (TblAlleleDesignations(self._species) as isolates_ad_psql_tbl, TblEavText(
+                    self._species) as isolates_eavt_psql_tbl, TblEavBoolean(self._species) as isolates_eavb_psql_tbl,
+                  TblEavInt(self._species) as isolates_eavi_psql_tbl):
                 isolates_ad_psql_tbl.delete_all_designations_of_isolate((self._isolatename,))
                 isolates_eavt_psql_tbl.delete_all_eav_by_isolate_id((self._isolatename,))
                 isolates_eavb_psql_tbl.delete_eavbool_for_isolate((self._isolatename,))

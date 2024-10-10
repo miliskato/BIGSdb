@@ -6,7 +6,7 @@ from typing import Mapping
 import pymongo
 from pymongo.read_concern import ReadConcern
 
-from .python_utility_functions import convert_dmyhms_to_ymd, merge_nested_dicts
+from .python_utility_functions import convert_dmyhms_to_ymd, merge_nested_dicts, merge_mongo_dicts
 from ..model.json_model import MongoRecordDict, JsonReportDict
 
 
@@ -229,8 +229,8 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
                 old_versions_merged = old_versions[0]
                 if len(old_versions) > 1:
                     for x in old_versions[1:]:
-                        merge_nested_dicts(old_versions_merged, x)
-                merge_nested_dicts(current_version['results'], old_versions_merged)
+                        merge_mongo_dicts(old_versions_merged, x)
+                merge_mongo_dicts(MongoRecordDict(current_version['results']), old_versions_merged)
             requested_document = current_version
         # 4. Revert the effective dict to list storage to a readable format for the html reporter
         self.revert_typinghitlists_to_dictionaries(requested_document, headers_collection)

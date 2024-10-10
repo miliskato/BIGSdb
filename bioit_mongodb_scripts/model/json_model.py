@@ -57,7 +57,7 @@ class MongoRecordDict(BridgeDict):
         """
         self['isolates_id'] = isolate_id
 
-    def get_validation_type(self) -> Union[ResultType|None]:
+    def get_validation_type(self) -> Union[ResultType, None]:
         """return validation type info from Mongo document if present"""
         return self.get('validation',{}).get('type',None)
 

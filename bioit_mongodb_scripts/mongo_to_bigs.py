@@ -147,7 +147,7 @@ class MongoToBigs:
             if not new_document_version:
                 continue
 
-            self.add_isolate_cgst_to_alert_lists(document, isolate_id, results_type)
+            self.__add_isolate_cgst_to_alert_lists(document, isolate_id, results_type)
 
             # continuation of for loop:
             # extract json file to be given to bigs
@@ -178,7 +178,7 @@ class MongoToBigs:
             self._exception_in_alerts = True
 
 
-    def add_isolate_cgst_to_alert_lists(self, document: MongoRecordDict, isolate_id: str, results_type: ResultType) -> None:
+    def __add_isolate_cgst_to_alert_lists(self, document: MongoRecordDict, isolate_id: str, results_type: ResultType) -> None:
         """
         Function to append isolate_id, cgST, and date_of_isolation to a list that will be used to re-compute BIGSdb alerts
         :param document: Mongo record from isolate collection

@@ -225,7 +225,7 @@ class MainMongo:
 
         good_sample_quality = True
         if self._results_type == 'new_isolate' and self._species not in self._mongo_config_data['viral_species']:  # viral pathogens do not have a qc section
-            good_sample_quality = self.is_good_quality(json_report)
+            good_sample_quality = self.___is_good_quality(json_report)
 
         self.__process_mongo_record(mongo_records, good_sample_quality)
         return mongo_records
@@ -258,7 +258,7 @@ class MainMongo:
             logging.warning(
                 f"New isolate {self._technical_id} failed quality control for one or more checks. It's results were written to the 'isolates_badqc' collection in the {self._species} database")
 
-    def is_good_quality(self, new_json_report: JsonReportDict) -> bool:
+    def ___is_good_quality(self, new_json_report: JsonReportDict) -> bool:
         """
         Evaluates the quality of the isolates based on qc from camel
         :param new_json_report: json report containing the results from the pipeline
