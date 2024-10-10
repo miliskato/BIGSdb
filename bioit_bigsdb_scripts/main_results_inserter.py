@@ -65,9 +65,9 @@ class MainResultsInserter:
         with TblIsolates(self._species) as isolates_psql_tbl:
             self.__fail_safe_mechanism(isolates_psql_tbl)
 
-        maininserter = MainInserter(self._isolatename, self._species, self._json_report, self._bigsdb_config_data, self._report_access, self._vcf_path, self._mongo_dtap, self._isolation_date)
+        maininserter = MainInserter(self._isolatename, self._species, self._json_report, self._bigsdb_config_data, self._report_access, self._vcf_path, self._mongo_dtap)
         if self._results_type == 'new_isolate' or self._results_type == 'badqc':
-            maininserter.insert_new_isolate(self._uploader_mail_address)
+            maininserter.insert_new_isolate(self._uploader_mail_address, self._isolation_date)
         elif self._results_type == 'reanalysis' or self._results_type == 'resequencing':
             self._handle_reanalysis_and_reseq()
             maininserter.update_isolate_analysis_date()
