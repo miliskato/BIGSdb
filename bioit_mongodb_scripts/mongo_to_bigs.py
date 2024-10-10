@@ -143,11 +143,11 @@ class MongoToBigs:
         # Main insertion into bigsdb for loop
         for document in list_of_documents:
             isolate_id = self._mappingtable_collection.find_one({'pseudo_id': document['_id']})['_id']
-            results_type, new_document_version = self.__get_results_type(document, isolate_id)
+            results_type, new_document_version, cgst_changed = self.__get_results_type(document, isolate_id)
             if not new_document_version:
                 continue
 
-            self.__add_isolate_cgst_to_alert_lists(document, isolate_id, results_type)
+            self.__add_isolate_cgst_to_alert_lists(document, isolate_id, results_type, cgst_changed)
 
             # continuation of for loop:
             # extract json file to be given to bigs
@@ -177,13 +177,14 @@ class MongoToBigs:
         except:
             self._exception_in_alerts = True
 
-
-    def __add_isolate_cgst_to_alert_lists(self, document: MongoRecordDict, isolate_id: str, results_type: ResultType) -> None:
+    def __add_isolate_cgst_to_alert_lists(self, document: MongoRecordDict, isolate_id: str, results_type: ResultType,
+                                          cgst_changed: bool) -> None:
         """
         Function to append isolate_id, cgST, and date_of_isolation to a list that will be used to re-compute BIGSdb alerts
         :param document: Mongo record from isolate collection
         :param isolate_id: isolate id (as found in BIGSdb)
         :param results_type: one of the following string: 'new_isolate','badqc','resequencing','reanalysis'
+        :param cgst_changed: boolean whether the cgST changed
         :return: None
         """
         if results_type == 'new_isolate' or results_type == 'badqc':
@@ -192,9 +193,10 @@ class MongoToBigs:
                  'isolation_date': document['technical_metadata']['DT_ISOL']})
 
         else:  # if results_type == 'reanalysis' or 'resequencing':
-            self._list_of_new_versions_for_alerts.append(
-                {'isolate_name': isolate_id, 'cgST': document['results'].get('cgST'),
-                 'isolation_date': document['technical_metadata']['DT_ISOL']})
+            if cgst_changed:
+                self._list_of_new_versions_for_alerts.append(
+                    {'isolate_name': isolate_id, 'cgST': document['results'].get('cgST'),
+                     'isolation_date': document['technical_metadata']['DT_ISOL']})
 
     def __update_scheme_caches_full_once_if_needed(self) -> bool:
         """
@@ -242,13 +244,14 @@ class MongoToBigs:
 
         return list_of_documents
 
-    def __get_results_type(self, document: MongoRecordDict, isolate_id: str) -> Tuple[ResultType, bool]:
+    def __get_results_type(self, document: MongoRecordDict, isolate_id: str) -> Tuple[ResultType, bool, bool]:
         """
         Checks whether the document is a new_isolate or a reanalysis and whether the for loop should continue (bool output).
         The for loop should continue to the next document if the reanalysis is not different.
         :param document: dictionary of the results of the current isolate
         :param isolate_id: the id of the isolate
-        :return: results_type and whether for loop should should continue to next sample (True) or proceed (False)
+        :return: results_type and whether for loop should should continue to next sample (True) or proceed (False) and
+        boolean whether the cgST changed; always True if results_type is not reanalysis or resequencing
         """
         sample_presence = self._isolates_psql_tbl.count_isolate((isolate_id,))
         # is_sample_failed: isolate into bigsdb was started but failed during insertion.
@@ -259,44 +262,54 @@ class MongoToBigs:
                      [isolate_id, self._bigsdb_config_data['failsafe']['flag_append']])).is_file()
 
         different_version = True
+        cgst_changed = True
         if sample_presence[0][0] == 0 or if_sample_failed:
             results_type = "new_isolate"
         elif document.get_validation_type():
             results_type = document.get_validation_type()
-            different_version = self.___check_if_reanalysis_different(document, isolate_id)
+            if results_type == 'resequencing':
+                different_version, cgst_changed = self.___check_if_reanalysis_different(document, isolate_id)
         else:
             results_type = "reanalysis"
-            different_version = self.___check_if_reanalysis_different(document, isolate_id)
+            different_version, cgst_changed = self.___check_if_reanalysis_different(document, isolate_id)
 
-        return results_type, different_version
+        return results_type, different_version, cgst_changed
 
-    def ___check_if_reanalysis_different(self, document: MongoRecordDict, isolate_id: str) -> bool:
+    def ___check_if_reanalysis_different(self, document: MongoRecordDict, isolate_id: str) -> (bool, bool):
         """
         Checks if the reanalysis is different or not, outside this function: continues the for loop,
         it is called in, to the next sample if not different
         :param document: document dictionary
         :param isolate_id: name of the isolate
-        :return: boolean whether version is different or not
+        :return: boolean whether version is different or not and boolean whether the cgst changed
         """
         latest_analysis_date_bigs = (self._isolates_psql_tbl.select_latestanalysisdate_for_isolate((isolate_id,)))[0][0]  #this is a datetime object
         with TblEavTextHidden(self._species) as isolates_eavth_psql_tbl:
             mongo_results_changed_version_bigs_query = isolates_eavth_psql_tbl.select_mongo_resultsversion((isolate_id,))
         # as of 2022/12/22 mongo_results_version in bigs is changed version
         mongo_results_changed_version_bigs = int(mongo_results_changed_version_bigs_query[0][0])
+
+        different_version = False
+        cgst_changed = False
         if convert_dmyhms_to_dateobj(document['results']['analysis_date']) > latest_analysis_date_bigs:
             new_results = document.get_json_results()
             if new_results['changed_version'] == int(mongo_results_changed_version_bigs):
                 # results are same so do nothing
-                logging.info(
-                    f"results_version might be different, but changed_version same in mongodb and bigsdb for {isolate_id}")
-                different_version = False
+                logging.info(f"results_version might be different, but changed_version same in mongodb and bigsdb for "
+                             f"{isolate_id}")
             else:
                 different_version = True
+
+                # check whether the cgST that is currently in the db for the isolate is the same as the
+                # cgST of the new version in Mongo.
+                with TblIsolates(self._species) as self._isolates_psql_tbl:
+                    cgst_query_result = self._isolates_psql_tbl.select_current_cgst_of_isolate(
+                        (self._cgmlst_bigsdb_scheme_id, new_results['isolate_name']))
+                if cgst_query_result[0][0] and int(cgst_query_result[0][0]) != new_results.get('cgST'):
+                    cgst_changed = True
         else:
-            logging.info(
-                f"results version same in mongodb and bigsdb for sample {isolate_id}")
-            different_version = False
-        return different_version
+            logging.info(f"results version same in mongodb and bigsdb for sample {isolate_id}")
+        return different_version, cgst_changed
 
     def __insert_assembly_into_bigs(self, results_type: ResultType, document: MongoRecordDict, isolate_id: str) -> None:
         """

@@ -77,7 +77,7 @@ class TblIsolates(DatabaseConnection):
         :param param: cgmlst scheme id, cgmlst scheme id, isolate name
         :return: None or tuple containing the isolate_id and its cgst
         """
-        return self.execute_query(PsqlQueries.ISO_SEL_ID_CGST_TB_ISO_VAR_SCHID_ISO, param)
+        return self.execute_query(PsqlQueries.ISO_SEL_CGST_TB_ISO_VAR_SCHID_ISO, param)
 
     def select_isolates_by_cgsts_and_between_dates(self, param: Tuple[int, Tuple[str, ...], str, str]) -> \
             List[Optional[Tuple[Any]]]:

@@ -22,7 +22,7 @@ class AlertsToBigs:
         :param list_of_new_isolates_inserted_in_bigsdb: List of dictionaries of relevant data concerning newly
         sql-inserted isolates.
         :param list_of_new_versions_inserted_in_bigsdb: List of dictionaries of relevant data concerning newly
-        sql-inserted versions of existing isolates.
+        sql-inserted versions of existing isolates with different cgSTs than the previous version.
         :param species: commonly used bioit species name: either genus or specific like stec
         :param cgmlst_bigsdb_scheme_id: The bigsdb SQL id of the cgMLST scheme
         :return: None
@@ -82,22 +82,14 @@ class AlertsToBigs:
         :return: None
         """
         for new_version in self._list_of_new_versions_inserted_in_bigsdb:
-            with TblIsolates(self._species) as self._isolates_psql_tbl:
-                cgst_tuple = self._isolates_psql_tbl.select_current_cgst_of_isolate(
-                    (self._cgmlst_bigsdb_scheme_id, new_version['isolate_name']))
-            cgst_in_bigsdb = cgst_tuple[0][0]
             with TblAlertDetails(self._species) as isolates_alertsdet_psql_tbl:
                 previous_alert_id_and_alert_type_in_bigs = isolates_alertsdet_psql_tbl.select_alert_for_isolate(
-                    (str(cgst_in_bigsdb), investigation_method))
-            alert_id = None
-            alert_type = None
+                    (new_version['isolate_name'], investigation_method))
             if len(previous_alert_id_and_alert_type_in_bigs) == 1:
                 alert_id = previous_alert_id_and_alert_type_in_bigs[0][0]
                 alert_type = previous_alert_id_and_alert_type_in_bigs[0][1]
-            # check if cgsts changed between current new version and previous version
-            if cgst_tuple[0][1] != new_version['cgST']:
                 # Treat new version with different cgst as new isolate, except that it will have to update
-                # instead of insert, add extra info for it to be able to do that
+                # instead of insert, add extra info (alert id and alert type) for it to be able to do that
                 new_version['alert_id'] = alert_id
                 new_version['previous_version_alert_type'] = alert_type
                 self._list_of_new_isolates_inserted_in_bigsdb.append(new_version)

@@ -25,9 +25,10 @@ class PsqlQueries():
     ISO_INS__TB_ALDE_VAR_FIELD_VALUE: Final[str] = """
         INSERT INTO alert_details (alert_id, index, field, value) 
         VALUES((SELECT MAX(id::int) FROM alerts), 1, %s, %s);"""
-    ISO_SEL_ALID_TYPE_TB_ALDE_VAR_ISOID_METH: Final[str] = """
+    ISO_SEL_ALID_TYPE_TB_ALDE_VAR_ISOLATE_METH: Final[str] = """
         SELECT alert_id, type FROM alert_details LEFT JOIN alerts ON 
-        alerts.id = alert_details.alert_id WHERE field = 'isolate_id' AND value = %s and method = %s;"""
+        alerts.id = alert_details.alert_id WHERE field = 'isolate_id' AND value = 
+        (SELECT id FROM isolates WHERE isolate=%s) and method = %s;"""
     ISO_UPD_VAL_TB_ALDE_VAR_ALID_FIELD: Final[str] = """
         UPDATE alert_details SET value = %s WHERE alert_id = %s AND field = %s;"""
 
@@ -204,8 +205,8 @@ class PsqlQueries():
         temp_isolates_scheme_fields_%s ON isolates.id = temp_isolates_scheme_fields_%s.id 
         LEFT JOIN temp_cscheme_%s on cgst = temp_cscheme_%s.profile_id
         WHERE temp_cscheme_%s.group_id = (SELECT group_id FROM temp_cscheme_%s WHERE profile_id = %s);"""
-    ISO_SEL_ID_CGST_TB_ISO_VAR_SCHID_ISO: Final[str] = """
-        SELECT isolates.id, cgst FROM isolates LEFT JOIN 
+    ISO_SEL_CGST_TB_ISO_VAR_SCHID_ISO: Final[str] = """
+        SELECT cgst FROM isolates LEFT JOIN 
         temp_isolates_scheme_fields_%s USING (id)
         WHERE isolates.isolate = %s;"""
     ISO_SEL_ISO_DATE_TB_ISO_VAR_ISOS: Final[str] = """
