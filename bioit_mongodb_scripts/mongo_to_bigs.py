@@ -123,7 +123,7 @@ class MongoToBigs:
         """
         # call the autoexecutable function to insert new alleles and profiles
         NewClusteringInfoToBigs(self._species, Path(self._mongo_config_data['naive_clustering_distance_matrix_file'].replace('species', self._species).replace('dtap', self._mongo_config_data.get('dtap'))),
-                                mongo_config_data=self._mongo_config_data)
+                                self._cgmlst_bigsdb_scheme_id, mongo_config_data=self._mongo_config_data)
 
         # The cache command needs to be run using method 'full' once before being able to use it with method
         # incremental, check it and execute full if it hadn't been executed yet
