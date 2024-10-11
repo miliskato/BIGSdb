@@ -104,6 +104,10 @@ class MainMongo:
         self._mongo_config_data = mongo_config_data  # no need to get if not provided because it is only
         # needed in mongoinit and there it can be retrieved by itself
 
+        self._naive_clustering_distance_matrix_file = Path(
+            self._mongo_config_data['naive_clustering_distance_matrix_file'].replace('species', self._species).replace(
+                'dtap', self._alternate_dtap if self._alternate_dtap else self._mongo_config_data.get('dtap')))
+
         # Open collections
         self._mongoinit = MongoInitialisation(self._species,
                                               selected_connection_string=self._connection_string,
@@ -243,7 +247,9 @@ class MainMongo:
             self.___convert_typinghitdictionaries_to_lists(json_report)
             if 'cgmlst' in json_report:
                 clustering_input = self._mongoquerying.singledoc_typing_results_by_technicalids_and_scheme(json_report, mongo_records.get_id(), "cgmlst", self._headers_collection)
-                custom_clustering = MongoCustomClustering(clustering_input[0], clustering_input[1], self._species, mongo_config_data=self._mongo_config_data)
+                custom_clustering = MongoCustomClustering(clustering_input[0], clustering_input[1], self._species,
+                                                          self._naive_clustering_distance_matrix_file,
+                                                          mongo_config_data=self._mongo_config_data)
                 logging.info(f"Running the clustering for the isolate {self._technical_id}")
                 sp_thresholds = f"clustering_thresholds_{self._species}"
                 cg_sequence_type = custom_clustering.run_custom_clustering(CLUSTERING_CONFIG[sp_thresholds])
@@ -343,8 +349,9 @@ class MainMongo:
         # Update new results if really a reanalysis/resequencing where at least one field changed
         if 'cgmlst' in changed_results_new_old:
             clustering_input = self._mongoquerying.singledoc_typing_results_by_technicalids_and_scheme(new_json_report, self._technical_id, "cgmlst", self._headers_collection)
-            custom_clustering = MongoCustomClustering(clustering_input[0], clustering_input[1],
-                                                      self._species, self._mongo_config_data)
+            custom_clustering = MongoCustomClustering(clustering_input[0], clustering_input[1], self._species,
+                                                      self._naive_clustering_distance_matrix_file,
+                                                      self._mongo_config_data)
             logging.info(f"Running the clustering for the isolate {self._technical_id}")
             sp_thresholds = f"clustering_thresholds_{self._species}"
             sequence_type = custom_clustering.run_custom_clustering(CLUSTERING_CONFIG[sp_thresholds])
