@@ -208,11 +208,13 @@ class MainMongo:
 
             if self._results_type == "reanalysis":
                 json_report = JsonReportDict.from_json(self._jsonfilepath)
+                new_path_to_report = str(self._jsonfilepath)
             else:  # self._results_type == 'resequencing_validated'
                 existing_mongo_record = MongoRecordDict(self._isolates_resequencing_collection.find_one({"_id": self._technical_id}))
                 json_report = existing_mongo_record.get_json_results()
+                new_path_to_report = existing_mongo_record['report_directory']
 
-            self.__new_reanalysis_wrapper(current_results_document, json_report)
+            self.__new_reanalysis_wrapper(current_results_document, json_report, new_path_to_report)
 
     def __process_json_report(self, json_report: JsonReportDict) -> MongoRecordDict:
         """
@@ -320,11 +322,12 @@ class MainMongo:
                 dont_send_email=self._dont_send_email)
             raise MongoResequencingAlreadyExistsError(f"The resequencing for  {self._technical_id} was identical to the original isolate or to a previously submitted resequencing")
 
-    def __new_reanalysis_wrapper(self, current_results_document: MongoRecordDict, new_json_report: JsonReportDict) -> None:
+    def __new_reanalysis_wrapper(self, current_results_document: MongoRecordDict, new_json_report: JsonReportDict, path_to_new_directory: str) -> None:
         """
         Wrapper function for reanalysis and resequencing validated         
         :param current_results_document: the current results document dict in the Mongo collection before applying the reanalysis
         :param new_json_report: the new results document dict, under results for reanalysis, all for resequencing
+        :path_to_new_directory: path to the new version of the report
         :return: None
         """
         self.___find_hashes_in_results_and_add_to_collection(new_json_report, 'reanalysis')
@@ -369,7 +372,7 @@ class MainMongo:
         self._isolates_collection.with_options(write_concern=WriteConcern(w="majority")).update_one(
             {"_id": self._technical_id}, {
                 "$set": {**new_results,
-                         "report_directory": new_json_report['report_directory'],
+                         "report_directory": path_to_new_directory,
                          "results.results_changed_since_last_version": any_result_changed_new_old,
                          "latest_analysis_date": convert_dmyhms_to_ymd(new_results["results.analysis_date"]),
                          "previous_latest_results_document": self.___write_document(self._old_isolateresults_collection,
