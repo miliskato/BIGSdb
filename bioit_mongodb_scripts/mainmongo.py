@@ -331,6 +331,7 @@ class MainMongo:
         self.___convert_typinghitdictionaries_to_lists(new_json_report)
 
         current_results = current_results_document.get_json_results()
+        path_to_report = current_results_document['report_directory']
         if new_json_report["analysis_date"] == current_results["analysis_date"]:
             send_email(f"This ({self._technical_id}) is not a reanalysis but the same results\n{traceback.format_exc()}", dont_send_email=self._dont_send_email)
             raise MongoReanalysisDateError(
@@ -349,7 +350,7 @@ class MainMongo:
             sp_thresholds = f"clustering_thresholds_{self._species}"
             sequence_type = custom_clustering.run_custom_clustering(CLUSTERING_CONFIG[sp_thresholds])
             new_json_report["cgST"] = sequence_type
-        deltas_new_old = self.___nested_dict_delta(current_results, new_json_report)
+        deltas_new_old = self.___nested_dict_delta(current_results, new_json_report, path_to_report)
         new_results = self.___prepend_string_dot_to_dict_keys(new_json_report, 'results')
         new_results["results.isolates_id"] = self._technical_id
         new_results["results.results_version"] = current_results["results_version"] + 1
@@ -557,12 +558,13 @@ class MainMongo:
                     unchanged_results.add(mainkey)
         return any_result_changed, unchanged_results, changed_results
 
-    def ___nested_dict_delta(self, current_results: JsonReportDict, new_results: JsonReportDict) -> JsonReportDict:
+    def ___nested_dict_delta(self, current_results: JsonReportDict, new_results: JsonReportDict, current_report_path: str) -> JsonReportDict:
         """
         This function calculates the delta between the new results and the current results;
         it returns the changes needed to get from the new results to the current results.
         :param current_results: current mongodb results
         :param new_results: to be inserted results
+        :param current_report_path: path to the current report, extracted from Mongo doc.
         :return: dictionary of deltas
         """
         # TODO what with new keys in the new_results (not on assay level)?
@@ -570,7 +572,7 @@ class MainMongo:
         for key, value in current_results.items():
             if key in new_results:
                 if isinstance(value, dict) and isinstance(new_results[key], dict):
-                    nested_delta = self.___nested_dict_delta(JsonReportDict(value), new_results[key])
+                    nested_delta = self.___nested_dict_delta(JsonReportDict(value), new_results[key], current_report_path)
                     if nested_delta:
                         delta_new_old[key] = nested_delta
                 elif new_results[key] != value:
@@ -585,7 +587,7 @@ class MainMongo:
             delta_new_old['isolates_id'] = current_results['isolates_id']
             delta_new_old['results_version'] = current_results['results_version']
             delta_new_old['changed_version'] = current_results['changed_version']
-        delta_new_old['report_directory'] = current_results['report_directory']
+        delta_new_old['report_directory'] = current_report_path
         return delta_new_old
 
     def ___convert_typinghitdictionaries_to_lists(self, json_report: JsonReportDict):
