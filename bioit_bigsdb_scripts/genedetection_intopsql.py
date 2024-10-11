@@ -128,7 +128,7 @@ class GeneDetectionIntoPsql:
         :return: None
         """
         json_superclass_instance = JsonSuperClass('dummyname', species, JsonReportDict({'dummydictkey': 'dummydictvalue'}), config_data=self._bigsdb_config_data)
-        with TblSequences(self._species) as seqdef_sequences_psql_tbl, TblLoci(species, 'seqdef') as seqdef_loci_psql_tbl:
+        with TblSequences(species) as seqdef_sequences_psql_tbl, TblLoci(species, 'seqdef') as seqdef_loci_psql_tbl:
             for cluster in self._clusterlist:
                 present: List[Tuple[int]] = seqdef_loci_psql_tbl.count_locus((cluster,))
                 if present[0][0] == 0:
@@ -196,7 +196,6 @@ class GeneDetectionIntoPsql:
                                 send_email(f"{hit} is not a valid key for self._clusterdict. The locus {hits[y]['Locus']} was found in isolate {isolate_name}\nCheck if it's due to the update of {self._scheme}",
                                            f"{Path(__file__).name} issue on host {socket.gethostname()}", dont_send_email=self._dont_send_email)
 
-
                     self._eavhtmltable += f'</table>'
                     isolates_eavt_psql_tbl.delete_eav(
                         (isolate_id, self._schemedict[self._scheme]['schemename_bigsdb']))
@@ -213,7 +212,7 @@ class GeneDetectionIntoPsql:
         :param species: commonly used bioit species name: either genus or specific like stec.
         :return: report name for the isolate
         """
-        mongoinit = MongoInitialisation(species=species, mongo_config_data=get_mongodb_config_data(),selected_connection_string='CONNECTION_STRING_AZURE')
+        mongoinit = MongoInitialisation(species=species, mongo_config_data=get_mongodb_config_data(), selected_connection_string='CONNECTION_STRING_AZURE')
         isolates_collection, old_isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections()
         isolate_report_path = Mongoquerying.query_docs_by_ids(opened_collection=isolates_collection, ids=[samplename])
         return isolate_report_path[0]['report_directory']

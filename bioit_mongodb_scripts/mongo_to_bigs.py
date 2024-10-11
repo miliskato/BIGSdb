@@ -209,8 +209,6 @@ class MongoToBigs:
                                                         {'$set': {'last_update_date': datetime.datetime.utcnow()}},
                                                         upsert=True)
 
-    def ___replace_tempids(self) -> None:
-
     def __add_isolate_cgst_to_alert_lists(self, document: MongoRecordDict, isolate_id: str, results_type: ResultType) -> None:
         """
         Function to append isolate_id, cgST, and date_of_isolation to a list that will be used to re-compute BIGSdb alerts
@@ -229,7 +227,7 @@ class MongoToBigs:
                 {'isolate_name': isolate_id, 'cgST': document['results'].get('cgST'),
                  'isolation_date': document['technical_metadata']['DT_ISOL']})
 
-    def __replace_tempids(self) -> None:
+    def ___replace_tempids(self) -> None:
         """
         Replaces the temporary ids of alleles in bigsdb by actual allele numbers found in Pubmlst/Enterobase and
         indicated as such by Azure: "resolved_AD".
