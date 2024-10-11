@@ -344,7 +344,7 @@ class NewClusteringInfoToBigs:
                                                                self._cgmlst_bigsdb_scheme_id, field[0])
                 for pseudo_id in [_dict['_id'] for _dict in cgsts_per_isolate
                                   if _dict['results'].get('cgST') == cgst]:
-                    bigsdb_id_isolate = isolates_mapping_psql_tbl.select_isolate_id_for_psuedo_id((pseudo_id,))
+                    bigsdb_id_isolate = isolates_mapping_psql_tbl.select_isolate_id_for_pseudo_id((pseudo_id,))
                     # it is possible that new isolates have not been added to bigsdb yet with old cgSTs
                     if len(bigsdb_id_isolate) > 0:
                         if not is_field_new and isolates_eavt_psql_tbl.select_count_eav_id(
