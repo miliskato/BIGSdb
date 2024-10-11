@@ -71,11 +71,11 @@ class TblIsolates(DatabaseConnection):
         """
         self.execute_query(PsqlQueries.ISO_UPD_NEWV_TB_ISO_VAR_ISO, param)
 
-    def select_current_cgst_of_isolate(self, param: Tuple[str]) -> List[Optional[Tuple[Any]]]:
+    def select_current_cgst_of_isolate(self, param: Tuple[int, str]) -> List[Optional[Tuple[Any]]]:
         """
-        Select the cgst found in BIGSdb for the current isolate and return it along with its isolate id
-        :param param: cgmlst scheme id, cgmlst scheme id, isolate name
-        :return: None or list of tuple containing the cgst
+        Select the cgst found in BIGSdb for the current isolate and return it
+        :param param: cgmlst scheme id, isolate name
+        :return: list of None or list with one tuple containing the cgST
         """
         return self.execute_query(PsqlQueries.ISO_SEL_CGST_TB_ISO_VAR_SCHID_ISO, param)
 
