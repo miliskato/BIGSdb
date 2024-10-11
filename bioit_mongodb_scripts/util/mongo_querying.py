@@ -6,7 +6,7 @@ from typing import Mapping, Tuple
 import pymongo
 from pymongo.read_concern import ReadConcern
 
-from .python_utility_functions import convert_dmyhms_to_ymd, merge_nested_dicts, merge_mongo_dicts
+from .python_utility_functions import convert_dmyhms_to_ymd, merge_mongo_dicts
 from ..model.json_model import MongoRecordDict, JsonReportDict
 
 

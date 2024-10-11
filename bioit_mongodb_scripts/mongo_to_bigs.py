@@ -84,6 +84,7 @@ class MongoToBigs:
         self._mappingtable_collection = self._mongoinit_local.initialise_mapping_table_collection()
         # Open Bigsdb isolates table
         self._isolates_psql_tbl = TblIsolates(self._species)
+        self._hashed_ad_collection = self._mongoinit.initialise_hashing_collection()
 
         # Prepare cgmlst cache updater command
         with TblSchemes(self._species, 'isolates') as isolates_schemes_psql_tbl:
