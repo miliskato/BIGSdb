@@ -1,11 +1,15 @@
 import datetime
 import logging
 import socket
+from pathlib import Path
 from typing import Any, Dict
 
+import numpy as np
+
 from bioit_mongodb_scripts.model.json_model import JsonReportDict
+from bioit_mongodb_scripts.util.new_clustering_info_to_bigs import NewClusteringInfoToBigs
 from .json_superclass import JsonSuperClass
-from .psql import TblEavTextHidden, TblEavInt, TblEavText, TblIsolates, TblHistory
+from .psql import TblEavFields, TblEavTextHidden, TblEavInt, TblEavText, TblIsolates, TblHistory, TblSchemes
 
 
 class MainInserter(JsonSuperClass):
@@ -13,7 +17,8 @@ class MainInserter(JsonSuperClass):
     Class containing defintions used to insert metadata results for both json and tsv input
     """
 
-    def __init__(self, isolatename: str, species: str, json_report_dict: JsonReportDict, config_data: Dict[str, Any], report_access: str, vcf_path: str, mongo_dtap: str) -> None:
+    def __init__(self, isolatename: str, species: str, json_report_dict: JsonReportDict, config_data: Dict[str, Any],
+                 report_access: str, vcf_path: str, mongo_dtap: str, naive_clustering_distance_matrix_file: Path) -> None:
         """
         :param isolatename: name of the isolate
         :param species: commonly used bioit species name: either genus or specific like stec
@@ -21,12 +26,14 @@ class MainInserter(JsonSuperClass):
         :param report_access: report_directory from MongoDB
         :param vcf_path: subdirectory containing the vcf file
         :param mongo_dtap: dtap from mongo config
+        :param naive_clustering_distance_matrix_file: The path to the naive clustering cgmlst distance matrix file
         :return: None
         """
         super().__init__(isolatename, species, json_report_dict, config_data)
         self._report_access = report_access
         self._vcf_path = vcf_path
         self._mongo_dtap = mongo_dtap
+        self._naive_clustering_distance_matrix_file = naive_clustering_distance_matrix_file
     
     def insert_new_isolate(self, uploader_mail_address: str) -> None:
         """
@@ -88,6 +95,7 @@ class MainInserter(JsonSuperClass):
             if 'validation' in self._json_report_dict:
                 self.isolates_psql_tbl.add_validation((self._json_report_dict['validation']['type'], self._json_report_dict['validation']['curator'],
                                                        datetime.datetime.strptime(self._json_report_dict['validation']['date'], '%d/%m/%Y - %X').strftime('%Y-%m-%d'), str(isolate_id)))
+            self._insert_naive_clustering_cgmlst_differences_fields()
             logging.info('Metadata insertion successful')
     
     def _insert_species_specific_metadata(self) -> None:
@@ -137,3 +145,38 @@ class MainInserter(JsonSuperClass):
             # json input
             elif 'serogroup' in self._json_report_dict:
                 self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'Serogroup', self._json_report_dict['serogroup']['detected_serogroup']))
+
+    def _insert_naive_clustering_cgmlst_differences_fields(self) -> None:
+        """
+        Inserts the naive clustering implementation in bigsdb for the current isolate (cgMLST_differences_ field).
+        :return: None
+        """
+        if self._json_report_dict.get('cgST'):
+            # get cgmlst_diff_fields
+            with TblEavFields(self._species) as isolates_eavf_psql_tbl:
+                cgmlst_diff_fields = isolates_eavf_psql_tbl.select_fields_cgmlstdifferences()
+
+            # get the cgMLST bigsdb scheme id
+            with TblSchemes(self._species, 'isolates') as isolates_schemes_psql_tbl:
+                cgmlst_bigsdb_scheme_id = isolates_schemes_psql_tbl.select_scheme_id_cgmlst()[0][0]
+
+            # read distance matrix
+            distance_matrix: np.array = np.load(str(self._naive_clustering_distance_matrix_file))
+
+            for field in cgmlst_diff_fields:
+                interval = field[0].split('_')[-1]
+                interval_start = int(interval.split('-')[0])
+                interval_stop = int(interval.split('-')[-1])
+
+                # extract row
+                row_cgst = distance_matrix[self._json_report_dict['cgST'] - 1]
+                # get all cgSTs within distance
+                indices = np.where((row_cgst >= interval_start) & (row_cgst <= interval_stop))[0]
+                if len(indices) > 0:
+                    if interval_start != 0:
+                        # if interval_start != 0, then add the current cgST because it has not been picked up
+                        # by the indices query, and it should be present itself (in practice up until now start is always 0)
+                        indices = np.append(indices, self._json_report_dict['cgST'] - 1)
+                    html = NewClusteringInfoToBigs.generate_htmlelement_cgstquery(
+                        [x + 1 for x in indices], cgmlst_bigsdb_scheme_id, field[0], self._species)
+                    self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, field[0], html))

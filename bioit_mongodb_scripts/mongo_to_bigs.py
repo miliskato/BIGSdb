@@ -66,6 +66,9 @@ class MongoToBigs:
         self._uploader_mail_address = uploader_mail_address
         # Parse MongoDB config
         self._mongo_config_data = mongo_config_data if mongo_config_data else get_mongodb_config_data()
+        self._naive_clustering_distance_matrix_file = Path(
+            self._mongo_config_data['naive_clustering_distance_matrix_file'].replace('species', self._species).replace(
+                'dtap', self._mongo_config_data.get('dtap')))
         # Parse Bigsdb config
         self._bigsdb_config_data = get_bigsdb_config_data()
         # Open collections
@@ -122,7 +125,7 @@ class MongoToBigs:
         :return: None
         """
         # call the autoexecutable function to insert new alleles and profiles
-        NewClusteringInfoToBigs(self._species, Path(self._mongo_config_data['naive_clustering_distance_matrix_file'].replace('species', self._species).replace('dtap', self._mongo_config_data.get('dtap'))),
+        NewClusteringInfoToBigs(self._species, self._naive_clustering_distance_matrix_file,
                                 self._cgmlst_bigsdb_scheme_id, mongo_config_data=self._mongo_config_data)
 
         # The cache command needs to be run using method 'full' once before being able to use it with method
@@ -158,7 +161,11 @@ class MongoToBigs:
             self._mongoquerying.revert_typinghitlists_to_dictionaries(document, self._headers_collection)
             jsonfile = document.get_json_results()
 
-            MainResultsInserter(isolate_id, self._uploader_mail_address, self._species, results_type, vcf_path=document['vcf_path'], json_results=jsonfile, report_access=document['report_directory'], mongo_dtap=self._mongo_config_data.get('dtap'))
+            MainResultsInserter(isolate_id, self._uploader_mail_address, self._species, results_type,
+                                vcf_path=document['vcf_path'], json_results=jsonfile,
+                                report_access=document['report_directory'],
+                                mongo_dtap=self._mongo_config_data.get('dtap'),
+                                naive_clustering_distance_matrix_file=self._naive_clustering_distance_matrix_file)
 
             self.__insert_assembly_into_bigs(results_type, document, isolate_id)
             with TblMappingTable(self._species) as isolates_mapping_psql_tbl:

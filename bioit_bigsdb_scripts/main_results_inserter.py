@@ -17,9 +17,10 @@ from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_
 from bioit_mongodb_scripts.model.json_model import JsonReportDict, ResultType
 from bioit_mongodb_scripts.util.python_utility_functions import send_email
 
+
 class MainResultsInserter:
     def __init__(self, isolatename: str, uploader_mail_address: str, species: str, results_type: ResultType, report_access: str, vcf_path: str, mongo_dtap: str,
-                 json_results: JsonReportDict) -> None:
+                 json_results: JsonReportDict, naive_clustering_distance_matrix_file: Path) -> None:
         """
         Initialises the class and runs the main function.
         See also argparse function for variables and their requiredness.
@@ -31,6 +32,7 @@ class MainResultsInserter:
         :param vcf_path: subdirectory containing the vcf file
         :param mongo_dtap: dtap from mongo config
         :param json_results: results for the isolate
+        :param naive_clustering_distance_matrix_file: The path to the naive clustering cgmlst distance matrix file
         :return: None
         """
         # Input parameters
@@ -42,6 +44,7 @@ class MainResultsInserter:
         self._vcf_path = vcf_path
         self._mongo_dtap = mongo_dtap
         self._json_report = json_results
+        self._naive_clustering_distance_matrix_file = naive_clustering_distance_matrix_file
 
         self._bigsdb_config_data = get_bigsdb_config_data()
 
@@ -63,7 +66,9 @@ class MainResultsInserter:
         with TblIsolates(self._species) as isolates_psql_tbl:
             self.__fail_safe_mechanism(isolates_psql_tbl)
 
-        maininserter = MainInserter(self._isolatename, self._species, self._json_report, self._bigsdb_config_data, self._report_access, self._vcf_path, self._mongo_dtap)
+        maininserter = MainInserter(self._isolatename, self._species, self._json_report, self._bigsdb_config_data,
+                                    self._report_access, self._vcf_path, self._mongo_dtap,
+                                    self._naive_clustering_distance_matrix_file)
         if self._results_type == 'new_isolate' or self._results_type == 'badqc':
             maininserter.insert_new_isolate(self._uploader_mail_address)
         elif self._results_type == 'reanalysis' or self._results_type == 'resequencing':
@@ -130,8 +135,8 @@ class MainResultsInserter:
         """
         if self._results_type == 'reanalysis ' or self._results_type == 'resequencing':
             with TblAlleleDesignations(self._species) as isolates_ad_psql_tbl, TblEavText(
-                    self._species) as isolates_eavt_psql_tbl, TblEavBoolean(self._species) as isolates_eavb_psql_tbl, TblEavInt(
-                self._species) as isolates_eavi_psql_tbl:
+                    self._species) as isolates_eavt_psql_tbl, TblEavBoolean(self._species) as isolates_eavb_psql_tbl, \
+                    TblEavInt(self._species) as isolates_eavi_psql_tbl:
                 isolates_ad_psql_tbl.delete_all_designations_of_isolate((self._isolatename,))
                 isolates_eavt_psql_tbl.delete_all_eav_by_isolate_id((self._isolatename,))
                 isolates_eavb_psql_tbl.delete_eavbool_for_isolate((self._isolatename,))

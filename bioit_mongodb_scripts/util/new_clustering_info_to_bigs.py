@@ -4,10 +4,10 @@ import socket
 import sys
 import traceback
 from datetime import date
-import numpy as np
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
+import numpy as np
 from pymongo.write_concern import WriteConcern
 
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
@@ -338,10 +338,10 @@ class NewClusteringInfoToBigs:
             if len(indices) > 0:
                 if interval_start != 0:
                     # if interval_start != 0, then add the current cgST because it has not been picked up
-                    # by the indices query, and it should be present itself (in practice up until now
+                    # by the indices query, and it should be present itself (in practice up until now start is always 0)
                     indices = np.append(indices, cgst - 1)
-                html = self.____generate_htmlelement_cgstquery([x + 1 for x in indices],
-                                                               self._cgmlst_bigsdb_scheme_id, field[0])
+                html = self.generate_htmlelement_cgstquery([x + 1 for x in indices],
+                                                           self._cgmlst_bigsdb_scheme_id, field[0], self._species)
                 for pseudo_id in [_dict['_id'] for _dict in cgsts_per_isolate
                                   if _dict['results'].get('cgST') == cgst]:
                     bigsdb_id_isolate = isolates_mapping_psql_tbl.select_isolate_id_for_pseudo_id((pseudo_id,))
@@ -357,8 +357,9 @@ class NewClusteringInfoToBigs:
                             # For new fields and for affected isolates that did not have the field yet
                             isolates_eavt_psql_tbl.insert_eav_id((str(bigsdb_id_isolate[0][0]), field[0], html))
 
-    def ____generate_htmlelement_cgstquery(self, cgsts: List[int], cgmlst_bigsdb_scheme_id: int,
-                                           cgmlst_diff_field: str) -> str:
+    @staticmethod
+    def generate_htmlelement_cgstquery(cgsts: List[int], cgmlst_bigsdb_scheme_id: int,
+                                       cgmlst_diff_field: str, species: str) -> str:
         """
         Generates a html element to be inserted into bigsdb that will query all isolates with certain
         cgSTs after clicking on it, also provides a preview of the number of those isolates using JavaScript
@@ -367,12 +368,13 @@ class NewClusteringInfoToBigs:
         :param cgmlst_bigsdb_scheme_id: the scheme id of the cgMLST scheme in bigsdb (usually 2, after 1 mlst,
         but in the case of stec that has 2 mlst it is 3)
         :param cgmlst_diff_field: cgmlst difference field in bigsdb e.g. cgMLST_differences_1-10
+        :param species: commonly used bioit species name: either genus or specific like stec
         :return: html element that executes the javascript function replaceQueriedValue e.g.
         '<div id="cgMLST_differences_1-10"><script type="text/javascript">replaceQueriedValue(
         generateUrlCgst("mycobacterium", "2", ["1","2","3"]), "cgMLST_differences_1-10")</script>'
         """
         cgsts_plaintext = '","'.join(str(x) for x in cgsts)
-        url = f'generateUrlCgst("{self._species}", "{cgmlst_bigsdb_scheme_id}", ["{cgsts_plaintext}"])'
+        url = f'generateUrlCgst("{species}", "{cgmlst_bigsdb_scheme_id}", ["{cgsts_plaintext}"])'
         html_element = f'<div id="{cgmlst_diff_field}"><script type="text/javascript">replaceQueriedValue({url}, ' \
                        f'"{cgmlst_diff_field}")</script>'
         return html_element
