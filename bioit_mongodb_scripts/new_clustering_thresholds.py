@@ -34,7 +34,7 @@ if __name__ == '__main__':
     args = parse_arguments(mongo_config_data['species'])
 
     # Open collections
-    mongoinit = MongoInitialisation(args.species, mongo_config_data=mongo_config_data)
+    mongoinit = MongoInitialisation(args.species, mongo_config_data=mongo_config_data, selected_connection_string='CONNECTION_STRING_AZURE')
     st_collection, cluster_membership_collection, cluster_merging_collection = \
         mongoinit.initialise_clustering_collections()
     headers_collection = mongoinit.initialise_headers_collection()

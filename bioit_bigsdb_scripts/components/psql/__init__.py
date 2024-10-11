@@ -9,6 +9,7 @@ from .psql_tbl_classification_groups import TblClassificationGroups
 from .psql_tbl_classification_schemes import TblClassificationSchemes
 from .psql_tbl_client_dbase_loci import TblClientDbaseLoci
 from .psql_tbl_eav_boolean import TblEavBoolean
+from .psql_tbl_eav_int import TblEavInt
 from .psql_tbl_eav_fields import TblEavFields
 from .psql_tbl_eav_text import TblEavText
 from .psql_tbl_eav_text_hidden import TblEavTextHidden
@@ -22,7 +23,6 @@ from .psql_tbl_mapping_table import TblMappingTable
 from .psql_tbl_profile_fields import TblProfileFields
 from .psql_tbl_profile_members import TblProfileMembers
 from .psql_tbl_profiles import TblProfiles
-from .psql_tbl_project_members import TblProjectMembers
 from .psql_tbl_scheme_members import TblSchemeMembers
 from .psql_tbl_schemes import TblSchemes
 from .psql_tbl_seq_bin_stats import TblSeqBinStats

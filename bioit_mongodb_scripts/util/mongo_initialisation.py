@@ -11,20 +11,22 @@ class MongoInitialisation:
     """
     Class containing all queries for Mongo
     """
-    def __init__(self, species: str, alternate_connection_string: Union[bool, str] = False, alternate_dtap:
-                 Union[str, None] = None, mongo_config_data: Dict[str, Any] = None):
+    def __init__(self, species: str, selected_connection_string: str, alternate_dtap: Union[str, None] = None,
+                 mongo_config_data: Dict[str, Any] = None):
         """
         Initialises this class and opens the species/dtap specific mongo database
         :param species: commonly used bioit species name: either genus or specific like stec
-        :param alternate_connection_string: Use the alternate connection string, which connects to the testing Atlas Cluster or provide a custom connection string
+        :param selected_connection_string: to select the connection string from the config file that should be used to initialize the connection
         :param alternate_dtap: alternative dtap than what is in the config file
         :param mongo_config_data: Use provided mongo_config_data, else get mongo_config_data from file
         """
         self._mongo_config_data = mongo_config_data if mongo_config_data else get_mongodb_config_data()
-        if isinstance(alternate_connection_string, bool) and alternate_connection_string:
-            self._mongo_config_data['CONNECTION_STRING_AZURE'] = self._mongo_config_data['CONNECTION_STRING_ALTERNATE']
-        elif isinstance(alternate_connection_string, str):
-            self._mongo_config_data['CONNECTION_STRING_AZURE'] = alternate_connection_string
+
+        if selected_connection_string not in ['CONNECTION_STRING_ALTERNATE', 'CONNECTION_STRING_AZURE',
+                                              'CONNECTION_STRING_LOCAL']:
+            raise NameError(f"Use of undefined connection_string variable in _open_mongo_database")
+        else:
+            self.connection_string = self._mongo_config_data[selected_connection_string]
         if alternate_dtap:
             self._mongo_config_data['dtap'] = alternate_dtap
         self.opened_mongo_database = self._open_mongo_database(species)
@@ -36,9 +38,9 @@ class MongoInitialisation:
         :return: opened database object
         """
         try:
-            self.client = MongoClient(self._mongo_config_data["CONNECTION_STRING_AZURE"])
+            self.client = MongoClient(self.connection_string)
         except Exception:
-            raise RuntimeError(f"Could not connect to {self._mongo_config_data['CONNECTION_STRING_AZURE']}")
+            raise RuntimeError(f"Could not connect to {self.connection_string}")
         if self._mongo_config_data["dtap"] not in ['dev', 'test', 'acc', 'prod']:
             raise NameError(f"replace dtap value in bioit_mongodb_scripts/config/config.yml or use alternate_dtap")
         return self.client['_'.join([species, self._mongo_config_data["dtap"]])]  # e.g. listeria_dev

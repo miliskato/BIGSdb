@@ -1,21 +1,5 @@
 //application for the api of HERA
 
-function getCookieValue(cookieName) {
-    // Split the document.cookie string into individual cookies
-    var cookies = document.cookie.split(';');
-
-    // Iterate through the cookies to find the one with the specified name
-    for (var i = 0; i < cookies.length; i++) {
-        var cookie = cookies[i].trim();
-        // Check if the cookie starts with the provided name
-        if (cookie.startsWith(cookieName + '=')) {
-            // Return the cookie value (substring after the '=' sign)
-            return cookie.substring(cookieName.length + 1);
-        }
-    }
-    // Return null if the cookie is not found
-    return null;
-}
 
 function get_jwt_preview(id, pseudo_id, species, validation_type, res_time, get_zip, dtap, newWindow){
     // gets the html report from Azure through the API, if it fails, returns a failure message
@@ -134,7 +118,7 @@ function get_jwt_report (get_zip, validation_type_opt, id_opt, pseudo_id_opt, sp
     const dd = document.querySelectorAll("dd");
     //start the loading screen as we have now all the elements needed to start querying the api
     var newWindow = window.open('',  '_blank');
-    newWindow.document.cookie = "global_bigsdb_users_auth=" + getCookieValue('global_bigsdb_users_auth') + ";"
+    newWindow.document.cookie = "global_bigsdb_users_auth=" + "abcdefghijklmnopqrstuvwxyz123456" + ";"
     var gifUrl = '/images/static/loading_icon.gif';
     // Construct the HTML content with the loading message and GIF
     var htmlContent = `
@@ -159,7 +143,7 @@ function get_jwt_report (get_zip, validation_type_opt, id_opt, pseudo_id_opt, sp
         type: 'post',
         data: {
             "email": "bioit@sciensano.be",
-            "password": getCookieValue('global_bigsdb_users_auth')
+            "password": "abcdefghijklmnopqrstuvwxyz123456"
         },
         headers: {
             "Access-Control-Allow-Origin": "http://127.0.0.1:5000/login",
@@ -215,7 +199,7 @@ function get_jwt_subpart(rel_file_path){
         type: 'post',
         data: {
             "email": "bioit@sciensano.be",
-            "password": getCookieValue('global_bigsdb_users_auth')
+            "password": "abcdefghijklmnopqrstuvwxyz123456"
         },
         headers: {
             "Access-Control-Allow-Origin": "http://127.0.0.1:5000/login",

@@ -249,8 +249,7 @@ class BatchPipelinesReanalysis:
             f"Submitting reanalysis for samples older than {maximal_analysis_date} and younger than {minimal_analysis_date} with arguments: {date_args_dict[maximal_analysis_date]} for {self._species}_{self._dtap}")
         # Retrieve isolates that need to be re-analyzed
         mongoinit = MongoInitialisation(self._species,
-                                        alternate_connection_string=self._connection_azure.get_secret_value(
-                                            'MONGODB-CONNECTION-STRING'),
+                                        selected_connection_string='CONNECTION_STRING_AZURE',
                                         alternate_dtap=self._dtap)
         isolates_collection, old_isolateresults_collection, \
             isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections()
@@ -280,8 +279,7 @@ class BatchPipelinesReanalysis:
         """
         # Retrieve isolates that need to be re-analyzed
         mongoinit = MongoInitialisation(self._species,
-                                        alternate_connection_string=self._connection_azure.get_secret_value(
-                                            'MONGODB-CONNECTION-STRING'),
+                                        selected_connection_string='CONNECTION_STRING_AZURE',
                                         alternate_dtap=self._dtap)
         isolates_collection, old_isolateresults_collection, \
             isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections()
@@ -424,7 +422,7 @@ class BatchPipelinesReanalysis:
             f"--jsonfilepath {results_dir}/report.json",
             "--dont_send_email",
             f"--alternate_dtap {self._dtap}",
-            f"--alternate_connection_string {self._connection_azure.get_secret_value('MONGODB-CONNECTION-STRING')}"
+            f"--connection_string 'CONNECTION_STRING_AZURE'"
         ])
         task_command = f'/bin/bash -c "{pre_command}; {trap_command}; {size_command}; {base_command}; {unload_command}; {report_command}; {post_command}; {cleanup_command}; {mongodb_command}"'
         return task_command

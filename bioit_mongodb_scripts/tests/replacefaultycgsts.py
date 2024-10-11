@@ -28,7 +28,7 @@ if __name__ == '__main__':
 
     # Open collections
     _mongoinit = MongoInitialisation('neisseria',
-                                          alternate_connection_string=mongo_config_data.get('CONNECTION_STRING'),
+                                          selected_connection_string=mongo_config_data.get('CONNECTION_STRING_ALTERNATE'),
                                           mongo_config_data=mongo_config_data)
     _isolates_collection, _old_isolateresults_collection, _isolates_badqc_collection, \
     _isolates_resequencing_collection = _mongoinit.initialise_collections()

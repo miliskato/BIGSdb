@@ -7,6 +7,8 @@ import traceback
 from pathlib import Path
 from typing import Any, Dict, List, Tuple, Union
 
+from bioit_mongodb_scripts.model.json_model import JsonReportDict
+
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
@@ -116,7 +118,7 @@ class GeneDetectionIntoPsql:
         Inserts all the loci (clusters), scheme members and alleles (dummy boolean) in seqdef and isolate dbs if they are not present
         :return: None
         """
-        json_superclass_instance = JsonSuperClass('dummyname', self._species, {'dummydictkey': 'dummydictvalue'}, config_data=self._bigsdb_config_data)
+        json_superclass_instance = JsonSuperClass('dummyname', self._species, JsonReportDict({'dummydictkey': 'dummydictvalue'}), config_data=self._bigsdb_config_data)
         with TblSequences(self._species) as seqdef_sequences_psql_tbl, TblLoci(self._species, 'seqdef') as seqdef_loci_psql_tbl:
             for cluster in self._clusterlist:
                 present: List[Tuple[int]] = seqdef_loci_psql_tbl.count_locus((cluster,))
@@ -171,13 +173,18 @@ class GeneDetectionIntoPsql:
                     if len(hits) != 0:
                         for y in range(len(hits)):
                             hit = '_'.join([hits[y]['Accession'], hits[y]['Locus']])
-                            clusterhit = self._clusterdict[hit]
-                            if not self._scheme.endswith('vfdbcore') and not self._scheme.endswith('virulencefinder'):
-                                self.___append_to_htmltable(hits[y], clusterhit)
+                            if hit in self._clusterdict:
+                                clusterhit = self._clusterdict[hit]
+                                if not self._scheme.endswith('vfdbcore') and not self._scheme.endswith('virulencefinder'):
+                                    self.___append_to_htmltable(hits[y], clusterhit)
 
-                            if clusterhit not in clusterhitset:
-                                isolates_ad_psql_tbl.insert_designation_by_isolateid((clusterhit, isolate_id, '1'))
-                                clusterhitset.add(clusterhit)
+                                if clusterhit not in clusterhitset:
+                                    isolates_ad_psql_tbl.insert_designation_by_isolateid((clusterhit, isolate_id, '1'))
+                                    clusterhitset.add(clusterhit)
+                            else:
+                                send_email(f"{hit} is not a valid key for self._clusterdict. The locus {hits[y]['Locus']} was found in isolate {isolate_name}\nCheck if it's due to the update of {self._scheme}",
+                                           f"{Path(__file__).name} issue on host {socket.gethostname()}")
+
 
                     self._eavhtmltable += f'</table>'
                     isolates_eavt_psql_tbl.delete_eav(
@@ -193,7 +200,7 @@ class GeneDetectionIntoPsql:
         :param samplename: name of the isolate
         :return: report name for the isolate
         """
-        mongoinit = MongoInitialisation(species=self._species, mongo_config_data=get_mongodb_config_data())
+        mongoinit = MongoInitialisation(species=self._species, mongo_config_data=get_mongodb_config_data(),selected_connection_string='CONNECTION_STRING_AZURE')
         isolates_collection, old_isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections()
         isolate_report_path = Mongoquerying.query_docs_by_ids(opened_collection=isolates_collection, ids=[samplename])
         return isolate_report_path[0]['report_directory']

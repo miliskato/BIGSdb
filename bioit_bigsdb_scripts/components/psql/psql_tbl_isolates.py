@@ -42,25 +42,26 @@ class TblIsolates(DatabaseConnection):
         necessary parameters visible in the PSQL query name and query
         :return: None
         """
-        self.execute_query(PsqlQueries.ISO_DEL__TB_ISO_VAR_ISO_ISO, param * 2)
+        self.execute_query(PsqlQueries.ISO_DEL__TB_ISO_VAR_ISO_ISO, param)
 
-    def insert_isolate(self, param: Tuple[str, str, str]) -> None:
+    def insert_isolate(self, param: Tuple[str, str, str, str]) -> None:
         """
         Inserts a new isolate
         :param param: variables to feed to the PSQL query, which also sanitizes these variables,
-        necessary parameters visible in the PSQL query name and query
+        necessary parameters visible in the PSQL query name and query; isolate name, curator,
+        latest_analysis_date, isolation_date
         :return: None
         """
-        self.execute_query(PsqlQueries.ISO_INS__TB_ISO_VAR_ISO_UPL_DATE, param)
+        self.execute_query(PsqlQueries.ISO_INS__TB_ISO_VAR_ISO_UPL_DATE_ISODATE, param)
 
-    def insert_isolate_newversion(self, param: Tuple[str, str, str, str]) -> None:
+    def update_isolate_analysis_date(self, param: Tuple[str, str]) -> None:
         """
         Inserts a new isolate version
         :param param: variables to feed to the PSQL query, which also sanitizes these variables,
         necessary parameters visible in the PSQL query name and query
         :return: None
         """
-        self.execute_query(PsqlQueries.ISO_INS__TB_ISO_VAR_ISO_ISO_ISO_DATE, param)
+        self.execute_query(PsqlQueries.ISO_UPD__TB_ISO_VAR_ISO_ISO_ISO_DATE, param)
 
     def revert_newversion(self, param: Tuple[str]) -> None:
         """
@@ -71,12 +72,11 @@ class TblIsolates(DatabaseConnection):
         """
         self.execute_query(PsqlQueries.ISO_UPD_NEWV_TB_ISO_VAR_ISO, param)
 
-    def select_cgsts_of_two_latest_versions_of_isolate(self, param: Tuple[int, str]) -> List[Optional[Tuple[Any]]]:
+    def select_current_cgst_of_isolate(self, param: Tuple[int, str]) -> Optional[Tuple[Any]]:
         """
-        Used for isolates where multiple versions exist; selects the cgsts of the two latest versions of an isolate,
-        along with the isolate ids
+        Select the cgst found in BIGSdb for the current isolate and return it along with its isolate id
         :param param: cgmlst scheme id, cgmlst scheme id, isolate name
-        :return: None or list of tuple isolate_id and cgst
+        :return: None or tuple containing the isolate_id and its cgst
         """
         return self.execute_query(PsqlQueries.ISO_SEL_ID_CGST_TB_ISO_VAR_SCHID_ISO, param)
 
@@ -141,32 +141,21 @@ class TblIsolates(DatabaseConnection):
         """
         return self.execute_query(PsqlQueries.ISO_SEL_ANADATE_TB_ISO_VAR_ISO, param)
 
-    def select_maxid_for_isolate(self, param: Tuple[str]) -> List[Tuple[Optional[int]]]:
+    def select_id_for_isolate(self, param: Tuple[str]) -> List[Tuple[Optional[int]]]:
         """
         Selects the id of the latest isolate version
-        :param param: variables to feed to the PSQL query, which also sanitizes these variables,
-        necessary parameters visible in the PSQL query name and query
+        :param param: variables to feed to the PSQL query: isolate name
         :return: natural number
         """
-        return self.execute_query(PsqlQueries.ISO_SEL_MAXID_TB_ISO_VAR_ISO, param)
+        return self.execute_query(PsqlQueries.ISO_SEL_ID_TB_ISO_VAR_ISO, param)
 
     def select_validationdate_for_isolate(self, param: Tuple[str]) -> Optional[List[Tuple[Any]]]:
         """
         Selects the last two validation dates for a given isolate
-        :param param: variables to feed to the PSQL query, which also sanitizes these variables,
-        necessary parameters visible in the PSQL query name and query
+        :param param: variables to feed to the PSQL query, isolates_id
         :return: None or list of tuple of dates
         """
         return self.execute_query(PsqlQueries.ISO_SEL_VALDATES_TB_ISO_VAR_ISO, param)
-
-    def update_newversion(self, param: List[str]) -> None:
-        """
-        Adds a pointer from the latest - 1 version to the latest version of an isolate
-        :param param: variables to feed to the PSQL query, which also sanitizes these variables,
-        necessary parameters visible in the PSQL query name and query
-        :return: None
-        """
-        self.execute_query(PsqlQueries.ISO_UPD_NEWV_TB_ISO_VAR_ISO_ISO_ISO, param * 3)
 
     def listing_isolates(self) -> List[Tuple[str]]:
         """

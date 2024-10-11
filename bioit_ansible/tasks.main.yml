@@ -361,29 +361,36 @@
 
 - name: setup temporary dir
   block:
-    - name: change temp dir in bigsdb config file
-      lineinfile:
-        path: "/etc/bigsdb/bigsdb.conf"
-        regexp: 'secure_tmp_dir=/var/tmp'
-        line: 'secure_tmp_dir=/temp_bigs'
-
     - name: adapt rights for temp_bigs
       ansible.builtin.file:
         path: /temp_bigs
         state: directory
-        mode: "u=rwx,g=rwx,o=rwx"
+        mode: "u=rwx,g=rwx,o=---"
+        owner: bigsdb
+        group: www-data
 
-    - name: create tmp dir
+    - name: create subdir for temp files
       ansible.builtin.file:
-        src: /temp_bigs
-        dest: /var/www/tmp
-        state: link
+        path: /temp_bigs/working_tmp
+        state: directory
+        owner: bigsdb
+        group: www-data
+        mode: "u=rwx,g=rwx,o=---"
 
-    - name: symlink tmp dir
+    - name: create subdir for output files
       ansible.builtin.file:
-        src: /temp_bigs
+        path: /temp_bigs/results_tmp
+        state: directory
+        owner: bigsdb
+        group: www-data
+        mode: "u=rwx,g=rwx,o=---"
+
+    - name: create link to output files subdir
+      ansible.builtin.file:
+        src: /temp_bigs/results_tmp
         dest: /var/www/html/tmp
         state: link
+
   tags: temp_dir_bigs
 
 - name: Touch bigsdb log
@@ -742,22 +749,6 @@
             - "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_bigsdb_scripts/genedetection_intopsql.py --species {{ species }} --do_not_recalculate"
           tags: pop_db
 
-- name: setup reports and symlinks
-  block:
-    - name: create species dir
-      ansible.builtin.file:
-        path: "/reports/{{ species }}"
-        state: directory
-        mode: "u=rwx,g=rwx,o=rx"
-        owner: www-data
-
-    - name: symlink reports
-      ansible.builtin.file:
-        src: /reports
-        dest: /var/www/html/galaxyreports
-        state: link
-  tags: set_symlink
-
 - name: Restart service rest after all other steps
   ansible.builtin.systemd:
     state: restarted
@@ -772,21 +763,6 @@
     state: directory
     owner: root
     mode: "u=rwx,g=rwx,o=rwx"
-
-- name: adapt tmp dir for BIGSdb
-  block:
-    - name: change temp dir in bigsdb config file
-      lineinfile:
-        path: "/etc/bigsdb/bigsdb.conf"
-        regexp: 'secure_tmp_dir=/var/tmp'
-        line: 'secure_tmp_dir=/temp_bigs'
-
-    - name: adapt rights for temp_bigs
-      ansible.builtin.file:
-        path: /temp_bigs
-        state: directory
-        mode: "u=rwx,g=rwx,o=rwx"
-  tags: temp_dir_bigs
 
 - name: setup cron
   block:
@@ -862,6 +838,8 @@
       loop: "{{ list_cron|flatten(levels=1) }}"
       vars:
         list_cron:
+          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_bigsdb_scripts/Typing_loci_intopsql.py --species {{ species }}",
+              - filename: "{{ species }}_loci_intopsql" }
           - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_bigsdb_scripts/Typing_alleles_intopsql.py --species {{ species }}",
               filename: "{{ species }}_alleles_intopsql" }
           - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_bigsdb_scripts/genedetection_intopsql.py --species {{ species }}",

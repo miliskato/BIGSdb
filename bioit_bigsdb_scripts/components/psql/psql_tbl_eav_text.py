@@ -26,6 +26,14 @@ class TblEavText(DatabaseConnection):
         """
         self.execute_query(PsqlQueries.ISO_DEL__TB_EAVT_VAR_ID_FIELD, param)
 
+    def delete_all_eav_by_isolate_id(self, param: Tuple[str]) -> None:
+        """
+        Delete all eav field for a specific isolate id
+        :param param: isolate id of the isolate
+        :return: None
+        """
+        self.execute_query(PsqlQueries.ISO_DEL__TB_EAVT_VAR_ISOLATE_ID, param)
+
     def insert_eav_id(self, param: Tuple[str, str, str]) -> None:
         """
         Inserts metadata value where isolate id is certain value and metadata field is certain value
