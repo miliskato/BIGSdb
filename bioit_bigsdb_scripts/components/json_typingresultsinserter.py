@@ -104,9 +104,10 @@ class JsonTypingResultsInserter(JsonSuperClass):
                         antibiotic_reformatted = '_'.join(
                             ['POINTFINDER', re.sub('-| ', '_', antibiotic).upper()])
                         mutation = re.sub('[.]| ', '_', result['Mutation'])
-                        report_url = UrlHelper.report_for_isolate(self._species, self.___get_isolate_id())
-                        eavhtmltable = (f'<tr><td><a href="{report_url}" target="_blank">{antibiotic}</a></td>')
-                        eavhtmltable = eavhtmltable + ''.join(['<td>', antibiotic, '</td></tr>'])
+                        scheme_tag = self._schemedict[self._scheme]['schemename_html']
+                        report_url = UrlHelper.report_for_isolate(self._species, self.___get_isolate_id(), anchor = scheme_tag)
+                        eavhtmltable = eavhtmltable + f'<tr><td><a href="{report_url}" target="_blank">{mutation}</a></td>'
+                        eavhtmltable = eavhtmltable + f'<td>{antibiotic}</td></tr>'
                         self.insert_locus_if_needed(antibiotic_reformatted,
                                                     self._schemedict[self._scheme]['schemename_bigsdb'])
                         self._insert_dummy_sequence_if_needed(antibiotic_reformatted, mutation)
