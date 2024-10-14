@@ -22,6 +22,7 @@ PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
 from bioit_mongodb_scripts.config import CLUSTERING_CONFIG
+from bioit_nrc_integration.python.config import CODES_GENOMIC_DWH
 from bioit_mongodb_scripts.model.json_model import JsonReportDict, MongoRecordDict
 from bioit_mongodb_scripts.util.error import *
 from bioit_mongodb_scripts.util.mongo_custom_clustering import MongoCustomClustering
@@ -350,7 +351,7 @@ class MainMongo:
         # Update new results if really a reanalysis/resequencing where at least one field changed
         if 'cgmlst' in changed_results_new_old and not new_json_report.get('cgST'):
             self.__define_cgst_and_run_clustering(new_json_report)
-        deltas_new_old = self.___nested_dict_delta(current_results, new_json_report)
+        deltas_new_old = self.___nested_dict_delta(current_results, new_json_report, path_to_report)
         new_results = self.___prepend_string_dot_to_dict_keys(new_json_report, 'results')
         new_results["results.isolates_id"] = self._technical_id
         new_results["results.results_version"] = current_results["results_version"] + 1
@@ -373,9 +374,9 @@ class MainMongo:
                          "results.results_changed_since_last_version": any_result_changed_new_old,
                          "latest_analysis_date": convert_dmyhms_to_ymd(new_results["results.analysis_date"]),
                          "previous_latest_results_document": self.___write_document(self._old_isolateresults_collection,
-                                                                                    deltas_new_old)}})
+                                                                                    MongoRecordDict(dict(deltas_new_old)))}})
         # after having updated the isolates collection, check for changes for HD DWH to respect the order of execution.
-        self.___check_if_any_results_for_hd_dwh_changed(deltas_new_old)
+        self.___check_if_any_results_for_hd_dwh_changed(dict(deltas_new_old))
         logging.info(f"Wrote new results and linked to isolate {self._technical_id} in {self._species}")
 
     def ___check_if_any_results_for_hd_dwh_changed(self, deltas_new_old: Dict[str, Any]) -> None:
