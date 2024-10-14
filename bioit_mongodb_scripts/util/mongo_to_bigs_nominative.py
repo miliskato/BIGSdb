@@ -50,7 +50,7 @@ class MongoToBigsNominative:
 
         # Open collections local MongoDB
         self._mongoinit_local = MongoInitialisation(self._species, mongo_config_data=self._mongo_config_data,
-                                                    alternate_connection_string=self._mongo_config_data['CONNECTION_STRING_LOCAL'])  # todo modify to new mongoinit but is not in this branch
+                                                    selected_connection_string=self._mongo_config_data['CONNECTION_STRING_LOCAL'])
         self._nominative_labtest_clinical_metadata_collection = self._mongoinit_local.initialise_nominative_labtest_clinical_metadata_collection()
         self._mappingtable_collection = self._mongoinit_local.initialise_mapping_table_collection()
 
@@ -82,10 +82,8 @@ class MongoToBigsNominative:
                 for key, value in document.items():
                     if key not in ['inserted_into_bigsdb', '_id'] and value is not None:
                         dict_to_be_inserted[key] = value
-                species_update_query = TblIsolates.build_update_nomin_metadata_query(dict_to_be_inserted)
                 with TblIsolates(self._species) as isolates_psql_tbl:
-                    params = [*dict_to_be_inserted.values(), mapping_table['_id']]
-                    isolates_psql_tbl.update_nomin_metadata(species_update_query, params)
+                    isolates_psql_tbl.update_nomin_metadata(dict_to_be_inserted, mapping_table['_id'])
                 self._nominative_labtest_clinical_metadata_collection.update_one({'_id': document['_id']},
                                                                                  {'$set': {'inserted_into_bigsdb': True}})
         # todo in failsafe set false; either in mongo_to_bigs or in mainmongo; todo after merge with ASG overhaul

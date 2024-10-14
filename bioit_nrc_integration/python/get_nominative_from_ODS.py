@@ -150,7 +150,7 @@ class MainNominativeDataParserFromOds(SFTPConnection):
         """
         for species, filetypes_dict in self._files_by_filetype_by_species.items():
             mongoinit_local = MongoInitialisation(species, mongo_config_data=self._mongo_config_data,
-                                                  alternate_connection_string=self._mongo_config_data[
+                                                  selected_connection_string=self._mongo_config_data[
                                                       'CONNECTION_STRING_LOCAL'],
                                                   alternate_dtap=self._alternate_dtap)
             nominative_labtest_clinical_metadata_collection = mongoinit_local.initialise_nominative_labtest_clinical_metadata_collection()
