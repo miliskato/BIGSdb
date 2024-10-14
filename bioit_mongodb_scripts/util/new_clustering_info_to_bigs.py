@@ -326,7 +326,7 @@ class NewClusteringInfoToBigs:
         :param cgsts_per_isolate: List of dictionaries extracted from MongoDB containing all pseudo_ids and their
         corresponding cgST
         :param field: the current cgMLST difference field
-        :param is_field_new: Whether anu value is already present for the current cgMLST difference field
+        :param is_field_new: Whether any value is already present for the current cgMLST difference field
         :return: None
         """
         with TblEavText(self._species) as isolates_eavt_psql_tbl, TblMappingTable(self._species) as \
