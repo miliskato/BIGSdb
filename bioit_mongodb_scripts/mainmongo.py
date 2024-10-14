@@ -4,7 +4,6 @@ import hashlib
 import json
 import logging
 import re
-import shutil
 import socket
 import sys
 import traceback
@@ -23,8 +22,7 @@ PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
 from bioit_mongodb_scripts.config import CLUSTERING_CONFIG
-from bioit_nrc_integration.python.config import CODES_GENOMIC_DWH
-from bioit_mongodb_scripts.util.command.command import Command
+from bioit_mongodb_scripts.model.json_model import JsonReportDict, MongoRecordDict
 from bioit_mongodb_scripts.util.error import *
 from bioit_mongodb_scripts.util.mongo_custom_clustering import MongoCustomClustering
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
@@ -55,10 +53,9 @@ def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     parser.add_argument("--technical_id", required=True, type=str)
     parser.add_argument("--technical_metadata_path", required=False, type=Path) # not mandatory because of reanalysis
     parser.add_argument("--pipeline_hash", required=True, type=str)  # Required for DCD NRC->DWH
-    parser.add_argument('--alternate_connection_string', type=str, help=argparse.SUPPRESS)  # will replace connection string, only for small testing purposes
+    parser.add_argument('--connection_string', required=False, type=str)  # will replace connection string, only for small testing purposes
     parser.add_argument('--alternate_dtap', choices=['dev', 'test', 'acc', 'prod'], help=argparse.SUPPRESS)  # will replace connection string, only for small testing purposes
     parser.add_argument('--dont_send_email', action='store_true', help=argparse.SUPPRESS)  # will not send emails, mainly used for blocking the reanalysis spam
-    parser.add_argument('--uploader_mail_address', required=True, type=str)
     return parser.parse_args()
 
 
@@ -66,9 +63,9 @@ class MainMongo:
     """
     Class containing definitions to insert samples into MongoDB
     """
-    def __init__(self, technical_id: str, species: str, results_type: str, uploader_mail_address: str, pipeline_hash: str, technical_metadata_path: Path = None, jsonfilepath: Path = None,
-                 subvaldict: Dict[str, str] = None, reportdirectorypath: Path = None, fastafilepath: Path = None,
-                 vcffilepath: Path = None, vcffilepath_unfiltered: Path = None, original_input_format: str = None, alternate_connection_string: Union[bool, str] = False, alternate_dtap: Union[str, None] = None,
+    def __init__(self, technical_id: str, species: str, results_type: str, pipeline_hash: str = None, jsonfilepath: Path = None,
+                 subvaldict: Dict[str, str] = None, technical_metadata_path: Path = None ,reportdirectorypath: Path = None, fastafilepath: Path = None,
+                 vcffilepath: Path = None, vcffilepath_unfiltered: Path = None, original_input_format: str = None, connection_string: str = None, alternate_dtap: Union[str, None] = None,
                  dont_send_email: bool = False, mongo_config_data: Dict[str, Any] = None) -> None:
         """
         Intialises this class and executes the main function which will insert/update the sample in a mongodb collection containing isolates
@@ -76,8 +73,7 @@ class MainMongo:
         :param technical_id: sample id/ isolates id
         :param species: commonly used bioit species name: either genus or specific like stec
         :param results_type: Any of 'new_isolate', 'reanalysis', 'badqc_validated', 'resequencing_validated'
-        :param uploader_mail_address: the mail address of the uploader
-        :param pipeline_hash: 10 first characters of the git hash of the pipeline used
+        :param pipeline_hash: 10 first characters of the git hash of the pipeline used can be optional in case of validation
         :param technical_metadata_path: filepath of the json metadata file
         :param jsonfilepath: filepath of the json input file (output of pipeline)
         :param subvaldict: validation dictionary, received after validation through bigsdb (either results type badqc_validated or resequencing_validated')
@@ -86,13 +82,12 @@ class MainMongo:
         :param vcffilepath: absolute path to where the filtered VCF file is stored (only required for new_isolate)
         :param vcffilepath_unfiltered: absolute path to where the unfiltered VCF file is stored (only required for new_isolate)
         :param original_input_format: original input that was given to run the first analysis
-        :param alternate_connection_string: use given alternate connection string, used for testing on the free Atlas Cluster
+        :param connection_string: connection string variable from the config file
         :param alternate_dtap: alternative dtap than what is in the config file
         :param mongo_config_data: Pass provided mongo_config_data to MongoInitialisation, else get mongo_config_data from file
         :return: None
         """
         # Input parameters
-        self._uploader_mail_address = uploader_mail_address
         self._technical_id = technical_id
         self._species = species
         self._pipeline_hash = pipeline_hash
@@ -105,7 +100,7 @@ class MainMongo:
         self._vcffilepath = vcffilepath
         self._vcffilepath_unfiltered = vcffilepath_unfiltered
         self._original_input_format = original_input_format
-        self._alternate_connection_string = alternate_connection_string
+        self._connection_string = connection_string
         self._alternate_dtap = alternate_dtap
         self._dont_send_email = dont_send_email
         self._mongo_config_data = mongo_config_data  # no need to get if not provided because it is only
@@ -113,7 +108,7 @@ class MainMongo:
 
         # Open collections
         self._mongoinit = MongoInitialisation(self._species,
-                                              alternate_connection_string=self._alternate_connection_string,
+                                              selected_connection_string=self._connection_string,
                                               alternate_dtap=self._alternate_dtap,
                                               mongo_config_data=self._mongo_config_data)
         self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, \
@@ -159,6 +154,9 @@ class MainMongo:
             raise Exception('vcffilepath necessary when using results_type new_isolate')
         if self._results_type == 'new_isolate' and not self._technical_metadata_path:
             raise Exception('technical metadata path necessary when using results_type new_isolate')
+        if self._results_type not in ['badqc_validated','resequencing_validation'] and not self._pipeline_hash:
+            raise Exception('pipeline_hash not provided although mandatory for this result_type')
+
         # the below check is already handled in mongo initialisation
         # if self._alternate_dtap and self._alternate_dtap not in ['dev', 'test', 'acc', 'prod']:
         #     raise Exception('alternate dtap needs to be a valid choice between; dev, test, acc, prod')
@@ -176,38 +174,32 @@ class MainMongo:
         :return: None
         """
         # Configure stdout logging
-        logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
+        logging.basicConfig(level=logging.WARNING, stream=sys.stdout)
 
         # If statement for results_type
         if self._results_type == "new_isolate":
-            with Path(self._jsonfilepath).open('r') as handle:
-                new_records = json.load(handle)
+            new_json_report = JsonReportDict.from_json(self._jsonfilepath)
+
             # todo check if fasta path and vcf path are real?
-            isolates_findone: Dict[str, Any] = self._isolates_collection.find_one({"_id": self._technical_id})
+            isolates_findone = MongoRecordDict(self._isolates_collection.find_one({"_id": self._technical_id}))
             if isolates_findone:
-                self.__new_resequencing_arrival(new_records, isolates_findone, self._isolates_collection)
+                self.__new_resequencing_arrival(new_json_report, isolates_findone, self._isolates_collection)
             else:
                 # We're excluding documents that were validated, additionally only documents that were validated with a negative result are still in the badqc collection
                 # Additionally, documents that were negatively validated now have their _id removed in sample_validation_to_mongo.py
-                isolates_badqc_findone = self._isolates_badqc_collection.find_one({"_id": self._technical_id, "validation": None})
+                isolates_badqc_findone = MongoRecordDict(self._isolates_badqc_collection.find_one({"_id": self._technical_id, "validation": None}))
                 if isolates_badqc_findone:
                     # unvalidated badqc isolates are taken care of in the _new_resequencing_arrival function
-                    self.__new_resequencing_arrival(new_records, isolates_badqc_findone, self._isolates_badqc_collection)
+                    self.__new_resequencing_arrival(new_json_report, isolates_badqc_findone, self._isolates_badqc_collection)
                 else:
-                    self.__new_isolate_wrapper(new_records)
+                    self.__process_json_report(new_json_report)
         elif self._results_type == 'badqc_validated':
-            sample_doc = self._isolates_badqc_collection.find_one({"_id": self._technical_id})
-            new_records = sample_doc['results']
-            self._fastafilepath = sample_doc['fasta_path']
-            self._vcffilepath = sample_doc['vcf_path']
-            self._vcffilepath_unfiltered = sample_doc['vcf_path_unfiltered']
-            self._original_input_format = sample_doc['original_input_format']
-            self._reportdirectorypath = sample_doc['report_directory']
-            self.__new_isolate_wrapper(new_records)
+            sample_doc = MongoRecordDict(self._isolates_badqc_collection.find_one({"_id": self._technical_id}))
+            self.__process_mongo_record(sample_doc)
+
         elif self._results_type == "reanalysis" or self._results_type == 'resequencing_validated':
             try:
-                current_results_document = \
-                    self._mongoquerying.query_docs_by_ids(self._isolates_collection, [self._technical_id])[0]
+                current_results_document = MongoRecordDict(self._mongoquerying.query_docs_by_ids(self._isolates_collection, [self._technical_id])[0])
             except Exception as exceptionmessage:
                 send_email(
                     f"{exceptionmessage}\n{traceback.format_exc()}",
@@ -215,62 +207,77 @@ class MainMongo:
                     dont_send_email=self._dont_send_email)
                 raise MongoMissingValueIsolateCollectionError(
                     f"{Path(__file__).name} fail on host {socket.gethostname()}: This reanalysis technical id ({self._technical_id}) is not present in the isolates collections")
+
             if self._results_type == "reanalysis":
-                with Path(self._jsonfilepath).open('r') as handle:
-                    new_results_handle = json.load(handle)
+                json_report = JsonReportDict.from_json(self._jsonfilepath)
             else:  # self._results_type == 'resequencing_validated'
-                new_results_handle = self._isolates_resequencing_collection.find_one({"_id": self._technical_id})
+                existing_mongo_record = MongoRecordDict(self._isolates_resequencing_collection.find_one({"_id": self._technical_id}))
+                json_report = existing_mongo_record.get_json_results()
 
-            self.__new_reanalysis_wrapper(current_results_document, new_results_handle)
+            self.__new_reanalysis_wrapper(current_results_document, json_report)
 
-    def __new_isolate_wrapper(self, new_records: Dict[str, Any]) -> None:
+    def __process_json_report(self, json_report: JsonReportDict) -> MongoRecordDict:
         """
-        Handles and inserts new isolates, whether that be actual new isolates or validated bad samples
-        :param new_records: results dictionary that is modified and inserted
-        :return: None
+        Function handling the convertion of the initial json report in a Mongo Document stored in MongoDB
+        :param json_report: json report containing the results from the pipeline
+        :return: a MongoRecordDict object (containing extra data in comparison to the original report)
         """
-        new_records["isolates_id"] = self._technical_id
+        json_report["isolates_id"] = self._technical_id
+        mongo_records = self.___initialize_mongo_record(json_report)
+
         good_sample_quality = True
         if self._results_type == 'new_isolate' and self._species not in self._mongo_config_data['viral_species']:  # viral pathogens do not have a qc section
-            try:
-                for qc_type in new_records['qc']:
-                    for key in new_records['qc'][qc_type]:
-                        if key.endswith('status') and new_records['qc'][qc_type][key] == 'Failed':
-                            good_sample_quality = False
-            except KeyError:
-                send_email(
-                    f"No qc values found in the given results for {self._technical_id}\n{traceback.format_exc()}",
-                    dont_send_email=self._dont_send_email)
-                raise KeyError('No qc values found in the given results')
+            good_sample_quality = self.___is_good_quality(json_report)
+
+        self.__process_mongo_record(mongo_records, good_sample_quality)
+        return mongo_records
+
+    def __process_mongo_record(self, mongo_records: MongoRecordDict, good_sample_quality: bool = True) -> None:
+        """
+        Handles and inserts new isolates, whether that be actual new isolates or validated bad samples
+        :param mongo_records: results dictionary coming from mongo
+        :param good_sample_quality: boolean indicating whether the sample quality is good or bad
+        :return: None
+        """
+        if self._results_type != 'badqc_validated':  # badqc documents have already had their typinghitdictionaries converted to lists and their cgsts/clustering computed
+            json_report = mongo_records.get_json_results()
+            self.___find_hashes_in_results_and_add_to_collection(json_report, 'new_isolate')
+            self.___convert_typinghitdictionaries_to_lists(json_report)
+            if 'cgmlst' in json_report:
+                self.__define_cgst_and_run_clustering(json_report)
         if good_sample_quality:
-            new_records = self.___find_hashes_in_results_and_add_to_collection(new_records, 'new_isolate')
-            new_records = self.___convert_typinghitdictionaries_to_lists(new_records)
-            new_isolate_dictionary = self.___new_isolate(new_records)
-            if 'cgmlst' in new_records:
-                clustering_input = self._mongoquerying.singledoc_typing_results_by_technicalids_and_scheme(
-                    new_isolate_dictionary, "cgmlst", self._headers_collection)
-                custom_clustering = MongoCustomClustering(clustering_input[0], clustering_input[1], self._species,
-                                                          mongo_config_data=self._mongo_config_data)
-                logging.info(f"Running the clustering for the isolate {self._technical_id}")
-                sp_thresholds = f"clustering_thresholds_{self._species}"
-                cg_sequence_type = custom_clustering.run_custom_clustering(CLUSTERING_CONFIG[sp_thresholds])
-                new_isolate_dictionary['results']['cgST'] = cg_sequence_type
             if self._results_type == 'badqc_validated':
-                new_isolate_dictionary['validation'] = self._subvaldict
-                self._isolates_badqc_collection.delete_one({'_id': new_records["isolates_id"]})
-            self.___write_document(self._isolates_collection, new_isolate_dictionary)
+                mongo_records['validation'] = self._subvaldict
+                self._isolates_badqc_collection.delete_one({'_id': mongo_records["_id"]})
+            self.___write_document(self._isolates_collection, mongo_records)
             logging.info(f"Wrote new isolate {self._technical_id} and its result to {self._species} database")
         else:
-            self.___write_document(self._isolates_badqc_collection,
-                                   self.___new_isolate(new_records))
+            self.___write_document(self._isolates_badqc_collection, mongo_records)
             logging.warning(
                 f"New isolate {self._technical_id} failed quality control for one or more checks. It's results were written to the 'isolates_badqc' collection in the {self._species} database")
 
-    def __new_resequencing_arrival(self, new_records: Dict[str, Union[str, object]], document_original: Dict[str, Union[str, object]],
+    def ___is_good_quality(self, new_json_report: JsonReportDict) -> bool:
+        """
+        Evaluates the quality of the isolates based on qc from camel
+        :param new_json_report: json report containing the results from the pipeline
+        :return : True (if good quality) or False (if bad quality)
+        """
+        qc = new_json_report.get('qc')
+        if qc is None:
+            send_email(f"No qc values found in the given results for {self._technical_id}\n{traceback.format_exc()}", dont_send_email=self._dont_send_email)
+            raise KeyError('No qc values found in the given results')
+
+        for qc_type in qc:
+            for key in qc[qc_type]:
+                if key.endswith('status') and qc[qc_type][key] == 'Failed':
+                    return False
+        return True
+
+    def __new_resequencing_arrival(self, new_json_report: JsonReportDict, document_original: MongoRecordDict,
                                    collection_in: pymongo.collection.Collection) -> None:
         """
         After an id is found in either isolates or isolates_badqc; this workflow will determine if it really is a resequencing, and if so insert it into isolates_resequencing
-        :param new_records: results dictionary that is modified and inserted
+        :param new_json_report: results dictionary that is modified and inserted
         :param document_original: original document including the sample metadata and headers and results
         :param collection_in: the collection that the orignal sample was in
         :return: None
@@ -302,89 +309,67 @@ class MainMongo:
                     dont_send_email=self._dont_send_email)
                 raise MongoTooManyResequencingsError(f"WARNING: a resequencing for sample {self._technical_id} was submitted to the isolates_resequencing while one or more resequencings were already present: '{previous_resequencings}' in {self._isolates_resequencing_collection.database.name} on host {socket.gethostname()}, validate the original resequencing in bigs before uploading new resequencings.")
             else:
-                new_records["isolates_id"] = self._technical_id
-                new_isolate = self.___new_isolate(new_records)
-                new_isolate = self.___convert_typinghitdictionaries_to_lists(new_isolate)
+                new_json_report["isolates_id"] = self._technical_id
+                new_isolate = self.___initialize_mongo_record(new_json_report)
+
+                # compute cgST and clustering on the Azure side independent of if quality is good or bad.
+                # (there is a missing data filet in the clustering though)
+                self.___find_hashes_in_results_and_add_to_collection(new_json_report, 'reanalysis')
+                self.___convert_typinghitdictionaries_to_lists(new_json_report)
+                if 'cgmlst' in new_json_report:
+                    self.__define_cgst_and_run_clustering(new_json_report)
                 self.___write_document(self._isolates_resequencing_collection, new_isolate)
         else:
             send_email(
-                f"A duplicate resequencing for  {self._technical_id} was submitted to the isolates_resequencing ",
+                f"The resequencing for  {self._technical_id} was identical to the original isolate or to a previously submitted resequencing",
                 dont_send_email=self._dont_send_email)
-            raise MongoResequencingAlreadyExistsError(f"A duplicate resequencing for  {self._technical_id} was submitted to the isolates_resequencing ")
+            raise MongoResequencingAlreadyExistsError(f"The resequencing for  {self._technical_id} was identical to the original isolate or to a previously submitted resequencing")
 
-    def __new_reanalysis_wrapper(self, current_results_document: Dict[str, Any], new_results_document: Dict[str, Any]) -> None:
+    def __new_reanalysis_wrapper(self, current_results_document: MongoRecordDict, new_json_report: JsonReportDict) -> None:
         """
         Wrapper function for reanalysis and resequencing validated         
         :param current_results_document: the current results document dict in the Mongo collection before applying the reanalysis
-        :param new_results_document: the new results document dict, under results for reanalysis, all for resequencing
+        :param new_json_report: the new results document dict, under results for reanalysis, all for resequencing
         :return: None
         """
-        if self._results_type == "reanalysis":
-            new_results = new_results_document
-        else:  # if self._results_type == 'resequencing_validated':
-            new_results = new_results_document['results']
-        new_results = self.___find_hashes_in_results_and_add_to_collection(new_results,
-                                                                          'reanalysis')
-        new_results = self.___convert_typinghitdictionaries_to_lists(new_results)
+        if not new_json_report.get('cgST'):  # != resequencing_validated, == reanalysis
+            self.___find_hashes_in_results_and_add_to_collection(new_json_report, 'reanalysis')
+            self.___convert_typinghitdictionaries_to_lists(new_json_report)
 
-        current_results = current_results_document['results']
-        if new_results["analysis_date"] == current_results["analysis_date"]:
+        current_results = current_results_document.get_json_results()
+        path_to_report = current_results_document['report_directory']
+        if new_json_report["analysis_date"] == current_results["analysis_date"]:
             send_email(f"This ({self._technical_id}) is not a reanalysis but the same results\n{traceback.format_exc()}", dont_send_email=self._dont_send_email)
             raise MongoReanalysisDateError(
                 f"{Path(__file__).name} fail on host {socket.gethostname()}: This ({self._technical_id}) is not a reanalysis but the same results")
-        elif convert_dmyhms_to_ymd(new_results["analysis_date"]) < convert_dmyhms_to_ymd(
-                current_results["analysis_date"]):
-            send_email(f"These ({self._technical_id})results seem to be older than the current results\n{traceback.format_exc()}", dont_send_email=self._dont_send_email)
+        elif convert_dmyhms_to_ymd(new_json_report["analysis_date"]) < convert_dmyhms_to_ymd(current_results["analysis_date"]):
+            send_email(f"These ({self._technical_id}) results seem to be older than the current results\n{traceback.format_exc()}", dont_send_email=self._dont_send_email)
             raise MongoReanalysisDateError(
-                f"{Path(__file__).name} fail on host {socket.gethostname()}: These ({self._technical_id})results seem to be older than the current results")
-        any_result_changed_new_old, unchanged_results_new_old, changed_results_new_old = \
-            self.___check_if_results_changed(current_results, new_results)
+                f"{Path(__file__).name} fail on host {socket.gethostname()}: These ({self._technical_id}) results seem to be older than the current results")
+        any_result_changed_new_old, unchanged_results_new_old, changed_results_new_old = self.___check_if_results_changed(current_results, new_json_report)
         # Update new results if really a reanalysis/resequencing where at least one field changed
-        if 'cgmlst' in changed_results_new_old:
-            clustering_input = self._mongoquerying.singledoc_typing_results_by_technicalids_and_scheme(
-                {'_id': self._technical_id, 'results': new_results},
-                "cgmlst", self._headers_collection)
-            custom_clustering = MongoCustomClustering(clustering_input[0], clustering_input[1],
-                                                      self._species, self._mongo_config_data)
-            logging.info(f"Running the clustering for the isolate {self._technical_id}")
-            sp_thresholds = f"clustering_thresholds_{self._species}"
-            sequence_type = custom_clustering.run_custom_clustering(CLUSTERING_CONFIG[sp_thresholds])
-            new_results["cgST"] = sequence_type
-        deltas_new_old = self.___nested_dict_delta(current_results, new_results)
-        new_results = self.___prepend_string_dot_to_dict_keys(new_results, 'results')
+        if 'cgmlst' in changed_results_new_old and not new_json_report.get('cgST'):
+            self.__define_cgst_and_run_clustering(new_json_report)
+        deltas_new_old = self.___nested_dict_delta(current_results, new_json_report)
+        new_results = self.___prepend_string_dot_to_dict_keys(new_json_report, 'results')
         new_results["results.isolates_id"] = self._technical_id
         new_results["results.results_version"] = current_results["results_version"] + 1
         new_results["results.pipeline_hash"] = self._pipeline_hash
         if any_result_changed_new_old is True:
             new_results["results.changed_version"] = current_results["changed_version"] + 1
-            logging.info(
-                f"Writing new changed results and linked to isolate {self._technical_id} in {self._species}")
+            logging.info(f"Writing new changed results and linked to isolate {self._technical_id} in {self._species}")
         else:
             logging.info(
                 f"New results are not different from current results for {self._technical_id} in {self._species}, updating analysis dates and db versions.")
         if self._results_type == 'resequencing_validated':
             new_results['validation'] = self._subvaldict
-            report_dir_merging_cmd = ' '.join([
-                "rsync -a",
-                f"{new_results_document['report_directory']}/",
-                f"{current_results_document['report_directory']}/"
-            ])
-            command = Command(report_dir_merging_cmd)
-            # run the command
-            command.run(current_results_document['report_directory'])
-            logging.info(f"merging the report directories of original and resequencing for isolate '{self._technical_id}'")
-            if command.returncode != 0:
-                send_email(f"Could not 'git' merge dir {new_results_document['report_directory']} into dir {current_results_document['report_directory']}", dont_send_email=self._dont_send_email)
-                raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}: Could not 'git' merge dir {new_results_document['report_directory']} into dir {current_results_document['report_directory']}")
-            else:
-                # Removing the temporary working dir and the remaining files that were not kept
-                shutil.rmtree(Path(new_results_document['report_directory']))
-                logging.info(f"Resequecing directory {new_results_document['report_directory']} deletion for isolate '{self._technical_id}' completed")
+
             # Remove the isolate from the resequencing collection to allow for new resequencings
             self._isolates_resequencing_collection.delete_one({'_id': self._technical_id})
         self._isolates_collection.with_options(write_concern=WriteConcern(w="majority")).update_one(
             {"_id": self._technical_id}, {
                 "$set": {**new_results,
+                         "report_directory": new_json_report['report_directory'],
                          "results.results_changed_since_last_version": any_result_changed_new_old,
                          "latest_analysis_date": convert_dmyhms_to_ymd(new_results["results.analysis_date"]),
                          "previous_latest_results_document": self.___write_document(self._old_isolateresults_collection,
@@ -412,7 +397,7 @@ class MainMongo:
                 break  # break the loop once at least one change has been discovered
 
     @staticmethod
-    def ___write_document(opened_collection: pymongo.collection.Collection, json_input: Dict[str, Any]) -> str:
+    def ___write_document(opened_collection: pymongo.collection.Collection, json_input: MongoRecordDict) -> str:
         """
         Write a document into a collection. if the provided document doesnt contain an _id key, then it is autogenerated
         else the would be autogenerated _id field is overwritten by the one provided
@@ -425,7 +410,7 @@ class MainMongo:
         logging.debug(f"Writing {collection_write.inserted_id} in collection {opened_collection}")
         return collection_write.inserted_id
 
-    def ___new_isolate(self, results: Dict[str, Any]) -> Dict[str, Any]:
+    def ___initialize_mongo_record(self, results: JsonReportDict) -> MongoRecordDict:
         """
         Initialises new isolate dictionary including its results
         :param results: results dictionary to be inserted
@@ -435,28 +420,27 @@ class MainMongo:
         results["pipeline_hash"] = self._pipeline_hash
         results["results_version"] = 1  # this version always increments
         results["changed_version"] = 1  # this version only increments whenever something actually changed
-        new_isolate_dict = {"_id": self._technical_id,
-                            "report_directory": str(self._reportdirectorypath),
-                            "vcf_path": str(self._vcffilepath),
-                            "vcf_path_unfiltered": str(self._vcffilepath_unfiltered),
-                            "original_input_format": str(self._original_input_format),
-                            "fasta_path": str(self._fastafilepath),
-                            "previous_latest_results_document": None,
-                            "creation_date": datetime.utcnow(),
-                            "latest_analysis_date": convert_dmyhms_to_ymd(results["analysis_date"]),
-                            "technical_metadata": technical_metadata,
-                            "results": results}
-        return new_isolate_dict
+        return MongoRecordDict({
+            "_id": self._technical_id,
+            "report_directory": str(self._reportdirectorypath),
+            "vcf_path": str(self._vcffilepath),
+            "vcf_path_unfiltered": str(self._vcffilepath_unfiltered),
+            "original_input_format": str(self._original_input_format),
+            "fasta_path": str(self._fastafilepath),
+            "previous_latest_results_document": None,
+            "creation_date": datetime.utcnow(),
+            "latest_analysis_date": convert_dmyhms_to_ymd(results["analysis_date"]),
+            "technical_metadata": technical_metadata,
+            "results": results})
 
-    def ___retrieve_technical_metadata(self, results: Dict[str, Any]) -> Dict[str, Any]:
+    def ___retrieve_technical_metadata(self, results: JsonReportDict) -> JsonReportDict:
         """
         Load the technical metadata in a dictionary and fill in fields that are used when FASTA input is used if
         the input is FASTQ.
         :params results: results dictionary
         :return: dictionary with the technical metadata
         """
-        with Path(self._technical_metadata_path).open('r') as handle:
-            metadata = json.load(handle)
+        metadata = JsonReportDict.from_json(self._technical_metadata_path)
         if str(self._original_input_format) == 'fastq':
             tx_seq_fltr_meth = ', '.join([f"downsample factor: {results['downsampling']['downsample_factor']}",
                                           f"trimming: {results['trimming']['informs_tools']['Trimmomatic']['_name']}",
@@ -475,7 +459,7 @@ class MainMongo:
         return metadata
 
     @staticmethod
-    def ___prepend_string_dot_to_dict_keys(input_dictionary: Dict[str, Any], prepending: str = 'results') -> Dict[str, Union[str, object]]:
+    def ___prepend_string_dot_to_dict_keys(input_dictionary: JsonReportDict, prepending: str = 'results') -> Dict[str, Union[str, object]]:
         """
         This function is designed to update only results that have been reanalyzed; by using dot notation in the dicts only the relevant assays/metadata are updated upon reanalysis.
         The function can of course serve other purposes
@@ -512,18 +496,18 @@ class MainMongo:
             max_temp_allele_name = int(query_max_temp_allele_name_doc['temp_allele_name'].split('_')[-1])
             return f'{locus}_temp_{max_temp_allele_name + 1}'
 
-    def ___find_hashes_in_results_and_add_to_collection(self, results: Dict[str, Any], mode: str) -> Dict[str, Any]:
+    def ___find_hashes_in_results_and_add_to_collection(self, json_report: JsonReportDict, mode: str):
         """
         Finds hashes in json output report for multilocus sequence typing schemes and adds these hashes and alleles to a separate collection: new_allele_hashes.
         Also replace the hashes by temporary allele identifiers and purges the sequences to save space
-        :param results: results dictionary
+        :param json_report: results dictionary
         :param mode: results_type but resequencing becomes reanalyis
         :return: results
         """
         hashed_ad_collection = self._mongoinit.initialise_hashing_collection()
         for typing_scheme in ['mlst', 'cgmlst', 'mlst_warwick', 'mlst_pasteur']:
-            if typing_scheme in results:
-                for locus_index, allele_info in enumerate(results[typing_scheme]['loci']):
+            if typing_scheme in json_report:
+                for locus_index, allele_info in enumerate(json_report[typing_scheme]['loci']):
                     # check if allele designation is md5 hash (32 char combination of letters andor numbers)
                     if re.findall(r'(?i)(?<![a-z0-9])[a-z0-9]{32}(?![a-z0-9])', allele_info['Allele']):
                         logging.info('new allele detected')
@@ -534,7 +518,7 @@ class MainMongo:
                         if existing_document is None:
                             temp_allele = self.___max_temp_allele_name_new_entry(hashed_ad_collection, allele_info['Locus'],
                                                                                  typing_scheme)
-                            self.___write_document(hashed_ad_collection, {"scheme": typing_scheme,
+                            self.___write_document(hashed_ad_collection, MongoRecordDict({"scheme": typing_scheme,
                                                                          "locus": allele_info['Locus'],
                                                                          "hashed_allele": allele_info['Allele'],
                                                                          "allele_sequence": allele_info['Allele_sequence'],
@@ -542,9 +526,8 @@ class MainMongo:
                                                                          "resolved_AD": 0,
                                                                          "temp_allele_name": temp_allele,
                                                                          "insertion_date": datetime.utcnow(),
-                                                                         "uploader_email": self._uploader_mail_address
-                                                                          })
-                            results[typing_scheme]['loci'][locus_index]['Allele'] = temp_allele  # replace the name of the allele in the results (no hash anymore)
+                                                                          }))
+                            json_report[typing_scheme]['loci'][locus_index]['Allele'] = temp_allele  # replace the name of the allele in the results (no hash anymore)
                         else:
                             temp_allele = existing_document["temp_allele_name"]
                             already_present = False
@@ -559,16 +542,15 @@ class MainMongo:
                                     {"$inc": {"encountered_count": 1}})
                                 logging.info(f"hashed allele '{allele_info['Allele']}' encounter incremented by one")
                             if existing_document['resolved_AD'] == 0:
-                                results[typing_scheme]['loci'][locus_index][
+                                json_report[typing_scheme]['loci'][locus_index][
                                     'Allele'] = temp_allele  # replace the name of the allele in the results (no hash anymore)
                             else:
-                                results[typing_scheme]['loci'][locus_index][
+                                json_report[typing_scheme]['loci'][locus_index][
                                     'Allele'] = existing_document['resolved_AD']
-                        results[typing_scheme]['loci'][locus_index].pop('Allele_sequence')
-        return results
+                        json_report[typing_scheme]['loci'][locus_index].pop('Allele_sequence')
 
     @staticmethod
-    def ___check_if_results_changed(current_results: Dict[str, Any], new_results: Dict[str, Any]) -> Tuple[bool, set, set]:
+    def ___check_if_results_changed(current_results: JsonReportDict, new_results: JsonReportDict) -> Tuple[bool, set, set]:
         """
         Checks if any result changed between the current mongodb results and the to be inserted new results
         :param current_results: current mongodb results
@@ -596,20 +578,21 @@ class MainMongo:
                     unchanged_results.add(mainkey)
         return any_result_changed, unchanged_results, changed_results
 
-    def ___nested_dict_delta(self, current_results: Dict[str, Any], new_results: Dict[str, Any]) -> Dict[str, Any]:
+    def ___nested_dict_delta(self, current_results: JsonReportDict, new_results: JsonReportDict, current_report_path: str) -> JsonReportDict:
         """
         This function calculates the delta between the new results and the current results;
         it returns the changes needed to get from the new results to the current results.
         :param current_results: current mongodb results
         :param new_results: to be inserted results
+        :param current_report_path: path to the current report, extracted from Mongo doc.
         :return: dictionary of deltas
         """
         # TODO what with new keys in the new_results (not on assay level)?
-        delta_new_old = {}
+        delta_new_old = JsonReportDict({})
         for key, value in current_results.items():
             if key in new_results:
                 if isinstance(value, dict) and isinstance(new_results[key], dict):
-                    nested_delta = self.___nested_dict_delta(value, new_results[key])
+                    nested_delta = self.___nested_dict_delta(JsonReportDict(value), new_results[key], current_report_path)
                     if nested_delta:
                         delta_new_old[key] = nested_delta
                 elif new_results[key] != value:
@@ -624,9 +607,10 @@ class MainMongo:
             delta_new_old['isolates_id'] = current_results['isolates_id']
             delta_new_old['results_version'] = current_results['results_version']
             delta_new_old['changed_version'] = current_results['changed_version']
+        delta_new_old['report_directory'] = current_report_path
         return delta_new_old
 
-    def ___convert_typinghitdictionaries_to_lists(self, document: Dict[str, Any]) -> Dict[str, Any]:
+    def ___convert_typinghitdictionaries_to_lists(self, json_report: JsonReportDict):
         """
         This function aims to reduce the memory usage of hits' metadata by only storing the metadata once in a separate
         collection and storing the results in a list instead.
@@ -638,7 +622,7 @@ class MainMongo:
         if hit_metadata is None:
             inserted_document = self._headers_collection.insert_one({'type': 'hit_metadata'})
             hit_metadata = {'_id': inserted_document.inserted_id}
-        results_to_modify = (document['results'] if 'results' in document else document)  # this is not a deepcopy so results will be modified in document as well
+        results_to_modify = (json_report['results'] if 'results' in json_report else json_report)  # this is not a deepcopy so results will be modified in document as well
         for mainkey in results_to_modify:  # mainkey is assay or metadata
             if isinstance(results_to_modify[mainkey], dict):
                 for subkey in results_to_modify[mainkey]:
@@ -669,7 +653,23 @@ class MainMongo:
                                 meta_hit_dictionary[single_hit_dictionary['Locus']] = [single_hit_dictionary[metadata]
                                                                                        for metadata in hit_header_list]
                             results_to_modify[mainkey][subkey] = meta_hit_dictionary
-        return document
+
+    def __define_cgst_and_run_clustering(self, json_report: JsonReportDict) -> None:
+        """
+        Defines the cgST and clusters this cgST with the other cgST's in the database.
+        :param json_report: json dict containing all results which are found under the 'results' key
+        :return: None
+        """
+        clustering_input = self._mongoquerying.singledoc_typing_results_by_technicalids_and_scheme(json_report,
+                                                                                                   self._technical_id,
+                                                                                                   "cgmlst",
+                                                                                                   self._headers_collection)
+        custom_clustering = MongoCustomClustering(clustering_input[0], clustering_input[1],
+                                                  self._species, self._mongo_config_data)
+        logging.info(f"Running the clustering for the isolate {self._technical_id}")
+        sp_thresholds = f"clustering_thresholds_{self._species}"
+        sequence_type = custom_clustering.run_custom_clustering(CLUSTERING_CONFIG[sp_thresholds])
+        json_report["cgST"] = sequence_type
 
 
 if __name__ == '__main__':
@@ -684,7 +684,6 @@ if __name__ == '__main__':
     MainMongo(args.technical_id,
               args.species,
               args.results_type,
-              args.uploader_mail_address,
               args.pipeline_hash,
               technical_metadata_path=(args.technical_metadata_path if args.technical_metadata_path else None),
               jsonfilepath=(args.jsonfilepath if args.jsonfilepath else None), 
@@ -694,7 +693,7 @@ if __name__ == '__main__':
               vcffilepath=(args.vcffilepath if args.vcffilepath else None),
               vcffilepath_unfiltered=(args.vcffilepath_unfiltered if args.vcffilepath_unfiltered else None),
               original_input_format=(args.original_input_format if args.original_input_format else None),
-              alternate_connection_string=(args.alternate_connection_string if args.alternate_connection_string else False),
+              connection_string=(args.connection_string if args.connection_string else 'CONNECTION_STRING_AZURE'),
               alternate_dtap=args.alternate_dtap,
               dont_send_email=(True if args.dont_send_email else False),
               mongo_config_data=mongo_config_data)

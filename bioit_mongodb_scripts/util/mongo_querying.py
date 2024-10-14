@@ -1,13 +1,13 @@
 import abc
-import logging
 import re
-import sys
-from typing import Any, Dict, List, Optional, Union, Tuple, Mapping
+from typing import Any, Dict, List, Optional, Union
+from typing import Mapping, Tuple
 
 import pymongo
 from pymongo.read_concern import ReadConcern
 
-from .python_utility_functions import convert_dmyhms_to_ymd, merge_nested_dicts
+from .python_utility_functions import convert_dmyhms_to_ymd, merge_mongo_dicts
+from ..model.json_model import MongoRecordDict, JsonReportDict
 
 
 class Mongoquerying(object, metaclass=abc.ABCMeta):
@@ -28,15 +28,6 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         :return: list of distinct values for a variable of interest
         """
         return opened_collection.distinct(variable_of_interest, filter=filtering_cond)
-
-    @staticmethod
-    def _query_collection(opened_collection: pymongo.collection.Collection) -> List[Dict[str, Any]]:
-        """
-        Query the entire collection
-        :param opened_collection: mongo opened collection
-        :return: list of all documents/contents in the collection
-        """
-        return [doc for doc in opened_collection.with_options(read_concern=ReadConcern(level="majority")).find()]
 
     @staticmethod
     def query_docs_by_ids(opened_collection: pymongo.collection.Collection, ids: Optional[List[str]] = None) -> List[Dict[str, Any]]:
@@ -66,183 +57,103 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
                                        self.query_docs_by_ids(opened_isolates_collection,
                                                               technicalids)])
 
-    def query_typing_results_by_technicalids_and_scheme(self, opened_isolates_collection: pymongo.collection.Collection,
-                                                        opened_headers_collection: pymongo.collection.Collection,
-                                                        scheme: str = 'cgmlst', technicalids: Optional[List[str]] = None) -> List[List[Union[str, int]]]:
-        """
-        Returns a list of lists wherein the first list is the header [isolate, locus1, locus2, ...] and the subsequent lists are the results of all isolates in technical ids
-        :param opened_isolates_collection: mongo opened isolate collection
-        :param opened_headers_collection: mongo opened headers collection
-        :param technicalids: technical ids list, default calculated in function and is all ids
-        :param scheme: schemename as string
-        :return: List of n lists with first list header and subsesequent lists results of samples
-        """
-        listofresultlists = []
-        for doc_index, doc in enumerate(self.query_docs_by_ids(opened_isolates_collection, technicalids)):
-            resultlist = self.singledoc_typing_results_by_technicalids_and_scheme(doc, scheme, opened_headers_collection, doc_index)
-            if doc_index == 0:
-                # double list with header and first document's results needs to be preserved
-                listofresultlists = resultlist
-            else:
-                # double list serves no use, because it only has one inner list, inner list needs
-                # to be appended to the list which contains the list of headers
-                listofresultlists.append(resultlist[0])
-        return listofresultlists
-
     @staticmethod
-    def singledoc_typing_results_by_technicalids_and_scheme(document: Dict[str, Any], scheme: str, headers_collection: pymongo.collection.Collection, doc_index: int = 0) -> List[List[Union[str, int]]]:
+    def singledoc_typing_results_by_technicalids_and_scheme(json_report: JsonReportDict, isolate: str, scheme: str, headers_collection: pymongo.collection.Collection, doc_index: int = 0) -> List[List[Union[str, int]]]:
         """
-
-        :param document: document where all results are found under the 'results' key
+        Return data required for clustering purpose: [optional(headers (locus names) from the scheme), corresponding alleles found in the given isolate]
+        :param json_report: json dict containing all results which are found under the 'results' key
+        :param isolate: str corresponding to the isolate name stored in _id from mongo isolates collection
         :param scheme: Typing scheme of interest
         :param headers_collection: mongo opened headers collection
         :param doc_index: document index if list of documents. If doc_index = 0 will also provide a header
         :return: Either List of 2 lists with first list header and second list; first documents typing allele
         designations OR List of 1 list with only the latter
         """
+
+        scheme_loci = json_report[scheme]['loci']
+
+        if isinstance(scheme_loci, list):
+            return Mongoquerying._create_scheme_profile_from_json(doc_index, isolate, scheme_loci)
+        elif isinstance(scheme_loci, dict):
+            return Mongoquerying._create_scheme_profile_from_mongo(doc_index, headers_collection, isolate, scheme, scheme_loci)
+
+    @staticmethod
+    def _create_scheme_profile_from_mongo(doc_index:int, headers_collection: pymongo.collection.Collection, isolate: str, scheme: str, scheme_loci: Dict[str, Any]) -> List[List[Union[str, int]]]:
+        """
+        return a list of allele designations for the given isolate and scheme, and optionally, the header corresponding to
+        this profile (containing the locus name of the scheme)
+        :param doc_index: document index if list of documents. If doc_index = 0 will also provide a header
+        :param headers_collection: mongo opened headers collection
+        :param isolate: str corresponding to the isolate name stored in _id from mongo isolates collection
+        :param scheme: Typing scheme of interest
+        :param scheme_loci: Dict containing scheme loci
+        :return: list of allele found for this scheme in the given isolate + optionally the corresponding loci name
+        """
         listofresultlists = []
-        if isinstance(document['results'][scheme]['loci'], list):
-            # This is the original input provided by the pipeline
-            if doc_index == 0:
-                header = ["isolate_id"]
-                for locus in document['results'][scheme]['loci']:
-                    header.append(locus['Locus'])
-                listofresultlists.append(header)
-            resultlist = [document['_id']]
-            for locus in document['results'][scheme]['loci']:
-                allele_id = locus['Allele']
-                if locus['% Identity'] == '100.00' and eval(locus['HSP/Locus length']) == 1.0:  # what about possibility to write the eval to the mongodb document, this is not a possibility because then we lose the length information
-                    if '_temp_' not in allele_id:
-                        if allele_id != '?' and allele_id != '-':
-                            resultlist.append(int(allele_id))
-                        else:
-                            resultlist.append(0)
+        # This is the modified list of dicts to dict with list values created by
+        # __convert_typinghitdictionaries_to_lists in mainmongo after the consulatancy session
+        if doc_index == 0:
+            header = ["isolate_id"]
+            for locus in sorted(scheme_loci):
+                header.append(locus)
+            listofresultlists.append(header)
+        hit_metadata_document = headers_collection.find_one({'type': 'hit_metadata'})
+        allele_index = hit_metadata_document[f"{scheme}_loci"].index('Allele')
+        identity_index = hit_metadata_document[f"{scheme}_loci"].index('% Identity')
+        length_index = hit_metadata_document[f"{scheme}_loci"].index('HSP/Locus length')
+        resultlist = [isolate]
+        for locus in sorted(scheme_loci):
+            allele_id = scheme_loci[locus][allele_index]
+            if scheme_loci[locus][identity_index] == '100.00' and \
+                    eval(scheme_loci[locus][length_index]) == 1.0:
+                if '_temp_' not in allele_id:
+                    if allele_id != '?' and allele_id != '-':
+                        resultlist.append(int(allele_id))
                     else:
-                        resultlist.append(allele_id)
+                        resultlist.append(0)
                 else:
-                    resultlist.append(0)
-            listofresultlists.append(resultlist)
-            return listofresultlists
-        elif isinstance(document['results'][scheme]['loci'], dict):
-            # This is the modified list of dicts to dict with list values created by
-            # __convert_typinghitdictionaries_to_lists in mainmongo after the consulatancy session
-            if doc_index == 0:
-                header = ["isolate_id"]
-                for locus in sorted(document['results'][scheme]['loci']):
-                    header.append(locus)
-                listofresultlists.append(header)
-            hit_metadata_document = headers_collection.find_one({'type': 'hit_metadata'})
-            allele_index = hit_metadata_document[f"{scheme}_loci"].index('Allele')
-            identity_index = hit_metadata_document[f"{scheme}_loci"].index('% Identity')
-            length_index = hit_metadata_document[f"{scheme}_loci"].index('HSP/Locus length')
-            resultlist = [document['_id']]
-            for locus in sorted(document['results'][scheme]['loci']):
-                allele_id = document['results'][scheme]['loci'][locus][allele_index]
-                if document['results'][scheme]['loci'][locus][identity_index] == '100.00' and \
-                        eval(document['results'][scheme]['loci'][locus][length_index]) == 1.0:
-                    if '_temp_' not in allele_id:
-                        if allele_id != '?' and allele_id != '-':
-                            resultlist.append(int(allele_id))
-                        else:
-                            resultlist.append(0)
+                    resultlist.append(allele_id)
+            else:
+                resultlist.append(0)
+        listofresultlists.append(resultlist)
+        return listofresultlists
+
+    @staticmethod
+    def _create_scheme_profile_from_json(doc_index: int, isolate: str, scheme_loci: List[str]) -> List[List[Union[str, int]]]:
+        """
+        return a list of allele designations for the given isolate and scheme, and optionally, the header corresponding to
+        this profile (containing the locus name of the scheme)
+        :param doc_index: document index
+        :param isolate: str corresponding to the isolate name stored in _id from mongo isolates collection
+        :param scheme_loci: Typing scheme of interest
+        :return:  list of allele found for this scheme in the given isolate + optionally the corresponding loci name
+        """
+        listofresultlists = []
+        # This is the original input provided by the pipeline
+        if doc_index == 0:
+            header = ["isolate_id"]
+            for locus in scheme_loci:
+                header.append(locus['Locus'])
+            listofresultlists.append(header)
+        resultlist = [isolate]
+        for locus in scheme_loci:
+            allele_id = locus['Allele']
+            # what about possibility to write the eval to the mongodb document, this is not a possibility because then we lose the length information
+            if locus['% Identity'] == '100.00' and eval(locus['HSP/Locus length']) == 1.0:
+                if '_temp_' not in allele_id:
+                    if allele_id != '?' and allele_id != '-':
+                        resultlist.append(int(allele_id))
                     else:
-                        resultlist.append(allele_id)
+                        resultlist.append(0)
                 else:
-                    resultlist.append(0)
-            listofresultlists.append(resultlist)
-            return listofresultlists
+                    resultlist.append(allele_id)
+            else:
+                resultlist.append(0)
+        listofresultlists.append(resultlist)
+        return listofresultlists
 
     @staticmethod
-    def write_document(opened_collection: pymongo.collection.Collection, json_input: Dict[str, Any]) -> str:
-        """
-        write a document into a collection.
-        :param opened_collection: the collection where the document needs to be saved
-        :param json_input: the document to store into the collection
-        :return: id of inserted document (either pre-given in json_input or auto-generated by Mongo)
-        """
-        logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
-        collection_write = opened_collection.insert_one(json_input)
-        logging.debug(f"Writing {collection_write.inserted_id} in collection {opened_collection}")
-        return collection_write.inserted_id
-
-    @staticmethod
-    def duplicate_mongofield_under_newname(opened_collection: pymongo.collection.Collection, mongo_id: str, field_to_copy: str, new_field_name: str) -> None:
-        """
-        Function to create a new field in specific mongo document (based on the _id) and fill-in this field with the value of another one frome the same document
-        :param opened_collection: the collection where the document needs to be saved
-        :param mongo_id: _id from the document that should be modified
-        :param field_to_copy: value of this field will be used to fill the new one
-        :param new_field_name: name of the field to be created.
-        """
-        mongo_field_caught = opened_collection.find_one({'_id': mongo_id}, {field_to_copy: 1})
-        thevalue = mongo_field_caught[field_to_copy]
-        thequery = {"_id": mongo_id}
-        newvalue = {"$set": {new_field_name: thevalue}}
-        opened_collection.update_one(thequery, newvalue)
-
-    # @staticmethod
-    # def adapt_isolates_id_in_mongodb(opened_collection: pymongo.collection.Collection, actual_id: str, new_id: str) -> None:
-    #     """
-    #     Function to change the _id field of an isolate already upload to MongoDB
-    #     :param actual_id: current id of the isolate
-    #     :param new_id: new id to give to the isolate
-    #     """
-    #     var copy = db.isolates_badqc.findOne({_id: 'S17BD00190'})
-    #     copy._id = 'S23BDtest'
-    #     db.isolates_badqc.insert(copy)
-
-    # def find_isolates_cgmlst_distance(self, isolate_id: str, distance_threshold: int, isolate_collection,
-    #                                   distance_matrix_collection) -> list:
-    #     isolate_sequence_type = isolate_collection.with_options(read_concern=ReadConcern(level="majority")).find_one({"_id": isolate_id})['HierCC_cgST']
-    #     distance_query = DistanceMatrixQuery(isolate_id, isolate_sequence_type, distance_threshold,
-    #                                          distance_matrix_collection)
-    #     st_under_threshold = distance_query.run_distance_query()
-    #     sample_id_below_threshold = []
-    #     for st in st_under_threshold:
-    #         query = isolate_collection.with_options(read_concern=ReadConcern(level="majority")).find({'HierCC_cgST': st})
-    #         for result in query:
-    #             sample_id_below_threshold.append(result['_id'])
-    #     return sample_id_below_threshold
-    #
-    # def find_HC_numbers_for_isolate(self, isolate_id: str, isolate_collection, hiercc_collection,
-    #                                 hc_number: str) -> int:
-    #     """
-    #     query to retrieve a specific hc number from an isolate
-    #     :param isolate_id: the id from the desired isolate
-    #     :param isolate_collection: the MongoDB collection of isolates
-    #     :param hiercc_collection:  the MongoDB collection of hiercc results
-    #     :param hc_number: the hc number (starting with HC..) to be retrieved
-    #     :return: the hc number of the cluster where the isolates is located.
-    #     """
-    #     isolate_sequence_type = isolate_collection.with_options(read_concern=ReadConcern(level="majority")).find_one({"_id": isolate_id})['HierCC_ST']
-    #     hc_numbers = hiercc_collection.with_options(read_concern=ReadConcern(level="majority")).find({"ST": isolate_sequence_type})
-    #     hc_data = HCNumbersData(isolate_sequence_type, hc_numbers)
-    #     return hc_data.get_hc_number(hc_number)
-
-    @staticmethod
-    def query_failed_causes(isolates_badqc_collection: pymongo.collection.Collection) -> print():
-        """
-        aggregation pipeline to collect which qc check status is 'Failed' the most often
-        :param isolates_badqc_collection: bad quality samples collection
-        :return: prints the qc checks and the number of times theyre failed across the entire bad qc collection
-        """
-        random_doc = isolates_badqc_collection.find_one()
-        for k in random_doc['results']['qc']:
-            for key in random_doc['results']['qc'][k]:
-                if key.endswith('status'):
-                    keystring = f"$results.qc.{k}.{key}"
-                    status_dict = {}
-                    for x in isolates_badqc_collection.aggregate(
-                            [{"$group": {"_id": f"{keystring}", "count": {"$sum": 1}}}]):
-                        status_dict[x['_id']] = x['count']
-                    if 'Failed' in status_dict:
-                        print("{}\t{}".format(key,
-                                              round((int(status_dict['Failed']) / sum(status_dict.values()) * 100), 1)))
-                    else:
-                        print("{}\t{}".format(key, 0))
-
-    @staticmethod
-    def revert_typinghitlists_to_dictionaries(document: Dict[str, Any], headers_collection: pymongo.collection.Collection) -> Dict[str, Any]:
+    def revert_typinghitlists_to_dictionaries(document: MongoRecordDict, headers_collection: pymongo.collection.Collection) -> None:
         """
         This function restores the lists of hit metadata (Allele, %id, length etc.) to dictionaries which are more
         easily readable and required for bigsdb
@@ -255,8 +166,9 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         hit_metadata: Union[None, Dict[str, Union[object, str, List[str]]]] = headers_collection.find_one({'type': 'hit_metadata'})
         if hit_metadata is None:
             # no header so can not revert anything
-            return document
-        results_to_modify = (document['results'] if 'results' in document else document)  # this is not a deepcopy so results will be modified in document as well
+            return
+        results_to_modify=document.get_json_results()
+        #results_to_modify = (document['results'] if 'results' in document else document)  # this is not a deepcopy so results will be modified in document as well
         for mainkey in results_to_modify:  # mainkey is assay or metadata
             if isinstance(results_to_modify[mainkey], dict):
                 for subkey in results_to_modify[mainkey]:
@@ -271,12 +183,11 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
                                 single_hit_dictionary['Locus'] = locus
                                 meta_hit_list.append(single_hit_dictionary)
                             results_to_modify[mainkey][subkey] = meta_hit_list
-        return document
 
     def get_any_results_version(self, isolate_id: str, searchkey: str, searchvalue: Union[str, int],
                                 isolates_collection: pymongo.collection.Collection,
                                 old_isolateresults_collection: pymongo.collection.Collection,
-                                headers_collection: pymongo.collection.Collection) -> Tuple[Dict[str, Any], bool]:
+                                headers_collection: pymongo.collection.Collection) -> Tuple[MongoRecordDict, bool]:
         """
         Gets any results version for a given isolate_id
         :param isolate_id: name of the isolate corresponding to the _id key in the isolates collection
@@ -295,7 +206,7 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         if searchkey == 'analysis_date' and not isinstance(searchvalue, str) and not re.match(r'^\d{4}-\d{2}-\d{2}$', searchvalue):
             raise ValueError(f'if analysis_date is searchkey; searchvalue must be string in YYYY-MM-DD format')
         # 2. Query current results and check whether current results version is the one requested
-        current_version = isolates_collection.with_options(read_concern=ReadConcern(level="majority")).find_one({'_id': isolate_id})
+        current_version = MongoRecordDict(isolates_collection.with_options(read_concern=ReadConcern(level="majority")).find_one({'_id': isolate_id}))
         if current_version is None:
             raise Exception(f"No isolate with id '{isolate_id}' could be found in MongoDB.")
         if searchkey == 'changed_version' and current_version['results'][searchkey] <= searchvalue:
@@ -308,23 +219,23 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         # and the date is not an exact date that the sample has a version, the first more recent result will be selected
         else:
             if searchkey == 'changed_version':
-                old_versions = old_isolateresults_collection.with_options(read_concern=ReadConcern(level="majority")).\
-                    find({'isolates_id': isolate_id, searchkey: {'$gte': searchvalue}})
+                old_versions = list(map(lambda x: MongoRecordDict(x), old_isolateresults_collection.with_options(read_concern=ReadConcern(level="majority")).\
+                    find({'isolates_id': isolate_id, searchkey: {'$gte': searchvalue}})))
                 old_versions = sorted(old_versions, key=lambda x: convert_dmyhms_to_ymd(x['analysis_date']), reverse=True)
             else:  # key == 'analysis_date'
-                old_versions = old_isolateresults_collection.with_options(read_concern=ReadConcern(level="majority")).\
-                    find({'isolates_id': isolate_id})
+                old_versions = list(map(lambda x: MongoRecordDict(x), old_isolateresults_collection.with_options(read_concern=ReadConcern(level="majority")).\
+                    find({'isolates_id': isolate_id})))
                 # sort from most recent to oldest
                 old_versions = sorted([x for x in old_versions if convert_dmyhms_to_ymd(x['analysis_date']) >= searchvalue], key=lambda x: convert_dmyhms_to_ymd(x['analysis_date']), reverse=True)
             if len(old_versions) > 0:
                 old_versions_merged = old_versions[0]
                 if len(old_versions) > 1:
                     for x in old_versions[1:]:
-                        merge_nested_dicts(old_versions_merged, x)
-                merge_nested_dicts(current_version['results'], old_versions_merged)
+                        merge_mongo_dicts(old_versions_merged, x)
+                merge_mongo_dicts(MongoRecordDict(current_version['results']), old_versions_merged)
             requested_document = current_version
             latest_version = False
         # 4. Revert the effective dict to list storage to a readable format for the html reporter
-        requested_document = self.revert_typinghitlists_to_dictionaries(requested_document, headers_collection)
+        self.revert_typinghitlists_to_dictionaries(requested_document, headers_collection)
         requested_document['latest_analysis_date'] = requested_document['results']['analysis_date']
         return requested_document, latest_version

@@ -4,6 +4,7 @@ import re
 from pathlib import Path
 from typing import Any, Dict, List, Tuple, Union
 
+from bioit_mongodb_scripts.model.json_model import JsonReportDict
 from .json_superclass import JsonSuperClass
 from .psql import TblAlleleDesignations, TblHistory, TblEavTextHidden, TblEavText
 
@@ -13,18 +14,18 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
     Class containing definitions to insert gene detection results from json input
     """
     def __init__(self, isolatename: str, species: str,
-                 sample_output_dict: Dict[str, Any], config_data: Dict[str, Any], report_access: str) -> None:
+                 json_report_dict: JsonReportDict, config_data: Dict[str, Any], report_access: str) -> None:
         """
         :param isolatename: name of the isolate
         :param species: commonly used bioit species name: either genus or specific like stec
         :param config_data: the bigsdb config data
-        :param sample_output_dict: results of sample
+        :param json_report_dict: results of sample
         :param report_access: report dir from mongo
         :return: None
         """
         self._report_access = Path(report_access)
 
-        super().__init__(isolatename, species, sample_output_dict, config_data)
+        super().__init__(isolatename, species, json_report_dict, config_data)
 
         self._genedetectiondict: Union[None, Dict[str, Dict[str, str]]] = self._bigsdb_config_data['species_json'][species]['genedetection_schemes']
         self._eavhtmltable = None
@@ -40,13 +41,13 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
         """
         if self._genedetectiondict is not None:
             for scheme in self._genedetectiondict:
-                if scheme in self._sample_output_dict:
+                if scheme in self._json_report_dict:
                     self._scheme = scheme
                     self._schemename_bigsdb = self._genedetectiondict[self._scheme]['schemename_bigsdb']
                     # create current clusterdict with names and current cluster
                     self._clusterdict, self._ncbi_ab_class_dict = self._create_clusterdict_current_db_version()
                     # Get hits
-                    listofhits: List = self._sample_output_dict[self._scheme]['loci']
+                    listofhits: List = self._json_report_dict[self._scheme]['loci']
                     report_name = self._report_access.name
                     """
                     this might look something like this currently: 
@@ -75,7 +76,6 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
 
                         clusterhitset = set()  # in case loci that were in different clusters at some point get in the same cluster
                         with TblAlleleDesignations(self._species) as isolates_ad_psql_tbl:
-                            n = 1
                             for hit in listofhits:
                                 """
                                 Part 1 regular gene detection

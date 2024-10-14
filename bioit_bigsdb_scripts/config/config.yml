@@ -385,6 +385,8 @@ species_json:
         type: irregular
       hsp65:
         type: irregular
+      snp_lineage:
+        type: irregular
       pointfinder:
         type: irregular
         schemename_html: PointFinder

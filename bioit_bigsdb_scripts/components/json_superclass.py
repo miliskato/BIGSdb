@@ -1,5 +1,6 @@
 from typing import Any, Dict
 
+from bioit_mongodb_scripts.model.json_model import JsonReportDict
 from .psql import TblAlleleDesignations, TblSequences, TblLoci, TblSchemeMembers, TblClientDbaseLoci
 
 
@@ -9,17 +10,17 @@ class JsonSuperClass:
     """
 
     def __init__(self, isolatename: str, species: str,
-                 sample_output_dict: Dict[str, Any], config_data: Dict[str, Any]) -> None:
+                 json_report_dict: JsonReportDict, config_data: Dict[str, Any]) -> None:
         """
         :param isolatename: name of the isolate
         :param species: commonly used bioit species name: either genus or specific like stec
-        :param sample_output_dict: results of sample
+        :param json_report_dict: results of sample
         :param config_data: the bigsdb config data
         :return: None
         """
         self._isolatename = isolatename
         self._species = species
-        self._sample_output_dict = sample_output_dict
+        self._json_report_dict = json_report_dict
         self._bigsdb_config_data = config_data
 
     def _insert_ad_if_needed(self, locus: str, allele_id: str) -> None:

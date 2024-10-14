@@ -58,8 +58,12 @@ class SampleValidationToMongo:
         self._species = species
 
         # Open collections
-        self._mongoinit = MongoInitialisation(self._species)
+        self._mongoinit = MongoInitialisation(self._species,selected_connection_string='CONNECTION_STRING_AZURE')
         self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, self._isolates_resequencing_collection = self._mongoinit.initialise_collections()
+
+        #open local mongo instance to get the mapping
+        self._mongoinit_local = MongoInitialisation(self._species, selected_connection_string='CONNECTION_STRING_LOCAL')
+        self._mapping_collection = self._mongoinit_local.initialise_mapping_table_collection()
 
         # Run main
         try:
@@ -90,8 +94,9 @@ class SampleValidationToMongo:
                 outcome: str = query[0][2]
                 curator_mailadress: str = query[0][3]
                 validation_type: str = query[0][4]
-                results_type = self.__get_results_type(validation_type)
-                # GO into MongoDB
+                results_type = self.__get_results_type(validation_type) #badqc_validated or resequencing_validated
+                pseudo_id = self._mapping_collection.find_one({"_id": isolatename})['pseudo_id']
+                # GO into MongoDB so type in Mongo might be either badqc or resequencing
                 validation_dict = {
                     'outcome': outcome,
                     'curator': curator_mailadress,
@@ -99,16 +104,16 @@ class SampleValidationToMongo:
                     'date': datetime.datetime.utcnow().strftime('%d/%m/%Y - %X')
                 }
                 if outcome == 'good' and (validation_type == 'bad_quality' or validation_type == 'resequencing'):
-                    MainMongo(isolatename, self._species, results_type, curator_mailadress, subvaldict=validation_dict)
+                    MainMongo(pseudo_id, self._species, results_type, subvaldict=validation_dict, connection_string='CONNECTION_STRING_AZURE')
                 elif validation_type == 'bad_quality':  # outcome == 'bad'
                     self.__remove_id_from_document_to_be_unique_again_if_bad(self._isolates_badqc_collection,
-                                                                             isolatename, validation_dict)
+                                                                                 pseudo_id, validation_dict)
                 elif validation_type == 'resequencing':
                     self.__remove_id_from_document_to_be_unique_again_if_bad(self._isolates_resequencing_collection,
-                                                                             isolatename, validation_dict)
+                                                                                 pseudo_id, validation_dict)
                 # update status once everything is finished
                 self._isolates_submissions_psql_tbl.update_submission((str(self._sub_id),))
-                MongoToBigs(self._species, uploader_mail_address=curator_mailadress, single_sample_id=isolatename)
+                #MongoToBigs(self._species, uploader_mail_address=curator_mailadress, single_sample_id=isolatename)
 
     @staticmethod
     def __get_results_type(validation_type: str) -> str:

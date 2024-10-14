@@ -32,4 +32,5 @@ class TblMappingTable(DatabaseConnection):
         necessary parameters visible in the PSQL query name and query, in this case isolate name + pseudo_id.
         :return: None
         """
-        return self.execute_query(PsqlQueries.ISO_INS__TB_MT_VAR_ISO_PSEUDOID, param)
+        param_arranged_for_psql = (param[0], param[0], param[1])
+        return self.execute_query(PsqlQueries.ISO_INS__TB_MT_VAR_ISO_PSEUDOID, param_arranged_for_psql)

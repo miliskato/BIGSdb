@@ -361,29 +361,36 @@
 
 - name: setup temporary dir
   block:
-    - name: change temp dir in bigsdb config file
-      lineinfile:
-        path: "/etc/bigsdb/bigsdb.conf"
-        regexp: 'secure_tmp_dir=/var/tmp'
-        line: 'secure_tmp_dir=/temp_bigs'
-
     - name: adapt rights for temp_bigs
       ansible.builtin.file:
         path: /temp_bigs
         state: directory
-        mode: "u=rwx,g=rwx,o=rwx"
+        mode: "u=rwx,g=rwx,o=---"
+        owner: bigsdb
+        group: www-data
 
-    - name: create tmp dir
+    - name: create subdir for temp files
       ansible.builtin.file:
-        src: /temp_bigs
-        dest: /var/www/tmp
-        state: link
+        path: /temp_bigs/working_tmp
+        state: directory
+        owner: bigsdb
+        group: www-data
+        mode: "u=rwx,g=rwx,o=---"
 
-    - name: symlink tmp dir
+    - name: create subdir for output files
       ansible.builtin.file:
-        src: /temp_bigs
+        path: /temp_bigs/results_tmp
+        state: directory
+        owner: bigsdb
+        group: www-data
+        mode: "u=rwx,g=rwx,o=---"
+
+    - name: create link to output files subdir
+      ansible.builtin.file:
+        src: /temp_bigs/results_tmp
         dest: /var/www/html/tmp
         state: link
+
   tags: temp_dir_bigs
 
 - name: Touch bigsdb log
@@ -732,32 +739,6 @@
             virtualenv: "{{ bioit_bigs_home }}/3.9PythonVenv"
             virtualenv_python: python3.9
 
-        # checks are present in the scripts
-        - name: insert loci, alleles, profiles, gene detection
-          shell: "{{ item }}"
-          loop:
-            - "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_bigsdb_scripts/Typing_loci_intopsql.py --species {{ species }}"
-            - "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_bigsdb_scripts/Typing_alleles_intopsql.py --species {{ species }}"
-            - "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_bigsdb_scripts/Typing_schemeprofiles_intopsql.py --species {{ species }}"
-            - "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_bigsdb_scripts/genedetection_intopsql.py --species {{ species }} --do_not_recalculate"
-          tags: pop_db
-
-- name: setup reports and symlinks
-  block:
-    - name: create species dir
-      ansible.builtin.file:
-        path: "/reports/{{ species }}"
-        state: directory
-        mode: "u=rwx,g=rwx,o=rx"
-        owner: www-data
-
-    - name: symlink reports
-      ansible.builtin.file:
-        src: /reports
-        dest: /var/www/html/galaxyreports
-        state: link
-  tags: set_symlink
-
 - name: Restart service rest after all other steps
   ansible.builtin.systemd:
     state: restarted
@@ -772,21 +753,6 @@
     state: directory
     owner: root
     mode: "u=rwx,g=rwx,o=rwx"
-
-- name: adapt tmp dir for BIGSdb
-  block:
-    - name: change temp dir in bigsdb config file
-      lineinfile:
-        path: "/etc/bigsdb/bigsdb.conf"
-        regexp: 'secure_tmp_dir=/var/tmp'
-        line: 'secure_tmp_dir=/temp_bigs'
-
-    - name: adapt rights for temp_bigs
-      ansible.builtin.file:
-        path: /temp_bigs
-        state: directory
-        mode: "u=rwx,g=rwx,o=rwx"
-  tags: temp_dir_bigs
 
 - name: setup cron
   block:
@@ -841,46 +807,23 @@
 
     - name: Remove cron.d entries for hash replacer  # Runs on Azure in the combination
       ansible.builtin.file:
-        path: "{{ file_paths }}"
+        path: "{{ item }}"
         state: absent
-      vars:
-        file_paths:
+      with_items:
           - "/etc/cron.d/{{ species }}_tempid_replacer_cgmlst"
           - "/etc/cron.d/{{ species }}_tempid_replacer_mlst"
           - "/etc/cron.d/{{ species }}_tempid_replacer_mlst_warwick"
           - "/etc/cron.d/{{ species }}_tempid_replacer_mlst_pasteur"
 
-    - name: Add cron.d entries for database updates
-      cron:
-        name: "crontab for weekly database updates"
-        minute: '00'
-        hour: '7'
-        weekday: '0'       # sunday morning
-        job: "{{ item.command }}"
-        user: 'bigsdb'
-        cron_file: "{{ item.filename }}"
-      loop: "{{ list_cron|flatten(levels=1) }}"
-      vars:
-        list_cron:
-          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_bigsdb_scripts/Typing_alleles_intopsql.py --species {{ species }}",
-              filename: "{{ species }}_alleles_intopsql" }
-          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_bigsdb_scripts/genedetection_intopsql.py --species {{ species }}",
-              filename: "{{ species }}_genedetection_intopsql" }
-
-    - name: Add cron.d entry for database updates
-      cron:
-        name: "crontab for weekly database updates, profiles 30 minutes later than sequences"
-        minute: '30'
-        hour: '7'
-        weekday: '0'       # sunday morning
-        job: "{{ item.command }}"
-        user: 'bigsdb'
-        cron_file: "{{ item.filename }}"
-      loop: "{{ list_cron|flatten(levels=1) }}"
-      vars:
-        list_cron:
-          - { command: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_bigsdb_scripts/Typing_schemeprofiles_intopsql.py --species {{ species }}",
-              filename: "{{ species }}_schemeprofiles_intopsql" }
+    - name: Remove cron.d entries for database updates
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      with_items:
+        - "/etc/cron.d/{{ species }}_loci_intopsql"
+        - "/etc/cron.d/{{ species }}_alleles_intopsql"
+        - "/etc/cron.d/{{ species }}_schemeprofiles_intopsql"
+        - "/etc/cron.d/{{ species }}_genedetection_intopsql"
 
     - name: add daily cronjob
       ansible.builtin.copy:

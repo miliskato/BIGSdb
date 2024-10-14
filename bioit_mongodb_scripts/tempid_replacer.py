@@ -17,6 +17,7 @@ from pymongo.write_concern import WriteConcern
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
+from bioit_bigsdb_scripts.components.psql import TblAlleleDesignations
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email
 
@@ -30,8 +31,8 @@ def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--scheme", required=True, type=str, help='lower case scheme as in json reports/mongodb documents') #cgmlst / mlst
     parser.add_argument("--species", required=True, type=str, choices=specieslist)
-    parser.add_argument('--alternate_connection_string', type=str,
-                        help=argparse.SUPPRESS)  # will replace connection string, only for small testing purposes
+    parser.add_argument("--connection_string", required=True, type=str, help='connection string variable from the config file')
+
     return parser.parse_args()
 
 
@@ -39,26 +40,25 @@ class TempidReplacer:
     """
     Class containing definitions to check and replace temporary ids in MongoDB (and BIGSdb)
     """
-    def __init__(self, scheme: str, species: str, alternate_connection_string: Union[bool, str] = False,
-                 alternate_dtap: Union[str, None] = None):
+    def __init__(self, scheme: str, species: str, connection_string: str, alternate_dtap: Union[str, None] = None):
         """
         Initalizes the class and executes the main function (auto-executable)
         :param scheme: scheme that unresolved hashes should be queried from
         :param species: commonly used bioit species name: either genus or specific like stec
-        :param alternate_connection_string: use alternate connection string, used for testing on the free Atlas Cluster
+        :param connection_string: connection string variable from the config file
         :param alternate_dtap: alternative dtap than what is in the config file
         :return: None
         """
         self._scheme = scheme
         self._species = species
-        self._alternate_connection_string = alternate_connection_string
+        self._connection_string = connection_string
         self._alternate_dtap = alternate_dtap
 
         # parse config data
         self._mongo_config_data = get_mongodb_config_data()
         # Open collections
         self._mongoinit = MongoInitialisation(self._species,
-                                              alternate_connection_string=self._alternate_connection_string,
+                                              selected_connection_string=self._connection_string,
                                               alternate_dtap=self._alternate_dtap,
                                               mongo_config_data=self._mongo_config_data)
         self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, self._isolates_resequencing_collection = self._mongoinit.initialise_collections()
@@ -105,6 +105,11 @@ class TempidReplacer:
                         hashed_allele = hashlib.md5(bytes(str(allele.seq), 'utf-8')).hexdigest()
                         if hashed_allele in hash_list:
                             self.__update_temp_to_real_mongodb(locus, allele, hashed_allele, hash_list, values)
+            if ('bigs' in socket.gethostname() or 'nrc' in socket.gethostname()) and self._connection_string is not 'CONNECTION_STRING_ALTERNATE':
+                with TblAlleleDesignations(self._species) as isolates_ad_psql_tbl:
+                    for hash_document in self._documents_list:
+                        if hash_document['resolved_AD'] != 0:
+                            isolates_ad_psql_tbl.update_designations((hash_document['resolved_AD'], hash_document['locus'], hash_document['hashed_allele']))
 
     def __query_hashes_of_scheme(self) -> List[Dict[str, Any]]:
         """
@@ -144,10 +149,10 @@ class TempidReplacer:
         """
         if self._species == 'stec':
             fasta_file = Path(
-                f"/db/sequence_typing/ecoli/{self._scheme.replace('-', '_')}/{locus}/{locus}.fasta")
+                f"/var/lib/.bioit_database_azure/sequence_typing/ecoli/{self._scheme.replace('-', '_')}/{locus}/{locus}.fasta")
         else:
             fasta_file = Path(
-                f"/db/sequence_typing/{self._species}/{self._scheme.replace('-', '_')}/{locus}/{locus}.fasta")
+                f"/var/lib/.bioit_database_azure/sequence_typing/{self._species}/{self._scheme.replace('-', '_')}/{locus}/{locus}.fasta")
         if fasta_file.is_file():
             logging.info(f"opening fasta file: {fasta_file}")
         else:
@@ -246,6 +251,5 @@ if __name__ == '__main__':
     args = parse_arguments(mongo_config_data['species'])
 
     # run main
-    TempidReplacer(args.scheme, args.species,
-                   alternate_connection_string=(True if args.alternate_connection_string else False))
+    TempidReplacer(args.scheme, args.species, connection_string=args.connection_string)
     

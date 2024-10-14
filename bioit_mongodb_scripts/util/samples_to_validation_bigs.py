@@ -1,6 +1,6 @@
 import datetime
-import sys
 import socket
+import sys
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -9,31 +9,38 @@ from pymongo.write_concern import WriteConcern
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
+from bioit_mongodb_scripts.model.json_model import MongoRecordDict
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_bigsdb_scripts.components.psql import TblSubmissions, TblIsolateSubmissionIsolates, \
-    TblIsolateSubmissionFieldOrder, TblMappingTable
+    TblIsolateSubmissionFieldOrder
 
 
-def _insert_submission_bigs(sample_docs: List[Dict[str, Any]], validation_type: str, species: str) -> None:
+def _insert_submission_bigs(sample_docs: List[MongoRecordDict], validation_type: str, species: str, mongo_config_data: Dict[str, Any]) -> None:
     """
     Inserts a given list of submissions into bigsdb
     :param sample_docs: list of documents to be submitted
     :param validation_type: either bad_quality or resequencing
     :param species: commonly used bioit species name: either genus or specific like stec
+    :param mongo_config_data: Use provided mongo_config_data, else get mongo_config_data from file
     :return: None
     """
+    mongoinit_local = MongoInitialisation(species, mongo_config_data=mongo_config_data,
+                                          selected_connection_string='CONNECTION_STRING_LOCAL')
+    mappingtable_collection = mongoinit_local.initialise_mapping_table_collection()
+
     with TblSubmissions(species) as isolates_sub_psql_tbl, \
             TblIsolateSubmissionIsolates(species) as isolates_isosubiso_psql_tbl, \
-            TblIsolateSubmissionFieldOrder(species) as isolates_isosubfo_psql_tbl, \
-            TblMappingTable(species) as isolates_mapping_psql_tbl:
-        for doc in sample_docs:
-            pseudo_id = isolates_mapping_psql_tbl.select_pseudo_id_for_isolate((doc['_id'],))[0][0]
+            TblIsolateSubmissionFieldOrder(species) as isolates_isosubfo_psql_tbl:
+    #        TblMappingTable(species) as isolates_mapping_psql_tbl:
+        for mongo_record in sample_docs:
+            isolate_id = mappingtable_collection.find_one({'pseudo_id': mongo_record['_id']})['_id']
             isolates_sub_psql_tbl.insert_submission((validation_type,))
             api_button = f"""
-            <button onclick="get_jwt_report('no', '{validation_type}', '{doc['_id']}', '{pseudo_id}', '{species }', '{doc['latest_analysis_date']}')" class='small_submit'>Get report preview</button>
+            <button onclick="get_jwt_report('no', '{validation_type}', '{isolate_id}', '{mongo_record['_id']}', '{species}', '{mongo_record['latest_analysis_date']}')" class='small_submit'>Get report preview</button>
             """
+
             isolates_isosubiso_psql_tbl.insert_validation_metadata(('html_report', api_button))
-            isolates_isosubiso_psql_tbl.insert_validation_metadata(('isolate_id', doc['_id']))
+            isolates_isosubiso_psql_tbl.insert_validation_metadata(('isolate_id', isolate_id))
             isolates_isosubiso_psql_tbl.insert_validation_metadata(('validation_type', validation_type))
             # The indexes below are necessary, if they are not inserted the values above are not visible
             isolates_isosubfo_psql_tbl.insert_validation_indexes(('html_report', 1))
@@ -49,8 +56,9 @@ def samples_to_validation_bigs(species: str, mongo_config_data: Dict[str, Any] =
     else get mongo_config_data from file in mongoinit
     :return: None
     """
+    mongo_config_data = mongo_config_data
     # Open collections
-    mongoinit = MongoInitialisation(species, mongo_config_data=mongo_config_data)
+    mongoinit = MongoInitialisation(species, mongo_config_data=mongo_config_data, selected_connection_string='CONNECTION_STRING_AZURE')
     isolates_collection, old_isolateresults_collection, isolates_badqc_collection, \
         isolates_resequencing_collection = mongoinit.initialise_collections()
 
@@ -59,10 +67,10 @@ def samples_to_validation_bigs(species: str, mongo_config_data: Dict[str, Any] =
     query = update_collection.find_one({'metadata': 'last_validation_to_bigs_update', 'host': socket.gethostname()})
     last_run_date = query['last_update_date'] if query else datetime.datetime(1970, 1, 1)  # unix time
     current_date = datetime.datetime.utcnow()
-    bad_samples = list(isolates_badqc_collection.find({'creation_date': {'$gt': last_run_date}}))
-    _insert_submission_bigs(bad_samples, 'bad_quality', species)
-    resequencing_samples = list(isolates_resequencing_collection.find({'creation_date': {'$gt': last_run_date}}))
-    _insert_submission_bigs(resequencing_samples, 'resequencing', species)
+    bad_samples = list(map(lambda x: MongoRecordDict(x),isolates_badqc_collection.find({'creation_date': {'$gt': last_run_date}})))
+    _insert_submission_bigs(bad_samples, 'bad_quality', species, mongo_config_data)
+    # resequencing_samples = list(map(lambda x: MongoRecordDict(x),isolates_resequencing_collection.find({'creation_date': {'$gt': last_run_date}})))
+    # _insert_submission_bigs(resequencing_samples, 'resequencing', species, mongo_config_data)
     # update last date of update
     if query:
         update_collection.with_options(write_concern=WriteConcern(w="majority")).find_one_and_update(
