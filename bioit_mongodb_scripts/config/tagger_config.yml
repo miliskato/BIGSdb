@@ -1,0 +1,26 @@
+listeria:
+  listeria_ndaro: NCBI AMR genes (NDARO)
+  listeria_resfinder: ResFinder
+  listeria_virulencefinder: VirulenceFinder - <i>Listeria</i>
+  listeria_vfdbcore: Virulence Factor DB - Core
+  listeria_plasmidfinder': PlasmidFinder - Gram positive
+mycobacterium:
+  mycobacterium_pointfinder: PointFinder
+neisseria:
+  neisseria_ndaro: NCBI AMR genes (NDARO)
+  neisseria_resfinder: ResFinder
+stec':
+  stec_pointfinder: PointFinder
+  stec_ndaro: NCBI AMR genes (NDARO)
+  stec_resfinder: ResFinder
+  stec_virulencefinder_ecoli: VirulenceFinder - <i>E. coli</i>
+  stec_virulencefinder_shiga: VirulenceFinder - Shiga-toxin genes
+  stec_plasmidfinder: PlasmidFinder - Enterobacteriaceae
+salmonella':
+  salmonella_spifinder: SPIFinder
+  salmonella_pointfinder: PointFinder
+  salmonella_ndaro: NCBI AMR genes (NDARO)
+  salmonella_resfinder: ResFinder
+  salmonella_vfdbcore: Virulence Factor DB - Core
+  salmonella_plasmidfinder: PlasmidFinder - Enterobacteriaceae
+  salmonella_abritamr: AbritAMR

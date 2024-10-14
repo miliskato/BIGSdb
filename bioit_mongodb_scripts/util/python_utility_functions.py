@@ -27,6 +27,17 @@ def get_mongodb_config_data() -> Dict[str, Union[str, List[Any], Dict[str, Union
     return mongo_config_data
 
 
+def load_config(config: Path) -> Dict[str, Union[str, List[Any], Dict[str, Union[str, Dict[str, Any]]]]]:
+    """
+    Loads a config file.
+    :param config: path to the config file
+    :return: the config file as a dictionary
+    """
+    with config.open() as handle:
+        config_data = yaml.safe_load(handle)
+    return config_data
+
+
 def send_email(content: str, subject=None,
                config: Dict[str, str] = get_mongodb_config_data().get('mail'), dont_send_email: bool = False) -> None:
     """
@@ -74,9 +85,11 @@ def convert_dmyhms_to_dateobj(datetimestring: str) -> datetime.date:
     """
     return datetime.strptime(datetimestring, '%d/%m/%Y - %X').date()
 
+
 def merge_mongo_dicts(target_dict: MongoRecordDict, merging_dict: MongoRecordDict) -> None:
     """merge a MongoRecordDict into another MongoRecordDict"""
     _merge_nested_dicts(target_dict, merging_dict)
+
 
 def _merge_nested_dicts(target_dict: Union[MongoRecordDict,Dict], merging_dict: [MongoRecordDict,Dict]) -> Dict:
     """

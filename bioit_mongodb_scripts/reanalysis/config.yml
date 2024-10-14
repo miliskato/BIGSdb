@@ -37,6 +37,7 @@ mongodb:
     lmod: bioit_mongodb/0.1
     main_script: mainmongo.py
     report_script: html_update_merger.py
+    tagger_script: htmltagger.py
 
 failsafe:
   flag_dir: /scratch/temp/flags

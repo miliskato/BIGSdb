@@ -403,6 +403,11 @@ class BatchPipelinesReanalysis:
             f"--species {self._species}",
             f"--analysis-arguments {' '.join(analysis_arguments)}"
         ])
+        tagger_command = ' '.join([
+            f"{config_mongodb['tagger_script']}",
+            f"--htmlfilepath {report_dir}/report.html",
+            f"--species {self._species}"
+        ])
         # Copy the stderr and stdout files from the temporary working dir to the fileshare because they
         # might contain more information than the camel.log
         post_command = f'cp $AZ_BATCH_TASK_DIR/std*.txt {report_dir}/'
@@ -424,7 +429,9 @@ class BatchPipelinesReanalysis:
             f"--alternate_dtap {self._dtap}",
             f"--connection_string 'CONNECTION_STRING_AZURE'"
         ])
-        task_command = f'/bin/bash -c "{pre_command}; {trap_command}; {size_command}; {base_command}; {unload_command}; {report_command}; {post_command}; {cleanup_command}; {mongodb_command}"'
+        task_command = (f'/bin/bash -c "{pre_command}; {trap_command}; {size_command}; {base_command}; '
+                        f'{unload_command}; {report_command}; {tagger_command}; {post_command}; {cleanup_command}; '
+                        f'{mongodb_command}"')
         return task_command
 
 
