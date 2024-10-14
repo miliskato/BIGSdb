@@ -86,7 +86,6 @@ class MongoToBigsNominative:
                     isolates_psql_tbl.update_nomin_metadata(dict_to_be_inserted, mapping_table['_id'])
                 self._nominative_labtest_clinical_metadata_collection.update_one({'_id': document['_id']},
                                                                                  {'$set': {'inserted_into_bigsdb': True}})
-        # todo in failsafe set false; either in mongo_to_bigs or in mainmongo; todo after merge with ASG overhaul
 
 
 if __name__ == '__main__':

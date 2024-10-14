@@ -89,6 +89,7 @@ class MongoToBigs:
         self._mongoinit_local = MongoInitialisation(self._species, mongo_config_data=self._mongo_config_data,
                                                     selected_connection_string='CONNECTION_STRING_LOCAL')
         self._mappingtable_collection = self._mongoinit_local.initialise_mapping_table_collection()
+        self._nominative_labtest_clinical_metadata_collection = self._mongoinit_local.initialise_nominative_labtest_clinical_metadata_collection()
         # Open Bigsdb isolates table
         self._isolates_psql_tbl = TblIsolates(self._species)
 
@@ -169,7 +170,8 @@ class MongoToBigs:
             self._mongoquerying.revert_typinghitlists_to_dictionaries(document, self._headers_collection)
             jsonfile = document.get_json_results()
 
-            MainResultsInserter(isolate_id, self._uploader_mail_address, self._species, results_type, vcf_path=document['vcf_path'], json_results=jsonfile, report_access=document['report_directory'], mongo_dtap=self._mongo_config_data.get('dtap'), isolation_date=document['technical_metadata']['DT_ISOL'])
+            MainResultsInserter(isolate_id, self._uploader_mail_address, self._species, results_type, vcf_path=document['vcf_path'], json_results=jsonfile, report_access=document['report_directory'], mongo_dtap=self._mongo_config_data.get('dtap'), isolation_date=document['technical_metadata']['DT_ISOL'],
+                                nominative_labtest_clinical_metadata_collection=self._nominative_labtest_clinical_metadata_collection)
 
             self.__insert_assembly_into_bigs(results_type, document, isolate_id)
             with TblMappingTable(self._species) as isolates_mapping_psql_tbl:
