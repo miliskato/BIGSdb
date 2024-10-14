@@ -131,9 +131,9 @@ class MainResultsInserter:
         This should avoid error from postgres while reinserting new version of these results
         """
         if self._results_type == 'reanalysis ' or self._results_type == 'resequencing':
-            with (TblAlleleDesignations(self._species) as isolates_ad_psql_tbl, TblEavText(
-                    self._species) as isolates_eavt_psql_tbl, TblEavBoolean(self._species) as isolates_eavb_psql_tbl,
-                  TblEavInt(self._species) as isolates_eavi_psql_tbl):
+            with TblAlleleDesignations(self._species) as isolates_ad_psql_tbl, TblEavText(self._species) as \
+                    isolates_eavt_psql_tbl, TblEavBoolean(self._species) as \
+                    isolates_eavb_psql_tbl, TblEavInt(self._species) as isolates_eavi_psql_tbl:
                 isolates_ad_psql_tbl.delete_all_designations_of_isolate((self._isolatename,))
                 isolates_eavt_psql_tbl.delete_all_eav_by_isolate_id((self._isolatename,))
                 isolates_eavb_psql_tbl.delete_eavbool_for_isolate((self._isolatename,))
