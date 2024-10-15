@@ -28,6 +28,7 @@ from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.mongo_querying import Mongoquerying
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email, convert_dmyhms_to_dateobj
 from bioit_mongodb_scripts.util.new_clustering_info_to_bigs import NewClusteringInfoToBigs
+from bioit_mongodb_scripts.util.new_temporary_alleles_to_bigs import NewTemporaryAllelesToBigs
 from bioit_mongodb_scripts.util.samples_to_validation_bigs import samples_to_validation_bigs
 from bioit_mongodb_scripts.util.command.command import Command
 
@@ -125,8 +126,7 @@ class MongoToBigs:
         :return: None
         """
         # call the autoexecutable function to insert new alleles and profiles
-        NewClusteringInfoToBigs(self._species, self._naive_clustering_distance_matrix_file,
-                                self._cgmlst_bigsdb_scheme_id, mongo_config_data=self._mongo_config_data)
+        NewTemporaryAllelesToBigs(self._species, mongo_config_data=self._mongo_config_data)
 
         # The cache command needs to be run using method 'full' once before being able to use it with method
         # incremental, check it and execute full if it hadn't been executed yet
@@ -164,12 +164,15 @@ class MongoToBigs:
             MainResultsInserter(isolate_id, self._uploader_mail_address, self._species, results_type,
                                 vcf_path=document['vcf_path'], json_results=jsonfile,
                                 report_access=document['report_directory'],
-                                mongo_dtap=self._mongo_config_data.get('dtap'),
-                                naive_clustering_distance_matrix_file=self._naive_clustering_distance_matrix_file)
+                                mongo_dtap=self._mongo_config_data.get('dtap'))
 
             self.__insert_assembly_into_bigs(results_type, document, isolate_id)
             with TblMappingTable(self._species) as isolates_mapping_psql_tbl:
                 isolates_mapping_psql_tbl.insert_mapping_for_isolate((isolate_id, document['_id'],))
+
+        # Run clustering and new cgST insertion before cache update
+        NewClusteringInfoToBigs(self._species, self._naive_clustering_distance_matrix_file,
+                                self._cgmlst_bigsdb_scheme_id, mongo_config_data=self._mongo_config_data)
 
         # Update cache again before alerts implementation because new isolates won't have cgST's but are needed for alerts implementation
         self._cache_command_object.run(Path(os.getcwd()))

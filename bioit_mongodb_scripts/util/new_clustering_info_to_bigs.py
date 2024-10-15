@@ -63,7 +63,6 @@ class NewClusteringInfoToBigs:
             self._update_metadata_collection.with_options(write_concern=WriteConcern(w="majority")).\
                 insert_one({'metadata': 'last_update', 'last_update_date': self._last_date_of_update,
                             'host': socket.gethostname()})
-        self._new_sequences = self._get_new_sequence()
         self._new_st = self._get_new_st()
         self._st_headers = self._get_st_headers()
         self._new_cluster_membership = self._get_new_cluster_membership()
@@ -82,8 +81,6 @@ class NewClusteringInfoToBigs:
         Runs the upload of new alleles and clustering from mongo to bigs.
         :return: None.
         """
-        if len(self._new_sequences) > 0:
-            self.__insert_new_alleles()
         if len(self._new_st) > 0:
             self.__insert_sequence_types()
         if len(self._new_cluster_membership) > 0:
@@ -98,15 +95,6 @@ class NewClusteringInfoToBigs:
         """
         query = self._update_metadata_collection.find_one({'metadata': 'last_update', 'host': socket.gethostname()})
         return query['last_update_date'] if query else None
-
-    def _get_new_sequence(self) -> List[Dict[str, Any]]:
-        """
-        Retrieve all the new hashed alleles from the mongo hashed alleles collection that have been added since the
-        date of the last update.
-        :return: A list of documents containing the information about the new alleles.
-        """
-        return list(self._hashed_ad_collection.find({'insertion_date': {'$gt': self._last_date_of_update},
-                                                     'resolved_AD': 0}))
 
     def _get_new_st(self) -> List[Dict[str, Any]]:
         """
@@ -131,35 +119,6 @@ class NewClusteringInfoToBigs:
         :return: A list of documents (dict) containing the information about the new cluster memberships.
         """
         return list(self._cluster_membership_collection.find({'insertion_date': {'$gt': self._last_date_of_update}}))
-
-    def __insert_new_alleles(self) -> None:
-        """
-        Insert into BIGSdb the new alleles retrieved during the initialization.
-        :return: None.
-        """
-        ordered_by_locus_dict = self.___order_sequences_by_locus()
-        for locus in ordered_by_locus_dict:
-            # fetch all alleles ids already in bigs
-            set_alleleid = set(item[0] for item in self._seqdef_sequences_psql_tbl.select_allele_from_locus((locus,)))
-            for new_allele in ordered_by_locus_dict[locus]:
-                if new_allele['temp_allele_name'] not in set_alleleid:
-                    self._seqdef_sequences_psql_tbl.insert_sequence((locus, new_allele['temp_allele_name'],
-                                                                     new_allele['allele_sequence']))
-                    logging.info(f"id {new_allele['temp_allele_name']} inserted into locus {locus}")
-
-    def ___order_sequences_by_locus(self) -> Dict[str, List[Dict[str, Any]]]:
-        """
-        Order the sequences by locus in order to be able to add the alleles by locus in an easy way.
-        :return: dictionary of loci and a list of their corresponding hashed dictionaries
-        """
-        order_seqs = {}
-        for seq in self._new_sequences:
-            key = seq['locus']
-            if key in order_seqs:
-                order_seqs[key].append(seq)
-            else:
-                order_seqs[key] = [seq]
-        return order_seqs
 
     def __insert_sequence_types(self) -> None:
         """
@@ -293,24 +252,20 @@ class NewClusteringInfoToBigs:
             else:
                 if len(self._new_st) > 0:
                     cgsts = [x['cgST'] for x in self._new_st]
-                    smallest_new_cgst = min(cgsts)
                     # older cgsts might be affected by multiple newer ones;
                     # therefore a set is used to combine them to be able to loop over after
-                    affected_cgsts = set()
+                    affected_and_new_cgsts = set()
                     for cgst in cgsts:
                         # extract row
                         row_cgst = distance_matrix[cgst - 1]
                         # get all cgSTs within distance
                         indices = np.where((row_cgst >= interval_start) & (row_cgst <= interval_stop))[0]
                         if len(indices) > 0:
-                            for index in indices:
-                                if index + 1 < smallest_new_cgst:
-                                    affected_cgsts.add(index + 1)
-                        # all isolates with new cgSTs will not be in the database yet; do not update them
+                            affected_and_new_cgsts.update(index + 1 for index in indices)
 
-                    for affected_cgst in affected_cgsts:
+                    for cgst in affected_and_new_cgsts:
                         self.___update_naive_clustering_implementation_for_one_cgst(
-                            affected_cgst, distance_matrix, interval_start, interval_stop, cgsts_per_isolate, field,
+                            cgst, distance_matrix, interval_start, interval_stop, cgsts_per_isolate, field,
                             is_field_new=False)
 
     def ___update_naive_clustering_implementation_for_one_cgst(
@@ -353,6 +308,7 @@ class NewClusteringInfoToBigs:
                                                                   field[0]))
                             # it is also possible that the isolates in question do not have the fields
                             # yet because no cgST's were close up until now -> execute else
+                            # Or since 2024/10/14 new cgST's also follow this route
                         else:
                             # For new fields and for affected isolates that did not have the field yet
                             isolates_eavt_psql_tbl.insert_eav_id((str(bigsdb_id_isolate[0][0]), field[0], html))
