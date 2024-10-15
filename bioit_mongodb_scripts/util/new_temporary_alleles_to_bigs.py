@@ -45,9 +45,6 @@ class NewTemporaryAllelesToBigs:
         self._last_date_of_update = self._get_last_date_of_update()
         if self._last_date_of_update is None:
             self._last_date_of_update = datetime.datetime(1970, 1, 1)  # unix time
-            self._update_metadata_collection.with_options(write_concern=WriteConcern(w="majority")).\
-                insert_one({'metadata': 'last_update_temporary_alleles', 'last_update_date': self._last_date_of_update,
-                            'host': socket.gethostname()})
         self._new_sequences = self._get_new_sequence()
 
         # Execute main function
@@ -61,7 +58,7 @@ class NewTemporaryAllelesToBigs:
     def _insert_into_bigs(self) -> None:
         """
         Main method to initiate the insertion into BIGSdb of the new results retrieved during the initialization.
-        Runs the upload of new alleles and clustering from mongo to bigs.
+        Inserts new temporary alleles from MongoDB to BIGSdb.
         :return: None.
         """
         if len(self._new_sequences) > 0:
@@ -124,8 +121,8 @@ class NewTemporaryAllelesToBigs:
         :return: None.
         """
         self._update_metadata_collection.with_options(write_concern=WriteConcern(w="majority")).update_one(
-            {'metadata': 'last_update_temporary_alleles', 'host': socket.gethostname()}, {
-                "$set": {'last_update_date': self._current_update_date}})
+            {'metadata': 'last_update_temporary_alleles', 'host': socket.gethostname()},
+            {"$set": {'last_update_date': self._current_update_date}}, upsert=True)
 
     def __exit__(self) -> None:
         """

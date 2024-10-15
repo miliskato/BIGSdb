@@ -60,9 +60,6 @@ class NewClusteringInfoToBigs:
         self._last_date_of_update = self._get_last_date_of_update()
         if self._last_date_of_update is None:
             self._last_date_of_update = datetime.datetime(1970, 1, 1)  # unix time
-            self._update_metadata_collection.with_options(write_concern=WriteConcern(w="majority")).\
-                insert_one({'metadata': 'last_update', 'last_update_date': self._last_date_of_update,
-                            'host': socket.gethostname()})
         self._new_st = self._get_new_st()
         self._st_headers = self._get_st_headers()
         self._new_cluster_membership = self._get_new_cluster_membership()
@@ -78,7 +75,7 @@ class NewClusteringInfoToBigs:
     def _insert_into_bigs(self) -> None:
         """
         Main method to initiate the insertion into BIGSdb of the new results retrieved during the initialization.
-        Runs the upload of new alleles and clustering from mongo to bigs.
+        Inserts cgST's and clustering info from MongoDB to BIGSdb.
         :return: None.
         """
         if len(self._new_st) > 0:
@@ -341,8 +338,8 @@ class NewClusteringInfoToBigs:
         :return: None.
         """
         self._update_metadata_collection.with_options(write_concern=WriteConcern(w="majority")).update_one(
-            {'metadata': 'last_update', 'host': socket.gethostname()}, {
-                "$set": {'last_update_date': self._current_update_date}})
+            {'metadata': 'last_update', 'host': socket.gethostname()},
+            {"$set": {'last_update_date': self._current_update_date}}, upsert=True)
 
     def __exit__(self) -> None:
         """
