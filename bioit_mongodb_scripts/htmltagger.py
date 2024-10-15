@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import argparse
 import sys
 from os import fdopen, remove
@@ -6,11 +7,11 @@ from shutil import move, copymode
 from tempfile import mkstemp
 from typing import List
 
-from bioit_mongodb_scripts.config import TAGGER_CONFIG
-from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, load_config
-
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
+
+from bioit_mongodb_scripts.config import TAGGER_CONFIG
+from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, load_config
 
 
 def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
@@ -39,8 +40,9 @@ class HtmlTagger:
         self._species = species
         tagger_config = load_config(TAGGER_CONFIG)
         # Execute main function
-        for scheme in tagger_config[self._species]:
-            self._tagger(tagger_config[self._species][scheme])
+        if tagger_config.get(self._species):
+            for scheme in tagger_config[self._species]:
+                self._tagger(tagger_config[self._species][scheme])
 
     def _tagger(self, html_name: str) -> None:
         """
