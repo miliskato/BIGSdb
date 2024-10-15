@@ -158,7 +158,7 @@ class GeneDetectionIntoPsql:
                     isolate_id: str = sampleandhits[0]
                     isolate_name: str = sampleandhits[2]
                     html_scheme_name = self._schemedict[self._scheme]['schemename_html']
-                    report_url = UrlHelper.report_for_isolate(self._species,isolate_id,html_scheme_name)
+                    report_url = UrlHelper.report_for_isolate(self._species, isolate_id, html_scheme_name)
                     if not self._scheme.endswith('vfdbcore') and not self._scheme.endswith('virulencefinder'):
                         self._eavhtmltable = '<style>table.nice { text-align: center; border-spacing:0 }table.nice tr:nth-child(n+3) {background: #E4EFF3}table.nice tr:nth-child(2n+3) {background: #C1E6F3}</style>'
                         self._eavhtmltable += f'<table class="data nice"><tr><th>GeneCluster</th><th>Locus</th></tr>'

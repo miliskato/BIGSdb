@@ -236,7 +236,7 @@ class MongoToBigs:
                 document.set_isolate_id(pseudo_id)
 
         else:
-            list_of_documents = map(lambda x: MongoRecordDict(x), self._isolates_collection.find())
+            list_of_documents = list(map(lambda x: MongoRecordDict(x), self._isolates_collection.find()))
             for document in list_of_documents:
                 document.set_isolate_id(document['_id'])
 

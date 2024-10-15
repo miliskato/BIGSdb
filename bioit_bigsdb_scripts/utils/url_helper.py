@@ -1,4 +1,6 @@
 import urllib.parse
+from typing import Dict
+
 
 class UrlHelper:
     """Url encoder to facilitate the construction of url in the BIGSdb environment"""
@@ -6,10 +8,16 @@ class UrlHelper:
     SCIENSANO_PAGE: str = 'sciensanoReport'
 
     @staticmethod
-    def _create(page: str, specie: str, query: dict[str, str], anchor: str = None):
-        """add the page and db attribute to the base url and an anchor if provided"""
+    def _create(page: str, species: str, query: Dict[str, str], anchor: str = None) -> str:
+        """
+        add the page and db attribute to the base url and an anchor if provided
+        :param page: name of the page to call in the url
+        :param species: name of the species of interest
+        :param query: dictionary hosting key-value pairs used by the url builder
+        :return: returns the url
+        """
         query['page'] = page
-        query['db'] = f"bigsdb_{specie}_isolates"
+        query['db'] = f"bigsdb_{species}_isolates"
 
         return UrlHelper.BASE_URL + urllib.parse.urlencode(query) + (f"#{anchor}" if anchor is not None else '')
 
@@ -26,13 +34,14 @@ class UrlHelper:
         return UrlHelper._create(UrlHelper.SCIENSANO_PAGE, species, query, anchor)
 
     @staticmethod
-    def report_for_validation(specie: str, pseudo_id: str, submit_date: str, validation_type: str, getzip: bool = False) -> str:
+    def report_for_validation(species: str, pseudo_id: str, submit_date: str, validation_type: str, getzip: bool = False) -> str:
         """
         encodes url to get the report waiting for validation
-        :param specie: species of interest
+        :param species: species of interest
         :param pseudo_id: pseudo id found in MongoDB
         :param submit_date: last analysis date in MongoDB
         :param validation_type: type of validation based on info from submission
+        :param getzip: if "False" (default), only html report is provided and if "True", zip archive is created
         :return: url used to get the report for the submitted isolate
         """
         query = {
@@ -41,4 +50,4 @@ class UrlHelper:
             'validation_type': validation_type,
             'getzip': 'yes' if getzip else 'no'
         }
-        return UrlHelper._create(UrlHelper.SCIENSANO_PAGE, specie, query)
+        return UrlHelper._create(UrlHelper.SCIENSANO_PAGE, species, query)
