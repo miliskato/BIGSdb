@@ -50,7 +50,7 @@ class MongoToBigsNominative:
 
         # Open collections local MongoDB
         self._mongoinit_local = MongoInitialisation(self._species, mongo_config_data=self._mongo_config_data,
-                                                    selected_connection_string=self._mongo_config_data['CONNECTION_STRING_LOCAL'])
+                                                    selected_connection_string='CONNECTION_STRING_LOCAL')
         self._nominative_labtest_clinical_metadata_collection = self._mongoinit_local.initialise_nominative_labtest_clinical_metadata_collection()
         self._mappingtable_collection = self._mongoinit_local.initialise_mapping_table_collection()
 

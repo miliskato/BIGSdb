@@ -118,7 +118,7 @@ class ErrorCheckerForMainSenderToHD(SFTPConnection):
                     species = next(pathogen for pathogen, details in self._translation_codes['pathogens'].items() if details['dcd_name'] == dcd_name)
                     # Open correct pathogen specific MongoDB database
                     mongoinit_azure = MongoInitialisation(species, mongo_config_data=self._mongo_config_data,
-                                                          selected_connection_string=self._mongo_config_data['CONNECTION_STRING_AZURE'],
+                                                          selected_connection_string='CONNECTION_STRING_AZURE',
                                                           alternate_dtap=self._alternate_dtap)
                     isolates_collection, old_isolateresults_collection, isolates_badqc_collection, \
                         isolates_resequencing_collection = mongoinit_azure.initialise_collections()

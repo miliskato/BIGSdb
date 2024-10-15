@@ -150,8 +150,7 @@ class MainNominativeDataParserFromOds(SFTPConnection):
         """
         for species, filetypes_dict in self._files_by_filetype_by_species.items():
             mongoinit_local = MongoInitialisation(species, mongo_config_data=self._mongo_config_data,
-                                                  selected_connection_string=self._mongo_config_data[
-                                                      'CONNECTION_STRING_LOCAL'],
+                                                  selected_connection_string='CONNECTION_STRING_LOCAL',
                                                   alternate_dtap=self._alternate_dtap)
             nominative_labtest_clinical_metadata_collection = mongoinit_local.initialise_nominative_labtest_clinical_metadata_collection()
             unprocessed_nominative_labtest_metadata_collection = mongoinit_local.initialise_unprocessed_nominative_labtest_metadata_collection()
@@ -272,27 +271,36 @@ class MainNominativeDataParserFromOds(SFTPConnection):
         :return: None
         """
         labtest_list_of_result_dicts = self.___get_value_by_capitalization_agnostic_key(data_unprocessed, 'TX_TTL_LAB_TEST')
-        """
-        The mic_resistances field should be a string concatenation of all resistant antibiotics. All resistant ones will 
-        be stored in the mic_resistances_list, ordered alphabetically and concatenated with spaces in between.
-        """
+        # The mic_resistances field should be a string concatenation of all resistant antibiotics. All resistant ones will
+        # be stored in the mic_resistances_list, ordered alphabetically and concatenated with spaces in between.
         mic_resistances_list: List[str] = []
         if labtest_list_of_result_dicts:
             for labtest_result_dict in labtest_list_of_result_dicts:
-                labtest_result_combinations = self._translation_codes['code_lists']['TX_TTL_LAB_TEST_combinations']
-                labtest_dict = next((labtest_dict for labtest_dict in labtest_result_combinations if
-                                     # CD_LAB_TEST_METH is mandatory I believe
-                                     labtest_dict['CD_LAB_TEST_METH'] == self.___get_value_by_capitalization_agnostic_key(labtest_result_dict, 'CD_LAB_TEST_METH')
-                                     # CD_LAB_TEST_CODE seems to be optional; if null in code list then .get results in False
-                                     # e.g. for serotyping this field does not seem to be filled because there are no subtests
-                                     and (not labtest_dict.get('CD_LAB_TEST_CODE') or labtest_dict.get('CD_LAB_TEST_CODE') == self.___get_value_by_capitalization_agnostic_key(labtest_result_dict, 'CD_LAB_TEST_CODE'))))
+                labtest_code_combinations = self._translation_codes['code_lists']['TX_TTL_LAB_TEST_combinations']
+                labtest_code_combination = next((
+                    labtest_code_combination for labtest_code_combination in labtest_code_combinations if
+                    # CD_LAB_TEST_METH is mandatory I believe
+                    labtest_code_combination['CD_LAB_TEST_METH'] == self.___get_value_by_capitalization_agnostic_key(
+                        labtest_result_dict, 'CD_LAB_TEST_METH')
+                    # CD_LAB_TEST_CODE seems to be optional; if null in code list then .get results in False
+                    # e.g. for serotyping this field does not seem to be filled because there are no subtests
+                    and (not labtest_code_combination.get('CD_LAB_TEST_CODE') or labtest_code_combination.get(
+                        'CD_LAB_TEST_CODE') == self.___get_value_by_capitalization_agnostic_key(
+                        labtest_result_dict, 'CD_LAB_TEST_CODE'))))
 
-                if labtest_dict.get('code_list'):
-                    data_translated[labtest_dict['translation']] = self._translation_codes['code_lists'][labtest_dict['code_list']][self.___cast_as_int_if_int(self.___get_value_by_capitalization_agnostic_key(labtest_result_dict, labtest_dict['value_field']))]
-                    if labtest_dict['translation'].startswith('mic_') and labtest_dict['translation'].endswith('_I') and data_translated[labtest_dict['translation']] == 'Resistant':
-                        mic_resistances_list.append((labtest_dict['translation'].split('_'))[1])
+                if labtest_code_combination.get('code_list'):
+                    data_translated[labtest_code_combination['translation']] = \
+                        self._translation_codes['code_lists'][labtest_code_combination['code_list']][
+                            self.___cast_as_int_if_int(self.___get_value_by_capitalization_agnostic_key(
+                                labtest_result_dict, labtest_code_combination['value_field']))]
+                    if labtest_code_combination['translation'].startswith('mic_') and labtest_code_combination[
+                        'translation'].endswith('_I') and data_translated[labtest_code_combination['translation']] == \
+                            'Resistant':
+                        mic_resistances_list.append((labtest_code_combination['translation'].split('_'))[1])
                 else:
-                    data_translated[labtest_dict['translation']] = self.___get_value_by_capitalization_agnostic_key(labtest_result_dict, labtest_dict['value_field'])
+                    data_translated[labtest_code_combination['translation']] = \
+                        self.___get_value_by_capitalization_agnostic_key(
+                            labtest_result_dict, labtest_code_combination['value_field'])
         if mic_resistances_list:
             mic_resistances_list.sort()
             data_translated['mic_resistances'] = ' '.join([resistance for resistance in mic_resistances_list])

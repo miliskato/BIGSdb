@@ -34,13 +34,13 @@ DTAP = 'dev'  # should only be dev or acc
 
 for species, species_testfiles in testfiles_dict.items():
     mongoinit_azure = MongoInitialisation(species, mongo_config_data=mongo_config_data,
-                                          selected_connection_string=mongo_config_data['CONNECTION_STRING_AZURE'],
+                                          selected_connection_string='CONNECTION_STRING_AZURE',
                                           alternate_dtap=DTAP)
     isolates_collection, old_isolateresults_collection, isolates_badqc_collection, \
         isolates_resequencing_collection = mongoinit_azure.initialise_collections()
 
     mongoinit_local = MongoInitialisation(species, mongo_config_data=mongo_config_data,
-                                          selected_connection_string=mongo_config_data['CONNECTION_STRING_LOCAL'],
+                                          selected_connection_string='CONNECTION_STRING_LOCAL',
                                           alternate_dtap=DTAP)
     mapping_table_collection = mongoinit_local.initialise_mapping_table_collection()
 

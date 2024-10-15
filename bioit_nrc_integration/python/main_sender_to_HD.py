@@ -99,15 +99,13 @@ class MainSenderToHD:
         :return: mapping table collection + isolates collection
         """
         mongoinit_azure = MongoInitialisation(species, mongo_config_data=self._mongo_config_data,
-                                              selected_connection_string=self._mongo_config_data[
-                                                  'CONNECTION_STRING_AZURE'],
+                                              selected_connection_string='CONNECTION_STRING_AZURE',
                                               alternate_dtap=self._alternate_dtap)
         isolates_collection, old_isolateresults_collection, isolates_badqc_collection, \
             isolates_resequencing_collection = mongoinit_azure.initialise_collections()
 
         mongoinit_local = MongoInitialisation(species, mongo_config_data=self._mongo_config_data,
-                                              selected_connection_string=self._mongo_config_data[
-                                                  'CONNECTION_STRING_LOCAL'],
+                                              selected_connection_string='CONNECTION_STRING_LOCAL',
                                               alternate_dtap=self._alternate_dtap)
         # Seeing as there is no validation for all samples in place yet, I'm going to assume here that the validation info can be found in the isolates collection
         # todo
