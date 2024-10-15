@@ -31,12 +31,15 @@ use JSON;
 use Template;
 use Bio::Tools::CodonTable;
 use Data::Dumper;
+use Archive::Zip qw(:ERROR_CODES :CONSTANTS);
+use File::Temp qw(tempfile);
 my $logger = get_logger('BIGSdb.Page');
 use constant ISOLATE_SUMMARY     => 1;
 use constant LOCUS_SUMMARY       => 2;
 use constant MAX_DISPLAY         => 1000;
 use constant HIDE_PMIDS          => 4;
 use constant HIDE_PROJECT_LENGTH => 50;
+use File::Temp qw/ tempfile /;
 
 sub set_pref_requirements {
 	my ($self) = @_;
@@ -155,16 +158,21 @@ sub print_content {
 	my $bigsdb_users_auth = $self->{'cgi'}->cookie( -name => 'global_bigsdb_users_auth' );
 
 	my $identifier;
+	my $isolate_name;
 	if (!$has_pseudo_id) {
 		$pseudo_id = $self->get_pseudo_id();
 		if (( $data->{ $self->{'system'}->{'labelfield'} } // q()) ne q()) {
 			my $field = $self->{'system'}->{'labelfield'};
 			$field =~ tr/_/ /;
 			$identifier = qq($field $data->{lc($self->{'system'}->{'labelfield'})} (id:$data->{'id'}));
+			$isolate_name = $data->{lc($self->{'system'}->{'labelfield'})};
 		}
 		else {
 			$identifier = qq(id $data->{'id'});
+			$isolate_name = $identifier;
 		}
+	} else {
+		$isolate_name = $pseudo_id;
 	}
 
 	# Call azure to get token
@@ -193,7 +201,7 @@ sub print_content {
 	my $description = $self->{'system'}->{'description'};
 	my $species = lc($description =~ s/ isolates//r);
 
-	my $dtap=get_dtap();
+	my $dtap = get_dtap();
 
 	my $res_time = 'null';
 		if ($q->param('submit_date')) {
@@ -205,21 +213,31 @@ sub print_content {
 		}
 
 	my $get_zip  = $q->param('get_zip');
-	if ($get_zip != 'yes') {
+	if ($get_zip ne 'yes') {
 		$get_zip = 'no';
 	}
 
 	# Call azure to fetch report
 	my $report_url = "http://172.23.3.72:9090/get_html_report?isolate_id=".$pseudo_id.'&date='.$res_time."&species=".$species."&get_zip=".$get_zip."&dtap=".$dtap."&validation_type=".$validation_type;
-	my $report_response = $ua->get(
-		$report_url,
-		'x-access-token' => $report_api_token
-	);
-
+	my $report_response = $ua->get($report_url, 'x-access-token' => $report_api_token);
 	my $content = $report_response->content;
+
 	if ($report_response->is_success) {
-		$content =~ s/<td>$pseudo_id<\/td>/<td>$pseudo_id - $identifier<\/td>/;
-		say $content;
+		if ($get_zip eq 'yes') {
+			my ($fh, $filename) = tempfile();
+			print $fh $content;
+			close $fh;
+
+			replace_id_in_zip ($filename, $pseudo_id, $isolate_name);
+
+			open my $file, $filename;
+			print <$file>;
+			close $file;
+			unlink($file);
+		} else {
+			$content =~ s/$pseudo_id/$isolate_name/g;
+			say $content;
+		}
 	} else {
 		my $mess = $report_response->message;
 		my $code = $report_response->code;
@@ -227,6 +245,7 @@ sub print_content {
 		say qq(<p>$content</p>);
 		return
 	}
+
 	return;
 }
 
@@ -270,4 +289,30 @@ sub get_name {
 		$isolate_id );
 }
 
+sub replace_id_in_zip {
+  	my ($filename, $pseudo_id, $isolate_id) = @_;
+	my $zip = Archive::Zip->new();
+
+	unless ($zip->read($filename) == AZ_OK) {
+		say 'Unable to read zip from file';
+  	}
+
+  	foreach my $member ($zip->members()) {
+    	my $file_name = $member->fileName();
+    	my $new_file_name = $file_name;
+    	$new_file_name =~ s/$pseudo_id/$isolate_id/g;
+
+		my $content = $member->contents();
+		$content =~ s/$pseudo_id/$isolate_id/g;
+		$member->contents($content);
+
+		if ($file_name ne $new_file_name) {
+			$member->fileName($new_file_name);
+		}
+	}
+
+	unless ($zip->overwrite() == AZ_OK) {
+		say 'Error while writing zip archive';
+  	}
+}
 1;
