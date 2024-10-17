@@ -168,7 +168,7 @@ class MongoToBigs:
             self._mongoquerying.revert_typinghitlists_to_dictionaries(document, self._headers_collection)
             jsonfile = document.get_json_results()
 
-            MainResultsInserter(isolate_id, self._uploader_mail_address, self._species, results_type, vcf_path=document['vcf_path'], json_results=jsonfile, report_access=document['report_directory'], mongo_dtap=self._mongo_config_data.get('dtap'), isolation_date=document['technical_metadata']['DT_ISOL'])
+            MainResultsInserter(isolate_id, self._uploader_mail_address, self._species, results_type, vcf_path=document['vcf_path'], json_results=jsonfile, report_access=document['report_directory'], mongo_dtap=self._mongo_config_data.get('dtap'), isolation_date=document['technical_metadata']['data']['IsolationDate'])
 
             self.__insert_assembly_into_bigs(results_type, document, isolate_id)
             with TblMappingTable(self._species) as isolates_mapping_psql_tbl:
@@ -220,12 +220,12 @@ class MongoToBigs:
         if results_type == 'new_isolate' or results_type == 'badqc':
             self._list_of_new_isolates_for_alerts.append(
                 {'isolate_name': isolate_id, 'cgST': document['results'].get('cgST'),
-                 'isolation_date': document['technical_metadata']['DT_ISOL']})
+                 'isolation_date': document['technical_metadata']['data']['IsolationDate']})
 
         else:  # if results_type == 'reanalysis' or 'resequencing':
             self._list_of_new_versions_for_alerts.append(
                 {'isolate_name': isolate_id, 'cgST': document['results'].get('cgST'),
-                 'isolation_date': document['technical_metadata']['DT_ISOL']})
+                 'isolation_date': document['technical_metadata']['data']['IsolationDate']})
 
     def ___replace_tempids(self) -> None:
         """
