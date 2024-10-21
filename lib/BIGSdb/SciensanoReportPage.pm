@@ -92,8 +92,10 @@ sub print_page_content {
 
 	my $identifier;
 	if (defined($isolate_id)){
-		$self->{'isolate_data'} = $self->{'datastore'}->run_query( "SELECT * FROM $self->{'system'}->{'view'} WHERE id=?", $isolate_id, { fetch => 'row_hashref' } );
+		$self->{'isolate_data'} = get_isolate_data_from_id($self);
 		$identifier = $self->{'isolate_data'}->{'isolate'};
+	} else {
+		$identifier = get_isolate_identifier_from_pseudo_id($self);
 	}
 
 	$q->charset('UTF-8');
@@ -132,8 +134,8 @@ sub print_page_content {
 sub get_file_name {
 	my ($species, $isolate, $raw)      = @_;
 	my $prefix = '_'.get_dtap().'_'.$species.'_'.$isolate.'_';
-	$raw = substr $raw, length($prefix); # _dev_mycobacterium_07MY1281_null_rd_csb_csb_rd (1).fasta => null_rd_csb_csb_rd (1).fasta
-	$raw = substr $raw, index($raw, '_') + 1; # null_rd_csb_csb_rd (1).fasta => rd_csb_csb_rd (1).fasta
+	$raw = substr $raw, length($prefix); # _dev_mycobacterium_07MY1281_null_rd_csb_csb_rd.fasta => null_rd_csb_csb_rd.fasta
+	$raw = substr $raw, index($raw, '_') + 1; # null_rd_csb_csb_rd.fasta => rd_csb_csb_rd.fasta
 	return $isolate.'_'.$raw; # rd_csb_csb_rd (1).fasta => {$isolate}_rd_csb_csb_rd (1).fasta
 }
 
@@ -193,7 +195,7 @@ sub print_content {
 			$isolate_name = $identifier;
 		}
 	} else {
-		$isolate_name = $pseudo_id;
+		$isolate_name = get_isolate_identifier_from_pseudo_id($self)
 	}
 
 	# Call azure to get token
@@ -324,6 +326,22 @@ sub get_name {
 	return $self->{'datastore'}
 	  ->run_query( "SELECT $self->{'system'}->{'labelfield'} FROM $self->{'system'}->{'view'} WHERE id=?",
 		$isolate_id );
+}
+
+sub get_isolate_data_from_id {
+	my ($self) = @_;
+	my $q          = $self->{'cgi'};
+    my $isolate_id = $q->param('id');
+ 	my $isolate_data = $self->{'datastore'}->run_query( "SELECT * FROM $self->{'system'}->{'view'} WHERE id=?", $isolate_id, { fetch => 'row_hashref' });
+	return $isolate_data;
+}
+
+sub get_isolate_identifier_from_pseudo_id {
+	my ($self) = @_;
+	my $q          = $self->{'cgi'};
+    my $pseudo_id = $q->param('pseudo_id');
+	my $data = $self->{'datastore'}->run_query("SELECT * FROM isolate_submission_isolates WHERE field = 'isolate_id' AND submission_id = (SELECT submission_id FROM isolate_submission_isolates WHERE value ~ ? LIMIT 1)", $pseudo_id, { fetch => 'row_hashref' });
+	return $data->{'value'};
 }
 
 sub replace_id_in_zip {
