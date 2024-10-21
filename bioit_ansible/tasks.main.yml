@@ -120,6 +120,12 @@
     regexp: 'AZURE_REPORTSAPI_IP=to_be_replaced_by_ansible'
     line: "AZURE_REPORTSAPI_IP={{ azure_reportsapi_ip }}"
 
+- name: add azure reportsapi ip to SciensanoReportPage
+  lineinfile:
+    path: "lib/BIGSdb/SciensanoReportPage.pm"
+    regexp: 'my $azure_reportsapi = to_be_replaced_by_ansible ;'
+    line: "my $azure_reportsapi = '{{ azure_reportsapi_ip }}' ;"
+
 - name: Change Mongo dtap version in config based on playbook argument
   lineinfile:
     path: "{{ bioit_bigs_home }}/bioit_bigsdb_scripts/cron_startinsertion_mongo_implementation.sh"

@@ -41,6 +41,9 @@ use constant HIDE_PMIDS          => 4;
 use constant HIDE_PROJECT_LENGTH => 50;
 use File::Temp qw/ tempfile /;
 
+#my $azure_reportsapi = to_be_replaced_by_ansible ;
+my $azure_reportsapi = '172.23.3.72';
+
 sub set_pref_requirements {
 	my ($self) = @_;
 	$self->{'pref_requirements'} =
@@ -58,9 +61,10 @@ sub initiate {
 	my $q = $self->{'cgi'};
 	my $get_zip  = $q->param('get_zip');
 
-	if ($get_zip == 'yes') {
+	if ($get_zip eq 'yes') {
 		$self->{'type'} = 'tar';
-	} else {
+	}
+    else {
 		$self->{'type'} = 'no_header';
 	}
 
@@ -75,16 +79,21 @@ sub print_page_content {
 	my $q = $self->{'cgi'};
 	my $isolate_id   = $q->param('id');
 	my $get_zip  = $q->param('get_zip');
+	my $get_file = $q->param('get_file');
 	my $content_type = 'text/html';
 
-	if ($get_zip eq 'yes') {
-		$content_type = 'application/zip';
+	if ($get_file ne "") {
+		unless ($get_file  =~ /\.html$/) {
+			$content_type = 'application/zip';
+		}
+	} elsif ($get_zip eq 'yes') {
+		$content_type = 'application/octet-stream';
 	}
 
 	my $identifier;
 	if (defined($isolate_id)){
 		$self->{'isolate_data'} = $self->{'datastore'}->run_query( "SELECT * FROM $self->{'system'}->{'view'} WHERE id=?", $isolate_id, { fetch => 'row_hashref' } );
-		 $identifier = $self->{'isolate_data'}->{'isolate'};
+		$identifier = $self->{'isolate_data'}->{'isolate'};
 	}
 
 	$q->charset('UTF-8');
@@ -106,14 +115,26 @@ sub print_page_content {
 
 	$header_options{'-type'} = $content_type;
 
-	if ($content_type eq 'application/zip') {
+	if ($content_type eq 'application/zip' && !$get_file) {
 		$header_options{'-attachment'} = 'report-'.$isolate_id.'-'.$identifier.'.zip';
+	}elsif($content_type eq 'application/zip' && $get_file) {
+		my $species = get_species($self);
+		my $filename = get_file_name($species, $identifier, $get_file);
+		$header_options{'-attachment'} = $filename;
 	}
 	my %utf8_types = map { $_ => 1 } qw(no_header text json);
 	binmode STDOUT, ':encoding(utf8)' if $utf8_types{ $self->{'type'} };
 	print $q->header( \%header_options );
 
 	$self->print_content;
+}
+
+sub get_file_name {
+	my ($species, $isolate, $raw)      = @_;
+	my $prefix = '_'.get_dtap().'_'.$species.'_'.$isolate.'_';
+	$raw = substr $raw, length($prefix); # _dev_mycobacterium_07MY1281_null_rd_csb_csb_rd (1).fasta => null_rd_csb_csb_rd (1).fasta
+	$raw = substr $raw, index($raw, '_') + 1; # null_rd_csb_csb_rd (1).fasta => rd_csb_csb_rd (1).fasta
+	return $isolate.'_'.$raw; # rd_csb_csb_rd (1).fasta => {$isolate}_rd_csb_csb_rd (1).fasta
 }
 
 sub print_content {
@@ -176,7 +197,7 @@ sub print_content {
 	}
 
 	# Call azure to get token
-	my $login_url = 'http://172.23.3.72:9090/login';
+	my $login_url = "http://".$azure_reportsapi.":9090/login";
 
 	my $ua = LWP::UserAgent->new();
 	my $login_response = $ua->post(
@@ -218,7 +239,14 @@ sub print_content {
 	}
 
 	# Call azure to fetch report
-	my $report_url = "http://172.23.3.72:9090/get_html_report?isolate_id=".$pseudo_id.'&date='.$res_time."&species=".$species."&get_zip=".$get_zip."&dtap=".$dtap."&validation_type=".$validation_type;
+	my $report_url = "http://".$azure_reportsapi.":9090/get_html_report?isolate_id=".$pseudo_id."&date=".$res_time."&species=".$species."&get_zip=".$get_zip."&dtap=".$dtap."&validation_type=".$validation_type;
+
+	my $get_file  = $q->param('get_file');
+	if ($get_file ne "") {
+		$get_file =~ s/$isolate_name/$pseudo_id/gi;
+		$report_url = "http://".$azure_reportsapi.":9090/get_file?file_path=".$get_file;
+	}
+
 	my $report_response = $ua->get($report_url, 'x-access-token' => $report_api_token);
 	my $content = $report_response->content;
 
@@ -230,12 +258,15 @@ sub print_content {
 
 			replace_id_in_zip ($filename, $pseudo_id, $isolate_name);
 
-			open my $file, $filename;
+			open (my $file, $filename);
 			print <$file>;
 			close $file;
-			unlink($file);
+
 		} else {
+			my $get_file_url = $ENV{'REQUEST_URI'} . '&get_file=';
+
 			$content =~ s/$pseudo_id/$isolate_name/g;
+			$content =~ s/onclick="[^>]*get_jwt_subpart\('(?<file_path>[a-z0-9\/\.\_\-]+)'\)"/href="$get_file_url$1"/gi;
 			say $content;
 		}
 	} else {
@@ -247,6 +278,12 @@ sub print_content {
 	}
 
 	return;
+}
+
+sub get_species {
+	my ($self)     = @_;
+	my $description = $self->{'system'}->{'description'};
+	return lc($description =~ s/ isolates//r);
 }
 
 sub get_dtap {
