@@ -41,8 +41,7 @@ use constant HIDE_PMIDS          => 4;
 use constant HIDE_PROJECT_LENGTH => 50;
 use File::Temp qw/ tempfile /;
 
-#my $azure_reportsapi = to_be_replaced_by_ansible ;
-my $azure_reportsapi = '172.23.3.72';
+my $azure_reportsapi = to_be_replaced_by_ansible ;
 
 sub set_pref_requirements {
 	my ($self) = @_;
