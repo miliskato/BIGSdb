@@ -445,6 +445,8 @@ class MainMongo:
         :return: dictionary with the technical metadata
         """
         metadata = JsonReportDict.from_json(self._technical_metadata_path)
+        metadata.pop('name_pseudonymized', None)
+        metadata.pop('species', None)
         if str(self._original_input_format) == 'fastq':
             tx_seq_fltr_meth = ', '.join([f"downsample factor: {results['downsampling']['downsample_factor']}",
                                           f"trimming: {results['trimming']['informs_tools']['Trimmomatic']['_name']}",
