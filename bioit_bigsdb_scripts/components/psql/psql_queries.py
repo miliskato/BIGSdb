@@ -178,11 +178,11 @@ class PsqlQueries():
     ISO_UPD__TB_ISO_VAR_ISO_ISO_ISO_DATE: Final[str] = """
         UPDATE isolates SET (date_entered, datestamp, latest_analysis_date) = 
         ((SELECT CURRENT_DATE),(SELECT CURRENT_DATE), %s) WHERE isolate=%s;"""
-    ISO_INS__TB_ISO_VAR_ISO_UPL_DATE: Final[str] = """
+    ISO_INS__TB_ISO_VAR_ISO_UPL_DATE_ISODATE: Final[str] = """
         INSERT INTO isolates(id, 
-        isolate, sender, curator, date_entered, datestamp, uploader, latest_analysis_date)
+        isolate, sender, curator, date_entered, datestamp, uploader, latest_analysis_date, isolation_date)
         VALUES((SELECT CASE WHEN (SELECT MAX(id) FROM isolates) IS NULL THEN 1 ELSE (SELECT(SELECT MAX(id) FROM isolates)+1) END), 
-        %s, 1, 1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE), %s, %s);"""
+        %s, 1, 1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE), %s, %s, %s);"""
     ISO_SEL_COUNT_TB_ISO_VAR_ISO: Final[str] = """SELECT COUNT(*) FROM isolates WHERE isolate=%s;"""
     ISO_SEL_ANADATE_TB_ISO_VAR_ISO: Final[str] = """
         SELECT latest_analysis_date FROM isolates WHERE id=(SELECT id FROM isolates WHERE isolate=%s);"""

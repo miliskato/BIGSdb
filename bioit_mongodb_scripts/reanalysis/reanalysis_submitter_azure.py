@@ -319,7 +319,7 @@ class BatchPipelinesReanalysis:
         :return: None
         """
         logging.info(f"Creating task {task_name} in job {job_name}")
-        INPUT_STORAGE_ACCOUNT_NAME = f"dlsweu{self._dtap}processing"
+        input_storage_account_name = f"dlsweu{self._dtap}processing"
         task = TaskAddParameter(
             id=task_name,  # (task name == job name) because  we are only using one task per job
             command_line=command,
@@ -332,7 +332,7 @@ class BatchPipelinesReanalysis:
                 file_pattern="../stderr.txt",
                 destination=OutputFileDestination(
                     container=OutputFileBlobContainerDestination(
-                        container_url=f"https://{INPUT_STORAGE_ACCOUNT_NAME}.blob.core.windows.net/batch-logs?{self._connection_azure.sas_token_blobstorage_input}",
+                        container_url=f"https://{input_storage_account_name}.blob.core.windows.net/batch-logs?{self._connection_azure.sas_token_blobstorage_input}",
                         path=f"{BATCH_POOL_NAME}/{job_name}/{task_name}_stderr.txt"
                     )
                 ),
@@ -366,6 +366,8 @@ class BatchPipelinesReanalysis:
         # Create the command to re-analyze the datasets
         config_species = self._reanalysis_config['species'][self._species]
         isolate_id = mongodb_document['results']['isolates_id']
+        reference_genome_size = int(1.5*self._reanalysis_config['reference_genome_size'][self._species])
+        size_command = f"assembly_size=$(stat -c%s {mongodb_document['fasta_path']}); if [ $assembly_size -gt {reference_genome_size} ]; then echo \'Error: The size of the assembly is larger than 1.5 times the reference genome size of {self._species}.\' >&2; exit 1; fi"
         """
         We're creating the report dir before the smk pipe does it, because then if the smk fails for whatever reason,
         the stderr.txt and stdout.txt files can still be copied to the report_dir in the post_command
@@ -378,7 +380,7 @@ class BatchPipelinesReanalysis:
             f"{config_species['main_script']} ",
             f"--fasta {mongodb_document['fasta_path']} ",
             '--detection-method blast' if self._species not in ['sars_cov_2', 'influenza_a', 'influenza_b'] else '',
-            '--library NexteraPE', # should be changed in the future?
+            '--library NexteraPE',  # should be changed in the future?
             f'--working-dir {working_dir}',
             f'--output-dir {report_dir}',
             f"--output-html {report_dir}/report.html",
@@ -391,6 +393,16 @@ class BatchPipelinesReanalysis:
         if self._species == 'mycobacterium' and mongodb_document['original_input_format'] != 'fasta':
             base_command += f' --vcf-unfiltered {mongodb_document["vcf_path_unfiltered"]}' if mongodb_document.get(
                 "vcf_path_unfiltered") else ''
+        unload_command = f"module unload {config_species['lmod']}"
+        config_mongodb = self._reanalysis_config['mongodb']
+        report_command = ' '.join([
+            f"module load {config_mongodb['lmod']};",
+            f"{config_mongodb['report_script']}",
+            f"--base-html {results_dir}/report.html",
+            f"--updated-html {report_dir}/report.html",
+            f"--species {self._species}",
+            f"--analysis-arguments {' '.join(analysis_arguments)}"
+        ])
         # Copy the stderr and stdout files from the temporary working dir to the fileshare because they
         # might contain more information than the camel.log
         post_command = f'cp $AZ_BATCH_TASK_DIR/std*.txt {report_dir}/'
@@ -398,11 +410,8 @@ class BatchPipelinesReanalysis:
         # stderr + stdout because they're not necessary
         cleanup_command = f"if test -e {report_dir}/report.html ; then rm -r {working_dir}; rm {report_dir}/std*.txt; fi; cd $AZ_BATCH_TASK_DIR; rsync -a --no-p --no-o --no-g {report_dir}/ {results_dir}/; rm {results_dir}/camel.log; rm -r {report_dir}"
         # the cd before rsync is necessary because else it will throw the error: rsync: getcwd(): No such file or directory (2)
-        unload_command = f"module unload {config_species['lmod']}"
-        config_mongodb = self._reanalysis_config['mongodb']
         lockfile = f"/scratch/scratch/{self._dtap}/mainmongo_{self._species}.lockfile"
         mongodb_command = ' '.join([
-            f"module load {config_mongodb['lmod']};",
             f"start_time=$(date +%s); while ! /usr/bin/flock -n {lockfile} true && (( $(date +%s) - start_time < 3600 )); do sleep 1; done;",
             f"/usr/bin/flock -u {lockfile}",
             f"{config_mongodb['main_script']}",
@@ -415,7 +424,7 @@ class BatchPipelinesReanalysis:
             f"--alternate_dtap {self._dtap}",
             f"--connection_string 'CONNECTION_STRING_AZURE'"
         ])
-        task_command = f'/bin/bash -c "{pre_command}; {trap_command}; {base_command}; {post_command}; {cleanup_command}; {unload_command}; {mongodb_command}"'
+        task_command = f'/bin/bash -c "{pre_command}; {trap_command}; {size_command}; {base_command}; {unload_command}; {report_command}; {post_command}; {cleanup_command}; {mongodb_command}"'
         return task_command
 
 

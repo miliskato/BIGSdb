@@ -111,15 +111,13 @@ class DbUpdatesReanalysis:
         Executes the tempid replacer azure script.
         :return: None
         """
-        schemes = ['mlst', 'cgmlst', 'mlst_warwick', 'mlst_pasteur']
         for species in self._mongo_config_data['species']:
-            for scheme in schemes:
-                if self._environment == 'dt':
-                    TempidReplacerAzure(scheme, species, "dev")
-                    TempidReplacerAzure(scheme, species, "test")
-                if self._environment == 'ap':
-                    TempidReplacerAzure(scheme, species, "acc")
-                    TempidReplacerAzure(scheme, species, "prod")
+            if self._environment == 'dt':
+                TempidReplacerAzure(species, "dev")
+                TempidReplacerAzure(species, "test")
+            if self._environment == 'ap':
+                TempidReplacerAzure(species, "acc")
+                TempidReplacerAzure(species, "prod")
 
     def _execute_reanalysis(self) -> None:
         """
@@ -240,7 +238,7 @@ class DbUpdatesReanalysis:
     @staticmethod
     def _execute_command(command_str: str) -> None:
         """
-        Executes a bash command
+        Executes a bash command.
         :param command_str: bash command
         """
         command = Command(command_str)
