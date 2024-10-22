@@ -116,9 +116,9 @@ sub print_page_content {
 
 	$header_options{'-type'} = $content_type;
 
-	if ($content_type eq 'application/zip' && !$get_file) {
+	if ($content_type eq 'application/octet-stream') {
 		$header_options{'-attachment'} = 'report-'.$isolate_id.'-'.$identifier.'.zip';
-	}elsif($content_type eq 'application/zip' && $get_file) {
+	}elsif($content_type eq 'application/zip') {
 		my $species = get_species($self);
 		my $filename = get_file_name($species, $identifier, $get_file);
 		$header_options{'-attachment'} = $filename;
