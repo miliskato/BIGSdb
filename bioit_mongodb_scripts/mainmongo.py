@@ -47,9 +47,9 @@ def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     parser.add_argument("--fastafilepath", required=False, type=str)  # not mandatory because of reanalysis
     parser.add_argument("--vcffilepath", required=False, type=str)  # not mandatory because of reanalysis
     parser.add_argument("--vcffilepath_unfiltered", required=False, type=str)  # not mandatory because of reanalysis
-    parser.add_argument("--original_input_format", required=False, type=str) # maybe later change it to choices
+    parser.add_argument("--original_input_format", required=False, type=str)  # maybe later change it to choices
     parser.add_argument("--technical_id", required=True, type=str)
-    parser.add_argument("--technical_metadata_path", required=False, type=Path) # not mandatory because of reanalysis
+    parser.add_argument("--technical_metadata_path", required=False, type=Path)  # not mandatory because of reanalysis
     parser.add_argument("--pipeline_hash", required=True, type=str)  # Required for DCD NRC->DWH
     parser.add_argument('--connection_string', required=False, type=str)  # will replace connection string, only for small testing purposes
     parser.add_argument('--alternate_dtap', choices=['dev', 'test', 'acc', 'prod'], help=argparse.SUPPRESS)  # will replace connection string, only for small testing purposes
@@ -62,7 +62,7 @@ class MainMongo:
     Class containing definitions to insert samples into MongoDB
     """
     def __init__(self, technical_id: str, species: str, results_type: str, pipeline_hash: str = None, jsonfilepath: Path = None,
-                 subvaldict: Dict[str, str] = None, technical_metadata_path: Path = None ,reportdirectorypath: Path = None, fastafilepath: Path = None,
+                 subvaldict: Dict[str, str] = None, technical_metadata_path: Path = None, reportdirectorypath: Path = None, fastafilepath: Path = None,
                  vcffilepath: Path = None, vcffilepath_unfiltered: Path = None, original_input_format: str = None, connection_string: str = None, alternate_dtap: Union[str, None] = None,
                  dont_send_email: bool = False, mongo_config_data: Dict[str, Any] = None) -> None:
         """
@@ -156,7 +156,7 @@ class MainMongo:
             raise Exception('vcffilepath necessary when using results_type new_isolate')
         if self._results_type == 'new_isolate' and not self._technical_metadata_path:
             raise Exception('technical metadata path necessary when using results_type new_isolate')
-        if self._results_type not in ['badqc_validated','resequencing_validation'] and not self._pipeline_hash:
+        if self._results_type not in ['badqc_validated', 'resequencing_validation'] and not self._pipeline_hash:
             raise Exception('pipeline_hash not provided although mandatory for this result_type')
 
         # the below check is already handled in mongo initialisation
@@ -355,7 +355,7 @@ class MainMongo:
         # Update new results if really a reanalysis/resequencing where at least one field changed
         if 'cgmlst' in changed_results_new_old and not new_json_report.get('cgST'):
             self.__define_cgst_and_run_clustering(new_json_report)
-        deltas_new_old = self.___nested_dict_delta(current_results, new_json_report)
+        deltas_new_old = self.___nested_dict_delta(current_results, new_json_report, path_to_report)
         new_results = self.___prepend_string_dot_to_dict_keys(new_json_report, 'results')
         new_results["results.isolates_id"] = self._technical_id
         new_results["results.results_version"] = current_results["results_version"] + 1
@@ -460,7 +460,7 @@ class MainMongo:
                 for subkey in input_dictionary[key]:
                     input_dictionary_copy['.'.join([key, subkey])] = input_dictionary_copy[key][subkey]
                 input_dictionary_copy.pop(key)
-        keydict = {key:'.'.join([prepending, key]) for key in input_dictionary_copy.keys()}
+        keydict = {key: '.'.join([prepending, key]) for key in input_dictionary_copy.keys()}
         return {keydict[key]: value for key, value in input_dictionary_copy.items()}
 
     @staticmethod
@@ -503,15 +503,16 @@ class MainMongo:
                         if existing_document is None:
                             temp_allele = self.___max_temp_allele_name_new_entry(hashed_ad_collection, allele_info['Locus'],
                                                                                  typing_scheme)
-                            self.___write_document(hashed_ad_collection, MongoRecordDict({"scheme": typing_scheme,
-                                                                         "locus": allele_info['Locus'],
-                                                                         "hashed_allele": allele_info['Allele'],
-                                                                         "allele_sequence": allele_info['Allele_sequence'],
-                                                                         "encountered_count": 1,
-                                                                         "resolved_AD": 0,
-                                                                         "temp_allele_name": temp_allele,
-                                                                         "insertion_date": datetime.utcnow(),
-                                                                          }))
+                            self.___write_document(hashed_ad_collection,
+                                                   MongoRecordDict({"scheme": typing_scheme,
+                                                                    "locus": allele_info['Locus'],
+                                                                    "hashed_allele": allele_info['Allele'],
+                                                                    "allele_sequence": allele_info['Allele_sequence'],
+                                                                    "encountered_count": 1,
+                                                                    "resolved_AD": 0,
+                                                                    "temp_allele_name": temp_allele,
+                                                                    "insertion_date": datetime.utcnow(),
+                                                                    }))
                             json_report[typing_scheme]['loci'][locus_index]['Allele'] = temp_allele  # replace the name of the allele in the results (no hash anymore)
                         else:
                             temp_allele = existing_document["temp_allele_name"]
@@ -650,7 +651,8 @@ class MainMongo:
                                                                                                    "cgmlst",
                                                                                                    self._headers_collection)
         custom_clustering = MongoCustomClustering(clustering_input[0], clustering_input[1],
-                                                  self._species, self._mongo_config_data)
+                                                  self._species, self._naive_clustering_distance_matrix_file,
+                                                  self._mongo_config_data)
         logging.info(f"Running the clustering for the isolate {self._technical_id}")
         sp_thresholds = f"clustering_thresholds_{self._species}"
         sequence_type = custom_clustering.run_custom_clustering(CLUSTERING_CONFIG[sp_thresholds])
