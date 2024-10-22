@@ -119,6 +119,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
     def ___get_isolate_id(self) -> str:
         """
         return BIGSdb id of the isolate
+        :return: BIGSdb id of the isolate
         """
         with TblIsolates(self._species) as isolates_tbl:
             id = isolates_tbl.select_id_for_isolate((self._isolatename,))
