@@ -1,12 +1,12 @@
 import abc
 import re
 from typing import Any, Dict, List, Optional, Union
-from typing import Mapping
+from typing import Mapping, Tuple
 
 import pymongo
 from pymongo.read_concern import ReadConcern
 
-from .python_utility_functions import convert_dmyhms_to_ymd, merge_nested_dicts
+from .python_utility_functions import convert_dmyhms_to_ymd, merge_mongo_dicts
 from ..model.json_model import MongoRecordDict, JsonReportDict
 
 
@@ -73,14 +73,14 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         scheme_loci = json_report[scheme]['loci']
 
         if isinstance(scheme_loci, list):
-            return Mongoquerying.create_scheme_profile_from_json(doc_index, isolate, scheme_loci)
+            return Mongoquerying._create_scheme_profile_from_json(doc_index, isolate, scheme_loci)
         elif isinstance(scheme_loci, dict):
-            return Mongoquerying.create_scheme_profile_from_mongo(doc_index, headers_collection, isolate, scheme, scheme_loci)
+            return Mongoquerying._create_scheme_profile_from_mongo(doc_index, headers_collection, isolate, scheme, scheme_loci)
 
     @staticmethod
-    def create_scheme_profile_from_mongo(doc_index:int, headers_collection: pymongo.collection.Collection, isolate: str, scheme: str, scheme_loci: Dict[str, Any]) -> List[List[Union[str, int]]]:
+    def _create_scheme_profile_from_mongo(doc_index:int, headers_collection: pymongo.collection.Collection, isolate: str, scheme: str, scheme_loci: Dict[str, Any]) -> List[List[Union[str, int]]]:
         """
-        return a list of allele definition for the given isolate and scheme, and optionally, the header corresponding to
+        return a list of allele designations for the given isolate and scheme, and optionally, the header corresponding to
         this profile (containing the locus name of the scheme)
         :param doc_index: document index if list of documents. If doc_index = 0 will also provide a header
         :param headers_collection: mongo opened headers collection
@@ -119,9 +119,9 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         return listofresultlists
 
     @staticmethod
-    def create_scheme_profile_from_json(doc_index: int ,isolate: str, scheme_loci: List[str]) -> List[List[Union[str, int]]]:
+    def _create_scheme_profile_from_json(doc_index: int, isolate: str, scheme_loci: List[str]) -> List[List[Union[str, int]]]:
         """
-        return a list of allele definition for the given isolate and scheme, and optionally, the header corresponding to
+        return a list of allele designations for the given isolate and scheme, and optionally, the header corresponding to
         this profile (containing the locus name of the scheme)
         :param doc_index: document index
         :param isolate: str corresponding to the isolate name stored in _id from mongo isolates collection
@@ -187,7 +187,7 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
     def get_any_results_version(self, isolate_id: str, searchkey: str, searchvalue: Union[str, int],
                                 isolates_collection: pymongo.collection.Collection,
                                 old_isolateresults_collection: pymongo.collection.Collection,
-                                headers_collection: pymongo.collection.Collection) -> MongoRecordDict:
+                                headers_collection: pymongo.collection.Collection) -> Tuple[MongoRecordDict, bool]:
         """
         Gets any results version for a given isolate_id
         :param isolate_id: name of the isolate corresponding to the _id key in the isolates collection
@@ -196,7 +196,7 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         :param isolates_collection: pymongo main isolates collection
         :param old_isolateresults_collection: pymongo collection of old isolate results
         :param headers_collection: pymongo collection containing the headers for various lists
-        :return: document of the requested version
+        :return: document of the requested version and boolean stating whether this is the latest results version or not
         """
         # 1. Check input
         if searchkey not in ['changed_version', 'analysis_date']:
@@ -211,8 +211,10 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
             raise Exception(f"No isolate with id '{isolate_id}' could be found in MongoDB.")
         if searchkey == 'changed_version' and current_version['results'][searchkey] <= searchvalue:
             requested_document = current_version
+            latest_version = True
         elif searchkey == 'analysis_date' and convert_dmyhms_to_ymd(current_version['results'][searchkey]) <= searchvalue:
             requested_document = current_version
+            latest_version = True
         # 3. Query all old results up until the requested value, if the requested value is a date,
         # and the date is not an exact date that the sample has a version, the first more recent result will be selected
         else:
@@ -229,27 +231,11 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
                 old_versions_merged = old_versions[0]
                 if len(old_versions) > 1:
                     for x in old_versions[1:]:
-                        merge_nested_dicts(old_versions_merged, x)
-                merge_nested_dicts(current_version['results'], old_versions_merged)
+                        merge_mongo_dicts(old_versions_merged, x)
+                merge_mongo_dicts(MongoRecordDict(current_version['results']), old_versions_merged)
             requested_document = current_version
+            latest_version = False
         # 4. Revert the effective dict to list storage to a readable format for the html reporter
         self.revert_typinghitlists_to_dictionaries(requested_document, headers_collection)
         requested_document['latest_analysis_date'] = requested_document['results']['analysis_date']
-        return requested_document
-
-    @staticmethod
-    def retrieve_number_of_old_isolate_results(isolate_id: str, old_isolateresults_collection: pymongo.collection.Collection, validation_type: str) -> int:
-        """
-        Retrieves the number of old isolate results for a specific isolate_id.
-        param old_isolateresults_collection: pymongo collection of old isolate results
-        param validation_type: null, bad_quality or resequencing
-        return: number of old isolate results for a specific isolate_id
-        """
-        if validation_type == 'null':
-            old_versions = old_isolateresults_collection.with_options(read_concern=ReadConcern(level="majority")). \
-                find({'isolates_id': isolate_id})
-            old_versions = [x for x in old_versions if x is not None]
-            number_of_old_versions = len(old_versions)
-        else:
-            number_of_old_versions = 0
-        return number_of_old_versions
+        return requested_document, latest_version

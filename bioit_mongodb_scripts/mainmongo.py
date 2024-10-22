@@ -212,11 +212,13 @@ class MainMongo:
 
             if self._results_type == "reanalysis":
                 json_report = JsonReportDict.from_json(self._jsonfilepath)
+                new_path_to_report = str(self._jsonfilepath)
             else:  # self._results_type == 'resequencing_validated'
                 existing_mongo_record = MongoRecordDict(self._isolates_resequencing_collection.find_one({"_id": self._technical_id}))
                 json_report = existing_mongo_record.get_json_results()
+                new_path_to_report = existing_mongo_record['report_directory']
 
-            self.__new_reanalysis_wrapper(current_results_document, json_report)
+            self.__new_reanalysis_wrapper(current_results_document, json_report, new_path_to_report)
 
     def __process_json_report(self, json_report: JsonReportDict) -> MongoRecordDict:
         """
@@ -229,7 +231,7 @@ class MainMongo:
 
         good_sample_quality = True
         if self._results_type == 'new_isolate' and self._species not in self._mongo_config_data['viral_species']:  # viral pathogens do not have a qc section
-            good_sample_quality = self.is_good_quality(json_report)
+            good_sample_quality = self.___is_good_quality(json_report)
 
         self.__process_mongo_record(mongo_records, good_sample_quality)
         return mongo_records
@@ -241,19 +243,13 @@ class MainMongo:
         :param good_sample_quality: boolean indicating whether the sample quality is good or bad
         :return: None
         """
-        if good_sample_quality:
+        if self._results_type != 'badqc_validated':  # badqc documents have already had their typinghitdictionaries converted to lists and their cgsts/clustering computed
             json_report = mongo_records.get_json_results()
             self.___find_hashes_in_results_and_add_to_collection(json_report, 'new_isolate')
             self.___convert_typinghitdictionaries_to_lists(json_report)
             if 'cgmlst' in json_report:
-                clustering_input = self._mongoquerying.singledoc_typing_results_by_technicalids_and_scheme(json_report, mongo_records.get_id(), "cgmlst", self._headers_collection)
-                custom_clustering = MongoCustomClustering(clustering_input[0], clustering_input[1], self._species,
-                                                          self._naive_clustering_distance_matrix_file,
-                                                          mongo_config_data=self._mongo_config_data)
-                logging.info(f"Running the clustering for the isolate {self._technical_id}")
-                sp_thresholds = f"clustering_thresholds_{self._species}"
-                cg_sequence_type = custom_clustering.run_custom_clustering(CLUSTERING_CONFIG[sp_thresholds])
-                mongo_records['results']['cgST'] = cg_sequence_type
+                self.__define_cgst_and_run_clustering(json_report)
+        if good_sample_quality:
             if self._results_type == 'badqc_validated':
                 mongo_records['validation'] = self._subvaldict
                 self._isolates_badqc_collection.delete_one({'_id': mongo_records["_id"]})
@@ -264,7 +260,7 @@ class MainMongo:
             logging.warning(
                 f"New isolate {self._technical_id} failed quality control for one or more checks. It's results were written to the 'isolates_badqc' collection in the {self._species} database")
 
-    def is_good_quality(self, new_json_report: JsonReportDict) -> bool:
+    def ___is_good_quality(self, new_json_report: JsonReportDict) -> bool:
         """
         Evaluates the quality of the isolates based on qc from camel
         :param new_json_report: json report containing the results from the pipeline
@@ -319,6 +315,13 @@ class MainMongo:
             else:
                 new_json_report["isolates_id"] = self._technical_id
                 new_isolate = self.___initialize_mongo_record(new_json_report)
+
+                # compute cgST and clustering on the Azure side independent of if quality is good or bad.
+                # (there is a missing data filet in the clustering though)
+                self.___find_hashes_in_results_and_add_to_collection(new_json_report, 'reanalysis')
+                self.___convert_typinghitdictionaries_to_lists(new_json_report)
+                if 'cgmlst' in new_json_report:
+                    self.__define_cgst_and_run_clustering(new_json_report)
                 self.___write_document(self._isolates_resequencing_collection, new_isolate)
         else:
             send_email(
@@ -326,17 +329,20 @@ class MainMongo:
                 dont_send_email=self._dont_send_email)
             raise MongoResequencingAlreadyExistsError(f"The resequencing for  {self._technical_id} was identical to the original isolate or to a previously submitted resequencing")
 
-    def __new_reanalysis_wrapper(self, current_results_document: MongoRecordDict, new_json_report: JsonReportDict) -> None:
+    def __new_reanalysis_wrapper(self, current_results_document: MongoRecordDict, new_json_report: JsonReportDict, path_to_new_directory: str) -> None:
         """
         Wrapper function for reanalysis and resequencing validated         
         :param current_results_document: the current results document dict in the Mongo collection before applying the reanalysis
         :param new_json_report: the new results document dict, under results for reanalysis, all for resequencing
+        :path_to_new_directory: path to the new version of the report
         :return: None
         """
-        self.___find_hashes_in_results_and_add_to_collection(new_json_report, 'reanalysis')
-        self.___convert_typinghitdictionaries_to_lists(new_json_report)
+        if not new_json_report.get('cgST'):  # != resequencing_validated, == reanalysis
+            self.___find_hashes_in_results_and_add_to_collection(new_json_report, 'reanalysis')
+            self.___convert_typinghitdictionaries_to_lists(new_json_report)
 
         current_results = current_results_document.get_json_results()
+        path_to_report = current_results_document['report_directory']
         if new_json_report["analysis_date"] == current_results["analysis_date"]:
             send_email(f"This ({self._technical_id}) is not a reanalysis but the same results\n{traceback.format_exc()}", dont_send_email=self._dont_send_email)
             raise MongoReanalysisDateError(
@@ -347,15 +353,8 @@ class MainMongo:
                 f"{Path(__file__).name} fail on host {socket.gethostname()}: These ({self._technical_id}) results seem to be older than the current results")
         any_result_changed_new_old, unchanged_results_new_old, changed_results_new_old = self.___check_if_results_changed(current_results, new_json_report)
         # Update new results if really a reanalysis/resequencing where at least one field changed
-        if 'cgmlst' in changed_results_new_old:
-            clustering_input = self._mongoquerying.singledoc_typing_results_by_technicalids_and_scheme(new_json_report, self._technical_id, "cgmlst", self._headers_collection)
-            custom_clustering = MongoCustomClustering(clustering_input[0], clustering_input[1], self._species,
-                                                      self._naive_clustering_distance_matrix_file,
-                                                      self._mongo_config_data)
-            logging.info(f"Running the clustering for the isolate {self._technical_id}")
-            sp_thresholds = f"clustering_thresholds_{self._species}"
-            sequence_type = custom_clustering.run_custom_clustering(CLUSTERING_CONFIG[sp_thresholds])
-            new_json_report["cgST"] = sequence_type
+        if 'cgmlst' in changed_results_new_old and not new_json_report.get('cgST'):
+            self.__define_cgst_and_run_clustering(new_json_report)
         deltas_new_old = self.___nested_dict_delta(current_results, new_json_report)
         new_results = self.___prepend_string_dot_to_dict_keys(new_json_report, 'results')
         new_results["results.isolates_id"] = self._technical_id
@@ -375,7 +374,7 @@ class MainMongo:
         self._isolates_collection.with_options(write_concern=WriteConcern(w="majority")).update_one(
             {"_id": self._technical_id}, {
                 "$set": {**new_results,
-                         "report_directory": new_json_report['report_directory'],
+                         "report_directory": path_to_new_directory,
                          "results.results_changed_since_last_version": any_result_changed_new_old,
                          "latest_analysis_date": convert_dmyhms_to_ymd(new_results["results.analysis_date"]),
                          "previous_latest_results_document": self.___write_document(self._old_isolateresults_collection,
@@ -402,7 +401,7 @@ class MainMongo:
         :param results: results dictionary to be inserted
         :return: dictionary with results under results key and metadata keys at the same level of the results key
         """
-        technical_metadata = self.___retrieve_technical_metadata(results)
+        technical_metadata = self.___retrieve_technical_metadata(results) if self._species not in self._mongo_config_data['viral_species'] else 'to be determined'
         results["pipeline_hash"] = self._pipeline_hash
         results["results_version"] = 1  # this version always increments
         results["changed_version"] = 1  # this version only increments whenever something actually changed
@@ -564,12 +563,13 @@ class MainMongo:
                     unchanged_results.add(mainkey)
         return any_result_changed, unchanged_results, changed_results
 
-    def ___nested_dict_delta(self, current_results: JsonReportDict, new_results: JsonReportDict) -> JsonReportDict:
+    def ___nested_dict_delta(self, current_results: JsonReportDict, new_results: JsonReportDict, current_report_path: str) -> JsonReportDict:
         """
         This function calculates the delta between the new results and the current results;
         it returns the changes needed to get from the new results to the current results.
         :param current_results: current mongodb results
         :param new_results: to be inserted results
+        :param current_report_path: path to the current report, extracted from Mongo doc.
         :return: dictionary of deltas
         """
         # TODO what with new keys in the new_results (not on assay level)?
@@ -577,7 +577,7 @@ class MainMongo:
         for key, value in current_results.items():
             if key in new_results:
                 if isinstance(value, dict) and isinstance(new_results[key], dict):
-                    nested_delta = self.___nested_dict_delta(JsonReportDict(value), new_results[key])
+                    nested_delta = self.___nested_dict_delta(JsonReportDict(value), new_results[key], current_report_path)
                     if nested_delta:
                         delta_new_old[key] = nested_delta
                 elif new_results[key] != value:
@@ -592,7 +592,7 @@ class MainMongo:
             delta_new_old['isolates_id'] = current_results['isolates_id']
             delta_new_old['results_version'] = current_results['results_version']
             delta_new_old['changed_version'] = current_results['changed_version']
-        delta_new_old['report_directory'] = current_results['report_directory']
+        delta_new_old['report_directory'] = current_report_path
         return delta_new_old
 
     def ___convert_typinghitdictionaries_to_lists(self, json_report: JsonReportDict):
@@ -638,6 +638,23 @@ class MainMongo:
                                 meta_hit_dictionary[single_hit_dictionary['Locus']] = [single_hit_dictionary[metadata]
                                                                                        for metadata in hit_header_list]
                             results_to_modify[mainkey][subkey] = meta_hit_dictionary
+
+    def __define_cgst_and_run_clustering(self, json_report: JsonReportDict) -> None:
+        """
+        Defines the cgST and clusters this cgST with the other cgST's in the database.
+        :param json_report: json dict containing all results which are found under the 'results' key
+        :return: None
+        """
+        clustering_input = self._mongoquerying.singledoc_typing_results_by_technicalids_and_scheme(json_report,
+                                                                                                   self._technical_id,
+                                                                                                   "cgmlst",
+                                                                                                   self._headers_collection)
+        custom_clustering = MongoCustomClustering(clustering_input[0], clustering_input[1],
+                                                  self._species, self._mongo_config_data)
+        logging.info(f"Running the clustering for the isolate {self._technical_id}")
+        sp_thresholds = f"clustering_thresholds_{self._species}"
+        sequence_type = custom_clustering.run_custom_clustering(CLUSTERING_CONFIG[sp_thresholds])
+        json_report["cgST"] = sequence_type
 
 
 if __name__ == '__main__':

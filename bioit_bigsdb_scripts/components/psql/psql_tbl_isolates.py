@@ -44,14 +44,15 @@ class TblIsolates(DatabaseConnection):
         """
         self.execute_query(PsqlQueries.ISO_DEL__TB_ISO_VAR_ISO_ISO, param)
 
-    def insert_isolate(self, param: Tuple[str, str, str]) -> None:
+    def insert_isolate(self, param: Tuple[str, str, str, str]) -> None:
         """
         Inserts a new isolate
         :param param: variables to feed to the PSQL query, which also sanitizes these variables,
-        necessary parameters visible in the PSQL query name and query
+        necessary parameters visible in the PSQL query name and query; isolate name, curator,
+        latest_analysis_date, isolation_date
         :return: None
         """
-        self.execute_query(PsqlQueries.ISO_INS__TB_ISO_VAR_ISO_UPL_DATE, param)
+        self.execute_query(PsqlQueries.ISO_INS__TB_ISO_VAR_ISO_UPL_DATE_ISODATE, param)
 
     def update_isolate_analysis_date(self, param: Tuple[str, str]) -> None:
         """
@@ -71,13 +72,13 @@ class TblIsolates(DatabaseConnection):
         """
         self.execute_query(PsqlQueries.ISO_UPD_NEWV_TB_ISO_VAR_ISO, param)
 
-    def select_current_cgst_of_isolate(self, param: Tuple[int, str]) -> Optional[Tuple[Any]]:
+    def select_current_cgst_of_isolate(self, param: Tuple[int, str]) -> List[Optional[Tuple[Any]]]:
         """
-        Select the cgst found in BIGSdb for the current isolate and return it along with its isolate id
-        :param param: cgmlst scheme id, cgmlst scheme id, isolate name
-        :return: None or tuple containing the isolate_id and its cgst
+        Select the cgst found in BIGSdb for the current isolate and return it
+        :param param: cgmlst scheme id, isolate name
+        :return: list of None or list with one tuple containing the cgST
         """
-        return self.execute_query(PsqlQueries.ISO_SEL_ID_CGST_TB_ISO_VAR_SCHID_ISO, param)
+        return self.execute_query(PsqlQueries.ISO_SEL_CGST_TB_ISO_VAR_SCHID_ISO, param)
 
     def select_isolates_by_cgsts_and_between_dates(self, param: Tuple[int, Tuple[str, ...], str, str]) -> \
             List[Optional[Tuple[Any]]]:

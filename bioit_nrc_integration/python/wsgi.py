@@ -1,5 +1,6 @@
 import json
 import sys
+import uuid
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, Union
 
@@ -66,15 +67,22 @@ def insert_into_mongodb(mapping_table_dict: Dict[str, str], start_response: Call
                                         mongo_config_data=mongo_config_data,
                                         alternate_dtap=mapping_table_dict['dtap'])
         mapping_table_collection = mongoinit.initialise_mapping_table_collection()
-        mapping_table_collection.insert_one({'_id': mapping_table_dict['id'],
-                                             'pseudo_id': mapping_table_dict['pseudo_id']})
+        already_present = mapping_table_collection.find_one({'_id': mapping_table_dict['id']})
+        if not already_present:
+            pseudo_id = str(uuid.uuid4())
+            mapping_table_collection.insert_one({'_id': mapping_table_dict['id'],
+                                                 'pseudo_id': pseudo_id,
+                                                 'TX_BUSINESS_KEY': mapping_table_dict['TX_BUSINESS_KEY']})
+        else:
+            pseudo_id = already_present['pseudo_id']
+
         # Set the response status and headers
         status = '200 OK'
         response_headers = [('Content-type', 'text/plain')]
         start_response(status, response_headers)
 
-        # Return a response
-        return [b"Message handled and inserted into MongoDB"]
+        # Return the unique pseudo_id for the id
+        return [pseudo_id.encode('utf-8')]
     except Exception as exceptionmessage:
         # Set the response status and headers
         status = '400 Bad Request'

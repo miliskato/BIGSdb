@@ -29,17 +29,19 @@ class MainInserter(JsonSuperClass):
         self._vcf_path = vcf_path
         self._mongo_dtap = mongo_dtap
     
-    def insert_new_isolate(self, uploader_mail_address: str) -> None:
+    def insert_new_isolate(self, uploader_mail_address: str, isolation_date: str) -> None:
         """
         main function to insert a new isolate, but only the isolate
         :param uploader_mail_address: mailadress of the uploader of the new isolate
+        :param isolation_date: isolation date as str as DD/MM/YYYY
         :return: None
         """
         with TblIsolates(self._species) as isolates_psql_tbl:
             sample_presence = isolates_psql_tbl.count_isolate((self._isolatename,))
             if sample_presence[0][0] == 0:
-                isolates_psql_tbl.insert_isolate((self._isolatename, uploader_mail_address,
-                                                  datetime.datetime.strptime(self._json_report_dict['analysis_date'], '%d/%m/%Y - %X').strftime('%Y-%m-%d')))
+                isolates_psql_tbl.insert_isolate((self._isolatename, uploader_mail_address,  # todo should uploader mail address not removed?
+                                                  datetime.datetime.strptime(self._json_report_dict['analysis_date'], '%d/%m/%Y - %X').strftime('%Y-%m-%d'),
+                                                  datetime.datetime.strptime(isolation_date, '%d/%m/%Y').strftime('%Y-%m-%d')))
                 with TblHistory(self._species) as isolates_history_psql_tbl:
                     isolates_history_psql_tbl.insert_history_isolate((self._isolatename, 'Isolate record added'))
             else:

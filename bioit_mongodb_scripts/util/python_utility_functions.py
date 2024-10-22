@@ -16,6 +16,7 @@ sys.path.append(str(PYTHONPATH))
 from bioit_mongodb_scripts.config import MONGO_CONFIG
 from bioit_mongodb_scripts.model.json_model import MongoRecordDict
 
+
 def get_mongodb_config_data() -> Dict[str, Union[str, List[Any], Dict[str, Union[str, Dict[str, Any]]]]]:
     """
     Reads the global bigsdb config
@@ -73,8 +74,11 @@ def convert_dmyhms_to_dateobj(datetimestring: str) -> datetime.date:
     """
     return datetime.strptime(datetimestring, '%d/%m/%Y - %X').date()
 
+def merge_mongo_dicts(target_dict: MongoRecordDict, merging_dict: MongoRecordDict) -> None:
+    """merge a MongoRecordDict into another MongoRecordDict"""
+    _merge_nested_dicts(target_dict, merging_dict)
 
-def merge_nested_dicts(target_dict: MongoRecordDict, merging_dict: MongoRecordDict) -> MongoRecordDict:
+def _merge_nested_dicts(target_dict: Union[MongoRecordDict,Dict], merging_dict: [MongoRecordDict,Dict]) -> Dict:
     """
     Merges a nested dictionary into another target nested dictionary, seeing as this does not create a deepcopy,
     changes are applied regardless of if the output is captured
@@ -83,8 +87,8 @@ def merge_nested_dicts(target_dict: MongoRecordDict, merging_dict: MongoRecordDi
     :return: merged target directory
     """
     for key, value in merging_dict.items():
-        if key in target_dict and isinstance(target_dict[key], MongoRecordDict) and isinstance(value, MongoRecordDict):
-            merge_nested_dicts(target_dict[key], value)
+        if key in target_dict and isinstance(target_dict[key], dict) and isinstance(value, dict):
+            _merge_nested_dicts(target_dict[key], value)
         else:
             target_dict[key] = value
     return target_dict
