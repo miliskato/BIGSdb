@@ -1,7 +1,7 @@
 import logging
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Tuple, Optional
+from typing import Any, Dict, List, Tuple
 
 import requests
 
@@ -105,7 +105,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
                             ['POINTFINDER', re.sub('-| ', '_', antibiotic).upper()])
                         mutation = re.sub('[.]| ', '_', result['Mutation'])
                         scheme_tag = self._schemedict[self._scheme]['schemename_html']
-                        report_url = UrlHelper.report_for_isolate(self._species, self.___get_isolate_id(), anchor = scheme_tag)
+                        report_url = UrlHelper.report_for_isolate(self._species, self.___get_isolate_id(), anchor=scheme_tag)
                         eavhtmltable = eavhtmltable + f'<tr><td><a href="{report_url}" target="_blank">{mutation}</a></td>'
                         eavhtmltable = eavhtmltable + f'<td>{antibiotic}</td></tr>'
                         self.insert_locus_if_needed(antibiotic_reformatted,
