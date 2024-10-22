@@ -32,6 +32,7 @@ from bioit_bigsdb_scripts.Typing_schemeprofiles_intopsql import TypingSchemeProf
 from bioit_mongodb_scripts.util.alerts_to_bigs import AlertsToBigs
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.mongo_querying import Mongoquerying
+from bioit_mongodb_scripts.util.mongo_to_bigs_nominative import MongoToBigsNominative
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email, convert_dmyhms_to_dateobj
 from bioit_mongodb_scripts.util.new_clustering_info_to_bigs import NewClusteringInfoToBigs
 from bioit_mongodb_scripts.util.samples_to_validation_bigs import samples_to_validation_bigs
@@ -88,6 +89,7 @@ class MongoToBigs:
         self._mongoinit_local = MongoInitialisation(self._species, mongo_config_data=self._mongo_config_data,
                                                     selected_connection_string='CONNECTION_STRING_LOCAL')
         self._mappingtable_collection = self._mongoinit_local.initialise_mapping_table_collection()
+        self._nominative_labtest_clinical_metadata_collection = self._mongoinit_local.initialise_nominative_labtest_clinical_metadata_collection()
         # Open Bigsdb isolates table
         self._isolates_psql_tbl = TblIsolates(self._species)
 
@@ -168,7 +170,8 @@ class MongoToBigs:
             self._mongoquerying.revert_typinghitlists_to_dictionaries(document, self._headers_collection)
             jsonfile = document.get_json_results()
 
-            MainResultsInserter(isolate_id, self._uploader_mail_address, self._species, results_type, vcf_path=document['vcf_path'], json_results=jsonfile, report_access=document['report_directory'], mongo_dtap=self._mongo_config_data.get('dtap'), isolation_date=document['technical_metadata']['DT_ISOL'])
+            MainResultsInserter(isolate_id, self._uploader_mail_address, self._species, results_type, vcf_path=document['vcf_path'], json_results=jsonfile, report_access=document['report_directory'], mongo_dtap=self._mongo_config_data.get('dtap'), isolation_date=document['technical_metadata']['data']['IsolationDate'],
+                                nominative_labtest_clinical_metadata_collection=self._nominative_labtest_clinical_metadata_collection)
 
             self.__insert_assembly_into_bigs(results_type, document, isolate_id)
             with TblMappingTable(self._species) as isolates_mapping_psql_tbl:
@@ -179,6 +182,9 @@ class MongoToBigs:
         if self._cache_command_object.returncode != 0:
             send_email(f"update of the cache to display the cgsts of new isolates failed on host {socket.gethostname()}")
             raise RuntimeError(f"update of the cache to display the cgsts of new isolates failed on host {socket.gethostname()}")
+
+        # Insert nominative and labtest metadata after having done everything else except the alerts in order to not break the alerts 'failsafe'
+        MongoToBigsNominative(self._species, self._mongo_config_data, dont_send_email=True)
 
         # Run Alerts to bigs after updating the cache because it accesses a SQL table that is updated by the cache updater.
         # also run it after having inserted all isolates into bigsdb
@@ -222,13 +228,13 @@ class MongoToBigs:
         if results_type == 'new_isolate' or results_type == 'badqc':
             self._list_of_new_isolates_for_alerts.append(
                 {'isolate_name': isolate_id, 'cgST': document['results'].get('cgST'),
-                 'isolation_date': document['technical_metadata']['DT_ISOL']})
+                 'isolation_date': document['technical_metadata']['data']['IsolationDate']})
 
         else:  # if results_type == 'reanalysis' or 'resequencing':
             if cgst_changed:
                 self._list_of_new_versions_for_alerts.append(
                     {'isolate_name': isolate_id, 'cgST': document['results'].get('cgST'),
-                     'isolation_date': document['technical_metadata']['DT_ISOL']})
+                     'isolation_date': document['technical_metadata']['data']['IsolationDate']})
 
     def ___replace_tempids(self) -> None:
         """
@@ -399,7 +405,7 @@ class MongoToBigs:
                 #         insert_assembly(isolate_id, self._species, temp_fasta_path, results_type)
                 #     logging.info(f"Wrote new results version for {isolate_id} to bigsdb")
 
-    def __exit__(self) -> None:
+    def __del__(self) -> None:
         """
         Closes the isolates psql table when the class is closed
         :return: None

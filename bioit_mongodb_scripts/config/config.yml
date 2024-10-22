@@ -36,6 +36,9 @@ collections:
     - isolates_resequencing
     - headers
     - mapping_table
+    - nominative_labtest_clinical_metadata
+    - unprocessed_nominative_labtest_metadata
+    - unprocessed_nominative_clinical_metadata
 
 schemes_sequence_typing:
     - mlst

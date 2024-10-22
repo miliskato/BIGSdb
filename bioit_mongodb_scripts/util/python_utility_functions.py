@@ -3,10 +3,11 @@ import logging
 import smtplib
 import socket
 import sys
+from copy import deepcopy
 from datetime import datetime
 from email.message import EmailMessage
 from pathlib import Path
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 
 import yaml
 
@@ -22,7 +23,7 @@ def get_mongodb_config_data() -> Dict[str, Union[str, List[Any], Dict[str, Union
     Reads the global bigsdb config
     :return:
     """
-    with open(MONGO_CONFIG, encoding='utf-8') as handle:
+    with Path(MONGO_CONFIG).open('r') as handle:
         mongo_config_data = yaml.safe_load(handle)
     return mongo_config_data
 
@@ -39,7 +40,8 @@ def send_email(content: str, subject=None,
     """
     if not dont_send_email:
         message = EmailMessage()
-        message['Subject'] = subject if subject is not None else f"{Path((inspect.stack()[1]).filename).name} fail on host {socket.gethostname()}"
+        message['Subject'] = subject if subject is not None else \
+            f"{Path((inspect.stack()[1]).filename).name} fail on host {socket.gethostname()}"
         message['From'] = config['from']
         message['To'] = config['to']
         message.set_content(content)
@@ -74,9 +76,11 @@ def convert_dmyhms_to_dateobj(datetimestring: str) -> datetime.date:
     """
     return datetime.strptime(datetimestring, '%d/%m/%Y - %X').date()
 
+
 def merge_mongo_dicts(target_dict: MongoRecordDict, merging_dict: MongoRecordDict) -> None:
     """merge a MongoRecordDict into another MongoRecordDict"""
     _merge_nested_dicts(target_dict, merging_dict)
+
 
 def _merge_nested_dicts(target_dict: Union[MongoRecordDict,Dict], merging_dict: [MongoRecordDict,Dict]) -> Dict:
     """
@@ -92,3 +96,19 @@ def _merge_nested_dicts(target_dict: Union[MongoRecordDict,Dict], merging_dict: 
         else:
             target_dict[key] = value
     return target_dict
+
+
+def access_value_in_dict_using_list_as_dictpath(dict_path: List, search_dict: Dict[str, Any]) -> Optional[str]:
+    """
+    Given a dictionary path as a list of ordered subkeys, gets the value of this dictionary path from the given search
+    dictionary.
+    :param dict_path: ordered list of the path in the dictionary
+    :param search_dict: The dictionary in which to search for the dict_path
+    :return: str or None
+    """
+    current = deepcopy(search_dict)
+    for key in dict_path:
+        current = current.get(key)
+        if not current:
+            break
+    return current

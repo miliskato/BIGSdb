@@ -1,0 +1,110 @@
+pathogens:
+  salmonella:
+    dcd_name: BIOIT_SLM
+    dcd_code: HDBP0041
+    dcd_version: 1.0.0
+
+common:
+  TX_BIOIT_TECHNICAL_ID:
+    - pseudo_id
+  CD_HCO_NIHDI:
+    - technical_metadata
+    - CD_HCO_NIHDI  # this value is not converted in the HERA_Azure code and should not be
+  TX_PIPELINE_NAM:
+    - results
+    - pipeline_name
+  TX_PIPELINE_VER:
+    - results
+    - pipeline_version
+  TX_PIPELINE_HASH:
+    - results
+    - pipeline_hash
+#  DT_PIPELINE_ANAL:  # needs to be in “YYYY-MM-DDT00:00:00”  format; added to main code
+#    - results
+#    - analysis_date
+
+salmonella:
+  TX_MLST_ST:
+    - results
+    - mlst
+    - mlst-ST
+  CD_GENTPE_ESBLS_SUSC:
+    - results
+    - genotyphi
+    - results
+    - genotyphi_ESBLS_susceptibility
+  CD_GENTPE_INCFIAHI1_SUSC:
+    - results
+    - genotyphi
+    - results
+    - genotyphi_IncFIAHI1_susceptibility
+  CD_GENTPE_INCHI1A_SUSC:
+    - results
+    - genotyphi
+    - results
+    - genotyphi_IncHI1A_susceptibility
+  CD_GENTPE_INCHI1BR27_SUSC:
+    - results
+    - genotyphi
+    - results
+    - genotyphi_IncHI1BR27_susceptibility
+  CD_GENTPE_INCY_SUSC:
+    - results
+    - genotyphi
+    - results
+    - genotyphi_IncY_susceptibility
+  CD_GENTPE_AMNGLY_SUSC:
+    - results
+    - genotyphi
+    - results
+    - genotyphi_AMNGLY_susceptibility
+  CD_GENTPE_AZI_SUSC:
+    - results
+    - genotyphi
+    - results
+    - genotyphi_azithromycin_susceptibility
+  CD_GENTPE_BLAC_SUSC:
+    - results
+    - genotyphi
+    - results
+    - genotyphi_BLAC_susceptibility
+  CD_GENTPE_MACROL_SUSC:
+    - results
+    - genotyphi
+    - results
+    - genotyphi_MACROL_susceptibility
+  CD_GENTPE_PST_SUSC:
+    - results
+    - genotyphi
+    - results
+    - genotyphi_PST_susceptibility
+  CD_GENTPE_PHENI_SUSC:
+    - results
+    - genotyphi
+    - results
+    - genotyphi_PHENI_susceptibility
+  CD_GENTPE_QUINOL_SUSC:
+    - results
+    - genotyphi
+    - results
+    - genotyphi_QUINOL_susceptibility
+  CD_GENTPE_SULFON_SUSC:
+    - results
+    - genotyphi
+    - results
+    - genotyphi_sulfonamides_susceptibility
+  CD_GENTPE_TETRACY_SUSC:
+    - results
+    - genotyphi
+    - results
+    - genotyphi_tetracycline_susceptibility
+  CD_GENTPE_TRIMETH_SUSC:
+    - results
+    - genotyphi
+    - results
+    - genotyphi_trimethoprim_susceptibility
+  CD_GENTPE_Z66_SUSC:
+    - results
+    - genotyphi
+    - results
+    - genotyphi_z66_susceptibility

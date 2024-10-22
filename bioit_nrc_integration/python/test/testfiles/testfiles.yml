@@ -1,0 +1,6 @@
+salmonella:
+  get_nominative_from_ODS_CLIN: salmonella_get_nominative_from_ODS_CLIN.json
+  get_nominative_from_ODS_LAB: salmonella_get_nominative_from_ODS_LAB.json
+  mapping_table: salmonella_mapping_table.json
+  genomic_json_report: salmonella_report.json
+  genomic_json_reanalysis_report: salmonella_report_reanalysis.json

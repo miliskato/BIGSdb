@@ -115,8 +115,33 @@ class MongoInitialisation:
 
     def initialise_mapping_table_collection(self) -> pymongo.collection.Collection:
         """
-        Initialises collection containing mapping table of sample names and pseudonymized sample names.
+        Initialises collection containing mapping table of sample names and pseudonymized sample names and
+        business keys.
         :return: Opened mapping table collection
         """
-        headers_collection = self._open_mongo_collection(self.opened_mongo_database, "mapping_table")
-        return headers_collection
+        mapping_table_collection = self._open_mongo_collection(self.opened_mongo_database, "mapping_table")
+        return mapping_table_collection
+
+    def initialise_nominative_labtest_clinical_metadata_collection(self) -> pymongo.collection.Collection:
+        """
+        Initialises collection containing the processed nominative clinical and labtest data acquired from the ODS sftp.
+        :return: Opened nominative labtest and clinical metadata collection
+        """
+        nominative_labtest_clinical_metadata_collection = self._open_mongo_collection(self.opened_mongo_database, "nominative_labtest_clinical_metadata")
+        return nominative_labtest_clinical_metadata_collection
+
+    def initialise_unprocessed_nominative_labtest_metadata_collection(self) -> pymongo.collection.Collection:
+        """
+        Initialises collection containing the unprocessed nominative labtest data acquired from the ODS sftp.
+        :return: Opened unprocessed labtest metadata collection
+        """
+        unprocessed_nominative_labtest_metadata_collection = self._open_mongo_collection(self.opened_mongo_database, "unprocessed_nominative_labtest_metadata")
+        return unprocessed_nominative_labtest_metadata_collection
+
+    def initialise_unprocessed_nominative_clinical_metadata_collection(self) -> pymongo.collection.Collection:
+        """
+        Initialises collection containing the unprocessed nominative clinical data acquired from the ODS sftp.
+        :return: Opened unprocessed clinical metadata collection
+        """
+        unprocessed_nominative_clinical_metadata_collection = self._open_mongo_collection(self.opened_mongo_database, "unprocessed_nominative_clinical_metadata")
+        return unprocessed_nominative_clinical_metadata_collection

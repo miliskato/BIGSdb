@@ -56,6 +56,8 @@ def load_request_body_as_json(request_body: bytes, start_response: Callable) -> 
 def insert_into_mongodb(mapping_table_dict: Dict[str, str], start_response: Callable) -> Iterable[bytes]:
     """
     Tries to insert the mapping table into MongoDB, returns a failure response if it fails.
+    The TX_BUSINESS_KEY is a key by HD that is a concatenation of the HCO and the sample ID and is what they use to link
+    all DCDs. We need to use this as well to link all DCDs because not all DCDs contain the sample id.
     :param mapping_table_dict: the mapping table dictionary
     :param start_response: the response Callable belonging to the incoming POST request
     :return: a success or failure response

@@ -1,0 +1,23 @@
+{
+    "_id": "HCO_test_dummy_salmonella",
+    "symptom_gastroenteritis": "Yes",
+    "symptom_urinary_tract_infection": "Yes",
+    "hospitalisation": "No",
+    "outcome": "Cured",
+    "antibiotic_therapy": "Yes",
+    "antibiotic": "Product containing tigecycline",
+    "link": "Isolated case",
+    "comment": "Specimen comment",
+    "country": "BE",
+    "mic_amp_1": "Intermediate",
+    "mic_tmp": "20",
+    "mlva_profile": "test",
+    "patient_age": -1,
+    "patient_age_group": "Below 1",
+    "patient_birth_date": "2024-03-03",
+    "patient_id": "20240302LNFN?",
+    "patient_sex": "Unknown",
+    "patient_zip": "1130",
+    "serovar_final": "Salmonella Dakota",
+    "specimen": "Specimen ID"
+}

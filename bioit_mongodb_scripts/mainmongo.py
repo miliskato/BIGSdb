@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Tuple, Union
 # import dnspython
 # somehow this package is a requirement without actually needing to be imported, probably imported in pymongo
 import pymongo
+import yaml
 from pymongo.read_concern import ReadConcern
 from pymongo.write_concern import WriteConcern
 
@@ -21,12 +22,14 @@ PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
 from bioit_mongodb_scripts.config import CLUSTERING_CONFIG
+from bioit_nrc_integration.python.config import CODES_GENOMIC_DWH
 from bioit_mongodb_scripts.model.json_model import JsonReportDict, MongoRecordDict
 from bioit_mongodb_scripts.util.error import *
 from bioit_mongodb_scripts.util.mongo_custom_clustering import MongoCustomClustering
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.mongo_querying import Mongoquerying
-from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email, convert_dmyhms_to_ymd
+from bioit_mongodb_scripts.util.python_utility_functions import access_value_in_dict_using_list_as_dictpath, \
+    convert_dmyhms_to_ymd, get_mongodb_config_data, send_email
 
 
 def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
@@ -138,7 +141,7 @@ class MainMongo:
         if self._results_type == 'badqc_validated' and not self._subvaldict:
             raise Exception('subvaldict necessary when using results_type badqc_validated')
         if self._results_type == 'resequencing_validated' and not self._subvaldict:
-            raise Exception('subvaldict necessary when using results_type badqc_validated')
+            raise Exception('subvaldict necessary when using results_type resequencing_validated')
         if self._results_type == 'new_isolate' and not self._jsonfilepath:
             raise Exception('jsonfilepath necessary when using results_type new_isolate')
         if self._results_type == 'reanalysis' and not self._jsonfilepath:
@@ -351,7 +354,7 @@ class MainMongo:
         # Update new results if really a reanalysis/resequencing where at least one field changed
         if 'cgmlst' in changed_results_new_old and not new_json_report.get('cgST'):
             self.__define_cgst_and_run_clustering(new_json_report)
-        deltas_new_old = self.___nested_dict_delta(current_results, new_json_report)
+        deltas_new_old = self.___nested_dict_delta(current_results, new_json_report, path_to_report)
         new_results = self.___prepend_string_dot_to_dict_keys(new_json_report, 'results')
         new_results["results.isolates_id"] = self._technical_id
         new_results["results.results_version"] = current_results["results_version"] + 1
@@ -375,7 +378,27 @@ class MainMongo:
                          "latest_analysis_date": convert_dmyhms_to_ymd(new_results["results.analysis_date"]),
                          "previous_latest_results_document": self.___write_document(self._old_isolateresults_collection,
                                                                                     MongoRecordDict(dict(deltas_new_old)))}})
+        # after having updated the isolates collection, check for changes for HD DWH to respect the order of execution.
+        self.___check_if_any_results_for_hd_dwh_changed(dict(deltas_new_old))
         logging.info(f"Wrote new results and linked to isolate {self._technical_id} in {self._species}")
+
+    def ___check_if_any_results_for_hd_dwh_changed(self, deltas_new_old: Dict[str, Any]) -> None:
+        """
+        Checks if any of the genomic indicators to send to DWH have changed and sets the field
+        'changed_since_sent_to_DWH's value to true in the local MongoDB if any have
+        :param deltas_new_old: the deltas between the new and the old results; what needs to be applied on the
+        new results to get the old results back.
+        :return: None
+        """
+        with CODES_GENOMIC_DWH.open('r') as handle:
+            translation_codes = yaml.safe_load(handle)
+        for variable, list_path in translation_codes[self._species].items():
+            list_path = list_path[1:]  # skip the first value which is always 'results' and is not in the delta
+            if access_value_in_dict_using_list_as_dictpath(list_path, deltas_new_old):
+                self._isolates_collection.update_one({'_id': deltas_new_old['isolates_id']},
+                                                     {'$set': {'changed_since_sent_to_DWH': True,
+                                                               'changes_accepted_by_DWH': False}})
+                break  # break the loop once at least one change has been discovered
 
     @staticmethod
     def ___write_document(opened_collection: pymongo.collection.Collection, json_input: MongoRecordDict) -> str:

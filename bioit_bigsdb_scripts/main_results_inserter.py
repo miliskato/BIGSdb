@@ -4,6 +4,8 @@ import sys
 import traceback
 from pathlib import Path
 
+import pymongo
+
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
@@ -19,7 +21,7 @@ from bioit_mongodb_scripts.util.python_utility_functions import send_email
 
 class MainResultsInserter:
     def __init__(self, isolatename: str, uploader_mail_address: str, species: str, results_type: ResultType, report_access: str, vcf_path: str, mongo_dtap: str,
-                 json_results: JsonReportDict, isolation_date: str) -> None:
+                 json_results: JsonReportDict, isolation_date: str, nominative_labtest_clinical_metadata_collection: pymongo.collection.Collection ) -> None:
         """
         Initialises the class and runs the main function.
         See also argparse function for variables and their requiredness.
@@ -44,6 +46,7 @@ class MainResultsInserter:
         self._mongo_dtap = mongo_dtap
         self._json_report = json_results
         self._isolation_date = isolation_date
+        self._nominative_labtest_clinical_metadata_collection = nominative_labtest_clinical_metadata_collection
 
         self._bigsdb_config_data = get_bigsdb_config_data()
 
@@ -102,6 +105,8 @@ class MainResultsInserter:
                 logging.warning(
                     f"fail safe mechanism detects that the bigsdb insertion for sample {self._isolatename} was started but did not finish. Removing {self._isolatename} from Bigsdb to be able to restart inserting.")
                 isolates_psql_tbl.delete_isolate([self._isolatename])
+                self._nominative_labtest_clinical_metadata_collection.update_one({'_id': self._isolatename},
+                                                                                 {'$set': {'inserted_into_bigsdb': False}})
             else:
                 flagfilepath.touch()
                 flagfilepath.chmod(0o755)

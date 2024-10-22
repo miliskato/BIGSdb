@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from .databaseconnection import DatabaseConnection
 from .psql_queries import PsqlQueries
@@ -164,24 +164,33 @@ class TblIsolates(DatabaseConnection):
         return self.execute(PsqlQueries.ISO_SEL_ISOLATE_ID)
 
     @staticmethod
-    def build_update_nomin_metadata_query(metadata_mapping: dict[str, Any]) -> str:
+    def _build_update_nomin_metadata_query(metadata_mapping: Dict[str, Any]) -> str:
         """
         Build the query used to update metadata for a specific species
-        :metadata_mapping : db<->json fields mapping for the species
+        :param metadata_mapping : db<->json fields mapping for the species
         :return: the update query
         """
-        set_list = []
-        for key in metadata_mapping:
-            set_list.append(str(key + "=%s"))
-        sets = ', '.join(map(str, set_list))
-        return str.format(PsqlQueries.ISO_INSERT_GENERIC_LAB_METADATA_TEMPLATE, sets)
+        # Initialize an empty list to hold formatted key-value pairs
+        key_format_pair_list = []
 
-    def update_nomin_metadata(self, query: str, param: List[str]) -> None:
+        # Iterate over the keys in the metadata_mapping and create key-value pair strings
+        for key in metadata_mapping:
+            key_format_pair_list.append(f"{key}=%s")
+
+        # Join all the key-value pairs into a single string, separated by commas
+        key_format_pair_list_as_str = ', '.join(key_format_pair_list)
+
+        # Return the formatted query string using the template and the sets
+        return PsqlQueries.ISO_INSERT_GENERIC_LAB_METADATA_TEMPLATE.format(key_format_pair_list_as_str)
+
+    def update_nomin_metadata(self, metadata_mapping: Dict[str, Any], isolate_name: str) -> None:
         """
-        Adds laboratory nominative data in isolates table for the specified species
-        :param query: PSQL query to be fed
-        :param param: variables to feed to the PSQL query
+        Builds the query used to update metadata for a specific species & adds laboratory nominative data in the 
+        isolates table for the specified species
+        :param metadata_mapping : db<->json fields mapping for the species
+        :param isolate_name: The name of the isolate for which to insert the nominative metadata.
         :return: None
         """
+        query = self._build_update_nomin_metadata_query(metadata_mapping)
+        param = [*metadata_mapping.values(), isolate_name]
         self.execute_query(query, param)
-
