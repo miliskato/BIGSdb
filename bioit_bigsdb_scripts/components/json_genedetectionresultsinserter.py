@@ -6,7 +6,8 @@ from typing import Any, Dict, List, Tuple, Union
 
 from bioit_mongodb_scripts.model.json_model import JsonReportDict
 from .json_superclass import JsonSuperClass
-from .psql import TblAlleleDesignations, TblHistory, TblEavTextHidden, TblEavText
+from .psql import TblAlleleDesignations, TblHistory, TblEavTextHidden, TblEavText, TblIsolates
+from ..utils.url_helper import UrlHelper
 
 
 class JsonGeneDetectionResultsInserter(JsonSuperClass):
@@ -66,13 +67,16 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                             isolates_eavth_psql_tbl.insert_hidden_isolate((self._isolatename, self._schemename_bigsdb, json.dumps(listofhits)))
 
                         html_scheme_name = self._genedetectiondict[self._scheme]['schemename_html']
-                        url = f'/galaxyreports/{self._species}/{report_name}/report.html#{html_scheme_name}'
+                        with TblIsolates(self._species) as isolates_psql_tbl:
+                            isolate_id = isolates_psql_tbl.select_id_for_isolate((self._isolatename,))
+
+                        report_url = UrlHelper.report_for_isolate(self._species, str(isolate_id[0][0]), anchor=html_scheme_name)
                         if not self._scheme.endswith('vfdb_core') and not self._scheme.endswith('virulencefinder'):
                             self._eavhtmltable = '<style>table.nice { text-align: center; border-spacing:0 }table.nice tr:nth-child(n+3) {background: #E4EFF3}table.nice tr:nth-child(2n+3) {background: #C1E6F3}</style>'
                             self._eavhtmltable += f'<table class="data nice"><tr><th>GeneCluster</th><th>Locus</th></tr>'
-                            self._eavhtmltable += f'<tr align="left"><td colspan="4"><a href="{url}" target="_blank">Full report</a></td></tr>'
+                            self._eavhtmltable += f'<tr align="left"><td colspan="4"><a href="{report_url}" target="_blank">Full report</a></td></tr>'
                         else:
-                            self._eavhtmltable = f'<a href="{url}" target="_blank">Full report</a>'
+                            self._eavhtmltable = f'<a href="{report_url}" target="_blank">Full report</a>'
 
                         clusterhitset = set()  # in case loci that were in different clusters at some point get in the same cluster
                         with TblAlleleDesignations(self._species) as isolates_ad_psql_tbl:

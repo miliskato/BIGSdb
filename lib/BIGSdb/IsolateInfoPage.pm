@@ -687,9 +687,14 @@ sub _print_plugin_buttons {
 		say q(</div>);
 	}
     say q(<div><span class="info_icon fas fa-2x fa-fw fa-file-medical-alt fa-pull-left" style="margin-top:-0.2em"></span>);
-    say q(<h2>Galaxy HTML report</h2>);
-    say q(<button onclick = "get_jwt_report('no')" class="small_submit" > Get report preview </button>);
-    say q(<button onclick = "get_jwt_report('yes')" class="small_submit" > Get report zip archive </button>);
+
+	say q(<h2>HTML report</h2>);
+	my $report_html_url = '/cgi-bin/bigsdb/bigsdb.pl?page=sciensanoReport&db='.$q->param('db').'&id='.$q->param('id').'&get_zip=no';
+	my $report_zip_url = '/cgi-bin/bigsdb/bigsdb.pl?page=sciensanoReport&db='.$q->param('db').'&id='.$q->param('id').'&get_zip=yes';
+
+    say '<a href = "'.$report_html_url.'" target = "_blank" class="small_submit"> Get report preview </a>&nbsp;';
+    say '<a href = "'.$report_zip_url.'" target = "_blank" class="small_submit"> Get report zip archive </a>';
+
 	return;
 }
 

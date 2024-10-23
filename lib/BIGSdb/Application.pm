@@ -74,6 +74,7 @@ use BIGSdb::SchemesPage;
 use BIGSdb::SeqbinPage;
 use BIGSdb::SequenceQueryPage;
 use BIGSdb::SequenceTranslatePage;
+use BIGSdb::SciensanoReportPage;
 use BIGSdb::StatusPage;
 use BIGSdb::SubmitPage;
 use BIGSdb::TableQueryPage;
@@ -496,6 +497,7 @@ sub print_page {
 		seqbin             => 'SeqbinPage',
 		sequenceQuery      => 'SequenceQueryPage',
 		sequenceTranslate  => 'SequenceTranslatePage',
+		sciensanoReport    => 'SciensanoReportPage',
 		status             => 'StatusPage',
 		submit             => 'SubmitPage',
 		tableHeader        => 'CurateTableHeaderPage',

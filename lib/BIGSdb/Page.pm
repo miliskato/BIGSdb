@@ -178,10 +178,6 @@ sub _get_javascript_paths {
 		push @$js, { src => "$relative_js_path/bigsdb.min.js",    defer   => 1, version => '20231205' };
 		push @$js, { src => "$relative_js_path/hera_dynamic_query.js"};
 		push @$js, { src => "$relative_js_path/jszip.js"};
-		# only import hera_reportsapi.js if logged in
-		if ( $self->{'username'} ) {
-		    push @$js, { src => "$relative_js_path/hera_reportsapi.js"};
-        }
 		if ( !$self->{'config'}->{'no_cookie_consent'} && !$self->{'curate'} && $self->{'instance'} ) {
 			push @$js, { src => "$relative_js_path/cookieconsent.min.js", defer => 1 };
 		}

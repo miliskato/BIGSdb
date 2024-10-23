@@ -287,10 +287,9 @@ class MongoToBigs:
             if not query_single:
                 send_email(f"Can not find document with _id '{self._single_sample_id}', check the validation status")
                 raise Exception(f"Can not find document with _id '{self._single_sample_id}'")
-            else:
-                list_of_documents = [query_single]
-                for document in list_of_documents:
-                    document.set_isolate_id(pseudo_id)
+            list_of_documents = [query_single]
+            for document in list_of_documents:
+                document.set_isolate_id(pseudo_id)
 
         else:
             list_of_documents = list(map(lambda x: MongoRecordDict(x), self._isolates_collection.find()))

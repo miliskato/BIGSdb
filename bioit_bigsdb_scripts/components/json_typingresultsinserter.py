@@ -7,7 +7,9 @@ import requests
 
 from bioit_mongodb_scripts.model.json_model import JsonReportDict
 from .json_superclass import JsonSuperClass
-from .psql import TblAlleleDesignations, TblHistory, TblEavBoolean, TblEavText, TblEavFields, TblSchemeMembers
+from .psql import TblAlleleDesignations, TblHistory, TblEavBoolean, TblEavText, TblEavFields, TblSchemeMembers, \
+    TblIsolates
+from ..utils.url_helper import UrlHelper
 
 
 class JsonTypingResultsInserter(JsonSuperClass):
@@ -102,13 +104,10 @@ class JsonTypingResultsInserter(JsonSuperClass):
                         antibiotic_reformatted = '_'.join(
                             ['POINTFINDER', re.sub('-| ', '_', antibiotic).upper()])
                         mutation = re.sub('[.]| ', '_', result['Mutation'])
-                        report_name = self._report_access.name
-                        eavhtmltable = eavhtmltable + ''.join(
-                            [f'<tr><td><a href="/galaxyreports/{self._species}/', report_name,
-                             '/report.html#',
-                             self._schemedict[self._scheme]['schemename_html'], '" target="_blank">',
-                             result['Mutation'], '</a></td>'])
-                        eavhtmltable = eavhtmltable + ''.join(['<td>', antibiotic, '</td></tr>'])
+                        scheme_tag = self._schemedict[self._scheme]['schemename_html']
+                        report_url = UrlHelper.report_for_isolate(self._species, self.___get_isolate_id(), anchor=scheme_tag)
+                        eavhtmltable = eavhtmltable + f'<tr><td><a href="{report_url}" target="_blank">{mutation}</a></td>'
+                        eavhtmltable = eavhtmltable + f'<td>{antibiotic}</td></tr>'
                         self.insert_locus_if_needed(antibiotic_reformatted,
                                                     self._schemedict[self._scheme]['schemename_bigsdb'])
                         self._insert_dummy_sequence_if_needed(antibiotic_reformatted, mutation)
@@ -116,6 +115,15 @@ class JsonTypingResultsInserter(JsonSuperClass):
                             (antibiotic_reformatted, self._isolatename, mutation))
             eavhtmltable = eavhtmltable + '</table>'
             self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'pointfinder_hits', eavhtmltable))
+
+    def ___get_isolate_id(self) -> str:
+        """
+        return BIGSdb id of the isolate
+        :return: BIGSdb id of the isolate
+        """
+        with TblIsolates(self._species) as isolates_tbl:
+            id = isolates_tbl.select_id_for_isolate((self._isolatename,))
+        return str(id[0][0])
 
     def __process_irregular_typing_scheme_mycobacterium_specific(self) -> None:
         """
