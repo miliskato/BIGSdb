@@ -25,6 +25,15 @@ class TblMappingTable(DatabaseConnection):
         """
         return self.execute_query(PsqlQueries.ISO_SEL_PSEUDOID_TB_MT_VAR_ISO, param)
 
+    def select_isolate_id_for_pseudo_id(self, param: Tuple[str]) -> List[Tuple[Optional[int]]]:
+        """
+        Selects the isolate_id for a given pseudo_id
+        :param param: variables to feed to the PSQL query, which also sanitizes these variables,
+        necessary parameters visible in the PSQL query name and query, in this case the pseudo_id.
+        :return: isolate_id as str
+        """
+        return self.execute_query(PsqlQueries.ISO_SEL_ID_TB_MT_VAR_PSEUDOID, param)
+
     def insert_mapping_for_isolate(self, param: Tuple[str, str]) -> None:
         """
         Inserts the isolate name + pseudo_id pair for an isolate.

@@ -13,7 +13,7 @@ class cgMLSTProfile:
         :param headers: the headers from the data (query from querymongo by assay and id also)
         :return: None
         """
-        self.st = data[0]
+        self.st = None
         self.cgmlst = data[1:len(data)]
         if headers:
             self.loci = headers[1:len(headers)]

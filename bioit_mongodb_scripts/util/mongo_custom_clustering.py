@@ -1,8 +1,9 @@
 import logging
 import sys
-from typing import Any, Dict, List, Optional, Union
 from pathlib import Path
+from typing import Any, Dict, List, Optional, Union
 
+import numpy as np
 import pymongo
 from pymongo.write_concern import WriteConcern
 
@@ -18,6 +19,7 @@ from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_conf
 
 class MongoCustomClustering:
     def __init__(self, headers: List[str], data: List[Union[str, int]], species: str,
+                 naive_clustering_distance_matrix_file: Path,
                  mongo_config_data: Dict[str, Any] = None) -> None:
         """
         Initializes the class
@@ -25,11 +27,13 @@ class MongoCustomClustering:
         in the sequence type collection of the species).
         :param data: the list of the alleles of the cgmlst profile of the isolate to process.
         :param species: commonly used bioit species name: either genus or specific like stec
+        :param naive_clustering_distance_matrix_file: The path to the naive clustering cgmlst distance matrix file
         :param mongo_config_data: Use provided mongo_config_data, else get mongo_config_data from file
         :return: None
         """
         self._cgmlst_profile = cgMLSTProfile(data, headers)
         self._species = species
+        self._naive_clustering_distance_matrix_file = naive_clustering_distance_matrix_file
         self._mongo_config_data = mongo_config_data if mongo_config_data else get_mongodb_config_data()
         self._initialize_cluster_index = False
         # Open collections
@@ -61,7 +65,7 @@ class MongoCustomClustering:
         else:
             self._add_new_sequence_type(self._st_collection)
             logging.info(f"Start to process cgmlst profiles for cluster membership computing")
-            self._compute_cluster_membership(cluster_thresholds)
+            self._compute_distance_matrix_and_cluster_membership(cluster_thresholds)
             return self._cgmlst_profile.st
 
     def _check_order_of_cgmlst_profile(self, headers_collection: pymongo.collection.Collection) -> None:
@@ -129,9 +133,10 @@ class MongoCustomClustering:
         st_collection.with_options(write_concern=WriteConcern(w="majority")).insert_one(
             self._cgmlst_profile.get_st_collection_entry())
 
-    def _compute_cluster_membership(self, cluster_thresholds: List[int]) -> None:
+    def _compute_distance_matrix_and_cluster_membership(self, cluster_thresholds: List[int]) -> None:
         """
-        Computes the cluster membership for the new sequence added to the st_collection.
+        Computes the distance matrix and subsequently the cluster membership for the new sequence(s) added to the
+        st_collection.
         :param cluster_thresholds: The list of thresholds to be applied when clustering the new st and determine its
         clustering membership.
         :return: None
@@ -139,14 +144,39 @@ class MongoCustomClustering:
         distance_cluster = DistanceAndClusterComputer(self._species, self._mongo_config_data)
         cluster_thresholds_not_in_db = []
         for cluster_threshold in cluster_thresholds:
-            if len(list(self._cluster_membership_collection.find({'threshold': cluster_threshold}))) < 1:
+            if not self._cluster_membership_collection.find_one({'threshold': cluster_threshold}):
                 cluster_thresholds_not_in_db.append(cluster_threshold)
                 cluster_thresholds.remove(cluster_threshold)
+
+        if not self._naive_clustering_distance_matrix_file.is_file():
+            hd_np_array = distance_cluster.compute_hamming_distances('full')
+            np.save(str(self._naive_clustering_distance_matrix_file), hd_np_array)
+        else:
+            self.__compute_and_save_distance_matrix_for_last_st(distance_cluster)
+
+            if cluster_thresholds:
+                distance_cluster.new_st_cluster_membership(cluster_thresholds)
         if cluster_thresholds_not_in_db:
-            distance_cluster.compute_hamming_distances('full')
+            # cluster thresholds can have been added to the config, or it could have been a full calculation.
             distance_cluster.init_clustering_and_cluster_membership(set(cluster_thresholds_not_in_db))
-        if cluster_thresholds:
-            distance_cluster.compute_hamming_distances('last_st')
-            distance_cluster.new_st_cluster_membership(cluster_thresholds)
+
         if self._initialize_cluster_index is True:
             self._cluster_membership_collection.create_index([("threshold", 1), ("clustering_membership", 1)])
+
+    def __compute_and_save_distance_matrix_for_last_st(self, distance_cluster: DistanceAndClusterComputer) -> None:
+        """
+        Computes the update of a new cgst in the database against the existing distance matrix and saves it.
+        :param distance_cluster: DistanceAndClusterComputer object
+        :return: None
+        """
+        distance_matrix: np.array = np.load(str(self._naive_clustering_distance_matrix_file))
+        hd_np_array = distance_cluster.compute_hamming_distances('last_st')
+        # fix the lower triangle to be symmetric
+        hd_np_array = np.concatenate([hd_np_array[:, :distance_matrix.shape[0]],
+                                      hd_np_array[:, distance_matrix.shape[0]:] +
+                                      hd_np_array[:, distance_matrix.shape[0]:].T], axis=1)
+        # Add the new distances to the existing matrix
+        distance_matrix = np.concatenate([distance_matrix, hd_np_array[:, :distance_matrix.shape[0]]], axis=0)
+        distance_matrix = np.concatenate([distance_matrix, hd_np_array.T], axis=1)
+        # Save the updated distance matrix
+        np.save(str(self._naive_clustering_distance_matrix_file), distance_matrix)

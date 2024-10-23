@@ -266,6 +266,8 @@ class PsqlQueries():
     # TBL mapping table
     ISO_INS__TB_MT_VAR_ISO_PSEUDOID: Final[str] = """
         INSERT INTO mapping_table (isolate_id, isolate, pseudo_id) VALUES((SELECT id FROM isolates WHERE isolate = %s),%s, %s);"""
+    ISO_SEL_ID_TB_MT_VAR_PSEUDOID: Final[str] = """
+        SELECT isolate_id FROM mapping_table WHERE pseudo_id=%s;"""
     ISO_SEL_PSEUDOID_TB_MT_VAR_ISO: Final[str] = """
         SELECT pseudo_id FROM mapping_table WHERE isolate=%s;"""
 
