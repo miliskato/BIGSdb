@@ -4,10 +4,10 @@ import socket
 import sys
 import traceback
 from datetime import date
-import numpy as np
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
+import numpy as np
 from pymongo.write_concern import WriteConcern
 
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
@@ -15,9 +15,8 @@ sys.path.append(str(PYTHONPATH))
 
 from bioit_bigsdb_scripts.components.psql import TblSequences, TblProfiles, TblProfileFields, TblProfileMembers, \
     TblClassificationGroups, TblClassificationGroupProfiles, TblClassificationGroupProfileHistory, \
-    TblClassificationSchemes, TblIsolates, TblEavText, TblEavFields, TblSchemes
+    TblClassificationSchemes, TblEavText, TblEavFields, TblMappingTable
 from bioit_mongodb_scripts.config import CLUSTERING_CONFIG
-from bioit_mongodb_scripts.util.distance_and_cluster_computer import DistanceAndClusterComputer
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email
 
@@ -27,20 +26,25 @@ class NewClusteringInfoToBigs:
     Inserts all new clustering related info into BIGSdb, decides what is new based on a date that is stored
     in the update metadata collection. This date is updated at the successful end of this script.
     """
-    def __init__(self, species: str, naive_clustering_distance_matrix_file: Path,
+    def __init__(self, species: str, naive_clustering_distance_matrix_file: Path, cgmlst_bigsdb_scheme_id: int,
                  mongo_config_data: Dict[str, Any] = None) -> None:
         """
         Intialises this class and executes the main function
         :param species: commonly used bioit species name: either genus or specific like stec
         :param naive_clustering_distance_matrix_file: The path to the naive clustering cgmlst distance matrix file
+        :param cgmlst_bigsdb_scheme_id: The bigsdb SQL id of the cgMLST scheme
         :param mongo_config_data: Use provided mongo_config_data, else get mongo_config_data from file
         :return: None
         """
         self._species = species
-        self._mongo_config_data = mongo_config_data if mongo_config_data else get_mongodb_config_data()
+        self._cgmlst_bigsdb_scheme_id = cgmlst_bigsdb_scheme_id
         self._naive_clustering_distance_matrix_file = naive_clustering_distance_matrix_file
+
+        self._mongo_config_data = mongo_config_data if mongo_config_data else get_mongodb_config_data()
+
         # Open collections
-        self._mongoinit = MongoInitialisation(self._species, mongo_config_data=self._mongo_config_data, selected_connection_string='CONNECTION_STRING_AZURE')
+        self._mongoinit = MongoInitialisation(self._species, mongo_config_data=self._mongo_config_data,
+                                              selected_connection_string='CONNECTION_STRING_AZURE')
         self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, \
             self._isolates_resequencing_collection = self._mongoinit.initialise_collections()
         self._headers_collection = self._mongoinit.initialise_headers_collection()
@@ -56,9 +60,6 @@ class NewClusteringInfoToBigs:
         self._last_date_of_update = self._get_last_date_of_update()
         if self._last_date_of_update is None:
             self._last_date_of_update = datetime.datetime(1970, 1, 1)  # unix time
-            self._update_metadata_collection.with_options(write_concern=WriteConcern(w="majority")).\
-                insert_one({'metadata': 'last_update', 'last_update_date': self._last_date_of_update, 'host': socket.gethostname()})
-        self._new_sequences = self._get_new_sequence()
         self._new_st = self._get_new_st()
         self._st_headers = self._get_st_headers()
         self._new_cluster_membership = self._get_new_cluster_membership()
@@ -74,11 +75,9 @@ class NewClusteringInfoToBigs:
     def _insert_into_bigs(self) -> None:
         """
         Main method to initiate the insertion into BIGSdb of the new results retrieved during the initialization.
-        Runs the upload of new alleles and clustering from mongo to bigs.
+        Inserts cgST's and clustering info from MongoDB to BIGSdb.
         :return: None.
         """
-        if len(self._new_sequences) > 0:
-            self.__insert_new_alleles()
         if len(self._new_st) > 0:
             self.__insert_sequence_types()
         if len(self._new_cluster_membership) > 0:
@@ -94,22 +93,14 @@ class NewClusteringInfoToBigs:
         query = self._update_metadata_collection.find_one({'metadata': 'last_update', 'host': socket.gethostname()})
         return query['last_update_date'] if query else None
 
-    def _get_new_sequence(self) -> List[Dict[str, Any]]:
-        """
-        Retrieve all the new hashed alleles from the mongo hashed alleles collection that have been added since the
-        date of the last update.
-        :return: A list of documents containing the information about the new alleles.
-        """
-        return list(self._hashed_ad_collection.find({'insertion_date': {'$gt': self._last_date_of_update},
-                                                     'resolved_AD': 0}))
-
     def _get_new_st(self) -> List[Dict[str, Any]]:
         """
         Retrieve the new sequence types from the MongoDB sequence types collection which have been added since the
         date of the last update.
         :return: A list of documents containing the information about the new sequence types.
         """
-        return list(self._st_collection.find({'insertion_date': {'$gt': self._last_date_of_update}}, sort=[('cgST', 1)]))
+        return list(self._st_collection.find({'insertion_date': {'$gt': self._last_date_of_update}},
+                                             sort=[('cgST', 1)]))
 
     def _get_st_headers(self) -> Dict[str, Any]:
         """
@@ -125,35 +116,6 @@ class NewClusteringInfoToBigs:
         :return: A list of documents (dict) containing the information about the new cluster memberships.
         """
         return list(self._cluster_membership_collection.find({'insertion_date': {'$gt': self._last_date_of_update}}))
-
-    def __insert_new_alleles(self) -> None:
-        """
-        Insert into BIGSdb the new alleles retrieved during the initialization.
-        :return: None.
-        """
-        ordered_by_locus_dict = self.___order_sequences_by_locus()
-        for locus in ordered_by_locus_dict:
-            # fetch all alleles ids already in bigs
-            set_alleleid = set(item[0] for item in self._seqdef_sequences_psql_tbl.select_allele_from_locus((locus,)))
-            for new_allele in ordered_by_locus_dict[locus]:
-                if new_allele['temp_allele_name'] not in set_alleleid:
-                    self._seqdef_sequences_psql_tbl.insert_sequence((locus, new_allele['temp_allele_name'],
-                                                                     new_allele['allele_sequence']))
-                    logging.info(f"id {new_allele['temp_allele_name']} inserted into locus {locus}")
-
-    def ___order_sequences_by_locus(self) -> Dict[str, List[Dict[str, Any]]]:
-        """
-        Order the sequences by locus in order to be able to add the alleles by locus in an easy way.
-        :return: dictionary of loci and a list of their corresponding hashed dictionaries
-        """
-        order_seqs = {}
-        for seq in self._new_sequences:
-            key = seq['locus']
-            if key in order_seqs:
-                order_seqs[key].append(seq)
-            else:
-                order_seqs[key] = [seq]
-        return order_seqs
 
     def __insert_sequence_types(self) -> None:
         """
@@ -204,7 +166,6 @@ class NewClusteringInfoToBigs:
                 cg_scheme_id = threshold_bigsdbcgschemeid_dict[int(cl_membership['threshold'])]
                 profile_id = cl_membership['cgST']
                 group_id = cl_membership['clustering_membership']
-                #seqdef_clgr_psql_tbl.count_group((cg_scheme_id, group_id))
                 query_group_exists = seqdef_clgr_psql_tbl.count_group((cg_scheme_id, group_id))
                 if query_group_exists[0][0] == 0:
                     seqdef_clgr_psql_tbl.insert_group((cg_scheme_id, group_id))
@@ -253,55 +214,16 @@ class NewClusteringInfoToBigs:
 
     def __update_naive_clustering_implementation(self) -> None:
         """
-        Calculates the cgST distance matrix and writes it to a file
+        Reads the distance matrix, and inserts/updates the corresponding naive clustering fields in bigsdb
         :return: None
         """
+        # get cgmlst_diff_fields
         with TblEavFields(self._species) as isolates_eavf_psql_tbl:
             cgmlst_diff_fields = isolates_eavf_psql_tbl.select_fields_cgmlstdifferences()
-        if len(cgmlst_diff_fields) > 0:
-            full_calculation = False if self._naive_clustering_distance_matrix_file.is_file() else True
-            if full_calculation:
-                distance_matrix = self.___calculate_and_write_full_cgstdistancematrix()
-            else:
-                distance_matrix: np.array = np.load(str(self._naive_clustering_distance_matrix_file))
-                if len(self._new_st) > 0:
-                    distance_cluster = DistanceAndClusterComputer(self._species, self._mongo_config_data)
-                    hd_np_array = distance_cluster.compute_hamming_distances('last_st',
-                                                                             number_of_new_sts=len(self._new_st))
-                    # fix the lower triangle to be symmetric
-                    hd_np_array = np.concatenate([hd_np_array[:, :distance_matrix.shape[0]],
-                                                  hd_np_array[:, distance_matrix.shape[0]:] +
-                                                  hd_np_array[:, distance_matrix.shape[0]:].T], axis=1)
-                    # Add the new distances to the existing matrix
-                    distance_matrix = np.concatenate([distance_matrix, hd_np_array[:, :distance_matrix.shape[0]]],
-                                                     axis=0)
-                    distance_matrix = np.concatenate([distance_matrix, hd_np_array.T], axis=1)
-                    # Save the updated distance matrix
-                    np.save(str(self._naive_clustering_distance_matrix_file), distance_matrix)
-            self.___update_all_existing_naive_clusterimplementations(full_calculation, cgmlst_diff_fields,
-                                                                     distance_matrix)
 
-    def ___calculate_and_write_full_cgstdistancematrix(self) -> np.array:
-        """
-        Calculates the cgST distance matrix and writes it to a file
-        :return: full symmetric distance matrix as a numpy array
-        """
-        distance_cluster = DistanceAndClusterComputer(self._species, self._mongo_config_data)
-        hd_np_array = distance_cluster.compute_hamming_distances('full')
-        np.save(str(self._naive_clustering_distance_matrix_file), hd_np_array)
-        return hd_np_array
+        # read distance matrix
+        distance_matrix: np.array = np.load(str(self._naive_clustering_distance_matrix_file))
 
-    def ___update_all_existing_naive_clusterimplementations(self, full_calculation: bool,
-                                                            cgmlst_diff_fields: List[Optional[Tuple[str]]],
-                                                            distance_matrix: np.array) -> None:
-        """
-        Calculates the cgST distance matrix and writes it to a file, inserts/updates the corresponding fields in bigsdb
-        :param full_calculation: Whether a distance matrix existed and therefore whether any fields are present
-        in the database already
-        :param cgmlst_diff_fields: list of cgmlst difference fields in bigsdb
-        :param distance_matrix: the full cgmlst hamming distance matrix
-        :return: None
-        """
         # parse cgmlst distance thresholds from cgmlst_diff_fields
         for field in cgmlst_diff_fields:
             interval = field[0].split('_')[-1]
@@ -310,101 +232,87 @@ class NewClusteringInfoToBigs:
             # get all cgsts in mongodb:
             cgsts_per_isolate: List[Dict[str, Union[str, Dict[str, Optional[int]]]]] = \
                 list(self._isolates_collection.find({}, {"results.cgST": 1, "_id": 1}))
-            with TblSchemes(self._species, 'isolates') as isolates_schemes_psql_tbl:
-                cgmlst_bigsdb_scheme_id = isolates_schemes_psql_tbl.select_scheme_id_cgmlst()[0][0]
             # check if field is possibly new by checking if there are any values for the field yet,
             # this feature is needed because fields can be added at different points in time and
             # would otherwise be skipped for isolates/cgsts already in the database
             with TblEavText(self._species) as isolates_eavt_psql_tbl:
                 is_field_possibly_new = True if isolates_eavt_psql_tbl.select_count_eav_field((field[0],))[0][0] == 0 \
                                             else False
-            if full_calculation or is_field_possibly_new:
+            if is_field_possibly_new:
                 logging.info(f"Inserting cgMLST difference html fields for isolates present in Bigsdb")
                 cgsts = set(x['results'].get('cgST') for x in cgsts_per_isolate)
                 cgsts.discard(None)
-                with TblIsolates(self._species) as isolates_psql_tbl, TblEavText(
-                        self._species) as isolates_eavt_psql_tbl:
-                    for cgst in cgsts:
-                        # extract row
-                        row_cgst = distance_matrix[cgst - 1]
-                        # get all cgSTs within distance
-                        indices = np.where((row_cgst >= interval_start) & (row_cgst <= interval_stop))[0]
-                        if len(indices) > 0:
-                            if interval_start != 0:
-                                indices = np.append(indices, cgst - 1)
-                            html = self.____generate_htmlelement_cgstquery([x + 1 for x in indices],
-                                                                           cgmlst_bigsdb_scheme_id, field[0])
-                            for technical_id in [_dict['_id'] for _dict in cgsts_per_isolate
-                                                 if _dict['results'].get('cgST') == cgst]:
-                                bigsdb_id_isolate = isolates_psql_tbl.select_id_for_isolate((technical_id,))
-                                # it is possible that new isolates have not been added to bigsdb yet with old cgSTs
-                                if len(bigsdb_id_isolate) > 0:
-                                    isolates_eavt_psql_tbl.insert_eav_id((
-                                        str(bigsdb_id_isolate[0][0]),
-                                        field[0], html))
+                for cgst in cgsts:
+                    self.___update_naive_clustering_implementation_for_one_cgst(
+                        cgst, distance_matrix, interval_start, interval_stop, cgsts_per_isolate, field,
+                        is_field_new=False)
             else:
                 if len(self._new_st) > 0:
                     cgsts = [x['cgST'] for x in self._new_st]
-                    smallest_new_cgst = min(cgsts)
                     # older cgsts might be affected by multiple newer ones;
                     # therefore a set is used to combine them to be able to loop over after
-                    affected_cgsts = set()
+                    affected_and_new_cgsts = set()
                     for cgst in cgsts:
                         # extract row
                         row_cgst = distance_matrix[cgst - 1]
                         # get all cgSTs within distance
                         indices = np.where((row_cgst >= interval_start) & (row_cgst <= interval_stop))[0]
                         if len(indices) > 0:
-                            if interval != '0':
-                                for index in indices:
-                                    if index + 1 < smallest_new_cgst:
-                                        affected_cgsts.add(index + 1)
-                        # New cgsts/isolates with those new cgsts should/will not be in the database yet,
-                        # so the following code does not need to be executed
-                            #     indices = np.append(indices, cgst - 1)
-                            # html = self.____generate_htmlelement_cgstquery([x + 1 for x in indices],
-                            #                                              cgmlst_bigsdb_scheme_id)
-                            # for technical_id in [_dict['_id'] for _dict in cgsts_per_isolate
-                            #                      if _dict['results'].get('cgST') == cgst]:
-                            #     bigsdb_id_isolate = isolates_psql_tbl.select_id_for_isolate((technical_id,))
-                            #     # it is possible that new isolates have not been added to bigsdb yet with old cgSTs
-                            #     if len(bigsdb_id_isolate) > 0:
-                            #         isolates_eavt_psql_tbl.update_eav_id((
-                            #             html, str(bigsdb_id_isolate[0][0]),
-                            #             field[0]))
-                    with TblIsolates(self._species) as isolates_psql_tbl, TblEavText(
-                            self._species) as isolates_eavt_psql_tbl:
-                        for affected_cgst in affected_cgsts:
-                            logging.info(f"Updating cgMLST difference html fields for isolates present in "
-                                         f"Bigsdb with cgST {affected_cgst}")
-                            # extract row
-                            row_cgst = distance_matrix[affected_cgst - 1]
-                            # get all cgSTs within distance
-                            indices = np.where((row_cgst >= interval_start) & (row_cgst <= interval_stop))[0]
-                            if len(indices) > 0:
-                                if interval != '0':
-                                    indices = np.append(indices, cgst - 1)
-                                html = self.____generate_htmlelement_cgstquery([x + 1 for x in indices],
-                                                                               cgmlst_bigsdb_scheme_id, field[0])
-                                for technical_id in [_dict['_id'] for _dict in cgsts_per_isolate
-                                                     if _dict['results'].get('cgST') == cgst]:
-                                    bigsdb_id_isolate = isolates_psql_tbl.select_id_for_isolate((technical_id,))
-                                    # it is possible that new isolates have not been added to bigsdb yet with old cgSTs
-                                    if len(bigsdb_id_isolate) > 0:
-                                        if isolates_eavt_psql_tbl.select_count_eav_id((str(bigsdb_id_isolate[0][0]),
-                                                                                       field[0]))[0][0] > 0:
-                                            isolates_eavt_psql_tbl.update_eav_id((
-                                                html, str(bigsdb_id_isolate[0][0]),
-                                                field[0]))
-                                        else:
-                                            # it is also possible that the isolates in question do not have the fields
-                                            # yet because no cgST's were close up until now
-                                            isolates_eavt_psql_tbl.insert_eav_id((
-                                                str(bigsdb_id_isolate[0][0]),
-                                                field[0], html))
+                            affected_and_new_cgsts.update(index + 1 for index in indices)
 
-    def ____generate_htmlelement_cgstquery(self, cgsts: List[int], cgmlst_bigsdb_scheme_id: int,
-                                           cgmlst_diff_field: str) -> str:
+                    for cgst in affected_and_new_cgsts:
+                        self.___update_naive_clustering_implementation_for_one_cgst(
+                            cgst, distance_matrix, interval_start, interval_stop, cgsts_per_isolate, field,
+                            is_field_new=False)
+
+    def ___update_naive_clustering_implementation_for_one_cgst(
+            self, cgst: int, distance_matrix: np.array, interval_start: int, interval_stop: int,
+            cgsts_per_isolate: List[Dict[str, Union[str, Dict[str, Optional[int]]]]], field,
+            is_field_new: bool = True) -> None:
+        """
+        Modularization function which updates the naive clustering in implementation in bigsdb for one specific cgST.
+        :param cgst: cgST for which to update
+        :param distance_matrix: cgST distance matrix
+        :param interval_start: current cgMLST difference field's interval start
+        :param interval_stop: current cgMLST difference field's interval stop
+        :param cgsts_per_isolate: List of dictionaries extracted from MongoDB containing all pseudo_ids and their
+        corresponding cgST
+        :param field: the current cgMLST difference field
+        :param is_field_new: Whether any value is already present for the current cgMLST difference field
+        :return: None
+        """
+        with TblEavText(self._species) as isolates_eavt_psql_tbl, TblMappingTable(self._species) as \
+                isolates_mapping_psql_tbl:
+            # extract row
+            row_cgst = distance_matrix[cgst - 1]
+            # get all cgSTs within distance
+            indices = np.where((row_cgst >= interval_start) & (row_cgst <= interval_stop))[0]
+            if len(indices) > 0:
+                if interval_start != 0:
+                    # if interval_start != 0, then add the current cgST because it has not been picked up
+                    # by the indices query, and it should be present itself (in practice up until now start is always 0)
+                    indices = np.append(indices, cgst - 1)
+                html = self.generate_htmlelement_cgstquery([x + 1 for x in indices],
+                                                           self._cgmlst_bigsdb_scheme_id, field[0], self._species)
+                for pseudo_id in [_dict['_id'] for _dict in cgsts_per_isolate
+                                  if _dict['results'].get('cgST') == cgst]:
+                    bigsdb_id_isolate = isolates_mapping_psql_tbl.select_isolate_id_for_pseudo_id((pseudo_id,))
+                    # it is possible that new isolates have not been added to bigsdb yet with old cgSTs
+                    if len(bigsdb_id_isolate) > 0:
+                        if not is_field_new and isolates_eavt_psql_tbl.select_count_eav_id(
+                                (str(bigsdb_id_isolate[0][0]), field[0]))[0][0] > 0:
+                            isolates_eavt_psql_tbl.update_eav_id((html, str(bigsdb_id_isolate[0][0]),
+                                                                  field[0]))
+                            # it is also possible that the isolates in question do not have the fields
+                            # yet because no cgST's were close up until now -> execute else
+                            # Or since 2024/10/14 new cgST's also follow this route
+                        else:
+                            # For new fields and for affected isolates that did not have the field yet
+                            isolates_eavt_psql_tbl.insert_eav_id((str(bigsdb_id_isolate[0][0]), field[0], html))
+
+    @staticmethod
+    def generate_htmlelement_cgstquery(cgsts: List[int], cgmlst_bigsdb_scheme_id: int,
+                                       cgmlst_diff_field: str, species: str) -> str:
         """
         Generates a html element to be inserted into bigsdb that will query all isolates with certain
         cgSTs after clicking on it, also provides a preview of the number of those isolates using JavaScript
@@ -413,12 +321,13 @@ class NewClusteringInfoToBigs:
         :param cgmlst_bigsdb_scheme_id: the scheme id of the cgMLST scheme in bigsdb (usually 2, after 1 mlst,
         but in the case of stec that has 2 mlst it is 3)
         :param cgmlst_diff_field: cgmlst difference field in bigsdb e.g. cgMLST_differences_1-10
+        :param species: commonly used bioit species name: either genus or specific like stec
         :return: html element that executes the javascript function replaceQueriedValue e.g.
         '<div id="cgMLST_differences_1-10"><script type="text/javascript">replaceQueriedValue(
         generateUrlCgst("mycobacterium", "2", ["1","2","3"]), "cgMLST_differences_1-10")</script>'
         """
         cgsts_plaintext = '","'.join(str(x) for x in cgsts)
-        url = f'generateUrlCgst("{self._species}", "{cgmlst_bigsdb_scheme_id}", ["{cgsts_plaintext}"])'
+        url = f'generateUrlCgst("{species}", "{cgmlst_bigsdb_scheme_id}", ["{cgsts_plaintext}"])'
         html_element = f'<div id="{cgmlst_diff_field}"><script type="text/javascript">replaceQueriedValue({url}, ' \
                        f'"{cgmlst_diff_field}")</script>'
         return html_element
@@ -429,8 +338,8 @@ class NewClusteringInfoToBigs:
         :return: None.
         """
         self._update_metadata_collection.with_options(write_concern=WriteConcern(w="majority")).update_one(
-            {'metadata': 'last_update', 'host': socket.gethostname()}, {
-                "$set": {'last_update_date': self._current_update_date}})
+            {'metadata': 'last_update', 'host': socket.gethostname()},
+            {"$set": {'last_update_date': self._current_update_date}}, upsert=True)
 
     def __del__(self) -> None:
         """

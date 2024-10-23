@@ -14,7 +14,8 @@ class MainInserter(JsonSuperClass):
     Class containing defintions used to insert metadata results for both json and tsv input
     """
 
-    def __init__(self, isolatename: str, species: str, json_report_dict: JsonReportDict, config_data: Dict[str, Any], report_access: str, vcf_path: str, mongo_dtap: str) -> None:
+    def __init__(self, isolatename: str, species: str, json_report_dict: JsonReportDict, config_data: Dict[str, Any],
+                 report_access: str, vcf_path: str, mongo_dtap: str,) -> None:
         """
         :param isolatename: name of the isolate
         :param species: commonly used bioit species name: either genus or specific like stec
