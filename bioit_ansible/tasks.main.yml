@@ -816,10 +816,10 @@
         path: "{{ item }}"
         state: absent
       with_items:
-          - "/etc/cron.d/{{ species }}_tempid_replacer_cgmlst"
-          - "/etc/cron.d/{{ species }}_tempid_replacer_mlst"
-          - "/etc/cron.d/{{ species }}_tempid_replacer_mlst_warwick"
-          - "/etc/cron.d/{{ species }}_tempid_replacer_mlst_pasteur"
+        - "/etc/cron.d/{{ species }}_tempid_replacer_cgmlst"
+        - "/etc/cron.d/{{ species }}_tempid_replacer_mlst"
+        - "/etc/cron.d/{{ species }}_tempid_replacer_mlst_warwick"
+        - "/etc/cron.d/{{ species }}_tempid_replacer_mlst_pasteur"
 
     - name: Remove cron.d entries for database updates
       ansible.builtin.file:
