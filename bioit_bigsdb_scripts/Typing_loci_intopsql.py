@@ -60,7 +60,7 @@ class TypingLociIntoPsql:
                     TblSchemeMembers(species, 'isolates') as isolates_schememembers_psql_tbl, \
                     TblSchemeMembers(species, 'seqdef') as seqdef_schememembers_psql_tbl, \
                     TblClientDbaseLoci(species) as seqdef_clientdbaseloci_psql_tbl:
-                schemedict: Dict[str, Dict[str, str]] = bigsdb_config_data['species'][species]['typing_schemes']
+                schemedict: Dict[str, Dict[str, str]] = self._bigsdb_config_data['species'][species]['typing_schemes']
                 for scheme in schemedict:
                     if schemedict[scheme].get('dirdb') and schemedict[scheme]['dirdb'] != '':
                         dirs: List[str] = next(os.walk(schemedict[scheme]['dirdb']))[1]
