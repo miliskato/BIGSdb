@@ -156,7 +156,7 @@ class SampleValidationToMongo:
 
 if __name__ == '__main__':
     # Configure stdout logging
-    logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
+    logging.basicConfig(level=logging.ERROR, stream=sys.stdout)
 
     # Read the global config
     bigsdb_config_data = get_bigsdb_config_data()
