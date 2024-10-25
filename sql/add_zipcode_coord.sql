@@ -1,4 +1,3 @@
-INSERT INTO geography_point_lookup (country_code, field, value, location,datestamp, curator) VALUES ('BE', 'patient_zip', '0612', ST_MakePoint(), '2023-12-04',0) ON CONFLICT DO NOTHING;
 INSERT INTO geography_point_lookup (country_code, field, value, location,datestamp, curator) VALUES ('BE', 'patient_zip', '1000', ST_MakePoint( 4.369278654960959,50.853812373745676), '2023-12-04',0) ON CONFLICT DO NOTHING;
 INSERT INTO geography_point_lookup (country_code, field, value, location,datestamp, curator) VALUES ('BE', 'patient_zip', '1000', ST_MakePoint( 4.377065860435231,50.822325604082295), '2023-12-04',0) ON CONFLICT DO NOTHING;
 INSERT INTO geography_point_lookup (country_code, field, value, location,datestamp, curator) VALUES ('BE', 'patient_zip', '1000', ST_MakePoint( 4.375234148039785,50.87298266192055), '2023-12-04',0) ON CONFLICT DO NOTHING;

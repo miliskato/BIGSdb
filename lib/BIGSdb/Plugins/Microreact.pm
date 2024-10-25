@@ -106,7 +106,7 @@ sub run_job {
 		);
 		return;
 	}
-	$self->_generate_profile_file(
+	$self->generate_profile_file(
 		{
 			job_id   => $job_id,
 			file     => $profile_file,
