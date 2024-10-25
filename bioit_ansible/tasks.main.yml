@@ -122,8 +122,8 @@
 
 - name: add azure reportsapi ip to SciensanoReportPage
   lineinfile:
-    path: "lib/BIGSdb/SciensanoReportPage.pm"
-    regexp: 'my $azure_reportsapi = to_be_replaced_by_ansible ;'
+    path: "{{ bioit_bigs_home }}/lib/BIGSdb/SciensanoReportPage.pm"
+    regexp: "my [$]azure_reportsapi = to_be_replaced_by_ansible ;"
     line: "my $azure_reportsapi = '{{ azure_reportsapi_ip }}' ;"
 
 - name: Change Mongo dtap version in config based on playbook argument
@@ -132,24 +132,36 @@
     regexp: 'DTAP=to_be_replaced_by_ansible'
     line: "DTAP={{ mongo_dtap }}"
 
-- name: create bigsdb .ssh directory
-  ansible.builtin.file:
-    dest: '/home/bigsdb/.ssh'
-    mode: 0700
-    owner: bigsdb
+- name: setting up ssh connection to azure reportsapi
+  block:
+    - name: create bigsdb .ssh directory
+      ansible.builtin.file:
+        dest: '/home/bigsdb/.ssh'
+        state: directory
+        mode: 0700
+        owner: bigsdb
 
-- name: Create bigsdb rsa key to connect to azure reportsapi vm
-  ansible.builtin.file:
-    path: /home/bigsdb/.ssh/.id_rsa_reportsapi
-    state: touch
-    mode: "u=rw"
-    owner: bigsdb
+    - name: set variable to handle the pass to the encrypted file for ssh key
+      set_fact:
+        path_to_key_file: "{{ path_to_key_file_dt }}"
+      when: mongo_dtap == "dev" or mongo_dtap == "test"
 
-- name: Write secret private key to the file, replace literal linebreaks in secret by actual linebreaks
-  copy:
-    dest: /home/bigsdb/.ssh/.id_rsa_reportsapi
-    content: "{{ bigsdb_azure_reportsapi_private_key.replace('\\n', '\n') }}"
-    mode: '0600'
+    - name: set path to the encrypted file for ssh key in acc/prod instances
+      set_fact:
+        path_to_key_file: "{{ path_to_key_file_ac }}"
+      when: mongo_dtap == "acc" or mongo_dtap == "prod"
+
+    - name: Write secret private key to the file, replace literal linebreaks in secret by actual linebreaks
+      copy:
+        content: "{{ lookup('ansible.builtin.file', path_to_key_file) }}"
+        dest: /home/bigsdb/.ssh/.id_rsa_reportsapi
+        owner: bigsdb
+        mode: '0600'
+
+    - name: add new line not encrypted to get the proper format of the ssh key
+      lineinfile:
+        dest: /home/bigsdb/.ssh/.id_rsa_reportsapi
+        line: ''
 
 ## perl 5 is installed on Ubuntu by default.
 - name: Install packages
