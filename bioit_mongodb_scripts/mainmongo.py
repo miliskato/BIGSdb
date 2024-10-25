@@ -104,8 +104,7 @@ class MainMongo:
         self._connection_string = connection_string
         self._alternate_dtap = alternate_dtap
         self._dont_send_email = dont_send_email
-        self._mongo_config_data = mongo_config_data  # no need to get if not provided because it is only
-        # needed in mongoinit and there it can be retrieved by itself
+        self._mongo_config_data = mongo_config_data if mongo_config_data else get_mongodb_config_data()
 
         self._naive_clustering_distance_matrix_file = Path(
             self._mongo_config_data['naive_clustering_distance_matrix_file'].replace('species', self._species).replace(
