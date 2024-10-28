@@ -181,26 +181,27 @@ class MongoToBigs:
             with TblMappingTable(self._species) as isolates_mapping_psql_tbl:
                 isolates_mapping_psql_tbl.insert_mapping_for_isolate((isolate_id, document['_id'],))
 
-        # Run clustering and new cgST insertion before cache update
-        NewClusteringInfoToBigs(self._species, self._naive_clustering_distance_matrix_file,
-                                self._cgmlst_bigsdb_scheme_id, mongo_config_data=self._mongo_config_data)
+        if len(list_of_documents) > 0:
+            # Run clustering and new cgST insertion before cache update
+            NewClusteringInfoToBigs(self._species, self._naive_clustering_distance_matrix_file,
+                                    self._cgmlst_bigsdb_scheme_id, mongo_config_data=self._mongo_config_data)
 
-        # Update cache again before alerts implementation because new isolates won't have cgST's but are needed for alerts implementation
-        self._cache_command_object.run(Path(os.getcwd()))
-        if self._cache_command_object.returncode != 0:
-            send_email(f"update of the cache to display the cgsts of new isolates failed on host {socket.gethostname()}")
-            raise RuntimeError(f"update of the cache to display the cgsts of new isolates failed on host {socket.gethostname()}")
+            # Update cache again before alerts implementation because new isolates won't have cgST's but are needed for alerts implementation
+            self._cache_command_object.run(Path(os.getcwd()))
+            if self._cache_command_object.returncode != 0:
+                send_email(f"update of the cache to display the cgsts of new isolates failed on host {socket.gethostname()}")
+                raise RuntimeError(f"update of the cache to display the cgsts of new isolates failed on host {socket.gethostname()}")
 
-        # Insert nominative and labtest metadata after having done everything else except the alerts in order to not break the alerts 'failsafe'
-        MongoToBigsNominative(self._species, self._mongo_config_data, dont_send_email=True)
+            # Insert nominative and labtest metadata after having done everything else except the alerts in order to not break the alerts 'failsafe'
+            MongoToBigsNominative(self._species, self._mongo_config_data, dont_send_email=True)
 
-        # Run Alerts to bigs after updating the cache because it accesses a SQL table that is updated by the cache updater.
-        # also run it after having inserted all isolates into bigsdb
-        try:
-            if len(self._list_of_new_isolates_for_alerts + self._list_of_new_versions_for_alerts) > 0:
-                AlertsToBigs(self._list_of_new_isolates_for_alerts, self._list_of_new_versions_for_alerts, self._species, self._cgmlst_bigsdb_scheme_id)
-        except:
-            self._exception_in_alerts = True
+            # Run Alerts to bigs after updating the cache because it accesses a SQL table that is updated by the cache updater.
+            # also run it after having inserted all isolates into bigsdb
+            try:
+                if len(self._list_of_new_isolates_for_alerts + self._list_of_new_versions_for_alerts) > 0:
+                    AlertsToBigs(self._list_of_new_isolates_for_alerts, self._list_of_new_versions_for_alerts, self._species, self._cgmlst_bigsdb_scheme_id)
+            except:
+                self._exception_in_alerts = True
 
     def __update_bigsdb_psql_if_needed(self) -> None:
         """
