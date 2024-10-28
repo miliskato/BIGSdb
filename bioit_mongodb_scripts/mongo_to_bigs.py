@@ -181,7 +181,7 @@ class MongoToBigs:
             with TblMappingTable(self._species) as isolates_mapping_psql_tbl:
                 isolates_mapping_psql_tbl.insert_mapping_for_isolate((isolate_id, document['_id'],))
 
-        if len(list_of_documents) == 0:
+        if len(list_of_documents) > 0:
             # Run clustering and new cgST insertion before cache update
             NewClusteringInfoToBigs(self._species, self._naive_clustering_distance_matrix_file,
                                     self._cgmlst_bigsdb_scheme_id, mongo_config_data=self._mongo_config_data)
