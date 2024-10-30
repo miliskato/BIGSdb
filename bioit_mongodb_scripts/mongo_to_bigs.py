@@ -204,6 +204,7 @@ class MongoToBigs:
                              self._cgmlst_bigsdb_scheme_id, self._naive_clustering_distance_matrix_file)
         except:
             self._exception_in_alerts = True
+            raise
 
     def __update_bigsdb_psql_if_needed(self) -> None:
         """
