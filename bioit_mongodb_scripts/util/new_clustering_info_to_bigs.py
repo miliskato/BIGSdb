@@ -95,7 +95,8 @@ class NewClusteringInfoToBigs:
 
     def _get_temporary_alleles_update_date(self) -> Optional[date]:
         """
-        Retrieve the date 
+        Retrieve the last date that the last temporary alleles were inserted to use this as a maximum date for the new
+        cgST insertion.
         :return: a date in iso UTC format
         """
         query = self._update_metadata_collection.find_one({'metadata': 'last_update_temporary_alleles', 'host': socket.gethostname()})
