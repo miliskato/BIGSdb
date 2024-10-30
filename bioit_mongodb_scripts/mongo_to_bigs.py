@@ -200,7 +200,8 @@ class MongoToBigs:
         # also run it after having inserted all isolates into bigsdb
         try:
             if len(self._list_of_new_isolates_for_alerts + self._list_of_new_versions_for_alerts) > 0:
-                AlertsToBigs(self._list_of_new_isolates_for_alerts, self._list_of_new_versions_for_alerts, self._species, self._cgmlst_bigsdb_scheme_id)
+                AlertsToBigs(self._list_of_new_isolates_for_alerts, self._list_of_new_versions_for_alerts, self._species,
+                             self._cgmlst_bigsdb_scheme_id, self._naive_clustering_distance_matrix_file)
         except:
             self._exception_in_alerts = True
 
@@ -441,7 +442,7 @@ class MongoToBigs:
                 self._exception_in_alerts:
             try:
                 AlertsToBigs(self._list_of_new_isolates_for_alerts, self._list_of_new_versions_for_alerts,
-                             self._species, self._cgmlst_bigsdb_scheme_id)
+                             self._species, self._cgmlst_bigsdb_scheme_id, self._naive_clustering_distance_matrix_file)
             except Exception as exceptionmessage2:
                 traceback2 = traceback.format_exc()
                 send_email(f"Failure 1: {self._exceptionmessage1}\n{self._traceback1}\n"

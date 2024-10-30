@@ -1,5 +1,6 @@
 import datetime
 import logging
+from pathlib import Path
 from typing import Any, Dict, Iterator, List, Tuple, Union, Optional
 
 import numpy as np
@@ -16,7 +17,7 @@ class AlertsToBigs:
     """
     def __init__(self, list_of_new_isolates_inserted_in_bigsdb: List[Dict[str, Union[str, int]]],
                  list_of_new_versions_inserted_in_bigsdb: List[Dict[str, Union[str, int]]],
-                 species: str, cgmlst_bigsdb_scheme_id: int) -> None:
+                 species: str, cgmlst_bigsdb_scheme_id: int, naive_clustering_distance_matrix_file: Path) -> None:
         """
         Initializes this class and executes the main function.
         :param list_of_new_isolates_inserted_in_bigsdb: List of dictionaries of relevant data concerning newly
@@ -25,18 +26,19 @@ class AlertsToBigs:
         sql-inserted versions of existing isolates with different cgSTs than the previous version.
         :param species: commonly used bioit species name: either genus or specific like stec
         :param cgmlst_bigsdb_scheme_id: The bigsdb SQL id of the cgMLST scheme
+        :param naive_clustering_distance_matrix_file: path to the distance matrix file
         :return: None
         """
         self._list_of_new_isolates_inserted_in_bigsdb = list_of_new_isolates_inserted_in_bigsdb
         self._list_of_new_versions_inserted_in_bigsdb = list_of_new_versions_inserted_in_bigsdb
         self._species = species
         self._cgmlst_bigsdb_scheme_id = cgmlst_bigsdb_scheme_id
+        self._naive_clustering_distance_matrix_file = naive_clustering_distance_matrix_file
         self._bigsdb_config_data = get_bigsdb_config_data()
         if not self._bigsdb_config_data['alerts'].get(self._species):
             return
         self._distance_matrix: np.array = \
-            np.load(str(self._bigsdb_config_data['naive_clustering_distance_matrix_file']).
-                    replace('species', self._species))
+            np.load(str(self._naive_clustering_distance_matrix_file))
         self._timeframe_is_infinite = self._bigsdb_config_data['alerts'][self._species]['timeframe_in_months'] > 10000
         if not self._timeframe_is_infinite:
             self._timedelta_timeframe = datetime.timedelta(
