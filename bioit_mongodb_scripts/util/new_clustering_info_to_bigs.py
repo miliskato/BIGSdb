@@ -126,7 +126,8 @@ class NewClusteringInfoToBigs:
         Retrieve the cluster memberships that have been added or modified since the last date of update
         :return: A list of documents (dict) containing the information about the new cluster memberships.
         """
-        return list(self._cluster_membership_collection.find({'insertion_date': {'$gt': self._last_date_of_update}}))
+        return list(self._cluster_membership_collection.find({'insertion_date': {'$gt': self._last_date_of_update,
+                                                                                 '$lt': self._new_temporary_alleles_update_date}}))
 
     def __insert_sequence_types(self) -> None:
         """
