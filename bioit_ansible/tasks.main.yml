@@ -95,6 +95,12 @@
   file:
     path: "{{ bioit_bigs_home }}"
     owner: bigsdb
+    mode: "u=rwx,g=rx,o=x"
+
+- name: chmod the root folder from the repo (enable debug)
+  file:
+    path: "{{ bioit_bigs_home }}/BIGSdb"
+    mode: "u=rwx,g=rx,o=rx"
 
 - name: Change Mongo dtap version in config based on playbook argument
   lineinfile:
@@ -873,8 +879,8 @@
     - name: add hourly cronjob for mongo to bigs
       cron:
         name: "mongo_to_bigs_hourly"
-        minute: '0'
-        hour: '*/1'  # every hour
+        minute: '*/5'
+        hour: '*'  # every 5 minutes
         weekday: '*'
         job: "/usr/bin/flock -n /tmp/mongo_to_bigs_hourly.lockfile {{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_mongodb_scripts/mongo_to_bigs.py --species {{ species }} --uploader_mail_address bioit@sciensano.be"
         user: 'bigsdb'
