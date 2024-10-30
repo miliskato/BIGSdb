@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.1] - 2024-10-29
+
+### Bugfix
+- Insertion of clustering/nominative data and alert computation is disable when BIGSdb is still empty
+- Fix access rights on /home/bigsdb and /home/bigsdb/BIGSdb
+- Fix the lockfile command configuration to avoid simultaneous connections to the matrix file in AZURE. 
+
+### Change
+- Update of "snp_lineage" scheme (mycobacterium)
+- "mongo_to_bigs_hourly" cron job is running every 5 minutes 
+
+
 ## [2.0.0] - 2024-10-28
 
 ### Added
