@@ -138,6 +138,10 @@ class MongoToBigs:
         # Check if dbs were updated and update bigsdb accordingly
         self.__update_bigsdb_psql_if_needed()
 
+        # get list of documents before Temporary alleles insertion so that no new documents with new alleles can be
+        # added in the time that it takes between the new alleles to start and the list of documents to be queried
+        list_of_documents = self.__get_list_of_documents()
+
         # call the autoexecutable function to insert new alleles and profiles
         NewTemporaryAllelesToBigs(self._species, mongo_config_data=self._mongo_config_data)
 
@@ -154,8 +158,6 @@ class MongoToBigs:
 
         # send bad samples from the badqc_isolates collection to BIGSdb
         samples_to_validation_bigs(self._species, mongo_config_data=self._mongo_config_data)
-
-        list_of_documents = self.__get_list_of_documents()
 
         # Main insertion into bigsdb for loop
         for document in list_of_documents:
