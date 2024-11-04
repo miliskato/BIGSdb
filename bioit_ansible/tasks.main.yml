@@ -95,11 +95,6 @@
   file:
     path: "{{ bioit_bigs_home }}"
     owner: bigsdb
-    mode: "u=rwx,g=rx,o=x"
-
-- name: chmod the root folder from the repo (enable debug)
-  file:
-    path: "{{ bioit_bigs_home }}/BIGSdb"
     mode: "u=rwx,g=rx,o=rx"
 
 - name: Change Mongo dtap version in config based on playbook argument
