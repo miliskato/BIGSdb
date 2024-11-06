@@ -72,14 +72,14 @@ def samples_to_validation_bigs(species: str, mongo_config_data: Dict[str, Any] =
     _insert_submission_bigs(bad_samples, 'bad_quality', species, mongo_config_data)
     for isolate in bad_samples:
         doc_id=isolate.get_id()
-        self.isolates_badqc_collection.update_one({'_id': doc_id},
+        isolates_badqc_collection.update_one({'_id': doc_id},
                                                 {'$set': {'submission_status': 'submitted_in_bigsdb'}},
                                                 upsert=True)
     # resequencing_samples = list(map(lambda x: MongoRecordDict(x),isolates_resequencing_collection.find({'submission_status': 'pending_for_submission'})))
     # _insert_submission_bigs(resequencing_samples, 'resequencing', species, mongo_config_data)
     #for isolate in resequencing_samples:
     #    doc_id=isolate.get_id()
-    #    self.isolates_resequencing_collection.update_one({'_id': doc_id},
+    #    isolates_resequencing_collection.update_one({'_id': doc_id},
     #                                            {'$set': {'submission_status': 'submitted_in_bigsdb'}},
     #                                            upsert=True)
     # update last date of update
