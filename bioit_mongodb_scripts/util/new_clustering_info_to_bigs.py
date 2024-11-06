@@ -3,7 +3,7 @@ import logging
 import socket
 import sys
 import traceback
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -106,11 +106,10 @@ class NewClusteringInfoToBigs:
     def _get_new_st(self) -> List[Dict[str, Any]]:
         """
         Retrieve the new sequence types from the MongoDB sequence types collection which have been added since the
-        date of the last update.
+        last update of clustering.
         :return: A list of documents containing the information about the new sequence types.
         """
-        return list(self._st_collection.find({'insertion_date': {'$gt': self._last_date_of_update,
-                                                                 '$lt': self._new_temporary_alleles_update_date}},
+        return list(self._st_collection.find({'bigsdb_status': 'pending'},
                                              sort=[('cgST', 1)]))
 
     def _get_st_headers(self) -> Dict[str, Any]:
@@ -123,11 +122,13 @@ class NewClusteringInfoToBigs:
 
     def _get_new_cluster_membership(self) -> List[Dict[str, Any]]:
         """
-        Retrieve the cluster memberships that have been added or modified since the last date of update
+        Retrieve the cluster memberships that have been added or modified between the last clustering update and last
+        update of temporary alleles
         :return: A list of documents (dict) containing the information about the new cluster memberships.
         """
-        return list(self._cluster_membership_collection.find({'insertion_date': {'$gt': self._last_date_of_update,
-                                                                                 '$lt': self._new_temporary_alleles_update_date}}))
+        return list(self._cluster_membership_collection.find({'last_clustering_date':{"$or":[None,
+                                                                                {'$gt': self._last_date_of_update,
+                                                                                 '$lt': self._new_temporary_alleles_update_date}]}}))
 
     def __insert_sequence_types(self) -> None:
         """
@@ -155,6 +156,8 @@ class NewClusteringInfoToBigs:
                                 if nullpresent[0][0] == 0:
                                     self._seqdef_sequences_psql_tbl.insert_sequence((locus, '0', 'null allele'))
                             seqdef_profilemembers_psql_tbl.insert_profile_member(('cgMLST', locus, st_id, allele_id))
+                        self._st_collection.update_one({'cgST': st_id},
+                                                {'$set': {'bigsdb_status': 'inserted'}}, upsert=True)
 
     def __insert_or_update_clustering(self) -> None:
         """
@@ -175,7 +178,7 @@ class NewClusteringInfoToBigs:
             TblClassificationGroupProfiles(self._species) as seqdef_clgrpr_psql_tbl, \
                 TblClassificationGroupProfileHistory(self._species) as seqdef_clgrprhist_psql_tbl:
             for cl_membership in self._new_cluster_membership:
-                cg_scheme_id = threshold_bigsdbcgschemeid_dict[int(cl_membership['threshold'])]
+                cg_scheme_id = threshold_bigsdbcgschemeid_dict[int(cl_membership['threshold'])] # 1 ou 2
                 profile_id = cl_membership['cgST']
                 group_id = cl_membership['clustering_membership']
                 query_group_exists = seqdef_clgr_psql_tbl.count_group((cg_scheme_id, group_id))
@@ -196,6 +199,9 @@ class NewClusteringInfoToBigs:
                             groups_merged.add(current_bigsdb_group[0][0])
                             # update group table
                             seqdef_clgr_psql_tbl.inactivate_group((profile_id, str(current_bigsdb_group[0][0])))
+                bigsdb_datestamp_for_clustermembership =
+                self._cluster_membership_collection.update_one({'_id': cl_membership['_id']},
+                                                {'$set': {'last_clustering_date': datetime.datetime.utcnow()}})
 
     def ___check_for_classification_schemes(self) -> None:
         """
