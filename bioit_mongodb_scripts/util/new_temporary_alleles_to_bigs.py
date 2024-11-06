@@ -63,6 +63,7 @@ class NewTemporaryAllelesToBigs:
         """
         if len(self._new_sequences) > 0:
             self.__insert_new_alleles()
+            self.__update_sequences_insertion_date_in_bigsdb()
         self.__update_last_update_date()
 
     def _get_last_date_of_update(self) -> Optional[date]:
@@ -83,8 +84,7 @@ class NewTemporaryAllelesToBigs:
         date of the last update.
         :return: A list of documents containing the information about the new alleles.
         """
-        return list(self._hashed_ad_collection.find({'insertion_date': {'$gt': self._last_date_of_update,
-                                                                        '$lt': self._current_update_date},
+        return list(self._hashed_ad_collection.find({'bigsdb_insertion_status': 'pending',
                                                      'resolved_AD': 0}))
 
     def __insert_new_alleles(self) -> None:
@@ -101,6 +101,15 @@ class NewTemporaryAllelesToBigs:
                     self._seqdef_sequences_psql_tbl.insert_sequence((locus, new_allele['temp_allele_name'],
                                                                      new_allele['allele_sequence']))
                     logging.info(f"id {new_allele['temp_allele_name']} inserted into locus {locus}")
+
+    def __update_sequences_insertion_date_in_bigsdb(self) -> None:
+        """
+        Turn field "bigsdb_insertion_status" to "inserted" f
+        """
+        list_doc_id = [x.get('_id') for x in self._new_sequences]
+        self._hashed_ad_collection.update_many(
+            {'_id': {'$in': list_doc_id}},{ '$set': {'bigsdb_insertion_status': 'inserted'}})
+
 
     def ___order_sequences_by_locus(self) -> Dict[str, List[Dict[str, Any]]]:
         """

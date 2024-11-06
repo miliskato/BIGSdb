@@ -540,6 +540,7 @@ class MainMongo:
                                                                     "resolved_AD": 0,
                                                                     "temp_allele_name": temp_allele,
                                                                     "insertion_date": datetime.utcnow(),
+                                                                    "bigsdb_insertion_status": "pending"
                                                                     }))
                             json_report[typing_scheme]['loci'][locus_index]['Allele'] = temp_allele  # replace the name of the allele in the results (no hash anymore)
                         else:
