@@ -157,7 +157,7 @@ class NewClusteringInfoToBigs:
                                     self._seqdef_sequences_psql_tbl.insert_sequence((locus, '0', 'null allele'))
                             seqdef_profilemembers_psql_tbl.insert_profile_member(('cgMLST', locus, st_id, allele_id))
                         self._st_collection.update_one({'cgST': st_id},
-                                                {'$set': {'bigsdb_status': 'inserted'}}, upsert=True)
+                                                {'$set': {'bigsdb_status': 'inserted'}})
 
     def __insert_or_update_clustering(self) -> None:
         """
@@ -178,7 +178,7 @@ class NewClusteringInfoToBigs:
             TblClassificationGroupProfiles(self._species) as seqdef_clgrpr_psql_tbl, \
                 TblClassificationGroupProfileHistory(self._species) as seqdef_clgrprhist_psql_tbl:
             for cl_membership in self._new_cluster_membership:
-                cg_scheme_id = threshold_bigsdbcgschemeid_dict[int(cl_membership['threshold'])] # 1 ou 2
+                cg_scheme_id = threshold_bigsdbcgschemeid_dict[int(cl_membership['threshold'])]
                 profile_id = cl_membership['cgST']
                 group_id = cl_membership['clustering_membership']
                 query_group_exists = seqdef_clgr_psql_tbl.count_group((cg_scheme_id, group_id))
