@@ -151,7 +151,8 @@ class DistanceAndClusterComputer:
                 doc = {'cgST': cgst,
                        'insertion_date': datetime.datetime.utcnow(),
                        'threshold': thresh,
-                       'clustering_membership': cluster}
+                       'clustering_membership': cluster,
+                       'last_clustering_date': None}
                 documents.append(doc)
             self._insert_a_lot(documents, self._cluster_membership_collection)
             logging.info(f"{datetime.datetime.now()}: Clustering membership finished for threshold {thresh}")
