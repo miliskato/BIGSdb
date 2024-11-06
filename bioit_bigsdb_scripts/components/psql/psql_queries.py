@@ -92,7 +92,7 @@ class PsqlQueries():
     SEQ_INS__TB_CLGRPRHIST_VAR_SCHEME_PRID_CGSCHID_PREVGR: Final[str] = """
         INSERT INTO classification_group_profile_history(timestamp, scheme_id, 
         profile_id, cg_scheme_id, previous_group) 
-        VALUES((SELECT CURRENT_DATE), (SELECT id FROM schemes WHERE name = %s),
+        VALUES((SELECT CURRENT_TIMESTAMP), (SELECT id FROM schemes WHERE name = %s),
         %s, %s, %s);"""
 
     # TBL classification schemes

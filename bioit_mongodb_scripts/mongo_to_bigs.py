@@ -67,7 +67,7 @@ class MongoToBigs:
         :return: None
         """
         # Configure stdout logging
-        logging.basicConfig(level=logging.INFO, stream=sys.stdout)
+        logging.basicConfig(level=logging.WARNING, stream=sys.stdout)
 
         self._species = species
         self._single_sample_id = single_sample_id
@@ -453,7 +453,7 @@ class MongoToBigs:
 
 if __name__ == '__main__':
     # Configure stdout logging
-    logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
+    logging.basicConfig(level=logging.WARNING, stream=sys.stdout)
 
     # Parse Mongo config
     mongo_config_data = get_mongodb_config_data()
