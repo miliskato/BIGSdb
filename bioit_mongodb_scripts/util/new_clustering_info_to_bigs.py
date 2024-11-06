@@ -56,7 +56,7 @@ class NewClusteringInfoToBigs:
         self._seqdef_sequences_psql_tbl = TblSequences(self._species)
         # Prepare for main
         self._clustering_thresholds = CLUSTERING_CONFIG[f"clustering_thresholds_{self._species}"]
-        self._current_update_date = datetime.datetime.utcnow()
+        self._new_temporary_alleles_update_date = self._get_temporary_alleles_update_date()
         self._last_date_of_update = self._get_last_date_of_update()
         if self._last_date_of_update is None:
             self._last_date_of_update = datetime.datetime(1970, 1, 1)  # unix time
@@ -93,13 +93,24 @@ class NewClusteringInfoToBigs:
         query = self._update_metadata_collection.find_one({'metadata': 'last_update', 'host': socket.gethostname()})
         return query['last_update_date'] if query else None
 
+    def _get_temporary_alleles_update_date(self) -> Optional[date]:
+        """
+        Retrieve the last date that the last temporary alleles were inserted to use this as a maximum date for the new
+        cgST insertion.
+        :return: a date in iso UTC format
+        """
+        query = self._update_metadata_collection.find_one({'metadata': 'last_update_temporary_alleles', 'host': socket.gethostname()})
+        # this always needs to be found because the new temporary alleles runs before the new clustering info runs
+        return query['last_update_date']
+    
     def _get_new_st(self) -> List[Dict[str, Any]]:
         """
         Retrieve the new sequence types from the MongoDB sequence types collection which have been added since the
         date of the last update.
         :return: A list of documents containing the information about the new sequence types.
         """
-        return list(self._st_collection.find({'insertion_date': {'$gt': self._last_date_of_update}},
+        return list(self._st_collection.find({'insertion_date': {'$gt': self._last_date_of_update,
+                                                                 '$lt': self._new_temporary_alleles_update_date}},
                                              sort=[('cgST', 1)]))
 
     def _get_st_headers(self) -> Dict[str, Any]:
@@ -115,7 +126,8 @@ class NewClusteringInfoToBigs:
         Retrieve the cluster memberships that have been added or modified since the last date of update
         :return: A list of documents (dict) containing the information about the new cluster memberships.
         """
-        return list(self._cluster_membership_collection.find({'insertion_date': {'$gt': self._last_date_of_update}}))
+        return list(self._cluster_membership_collection.find({'insertion_date': {'$gt': self._last_date_of_update,
+                                                                                 '$lt': self._new_temporary_alleles_update_date}}))
 
     def __insert_sequence_types(self) -> None:
         """
@@ -339,7 +351,7 @@ class NewClusteringInfoToBigs:
         """
         self._update_metadata_collection.with_options(write_concern=WriteConcern(w="majority")).update_one(
             {'metadata': 'last_update', 'host': socket.gethostname()},
-            {"$set": {'last_update_date': self._current_update_date}}, upsert=True)
+            {"$set": {'last_update_date': self._new_temporary_alleles_update_date}}, upsert=True)
 
     def __del__(self) -> None:
         """

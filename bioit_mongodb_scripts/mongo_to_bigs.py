@@ -138,6 +138,10 @@ class MongoToBigs:
         # Check if dbs were updated and update bigsdb accordingly
         self.__update_bigsdb_psql_if_needed()
 
+        # get list of documents before Temporary alleles insertion so that no new documents with new alleles can be
+        # added in the time that it takes between the new alleles to start and the list of documents to be queried
+        list_of_documents = self.__get_list_of_documents()
+
         # call the autoexecutable function to insert new alleles and profiles
         NewTemporaryAllelesToBigs(self._species, mongo_config_data=self._mongo_config_data)
 
@@ -154,8 +158,6 @@ class MongoToBigs:
 
         # send bad samples from the badqc_isolates collection to BIGSdb
         samples_to_validation_bigs(self._species, mongo_config_data=self._mongo_config_data)
-
-        list_of_documents = self.__get_list_of_documents()
 
         # Main insertion into bigsdb for loop
         for document in list_of_documents:
@@ -195,13 +197,15 @@ class MongoToBigs:
             # Insert nominative and labtest metadata after having done everything else except the alerts in order to not break the alerts 'failsafe'
             MongoToBigsNominative(self._species, self._mongo_config_data, dont_send_email=True)
 
-            # Run Alerts to bigs after updating the cache because it accesses a SQL table that is updated by the cache updater.
-            # also run it after having inserted all isolates into bigsdb
-            try:
-                if len(self._list_of_new_isolates_for_alerts + self._list_of_new_versions_for_alerts) > 0:
-                    AlertsToBigs(self._list_of_new_isolates_for_alerts, self._list_of_new_versions_for_alerts, self._species, self._cgmlst_bigsdb_scheme_id)
-            except:
-                self._exception_in_alerts = True
+        # Run Alerts to bigs after updating the cache because it accesses a SQL table that is updated by the cache updater.
+        # also run it after having inserted all isolates into bigsdb
+        try:
+            if len(self._list_of_new_isolates_for_alerts + self._list_of_new_versions_for_alerts) > 0:
+                AlertsToBigs(self._list_of_new_isolates_for_alerts, self._list_of_new_versions_for_alerts, self._species,
+                             self._cgmlst_bigsdb_scheme_id, self._naive_clustering_distance_matrix_file)
+        except:
+            self._exception_in_alerts = True
+            raise
 
     def __update_bigsdb_psql_if_needed(self) -> None:
         """
@@ -440,7 +444,7 @@ class MongoToBigs:
                 self._exception_in_alerts:
             try:
                 AlertsToBigs(self._list_of_new_isolates_for_alerts, self._list_of_new_versions_for_alerts,
-                             self._species, self._cgmlst_bigsdb_scheme_id)
+                             self._species, self._cgmlst_bigsdb_scheme_id, self._naive_clustering_distance_matrix_file)
             except Exception as exceptionmessage2:
                 traceback2 = traceback.format_exc()
                 send_email(f"Failure 1: {self._exceptionmessage1}\n{self._traceback1}\n"

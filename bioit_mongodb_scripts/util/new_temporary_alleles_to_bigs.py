@@ -83,7 +83,8 @@ class NewTemporaryAllelesToBigs:
         date of the last update.
         :return: A list of documents containing the information about the new alleles.
         """
-        return list(self._hashed_ad_collection.find({'insertion_date': {'$gt': self._last_date_of_update},
+        return list(self._hashed_ad_collection.find({'insertion_date': {'$gt': self._last_date_of_update,
+                                                                        '$lt': self._current_update_date},
                                                      'resolved_AD': 0}))
 
     def __insert_new_alleles(self) -> None:
