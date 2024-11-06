@@ -68,10 +68,20 @@ def samples_to_validation_bigs(species: str, mongo_config_data: Dict[str, Any] =
     query = update_collection.find_one({'metadata': 'last_validation_to_bigs_update', 'host': socket.gethostname()})
     last_run_date = query['last_update_date'] if query else datetime.datetime(1970, 1, 1)  # unix time
     current_date = datetime.datetime.utcnow()
-    bad_samples = list(map(lambda x: MongoRecordDict(x),isolates_badqc_collection.find({'creation_date': {'$gt': last_run_date}})))
+    bad_samples = list(map(lambda x: MongoRecordDict(x),isolates_badqc_collection.find({'submission_status': 'pending_for_submission'})))
     _insert_submission_bigs(bad_samples, 'bad_quality', species, mongo_config_data)
-    # resequencing_samples = list(map(lambda x: MongoRecordDict(x),isolates_resequencing_collection.find({'creation_date': {'$gt': last_run_date}})))
+    for isolate in bad_samples:
+        doc_id=isolate.get_id()
+        self.isolates_badqc_collection.update_one({'_id': doc_id},
+                                                {'$set': {'submission_status': 'submitted_in_bigsdb'}},
+                                                upsert=True)
+    # resequencing_samples = list(map(lambda x: MongoRecordDict(x),isolates_resequencing_collection.find({'submission_status': 'pending_for_submission'})))
     # _insert_submission_bigs(resequencing_samples, 'resequencing', species, mongo_config_data)
+    #for isolate in resequencing_samples:
+    #    doc_id=isolate.get_id()
+    #    self.isolates_resequencing_collection.update_one({'_id': doc_id},
+    #                                            {'$set': {'submission_status': 'submitted_in_bigsdb'}},
+    #                                            upsert=True)
     # update last date of update
     if query:
         update_collection.with_options(write_concern=WriteConcern(w="majority")).find_one_and_update(

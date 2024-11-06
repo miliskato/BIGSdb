@@ -254,10 +254,12 @@ class MainMongo:
         if good_sample_quality:
             if self._results_type == 'badqc_validated':
                 mongo_records['validation'] = self._subvaldict
+                mongo_records['submission_status'] = f'validated on {self._subvaldict['date']}'
                 self._isolates_badqc_collection.delete_one({'_id': mongo_records["_id"]})
             self.___write_document(self._isolates_collection, mongo_records)
             logging.info(f"Wrote new isolate {self._technical_id} and its result to {self._species} database")
         else:
+            mongo_records['submission_status'] = 'pending_for_submission'
             self.___write_document(self._isolates_badqc_collection, mongo_records)
             logging.warning(
                 f"New isolate {self._technical_id} failed quality control for one or more checks. It's results were written to the 'isolates_badqc' collection in the {self._species} database")
@@ -324,6 +326,7 @@ class MainMongo:
                 self.___convert_typinghitdictionaries_to_lists(new_json_report)
                 if 'cgmlst' in new_json_report:
                     self.__define_cgst_and_run_clustering(new_json_report)
+                new_isolate['submission_status'] = 'pending_for_submission'
                 self.___write_document(self._isolates_resequencing_collection, new_isolate)
         else:
             send_email(
@@ -370,6 +373,7 @@ class MainMongo:
                 f"New results are not different from current results for {self._technical_id} in {self._species}, updating analysis dates and db versions.")
         if self._results_type == 'resequencing_validated':
             new_results['validation'] = self._subvaldict
+            new_results['submission_status'] = f'validated on {self._subvaldict['date']}'
 
             # Remove the isolate from the resequencing collection to allow for new resequencings
             self._isolates_resequencing_collection.delete_one({'_id': self._technical_id})
