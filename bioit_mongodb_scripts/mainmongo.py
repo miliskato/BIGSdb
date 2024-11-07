@@ -423,7 +423,7 @@ class MainMongo:
         :param results: results dictionary to be inserted
         :return: dictionary with results under results key and metadata keys at the same level of the results key
         """
-        technical_metadata = self.___retrieve_technical_metadata(results) if self._species not in self._mongo_config_data['viral_species'] else 'to be determined'
+        technical_metadata = self.___retrieve_technical_metadata(results)
         results["pipeline_hash"] = self._pipeline_hash
         results["results_version"] = 1  # this version always increments
         results["changed_version"] = 1  # this version only increments whenever something actually changed
@@ -450,7 +450,7 @@ class MainMongo:
         metadata = JsonReportDict.from_json(self._technical_metadata_path)
         metadata.pop('name_pseudonymized', None)
         metadata.pop('species', None)
-        if str(self._original_input_format) == 'fastq':
+        if str(self._original_input_format) == 'fastq' and self._species not in self._mongo_config_data['viral_species']:
             tx_seq_fltr_meth = ', '.join([f"downsample factor: {results['downsampling']['downsample_factor']}",
                                           f"trimming: {results['trimming']['informs_tools']['Trimmomatic']['_name']}",
                                           f"filtering of assembly: {results['assembly']['informs_tools']['Seqtk seq']['_name']}"
@@ -460,11 +460,11 @@ class MainMongo:
             ms_genome_cvge = results['downsampling']['coverage_estimated']
             cd_novo_assy = "Yes"
 
-            metadata['TX_SEQ_FLTR_METH'] = tx_seq_fltr_meth
-            metadata['CD_SEQ_ASSY_METH'] = cd_seq_assy_meth
-            metadata['TX_SEQ_ASSY_METH_VER'] = tx_seq_assy_meth_ver
-            metadata['MS_GENOME_CVGE'] = ms_genome_cvge
-            metadata['CD_NOVO_ASSY'] = cd_novo_assy
+            metadata['data']['SequenceDataFilteringMethod'] = tx_seq_fltr_meth
+            metadata['data']['SequenceAssemblyMethod'] = cd_seq_assy_meth
+            metadata['data']['SequenceAssemblyMethodVersionOrDate'] = tx_seq_assy_meth_ver
+            metadata['data']['GenomeCoverage'] = ms_genome_cvge
+            metadata['data']['DeNovoAssembly'] = cd_novo_assy
         return metadata
 
     @staticmethod
