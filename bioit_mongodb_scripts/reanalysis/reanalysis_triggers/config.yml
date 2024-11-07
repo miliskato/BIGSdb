@@ -199,3 +199,15 @@ species:
     vfdb_core:
       dirdb: /db/gene_detection/VFDB_core
       cmd_argument: vfdb-core
+viral:
+  sars_cov_2:
+    dirsdb:
+      - /db/nextclade/sars-cov-2
+  influenza_a:
+    dirsdb:
+      - /db/nextclade/flu_h1n1pdm_ha
+      - /db/nextclade/flu_h3n2_ha
+  influenza_b:
+    dirsdb:
+      - /db/nextclade/flu_vic_ha
+      - /db/nextclade/flu_yam_ha
