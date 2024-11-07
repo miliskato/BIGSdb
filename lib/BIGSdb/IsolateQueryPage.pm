@@ -29,6 +29,7 @@ use BIGSdb::Constants qw(:interface :limits SEQ_FLAGS LOCUS_PATTERN OPERATORS MI
 use constant WARN_IF_TAKES_LONGER_THAN_X_SECONDS => 5;
 use constant MAX_LOCI_DROPDOWN                   => 200;
 use constant MAX_LIST_RENDER_SIZE                => 10000;
+use constant MAX_ROWS => 1000;
 
 sub _ajax_content {
 	my ($self) = @_;
