@@ -126,9 +126,9 @@ class NewClusteringInfoToBigs:
         update of temporary alleles
         :return: A list of documents (dict) containing the information about the new cluster memberships.
         """
-        return list(self._cluster_membership_collection.find({'last_clustering_date':{"$or":[None,
-                                                                                {'$gt': self._last_date_of_update,
-                                                                                 '$lt': self._new_temporary_alleles_update_date}]}}))
+        return list(self._cluster_membership_collection.find(
+            {'$or':[{'last_clustering_date': None},
+                    {'last_clustering_date': {'$gt':self._last_date_of_update,'$lt': self._new_temporary_alleles_update_date}}]}))
 
     def __insert_sequence_types(self) -> None:
         """
@@ -199,7 +199,6 @@ class NewClusteringInfoToBigs:
                             groups_merged.add(current_bigsdb_group[0][0])
                             # update group table
                             seqdef_clgr_psql_tbl.inactivate_group((profile_id, str(current_bigsdb_group[0][0])))
-                bigsdb_datestamp_for_clustermembership =
                 self._cluster_membership_collection.update_one({'_id': cl_membership['_id']},
                                                 {'$set': {'last_clustering_date': datetime.datetime.utcnow()}})
 
