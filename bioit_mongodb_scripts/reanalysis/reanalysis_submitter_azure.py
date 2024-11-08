@@ -48,15 +48,15 @@ def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     return parser.parse_args()
 
 
-def wrapper_loop_dtap_and_species(speciess: List[str], dtaps: List[str]) -> None:
+def wrapper_loop_dtap_and_species(specieslist: List[str], dtaplist: List[str]) -> None:
     """
     Loops over all dtaps and species to launch the reanalyses accordingly.
-    :param speciess: commonly used bioit species name: either genus or specific like stec
-    :param dtaps: dev, test, acc, or prod
+    :param specieslist: list of commonly used bioit species name: either genus or specific like stec
+    :param dtaplist: lift of dev andor test andor acc andor prod
     :return: None
     """
-    for dtap in set(dtaps):
-        for species in set(speciess):
+    for dtap in set(dtaplist):
+        for species in set(specieslist):
             BatchPipelinesReanalysis(species, dtap)
 
 
