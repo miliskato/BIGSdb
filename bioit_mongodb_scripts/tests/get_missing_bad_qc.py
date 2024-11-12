@@ -1,6 +1,9 @@
 import sys
+import socket
 from pathlib import Path
 from typing import List, Tuple
+
+from bioit_bigsdb_scripts.components.python_utility_functions import send_email
 
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
@@ -31,7 +34,8 @@ class TblSubmissionslocal(DatabaseConnection):
         Select submission ids submitted through bigsDB interface with status closed
         :return: List of corresponding submissions id
         """
-        str_query = """SELECT value FROM isolate_submission_isolates WHERE field = 'isolate_id';"""
+        str_query = """SELECT value FROM isolate_submission_isolates where submission_id in (SELECT id FROM submissions 
+            where validation_type = 'bad_quality' and status = 'pending') and field = 'isolate_id';"""
         return self.execute(str_query)
 
 if __name__ == '__main__':
@@ -59,7 +63,7 @@ if __name__ == '__main__':
         bigsdb_submissions = tblsubmission.get_submission_id_from_bigs_upload()
     for id in bigsdb_submissions:
         bigsdb_submited_isolates.append(list(id)[0])
-    print(list(set(atlas_badqc_isolate_name) - set(bigsdb_submited_isolates)))
+    badqc_missing_in_bigsdb = list(set(atlas_badqc_isolate_name) - set(bigsdb_submited_isolates))
 
-    # still need to get the isolates from MongoDB Atlas which are not found in bigsdb_submissions
-    print('yo')
+    if len(badqc_missing_in_bigsdb) != 0:
+        send_email(content=f"Missing isolates were found in MongoDB but not in BIGSdb submissions table: {badqc_missing_in_bigsdb}", subject=f"Missing badqc on host {socket.gethostname()}")
