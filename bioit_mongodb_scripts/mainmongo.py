@@ -496,8 +496,8 @@ class MainMongo:
         tx_seq_assy_meth_ver = results['iterative_mapping']['informs_tools']['bwa_mem']['_name']
         ms_genome_cvge = results['downsampling']['coverage_estimated']
         cd_novo_assy = 'No'
-        tx_ref_accn = ', '.join(str(x) for x in results['ref_selection']['results']) if self._species != 'sars_cov_2' \
-            else 'NC_045512.2'
+        tx_ref_accn = ', '.join(results['ref_selection']['results'][x] for x in results['ref_selection']['results']) \
+            if self._species != 'sars_cov_2' else 'NC_045512.2'
 
         return tx_seq_fltr_meth, cd_seq_assy_meth, tx_seq_assy_meth_ver, ms_genome_cvge, cd_novo_assy, tx_ref_accn
 
