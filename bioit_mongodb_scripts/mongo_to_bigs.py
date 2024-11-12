@@ -333,7 +333,7 @@ class MongoToBigs:
             results_type = "new_isolate"
         elif document.get_validation_type():
             results_type = document.get_validation_type()
-            if results_type == 'resequencing':
+            if results_type == 'resequencing' or (results_type == 'badqc' and sample_presence[0][0] == 1):
                 different_version, cgst_changed = self.___check_if_reanalysis_different(document, isolate_id)
         else:
             results_type = "reanalysis"
