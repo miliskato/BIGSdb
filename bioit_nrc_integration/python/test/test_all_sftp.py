@@ -61,6 +61,8 @@ for species, species_testfiles in testfiles_dict.items():
              f"upload/{DTAP}/test_dummy_{species}_CLIN_.json")
     sftp.put(str(testfiles_folder / species_testfiles['get_nominative_from_ODS_LAB']),
              f"upload/{DTAP}/test_dummy_{species}_LAB_.json")
+    with (testfiles_folder / species_testfiles['get_nominative_from_ODS_CLIN']).open('r') as handle:
+        business_key_ods_different_from_wgsmeta = json.load(handle).get('tx_business_key') if json.load(handle).get('tx_business_key') else json.load(handle)['TX_BUSINESS_KEY']
 
     """
     Run Nominative data parser on CLIN and LAB files uploaded to ODS
@@ -186,6 +188,6 @@ for species, species_testfiles in testfiles_dict.items():
     unprocessed_nominative_labtest_metadata_collection = mongoinit_local.initialise_unprocessed_nominative_labtest_metadata_collection()
     unprocessed_nominative_clinical_metadata_collection = mongoinit_local.initialise_unprocessed_nominative_clinical_metadata_collection()
 
-    nominative_labtest_clinical_metadata_collection.delete_one({'_id': dummy_mapping_table['TX_BUSINESS_KEY']})
-    unprocessed_nominative_labtest_metadata_collection.delete_one({'_id': dummy_mapping_table['TX_BUSINESS_KEY']})
-    unprocessed_nominative_clinical_metadata_collection.delete_one({'_id': dummy_mapping_table['TX_BUSINESS_KEY']})
+    nominative_labtest_clinical_metadata_collection.delete_one({'_id': business_key_ods_different_from_wgsmeta})
+    unprocessed_nominative_labtest_metadata_collection.delete_one({'_id': business_key_ods_different_from_wgsmeta})
+    unprocessed_nominative_clinical_metadata_collection.delete_one({'_id': business_key_ods_different_from_wgsmeta})

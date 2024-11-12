@@ -37,6 +37,12 @@ schema:
 #      translation: aggl_serogroup
 #      code_list: serovar_codes
   CLIN:
+    CD_HP_HCO_VAL:  # needed for link with WGS meta
+      required: True
+      translation: HCO
+    TX_LAB_SAMPLE:  # needed for link with WGS meta
+      required: True
+      translation: sample_id
     TX_BUSINESS_KEY:
       required: True
       translation: _id

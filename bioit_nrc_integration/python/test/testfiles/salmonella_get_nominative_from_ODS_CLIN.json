@@ -16,12 +16,13 @@
  "tx_ttl_symp": [{"cd_prob_nam": "25374005"},
  {"cd_prob_nam": "68566005"}],
  "cd_status_rec": "status_submitted",
- "tx_lab_sample": "ID123",
+ "tx_lab_sample": "test_dummy_salmonella",
  "cd_infct_cntry": [{"cd_infct_cntry": "FR"},
  {"cd_infct_cntry": "US"}],
- "tx_business_key": "HCO_test_dummy_salmonella",
+ "tx_business_key": "random_business_key_different_from_wgsmeta",
  "cd_antbio_specif": "418631002",
  "id_te_hdbp0345_slm_clin": 11},
  "metadata": {"version": "V1.0.4",
  "data_collection": "HDBP0345_SLM_CLIN"},
- "technical_id": 11}
+ "technical_id": 11,
+ "cd_hp_hco_val": "HCO" }

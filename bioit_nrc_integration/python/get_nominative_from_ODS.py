@@ -146,6 +146,9 @@ class MainNominativeDataParserFromOds(SFTPConnection):
     def _process_json_files(self) -> None:
         """
         Parses all downloaded JSON files and inserts them into MongoDB.
+        The processed CLIN and LAB files are combined into a single MongoDB document in the
+        nominative_labtest_clinical_metadata collection with the _id == the tx_business_key which is common between
+        both BUT different from the tx_business_key received in the WGSMeta received in Azure.
         :return: None
         """
         for species, filetypes_dict in self._files_by_filetype_by_species.items():
@@ -174,7 +177,7 @@ class MainNominativeDataParserFromOds(SFTPConnection):
                     # Insert document into MongoDB after having successfully parsed the matching files
                     # use upsert to create the document if it doesn't exist and update if it does
                     nominative_labtest_clinical_metadata_collection.update_one({'_id': data_translated['_id']},
-                                                                               {'$set': {**data_translated}},
+                                                                               {'$set': {**data_translated, f"{filetype}_received": True}},
                                                                                upsert=True)
 
                     # if one of these raises a pymongo DuplicateKeyError possibly because the documents have been

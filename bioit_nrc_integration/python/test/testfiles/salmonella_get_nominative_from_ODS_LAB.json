@@ -48,7 +48,7 @@
 "cd_reqe_hco_tpe": "HO0002",
 "cd_reqe_hco_val": "71001525",
 "cd_reqe_hp_role": "PRF",
-"tx_business_key": "HCO_test_dummy_salmonella",
+"tx_business_key": "random_business_key_different_from_wgsmeta",
 "tx_pat_add_info": "Add Part Info",
 "tx_pat_givn_nam": "Given",
 "tx_pat_last_nam": "LNP",
