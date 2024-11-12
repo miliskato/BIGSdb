@@ -82,6 +82,9 @@ class BatchPipelinesReanalysis:
         self._species = species
         self._dtap = dtap
 
+        # Parse MongoDB config
+        self._mongo_config_data = get_mongodb_config_data()
+
         # Read the reanalysis config
         with open(MONGO_REANALYSIS_CONFIG, encoding='utf-8') as handle:
             self._reanalysis_config = yaml.safe_load(handle)
@@ -107,7 +110,7 @@ class BatchPipelinesReanalysis:
         job_name = f"{BATCH_JOB_NAME_PREFIX}{self._species}"
         self.__create_job(job_name)
 
-        if self._species not in ['sars_cov_2', 'influenza_a', 'influenza_b']:
+        if self._species not in self._mongo_config_data['viral_species']:
             date_args_dict = self.__collect_database_update_dates()
             for maximal_analysis_date in date_args_dict:
                 self.__launch_tasks(maximal_analysis_date, date_args_dict, job_name)
@@ -396,7 +399,7 @@ class BatchPipelinesReanalysis:
             f"cd {working_dir};"
             f"{config_species['main_script']} ",
             f"--fasta {mongodb_document['fasta_path']} ",
-            '--detection-method blast' if self._species not in ['sars_cov_2', 'influenza_a', 'influenza_b'] else '',
+            '--detection-method blast' if self._species not in self._mongo_config_data['viral_species']else '',
             '--library NexteraPE',  # should be changed in the future?
             f'--working-dir {working_dir}',
             f'--output-dir {report_dir}',
