@@ -3,7 +3,7 @@ import logging
 import socket
 import sys
 import traceback
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -199,8 +199,9 @@ class NewClusteringInfoToBigs:
                             groups_merged.add(current_bigsdb_group[0][0])
                             # update group table
                             seqdef_clgr_psql_tbl.inactivate_group((profile_id, str(current_bigsdb_group[0][0])))
+                current_date_utc = datetime.now(timezone.utc)
                 self._cluster_membership_collection.update_one({'_id': cl_membership['_id']},
-                                                {'$set': {'last_clustering_date': datetime.datetime.utcnow()}})
+                                                {'$set': {'last_clustering_date': current_date_utc}})
 
     def ___check_for_classification_schemes(self) -> None:
         """

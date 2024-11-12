@@ -253,8 +253,7 @@ class MainMongo:
                 self.__define_cgst_and_run_clustering(json_report)
         if good_sample_quality:
             if self._results_type == 'badqc_validated':
-                mongo_records['validation'] = self._subvaldict
-                mongo_records['submission_status'] = f'validated on {self._subvaldict['date']}'
+                self.___update_submission_status_after_validation(mongo_records)
                 self._isolates_badqc_collection.delete_one({'_id': mongo_records["_id"]})
             self.___write_document(self._isolates_collection, mongo_records)
             logging.info(f"Wrote new isolate {self._technical_id} and its result to {self._species} database")
@@ -372,8 +371,7 @@ class MainMongo:
             logging.info(
                 f"New results are not different from current results for {self._technical_id} in {self._species}, updating analysis dates and db versions.")
         if self._results_type == 'resequencing_validated':
-            new_results['validation'] = self._subvaldict
-            new_results['submission_status'] = f'validated on {self._subvaldict['date']}'
+            self.___update_submission_status_after_validation(new_results)
 
             # Remove the isolate from the resequencing collection to allow for new resequencings
             self._isolates_resequencing_collection.delete_one({'_id': self._technical_id})
@@ -406,6 +404,11 @@ class MainMongo:
                                                      {'$set': {'changed_since_sent_to_DWH': True,
                                                                'changes_accepted_by_DWH': False}})
                 break  # break the loop once at least one change has been discovered
+
+    def ___update_submission_status_after_validation(self, new_results: Union[MongoRecordDict, Dict[str, Union[str, object]]])-> None:
+        new_results['validation'] = self._subvaldict
+        validation_date = self._subvaldict['date']
+        new_results['submission_status'] = f'validated on {validation_date}'
 
     @staticmethod
     def ___write_document(opened_collection: pymongo.collection.Collection, json_input: MongoRecordDict) -> str:

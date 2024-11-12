@@ -67,7 +67,7 @@ def samples_to_validation_bigs(species: str, mongo_config_data: Dict[str, Any] =
     update_collection = mongoinit.initialise_update_collection()
     query = update_collection.find_one({'metadata': 'last_validation_to_bigs_update', 'host': socket.gethostname()})
     last_run_date = query['last_update_date'] if query else datetime.datetime(1970, 1, 1)  # unix time
-    current_date = datetime.datetime.utcnow()
+    current_date = datetime.datetime.now(datetime.timezone.utc)
     bad_samples = list(map(lambda x: MongoRecordDict(x),isolates_badqc_collection.find({'submission_status': 'pending_for_submission'})))
     _insert_submission_bigs(bad_samples, 'bad_quality', species, mongo_config_data)
     for isolate in bad_samples:
