@@ -149,7 +149,7 @@ class DistanceAndClusterComputer:
             documents = []
             for cgst, cluster in cgst_cluster_dict.items():
                 doc = {'cgST': cgst,
-                       'insertion_date': datetime.datetime.utcnow(),
+                       'insertion_date': datetime.datetime.now(datetime.timezone.utc),
                        'threshold': thresh,
                        'clustering_membership': cluster,
                        'last_clustering_date': None}
@@ -181,7 +181,7 @@ class DistanceAndClusterComputer:
             query = {'threshold': threshold,
                      'clustering_membership': cl}
             self.__save_cluster_membership_in_history(query, new_cluster_name, threshold)
-            update = {'$set': {'clustering_membership': new_cluster_name, 'insertion_date': datetime.datetime.utcnow()}}
+            update = {'$set': {'clustering_membership': new_cluster_name, 'insertion_date': datetime.datetime.now(datetime.timezone.utc)}}
             self._cluster_membership_collection.update_many(query, update)
         return new_cluster_name
 
@@ -198,7 +198,7 @@ class DistanceAndClusterComputer:
         for st in query_res:
             self._cluster_merging_collection.insert_one({'cgST': st['cgST'],
                                                          'threshold': thresh,
-                                                         'merging_date': datetime.datetime.utcnow(),
+                                                         'merging_date': datetime.datetime.now(datetime.timezone.utc),
                                                          'old_cluster': st['clustering_membership'],
                                                          'new_cluster': new_cluster_name})
 
@@ -220,7 +220,7 @@ class DistanceAndClusterComputer:
             else:  # len(membership) == 0:
                 membership.append(self._sequence_types[-1])
             entry = {'cgST': self._sequence_types[-1],
-                     'insertion_date': datetime.datetime.utcnow(),
+                     'insertion_date': datetime.datetime.now(datetime.timezone.utc),
                      'threshold': thresh,
                      'clustering_membership': membership[0]}
             self._cluster_membership_collection.with_options(write_concern=WriteConcern(w="majority")).insert_one(entry)

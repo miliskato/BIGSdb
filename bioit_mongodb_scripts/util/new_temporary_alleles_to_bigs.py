@@ -41,7 +41,7 @@ class NewTemporaryAllelesToBigs:
         # Open sequences psql table connection
         self._seqdef_sequences_psql_tbl = TblSequences(self._species)
         # Prepare for main
-        self._current_update_date = datetime.datetime.utcnow()
+        self._current_update_date = datetime.datetime.now(datetime.timezone.utc)
         self._last_date_of_update = self._get_last_date_of_update()
         if self._last_date_of_update is None:
             self._last_date_of_update = datetime.datetime(1970, 1, 1)  # unix time

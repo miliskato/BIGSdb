@@ -7,7 +7,7 @@ import re
 import socket
 import sys
 import traceback
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Tuple, Union
 
@@ -442,7 +442,7 @@ class MainMongo:
             "original_input_format": str(self._original_input_format),
             "fasta_path": str(self._fastafilepath),
             "previous_latest_results_document": None,
-            "creation_date": datetime.utcnow(),
+            "creation_date": datetime.now(timezone.utc),
             "latest_analysis_date": convert_dmyhms_to_ymd(results["analysis_date"]),
             "technical_metadata": technical_metadata,
             "results": results})
@@ -542,7 +542,7 @@ class MainMongo:
                                                                     "encountered_count": 1,
                                                                     "resolved_AD": 0,
                                                                     "temp_allele_name": temp_allele,
-                                                                    "insertion_date": datetime.utcnow(),
+                                                                    "insertion_date": datetime.now(timezone.utc),
                                                                     "bigsdb_status": "pending"
                                                                     }))
                             json_report[typing_scheme]['loci'][locus_index]['Allele'] = temp_allele  # replace the name of the allele in the results (no hash anymore)

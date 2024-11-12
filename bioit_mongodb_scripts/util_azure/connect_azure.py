@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from azure import batch
 from azure.common.credentials import ServicePrincipalCredentials
@@ -77,5 +77,5 @@ class ConnectAzure:
                                     account_key=self.connect_to_storages().credential.account_key,
                                     resource_types=ResourceTypes(service=True, container=True, object=True),
                                     permission=AccountSasPermissions(read=True, write=True),
-                                    expiry=datetime.utcnow() + timedelta(weeks=2))
+                                    expiry=datetime.now(timezone.utc) + timedelta(weeks=2))
         # Issue: the 48 h here is a bottleneck, but any nr of hrs will be a bottleneck

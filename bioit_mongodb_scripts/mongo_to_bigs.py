@@ -5,7 +5,6 @@
 
 import argparse
 import datetime
-import json
 import logging
 import socket
 import sys
@@ -225,7 +224,7 @@ class MongoToBigs:
             GeneDetectionIntoPsql([self._species], do_not_recalculate=True, dont_send_email=True)
             # update last insertion date
             self._update_metadata_collection.update_one({'metadata': 'last_dbupdate_insertion_date'},
-                                                        {'$set': {'last_update_date': datetime.datetime.utcnow()}},
+                                                        {'$set': {'last_update_date': datetime.datetime.now(datetime.timezone.utc)}},
                                                         upsert=True)
 
     def __add_isolate_cgst_to_alert_lists(self, document: MongoRecordDict, isolate_id: str, results_type: ResultType,
