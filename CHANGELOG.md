@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update of "snp_lineage" scheme (mycobacterium)
 - "mongo_to_bigs_hourly" cron job is running every 5 minutes
 - Introduce new fields to get info on various updates in MongoDB Atlas
+- deprecated "datetime.utcnow()" is replaced by "datetime.now(timezone.utc)"
 
 ## [2.0.0] - 2024-10-28
 

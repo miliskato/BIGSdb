@@ -104,7 +104,8 @@ class NewTemporaryAllelesToBigs:
 
     def __update_sequences_insertion_status_in_bigsdb(self) -> None:
         """
-        Turn field "bigsdb_status" to "inserted" f
+        Turn field "bigsdb_status" to "inserted" for each doc listed in self._new_sequences
+        :return: None
         """
         list_doc_id = [x.get('_id') for x in self._new_sequences]
         self._hashed_ad_collection.update_many(
