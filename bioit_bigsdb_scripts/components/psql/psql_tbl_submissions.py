@@ -48,3 +48,10 @@ class TblSubmissions(DatabaseConnection):
         :return: List of corresponding submissions id
         """
         return self.execute(PsqlQueries.ISO_SEL_ID_TB_SUB_VAR_STATUS)
+
+    def validate_pending_badqc(self):
+        """
+        This function will set outcome of all submitted badqc to "good" and turn status from "pending" to "close"
+        :return: None
+        """
+        return self.execute_query(PsqlQueries.ISO_UPD__TB_SUB_STATUS_OUTCOME)
