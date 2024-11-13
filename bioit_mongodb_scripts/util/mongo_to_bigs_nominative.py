@@ -75,7 +75,7 @@ class MongoToBigsNominative:
                                        'LAB_received': True}))
 
         for document in list_of_documents:
-            mapping_table = self._mappingtable_collection.find_one({'TX_BUSINESS_KEY': document['HCO'] + document['sample_id']})
+            mapping_table = self._mappingtable_collection.find_one({'_id': document['sample_id']})
             if not mapping_table:
                 continue
             sample_presence = self._isolates_psql_tbl.count_isolate((mapping_table['_id'],))
