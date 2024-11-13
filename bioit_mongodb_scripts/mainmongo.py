@@ -465,7 +465,7 @@ class MainMongo:
         return metadata
 
     @staticmethod
-    def ____get_technical_metadata_bacterial_fasta(results: JsonReportDict) -> Tuple[str, str, str, str, str, str]:
+    def ____get_technical_metadata_bacterial_fasta(results: JsonReportDict) -> Tuple[str, str, str, str, str, None]:
         """
         Returns the FASTA technical metadata fields if the species is bacterial.
         :params results: results dictionary
@@ -479,7 +479,7 @@ class MainMongo:
         tx_seq_assy_meth_ver = results['assembly']['informs_tools']['spades']['_version']
         ms_genome_cvge = results['downsampling']['coverage_estimated']
         cd_novo_assy = 'Yes'
-        tx_ref_accn = 'null'
+        tx_ref_accn = None
 
         return tx_seq_fltr_meth, cd_seq_assy_meth, tx_seq_assy_meth_ver, ms_genome_cvge, cd_novo_assy, tx_ref_accn
 
