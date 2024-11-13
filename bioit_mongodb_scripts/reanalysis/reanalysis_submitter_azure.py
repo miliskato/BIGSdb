@@ -399,7 +399,7 @@ class BatchPipelinesReanalysis:
             f"cd {working_dir};"
             f"{config_species['main_script']} ",
             f"--fasta {mongodb_document['fasta_path']} ",
-            '--detection-method blast' if self._species not in self._mongo_config_data['viral_species']else '',
+            '--detection-method blast' if self._species not in self._mongo_config_data['viral_species'] else '',
             '--library NexteraPE',  # should be changed in the future?
             f'--working-dir {working_dir}',
             f'--output-dir {report_dir}',
