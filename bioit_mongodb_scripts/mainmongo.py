@@ -406,6 +406,11 @@ class MainMongo:
                 break  # break the loop once at least one change has been discovered
 
     def ___update_submission_status_after_validation(self, new_results: Union[MongoRecordDict, Dict[str, Union[str, object]]])-> None:
+        """
+        This function adapts the field "submission_status" in Mongo doc to keep track of the time of validation
+        :param new_results: Mongo doc of the isolate processed for validation
+        :return: None
+        """
         new_results['validation'] = self._subvaldict
         validation_date = self._subvaldict['date']
         new_results['submission_status'] = f'validated on {validation_date}'

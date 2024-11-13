@@ -1,4 +1,3 @@
-import datetime
 import logging
 import socket
 import sys
@@ -59,7 +58,7 @@ class NewClusteringInfoToBigs:
         self._new_temporary_alleles_update_date = self._get_temporary_alleles_update_date()
         self._last_date_of_update = self._get_last_date_of_update()
         if self._last_date_of_update is None:
-            self._last_date_of_update = datetime.datetime(1970, 1, 1)  # unix time
+            self._last_date_of_update = datetime(1970, 1, 1)  # unix time
         self._new_st = self._get_new_st()
         self._st_headers = self._get_st_headers()
         self._new_cluster_membership = self._get_new_cluster_membership()
