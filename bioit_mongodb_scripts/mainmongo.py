@@ -451,10 +451,12 @@ class MainMongo:
         metadata.pop('name_pseudonymized', None)
         metadata.pop('species', None)
         if str(self._original_input_format) == 'fastq':
-            tx_seq_fltr_meth, cd_seq_assy_meth, tx_seq_assy_meth_ver, ms_genome_cvge, cd_novo_assy, tx_ref_accn \
-                = self.____get_technical_metadata_bacterial_fasta(results) \
-                if self._species not in self._mongo_config_data['viral_species'] else (
-                    self.____get_technical_metadata_viral_fasta(results))
+            if self._species not in self._mongo_config_data['viral_species']:
+                tx_seq_fltr_meth, cd_seq_assy_meth, tx_seq_assy_meth_ver, ms_genome_cvge, cd_novo_assy, tx_ref_accn \
+                    = self.____get_technical_metadata_bacterial_fasta(results)
+            else:
+                tx_seq_fltr_meth, cd_seq_assy_meth, tx_seq_assy_meth_ver, ms_genome_cvge, cd_novo_assy, tx_ref_accn \
+                    = self.____get_technical_metadata_viral_fasta(results)
 
             metadata['data']['SequenceDataFilteringMethod'] = tx_seq_fltr_meth
             metadata['data']['SequenceAssemblyMethod'] = cd_seq_assy_meth
@@ -485,7 +487,7 @@ class MainMongo:
 
     def ____get_technical_metadata_viral_fasta(self, results: JsonReportDict) -> Tuple[str, str, str, str, str, str]:
         """
-        Returns the FASTA technical metadata fields if the species is bacterial.
+        Returns the FASTA technical metadata fields if the species is viral.
         :params results: results dictionary
         :return: tuple containing the different technical metadata fields
         """
