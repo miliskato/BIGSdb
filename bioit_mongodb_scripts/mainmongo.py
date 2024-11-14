@@ -459,8 +459,7 @@ class MainMongo:
                     = self.____get_technical_metadata_viral_fasta(results)
 
             metadata['data']['SequenceDataFilteringMethod'] = tx_seq_fltr_meth
-            metadata['data']['SequenceAssemblyMethod'] = cd_seq_assy_meth
-            metadata['data']['SequenceAssemblyMethodVersionOrDate'] = tx_seq_assy_meth_ver
+            metadata['data']['SequenceAssemblyMethodInfo'] = [{cd_seq_assy_meth, tx_seq_assy_meth_ver}]
             metadata['data']['GenomeCoverage'] = ms_genome_cvge
             metadata['data']['DeNovoAssembly'] = cd_novo_assy
             metadata['data']['ReferenceAccession'] = tx_ref_accn
