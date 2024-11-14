@@ -3,28 +3,24 @@ import socket
 from pathlib import Path
 from typing import List, Tuple
 
-from bioit_bigsdb_scripts.components.python_utility_functions import send_email
-
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
-print(Path.cwd())
-print (PYTHONPATH)
+from bioit_bigsdb_scripts.components.psql.databaseconnection import DatabaseConnection
+from bioit_bigsdb_scripts.components.python_utility_functions import send_email
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data
-from bioit_bigsdb_scripts.components.psql import TblIsolateSubmissionIsolates, TblSubmissions
-from bioit_bigsdb_scripts.components.psql.databaseconnection import DatabaseConnection
 
 
 class TblSubmissionslocal(DatabaseConnection):
     """
     submissions table in the isolates database
     """
-
     def __init__(self, species: str) -> None:
         """
         Initialises this class by opening a database connection.
         :param species: commonly used bioit species name: either genus or specific like stec
+        :return: None
         """
         self._db_type = 'isolates'
         super().__init__(species, self._db_type)
@@ -61,8 +57,8 @@ if __name__ == '__main__':
     bigsdb_submited_isolates = []
     with TblSubmissionslocal('mycobacterium') as tblsubmission:
         bigsdb_submissions = tblsubmission.get_submission_id_from_bigs_upload()
-    for id in bigsdb_submissions:
-        bigsdb_submited_isolates.append(list(id)[0])
+    for isolate_id in bigsdb_submissions:
+        bigsdb_submited_isolates.append(list(isolate_id)[0])
     badqc_missing_in_bigsdb = list(set(atlas_badqc_isolate_name) - set(bigsdb_submited_isolates))
 
     if len(badqc_missing_in_bigsdb) != 0:
