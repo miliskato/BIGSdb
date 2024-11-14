@@ -24,4 +24,4 @@ class cgMLSTProfile:
         Creates a dict containing the sequence type and the cgmlst profile to enter into the sequence type collection
         :return: Dictionary containing the cgST, the cgmlst allele designations list and the current date
         """
-        return {'cgST': int(self.st), 'cgMLST': self.cgmlst, 'insertion_date': datetime.datetime.now(timezone.utc), 'bigsdb_status': 'pending'}
+        return {'cgST': int(self.st), 'cgMLST': self.cgmlst, 'insertion_date': datetime.datetime.now(timezone.utc), 'bigsdb_status': 'pending', 'select_for_bigsdb_insertion': False}

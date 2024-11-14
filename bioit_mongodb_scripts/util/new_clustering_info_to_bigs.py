@@ -98,7 +98,7 @@ class NewClusteringInfoToBigs:
         last update of clustering.
         :return: A list of documents containing the information about the new sequence types.
         """
-        return list(self._st_collection.find({'bigsdb_status': 'pending'},
+        return list(self._st_collection.find({'$and': [{'bigsdb_status': 'pending'}, {'select_for_bigsdb_insertion': True}]},
                                              sort=[('cgST', 1)]))
 
     def _get_st_headers(self) -> Dict[str, Any]:
@@ -144,7 +144,7 @@ class NewClusteringInfoToBigs:
                                     self._seqdef_sequences_psql_tbl.insert_sequence((locus, '0', 'null allele'))
                             seqdef_profilemembers_psql_tbl.insert_profile_member(('cgMLST', locus, st_id, allele_id))
                         self._st_collection.update_one({'cgST': st_id},
-                                                {'$set': {'bigsdb_status': 'inserted'}})
+                                                {'$set': {'bigsdb_status': 'inserted','select_for_bigsdb_insertion' : False}})
 
     def __insert_or_update_clustering(self) -> None:
         """

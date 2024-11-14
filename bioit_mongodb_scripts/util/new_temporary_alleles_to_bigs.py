@@ -42,9 +42,6 @@ class NewTemporaryAllelesToBigs:
         self._seqdef_sequences_psql_tbl = TblSequences(self._species)
         # Prepare for main
         self._current_update_date = datetime.datetime.now(datetime.timezone.utc)
-        self._last_date_of_update = self._get_last_date_of_update()
-        if self._last_date_of_update is None:
-            self._last_date_of_update = datetime.datetime(1970, 1, 1)  # unix time
         self._new_sequences = self._get_new_sequence()
 
         # Execute main function
@@ -65,18 +62,6 @@ class NewTemporaryAllelesToBigs:
             self.__insert_new_alleles()
             self.__update_sequences_insertion_status_in_bigsdb()
         self.__update_last_update_date()
-
-    def _get_last_date_of_update(self) -> Optional[date]:
-        """
-        Retrieve in MongoDB the date of the last update.
-        :return: a date in iso UTC format
-        """
-        query = self._update_metadata_collection.find_one({'metadata': 'last_update_temporary_alleles', 'host': socket.gethostname()})
-        if not query:
-            # When migrating an existing instance to this flow with separate temporary alleles, the last temporary
-            # alleles update date will have been the last clustering update date (last_update)
-            self._update_metadata_collection.find_one({'metadata': 'last_update', 'host': socket.gethostname()})
-        return query['last_update_date'] if query else None
 
     def _get_new_sequence(self) -> List[Dict[str, Any]]:
         """

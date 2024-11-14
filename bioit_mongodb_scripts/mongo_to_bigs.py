@@ -146,6 +146,7 @@ class MongoToBigs:
         # tag doc in cluster_membership present in Mongo before the update of temp alleles in BIGSdb.
         # It prevents the insertion of cluster membership that could be added/modified on AZURE after the last alleles update in BIGS
         self._cluster_membership_collection.update_many({'$set': {'select_for_bigsdb_insertion': True}})
+        self._st_collection.update_many({'$set': {'select_for_bigsdb_insertion': True}})
 
         NewTemporaryAllelesToBigs(self._species, mongo_config_data=self._mongo_config_data)
 
