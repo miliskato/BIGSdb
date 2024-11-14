@@ -87,6 +87,8 @@ class MongoToBigs:
         self._headers_collection = self._mongoinit.initialise_headers_collection()
         self._hashed_ad_collection = self._mongoinit.initialise_hashing_collection()
         self._update_metadata_collection = self._mongoinit.initialise_update_collection()
+        self._st_collection, self._cluster_membership_collection, self._cluster_merging_collection = \
+            self._mongoinit.initialise_clustering_collections()
         self._mongoquerying = Mongoquerying()
         # Ope collections local MongoDB
         self._mongoinit_local = MongoInitialisation(self._species, mongo_config_data=self._mongo_config_data,
@@ -141,7 +143,10 @@ class MongoToBigs:
         # added in the time that it takes between the new alleles to start and the list of documents to be queried
         list_of_documents = self.__get_list_of_documents()
 
-        # call the autoexecutable function to insert new alleles and profiles
+        # tag doc in cluster_membership present in Mongo before the update of temp alleles in BIGSdb.
+        # It prevents the insertion of cluster membership that could be added/modified on AZURE after the last alleles update in BIGS
+        self._cluster_membership_collection.update_many({'$set': {'select_for_bigsdb_insertion': True}})
+
         NewTemporaryAllelesToBigs(self._species, mongo_config_data=self._mongo_config_data)
 
         # The cache command needs to be run using method 'full' once before being able to use it with method

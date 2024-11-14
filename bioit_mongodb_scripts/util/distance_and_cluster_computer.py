@@ -152,7 +152,8 @@ class DistanceAndClusterComputer:
                        'insertion_date': datetime.datetime.now(datetime.timezone.utc),
                        'threshold': thresh,
                        'clustering_membership': cluster,
-                       'last_clustering_date': None}
+                       'cluster_updated': True,
+                       'select_for_bigsdb_insertion': False}
                 documents.append(doc)
             self._insert_a_lot(documents, self._cluster_membership_collection)
             logging.info(f"{datetime.datetime.now()}: Clustering membership finished for threshold {thresh}")
@@ -181,7 +182,8 @@ class DistanceAndClusterComputer:
             query = {'threshold': threshold,
                      'clustering_membership': cl}
             self.__save_cluster_membership_in_history(query, new_cluster_name, threshold)
-            update = {'$set': {'clustering_membership': new_cluster_name, 'insertion_date': datetime.datetime.now(datetime.timezone.utc)}}
+            update = {'$set': {'clustering_membership': new_cluster_name, 'insertion_date': datetime.datetime.now(datetime.timezone.utc),
+                               'cluster_updated': True, 'select_for_bigsdb_insertion': False}}
             self._cluster_membership_collection.update_many(query, update)
         return new_cluster_name
 
@@ -222,7 +224,9 @@ class DistanceAndClusterComputer:
             entry = {'cgST': self._sequence_types[-1],
                      'insertion_date': datetime.datetime.now(datetime.timezone.utc),
                      'threshold': thresh,
-                     'clustering_membership': membership[0]}
+                     'clustering_membership': membership[0],
+                     'cluster_updated': True,
+                     'select_for_bigsdb_insertion': False}
             self._cluster_membership_collection.with_options(write_concern=WriteConcern(w="majority")).insert_one(entry)
 
     @staticmethod

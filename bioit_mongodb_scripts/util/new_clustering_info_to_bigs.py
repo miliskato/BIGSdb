@@ -56,9 +56,6 @@ class NewClusteringInfoToBigs:
         # Prepare for main
         self._clustering_thresholds = CLUSTERING_CONFIG[f"clustering_thresholds_{self._species}"]
         self._new_temporary_alleles_update_date = self._get_temporary_alleles_update_date()
-        self._last_date_of_update = self._get_last_date_of_update()
-        if self._last_date_of_update is None:
-            self._last_date_of_update = datetime(1970, 1, 1)  # unix time
         self._new_st = self._get_new_st()
         self._st_headers = self._get_st_headers()
         self._new_cluster_membership = self._get_new_cluster_membership()
@@ -84,13 +81,6 @@ class NewClusteringInfoToBigs:
         self.__update_naive_clustering_implementation()
         self.__update_last_update_date()
 
-    def _get_last_date_of_update(self) -> Optional[date]:
-        """
-        Retrieve in MongoDB the date of the last update.
-        :return: a date in iso UTC format
-        """
-        query = self._update_metadata_collection.find_one({'metadata': 'last_update', 'host': socket.gethostname()})
-        return query['last_update_date'] if query else None
 
     def _get_temporary_alleles_update_date(self) -> Optional[date]:
         """
@@ -125,9 +115,7 @@ class NewClusteringInfoToBigs:
         update of temporary alleles
         :return: A list of documents (dict) containing the information about the new cluster memberships.
         """
-        return list(self._cluster_membership_collection.find(
-            {'$or':[{'last_clustering_date': None},
-                    {'last_clustering_date': {'$gt':self._last_date_of_update,'$lt': self._new_temporary_alleles_update_date}}]}))
+        return list(self._cluster_membership_collection.find({'$and': [{'cluster_updated': True}, {'select_for_bigsdb_insertion': True}]}))
 
     def __insert_sequence_types(self) -> None:
         """
@@ -199,8 +187,8 @@ class NewClusteringInfoToBigs:
                             # update group table
                             seqdef_clgr_psql_tbl.inactivate_group((profile_id, str(current_bigsdb_group[0][0])))
                 current_date_utc = datetime.now(timezone.utc)
-                self._cluster_membership_collection.update_one({'_id': cl_membership['_id']},
-                                                {'$set': {'last_clustering_date': current_date_utc}})
+                update_fields = {'$set': {'cluster_updated': False, 'select_for_bigsdb_insertion': False}}
+                self._cluster_membership_collection.update_one({'_id': cl_membership['_id']}, update_fields)
 
     def ___check_for_classification_schemes(self) -> None:
         """
