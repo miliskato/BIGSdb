@@ -374,6 +374,6 @@ class PsqlQueries():
     ISO_SEL__SUB_ID_TB_SUB_VAR_OUTCOME_STATUS_VALTYPE: Final[str] = """
         SELECT id FROM submissions WHERE outcome = 'good' AND status = 'closed' AND validation_type = 'bad_quality';"""
     ISO_UPD__TB_SUB_STATUS_OUTCOME: Final[str] = """
-        UPDATE submissions SET (status, outcome) = ('closed', 'good') WHERE validation_type = 'bad_quality';"""
+        UPDATE submissions SET (status, outcome) = ('closed', 'good') WHERE ( validation_type = 'bad_quality' AND OUTCOME = '');"""
     ISO_INSERT_GENERIC_LAB_METADATA_TEMPLATE: Final[str] = "UPDATE isolates SET {} WHERE isolate=%s;"
 
