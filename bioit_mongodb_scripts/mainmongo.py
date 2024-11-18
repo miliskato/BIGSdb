@@ -395,6 +395,8 @@ class MainMongo:
         """
         with CODES_GENOMIC_DWH.open('r') as handle:
             translation_codes = yaml.safe_load(handle)
+        if not translation_codes.get(self._species):
+            return
         for variable, list_path in translation_codes[self._species].items():
             list_path = list_path[1:]  # skip the first value which is always 'results' and is not in the delta
             if access_value_in_dict_using_list_as_dictpath(list_path, deltas_new_old):

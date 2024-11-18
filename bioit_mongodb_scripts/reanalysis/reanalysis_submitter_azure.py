@@ -48,15 +48,15 @@ def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     return parser.parse_args()
 
 
-def wrapper_loop_dtap_and_species(speciess: List[str], dtaps: List[str]) -> None:
+def wrapper_loop_dtap_and_species(specieslist: List[str], dtaplist: List[str]) -> None:
     """
     Loops over all dtaps and species to launch the reanalyses accordingly.
-    :param speciess: commonly used bioit species name: either genus or specific like stec
-    :param dtaps: dev, test, acc, or prod
+    :param specieslist: list of commonly used bioit species name: either genus or specific like stec
+    :param dtaplist: list of dev andor test andor acc andor prod
     :return: None
     """
-    for dtap in set(dtaps):
-        for species in set(speciess):
+    for dtap in set(dtaplist):
+        for species in set(specieslist):
             BatchPipelinesReanalysis(species, dtap)
 
 
@@ -82,9 +82,17 @@ class BatchPipelinesReanalysis:
         self._species = species
         self._dtap = dtap
 
+        # Parse MongoDB config
+        self._mongo_config_data = get_mongodb_config_data()
+
         # Read the reanalysis config
         with open(MONGO_REANALYSIS_CONFIG, encoding='utf-8') as handle:
             self._reanalysis_config = yaml.safe_load(handle)
+            
+        # Read the trigger config
+        with open(TRIGGER_CONFIG, encoding='utf-8') as handle:
+            self._trigger_config = yaml.safe_load(handle)
+
         # Connect to keyvault, batch account and storages
         self._connection_azure = ConnectAzure(self._dtap)
         self._batch_client = self._connection_azure.connect_to_batch_client()
@@ -102,7 +110,7 @@ class BatchPipelinesReanalysis:
         job_name = f"{BATCH_JOB_NAME_PREFIX}{self._species}"
         self.__create_job(job_name)
 
-        if self._species not in ['sars_cov_2', 'influenza_a', 'influenza_b']:
+        if self._species not in self._mongo_config_data['viral_species']:
             date_args_dict = self.__collect_database_update_dates()
             for maximal_analysis_date in date_args_dict:
                 self.__launch_tasks(maximal_analysis_date, date_args_dict, job_name)
@@ -187,34 +195,18 @@ class BatchPipelinesReanalysis:
         that do not have their results up to date according to the git versions
         :return: dictionary of last dbupdate dates grouped by date (key)
         """
-        # Read the trigger config
-        with open(TRIGGER_CONFIG, encoding='utf-8') as handle:
-            trigger_config = yaml.safe_load(handle)
-
-        # Configure stdout logging
-        logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
-
         # Part 1: Query scheme last update dates and sort schemes by last update date
         date_scheme_dict = {}
-        for scheme in trigger_config['species'][self._species]:
+        for scheme in self._trigger_config['species'][self._species]:
             logging.debug(f"scheme {scheme}")
-            os.chdir(Path(trigger_config['species'][self._species][scheme]['dirdb']))
-            # set git repo to safe repo
-            subprocess.run(
-                f"git config --global --add safe.directory {trigger_config['species'][self._species][scheme]['dirdb'].replace('/db', '/var/lib/.bioit_database')}",
-                shell=True)
-            # query_date
-            gitlog = subprocess.run(
-                "git log -n 1 --date=short -- . ':(exclude)scheme_metadata.json' ':(exclude)scheme_metadata.txt' ':(exclude)db_update_info.json' ':(exclude)db_metadata.txt'",
-                shell=True, stdout=subprocess.PIPE).stdout.decode('utf-8')
-            scheme_last_update = re.findall("[0-9]{4}-[0-9]{2}-[0-9]{2}", gitlog)[0]
-            trigger_config['species'][self._species][scheme]["last_update"] = scheme_last_update
+            scheme_last_update = self.___get_scheme_last_update(self._trigger_config['species'][self._species][scheme]['dirdb'])
+            self._trigger_config['species'][self._species][scheme]["last_update"] = scheme_last_update
             if scheme_last_update in date_scheme_dict:
                 date_scheme_dict[scheme_last_update].append(
-                    trigger_config['species'][self._species][scheme]['cmd_argument'])
+                    self._trigger_config['species'][self._species][scheme]['cmd_argument'])
             else:
                 date_scheme_dict[scheme_last_update] = [
-                    trigger_config['species'][self._species][scheme]['cmd_argument']]
+                    self._trigger_config['species'][self._species][scheme]['cmd_argument']]
         # e.g. date_scheme_dict: {'2022-10-02': ['mlst', 'cgmlst', 'pcr-serogroup', 'metal-detergent', 'typing-virulence', 'typing-amr', 'species-confirmation',
         #                         '2022-08-14': ['ncbi-amr'],
         #                         '2022-07-03': ['resfinder'],
@@ -233,6 +225,25 @@ class BatchPipelinesReanalysis:
         #                       '2022-08-14': ['ncbi-amr', 'mlst', 'cgmlst', 'pcr-serogroup', 'metal-detergent', 'typing-virulence', 'typing-amr', 'species-confirmation'],
         #                       '2022-10-02': ['mlst', 'cgmlst', 'pcr-serogroup', 'metal-detergent', 'typing-virulence', 'typing-amr', 'species-confirmation']}
         return date_args_dict
+
+    @staticmethod
+    def ___get_scheme_last_update(scheme_directory: str) -> str:
+        """
+        Given a directory of a scheme containing a local git directory, gets the last actual update date.
+        :param scheme_directory: path as str
+        :return: date as str in YYYY-MM-DD format
+        """
+        os.chdir(Path(scheme_directory))
+        # set git repo to safe repo
+        subprocess.run(
+            f"git config --global --add safe.directory {scheme_directory.replace('/db', '/var/lib/.bioit_database')}",
+            shell=True)
+        # query_date
+        gitlog = subprocess.run(
+            "git log -n 1 --date=short -- . ':(exclude)scheme_metadata.json' ':(exclude)scheme_metadata.txt' ':(exclude)db_update_info.json' ':(exclude)db_metadata.txt'",
+            shell=True, stdout=subprocess.PIPE).stdout.decode('utf-8')
+        scheme_last_update = re.findall("[0-9]{4}-[0-9]{2}-[0-9]{2}", gitlog)[0]
+        return scheme_last_update
 
     def __launch_tasks(self, maximal_analysis_date: str, date_args_dict: Dict[str, List[str]], job_name: str) -> None:
         """
@@ -281,6 +292,15 @@ class BatchPipelinesReanalysis:
         mongoinit = MongoInitialisation(self._species,
                                         selected_connection_string='CONNECTION_STRING_AZURE',
                                         alternate_dtap=self._dtap)
+        latest_update_date = ''
+        for nextclade_dir in self._trigger_config['viral'][self._species]['dirsdb']:
+            last_dir_update_date = self.___get_scheme_last_update(nextclade_dir)
+            if last_dir_update_date > latest_update_date:
+                # '2024-05-08' > '' == True
+                # '2024-05-08' > '2024-05-07' == True
+                # '2024-05-08' > '2024-06-08' == False
+                latest_update_date = last_dir_update_date
+
         isolates_collection, old_isolateresults_collection, \
             isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections()
         # query all the documents as a projection
@@ -295,7 +315,7 @@ class BatchPipelinesReanalysis:
             "results.isolates_id": 1
         }
 
-        documents_list = list(isolates_collection.find({}, fields_to_retrieve))
+        documents_list = list(isolates_collection.find({'latest_analysis_date': {"$lt": latest_update_date}}, fields_to_retrieve))
 
         logging.info(f"{len(documents_list)} isolates to be reanalyzed for {self._species}_{self._dtap}")
         analysis_arguments = [argument.replace('--', '') for argument in
@@ -379,7 +399,7 @@ class BatchPipelinesReanalysis:
             f"cd {working_dir};"
             f"{config_species['main_script']} ",
             f"--fasta {mongodb_document['fasta_path']} ",
-            '--detection-method blast' if self._species not in ['sars_cov_2', 'influenza_a', 'influenza_b'] else '',
+            '--detection-method blast' if self._species not in self._mongo_config_data['viral_species'] else '',
             '--library NexteraPE',  # should be changed in the future?
             f'--working-dir {working_dir}',
             f'--output-dir {report_dir}',
