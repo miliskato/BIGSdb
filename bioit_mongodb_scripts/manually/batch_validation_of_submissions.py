@@ -1,8 +1,12 @@
+import argparse
 import logging
+import re
+import sys
 from typing import List
 
-from bioit_bigsdb_scripts.components.psql import TblSubmissions
+from bioit_bigsdb_scripts.components.psql import TblSubmissions, TblIsolates
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data
+from bioit_bigsdb_scripts.sample_validation_to_mongo import SampleValidationToMongo
 
 
 def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
@@ -26,14 +30,17 @@ class BatchValidationToMongo:
         :param accept_all: set to True to accept all isolates pending for submission.
         :return: None
         """
-        #self.species = species
-        #self.accept_all = accept_all
+        self.species = species
 
-    with TblSubmissions(species) as isolates_submissions_psql_tbl:
-        if accept_all:
-            isolates_submissions_psql_tbl.validate_pending_badqc()
+        with TblSubmissions(species=self.species) as isolates_submissions_psql_tbl:
+            if accept_all:
+                isolates_submissions_psql_tbl.validate_pending_badqc()
+            submission_ids=list(TblSubmissions.get_submission_id_for_validated_badqc())
 
-
+        #validation one by one
+        for sub_id in submission_ids:
+            print (sub_id)
+        #    SampleValidationToMongo(self.species, sub_id = int(sub_id))
 
 
 if __name__ == '__main__':
