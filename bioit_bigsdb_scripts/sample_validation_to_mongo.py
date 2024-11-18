@@ -23,7 +23,7 @@ sys.path.append(str(PYTHONPATH))
 from bioit_bigsdb_scripts.components.psql import TblSubmissions
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data, send_email
 from bioit_mongodb_scripts.mainmongo import MainMongo
-from bioit_mongodb_scripts.mongo_to_bigs import MongoToBigs
+#from bioit_mongodb_scripts.mongo_to_bigs import MongoToBigs
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 
 
