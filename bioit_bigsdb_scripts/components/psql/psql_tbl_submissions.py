@@ -61,4 +61,4 @@ class TblSubmissions(DatabaseConnection):
         This function will set outcome of all submitted badqc to "good" and turn status from "pending" to "close"
         :return: None
         """
-        return self.execute_query(PsqlQueries.ISO_UPD__TB_SUB_STATUS_OUTCOME)
+        return self.execute(PsqlQueries.ISO_UPD__TB_SUB_STATUS_OUTCOME)

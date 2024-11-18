@@ -27,7 +27,8 @@ class BatchValidationToMongo:
         """
         Initialises the class and runs the main function
         :param species: commonly used bioit species name.
-        :param accept_all: set to True to accept all isolates pending for submission.
+        :param accept_all: set to True to accept all badqc pending for submission in BIGSdb. If False, only badqc
+        submissions with current values for status and outcome equal to "closed" and "good" will be processed
         :return: None
         """
         self.species = species
@@ -35,12 +36,10 @@ class BatchValidationToMongo:
         with TblSubmissions(species=self.species) as isolates_submissions_psql_tbl:
             if accept_all:
                 isolates_submissions_psql_tbl.validate_pending_badqc()
-            submission_ids=list(TblSubmissions.get_submission_id_for_validated_badqc())
+            submission_ids=list(isolates_submissions_psql_tbl.get_submission_id_for_validated_badqc())
 
-        #validation one by one
         for sub_id in submission_ids:
-            print (sub_id)
-        #    SampleValidationToMongo(self.species, sub_id = int(sub_id))
+            SampleValidationToMongo(self.species, sub_id = int(sub_id[0]))
 
 
 if __name__ == '__main__':
@@ -52,7 +51,6 @@ if __name__ == '__main__':
 
     # Parse arguments
     args = parse_arguments(list(bigsdb_config_data['species_json']))
-    species = re.sub('bigsdb_|_isolates', '', args.db) if args.db else args.species
 
     # run main
-    BatchValidationToMongo(species, args.accept_all)
+    BatchValidationToMongo(args.species, args.accept_all)
