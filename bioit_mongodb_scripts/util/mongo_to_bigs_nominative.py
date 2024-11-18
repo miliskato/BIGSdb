@@ -66,14 +66,16 @@ class MongoToBigsNominative:
     def _mongo_to_bigs_nominative(self) -> None:
         """
         Main function
-        If the current host is a bigsdb host, inserts all nominative metadata for all samples in the bigsdb database that
-        do not have their nominative metadata inserted yet.
+        If the current host is a bigsdb host, inserts all nominative metadata for all samples in the bigsdb database
+        that do not have their nominative metadata inserted yet.
         :return: None
         """
-        list_of_documents = list(self._nominative_labtest_clinical_metadata_collection.find({'inserted_into_bigsdb': {'$ne': True}}))
+        list_of_documents = list(self._nominative_labtest_clinical_metadata_collection.
+                                 find({'inserted_into_bigsdb': {'$ne': True}, 'CLIN_received': True,
+                                       'LAB_received': True}))
 
         for document in list_of_documents:
-            mapping_table = self._mappingtable_collection.find_one({'TX_BUSINESS_KEY': document['_id']})
+            mapping_table = self._mappingtable_collection.find_one({'_id': document['sample_id']})
             if not mapping_table:
                 continue
             sample_presence = self._isolates_psql_tbl.count_isolate((mapping_table['_id'],))
