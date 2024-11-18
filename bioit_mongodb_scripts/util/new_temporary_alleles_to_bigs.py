@@ -3,9 +3,8 @@ import logging
 import socket
 import sys
 import traceback
-from datetime import date
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from pymongo.write_concern import WriteConcern
 
@@ -22,6 +21,7 @@ class NewTemporaryAllelesToBigs:
     Inserts all new temporary alleles into BIGSdb, decides what is new based on a date that is stored
     in the update metadata collection. This date is updated at the successful end of this script.
     """
+
     def __init__(self, species: str, mongo_config_data: Dict[str, Any] = None) -> None:
         """
         Intialises this class and executes the main function
@@ -94,8 +94,7 @@ class NewTemporaryAllelesToBigs:
         """
         list_doc_id = [x.get('_id') for x in self._new_sequences]
         self._hashed_ad_collection.update_many(
-            {'_id': {'$in': list_doc_id}},{ '$set': {'bigsdb_status': 'inserted'}})
-
+            {'_id': {'$in': list_doc_id}}, {'$set': {'bigsdb_status': 'inserted'}})
 
     def ___order_sequences_by_locus(self) -> Dict[str, List[Dict[str, Any]]]:
         """

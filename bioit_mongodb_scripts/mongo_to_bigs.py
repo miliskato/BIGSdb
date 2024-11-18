@@ -35,7 +35,7 @@ from bioit_mongodb_scripts.util.mongo_to_bigs_nominative import MongoToBigsNomin
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email, convert_dmyhms_to_dateobj
 from bioit_mongodb_scripts.util.new_clustering_info_to_bigs import NewClusteringInfoToBigs
 from bioit_mongodb_scripts.util.new_temporary_alleles_to_bigs import NewTemporaryAllelesToBigs
-from bioit_mongodb_scripts.util.samples_to_validation_bigs import samples_to_validation_bigs
+from bioit_mongodb_scripts.util.samples_to_validation_bigs import SamplesToValidationBigs
 from bioit_mongodb_scripts.util.command.command import Command
 
 
@@ -162,7 +162,7 @@ class MongoToBigs:
                 raise RuntimeError(f"update of the cache to display the clustering failed on host {socket.gethostname()}")
 
         # send bad samples from the badqc_isolates collection to BIGSdb
-        samples_to_validation_bigs(self._species, mongo_config_data=self._mongo_config_data)
+        SamplesToValidationBigs(self._species, mongo_config_data=self._mongo_config_data)
 
         # Main insertion into bigsdb for loop
         for document in list_of_documents:
