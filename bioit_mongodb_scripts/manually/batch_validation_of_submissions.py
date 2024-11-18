@@ -29,8 +29,7 @@ class BatchValidationToMongo:
         """
         Initialises the class and runs the main function
         :param species: commonly used bioit species name.
-        :param accept_all: set to True to accept all badqc pending for submission in BIGSdb. If False, only badqc
-        submissions with current values for status and outcome equal to "closed" and "good" will be processed
+        :param accept_all: yes/no: if "yes", all badqc still pending for validation in BIGSdb will be accepted.
         :return: None
         """
         self.species = species
@@ -43,7 +42,12 @@ class BatchValidationToMongo:
                        f"{Path(__file__).name} fail on host {socket.gethostname()}")
             raise Exception(f"{exceptionmessage}\n{traceback.format_exc()}")
 
-    def validate_pending_submission_for_badqc(self):
+    def validate_pending_submission_for_badqc(self) -> None:
+        """
+        Method to validate either all the badqc pending for validation in BIGSdb submission table, or only those
+        with status and outcome already set to "good" and "closed" by another process.
+        :return: None
+        """
         with TblSubmissions(species=self.species) as isolates_submissions_psql_tbl:
             if self.accept_all == 'yes':
                 isolates_submissions_psql_tbl.validate_pending_badqc()
