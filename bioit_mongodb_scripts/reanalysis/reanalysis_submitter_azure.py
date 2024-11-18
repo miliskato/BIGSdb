@@ -52,7 +52,7 @@ def wrapper_loop_dtap_and_species(specieslist: List[str], dtaplist: List[str]) -
     """
     Loops over all dtaps and species to launch the reanalyses accordingly.
     :param specieslist: list of commonly used bioit species name: either genus or specific like stec
-    :param dtaplist: lift of dev andor test andor acc andor prod
+    :param dtaplist: list of dev andor test andor acc andor prod
     :return: None
     """
     for dtap in set(dtaplist):
