@@ -30,7 +30,7 @@ class BatchValidationToMongo:
     This class handles validation/insertion in mongoDB of badqcs already pushed in BIGSdb submissions table.
     """
 
-    def __init__(self, species: str, accept_all: str = 'no') -> None:
+    def __init__(self, species: str, accept_all: bool) -> None:
         """
         Initialises the class and runs the main function
         :param species: commonly used bioit species name.
