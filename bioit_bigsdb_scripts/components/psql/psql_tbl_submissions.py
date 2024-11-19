@@ -3,10 +3,12 @@ from typing import List, Optional, Tuple, Union
 from .databaseconnection import DatabaseConnection
 from .psql_queries import PsqlQueries
 
+
 class TblSubmissions(DatabaseConnection):
     """
     submissions table in the isolates database
     """
+
     def __init__(self, species: str) -> None:
         """
         Initialises this class by opening a database connection.
@@ -45,20 +47,20 @@ class TblSubmissions(DatabaseConnection):
     def get_submission_id_from_bigs_upload(self) -> List[Tuple[str]]:
         """
         Select submission ids submitted through bigsDB interface with status closed
-        :return: List of corresponding submissions id
+        :return: List of corresponding submissions ids
         """
         return self.execute(PsqlQueries.ISO_SEL_ID_TB_SUB_VAR_STATUS)
 
-    def get_submission_id_for_validated_badqc(self) -> List[Tuple[str]]:
+    def get_submission_ids_for_validated_badqcs(self) -> List[Tuple[str]]:
         """
         Select submission ids for badqc where status is closed and outcome is good
         :return: List of corresponding submissions ids
         """
         return self.execute(PsqlQueries.ISO_SEL__SUB_ID_TB_SUB_VAR_OUTCOME_STATUS_VALTYPE)
 
-    def validate_pending_badqc(self):
+    def validate_pending_badqcs(self):
         """
-        This function will set outcome of all submitted badqc to "good" and turn status from "pending" to "close"
+        This function will set outcome of all submitted badqcs to "good" and turn status from "pending" to "closed"
         :return: None
         """
         return self.execute(PsqlQueries.ISO_UPD__TB_SUB_STATUS_OUTCOME)

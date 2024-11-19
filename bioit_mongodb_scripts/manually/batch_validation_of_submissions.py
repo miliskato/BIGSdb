@@ -21,7 +21,7 @@ def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     """
     argument_parser = argparse.ArgumentParser()
     argument_parser.add_argument('--species', type=str, choices=specieslist)
-    argument_parser.add_argument('--accept_all', required=False, type=str, choices=['yes', 'no'])
+    argument_parser.add_argument('--accept_all', required=False, action='store_true')
     return argument_parser.parse_args()
 
 
@@ -37,8 +37,8 @@ class BatchValidationToMongo:
         :param accept_all: yes/no: if "yes", all badqcs still pending for validation in BIGSdb will be accepted.
         :return: None
         """
-        self.species = species
-        self.accept_all = accept_all
+        self._species = species
+        self._accept_all = accept_all
 
         try:
             self._validate_pending_submission_for_badqc()
@@ -53,13 +53,13 @@ class BatchValidationToMongo:
         with status and outcome already set to "good" and "closed" by another process.
         :return: None
         """
-        with TblSubmissions(species=self.species) as isolates_submissions_psql_tbl:
-            if self.accept_all == 'yes':
+        with TblSubmissions(species=self._species) as isolates_submissions_psql_tbl:
+            if self._accept_all:
                 isolates_submissions_psql_tbl.validate_pending_badqcs()
             submission_ids = list(isolates_submissions_psql_tbl.get_submission_ids_for_validated_badqcs())
 
         for sub_id in submission_ids:
-            SampleValidationToMongo(self.species, sub_id=int(sub_id[0]))
+            SampleValidationToMongo(self._species, sub_id=int(sub_id[0]))
 
 
 if __name__ == '__main__':
@@ -73,4 +73,4 @@ if __name__ == '__main__':
     args = parse_arguments(list(bigsdb_config_data['species_json']))
 
     # run main
-    BatchValidationToMongo(args.species, accept_all=(args.accept_all if args.accept_all else None))
+    BatchValidationToMongo(args.species, args.accept_all)
