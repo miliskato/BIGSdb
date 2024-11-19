@@ -7,12 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.0.1] - 
 
+### Added
+- cron job to ensure that badqcs stored in MongoDB are all well inserted into BIGSdb submission system
+
 ### Bugfix
 - Insertion of clustering/nominative data and alert computation is disable when BIGSdb is still empty
 - Fix access rights on /home/bigsdb/BIGSdb
 - Fix the lockfile command configuration to avoid simultaneous connections to the matrix file in AZURE. 
 - Avoid duplicated primary key in "classification_group_profile_history" if clustering change the same day
-- Badqc not selected to be submit in BIGSdb if their creation date in Mongo coincides with the start of the cron job 
+- Badqc not selected for submission in BIGSdb if their creation date in Mongo coincides with the start of the cron job 
   for mongo_to_bigs.py
 - Issue due to new cgMLST selected for insertion between the last update of temporary alleles and the next new run for the temp_id_replacer
 
