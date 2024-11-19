@@ -71,7 +71,7 @@ if __name__ == '__main__':
     mapping_badqc_list = list(mapping_badqc)
     atlas_badqc_isolate_name = [x.get('_id') for x in mapping_badqc_list]
     bigsdb_submited_isolates = []
-    with TblSubmissionslocal('mycobacterium') as tblsubmission:
+    with TblSubmissionslocal(args.species) as tblsubmission:
         bigsdb_submissions = tblsubmission.get_submission_id_from_bigs_upload()
     for isolate_id in bigsdb_submissions:
         bigsdb_submited_isolates.append(list(isolate_id)[0])
