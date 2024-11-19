@@ -22,6 +22,7 @@ class cgMLSTProfile:
     def get_st_collection_entry(self) -> Dict[str, Union[str, int, object]]:
         """
         Creates a dict containing the sequence type and the cgmlst profile to enter into the sequence type collection
-        :return: Dictionary containing the cgST, the cgmlst allele designations list and the current date
+        :return: Dictionary containing the cgST, the cgmlst allele designations list, the current date, the status of
+        insertion in bigsdb and a field used to capture for insertion only cgST wearing alleles already inserted in bigsdb
         """
         return {'cgST': int(self.st), 'cgMLST': self.cgmlst, 'insertion_date': datetime.datetime.now(timezone.utc), 'bigsdb_status': 'pending', 'select_for_bigsdb_insertion': False}

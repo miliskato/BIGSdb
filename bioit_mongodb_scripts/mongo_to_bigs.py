@@ -6,19 +6,20 @@
 import argparse
 import datetime
 import logging
+import os
 import socket
 import sys
 import tempfile
 import traceback
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
-import os
 
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
 from bioit_bigsdb_scripts.components.psql.databaseconnection import DatabaseConnection
-from bioit_bigsdb_scripts.components.psql import TblAlleleDesignations, TblIsolates, TblEavTextHidden, TblMappingTable, TblSequenceBin, TblSeqBinStats, TblSchemes
+from bioit_bigsdb_scripts.components.psql import TblAlleleDesignations, TblIsolates, TblEavTextHidden, TblMappingTable, \
+    TblSchemes
 from bioit_bigsdb_scripts.components.psql.psql_queries import PsqlQueries
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data
 from bioit_bigsdb_scripts.insert_assembly import insert_assembly
@@ -32,7 +33,8 @@ from bioit_mongodb_scripts.util.alerts_to_bigs import AlertsToBigs
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.mongo_querying import Mongoquerying
 from bioit_mongodb_scripts.util.mongo_to_bigs_nominative import MongoToBigsNominative
-from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email, convert_dmyhms_to_dateobj
+from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email, \
+    convert_dmyhms_to_dateobj
 from bioit_mongodb_scripts.util.new_clustering_info_to_bigs import NewClusteringInfoToBigs
 from bioit_mongodb_scripts.util.new_temporary_alleles_to_bigs import NewTemporaryAllelesToBigs
 from bioit_mongodb_scripts.util.samples_to_validation_bigs import SamplesToValidationBigs
@@ -57,7 +59,9 @@ class MongoToBigs:
     Initializing this class will trigger its main function.
     If the current host is a bigsdb host, syncs all samples (or a single one if provided) with the bigsdb database
     """
-    def __init__(self, species: str, uploader_mail_address: str, single_sample_id: str = None, mongo_config_data: Dict[str, Any] = None) -> None:
+
+    def __init__(self, species: str, uploader_mail_address: str, single_sample_id: str = None,
+                 mongo_config_data: Dict[str, Any] = None) -> None:
         """
         Initializes this class and executes the main function
         :param species: commonly used bioit species name: either genus or specific like stec
@@ -128,7 +132,8 @@ class MongoToBigs:
             self._run_alerts_to_bigs_upon_exception()
 
             send_email(f"{self._exceptionmessage1}\n{self._traceback1}")
-            raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}: {self._exceptionmessage1}\n{self._traceback1}")
+            raise Exception(
+                f"{Path(__file__).name} fail on host {socket.gethostname()}: {self._exceptionmessage1}\n{self._traceback1}")
 
     def _mongo_to_bigs(self) -> None:
         """
@@ -145,8 +150,8 @@ class MongoToBigs:
 
         # tag doc in cluster_membership present in Mongo before the update of temp alleles in BIGSdb.
         # It prevents the insertion of cluster membership that could be added/modified on AZURE after the last alleles update in BIGS
-        self._cluster_membership_collection.update_many({},{'$set': {'select_for_bigsdb_insertion': True}})
-        self._st_collection.update_many({},{'$set': {'select_for_bigsdb_insertion': True}})
+        self._cluster_membership_collection.update_many({}, {'$set': {'select_for_bigsdb_insertion': True}})
+        self._st_collection.update_many({}, {'$set': {'select_for_bigsdb_insertion': True}})
 
         NewTemporaryAllelesToBigs(self._species, mongo_config_data=self._mongo_config_data)
 
@@ -159,7 +164,8 @@ class MongoToBigs:
             self._cache_command_object.run(Path(os.getcwd()))
             if self._cache_command_object.returncode != 0:
                 send_email(f"update of the cache to display the clustering failed on host {socket.gethostname()}")
-                raise RuntimeError(f"update of the cache to display the clustering failed on host {socket.gethostname()}")
+                raise RuntimeError(
+                    f"update of the cache to display the clustering failed on host {socket.gethostname()}")
 
         # send bad samples from the badqc_isolates collection to BIGSdb
         SamplesToValidationBigs(self._species, mongo_config_data=self._mongo_config_data)
@@ -181,7 +187,11 @@ class MongoToBigs:
             self._mongoquerying.revert_typinghitlists_to_dictionaries(document, self._headers_collection)
             jsonfile = document.get_json_results()
 
-            MainResultsInserter(isolate_id, self._uploader_mail_address, self._species, results_type, vcf_path=document['vcf_path'], json_results=jsonfile, report_access=document['report_directory'], mongo_dtap=self._mongo_config_data.get('dtap'), isolation_date=document['technical_metadata']['data']['IsolationDate'],
+            MainResultsInserter(isolate_id, self._uploader_mail_address, self._species, results_type,
+                                vcf_path=document['vcf_path'], json_results=jsonfile,
+                                report_access=document['report_directory'],
+                                mongo_dtap=self._mongo_config_data.get('dtap'),
+                                isolation_date=document['technical_metadata']['data']['IsolationDate'],
                                 nominative_labtest_clinical_metadata_collection=self._nominative_labtest_clinical_metadata_collection)
 
             self.__insert_assembly_into_bigs(results_type, document, isolate_id)
@@ -230,8 +240,8 @@ class MongoToBigs:
             GeneDetectionIntoPsql([self._species], do_not_recalculate=True, dont_send_email=True)
             # update last insertion date
             self._update_metadata_collection.update_one({'metadata': 'last_dbupdate_insertion_date'},
-                                                        {'$set': {'last_update_date': datetime.datetime.now(datetime.timezone.utc)}},
-                                                        upsert=True)
+                                                        {'$set': {'last_update_date': datetime.datetime.now(
+                                                            datetime.timezone.utc)}}, upsert=True)
 
     def __add_isolate_cgst_to_alert_lists(self, document: MongoRecordDict, isolate_id: str, results_type: ResultType,
                                           cgst_changed: bool) -> None:
@@ -260,16 +270,17 @@ class MongoToBigs:
         indicated as such by Azure: "resolved_AD".
         :return: None
         """
-        documents_list = [document for document in self._hashed_ad_collection.find({'scheme': {'$in': self._mongo_config_data['schemes_sequence_typing']},  # todo Yersinia special scheme names?
-                                                                                    'resolved_AD': {'$ne': 0},
-                                                                                    'replaced_in_bigs_date': {'$exists': False}})]
+        documents_list = [document for document in self._hashed_ad_collection.find(
+            {'scheme': {'$in': self._mongo_config_data['schemes_sequence_typing']},
+             'resolved_AD': {'$ne': 0}, 'replaced_in_bigs_date': {'$exists': False}})]
 
         with TblAlleleDesignations(self._species) as isolates_ad_psql_tbl:
             for hash_document in documents_list:
                 isolates_ad_psql_tbl.update_designations(
                     (hash_document['resolved_AD'], hash_document['locus'], hash_document['hashed_allele']))
-        self._hashed_ad_collection.update_many({'_id': {'$in': [hash_document['_id'] for hash_document in documents_list]}},
-                                               {'$set': {'replaced_in_bigs_date': datetime.datetime.now()}})
+        self._hashed_ad_collection.update_many(
+            {'_id': {'$in': [hash_document['_id'] for hash_document in documents_list]}},
+            {'$set': {'replaced_in_bigs_date': datetime.datetime.now()}})
 
     def __update_scheme_caches_full_once_if_needed(self) -> bool:
         """
