@@ -17,6 +17,9 @@ from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 
 
 class SamplesToValidationBigs:
+    """
+    Pushes isolates from MongoDB badqc/resequencing collections into BIGSdb's submission system if it's not already done
+    """
 
     def __init__(self, species: str, mongo_config_data: Dict[str, Any] = None) -> None:
         """
