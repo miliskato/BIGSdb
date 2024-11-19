@@ -1,7 +1,7 @@
 mail:
-    from: BIGSdb internal HERA
-    to: Michael or Ann-Stephan
-    host: bioit-mailhog.sciensano.be:1025
+  from: BIGSdb internal HERA
+  to: Michael or Ann-Stephan
+  host: bioit-mailhog.sciensano.be:1025
 
 failsafe:
   flag_dir: /scratch/temp/flags
@@ -323,6 +323,8 @@ species:
         schemename_html: plasmid
     seqdefdb: bigsdb_salmonella_seqdef
     isolatesdb: bigsdb_salmonella_isolates
+  influenza_a: ''
+  influenza_b: ''
 
 species_json:
   listeria:
