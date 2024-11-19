@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.0.1] - 2024-10-29
 
 ### Added
-- Utility script to validate all badqcs submitted in BIGSdb
+- Utility script for the validation of all badqcs submitted in BIGSdb
 
 ### Bugfix
 - Insertion of clustering/nominative data and alert computation is disable when BIGSdb is still empty
