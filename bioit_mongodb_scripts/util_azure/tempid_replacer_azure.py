@@ -261,7 +261,7 @@ class TempidReplacerAzure:
         self._update_metadata_collection.update_one(
             {'metadata': 'last_dbupdate_date'},
             {'$set': {
-                'last_update_date': datetime.datetime.utcnow()}
+                'last_update_date': datetime.datetime.now(datetime.timezone.utc)}
              },
             upsert=True
         )

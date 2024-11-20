@@ -7,7 +7,7 @@ import re
 import socket
 import sys
 import traceback
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Tuple, Union
 
@@ -253,11 +253,12 @@ class MainMongo:
                 self.__define_cgst_and_run_clustering(json_report)
         if good_sample_quality:
             if self._results_type == 'badqc_validated':
-                mongo_records['validation'] = self._subvaldict
+                self.___update_submission_status_after_validation(mongo_records)
                 self._isolates_badqc_collection.delete_one({'_id': mongo_records["_id"]})
             self.___write_document(self._isolates_collection, mongo_records)
             logging.info(f"Wrote new isolate {self._technical_id} and its result to {self._species} database")
         else:
+            mongo_records['submission_status'] = 'pending_for_submission'
             self.___write_document(self._isolates_badqc_collection, mongo_records)
             logging.warning(
                 f"New isolate {self._technical_id} failed quality control for one or more checks. It's results were written to the 'isolates_badqc' collection in the {self._species} database")
@@ -324,6 +325,7 @@ class MainMongo:
                 self.___convert_typinghitdictionaries_to_lists(new_json_report)
                 if 'cgmlst' in new_json_report:
                     self.__define_cgst_and_run_clustering(new_json_report)
+                new_isolate['submission_status'] = 'pending_for_submission'
                 self.___write_document(self._isolates_resequencing_collection, new_isolate)
         else:
             send_email(
@@ -369,7 +371,7 @@ class MainMongo:
             logging.info(
                 f"New results are not different from current results for {self._technical_id} in {self._species}, updating analysis dates and db versions.")
         if self._results_type == 'resequencing_validated':
-            new_results['validation'] = self._subvaldict
+            self.___update_submission_status_after_validation(new_results)
 
             # Remove the isolate from the resequencing collection to allow for new resequencings
             self._isolates_resequencing_collection.delete_one({'_id': self._technical_id})
@@ -405,6 +407,16 @@ class MainMongo:
                                                                'changes_accepted_by_DWH': False}})
                 break  # break the loop once at least one change has been discovered
 
+    def ___update_submission_status_after_validation(self, new_results: Union[MongoRecordDict, Dict[str, Union[str, object]]])-> None:
+        """
+        This function adapts the field "submission_status" in Mongo doc to keep track of the time of validation
+        :param new_results: Mongo doc of the isolate processed for validation
+        :return: None
+        """
+        new_results['validation'] = self._subvaldict
+        validation_date = self._subvaldict['date']
+        new_results['submission_status'] = f'validated on {validation_date}'
+
     @staticmethod
     def ___write_document(opened_collection: pymongo.collection.Collection, json_input: MongoRecordDict) -> str:
         """
@@ -437,7 +449,7 @@ class MainMongo:
             "original_input_format": str(self._original_input_format),
             "fasta_path": str(self._fastafilepath),
             "previous_latest_results_document": None,
-            "creation_date": datetime.utcnow(),
+            "creation_date": datetime.now(timezone.utc),
             "latest_analysis_date": convert_dmyhms_to_ymd(results["analysis_date"]),
             "technical_metadata": technical_metadata,
             "results": results})
@@ -572,7 +584,8 @@ class MainMongo:
                                                                     "encountered_count": 1,
                                                                     "resolved_AD": 0,
                                                                     "temp_allele_name": temp_allele,
-                                                                    "insertion_date": datetime.utcnow(),
+                                                                    "insertion_date": datetime.now(timezone.utc),
+                                                                    "bigsdb_status": "pending"
                                                                     }))
                             json_report[typing_scheme]['loci'][locus_index]['Allele'] = temp_allele  # replace the name of the allele in the results (no hash anymore)
                         else:

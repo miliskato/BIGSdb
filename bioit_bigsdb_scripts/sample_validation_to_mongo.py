@@ -101,7 +101,7 @@ class SampleValidationToMongo:
                     'outcome': outcome,
                     'curator': curator_mailadress,
                     'type': results_type.split('_')[0],
-                    'date': datetime.datetime.utcnow().strftime('%d/%m/%Y - %X')
+                    'date': datetime.datetime.now(datetime.timezone.utc).strftime('%d/%m/%Y - %X')
                 }
                 if outcome == 'good' and (validation_type == 'bad_quality' or validation_type == 'resequencing'):
                     MainMongo(pseudo_id, self._species, results_type, subvaldict=validation_dict, connection_string='CONNECTION_STRING_AZURE')

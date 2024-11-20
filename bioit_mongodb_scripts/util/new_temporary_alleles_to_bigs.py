@@ -3,9 +3,8 @@ import logging
 import socket
 import sys
 import traceback
-from datetime import date
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from pymongo.write_concern import WriteConcern
 
@@ -22,6 +21,7 @@ class NewTemporaryAllelesToBigs:
     Inserts all new temporary alleles into BIGSdb, decides what is new based on a date that is stored
     in the update metadata collection. This date is updated at the successful end of this script.
     """
+
     def __init__(self, species: str, mongo_config_data: Dict[str, Any] = None) -> None:
         """
         Intialises this class and executes the main function
@@ -41,10 +41,7 @@ class NewTemporaryAllelesToBigs:
         # Open sequences psql table connection
         self._seqdef_sequences_psql_tbl = TblSequences(self._species)
         # Prepare for main
-        self._current_update_date = datetime.datetime.utcnow()
-        self._last_date_of_update = self._get_last_date_of_update()
-        if self._last_date_of_update is None:
-            self._last_date_of_update = datetime.datetime(1970, 1, 1)  # unix time
+        self._current_update_date = datetime.datetime.now(datetime.timezone.utc)
         self._new_sequences = self._get_new_sequence()
 
         # Execute main function
@@ -63,19 +60,8 @@ class NewTemporaryAllelesToBigs:
         """
         if len(self._new_sequences) > 0:
             self.__insert_new_alleles()
+            self.__update_sequences_insertion_status_in_bigsdb()
         self.__update_last_update_date()
-
-    def _get_last_date_of_update(self) -> Optional[date]:
-        """
-        Retrieve in MongoDB the date of the last update.
-        :return: a date in iso UTC format
-        """
-        query = self._update_metadata_collection.find_one({'metadata': 'last_update_temporary_alleles', 'host': socket.gethostname()})
-        if not query:
-            # When migrating an existing instance to this flow with separate temporary alleles, the last temporary
-            # alleles update date will have been the last clustering update date (last_update)
-            self._update_metadata_collection.find_one({'metadata': 'last_update', 'host': socket.gethostname()})
-        return query['last_update_date'] if query else None
 
     def _get_new_sequence(self) -> List[Dict[str, Any]]:
         """
@@ -83,8 +69,7 @@ class NewTemporaryAllelesToBigs:
         date of the last update.
         :return: A list of documents containing the information about the new alleles.
         """
-        return list(self._hashed_ad_collection.find({'insertion_date': {'$gt': self._last_date_of_update,
-                                                                        '$lt': self._current_update_date},
+        return list(self._hashed_ad_collection.find({'bigsdb_status': 'pending',
                                                      'resolved_AD': 0}))
 
     def __insert_new_alleles(self) -> None:
@@ -101,6 +86,15 @@ class NewTemporaryAllelesToBigs:
                     self._seqdef_sequences_psql_tbl.insert_sequence((locus, new_allele['temp_allele_name'],
                                                                      new_allele['allele_sequence']))
                     logging.info(f"id {new_allele['temp_allele_name']} inserted into locus {locus}")
+
+    def __update_sequences_insertion_status_in_bigsdb(self) -> None:
+        """
+        Turn field "bigsdb_status" to "inserted" for each doc listed in self._new_sequences
+        :return: None
+        """
+        list_doc_id = [x.get('_id') for x in self._new_sequences]
+        self._hashed_ad_collection.update_many(
+            {'_id': {'$in': list_doc_id}}, {'$set': {'bigsdb_status': 'inserted'}})
 
     def ___order_sequences_by_locus(self) -> Dict[str, List[Dict[str, Any]]]:
         """
