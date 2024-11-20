@@ -7,10 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.0.1] - 2024-10-29
 
+### Added
+- Utility script for the validation of all badqcs submitted in BIGSdb
+
 ### Bugfix
 - Insertion of clustering/nominative data and alert computation is disable when BIGSdb is still empty
 - Fix access rights on /home/bigsdb and /home/bigsdb/BIGSdb
-- Fix the lockfile command configuration to avoid simultaneous connections to the matrix file in AZURE. 
+- Fix the lockfile command configuration to avoid simultaneous connections to the matrix file in AZURE
+
 
 ### Change
 - Update of "snp_lineage" scheme (mycobacterium)

@@ -238,6 +238,7 @@ class PsqlQueries():
         VALUES((SELECT MAX(id::int) FROM submissions WHERE id ~ '^[0-9]+$'), 1, %s, %s);"""
     ISO_SEL_ALL_TB_ISOSUBISO_VAR_SUBID: Final[str] = """
         SELECT * FROM isolate_submission_isolates WHERE submission_id=%s;"""
+
     # TBL jobs
     JOB_SEL_PID_STARTED_JOBS_TB_JOBS: Final[str] = """
         SELECT pid, module, stage FROM jobs WHERE status = 'started' ;"""
@@ -370,4 +371,9 @@ class PsqlQueries():
         (SELECT CURRENT_DATE), 'pending', true, %s);"""
     ISO_SEL_ID_TB_SUB_VAR_STATUS: Final[str] = """
         SELECT id FROM submissions WHERE outcome = 'good' AND status = 'closed' AND id LIKE 'BIGSdb_%';"""
+    ISO_SEL_SUBID_TB_SUB_VAR_: Final[str] = """
+        SELECT id FROM submissions WHERE outcome = 'good' AND status = 'closed' AND validation_type = 'bad_quality';"""
+    ISO_UPD_STATUS_OUTCOME_TB_SUB_VAR_: Final[str] = """
+        UPDATE submissions SET (status, outcome) = ('closed', 'good') WHERE ( validation_type = 'bad_quality' AND OUTCOME = '');"""
     ISO_INSERT_GENERIC_LAB_METADATA_TEMPLATE: Final[str] = "UPDATE isolates SET {} WHERE isolate=%s;"
+
