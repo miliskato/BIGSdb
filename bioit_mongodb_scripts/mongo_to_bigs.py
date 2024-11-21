@@ -387,7 +387,7 @@ class MongoToBigs:
                 # cgST of the new version in Mongo.
                 with TblIsolates(self._species) as self._isolates_psql_tbl:
                     cgst_query_result = self._isolates_psql_tbl.select_current_cgst_of_isolate(
-                        (self._cgmlst_bigsdb_scheme_id, new_results['isolate_name']))
+                        (self._cgmlst_bigsdb_scheme_id, isolate_id))
                 if cgst_query_result[0] and cgst_query_result[0][0] and int(cgst_query_result[0][0]) != new_results.get('cgST'):
                     cgst_changed = True
         else:
