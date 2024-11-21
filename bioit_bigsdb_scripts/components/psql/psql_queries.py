@@ -28,7 +28,7 @@ class PsqlQueries():
     ISO_SEL_ALID_TYPE_TB_ALDE_VAR_ISOLATE_METH: Final[str] = """
         SELECT alert_id, type FROM alert_details LEFT JOIN alerts ON 
         alerts.id = alert_details.alert_id WHERE field = 'isolate_id' AND value = 
-        (SELECT id FROM isolates WHERE isolate=%s) and method = %s;"""
+        (SELECT CAST(id AS TEXT) FROM isolates WHERE isolate=%s) and method = %s;"""
     ISO_UPD_VAL_TB_ALDE_VAR_ALID_FIELD: Final[str] = """
         UPDATE alert_details SET value = %s WHERE alert_id = %s AND field = %s;"""
 
@@ -45,7 +45,7 @@ class PsqlQueries():
 
     # TBL allele designations
     ISO_DEL__TB_AD_VAR_LOCUS: Final[str] = """DELETE FROM allele_designations WHERE locus LIKE %s;"""
-    ISO_DEL__TB_AD_VAR_ISOLATE_ID: Final[str] = """DELETE FROM allele_designations WHERE isolate_id LIKE %s;"""
+    ISO_DEL__TB_AD_VAR_ISO: Final[str] = """DELETE FROM allele_designations WHERE isolate_id=(SELECT id FROM isolates WHERE isolate=%s);"""
     ISO_INS__TB_AD_VAR_LOCUS_ID_ALLELE: Final[str] = """
         INSERT INTO allele_designations(locus, isolate_id, 
         allele_id, status, method, sender, 
@@ -127,20 +127,20 @@ class PsqlQueries():
     ISO_SEL_FIELD_TB_EAVF_VAR_FIELD: Final[str] = """SELECT field FROM eav_fields WHERE field LIKE %s;"""
 
     # TBL extended attribute values bool
-    ISO_DEL__TB_EAVB_VAR_ISOLATE_ID: Final[str] = """
-        DELETE FROM eav_boolean where isolate_id = %s;"""
+    ISO_DEL__TB_EAVB_VAR_ISO: Final[str] = """
+        DELETE FROM eav_boolean where isolate_id=(SELECT id FROM isolates WHERE isolate=%s);"""
     ISO_INS__TB_EAVB_VAR_ISO_FIELD_VAL: Final[str] = """
         INSERT INTO eav_boolean(isolate_id, field, value) 
         VALUES((SELECT id FROM isolates WHERE isolate=%s), %s, %s);"""
 
     # TBL extended attribute values int
-    ISO_DEL__TB_EAVI_VAR_ISOLATE_ID: Final[str] = """
-        DELETE FROM eav_int where isolate_id = %s;"""
+    ISO_DEL__TB_EAVI_VAR_ISO: Final[str] = """
+        DELETE FROM eav_int where isolate_id=(SELECT id FROM isolates WHERE isolate=%s);"""
     ISO_INS__TB_EAVI_VAR_ISO_FIELD_VAL: Final[str] = """
         INSERT INTO eav_int(isolate_id, field, value) 
         VALUES((SELECT id FROM isolates WHERE isolate=%s), %s, %s);"""
     # TBL extended attribute values text
-    ISO_DEL__TB_EAVT_VAR_ISOLATE_ID: Final[str] = """DELETE FROM eav_text WHERE isolate_id=%s;"""
+    ISO_DEL__TB_EAVT_VAR_ISO: Final[str] = """DELETE FROM eav_text WHERE isolate_id=(SELECT id FROM isolates WHERE isolate=%s);"""
     ISO_DEL__TB_EAVT_VAR_ID_FIELD: Final[str] = """DELETE FROM eav_text WHERE isolate_id=%s AND field=%s;"""
     ISO_INS__TB_EAVT_VAR_ID_FIELD_VAL: Final[str] = """
         INSERT INTO eav_text(isolate_id, field, value) VALUES(%s, %s, %s);"""

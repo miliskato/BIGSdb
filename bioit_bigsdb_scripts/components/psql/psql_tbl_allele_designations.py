@@ -37,11 +37,10 @@ class TblAlleleDesignations(DatabaseConnection):
     def delete_all_designations_of_isolate(self, param: Tuple[str]) -> None:
         """
         Delete all allele designations for a specific isolate
-        :param param: isolate_id,
-        necessary parameters visible in the PSQL query name and query
+        :param param: isolate name
         :return: None
         """
-        self.execute_query(PsqlQueries.ISO_DEL__TB_AD_VAR_ISOLATE_ID, param)
+        self.execute_query(PsqlQueries.ISO_DEL__TB_AD_VAR_ISO, param)
 
 
     def insert_designation_by_isolatename(self, param: Tuple[str, str, str]) -> None:
