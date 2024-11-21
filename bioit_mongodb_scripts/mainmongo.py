@@ -214,7 +214,7 @@ class MainMongo:
 
             if self._results_type == "reanalysis":
                 json_report = JsonReportDict.from_json(self._jsonfilepath)
-                new_path_to_report = str(self._jsonfilepath)
+                new_path_to_report = str(self._jsonfilepath.parent)
             else:  # self._results_type == 'resequencing_validated'
                 existing_mongo_record = MongoRecordDict(self._isolates_resequencing_collection.find_one({"_id": self._technical_id}))
                 json_report = existing_mongo_record.get_json_results()
