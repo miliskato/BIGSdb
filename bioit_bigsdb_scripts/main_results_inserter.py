@@ -102,7 +102,7 @@ class MainResultsInserter:
                 Path(self._bigsdb_config_data['failsafe']['flag_dir']).mkdir(parents=True, exist_ok=True)
                 Path(self._bigsdb_config_data['failsafe']['flag_dir']).chmod(0o755)
             flagfilepath = self.___make_flagfilepath()
-            if flagfilepath.is_file():
+            if flagfilepath.is_file() and not (self._results_type == 'reanalysis' or self._results_type == 'resequencing'):
                 logging.warning(
                     f"fail safe mechanism detects that the bigsdb insertion for sample {self._isolatename} was started but did not finish. Removing {self._isolatename} from Bigsdb to be able to restart inserting.")
                 isolates_psql_tbl.delete_isolate([self._isolatename])
@@ -145,3 +145,5 @@ class MainResultsInserter:
                 isolates_eavt_psql_tbl.delete_all_eav_of_isolate((self._isolatename,))
                 isolates_eavb_psql_tbl.delete_eavbool_for_isolate((self._isolatename,))
                 isolates_eavi_psql_tbl.delete_eav_int_for_isolate((self._isolatename,))
+            self._nominative_labtest_clinical_metadata_collection.update_one({'_id': self._isolatename},
+                                                                             {'$set': {'inserted_into_bigsdb': False}})
