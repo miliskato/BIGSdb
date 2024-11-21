@@ -194,9 +194,9 @@ class MongoToBigs:
                                 isolation_date=document['technical_metadata']['data']['IsolationDate'],
                                 nominative_labtest_clinical_metadata_collection=self._nominative_labtest_clinical_metadata_collection)
 
-            self.__insert_assembly_into_bigs(results_type, document, isolate_id)
             with TblMappingTable(self._species) as isolates_mapping_psql_tbl:
                 isolates_mapping_psql_tbl.insert_mapping_for_isolate((isolate_id, document['_id'],))
+            self.__insert_assembly_into_bigs(results_type, document, isolate_id)
 
         if len(list_of_documents) > 0:
             # Run clustering and new cgST insertion before cache update
