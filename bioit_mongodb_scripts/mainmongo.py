@@ -627,6 +627,7 @@ class MainMongo:
                     logging.info(f"{mainkey} not in current results")
                     any_result_changed = True
                     changed_results.add(mainkey)
+                    continue
                 for subkey in new_results[mainkey]:
                     if subkey == 'loci' or subkey == 'results' or subkey.startswith('hits'):  # TODO what with serogroup of Neisseria + is it normal that it is under informs_tools + seqsero Salmonella
                         if subkey not in current_results[mainkey] or new_results[mainkey][subkey] != \
