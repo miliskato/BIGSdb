@@ -21,12 +21,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Badqc not selected for submission in BIGSdb if their creation date in Mongo coincides with the start of the cron job 
   for mongo_to_bigs.py
 - Issue due to new cgMLST selected for insertion between the last update of temporary alleles and the next new run for the temp_id_replacer
+- Unexpected deletion of isolates from BIGSdb if a failure happens during the insertion of their reanalysis results.
 
 ### Change
 - Update of "snp_lineage" scheme (mycobacterium)
 - "mongo_to_bigs_hourly" cron job is running every 5 minutes
 - Introduce new fields to get info on various updates in MongoDB Atlas
 - deprecated "datetime.utcnow()" is replaced by "datetime.now(timezone.utc)"
+- Fail-safe mechanism (flagfile) is only used for new isolates (not anymore used for reseq/reanalysis)
 
 ## [2.0.0] - 2024-10-28
 
