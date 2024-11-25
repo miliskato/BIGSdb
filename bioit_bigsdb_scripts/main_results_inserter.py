@@ -93,7 +93,7 @@ class MainResultsInserter:
         """
         Creates a flagfile if insertion is started and no flagfile is present.
         else insertion is started and flag file is present: remove highest version of sample and
-        reinsert if multiple versions, if only one version, sample is reinserted in the main workflow below
+         reinsert if multiple versions, if only one version, sample is reinserted in the main workflow below
         :param isolates_psql_tbl: isolates db isolates table/ connection instance for a given species
         :return: None
         """
