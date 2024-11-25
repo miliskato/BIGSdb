@@ -194,8 +194,9 @@ class MongoToBigs:
                                 isolation_date=document['technical_metadata']['data']['IsolationDate'],
                                 nominative_labtest_clinical_metadata_collection=self._nominative_labtest_clinical_metadata_collection)
 
-            with TblMappingTable(self._species) as isolates_mapping_psql_tbl:
-                isolates_mapping_psql_tbl.insert_mapping_for_isolate((isolate_id, document['_id'],))
+            if results_type not in ["reanalysis","resequencing"]:
+                with TblMappingTable(self._species) as isolates_mapping_psql_tbl:
+                    isolates_mapping_psql_tbl.insert_mapping_for_isolate((isolate_id, document['_id'],))
             self.__insert_assembly_into_bigs(results_type, document, isolate_id)
 
         if len(list_of_documents) > 0:
@@ -383,10 +384,8 @@ class MongoToBigs:
 
             # check whether the cgST that is currently in the db for the isolate is the same as the
             # cgST of the new version in Mongo.
-            with TblIsolates(self._species) as self._isolates_psql_tbl:
-                cgst_query_result = self._isolates_psql_tbl.select_current_cgst_of_isolate(
-                    (self._cgmlst_bigsdb_scheme_id, isolate_id))
-            if cgst_query_result[0] and cgst_query_result[0][0] and int(cgst_query_result[0][0]) != new_results.get('cgST'):
+            cgst_query_result = self._isolates_psql_tbl.select_current_cgst_of_isolate((self._cgmlst_bigsdb_scheme_id, isolate_id))
+            if (cgst_query_result[0][0] is None and new_results.get('cgST') is not None) or int(cgst_query_result[0][0]) != new_results.get('cgST'):
                 cgst_changed = True
         return different_version, cgst_changed
 
