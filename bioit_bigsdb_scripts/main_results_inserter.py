@@ -137,7 +137,7 @@ class MainResultsInserter:
         This should avoid errors from postgres while reinserting new version of these results
         :return: None
         """
-        if self._results_type == 'reanalysis ' or self._results_type == 'resequencing':
+        if self._results_type == 'reanalysis' or self._results_type == 'resequencing':
             with TblAlleleDesignations(self._species) as isolates_ad_psql_tbl, TblEavText(self._species) as \
                     isolates_eavt_psql_tbl, TblEavBoolean(self._species) as \
                     isolates_eavb_psql_tbl, TblEavInt(self._species) as isolates_eavi_psql_tbl:
