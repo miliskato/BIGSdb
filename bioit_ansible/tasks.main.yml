@@ -76,12 +76,14 @@
   stat:
     path: "{{ bioit_bigs_home }}"
   register: folder_stat
+  tags: gitupdate
 
 - name: Change bigs home owner where git needs to be cloned to root to not get dubious ownership error
   file:
     path: "{{ bioit_bigs_home }}"
     owner: root
   when: folder_stat.stat.exists and folder_stat.stat.isdir
+  tags: gitupdate
 
 - name: Get updated files from git repository
   git:
@@ -96,42 +98,49 @@
     path: "{{ bioit_bigs_home }}"
     owner: bigsdb
     mode: "u=rwx,g=rx,o=rx"
+  tags: gitupdate
 
 - name: Change Mongo dtap version in config based on playbook argument
   lineinfile:
     path: "{{ bioit_bigs_home }}/bioit_mongodb_scripts/config/config.yml"
     regexp: 'dtap: to_be_replaced_by_ansible'
     line: "dtap: {{ mongo_dtap }}"
+  tags: gitupdate
 
 - name: Add apache psql password to bigsdb config
   lineinfile:
     path: "{{ bioit_bigs_home }}/conf/db.conf"
     regexp: 'dbpassword=to_be_replaced_by_ansible'
     line: "dbpassword={{ secret_bioit_bigs_postgresql_apache_password }}"
+  tags: gitupdate
 
 - name: add azure reportsapi ip to mongodb config
   lineinfile:
     path: "{{ bioit_bigs_home }}/bioit_mongodb_scripts/config/config.yml"
     regexp: 'azure_reportsapi_ip: to_be_replaced_by_ansible'
     line: "azure_reportsapi_ip: {{ azure_reportsapi_ip }}"
+  tags: gitupdate
 
 - name: add azure reportsapi ip to galaxy cron tool
   lineinfile:
     path: "{{ bioit_bigs_home }}/bioit_bigsdb_scripts/cron_startinsertion_mongo_implementation.sh"
     regexp: 'AZURE_REPORTSAPI_IP=to_be_replaced_by_ansible'
     line: "AZURE_REPORTSAPI_IP={{ azure_reportsapi_ip }}"
+  tags: gitupdate
 
 - name: add azure reportsapi ip to SciensanoReportPage
   lineinfile:
     path: "{{ bioit_bigs_home }}/lib/BIGSdb/SciensanoReportPage.pm"
     regexp: "my [$]azure_reportsapi = to_be_replaced_by_ansible ;"
     line: "my $azure_reportsapi = '{{ azure_reportsapi_ip }}' ;"
+  tags: gitupdate
 
 - name: Change Mongo dtap version in config based on playbook argument
   lineinfile:
     path: "{{ bioit_bigs_home }}/bioit_bigsdb_scripts/cron_startinsertion_mongo_implementation.sh"
     regexp: 'DTAP=to_be_replaced_by_ansible'
     line: "DTAP={{ mongo_dtap }}"
+  tags: gitupdate
 
 - name: setting up ssh connection to azure reportsapi
   block:
