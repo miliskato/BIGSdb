@@ -347,7 +347,7 @@ class MongoToBigs:
         different_version = True
         cgst_changed = True
         if sample_presence[0][0] == 0 or if_sample_failed:
-            results_type = "new_isolate"
+                results_type = "new_isolate"
         elif document.get_validation_type():
             results_type = document.get_validation_type()
             if results_type == 'resequencing' or (results_type == 'badqc' and sample_presence[0][0] == 1):
@@ -366,7 +366,6 @@ class MongoToBigs:
         :param isolate_id: name of the isolate
         :return: boolean whether version is different or not and boolean whether the cgst changed
         """
-        latest_analysis_date_bigs = (self._isolates_psql_tbl.select_latestanalysisdate_for_isolate((isolate_id,)))[0][0]  #this is a datetime object
         with TblEavTextHidden(self._species) as isolates_eavth_psql_tbl:
             mongo_results_changed_version_bigs_query = isolates_eavth_psql_tbl.select_mongo_resultsversion((isolate_id,))
         # as of 2022/12/22 mongo_results_version in bigs is changed version
@@ -374,24 +373,21 @@ class MongoToBigs:
 
         different_version = False
         cgst_changed = False
-        if convert_dmyhms_to_dateobj(document['results']['analysis_date']) > latest_analysis_date_bigs:
-            new_results = document.get_json_results()
-            if new_results['changed_version'] == int(mongo_results_changed_version_bigs):
+        new_results = document.get_json_results()
+        if new_results['changed_version'] == int(mongo_results_changed_version_bigs):
                 # results are same so do nothing
-                logging.info(f"results_version might be different, but changed_version same in mongodb and bigsdb for "
+            logging.info(f"results_version might be different, but changed_version same in mongodb and bigsdb for "
                              f"{isolate_id}")
-            else:
-                different_version = True
-
-                # check whether the cgST that is currently in the db for the isolate is the same as the
-                # cgST of the new version in Mongo.
-                with TblIsolates(self._species) as self._isolates_psql_tbl:
-                    cgst_query_result = self._isolates_psql_tbl.select_current_cgst_of_isolate(
-                        (self._cgmlst_bigsdb_scheme_id, isolate_id))
-                if cgst_query_result[0] and cgst_query_result[0][0] and int(cgst_query_result[0][0]) != new_results.get('cgST'):
-                    cgst_changed = True
         else:
-            logging.info(f"results version same in mongodb and bigsdb for sample {isolate_id}")
+            different_version = True
+
+            # check whether the cgST that is currently in the db for the isolate is the same as the
+            # cgST of the new version in Mongo.
+            with TblIsolates(self._species) as self._isolates_psql_tbl:
+                cgst_query_result = self._isolates_psql_tbl.select_current_cgst_of_isolate(
+                    (self._cgmlst_bigsdb_scheme_id, isolate_id))
+            if cgst_query_result[0] and cgst_query_result[0][0] and int(cgst_query_result[0][0]) != new_results.get('cgST'):
+                cgst_changed = True
         return different_version, cgst_changed
 
     def __insert_assembly_into_bigs(self, results_type: ResultType, document: MongoRecordDict, isolate_id: str) -> None:
