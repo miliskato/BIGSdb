@@ -346,7 +346,7 @@ class MongoToBigs:
 
         different_version = True
         cgst_changed = True
-        if sample_presence[0][0] == 0 or if_sample_failed:
+        if sample_presence[0][0] == 0 or (if_sample_failed and document.get("results").get("results_changed_since_last_version") is None):
                 results_type = "new_isolate"
         elif document.get_validation_type():
             results_type = document.get_validation_type()
