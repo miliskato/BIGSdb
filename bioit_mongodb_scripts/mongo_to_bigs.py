@@ -108,7 +108,7 @@ class MongoToBigs:
 
         cache_command = f'/home/bigsdb/BIGSdb/scripts/maintenance/update_scheme_caches.pl ' \
                         f'--database bigsdb_{self._species}_isolates --schemes {self._cgmlst_bigsdb_scheme_id} ' \
-                        f'--method daily'
+                        f'--method daily_replace'
         self._cache_command_object = Command(cache_command)
 
         # Prepare
@@ -170,7 +170,8 @@ class MongoToBigs:
         # send bad samples from the badqc_isolates collection to BIGSdb
         SamplesToValidationBigs(self._species, mongo_config_data=self._mongo_config_data)
 
-        # Main insertion into bigsdb for loop
+        # Main insertion into bigsdb for loop + track if changes are done
+        changes_in_bigsdb = False
         for document in list_of_documents:
             isolate_id = self._mappingtable_collection.find_one({'pseudo_id': document['_id']})['_id']
             results_type, new_document_version, cgst_changed = self.__get_results_type(document, isolate_id)
@@ -199,7 +200,9 @@ class MongoToBigs:
                     isolates_mapping_psql_tbl.insert_mapping_for_isolate((isolate_id, document['_id'],))
             self.__insert_assembly_into_bigs(results_type, document, isolate_id)
 
-        if len(list_of_documents) > 0:
+            changes_in_bigsdb = True
+
+        if changes_in_bigsdb:
             # Run clustering and new cgST insertion before cache update
             NewClusteringInfoToBigs(self._species, self._naive_clustering_distance_matrix_file,
                                     self._cgmlst_bigsdb_scheme_id, mongo_config_data=self._mongo_config_data)
