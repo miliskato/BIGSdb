@@ -33,8 +33,7 @@ from bioit_mongodb_scripts.util.alerts_to_bigs import AlertsToBigs
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.mongo_querying import Mongoquerying
 from bioit_mongodb_scripts.util.mongo_to_bigs_nominative import MongoToBigsNominative
-from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email, \
-    convert_dmyhms_to_dateobj
+from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email
 from bioit_mongodb_scripts.util.new_clustering_info_to_bigs import NewClusteringInfoToBigs
 from bioit_mongodb_scripts.util.new_temporary_alleles_to_bigs import NewTemporaryAllelesToBigs
 from bioit_mongodb_scripts.util.samples_to_validation_bigs import SamplesToValidationBigs
@@ -187,7 +186,7 @@ class MongoToBigs:
                                 isolation_date=document['technical_metadata']['data']['IsolationDate'],
                                 nominative_labtest_clinical_metadata_collection=self._nominative_labtest_clinical_metadata_collection)
 
-            if results_type not in ["reanalysis","resequencing"]:
+            if results_type not in ["reanalysis", "resequencing"]:
                 with TblMappingTable(self._species) as isolates_mapping_psql_tbl:
                     isolates_mapping_psql_tbl.insert_mapping_for_isolate((isolate_id, document['_id'],))
             self.__insert_assembly_into_bigs(results_type, document, isolate_id)
@@ -368,9 +367,9 @@ class MongoToBigs:
         cgst_changed = False
         new_results = document.get_json_results()
         if new_results['changed_version'] == int(mongo_results_changed_version_bigs):
-                # results are same so do nothing
+            # results are same so do nothing
             logging.info(f"results_version might be different, but changed_version same in mongodb and bigsdb for "
-                             f"{isolate_id}")
+                         f"{isolate_id}")
         else:
             different_version = True
 
