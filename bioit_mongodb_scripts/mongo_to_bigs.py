@@ -159,14 +159,6 @@ class MongoToBigs:
         # incremental, check it and execute full if it hadn't been executed yet
         bool_updated_full = self.__update_scheme_caches_full_once_if_needed()
 
-        if not bool_updated_full:
-            # update the bigsdb cache so the clustering schemes get updated
-            self._cache_command_object.run(Path(os.getcwd()))
-            if self._cache_command_object.returncode != 0:
-                send_email(f"update of the cache to display the clustering failed on host {socket.gethostname()}")
-                raise RuntimeError(
-                    f"update of the cache to display the clustering failed on host {socket.gethostname()}")
-
         # send bad samples from the badqc_isolates collection to BIGSdb
         SamplesToValidationBigs(self._species, mongo_config_data=self._mongo_config_data)
 
@@ -305,9 +297,6 @@ class MongoToBigs:
                     send_email(f"update of the cache to display the clustering failed on host {socket.gethostname()}")
                     raise RuntimeError(
                         f"update of the cache to display the clustering failed on host {socket.gethostname()}")
-                return True
-            else:
-                return False
 
     def __get_list_of_documents(self) -> List[MongoRecordDict]:
         """
