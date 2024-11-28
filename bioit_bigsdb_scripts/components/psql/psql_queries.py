@@ -158,7 +158,7 @@ class PsqlQueries():
         INSERT INTO eav_text_hidden(isolate_id, field, value) 
         VALUES((SELECT id FROM isolates WHERE isolate=%s), %s, %s);"""
     ISO_DEL__TB_EAVTH_VAR_ISO: Final[str] = """
-    DELETE FROM eav_text_hidden WHERE isolate_id=(SELECT id FROM isolates WHERE isolate=%s);"""
+        DELETE FROM eav_text_hidden WHERE isolate_id=(SELECT id FROM isolates WHERE isolate=%s);"""
     ISO_SEL_ID_VAL_ISO_TB_EAVTH_VAR_FIELD: Final[str] = """
         SELECT eav_text_hidden.isolate_id, eav_text_hidden.value, isolates.isolate FROM eav_text_hidden 
         LEFT JOIN isolates ON isolates.id = eav_text_hidden.isolate_id WHERE eav_text_hidden.field = %s;"""
