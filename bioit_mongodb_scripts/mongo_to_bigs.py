@@ -19,7 +19,7 @@ sys.path.append(str(PYTHONPATH))
 
 from bioit_bigsdb_scripts.components.psql.databaseconnection import DatabaseConnection
 from bioit_bigsdb_scripts.components.psql import TblAlleleDesignations, TblIsolates, TblEavTextHidden, TblMappingTable, \
-    TblSchemes
+    TblSchemes, TblTempIsolatesSchemeFields
 from bioit_bigsdb_scripts.components.psql.psql_queries import PsqlQueries
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data
 from bioit_bigsdb_scripts.insert_assembly import insert_assembly
@@ -107,7 +107,7 @@ class MongoToBigs:
 
         cache_command = f'/home/bigsdb/BIGSdb/scripts/maintenance/update_scheme_caches.pl ' \
                         f'--database bigsdb_{self._species}_isolates --schemes {self._cgmlst_bigsdb_scheme_id} ' \
-                        f'--method daily_replace'
+                        f'--method incremental'
         self._cache_command_object = Command(cache_command)
 
         # Prepare
@@ -258,6 +258,8 @@ class MongoToBigs:
                 self._list_of_new_versions_for_alerts.append(
                     {'isolate_name': isolate_id, 'cgST': document['results'].get('cgST'),
                      'isolation_date': document['technical_metadata']['data']['IsolationDate']})
+                with TblTempIsolatesSchemeFields(self._species) as temp_isolates_scheme_fields:
+                    temp_isolates_scheme_fields.delete_profile((2, isolate_id))
 
     def ___replace_tempids(self) -> None:
         """

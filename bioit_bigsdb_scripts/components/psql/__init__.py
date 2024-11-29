@@ -17,6 +17,7 @@ from .psql_tbl_history import TblHistory
 from .psql_tbl_isolate_submission_field_order import TblIsolateSubmissionFieldOrder
 from .psql_tbl_isolate_submission_isolates import TblIsolateSubmissionIsolates
 from .psql_tbl_isolates import TblIsolates
+from .psql_tbl_jobs import TblJobs
 from .psql_tbl_loci import TblLoci
 from .psql_tbl_locus_descriptions import TblLocusDescriptions
 from .psql_tbl_mapping_table import TblMappingTable
@@ -29,4 +30,4 @@ from .psql_tbl_seq_bin_stats import TblSeqBinStats
 from .psql_tbl_sequence_bin import TblSequenceBin
 from .psql_tbl_sequences import TblSequences
 from .psql_tbl_submissions import TblSubmissions
-from .psql_tbl_jobs import TblJobs
+from .psql_tbl_temp_isolates_scheme_fields import TblTempIsolatesSchemeFields
