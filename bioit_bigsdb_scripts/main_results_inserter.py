@@ -13,7 +13,7 @@ from bioit_bigsdb_scripts.components.maininserter import MainInserter
 from bioit_bigsdb_scripts.components.json_typingresultsinserter import JsonTypingResultsInserter
 from bioit_bigsdb_scripts.components.json_genedetectionresultsinserter import JsonGeneDetectionResultsInserter
 from bioit_bigsdb_scripts.components.psql import TblAlleleDesignations, TblEavText, TblEavBoolean, \
-    TblEavInt
+    TblEavInt, TblEavTextHidden
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data, send_email
 from bioit_mongodb_scripts.model.json_model import JsonReportDict, ResultType
 from bioit_mongodb_scripts.util.python_utility_functions import send_email
