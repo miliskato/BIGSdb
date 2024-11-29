@@ -142,7 +142,7 @@ class PsqlQueries():
     # TBL extended attribute values text
     ISO_DEL__TB_EAVT_VAR_ISO: Final[str] = """DELETE FROM eav_text WHERE isolate_id=(SELECT id FROM isolates WHERE isolate=%s);"""
     ISO_DEL__TB_EAVT_VAR_ID_FIELD: Final[str] = """DELETE FROM eav_text WHERE isolate_id=%s AND field=%s;"""
-    ISO_DEL__TB_TPISOSCHFIELD_VAR_ID: Final[str] = """DELETE FROM temp_isolates_scheme_fields_%s WHERE id=(SELECT id FROM isolates WHERE isolate=%s);"""
+    ISO_DEL__TB_TPISOSCHFIELD_VAR_ISO: Final[str] = """DELETE FROM temp_isolates_scheme_fields_%s WHERE id=(SELECT id FROM isolates WHERE isolate=%s);"""
     ISO_INS__TB_EAVT_VAR_ID_FIELD_VAL: Final[str] = """
         INSERT INTO eav_text(isolate_id, field, value) VALUES(%s, %s, %s);"""
     ISO_INS__TB_EAVT_VAR_ISO_FIELD_VAL: Final[str] = """

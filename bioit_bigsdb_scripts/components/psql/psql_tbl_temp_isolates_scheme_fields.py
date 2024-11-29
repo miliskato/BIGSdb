@@ -23,4 +23,4 @@ class TblTempIsolatesSchemeFields(DatabaseConnection):
         :param param: variables to feed to the PSQL query, bigsdb scheme id and isolate name
         :return: None
         """
-        self.execute_query(PsqlQueries.ISO_DEL__TB_TPISOSCHFIELD_VAR_ID, param)
+        self.execute_query(PsqlQueries.ISO_DEL__TB_TPISOSCHFIELD_VAR_ISO, param)
