@@ -505,6 +505,7 @@ class MongoToBigs:
 
     def __delete_flagfile(self, isolate: str) -> None:
         """
+        delete the flagfile created for the fail-safe mechanism
         :param isolate: BIGSdb isolate name
         :return: None, Removes flagfile
         """
