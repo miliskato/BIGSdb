@@ -156,7 +156,7 @@ class MongoToBigs:
 
         # The cache command needs to be run using method 'full' once before being able to use it with method
         # incremental, check it and execute full if it hadn't been executed yet
-        bool_updated_full = self.__update_scheme_caches_full_once_if_needed()
+        self.__update_scheme_caches_full_once_if_needed()
 
         # send bad samples from the badqc_isolates collection to BIGSdb
         SamplesToValidationBigs(self._species, mongo_config_data=self._mongo_config_data)
