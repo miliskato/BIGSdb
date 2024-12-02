@@ -19,8 +19,8 @@ class TblTempIsolatesSchemeFields(DatabaseConnection):
 
     def delete_profile(self, param: Tuple[int, str]) -> None:
         """
-        Delete rows in temp_isolates_scheme_fields corresponding to isolate passed in param
+        Delete rows in temp_isolates_scheme_fields_ corresponding to isolate passed in param
         :param param: variables to feed to the PSQL query, bigsdb scheme id and isolate name
         :return: None
         """
-        self.execute_query(PsqlQueries.ISO_DEL__TB_TPISOSCHFIELD_VAR_ISO, param)
+        self.execute_query(PsqlQueries.ISO_DEL__TB_TPISOSCHFIELD_VAR_SCHID_ISO, param)
