@@ -258,8 +258,8 @@ class MongoToBigs:
                 self._list_of_new_versions_for_alerts.append(
                     {'isolate_name': isolate_id, 'cgST': document['results'].get('cgST'),
                      'isolation_date': document['technical_metadata']['data']['IsolationDate']})
-                with TblTempIsolatesSchemeFields(self._species) as temp_isolates_scheme_fields:
-                    temp_isolates_scheme_fields.delete_profile((2, isolate_id))
+                with TblTempIsolatesSchemeFields(self._species, 2) as temp_isolates_scheme_fields:
+                    temp_isolates_scheme_fields.delete_profile((isolate_id,))
 
     def ___replace_tempids(self) -> None:
         """
