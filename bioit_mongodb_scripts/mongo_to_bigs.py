@@ -179,7 +179,7 @@ class MongoToBigs:
             self._mongoquerying.revert_typinghitlists_to_dictionaries(document, self._headers_collection)
             jsonfile = document.get_json_results()
 
-            self.__fail_safe_mechanism(self._isolates_psql_tbl, isolate=isolate_id, analysis_type=results_type)
+            self.__fail_safe_mechanism(self._isolates_psql_tbl, isolate=isolate_id, results_type=results_type)
 
             MainResultsInserter(isolate_id, self._uploader_mail_address, self._species, results_type,
                                 vcf_path=document['vcf_path'], json_results=jsonfile,
@@ -470,14 +470,14 @@ class MongoToBigs:
         return Path(self._bigsdb_config_data['failsafe']['flag_dir']) / '.'.join(
             [isolate, self._bigsdb_config_data['failsafe']['flag_append']])
 
-    def __fail_safe_mechanism(self, isolates_psql_tbl: TblIsolates, isolate: str, analysis_type: str) -> None:
+    def __fail_safe_mechanism(self, isolates_psql_tbl: TblIsolates, isolate: str, results_type: ResultType) -> None:
         """
         Creates a flagfile if insertion is started and no flagfile is present.
         else insertion is started and flag file is present: remove highest version of sample and
         reinsert if multiple versions, if only one version, sample is reinserted in the main workflow below
         :param isolates_psql_tbl: isolates db isolates table/ connection instance for a given species
         :param isolate: BIGSdb isolate name
-        :param analysis_type: either "new_isolate", "resequencing", "reanalysis" or "badqc"
+        :param results_type: one of the following string: 'new_isolate','badqc','resequencing','reanalysis'
         :return: None
         """
         try:
@@ -486,7 +486,7 @@ class MongoToBigs:
                 Path(self._bigsdb_config_data['failsafe']['flag_dir']).chmod(0o755)
             flagfilepath = self.___make_flagfilepath(isolate)
             if flagfilepath.is_file() and not (
-                    analysis_type in ['reanalysis', 'resequencing']):
+                    results_type in ['reanalysis', 'resequencing']):
                 logging.warning(
                     f"fail safe mechanism detects that the bigsdb insertion for sample {isolate} was started but did not finish. Removing {isolate} from Bigsdb to be able to restart inserting.")
                 isolates_psql_tbl.delete_isolate([isolate])
