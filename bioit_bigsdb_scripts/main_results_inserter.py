@@ -12,9 +12,8 @@ sys.path.append(str(PYTHONPATH))
 from bioit_bigsdb_scripts.components.maininserter import MainInserter
 from bioit_bigsdb_scripts.components.json_typingresultsinserter import JsonTypingResultsInserter
 from bioit_bigsdb_scripts.components.json_genedetectionresultsinserter import JsonGeneDetectionResultsInserter
-from bioit_bigsdb_scripts.components.psql import TblEavTextHidden, TblIsolates, TblAlleleDesignations, TblEavText, \
-    TblEavBoolean, \
-    TblEavInt
+from bioit_bigsdb_scripts.components.psql import TblAlleleDesignations, TblEavText, TblEavBoolean, \
+    TblEavInt, TblEavTextHidden
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data, send_email
 from bioit_mongodb_scripts.model.json_model import JsonReportDict, ResultType
 from bioit_mongodb_scripts.util.python_utility_functions import send_email
@@ -58,7 +57,7 @@ class MainResultsInserter:
             send_email(f"{exceptionmessage}\n{traceback.format_exc()}",
                        f'{Path(__file__).name}: Error inserting isolate of {species} pipeline to bigsdb for sample {isolatename} on host {socket.gethostname()}.')
             raise Exception(f'{Path(__file__).name}: Error inserting isolate of {species} pipeline to bigsdb for sample {isolatename} on host {socket.gethostname()}.')
-            
+
     def _main_results_inserter(self) -> None:
         """
         Main function, inserts isolate and its results into BIGSdb.
@@ -66,8 +65,6 @@ class MainResultsInserter:
         """
         # fail safe mechanism is initated before inserting the isolate
         # fail safe mechanism uses a flagfile to lock the isolate insertion and checks whether the previous insertion of the isolate succeeded.
-        with TblIsolates(self._species) as isolates_psql_tbl:
-            self.__fail_safe_mechanism(isolates_psql_tbl)
 
         maininserter = MainInserter(self._isolatename, self._species, self._json_report, self._bigsdb_config_data,
                                     self._report_access, self._vcf_path, self._mongo_dtap)
@@ -81,56 +78,6 @@ class MainResultsInserter:
         JsonTypingResultsInserter(self._isolatename, self._species, self._json_report, self._bigsdb_config_data, self._report_access).insert_typing_results()
         JsonGeneDetectionResultsInserter(self._isolatename, self._species, self._json_report, self._bigsdb_config_data, self._report_access).insert_genedetection_results()
         logging.info('Finished inserting results')
-        self.__delete_flagfile()
-
-    def ___make_flagfilepath(self) -> Path:
-        """
-        Returns the flag file path
-        :return: flag file path
-        """
-        return Path(self._bigsdb_config_data['failsafe']['flag_dir']) / '.'.join([self._isolatename, self._bigsdb_config_data['failsafe']['flag_append']])
-
-    def __fail_safe_mechanism(self, isolates_psql_tbl: TblIsolates) -> None:
-        """
-        Creates a flagfile if insertion is started and no flagfile is present.
-        else insertion is started and flag file is present: remove highest version of sample and
-         reinsert if multiple versions, if only one version, sample is reinserted in the main workflow below
-        :param isolates_psql_tbl: isolates db isolates table/ connection instance for a given species
-        :return: None
-        """
-        try:
-            if not Path(self._bigsdb_config_data['failsafe']['flag_dir']).is_dir():
-                Path(self._bigsdb_config_data['failsafe']['flag_dir']).mkdir(parents=True, exist_ok=True)
-                Path(self._bigsdb_config_data['failsafe']['flag_dir']).chmod(0o755)
-            flagfilepath = self.___make_flagfilepath()
-            if flagfilepath.is_file() and not (self._results_type == 'reanalysis' or self._results_type == 'resequencing'):
-                logging.warning(
-                    f"fail safe mechanism detects that the bigsdb insertion for sample {self._isolatename} was started but did not finish. Removing {self._isolatename} from Bigsdb to be able to restart inserting.")
-                isolates_psql_tbl.delete_isolate([self._isolatename])
-                self._nominative_labtest_clinical_metadata_collection.update_one({'_id': self._isolatename},
-                                                                                 {'$set': {'inserted_into_bigsdb': False}})
-            else:
-                flagfilepath.touch()
-                flagfilepath.chmod(0o755)
-                logging.info(f"flagfilepath {flagfilepath}")
-        except Exception as exceptionmessage:
-            send_email(f"{exceptionmessage}\n{traceback.format_exc()}",
-                       f"{Path(__file__).name}: bigsdb upload fail safe mechanism fail on host {socket.gethostname()}")
-            raise Exception(
-                f"{Path(__file__).name}: bigsdb upload fail safe mechanism fail on host {socket.gethostname()}")
-
-    def __delete_flagfile(self) -> None:
-        """
-        :return: None, Removes flagfile
-        """
-        flagfilepath: Path = self.___make_flagfilepath()
-        try:
-            flagfilepath.unlink()
-        except Exception as exceptionmessage:
-            send_email(f"{exceptionmessage}\n{traceback.format_exc()}",
-                       f"{Path(__file__).name}: Could not remove flag file {flagfilepath} on host {socket.gethostname()}")
-            raise Exception(
-                f"{Path(__file__).name}: Could not remove flag file {flagfilepath} on host {socket.gethostname()}")
 
     def _handle_reanalysis_and_reseq(self) -> None:
         """

@@ -179,6 +179,8 @@ class MongoToBigs:
             self._mongoquerying.revert_typinghitlists_to_dictionaries(document, self._headers_collection)
             jsonfile = document.get_json_results()
 
+            self.__fail_safe_mechanism(self._isolates_psql_tbl, isolate=isolate_id, results_type=results_type)
+
             MainResultsInserter(isolate_id, self._uploader_mail_address, self._species, results_type,
                                 vcf_path=document['vcf_path'], json_results=jsonfile,
                                 report_access=document['report_directory'],
@@ -186,10 +188,13 @@ class MongoToBigs:
                                 isolation_date=document['technical_metadata']['data']['IsolationDate'],
                                 nominative_labtest_clinical_metadata_collection=self._nominative_labtest_clinical_metadata_collection)
 
+            self.__insert_assembly_into_bigs(results_type, document, isolate_id)
+
             if results_type not in ["reanalysis", "resequencing"]:
                 with TblMappingTable(self._species) as isolates_mapping_psql_tbl:
                     isolates_mapping_psql_tbl.insert_mapping_for_isolate((isolate_id, document['_id'],))
-            self.__insert_assembly_into_bigs(results_type, document, isolate_id)
+
+            self.__delete_flagfile(isolate=isolate_id)
 
             changes_in_bigsdb = True
 
@@ -457,6 +462,63 @@ class MongoToBigs:
                 raise Exception(f"{Path(__file__).name} double fail on host {socket.gethostname()}: "
                                 f"Failure 1: {self._exceptionmessage1}\n{self._traceback1}\n"
                                 f"Failure 2: {exceptionmessage2}\n{traceback2}")
+
+    def ___make_flagfilepath(self, isolate: str) -> Path:
+        """
+        Returns the flag file path
+        :param isolate: BIGSdb isolate name
+        :return: flag file path
+        """
+        return Path(self._bigsdb_config_data['failsafe']['flag_dir']) / '.'.join(
+            [isolate, self._bigsdb_config_data['failsafe']['flag_append']])
+
+    def __fail_safe_mechanism(self, isolates_psql_tbl: TblIsolates, isolate: str, results_type: ResultType) -> None:
+        """
+        Creates a flagfile if insertion is started and no flagfile is present.
+        else insertion is started and flag file is present: remove highest version of sample and
+        reinsert if multiple versions, if only one version, sample is reinserted in the main workflow below
+        :param isolates_psql_tbl: isolates db isolates table/ connection instance for a given species
+        :param isolate: BIGSdb isolate name
+        :param results_type: one of the following string: 'new_isolate','badqc','resequencing','reanalysis'
+        :return: None
+        """
+        try:
+            if not Path(self._bigsdb_config_data['failsafe']['flag_dir']).is_dir():
+                Path(self._bigsdb_config_data['failsafe']['flag_dir']).mkdir(parents=True, exist_ok=True)
+                Path(self._bigsdb_config_data['failsafe']['flag_dir']).chmod(0o755)
+            flagfilepath = self.___make_flagfilepath(isolate)
+            if flagfilepath.is_file() and not (
+                    results_type in ['reanalysis', 'resequencing']):
+                logging.warning(
+                    f"fail safe mechanism detects that the bigsdb insertion for sample {isolate} was started but did not finish. Removing {isolate} from Bigsdb to be able to restart inserting.")
+                isolates_psql_tbl.delete_isolate([isolate])
+                self._nominative_labtest_clinical_metadata_collection.update_one({'_id': isolate},
+                                                                                 {'$set': {
+                                                                                     'inserted_into_bigsdb': False}})
+            else:
+                flagfilepath.touch()
+                flagfilepath.chmod(0o755)
+                logging.info(f"flagfilepath {flagfilepath}")
+        except Exception as exceptionmessage:
+            send_email(f"{exceptionmessage}\n{traceback.format_exc()}",
+                       f"{Path(__file__).name}: bigsdb upload fail safe mechanism fail on host {socket.gethostname()}")
+            raise Exception(
+                f"{Path(__file__).name}: bigsdb upload fail safe mechanism fail on host {socket.gethostname()}")
+
+    def __delete_flagfile(self, isolate: str) -> None:
+        """
+        delete the flagfile created for the fail-safe mechanism
+        :param isolate: BIGSdb isolate name
+        :return: None, Removes flagfile
+        """
+        flagfilepath: Path = self.___make_flagfilepath(isolate)
+        try:
+            flagfilepath.unlink()
+        except Exception as exceptionmessage:
+            send_email(f"{exceptionmessage}\n{traceback.format_exc()}",
+                       f"{Path(__file__).name}: Could not remove flag file {flagfilepath} on host {socket.gethostname()}")
+            raise Exception(
+                f"{Path(__file__).name}: Could not remove flag file {flagfilepath} on host {socket.gethostname()}")
 
 
 if __name__ == '__main__':
