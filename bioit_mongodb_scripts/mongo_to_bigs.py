@@ -461,13 +461,14 @@ class MongoToBigs:
                                 f"Failure 1: {self._exceptionmessage1}\n{self._traceback1}\n"
                                 f"Failure 2: {exceptionmessage2}\n{traceback2}")
 
-    def ___make_flagfilepath(self) -> Path:
+    def ___make_flagfilepath(self, isolate: str) -> Path:
         """
         Returns the flag file path
+        :param isolate: BIGSdb isolate name
         :return: flag file path
         """
         return Path(self._bigsdb_config_data['failsafe']['flag_dir']) / '.'.join(
-            [self.isolate, self._bigsdb_config_data['failsafe']['flag_append']])
+            [isolate, self._bigsdb_config_data['failsafe']['flag_append']])
 
     def __fail_safe_mechanism(self, isolates_psql_tbl: TblIsolates, isolate: str, analysis_type: str) -> None:
         """
@@ -479,12 +480,11 @@ class MongoToBigs:
         :param analysis_type: either "new_isolate", "resequencing", "reanalysis" or "badqc"
         :return: None
         """
-        self.isolate = isolate
         try:
             if not Path(self._bigsdb_config_data['failsafe']['flag_dir']).is_dir():
                 Path(self._bigsdb_config_data['failsafe']['flag_dir']).mkdir(parents=True, exist_ok=True)
                 Path(self._bigsdb_config_data['failsafe']['flag_dir']).chmod(0o755)
-            flagfilepath = self.___make_flagfilepath()
+            flagfilepath = self.___make_flagfilepath(isolate)
             if flagfilepath.is_file() and not (
                     analysis_type in ['reanalysis', 'resequencing']):
                 logging.warning(
@@ -508,8 +508,7 @@ class MongoToBigs:
         :param isolate: BIGSdb isolate name
         :return: None, Removes flagfile
         """
-        self.isolate = isolate
-        flagfilepath: Path = self.___make_flagfilepath()
+        flagfilepath: Path = self.___make_flagfilepath(isolate)
         try:
             flagfilepath.unlink()
         except Exception as exceptionmessage:
