@@ -156,7 +156,7 @@ class MongoToBigs:
 
         # The cache command needs to be run using method 'full' once before being able to use it with method
         # incremental, check it and execute full if it hadn't been executed yet
-        bool_updated_full = self.__update_scheme_caches_full_once_if_needed()
+        self.__update_scheme_caches_full_once_if_needed()
 
         # send bad samples from the badqc_isolates collection to BIGSdb
         SamplesToValidationBigs(self._species, mongo_config_data=self._mongo_config_data)
@@ -282,11 +282,11 @@ class MongoToBigs:
             {'_id': {'$in': [hash_document['_id'] for hash_document in documents_list]}},
             {'$set': {'replaced_in_bigs_date': datetime.datetime.now()}})
 
-    def __update_scheme_caches_full_once_if_needed(self) -> bool:
+    def __update_scheme_caches_full_once_if_needed(self) -> None:
         """
         Checks whether a full update of the scheme caches of the cgmlst scheme is needed (only the first time when
         the table doesn't exist), and executes the full scheme cache update if needed.
-        :return: Whether the full cache command was executed
+        :return: None
         """
         with DatabaseConnection(self._species, 'isolates') as isolates_psql_db:
             temp_scheme_exists: List[Tuple[bool]] = isolates_psql_db.execute_query(PsqlQueries.SEL_TABLE_EXISTS,
