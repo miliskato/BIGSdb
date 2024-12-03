@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.0.1] - 
+## [2.0.1] - 2024-12-02
 
 ### Added
 - cron job to ensure that badqcs stored in MongoDB are all well inserted into BIGSdb submission system
@@ -29,6 +29,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Introduce new fields to get info on various updates in MongoDB Atlas
 - deprecated "datetime.utcnow()" is replaced by "datetime.now(timezone.utc)"
 - Fail-safe mechanism (flagfile) is only used for new isolates (not anymore used for reseq/reanalysis)
+- Cache update of cgmlst scheme in BIGSdb is now performed using the incremental method. 
+  In case of reanalysis, the isolate will firstly be removed from the temp_isolates_scheme_fields_x table
 
 ## [2.0.0] - 2024-10-28
 
