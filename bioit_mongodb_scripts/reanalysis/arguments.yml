@@ -65,11 +65,7 @@ sars_cov_2:
   sars_cov_2:
     - Nextclade (Nextclade 2.14.0)
     - Subtype determination (mash screen 2.3)
-influenza_a:
-  influenza_a:
-    - Nextclade (Nextclade 2.14.0)
-    - Subtype determination (mash screen 2.3)
-influenza_b:
-  influenza_b:
+influenza:
+  influenza:
     - Nextclade (Nextclade 2.14.0)
     - Subtype determination (mash screen 2.3)

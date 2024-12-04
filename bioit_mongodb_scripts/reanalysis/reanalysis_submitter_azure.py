@@ -289,7 +289,7 @@ class BatchPipelinesReanalysis:
         :return: None
         """
         # Retrieve isolates that need to be re-analyzed
-        mongoinit = MongoInitialisation(self._species,
+        mongoinit = MongoInitialisation(self._species if not self._species in ['influenza_a', 'influenza_b'] else 'influenza',
                                         selected_connection_string='CONNECTION_STRING_AZURE',
                                         alternate_dtap=self._dtap)
         latest_update_date = ''
@@ -315,7 +315,14 @@ class BatchPipelinesReanalysis:
             "results.isolates_id": 1
         }
 
-        documents_list = list(isolates_collection.find({'latest_analysis_date': {"$lt": latest_update_date}}, fields_to_retrieve))
+        microorganism_field = True
+        if self._species == 'influenza_a':
+            microorganism_field = "Influenza A virus (organism)"
+        elif self._species == 'influenza_b':
+            microorganism_field = "Influenza B virus (organism)"
+        documents_list = list(isolates_collection.find({'latest_analysis_date': {"$lt": latest_update_date},
+                                                        'technical_metadata.data.Microorganism': microorganism_field},
+                                                       fields_to_retrieve))
 
         logging.info(f"{len(documents_list)} isolates to be reanalyzed for {self._species}_{self._dtap}")
         analysis_arguments = [argument.replace('--', '') for argument in
