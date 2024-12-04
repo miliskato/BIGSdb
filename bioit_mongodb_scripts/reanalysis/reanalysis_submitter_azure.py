@@ -467,11 +467,12 @@ if __name__ == '__main__':
     # Configure stdout logging
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
-    # Parse config
-    mongo_config_data = get_mongodb_config_data()
+    # Read the reanalysis config
+    with open(MONGO_REANALYSIS_CONFIG, encoding='utf-8') as handle:
+        reanalysis_config = yaml.safe_load(handle)
 
     # Parse arguments
-    args = parse_arguments(mongo_config_data['species'])
+    args = parse_arguments(reanalysis_config['species'].keys())
 
     # run main
     wrapper_loop_dtap_and_species(args.species, args.dtap)
