@@ -12,7 +12,7 @@
  authentication="builtin"
  read_access="authenticated_users"
  all_plugins="yes"
- microreact_year_field="isolation_date"
+ microreact_year_field="sampling_date"
  tblastx_tagging="yes"
  eav_groups="Gene detection|fas fa-search,galaxy report|fas fa-file-medical-alt,Antiviral resistance|fas fa-angle-right"
  field_groups="Curation history|fas fa-history,nominative metadata|fas fa-search"
@@ -42,9 +42,6 @@
 <field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="Subtyping B">FluB_lineagePCR</field>
 <field type="date" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="reception date">reception_date</field>
 <field type="date" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="isolation date">isolation_date</field>
-<field type="int" required="no" length="2" maindisplay="no" group ="nominative metadata" comments="isolation day">day_of_isolation</field>
-<field type="int" required="no" length="2" maindisplay="no" group ="nominative metadata" comments="isolation month">month_of_isolation</field>
-<field type="int" required="no" length="4" maindisplay="no" group ="nominative metadata" comments="isolation year">year_of_isolation</field>
 <field type="text" required="no" length="20" maindisplay="no" group ="nominative metadata" comments="origine">origine</field>
 <field type="text" required="no" length="20" maindisplay="no" group ="nominative metadata" comments="patient ID">patient_id</field>
 <field type="date" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="patient birth date">patient_birth_date</field>
@@ -54,8 +51,12 @@
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="patient sex">patient_sex</field>
 <field type="int" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="patient age">patient_age</field>
 <field type="text" required="no" length="30" maindisplay="no" group ="nominative metadata" comments="patient age group">patient_age_group</field>
-<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="specimen">specimen</field>
-<field type="int" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="sampling week">sampling_week</field>
+<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="sample specimen">specimen</field>
+<field type="int" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">sampling_week</field>
+<field type="date" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">sampling_date</field>
+<field type="int" required="no" length="2" maindisplay="no" group ="nominative metadata" comments="">sampling_day</field>
+<field type="int" required="no" length="2" maindisplay="no" group ="nominative metadata" comments="">sampling_month</field>
+<field type="int" required="no" length="4" maindisplay="no" group ="nominative metadata" comments="">sampling_year</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="hospitalisation">hospitalisation</field>
 <field type="date" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="hospital admission date">admission_date</field>
 <field type="int" required="no" length="2" maindisplay="no" group ="nominative metadata" comments="">admission_day</field>
@@ -70,7 +71,7 @@
 <field type="int" required="no" length="2" maindisplay="no" group ="nominative metadata" comments="">antiviral_treatment_day</field>
 <field type="int" required="no" length="2" maindisplay="no" group ="nominative metadata" comments="">antiviral_treatment_month</field>
 <field type="int" required="no" length="4" maindisplay="no" group ="nominative metadata" comments="">antiviral_treatment_year</field>
-<field type="text" required="no" length="60" maindisplay="no" group ="nominative metadata" comments="">seasonal_vaccination_date</field>
+<field type="text" required="no" length="60" maindisplay="no" group ="nominative metadata" comments="">seasonal_vaccination</field>
 <field type="date" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">seasonal_vaccination_date</field>
 <field type="int" required="no" length="2" maindisplay="no" group ="nominative metadata" comments="">vaccination_day</field>
 <field type="int" required="no" length="2" maindisplay="no" group ="nominative metadata" comments="">vaccination_month</field>
