@@ -80,6 +80,7 @@ class BatchPipelinesReanalysis:
         :return: None
         """
         self._species = species
+        self._species_mongodb = self._species if self._species not in ['influenza_a', 'influenza_b'] else 'influenza'
         self._dtap = dtap
 
         # Parse MongoDB config
@@ -110,7 +111,7 @@ class BatchPipelinesReanalysis:
         job_name = f"{BATCH_JOB_NAME_PREFIX}{self._species}"
         self.__create_job(job_name)
 
-        if self._species not in self._mongo_config_data['viral_species']:
+        if self._species_mongodb not in self._mongo_config_data['viral_species']:
             date_args_dict = self.__collect_database_update_dates()
             for maximal_analysis_date in date_args_dict:
                 self.__launch_tasks(maximal_analysis_date, date_args_dict, job_name)
@@ -289,7 +290,7 @@ class BatchPipelinesReanalysis:
         :return: None
         """
         # Retrieve isolates that need to be re-analyzed
-        mongoinit = MongoInitialisation(self._species if not self._species in ['influenza_a', 'influenza_b'] else 'influenza',
+        mongoinit = MongoInitialisation(self._species_mongodb,
                                         selected_connection_string='CONNECTION_STRING_AZURE',
                                         alternate_dtap=self._dtap)
         latest_update_date = ''
@@ -406,7 +407,7 @@ class BatchPipelinesReanalysis:
             f"cd {working_dir};"
             f"{config_species['main_script']} ",
             f"--fasta {mongodb_document['fasta_path']} ",
-            '--detection-method blast' if self._species not in self._mongo_config_data['viral_species'] else '',
+            '--detection-method blast' if self._species_mongodb not in self._mongo_config_data['viral_species'] else '',
             '--library NexteraPE',  # should be changed in the future?
             f'--working-dir {working_dir}',
             f'--output-dir {report_dir}',
@@ -427,13 +428,13 @@ class BatchPipelinesReanalysis:
             f"{config_mongodb['report_script']}",
             f"--base-html {results_dir}/report.html",
             f"--updated-html {report_dir}/report.html",
-            f"--species {self._species}",
+            f"--species {self._species_mongodb}",
             f"--analysis-arguments {' '.join(analysis_arguments)}"
         ])
         tagger_command = ' '.join([
             f"{config_mongodb['tagger_script']}",
             f"--htmlfilepath {report_dir}/report.html",
-            f"--species {self._species}"
+            f"--species {self._species_mongodb}"
         ])
         # Copy the stderr and stdout files from the temporary working dir to the fileshare because they
         # might contain more information than the camel.log
@@ -448,7 +449,7 @@ class BatchPipelinesReanalysis:
             f"/usr/bin/flock -u {lockfile}",
             f"{config_mongodb['main_script']}",
             "--results_type reanalysis",
-            f"--species {self._species}",
+            f"--species {self._species_mongodb}",
             f"--technical_id {isolate_id}",
             "--pipeline_hash $pipeline_hash",
             f"--jsonfilepath {results_dir}/report.json",
