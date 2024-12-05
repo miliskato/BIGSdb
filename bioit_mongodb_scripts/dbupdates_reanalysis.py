@@ -2,12 +2,14 @@ import logging
 import os
 import socket
 import time
+import yaml
 from datetime import datetime, timedelta
 from pathlib import Path
 
 from azure import batch
 from azure.monitor.ingestion import LogsIngestionClient
 
+from bioit_mongodb_scripts.reanalysis import MONGO_REANALYSIS_CONFIG
 from bioit_mongodb_scripts.reanalysis.reanalysis_submitter_azure import BatchPipelinesReanalysis
 from bioit_mongodb_scripts.util.command.command import Command
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data
@@ -38,7 +40,9 @@ class DbUpdatesReanalysis:
             logging.basicConfig(filename=filename_log, filemode='w', level=logging.DEBUG,
                                 format='%(asctime)s - %(name)s - %(funcName)s - %(levelname)s - %(message)s')
             self._environment = environment
-            self._mongo_config_data = get_mongodb_config_data()
+            # Read the reanalysis config
+            with open(MONGO_REANALYSIS_CONFIG, encoding='utf-8') as handle:
+                self._reanalysis_config = yaml.safe_load(handle)
             self._connection_azure_1, self._connection_azure_2 = self._connect_azure()
             self._batch_client_1 = self._connection_azure_1.connect_to_batch_client()
             self._batch_client_2 = self._connection_azure_2.connect_to_batch_client()
@@ -111,7 +115,7 @@ class DbUpdatesReanalysis:
         Executes the tempid replacer azure script.
         :return: None
         """
-        for species in self._mongo_config_data['species']:
+        for species in self._reanalysis_config['species'].keys():
             if self._environment == 'dt':
                 TempidReplacerAzure(species, "dev")
                 TempidReplacerAzure(species, "test")
@@ -124,7 +128,7 @@ class DbUpdatesReanalysis:
         Executes the reanalysis script.
         :return: None
         """
-        for species in self._mongo_config_data['species']:
+        for species in self._reanalysis_config['species'].keys():
             if self._environment == 'dt':
                 BatchPipelinesReanalysis(species, "dev")
                 BatchPipelinesReanalysis(species, "test")
