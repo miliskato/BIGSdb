@@ -118,13 +118,11 @@ class MainInserter(JsonSuperClass):
                 # json input
                 if 'serotype' in self._json_report_dict['serotype']:
                     self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'Serotype', self._json_report_dict['serotype']['serotype']))
-                # tsv input
-                else:
-                    self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'Serotype', self._json_report_dict['serotype']))
+
         elif self._species == 'neisseria':
-            # tsv input
-            if 'detected_serogroup' in self._json_report_dict:
-                self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'Serogroup', self._json_report_dict['detected_serogroup']))
             # json input
-            elif 'serogroup' in self._json_report_dict:
+            if 'serogroup' in self._json_report_dict:
                 self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'Serogroup', self._json_report_dict['serogroup']['detected_serogroup']))
+        elif self._species == 'influenza':
+            if 'nextclade' in self._json_report_dict:
+                self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatenme, 'Nextclade subtype', self._json_report_dict['nextclade']['results']['nextclade_detected_subtype']))

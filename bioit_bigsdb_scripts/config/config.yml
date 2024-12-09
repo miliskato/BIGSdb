@@ -323,8 +323,9 @@ species:
         schemename_html: plasmid
     seqdefdb: bigsdb_salmonella_seqdef
     isolatesdb: bigsdb_salmonella_isolates
-  influenza_a: ''
-  influenza_b: ''
+  influenza:
+    typing_scheme: null
+    genedetection_schemes: null
 
 species_json:
   listeria:
