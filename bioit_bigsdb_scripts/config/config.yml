@@ -518,6 +518,9 @@ species_json:
         metadatafile: /var/lib/.bioit_database_azure/gene_detection/PlasmidFinder-entero/mapping_full.json
         schemename_bigsdb: PlasmidFinder_entero
         schemename_html: PlasmidFinder - Enterobacteriaceae
+  influenza:
+    typing_schemes: ''
+    genedetection_schemes: ''
 
 lab_metadata:
   neisseria:

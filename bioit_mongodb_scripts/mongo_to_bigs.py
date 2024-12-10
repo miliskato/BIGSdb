@@ -481,6 +481,8 @@ class MongoToBigs:
         (the cgst needs to come from the seqdef db).
         :return: None
         """
+        if self._species in self._mongo_config_data['viral_species']:
+            return
         self._cache_command_object.run(Path(os.getcwd()))
         if self._cache_command_object.returncode != 0:
             send_email(f"update of the cache to display the clustering failed on host {socket.gethostname()}")
