@@ -72,7 +72,7 @@
 <field type="int" required="no" length="2" maindisplay="no" group ="nominative metadata" comments="">antiviral_treatment_month</field>
 <field type="int" required="no" length="4" maindisplay="no" group ="nominative metadata" comments="">antiviral_treatment_year</field>
 <field type="text" required="no" length="60" maindisplay="no" group ="nominative metadata" comments="">seasonal_vaccination</field>
-<field type="date" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">seasonal_vaccination_date</field>
+<field type="date" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">vaccination_date</field>
 <field type="int" required="no" length="2" maindisplay="no" group ="nominative metadata" comments="">vaccination_day</field>
 <field type="int" required="no" length="2" maindisplay="no" group ="nominative metadata" comments="">vaccination_month</field>
 <field type="int" required="no" length="4" maindisplay="no" group ="nominative metadata" comments="">vaccination_year</field>
