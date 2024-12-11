@@ -142,6 +142,7 @@ class MongoToBigs:
         """
         if self._species in self._mongo_config_data['viral_species']:
             self._limit_to_viral_spec()
+            return
 
         # Check if dbs were updated and update bigsdb accordingly
         self.__update_bigsdb_psql_if_needed()
@@ -438,8 +439,7 @@ class MongoToBigs:
         # In case of an actual reanalysis, the MainResultsInserter handles the assembly transfer between
         # isolates and we do not want to scp the assembly from Azure
         if not results_type == 'reanalysis':
-            fasta_name = Path(document['fasta_path']).name
-            fasta_path_remote = Path(document['report_directory']) / 'assembly' / fasta_name
+            fasta_path_remote = document['fasta_path']
             with tempfile.NamedTemporaryFile(dir=self._mongo_config_data.get('temp_dir'), mode="w") as temp_fasta:
                 temp_fasta_path = Path(self._mongo_config_data.get('temp_dir')) / temp_fasta.name
                 scp_command = f"scp -o StrictHostKeyChecking=no -i /home/bigsdb/.ssh/.id_rsa_reportsapi bigsdb@{self._mongo_config_data.get('azure_reportsapi_ip')}:{fasta_path_remote} {str(temp_fasta_path)}"
