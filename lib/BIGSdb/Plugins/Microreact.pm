@@ -85,6 +85,7 @@ sub get_attributes {
 		always_show_in_menu => 1,
 		image               => '/images/plugins/Microreact/screenshot.png'
 	);
+	$logger->error( 'getatt' );
 	return \%att;
 }
 
@@ -392,6 +393,7 @@ sub _get_geo_field {
 }
 
 sub print_extra_form_elements {
+	$logger->error( 'helloyouyou' );
 	my ($self) = @_;
 	my $set_id = $self->get_set_id;
 	my $email;
@@ -401,6 +403,7 @@ sub print_extra_form_elements {
 	}
 	my $desc = $self->get_db_description;
 	my $q    = $self->{'cgi'};
+	$logger->error( $desc );
 	say q(<fieldset style="float:left"><legend>Descriptions</legend>);
 	say q(<p>Modify the values below - these will be displayed<br />within the created Microreact project.</p>);
 	say q(<ul><li><label for="title" class="display">Title:</label>);
@@ -477,6 +480,7 @@ sub print_info_panel {
 }
 
 sub get_plugin_javascript {
+	$logger->error( 'get_pl' );
 	my ($self) = @_;
 	my $buffer = << "END";
 

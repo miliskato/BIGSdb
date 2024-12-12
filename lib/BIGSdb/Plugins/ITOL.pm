@@ -85,6 +85,7 @@ sub run {
 	my ($self) = @_;
 	my $q      = $self->{'cgi'};
 	my $title  = $self->get_title;
+	my $db = $self -> get_db_description;
 	say qq(<h1>$title</h1>);
 	return if $self->has_set_changed;
 	my $allow_alignment = 1;
@@ -126,7 +127,7 @@ sub run {
 			push @errors, qq(The following loci in your pasted list are invalid: @$invalid_loci.);
 		}
 		if ( !@$loci_selected ) {
-			push @errors, q(You must select one or more loci or schemes.);
+			push @errors, q(You must select one or more loci or schemes. YO);
 		}
 		my $total_seqs  = @$loci_selected * @ids;
 		my $max_records = $self->{'system'}->{ lc("$attr->{'module'}_record_limit") }
@@ -145,7 +146,7 @@ sub run {
 			push @errors, qq(Output is limited to a total of $commify_max_records records. )
 			  . qq(You have selected $commify_total_records.);
 		}
-		if (@errors) {
+		if (@errors && $db !="Influenza isolates") {
 			if ( @errors == 1 ) {
 				$self->print_bad_status( { message => qq(@errors) } );
 			} else {
