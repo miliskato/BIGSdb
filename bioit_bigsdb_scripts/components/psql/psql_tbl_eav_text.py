@@ -50,7 +50,8 @@ class TblEavText(DatabaseConnection):
         necessary parameters visible in the PSQL query name and query
         :return: None
         """
-        self.execute_query(PsqlQueries.ISO_INS__TB_EAVT_VAR_ISO_FIELD_VAL, param)
+        if param[2]:
+            self.execute_query(PsqlQueries.ISO_INS__TB_EAVT_VAR_ISO_FIELD_VAL, param)
 
     def update_eav_id(self, param: Tuple[str, str, str]) -> None:
         """
