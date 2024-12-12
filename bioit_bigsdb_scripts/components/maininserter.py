@@ -5,7 +5,7 @@ from typing import Any, Dict
 
 from bioit_mongodb_scripts.model.json_model import JsonReportDict
 from .json_superclass import JsonSuperClass
-from .psql import TblEavTextHidden, TblEavInt, TblEavText, TblIsolates, TblHistory
+from .psql import TblEavInt, TblEavText, TblEavTextHidden, TblHistory, TblIsolates
 from ..utils.url_helper import UrlHelper
 
 
@@ -15,7 +15,7 @@ class MainInserter(JsonSuperClass):
     """
 
     def __init__(self, isolatename: str, species: str, json_report_dict: JsonReportDict, config_data: Dict[str, Any],
-                 report_access: str, vcf_path: str, mongo_dtap: str,) -> None:
+                 report_access: str, vcf_path: str, mongo_dtap: str) -> None:
         """
         :param isolatename: name of the isolate
         :param species: commonly used bioit species name: either genus or specific like stec
@@ -29,7 +29,7 @@ class MainInserter(JsonSuperClass):
         self._report_access = report_access
         self._vcf_path = vcf_path
         self._mongo_dtap = mongo_dtap
-    
+
     def insert_new_isolate(self, uploader_mail_address: str, isolation_date: str) -> None:
         """
         main function to insert a new isolate, but only the isolate
@@ -80,7 +80,7 @@ class MainInserter(JsonSuperClass):
                 self.isolates_psql_tbl.add_validation((self._json_report_dict['validation']['type'], self._json_report_dict['validation']['curator'],
                                                        datetime.datetime.strptime(self._json_report_dict['validation']['date'], '%d/%m/%Y - %X').strftime('%Y-%m-%d'), str(isolate_id)))
             logging.info('Metadata insertion successful')
-    
+
     def _insert_species_specific_metadata(self) -> None:
         """
         Insert species specific metadata

@@ -39,6 +39,7 @@ from bioit_mongodb_scripts.util.new_temporary_alleles_to_bigs import NewTemporar
 from bioit_mongodb_scripts.util.samples_to_validation_bigs import SamplesToValidationBigs
 from bioit_mongodb_scripts.util.command.command import Command
 
+
 def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     """
     Parses the command line arguments.
@@ -341,7 +342,6 @@ class MongoToBigs:
             changes_in_bigsdb = True
         if changes_in_bigsdb:
             MongoToBigsNominative(self._species, self._mongo_config_data, dont_send_email=True)
-
 
     def __get_list_of_documents(self) -> List[MongoRecordDict]:
         """

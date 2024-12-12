@@ -14,7 +14,7 @@
  all_plugins="yes"
  microreact_year_field="sampling_date"
  tblastx_tagging="yes"
- eav_groups="Gene detection|fas fa-search,galaxy report|fas fa-file-medical-alt,Antiviral resistance|fas fa-angle-right"
+ eav_groups="Gene detection|fas fa-search,galaxy report|fas fa-file-medical-alt,Nextclade|fas fa-light fa-viruses"
  field_groups="Curation history|fas fa-history,nominative metadata|fas fa-search"
  user_projects="yes"
  submissions="yes"
