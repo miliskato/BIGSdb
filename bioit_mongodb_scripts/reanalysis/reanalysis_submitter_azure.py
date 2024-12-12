@@ -108,7 +108,7 @@ class BatchPipelinesReanalysis:
         """
         self.__create_pool()
         # Create a new job:
-        job_name = f"{BATCH_JOB_NAME_PREFIX}{self._species}"
+        job_name = f"{BATCH_JOB_NAME_PREFIX}{self._species_mongodb}"
         self.__create_job(job_name)
 
         if self._species_mongodb not in self._mongo_config_data['viral_species']:
@@ -382,14 +382,14 @@ class BatchPipelinesReanalysis:
         :param mongodb_document: The mongodb document of the to be reanalyzed sample
         :return: command
         """
-        report_dir = f'$AZ_BATCH_TASK_DIR/{self._dtap}/report_dirs/reanalysis/{self._species}/{task_name}'
-        working_dir = f'$AZ_BATCH_TASK_DIR/{self._dtap}/working_dirs/reanalysis/{self._species}/{task_name}_working'
+        report_dir = f'$AZ_BATCH_TASK_DIR/{self._dtap}/report_dirs/reanalysis/{self._species_mongodb}/{task_name}'
+        working_dir = f'$AZ_BATCH_TASK_DIR/{self._dtap}/working_dirs/reanalysis/{self._species_mongodb}/{task_name}_working'
         results_dir = mongodb_document['report_directory']
         # pre command to load lmod and to stop commands upon failure (set -o errexit)
         pre_command = 'export MODULEPATH=/etc/lmod/modules; source /etc/profile.d/lmod.sh'
-        trap_command = (f'trap \'mkdir -p /scratch/scratch/{self._dtap}/errors/reanalysis/{self._species}/{task_name}; '
-                        f'if test -e {working_dir}; then cp -r {working_dir} /scratch/scratch/{self._dtap}/errors/reanalysis/{self._species}/{task_name}; rm -r {working_dir}; fi; '
-                        f'if test -e {report_dir}; then cp -r {report_dir} /scratch/scratch/{self._dtap}/errors/reanalysis/{self._species}/{task_name}; rm -r {report_dir}; fi; '
+        trap_command = (f'trap \'mkdir -p /scratch/scratch/{self._dtap}/errors/reanalysis/{self._species_mongodb}/{task_name}; '
+                        f'if test -e {working_dir}; then cp -r {working_dir} /scratch/scratch/{self._dtap}/errors/reanalysis/{self._species_mongodb}/{task_name}; rm -r {working_dir}; fi; '
+                        f'if test -e {report_dir}; then cp -r {report_dir} /scratch/scratch/{self._dtap}/errors/reanalysis/{self._species_mongodb}/{task_name}; rm -r {report_dir}; fi; '
                         f'exit 1\' ERR')
         # Create the command to re-analyze the datasets
         config_species = self._reanalysis_config['species'][self._species]
