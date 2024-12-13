@@ -312,8 +312,11 @@ sub run_job {
 
 sub generate_profile_file {
 	my ( $self, $args ) = @_;
-	my $db = $self -> get_db_description;
-	if ($db eq 'Influenza isolates'){ return;}
+
+	if ($self->is_viral_db()) {
+		return;
+	}
+
 	my ( $job_id, $filename, $isolates, $loci, $params ) = @{$args}{qw(job_id file isolates loci params)};
 	my $ids = $self->{'jobManager'}->get_job_isolates($job_id);
 	$self->{'jobManager'}->update_job_status( $job_id, { stage => 'Generating profile data file' } );
@@ -376,8 +379,6 @@ sub generate_profile_file {
 
 sub _generate_mstree {
 	my ( $self, $args ) = @_;
-	my $db = $self -> get_db_description;
-	$logger->error('je vais boucler');
 	my ( $job_id, $profiles_file, $tree_file ) = @{$args}{qw(job_id profiles tree)};
 	$self->{'jobManager'}->update_job_status( $job_id, { stage => 'Generating minimum spanning tree' } );
 	my $python     = $self->{'config'}->{'python3_path'};
@@ -387,11 +388,10 @@ sub _generate_mstree {
 	  "$python $self->{'config'}->{'grapetree_path'}/grapetree.py --profile $profiles_file 2>$error_file > $tree_file ";
 	eval { system($cmd); };
 
-	if ($db ne 'Influenza isolates') {
-		if ($?) {
-			BIGSdb::Exception::Plugin->throw('Tree generation failed.');
-		}
+	if ($?) {
+		BIGSdb::Exception::Plugin->throw('Tree generation failed.');
 	}
+
 	if ( -e $error_file ) {
 		my $error = BIGSdb::Utils::slurp($error_file);
 		if ($$error) {

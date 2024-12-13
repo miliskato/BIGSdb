@@ -85,7 +85,6 @@ sub get_attributes {
 		always_show_in_menu => 1,
 		image               => '/images/plugins/Microreact/screenshot.png'
 	);
-	$logger->error( 'getatt' );
 	return \%att;
 }
 
@@ -117,16 +116,18 @@ sub run_job {
 		}
 	);
 	return if $self->{'exit'};
-	$self->_generate_mstree(
-		{
-			job_id   => $job_id,
-			profiles => $profile_file,
-			tree     => $tree_file
-		}
-	);
+
+	if (!$self->is_viral_db) {
+		$self->_generate_mstree(
+			{
+				job_id   => $job_id,
+				profiles => $profile_file,
+				tree     => $tree_file
+			}
+		);
+	}
 
 	my $message_html = '<p>Job completed</p>';
-
 
 	$self->_microreact_upload( $job_id, $params, $tree_file, \$message_html );
 	$self->{'jobManager'}->update_job_status( $job_id, { message_html => $message_html } ) if $message_html;
@@ -158,14 +159,17 @@ sub _microreact_upload {
 	  ->update_job_output( $job_id, { filename => "$job_id.tsv", description => '30_Microreact TSV file' } );
 	my $uploader    = LWP::UserAgent->new( cookie_jar => {}, agent => 'BIGSdb' );
 	my $tsv         = BIGSdb::Utils::slurp($tsv_file);
-	my $tree        = BIGSdb::Utils::slurp($newick_file);
 	my $upload_data = {
 		name => $params->{'title'} || $job_id,
 		description => $params->{'description'},
 		website     => $params->{'website'},
-		data        => $$tsv,
-		tree        => $$tree
+		data        => $$tsv
 	};
+
+	if (!$self->is_viral_db) {
+		my $tree = BIGSdb::Utils::slurp($newick_file);
+		$upload_data->{'tree'} = $$tree;
+	}
 
 	my $email = Email::Valid->address( $job->{'email'} );
 	$upload_data->{'email'} = $email if $email;
@@ -236,7 +240,6 @@ sub _microreact_upload {
 		Content        => encode_json($microreact_data)
 	);
 	my $response_json = $upload_response->decoded_content;
-
 	if ( $response_json eq 'Unauthorized' ) {
 		$logger->error('Microreact token is not valid.');
 		$$message_html .= q(<p class="statusbad">Upload to Microreact failed.</p>);
@@ -393,7 +396,6 @@ sub _get_geo_field {
 }
 
 sub print_extra_form_elements {
-	$logger->error( 'helloyouyou' );
 	my ($self) = @_;
 	my $set_id = $self->get_set_id;
 	my $email;
@@ -480,7 +482,6 @@ sub print_info_panel {
 }
 
 sub get_plugin_javascript {
-	$logger->error( 'get_pl' );
 	my ($self) = @_;
 	my $buffer = << "END";
 
