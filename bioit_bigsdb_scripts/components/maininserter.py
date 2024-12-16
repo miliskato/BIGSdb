@@ -1,12 +1,13 @@
 import datetime
 import logging
 import socket
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from bioit_mongodb_scripts.model.json_model import JsonReportDict
 from .json_superclass import JsonSuperClass
 from .psql import TblEavInt, TblEavText, TblEavTextHidden, TblHistory, TblIsolates
 from ..utils.url_helper import UrlHelper
+from ..utils.toolbox import ToolBox
 
 
 class MainInserter(JsonSuperClass):
@@ -125,5 +126,6 @@ class MainInserter(JsonSuperClass):
                 self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'Serogroup', self._json_report_dict['serogroup']['detected_serogroup']))
         elif self._species == 'influenza':
             if 'nextclade' in self._json_report_dict:
-                self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'influenza_subtype', self._json_report_dict.get('nextclade').get('results').get('nextclade_detected_subtype')))
-                self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'nextclade_clade', self._json_report_dict.get('nextclade').get('results').get('nextclade_clade')))
+                self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'influenza_subtype', self._json_report_dict.['nextclade']['results'].get('nextclade_detected_subtype'))) if
+                self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'nextclade_clade', self._json_report_dict.get['nextclade']['results'].get('nextclade_clade')))
+
