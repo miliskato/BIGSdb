@@ -81,10 +81,10 @@ def insert_lab_metadata_through_bigs(species: str) -> None:
                     continue
                 elif isolate_id in isolates_already_in_bigs:
                     # prepare query
-                    isolate_update_query = TblIsolates._build_update_nomin_metadata_query(metadata_dict)
-                    value_to_set_in_fields = [v for v in metadata_dict.values()]
-                    value_to_set_in_fields.append(isolate_id)
-                    isolates_psql_tbl.update_nomin_metadata(isolate_update_query, value_to_set_in_fields)
+                    isolate_update_query = TblIsolates.build_update_nomin_metadata_query(metadata_dict)
+                    values_to_set_in_fields = [v for v in metadata_dict.values()]
+                    values_to_set_in_fields.append(isolate_id)
+                    isolates_psql_tbl.update_nomin_metadata(isolate_update_query, values_to_set_in_fields)
                 else:
                     failed_isolates.append(isolate_id)
 

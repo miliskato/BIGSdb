@@ -164,7 +164,7 @@ class TblIsolates(DatabaseConnection):
         return self.execute(PsqlQueries.ISO_SEL_ISOLATE_ID)
 
     @staticmethod
-    def _build_update_nomin_metadata_query(metadata_mapping: Dict[str, Any]) -> str:
+    def build_update_nomin_metadata_query(metadata_mapping: Dict[str, Any]) -> str:
         """
         Build the query used to update metadata for a specific species
         :param metadata_mapping : db<->json fields mapping for the species
