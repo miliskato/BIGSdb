@@ -81,7 +81,7 @@ def insert_lab_metadata_through_bigs(species: str) -> None:
                     continue
                 elif isolate_id in isolates_already_in_bigs:
                     # prepare query
-                    isolate_update_query = TblIsolates.build_update_nomin_metadata_query(metadata_dict)
+                    isolate_update_query = TblIsolates._build_update_nomin_metadata_query(metadata_dict)
                     value_to_set_in_fields = [v for v in metadata_dict.values()]
                     value_to_set_in_fields.append(isolate_id)
                     isolates_psql_tbl.update_nomin_metadata(isolate_update_query, value_to_set_in_fields)
@@ -90,9 +90,9 @@ def insert_lab_metadata_through_bigs(species: str) -> None:
 
             isolates_sub_psql_tbl.update_submission(submitted_id)
 
-        if (len(failed_isolates)>0):
-            send_email(f"For submission {submitted_id}: The following isolates were not found in bigsDB\n{failed_isolates}",
-                       subject=f"Metadata insertion failure on host {socket.gethostname()}")
+            if (len(failed_isolates)>0):
+                send_email(f"For submission {submitted_id}: The following isolates were not found in bigsDB\n{failed_isolates}",
+                           subject=f"Metadata insertion failure on host {socket.gethostname()}")
 
 
 if __name__ == '__main__':
