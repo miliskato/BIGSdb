@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Bugfix
 - Insertion of assembly is now using the "fasta_path" from mongo instead of reconstructing a path based on the "report_dir" field.
+- Insertion of nominative data (broken in 2.0.1)
 
 ## [2.0.1] - 2024-12-02 
 
