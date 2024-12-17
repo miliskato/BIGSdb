@@ -1,9 +1,12 @@
 import datetime
 import logging
 import socket
-from typing import Any, Dict, List
+from typing import Any, Dict
+
+from msrestazure.tools import is_valid_resource_id
 
 from bioit_mongodb_scripts.model.json_model import JsonReportDict
+from bioit_mongodb_scripts.util.python_utility_functions import is_viral
 from .json_superclass import JsonSuperClass
 from .psql import TblEavInt, TblEavText, TblEavTextHidden, TblHistory, TblIsolates
 from ..utils.url_helper import UrlHelper
@@ -70,7 +73,10 @@ class MainInserter(JsonSuperClass):
             report_link = f'<p><a href="{report_url}" target="_blank"> html report</a></p>'
             self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'html', report_link))
             isolate_id = self.isolates_psql_tbl.select_id_for_isolate((self._isolatename,))[0][0]
-            assemblylink = f'<p><a href="/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_{self._species}_isolates&page=plugin&name=Contigs&format=text&isolate_id={isolate_id}&match=1&pc_untagged=0&min_length=&header=1l" target="_blank">assembly</a></p>'
+            if is_viral(self._species):
+                assemblylink = f'<p><a href="/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_{self._species}_isolates&page=plugin&name=Contigs&format=text&isolate_id={isolate_id}&match=1&pc_untagged=0&min_length=&header=1l" target="_blank">consensus sequence</a></p>'
+            else:
+                assemblylink = f'<p><a href="/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_{self._species}_isolates&page=plugin&name=Contigs&format=text&isolate_id={isolate_id}&match=1&pc_untagged=0&min_length=&header=1l" target="_blank">assembly</a></p>'
             self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'assembly', assemblylink))
             self._insert_species_specific_metadata()
             if 'changed_version' in self._json_report_dict:
@@ -123,6 +129,7 @@ class MainInserter(JsonSuperClass):
             # json input
             if 'serogroup' in self._json_report_dict:
                 self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'Serogroup', self._json_report_dict['serogroup']['detected_serogroup']))
+
         elif self._species == 'influenza':
             if 'nextclade' in self._json_report_dict:
                 self._isolates_eavt_psql_tbl.insert_eav_isolate_viral_species((self._isolatename, 'influenza_subtype', self._json_report_dict.['nextclade']['results'].get('nextclade_detected_subtype'))) if

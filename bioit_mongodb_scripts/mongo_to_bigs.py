@@ -33,7 +33,7 @@ from bioit_mongodb_scripts.util.alerts_to_bigs import AlertsToBigs
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.mongo_querying import Mongoquerying
 from bioit_mongodb_scripts.util.mongo_to_bigs_nominative import MongoToBigsNominative
-from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email
+from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email, is_viral
 from bioit_mongodb_scripts.util.new_clustering_info_to_bigs import NewClusteringInfoToBigs
 from bioit_mongodb_scripts.util.new_temporary_alleles_to_bigs import NewTemporaryAllelesToBigs
 from bioit_mongodb_scripts.util.samples_to_validation_bigs import SamplesToValidationBigs
@@ -101,7 +101,7 @@ class MongoToBigs:
         # Open Bigsdb isolates table
         self._isolates_psql_tbl = TblIsolates(self._species)
 
-        if self._species not in self._mongo_config_data['viral_species']:
+        if not is_viral(self._species):
             # Prepare cgmlst cache updater command
             with TblSchemes(self._species, 'isolates') as isolates_schemes_psql_tbl:
                 self._cgmlst_bigsdb_scheme_id = isolates_schemes_psql_tbl.select_scheme_id_cgmlst()[0][0]
@@ -135,20 +135,13 @@ class MongoToBigs:
             raise Exception(
                 f"{Path(__file__).name} fail on host {socket.gethostname()}: {self._exceptionmessage1}\n{self._traceback1}")
 
-    def __is_viral(self) -> bool:
-        """
-        Check if the current specie is viral
-        :return: True if specie is viral
-        """
-        return self._species in self._mongo_config_data['viral_species']
-
     def _mongo_to_bigs(self) -> None:
         """
         Main function
         If the current host is a bigsdb host, syncs all samples (or a single one if provided) with the bigsdb database
         :return: None
         """
-        if self.__is_viral():
+        if is_viral(self._species):
             self.__mongo_to_bigs_viral()
         else:
             self.__mongo_to_bigs_bacterial()
@@ -433,7 +426,7 @@ class MongoToBigs:
         else:
             different_version = True
             # skip cgst check for virus
-            if self.__is_viral():
+            if is_viral(self._species):
                 return different_version, cgst_changed
             # check whether the cgST that is currently in the db for the isolate is the same as the
             # cgST of the new version in Mongo.
@@ -495,7 +488,7 @@ class MongoToBigs:
         (the cgst needs to come from the seqdef db).
         :return: None
         """
-        if self.__is_viral():
+        if is_viral(self._species):
             return
         self._cache_command_object.run(Path(os.getcwd()))
         if self._cache_command_object.returncode != 0:

@@ -27,6 +27,14 @@ def get_mongodb_config_data() -> Dict[str, Union[str, List[Any], Dict[str, Union
         mongo_config_data = yaml.safe_load(handle)
     return mongo_config_data
 
+def is_viral(species:str) -> bool:
+    """
+    Check if the current specie is viral
+    :param species:
+    :return: True if specie is viral
+    """
+    mongo_config=get_mongodb_config_data()
+    return species in mongo_config['viral_species']
 
 def load_config(config: Path) -> Dict[str, Union[str, List[Any], Dict[str, Union[str, Dict[str, Any]]]]]:
     """
