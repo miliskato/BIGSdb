@@ -50,8 +50,17 @@ class TblEavText(DatabaseConnection):
         necessary parameters visible in the PSQL query name and query
         :return: None
         """
-        if param[2]:
-            self.execute_query(PsqlQueries.ISO_INS__TB_EAVT_VAR_ISO_FIELD_VAL, param)
+        self.execute_query(PsqlQueries.ISO_INS__TB_EAVT_VAR_ISO_FIELD_VAL, param)
+
+    def insert_eav_isolate_viral_species(self,param: Union[Tuple[str, str, str],Tuple[str, str]]) -> None:
+        """
+        Inserts metadata in eav_text table for the selected isolate, or insert "NA" if no value found for this metadata.
+        :param param: isolate name, name of the metadata ("field" in the SQL table), value of the metadata ("value" in the SQL table).
+        :return: None
+        """
+        if not param[2]:
+            param += ('NA',)
+        self.execute_query(PsqlQueries.ISO_INS__TB_EAVT_VAR_ISO_FIELD_VAL, param)
 
     def update_eav_id(self, param: Tuple[str, str, str]) -> None:
         """
