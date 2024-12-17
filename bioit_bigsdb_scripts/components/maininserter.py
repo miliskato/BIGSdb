@@ -75,9 +75,10 @@ class MainInserter(JsonSuperClass):
             isolate_id = self.isolates_psql_tbl.select_id_for_isolate((self._isolatename,))[0][0]
             if is_viral(self._species):
                 assemblylink = f'<p><a href="/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_{self._species}_isolates&page=plugin&name=Contigs&format=text&isolate_id={isolate_id}&match=1&pc_untagged=0&min_length=&header=1l" target="_blank">consensus sequence</a></p>'
+                self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'consensus_sequence', assemblylink))
             else:
                 assemblylink = f'<p><a href="/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_{self._species}_isolates&page=plugin&name=Contigs&format=text&isolate_id={isolate_id}&match=1&pc_untagged=0&min_length=&header=1l" target="_blank">assembly</a></p>'
-            self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'assembly', assemblylink))
+                self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'assembly', assemblylink))
             self._insert_species_specific_metadata()
             if 'changed_version' in self._json_report_dict:
                 with TblEavTextHidden(self._species) as isolates_eavth_psql_tbl:
@@ -132,6 +133,6 @@ class MainInserter(JsonSuperClass):
 
         elif self._species == 'influenza':
             if 'nextclade' in self._json_report_dict:
-                self._isolates_eavt_psql_tbl.insert_eav_isolate_viral_species((self._isolatename, 'influenza_subtype', self._json_report_dict.['nextclade']['results'].get('nextclade_detected_subtype'))) if
-                self._isolates_eavt_psql_tbl.insert_eav_isolate_viral_species((self._isolatename, 'nextclade_clade', self._json_report_dict.get['nextclade']['results'].get('nextclade_clade')))
+                self._isolates_eavt_psql_tbl.insert_eav_isolate_viral_species((self._isolatename, 'influenza_subtype', self._json_report_dict['nextclade']['results'].get('nextclade_detected_subtype')))
+                self._isolates_eavt_psql_tbl.insert_eav_isolate_viral_species((self._isolatename, 'nextclade_clade', self._json_report_dict['nextclade']['results'].get('nextclade_clade')))
 
