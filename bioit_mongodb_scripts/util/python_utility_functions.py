@@ -30,7 +30,7 @@ def get_mongodb_config_data() -> Dict[str, Union[str, List[Any], Dict[str, Union
 def is_viral(species:str) -> bool:
     """
     Check if the current specie is viral
-    :param species:
+    :param species: species to evaluate
     :return: True if specie is viral
     """
     mongo_config=get_mongodb_config_data()
