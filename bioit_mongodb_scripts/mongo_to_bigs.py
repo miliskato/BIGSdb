@@ -318,7 +318,7 @@ class MongoToBigs:
 
     def __mongo_to_bigs_viral(self):
         """
-        Syncs all viral samples with the bigsdb database, using an alternative and simplified version of the bacterial method, free of scheme definition.
+        Syncs all viral samples with the bigsdb database, using an alternative and simplified version of the bacterial method that skips all step involving schemes.
         """
         list_of_documents = self.__get_list_of_documents()
         SamplesToValidationBigs(self._species, mongo_config_data=self._mongo_config_data)
