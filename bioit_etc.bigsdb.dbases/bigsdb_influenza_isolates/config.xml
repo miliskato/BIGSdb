@@ -36,6 +36,7 @@
 <field type="text" required="no" length="100" maindisplay="no" group ="nominative metadata" comments="internal sample name">nrc_internal_id</field>
 <field type="text" required="no" length="100" maindisplay="no" group ="nominative metadata" comments="client name">client_name</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="client zip">client_zip</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="client region">client_region</field>
 <field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="sample client reference">sample_client_reference</field>
 <field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="Subtype A or B">Flu_type</field>
 <field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="Subtyping HA gene">FluA_subtypePCR</field>
@@ -76,9 +77,9 @@
 <field type="int" required="no" length="2" maindisplay="no" group ="nominative metadata" comments="">vaccination_day</field>
 <field type="int" required="no" length="2" maindisplay="no" group ="nominative metadata" comments="">vaccination_month</field>
 <field type="int" required="no" length="4" maindisplay="no" group ="nominative metadata" comments="">vaccination_year</field>
-<field type="text" required="no" length="20" maindisplay="no" group ="nominative metadata" comments="Resistance to Oseltamivir">R_Oseltamivir</field>
+<field type="text" required="no" length="20" maindisplay="no" group ="nominative metadata" comments="resistance to Oseltamivir">R_Oseltamivir</field>
 <field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="EC50 OS value">EC50_OS</field>
-<field type="text" required="no" length="20" maindisplay="no" group ="nominative metadata" comments="Resistance to Zanamivir">R_Zanamivir</field>
+<field type="text" required="no" length="20" maindisplay="no" group ="nominative metadata" comments="resistance to Zanamivir">R_Zanamivir</field>
 <field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="EC50 ZA value">EC50_ZA</field>
 <field type="text" required="no" length="60" maindisplay="no" group ="nominative metadata" comments="">GISAID_NGS</field>
 <field type="text" required="no" length="60" maindisplay="no" group ="nominative metadata" comments="case Type">case_type</field>

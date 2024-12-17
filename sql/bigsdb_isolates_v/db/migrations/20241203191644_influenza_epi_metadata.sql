@@ -1,6 +1,7 @@
 -- migrate:up
 ALTER TABLE isolates
     ADD COLUMN nrc_internal_id text,
+    ADD COLUMN client_region text,
     ADD COLUMN reception_date date,
     ADD COLUMN Flu_type text,
     ADD COLUMN FluA_subtypePCR text,
@@ -36,6 +37,7 @@ ALTER TABLE isolates
 -- migrate:down
 ALTER TABLE isolates
     DROP COLUMN nrc_internal_id,
+    DROP COLUMN client_region,
     DROP COLUMN reception_date,
     DROP COLUMN Flu_type,
     DROP COLUMN FluA_subtypePCR,
