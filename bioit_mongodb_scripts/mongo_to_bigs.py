@@ -316,9 +316,10 @@ class MongoToBigs:
                     raise RuntimeError(
                         f"update of the cache to display the clustering failed on host {socket.gethostname()}")
 
-    def __mongo_to_bigs_viral(self):
+    def __mongo_to_bigs_viral(self) -> None:
         """
         Syncs all viral samples with the bigsdb database, using an alternative and simplified version of the bacterial method that skips all step involving schemes.
+        :return: None
         """
         list_of_documents = self.__get_list_of_documents()
         SamplesToValidationBigs(self._species, mongo_config_data=self._mongo_config_data)
