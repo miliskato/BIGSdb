@@ -54,7 +54,7 @@ class TblEavText(DatabaseConnection):
 
     def insert_eav_isolate_viral_species(self, param: Union[Tuple[str, str, str], Tuple[str, str]]) -> None:
         """
-        Inserts metadata in eav_text table for the selected isolate, or insert "NA" if no value found for this metadata.
+        Inserts metadata in eav_text table for the selected isolate, or insert "NA" if no value was found for this metadata.
         :param param: isolate name, name of the metadata ("field" in the SQL table), value of the metadata ("value" in the SQL table).
         :return: None
         """
