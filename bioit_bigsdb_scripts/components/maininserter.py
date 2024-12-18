@@ -3,8 +3,6 @@ import logging
 import socket
 from typing import Any, Dict
 
-from msrestazure.tools import is_valid_resource_id
-
 from bioit_mongodb_scripts.model.json_model import JsonReportDict
 from bioit_mongodb_scripts.util.python_utility_functions import is_viral
 from .json_superclass import JsonSuperClass
@@ -135,4 +133,3 @@ class MainInserter(JsonSuperClass):
             if 'nextclade' in self._json_report_dict:
                 self._isolates_eavt_psql_tbl.insert_eav_isolate_viral_species((self._isolatename, 'influenza_subtype', self._json_report_dict['nextclade']['results'].get('nextclade_detected_subtype')))
                 self._isolates_eavt_psql_tbl.insert_eav_isolate_viral_species((self._isolatename, 'nextclade_clade', self._json_report_dict['nextclade']['results'].get('nextclade_clade')))
-
