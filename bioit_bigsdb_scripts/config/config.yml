@@ -101,8 +101,6 @@ species:
         tsvname: hits_plasmidfinder
         schemename_bigsdb: PlasmidFinder_grampositive
         schemename_html: PlasmidFinder - Gram positive
-    seqdefdb: bigsdb_listeria_seqdef
-    isolatesdb: bigsdb_listeria_isolates
   mycobacterium:
     typing_schemes:
       mycobacterium_mlst:
@@ -138,8 +136,6 @@ species:
         dirdb: ''
         tsvname: hits_ncbi_16s
     genedetection_schemes: null
-    seqdefdb: bigsdb_mycobacterium_seqdef
-    isolatesdb: bigsdb_mycobacterium_isolates
   neisseria:
     typing_schemes:
       neisseria_mlst:
@@ -208,8 +204,6 @@ species:
         tsvname: hits_resfinder
         schemename_bigsdb: ResFinder
         schemename_html: ResFinder
-    seqdefdb: bigsdb_neisseria_seqdef
-    isolatesdb: bigsdb_neisseria_isolates
   stec:
     typing_schemes:
       stec_mlst_warwick:
@@ -269,8 +263,6 @@ species:
         schemename_bigsdb: VirulenceFinder_Shiga
         schemename_html: VirulenceFinder - Shiga-toxin genes
         tsvname: hits_virulencefinder_shiga
-    seqdefdb: bigsdb_stec_seqdef
-    isolatesdb: bigsdb_stec_isolates
   salmonella:
     typing_schemes:
       salmonella_mlst:
@@ -321,10 +313,9 @@ species:
         tsvname: hits_plasmidfinder
         schemename_bigsdb: PlasmidFinder_entero
         schemename_html: plasmid
-    seqdefdb: bigsdb_salmonella_seqdef
-    isolatesdb: bigsdb_salmonella_isolates
-  influenza_a: ''
-  influenza_b: ''
+  influenza:
+    typing_schemes: null
+    genedetection_schemes: null
 
 species_json:
   listeria:
@@ -517,6 +508,9 @@ species_json:
         metadatafile: /var/lib/.bioit_database_azure/gene_detection/PlasmidFinder-entero/mapping_full.json
         schemename_bigsdb: PlasmidFinder_entero
         schemename_html: PlasmidFinder - Enterobacteriaceae
+  influenza:
+    typing_schemes: ''
+    genedetection_schemes: ''
 
 lab_metadata:
   neisseria:

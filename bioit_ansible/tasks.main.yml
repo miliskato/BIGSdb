@@ -35,7 +35,7 @@
       - neisseria
       - stec
       - salmonella
-      - yersinia
+      - influenza
   fail:
     msg: "unsupported species requested, choose from {{ specieslist }}"
   when: species not in specieslist
@@ -89,7 +89,6 @@
     dest: "{{ bioit_bigs_home }}"
     version: "{{ branch }}"
     force: true
-  tags: gitupdate
 
 - name: Change git cloned repo owner to bigsdb for it to be able to write the distance matrix here
   file:
@@ -729,6 +728,7 @@
         path: "{{ item.script }}"
         search_path:
           - public
+      when: item.db != 'bigsdb_influenza_seqdef'
       loop: "{{ list_script|flatten(levels=1) }}"
       vars:
         list_script:
