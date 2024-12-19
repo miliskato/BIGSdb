@@ -318,7 +318,8 @@ class MongoToBigs:
 
     def __mongo_to_bigs_viral(self) -> None:
         """
-        Syncs all viral samples with the bigsdb database, using an alternative and simplified version of the bacterial method that skips all step involving schemes.
+        Syncs all viral samples with the bigsdb database, using an alternative and simplified version of the bacterial
+        method that skips all step involving schemes.
         :return: None
         """
         list_of_documents = self.__get_list_of_documents()
