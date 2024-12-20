@@ -146,7 +146,7 @@ sub run {
 			push @errors, qq(Output is limited to a total of $commify_max_records records. )
 			  . qq(You have selected $commify_total_records.);
 		}
-		if (@errors && $db !="Influenza isolates") {
+		if (@errors && !$self->is_viral_db) {
 			if ( @errors == 1 ) {
 				$self->print_bad_status( { message => qq(@errors) } );
 			} else {
