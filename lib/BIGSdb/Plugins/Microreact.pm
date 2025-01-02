@@ -277,6 +277,7 @@ sub _create_tsv_file {
 	$include_fields{"f_$self->{'system'}->{'labelfield'}"} = 1;
 	my $extended    = $self->get_extended_attributes;
 	my $prov_fields = $self->{'xmlHandler'}->get_field_list;
+	my $eav_fields  = $self->{'datastore'}->get_eav_fieldnames;
 	my @header_fields;
 
 	foreach my $field (@$prov_fields) {
@@ -298,6 +299,10 @@ sub _create_tsv_file {
 			( my $field = "$2 ($scheme_info->{'name'})" ) =~ tr/_/ /;
 			push @header_fields, $field;
 		}
+	}
+	foreach my $field (@$eav_fields) {
+			( my $cleaned_field = $field ) =~ tr/_/ /;
+			push @header_fields, $cleaned_field if $include_fields{"eav_$field"};
 	}
 	push @header_fields, 'iso3166' if defined $country_field;
 	my $geo_field = $self->_get_geo_field($params);
@@ -340,6 +345,7 @@ sub _create_tsv_file {
 				}
 			}
 		}
+
 		foreach my $field (@include_fields) {
 			if ( $field =~ /^s_(\d+)_(.+)$/x ) {
 				my ( $scheme_id, $field ) = ( $1, $2 );
@@ -351,6 +357,13 @@ sub _create_tsv_file {
 			}
 		}
 		push @record_values, $iso2 if defined $country_field;
+
+		foreach my $field (@$eav_fields) {
+			if ( $include_fields{"eav_$field"} ) {
+				my $value = $self->{'datastore'}->get_eav_field_value( $record->{'id'}, $field ) // q();
+				push @record_values, $value;
+			}
+		}
 		if ($geo_field) {
 			my $coordinate_values = $self->_process_geo_field( $iso2, $record, $geo_field, $lookup_field );
 			push @record_values, @$coordinate_values;
@@ -405,7 +418,6 @@ sub print_extra_form_elements {
 	}
 	my $desc = $self->get_db_description;
 	my $q    = $self->{'cgi'};
-	$logger->error( $desc );
 	say q(<fieldset style="float:left"><legend>Descriptions</legend>);
 	say q(<p>Modify the values below - these will be displayed<br />within the created Microreact project.</p>);
 	say q(<ul><li><label for="title" class="display">Title:</label>);
@@ -423,6 +435,7 @@ sub print_extra_form_elements {
 			nosplit_geography_points => 1,
 			extended_attributes      => 1,
 			scheme_fields            => 1,
+			eav_fields				 => 1,
 			hide                     => "f_$self->{'system'}->{'labelfield'},f_country,f_year"
 		}
 	);
