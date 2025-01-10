@@ -127,7 +127,7 @@ sub run {
 			push @errors, qq(The following loci in your pasted list are invalid: @$invalid_loci.);
 		}
 		if ( !@$loci_selected ) {
-			push @errors, q(You must select one or more loci or schemes. YO);
+			push @errors, q(You must select one or more loci or schemes.);
 		}
 		my $total_seqs  = @$loci_selected * @ids;
 		my $max_records = $self->{'system'}->{ lc("$attr->{'module'}_record_limit") }
