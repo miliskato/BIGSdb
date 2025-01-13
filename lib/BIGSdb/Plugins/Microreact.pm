@@ -356,7 +356,6 @@ sub _create_tsv_file {
 				push @record_values, qq(@display_values) // q();
 			}
 		}
-		push @record_values, $iso2 if defined $country_field;
 
 		foreach my $field (@$eav_fields) {
 			if ( $include_fields{"eav_$field"} ) {
@@ -364,6 +363,9 @@ sub _create_tsv_file {
 				push @record_values, $value;
 			}
 		}
+
+		push @record_values, $iso2 if defined $country_field;
+
 		if ($geo_field) {
 			my $coordinate_values = $self->_process_geo_field( $iso2, $record, $geo_field, $lookup_field );
 			push @record_values, @$coordinate_values;
