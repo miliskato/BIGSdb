@@ -116,16 +116,18 @@ sub run_job {
 		}
 	);
 	return if $self->{'exit'};
-	$self->_generate_mstree(
-		{
-			job_id   => $job_id,
-			profiles => $profile_file,
-			tree     => $tree_file
-		}
-	);
+
+	if (!$self->is_viral_db) {
+		$self->_generate_mstree(
+			{
+				job_id   => $job_id,
+				profiles => $profile_file,
+				tree     => $tree_file
+			}
+		);
+	}
 
 	my $message_html = '<p>Job completed</p>';
-
 
 	$self->_microreact_upload( $job_id, $params, $tree_file, \$message_html );
 	$self->{'jobManager'}->update_job_status( $job_id, { message_html => $message_html } ) if $message_html;
@@ -157,14 +159,17 @@ sub _microreact_upload {
 	  ->update_job_output( $job_id, { filename => "$job_id.tsv", description => '30_Microreact TSV file' } );
 	my $uploader    = LWP::UserAgent->new( cookie_jar => {}, agent => 'BIGSdb' );
 	my $tsv         = BIGSdb::Utils::slurp($tsv_file);
-	my $tree        = BIGSdb::Utils::slurp($newick_file);
 	my $upload_data = {
 		name => $params->{'title'} || $job_id,
 		description => $params->{'description'},
 		website     => $params->{'website'},
-		data        => $$tsv,
-		tree        => $$tree
+		data        => $$tsv
 	};
+
+	if (!$self->is_viral_db) {
+		my $tree = BIGSdb::Utils::slurp($newick_file);
+		$upload_data->{'tree'} = $$tree;
+	}
 
 	my $email = Email::Valid->address( $job->{'email'} );
 	$upload_data->{'email'} = $email if $email;
@@ -235,7 +240,6 @@ sub _microreact_upload {
 		Content        => encode_json($microreact_data)
 	);
 	my $response_json = $upload_response->decoded_content;
-
 	if ( $response_json eq 'Unauthorized' ) {
 		$logger->error('Microreact token is not valid.');
 		$$message_html .= q(<p class="statusbad">Upload to Microreact failed.</p>);
@@ -273,6 +277,7 @@ sub _create_tsv_file {
 	$include_fields{"f_$self->{'system'}->{'labelfield'}"} = 1;
 	my $extended    = $self->get_extended_attributes;
 	my $prov_fields = $self->{'xmlHandler'}->get_field_list;
+	my $eav_fields  = $self->{'datastore'}->get_eav_fieldnames;
 	my @header_fields;
 
 	foreach my $field (@$prov_fields) {
@@ -294,6 +299,10 @@ sub _create_tsv_file {
 			( my $field = "$2 ($scheme_info->{'name'})" ) =~ tr/_/ /;
 			push @header_fields, $field;
 		}
+	}
+	foreach my $field (@$eav_fields) {
+			( my $cleaned_field = $field ) =~ tr/_/ /;
+			push @header_fields, $cleaned_field if $include_fields{"eav_$field"};
 	}
 	push @header_fields, 'iso3166' if defined $country_field;
 	my $geo_field = $self->_get_geo_field($params);
@@ -336,6 +345,7 @@ sub _create_tsv_file {
 				}
 			}
 		}
+
 		foreach my $field (@include_fields) {
 			if ( $field =~ /^s_(\d+)_(.+)$/x ) {
 				my ( $scheme_id, $field ) = ( $1, $2 );
@@ -346,7 +356,16 @@ sub _create_tsv_file {
 				push @record_values, qq(@display_values) // q();
 			}
 		}
+
+		foreach my $field (@$eav_fields) {
+			if ( $include_fields{"eav_$field"} ) {
+				my $value = $self->{'datastore'}->get_eav_field_value( $record->{'id'}, $field ) // q();
+				push @record_values, $value;
+			}
+		}
+
 		push @record_values, $iso2 if defined $country_field;
+
 		if ($geo_field) {
 			my $coordinate_values = $self->_process_geo_field( $iso2, $record, $geo_field, $lookup_field );
 			push @record_values, @$coordinate_values;
@@ -418,7 +437,8 @@ sub print_extra_form_elements {
 			nosplit_geography_points => 1,
 			extended_attributes      => 1,
 			scheme_fields            => 1,
-			hide                     => "f_$self->{'system'}->{'labelfield'},f_country,f_year"
+			eav_fields				 => 1,
+			hide                     => "f_$self->{'system'}->{'labelfield'},f_country,f_year,html,eav_html,eav_consensus_sequence"
 		}
 	);
 
