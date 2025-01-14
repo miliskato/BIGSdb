@@ -438,7 +438,7 @@ sub print_extra_form_elements {
 			extended_attributes      => 1,
 			scheme_fields            => 1,
 			eav_fields				 => 1,
-			hide                     => "f_$self->{'system'}->{'labelfield'},f_country,f_year"
+			hide                     => "f_$self->{'system'}->{'labelfield'},f_country,f_year,html,eav_html,eav_consensus_sequence"
 		}
 	);
 
