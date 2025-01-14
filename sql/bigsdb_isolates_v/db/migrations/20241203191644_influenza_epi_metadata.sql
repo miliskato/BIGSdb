@@ -1,6 +1,7 @@
 -- migrate:up
 ALTER TABLE isolates
     ADD COLUMN client_region text,
+    ADD COLUMN client_code text,
     ADD COLUMN reception_date date,
     ADD COLUMN Flu_type text,
     ADD COLUMN FluA_subtypePCR text,
@@ -36,6 +37,7 @@ ALTER TABLE isolates
 -- migrate:down
 ALTER TABLE isolates
     DROP COLUMN client_region,
+    DROP COLUMN client_code,
     DROP COLUMN reception_date,
     DROP COLUMN Flu_type,
     DROP COLUMN FluA_subtypePCR,

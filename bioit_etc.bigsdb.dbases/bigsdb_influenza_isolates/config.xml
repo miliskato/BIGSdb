@@ -36,7 +36,7 @@
 <field type="text" required="no" length="100" maindisplay="no" group ="nominative metadata" comments="client name">client_name</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="client zip">client_zip</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="client region">client_region</field>
-<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="sample client reference">sample_client_reference</field>
+<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="internal code for the client">client_code</field>
 <field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="Subtype A or B">Flu_type</field>
 <field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="Subtyping HA gene">FluA_subtypePCR</field>
 <field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="Subtyping B">FluB_lineagePCR</field>
