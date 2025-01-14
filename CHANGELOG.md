@@ -10,8 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Nominative metadata for Influenza 
 - Configuration for Influenza DBs (xml)
 
+
 ### Change
 - List of authorized species in mongo config
+- Microreact can run without selecting a scheme
+- A part of the eav fields are available for selection in the dropdown list of Microreact plugin
 
 ### Bugfix
 - Insertion of assembly is now using the "fasta_path" from mongo instead of reconstructing a path based on the "report_dir" field.
