@@ -120,8 +120,9 @@ requests==2.32.3
     #   requests-oauthlib
 requests-oauthlib==2.0.0
     # via msrest
-scipy==1.15.1
+scipy==1.13.1
     # via -r requirements.in
+    # Adapted from 1.15.1 to 1.13.1 as 1.15.1 was not available (cloud)
 six==1.17.0
     # via
     #   azure-core
