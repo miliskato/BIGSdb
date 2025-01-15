@@ -2,7 +2,7 @@ import logging
 from typing import Any, Dict, Union
 
 import pymongo
-from pymongo import MongoClient, database
+from pymongo import MongoClient, database, collection
 
 from .python_utility_functions import get_mongodb_config_data
 
