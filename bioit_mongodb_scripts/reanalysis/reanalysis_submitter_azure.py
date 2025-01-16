@@ -260,7 +260,7 @@ class BatchPipelinesReanalysis:
         logging.info(
             f"Submitting reanalysis for samples older than {maximal_analysis_date} and younger than {minimal_analysis_date} with arguments: {date_args_dict[maximal_analysis_date]} for {self._species}_{self._dtap}")
         # Retrieve isolates that need to be re-analyzed
-        mongoinit = MongoInitialisation(self._species_mongodb,
+        mongoinit = MongoInitialisation(self._species,
                                         selected_connection_string='CONNECTION_STRING_AZURE',
                                         alternate_dtap=self._dtap)
         isolates_collection, old_isolateresults_collection, \
