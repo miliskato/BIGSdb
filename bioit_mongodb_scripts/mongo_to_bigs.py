@@ -385,7 +385,7 @@ class MongoToBigs:
             # check whether the cgST that is currently in the db for the isolate is the same as the
             # cgST of the new version in Mongo.
             cgst_query_result = self._isolates_psql_tbl.select_current_cgst_of_isolate((self._cgmlst_bigsdb_scheme_id, isolate_id))
-            if (cgst_query_result[0][0] is None and new_results.get('cgST') is not None) or int(cgst_query_result[0][0]) != new_results.get('cgST'):
+            if (cgst_query_result[0][0] is None and new_results.get('cgST') is not None) or (cgst_query_result[0][0] is not None and int(cgst_query_result[0][0]) != new_results.get('cgST')):
                 cgst_changed = True
         return different_version, cgst_changed
 
