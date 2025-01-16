@@ -111,7 +111,7 @@ class BatchPipelinesReanalysis:
         job_name = f"{BATCH_JOB_NAME_PREFIX}{self._species_mongodb}"
         self.__create_job(job_name)
 
-        if not is_viral(self._species):
+        if not is_viral(self._species_mongodb):
             date_args_dict = self.__collect_database_update_dates()
             for maximal_analysis_date in date_args_dict:
                 self.__launch_tasks(maximal_analysis_date, date_args_dict, job_name)
@@ -260,7 +260,7 @@ class BatchPipelinesReanalysis:
         logging.info(
             f"Submitting reanalysis for samples older than {maximal_analysis_date} and younger than {minimal_analysis_date} with arguments: {date_args_dict[maximal_analysis_date]} for {self._species}_{self._dtap}")
         # Retrieve isolates that need to be re-analyzed
-        mongoinit = MongoInitialisation(self._species,
+        mongoinit = MongoInitialisation(self._species_mongodb,
                                         selected_connection_string='CONNECTION_STRING_AZURE',
                                         alternate_dtap=self._dtap)
         isolates_collection, old_isolateresults_collection, \
