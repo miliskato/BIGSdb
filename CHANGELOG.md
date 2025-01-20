@@ -15,14 +15,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - List of authorized species in mongo config
 - Microreact can run without selecting a scheme
 - A part of the eav fields are available for selection in the dropdown list of Microreact plugin
-- cpanm is used instead of cpan to install perl packages 
+- cpanm is used instead of cpan to install perl packages
+- Ansible was updated to 2.18.1
 
 
 ### Bugfix
 - Insertion of assembly is now using the "fasta_path" from mongo instead of reconstructing a path based on the "report_dir" field.
 - Insertion of nominative data (broken in 2.0.1)
 - Fix in mongo_to_bigs in the code handling comparison of cgst in case of reanalysis (600a28e4051574fb7d38bb68d44d3b68b2771d48)
-- Adapt to run with ANSIBLE 2.18.1 - fix community.general.cpan module
+- ANSIBLE 2.18.1 - fix community.general.cpan module
 
 ## [2.0.1] - 2024-12-02 
 
