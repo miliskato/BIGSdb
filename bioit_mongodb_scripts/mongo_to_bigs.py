@@ -351,6 +351,8 @@ class MongoToBigs:
             results_type = document.get_validation_type()
             if results_type == 'resequencing' or (results_type == 'badqc' and sample_presence[0][0] == 1):
                 different_version, cgst_changed = self.___check_if_reanalysis_different(document, isolate_id)
+                if results_type == 'badqc':
+                    results_type = "reanalysis"
         else:
             results_type = "reanalysis"
             different_version, cgst_changed = self.___check_if_reanalysis_different(document, isolate_id)
