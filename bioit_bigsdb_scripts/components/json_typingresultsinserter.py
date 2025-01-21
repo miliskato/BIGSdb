@@ -265,18 +265,18 @@ class JsonTypingResultsInserter(JsonSuperClass):
         """
         if self._scheme == 'mykrobe':
             with TblEavFields(self._species) as isolates_eavf_psql_tbl:
-                fields_genotyphi: List[Tuple[str]] = isolates_eavf_psql_tbl.select_fields_of_a_category(('Mykrobe',))
-            for item in fields_genotyphi:
+                fields_mykrobe: List[Tuple[str]] = isolates_eavf_psql_tbl.select_fields_of_a_category(('Mykrobe',))
+            for item in fields_mykrobe:
                 item_in_mongo = item[0].replace('_susceptibility', '')
                 if item_in_mongo in self._json_report_dict[self._scheme]['mykrobe_drug_susceptibility']:
                     susceptibility: str = self._json_report_dict[self._scheme]['mykrobe_drug_susceptibility'][item_in_mongo]['susceptibility']
                     self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, item[0], susceptibility))
                     # insert new alleles
                     # example of structure in output dict:
-                    # {'genotyphi': {'results': {'genotyphi_IncFIAHI1_susceptibility': 'S',
-                    #                            'genotyphi_IncFIAHI1_variants': '-',
-                    #                            'genotyphi_IncFIAHI1_genes': '-',
-                    #                            ... } } }
+                    # "mykrobe": {"mykrobe_drug_susceptibility": {"IncFIAHI1": {"drug": "IncFIAHI1",
+                    #                                                           "susceptibility": "S",
+                    #                                                           "variants": "-",
+                    #                                                           "genes": "-"}}}
                     mykrobe_field = 'MYKROBE_' + item_in_mongo.upper()
                     # get the genes and variants
                     future_alleles = self._json_report_dict[self._scheme]['mykrobe_drug_susceptibility'][item_in_mongo]['variants'].split(';') + \

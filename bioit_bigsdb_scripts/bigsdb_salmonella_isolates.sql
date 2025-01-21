@@ -121,7 +121,7 @@ INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT 
 --pointfinder
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('pointfinder_hits', 'text', 'pointfinder', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
 INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, curator, date_entered, datestamp, isolate_display, main_display, query_field, query_status, analysis, recommended, quality_metric, dbase_name, dbase_id) VALUES(9, 'Pointfinder', 'pointfinder mutation giving resistance to antibiotic', 't', 9, 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE), 't', 't', 't', 'f', 't', 't', 'f', 'bigsdb_salmonella_seqdef', 9) ON CONFLICT DO NOTHING;
---genotyphi
+--Mykrobe
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('ESBLs_susceptibility', 'text', 'Genotyphi', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('IncFIAHI1_susceptibility', 'text', 'Genotyphi', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('IncHI1A_susceptibility', 'text', 'Genotyphi', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;

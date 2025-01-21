@@ -182,7 +182,7 @@ species:
     serotype_seqsero_salmid:
       dirdb: /db/pipelines/salmonella/salmid/0.1.23
       cmd_argument: serotype
-#    genotyphi:  # genotyphi is a fastq specific option
+#    mykrobe:  # mykrobe is a fastq specific option
 #      dirdb: /db/pipelines/salmonella/mykrobe
     abritamr:
       dirdb: /db/abritamr/amrfinderplus_data

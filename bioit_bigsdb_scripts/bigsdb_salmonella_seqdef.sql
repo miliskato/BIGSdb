@@ -103,7 +103,7 @@ INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT 
 INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='spifinder_fasta'), 'SPIFINDER_FASTA_NOT_NAMED', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
 --pointfinder
 INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no_submissions, disable, curator, date_entered, datestamp) VALUES(9, 'Pointfinder', 'pointfinder mutation giving resistance to antibiotic', 't', 9, 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
---Genotyphi
+--Mykrobe
 INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no_submissions, disable, curator, date_entered, datestamp) VALUES(10, 'Genotyphi', 'genotyphi genes and variants for antibiotic resistance', 't', 10, 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
 INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('GENOTYPHI_ESBLS','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
 INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('GENOTYPHI_INCFIAHI1','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
