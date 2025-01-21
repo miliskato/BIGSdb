@@ -7,9 +7,10 @@ import re
 import socket
 import sys
 import traceback
+from copy import deepcopy
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, Literal, List, Tuple, Union
 
 # import dnspython
 # somehow this package is a requirement without actually needing to be imported, probably imported in pymongo
@@ -249,6 +250,7 @@ class MainMongo:
             json_report = mongo_records.get_json_results()
             self.___find_hashes_in_results_and_add_to_collection(json_report, 'new_isolate')
             self.___convert_typinghitdictionaries_to_lists(json_report)
+            self.___reformat_mykrobe_results(json_report)
             if 'cgmlst' in json_report:
                 self.__define_cgst_and_run_clustering(json_report)
         if good_sample_quality:
@@ -269,7 +271,7 @@ class MainMongo:
         :param new_json_report: json report containing the results from the pipeline
         :return : True (if good quality) or False (if bad quality)
         """
-        qc = new_json_report.get('qc')
+        qc = new_json_report.get('quality_checks')
         if qc is None:
             send_email(f"No qc values found in the given results for {self._technical_id}\n{traceback.format_exc()}", dont_send_email=self._dont_send_email)
             raise KeyError('No qc values found in the given results')
@@ -323,6 +325,7 @@ class MainMongo:
                 # (there is a missing data filet in the clustering though)
                 self.___find_hashes_in_results_and_add_to_collection(new_json_report, 'reanalysis')
                 self.___convert_typinghitdictionaries_to_lists(new_json_report)
+                self.___reformat_mykrobe_results(new_json_report)
                 if 'cgmlst' in new_json_report:
                     self.__define_cgst_and_run_clustering(new_json_report)
                 new_isolate['submission_status'] = 'pending_for_submission'
@@ -344,6 +347,7 @@ class MainMongo:
         if not new_json_report.get('cgST'):  # != resequencing_validated, == reanalysis
             self.___find_hashes_in_results_and_add_to_collection(new_json_report, 'reanalysis')
             self.___convert_typinghitdictionaries_to_lists(new_json_report)
+            self.___reformat_mykrobe_results(new_json_report)
 
         current_results = current_results_document.get_json_results()
         path_to_report = current_results_document['report_directory']
@@ -479,20 +483,22 @@ class MainMongo:
             metadata['data']['ReferenceAccession'] = tx_ref_accn
         return metadata
 
-    @staticmethod
-    def ____get_technical_metadata_bacterial_fasta(results: JsonReportDict) -> Tuple[str, str, str, str, str, None]:
+
+    def ____get_technical_metadata_bacterial_fasta(self, results: JsonReportDict) -> Tuple[str, str, str, str, str, None]:
         """
         Returns the FASTA technical metadata fields if the species is bacterial.
         :params results: results dictionary
         :return: tuple containing the different technical metadata fields
         """
-        tx_seq_fltr_meth = ', '.join([f"downsample factor: {results['downsampling']['downsample_factor']}",
-                                      f"trimming: {results['trimming']['informs_tools']['Trimmomatic']['_name']}",
-                                      f"filtering of assembly: {results['assembly']['informs_tools']['Seqtk seq']['_name']}"
+        input_type = results['input_type']
+        appendix = self.__get_appendix_from_input_type(input_type)
+        tx_seq_fltr_meth = ', '.join([f"downsample factor: {results[f'downsampling_{appendix}']['downsampling_downsample_factor']}",
+                                      f"trimming: {results[f'trimming_{input_type}']['trim_ilmn_tool_version']}",
+                                      # f"filtering of assembly: {results['assembly']['informs_tools']['Seqtk seq']['_name']}" # todo this is not in JSON
                                       ])
         cd_seq_assy_meth = 'SPAdes'
-        tx_seq_assy_meth_ver = results['assembly']['informs_tools']['spades']['_version']
-        ms_genome_cvge = results['downsampling']['coverage_estimated']
+        tx_seq_assy_meth_ver = results['quast']['assembly_tool_version']
+        ms_genome_cvge = results[f'downsampling_{appendix}']['downsampling_coverage_estimated']
         cd_novo_assy = 'Yes'
         tx_ref_accn = None
 
@@ -504,14 +510,16 @@ class MainMongo:
         :params results: results dictionary
         :return: tuple containing the different technical metadata fields
         """
-        tx_seq_fltr_meth = ', '.join([f"downsample factor: {results['downsampling']['downsample_factor']}",
-                                      f"trimming: {results['trimming']['informs_tools']['Trimmomatic']['_name']}",
+        input_type = results['input_type']
+        appendix = self.__get_appendix_from_input_type(results['input_type'])
+        tx_seq_fltr_meth = ', '.join([f"downsample factor: {results[f'downsampling_{appendix}']['downsampling_downsample_factor']}",
+                                      f"trimming: {results[f'trimming_{input_type}']['trim_ilmn_tool_version']}"
                                       ])
         cd_seq_assy_meth = 'Other'
-        tx_seq_assy_meth_ver = results['iterative_mapping']['informs_tools']['bwa_mem']['_name']
-        ms_genome_cvge = results['downsampling']['coverage_estimated']
+        tx_seq_assy_meth_ver = '' # results['iterative_mapping']['informs_tools']['bwa_mem']['_name']  # todo this is not in JSON
+        ms_genome_cvge = results[f'downsampling_{appendix}']['downsampling_coverage_estimated']
         cd_novo_assy = 'No'
-        tx_ref_accn = ', '.join(results['ref_selection']['results'][x] for x in results['ref_selection']['results']) \
+        tx_ref_accn = ', '.join(results['ref_selection'][x]['ref_id'] for x in results['ref_selection']) \
             if self._species != 'sars_cov_2' else 'NC_045512.2'
 
         return tx_seq_fltr_meth, cd_seq_assy_meth, tx_seq_assy_meth_ver, ms_genome_cvge, cd_novo_assy, tx_ref_accn
@@ -529,7 +537,7 @@ class MainMongo:
         import copy
         input_dictionary_copy = copy.deepcopy(input_dictionary)
         for key in input_dictionary:
-            if key == 'qc' or key == 'assembly':
+            if key == 'quality_checks' or key == 'assembly':
                 for subkey in input_dictionary[key]:
                     input_dictionary_copy['.'.join([key, subkey])] = input_dictionary_copy[key][subkey]
                 input_dictionary_copy.pop(key)
@@ -622,19 +630,23 @@ class MainMongo:
         unchanged_results = set()
         changed_results = set()
         for mainkey in new_results:  # mainkey is assay or metadata
+            if mainkey == 'quality_checks':
+                continue
             if isinstance(new_results[mainkey], dict):
                 if mainkey not in current_results:
                     logging.info(f"{mainkey} not in current results")
                     any_result_changed = True
                     changed_results.add(mainkey)
                     continue
-                for subkey in new_results[mainkey]:
-                    if subkey == 'loci' or subkey == 'results' or subkey.startswith('hits'):  # TODO what with serogroup of Neisseria + is it normal that it is under informs_tools + seqsero Salmonella
-                        if subkey not in current_results[mainkey] or new_results[mainkey][subkey] != \
-                                current_results[mainkey][subkey]:
-                            logging.info(f"{mainkey}{subkey} different or not in old")
-                            any_result_changed = True
-                            changed_results.add(mainkey)
+                mainkey_deepcopy = new_results[mainkey]
+                for subkey in mainkey_deepcopy:
+                    if isinstance(subkey, str) and 'db_version' in subkey or 'tool_version' in subkey:
+                        mainkey_deepcopy.pop(subkey)
+                        current_results.pop(subkey)
+                if mainkey_deepcopy != current_results[mainkey]:
+                    logging.info(f"{mainkey} different or not in old")
+                    any_result_changed = True
+                    changed_results.add(mainkey)
                 if mainkey not in changed_results:
                     unchanged_results.add(mainkey)
         return any_result_changed, unchanged_results, changed_results
@@ -671,12 +683,13 @@ class MainMongo:
         delta_new_old['report_directory'] = current_report_path
         return delta_new_old
 
-    def ___convert_typinghitdictionaries_to_lists(self, json_report: JsonReportDict):
+    def ___convert_typinghitdictionaries_to_lists(self, json_report: JsonReportDict) -> None:
         """
         This function aims to reduce the memory usage of hits' metadata by only storing the metadata once in a separate
         collection and storing the results in a list instead.
         Be wary, this method does not create a deepcopy, therefore changes are applied to the input document
         even if the return value's name is modified
+        :param json_report: results dictionary
         :return: The converted input document
         """
         hit_metadata: Union[None, Dict[str, Union[object, str, List[str]]]] = self._headers_collection.find_one({'type': 'hit_metadata'})
@@ -732,6 +745,34 @@ class MainMongo:
         sp_thresholds = f"clustering_thresholds_{self._species}"
         sequence_type = custom_clustering.run_custom_clustering(CLUSTERING_CONFIG[sp_thresholds])
         json_report["cgST"] = sequence_type
+
+    @staticmethod
+    def __get_appendix_from_input_type(input_type: Literal['illumina', 'ont']) -> Literal['fastq_pe', 'fastq_se']:
+        """
+        Since the Jammy update, certain assays have an appendix to their name which is necessary to be able to
+        differentiate between the results of illumina reads and ont reads, especially in case of hybrid input.
+        In HERA we're not expecting hybrid input, but have to deal with this nevertheless.
+        E.g. previously the assay would be called 'downsampling' and now it has become 'downsampling_fastq_pe'.
+        :param input_type: illumina or ont
+        :return: fastq_pe or fastq_se
+        """
+        if input_type == 'illumina':
+            return 'fastq_pe'
+        elif input_type == 'ont':
+            return 'fastq_se'
+
+    def ___reformat_mykrobe_results(self, json_report: JsonReportDict) -> None:
+        """
+        The mykrobe results from Camel are a list of dicts. This not very useful for the typing inserter into bigsdb,
+        and for the flow to the ODS is particularly cumbersome. This function generates a dict of dicts much like the
+        loci in cgMLST schemes.
+        :param json_report: results dictionary
+        :return: None
+        """
+        if json_report.get('mykrobe'):
+            drug_susceptibilities = {info['drug']: info for info in
+                                     json_report['mykrobe']['mykrobe_drug_susceptibility']}
+            json_report['mykrobe']['mykrobe_drug_susceptibility'] = drug_susceptibilities
 
 
 if __name__ == '__main__':
