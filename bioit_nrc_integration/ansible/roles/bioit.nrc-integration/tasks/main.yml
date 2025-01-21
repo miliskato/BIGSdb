@@ -181,7 +181,6 @@
       - { regexp: "password_get_nominative_from_ODS: to_be_replaced_by_ansible", line: "password_get_nominative_from_ODS: {{ vars['nrc_integration_ODS_in_password_'+ dtap] }}" }
       - { regexp: "username_send_mapping_table_to_ODS: to_be_replaced_by_ansible", line: "username_send_mapping_table_to_ODS: {{ vars['nrc_integration_ODS_out_username_'+ dtap] }}" }
       - { regexp: "password_send_mapping_table_to_ODS: to_be_replaced_by_ansible", line: "password_send_mapping_table_to_ODS: {{ vars['nrc_integration_ODS_out_password_'+ dtap] }}" }
-      - { regexp: "password_send_genomic_to_DWH: to_be_replaced_by_ansible", line: "password_send_genomic_to_DWH: {{ nrc_integration_DWH_out_password }}" }
   become: yes
 
 - name: add cronjob for nominative data parser from ODS

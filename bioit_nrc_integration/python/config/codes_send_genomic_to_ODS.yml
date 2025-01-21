@@ -22,6 +22,12 @@ common:
 #  DT_PIPELINE_ANAL:  # needs to be in “YYYY-MM-DDT00:00:00”  format; added to main code
 #    - results
 #    - analysis_date
+  TX_BUSINESS_KEY:
+    - results
+    - TX_BUSINESS_KEY
+  TX_SAMPLE_ID:
+    - results
+    - _id
 
 salmonella:
   TX_MLST_ST:

@@ -22,7 +22,7 @@ PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
 from bioit_mongodb_scripts.config import CLUSTERING_CONFIG
-from bioit_nrc_integration.python.config import CODES_GENOMIC_DWH
+from bioit_nrc_integration.python.config import CODES_GENOMIC_ODS
 from bioit_mongodb_scripts.model.json_model import JsonReportDict, MongoRecordDict
 from bioit_mongodb_scripts.util.error import *
 from bioit_mongodb_scripts.util.mongo_custom_clustering import MongoCustomClustering
@@ -53,7 +53,7 @@ def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     parser.add_argument("--original_input_format", required=False, type=str)  # maybe later change it to choices
     parser.add_argument("--technical_id", required=True, type=str)
     parser.add_argument("--technical_metadata_path", required=False, type=Path)  # not mandatory because of reanalysis
-    parser.add_argument("--pipeline_hash", required=True, type=str)  # Required for DCD NRC->DWH
+    parser.add_argument("--pipeline_hash", required=True, type=str)  # Required for DCD NRC->ODS
     parser.add_argument('--connection_string', required=False, type=str)  # will replace connection string, only for small testing purposes
     parser.add_argument('--alternate_dtap', choices=['dev', 'test', 'acc', 'prod'], help=argparse.SUPPRESS)  # will replace connection string, only for small testing purposes
     parser.add_argument('--dont_send_email', action='store_true', help=argparse.SUPPRESS)  # will not send emails, mainly used for blocking the reanalysis spam
@@ -381,26 +381,26 @@ class MainMongo:
                          "latest_analysis_date": convert_dmyhms_to_ymd(new_results["results.analysis_date"]),
                          "previous_latest_results_document": self.___write_document(self._old_isolateresults_collection,
                                                                                     MongoRecordDict(dict(deltas_new_old)))}})
-        # after having updated the isolates collection, check for changes for HD DWH to respect the order of execution.
-        self.___check_if_any_results_for_hd_dwh_changed(dict(deltas_new_old))
+        # after having updated the isolates collection, check for changes for HD ODS to respect the order of execution.
+        self.___check_if_any_results_for_hd_ods_changed(dict(deltas_new_old))
         logging.info(f"Wrote new results and linked to isolate {self._technical_id} in {self._species}")
 
-    def ___check_if_any_results_for_hd_dwh_changed(self, deltas_new_old: Dict[str, Any]) -> None:
+    def ___check_if_any_results_for_hd_ods_changed(self, deltas_new_old: Dict[str, Any]) -> None:
         """
-        Checks if any of the genomic indicators to send to DWH have changed and sets the field
-        'changed_since_sent_to_DWH's value to true in the local MongoDB if any have
+        Checks if any of the genomic indicators to send to ODS have changed and sets the field
+        'changed_since_sent_to_ODS's value to true in the local MongoDB if any have
         :param deltas_new_old: the deltas between the new and the old results; what needs to be applied on the
         new results to get the old results back.
         :return: None
         """
-        with CODES_GENOMIC_DWH.open('r') as handle:
+        with CODES_GENOMIC_ODS.open('r') as handle:
             translation_codes = yaml.safe_load(handle)
         for variable, list_path in translation_codes[self._species].items():
             list_path = list_path[1:]  # skip the first value which is always 'results' and is not in the delta
             if access_value_in_dict_using_list_as_dictpath(list_path, deltas_new_old):
                 self._isolates_collection.update_one({'_id': deltas_new_old['isolates_id']},
-                                                     {'$set': {'changed_since_sent_to_DWH': True,
-                                                               'changes_accepted_by_DWH': False}})
+                                                     {'$set': {'changed_since_sent_to_ODS': True,
+                                                               'changes_accepted_by_ODS': False}})
                 break  # break the loop once at least one change has been discovered
 
     @staticmethod
