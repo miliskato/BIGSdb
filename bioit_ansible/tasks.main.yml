@@ -171,6 +171,7 @@
   vars:
     packages:
       - apache2
+      - cpanminus
       - libapache2-mod-perl2
       - xvfb
       - liblog-log4perl-perl
@@ -267,7 +268,7 @@
 
 - name: Install bio perl package
   community.general.cpanm:
-    executable: /usr/bin/cpan
+    executable: /usr/bin/cpanm
     name: BioPerl
 
 - name: create dirs
