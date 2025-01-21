@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A part of the eav fields are available for selection in the dropdown list of Microreact plugin
 - cpanm is used instead of cpan to install perl packages
 - Ansible was updated to 2.18.1
+- The bioit-bigsdb.yml playbook includes extra roles in order to skip the manual run of the bioit-db.yml and bioit-filedb.yml
+  playbooks during the deployment of the platform.
 
 
 ### Bugfix
