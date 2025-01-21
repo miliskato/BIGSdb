@@ -1,5 +1,4 @@
 -- migrate:up
-UPDATE eav_fields SET category='Mykrobe' WHERE category='Genotyphi';
 update schemes SET name='Mykrobe' WHERE name='Genotyphi';
 DELETE FROM scheme_members WHERE locus='GENOTYPHI_ESBLS';
 DELETE FROM loci WHERE id='GENOTYPHI_ESBLS';
@@ -25,7 +24,6 @@ UPDATE loci SET id='MYKROBE_TRIMETHOPRIM' WHERE id='GENOTYPHI_TRIMETHOPRIMS';
 UPDATE loci SET id='MYKROBE_Z66' WHERE id='GENOTYPHI_Z66';
 
 -- migrate:down
-UPDATE eav_fields SET category='Genotyphi' WHERE category='Mykrobe';
 update schemes SET name='Genotyphi' WHERE name='Mykrobe';
 INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('GENOTYPHI_ESBLS','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
 INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('GENOTYPHI_AMINOGLYCOSIDES','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
