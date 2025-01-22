@@ -6,7 +6,7 @@ from pathlib import Path
 import paramiko
 import yaml
 
-PYTHONPATH = Path(__file__).resolve().parent.parent.parent
+PYTHONPATH = Path(__file__).resolve().parent.parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
 from bioit_mongodb_scripts.mainmongo import MainMongo
@@ -62,7 +62,8 @@ for species, species_testfiles in testfiles_dict.items():
     sftp.put(str(testfiles_folder / species_testfiles['get_nominative_from_ODS_LAB']),
              f"upload/{DTAP}/test_dummy_{species}_LAB_.json")
     with (testfiles_folder / species_testfiles['get_nominative_from_ODS_CLIN']).open('r') as handle:
-        business_key_ods_different_from_wgsmeta = json.load(handle).get('tx_business_key') if json.load(handle).get('tx_business_key') else json.load(handle)['TX_BUSINESS_KEY']
+        content = json.load(handle)['data']
+        business_key_ods_different_from_wgsmeta = content.get('tx_business_key') if content.get('tx_business_key') else content['TX_BUSINESS_KEY']
 
     """
     Run Nominative data parser on CLIN and LAB files uploaded to ODS
@@ -127,7 +128,8 @@ for species, species_testfiles in testfiles_dict.items():
     Run MainMongo for reanalysis
     """
     MainMongo(dummy_genomic_report['_id'], 'salmonella', 'reanalysis', pipeline_hash='0123456789',
-              jsonfilepath=testfiles_folder / species_testfiles['genomic_json_reanalysis_report'], alternate_dtap=DTAP)
+              jsonfilepath=testfiles_folder / species_testfiles['genomic_json_reanalysis_report'], alternate_dtap=DTAP,
+              connection_string='CONNECTION_STRING_AZURE')
 
     """
     Run main sender after reanalysis
