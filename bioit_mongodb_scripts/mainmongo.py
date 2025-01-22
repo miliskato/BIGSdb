@@ -395,6 +395,8 @@ class MainMongo:
         """
         with CODES_GENOMIC_ODS.open('r') as handle:
             translation_codes = yaml.safe_load(handle)
+        if not translation_codes.get(self._species):
+            return
         for variable, list_path in translation_codes[self._species].items():
             list_path = list_path[1:]  # skip the first value which is always 'results' and is not in the delta
             if access_value_in_dict_using_list_as_dictpath(list_path, deltas_new_old):
@@ -423,7 +425,7 @@ class MainMongo:
         :param results: results dictionary to be inserted
         :return: dictionary with results under results key and metadata keys at the same level of the results key
         """
-        technical_metadata = self.___retrieve_technical_metadata(results) if self._species not in self._mongo_config_data['viral_species'] else 'to be determined'
+        technical_metadata = self.___retrieve_technical_metadata(results)
         results["pipeline_hash"] = self._pipeline_hash
         results["results_version"] = 1  # this version always increments
         results["changed_version"] = 1  # this version only increments whenever something actually changed
@@ -451,21 +453,57 @@ class MainMongo:
         metadata.pop('name_pseudonymized', None)
         metadata.pop('species', None)
         if str(self._original_input_format) == 'fastq':
-            tx_seq_fltr_meth = ', '.join([f"downsample factor: {results['downsampling']['downsample_factor']}",
-                                          f"trimming: {results['trimming']['informs_tools']['Trimmomatic']['_name']}",
-                                          f"filtering of assembly: {results['assembly']['informs_tools']['Seqtk seq']['_name']}"
-                                          ])
-            cd_seq_assy_meth = 'SPAdes'
-            tx_seq_assy_meth_ver = results['assembly']['informs_tools']['spades']['_version']
-            ms_genome_cvge = results['downsampling']['coverage_estimated']
-            cd_novo_assy = "Yes"
+            if self._species not in self._mongo_config_data['viral_species']:
+                tx_seq_fltr_meth, cd_seq_assy_meth, tx_seq_assy_meth_ver, ms_genome_cvge, cd_novo_assy, tx_ref_accn \
+                    = self.____get_technical_metadata_bacterial_fasta(results)
+            else:
+                tx_seq_fltr_meth, cd_seq_assy_meth, tx_seq_assy_meth_ver, ms_genome_cvge, cd_novo_assy, tx_ref_accn \
+                    = self.____get_technical_metadata_viral_fasta(results)
 
-            metadata['TX_SEQ_FLTR_METH'] = tx_seq_fltr_meth
-            metadata['CD_SEQ_ASSY_METH'] = cd_seq_assy_meth
-            metadata['TX_SEQ_ASSY_METH_VER'] = tx_seq_assy_meth_ver
-            metadata['MS_GENOME_CVGE'] = ms_genome_cvge
-            metadata['CD_NOVO_ASSY'] = cd_novo_assy
+            metadata['data']['SequenceDataFilteringMethod'] = tx_seq_fltr_meth
+            metadata['data']['SequenceAssemblyMethod'] = cd_seq_assy_meth
+            metadata['data']['SequenceAssemblyMethodVersionOrDate'] = tx_seq_assy_meth_ver
+            metadata['data']['GenomeCoverage'] = ms_genome_cvge
+            metadata['data']['DeNovoAssembly'] = cd_novo_assy
+            metadata['data']['ReferenceAccession'] = tx_ref_accn
         return metadata
+
+    @staticmethod
+    def ____get_technical_metadata_bacterial_fasta(results: JsonReportDict) -> Tuple[str, str, str, str, str, None]:
+        """
+        Returns the FASTA technical metadata fields if the species is bacterial.
+        :params results: results dictionary
+        :return: tuple containing the different technical metadata fields
+        """
+        tx_seq_fltr_meth = ', '.join([f"downsample factor: {results['downsampling']['downsample_factor']}",
+                                      f"trimming: {results['trimming']['informs_tools']['Trimmomatic']['_name']}",
+                                      f"filtering of assembly: {results['assembly']['informs_tools']['Seqtk seq']['_name']}"
+                                      ])
+        cd_seq_assy_meth = 'SPAdes'
+        tx_seq_assy_meth_ver = results['assembly']['informs_tools']['spades']['_version']
+        ms_genome_cvge = results['downsampling']['coverage_estimated']
+        cd_novo_assy = 'Yes'
+        tx_ref_accn = None
+
+        return tx_seq_fltr_meth, cd_seq_assy_meth, tx_seq_assy_meth_ver, ms_genome_cvge, cd_novo_assy, tx_ref_accn
+
+    def ____get_technical_metadata_viral_fasta(self, results: JsonReportDict) -> Tuple[str, str, str, str, str, str]:
+        """
+        Returns the FASTA technical metadata fields if the species is viral.
+        :params results: results dictionary
+        :return: tuple containing the different technical metadata fields
+        """
+        tx_seq_fltr_meth = ', '.join([f"downsample factor: {results['downsampling']['downsample_factor']}",
+                                      f"trimming: {results['trimming']['informs_tools']['Trimmomatic']['_name']}",
+                                      ])
+        cd_seq_assy_meth = 'Other'
+        tx_seq_assy_meth_ver = results['iterative_mapping']['informs_tools']['bwa_mem']['_name']
+        ms_genome_cvge = results['downsampling']['coverage_estimated']
+        cd_novo_assy = 'No'
+        tx_ref_accn = ', '.join(results['ref_selection']['results'][x] for x in results['ref_selection']['results']) \
+            if self._species != 'sars_cov_2' else 'NC_045512.2'
+
+        return tx_seq_fltr_meth, cd_seq_assy_meth, tx_seq_assy_meth_ver, ms_genome_cvge, cd_novo_assy, tx_ref_accn
 
     @staticmethod
     def ___prepend_string_dot_to_dict_keys(input_dictionary: JsonReportDict, prepending: str = 'results') -> Dict[str, Union[str, object]]:
@@ -697,10 +735,10 @@ if __name__ == '__main__':
               args.results_type,
               args.pipeline_hash,
               technical_metadata_path=(args.technical_metadata_path if args.technical_metadata_path else None),
-              jsonfilepath=(args.jsonfilepath if args.jsonfilepath else None), 
+              jsonfilepath=(args.jsonfilepath if args.jsonfilepath else None),
               subvaldict=(args.subvaldict if args.subvaldict else None),
               reportdirectorypath=(args.reportdirectorypath if args.reportdirectorypath else None),
-              fastafilepath=(args.fastafilepath if args.fastafilepath else None), 
+              fastafilepath=(args.fastafilepath if args.fastafilepath else None),
               vcffilepath=(args.vcffilepath if args.vcffilepath else None),
               vcffilepath_unfiltered=(args.vcffilepath_unfiltered if args.vcffilepath_unfiltered else None),
               original_input_format=(args.original_input_format if args.original_input_format else None),
