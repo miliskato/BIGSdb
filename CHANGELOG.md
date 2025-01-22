@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - None
 
 ### Changed
-- updated nrc integratin SFTP flows to HD to only send all output to ODS and not to DWH according to new version of DPD
+- updated nrc integration SFTP flows to HD to only send all output to ODS and not to DWH according to new version of DPD
 
 ## [2.1.0]
 ### Added
