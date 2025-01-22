@@ -212,7 +212,7 @@
     hour: '*/12'  # every 12 hours
     weekday: '*'
     job: "/usr/bin/flock -n /tmp/error_checker_for_main_sender_to_HD.lockfile {{ nrcint_venv }}/bin/python3.10 {{ bioit_bigs_home }}//bioit_nrc_integration/python/error_checker_for_main_sender_to_HD.py"
-    user: 'bigsdb'
+    user: 'root'
     cron_file: error_checker_for_main_sender_to_HD
   become: yes
 
