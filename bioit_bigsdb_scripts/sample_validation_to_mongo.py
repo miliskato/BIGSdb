@@ -23,7 +23,7 @@ sys.path.append(str(PYTHONPATH))
 from bioit_bigsdb_scripts.components.psql import TblSubmissions
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data, send_email
 from bioit_mongodb_scripts.mainmongo import MainMongo
-from bioit_mongodb_scripts.mongo_to_bigs import MongoToBigs
+#from bioit_mongodb_scripts.mongo_to_bigs import MongoToBigs
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 
 
@@ -101,7 +101,7 @@ class SampleValidationToMongo:
                     'outcome': outcome,
                     'curator': curator_mailadress,
                     'type': results_type.split('_')[0],
-                    'date': datetime.datetime.utcnow().strftime('%d/%m/%Y - %X')
+                    'date': datetime.datetime.now(datetime.timezone.utc).strftime('%d/%m/%Y - %X')
                 }
                 if outcome == 'good' and (validation_type == 'bad_quality' or validation_type == 'resequencing'):
                     MainMongo(pseudo_id, self._species, results_type, subvaldict=validation_dict, connection_string='CONNECTION_STRING_AZURE')

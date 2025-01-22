@@ -25,7 +25,7 @@ sys.path.append(str(PYTHONPATH))
 from bioit_mongodb_scripts.reanalysis import MONGO_REANALYSIS_CONFIG
 from bioit_mongodb_scripts.reanalysis.reanalysis_triggers import TRIGGER_CONFIG
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
-from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data
+from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, is_viral
 
 BATCH_POOL_NAME: Final[str] = 'analysis_pool_focal'
 BATCH_JOB_NAME_PREFIX: Final[str] = 'reanalysis_tasks_focal_'
@@ -80,6 +80,7 @@ class BatchPipelinesReanalysis:
         :return: None
         """
         self._species = species
+        self._species_mongodb = self._species if self._species not in ['influenza_a', 'influenza_b'] else 'influenza'
         self._dtap = dtap
 
         # Parse MongoDB config
@@ -107,10 +108,10 @@ class BatchPipelinesReanalysis:
         """
         self.__create_pool()
         # Create a new job:
-        job_name = f"{BATCH_JOB_NAME_PREFIX}{self._species}"
+        job_name = f"{BATCH_JOB_NAME_PREFIX}{self._species_mongodb}"
         self.__create_job(job_name)
 
-        if self._species not in self._mongo_config_data['viral_species']:
+        if not is_viral(self._species_mongodb):
             date_args_dict = self.__collect_database_update_dates()
             for maximal_analysis_date in date_args_dict:
                 self.__launch_tasks(maximal_analysis_date, date_args_dict, job_name)
@@ -289,7 +290,7 @@ class BatchPipelinesReanalysis:
         :return: None
         """
         # Retrieve isolates that need to be re-analyzed
-        mongoinit = MongoInitialisation(self._species,
+        mongoinit = MongoInitialisation(self._species_mongodb,
                                         selected_connection_string='CONNECTION_STRING_AZURE',
                                         alternate_dtap=self._dtap)
         latest_update_date = ''
@@ -315,7 +316,14 @@ class BatchPipelinesReanalysis:
             "results.isolates_id": 1
         }
 
-        documents_list = list(isolates_collection.find({'latest_analysis_date': {"$lt": latest_update_date}}, fields_to_retrieve))
+        microorganism_field = True
+        if self._species == 'influenza_a':
+            microorganism_field = "Influenza A virus (organism)"
+        elif self._species == 'influenza_b':
+            microorganism_field = "Influenza B virus (organism)"
+        documents_list = list(isolates_collection.find({'latest_analysis_date': {"$lt": latest_update_date},
+                                                        'technical_metadata.data.Microorganism': microorganism_field},
+                                                       fields_to_retrieve))
 
         logging.info(f"{len(documents_list)} isolates to be reanalyzed for {self._species}_{self._dtap}")
         analysis_arguments = [argument.replace('--', '') for argument in
@@ -374,14 +382,14 @@ class BatchPipelinesReanalysis:
         :param mongodb_document: The mongodb document of the to be reanalyzed sample
         :return: command
         """
-        report_dir = f'$AZ_BATCH_TASK_DIR/{self._dtap}/report_dirs/reanalysis/{self._species}/{task_name}'
-        working_dir = f'$AZ_BATCH_TASK_DIR/{self._dtap}/working_dirs/reanalysis/{self._species}/{task_name}_working'
+        report_dir = f'$AZ_BATCH_TASK_DIR/{self._dtap}/report_dirs/reanalysis/{self._species_mongodb}/{task_name}'
+        working_dir = f'$AZ_BATCH_TASK_DIR/{self._dtap}/working_dirs/reanalysis/{self._species_mongodb}/{task_name}_working'
         results_dir = mongodb_document['report_directory']
         # pre command to load lmod and to stop commands upon failure (set -o errexit)
         pre_command = 'export MODULEPATH=/etc/lmod/modules; source /etc/profile.d/lmod.sh'
-        trap_command = (f'trap \'mkdir -p /scratch/scratch/{self._dtap}/errors/reanalysis/{self._species}/{task_name}; '
-                        f'if test -e {working_dir}; then cp -r {working_dir} /scratch/scratch/{self._dtap}/errors/reanalysis/{self._species}/{task_name}; rm -r {working_dir}; fi; '
-                        f'if test -e {report_dir}; then cp -r {report_dir} /scratch/scratch/{self._dtap}/errors/reanalysis/{self._species}/{task_name}; rm -r {report_dir}; fi; '
+        trap_command = (f'trap \'mkdir -p /scratch/scratch/{self._dtap}/errors/reanalysis/{self._species_mongodb}/{task_name}; '
+                        f'if test -e {working_dir}; then cp -r {working_dir} /scratch/scratch/{self._dtap}/errors/reanalysis/{self._species_mongodb}/{task_name}; rm -r {working_dir}; fi; '
+                        f'if test -e {report_dir}; then cp -r {report_dir} /scratch/scratch/{self._dtap}/errors/reanalysis/{self._species_mongodb}/{task_name}; rm -r {report_dir}; fi; '
                         f'exit 1\' ERR')
         # Create the command to re-analyze the datasets
         config_species = self._reanalysis_config['species'][self._species]
@@ -399,7 +407,7 @@ class BatchPipelinesReanalysis:
             f"cd {working_dir};"
             f"{config_species['main_script']} ",
             f"--fasta {mongodb_document['fasta_path']} ",
-            '--detection-method blast' if self._species not in self._mongo_config_data['viral_species'] else '',
+            '--detection-method blast' if self._species_mongodb not in self._mongo_config_data['viral_species'] else '',
             '--library NexteraPE',  # should be changed in the future?
             f'--working-dir {working_dir}',
             f'--output-dir {report_dir}',
@@ -420,13 +428,13 @@ class BatchPipelinesReanalysis:
             f"{config_mongodb['report_script']}",
             f"--base-html {results_dir}/report.html",
             f"--updated-html {report_dir}/report.html",
-            f"--species {self._species}",
+            f"--species {self._species_mongodb}",
             f"--analysis-arguments {' '.join(analysis_arguments)}"
         ])
         tagger_command = ' '.join([
             f"{config_mongodb['tagger_script']}",
             f"--htmlfilepath {report_dir}/report.html",
-            f"--species {self._species}"
+            f"--species {self._species_mongodb}"
         ])
         # Copy the stderr and stdout files from the temporary working dir to the fileshare because they
         # might contain more information than the camel.log
@@ -441,7 +449,7 @@ class BatchPipelinesReanalysis:
             f"/usr/bin/flock -u {lockfile}",
             f"{config_mongodb['main_script']}",
             "--results_type reanalysis",
-            f"--species {self._species}",
+            f"--species {self._species_mongodb}",
             f"--technical_id {isolate_id}",
             "--pipeline_hash $pipeline_hash",
             f"--jsonfilepath {results_dir}/report.json",
@@ -459,11 +467,12 @@ if __name__ == '__main__':
     # Configure stdout logging
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
-    # Parse config
-    mongo_config_data = get_mongodb_config_data()
+    # Read the reanalysis config
+    with open(MONGO_REANALYSIS_CONFIG, encoding='utf-8') as handle:
+        reanalysis_config = yaml.safe_load(handle)
 
     # Parse arguments
-    args = parse_arguments(mongo_config_data['species'])
+    args = parse_arguments(reanalysis_config['species'].keys())
 
     # run main
     wrapper_loop_dtap_and_species(args.species, args.dtap)

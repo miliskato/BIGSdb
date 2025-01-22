@@ -1,4 +1,3 @@
-import datetime
 import logging
 import socket
 import sys
@@ -26,6 +25,7 @@ class NewClusteringInfoToBigs:
     Inserts all new clustering related info into BIGSdb, decides what is new based on a date that is stored
     in the update metadata collection. This date is updated at the successful end of this script.
     """
+
     def __init__(self, species: str, naive_clustering_distance_matrix_file: Path, cgmlst_bigsdb_scheme_id: int,
                  mongo_config_data: Dict[str, Any] = None) -> None:
         """
@@ -57,9 +57,6 @@ class NewClusteringInfoToBigs:
         # Prepare for main
         self._clustering_thresholds = CLUSTERING_CONFIG[f"clustering_thresholds_{self._species}"]
         self._new_temporary_alleles_update_date = self._get_temporary_alleles_update_date()
-        self._last_date_of_update = self._get_last_date_of_update()
-        if self._last_date_of_update is None:
-            self._last_date_of_update = datetime.datetime(1970, 1, 1)  # unix time
         self._new_st = self._get_new_st()
         self._st_headers = self._get_st_headers()
         self._new_cluster_membership = self._get_new_cluster_membership()
@@ -85,33 +82,26 @@ class NewClusteringInfoToBigs:
         self.__update_naive_clustering_implementation()
         self.__update_last_update_date()
 
-    def _get_last_date_of_update(self) -> Optional[date]:
-        """
-        Retrieve in MongoDB the date of the last update.
-        :return: a date in iso UTC format
-        """
-        query = self._update_metadata_collection.find_one({'metadata': 'last_update', 'host': socket.gethostname()})
-        return query['last_update_date'] if query else None
-
     def _get_temporary_alleles_update_date(self) -> Optional[date]:
         """
         Retrieve the last date that the last temporary alleles were inserted to use this as a maximum date for the new
         cgST insertion.
         :return: a date in iso UTC format
         """
-        query = self._update_metadata_collection.find_one({'metadata': 'last_update_temporary_alleles', 'host': socket.gethostname()})
+        query = self._update_metadata_collection.find_one(
+            {'metadata': 'last_update_temporary_alleles', 'host': socket.gethostname()})
         # this always needs to be found because the new temporary alleles runs before the new clustering info runs
         return query['last_update_date']
-    
+
     def _get_new_st(self) -> List[Dict[str, Any]]:
         """
         Retrieve the new sequence types from the MongoDB sequence types collection which have been added since the
-        date of the last update.
+        last update of clustering.
         :return: A list of documents containing the information about the new sequence types.
         """
-        return list(self._st_collection.find({'insertion_date': {'$gt': self._last_date_of_update,
-                                                                 '$lt': self._new_temporary_alleles_update_date}},
-                                             sort=[('cgST', 1)]))
+        return list(
+            self._st_collection.find({'$and': [{'bigsdb_status': 'pending'}, {'select_for_bigsdb_insertion': True}]},
+                                     sort=[('cgST', 1)]))
 
     def _get_st_headers(self) -> Dict[str, Any]:
         """
@@ -123,11 +113,12 @@ class NewClusteringInfoToBigs:
 
     def _get_new_cluster_membership(self) -> List[Dict[str, Any]]:
         """
-        Retrieve the cluster memberships that have been added or modified since the last date of update
+        Retrieve the cluster memberships that have been added or modified between the last clustering update and last
+        update of temporary alleles
         :return: A list of documents (dict) containing the information about the new cluster memberships.
         """
-        return list(self._cluster_membership_collection.find({'insertion_date': {'$gt': self._last_date_of_update,
-                                                                                 '$lt': self._new_temporary_alleles_update_date}}))
+        return list(self._cluster_membership_collection.find(
+            {'$and': [{'cluster_updated': True}, {'select_for_bigsdb_insertion': True}]}))
 
     def __insert_sequence_types(self) -> None:
         """
@@ -155,6 +146,9 @@ class NewClusteringInfoToBigs:
                                 if nullpresent[0][0] == 0:
                                     self._seqdef_sequences_psql_tbl.insert_sequence((locus, '0', 'null allele'))
                             seqdef_profilemembers_psql_tbl.insert_profile_member(('cgMLST', locus, st_id, allele_id))
+                        self._st_collection.update_one({'cgST': st_id},
+                                                       {'$set': {'bigsdb_status': 'inserted',
+                                                                 'select_for_bigsdb_insertion': False}})
 
     def __insert_or_update_clustering(self) -> None:
         """
@@ -170,9 +164,9 @@ class NewClusteringInfoToBigs:
             for threshold in self._clustering_thresholds:
                 threshold_bigsdbcgschemeid_dict[threshold] = \
                     str(isolates_clsch_psql_tbl.select_cgschemeid_by_threshold(
-                            (threshold,))[0][0])
+                        (threshold,))[0][0])
         with TblClassificationGroups(self._species) as seqdef_clgr_psql_tbl, \
-            TblClassificationGroupProfiles(self._species) as seqdef_clgrpr_psql_tbl, \
+                TblClassificationGroupProfiles(self._species) as seqdef_clgrpr_psql_tbl, \
                 TblClassificationGroupProfileHistory(self._species) as seqdef_clgrprhist_psql_tbl:
             for cl_membership in self._new_cluster_membership:
                 cg_scheme_id = threshold_bigsdbcgschemeid_dict[int(cl_membership['threshold'])]
@@ -196,6 +190,8 @@ class NewClusteringInfoToBigs:
                             groups_merged.add(current_bigsdb_group[0][0])
                             # update group table
                             seqdef_clgr_psql_tbl.inactivate_group((profile_id, str(current_bigsdb_group[0][0])))
+                update_fields = {'$set': {'cluster_updated': False, 'select_for_bigsdb_insertion': False}}
+                self._cluster_membership_collection.update_one({'_id': cl_membership['_id']}, update_fields)
 
     def ___check_for_classification_schemes(self) -> None:
         """
@@ -249,7 +245,7 @@ class NewClusteringInfoToBigs:
             # would otherwise be skipped for isolates/cgsts already in the database
             with TblEavText(self._species) as isolates_eavt_psql_tbl:
                 is_field_possibly_new = True if isolates_eavt_psql_tbl.select_count_eav_field((field[0],))[0][0] == 0 \
-                                            else False
+                    else False
             if is_field_possibly_new:
                 logging.info(f"Inserting cgMLST difference html fields for isolates present in Bigsdb")
                 cgsts = set(x['results'].get('cgST') for x in cgsts_per_isolate)

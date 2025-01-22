@@ -20,10 +20,10 @@ class TblEavInt(DatabaseConnection):
     def delete_eav_int_for_isolate(self, param: Tuple[str]) -> None:
         """
         Delete all eav int values for a specific isolate id
-        :param param: isolate id of the isolate
+        :param param: isolate name
         :return: None
         """
-        self.execute_query(PsqlQueries.ISO_DEL__TB_EAVI_VAR_ISOLATE_ID, param)
+        self.execute_query(PsqlQueries.ISO_DEL__TB_EAVI_VAR_ISO, param)
 
     def insert_eav_int_isolate(self, param: Tuple[str, str, int]) -> None:
         """

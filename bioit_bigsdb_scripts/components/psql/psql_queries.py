@@ -28,7 +28,7 @@ class PsqlQueries():
     ISO_SEL_ALID_TYPE_TB_ALDE_VAR_ISOLATE_METH: Final[str] = """
         SELECT alert_id, type FROM alert_details LEFT JOIN alerts ON 
         alerts.id = alert_details.alert_id WHERE field = 'isolate_id' AND value = 
-        (SELECT id FROM isolates WHERE isolate=%s) and method = %s;"""
+        (SELECT CAST(id AS TEXT) FROM isolates WHERE isolate=%s) and method = %s;"""
     ISO_UPD_VAL_TB_ALDE_VAR_ALID_FIELD: Final[str] = """
         UPDATE alert_details SET value = %s WHERE alert_id = %s AND field = %s;"""
 
@@ -45,7 +45,7 @@ class PsqlQueries():
 
     # TBL allele designations
     ISO_DEL__TB_AD_VAR_LOCUS: Final[str] = """DELETE FROM allele_designations WHERE locus LIKE %s;"""
-    ISO_DEL__TB_AD_VAR_ISOLATE_ID: Final[str] = """DELETE FROM allele_designations WHERE isolate_id LIKE %s;"""
+    ISO_DEL__TB_AD_VAR_ISO: Final[str] = """DELETE FROM allele_designations WHERE isolate_id=(SELECT id FROM isolates WHERE isolate=%s);"""
     ISO_INS__TB_AD_VAR_LOCUS_ID_ALLELE: Final[str] = """
         INSERT INTO allele_designations(locus, isolate_id, 
         allele_id, status, method, sender, 
@@ -127,21 +127,22 @@ class PsqlQueries():
     ISO_SEL_FIELD_TB_EAVF_VAR_FIELD: Final[str] = """SELECT field FROM eav_fields WHERE field LIKE %s;"""
 
     # TBL extended attribute values bool
-    ISO_DEL__TB_EAVB_VAR_ISOLATE_ID: Final[str] = """
-        DELETE FROM eav_boolean where isolate_id = %s;"""
+    ISO_DEL__TB_EAVB_VAR_ISO: Final[str] = """
+        DELETE FROM eav_boolean where isolate_id=(SELECT id FROM isolates WHERE isolate=%s);"""
     ISO_INS__TB_EAVB_VAR_ISO_FIELD_VAL: Final[str] = """
         INSERT INTO eav_boolean(isolate_id, field, value) 
         VALUES((SELECT id FROM isolates WHERE isolate=%s), %s, %s);"""
 
     # TBL extended attribute values int
-    ISO_DEL__TB_EAVI_VAR_ISOLATE_ID: Final[str] = """
-        DELETE FROM eav_int where isolate_id = %s;"""
+    ISO_DEL__TB_EAVI_VAR_ISO: Final[str] = """
+        DELETE FROM eav_int where isolate_id=(SELECT id FROM isolates WHERE isolate=%s);"""
     ISO_INS__TB_EAVI_VAR_ISO_FIELD_VAL: Final[str] = """
         INSERT INTO eav_int(isolate_id, field, value) 
         VALUES((SELECT id FROM isolates WHERE isolate=%s), %s, %s);"""
     # TBL extended attribute values text
-    ISO_DEL__TB_EAVT_VAR_ISOLATE_ID: Final[str] = """DELETE FROM eav_text WHERE isolate_id=%s;"""
+    ISO_DEL__TB_EAVT_VAR_ISO: Final[str] = """DELETE FROM eav_text WHERE isolate_id=(SELECT id FROM isolates WHERE isolate=%s);"""
     ISO_DEL__TB_EAVT_VAR_ID_FIELD: Final[str] = """DELETE FROM eav_text WHERE isolate_id=%s AND field=%s;"""
+    ISO_DEL__TB_TPISOSCHFIELD_VAR_SCHID_ISO: Final[str] = """DELETE FROM temp_isolates_scheme_fields_%s WHERE id=(SELECT id FROM isolates WHERE isolate=%s);"""
     ISO_INS__TB_EAVT_VAR_ID_FIELD_VAL: Final[str] = """
         INSERT INTO eav_text(isolate_id, field, value) VALUES(%s, %s, %s);"""
     ISO_INS__TB_EAVT_VAR_ISO_FIELD_VAL: Final[str] = """
@@ -157,6 +158,8 @@ class PsqlQueries():
     ISO_INS__TB_EAVTH_VAR_ISO_FIELD_VAL: Final[str] = """
         INSERT INTO eav_text_hidden(isolate_id, field, value) 
         VALUES((SELECT id FROM isolates WHERE isolate=%s), %s, %s);"""
+    ISO_DEL__TB_EAVTH_VAR_ISO: Final[str] = """
+        DELETE FROM eav_text_hidden WHERE isolate_id=(SELECT id FROM isolates WHERE isolate=%s);"""
     ISO_SEL_ID_VAL_ISO_TB_EAVTH_VAR_FIELD: Final[str] = """
         SELECT eav_text_hidden.isolate_id, eav_text_hidden.value, isolates.isolate FROM eav_text_hidden 
         LEFT JOIN isolates ON isolates.id = eav_text_hidden.isolate_id WHERE eav_text_hidden.field = %s;"""
@@ -238,6 +241,7 @@ class PsqlQueries():
         VALUES((SELECT MAX(id::int) FROM submissions WHERE id ~ '^[0-9]+$'), 1, %s, %s);"""
     ISO_SEL_ALL_TB_ISOSUBISO_VAR_SUBID: Final[str] = """
         SELECT * FROM isolate_submission_isolates WHERE submission_id=%s;"""
+
     # TBL jobs
     JOB_SEL_PID_STARTED_JOBS_TB_JOBS: Final[str] = """
         SELECT pid, module, stage FROM jobs WHERE status = 'started' ;"""
@@ -370,4 +374,9 @@ class PsqlQueries():
         (SELECT CURRENT_DATE), 'pending', true, %s);"""
     ISO_SEL_ID_TB_SUB_VAR_STATUS: Final[str] = """
         SELECT id FROM submissions WHERE outcome = 'good' AND status = 'closed' AND id LIKE 'BIGSdb_%';"""
+    ISO_SEL_SUBID_TB_SUB_VAR_: Final[str] = """
+        SELECT id FROM submissions WHERE outcome = 'good' AND status = 'closed' AND validation_type = 'bad_quality';"""
+    ISO_UPD_STATUS_OUTCOME_TB_SUB_VAR_: Final[str] = """
+        UPDATE submissions SET (status, outcome) = ('closed', 'good') WHERE ( validation_type = 'bad_quality' AND OUTCOME IS NULL);"""
     ISO_INSERT_GENERIC_LAB_METADATA_TEMPLATE: Final[str] = "UPDATE isolates SET {} WHERE isolate=%s;"
+

@@ -27,6 +27,14 @@ class TblEavTextHidden(DatabaseConnection):
         """
         self.execute_query(PsqlQueries.ISO_INS__TB_EAVTH_VAR_ISO_FIELD_VAL, param)
 
+    def delete_eavt_hidden(self, param: Tuple[str]) -> None:
+        """
+        Delete mongo_version before inserting the new value in case of reanalysis
+        :param param: isolate name
+        :return: None
+        """
+        self.execute_query(PsqlQueries.ISO_DEL__TB_EAVTH_VAR_ISO, param)
+
     def select_hidden(self, param: Tuple[str]) -> List[Optional[Tuple[Any]]]:
         """
         Selects all values for all isolates where field is a certain value

@@ -7,7 +7,7 @@ import re
 import socket
 import sys
 import traceback
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Tuple, Union
 
@@ -29,7 +29,7 @@ from bioit_mongodb_scripts.util.mongo_custom_clustering import MongoCustomCluste
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.mongo_querying import Mongoquerying
 from bioit_mongodb_scripts.util.python_utility_functions import access_value_in_dict_using_list_as_dictpath, \
-    convert_dmyhms_to_ymd, get_mongodb_config_data, send_email
+    convert_dmyhms_to_ymd, get_mongodb_config_data, is_viral, send_email
 
 
 def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
@@ -214,7 +214,7 @@ class MainMongo:
 
             if self._results_type == "reanalysis":
                 json_report = JsonReportDict.from_json(self._jsonfilepath)
-                new_path_to_report = str(self._jsonfilepath)
+                new_path_to_report = str(self._jsonfilepath.parent)
             else:  # self._results_type == 'resequencing_validated'
                 existing_mongo_record = MongoRecordDict(self._isolates_resequencing_collection.find_one({"_id": self._technical_id}))
                 json_report = existing_mongo_record.get_json_results()
@@ -232,7 +232,7 @@ class MainMongo:
         mongo_records = self.___initialize_mongo_record(json_report)
 
         good_sample_quality = True
-        if self._results_type == 'new_isolate' and self._species not in self._mongo_config_data['viral_species']:  # viral pathogens do not have a qc section
+        if self._results_type == 'new_isolate' and not is_viral(self._species):  # viral pathogens do not have a qc section
             good_sample_quality = self.___is_good_quality(json_report)
 
         self.__process_mongo_record(mongo_records, good_sample_quality)
@@ -253,11 +253,12 @@ class MainMongo:
                 self.__define_cgst_and_run_clustering(json_report)
         if good_sample_quality:
             if self._results_type == 'badqc_validated':
-                mongo_records['validation'] = self._subvaldict
+                self.___update_submission_status_after_validation(mongo_records)
                 self._isolates_badqc_collection.delete_one({'_id': mongo_records["_id"]})
             self.___write_document(self._isolates_collection, mongo_records)
             logging.info(f"Wrote new isolate {self._technical_id} and its result to {self._species} database")
         else:
+            mongo_records['submission_status'] = 'pending_for_submission'
             self.___write_document(self._isolates_badqc_collection, mongo_records)
             logging.warning(
                 f"New isolate {self._technical_id} failed quality control for one or more checks. It's results were written to the 'isolates_badqc' collection in the {self._species} database")
@@ -324,6 +325,7 @@ class MainMongo:
                 self.___convert_typinghitdictionaries_to_lists(new_json_report)
                 if 'cgmlst' in new_json_report:
                     self.__define_cgst_and_run_clustering(new_json_report)
+                new_isolate['submission_status'] = 'pending_for_submission'
                 self.___write_document(self._isolates_resequencing_collection, new_isolate)
         else:
             send_email(
@@ -369,7 +371,7 @@ class MainMongo:
             logging.info(
                 f"New results are not different from current results for {self._technical_id} in {self._species}, updating analysis dates and db versions.")
         if self._results_type == 'resequencing_validated':
-            new_results['validation'] = self._subvaldict
+            self.___update_submission_status_after_validation(new_results)
 
             # Remove the isolate from the resequencing collection to allow for new resequencings
             self._isolates_resequencing_collection.delete_one({'_id': self._technical_id})
@@ -405,6 +407,16 @@ class MainMongo:
                                                                'changes_accepted_by_ODS': False}})
                 break  # break the loop once at least one change has been discovered
 
+    def ___update_submission_status_after_validation(self, new_results: Union[MongoRecordDict, Dict[str, Union[str, object]]])-> None:
+        """
+        This function adapts the field "submission_status" in Mongo doc to keep track of the time of validation
+        :param new_results: Mongo doc of the isolate processed for validation
+        :return: None
+        """
+        new_results['validation'] = self._subvaldict
+        validation_date = self._subvaldict['date']
+        new_results['submission_status'] = f'validated on {validation_date}'
+
     @staticmethod
     def ___write_document(opened_collection: pymongo.collection.Collection, json_input: MongoRecordDict) -> str:
         """
@@ -437,7 +449,7 @@ class MainMongo:
             "original_input_format": str(self._original_input_format),
             "fasta_path": str(self._fastafilepath),
             "previous_latest_results_document": None,
-            "creation_date": datetime.utcnow(),
+            "creation_date": datetime.now(timezone.utc),
             "latest_analysis_date": convert_dmyhms_to_ymd(results["analysis_date"]),
             "technical_metadata": technical_metadata,
             "results": results})
@@ -453,7 +465,7 @@ class MainMongo:
         metadata.pop('name_pseudonymized', None)
         metadata.pop('species', None)
         if str(self._original_input_format) == 'fastq':
-            if self._species not in self._mongo_config_data['viral_species']:
+            if not is_viral(self._species):
                 tx_seq_fltr_meth, cd_seq_assy_meth, tx_seq_assy_meth_ver, ms_genome_cvge, cd_novo_assy, tx_ref_accn \
                     = self.____get_technical_metadata_bacterial_fasta(results)
             else:
@@ -461,8 +473,7 @@ class MainMongo:
                     = self.____get_technical_metadata_viral_fasta(results)
 
             metadata['data']['SequenceDataFilteringMethod'] = tx_seq_fltr_meth
-            metadata['data']['SequenceAssemblyMethod'] = cd_seq_assy_meth
-            metadata['data']['SequenceAssemblyMethodVersionOrDate'] = tx_seq_assy_meth_ver
+            metadata['data']['SequenceAssemblyMethodInfo'] = [{'SequenceAssemblyMethod': cd_seq_assy_meth, 'SequenceAssemblyMethodVersionOrDate': tx_seq_assy_meth_ver}]
             metadata['data']['GenomeCoverage'] = ms_genome_cvge
             metadata['data']['DeNovoAssembly'] = cd_novo_assy
             metadata['data']['ReferenceAccession'] = tx_ref_accn
@@ -573,7 +584,8 @@ class MainMongo:
                                                                     "encountered_count": 1,
                                                                     "resolved_AD": 0,
                                                                     "temp_allele_name": temp_allele,
-                                                                    "insertion_date": datetime.utcnow(),
+                                                                    "insertion_date": datetime.now(timezone.utc),
+                                                                    "bigsdb_status": "pending"
                                                                     }))
                             json_report[typing_scheme]['loci'][locus_index]['Allele'] = temp_allele  # replace the name of the allele in the results (no hash anymore)
                         else:
@@ -615,6 +627,7 @@ class MainMongo:
                     logging.info(f"{mainkey} not in current results")
                     any_result_changed = True
                     changed_results.add(mainkey)
+                    continue
                 for subkey in new_results[mainkey]:
                     if subkey == 'loci' or subkey == 'results' or subkey.startswith('hits'):  # TODO what with serogroup of Neisseria + is it normal that it is under informs_tools + seqsero Salmonella
                         if subkey not in current_results[mainkey] or new_results[mainkey][subkey] != \

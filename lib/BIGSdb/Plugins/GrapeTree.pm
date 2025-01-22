@@ -312,6 +312,11 @@ sub run_job {
 
 sub generate_profile_file {
 	my ( $self, $args ) = @_;
+
+	if ($self->is_viral_db()) {
+		return;
+	}
+
 	my ( $job_id, $filename, $isolates, $loci, $params ) = @{$args}{qw(job_id file isolates loci params)};
 	my $ids = $self->{'jobManager'}->get_job_isolates($job_id);
 	$self->{'jobManager'}->update_job_status( $job_id, { stage => 'Generating profile data file' } );
@@ -386,6 +391,7 @@ sub _generate_mstree {
 	if ($?) {
 		BIGSdb::Exception::Plugin->throw('Tree generation failed.');
 	}
+
 	if ( -e $error_file ) {
 		my $error = BIGSdb::Utils::slurp($error_file);
 		if ($$error) {

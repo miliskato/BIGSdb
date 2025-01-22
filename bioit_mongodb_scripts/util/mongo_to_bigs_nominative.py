@@ -85,7 +85,10 @@ class MongoToBigsNominative:
                     if key not in ['inserted_into_bigsdb', '_id'] and value is not None:
                         dict_to_be_inserted[key] = value
                 with TblIsolates(self._species) as isolates_psql_tbl:
-                    isolates_psql_tbl.update_nomin_metadata(dict_to_be_inserted, mapping_table['_id'])
+                    isolate_update_query = isolates_psql_tbl.build_update_nomin_metadata_query(dict_to_be_inserted)
+                    values_to_set_in_fields = [v for v in dict_to_be_inserted.values()]
+                    values_to_set_in_fields.append(mapping_table['_id'])
+                    isolates_psql_tbl.update_nomin_metadata(isolate_update_query, values_to_set_in_fields)
                 self._nominative_labtest_clinical_metadata_collection.update_one({'_id': document['_id']},
                                                                                  {'$set': {'inserted_into_bigsdb': True}})
 

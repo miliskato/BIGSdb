@@ -35,7 +35,7 @@
       - neisseria
       - stec
       - salmonella
-      - yersinia
+      - influenza
   fail:
     msg: "unsupported species requested, choose from {{ specieslist }}"
   when: species not in specieslist
@@ -89,7 +89,6 @@
     dest: "{{ bioit_bigs_home }}"
     version: "{{ branch }}"
     force: true
-  tags: gitupdate
 
 - name: Change git cloned repo owner to bigsdb for it to be able to write the distance matrix here
   file:
@@ -172,6 +171,7 @@
   vars:
     packages:
       - apache2
+      - cpanminus
       - libapache2-mod-perl2
       - xvfb
       - liblog-log4perl-perl
@@ -268,7 +268,7 @@
 
 - name: Install bio perl package
   community.general.cpanm:
-    executable: /usr/bin/cpan
+    executable: /usr/bin/cpanm
     name: BioPerl
 
 - name: create dirs
@@ -729,6 +729,7 @@
         path: "{{ item.script }}"
         search_path:
           - public
+      when: item.db != 'bigsdb_influenza_seqdef'
       loop: "{{ list_script|flatten(levels=1) }}"
       vars:
         list_script:
@@ -890,6 +891,16 @@
         job: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_bigsdb_scripts/check_jobs_killed.py"
         user: 'root'
         cron_file: check_jobs_killed
+
+    - name: add daily cronjob to capture missing badqc
+      cron:
+        name: "check_for_missing_badqc"
+        minute: '0'
+        hour: '1'  # every day at 1:00 am
+        weekday: '*'
+        job: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_mongodb_scripts/tests/get_missing_bad_qc.py --species {{ species }}"
+        user: 'root'
+        cron_file: check_for_missing_badqc
 
   tags: cron_jobs
 

@@ -1,4 +1,4 @@
-from typing import Any, List, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 from .databaseconnection import DatabaseConnection
 from .psql_queries import PsqlQueries
@@ -26,13 +26,13 @@ class TblEavText(DatabaseConnection):
         """
         self.execute_query(PsqlQueries.ISO_DEL__TB_EAVT_VAR_ID_FIELD, param)
 
-    def delete_all_eav_by_isolate_id(self, param: Tuple[str]) -> None:
+    def delete_all_eav_of_isolate(self, param: Tuple[str]) -> None:
         """
         Delete all eav field for a specific isolate id
-        :param param: isolate id of the isolate
+        :param param: isolate name
         :return: None
         """
-        self.execute_query(PsqlQueries.ISO_DEL__TB_EAVT_VAR_ISOLATE_ID, param)
+        self.execute_query(PsqlQueries.ISO_DEL__TB_EAVT_VAR_ISO, param)
 
     def insert_eav_id(self, param: Tuple[str, str, str]) -> None:
         """
@@ -50,6 +50,16 @@ class TblEavText(DatabaseConnection):
         necessary parameters visible in the PSQL query name and query
         :return: None
         """
+        self.execute_query(PsqlQueries.ISO_INS__TB_EAVT_VAR_ISO_FIELD_VAL, param)
+
+    def insert_eav_isolate_viral_species(self, param: Tuple[str, str, Optional[str]]) -> None:
+        """
+        Inserts metadata in eav_text table for the selected isolate, or insert "NA" if no value was found for this metadata.
+        :param param: isolate name, name of the metadata ("field" in the SQL table), value of the metadata ("value" in the SQL table).
+        :return: None
+        """
+        if not param[2]:
+            param = (param[0], param[1], 'NA')
         self.execute_query(PsqlQueries.ISO_INS__TB_EAVT_VAR_ISO_FIELD_VAL, param)
 
     def update_eav_id(self, param: Tuple[str, str, str]) -> None:

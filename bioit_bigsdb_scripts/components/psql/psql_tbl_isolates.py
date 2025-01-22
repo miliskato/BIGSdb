@@ -164,7 +164,7 @@ class TblIsolates(DatabaseConnection):
         return self.execute(PsqlQueries.ISO_SEL_ISOLATE_ID)
 
     @staticmethod
-    def _build_update_nomin_metadata_query(metadata_mapping: Dict[str, Any]) -> str:
+    def build_update_nomin_metadata_query(metadata_mapping: Dict[str, Any]) -> str:
         """
         Build the query used to update metadata for a specific species
         :param metadata_mapping : db<->json fields mapping for the species
@@ -183,14 +183,12 @@ class TblIsolates(DatabaseConnection):
         # Return the formatted query string using the template and the sets
         return PsqlQueries.ISO_INSERT_GENERIC_LAB_METADATA_TEMPLATE.format(key_format_pair_list_as_str)
 
-    def update_nomin_metadata(self, metadata_mapping: Dict[str, Any], isolate_name: str) -> None:
+    def update_nomin_metadata(self, query: str, param: List[str]) -> None:
         """
-        Builds the query used to update metadata for a specific species & adds laboratory nominative data in the 
-        isolates table for the specified species
-        :param metadata_mapping : db<->json fields mapping for the species
-        :param isolate_name: The name of the isolate for which to insert the nominative metadata.
+        Function use to pass the values (from param) to a query waiting for parameters (=%s) and to execute the query.
+        Used to fill in nominative/epidemiological data in the isolates table.
+        :param query: PSQL query to be fed
+        :param param: variables to feed to the PSQL query
         :return: None
         """
-        query = self._build_update_nomin_metadata_query(metadata_mapping)
-        param = [*metadata_mapping.values(), isolate_name]
         self.execute_query(query, param)

@@ -2,12 +2,14 @@ import logging
 import os
 import socket
 import time
+import yaml
 from datetime import datetime, timedelta
 from pathlib import Path
 
 from azure import batch
 from azure.monitor.ingestion import LogsIngestionClient
 
+from bioit_mongodb_scripts.reanalysis import MONGO_REANALYSIS_CONFIG
 from bioit_mongodb_scripts.reanalysis.reanalysis_submitter_azure import BatchPipelinesReanalysis
 from bioit_mongodb_scripts.util.command.command import Command
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data
@@ -15,7 +17,7 @@ from bioit_mongodb_scripts.util_azure.connect_azure import ConnectAzure
 from bioit_mongodb_scripts.util_azure.tempid_replacer_azure import TempidReplacerAzure
 
 REMOVE_LOGS = 'find /var/log/dbupdate-logs/ -maxdepth 1 -mtime +28 -exec rm -rf {} \; 2>/dev/null'
-DBUPDATES = 'export DB_UPD_ROOT="/opt/db_update"; export XDG_CACHE_HOME="/var/cache/dbupdate_cache"; /opt/db_update/dbupdate/scripts/bash/update_weekly.sh >> /var/log/dbupdate-logs/$(date +"%Y_%m_%d_%H-%M-%S")_updatelog.txt 2>&1'
+DBUPDATES = 'export ACCESS_PATH_TOKEN="/opt/db_update/credentials/"; export DB_UPD_ROOT="/opt/db_update"; export XDG_CACHE_HOME="/var/cache/dbupdate_cache"; /opt/db_update/dbupdate/scripts/bash/update_weekly.sh >> /var/log/dbupdate-logs/$(date +"%Y_%m_%d_%H-%M-%S")_updatelog.txt 2>&1'
 DEALLOCATE_VM = 'az login --identity; az vm deallocate -n $(hostname) -g $(curl -s -H Metadata:true --noproxy "*" "http://169.254.169.254/metadata/instance?api-version=2021-02-01" | python3 -c \'import sys, json; print(json.load(sys.stdin)["compute"]["resourceGroupName"])\')'
 
 
@@ -38,7 +40,9 @@ class DbUpdatesReanalysis:
             logging.basicConfig(filename=filename_log, filemode='w', level=logging.DEBUG,
                                 format='%(asctime)s - %(name)s - %(funcName)s - %(levelname)s - %(message)s')
             self._environment = environment
-            self._mongo_config_data = get_mongodb_config_data()
+            # Read the reanalysis config
+            with open(MONGO_REANALYSIS_CONFIG, encoding='utf-8') as handle:
+                self._reanalysis_config = yaml.safe_load(handle)
             self._connection_azure_1, self._connection_azure_2 = self._connect_azure()
             self._batch_client_1 = self._connection_azure_1.connect_to_batch_client()
             self._batch_client_2 = self._connection_azure_2.connect_to_batch_client()
@@ -111,7 +115,7 @@ class DbUpdatesReanalysis:
         Executes the tempid replacer azure script.
         :return: None
         """
-        for species in self._mongo_config_data['species']:
+        for species in self._reanalysis_config['species'].keys():
             if self._environment == 'dt':
                 TempidReplacerAzure(species, "dev")
                 TempidReplacerAzure(species, "test")
@@ -124,7 +128,7 @@ class DbUpdatesReanalysis:
         Executes the reanalysis script.
         :return: None
         """
-        for species in self._mongo_config_data['species']:
+        for species in self._reanalysis_config['species'].keys():
             if self._environment == 'dt':
                 BatchPipelinesReanalysis(species, "dev")
                 BatchPipelinesReanalysis(species, "test")

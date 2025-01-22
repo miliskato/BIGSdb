@@ -2179,6 +2179,15 @@ sub get_db_description {
 	return $desc;
 }
 
+sub is_viral_db {
+	my ( $self, $options ) = @_;
+	my $db = $self -> get_db_description;
+	if ($db eq 'Influenza isolates') {
+		return 1;
+	}
+	return 0;
+}
+
 sub get_link_button_to_ref {
 	my ( $self, $ref, $options ) = @_;
 	$options = {} if ref $options ne 'HASH';
