@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [2.2.1]
+### Added
+- None
+
+### Changed
+- updated nrc integratin SFTP flows to HD to only send all output to ODS and not to DWH according to new version of DPD
+
 ## [2.1.0]
 ### Added
 - Possibility to handle insertion for viral species that come without any scheme to insert in seqdef
