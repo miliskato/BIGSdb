@@ -326,8 +326,6 @@ species_json:
         type: regular
       pcr_serogroup:
         type: regular
-      metal_detergent:
-        type: regular
       typing_virulence:
         type: regular
       typing_amr:
