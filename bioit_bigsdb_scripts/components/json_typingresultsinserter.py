@@ -146,7 +146,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
                     '_detected')  # need to be careful with rstrip and strip but in this case no issue
                 allele_id = '1' if self._json_report_dict[self._scheme][record] else '0'
                 self._isolates_ad_psql_tbl.insert_designation_by_isolatename((locus, self._isolatename, allele_id))
-        elif self._scheme == 'amr_who':
+        elif self._scheme == 'amr_detection':
             # make a dict with field and tsv names to be able to insert
             with TblEavFields(self._species) as isolates_eavf_psql_tbl:
                 fields = isolates_eavf_psql_tbl.select_fields_amr()
@@ -159,15 +159,15 @@ class JsonTypingResultsInserter(JsonSuperClass):
             for bigsdbname, jsonname in amr_metadata_fields.items():
                 print(self._json_report_dict[self._scheme])
                 self._isolates_eavt_psql_tbl.insert_eav_isolate(
-                    (self._isolatename, bigsdbname, self._json_report_dict[self._scheme]['results'][jsonname]))
+                    (self._isolatename, bigsdbname, self._json_report_dict[self._scheme][jsonname]))
             # AMR results
             with TblSchemeMembers(self._species, 'isolates') as isolates_schememembers_psql_tbl:
                 amr_loci = isolates_schememembers_psql_tbl.select_loci_amr()
             for locus in amr_loci:
                 jsonname = '_'.join(['amr_mutations', str(locus[0]).replace('_int', '_(int.)')])
-                if self._json_report_dict[self._scheme]['results'][jsonname] != '-':
+                if self._json_report_dict[self._scheme][jsonname] != '-':
                     variantsset = set()
-                    for variant in self._json_report_dict[self._scheme]['results'][jsonname].split(', '):
+                    for variant in self._json_report_dict[self._scheme][jsonname].split(', '):
                         variantreformatted = re.sub('[(]|[)]', '_', variant)
                         # Bert explained that if the change is found in promotor, then it can change signs
                         # And also honestly the db is really discrepant, e.g. how likely is this:
