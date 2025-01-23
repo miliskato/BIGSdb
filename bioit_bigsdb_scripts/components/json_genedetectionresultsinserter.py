@@ -28,7 +28,8 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
 
         super().__init__(isolatename, species, json_report_dict, config_data)
 
-        self._genedetectiondict: Union[None, Dict[str, Dict[str, str]]] = self._bigsdb_config_data['species_json'][species]['genedetection_schemes']
+        self._genedetectiondict: Union[None, Dict[str, Dict[str, str]]] = \
+            self._bigsdb_config_data['species_json'][species]['genedetection_schemes']
         self._eavhtmltable = None
         self._scheme = None
         self._clusterdict = None
@@ -49,7 +50,6 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                     self._clusterdict, self._ncbi_ab_class_dict = self._create_clusterdict_current_db_version()
                     # Get hits
                     listofhits: List = self._json_report_dict[self._scheme]['loci']
-                    report_name = self._report_access.name
                     """
                     this might look something like this currently: 
                     "ncbi_amr": {"loci": 
@@ -194,11 +194,11 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                 """
                 if sequencedictlist[sequencename]['accession'] is None:
                     # in VFDB, there are accessions with name "null", this borke the script,
-                    # therefore, now a - is added, and the allele should be enough to find.
+                    # therefore, now an - is added, and the allele should be enough to find.
                     sequencedictlist[sequencename]['accession'] = "-"
                 geneclusternamebigsdb = f"{self._schemename_bigsdb}_Gene{sequencedictlist[sequencename]['cluster']}"
                 clusterdict['_'.join([(sequencedictlist[sequencename]['accession']),
-                                           (sequencedictlist[sequencename]['allele']).replace("'", "")])] = geneclusternamebigsdb
+                                      (sequencedictlist[sequencename]['allele']).replace("'", "")])] = geneclusternamebigsdb
                 if self._schemename_bigsdb == 'NCBI_AMR':
                     ncbi_ab_class_dict['_'.join(
                         [(sequencedictlist[sequencename]['accession']), (sequencedictlist[sequencename]['allele']).replace("'", "")])] = '_'.join(

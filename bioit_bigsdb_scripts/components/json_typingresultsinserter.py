@@ -71,7 +71,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
                 # Bigsdb creates a null allele itself in the seqdef database
                 elif ((self._scheme == 'pcr_serogroup' or (self._scheme == 'bast' and locus['Locus'] == 'NadA_peptide'))
                       and locus['% Identity'] == '-' and locus['HSP/Locus length'] == '-') or self._scheme == 'cgmlst':
-                    # in cgmlst you can have perfect multihits (?) that are then also considered as a zero in the custom profile by Benoit, thats why its outside of the ( )
+                    # in cgmlst you can have perfect multihits (?) that are then also considered as a zero in the custom profile by Benoit, that's why it's outside of the ( )
                     self._isolates_ad_psql_tbl.insert_designation_by_isolatename(
                         (locus['Locus'], self._isolatename, '0'))
                     self._locusset.add(locus['Locus'])
@@ -174,7 +174,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
                         # Rv1979c AA G_107_A Rv1979c_AA_G_107_A Uncertain significance CFZ CFZ_Uncertain_significance
                         # Rv1979c PROM g_-107_a Rv1979c_PROM_g_-107_a Uncertain significance CFZ CFZ_Uncertain_significance
                         # + there are really just duplicates in the db so I limit to 1, then it's always the same.
-                        # Sometimes not only the sign changes when its in a promotor, but also the location,
+                        # Sometimes not only the sign changes when it's in a promotor, but also the location,
                         # easiest solution is just to insert after it is found.
                         self._insert_dummy_sequence_if_needed(locus[0], variantreformatted)
                         if variantreformatted not in variantsset:

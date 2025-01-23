@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Nominative metadata for Influenza 
 - Configuration for Influenza DBs (xml)
 
-### Change
+### Changed
 - List of authorized species in mongo config
 
 ### Bugfix
@@ -34,7 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Utility script for the validation of all badqcs submitted in BIGSdb
 
 ### Bugfix
-- Insertion of clustering/nominative data and alert computation is disable when BIGSdb is still empty
+- Insertion of clustering/nominative data and alert computation is disablex when BIGSdb is still empty
 - Fix access rights on /home/bigsdb/BIGSdb
 - Fix the lockfile command configuration to avoid simultaneous connections to the matrix file in AZURE. 
 - Avoid duplicated primary key in "classification_group_profile_history" if clustering change the same day
@@ -43,7 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Issue due to new cgMLST selected for insertion between the last update of temporary alleles and the next new run for the temp_id_replacer
 - Unexpected deletion of isolates from BIGSdb if a failure happens during the insertion of their reanalysis results.
 
-### Change
+### Changed
 - Update of "snp_lineage" scheme (mycobacterium)
 - "mongo_to_bigs_hourly" cron job is running every 5 minutes
 - Introduce new fields to get info on various updates in MongoDB Atlas
@@ -58,7 +58,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - SciensanoReportPage.pm to download the report directly from BIGSdb as previous solution was not working under 
   BIGSdb 1.48
 
-### Change
+### Changed
 - Reports are not stored on the local VM, they need to be called from AZURE api
 - Computation of the cgmlst matrix is done on AZURE
 - html tagger is running on AZURE
