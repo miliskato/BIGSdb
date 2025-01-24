@@ -279,3 +279,27 @@ INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) VALUES
 INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) VALUES(1, 'GENOTYPHI_Z66', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
 INSERT INTO classification_schemes(id, scheme_id, name, description, inclusion_threshold, use_relative_threshold, display_order, status, curator, datestamp) VALUES(1, (SELECT id FROM schemes WHERE name = 'cgMLST'), 'cgMLST_5_diffs_clustering', 'cgMLST profiles clustering at the threshold of 5 allelic differences', 5, false, 1, 'experimental', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
 INSERT INTO classification_schemes(id, scheme_id, name, description, inclusion_threshold, use_relative_threshold, display_order, status, curator, datestamp) VALUES(2, (SELECT id FROM schemes WHERE name = 'cgMLST'), 'cgMLST_10_diffs_clustering', 'cgMLST profiles clustering at the threshold of 10 allelic differences', 10, false, 2, 'experimental', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
+-- Salmonella Jammy upgrade January 2025
+update schemes SET name='Mykrobe' WHERE name='Genotyphi';
+DELETE FROM scheme_members WHERE locus='GENOTYPHI_ESBLS';
+DELETE FROM loci WHERE id='GENOTYPHI_ESBLS';
+DELETE FROM scheme_members WHERE locus='GENOTYPHI_AMINOGLYCOSIDES';
+DELETE FROM loci WHERE id='GENOTYPHI_AMINOGLYCOSIDES';
+DELETE FROM scheme_members WHERE locus='GENOTYPHI_BETA-LACTAMASES';
+DELETE FROM loci WHERE id='GENOTYPHI_BETA-LACTAMASES';
+DELETE FROM scheme_members WHERE locus='GENOTYPHI_MACROLIDES';
+DELETE FROM loci WHERE id='GENOTYPHI_MACROLIDES';
+DELETE FROM scheme_members WHERE locus='GENOTYPHI_PHENICOLS';
+DELETE FROM loci WHERE id='GENOTYPHI_PHENICOLS';
+DELETE FROM scheme_members WHERE locus='GENOTYPHI_QUINOLONES';
+DELETE FROM loci WHERE id='GENOTYPHI_QUINOLONES';
+UPDATE loci SET id='MYKROBE_INCFIAHI1' WHERE id='GENOTYPHI_INCFIAHI1';
+UPDATE loci SET id='MYKROBE_INCHI1A' WHERE id='GENOTYPHI_INCHI1A';
+UPDATE loci SET id='MYKROBE_INCHI1BR27' WHERE id='GENOTYPHI_INCHI1BR27';
+UPDATE loci SET id='MYKROBE_INCY' WHERE id='GENOTYPHI_INCY';
+UPDATE loci SET id='MYKROBE_AZITHROMYCIN' WHERE id='GENOTYPHI_AZITHROMYCIN';
+UPDATE loci SET id='MYKROBE_PST' WHERE id='GENOTYPHI_PST';
+UPDATE loci SET id='MYKROBE_SULFONAMIDES' WHERE id='GENOTYPHI_SULFONAMIDES';
+UPDATE loci SET id='MYKROBE_TETRACYCLINE' WHERE id='GENOTYPHI_TETRACYCLINES';
+UPDATE loci SET id='MYKROBE_TRIMETHOPRIM' WHERE id='GENOTYPHI_TRIMETHOPRIMS';
+UPDATE loci SET id='MYKROBE_Z66' WHERE id='GENOTYPHI_Z66';

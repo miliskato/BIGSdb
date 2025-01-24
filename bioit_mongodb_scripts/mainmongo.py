@@ -762,7 +762,8 @@ class MainMongo:
         elif input_type == 'ont':
             return 'fastq_se'
 
-    def ___reformat_mykrobe_results(self, json_report: JsonReportDict) -> None:
+    @staticmethod
+    def ___reformat_mykrobe_results(json_report: JsonReportDict) -> None:
         """
         The mykrobe results from Camel are a list of dicts. This not very useful for the typing inserter into bigsdb,
         and for the flow to the ODS is particularly cumbersome. This function generates a dict of dicts much like the

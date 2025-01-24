@@ -297,7 +297,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
                 self._isolates_eavt_psql_tbl.insert_eav_isolate(
                     (self._isolatename, f'{self._scheme}_serotype', serotyping_insert))
         elif self._scheme == 'seqsero2':
-            for mode in 'kmer', 'kmerread', 'allele':
+            for mode in ['kmer', 'kmerread', 'allele']:
                 serotyping_insert = self._json_report_dict['seqsero2'].get(
                     f'{self._scheme}_{mode}_Predicted_antigenic_profile')
                 if serotyping_insert:
@@ -310,7 +310,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
                         self._isolates_eavt_psql_tbl.insert_eav_isolate(
                             (self._isolatename, f'{self._scheme}_{mode}_serotype', serotyping_insert))
         elif self._scheme == 'spifinder':
-            for mode in 'fastq', 'fasta':
+            for mode in ['fastq', 'fasta']:
                 hits: List = self._json_report_dict['spifinder'].get(f'{self._scheme}_{mode}')
                 if hits and len(hits) != 0:
                     inserted_alleledesignations_list = set()
