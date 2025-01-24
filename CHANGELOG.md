@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - None
 
 ### Changed
-- All Jammy existing assays to bigsdb for neisseria listeria salmonella mycobacterium influenza. Only thing not handled is neisseria serogroup capsule tool
+- All Jammy existing assays to bigsdb for neisseria listeria salmonella mycobacterium influenza.
 
 ## [2.1.0]
 ### Added

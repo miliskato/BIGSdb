@@ -77,8 +77,10 @@ class JsonTypingResultsInserter(JsonSuperClass):
                     self._locusset.add(locus['Locus'])
 
     def _process_irregular_typing_scheme(self) -> None:
-        if self._scheme == 'pointfinder':
-            self.__process_irregular_typing_scheme_pointfinder()
+        """
+        Inserts irregular typing schemes into BIGSdb by pathogen.
+        :return: None
+        """
         if self._species == 'mycobacterium':
             self.__process_irregular_typing_scheme_mycobacterium_specific()
         elif self._species == 'neisseria':
@@ -87,34 +89,6 @@ class JsonTypingResultsInserter(JsonSuperClass):
             self.__process_irregular_typing_scheme_stec_specific()
         elif self._species == 'salmonella':
             self.__process_irregular_typing_scheme_salmonella_specific()
-
-    def __process_irregular_typing_scheme_pointfinder(self) -> None:
-        """
-        Processes and inserts pointfinder results (available in multiple species)
-        :return: None
-        """
-        if len(self._json_report_dict[self._scheme]['results']) != 0:
-            eavhtmltable = '<table class="data"><tr><th>Hit</th><th>Antibiotic</th></tr>'
-            for result in self._json_report_dict[self._scheme]['results']:
-                if result['Resistance'] != "Unknown":
-                    # Seeing as the allele db of pointfinder is empty at the beginning because the db is too hard to understand, we gradually add alleles.
-                    # sometimes a mutation will give resistance to more than 1 AB
-                    antibiotics: List[str] = result['Resistance'].split(',')
-                    for antibiotic in antibiotics:
-                        antibiotic_reformatted = '_'.join(
-                            ['POINTFINDER', re.sub('-| ', '_', antibiotic).upper()])
-                        mutation = re.sub('[.]| ', '_', result['Mutation'])
-                        scheme_tag = self._schemedict[self._scheme]['schemename_html']
-                        report_url = UrlHelper.report_for_isolate(self._species, self.___get_isolate_id(), anchor=scheme_tag)
-                        eavhtmltable = eavhtmltable + f'<tr><td><a href="{report_url}" target="_blank">{mutation}</a></td>'
-                        eavhtmltable = eavhtmltable + f'<td>{antibiotic}</td></tr>'
-                        self.insert_locus_if_needed(antibiotic_reformatted,
-                                                    self._schemedict[self._scheme]['schemename_bigsdb'])
-                        self._insert_dummy_sequence_if_needed(antibiotic_reformatted, mutation)
-                        self._isolates_ad_psql_tbl.insert_designation_by_isolatename(
-                            (antibiotic_reformatted, self._isolatename, mutation))
-            eavhtmltable = eavhtmltable + '</table>'
-            self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'pointfinder_hits', eavhtmltable))
 
     def ___get_isolate_id(self) -> str:
         """
@@ -226,23 +200,12 @@ class JsonTypingResultsInserter(JsonSuperClass):
         Processes and inserts neisseria results
         :return: None
         """
-        if self._scheme == 'resistance_genes' and len(self._json_report_dict[self._scheme]['loci']) != 0:
-            for locus in self._json_report_dict[self._scheme]['loci']:
-                if locus['Locus'] in ['penA', 'rpoB'] and locus['% Identity'] == '100.00' and \
-                        locus['HSP/Locus length'] != '-' and eval(locus['HSP/Locus length']) == 1.0:
-                    response: requests.models.Response = requests.get(
-                        f"https://rest.pubmlst.org/db/pubmlst_neisseria_seqdef/loci/{locus['Locus']}/alleles/{locus['Allele']}")
-                    json_data: Dict = response.json()
-                    # An api hammering test showed that it could > 1000 results in minutes in a simple for loop,
-                    # which is not going to be the case here
-                    if json_data['status'] != '404' and json_data.get('linked_data') and 'PubMLST isolates' in \
-                            json_data['linked_data']:
-                        for antibiotic in ['rifampicin_SIR', 'penicillin_SIR']:
-                            if antibiotic in json_data['linked_data']['PubMLST isolates']:
-                                for record in json_data['linked_data']['PubMLST isolates'][antibiotic]:
-                                    self._isolates_eavt_psql_tbl.insert_eav_isolate(
-                                        (self._isolatename, '_'.join([antibiotic, record['value'], 'frequency']),
-                                         record['frequency']))
+        if self._scheme == 'serogroup' and self._json_report_dict['serogroup']['serogroup_capsule_genes'] != "":
+            scheme = self._schemedict[self._scheme]['schemename_bigsdb']
+            for gene in self._json_report_dict['serogroup']['serogroup_capsule_genes'].split(','):
+                self.insert_locus_if_needed(f'{scheme}_{gene}', scheme)
+                self._insert_dummy_sequence_if_needed(f'{scheme}_{gene}', '1')
+                self._isolates_ad_psql_tbl.insert_designation_by_isolatename((f'{scheme}_{gene}', self._isolatename, '1'))
 
     def __process_irregular_typing_scheme_stec_specific(self) -> None:
         """

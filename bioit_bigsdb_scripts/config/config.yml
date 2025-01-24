@@ -391,6 +391,9 @@ species_json:
         type: regular
       fhbp:
         type: regular
+      serogroup:
+        type: irregular
+        schemename_bigsdb: serogroup_capsule
     genedetection_schemes:
 #      resfinder:
 #        clusteredfasta: /var/lib/.bioit_database_azure/gene_detection/ResFinder/resfinder-clustered_80.fasta
