@@ -34,7 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Utility script for the validation of all badqcs submitted in BIGSdb
 
 ### Bugfix
-- Insertion of clustering/nominative data and alert computation is disablex when BIGSdb is still empty
+- Insertion of clustering/nominative data and alert computation is disabled when BIGSdb is still empty
 - Fix access rights on /home/bigsdb/BIGSdb
 - Fix the lockfile command configuration to avoid simultaneous connections to the matrix file in AZURE. 
 - Avoid duplicated primary key in "classification_group_profile_history" if clustering change the same day
