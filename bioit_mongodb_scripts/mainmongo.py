@@ -638,11 +638,12 @@ class MainMongo:
                     any_result_changed = True
                     changed_results.add(mainkey)
                     continue
-                mainkey_deepcopy = new_results[mainkey]
-                for subkey in mainkey_deepcopy:
+                mainkey_deepcopy = deepcopy(new_results[mainkey])
+                for subkey in new_results[mainkey]:
                     if isinstance(subkey, str) and 'db_version' in subkey or 'tool_version' in subkey:
                         mainkey_deepcopy.pop(subkey)
-                        current_results.pop(subkey)
+                        if current_results[mainkey].get(subkey):
+                            current_results[mainkey].pop(subkey)
                 if mainkey_deepcopy != current_results[mainkey]:
                     logging.info(f"{mainkey} different or not in old")
                     any_result_changed = True
