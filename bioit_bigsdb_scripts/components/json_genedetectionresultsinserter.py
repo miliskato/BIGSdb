@@ -44,7 +44,7 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
         if self._genedetectiondict is not None:
             for scheme in self._genedetectiondict:
                 self._scheme = scheme
-                if scheme in self._json_report_dict:
+                if self._scheme in self._json_report_dict:
                     self._schemename_bigsdb = self._genedetectiondict[self._scheme]['schemename_bigsdb']
                     # create current clusterdict with names and current cluster
                     self._clusterdict, self._ncbi_ab_class_dict = self._create_clusterdict_current_db_version()

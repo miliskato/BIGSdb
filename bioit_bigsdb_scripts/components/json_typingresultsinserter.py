@@ -43,7 +43,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
                 self._species) as self._isolates_eavt_psql_tbl:
             for scheme in self._schemedict:
                 self._scheme = scheme
-                if scheme in self._json_report_dict:
+                if self._scheme in self._json_report_dict:
                     if self._schemedict[self._scheme]['type'] == 'regular':
                         self._process_regular_typing_scheme()
                     elif self._schemedict[self._scheme]['type'] == 'irregular':
@@ -269,7 +269,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
                         self._isolates_eavt_psql_tbl.insert_eav_isolate(
                             (self._isolatename, f'{self._scheme}_{mode}_formula', serotyping_insert))
                     serotyping_insert = self._json_report_dict['seqsero2'][f'{self._scheme}_{mode}_Predicted_serotype']
-                    if serotyping_insert != '- -:-:-':
+                    if serotyping_insert != '-_-:-:-':
                         self._isolates_eavt_psql_tbl.insert_eav_isolate(
                             (self._isolatename, f'{self._scheme}_{mode}_serotype', serotyping_insert))
         elif self._scheme == 'spifinder':
