@@ -4,7 +4,7 @@ import sys
 import traceback
 from pathlib import Path
 
-import pymongo
+from pymongo.collection import Collection
 
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
@@ -21,7 +21,7 @@ from bioit_mongodb_scripts.util.python_utility_functions import send_email
 
 class MainResultsInserter:
     def __init__(self, isolatename: str, uploader_mail_address: str, species: str, results_type: ResultType, report_access: str, vcf_path: str, mongo_dtap: str,
-                 json_results: JsonReportDict, isolation_date: str, nominative_labtest_clinical_metadata_collection: pymongo.collection.Collection ) -> None:
+                 json_results: JsonReportDict, isolation_date: str, nominative_labtest_clinical_metadata_collection: Collection) -> None:
         """
         Initialises the class and runs the main function.
         See also argparse function for variables and their requiredness.

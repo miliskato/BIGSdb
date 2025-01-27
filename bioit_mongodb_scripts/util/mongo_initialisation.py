@@ -2,7 +2,8 @@ import logging
 from typing import Any, Dict, Union
 
 import pymongo
-from pymongo import MongoClient, database, collection
+from pymongo import MongoClient, database
+from pymongo.collection import Collection
 
 from .python_utility_functions import get_mongodb_config_data
 
@@ -45,7 +46,7 @@ class MongoInitialisation:
             raise NameError(f"replace dtap value in bioit_mongodb_scripts/config/config.yml or use alternate_dtap")
         return self.client['_'.join([species, self._mongo_config_data["dtap"]])]  # e.g. listeria_dev
 
-    def _open_mongo_collection(self, opened_database: pymongo.database.Database, collection: str) -> pymongo.collection.Collection:
+    def _open_mongo_collection(self, opened_database: pymongo.database.Database, collection: str) -> Collection:
         """
         Opens a mongo collection in an opened database
         :param opened_database: mongo opened database
@@ -61,7 +62,7 @@ class MongoInitialisation:
         else:
             raise RuntimeError(f"Collection '{collection}' not in supported collections")
 
-    def initialise_collections(self) -> (pymongo.collection.Collection, pymongo.collection.Collection, pymongo.collection.Collection, pymongo.collection.Collection):
+    def initialise_collections(self) -> (Collection, Collection, Collection, Collection):
         """
         Initialises database and collections for interaction
         :return: opened isolate, isolatesresults, isolatesbadqc, and isolates resequencing collections (instances) for a given species
@@ -76,7 +77,7 @@ class MongoInitialisation:
         isolates_resequencing_collection = self._open_mongo_collection(self.opened_mongo_database, "isolates_resequencing")
         return isolates_collection, isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection
 
-    def initialise_clustering_collections(self) -> (pymongo.collection.Collection, pymongo.collection.Collection, pymongo.collection.Collection):
+    def initialise_clustering_collections(self) -> (Collection, Collection, Collection):
         """
         Initialises database and collections for interaction
         :return: opened sequence_type, cluster membership, and cluster merging history collections for a given species
@@ -86,7 +87,7 @@ class MongoInitialisation:
         cluster_merging_collection = self._open_mongo_collection(self.opened_mongo_database, "cluster_merging")
         return st_collection,  cluster_membership_collection, cluster_merging_collection
 
-    def initialise_hashing_collection(self) -> pymongo.collection.Collection:
+    def initialise_hashing_collection(self) -> Collection:
         """
         Initialises collection containing hashes
         :return: Opened hashing collection
@@ -94,7 +95,7 @@ class MongoInitialisation:
         hashed_ad_collection = self._open_mongo_collection(self.opened_mongo_database, "new_allele_hashes")
         return hashed_ad_collection
 
-    def initialise_update_collection(self) -> pymongo.collection.Collection:
+    def initialise_update_collection(self) -> Collection:
         """
         Initialises collection containing update metadata
         :return: Opened update metadata collection
@@ -102,7 +103,7 @@ class MongoInitialisation:
         update_collection = self._open_mongo_collection(self.opened_mongo_database, "update_metadata")
         return update_collection
 
-    def initialise_headers_collection(self) -> pymongo.collection.Collection:
+    def initialise_headers_collection(self) -> Collection:
         """
         Initialises collection containing headers of all sorts:
         typing hit dictionary headers,
@@ -113,7 +114,7 @@ class MongoInitialisation:
         headers_collection = self._open_mongo_collection(self.opened_mongo_database, "headers")
         return headers_collection
 
-    def initialise_mapping_table_collection(self) -> pymongo.collection.Collection:
+    def initialise_mapping_table_collection(self) -> Collection:
         """
         Initialises collection containing mapping table of sample names and pseudonymized sample names and
         business keys.
@@ -122,7 +123,7 @@ class MongoInitialisation:
         mapping_table_collection = self._open_mongo_collection(self.opened_mongo_database, "mapping_table")
         return mapping_table_collection
 
-    def initialise_nominative_labtest_clinical_metadata_collection(self) -> pymongo.collection.Collection:
+    def initialise_nominative_labtest_clinical_metadata_collection(self) -> Collection:
         """
         Initialises collection containing the processed nominative clinical and labtest data acquired from the ODS sftp.
         :return: Opened nominative labtest and clinical metadata collection
@@ -130,7 +131,7 @@ class MongoInitialisation:
         nominative_labtest_clinical_metadata_collection = self._open_mongo_collection(self.opened_mongo_database, "nominative_labtest_clinical_metadata")
         return nominative_labtest_clinical_metadata_collection
 
-    def initialise_unprocessed_nominative_labtest_metadata_collection(self) -> pymongo.collection.Collection:
+    def initialise_unprocessed_nominative_labtest_metadata_collection(self) -> Collection:
         """
         Initialises collection containing the unprocessed nominative labtest data acquired from the ODS sftp.
         :return: Opened unprocessed labtest metadata collection
@@ -138,7 +139,7 @@ class MongoInitialisation:
         unprocessed_nominative_labtest_metadata_collection = self._open_mongo_collection(self.opened_mongo_database, "unprocessed_nominative_labtest_metadata")
         return unprocessed_nominative_labtest_metadata_collection
 
-    def initialise_unprocessed_nominative_clinical_metadata_collection(self) -> pymongo.collection.Collection:
+    def initialise_unprocessed_nominative_clinical_metadata_collection(self) -> Collection:
         """
         Initialises collection containing the unprocessed nominative clinical data acquired from the ODS sftp.
         :return: Opened unprocessed clinical metadata collection
