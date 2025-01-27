@@ -113,8 +113,8 @@ for species, species_testfiles in testfiles_dict.items():
     # Create an SFTP session
     sftp_ods = ssh_ods.open_sftp()
     
-    sftp_ods.rename(f"upload/{DTAP}/{dummy_mapping_table['pseudo_id']}.json",
-                    f"upload/{DTAP}/processed/{dummy_mapping_table['pseudo_id']}.json")
+    sftp_ods.rename(f"upload/{DTAP}/{dummy_mapping_table['_id']}.json",
+                    f"upload/{DTAP}/processed/{dummy_mapping_table['_id']}.json")
     sftp_ods.close()
     ssh_ods.close()
 
@@ -150,8 +150,8 @@ for species, species_testfiles in testfiles_dict.items():
     # Create an SFTP session
     sftp_ods = ssh_ods.open_sftp()
 
-    sftp_ods.rename(f"upload/{DTAP}/{dummy_mapping_table['pseudo_id']}.json",
-                    f"upload/{DTAP}/processed/{dummy_mapping_table['pseudo_id']}.json")
+    sftp_ods.rename(f"upload/{DTAP}/{dummy_mapping_table['_id']}.json",
+                    f"upload/{DTAP}/processed/{dummy_mapping_table['_id']}.json")
     sftp_ods.close()
     ssh_ods.close()
 

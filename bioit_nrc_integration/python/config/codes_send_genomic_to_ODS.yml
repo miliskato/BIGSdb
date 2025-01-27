@@ -5,8 +5,6 @@ pathogens:
     dcd_version: 1.0.0
 
 common:
-  TX_BIOIT_TECHNICAL_ID:
-    - pseudo_id
   CD_HCO_NIHDI:
     - technical_metadata
     - CD_HCO_NIHDI  # this value is not converted in the HERA_Azure code and should not be
@@ -23,10 +21,8 @@ common:
 #    - results
 #    - analysis_date
   TX_BUSINESS_KEY:
-    - results
     - TX_BUSINESS_KEY
   TX_SAMPLE_ID:
-    - results
     - _id
 
 salmonella:

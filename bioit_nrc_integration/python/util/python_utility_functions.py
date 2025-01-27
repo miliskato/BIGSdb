@@ -12,7 +12,7 @@ def send_dictionary_to_ods(dictionary_to_send: Dict[str, Any], sftp: paramiko.SF
     """
     Sends a dictionary to the ODS.
     :param dictionary_to_send: dictionary to send
-    should contain the pseudo_id as ['data']['TX_BIOIT_TECHNICAL_ID']
+    should contain the _id as ['data']['TX_SAMPLE_ID']
     :param sftp: Paramiko sftp client element to send the dictionary to
     :param alternate_dtap: 'dev' or 'acc' if/when needed:
     The ODS provided two sftp credentials; one for test & one for prod.
@@ -24,7 +24,7 @@ def send_dictionary_to_ods(dictionary_to_send: Dict[str, Any], sftp: paramiko.SF
 
         # create temporary json file to upload
         # business key is not allowed to be in the filename according to Sébastien Pendeville
-        jsonfile = Path(temp_json_dir) / f"{dictionary_to_send['data']['TX_BIOIT_TECHNICAL_ID']}.json"
+        jsonfile = Path(temp_json_dir) / f"{dictionary_to_send['data']['TX_SAMPLE_ID']}.json"
         with jsonfile.open('w') as handle:
             handle.write(json.dumps(dictionary_to_send))
 
