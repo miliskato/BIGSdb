@@ -37,7 +37,6 @@ species:
     typing_schemes:
       listeria_mlst:
         dirdb: /var/lib/.bioit_database_azure/sequence_typing/listeria/mlst
-        tsvname: mlst
         scheme_fields: # the first element in the fields list should be an integer/primary_key
           - ST
           - CC
@@ -45,119 +44,95 @@ species:
         schemename_bigsdb: MLST
       listeria_cgmlst:
         dirdb: /var/lib/.bioit_database_azure/sequence_typing/listeria/cgmlst
-        tsvname: cgmlst
         schemename_bigsdb: cgMLST
       listeria_serogroup:
         dirdb: /var/lib/.bioit_database_azure/sequence_typing/listeria/serogroup
-        tsvname: pcr_serogroup
         scheme_fields:
           - profile_id
           - serogroup
         schemename_bigsdb: PCR serogroup
       listeria_metal_detergent_resistance:
         dirdb: /var/lib/.bioit_database_azure/sequence_typing/listeria/metal_detergent_resistance
-        tsvname: metal_detergent
         schemename_bigsdb: Metal and detergent resistance
       listeria_typing_virulence:
         dirdb: /var/lib/.bioit_database_azure/sequence_typing/listeria/virulence
-        tsvname: typing_virulence
         schemename_bigsdb: Virulence
       listeria_antibiotic_resistance:
         dirdb: /var/lib/.bioit_database_azure/sequence_typing/listeria/antibiotic_resistance
-        tsvname: typing_amr
         schemename_bigsdb: Antibiotic resistance
       listeria_species_confirmation:
         dirdb: /var/lib/.bioit_database_azure/sequence_typing/listeria/species_confirmation
-        tsvname: species_confirmation
         schemename_bigsdb: Species confirmation
     genedetection_schemes:
       listeria_ndaro:
         clusteredfasta: /var/lib/.bioit_database_azure/gene_detection/NCBI_AMR/ncbi_amr-clustered_80.fasta
         metadatafile: /var/lib/.bioit_database_azure/gene_detection/NCBI_AMR/mapping_full.json
-        tsvname: hits_ncbi_amr
         schemename_bigsdb: NCBI_AMR
         schemename_html: NCBI AMR genes (NDARO)
       listeria_resfinder:
         clusteredfasta: /var/lib/.bioit_database_azure/gene_detection/ResFinder/resfinder-clustered_80.fasta
         metadatafile: /var/lib/.bioit_database_azure/gene_detection/ResFinder/mapping_full.json
-        tsvname: hits_resfinder
         schemename_bigsdb: ResFinder
         schemename_html: ResFinder
       listeria_virulencefinder:
         clusteredfasta: /var/lib/.bioit_database_azure/gene_detection/VirulenceFinder-Listeria/virulencefinder-listeria-clustered_80.fasta
         metadatafile: /var/lib/.bioit_database_azure/gene_detection/VirulenceFinder-Listeria/mapping_full.json
-        tsvname: hits_virulencefinder
         schemename_bigsdb: VirulenceFinder_Listeria
         schemename_html: VirulenceFinder - <i>Listeria</i>
       listeria_vfdbcore:
         clusteredfasta: /var/lib/.bioit_database_azure/gene_detection/VFDB_core/vfdb_core-clustered_80.fasta
         metadatafile: /var/lib/.bioit_database_azure/gene_detection/VFDB_core/mapping_full.json
-        tsvname: hits_vfdb_core
         schemename_bigsdb: VFDB_core
         schemename_html: Virulence Factor DB - Core
       listeria_plasmidfinder:
         clusteredfasta: /var/lib/.bioit_database_azure/gene_detection/PlasmidFinder-gram_positive/plasmidfinder-gram_positive-clustered_80.fasta
         metadatafile: /var/lib/.bioit_database_azure/gene_detection/PlasmidFinder-gram_positive/mapping_full.json
-        tsvname: hits_plasmidfinder
         schemename_bigsdb: PlasmidFinder_grampositive
         schemename_html: PlasmidFinder - Gram positive
   mycobacterium:
     typing_schemes:
       mycobacterium_mlst:
         dirdb: /var/lib/.bioit_database_azure/sequence_typing/mycobacterium/mlst
-        tsvname: mlst
         scheme_fields:
           - ST
         schemename_bigsdb: MLST
       mycobacterium_cgmlst:
         dirdb: /var/lib/.bioit_database_azure/sequence_typing/mycobacterium/cgmlst
-        tsvname: cgmlst
         schemename_bigsdb: cgMLST
       mycobacterium_spoligotyping:
         dirdb: ''
-        tsvname: spoligotype_binary
       mycobacterium_51SNPassay:
         dirdb: ''
-        tsvname: 51SNP
       mycobacterium_csbrd:
         dirdb: ''
-        tsvname: ''
       mycobacterium_amrdetection:
         dirdb: ''
-        tsvname: ''
       mycobacterium_hsp65:
         dirdb: ''
-        tsvname: hits_hsp65
       mycobacterium_pointfinder:
         dirdb: ''
-        tsvname: pointfinder_mutations
         schemename_html: PointFinder
       mycobacterium_ncbi16s:
         dirdb: ''
-        tsvname: hits_ncbi_16s
     genedetection_schemes: null
   neisseria:
     typing_schemes:
       neisseria_mlst:
         dirdb: /var/lib/.bioit_database_azure/sequence_typing/neisseria/mlst
-        tsvname: mlst
         scheme_fields:
           - ST
         schemename_bigsdb: MLST
       neisseria_cgmlst:
         dirdb: /var/lib/.bioit_database_azure/sequence_typing/neisseria/cgmlst
-        tsvname: cgmlst
         schemename_bigsdb: cgMLST
       neisseria_rplf:
         dirdb: /var/lib/.bioit_database_azure/sequence_typing/neisseria/rplf
-        tsvname: rplf
         scheme_fields:
           - rplF_id
           - genospecies
         schemename_bigsdb: rplF
       neisseria_bast:
         dirdb: /var/lib/.bioit_database_azure/sequence_typing/neisseria/bast
-        tsvname: bast
         scheme_fields:
           - BAST
           - MenDeVAR_Bexsero_reactivity
@@ -165,152 +140,123 @@ species:
         schemename_bigsdb: BAST
       neisseria_pora:
         dirdb: /var/lib/.bioit_database_azure/sequence_typing/neisseria/pora
-        tsvname: pora
         schemename_bigsdb: porA
       neisseria_porb:
         dirdb: /var/lib/.bioit_database_azure/sequence_typing/neisseria/porb
-        tsvname: porb
         schemename_bigsdb: porB
       neisseria_feta:
         dirdb: /var/lib/.bioit_database_azure/sequence_typing/neisseria/feta
-        tsvname: feta
         schemename_bigsdb: FetA
       neisseria_resistancegenes:
         dirdb: /var/lib/.bioit_database_azure/sequence_typing/neisseria/resistance_genes
-        tsvname: resistance_genes
         schemename_bigsdb: Antibiotic_resistance
       neisseria_vaccinetargets:
         dirdb: /var/lib/.bioit_database_azure/sequence_typing/neisseria/vaccine_targets
-        tsvname: vaccine_targets
         schemename_bigsdb: Vaccine_targets
       neisseria_fhbpnucl:
         dirdb: /var/lib/.bioit_database_azure/sequence_typing/neisseria/fhbp
-        tsvname: fhbp
         schemename_bigsdb: fHbp_nucl
       neisseria_fhbppept:
         dirdb: /var/lib/.bioit_database_azure/sequence_typing/neisseria/fhbp
-        tsvname: Fhbp
         schemename_bigsdb: fHbp_pept
     genedetection_schemes:
       neisseria_ndaro:
         clusteredfasta: /var/lib/.bioit_database_azure/gene_detection/NCBI_AMR/ncbi_amr-clustered_80.fasta
         metadatafile: /var/lib/.bioit_database_azure/gene_detection/NCBI_AMR/mapping_full.json
-        tsvname: hits_ncbi_amr
         schemename_bigsdb: NCBI_AMR
         schemename_html: NCBI AMR genes (NDARO)
       neisseria_resfinder:
         clusteredfasta: /var/lib/.bioit_database_azure/gene_detection/ResFinder/resfinder-clustered_80.fasta
         metadatafile: /var/lib/.bioit_database_azure/gene_detection/ResFinder/mapping_full.json
-        tsvname: hits_resfinder
         schemename_bigsdb: ResFinder
         schemename_html: ResFinder
   stec:
     typing_schemes:
       stec_mlst_warwick:
         dirdb: /var/lib/.bioit_database_azure/sequence_typing/ecoli/mlst_warwick
-        tsvname: mlst_warwick
         scheme_fields:
           - ST
         schemename_bigsdb: MLST_Warwick
       stec_mlst_pasteur:
         dirdb: /var/lib/.bioit_database_azure/sequence_typing/ecoli/mlst_pasteur
-        tsvname: mlst_pasteur
         scheme_fields:
           - ST
         schemename_bigsdb: MLST_Pasteur
       stec_cgmlst:
         dirdb: /var/lib/.bioit_database_azure/sequence_typing/ecoli/cgmlst
-        tsvname: cgmlst
         schemename_bigsdb: cgMLST
       stec_pointfinder:
         dirdb: ''
-        tsvname: pointfinder_mutations
         schemename_html: PointFinder
       stec_serotype:
         dirdb: ''
-        tsvname: serotype
     genedetection_schemes:
       stec_ndaro:
         clusteredfasta: /var/lib/.bioit_database_azure/gene_detection/NCBI_AMR/ncbi_amr-clustered_80.fasta
         metadatafile: /var/lib/.bioit_database_azure/gene_detection/NCBI_AMR/mapping_full.json
         schemename_bigsdb: NCBI_AMR
         schemename_html: NCBI AMR genes (NDARO)
-        tsvname: hits_ncbi_amr
       stec_resfinder:
         clusteredfasta: /var/lib/.bioit_database_azure/gene_detection/ResFinder/resfinder-clustered_80.fasta
         metadatafile: /var/lib/.bioit_database_azure/gene_detection/ResFinder/mapping_full.json
         schemename_bigsdb: ResFinder
         schemename_html: ResFinder
-        tsvname: hits_resfinder
       stec_plasmidfinder:
         clusteredfasta: >-
           /var/lib/.bioit_database_azure/gene_detection/PlasmidFinder-entero/plasmidfinder-entero-clustered_80.fasta
         metadatafile: /var/lib/.bioit_database_azure/gene_detection/PlasmidFinder-entero/mapping_full.json
         schemename_bigsdb: PlasmidFinder_entero
         schemename_html: PlasmidFinder - Enterobacteriaceae
-        tsvname: hits_plasmidfinder
       stec_virulencefinder_ecoli:
         clusteredfasta: >-
           /var/lib/.bioit_database_azure/gene_detection/VirulenceFinder-Ecoli/virulencefinder-ecoli-clustered_80.fasta
         metadatafile: /var/lib/.bioit_database_azure/gene_detection/VirulenceFinder-Ecoli/mapping_full.json
         schemename_bigsdb: VirulenceFinder_Ecoli
         schemename_html: VirulenceFinder - <i>E. coli</i>
-        tsvname: hits_virulencefinder
       stec_virulencefinder_shiga:
         clusteredfasta: >-
           /var/lib/.bioit_database_azure/gene_detection/VirulenceFinder-Shiga/virulencefinder-shiga-clustered_80.fasta
         metadatafile: /var/lib/.bioit_database_azure/gene_detection/VirulenceFinder-Shiga/mapping_full.json
         schemename_bigsdb: VirulenceFinder_Shiga
         schemename_html: VirulenceFinder - Shiga-toxin genes
-        tsvname: hits_virulencefinder_shiga
   salmonella:
     typing_schemes:
       salmonella_mlst:
         dirdb: /var/lib/.bioit_database_azure/sequence_typing/salmonella/mlst
-        tsvname: mlst
         scheme_fields:
           - ST
         schemename_bigsdb: MLST
       salmonella_cgmlst:
         dirdb: /var/lib/.bioit_database_azure/sequence_typing/salmonella/cgmlst
-        tsvname: cgmlst
         schemename_bigsdb: cgMLST
       salmonella_pointfinder:
         dirdb: ''
-        tsvname: pointfinder_mutations
         schemename_html: PointFinder
       salmonella_mykrobe:
         dirdb: ''
-        tsvname: mykrobe
       salmonella_serotyping:
         dirdb: ''
-        tsvname: serotyping
       salmonella_spifinder:
         dirdb: ''
-        tsvname: spifinder
     genedetection_schemes:
       salmonella_ndaro:
         clusteredfasta: /var/lib/.bioit_database_azure/gene_detection/NCBI_AMR/ncbi_amr-clustered_80.fasta
         metadatafile: /var/lib/.bioit_database_azure/gene_detection/NCBI_AMR/mapping_full.json
-        tsvname: hits_ncbi_amr
         schemename_bigsdb: NCBI_AMR
         schemename_html: NCBI AMR genes (NDARO)
       salmonella_resfinder:
         clusteredfasta: /var/lib/.bioit_database_azure/gene_detection/ResFinder/resfinder-clustered_80.fasta
         metadatafile: /var/lib/.bioit_database_azure/gene_detection/ResFinder/mapping_full.json
-        tsvname: hits_resfinder
         schemename_bigsdb: ResFinder
         schemename_html: ResFinder
       salmonella_vfdbcore:
         clusteredfasta: /var/lib/.bioit_database_azure/gene_detection/VFDB_core/vfdb_core-clustered_80.fasta
         metadatafile: /var/lib/.bioit_database_azure/gene_detection/VFDB_core/mapping_full.json
-        tsvname: hits_vfdb_core
         schemename_bigsdb: VFDB_core
         schemename_html: Virulence Factor DB - Core
       salmonella_plasmidfinder:
         clusteredfasta: /var/lib/.bioit_database_azure/gene_detection/PlasmidFinder-entero/plasmidfinder-entero-clustered_80.fasta
         metadatafile: /var/lib/.bioit_database_azure/gene_detection/PlasmidFinder-entero/mapping_full.json
-        tsvname: hits_plasmidfinder
         schemename_bigsdb: PlasmidFinder_entero
         schemename_html: plasmid
   influenza:
