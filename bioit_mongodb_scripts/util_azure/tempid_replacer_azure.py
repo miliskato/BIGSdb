@@ -8,9 +8,9 @@ import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Union
 
-import pymongo
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
+from pymongo.collection import Collection
 from pymongo.read_concern import ReadConcern
 from pymongo.write_concern import WriteConcern
 
@@ -218,7 +218,7 @@ class TempidReplacerAzure:
             )
             logging.debug(f'[information_temp_id_replacer] Locus {locus} at position {locus_index} is replacing {temp_allele_name} by {new_allele_id}')
 
-    def ___update_temp_allele_to_new(self, collection: pymongo.collection.Collection, locus: str, temp_allele_name: str,
+    def ___update_temp_allele_to_new(self, collection: Collection, locus: str, temp_allele_name: str,
                                      new_allele_id: str, allele_index: int = None, in_results: bool = True) -> None:
         """
         Updates the collections containing isolates with the newly found alleles that were previously temporary
