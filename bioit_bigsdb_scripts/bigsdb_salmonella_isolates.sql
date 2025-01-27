@@ -129,8 +129,6 @@ INSERT INTO eav_fields(field, value_format, category, description, no_curate, no
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('azithromycin_susceptibility', 'text', 'Genotyphi', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('pST_susceptibility', 'text', 'Genotyphi', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('sulfonamides_susceptibility', 'text', 'Genotyphi', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
-INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('tetracyclines_susceptibility', 'text', 'Genotyphi', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
-INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('trimethoprims_susceptibility', 'text', 'Genotyphi', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('z66_susceptibility', 'text', 'Genotyphi', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
 --serotyping
 --sistr
