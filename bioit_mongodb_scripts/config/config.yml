@@ -46,10 +46,6 @@ schemes_sequence_typing:
 
 temp_dir: /scratch/temp
 
-htmlreporterpipeline:
-    lmod: camel_hera/0.1
-    main_script: mainhtmlreporterpipeline.py
-
 azure_reportsapi_ip: to_be_replaced_by_ansible
 
 naive_clustering_distance_matrix_file: /var/lib/.bioit_database/distance_matrices/cgmlst_distance_matrix_species_dtap.npy
