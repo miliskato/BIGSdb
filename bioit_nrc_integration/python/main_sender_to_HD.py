@@ -65,8 +65,10 @@ class MainSenderToHD:
 
             # get documents that need to be sent
             list_of_unsent_validated_documents = isolates_collection.find({'validation.outcome': 'good',
-                                                                           'sent_to_ODS': {'$ne': True}
-                                                                           })
+                                                                           '$or': [
+                                                                               {'sent_to_ODS': {'$ne': True}},
+                                                                               {'changed_since_sent_to_ODS': {'$ne': False}}
+                                                                            ]})
             if self._test_dummy:
                 list_of_unsent_validated_documents = [genomic_document for genomic_document in list_of_unsent_validated_documents if
                                                       genomic_document['_id'].startswith('test_dummy')]
