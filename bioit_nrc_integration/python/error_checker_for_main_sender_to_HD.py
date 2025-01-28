@@ -143,10 +143,10 @@ class ErrorCheckerForMainSenderToHD(SFTPConnection):
         :return: ssh, sftp, folder_path as str
         """
         ssh, sftp = self._open_sftp_connection(
-            self._sftp_credentials_hd['hostname_send_mapping_table_to_ODS'],
-            self._sftp_credentials_hd['port_send_mapping_table_to_ODS'],
-            self._sftp_credentials_hd['username_send_mapping_table_to_ODS'],
-            self._sftp_credentials_hd['password_send_mapping_table_to_ODS'])
+            self._sftp_credentials_hd['hostname_send_genomic_to_ODS'],
+            self._sftp_credentials_hd['port_send_genomic_to_ODS'],
+            self._sftp_credentials_hd['username_send_genomic_to_ODS'],
+            self._sftp_credentials_hd['password_send_genomic_to_ODS'])
         folder_path = 'upload/' + \
                       f"{(self._alternate_dtap + '/') if self._alternate_dtap else ''}" + \
                       folder

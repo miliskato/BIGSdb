@@ -50,10 +50,10 @@ class SendGenomicToODS(SFTPConnection):
 
         # initialize ssh & sftp
         self._ssh, self._sftp = self._open_sftp_connection(
-            self._sftp_credentials_hd['hostname_send_mapping_table_to_ODS'],
-            self._sftp_credentials_hd['port_send_mapping_table_to_ODS'],
-            self._sftp_credentials_hd['username_send_mapping_table_to_ODS'],
-            self._sftp_credentials_hd['password_send_mapping_table_to_ODS'])
+            self._sftp_credentials_hd['hostname_send_genomic_to_ODS'],
+            self._sftp_credentials_hd['port_send_genomic_to_ODS'],
+            self._sftp_credentials_hd['username_send_genomic_to_ODS'],
+            self._sftp_credentials_hd['password_send_genomic_to_ODS'])
 
         self._output_json_dict = self._create_output_json_dict()
         

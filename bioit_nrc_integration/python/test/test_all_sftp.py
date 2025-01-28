@@ -106,10 +106,10 @@ for species, species_testfiles in testfiles_dict.items():
     ssh_ods = paramiko.SSHClient()
     ssh_ods.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     # Connect to the server
-    ssh_ods.connect(sftp_credentials_hd['hostname_send_mapping_table_to_ODS'],
-                    sftp_credentials_hd['port_send_mapping_table_to_ODS'],
-                    sftp_credentials_hd['username_send_mapping_table_to_ODS'],
-                    sftp_credentials_hd['password_send_mapping_table_to_ODS'])
+    ssh_ods.connect(sftp_credentials_hd['hostname_send_genomic_to_ODS'],
+                    sftp_credentials_hd['port_send_genomic_to_ODS'],
+                    sftp_credentials_hd['username_send_genomic_to_ODS'],
+                    sftp_credentials_hd['password_send_genomic_to_ODS'])
     # Create an SFTP session
     sftp_ods = ssh_ods.open_sftp()
     
@@ -143,10 +143,10 @@ for species, species_testfiles in testfiles_dict.items():
     ssh_ods = paramiko.SSHClient()
     ssh_ods.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     # Connect to the server
-    ssh_ods.connect(sftp_credentials_hd['hostname_send_mapping_table_to_ODS'],
-                    sftp_credentials_hd['port_send_mapping_table_to_ODS'],
-                    sftp_credentials_hd['username_send_mapping_table_to_ODS'],
-                    sftp_credentials_hd['password_send_mapping_table_to_ODS'])
+    ssh_ods.connect(sftp_credentials_hd['hostname_send_genomic_to_ODS'],
+                    sftp_credentials_hd['port_send_genomic_to_ODS'],
+                    sftp_credentials_hd['username_send_genomic_to_ODS'],
+                    sftp_credentials_hd['password_send_genomic_to_ODS'])
     # Create an SFTP session
     sftp_ods = ssh_ods.open_sftp()
 
