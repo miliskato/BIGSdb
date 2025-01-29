@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # Hybrid between Bigs components and Mongodb components
 # to be executed on bigs host of choice
-# /home/bigsdb/BIGSdb/3.9PythonVenv/bin/python3.9 /home/mikelchtermans/Bigsdb_new/bioit_mongodb_scripts/mongo_to_bigs.py --species listeria --uploader_mail_address bioit@sciensano.be --pyvenvpythonpath /home/bigsdb/BIGSdb/3.9PythonVenv/bin/python3.9
+# /home/bigsdb/BIGSdb/3.12PythonVenv/bin/python3.12 /home/mikelchtermans/Bigsdb_new/bioit_mongodb_scripts/mongo_to_bigs.py --species listeria --uploader_mail_address bioit@sciensano.be --pyvenvpythonpath /home/bigsdb/BIGSdb/3.12PythonVenv/bin/python3.12
 
 import argparse
 import datetime
