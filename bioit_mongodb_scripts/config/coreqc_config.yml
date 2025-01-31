@@ -1,5 +1,5 @@
 listeria:
-  contamination:  # e.g. qc_kraken_illumina_value: '0.00%'
+  contamination:  # e.g. qc_kraken_illumina_value: "0.00%"
     threshold_warn: 1.0
     threshold_fail: 5.0
     threshold_direction: higher
@@ -7,17 +7,17 @@ listeria:
     field: qc_kraken_inputtype_value
     field_to_replace:
       inputtype: input_type
-    value_format_to_strip: %
+    value_format_to_strip: "%"
     available_for_fasta_input: true
-    parameter_name: % contamination (Kraken)
-  average_quality_score:  # e.g. qc_fqc_qscore_fwd_value: '250'  # todo what are these fields for ONT?
+    parameter_name: "% contamination (Kraken)"
+  average_quality_score:  # e.g. qc_fqc_avg_qual_fwd_value: '250'  # todo what are these fields for ONT?
     threshold_warn: 30.0
     threshold_fail: 25.0
     threshold_direction: lower
     category: quality_checks
     fields:
-      - qc_fqc_qscore_fwd_value
-      - qc_fqc_qscore_rev_value
+      - qc_fqc_avg_qual_fwd_value
+      - qc_fqc_avg_qual_rev_value
     available_for_fasta_input: false
     parameter_name: Average quality score
   typing_loci_detected:
@@ -26,10 +26,10 @@ listeria:
     threshold_direction: lower
     category: quality_checks
     field: qc_typing_loci_value
-    value_format_to_strip: %
+    value_format_to_strip: "%"
     available_for_fasta_input: true
-    parameter_name: Typing loci detected (%)
-  coverage_against_assembly:  # e.g. qc_cov_assembly_illumina_value: '18.00x'
+    parameter_name: "Typing loci detected (%)"
+  coverage_against_assembly:  # e.g. qc_cov_assembly_illumina_value: "18.00x"
     threshold_warn: 25.0
     threshold_fail: 20.0
     threshold_direction: lower
@@ -46,10 +46,187 @@ listeria:
     threshold_direction: higher
     category: quality_checks
     field: qc_assembly_total_len_value
-    value_format_to_strip: %
+    value_format_to_strip: "%"
     available_for_fasta_input: true
     parameter_name: Total assembly length deviation
-  number_of_contigs:  # e.g. qc_assembly_total_len_value: '0.90%'
+  number_of_contigs:  # e.g. qc_assembly_total_len_value: "0.90%"
+    threshold_warn: 250.0
+    threshold_fail: 300.0
+    threshold_direction: higher
+    category: quast
+    field: assembly_nb_contigs
+    available_for_fasta_input: true
+    parameter_name: Number of contigs
+salmonella:
+  contamination:  # e.g. qc_kraken_illumina_value: "0.00%"
+    threshold_warn: 1.0
+    threshold_fail: 5.0
+    threshold_direction: higher
+    category: quality_checks
+    field: qc_kraken_inputtype_value
+    field_to_replace:
+      inputtype: input_type
+    value_format_to_strip: "%"
+    available_for_fasta_input: true
+    parameter_name: "% contamination (Kraken)"
+  average_quality_score:  # e.g. qc_fqc_avg_qual_fwd_value: '250'  # todo what are these fields for ONT?
+    threshold_warn: 30.0
+    threshold_fail: 25.0
+    threshold_direction: lower
+    category: quality_checks
+    fields:
+      - qc_fqc_avg_qual_fwd_value
+      - qc_fqc_avg_qual_rev_value
+    available_for_fasta_input: false
+    parameter_name: Average quality score
+  typing_loci_detected:
+    threshold_warn: 95.0
+    threshold_fail: 90.0
+    threshold_direction: lower
+    category: quality_checks
+    field: qc_typing_loci_value
+    value_format_to_strip: "%"
+    available_for_fasta_input: true
+    parameter_name: "Typing loci detected (%)"
+  coverage_against_assembly:  # e.g. qc_cov_assembly_illumina_value: "18.00x"
+    threshold_warn: 35.0
+    threshold_fail: 30.0
+    threshold_direction: lower
+    category: quality_checks
+    field: qc_cov_assembly_inputtype_value
+    field_to_replace:
+      inputtype: input_type
+    value_format_to_strip: x
+    available_for_fasta_input: false
+    parameter_name: Coverage against the assembled contigs
+  assembly_length_deviation:  # e.g. qc_assembly_total_len_value: '0.90%'
+    threshold_warn: 10.0
+    threshold_fail: 20.0
+    threshold_direction: higher
+    category: quality_checks
+    field: qc_assembly_total_len_value
+    value_format_to_strip: "%"
+    available_for_fasta_input: true
+    parameter_name: Total assembly length deviation
+  number_of_contigs:  # e.g. qc_assembly_total_len_value: "0.90%"
+    threshold_warn: 250.0
+    threshold_fail: 300.0
+    threshold_direction: higher
+    category: quast
+    field: assembly_nb_contigs
+    available_for_fasta_input: true
+    parameter_name: Number of contigs
+neisseria:
+  contamination:  # e.g. qc_kraken_illumina_value: "0.00%"
+    threshold_warn: 1.0
+    threshold_fail: 5.0
+    threshold_direction: higher
+    category: quality_checks
+    field: qc_kraken_inputtype_value
+    field_to_replace:
+      inputtype: input_type
+    value_format_to_strip: "%"
+    available_for_fasta_input: true
+    parameter_name: "% contamination (Kraken)"
+  average_quality_score:  # e.g. qc_fqc_avg_qual_fwd_value: '250'  # todo what are these fields for ONT?
+    threshold_warn: 30.0
+    threshold_fail: 25.0
+    threshold_direction: lower
+    category: quality_checks
+    fields:
+      - qc_fqc_avg_qual_fwd_value
+      - qc_fqc_avg_qual_rev_value
+    available_for_fasta_input: false
+    parameter_name: Average quality score
+  typing_loci_detected:
+    threshold_warn: 95.0
+    threshold_fail: 90.0
+    threshold_direction: lower
+    category: quality_checks
+    field: qc_typing_loci_value
+    value_format_to_strip: "%"
+    available_for_fasta_input: true
+    parameter_name: "Typing loci detected (%)"
+  coverage_against_assembly:  # e.g. qc_cov_assembly_illumina_value: "18.00x"
+    threshold_warn: 25.0
+    threshold_fail: 20.0
+    threshold_direction: lower
+    category: quality_checks
+    field: qc_cov_assembly_inputtype_value
+    field_to_replace:
+      inputtype: input_type
+    value_format_to_strip: x
+    available_for_fasta_input: false
+    parameter_name: Coverage against the assembled contigs
+  assembly_length_deviation:  # e.g. qc_assembly_total_len_value: '0.90%'
+    threshold_warn: 10.0
+    threshold_fail: 20.0
+    threshold_direction: higher
+    category: quality_checks
+    field: qc_assembly_total_len_value
+    value_format_to_strip: "%"
+    available_for_fasta_input: true
+    parameter_name: Total assembly length deviation
+  number_of_contigs:  # e.g. qc_assembly_total_len_value: "0.90%"
+    threshold_warn: 250.0
+    threshold_fail: 300.0
+    threshold_direction: higher
+    category: quast
+    field: assembly_nb_contigs
+    available_for_fasta_input: true
+    parameter_name: Number of contigs
+mycobacterium:
+  contamination:  # e.g. qc_kraken_illumina_value: "0.00%"
+    threshold_warn: 1.0
+    threshold_fail: 5.0
+    threshold_direction: higher
+    category: quality_checks
+    field: qc_kraken_inputtype_value
+    field_to_replace:
+      inputtype: input_type
+    value_format_to_strip: "%"
+    available_for_fasta_input: true
+    parameter_name: "% contamination (Kraken)"
+  average_quality_score:  # e.g. qc_fqc_avg_qual_fwd_value: '250'  # todo what are these fields for ONT?
+    threshold_warn: 30.0
+    threshold_fail: 25.0
+    threshold_direction: lower
+    category: quality_checks
+    fields:
+      - qc_fqc_avg_qual_fwd_value
+      - qc_fqc_avg_qual_rev_value
+    available_for_fasta_input: false
+    parameter_name: Average quality score
+  typing_loci_detected:
+    threshold_warn: 95.0
+    threshold_fail: 90.0
+    threshold_direction: lower
+    category: quality_checks
+    field: qc_typing_loci_value
+    value_format_to_strip: "%"
+    available_for_fasta_input: true
+    parameter_name: "Typing loci detected (%)"
+  coverage_against_assembly:  # e.g. qc_cov_assembly_illumina_value: "18.00x"
+    threshold_warn: 35.0
+    threshold_fail: 30.0
+    threshold_direction: lower
+    category: quality_checks
+    field: qc_cov_assembly_inputtype_value
+    field_to_replace:
+      inputtype: input_type
+    value_format_to_strip: x
+    available_for_fasta_input: false
+    parameter_name: Coverage against the assembled contigs
+  assembly_length_deviation:  # e.g. qc_assembly_total_len_value: '0.90%'
+    threshold_warn: 10.0
+    threshold_fail: 20.0
+    threshold_direction: higher
+    category: quality_checks
+    field: qc_assembly_total_len_value
+    value_format_to_strip: "%"
+    available_for_fasta_input: true
+    parameter_name: Total assembly length deviation
+  number_of_contigs:  # e.g. qc_assembly_total_len_value: "0.90%"
     threshold_warn: 250.0
     threshold_fail: 300.0
     threshold_direction: higher

@@ -10,7 +10,7 @@ import traceback
 from copy import deepcopy
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Literal, List, Tuple, Union
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
 # import dnspython
 # somehow this package is a requirement without actually needing to be imported, probably imported in pymongo
@@ -51,7 +51,7 @@ def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     parser.add_argument("--fastafilepath", required=False, type=str)  # not mandatory because of reanalysis
     parser.add_argument("--vcffilepath", required=False, type=str)  # not mandatory because of reanalysis
     parser.add_argument("--vcffilepath_unfiltered", required=False, type=str)  # not mandatory because of reanalysis
-    parser.add_argument("--original_input_format", required=False, type=str)  # maybe later change it to choices
+    parser.add_argument("--original_input_format", required=False, type=str, choices=['fastq', 'fasta'])
     parser.add_argument("--technical_id", required=True, type=str)
     parser.add_argument("--technical_metadata_path", required=False, type=Path)  # not mandatory because of reanalysis
     parser.add_argument("--pipeline_hash", required=True, type=str)  # Required for DCD NRC->DWH
@@ -67,8 +67,9 @@ class MainMongo:
     """
     def __init__(self, technical_id: str, species: str, results_type: str, pipeline_hash: str = None, jsonfilepath: Path = None,
                  subvaldict: Dict[str, str] = None, technical_metadata_path: Path = None, reportdirectorypath: Path = None, fastafilepath: Path = None,
-                 vcffilepath: Path = None, vcffilepath_unfiltered: Path = None, original_input_format: str = None, connection_string: str = None, alternate_dtap: Union[str, None] = None,
-                 dont_send_email: bool = False, mongo_config_data: Dict[str, Any] = None) -> None:
+                 vcffilepath: Path = None, vcffilepath_unfiltered: Path = None, original_input_format: Optional[Literal['fastq', 'fasta']] = None,
+                 connection_string: str = None, alternate_dtap: Union[str, None] = None, dont_send_email: bool = False,
+                 mongo_config_data: Dict[str, Any] = None) -> None:
         """
         Initialises this class and executes the main function which will insert/update the sample in a mongodb collection containing isolates
         !! If parameters/arguments are added here, also add them to the argparse function!!
@@ -790,19 +791,24 @@ class MainMongo:
         coreqc_config = load_config(COREQC_CONFIG)[self._species]
         rejection_reasons = []
         good_sample_quality = True
-        for key, metrics_info in coreqc_config:
-            field = metrics_info['field']
-            if metrics_info.get('field_to_replace'):
-                for key2, value in metrics_info['field_to_replace']:
-                    field = field.replace(key2, json_report[value])
-            if not metrics_info.get('value_format_to_strip'):
-                qc_value = float(json_report['results'][metrics_info['category']][field])
-            else:
-                qc_value = float(json_report['results'][metrics_info['category']][field].rstrip(metrics_info['value_format_to_strip']))
+        for key, metrics_info in coreqc_config.items():
+            if not metrics_info['available_for_fasta_input'] and self._original_input_format == 'fasta':
+                continue
+            if metrics_info.get('field'):
+                field = metrics_info['field']
+                if metrics_info.get('field_to_replace'):
+                    for key2, value in metrics_info['field_to_replace'].items():
+                        field = field.replace(key2, json_report[value])
+                if not metrics_info.get('value_format_to_strip'):
+                    qc_value = float(json_report[metrics_info['category']][field])
+                else:
+                    qc_value = float(json_report[metrics_info['category']][field].rstrip(metrics_info['value_format_to_strip']))
+            else:  # metrics_info.get('fields'):
+                qc_value = sum(float(json_report[metrics_info['category']][field]) for field in metrics_info['fields']) / len(metrics_info['fields'])
             for threshold in ['threshold_fail', 'threshold_warn']:
-                if metrics_info['direction'] == 'higher':
+                if metrics_info['threshold_direction'] == 'higher':
                     evaluation = float(qc_value) > metrics_info[threshold]
-                else:  # if metrics_info['direction'] == 'lower':
+                else:  # if metrics_info['threshold_direction'] == 'lower':
                     evaluation = float(qc_value) < metrics_info[threshold]
                 if evaluation:
                     if threshold == 'threshold_fail':
@@ -813,7 +819,7 @@ class MainMongo:
                             qc_value_formatted = qc_value
                             threshold_formatted = metrics_info[threshold]
                         rejection_reasons.append(f"{metrics_info['parameter_name']} (={qc_value_formatted}) "
-                                                 f"{metrics_info['direction']} than allowed limit (={threshold_formatted}).")
+                                                 f"{metrics_info['threshold_direction']} than allowed limit (={threshold_formatted}).")
                     else:  # if threshold == 'threshold_warn':
                         good_sample_quality = False
 
