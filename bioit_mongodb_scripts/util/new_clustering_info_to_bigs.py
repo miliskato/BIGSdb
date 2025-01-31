@@ -17,7 +17,7 @@ from bioit_bigsdb_scripts.components.psql import TblSequences, TblProfiles, TblP
     TblClassificationSchemes, TblEavText, TblEavFields, TblMappingTable
 from bioit_mongodb_scripts.config import CLUSTERING_CONFIG
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
-from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email
+from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, load_config, send_email
 
 
 class NewClusteringInfoToBigs:
@@ -29,7 +29,7 @@ class NewClusteringInfoToBigs:
     def __init__(self, species: str, naive_clustering_distance_matrix_file: Path, cgmlst_bigsdb_scheme_id: int,
                  mongo_config_data: Dict[str, Any] = None) -> None:
         """
-        Intialises this class and executes the main function
+        Initialises this class and executes the main function
         :param species: commonly used bioit species name: either genus or specific like stec
         :param naive_clustering_distance_matrix_file: The path to the naive clustering cgmlst distance matrix file
         :param cgmlst_bigsdb_scheme_id: The bigsdb SQL id of the cgMLST scheme
@@ -55,7 +55,8 @@ class NewClusteringInfoToBigs:
         # Open sequences psql table connection
         self._seqdef_sequences_psql_tbl = TblSequences(self._species)
         # Prepare for main
-        self._clustering_thresholds = CLUSTERING_CONFIG[f"clustering_thresholds_{self._species}"]
+        clustering_config = load_config(CLUSTERING_CONFIG)
+        self._clustering_thresholds = clustering_config[f"clustering_thresholds_{self._species}"]
         self._new_temporary_alleles_update_date = self._get_temporary_alleles_update_date()
         self._new_st = self._get_new_st()
         self._st_headers = self._get_st_headers()

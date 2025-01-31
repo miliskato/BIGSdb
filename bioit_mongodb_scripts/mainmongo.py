@@ -22,7 +22,7 @@ from pymongo.write_concern import WriteConcern
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
-from bioit_mongodb_scripts.config import CLUSTERING_CONFIG
+from bioit_mongodb_scripts.config import CLUSTERING_CONFIG, COREQC_CONFIG
 from bioit_nrc_integration.python.config import CODES_GENOMIC_DWH
 from bioit_mongodb_scripts.model.json_model import JsonReportDict, MongoRecordDict
 from bioit_mongodb_scripts.util.error import *
@@ -30,7 +30,7 @@ from bioit_mongodb_scripts.util.mongo_custom_clustering import MongoCustomCluste
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.mongo_querying import Mongoquerying
 from bioit_mongodb_scripts.util.python_utility_functions import access_value_in_dict_using_list_as_dictpath, \
-    convert_dmyhms_to_ymd, get_mongodb_config_data, is_viral, send_email
+    convert_dmyhms_to_ymd, get_mongodb_config_data, is_viral, send_email, load_config
 
 
 def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
@@ -233,8 +233,12 @@ class MainMongo:
         mongo_records = self.___initialize_mongo_record(json_report)
 
         good_sample_quality = True
-        if self._results_type == 'new_isolate' and not is_viral(self._species):  # viral pathogens do not have a qc section
-            good_sample_quality = self.___is_good_quality(json_report)
+        if self._results_type == 'new_isolate':
+            good_sample_quality = self.__check_coreqc_metrics(json_report)
+
+        # good_sample_quality = True
+        # if self._results_type == 'new_isolate' and not is_viral(self._species):  # viral pathogens do not have a qc section
+        #     good_sample_quality = self.___is_good_quality(json_report)
 
         self.__process_mongo_record(mongo_records, good_sample_quality)
         return mongo_records
@@ -744,7 +748,8 @@ class MainMongo:
                                                   self._mongo_config_data)
         logging.info(f"Running the clustering for the isolate {self._technical_id}")
         sp_thresholds = f"clustering_thresholds_{self._species}"
-        sequence_type = custom_clustering.run_custom_clustering(CLUSTERING_CONFIG[sp_thresholds])
+        clustering_config = load_config(CLUSTERING_CONFIG)
+        sequence_type = custom_clustering.run_custom_clustering(clustering_config[sp_thresholds])
         json_report["cgST"] = sequence_type
 
     @staticmethod
@@ -775,6 +780,55 @@ class MainMongo:
             drug_susceptibilities = {info['drug']: info for info in
                                      json_report['mykrobe']['mykrobe_drug_susceptibility']}
             json_report['mykrobe']['mykrobe_drug_susceptibility'] = drug_susceptibilities
+
+    def __check_coreqc_metrics(self, json_report: JsonReportDict) -> bool:
+        """
+        This function checks the core quality metrics
+        :param json_report:
+        :return:
+        """
+        coreqc_config = load_config(COREQC_CONFIG)[self._species]
+        rejection_reasons = []
+        good_sample_quality = True
+        for key, metrics_info in coreqc_config:
+            field = metrics_info['field']
+            if metrics_info.get('field_to_replace'):
+                for key2, value in metrics_info['field_to_replace']:
+                    field = field.replace(key2, json_report[value])
+            if not metrics_info.get('value_format_to_strip'):
+                qc_value = float(json_report['results'][metrics_info['category']][field])
+            else:
+                qc_value = float(json_report['results'][metrics_info['category']][field].rstrip(metrics_info['value_format_to_strip']))
+            for threshold in ['threshold_fail', 'threshold_warn']:
+                if metrics_info['direction'] == 'higher':
+                    evaluation = float(qc_value) > metrics_info[threshold]
+                else:  # if metrics_info['direction'] == 'lower':
+                    evaluation = float(qc_value) < metrics_info[threshold]
+                if evaluation:
+                    if threshold == 'threshold_fail':
+                        if metrics_info.get('value_format_to_strip'):
+                            qc_value_formatted = f"{qc_value}{metrics_info['value_format_to_strip']}"
+                            threshold_formatted = f"{metrics_info[threshold]}{metrics_info['value_format_to_strip']}"
+                        else:
+                            qc_value_formatted = qc_value
+                            threshold_formatted = metrics_info[threshold]
+                        rejection_reasons.append(f"{metrics_info['parameter_name']} (={qc_value_formatted}) "
+                                                 f"{metrics_info['direction']} than allowed limit (={threshold_formatted}).")
+                    else:  # if threshold == 'threshold_warn':
+                        good_sample_quality = False
+
+        if len(rejection_reasons) > 0:
+            isolates_rejected_coreqc_collection = self._mongoinit.initialise_isolates_rejected_coreqc_collection()
+            isolates_rejected_coreqc_collection.insert_one({
+                "_id": self._technical_id,
+                "report_directory": str(self._reportdirectorypath),
+                "rejection_reasons": rejection_reasons,
+                "creation_date": datetime.now(timezone.utc)})
+            logging.info(f"Sample {self._technical_id} failed one or more core QC checks. It was added to the "
+                         f"isolates_rejected_coreqc collection.")
+            # exit gracefully
+            sys.exit()
+        return good_sample_quality
 
 
 if __name__ == '__main__':

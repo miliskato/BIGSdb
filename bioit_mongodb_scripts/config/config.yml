@@ -37,6 +37,7 @@ collections:
     - nominative_labtest_clinical_metadata
     - unprocessed_nominative_labtest_metadata
     - unprocessed_nominative_clinical_metadata
+    - isolates_rejected_coreqc
 
 schemes_sequence_typing:
     - mlst

@@ -16,7 +16,8 @@ class MongoInitialisation:
         """
         Initialises this class and opens the species/dtap specific mongo database
         :param species: commonly used bioit species name: either genus or specific like stec
-        :param selected_connection_string: to select the connection string from the config file that should be used to initialize the connection
+        :param selected_connection_string: to select the connection string from the config file that should be used to
+        initialise the connection
         :param alternate_dtap: alternative dtap than what is in the config file
         :param mongo_config_data: Use provided mongo_config_data, else get mongo_config_data from file
         """
@@ -45,7 +46,8 @@ class MongoInitialisation:
             raise NameError(f"replace dtap value in bioit_mongodb_scripts/config/config.yml or use alternate_dtap")
         return self.client['_'.join([species, self._mongo_config_data["dtap"]])]  # e.g. listeria_dev
 
-    def _open_mongo_collection(self, opened_database: pymongo.database.Database, collection: str) -> pymongo.collection.Collection:
+    def _open_mongo_collection(self, opened_database: pymongo.database.Database, collection: str) -> \
+            pymongo.collection.Collection:
         """
         Opens a mongo collection in an opened database
         :param opened_database: mongo opened database
@@ -61,10 +63,12 @@ class MongoInitialisation:
         else:
             raise RuntimeError(f"Collection '{collection}' not in supported collections")
 
-    def initialise_collections(self) -> (pymongo.collection.Collection, pymongo.collection.Collection, pymongo.collection.Collection, pymongo.collection.Collection):
+    def initialise_collections(self) -> (pymongo.collection.Collection, pymongo.collection.Collection,
+                                         pymongo.collection.Collection, pymongo.collection.Collection):
         """
         Initialises database and collections for interaction
-        :return: opened isolate, isolatesresults, isolatesbadqc, and isolates resequencing collections (instances) for a given species
+        :return: opened isolate, isolatesresults, isolatesbadqc, and isolates resequencing collections (instances) for a
+         given species.
         """
         # open isolates collection
         isolates_collection = self._open_mongo_collection(self.opened_mongo_database, "isolates")
@@ -73,10 +77,12 @@ class MongoInitialisation:
         # open isolates badqc collection
         isolates_badqc_collection = self._open_mongo_collection(self.opened_mongo_database, "isolates_badqc")
         # open isolates resequencing collection
-        isolates_resequencing_collection = self._open_mongo_collection(self.opened_mongo_database, "isolates_resequencing")
+        isolates_resequencing_collection = self._open_mongo_collection(self.opened_mongo_database,
+                                                                       "isolates_resequencing")
         return isolates_collection, isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection
 
-    def initialise_clustering_collections(self) -> (pymongo.collection.Collection, pymongo.collection.Collection, pymongo.collection.Collection):
+    def initialise_clustering_collections(self) -> (pymongo.collection.Collection, pymongo.collection.Collection,
+                                                    pymongo.collection.Collection):
         """
         Initialises database and collections for interaction
         :return: opened sequence_type, cluster membership, and cluster merging history collections for a given species
@@ -127,7 +133,8 @@ class MongoInitialisation:
         Initialises collection containing the processed nominative clinical and labtest data acquired from the ODS sftp.
         :return: Opened nominative labtest and clinical metadata collection
         """
-        nominative_labtest_clinical_metadata_collection = self._open_mongo_collection(self.opened_mongo_database, "nominative_labtest_clinical_metadata")
+        nominative_labtest_clinical_metadata_collection = self._open_mongo_collection(
+            self.opened_mongo_database, "nominative_labtest_clinical_metadata")
         return nominative_labtest_clinical_metadata_collection
 
     def initialise_unprocessed_nominative_labtest_metadata_collection(self) -> pymongo.collection.Collection:
@@ -135,7 +142,8 @@ class MongoInitialisation:
         Initialises collection containing the unprocessed nominative labtest data acquired from the ODS sftp.
         :return: Opened unprocessed labtest metadata collection
         """
-        unprocessed_nominative_labtest_metadata_collection = self._open_mongo_collection(self.opened_mongo_database, "unprocessed_nominative_labtest_metadata")
+        unprocessed_nominative_labtest_metadata_collection = self._open_mongo_collection(
+            self.opened_mongo_database, "unprocessed_nominative_labtest_metadata")
         return unprocessed_nominative_labtest_metadata_collection
 
     def initialise_unprocessed_nominative_clinical_metadata_collection(self) -> pymongo.collection.Collection:
@@ -143,5 +151,15 @@ class MongoInitialisation:
         Initialises collection containing the unprocessed nominative clinical data acquired from the ODS sftp.
         :return: Opened unprocessed clinical metadata collection
         """
-        unprocessed_nominative_clinical_metadata_collection = self._open_mongo_collection(self.opened_mongo_database, "unprocessed_nominative_clinical_metadata")
+        unprocessed_nominative_clinical_metadata_collection = self._open_mongo_collection(
+            self.opened_mongo_database, "unprocessed_nominative_clinical_metadata")
         return unprocessed_nominative_clinical_metadata_collection
+
+    def initialise_isolates_rejected_coreqc_collection(self) -> pymongo.collection.Collection:
+        """
+        Initialises collection containing the isolates rejected because of the core quality metrics.
+        :return: Opened unprocessed clinical metadata collection
+        """
+        isolates_rejected_coreqc_collection = self._open_mongo_collection(
+            self.opened_mongo_database, "isolates_rejected_coreqc")
+        return isolates_rejected_coreqc_collection
