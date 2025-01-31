@@ -784,9 +784,15 @@ class MainMongo:
 
     def __check_coreqc_metrics(self, json_report: JsonReportDict) -> bool:
         """
-        This function checks the core quality metrics
-        :param json_report:
-        :return:
+        This function checks the core quality metrics. If any failure threshold is surpassed, then the isolate is added
+        to the isolates_rejected_coreqc collection and the script is stopped.
+        If no failure threshold is surpassed, but any warning threshold is, then the function returns False.
+        If no failure or warning thresholds are exceeded, then the function returns True.
+        The core quality metrics used here, and found in the corresponding COREQC_CONFIG originate from the
+        D8.1_HERA_BE_WGS_Updated_quality_guidelines_report_29NOV2024 document that can be found in the HERA folder.
+        :param json_report: json dict containing all results which are found under the 'results' key
+        :return: Whether the input document is of good quality according to the core quality metrics (good quality =
+        does not surpass any warning threshold)
         """
         coreqc_config = load_config(COREQC_CONFIG)[self._species]
         rejection_reasons = []
@@ -794,6 +800,7 @@ class MainMongo:
         for key, metrics_info in coreqc_config.items():
             if not metrics_info['available_for_fasta_input'] and self._original_input_format == 'fasta':
                 continue
+            # Value extraction from JSON
             if metrics_info.get('field'):
                 field = metrics_info['field']
                 if metrics_info.get('field_to_replace'):
@@ -805,6 +812,7 @@ class MainMongo:
                     qc_value = float(json_report[metrics_info['category']][field].rstrip(metrics_info['value_format_to_strip']))
             else:  # metrics_info.get('fields'):
                 qc_value = sum(float(json_report[metrics_info['category']][field]) for field in metrics_info['fields']) / len(metrics_info['fields'])
+            # Value evaluation against reference values
             for threshold in ['threshold_fail', 'threshold_warn']:
                 if metrics_info['threshold_direction'] == 'higher':
                     evaluation = float(qc_value) > metrics_info[threshold]
@@ -820,6 +828,7 @@ class MainMongo:
                             threshold_formatted = metrics_info[threshold]
                         rejection_reasons.append(f"{metrics_info['parameter_name']} (={qc_value_formatted}) "
                                                  f"{metrics_info['threshold_direction']} than allowed limit (={threshold_formatted}).")
+                        break
                     else:  # if threshold == 'threshold_warn':
                         good_sample_quality = False
 
