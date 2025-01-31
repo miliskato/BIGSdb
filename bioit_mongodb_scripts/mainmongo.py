@@ -494,7 +494,7 @@ class MainMongo:
         appendix = self.__get_appendix_from_input_type(input_type)
         tx_seq_fltr_meth = ', '.join([f"downsample factor: {results[f'downsampling_{appendix}']['downsampling_downsample_factor']}",
                                       f"trimming: {results[f'trimming_{input_type}']['trim_ilmn_tool_version']}",
-                                      # f"filtering of assembly: {results['assembly']['informs_tools']['Seqtk seq']['_name']}" # todo this is not in JSON
+                                      f"filtering of assembly: {results['quast']['assembly_filtering_tool_version']}"
                                       ])
         cd_seq_assy_meth = 'SPAdes'
         tx_seq_assy_meth_ver = results['quast']['assembly_tool_version']
