@@ -11,6 +11,14 @@ class TblSchemeMembers(DatabaseConnection):
     def __init__(self, species: str, db_type: str) -> None:
         super().__init__(species, db_type)
 
+    def check_scheme_member_presence(self, param: Tuple[int]) -> list[Tuple[bool]]:
+        """
+        Check if scheme members exist for this given scheme id
+        :param param: scheme id from BIGSdb
+        :return: t or f
+        """
+        return self.execute(PsqlQueries.SEL_SCHEME_MEMBERS_EXISTS, param)
+
     def count_scheme_member(self, param: Tuple[str, str]) -> List[Tuple[int]]:
         """
         Counts the nr of times a locus is a a scheme_member for a given locus and scheme (0 or 1)
