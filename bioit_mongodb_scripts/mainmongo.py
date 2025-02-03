@@ -516,7 +516,7 @@ class MainMongo:
                                       f"trimming: {results[f'trimming_{input_type}']['trim_ilmn_tool_version']}"
                                       ])
         cd_seq_assy_meth = 'Other'
-        tx_seq_assy_meth_ver = '' # results['iterative_mapping']['informs_tools']['bwa_mem']['_name']  # todo this is not in JSON
+        tx_seq_assy_meth_ver = ', '.join([x for x in results['iterative_mapping']['tool_versions']])
         ms_genome_cvge = results[f'downsampling_{appendix}']['downsampling_coverage_estimated']
         cd_novo_assy = 'No'
         tx_ref_accn = ', '.join(results['ref_selection'][x]['ref_id'] for x in results['ref_selection']) \
