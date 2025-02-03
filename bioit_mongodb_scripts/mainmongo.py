@@ -237,10 +237,6 @@ class MainMongo:
         if self._results_type == 'new_isolate':
             good_sample_quality = self.__check_coreqc_metrics(json_report)
 
-        # good_sample_quality = True
-        # if self._results_type == 'new_isolate' and not is_viral(self._species):  # viral pathogens do not have a qc section
-        #     good_sample_quality = self.___is_good_quality(json_report)
-
         self.__process_mongo_record(mongo_records, good_sample_quality)
         return mongo_records
 
@@ -269,23 +265,6 @@ class MainMongo:
             self.___write_document(self._isolates_badqc_collection, mongo_records)
             logging.warning(
                 f"New isolate {self._technical_id} failed quality control for one or more checks. It's results were written to the 'isolates_badqc' collection in the {self._species} database")
-
-    def ___is_good_quality(self, new_json_report: JsonReportDict) -> bool:
-        """
-        Evaluates the quality of the isolates based on qc from camel
-        :param new_json_report: json report containing the results from the pipeline
-        :return : True (if good quality) or False (if bad quality)
-        """
-        qc = new_json_report.get('quality_checks')
-        if qc is None:
-            send_email(f"No qc values found in the given results for {self._technical_id}\n{traceback.format_exc()}", dont_send_email=self._dont_send_email)
-            raise KeyError('No qc values found in the given results')
-
-        for qc_type in qc:
-            for key in qc[qc_type]:
-                if key.endswith('status') and qc[qc_type][key] == 'Failed':
-                    return False
-        return True
 
     def __new_resequencing_arrival(self, new_json_report: JsonReportDict, document_original: MongoRecordDict,
                                    collection_in: pymongo.collection.Collection) -> None:
