@@ -521,7 +521,7 @@ class MainMongo:
                                       f"trimming: {results[f'trimming_{input_type}']['trim_ilmn_tool_version']}"
                                       ])
         cd_seq_assy_meth = 'Other'
-        tx_seq_assy_meth_ver = '' # results['iterative_mapping']['informs_tools']['bwa_mem']['_name']  # todo this is not in JSON
+        tx_seq_assy_meth_ver = ''  # results['iterative_mapping']['informs_tools']['bwa_mem']['_name']  # todo this is not in JSON
         ms_genome_cvge = results[f'downsampling_{appendix}']['downsampling_coverage_estimated']
         cd_novo_assy = 'No'
         tx_ref_accn = ', '.join(results['ref_selection'][x]['ref_id'] for x in results['ref_selection']) \
@@ -798,39 +798,49 @@ class MainMongo:
         rejection_reasons = []
         good_sample_quality = True
         for key, metrics_info in coreqc_config.items():
-            if not metrics_info['available_for_fasta_input'] and self._original_input_format == 'fasta':
-                continue
-            # Value extraction from JSON
-            if metrics_info.get('field'):
-                field = metrics_info['field']
-                if metrics_info.get('field_to_replace'):
-                    for key2, value in metrics_info['field_to_replace'].items():
-                        field = field.replace(key2, json_report[value])
-                if not metrics_info.get('value_format_to_strip'):
-                    qc_value = float(json_report[metrics_info['category']][field])
-                else:
-                    qc_value = float(json_report[metrics_info['category']][field].rstrip(metrics_info['value_format_to_strip']))
-            else:  # metrics_info.get('fields'):
-                qc_value = sum(float(json_report[metrics_info['category']][field]) for field in metrics_info['fields']) / len(metrics_info['fields'])
-            # Value evaluation against reference values
-            for threshold in ['threshold_fail', 'threshold_warn']:
-                if metrics_info['threshold_direction'] == 'higher':
-                    evaluation = float(qc_value) > metrics_info[threshold]
-                else:  # if metrics_info['threshold_direction'] == 'lower':
-                    evaluation = float(qc_value) < metrics_info[threshold]
-                if evaluation:
-                    if threshold == 'threshold_fail':
-                        if metrics_info.get('value_format_to_strip'):
-                            qc_value_formatted = f"{qc_value}{metrics_info['value_format_to_strip']}"
-                            threshold_formatted = f"{metrics_info[threshold]}{metrics_info['value_format_to_strip']}"
-                        else:
-                            qc_value_formatted = qc_value
-                            threshold_formatted = metrics_info[threshold]
-                        rejection_reasons.append(f"{metrics_info['parameter_name']} (={qc_value_formatted}) "
-                                                 f"{metrics_info['threshold_direction']} than allowed limit (={threshold_formatted}).")
-                        break
-                    else:  # if threshold == 'threshold_warn':
-                        good_sample_quality = False
+            # For Influenza, for many segments the same thresholds need to be checked, the iteration and dummy
+            # bacterial iteration help to smoothly iterate over the segments whilst not modifying the original
+            # bacterial code too much.
+            for iteration in metrics_info.get('iterate', ['bacterial_dummy_iteration']):
+                if not metrics_info['available_for_fasta_input'] and self._original_input_format == 'fasta':
+                    continue
+                # Value extraction from JSON
+                if metrics_info.get('field'):
+                    field = metrics_info['field']
+                    if metrics_info.get('field_to_replace'):
+                        for key2, value in metrics_info['field_to_replace'].items():
+                            field = field.replace(key2, json_report[value])
+                    elif iteration != 'bacterial_dummy_iteration':
+                        field = field.replace('iterate', iteration)
+                    if not metrics_info.get('value_format_to_strip'):
+                        qc_value = float(json_report[metrics_info['category']][field])
+                    else:
+                        qc_value = float(json_report[metrics_info['category']][field].rstrip(metrics_info['value_format_to_strip']))
+                else:  # metrics_info.get('fields'):
+                    qc_value = sum(float(json_report[metrics_info['category']][field]) for field in metrics_info['fields']) / len(metrics_info['fields'])
+                # Value evaluation against reference values
+                for threshold in ['threshold_fail', 'threshold_warn']:
+                    if metrics_info['threshold_direction'] == 'higher':
+                        evaluation = float(qc_value) > metrics_info[threshold]
+                    else:  # if metrics_info['threshold_direction'] == 'lower':
+                        evaluation = float(qc_value) < metrics_info[threshold]
+                    if evaluation:
+                        if threshold == 'threshold_fail':
+                            if metrics_info.get('value_format_to_strip'):
+                                qc_value_formatted = f"{qc_value}{metrics_info['value_format_to_strip']}"
+                                threshold_formatted = f"{metrics_info[threshold]}{metrics_info['value_format_to_strip']}"
+                            else:
+                                qc_value_formatted = qc_value
+                                threshold_formatted = metrics_info[threshold]
+                            if iteration == 'bacterial_dummy_iteration':
+                                parameter_name = metrics_info['parameter_name']
+                            else:
+                                parameter_name = metrics_info['parameter_name'].replace('iterate', iteration)
+                            rejection_reasons.append(f"{parameter_name} (={qc_value_formatted}) "
+                                                     f"{metrics_info['threshold_direction']} than allowed limit (={threshold_formatted}).")
+                            break
+                        else:  # if threshold == 'threshold_warn':
+                            good_sample_quality = False
 
         if len(rejection_reasons) > 0:
             isolates_rejected_coreqc_collection = self._mongoinit.initialise_isolates_rejected_coreqc_collection()
@@ -838,7 +848,8 @@ class MainMongo:
                 "_id": self._technical_id,
                 "report_directory": str(self._reportdirectorypath),
                 "rejection_reasons": rejection_reasons,
-                "creation_date": datetime.now(timezone.utc)})
+                "creation_date": datetime.now(timezone.utc),
+                "insertion_type": 'automatic'})
             logging.info(f"Sample {self._technical_id} failed one or more core QC checks. It was added to the "
                          f"isolates_rejected_coreqc collection.")
             # exit gracefully

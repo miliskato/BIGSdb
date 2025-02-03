@@ -234,3 +234,68 @@ mycobacterium:
     field: assembly_nb_contigs
     available_for_fasta_input: true
     parameter_name: Number of contigs
+influenza:
+  contamination:  # e.g. qc_kraken_illumina_value: "0.00%"
+    threshold_warn: 1.0
+    threshold_fail: 5.0
+    threshold_direction: higher
+    category: quality_checks
+    field: qc_kraken_inputtype_value
+    field_to_replace:
+      inputtype: input_type
+    value_format_to_strip: "%"
+    available_for_fasta_input: true
+    parameter_name: "% contamination (Kraken)"
+  average_quality_score: # e.g. qc_fqc_avg_qual_fwd_value: '250'  # todo what are these fields for ONT?
+    threshold_warn: 30.0
+    threshold_fail: 25.0
+    threshold_direction: lower
+    category: quality_checks
+    fields:
+      - qc_fqc_avg_qual_fwd_value
+      - qc_fqc_avg_qual_rev_value
+    available_for_fasta_input: false
+    parameter_name: Average quality score
+  median_depth_HA_NA: # e.g. preprocess_HA_covered_rate_post: '250'
+    threshold_warn: 30.0
+    threshold_fail: 20.0
+    threshold_direction: lower
+    category: preprocess
+    field: preprocess_iterate_depth_median_post
+    iterate:
+      - HA
+      - NA
+    available_for_fasta_input: false
+    parameter_name: Coverage depth on iterate segment (vertical)
+  median_depth_other_segments: # e.g. preprocess_MP_depth_median_post: '250'
+    threshold_warn: 20.0
+    threshold_fail: 10.0
+    threshold_direction: lower
+    category: preprocess
+    field: preprocess_iterate_depth_median_post
+    iterate:
+      - MP
+      - NP
+      - NS
+      - PA
+      - PB1
+      - PB2
+    available_for_fasta_input: false
+    parameter_name: Coverage depth on iterate segment (vertical)
+  coverage_all_segments: # e.g. preprocess_MP_covered_rate_post: '1.0'
+    threshold_warn: 0.95
+    threshold_fail: 0.8
+    threshold_direction: lower
+    category: preprocess
+    field: preprocess_iterate_covered_rate_post
+    iterate:
+      - HA
+      - NA
+      - MP
+      - NP
+      - NS
+      - PA
+      - PB1
+      - PB2
+    available_for_fasta_input: false
+    parameter_name: Coverage of iterate segment (horizontal)
