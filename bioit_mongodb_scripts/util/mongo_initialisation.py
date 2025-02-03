@@ -158,7 +158,7 @@ class MongoInitialisation:
     def initialise_isolates_rejected_coreqc_collection(self) -> pymongo.collection.Collection:
         """
         Initialises collection containing the isolates rejected because of the core quality metrics.
-        :return: Opened unprocessed clinical metadata collection
+        :return: Opened isolates rejected coreqc collection
         """
         isolates_rejected_coreqc_collection = self._open_mongo_collection(
             self.opened_mongo_database, "isolates_rejected_coreqc")
