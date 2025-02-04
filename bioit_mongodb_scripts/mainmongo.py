@@ -826,6 +826,12 @@ class MainMongo:
 
         if len(rejection_reasons) > 0:
             isolates_rejected_coreqc_collection = self._mongoinit.initialise_isolates_rejected_coreqc_collection()
+            previous_rejected_sample_version: Optional[Dict[str, Any]] = isolates_rejected_coreqc_collection.find_one({'_id': self._technical_id})
+            if previous_rejected_sample_version:
+                previous_rejected_sample_version['isolates_id'] = self._technical_id
+                previous_rejected_sample_version.pop('_id')
+                isolates_rejected_coreqc_collection.insert_one(previous_rejected_sample_version)
+                isolates_rejected_coreqc_collection.delete_one({'_id': self._technical_id})
             document_to_be_inserted = {
                 "_id": self._technical_id,
                 "report_directory": str(self._reportdirectorypath),
