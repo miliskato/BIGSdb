@@ -235,7 +235,7 @@ class MainMongo:
 
         good_sample_quality = True
         if self._results_type == 'new_isolate':
-            good_sample_quality = self.__check_coreqc_metrics(json_report)
+            good_sample_quality = self.___check_coreqc_metrics(json_report)
 
         self.__process_mongo_record(mongo_records, good_sample_quality)
         return mongo_records
@@ -761,7 +761,7 @@ class MainMongo:
                                      json_report['mykrobe']['mykrobe_drug_susceptibility']}
             json_report['mykrobe']['mykrobe_drug_susceptibility'] = drug_susceptibilities
 
-    def __check_coreqc_metrics(self, json_report: JsonReportDict) -> bool:
+    def ___check_coreqc_metrics(self, json_report: JsonReportDict) -> bool:
         """
         This function checks the core quality metrics. If any failure threshold is surpassed, then the isolate is added
         to the isolates_rejected_coreqc collection and the script is stopped.
