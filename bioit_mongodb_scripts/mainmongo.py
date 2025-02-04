@@ -774,7 +774,7 @@ class MainMongo:
         does not surpass any warning threshold)
         """
         coreqc_config = load_config(COREQC_CONFIG)[self._species]
-        rejection_reasons = []
+        rejection_reasons = {}
         good_sample_quality = True
         for key, metrics_info in coreqc_config.items():
             # For Influenza, for many segments the same thresholds need to be checked, the iteration and dummy
@@ -815,20 +815,30 @@ class MainMongo:
                                 parameter_name = metrics_info['parameter_name']
                             else:
                                 parameter_name = metrics_info['parameter_name'].replace('iterate', iteration)
-                            rejection_reasons.append(f"{parameter_name} (={qc_value_formatted}) "
-                                                     f"{metrics_info['threshold_direction']} than allowed limit (={threshold_formatted}).")
+                            rejection_reasons[key] = {
+                                'value': qc_value,
+                                'reason': f"{parameter_name} (={qc_value_formatted}) "
+                                          f"{metrics_info['threshold_direction']} than allowed limit (="
+                                          f"{threshold_formatted})."}
                             break
                         else:  # if threshold == 'threshold_warn':
                             good_sample_quality = False
 
         if len(rejection_reasons) > 0:
             isolates_rejected_coreqc_collection = self._mongoinit.initialise_isolates_rejected_coreqc_collection()
-            isolates_rejected_coreqc_collection.insert_one({
+            document_to_be_inserted = {
                 "_id": self._technical_id,
                 "report_directory": str(self._reportdirectorypath),
                 "rejection_reasons": rejection_reasons,
                 "creation_date": datetime.now(timezone.utc),
-                "insertion_type": 'automatic'})
+                "insertion_type": 'automatic'}
+            # Quality control metrics are spread in 3 sections: quast, quality_checks and preprocess. We decided to
+            # keep track of all quality sections for potential post hoc analyses.
+            quality_sections = set(metrics_info['category'] for metrics_info in coreqc_config.values())
+            for quality_section in quality_sections:
+                document_to_be_inserted[quality_section] = json_report[quality_section]
+
+            isolates_rejected_coreqc_collection.insert_one(document_to_be_inserted)
             logging.info(f"Sample {self._technical_id} failed one or more core QC checks. It was added to the "
                          f"isolates_rejected_coreqc collection.")
             # exit gracefully
