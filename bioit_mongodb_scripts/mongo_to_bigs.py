@@ -353,7 +353,7 @@ class MongoToBigs:
         if changes_in_bigsdb:
             MongoToBigsNominative(self._species, self._mongo_config_data, dont_send_email=True)
           
-    def __check_sql_exceptions_for_cache_update(self):
+    def __check_sql_exceptions_for_cache_update(self) -> None:
         """
         Checks for irregularities in BIGSdb dbs that would lead to an error of the cache update. If one of them is found,
         an exception is raised.
