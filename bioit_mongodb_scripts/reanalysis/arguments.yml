@@ -20,7 +20,6 @@ mycobacterium:
   hsp65: hsp65-based differentiation
   snp-lineage: SNP lineage
   snpit: Snpit
-  pointfinder: PointFinder (PointFinder 20190227)
 neisseria:
   mlst: Classic MLST
   cgmlst: cgMLST
@@ -49,7 +48,6 @@ stec:
   virulencefinder:
     - VirulenceFinder - E. coli
     - VirulenceFinder - Shiga-toxin genes
-  pointfinder: PointFinder (PointFinder 20190227)
 salmonella:
   mlst: Classic MLST
   cgmlst: cgMLST
@@ -60,7 +58,6 @@ salmonella:
   resfinder: ResFinder
   plasmidfinder: PlasmidFinder - Enterobacteriales
   vfdb-core: Virulence Factor DB - Core
-  pointfinder: PointFinder (PointFinder 20190227)
 sars_cov_2:
   sars_cov_2:
     - Nextclade (Nextclade 2.14.0)
