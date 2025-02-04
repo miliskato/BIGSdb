@@ -305,6 +305,8 @@ species_json:
         type: regular
       cgmlst:
         type: regular
+      rmlst:
+        type: regular
       spoligotyping:
         type: irregular
       51SNP:
