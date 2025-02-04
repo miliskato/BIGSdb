@@ -93,7 +93,7 @@
 - name: keep track of the version deployed
   copy:
     content: "{{ species }} {{ mongo_dtap }} {{ branch }} {{ target }}\n"
-    dest: "{{ bioit_bigs_home }}/VERSION.LOG"
+    dest: "{{ bioit_bigs_home }}/VERSION_{{ species }}_{{ mongo_dtap }}.LOG"
     owner: bigsdb
 
 - name: Change git cloned repo owner to bigsdb for it to be able to write the distance matrix here
