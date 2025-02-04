@@ -119,7 +119,6 @@ species:
         dirdb: ''
       mycobacterium_hsp65:
         dirdb: ''
-        schemename_html: PointFinder
       mycobacterium_ncbi16s:
         dirdb: ''
     genedetection_schemes: null
@@ -193,9 +192,6 @@ species:
       stec_cgmlst:
         dirdb: /var/lib/.bioit_database_azure/sequence_typing/ecoli/cgmlst
         schemename_bigsdb: cgMLST
-      stec_pointfinder:
-        dirdb: ''
-        schemename_html: PointFinder
       stec_serotype:
         dirdb: ''
     genedetection_schemes:
