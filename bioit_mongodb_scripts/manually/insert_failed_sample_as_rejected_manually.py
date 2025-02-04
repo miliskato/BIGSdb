@@ -38,7 +38,13 @@ class InsertFailedSampleAsRejectedManually:
     """
     def __init__(self, technical_id: str, species: str, rejection_reason: Literal['abc', 'def'],
                  alternate_dtap: Union[str, None] = None) -> None:
-
+        """
+        Insert an isolate into the rejected isolates MongoDB Azure collection with a given rejection reason.
+        :param technical_id: sample id/ isolates id
+        :param species: commonly used bioit species name: either genus or specific like stec
+        :param rejection_reason: The reason why the sample failed/has to be rejected.
+        :param alternate_dtap: alternative dtap than what is in the config file
+        """
         mongoinit = MongoInitialisation(species,
                                         selected_connection_string='CONNECTION_STRING_AZURE',
                                         alternate_dtap=alternate_dtap,
