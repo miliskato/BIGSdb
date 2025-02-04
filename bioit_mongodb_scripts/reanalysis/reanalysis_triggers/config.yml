@@ -135,6 +135,7 @@ species:
       cmd_argument: mlst-pasteur
     cgmlst:
       dirdb: /db/sequence_typing/ecoli/cgmlst
+      cmd_argument: cgmlst
 ## having the same argparse argument twice does not seem to affect anything
     serotype_o:
       dirdb: /db/gene_detection/SerotypeFinder-O_type
