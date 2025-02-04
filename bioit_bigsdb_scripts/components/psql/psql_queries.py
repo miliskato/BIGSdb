@@ -309,8 +309,8 @@ class PsqlQueries():
         SELECT id FROM schemes WHERE name = 'cgMLST';"""
 
     # TBL scheme members
-    SEL_SCHEME_MEMBERS_EXISTS: Final[str] = """
-         SELECT EXISTS (SELECT * FROM scheme_members where scheme_id=%s);"""
+    UNI_SEL_EXISTS_TB_SCHMEM_VAR_SCHID: Final[str] = """
+         SELECT EXISTS (SELECT * FROM scheme_members WHERE scheme_id=%s);"""
     UNI_INS__TB_SCHMEM_VAR_SCHEME_LOCUS: Final[str] = """
         INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) 
         VALUES((SELECT id FROM schemes WHERE name=%s), %s, 1, (SELECT CURRENT_DATE));"""
