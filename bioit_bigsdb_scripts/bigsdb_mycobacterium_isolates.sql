@@ -9,51 +9,7 @@ INSERT INTO scheme_fields(scheme_id, field, type, description, field_order, drop
 INSERT INTO scheme_fields(scheme_id, field, type, description, field_order, dropdown, primary_key, curator, datestamp, isolate_display, main_display, query_field) VALUES((SELECT id FROM schemes WHERE name='cgMLST'), 'cgST', 'integer', 'Sequence Type for cgMLST', 2, 'f', 't', 1, (SELECT CURRENT_DATE), 't', 't', 't') ON CONFLICT DO NOTHING;
 INSERT INTO scheme_fields(scheme_id, field, type, description, field_order, dropdown, primary_key, curator, datestamp, isolate_display, main_display, query_field) VALUES((SELECT id FROM schemes WHERE name='rMLST'), 'rMLST', 'integer', 'Sequence Type for rMLST', 3, 'f', 't', 1, (SELECT CURRENT_DATE), 't', 't', 't') ON CONFLICT DO NOTHING;
 
---spoligotyping
-INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer01', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
-INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer02', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
-INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer03', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
-INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer04', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
-INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer05', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
-INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer06', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
-INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer07', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
-INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer08', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
-INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer09', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
-INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer10', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
-INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer11', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
-INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer12', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
-INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer13', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
-INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer14', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
-INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer15', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
-INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer16', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
-INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer17', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
-INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer18', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
-INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer19', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
-INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer20', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
-INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer21', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
-INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer22', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
-INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer23', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
-INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer24', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
-INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer25', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
-INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer26', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
-INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer27', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
-INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer28', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
-INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer29', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
-INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer30', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
-INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer31', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
-INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer32', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
-INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer33', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
-INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer34', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
-INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer35', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
-INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer36', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
-INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer37', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
-INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer38', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
-INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer39', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
-INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer40', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
-INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer41', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
-INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer42', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
-INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer43', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
---spoligotyping
+spoligotyping
 INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, dbase_name, dbase_id, url, isolate_display, main_display, query_field, analysis, submission_template, curator, date_entered, datestamp) VALUES('Spacer01','DNA','text', 'f', 'f', 'bigsdb_mycobacterium_seqdef','Spacer01', '/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_mycobacterium_seqdef&page=alleleInfo&locus=Spacer1&allele_id=[?]', 'allele only', 't', 't', 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
 INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, dbase_name, dbase_id, url, isolate_display, main_display, query_field, analysis, submission_template, curator, date_entered, datestamp) VALUES('Spacer02','DNA','text', 'f', 'f', 'bigsdb_mycobacterium_seqdef','Spacer02', '/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_mycobacterium_seqdef&page=alleleInfo&locus=Spacer2&allele_id=[?]', 'allele only', 't', 't', 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
 INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, dbase_name, dbase_id, url, isolate_display, main_display, query_field, analysis, submission_template, curator, date_entered, datestamp) VALUES('Spacer03','DNA','text', 'f', 'f', 'bigsdb_mycobacterium_seqdef','Spacer03', '/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_mycobacterium_seqdef&page=alleleInfo&locus=Spacer3&allele_id=[?]', 'allele only', 't', 't', 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
@@ -97,7 +53,50 @@ INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence
 INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, dbase_name, dbase_id, url, isolate_display, main_display, query_field, analysis, submission_template, curator, date_entered, datestamp) VALUES('Spacer41','DNA','text', 'f', 'f', 'bigsdb_mycobacterium_seqdef','Spacer41', '/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_mycobacterium_seqdef&page=alleleInfo&locus=Spacer41&allele_id=[?]', 'allele only', 't', 't', 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
 INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, dbase_name, dbase_id, url, isolate_display, main_display, query_field, analysis, submission_template, curator, date_entered, datestamp) VALUES('Spacer42','DNA','text', 'f', 'f', 'bigsdb_mycobacterium_seqdef','Spacer42', '/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_mycobacterium_seqdef&page=alleleInfo&locus=Spacer42&allele_id=[?]', 'allele only', 't', 't', 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
 INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, dbase_name, dbase_id, url, isolate_display, main_display, query_field, analysis, submission_template, curator, date_entered, datestamp) VALUES('Spacer43','DNA','text', 'f', 'f', 'bigsdb_mycobacterium_seqdef','Spacer43', '/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_mycobacterium_seqdef&page=alleleInfo&locus=Spacer43&allele_id=[?]', 'allele only', 't', 't', 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
-
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer01', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer02', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer03', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer04', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer05', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer06', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer07', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer08', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer09', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer10', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer11', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer12', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer13', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer14', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer15', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer16', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer17', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer18', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer19', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer20', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer21', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer22', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer23', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer24', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer25', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer26', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer27', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer28', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer29', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer30', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer31', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer32', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer33', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer34', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer35', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer36', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer37', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer38', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer39', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer40', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer41', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer42', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Spoligotyping'), 'Spacer43', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+--
 --csb_RD
 INSERT INTO scheme_fields(scheme_id, field, type, description, field_order, dropdown, primary_key, curator, datestamp, isolate_display, main_display, query_field) VALUES((SELECT id FROM schemes WHERE name='csb_RD'), 'csb_RD_species', 'text', '', 4, 'f', 'f', 1, (SELECT CURRENT_DATE), 't', 't', 't') ON CONFLICT DO NOTHING;
 INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, dbase_name, dbase_id, url, isolate_display, main_display, query_field, analysis, submission_template, curator, date_entered, datestamp) VALUES('csb','DNA','text', 'f', 'f', 'bigsdb_mycobacterium_seqdef','csb', '/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_mycobacterium_seqdef&page=alleleInfo&locus=csb&allele_id=[?]', 'allele only', 't', 't', 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
@@ -169,31 +168,6 @@ INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence
 INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, dbase_name, dbase_id, url, isolate_display, main_display, query_field, analysis, submission_template, curator, date_entered, datestamp) VALUES('PAS_Associated_with_R','DNA','text', 't', 't', 'bigsdb_mycobacterium_seqdef','PAS_Associated_with_R', '/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_mycobacterium_seqdef&page=alleleInfo&locus=PAS_Associated_with_R&allele_id=[?]', 'allele only', 'f', 't', 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
 INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, dbase_name, dbase_id, url, isolate_display, main_display, query_field, analysis, submission_template, curator, date_entered, datestamp) VALUES('RBT_Associated_with_R','DNA','text', 't', 't', 'bigsdb_mycobacterium_seqdef','RBT_Associated_with_R', '/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_mycobacterium_seqdef&page=alleleInfo&locus=RBT_Associated_with_R&allele_id=[?]', 'allele only', 'f', 't', 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
 INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, dbase_name, dbase_id, url, isolate_display, main_display, query_field, analysis, submission_template, curator, date_entered, datestamp) VALUES('RBT_Not_associated_with_R','DNA','text', 't', 't', 'bigsdb_mycobacterium_seqdef','RBT_Not_associated_with_R', '/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_mycobacterium_seqdef&page=alleleInfo&locus=RBT_Not_associated_with_R&allele_id=[?]', 'allele only', 'f', 't', 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
-
-
---csb_RD
-INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='csb_RD'), 'csb', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
-INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='csb_RD'), 'RD1', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
-INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='csb_RD'), 'RD9', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
-
-
---51SNP assay
-INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('SCG', 'text', '51SNP assay', 'SNP Cluster Group from the 51SNP assay', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
-INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('gyrB_group', 'text', '51SNP assay', 'gyrB species differentiation from the 51SNP assay', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
-INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('Genetic_group', 'text', '51SNP assay', 'Genetic group from the 51SNP assay', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
-
---spoligotype
-INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('spoligotype_binary', 'text', 'spoligotyping', 'spoligotype', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
-INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('spoligotype_octal', 'text', 'spoligotyping', 'spoligotype', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
-
---snpit
-INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('snpit_species', 'text', 'snpit', 'snpit species', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
-INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('snpit_lineage', 'text', 'snpit', 'snpit lineage', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
-INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('snpit_sublineage', 'text', 'snpit', 'snpit sublineage', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
-INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('snpit_percent_matched', 'text', 'snpit', 'snpit percent matched', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
-
-INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('assembly', 'text', 'galaxy report', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
-
 --AMR detection WHO
 INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='AMR_detection_WHO'), 'AMI_Associated_with_R', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
 INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='AMR_detection_WHO'), 'AMI_Associated_with_R_int', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
@@ -259,6 +233,31 @@ INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT 
 INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='AMR_detection_WHO'), 'PAS_Associated_with_R', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
 INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='AMR_detection_WHO'), 'RBT_Associated_with_R', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
 INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='AMR_detection_WHO'), 'RBT_Not_associated_with_R', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+
+
+--csb_RD
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='csb_RD'), 'csb', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='csb_RD'), 'RD1', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='csb_RD'), 'RD9', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+
+
+--51SNP assay
+INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('SCG', 'text', '51SNP assay', 'SNP Cluster Group from the 51SNP assay', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
+INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('gyrB_group', 'text', '51SNP assay', 'gyrB species differentiation from the 51SNP assay', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
+INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('Genetic_group', 'text', '51SNP assay', 'Genetic group from the 51SNP assay', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
+
+--spoligotype
+INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('spoligotype_binary', 'text', 'spoligotyping', 'spoligotype', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
+INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('spoligotype_octal', 'text', 'spoligotyping', 'spoligotype', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
+
+--snpit
+INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('snpit_species', 'text', 'snpit', 'snpit species', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
+INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('snpit_lineage', 'text', 'snpit', 'snpit lineage', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
+INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('snpit_sublineage', 'text', 'snpit', 'snpit sublineage', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
+INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('snpit_percent_matched', 'text', 'snpit', 'snpit percent matched', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
+
+INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('assembly', 'text', 'galaxy report', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
+
 --AMR detection
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator, field_order) VALUES('amr_type', 'text', 'AMR detection', '', 't', 't', (SELECT CURRENT_DATE), 1,'1') ON CONFLICT DO NOTHING;
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator, field_order) VALUES('amr_first_line_resistant', 'text', 'AMR detection', '', 't', 't', (SELECT CURRENT_DATE), 1,'2') ON CONFLICT DO NOTHING;
