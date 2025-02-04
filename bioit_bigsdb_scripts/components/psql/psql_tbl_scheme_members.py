@@ -11,7 +11,7 @@ class TblSchemeMembers(DatabaseConnection):
     def __init__(self, species: str, db_type: str) -> None:
         super().__init__(species, db_type)
 
-    def check_scheme_member_presence(self, param: Tuple[int]) -> list[Tuple[bool]]:
+    def check_scheme_member_presence(self, param: Tuple[int]) -> List[Tuple[bool]]:
         """
         Check if scheme members exist for this given scheme id
         :param param: scheme id from BIGSdb
