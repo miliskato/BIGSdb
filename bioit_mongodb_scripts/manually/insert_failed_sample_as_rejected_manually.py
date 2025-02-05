@@ -3,7 +3,7 @@ import argparse
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import List, Literal, Union
+from typing import Any, Dict, List, Literal, Optional, Union
 
 # import dnspython
 # somehow this package is a requirement without actually needing to be imported, probably imported in pymongo
@@ -51,9 +51,18 @@ class InsertFailedSampleAsRejectedManually:
                                         mongo_config_data=get_mongodb_config_data())
 
         isolates_rejected_coreqc_collection = mongoinit.initialise_isolates_rejected_coreqc_collection()
+
+        previous_rejected_sample_version: Optional[Dict[str, Any]] = isolates_rejected_coreqc_collection.find_one(
+            {'_id': technical_id})
+        if previous_rejected_sample_version:
+            previous_rejected_sample_version['isolates_id'] = technical_id
+            previous_rejected_sample_version.pop('_id')
+            isolates_rejected_coreqc_collection.insert_one(previous_rejected_sample_version)
+            isolates_rejected_coreqc_collection.delete_one({'_id': technical_id})
+
         isolates_rejected_coreqc_collection.insert_one({
             "_id": technical_id,
-            "rejection_reasons": [rejection_reason],
+            "rejection_reasons": {'manual': rejection_reason},
             "creation_date": datetime.now(timezone.utc),
             "insertion_type": 'manual'})
 
