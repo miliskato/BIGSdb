@@ -45,6 +45,9 @@ species:
       listeria_cgmlst:
         dirdb: /var/lib/.bioit_database_azure/sequence_typing/listeria/cgmlst
         schemename_bigsdb: cgMLST
+      listeria_rmlst:
+        dirdb: /var/lib/.bioit_database_azure/sequence_typing/various/rmlst
+        schemename_bigsdb: rMLST
       listeria_serogroup:
         dirdb: /var/lib/.bioit_database_azure/sequence_typing/listeria/serogroup
         scheme_fields:
@@ -99,6 +102,9 @@ species:
       mycobacterium_cgmlst:
         dirdb: /var/lib/.bioit_database_azure/sequence_typing/mycobacterium/cgmlst
         schemename_bigsdb: cgMLST
+      mycobacterium_rmlst:
+        dirdb: /var/lib/.bioit_database_azure/sequence_typing/various/rmlst
+        schemename_bigsdb: rMLST
       mycobacterium_spoligotyping:
         dirdb: ''
       mycobacterium_51SNPassay:
@@ -108,8 +114,6 @@ species:
       mycobacterium_amrdetection:
         dirdb: ''
       mycobacterium_hsp65:
-        dirdb: ''
-      mycobacterium_pointfinder:
         dirdb: ''
         schemename_html: PointFinder
       mycobacterium_ncbi16s:
@@ -125,6 +129,9 @@ species:
       neisseria_cgmlst:
         dirdb: /var/lib/.bioit_database_azure/sequence_typing/neisseria/cgmlst
         schemename_bigsdb: cgMLST
+      neisseria_rmlst:
+        dirdb: /var/lib/.bioit_database_azure/sequence_typing/various/rmlst
+        schemename_bigsdb: rMLST
       neisseria_rplf:
         dirdb: /var/lib/.bioit_database_azure/sequence_typing/neisseria/rplf
         scheme_fields:
@@ -229,6 +236,9 @@ species:
       salmonella_cgmlst:
         dirdb: /var/lib/.bioit_database_azure/sequence_typing/salmonella/cgmlst
         schemename_bigsdb: cgMLST
+      salmonella_rmlst:
+        dirdb: /var/lib/.bioit_database_azure/sequence_typing/various/rmlst
+        schemename_bigsdb: rMLST
       salmonella_pointfinder:
         dirdb: ''
         schemename_html: PointFinder
@@ -269,6 +279,8 @@ species_json:
       mlst:
         type: regular
       cgmlst:
+        type: regular
+      rmlst:
         type: regular
       pcr_serogroup:
         type: regular
@@ -328,6 +340,8 @@ species_json:
         type: regular
       cgmlst:
         type: regular
+      rmlst:
+        type: regular
       rplf:
         type: regular
       bast:
@@ -386,6 +400,8 @@ species_json:
       mlst:
         type: regular
       cgmlst:
+        type: regular
+      rmlst:
         type: regular
       mykrobe:
         type: irregular
