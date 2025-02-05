@@ -4,10 +4,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
 ## [Unreleased]
+### Added
+- check for presence of cgMLST scheme members and for presence of mv_scheme_x table in seqdef before trying a 
+  cache update of the scheme. 
+
 ### Changed
+- All Jammy existing assays to bigsdb for neisseria listeria salmonella mycobacterium influenza.
 - Upgrade from python 3.9 to python 3.12
+- Rework integration SFTP flow 11 to send genomic indicators to ODS instead of DWH, remove mapping table flow to ODS
 - Simplification of html generation azure script
+
 ### Bugfix
 - Bugfix reanalysis influenza
 
@@ -17,23 +25,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Nominative metadata for Influenza 
 - Configuration for Influenza DBs (xml)
 
-### Change
+### Changed
 - List of authorized species in mongo config
+- Microreact can run without selecting a scheme
+- A part of the eav fields are available for selection in the dropdown list of Microreact plugin
+- cpanm is used instead of cpan to install perl packages
+- Ansible was updated to 2.18.1
+- The bioit-bigsdb.yml playbook includes extra roles in order to skip the manual run of the bioit-db.yml and bioit-filedb.yml
+  playbooks during the deployment of the platform.
 
 ### Bugfix
 - Insertion of assembly is now using the "fasta_path" from mongo instead of reconstructing a path based on the "report_dir" field.
 - Insertion of nominative data (broken in 2.0.1)
+- Fix in mongo_to_bigs in the code handling comparison of cgst in case of reanalysis (600a28e4051574fb7d38bb68d44d3b68b2771d48)
+- ANSIBLE 2.18.1 - fix community.general.cpan module
 
-## [2.0.1] - 2024-12-02 
+## [2.0.2] - 2025-01-20 (myc dev and test)
+### Bugfix
+- insertion of reanalysed badqc isolates (bug: removing of the validated badqc from BIGSdb before reinserting its new results was not done)
+- fix a type issue in a condition during the cgst reevaluation
 
+## [2.0.1] - 2024-12-02
 ### Added
 - cron job to ensure that badqcs stored in MongoDB are all well inserted into BIGSdb submission system
-
-### Added
 - Utility script for the validation of all badqcs submitted in BIGSdb
 
 ### Bugfix
-- Insertion of clustering/nominative data and alert computation is disable when BIGSdb is still empty
+- Insertion of clustering/nominative data and alert computation is disabled when BIGSdb is still empty
 - Fix access rights on /home/bigsdb/BIGSdb
 - Fix the lockfile command configuration to avoid simultaneous connections to the matrix file in AZURE. 
 - Avoid duplicated primary key in "classification_group_profile_history" if clustering change the same day
@@ -42,7 +60,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Issue due to new cgMLST selected for insertion between the last update of temporary alleles and the next new run for the temp_id_replacer
 - Unexpected deletion of isolates from BIGSdb if a failure happens during the insertion of their reanalysis results.
 
-### Change
+### Changed
 - Update of "snp_lineage" scheme (mycobacterium)
 - "mongo_to_bigs_hourly" cron job is running every 5 minutes
 - Introduce new fields to get info on various updates in MongoDB Atlas
@@ -57,7 +75,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - SciensanoReportPage.pm to download the report directly from BIGSdb as previous solution was not working under 
   BIGSdb 1.48
 
-### Change
+### Changed
 - Reports are not stored on the local VM, they need to be called from AZURE api
 - Computation of the cgmlst matrix is done on AZURE
 - html tagger is running on AZURE

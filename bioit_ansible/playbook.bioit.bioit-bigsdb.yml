@@ -5,7 +5,17 @@
   gather_facts: True
   become: yes
 
+  pre_task:
+    - name: Ensure binary directory exists for database access config file
+      file:
+        path: "/etc/bioit"
+        state: directory
+      become: yes
+
   roles:
+    - { name: bioit.locale, become: yes }
+    - { name: bioit.postgresql }
+    - { name: bioit.filedb }
     - { name: bioit.tools }
     - { name: bioit.bigsdb }
 ...

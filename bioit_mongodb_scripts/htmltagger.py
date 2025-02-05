@@ -51,10 +51,7 @@ class HtmlTagger:
         :param html_name: name of the scheme to be tagged in the html file
         :return: None
         """
-        if html_name == 'PointFinder':
-            htmlreport = ''.join(['<div class="report_section"><h2>', html_name, ' <small'])
-        else:
-            htmlreport = ''.join(['<div class="report_section"><h3>', html_name, '</h3>'])
+        htmlreport = ''.join(['<div class="report_section"><h3>', html_name, '</h3>'])
         htmltag = ''.join(['<a name="', html_name, '"></a>'])
         # Create temp file
         fh, abs_path = mkstemp()

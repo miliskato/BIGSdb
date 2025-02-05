@@ -256,7 +256,6 @@ code_lists:
       value_field: 'CD_LAB_TEST_RSLT_QL'
       code_list: 'labtest_codes'
       translation: 'mic_tmp_I'
-    # todo mic resistances
   labtest_codes:
     83185005: Susceptible
     11896004: Intermediate

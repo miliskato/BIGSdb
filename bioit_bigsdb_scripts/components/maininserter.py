@@ -127,9 +127,9 @@ class MainInserter(JsonSuperClass):
         elif self._species == 'neisseria':
             # json input
             if 'serogroup' in self._json_report_dict:
-                self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'Serogroup', self._json_report_dict['serogroup']['detected_serogroup']))
-
+                self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'Serogroup_legacy', self._json_report_dict['serogroup']['serogroup_legacy']))
+                self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'Serogroup_capsule', self._json_report_dict['serogroup']['serogroup_capsule']))
         elif self._species == 'influenza':
             if 'nextclade' in self._json_report_dict:
-                self._isolates_eavt_psql_tbl.insert_eav_isolate_viral_species((self._isolatename, 'influenza_subtype', self._json_report_dict['nextclade']['results'].get('nextclade_detected_subtype')))
-                self._isolates_eavt_psql_tbl.insert_eav_isolate_viral_species((self._isolatename, 'nextclade_clade', self._json_report_dict['nextclade']['results'].get('nextclade_clade')))
+                self._isolates_eavt_psql_tbl.insert_eav_isolate_viral_species((self._isolatename, 'influenza_subtype', self._json_report_dict['nextclade'].get('nextclade_detected_subtype')))
+                self._isolates_eavt_psql_tbl.insert_eav_isolate_viral_species((self._isolatename, 'nextclade_clade', self._json_report_dict['nextclade'].get('nextclade_clade')))

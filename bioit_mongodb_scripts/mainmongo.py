@@ -7,9 +7,10 @@ import re
 import socket
 import sys
 import traceback
+from copy import deepcopy
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, Literal, List, Tuple, Union
 
 # import dnspython
 # somehow this package is a requirement without actually needing to be imported, probably imported in pymongo
@@ -22,7 +23,7 @@ PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
 from bioit_mongodb_scripts.config import CLUSTERING_CONFIG
-from bioit_nrc_integration.python.config import CODES_GENOMIC_DWH
+from bioit_nrc_integration.python.config import CODES_GENOMIC_ODS
 from bioit_mongodb_scripts.model.json_model import JsonReportDict, MongoRecordDict
 from bioit_mongodb_scripts.util.error import *
 from bioit_mongodb_scripts.util.mongo_custom_clustering import MongoCustomClustering
@@ -53,7 +54,7 @@ def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     parser.add_argument("--original_input_format", required=False, type=str)  # maybe later change it to choices
     parser.add_argument("--technical_id", required=True, type=str)
     parser.add_argument("--technical_metadata_path", required=False, type=Path)  # not mandatory because of reanalysis
-    parser.add_argument("--pipeline_hash", required=True, type=str)  # Required for DCD NRC->DWH
+    parser.add_argument("--pipeline_hash", required=True, type=str)  # Required for DCD NRC->ODS
     parser.add_argument('--connection_string', required=False, type=str)  # will replace connection string, only for small testing purposes
     parser.add_argument('--alternate_dtap', choices=['dev', 'test', 'acc', 'prod'], help=argparse.SUPPRESS)  # will replace connection string, only for small testing purposes
     parser.add_argument('--dont_send_email', action='store_true', help=argparse.SUPPRESS)  # will not send emails, mainly used for blocking the reanalysis spam
@@ -69,7 +70,7 @@ class MainMongo:
                  vcffilepath: Path = None, vcffilepath_unfiltered: Path = None, original_input_format: str = None, connection_string: str = None, alternate_dtap: Union[str, None] = None,
                  dont_send_email: bool = False, mongo_config_data: Dict[str, Any] = None) -> None:
         """
-        Intialises this class and executes the main function which will insert/update the sample in a mongodb collection containing isolates
+        Initialises this class and executes the main function which will insert/update the sample in a mongodb collection containing isolates
         !! If parameters/arguments are added here, also add them to the argparse function!!
         :param technical_id: sample id/ isolates id
         :param species: commonly used bioit species name: either genus or specific like stec
@@ -164,7 +165,7 @@ class MainMongo:
         # the below check is already handled in mongo initialisation
         # if self._alternate_dtap and self._alternate_dtap not in ['dev', 'test', 'acc', 'prod']:
         #     raise Exception('alternate dtap needs to be a valid choice between; dev, test, acc, prod')
-        # new isolates should not have vcfs necesarily if they are uploaded using only a fasta
+        # new isolates should not have vcfs necessarily if they are uploaded using only a fasta
         # if self._results_type == 'new_isolate' and not self._vcffilepath:
         #     raise Exception('vcffilepath necessary when using results_type new_isolate')
 
@@ -249,6 +250,7 @@ class MainMongo:
             json_report = mongo_records.get_json_results()
             self.___find_hashes_in_results_and_add_to_collection(json_report, 'new_isolate')
             self.___convert_typinghitdictionaries_to_lists(json_report)
+            self.___reformat_mykrobe_results(json_report)
             if 'cgmlst' in json_report:
                 self.__define_cgst_and_run_clustering(json_report)
         if good_sample_quality:
@@ -269,7 +271,7 @@ class MainMongo:
         :param new_json_report: json report containing the results from the pipeline
         :return : True (if good quality) or False (if bad quality)
         """
-        qc = new_json_report.get('qc')
+        qc = new_json_report.get('quality_checks')
         if qc is None:
             send_email(f"No qc values found in the given results for {self._technical_id}\n{traceback.format_exc()}", dont_send_email=self._dont_send_email)
             raise KeyError('No qc values found in the given results')
@@ -286,12 +288,12 @@ class MainMongo:
         After an id is found in either isolates or isolates_badqc; this workflow will determine if it really is a resequencing, and if so insert it into isolates_resequencing
         :param new_json_report: results dictionary that is modified and inserted
         :param document_original: original document including the sample metadata and headers and results
-        :param collection_in: the collection that the orignal sample was in
+        :param collection_in: the collection that the original sample was in
         :return: None
         """
         # https://git.sciensano.be/bioit/BIGSdb/src/d2a261056221056e56df6aa584563454f6bfec3a/lib/BIGSdb/SubmitPage.pm#L2800
         # 2022-12-20 Check whether resequencing; if resequencing; fasta md5sum should be different from original one. debating whether to store md5 in mongo or not
-        # resequencings should be rare so we can afford multiple finds
+        # resequencings should be rare, so we can afford multiple finds
         with Path(document_original['fasta_path']).open('r') as handle_ori, Path(self._fastafilepath).open('r') as handle_new:
             md5_original = hashlib.md5(bytes(handle_ori.read(), 'utf-8')).hexdigest()
             md5_new = hashlib.md5(bytes(handle_new.read(), 'utf-8')).hexdigest()
@@ -323,6 +325,7 @@ class MainMongo:
                 # (there is a missing data filet in the clustering though)
                 self.___find_hashes_in_results_and_add_to_collection(new_json_report, 'reanalysis')
                 self.___convert_typinghitdictionaries_to_lists(new_json_report)
+                self.___reformat_mykrobe_results(new_json_report)
                 if 'cgmlst' in new_json_report:
                     self.__define_cgst_and_run_clustering(new_json_report)
                 new_isolate['submission_status'] = 'pending_for_submission'
@@ -344,6 +347,7 @@ class MainMongo:
         if not new_json_report.get('cgST'):  # != resequencing_validated, == reanalysis
             self.___find_hashes_in_results_and_add_to_collection(new_json_report, 'reanalysis')
             self.___convert_typinghitdictionaries_to_lists(new_json_report)
+            self.___reformat_mykrobe_results(new_json_report)
 
         current_results = current_results_document.get_json_results()
         path_to_report = current_results_document['report_directory']
@@ -383,19 +387,19 @@ class MainMongo:
                          "latest_analysis_date": convert_dmyhms_to_ymd(new_results["results.analysis_date"]),
                          "previous_latest_results_document": self.___write_document(self._old_isolateresults_collection,
                                                                                     MongoRecordDict(dict(deltas_new_old)))}})
-        # after having updated the isolates collection, check for changes for HD DWH to respect the order of execution.
-        self.___check_if_any_results_for_hd_dwh_changed(dict(deltas_new_old))
+        # after having updated the isolates collection, check for changes for HD ODS to respect the order of execution.
+        self.___check_if_any_results_for_hd_ods_changed(dict(deltas_new_old))
         logging.info(f"Wrote new results and linked to isolate {self._technical_id} in {self._species}")
 
-    def ___check_if_any_results_for_hd_dwh_changed(self, deltas_new_old: Dict[str, Any]) -> None:
+    def ___check_if_any_results_for_hd_ods_changed(self, deltas_new_old: Dict[str, Any]) -> None:
         """
-        Checks if any of the genomic indicators to send to DWH have changed and sets the field
-        'changed_since_sent_to_DWH's value to true in the local MongoDB if any have
+        Checks if any of the genomic indicators to send to ODS have changed and sets the field
+        'changed_since_sent_to_ODS's value to true in the local MongoDB if any have
         :param deltas_new_old: the deltas between the new and the old results; what needs to be applied on the
         new results to get the old results back.
         :return: None
         """
-        with CODES_GENOMIC_DWH.open('r') as handle:
+        with CODES_GENOMIC_ODS.open('r') as handle:
             translation_codes = yaml.safe_load(handle)
         if not translation_codes.get(self._species):
             return
@@ -403,8 +407,8 @@ class MainMongo:
             list_path = list_path[1:]  # skip the first value which is always 'results' and is not in the delta
             if access_value_in_dict_using_list_as_dictpath(list_path, deltas_new_old):
                 self._isolates_collection.update_one({'_id': deltas_new_old['isolates_id']},
-                                                     {'$set': {'changed_since_sent_to_DWH': True,
-                                                               'changes_accepted_by_DWH': False}})
+                                                     {'$set': {'changed_since_sent_to_ODS': True,
+                                                               'changes_accepted_by_ODS': False}})
                 break  # break the loop once at least one change has been discovered
 
     def ___update_submission_status_after_validation(self, new_results: Union[MongoRecordDict, Dict[str, Union[str, object]]])-> None:
@@ -421,7 +425,7 @@ class MainMongo:
     def ___write_document(opened_collection: Collection, json_input: MongoRecordDict) -> str:
         """
         Write a document into a collection. if the provided document doesnt contain an _id key, then it is autogenerated
-        else the would be autogenerated _id field is overwritten by the one provided
+        else the _id field that is autogenerated is overwritten by the one provided
         :param opened_collection: the collection where the document needs to be saved
         :param json_input: the document to store into the collection
         :return: id of inserted document (either pre-given in json_input or auto-generated by Mongo)
@@ -479,20 +483,22 @@ class MainMongo:
             metadata['data']['ReferenceAccession'] = tx_ref_accn
         return metadata
 
-    @staticmethod
-    def ____get_technical_metadata_bacterial_fasta(results: JsonReportDict) -> Tuple[str, str, str, str, str, None]:
+
+    def ____get_technical_metadata_bacterial_fasta(self, results: JsonReportDict) -> Tuple[str, str, str, str, str, None]:
         """
         Returns the FASTA technical metadata fields if the species is bacterial.
         :params results: results dictionary
         :return: tuple containing the different technical metadata fields
         """
-        tx_seq_fltr_meth = ', '.join([f"downsample factor: {results['downsampling']['downsample_factor']}",
-                                      f"trimming: {results['trimming']['informs_tools']['Trimmomatic']['_name']}",
-                                      f"filtering of assembly: {results['assembly']['informs_tools']['Seqtk seq']['_name']}"
+        input_type = results['input_type']
+        appendix = self.__get_appendix_from_input_type(input_type)
+        tx_seq_fltr_meth = ', '.join([f"downsample factor: {results[f'downsampling_{appendix}']['downsampling_downsample_factor']}",
+                                      f"trimming: {results[f'trimming_{input_type}']['trim_ilmn_tool_version']}",
+                                      f"filtering of assembly: {results['quast']['assembly_filtering_tool_version']}"
                                       ])
         cd_seq_assy_meth = 'SPAdes'
-        tx_seq_assy_meth_ver = results['assembly']['informs_tools']['spades']['_version']
-        ms_genome_cvge = results['downsampling']['coverage_estimated']
+        tx_seq_assy_meth_ver = results['quast']['assembly_tool_version']
+        ms_genome_cvge = results[f'downsampling_{appendix}']['downsampling_coverage_estimated']
         cd_novo_assy = 'Yes'
         tx_ref_accn = None
 
@@ -504,14 +510,16 @@ class MainMongo:
         :params results: results dictionary
         :return: tuple containing the different technical metadata fields
         """
-        tx_seq_fltr_meth = ', '.join([f"downsample factor: {results['downsampling']['downsample_factor']}",
-                                      f"trimming: {results['trimming']['informs_tools']['Trimmomatic']['_name']}",
+        input_type = results['input_type']
+        appendix = self.__get_appendix_from_input_type(results['input_type'])
+        tx_seq_fltr_meth = ', '.join([f"downsample factor: {results[f'downsampling_{appendix}']['downsampling_downsample_factor']}",
+                                      f"trimming: {results[f'trimming_{input_type}']['trim_ilmn_tool_version']}"
                                       ])
         cd_seq_assy_meth = 'Other'
-        tx_seq_assy_meth_ver = results['iterative_mapping']['informs_tools']['bwa_mem']['_name']
-        ms_genome_cvge = results['downsampling']['coverage_estimated']
+        tx_seq_assy_meth_ver = ', '.join([x for x in results['iterative_mapping']['tool_versions']])
+        ms_genome_cvge = results[f'downsampling_{appendix}']['downsampling_coverage_estimated']
         cd_novo_assy = 'No'
-        tx_ref_accn = ', '.join(results['ref_selection']['results'][x] for x in results['ref_selection']['results']) \
+        tx_ref_accn = ', '.join(results['ref_selection'][x]['ref_id'] for x in results['ref_selection']) \
             if self._species != 'sars_cov_2' else 'NC_045512.2'
 
         return tx_seq_fltr_meth, cd_seq_assy_meth, tx_seq_assy_meth_ver, ms_genome_cvge, cd_novo_assy, tx_ref_accn
@@ -529,7 +537,7 @@ class MainMongo:
         import copy
         input_dictionary_copy = copy.deepcopy(input_dictionary)
         for key in input_dictionary:
-            if key == 'qc' or key == 'assembly':
+            if key == 'quality_checks' or key == 'assembly':
                 for subkey in input_dictionary[key]:
                     input_dictionary_copy['.'.join([key, subkey])] = input_dictionary_copy[key][subkey]
                 input_dictionary_copy.pop(key)
@@ -621,19 +629,24 @@ class MainMongo:
         unchanged_results = set()
         changed_results = set()
         for mainkey in new_results:  # mainkey is assay or metadata
+            if mainkey == 'quality_checks':
+                continue
             if isinstance(new_results[mainkey], dict):
                 if mainkey not in current_results:
                     logging.info(f"{mainkey} not in current results")
                     any_result_changed = True
                     changed_results.add(mainkey)
                     continue
+                mainkey_deepcopy = deepcopy(new_results[mainkey])
                 for subkey in new_results[mainkey]:
-                    if subkey == 'loci' or subkey == 'results' or subkey.startswith('hits'):  # TODO what with serogroup of Neisseria + is it normal that it is under informs_tools + seqsero Salmonella
-                        if subkey not in current_results[mainkey] or new_results[mainkey][subkey] != \
-                                current_results[mainkey][subkey]:
-                            logging.info(f"{mainkey}{subkey} different or not in old")
-                            any_result_changed = True
-                            changed_results.add(mainkey)
+                    if isinstance(subkey, str) and 'db_version' in subkey or 'tool_version' in subkey:
+                        mainkey_deepcopy.pop(subkey)
+                        if current_results[mainkey].get(subkey):
+                            current_results[mainkey].pop(subkey)
+                if mainkey_deepcopy != current_results[mainkey]:
+                    logging.info(f"{mainkey} different or not in old")
+                    any_result_changed = True
+                    changed_results.add(mainkey)
                 if mainkey not in changed_results:
                     unchanged_results.add(mainkey)
         return any_result_changed, unchanged_results, changed_results
@@ -670,12 +683,13 @@ class MainMongo:
         delta_new_old['report_directory'] = current_report_path
         return delta_new_old
 
-    def ___convert_typinghitdictionaries_to_lists(self, json_report: JsonReportDict):
+    def ___convert_typinghitdictionaries_to_lists(self, json_report: JsonReportDict) -> None:
         """
         This function aims to reduce the memory usage of hits' metadata by only storing the metadata once in a separate
         collection and storing the results in a list instead.
         Be wary, this method does not create a deepcopy, therefore changes are applied to the input document
         even if the return value's name is modified
+        :param json_report: results dictionary
         :return: The converted input document
         """
         hit_metadata: Union[None, Dict[str, Union[object, str, List[str]]]] = self._headers_collection.find_one({'type': 'hit_metadata'})
@@ -731,6 +745,35 @@ class MainMongo:
         sp_thresholds = f"clustering_thresholds_{self._species}"
         sequence_type = custom_clustering.run_custom_clustering(CLUSTERING_CONFIG[sp_thresholds])
         json_report["cgST"] = sequence_type
+
+    @staticmethod
+    def __get_appendix_from_input_type(input_type: Literal['illumina', 'ont']) -> Literal['fastq_pe', 'fastq_se']:
+        """
+        Since the Jammy update, certain assays have an appendix to their name which is necessary to be able to
+        differentiate between the results of illumina reads and ont reads, especially in case of hybrid input.
+        In HERA, we're not expecting hybrid input, but have to deal with this nevertheless.
+        E.g. previously the assay would be called 'downsampling' and now it has become 'downsampling_fastq_pe'.
+        :param input_type: illumina or ont
+        :return: fastq_pe or fastq_se
+        """
+        if input_type == 'illumina':
+            return 'fastq_pe'
+        elif input_type == 'ont':
+            return 'fastq_se'
+
+    @staticmethod
+    def ___reformat_mykrobe_results(json_report: JsonReportDict) -> None:
+        """
+        The mykrobe results from Camel are a list of dicts. This not very useful for the typing inserter into bigsdb,
+        and for the flow to the ODS is particularly cumbersome. This function generates a dict of dicts much like the
+        loci in cgMLST schemes.
+        :param json_report: results dictionary
+        :return: None
+        """
+        if json_report.get('mykrobe'):
+            drug_susceptibilities = {info['drug']: info for info in
+                                     json_report['mykrobe']['mykrobe_drug_susceptibility']}
+            json_report['mykrobe']['mykrobe_drug_susceptibility'] = drug_susceptibilities
 
 
 if __name__ == '__main__':

@@ -1,0 +1,128 @@
+pathogens:
+  salmonella:
+    dcd_name: BIOIT_SLM
+    dcd_code: HDBP0041
+    dcd_version: 1.0.0
+
+common:
+  CD_HCO_NIHDI:
+    - technical_metadata
+    - CD_HCO_NIHDI  # this value is not converted in the HERA_Azure code and should not be
+  TX_PIPELINE_NAM:
+    - results
+    - pipeline_name
+  TX_PIPELINE_VER:
+    - results
+    - pipeline_version
+  TX_PIPELINE_HASH:
+    - results
+    - pipeline_hash
+#  DT_PIPELINE_ANAL:  # needs to be in “YYYY-MM-DDT00:00:00”  format; added to main code
+#    - results
+#    - analysis_date
+  TX_BUSINESS_KEY:
+    - TX_BUSINESS_KEY
+  TX_SAMPLE_ID:
+    - _id
+
+salmonella:
+  TX_MLST_ST:
+    - results
+    - mlst
+    - mlst-ST
+#  CD_GENTPE_ESBLS_SUSC:
+#    - results
+#    - mykrobe
+#    - mykrobe_drug_susceptibility
+#    - ESBLS
+#    - susceptibility
+  CD_GENTPE_INCFIAHI1_SUSC:
+    - results
+    - mykrobe
+    - mykrobe_drug_susceptibility
+    - IncFIAHI1
+    - susceptibility
+  CD_GENTPE_INCHI1A_SUSC:
+    - results
+    - mykrobe
+    - mykrobe_drug_susceptibility
+    - IncHI1A
+    - susceptibility
+  CD_GENTPE_INCHI1BR27_SUSC:
+    - results
+    - mykrobe
+    - mykrobe_drug_susceptibility
+    - IncHI1BR27
+    - susceptibility
+  CD_GENTPE_INCY_SUSC:
+    - results
+    - mykrobe
+    - mykrobe_drug_susceptibility
+    - IncY
+    - susceptibility
+#  CD_GENTPE_AMNGLY_SUSC:
+#    - results
+#    - mykrobe
+#    - mykrobe_drug_susceptibility
+#    - IncHI1A
+#    - susceptibility
+  CD_GENTPE_AZI_SUSC:
+    - results
+    - mykrobe
+    - mykrobe_drug_susceptibility
+    - azithromycin
+    - susceptibility
+#  CD_GENTPE_BLAC_SUSC:
+#    - results
+#    - mykrobe
+#    - mykrobe_drug_susceptibility
+#    - BLAC
+#    - susceptibility
+#  CD_GENTPE_MACROL_SUSC:
+#    - results
+#    - mykrobe
+#    - mykrobe_drug_susceptibility
+#    - MACROL
+#    - susceptibility
+  CD_GENTPE_PST_SUSC:
+    - results
+    - mykrobe
+    - mykrobe_drug_susceptibility
+    - pST
+    - susceptibility
+#  CD_GENTPE_PHENI_SUSC:
+#    - results
+#    - mykrobe
+#    - mykrobe_drug_susceptibility
+#    - PHENI
+#    - susceptibility
+#  CD_GENTPE_QUINOL_SUSC:
+#    - results
+#    - mykrobe
+#    - mykrobe_drug_susceptibility
+#    - QUINOL
+#    - susceptibility
+  CD_GENTPE_SULFON_SUSC:
+    - results
+    - mykrobe
+    - mykrobe_drug_susceptibility
+    - sulfonamides
+    - susceptibility
+  CD_GENTPE_TETRACY_SUSC:
+    - results
+    - mykrobe
+    - mykrobe_drug_susceptibility
+    - tetracycline
+    - susceptibility
+  CD_GENTPE_TRIMETH_SUSC:
+    - results
+    - mykrobe
+    - mykrobe_drug_susceptibility
+    - trimethoprim
+    - susceptibility
+  CD_GENTPE_Z66_SUSC:
+    - results
+    - mykrobe
+    - mykrobe_drug_susceptibility
+    - z66
+    - susceptibility

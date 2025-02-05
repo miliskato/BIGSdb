@@ -1,7 +1,7 @@
 import logging
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Literal, Optional, Tuple
 
 import requests
 
@@ -42,8 +42,8 @@ class JsonTypingResultsInserter(JsonSuperClass):
         with TblAlleleDesignations(self._species) as self._isolates_ad_psql_tbl, TblEavText(
                 self._species) as self._isolates_eavt_psql_tbl:
             for scheme in self._schemedict:
-                if scheme in self._json_report_dict:
-                    self._scheme = scheme
+                self._scheme = scheme
+                if self._scheme in self._json_report_dict:
                     if self._schemedict[self._scheme]['type'] == 'regular':
                         self._process_regular_typing_scheme()
                     elif self._schemedict[self._scheme]['type'] == 'irregular':
@@ -71,14 +71,16 @@ class JsonTypingResultsInserter(JsonSuperClass):
                 # Bigsdb creates a null allele itself in the seqdef database
                 elif ((self._scheme == 'pcr_serogroup' or (self._scheme == 'bast' and locus['Locus'] == 'NadA_peptide'))
                       and locus['% Identity'] == '-' and locus['HSP/Locus length'] == '-') or self._scheme == 'cgmlst':
-                    # in cgmlst you can have perfect multihits (?) that are then also considered as a zero in the custom profile by Benoit, thats why its outside of the ( )
+                    # in cgmlst you can have perfect multihits (?) that are then also considered as a zero in the custom profile by Benoit, that's why it's outside of the ( )
                     self._isolates_ad_psql_tbl.insert_designation_by_isolatename(
                         (locus['Locus'], self._isolatename, '0'))
                     self._locusset.add(locus['Locus'])
 
     def _process_irregular_typing_scheme(self) -> None:
-        if self._scheme == 'pointfinder':
-            self.__process_irregular_typing_scheme_pointfinder()
+        """
+        Inserts irregular typing schemes into BIGSdb by pathogen.
+        :return: None
+        """
         if self._species == 'mycobacterium':
             self.__process_irregular_typing_scheme_mycobacterium_specific()
         elif self._species == 'neisseria':
@@ -87,34 +89,6 @@ class JsonTypingResultsInserter(JsonSuperClass):
             self.__process_irregular_typing_scheme_stec_specific()
         elif self._species == 'salmonella':
             self.__process_irregular_typing_scheme_salmonella_specific()
-
-    def __process_irregular_typing_scheme_pointfinder(self) -> None:
-        """
-        Processes and inserts pointfinder results (available in multiple species)
-        :return: None
-        """
-        if len(self._json_report_dict[self._scheme]['results']) != 0:
-            eavhtmltable = '<table class="data"><tr><th>Hit</th><th>Antibiotic</th></tr>'
-            for result in self._json_report_dict[self._scheme]['results']:
-                if result['Resistance'] != "Unknown":
-                    # Seeing as the allele db of pointfinder is empty at the beginning because the db is too hard to understand, we gradually add alleles.
-                    # sometimes a mutation will give resistance to more than 1 AB
-                    antibiotics: List[str] = result['Resistance'].split(',')
-                    for antibiotic in antibiotics:
-                        antibiotic_reformatted = '_'.join(
-                            ['POINTFINDER', re.sub('-| ', '_', antibiotic).upper()])
-                        mutation = re.sub('[.]| ', '_', result['Mutation'])
-                        scheme_tag = self._schemedict[self._scheme]['schemename_html']
-                        report_url = UrlHelper.report_for_isolate(self._species, self.___get_isolate_id(), anchor=scheme_tag)
-                        eavhtmltable = eavhtmltable + f'<tr><td><a href="{report_url}" target="_blank">{mutation}</a></td>'
-                        eavhtmltable = eavhtmltable + f'<td>{antibiotic}</td></tr>'
-                        self.insert_locus_if_needed(antibiotic_reformatted,
-                                                    self._schemedict[self._scheme]['schemename_bigsdb'])
-                        self._insert_dummy_sequence_if_needed(antibiotic_reformatted, mutation)
-                        self._isolates_ad_psql_tbl.insert_designation_by_isolatename(
-                            (antibiotic_reformatted, self._isolatename, mutation))
-            eavhtmltable = eavhtmltable + '</table>'
-            self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'pointfinder_hits', eavhtmltable))
 
     def ___get_isolate_id(self) -> str:
         """
@@ -146,7 +120,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
                     '_detected')  # need to be careful with rstrip and strip but in this case no issue
                 allele_id = '1' if self._json_report_dict[self._scheme][record] else '0'
                 self._isolates_ad_psql_tbl.insert_designation_by_isolatename((locus, self._isolatename, allele_id))
-        elif self._scheme == 'amr_who':
+        elif self._scheme == 'amr_detection':
             # make a dict with field and tsv names to be able to insert
             with TblEavFields(self._species) as isolates_eavf_psql_tbl:
                 fields = isolates_eavf_psql_tbl.select_fields_amr()
@@ -159,22 +133,22 @@ class JsonTypingResultsInserter(JsonSuperClass):
             for bigsdbname, jsonname in amr_metadata_fields.items():
                 print(self._json_report_dict[self._scheme])
                 self._isolates_eavt_psql_tbl.insert_eav_isolate(
-                    (self._isolatename, bigsdbname, self._json_report_dict[self._scheme]['results'][jsonname]))
+                    (self._isolatename, bigsdbname, self._json_report_dict[self._scheme][jsonname]))
             # AMR results
             with TblSchemeMembers(self._species, 'isolates') as isolates_schememembers_psql_tbl:
                 amr_loci = isolates_schememembers_psql_tbl.select_loci_amr()
             for locus in amr_loci:
                 jsonname = '_'.join(['amr_mutations', str(locus[0]).replace('_int', '_(int.)')])
-                if self._json_report_dict[self._scheme]['results'][jsonname] != '-':
+                if self._json_report_dict[self._scheme][jsonname] != '-':
                     variantsset = set()
-                    for variant in self._json_report_dict[self._scheme]['results'][jsonname].split(', '):
+                    for variant in self._json_report_dict[self._scheme][jsonname].split(', '):
                         variantreformatted = re.sub('[(]|[)]', '_', variant)
                         # Bert explained that if the change is found in promotor, then it can change signs
                         # And also honestly the db is really discrepant, e.g. how likely is this:
                         # Rv1979c AA G_107_A Rv1979c_AA_G_107_A Uncertain significance CFZ CFZ_Uncertain_significance
                         # Rv1979c PROM g_-107_a Rv1979c_PROM_g_-107_a Uncertain significance CFZ CFZ_Uncertain_significance
                         # + there are really just duplicates in the db so I limit to 1, then it's always the same.
-                        # Sometimes not only the sign changes when its in a promotor, but also the location,
+                        # Sometimes not only the sign changes when it's in a promotor, but also the location,
                         # easiest solution is just to insert after it is found.
                         self._insert_dummy_sequence_if_needed(locus[0], variantreformatted)
                         if variantreformatted not in variantsset:
@@ -226,23 +200,12 @@ class JsonTypingResultsInserter(JsonSuperClass):
         Processes and inserts neisseria results
         :return: None
         """
-        if self._scheme == 'resistance_genes' and len(self._json_report_dict[self._scheme]['loci']) != 0:
-            for locus in self._json_report_dict[self._scheme]['loci']:
-                if locus['Locus'] in ['penA', 'rpoB'] and locus['% Identity'] == '100.00' and \
-                        locus['HSP/Locus length'] != '-' and eval(locus['HSP/Locus length']) == 1.0:
-                    response: requests.models.Response = requests.get(
-                        f"https://rest.pubmlst.org/db/pubmlst_neisseria_seqdef/loci/{locus['Locus']}/alleles/{locus['Allele']}")
-                    json_data: Dict = response.json()
-                    # An api hammering test showed that it could > 1000 results in minutes in a simple for loop,
-                    # which is not going to be the case here
-                    if json_data['status'] != '404' and json_data.get('linked_data') and 'PubMLST isolates' in \
-                            json_data['linked_data']:
-                        for antibiotic in ['rifampicin_SIR', 'penicillin_SIR']:
-                            if antibiotic in json_data['linked_data']['PubMLST isolates']:
-                                for record in json_data['linked_data']['PubMLST isolates'][antibiotic]:
-                                    self._isolates_eavt_psql_tbl.insert_eav_isolate(
-                                        (self._isolatename, '_'.join([antibiotic, record['value'], 'frequency']),
-                                         record['frequency']))
+        if self._scheme == 'serogroup' and self._json_report_dict['serogroup']['serogroup_capsule_genes'] != "":
+            scheme = self._schemedict[self._scheme]['schemename_bigsdb']
+            for gene in self._json_report_dict['serogroup']['serogroup_capsule_genes'].split(','):
+                self.insert_locus_if_needed(f'{scheme}_{gene}', scheme)
+                self._insert_dummy_sequence_if_needed(f'{scheme}_{gene}', '1')
+                self._isolates_ad_psql_tbl.insert_designation_by_isolatename((f'{scheme}_{gene}', self._isolatename, '1'))
 
     def __process_irregular_typing_scheme_stec_specific(self) -> None:
         """
@@ -263,82 +226,83 @@ class JsonTypingResultsInserter(JsonSuperClass):
         Processes and inserts Salmonella results
         :return: None
         """
-        if self._scheme == 'genotyphi':
+        if self._scheme == 'mykrobe':
             with TblEavFields(self._species) as isolates_eavf_psql_tbl:
-                fields_genotyphi: List[Tuple[str]] = isolates_eavf_psql_tbl.select_fields_of_a_category(('Genotyphi',))
-            for item in fields_genotyphi:
-                item_like_mongo = 'genotyphi_' + item[0]
-                if item_like_mongo in self._json_report_dict[self._scheme]['results'] and \
-                        self._json_report_dict[self._scheme]['results'][item_like_mongo] is not None:
-                    susceptibility: str = self._json_report_dict[self._scheme]['results'][item_like_mongo]
+                fields_mykrobe: List[Tuple[str]] = isolates_eavf_psql_tbl.select_fields_of_a_category(('Mykrobe',))
+            for item in fields_mykrobe:
+                item_in_mongo = item[0].replace('_susceptibility', '')
+                if item_in_mongo in self._json_report_dict[self._scheme]['mykrobe_drug_susceptibility']:
+                    susceptibility: str = self._json_report_dict[self._scheme]['mykrobe_drug_susceptibility'][item_in_mongo]['susceptibility']
                     self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, item[0], susceptibility))
                     # insert new alleles
                     # example of structure in output dict:
-                    # {'genotyphi': {'results': {'genotyphi_IncFIAHI1_susceptibility': 'S',
-                    #                            'genotyphi_IncFIAHI1_variants': '-',
-                    #                            'genotyphi_IncFIAHI1_genes': '-',
-                    #                            ... } } }
-                    variant = item_like_mongo.replace('susceptibility', 'variants')
-                    gene = item_like_mongo.replace('susceptibility', 'genes')
-                    genotyphi_field = item_like_mongo.replace('_susceptibility', '').upper()
+                    # "mykrobe": {"mykrobe_drug_susceptibility": {"IncFIAHI1": {"drug": "IncFIAHI1",
+                    #                                                           "susceptibility": "S",
+                    #                                                           "variants": "-",
+                    #                                                           "genes": "-"}}}
+                    mykrobe_field = 'MYKROBE_' + item_in_mongo.upper()
                     # get the genes and variants
-                    future_alleles = self._json_report_dict[self._scheme]['results'][variant].split(';') + \
-                                     self._json_report_dict[self._scheme]['results'][gene].split(';')
+                    future_alleles = self._json_report_dict[self._scheme]['mykrobe_drug_susceptibility'][item_in_mongo]['variants'].split(';') + \
+                        self._json_report_dict[self._scheme]['mykrobe_drug_susceptibility'][item_in_mongo]['genes'].split(';')
                     for value in future_alleles:
                         if value != '-':
-                            self._insert_dummy_sequence_if_needed(genotyphi_field, value)
+                            self._insert_dummy_sequence_if_needed(mykrobe_field, value)
                             self._isolates_ad_psql_tbl.insert_designation_by_isolatename(
-                                (genotyphi_field, self._isolatename, value))
+                                (mykrobe_field, self._isolatename, value))
         elif self._scheme == 'sistr':
-            serotyping_insert = self._json_report_dict[self._scheme]['serotype_antigenic_formula']
+            serotyping_insert = self._json_report_dict[self._scheme]['sistr_serotype_antigenic_formula']
             if serotyping_insert != '-':
                 self.___salmonella_insert_antigens_into_db(serotyping_insert)
                 self._isolates_eavt_psql_tbl.insert_eav_isolate(
                     (self._isolatename, f'{self._scheme}_formula', serotyping_insert))
-            serotyping_insert = self._json_report_dict[self._scheme]['serotype_concensus']
+            serotyping_insert = self._json_report_dict[self._scheme]['sistr_serotype_consensus']
             if serotyping_insert != '-':
                 self._isolates_eavt_psql_tbl.insert_eav_isolate(
                     (self._isolatename, f'{self._scheme}_serotype', serotyping_insert))
-        elif self._scheme.startswith('seqsero2'):
-            serotyping_insert = self._json_report_dict[self._scheme][
-                f'{self._scheme}_Predicted_antigenic_profile']
-            self.___salmonella_insert_antigens_into_db(serotyping_insert)
-            if serotyping_insert != '-:-:-':
-                self._isolates_eavt_psql_tbl.insert_eav_isolate(
-                    (self._isolatename, f'{self._scheme}_formula', serotyping_insert))
-            serotyping_insert = self._json_report_dict[self._scheme][f'{self._scheme}_Predicted_serotype']
-            if serotyping_insert != '- -:-:-':
-                self._isolates_eavt_psql_tbl.insert_eav_isolate(
-                    (self._isolatename, f'{self._scheme}_serotype', serotyping_insert))
-        elif self._scheme.startswith('spifinder'):
-            hits: List = self._json_report_dict[self._scheme]['results']
-            if len(hits) != 0:
-                inserted_alleledesignations_list = set()
-                for spi in hits:
-                    spifinder_entry = f"CatFunc{spi['category_function']}__{spi['accession']}"
-                    spifinder_field = f"{self._scheme}_{spi['SPI']}".upper()
-                    if spifinder_entry not in inserted_alleledesignations_list:
-                        self._insert_dummy_sequence_if_needed(spifinder_field, spifinder_entry)
-                        self._isolates_ad_psql_tbl.insert_designation_by_isolatename(
-                            (spifinder_field, self._isolatename, spifinder_entry))
-                        inserted_alleledesignations_list.add(spifinder_entry)
+        elif self._scheme == 'seqsero2':
+            for mode in ['kmer', 'kmerread', 'allele']:
+                serotyping_insert = self._json_report_dict['seqsero2'].get(
+                    f'{self._scheme}_{mode}_Predicted_antigenic_profile')
+                if serotyping_insert:
+                    self.___salmonella_insert_antigens_into_db(serotyping_insert, mode)
+                    if serotyping_insert != '-:-:-':
+                        self._isolates_eavt_psql_tbl.insert_eav_isolate(
+                            (self._isolatename, f'{self._scheme}_{mode}_formula', serotyping_insert))
+                    serotyping_insert = self._json_report_dict['seqsero2'][f'{self._scheme}_{mode}_Predicted_serotype']
+                    if serotyping_insert != '-_-:-:-':
+                        self._isolates_eavt_psql_tbl.insert_eav_isolate(
+                            (self._isolatename, f'{self._scheme}_{mode}_serotype', serotyping_insert))
+        elif self._scheme == 'spifinder':
+            for mode in ['fastq', 'fasta']:
+                hits: List = self._json_report_dict['spifinder'].get(f'{self._scheme}_{mode}')
+                if hits and len(hits) != 0:
+                    inserted_alleledesignations_list = set()
+                    for spi in hits:
+                        spifinder_entry = f"CatFunc{spi['category_function']}__{spi['accession']}"
+                        spifinder_field = f"{self._scheme}_{mode}_{spi['SPI']}".upper()
+                        if spifinder_entry not in inserted_alleledesignations_list:
+                            self._insert_dummy_sequence_if_needed(spifinder_field, spifinder_entry)
+                            self._isolates_ad_psql_tbl.insert_designation_by_isolatename(
+                                (spifinder_field, self._isolatename, spifinder_entry))
+                            inserted_alleledesignations_list.add(spifinder_entry)
         elif self._scheme == 'abritamr':
             with TblEavFields(self._species) as isolates_eavf_psql_tbl:
                 fields_abritamr: List[Tuple[str]] = isolates_eavf_psql_tbl.select_fields_of_a_category(('AbritAMR',))
 
             for item in fields_abritamr:
                 item_like_mongo = 'abritamr_' + item[0]
-                if item_like_mongo in self._json_report_dict[self._scheme]['results'] and \
-                        self._json_report_dict[self._scheme]['results'][item_like_mongo] is not None:
-                    amr_detection: str = self._json_report_dict[self._scheme]['results'][item_like_mongo]
+                if item_like_mongo in self._json_report_dict[self._scheme] and \
+                        self._json_report_dict[self._scheme][item_like_mongo] is not None:
+                    amr_detection: str = self._json_report_dict[self._scheme][item_like_mongo]
                     if amr_detection == '-':
                         amr_detection = 'NA'
                     self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, item[0], amr_detection))
 
-    def ___salmonella_insert_antigens_into_db(self, raw_formula: str) -> None:
+    def ___salmonella_insert_antigens_into_db(self, raw_formula: str, mode: Optional[Literal['kmer', 'kmerread', 'allele']] = None) -> None:
         """
         Inserts antigens separately from the formula
         :param raw_formula: serotype formula O:H1:H2
+        :param mode: Seqsero2 specific parameter to differentiate between the three different modes that it is run in.
         :return: None
         """
         raw_formula_splitted: List = raw_formula.split(':')
@@ -347,7 +311,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
                         "H2_antigen": raw_formula_splitted[2].split(',')}
         antigens = ["O_antigen", "H1_antigen", "H2_antigen"]
         for antigen in antigens:
-            field = f'{self._scheme}_{antigen}'.upper()
+            field = f'{self._scheme}_{antigen}'.upper() if not mode else f'{self._scheme}_{mode}_{antigen}'.upper()
             entries = antigensdict[antigen]
             for entry in entries:
                 if entry != '-':
