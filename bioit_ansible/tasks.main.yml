@@ -90,6 +90,12 @@
     version: "{{ branch }}"
     force: true
 
+- name: keep track of the version deployed
+  copy:
+    content: "{{ species }} {{ mongo_dtap }} {{ branch }} {{ target }}\n"
+    dest: "{{ bioit_bigs_home }}/VERSION_{{ species }}_{{ mongo_dtap }}.LOG"
+    owner: bigsdb
+
 - name: Change git cloned repo owner to bigsdb for it to be able to write the distance matrix here
   file:
     path: "{{ bioit_bigs_home }}"
@@ -171,6 +177,7 @@
   vars:
     packages:
       - apache2
+      - cpanminus
       - libapache2-mod-perl2
       - xvfb
       - liblog-log4perl-perl
@@ -267,7 +274,7 @@
 
 - name: Install bio perl package
   community.general.cpanm:
-    executable: /usr/bin/cpan
+    executable: /usr/bin/cpanm
     name: BioPerl
 
 - name: create dirs
@@ -748,15 +755,15 @@
         - name: Install requirements bigs
           pip:
             requirements: "{{ bioit_bigs_home }}/bioit_bigsdb_scripts/requirements.txt"
-            virtualenv: "{{ bioit_bigs_home }}/3.9PythonVenv"
-            virtualenv_python: python3.9
+            virtualenv: "{{ bioit_bigs_home }}/3.12PythonVenv"
+            virtualenv_python: python3.12
           tags: bigs_pip_requirements
 
         - name: Install requirements mongo
           pip:
             requirements: "{{ bioit_bigs_home }}/bioit_mongodb_scripts/requirements.txt"
-            virtualenv: "{{ bioit_bigs_home }}/3.9PythonVenv"
-            virtualenv_python: python3.9
+            virtualenv: "{{ bioit_bigs_home }}/3.12PythonVenv"
+            virtualenv_python: python3.12
 
 - name: Restart service rest after all other steps
   ansible.builtin.systemd:
@@ -811,7 +818,7 @@
       lineinfile:
         path: "{{ bioit_bigs_home }}/bioit_bigsdb_scripts/cron_startinsertion_lab_metadata.sh"
         regexp: "--species to_be_replaced_by_ansible"
-        line: "/home/bigsdb/BIGSdb/3.9PythonVenv/bin/python3.9 /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/components/metadata_insertion_from_bigs.py --species {{ species }} "
+        line: "/home/bigsdb/BIGSdb/3.12PythonVenv/bin/python3.12 /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/components/metadata_insertion_from_bigs.py --species {{ species }} "
       tags: bigs_upload_cron
 
     - name: Add cron.d entry for global db
@@ -877,7 +884,7 @@
         minute: '*/5'
         hour: '*'  # every 5 minutes
         weekday: '*'
-        job: "/usr/bin/flock -n /tmp/mongo_to_bigs_hourly.lockfile {{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_mongodb_scripts/mongo_to_bigs.py --species {{ species }} --uploader_mail_address bioit@sciensano.be"
+        job: "/usr/bin/flock -n /tmp/mongo_to_bigs_hourly.lockfile {{ bioit_bigs_home }}/3.12PythonVenv/bin/python3.12 {{ bioit_bigs_home }}/bioit_mongodb_scripts/mongo_to_bigs.py --species {{ species }} --uploader_mail_address bioit@sciensano.be"
         user: 'bigsdb'
         cron_file: mongo_to_bigs_hourly
 
@@ -887,7 +894,7 @@
         minute: '0'
         hour: '*/1'  # every hour
         weekday: '*'
-        job: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_bigsdb_scripts/check_jobs_killed.py"
+        job: "{{ bioit_bigs_home }}/3.12PythonVenv/bin/python3.12 {{ bioit_bigs_home }}/bioit_bigsdb_scripts/check_jobs_killed.py"
         user: 'root'
         cron_file: check_jobs_killed
 
@@ -897,7 +904,7 @@
         minute: '0'
         hour: '1'  # every day at 1:00 am
         weekday: '*'
-        job: "{{ bioit_bigs_home }}/3.9PythonVenv/bin/python3.9 {{ bioit_bigs_home }}/bioit_mongodb_scripts/tests/get_missing_bad_qc.py --species {{ species }}"
+        job: "{{ bioit_bigs_home }}/3.12PythonVenv/bin/python3.12 {{ bioit_bigs_home }}/bioit_mongodb_scripts/tests/get_missing_bad_qc.py --species {{ species }}"
         user: 'root'
         cron_file: check_for_missing_badqc
 

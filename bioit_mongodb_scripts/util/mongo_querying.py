@@ -3,7 +3,7 @@ import re
 from typing import Any, Dict, List, Optional, Union
 from typing import Mapping, Tuple
 
-import pymongo
+from pymongo.collection import Collection
 from pymongo.read_concern import ReadConcern
 
 from .python_utility_functions import convert_dmyhms_to_ymd, merge_mongo_dicts
@@ -18,7 +18,7 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         pass
 
     @staticmethod
-    def query_list_of_all_distinct_values(opened_collection: pymongo.collection.Collection,
+    def query_list_of_all_distinct_values(opened_collection: Collection,
                                           variable_of_interest: str = '_id', filtering_cond: Optional[Mapping[str, Any]] = None) -> List[str]:
         """
         Collects all values for a given variable of interest across the entire collection.
@@ -30,7 +30,7 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         return opened_collection.distinct(variable_of_interest, filter=filtering_cond)
 
     @staticmethod
-    def query_docs_by_ids(opened_collection: pymongo.collection.Collection, ids: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+    def query_docs_by_ids(opened_collection: Collection, ids: Optional[List[str]] = None) -> List[Dict[str, Any]]:
         """
         Lists the full documents for a given set of ids.
         :param opened_collection: mongo opened collection
@@ -42,8 +42,8 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         else:
             return [doc for doc in opened_collection.with_options(read_concern=ReadConcern(level="majority")).find()]
 
-    def _query_previous_latest_results_by_technicalids(self, opened_isolates_collection: pymongo.collection.Collection,
-                                                       opened_isolateresults_collection: pymongo.collection.Collection,
+    def _query_previous_latest_results_by_technicalids(self, opened_isolates_collection: Collection,
+                                                       opened_isolateresults_collection: Collection,
                                                        technicalids: List[str]) -> List[Dict[str, Any]]:
         """
         Retrieves all latest results for a given set of technical ids in the isolate collection
@@ -58,7 +58,7 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
                                                               technicalids)])
 
     @staticmethod
-    def singledoc_typing_results_by_technicalids_and_scheme(json_report: JsonReportDict, isolate: str, scheme: str, headers_collection: pymongo.collection.Collection, doc_index: int = 0) -> List[List[Union[str, int]]]:
+    def singledoc_typing_results_by_technicalids_and_scheme(json_report: JsonReportDict, isolate: str, scheme: str, headers_collection: Collection, doc_index: int = 0) -> List[List[Union[str, int]]]:
         """
         Return data required for clustering purpose: [optional(headers (locus names) from the scheme), corresponding alleles found in the given isolate]
         :param json_report: json dict containing all results which are found under the 'results' key
@@ -78,7 +78,7 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
             return Mongoquerying._create_scheme_profile_from_mongo(doc_index, headers_collection, isolate, scheme, scheme_loci)
 
     @staticmethod
-    def _create_scheme_profile_from_mongo(doc_index:int, headers_collection: pymongo.collection.Collection, isolate: str, scheme: str, scheme_loci: Dict[str, Any]) -> List[List[Union[str, int]]]:
+    def _create_scheme_profile_from_mongo(doc_index:int, headers_collection: Collection, isolate: str, scheme: str, scheme_loci: Dict[str, Any]) -> List[List[Union[str, int]]]:
         """
         return a list of allele designations for the given isolate and scheme, and optionally, the header corresponding to
         this profile (containing the locus name of the scheme)
@@ -153,7 +153,7 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         return listofresultlists
 
     @staticmethod
-    def revert_typinghitlists_to_dictionaries(document: MongoRecordDict, headers_collection: pymongo.collection.Collection) -> None:
+    def revert_typinghitlists_to_dictionaries(document: MongoRecordDict, headers_collection: Collection) -> None:
         """
         This function restores the lists of hit metadata (Allele, %id, length etc.) to dictionaries which are more
         easily readable and required for bigsdb
@@ -185,9 +185,9 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
                             results_to_modify[mainkey][subkey] = meta_hit_list
 
     def get_any_results_version(self, isolate_id: str, searchkey: str, searchvalue: Union[str, int],
-                                isolates_collection: pymongo.collection.Collection,
-                                old_isolateresults_collection: pymongo.collection.Collection,
-                                headers_collection: pymongo.collection.Collection) -> Tuple[MongoRecordDict, bool]:
+                                isolates_collection: Collection,
+                                old_isolateresults_collection: Collection,
+                                headers_collection: Collection) -> Tuple[MongoRecordDict, bool]:
         """
         Gets any results version for a given isolate_id
         :param isolate_id: name of the isolate corresponding to the _id key in the isolates collection
