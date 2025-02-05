@@ -226,7 +226,7 @@ class MainNominativeDataParserFromOds(SFTPConnection):
                     if hd_key_property_dict.get('default'):
                         data_translated[hd_key_property_dict['translation']] = hd_key_property_dict['default']
                 else:
-                    raise f"key {hd_key} is missing but is required in {filetype} file!!"
+                    raise Exception(f"key {hd_key} is missing but is required in {filetype} file!!")
         # add id to be able to find in MongoDB
         data_unprocessed['_id'] = data_translated['_id']  # data_translated['_id'] == data_unprocessed['TX_BUSINESS_KEY']
 

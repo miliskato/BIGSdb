@@ -111,7 +111,7 @@ class BatchPipelinesReanalysis:
         job_name = f"{BATCH_JOB_NAME_PREFIX}{self._species_mongodb}"
         self.__create_job(job_name)
 
-        if not is_viral(self._species):
+        if not is_viral(self._species_mongodb):
             date_args_dict = self.__collect_database_update_dates()
             for maximal_analysis_date in date_args_dict:
                 self.__launch_tasks(maximal_analysis_date, date_args_dict, job_name)

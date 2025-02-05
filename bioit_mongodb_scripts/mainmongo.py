@@ -14,8 +14,8 @@ from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
 # import dnspython
 # somehow this package is a requirement without actually needing to be imported, probably imported in pymongo
-import pymongo
 import yaml
+from pymongo.collection import Collection
 from pymongo.read_concern import ReadConcern
 from pymongo.write_concern import WriteConcern
 
@@ -23,7 +23,7 @@ PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
 from bioit_mongodb_scripts.config import CLUSTERING_CONFIG, COREQC_CONFIG
-from bioit_nrc_integration.python.config import CODES_GENOMIC_DWH
+from bioit_nrc_integration.python.config import CODES_GENOMIC_ODS
 from bioit_mongodb_scripts.model.json_model import JsonReportDict, MongoRecordDict
 from bioit_mongodb_scripts.util.error import *
 from bioit_mongodb_scripts.util.mongo_custom_clustering import MongoCustomClustering
@@ -54,7 +54,7 @@ def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     parser.add_argument("--original_input_format", required=False, type=str, choices=['fastq', 'fasta'])
     parser.add_argument("--technical_id", required=True, type=str)
     parser.add_argument("--technical_metadata_path", required=False, type=Path)  # not mandatory because of reanalysis
-    parser.add_argument("--pipeline_hash", required=True, type=str)  # Required for DCD NRC->DWH
+    parser.add_argument("--pipeline_hash", required=True, type=str)  # Required for DCD NRC->ODS
     parser.add_argument('--connection_string', required=False, type=str)  # will replace connection string, only for small testing purposes
     parser.add_argument('--alternate_dtap', choices=['dev', 'test', 'acc', 'prod'], help=argparse.SUPPRESS)  # will replace connection string, only for small testing purposes
     parser.add_argument('--dont_send_email', action='store_true', help=argparse.SUPPRESS)  # will not send emails, mainly used for blocking the reanalysis spam
@@ -267,7 +267,7 @@ class MainMongo:
                 f"New isolate {self._technical_id} failed quality control for one or more checks. It's results were written to the 'isolates_badqc' collection in the {self._species} database")
 
     def __new_resequencing_arrival(self, new_json_report: JsonReportDict, document_original: MongoRecordDict,
-                                   collection_in: pymongo.collection.Collection) -> None:
+                                   collection_in: Collection) -> None:
         """
         After an id is found in either isolates or isolates_badqc; this workflow will determine if it really is a resequencing, and if so insert it into isolates_resequencing
         :param new_json_report: results dictionary that is modified and inserted
@@ -371,19 +371,19 @@ class MainMongo:
                          "latest_analysis_date": convert_dmyhms_to_ymd(new_results["results.analysis_date"]),
                          "previous_latest_results_document": self.___write_document(self._old_isolateresults_collection,
                                                                                     MongoRecordDict(dict(deltas_new_old)))}})
-        # after having updated the isolates collection, check for changes for HD DWH to respect the order of execution.
-        self.___check_if_any_results_for_hd_dwh_changed(dict(deltas_new_old))
+        # after having updated the isolates collection, check for changes for HD ODS to respect the order of execution.
+        self.___check_if_any_results_for_hd_ods_changed(dict(deltas_new_old))
         logging.info(f"Wrote new results and linked to isolate {self._technical_id} in {self._species}")
 
-    def ___check_if_any_results_for_hd_dwh_changed(self, deltas_new_old: Dict[str, Any]) -> None:
+    def ___check_if_any_results_for_hd_ods_changed(self, deltas_new_old: Dict[str, Any]) -> None:
         """
-        Checks if any of the genomic indicators to send to DWH have changed and sets the field
-        'changed_since_sent_to_DWH's value to true in the local MongoDB if any have
+        Checks if any of the genomic indicators to send to ODS have changed and sets the field
+        'changed_since_sent_to_ODS's value to true in the local MongoDB if any have
         :param deltas_new_old: the deltas between the new and the old results; what needs to be applied on the
         new results to get the old results back.
         :return: None
         """
-        with CODES_GENOMIC_DWH.open('r') as handle:
+        with CODES_GENOMIC_ODS.open('r') as handle:
             translation_codes = yaml.safe_load(handle)
         if not translation_codes.get(self._species):
             return
@@ -391,8 +391,8 @@ class MainMongo:
             list_path = list_path[1:]  # skip the first value which is always 'results' and is not in the delta
             if access_value_in_dict_using_list_as_dictpath(list_path, deltas_new_old):
                 self._isolates_collection.update_one({'_id': deltas_new_old['isolates_id']},
-                                                     {'$set': {'changed_since_sent_to_DWH': True,
-                                                               'changes_accepted_by_DWH': False}})
+                                                     {'$set': {'changed_since_sent_to_ODS': True,
+                                                               'changes_accepted_by_ODS': False}})
                 break  # break the loop once at least one change has been discovered
 
     def ___update_submission_status_after_validation(self, new_results: Union[MongoRecordDict, Dict[str, Union[str, object]]])-> None:
@@ -406,7 +406,7 @@ class MainMongo:
         new_results['submission_status'] = f'validated on {validation_date}'
 
     @staticmethod
-    def ___write_document(opened_collection: pymongo.collection.Collection, json_input: MongoRecordDict) -> str:
+    def ___write_document(opened_collection: Collection, json_input: MongoRecordDict) -> str:
         """
         Write a document into a collection. if the provided document doesnt contain an _id key, then it is autogenerated
         else the _id field that is autogenerated is overwritten by the one provided
@@ -500,7 +500,7 @@ class MainMongo:
                                       f"trimming: {results[f'trimming_{input_type}']['trim_ilmn_tool_version']}"
                                       ])
         cd_seq_assy_meth = 'Other'
-        tx_seq_assy_meth_ver = ''  # results['iterative_mapping']['informs_tools']['bwa_mem']['_name']  # todo this is not in JSON
+        tx_seq_assy_meth_ver = ', '.join([x for x in results['iterative_mapping']['tool_versions']])
         ms_genome_cvge = results[f'downsampling_{appendix}']['downsampling_coverage_estimated']
         cd_novo_assy = 'No'
         tx_ref_accn = ', '.join(results['ref_selection'][x]['ref_id'] for x in results['ref_selection']) \
@@ -529,8 +529,7 @@ class MainMongo:
         return {keydict[key]: value for key, value in input_dictionary_copy.items()}
 
     @staticmethod
-    def ___max_temp_allele_name_new_entry(hashed_ad_collection: pymongo.collection.Collection,
-                                          locus: str, scheme: str) -> str:
+    def ___max_temp_allele_name_new_entry(hashed_ad_collection: Collection, locus: str, scheme: str) -> str:
         """
         Finds the last temporary name for a hashed allele and returns a new id for the new allele to add.
         :param hashed_ad_collection: hashed allele collection from MongoDB

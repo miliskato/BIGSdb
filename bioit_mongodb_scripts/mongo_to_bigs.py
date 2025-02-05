@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # Hybrid between Bigs components and Mongodb components
 # to be executed on bigs host of choice
-# /home/bigsdb/BIGSdb/3.9PythonVenv/bin/python3.9 /home/mikelchtermans/Bigsdb_new/bioit_mongodb_scripts/mongo_to_bigs.py --species listeria --uploader_mail_address bioit@sciensano.be --pyvenvpythonpath /home/bigsdb/BIGSdb/3.9PythonVenv/bin/python3.9
+# /home/bigsdb/BIGSdb/3.12PythonVenv/bin/python3.12 /home/mikelchtermans/Bigsdb_new/bioit_mongodb_scripts/mongo_to_bigs.py --species listeria --uploader_mail_address bioit@sciensano.be --pyvenvpythonpath /home/bigsdb/BIGSdb/3.12PythonVenv/bin/python3.12
 
 import argparse
 import datetime
@@ -19,7 +19,7 @@ sys.path.append(str(PYTHONPATH))
 
 from bioit_bigsdb_scripts.components.psql.databaseconnection import DatabaseConnection
 from bioit_bigsdb_scripts.components.psql import TblAlleleDesignations, TblIsolates, TblEavTextHidden, TblMappingTable, \
-    TblSchemes, TblTempIsolatesSchemeFields
+    TblSchemeMembers, TblSchemes, TblTempIsolatesSchemeFields
 from bioit_bigsdb_scripts.components.psql.psql_queries import PsqlQueries
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data
 from bioit_bigsdb_scripts.insert_assembly import insert_assembly
@@ -167,7 +167,8 @@ class MongoToBigs:
         NewTemporaryAllelesToBigs(self._species, mongo_config_data=self._mongo_config_data)
 
         # The cache command needs to be run using method 'full' once before being able to use it with method
-        # incremental, check it and execute full if it hadn't been executed yet
+        # incremental, check it and execute full if it hadn't been executed yet and if no irregularities are found for this scheme
+        self.__check_sql_exceptions_for_cache_update()
         self.__update_scheme_caches_full_once_if_needed()
 
         # send bad samples from the badqc_isolates collection to BIGSdb
@@ -351,6 +352,31 @@ class MongoToBigs:
             changes_in_bigsdb = True
         if changes_in_bigsdb:
             MongoToBigsNominative(self._species, self._mongo_config_data, dont_send_email=True)
+          
+    def __check_sql_exceptions_for_cache_update(self) -> None:
+        """
+        Checks for irregularities in BIGSdb dbs that would lead to an error of the cache update. If one of them is found,
+        an exception is raised.
+        :return: None
+        """
+        with TblSchemeMembers(self._species, 'seqdef') as seqdef_schememembers_psql_tbl:
+            scheme_members_exist: List[Tuple[bool]] = seqdef_schememembers_psql_tbl.check_scheme_member_presence(
+                (self._cgmlst_bigsdb_scheme_id,))
+            if not scheme_members_exist[0][0]:
+                send_email(
+                    f"Scheme members are missing in seqdef for scheme {self._cgmlst_bigsdb_scheme_id} on {socket.gethostname()}, "
+                    f"check the metadata collection in Mongo to ensure that seqdef has been populated properly")
+                raise RuntimeError(
+                    f"Update of the cache cannot be computed on {socket.gethostname()} for scheme {self._cgmlst_bigsdb_scheme_id} because no scheme members were found in seqdef")
+
+        with DatabaseConnection(self._species, 'seqdef') as seqdef_psql_db:
+            mv_scheme_exists: List[Tuple[bool]] = seqdef_psql_db.execute_query(PsqlQueries.SEL_TABLE_EXISTS, (f'mv_scheme_{self._cgmlst_bigsdb_scheme_id}',))
+            if not mv_scheme_exists[0][0]:
+                send_email(
+                    f"table mv_scheme_{self._cgmlst_bigsdb_scheme_id} is missing on host {socket.gethostname()}, "
+                    f"try to repair the scheme from bigsdb seqdef curator interface using the 'Configuration repair' tool")
+                raise RuntimeError(
+                    f"update of the cache cannot be computed on {socket.gethostname()} because mv_scheme_{self._cgmlst_bigsdb_scheme_id} is missing")
 
     def __get_list_of_documents(self) -> List[MongoRecordDict]:
         """
@@ -397,8 +423,10 @@ class MongoToBigs:
                 results_type = "new_isolate"
         elif document.get_validation_type():
             results_type = document.get_validation_type()
-            if results_type == 'resequencing' or (results_type == 'badqc' and sample_presence[0][0] == 1):
+            if results_type == 'resequencing' or results_type == 'badqc':
                 different_version, cgst_changed = self.___check_if_reanalysis_different(document, isolate_id)
+                if results_type == 'badqc':
+                    results_type = "reanalysis"
         else:
             results_type = "reanalysis"
             different_version, cgst_changed = self.___check_if_reanalysis_different(document, isolate_id)

@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
-import pymongo
+from pymongo.collection import Collection
 from pymongo.write_concern import WriteConcern
 
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
@@ -68,7 +68,7 @@ class MongoCustomClustering:
             self._compute_distance_matrix_and_cluster_membership(cluster_thresholds)
             return self._cgmlst_profile.st
 
-    def _check_order_of_cgmlst_profile(self, headers_collection: pymongo.collection.Collection) -> None:
+    def _check_order_of_cgmlst_profile(self, headers_collection: Collection) -> None:
         """
         Checks if the order of the loci in the st to be added are the same as the one in the sequence types collection.
         If not, reorders the new st loci to correspond to the order of the sequence types collection.
@@ -93,7 +93,7 @@ class MongoCustomClustering:
             if self._cgmlst_profile.loci != db_headers:
                 raise ValueError('Impossible to get the same cgmlst, issue in the cgmlst profile')
 
-    def _query_sequence_types(self, st_collection: pymongo.collection.Collection) -> Optional[int]:
+    def _query_sequence_types(self, st_collection: Collection) -> Optional[int]:
         """
         Check if the cgmlst profile from the isolate is already stored in the sequence types collection
         :param st_collection: the sequence type collection from MongoDB.
@@ -120,7 +120,7 @@ class MongoCustomClustering:
         else:
             return True
 
-    def _add_new_sequence_type(self, st_collection: pymongo.collection.Collection) -> None:
+    def _add_new_sequence_type(self, st_collection: Collection) -> None:
         """
         Adds the new sequence type into the sequence types collection.
         :param st_collection: the sequence type collection of mongoDB.

@@ -1,0 +1,16 @@
+pymongo
+numba
+gitpython
+biopython
+numpy
+temp
+fastcluster
+scipy
+PyYAML
+azure-batch
+azure-identity
+azure-keyvault
+azure-storage-blob
+azure-monitor-ingestion
+beautifulsoup4
+lxml

@@ -7,16 +7,15 @@ import yaml
 from pathlib import Path
 from typing import Any, Dict
 
-import pymongo
+from pymongo.collection import Collection
 
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email
-from bioit_nrc_integration.python.config import CODES_GENOMIC_DWH
-from bioit_nrc_integration.python.send_mapping_table_to_ODS import SendMappingTableToODS
-from bioit_nrc_integration.python.send_genomic_to_DWH import SendGenomicToDWH
+from bioit_nrc_integration.python.config import CODES_GENOMIC_ODS
+from bioit_nrc_integration.python.send_genomic_to_ODS import SendGenomicToODS
 
 # Configure stdout logging
 logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
@@ -24,7 +23,7 @@ logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
 class MainSenderToHD:
     """
-    Queries the validated documents from Bigsdb that have not been sent to ODS and DWH yet and
+    Queries the validated documents from Bigsdb that have not been sent to the ODS yet and
     dispatches them to their respective senders to be sent. Creates an aggregated error log to avoid mailspam.
     """
     def __init__(self, test_dummy: bool = False, alternate_dtap: str = None) -> None:
@@ -41,7 +40,7 @@ class MainSenderToHD:
         # get mongodb config data
         self._mongo_config_data = get_mongodb_config_data()
 
-        with CODES_GENOMIC_DWH.open('r') as handle:
+        with CODES_GENOMIC_ODS.open('r') as handle:
             self._translation_codes_genomic = yaml.safe_load(handle)
 
         self._fail_log_dict = {}
@@ -53,7 +52,7 @@ class MainSenderToHD:
 
     def _main_main_sender_to_hd(self) -> None:
         """
-        Main function, queries the validated documents from Bigsdb that have not been sent to ODS and DWH yet and
+        Main function, queries the validated documents from Bigsdb that have not been sent to  the ODS yet and
         dispatches them to their respective senders to be sent. Creates an aggregated error log to avoid mailspam.
         :return: None
         """
@@ -67,8 +66,8 @@ class MainSenderToHD:
             # get documents that need to be sent
             list_of_unsent_validated_documents = isolates_collection.find({'validation.outcome': 'good',
                                                                            '$or': [
-                                                                               {'sent_to_ODS_and_DWH': {'$ne': True}},
-                                                                               {'changed_since_sent_to_DWH': {'$ne': False}}
+                                                                               {'sent_to_ODS': {'$ne': True}},
+                                                                               {'changed_since_sent_to_ODS': {'$ne': False}}
                                                                             ]})
             if self._test_dummy:
                 list_of_unsent_validated_documents = [genomic_document for genomic_document in list_of_unsent_validated_documents if
@@ -80,8 +79,7 @@ class MainSenderToHD:
             
             for document in list_of_unsent_validated_documents:
                 try:
-                    self.__trigger_sending_to_ods_and_dwh(document, species, mapping_table_collection,
-                                                          isolates_collection)
+                    self.__trigger_sending_to_ods(document, species, mapping_table_collection, isolates_collection)
                 except Exception as exceptionmessage:
                     self._fail_log_dict[species]['fail_counter'] += 1
                     self._fail_log_dict[species]['fail_ids'].append(document['_id'])
@@ -92,7 +90,7 @@ class MainSenderToHD:
                         break
         self.__send_email_if_failures()
 
-    def __open_mapping_table_and_isolates_collection(self, species: str) -> (pymongo.collection.Collection, pymongo.collection.Collection):
+    def __open_mapping_table_and_isolates_collection(self, species: str) -> (Collection, Collection):
         """
         Opens the mapping table and isolates collections.
         :param species: commonly used bioit species name: either genus or specific like stec
@@ -113,10 +111,10 @@ class MainSenderToHD:
         return mapping_table_collection, isolates_collection
 
     def __trigger_sending_to_ods_and_dwh(self, document_genomic: Dict[str, Any], species: str,
-                                         mapping_table_collection: pymongo.collection.Collection,
-                                         isolates_collection: pymongo.collection.Collection) -> None:
+                                         mapping_table_collection: Collection,
+                                         isolates_collection: Collection) -> None:
         """
-        Triggers the scripts to send the data to the ODS and DWH if they have not been sent yet
+        Triggers the scripts to send the data to the ODS if they have not been sent yet
         :param document_genomic: genomic document
         :param species: commonly used bioit species name: either genus or specific like stec
         :param mapping_table_collection: local MongoDB collection storing the mapping table
@@ -124,26 +122,15 @@ class MainSenderToHD:
         :return: None
         """
         document_mapping_table = mapping_table_collection.find_one({'pseudo_id': document_genomic['_id']})
-        if not document_genomic.get('sent_to_ODS'):
-            SendMappingTableToODS(document_mapping_table, species, alternate_dtap=self._alternate_dtap)
-            isolates_collection.update_one({'_id': document_genomic['_id']},
-                                           {"$set": {"sent_to_ODS": True}})
-        
-        if not document_genomic.get('sent_to_DWH') or document_genomic.get('changed_since_sent_to_DWH'):
+        if not document_genomic.get('sent_to_ODS') or document_genomic.get('changed_since_sent_to_ODS'):
             # Get the genomic document and transform it into a non-pseudonymized one
             document_genomic['_id'] = document_mapping_table['_id']
             document_genomic['pseudo_id'] = document_mapping_table['pseudo_id']
             document_genomic['TX_BUSINESS_KEY'] = document_mapping_table['TX_BUSINESS_KEY']
-        
-            SendGenomicToDWH(document_genomic, self._mongo_config_data, species, alternate_dtap=self._alternate_dtap)
-        
-            # technically overkill to add this field here because right after sent_to_ODS_and_DWH is updated,
-            # but it is added for clarity and so that the order of sending can be changed easily too
+            SendGenomicToODS(document_genomic, self._mongo_config_data, species, alternate_dtap=self._alternate_dtap)
+
             isolates_collection.update_one({'_id': document_genomic['_id']},
-                                           {"$set": {"sent_to_DWH": True, "changed_since_sent_to_DWH": False}})
-        
-        isolates_collection.update_one({'_id': document_genomic['_id']},
-                                       {"$set": {"sent_to_ODS_and_DWH": True}})
+                                           {"$set": {"sent_to_ODS": True, "changed_since_sent_to_ODS": False}})
 
     def __send_email_if_failures(self) -> None:
         """
