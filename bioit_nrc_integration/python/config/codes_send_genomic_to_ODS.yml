@@ -30,83 +30,99 @@ salmonella:
     - results
     - mlst
     - mlst-ST
-  CD_GENTPE_ESBLS_SUSC:
-    - results
-    - genotyphi
-    - results
-    - genotyphi_ESBLS_susceptibility
+#  CD_GENTPE_ESBLS_SUSC:
+#    - results
+#    - mykrobe
+#    - mykrobe_drug_susceptibility
+#    - ESBLS
+#    - susceptibility
   CD_GENTPE_INCFIAHI1_SUSC:
     - results
-    - genotyphi
-    - results
-    - genotyphi_IncFIAHI1_susceptibility
+    - mykrobe
+    - mykrobe_drug_susceptibility
+    - IncFIAHI1
+    - susceptibility
   CD_GENTPE_INCHI1A_SUSC:
     - results
-    - genotyphi
-    - results
-    - genotyphi_IncHI1A_susceptibility
+    - mykrobe
+    - mykrobe_drug_susceptibility
+    - IncHI1A
+    - susceptibility
   CD_GENTPE_INCHI1BR27_SUSC:
     - results
-    - genotyphi
-    - results
-    - genotyphi_IncHI1BR27_susceptibility
+    - mykrobe
+    - mykrobe_drug_susceptibility
+    - IncHI1BR27
+    - susceptibility
   CD_GENTPE_INCY_SUSC:
     - results
-    - genotyphi
-    - results
-    - genotyphi_IncY_susceptibility
-  CD_GENTPE_AMNGLY_SUSC:
-    - results
-    - genotyphi
-    - results
-    - genotyphi_AMNGLY_susceptibility
+    - mykrobe
+    - mykrobe_drug_susceptibility
+    - IncY
+    - susceptibility
+#  CD_GENTPE_AMNGLY_SUSC:
+#    - results
+#    - mykrobe
+#    - mykrobe_drug_susceptibility
+#    - IncHI1A
+#    - susceptibility
   CD_GENTPE_AZI_SUSC:
     - results
-    - genotyphi
-    - results
-    - genotyphi_azithromycin_susceptibility
-  CD_GENTPE_BLAC_SUSC:
-    - results
-    - genotyphi
-    - results
-    - genotyphi_BLAC_susceptibility
-  CD_GENTPE_MACROL_SUSC:
-    - results
-    - genotyphi
-    - results
-    - genotyphi_MACROL_susceptibility
+    - mykrobe
+    - mykrobe_drug_susceptibility
+    - azithromycin
+    - susceptibility
+#  CD_GENTPE_BLAC_SUSC:
+#    - results
+#    - mykrobe
+#    - mykrobe_drug_susceptibility
+#    - BLAC
+#    - susceptibility
+#  CD_GENTPE_MACROL_SUSC:
+#    - results
+#    - mykrobe
+#    - mykrobe_drug_susceptibility
+#    - MACROL
+#    - susceptibility
   CD_GENTPE_PST_SUSC:
     - results
-    - genotyphi
-    - results
-    - genotyphi_PST_susceptibility
-  CD_GENTPE_PHENI_SUSC:
-    - results
-    - genotyphi
-    - results
-    - genotyphi_PHENI_susceptibility
-  CD_GENTPE_QUINOL_SUSC:
-    - results
-    - genotyphi
-    - results
-    - genotyphi_QUINOL_susceptibility
+    - mykrobe
+    - mykrobe_drug_susceptibility
+    - pST
+    - susceptibility
+#  CD_GENTPE_PHENI_SUSC:
+#    - results
+#    - mykrobe
+#    - mykrobe_drug_susceptibility
+#    - PHENI
+#    - susceptibility
+#  CD_GENTPE_QUINOL_SUSC:
+#    - results
+#    - mykrobe
+#    - mykrobe_drug_susceptibility
+#    - QUINOL
+#    - susceptibility
   CD_GENTPE_SULFON_SUSC:
     - results
-    - genotyphi
-    - results
-    - genotyphi_sulfonamides_susceptibility
+    - mykrobe
+    - mykrobe_drug_susceptibility
+    - sulfonamides
+    - susceptibility
   CD_GENTPE_TETRACY_SUSC:
     - results
-    - genotyphi
-    - results
-    - genotyphi_tetracycline_susceptibility
+    - mykrobe
+    - mykrobe_drug_susceptibility
+    - tetracycline
+    - susceptibility
   CD_GENTPE_TRIMETH_SUSC:
     - results
-    - genotyphi
-    - results
-    - genotyphi_trimethoprim_susceptibility
+    - mykrobe
+    - mykrobe_drug_susceptibility
+    - trimethoprim
+    - susceptibility
   CD_GENTPE_Z66_SUSC:
     - results
-    - genotyphi
-    - results
-    - genotyphi_z66_susceptibility
+    - mykrobe
+    - mykrobe_drug_susceptibility
+    - z66
+    - susceptibility

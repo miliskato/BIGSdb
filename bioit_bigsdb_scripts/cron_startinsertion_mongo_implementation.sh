@@ -18,7 +18,7 @@ do
   fi
 done
 
-VENV_PYTHON_BIGSDB=/home/bigsdb/BIGSdb/3.9PythonVenv/bin/python3.9
+VENV_PYTHON_BIGSDB=/home/bigsdb/BIGSdb/3.12PythonVenv/bin/python3.12
 
 for dir in /scratch/bigsupload/mongo/*/
 do

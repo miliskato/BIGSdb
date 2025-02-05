@@ -79,7 +79,7 @@ class SendGenomicToODS(SFTPConnection):
                 data_dict[variable] = access_value_in_dict_using_list_as_dictpath(list_path, self._document)
                 if 'CD_GENTPE' in variable:
                     if not data_dict[variable]:
-                        # The genotyphi fields are optional
+                        # The Mykrobe fields are optional
                         data_dict.pop(variable)
                     else:
                         # I have at least noticed one instance where an R was lowercase
