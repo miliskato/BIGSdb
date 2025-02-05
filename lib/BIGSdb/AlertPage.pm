@@ -690,7 +690,7 @@ sub _close_alert {    ## no critic (ProhibitUnusedPrivateSubroutines) #Called by
 	}
         my $dbname = $self->{'datastore'}->run_query('select current_database()');
 #        open(BASH, "|-", "bash");
-#        print BASH "/home/bigsdb/BIGSdb/3.9PythonVenv/bin/python3.9 /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/sample_validation_to_mongo.py --db $dbname --sub_id $alert_id \n";
+#        print BASH "/home/bigsdb/BIGSdb/3.12PythonVenv/bin/python3.12 /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/sample_validation_to_mongo.py --db $dbname --sub_id $alert_id \n";
 #        close(BASH);
         $alert = $self->{'submissionHandler'}->get_alert($alert_id);
 	my $curator_info = $self->{'datastore'}->get_user_info($curator_id);

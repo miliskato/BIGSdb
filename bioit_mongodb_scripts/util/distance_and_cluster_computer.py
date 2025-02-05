@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 import numpy as np
-import pymongo
+from pymongo.collection import Collection
 from pymongo.write_concern import WriteConcern
 
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
@@ -230,7 +230,7 @@ class DistanceAndClusterComputer:
             self._cluster_membership_collection.with_options(write_concern=WriteConcern(w="majority")).insert_one(entry)
 
     @staticmethod
-    def _insert_a_lot(insertion_docs: list, collection: pymongo.collection.Collection) -> None:
+    def _insert_a_lot(insertion_docs: list, collection: Collection) -> None:
         """
         In order to avoid having the bug of too many elements in the insertion, this function takes the list of
         elements to insert into MongoDB and creates smaller batches of insertion that will be inserted into mongoDB
