@@ -105,6 +105,8 @@ species:
       mycobacterium_rmlst:
         dirdb: /var/lib/.bioit_database_azure/sequence_typing/various/rmlst
         schemename_bigsdb: rMLST
+        scheme_fields:
+          - rST
       mycobacterium_spoligotyping:
         dirdb: ''
       mycobacterium_51SNPassay:
@@ -238,6 +240,7 @@ species:
         schemename_bigsdb: cgMLST
       salmonella_rmlst:
         dirdb: /var/lib/.bioit_database_azure/sequence_typing/various/rmlst
+          - rST
         schemename_bigsdb: rMLST
       salmonella_pointfinder:
         dirdb: ''
