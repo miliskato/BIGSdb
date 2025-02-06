@@ -68,13 +68,14 @@ class TypingSchemeProfilesIntoPsql:
         """
         # since we only need one db per scheme, it can stay open during the entire definition
         for profile in set_to_be_inserted:
+            line: str = (profile_line_dict[profile].replace('? ', '').replace('Neisseria ', 'Neisseria_')
+                         .replace('N','0'))  # this is added because rflp profiles are malformatted
             # first table (profiles):
             seqdef_profiles_psql_tbl.insert_profile((schemedict[scheme]['schemename_bigsdb'], profile))
             profiles_to_be_removed = set()
             # second table (profile fields):
             with TblProfileFields(species) as seqdef_profilefields_psql_table:
                 for field in schemedict[scheme]['scheme_fields']:
-                    line: str = profile_line_dict[profile].replace('? ', '').replace('Neisseria ', 'Neisseria_')  # this is added because rflp profiles are malformatted
                     try:
                         fieldvalue = " ".join(line.split()).split(' ')[indexdict[field]]
                         seqdef_profilefields_psql_table.insert_profile_field((schemedict[scheme]['schemename_bigsdb'], field, profile, fieldvalue.replace('_', ' ')))
@@ -88,7 +89,6 @@ class TypingSchemeProfilesIntoPsql:
                     if not locus.startswith('.'):  # to exclude hidden folders like .git
                         if locus == "'rplF":
                             locus = 'rplF'
-                        line: str = profile_line_dict[profile]
                         locusvalue: str = " ".join(line.split()).split(' ')[indexdict[locus]]
                         if locusvalue == '0':  # this will create a ForeignKeyViolation error so we prevent this by inserting a null allele if not yet present
                             nullpresent: List[Tuple[int]] = seqdef_sequences_psql_tbl.count_sequence_null((locus,))
@@ -129,9 +129,9 @@ class TypingSchemeProfilesIntoPsql:
                         for line in profiles[1:]:
                             profile_line_dict[" ".join(line.split()).split(' ')[0]] = line
     
-                        listoftuples: List[Tuple[int]] = \
+                        list_of_profile_ids: List[Tuple[int]] = \
                             seqdef_profiles_psql_tbl.select_profile((schemedict[scheme]['schemename_bigsdb'],))
-                        primary_fields = [int(x[0]) for x in listoftuples] if listoftuples is not None else None
+                        primary_fields = [int(x[0]) for x in list_of_profile_ids] if list_of_profile_ids is not None else None
                         set_to_be_inserted = set()
                         if primary_fields is None:
                             # table is empty, so all need to be inserted
