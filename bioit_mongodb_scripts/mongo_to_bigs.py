@@ -78,7 +78,7 @@ class MongoToBigs:
         self._mongo_config_data = mongo_config_data if mongo_config_data else get_mongodb_config_data()
         self._naive_clustering_distance_matrix_file = Path(
             self._mongo_config_data['naive_clustering_distance_matrix_file'].replace('species', self._species).replace(
-                'dtap', self._mongo_config_data.get('dtap')).replace('.bioit_database', '.bioit_database_azure'))
+                'dtap', self._mongo_config_data.get('dtap')))
         # Parse Bigsdb config
         self._bigsdb_config_data = get_bigsdb_config_data()
         # Open collections

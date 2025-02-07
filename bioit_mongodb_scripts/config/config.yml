@@ -52,4 +52,4 @@ htmlreporterpipeline:
 
 azure_reportsapi_ip: to_be_replaced_by_ansible
 
-naive_clustering_distance_matrix_file: /var/lib/.bioit_database/distance_matrices/cgmlst_distance_matrix_species_dtap.npy
+naive_clustering_distance_matrix_file: /var/lib/.bioit_database_azure/distance_matrices/cgmlst_distance_matrix_species_dtap.npy
