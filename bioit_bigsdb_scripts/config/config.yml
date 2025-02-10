@@ -134,6 +134,8 @@ species:
       neisseria_rmlst:
         dirdb: /var/lib/.bioit_database_azure/sequence_typing/various/rmlst
         schemename_bigsdb: rMLST
+        scheme_fields:
+          - rST
       neisseria_rplf:
         dirdb: /var/lib/.bioit_database_azure/sequence_typing/neisseria/rplf
         scheme_fields:
@@ -169,15 +171,10 @@ species:
         dirdb: /var/lib/.bioit_database_azure/sequence_typing/neisseria/fhbp
         schemename_bigsdb: fHbp_pept
     genedetection_schemes:
-      neisseria_ndaro:
-        clusteredfasta: /var/lib/.bioit_database_azure/gene_detection/NCBI_AMR/ncbi_amr-clustered_80.fasta
-        metadatafile: /var/lib/.bioit_database_azure/gene_detection/NCBI_AMR/mapping_full.json
-        schemename_bigsdb: NCBI_AMR
-        schemename_html: NCBI AMR genes (NDARO)
       neisseria_resfinder:
         clusteredfasta: /var/lib/.bioit_database_azure/gene_detection/ResFinder/resfinder-clustered_80.fasta
         metadatafile: /var/lib/.bioit_database_azure/gene_detection/ResFinder/mapping_full.json
-        schemename_bigsdb: ResFinder
+        schemename_bigsdb: ResFinder4
         schemename_html: ResFinder
   stec:
     typing_schemes:
