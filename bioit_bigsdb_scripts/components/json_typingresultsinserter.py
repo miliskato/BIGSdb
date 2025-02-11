@@ -3,13 +3,10 @@ import re
 from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional, Tuple
 
-import requests
-
 from bioit_mongodb_scripts.model.json_model import JsonReportDict
 from .json_superclass import JsonSuperClass
-from .psql import TblAlleleDesignations, TblHistory, TblEavBoolean, TblEavText, TblEavFields, TblSchemeMembers, \
-    TblIsolates
-from ..utils.url_helper import UrlHelper
+from .psql import (TblAlleleDesignations, TblEavBoolean, TblEavFields, TblEavFloat, TblEavText, TblHistory, TblIsolates,
+    TblSchemeMembers)
 
 
 class JsonTypingResultsInserter(JsonSuperClass):
@@ -81,6 +78,17 @@ class JsonTypingResultsInserter(JsonSuperClass):
         Inserts irregular typing schemes into BIGSdb by pathogen.
         :return: None
         """
+        if 'rmlst' in self._json_report_dict:
+            rmlst_dict = self._json_report_dict['rmlst']
+            identification_keys = list({e for e in rmlst_dict if rmlst_dict[e]})
+            for k in identification_keys:
+                if k != "loci" and k != 'rmlst-percent_detected':
+                    with TblEavText(self._species) as self._isolates_eavt_psql_tbl:
+                        self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, k, rmlst_dict[k]))
+                elif k == 'rmlst-percent_detected':
+                    with TblEavFloat(self._species) as self._isolates_eavfl_psql_tbl:
+                        self._isolates_eavfl_psql_tbl.insert_eav_float_isolate(
+                            (self._isolatename, 'rmlst-%_detected', rmlst_dict[k]))
         if self._species == 'mycobacterium':
             self.__process_irregular_typing_scheme_mycobacterium_specific()
         elif self._species == 'neisseria':
@@ -205,7 +213,8 @@ class JsonTypingResultsInserter(JsonSuperClass):
             for gene in self._json_report_dict['serogroup']['serogroup_capsule_genes'].split(','):
                 self.insert_locus_if_needed(f'{scheme}_{gene}', scheme)
                 self._insert_dummy_sequence_if_needed(f'{scheme}_{gene}', '1')
-                self._isolates_ad_psql_tbl.insert_designation_by_isolatename((f'{scheme}_{gene}', self._isolatename, '1'))
+                self._isolates_ad_psql_tbl.insert_designation_by_isolatename(
+                    (f'{scheme}_{gene}', self._isolatename, '1'))
 
     def __process_irregular_typing_scheme_stec_specific(self) -> None:
         """
@@ -232,7 +241,8 @@ class JsonTypingResultsInserter(JsonSuperClass):
             for item in fields_mykrobe:
                 item_in_mongo = item[0].replace('_susceptibility', '')
                 if item_in_mongo in self._json_report_dict[self._scheme]['mykrobe_drug_susceptibility']:
-                    susceptibility: str = self._json_report_dict[self._scheme]['mykrobe_drug_susceptibility'][item_in_mongo]['susceptibility']
+                    susceptibility: str = \
+                    self._json_report_dict[self._scheme]['mykrobe_drug_susceptibility'][item_in_mongo]['susceptibility']
                     self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, item[0], susceptibility))
                     # insert new alleles
                     # example of structure in output dict:
@@ -242,8 +252,10 @@ class JsonTypingResultsInserter(JsonSuperClass):
                     #                                                           "genes": "-"}}}
                     mykrobe_field = 'MYKROBE_' + item_in_mongo.upper()
                     # get the genes and variants
-                    future_alleles = self._json_report_dict[self._scheme]['mykrobe_drug_susceptibility'][item_in_mongo]['variants'].split(';') + \
-                        self._json_report_dict[self._scheme]['mykrobe_drug_susceptibility'][item_in_mongo]['genes'].split(';')
+                    future_alleles = self._json_report_dict[self._scheme]['mykrobe_drug_susceptibility'][item_in_mongo][
+                                         'variants'].split(';') + \
+                                     self._json_report_dict[self._scheme]['mykrobe_drug_susceptibility'][item_in_mongo][
+                                         'genes'].split(';')
                     for value in future_alleles:
                         if value != '-':
                             self._insert_dummy_sequence_if_needed(mykrobe_field, value)
@@ -298,7 +310,8 @@ class JsonTypingResultsInserter(JsonSuperClass):
                         amr_detection = 'NA'
                     self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, item[0], amr_detection))
 
-    def ___salmonella_insert_antigens_into_db(self, raw_formula: str, mode: Optional[Literal['kmer', 'kmerread', 'allele']] = None) -> None:
+    def ___salmonella_insert_antigens_into_db(self, raw_formula: str,
+                                              mode: Optional[Literal['kmer', 'kmerread', 'allele']] = None) -> None:
         """
         Inserts antigens separately from the formula
         :param raw_formula: serotype formula O:H1:H2

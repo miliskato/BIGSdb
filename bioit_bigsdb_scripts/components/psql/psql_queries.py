@@ -133,6 +133,13 @@ class PsqlQueries():
         INSERT INTO eav_boolean(isolate_id, field, value) 
         VALUES((SELECT id FROM isolates WHERE isolate=%s), %s, %s);"""
 
+    # TBL extended attribute values float
+    ISO_DEL__TB_EAVFL_VAR_ISO: Final[str] = """
+        DELETE FROM eav_float where isolate_id=(SELECT id FROM isolates WHERE isolate=%s);"""
+    ISO_INS__TB_EAVFL_VAR_ISO_FIELD_VAL: Final[str] = """
+        INSERT INTO eav_float(isolate_id, field, value) 
+        VALUES((SELECT id FROM isolates WHERE isolate=%s), %s, %s);"""
+
     # TBL extended attribute values int
     ISO_DEL__TB_EAVI_VAR_ISO: Final[str] = """
         DELETE FROM eav_int where isolate_id=(SELECT id FROM isolates WHERE isolate=%s);"""

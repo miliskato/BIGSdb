@@ -332,6 +332,8 @@ species_json:
         type: irregular
       ncbi_16s:
         type: irregular
+      rmlst_identification:
+        type: irregular
     genedetection_schemes: null
   neisseria:
     typing_schemes:
