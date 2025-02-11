@@ -51,7 +51,6 @@ bioit_filedb_databases:
   - { name: 'gene_detection', version: 'virulencefinder_saureus_hostimm', latest_symlink: no }
   - { name: 'gene_detection', version: 'virulencefinder_saureus_toxin', latest_symlink: no }
   - { name: 'gene_detection', version: 'virulencefinder_shiga', latest_symlink: no }
-  - { name: 'kraken2_microbial_30gb', version: '20230224', latest_symlink: yes }
   - { name: 'krona', version: '20180124' }
   - { name: 'krona', version: '20190218' }
   - { name: 'krona', version: '20210211', latest_symlink: yes }
