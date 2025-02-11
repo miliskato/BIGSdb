@@ -6,6 +6,8 @@ INSERT INTO scheme_fields(scheme_id, field, type, description, field_order, drop
  VALUES(1, 'ST', 'integer', 'Sequence Type', 1, 'f', 't', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
 INSERT INTO scheme_fields(scheme_id, field, type, description, field_order, dropdown, primary_key, curator, datestamp)
  VALUES(2, 'cgST', 'integer', 'Sequence Type for cgMLST', 1, 'f', 't', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
+INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no_submissions, disable, curator, date_entered, datestamp) VALUES(8, 'rMLST', 'rMLST scheme downloaded from pubMLST.', 't', 3, 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
+
 -- amr
 INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no_submissions, disable, curator, date_entered, datestamp) VALUES(3, 'NCBI_AMR', 'NDARO AMR database', 't', 3, 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
 INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no_submissions, disable, curator, date_entered, datestamp) VALUES(4, 'ResFinder', 'ResFinder database', 't', 4, 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;

@@ -2,10 +2,16 @@ INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, cu
             VALUES(1, 'MLST', 'MLST scheme downloaded and updated weekly from Enterobase.', 't', 1, 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE), 't', 't', 't', 'f', 't', 't', 'f', 'bigsdb_salmonella_seqdef', 1) ON CONFLICT DO NOTHING;
 INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, curator, date_entered, datestamp, isolate_display, main_display, query_field, query_status, analysis, recommended, quality_metric, dbase_name, dbase_id)
             VALUES(2, 'cgMLST', 'cgMLST scheme downloaded and updated weekly from Enterobase.', 't', 2, 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE), 't', 't', 't', 'f', 't', 't', 'f', 'bigsdb_salmonella_seqdef', 2) ON CONFLICT DO NOTHING;
+INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, curator, date_entered, datestamp, isolate_display, main_display, query_field, query_status, analysis, recommended, quality_metric, dbase_name, dbase_id)
+            VALUES(19, 'rMLST', 'rMLST scheme downloaded from PubMLST', 't', 3, 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE), 't', 't', 't', 'f', 't', 't', 'f', 'bigsdb_salmonella_seqdef', 8) ON CONFLICT DO NOTHING;
+
 INSERT INTO scheme_fields(scheme_id, field, type, description, field_order, dropdown, primary_key, curator, datestamp, isolate_display, main_display, query_field)
             VALUES(1, 'ST', 'integer', 'Sequence Type', 1, 'f', 't', 1, (SELECT CURRENT_DATE), 't', 't', 't') ON CONFLICT DO NOTHING;
 INSERT INTO scheme_fields(scheme_id, field, type, description, field_order, dropdown, primary_key, curator, datestamp, isolate_display, main_display, query_field)
             VALUES(2, 'cgST', 'integer', 'Sequence Type for cgMLST', 1, 'f', 't', 1, (SELECT CURRENT_DATE), 't', 't', 't') ON CONFLICT DO NOTHING;
+INSERT INTO scheme_fields(scheme_id, field, type, description, field_order, dropdown, primary_key, curator, datestamp, isolate_display, main_display, query_field)
+            VALUES((SELECT id FROM schemes WHERE name='rMLST'), 'rST', 'integer', 'Sequence Type for rMLST', 1, 'f', 't', 1, (SELECT CURRENT_DATE), 't', 't', 't') ON CONFLICT DO NOTHING;
+
 --reports fields
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator)
                 VALUES('html', 'text', 'galaxy report', 'galaxy html report', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;

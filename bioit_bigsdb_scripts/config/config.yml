@@ -48,6 +48,8 @@ species:
       listeria_rmlst:
         dirdb: /var/lib/.bioit_database_azure/sequence_typing/various/rmlst
         schemename_bigsdb: rMLST
+        scheme_fields:
+          - rST
       listeria_serogroup:
         dirdb: /var/lib/.bioit_database_azure/sequence_typing/listeria/serogroup
         scheme_fields:
@@ -237,8 +239,9 @@ species:
         schemename_bigsdb: cgMLST
       salmonella_rmlst:
         dirdb: /var/lib/.bioit_database_azure/sequence_typing/various/rmlst
-          - rST
         schemename_bigsdb: rMLST
+        scheme_fields:
+          - rST
       salmonella_pointfinder:
         dirdb: ''
         schemename_html: PointFinder
