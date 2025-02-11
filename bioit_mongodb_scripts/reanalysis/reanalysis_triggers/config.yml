@@ -6,12 +6,12 @@ species:
     cgmlst:
       dirdb: /db/sequence_typing/listeria/cgmlst
       cmd_argument: cgmlst
+#    Not updated automatically + no git repo
+#    rmlst:
+#      dirdb: /db/sequence_typing/various/rmlst
     pcr_serogroup:
       dirdb: /db/sequence_typing/listeria/serogroup
       cmd_argument: pcr-serogroup
-    metal_detergent:
-      dirdb: /db/sequence_typing/listeria/metal_detergent_resistance
-      cmd_argument: metal-detergent
     typing_virulence:
       dirdb: /db/sequence_typing/listeria/virulence
       cmd_argument: typing-virulence
@@ -21,12 +21,16 @@ species:
     species_confirmation:
       dirdb: /db/sequence_typing/listeria/species_confirmation
       cmd_argument: species-confirmation
-    ncbi_amr:
-      dirdb: /db/gene_detection/NCBI_AMR
-      cmd_argument: ncbi-amr
-    resfinder:
-      dirdb: /db/gene_detection/ResFinder
-      cmd_argument: resfinder
+#    Not updated automatically + no git repo
+#    amrfinder:
+#      dirdb: /db/amrfinder/by_version/latest
+#      cmd_argument: amrfinder
+    resfinder4:
+      dirdb: /db/resfinder4/resfinder
+      cmd_argument: resfinder4
+    pointfinder4:
+      dirdb: /db/resfinder4/pointfinder
+      cmd_argument: resfinder4
     virulencefinder:
       dirdb: /db/gene_detection/VirulenceFinder-Listeria
       cmd_argument: virulencefinder
@@ -36,6 +40,10 @@ species:
     plasmidfinder:
       dirdb: /db/gene_detection/PlasmidFinder-gram_positive
       cmd_argument: plasmidfinder
+#    Not updated automatically + no git repo
+#    mob_suite:
+#      dirdb: /db/mob_suite/latest
+#      cmd_argument: mob-suite
   mycobacterium:
     mlst:
       dirdb: /db/sequence_typing/mycobacterium/mlst
@@ -43,12 +51,16 @@ species:
     cgmlst:
       dirdb: /db/sequence_typing/mycobacterium/cgmlst
       cmd_argument: cgmlst
-# all not updated automatically and no git repo
-# also distinction with vcf and without vcf...
-#    51SNP:  # doesnt make sense to do 51snp since it is a static db of 51 snps
+#    Not updated automatically + no git repo
+#    rmlst:
+#      dirdb: /db/sequence_typing/various/rmlst
+#      cmd_argument: rmlst
+#    All not updated automatically and no git repo
+#    also distinction with vcf and without vcf...
+#    51SNP:  # doesn't make sense to do 51snp since it is a static db of 51 snps
 #      cmd_argument: 51snp
-#    amr_who:
-#      cmd_argument: amr_who
+#    amr:
+#      cmd_argument: amr
 #    hsp65:
 #      cmd_argument: hsp65
     ncbi_16s:
@@ -92,9 +104,12 @@ species:
     ncbi_amr:
       dirdb: /db/gene_detection/NCBI_AMR
       cmd_argument: ncbi-amr
-    resfinder:
-      dirdb: /db/gene_detection/ResFinder
-      cmd_argument: resfinder
+    resfinder4:
+      dirdb: /db/resfinder4/resfinder
+      cmd_argument: resfinder4
+    pointfinder4:
+      dirdb: /db/resfinder4/pointfinder
+      cmd_argument: resfinder4
 ## having the same argparse argument twice does not seem to affect anything
     serogroup_a:
       dirdb: /db/sequence_typing/neisseria/capsule_region_a_serogroup_a
@@ -126,6 +141,13 @@ species:
     serogroup_z:
       dirdb: /db/sequence_typing/neisseria/capsule_region_a_serogroup_z
       cmd_argument: serogroup
+#    Not updated automatically + no git repo
+#    gmats:
+#      dirdb: /db/pipelines/neisseria/gMATS_DB.txt
+#      cmd_argument: gmats
+#    mendevar:
+#      dirdb: /db/pipelines/neisseria/mendevar_DB.txt
+#      cmd_argument: mendevar
   stec:
     mlst_warwick:
       dirdb: /db/sequence_typing/ecoli/mlst_warwick
@@ -143,15 +165,22 @@ species:
     serotype_h:
       dirdb: /db/gene_detection/SerotypeFinder-H_type
       cmd_argument: serotype
-    ncbi_amr:
-      dirdb: /db/gene_detection/NCBI_AMR
-      cmd_argument: ncbi-amr
-    resfinder:
-      dirdb: /db/gene_detection/ResFinder
-      cmd_argument: resfinder
+#    Not updated automatically + no git repo
+#    amrfinder:
+#      dirdb: /db/amrfinder/by_version/latest
+#      cmd_argument: amrfinder
+    resfinder4:
+      dirdb: /db/resfinder4/resfinder
+      cmd_argument: resfinder4
+    pointfinder4:
+      dirdb: /db/resfinder4/pointfinder
+      cmd_argument: resfinder4
     plasmidfinder:
       dirdb: /db/gene_detection/PlasmidFinder-entero
       cmd_argument: plasmidfinder
+    ncbi_stress:
+      dirdb: /db/gene_detection/NCBI_STRESS
+      cmd_argument: ncbi-stress
 ## having the same argparse argument twice does not seem to affect anything
     virulencefinder:
       dirdb: /db/gene_detection/VirulenceFinder-Ecoli
@@ -166,6 +195,10 @@ species:
     cgmlst:
       dirdb: /db/sequence_typing/salmonella/cgmlst
       cmd_argument: cgmlst
+#    Not updated automatically + no git repo
+#    rmlst:
+#      dirdb: /db/sequence_typing/various/rmlst
+#      cmd_argument: rmlst
     spifinder:
       dirdb: /db/pipelines/salmonella/spifinder/genomicepidemiology-spifinder_db-db102668b704
       cmd_argument: spifinder
@@ -176,35 +209,38 @@ species:
     serotype_seqsero:
       dirdb: /db/pipelines/salmonella/seqsero2/1.2.1/seqsero2_db
       cmd_argument: serotype
-    serotype_seqsero_salmid:
-      dirdb: /db/pipelines/salmonella/salmid/0.1.23
-      cmd_argument: serotype
-#    mykrobe:  # mykrobe is a fastq specific option
-#      dirdb: /db/pipelines/salmonella/mykrobe
     abritamr:
-      dirdb: /db/abritamr/amrfinderplus_data
+      dirdb: /db/abritamr_2/amrfinderplus_data
       cmd_argument: abritamr
-    ncbi_amr:
-      dirdb: /db/gene_detection/NCBI_AMR
-      cmd_argument: ncbi-amr
-    resfinder:
-      dirdb: /db/gene_detection/ResFinder
-      cmd_argument: resfinder
-    plasmidfinder:
-      dirdb: /db/gene_detection/PlasmidFinder-entero
-      cmd_argument: plasmidfinder
+#    Not updated automatically + no git repo
+#    amrfinder:
+#      dirdb: /db/amrfinder/by_version/latest
+#      cmd_argument: amrfinder
+    resfinder4:
+      dirdb: /db/resfinder4/resfinder
+      cmd_argument: resfinder4
+    pointfinder4:
+      dirdb: /db/resfinder4/pointfinder
+      cmd_argument: resfinder4
     vfdb_core:
       dirdb: /db/gene_detection/VFDB_core
       cmd_argument: vfdb-core
+#    Not updated automatically + no git repo
+#    mob_suite:
+#      dirdb: /db/mob_suite/latest
+#      cmd_argument: mob-suite
+    mykrobe:
+      dirdb: /db/mykrobe/latest
+      cmd_argument: mykrobe
 viral:
   sars_cov_2:
     dirsdb:
-      - /db/nextclade/sars-cov-2
+      - /db/nextclade3/sars-cov-2
   influenza_a:
     dirsdb:
-      - /db/nextclade/flu_h1n1pdm_ha
-      - /db/nextclade/flu_h3n2_ha
+      - /db/nextclade3/flu_h1n1pdm
+      - /db/nextclade3/flu_h3n2_ha
   influenza_b:
     dirsdb:
-      - /db/nextclade/flu_vic_ha
-      - /db/nextclade/flu_yam_ha
+      - /db/nextclade3/flu_vic
+      - /db/nextclade3/flu_yam
