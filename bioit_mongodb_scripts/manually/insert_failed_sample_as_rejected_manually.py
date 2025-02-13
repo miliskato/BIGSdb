@@ -14,6 +14,14 @@ sys.path.append(str(PYTHONPATH))
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data
 
+REJECTION_REASONS = {
+    "1": "Insufficient reads remaining after human read scrubbing to generate an assembly or consensus sequence.",
+    "2": "Insufficient reads remaining after read trimming to generate an assembly or consensus sequence.",
+    "3": "Input forward and reverse reads do not match.",
+    "4": "Insufficient contigs left after human read scrubbing to execute pipeline.",
+    "5": "One or more input files were corrupted."
+}
+
 
 def parse_arguments(species_list: List[str]) -> argparse.Namespace:
     """
@@ -26,45 +34,41 @@ def parse_arguments(species_list: List[str]) -> argparse.Namespace:
     parser.add_argument("--species", required=True, type=str,
                         choices=species_list)
     parser.add_argument("--technical_id", required=True, type=str)
-    parser.add_argument("--rejection_reason", required=True, type=str, choices=['abc', 'def'])
-    parser.add_argument('--alternate_dtap', choices=['dev', 'test', 'acc', 'prod'], help=argparse.SUPPRESS)
+    parser.add_argument("--rejection_reason", required=True, type=str, choices=REJECTION_REASONS.keys(), help="\t".join([f"{k}: {v}" for k, v in REJECTION_REASONS.items()]))
+    parser.add_argument('--alternate_dtap', choices=['dev', 'test', 'acc', 'prod'])
     return parser.parse_args()
 
 
-class InsertFailedSampleAsRejectedManually:
+def insert_failed_sample_as_rejected_manually(technical_id: str, species: str, rejection_reason: Literal[REJECTION_REASONS.values()],
+                                              alternate_dtap: Union[str, None] = None) -> None:
     """
-    Class containing only an __init__ function which will insert an isolate into the rejected isolates MongoDB Azure
-    collection.
+    Insert an isolate into the rejected isolates MongoDB Azure collection with a given rejection reason.
+    :param technical_id: sample id/ isolates id
+    :param species: commonly used bioit species name: either genus or specific like stec
+    :param rejection_reason: The reason why the sample failed/has to be rejected.
+    :param alternate_dtap: alternative dtap than what is in the config file
+    :return: None
     """
-    def __init__(self, technical_id: str, species: str, rejection_reason: Literal['abc', 'def'],
-                 alternate_dtap: Union[str, None] = None) -> None:
-        """
-        Insert an isolate into the rejected isolates MongoDB Azure collection with a given rejection reason.
-        :param technical_id: sample id/ isolates id
-        :param species: commonly used bioit species name: either genus or specific like stec
-        :param rejection_reason: The reason why the sample failed/has to be rejected.
-        :param alternate_dtap: alternative dtap than what is in the config file
-        """
-        mongoinit = MongoInitialisation(species,
-                                        selected_connection_string='CONNECTION_STRING_AZURE',
-                                        alternate_dtap=alternate_dtap,
-                                        mongo_config_data=get_mongodb_config_data())
+    mongoinit = MongoInitialisation(species,
+                                    selected_connection_string='CONNECTION_STRING_AZURE',
+                                    alternate_dtap=alternate_dtap,
+                                    mongo_config_data=get_mongodb_config_data())
 
-        isolates_rejected_coreqc_collection = mongoinit.initialise_isolates_rejected_coreqc_collection()
+    isolates_rejected_coreqc_collection = mongoinit.initialise_isolates_rejected_coreqc_collection()
 
-        previous_rejected_sample_version: Optional[Dict[str, Any]] = isolates_rejected_coreqc_collection.find_one(
-            {'_id': technical_id})
-        if previous_rejected_sample_version:
-            previous_rejected_sample_version['isolates_id'] = technical_id
-            previous_rejected_sample_version.pop('_id')
-            isolates_rejected_coreqc_collection.insert_one(previous_rejected_sample_version)
-            isolates_rejected_coreqc_collection.delete_one({'_id': technical_id})
+    previous_rejected_sample_version: Optional[Dict[str, Any]] = isolates_rejected_coreqc_collection.find_one(
+        {'_id': technical_id})
+    if previous_rejected_sample_version:
+        previous_rejected_sample_version['isolates_id'] = technical_id
+        previous_rejected_sample_version.pop('_id')
+        isolates_rejected_coreqc_collection.insert_one(previous_rejected_sample_version)
+        isolates_rejected_coreqc_collection.delete_one({'_id': technical_id})
 
-        isolates_rejected_coreqc_collection.insert_one({
-            "_id": technical_id,
-            "rejection_reasons": {'manual': rejection_reason},
-            "creation_date": datetime.now(timezone.utc),
-            "insertion_type": 'manual'})
+    isolates_rejected_coreqc_collection.insert_one({
+        "_id": technical_id,
+        "rejection_reasons": {'manual': rejection_reason},
+        "creation_date": datetime.now(timezone.utc),
+        "insertion_type": 'manual'})
 
 
 if __name__ == '__main__':
@@ -75,7 +79,7 @@ if __name__ == '__main__':
     args = parse_arguments(mongo_config_data['species'])
 
     # run main
-    InsertFailedSampleAsRejectedManually(args.technical_id,
-                                         args.species,
-                                         args.rejection_reason,
-                                         args.alternate_dtap)
+    insert_failed_sample_as_rejected_manually(args.technical_id,
+                                              args.species,
+                                              REJECTION_REASONS[args.rejection_reason],
+                                              args.alternate_dtap)

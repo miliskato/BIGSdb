@@ -153,7 +153,7 @@ class MongoInitialisation:
             self.opened_mongo_database, "unprocessed_nominative_clinical_metadata")
         return unprocessed_nominative_clinical_metadata_collection
 
-    def initialise_isolates_rejected_coreqc_collection(self) -> pymongo.collection.Collection:
+    def initialise_isolates_rejected_coreqc_collection(self) -> Collection:
         """
         Initialises collection containing the isolates rejected because of the core quality metrics.
         :return: Opened isolates rejected coreqc collection
