@@ -14,7 +14,7 @@
  all_plugins="yes"
  microreact_year_field="isolation_date"
  tblastx_tagging="yes"
- eav_groups="Gene detection|fas fa-search,galaxy report|fas fa-file-medical-alt,Antibiotic resistance|fas fa-angle-right,SPIFinder|fas fa-angle-right"
+ eav_groups="Gene detection|fas fa-search,galaxy report|fas fa-file-medical-alt,rMLST identification|fas fa-angle-right,Antibiotic resistance|fas fa-angle-right,SPIFinder|fas fa-angle-right"
  field_groups="Curation history|fas fa-history,nominative metadata|fas fa-search"
  user_projects="yes"
  submissions="yes"
