@@ -45,6 +45,8 @@ class JsonTypingResultsInserter(JsonSuperClass):
                         self._process_regular_typing_scheme()
                     elif self._schemedict[self._scheme]['type'] == 'irregular':
                         self._process_irregular_typing_scheme()
+                elif self._scheme == 'rmlst_identification':
+                    self._processing_rmlst_identification()
                 else:
                     logging.warning(f"scheme {self._scheme} not present in json file")
             with TblHistory(self._species) as isolates_history_psql_tbl:
@@ -78,17 +80,6 @@ class JsonTypingResultsInserter(JsonSuperClass):
         Inserts irregular typing schemes into BIGSdb by pathogen.
         :return: None
         """
-        if 'rmlst' in self._json_report_dict:
-            rmlst_dict = self._json_report_dict['rmlst']
-            identification_keys = list({e for e in rmlst_dict if rmlst_dict[e]})
-            for k in identification_keys:
-                if k != "loci" and k != 'rmlst-percent_detected':
-                    with TblEavText(self._species) as self._isolates_eavt_psql_tbl:
-                        self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, k, rmlst_dict[k]))
-                elif k == 'rmlst-percent_detected':
-                    with TblEavFloat(self._species) as self._isolates_eavfl_psql_tbl:
-                        self._isolates_eavfl_psql_tbl.insert_eav_float_isolate(
-                            (self._isolatename, 'rmlst-%_detected', rmlst_dict[k]))
         if self._species == 'mycobacterium':
             self.__process_irregular_typing_scheme_mycobacterium_specific()
         elif self._species == 'neisseria':
@@ -97,6 +88,26 @@ class JsonTypingResultsInserter(JsonSuperClass):
             self.__process_irregular_typing_scheme_stec_specific()
         elif self._species == 'salmonella':
             self.__process_irregular_typing_scheme_salmonella_specific()
+
+    def _processing_rmlst_identification(self) -> None:
+        """
+        Inserts taxonomy identification based on rMLST in eav fields specific tables
+        :return: None
+        """
+        if 'rmlst' in self._json_report_dict:
+            rmlst_dict = self._json_report_dict['rmlst']
+            identification_keys = list({e for e in rmlst_dict if rmlst_dict[e]})
+            unused_keys = ['db_version','loci','rmlst-rST']
+            identification_keys = [item for i, item in enumerate(identification_keys) if item not in unused_keys]
+
+            for k in identification_keys:
+                if k != 'rmlst-percent_detected':
+                    with TblEavText(self._species) as self._isolates_eavt_psql_tbl:
+                        self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, k, rmlst_dict[k]))
+                else:
+                    with TblEavFloat(self._species) as self._isolates_eavfl_psql_tbl:
+                        self._isolates_eavfl_psql_tbl.insert_eav_float_isolate(
+                            (self._isolatename, 'rmlst-%_detected', rmlst_dict[k]))
 
     def ___get_isolate_id(self) -> str:
         """
