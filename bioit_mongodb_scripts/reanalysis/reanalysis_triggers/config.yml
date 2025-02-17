@@ -9,6 +9,7 @@ species:
 #    Not updated automatically + no git repo
 #    rmlst:
 #      dirdb: /db/sequence_typing/various/rmlst
+#      cmd_argument: rmlst
     pcr_serogroup:
       dirdb: /db/sequence_typing/listeria/serogroup
       cmd_argument: pcr-serogroup
@@ -77,6 +78,10 @@ species:
     cgmlst:
       dirdb: /db/sequence_typing/neisseria/cgmlst
       cmd_argument: cgmlst
+#    Not updated automatically + no git repo
+#    rmlst:
+#      dirdb: /db/sequence_typing/various/rmlst
+#      cmd_argument: rmlst
     rplf:
       dirdb: /db/sequence_typing/neisseria/rplf
       cmd_argument: rplf
@@ -101,9 +106,6 @@ species:
     fhbp:
       dirdb: /db/sequence_typing/neisseria/fhbp
       cmd_argument: fhbp
-    ncbi_amr:
-      dirdb: /db/gene_detection/NCBI_AMR
-      cmd_argument: ncbi-amr
     resfinder4:
       dirdb: /db/resfinder4/resfinder
       cmd_argument: resfinder4
@@ -239,7 +241,7 @@ viral:
   influenza_a:
     dirsdb:
       - /db/nextclade3/flu_h1n1pdm
-      - /db/nextclade3/flu_h3n2_ha
+      - /db/nextclade3/flu_h3n2
   influenza_b:
     dirsdb:
       - /db/nextclade3/flu_vic
