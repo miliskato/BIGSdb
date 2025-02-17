@@ -491,9 +491,10 @@ class MainMongo:
         :return: tuple containing the different technical metadata fields
         """
         input_type = results['input_type']
+        input_type_abbreviation = 'ilmn' if input_type == 'illumina' else 'ont'
         appendix = self.__get_appendix_from_input_type(input_type)
         tx_seq_fltr_meth = ', '.join([f"downsample factor: {results[f'downsampling_{appendix}']['downsampling_downsample_factor']}",
-                                      f"trimming: {results[f'trimming_{input_type}']['trim_ilmn_tool_version']}",
+                                      f"trimming: {results[f'trimming_{input_type}'][f'trim_{input_type_abbreviation}_tool_version']}",
                                       f"filtering of assembly: {results['quast']['assembly_filtering_tool_version']}"
                                       ])
         cd_seq_assy_meth = 'SPAdes'
@@ -511,9 +512,10 @@ class MainMongo:
         :return: tuple containing the different technical metadata fields
         """
         input_type = results['input_type']
+        input_type_abbreviation = 'ilmn' if input_type == 'illumina' else 'ont'
         appendix = self.__get_appendix_from_input_type(results['input_type'])
         tx_seq_fltr_meth = ', '.join([f"downsample factor: {results[f'downsampling_{appendix}']['downsampling_downsample_factor']}",
-                                      f"trimming: {results[f'trimming_{input_type}']['trim_ilmn_tool_version']}"
+                                      f"trimming: {results[f'trimming_{input_type}'][f'trim_{input_type_abbreviation}_tool_version']}"
                                       ])
         cd_seq_assy_meth = 'Other'
         tx_seq_assy_meth_ver = ', '.join([x for x in results['iterative_mapping']['tool_versions']])
