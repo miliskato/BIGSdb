@@ -71,6 +71,12 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                             isolate_id = isolates_psql_tbl.select_id_for_isolate((self._isolatename,))
 
                         report_url = UrlHelper.report_for_isolate(self._species, str(isolate_id[0][0]), anchor=html_scheme_name)
+                        if self._scheme == 'resfinder4':
+                            self._eavhtmltable = '<style>table.nice { text-align: center; border-spacing:0 }table.nice tr:nth-child(n+3) {background: #E4EFF3}table.nice tr:nth-child(2n+3) {background: #C1E6F3}</style>'
+                            self._eavhtmltable += f'<table class="data nice"><tr><th>AMR</th><th>Resistance gene</th><th>Resistance gene</th><th>%Identity</th><th>Coverage</th></tr>'
+                            for dict in self._json_report_dict[self._scheme]['resfinder4_genes_hits']:
+                                self._eavhtmltable += f'<tr><td>{dict{'Phenotype'}}</td><td>{dict{'Resistance gene'}}</td><td>{dict{'Identity'}}</td><td>{dict{'Coverage'}}</td></tr>'
+                            self._eavhtmltable += f'<tr align="left"><td colspan="4"><a href="{report_url}" target="_blank">Full report</a></td></tr>'
                         if not self._scheme.endswith('vfdb_core') and not self._scheme.endswith('virulencefinder'):
                             self._eavhtmltable = '<style>table.nice { text-align: center; border-spacing:0 }table.nice tr:nth-child(n+3) {background: #E4EFF3}table.nice tr:nth-child(2n+3) {background: #C1E6F3}</style>'
                             self._eavhtmltable += f'<table class="data nice"><tr><th>GeneCluster</th><th>Locus</th></tr>'
@@ -144,8 +150,8 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
         self.insert_locus_if_needed(locusname, scheme_name)
         self._insert_dummy_sequence_if_needed(locusname, genehit)
         self._insert_ad_if_needed(locusname, genehit)
-        if self._schemename_bigsdb == 'NCBI_AMR':
-            self._assign_schememember_if_needed(locusname, scheme_name)
+#        if self._schemename_bigsdb == 'NCBI_AMR':
+#            self._assign_schememember_if_needed(locusname, scheme_name)
 
     def _process_ab_schemes(self, hit: Dict[str, str], hit_name: str):
         """
@@ -155,9 +161,9 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
         :return:
         """
         # Class scheme for NCBI_AMR only
-        if self._schemename_bigsdb == 'NCBI_AMR':
-            ncbi_class: str = self._ncbi_ab_class_dict[hit_name]
-            self.__process_ab_scheme(ncbi_class, hit, amr_class=True)
+ #       if self._schemename_bigsdb == 'NCBI_AMR':
+ #           ncbi_class: str = self._ncbi_ab_class_dict[hit_name]
+ #           self.__process_ab_scheme(ncbi_class, hit, amr_class=True)
 
         # AB scheme for both ResFinder or NCBI_AMR
         for antibiotic in hit['Antibiotic(s)'].split('/'):
@@ -199,9 +205,9 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                 geneclusternamebigsdb = f"{self._schemename_bigsdb}_Gene{sequencedictlist[sequencename]['cluster']}"
                 clusterdict['_'.join([(sequencedictlist[sequencename]['accession']),
                                       (sequencedictlist[sequencename]['allele']).replace("'", "")])] = geneclusternamebigsdb
-                if self._schemename_bigsdb == 'NCBI_AMR':
-                    ncbi_ab_class_dict['_'.join(
-                        [(sequencedictlist[sequencename]['accession']), (sequencedictlist[sequencename]['allele']).replace("'", "")])] = '_'.join(
-                        ['NCBI_AMR', sequencedictlist[sequencename]['class'].upper().replace(' ', '_')])
+#                if self._schemename_bigsdb == 'NCBI_AMR':
+#                    ncbi_ab_class_dict['_'.join(
+#                        [(sequencedictlist[sequencename]['accession']), (sequencedictlist[sequencename]['allele']).replace("'", "")])] = '_'.join(
+#                        ['NCBI_AMR', sequencedictlist[sequencename]['class'].upper().replace(' ', '_')])
 
             return clusterdict, ncbi_ab_class_dict

@@ -415,11 +415,11 @@ species_json:
       abritamr:
         type: irregular
     genedetection_schemes:
-#      resfinder:
-#        clusteredfasta: /db/gene_detection/ResFinder/resfinder-clustered_80.fasta
-#        metadatafile: /db/gene_detection/ResFinder/mapping_full.json
-#        schemename_bigsdb: ResFinder
-#        schemename_html: ResFinder
+      resfinder4:
+        clusteredfasta: /db/gene_detection/ResFinder/resfinder-clustered_80.fasta
+        metadatafile: /db/gene_detection/ResFinder/mapping_full.json
+        schemename_bigsdb: resfinder4
+        schemename_html: amr
       vfdb_core:
         clusteredfasta: /db/gene_detection/VFDB_core/vfdb_core-clustered_80.fasta
         metadatafile: /db/gene_detection/VFDB_core/mapping_full.json
