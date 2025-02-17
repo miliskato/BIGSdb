@@ -136,12 +136,13 @@ class TypingSchemeProfilesIntoPsql:
                         if primary_fields is None:
                             # table is empty, so all need to be inserted
                             for line in profiles[1:]:
-                                set_to_be_inserted.add(" ".join(line.split()).split(' ')[0])
+                                if line != '\n':
+                                    set_to_be_inserted.add(" ".join(line.split()).split(' ')[0])
                             self.__insert_profiles(scheme, schemedict, indexdict, profile_line_dict, set_to_be_inserted, seqdef_profiles_psql_tbl, species)
                         else:
                             # table needs to be updated
                             for line in profiles[1:]:
-                                if int(" ".join(line.split()).split(' ')[0]) not in primary_fields:
+                                if line != '\n' and int(" ".join(line.split()).split(' ')[0]) not in primary_fields:
                                     set_to_be_inserted.add(" ".join(line.split()).split(' ')[0])
                                 else:
                                     continue
