@@ -1,12 +1,10 @@
 import abc
-import re
 from typing import Any, Dict, List, Optional, Union
-from typing import Mapping, Tuple
+from typing import Mapping
 
 from pymongo.collection import Collection
 from pymongo.read_concern import ReadConcern
 
-from .python_utility_functions import convert_dmyhms_to_ymd, merge_mongo_dicts
 from ..model.json_model import MongoRecordDict, JsonReportDict
 
 
@@ -167,7 +165,7 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
         if hit_metadata is None:
             # no header so can not revert anything
             return
-        results_to_modify=document.get_json_results()
+        results_to_modify = document.get_json_results()
         #results_to_modify = (document['results'] if 'results' in document else document)  # this is not a deepcopy so results will be modified in document as well
         for mainkey in results_to_modify:  # mainkey is assay or metadata
             if isinstance(results_to_modify[mainkey], dict):
@@ -183,59 +181,3 @@ class Mongoquerying(object, metaclass=abc.ABCMeta):
                                 single_hit_dictionary['Locus'] = locus
                                 meta_hit_list.append(single_hit_dictionary)
                             results_to_modify[mainkey][subkey] = meta_hit_list
-
-    def get_any_results_version(self, isolate_id: str, searchkey: str, searchvalue: Union[str, int],
-                                isolates_collection: Collection,
-                                old_isolateresults_collection: Collection,
-                                headers_collection: Collection) -> Tuple[MongoRecordDict, bool]:
-        """
-        Gets any results version for a given isolate_id
-        :param isolate_id: name of the isolate corresponding to the _id key in the isolates collection
-        :param searchkey: historic version key, either changed_version or analysis_date
-        :param searchvalue: historic key value, int for changed_version, str YYYY-MM-DD for analysis_date
-        :param isolates_collection: pymongo main isolates collection
-        :param old_isolateresults_collection: pymongo collection of old isolate results
-        :param headers_collection: pymongo collection containing the headers for various lists
-        :return: document of the requested version and boolean stating whether this is the latest results version or not
-        """
-        # 1. Check input
-        if searchkey not in ['changed_version', 'analysis_date']:
-            raise ValueError(f'Invalid key {searchkey}, key must be changed_version or analysis_date!')
-        if searchkey == 'changed_version' and not isinstance(searchvalue, int):
-            raise ValueError(f'if changed_version is searchkey; searchvalue must be integer')
-        if searchkey == 'analysis_date' and not isinstance(searchvalue, str) and not re.match(r'^\d{4}-\d{2}-\d{2}$', searchvalue):
-            raise ValueError(f'if analysis_date is searchkey; searchvalue must be string in YYYY-MM-DD format')
-        # 2. Query current results and check whether current results version is the one requested
-        current_version = MongoRecordDict(isolates_collection.with_options(read_concern=ReadConcern(level="majority")).find_one({'_id': isolate_id}))
-        if current_version is None:
-            raise Exception(f"No isolate with id '{isolate_id}' could be found in MongoDB.")
-        if searchkey == 'changed_version' and current_version['results'][searchkey] <= searchvalue:
-            requested_document = current_version
-            latest_version = True
-        elif searchkey == 'analysis_date' and convert_dmyhms_to_ymd(current_version['results'][searchkey]) <= searchvalue:
-            requested_document = current_version
-            latest_version = True
-        # 3. Query all old results up until the requested value, if the requested value is a date,
-        # and the date is not an exact date that the sample has a version, the first more recent result will be selected
-        else:
-            if searchkey == 'changed_version':
-                old_versions = list(map(lambda x: MongoRecordDict(x), old_isolateresults_collection.with_options(read_concern=ReadConcern(level="majority")).\
-                    find({'isolates_id': isolate_id, searchkey: {'$gte': searchvalue}})))
-                old_versions = sorted(old_versions, key=lambda x: convert_dmyhms_to_ymd(x['analysis_date']), reverse=True)
-            else:  # key == 'analysis_date'
-                old_versions = list(map(lambda x: MongoRecordDict(x), old_isolateresults_collection.with_options(read_concern=ReadConcern(level="majority")).\
-                    find({'isolates_id': isolate_id})))
-                # sort from most recent to oldest
-                old_versions = sorted([x for x in old_versions if convert_dmyhms_to_ymd(x['analysis_date']) >= searchvalue], key=lambda x: convert_dmyhms_to_ymd(x['analysis_date']), reverse=True)
-            if len(old_versions) > 0:
-                old_versions_merged = old_versions[0]
-                if len(old_versions) > 1:
-                    for x in old_versions[1:]:
-                        merge_mongo_dicts(old_versions_merged, x)
-                merge_mongo_dicts(MongoRecordDict(current_version['results']), old_versions_merged)
-            requested_document = current_version
-            latest_version = False
-        # 4. Revert the effective dict to list storage to a readable format for the html reporter
-        self.revert_typinghitlists_to_dictionaries(requested_document, headers_collection)
-        requested_document['latest_analysis_date'] = requested_document['results']['analysis_date']
-        return requested_document, latest_version

@@ -12,8 +12,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - All Jammy existing assays to bigsdb for neisseria listeria salmonella mycobacterium influenza.
-- upgrade from python 3.9 to python 3.12
+- Upgrade from python 3.9 to python 3.12
 - Rework integration SFTP flow 11 to send genomic indicators to ODS instead of DWH, remove mapping table flow to ODS
+- Simplification of html generation azure script
+
+### Bugfix
+- Bugfix reanalysis influenza
 
 ## [2.1.0]
 ### Added
