@@ -1,4 +1,5 @@
 import argparse
+import csv
 import json
 import logging
 import socket
@@ -87,6 +88,40 @@ class GeneDetectionIntoPsql:
         """
         self._descriptiondict: Dict[str, List[str]] = {}  # e.g. 'VFDB_GeneCluster_0' : ['gene1', 'gene2']
         self._clusterdict: Dict[str, str] = {}  # e.g. 'accesion1_allele1': 'VFDB_GeneCluster_0'
+        if self._schemedict[self._scheme]['schemename_bigsdb'] != 'ResFinder4':
+            self.___process_genedetection_metadata_if_mapping_json()
+        else:
+            self.___process_genedetection_metadata_for_resfinder4()
+
+        self._clusterlist = list(self._descriptiondict.keys())
+
+    def ___process_genedetection_metadata_for_resfinder4(self) -> None:
+        """ based on phenotypes.txt file from the resfinder4 database, create two dicts and the list of clusters that will be insert in seqdef
+        :return: None
+        """
+        with Path(self._schemedict[self._scheme]['metadatafile']).open('r') as phenotypes:
+            file_reader = csv.DictReader(phenotypes, delimiter="\t")
+            for row in file_reader:
+                gene_accession = row.get('Gene_accession no.')
+                if len(gene_accession.split("_")) == 3:
+                    gene, _, accession = gene_accession.split("_")
+                else:
+                    gene = gene_accession.split("_")[0]
+                    accession = "_".join((gene_accession.split("_")[2],gene_accession.split("_")[3]))
+                geneclusternamebigsdb = f"{self._schemedict[self._scheme]['schemename_bigsdb']}_{gene}"
+                self._clusterdict["_".join([gene, accession])] = geneclusternamebigsdb
+                if not self._descriptiondict.get(geneclusternamebigsdb):
+                    self._descriptiondict[geneclusternamebigsdb] = []
+                self._descriptiondict[geneclusternamebigsdb].append(accession)
+
+
+
+
+    def ___process_genedetection_metadata_if_mapping_json(self) -> None:
+        """based on metadata file of the scheme, create two dicts and the list of clusters that will be insert in seqdef
+        This version of the function typically handles metadatafile like "full_mapping.json"
+        :return: None
+        """
         with Path(self._schemedict[self._scheme]['metadatafile']).open('r') as handle:
             sequencedictlist: Dict[str, Dict[str, Any]] = json.load(handle)
             for sequencename in sequencedictlist:
@@ -111,7 +146,8 @@ class GeneDetectionIntoPsql:
                     sequencedictlist[sequencename]['accession'] = "-"
                 geneclusternamebigsdb = f"{self._schemedict[self._scheme]['schemename_bigsdb']}_Gene{sequencedictlist[sequencename]['cluster']}"
                 self._clusterdict['_'.join([(sequencedictlist[sequencename]['accession']),
-                                            (sequencedictlist[sequencename]['allele']).replace("'", "")])] = geneclusternamebigsdb
+                                            (sequencedictlist[sequencename]['allele']).replace("'",
+                                                                                               "")])] = geneclusternamebigsdb
                 if not self._descriptiondict.get(geneclusternamebigsdb):
                     self._descriptiondict[geneclusternamebigsdb] = []
                 if self._schemedict[self._scheme]['schemename_bigsdb'] != 'VFDB_core':
@@ -120,7 +156,6 @@ class GeneDetectionIntoPsql:
                 else:
                     self._descriptiondict[geneclusternamebigsdb].append(
                         (sequencedictlist[sequencename]['gene']).replace("'", ""))
-        self._clusterlist = list(self._descriptiondict.keys())
 
     def __insert_loci_and_alleles(self, species: str) -> None:
         """

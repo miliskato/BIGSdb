@@ -238,9 +238,6 @@ species:
         schemename_bigsdb: rMLST
         scheme_fields:
           - rST
-      salmonella_pointfinder:
-        dirdb: ''
-        schemename_html: PointFinder
       salmonella_mykrobe:
         dirdb: ''
       salmonella_serotyping:
@@ -248,26 +245,15 @@ species:
       salmonella_spifinder:
         dirdb: ''
     genedetection_schemes:
-      salmonella_ndaro:
-        clusteredfasta: /db/gene_detection/NCBI_AMR/ncbi_amr-clustered_80.fasta
-        metadatafile: /db/gene_detection/NCBI_AMR/mapping_full.json
-        schemename_bigsdb: NCBI_AMR
-        schemename_html: NCBI AMR genes (NDARO)
-      salmonella_resfinder:
-        clusteredfasta: /db/gene_detection/ResFinder/resfinder-clustered_80.fasta
-        metadatafile: /db/gene_detection/ResFinder/mapping_full.json
-        schemename_bigsdb: ResFinder
-        schemename_html: ResFinder
+      salmonella_resfinder4:
+        metadatafile: /db/resfinder4/resfinder/phenotypes.txt
+        schemename_bigsdb: ResFinder4
+        schemename_html: amr
       salmonella_vfdbcore:
         clusteredfasta: /db/gene_detection/VFDB_core/vfdb_core-clustered_80.fasta
         metadatafile: /db/gene_detection/VFDB_core/mapping_full.json
         schemename_bigsdb: VFDB_core
         schemename_html: Virulence Factor DB - Core
-      salmonella_plasmidfinder:
-        clusteredfasta: /db/gene_detection/PlasmidFinder-entero/plasmidfinder-entero-clustered_80.fasta
-        metadatafile: /db/gene_detection/PlasmidFinder-entero/mapping_full.json
-        schemename_bigsdb: PlasmidFinder_entero
-        schemename_html: plasmid
   influenza:
     typing_schemes: null
     genedetection_schemes: null
@@ -416,8 +402,8 @@ species_json:
         type: irregular
     genedetection_schemes:
       resfinder4:
-        clusteredfasta: /db/gene_detection/ResFinder/resfinder-clustered_80.fasta
-        metadatafile: /db/gene_detection/ResFinder/mapping_full.json
+        clusteredfasta: /db/resfinder4/resfinder/all.fsa
+        metadatafile: null
         schemename_bigsdb: resfinder4
         schemename_html: amr
       vfdb_core:

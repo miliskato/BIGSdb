@@ -14,7 +14,7 @@ INSERT INTO client_dbases(id, name, description, dbase_name, dbase_config_name, 
 
 -- amr
 INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no_submissions, disable, curator, date_entered, datestamp) VALUES(3, 'NCBI_AMR', 'NDARO AMR database', 't', 4, 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
-INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no_submissions, disable, curator, date_entered, datestamp) VALUES(4, 'ResFinder', 'ResFinder database', 't', 5, 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
+INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no_submissions, disable, curator, date_entered, datestamp) VALUES(4, 'ResFinder4', 'ResFinder4 - ResFinder database', 't', 5, 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
 -- other genedetection
 INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no_submissions, disable, curator, date_entered, datestamp) VALUES(5, 'PlasmidFinder_entero', 'PlasmidFinder enterobacteriaceae', 't', 6, 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
 INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no_submissions, disable, curator, date_entered, datestamp) VALUES(6, 'VFDB_core', 'VirulenceFactor core database', 't', 7, 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
@@ -217,7 +217,7 @@ INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT 
 -- AMR additional fields
 INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no_submissions, disable, curator, date_entered, datestamp) VALUES(14, 'NCBI_AMR_AB_CLASS', 'NDARO AMR database AB classes, https://www.ncbi.nlm.nih.gov/pathogens/refgene/#type:AMR', 't', 15, 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
 INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no_submissions, disable, curator, date_entered, datestamp) VALUES(15, 'NCBI_AMR_AB', 'NDARO AMR database AB subclasses, https://www.ncbi.nlm.nih.gov/pathogens/refgene/#type:AMR', 't', 16, 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
-INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no_submissions, disable, curator, date_entered, datestamp) VALUES(16, 'ResFinder_AB', 'ResFinder database', 't', 17, 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
+INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no_submissions, disable, curator, date_entered, datestamp) VALUES(16, 'ResFinder4_mutations', 'ResFinder4 - PointFinder database', 't', 17, 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
 --client db: serotyping
 INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) VALUES(1, 'SISTR_O_ANTIGEN', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
 INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) VALUES(1, 'SISTR_H1_ANTIGEN', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
