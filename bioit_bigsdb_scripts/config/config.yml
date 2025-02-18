@@ -245,7 +245,7 @@ species:
       salmonella_spifinder:
         dirdb: ''
     genedetection_schemes:
-      salmonella_resfinder4:
+      resfinder4:
         metadatafile: /db/resfinder4/resfinder/phenotypes.txt
         schemename_bigsdb: ResFinder4
         schemename_html: amr

@@ -33,6 +33,20 @@ def _parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     argument_parser.add_argument('--do_not_recalculate', required=False, action='store_true', default=False)  # Since 2024/03/29 this script accesses Mongo directly to recalculate, in some instances mongo is not instantiated yet when this script is called (moving from local to Azure), requiring the ability to disable the recalculation
     return argument_parser.parse_args()
 
+class GeneDectectionContext:
+    def __init__(self, scheme: str, scheme_config: Dict[str, Any]) -> None:
+        self.scheme = scheme
+        self.description_dict: Dict[str, List[str]] = {}
+        self.cluster_dict: Dict[str, str] = {}
+        self.scheme_config = scheme_config
+
+    def add_description(self, gene_cluster: str, description: str) -> None:
+        if not self.description_dict.get(gene_cluster):
+            self.description_dict[gene_cluster] = []
+        self.description_dict[gene_cluster].append(description)
+
+    def set_sequence_genecluster_name(self, sequence_id: str, bigsdb_genecluster_name: str) -> None:
+        self.cluster_dict[sequence_id] = bigsdb_genecluster_name
 
 class GeneDetectionIntoPsql:
     """
@@ -52,77 +66,85 @@ class GeneDetectionIntoPsql:
 
         self._bigsdb_config_data = get_bigsdb_config_data()
 
+    def insert_schemes(self) -> None:
+        """
+        Inserts scheme items into BIGSdb seqdef database
+        :return: None
+        """
         try:
             for species in set(self._species_list):
-                self._schemedict: Dict[str, Any] = self._bigsdb_config_data['species'][species].get('genedetection_schemes')
-                self._gene_detection_insertion_and_recalculation(species)
-                self._eavhtmltable = None
+                scheme_dict: Dict[str, Any] = self._bigsdb_config_data['species'][species].get('genedetection_schemes')
+                self._gene_detection_insertion_and_recalculation(species, scheme_dict)
+
         except Exception as exceptionmessage:
             send_email(f"{exceptionmessage}\n{traceback.format_exc()}", dont_send_email=self._dont_send_email)
             raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}")
 
-    def _gene_detection_insertion_and_recalculation(self, species: str) -> None:
+    def _gene_detection_insertion_and_recalculation(self, species: str, scheme_dict: dict[str, Any] | None) -> None:
         """
         Inserts gene detection loci and alleles and recalculates existing loci/alleles
         Recalculation pertains the Clusters which are recalculated weekly on often 80% identity
         :param species: commonly used bioit species name: either genus or specific like stec.
         :return: None
         """
-        if self._schemedict is not None:
-            for scheme in self._schemedict:
-                self._scheme: str = scheme
+        if scheme_dict is None:
+            return
 
-                self.__create_necessary_dictionaries()
+        for scheme in scheme_dict:
+            scheme_config = scheme_dict[scheme]
+            context = self.__create_gene_detection_context(scheme, scheme_config)
+            self.__insert_loci_and_alleles(species, context)
+            self.__update_locus_descriptions(species, context)
 
-                self.__insert_loci_and_alleles(species)
+            if not self._do_not_recalculate:
+                self.__recalculate_allele_designations(species, context)
 
-                self.__update_locus_descriptions(species)
-
-                if not self._do_not_recalculate:
-                    self.__recalculate_allele_designations(species)
-
-    def __create_necessary_dictionaries(self) -> None:
+    @staticmethod
+    def create_gene_detection_context(scheme: str, scheme_config: Any) -> GeneDectectionContext:
         """
         Creates the necessary dictionaries of the current database version
-        :return: None
+        :return: GeneDectectionContext
         """
-        self._descriptiondict: Dict[str, List[str]] = {}  # e.g. 'VFDB_GeneCluster_0' : ['gene1', 'gene2']
-        self._clusterdict: Dict[str, str] = {}  # e.g. 'accesion1_allele1': 'VFDB_GeneCluster_0'
-        if self._schemedict[self._scheme]['schemename_bigsdb'] != 'ResFinder4':
-            self.___process_genedetection_metadata_if_mapping_json()
+        if scheme_config['schemename_bigsdb'] == 'ResFinder4':
+            return GeneDetectionIntoPsql._create_resfinder4_gene_detection_context(scheme, scheme_config)
         else:
-            self.___process_genedetection_metadata_for_resfinder4()
+            return GeneDetectionIntoPsql._create_generic_gene_detection_context(scheme, scheme_config)
 
-        self._clusterlist = list(self._descriptiondict.keys())
-
-    def ___process_genedetection_metadata_for_resfinder4(self) -> None:
-        """ based on phenotypes.txt file from the resfinder4 database, create two dicts and the list of clusters that will be insert in seqdef
-        :return: None
+    @staticmethod
+    def _create_resfinder4_gene_detection_context(scheme: str, scheme_config: Dict[str, Any]) -> GeneDectectionContext:
+        """ based on metadata file of the scheme, create scheme related dict used to insert loci in seqdef
+        This version of the function is looking into phenotypes.txt file of Resfinder4
+        :return: The description dictionary
         """
-        with Path(self._schemedict[self._scheme]['metadatafile']).open('r') as phenotypes:
+        context = GeneDectectionContext(scheme, scheme_config)
+        with Path(scheme_config['metadatafile']).open('r') as phenotypes:
             file_reader = csv.DictReader(phenotypes, delimiter="\t")
             for row in file_reader:
                 gene_accession = row.get('Gene_accession no.')
+
                 if len(gene_accession.split("_")) == 3:
                     gene, _, accession = gene_accession.split("_")
                 else:
                     gene = gene_accession.split("_")[0]
                     accession = "_".join((gene_accession.split("_")[2],gene_accession.split("_")[3]))
-                geneclusternamebigsdb = f"{self._schemedict[self._scheme]['schemename_bigsdb']}_{gene}"
-                self._clusterdict["_".join([gene, accession])] = geneclusternamebigsdb
-                if not self._descriptiondict.get(geneclusternamebigsdb):
-                    self._descriptiondict[geneclusternamebigsdb] = []
-                self._descriptiondict[geneclusternamebigsdb].append(accession)
+                bigsdb_genecluster_name = f"{scheme_config['schemename_bigsdb']}_{gene}"
 
+                sequence_id = "_".join([gene, accession])
+                context.set_sequence_genecluster_name(sequence_id, bigsdb_genecluster_name)
+                context.add_description(bigsdb_genecluster_name, accession)
+        return context
 
-
-
-    def ___process_genedetection_metadata_if_mapping_json(self) -> None:
-        """based on metadata file of the scheme, create two dicts and the list of clusters that will be insert in seqdef
+    @staticmethod
+    def _create_generic_gene_detection_context(scheme: str, scheme_config: Dict[str, Any]) -> GeneDectectionContext:
+        """based on metadata file of the scheme, create scheme related dict used to insert loci in seqdef
         This version of the function typically handles metadatafile like "full_mapping.json"
-        :return: None
+        :param cluster_dict: dictionary with key 'locus_accession' and value 'scheme_name_gene'
+        :param description_dict: dictionary with key 'scheme_name_gene' and value list of alleles/mutations for this gene
+        :return: The description dictionary
         """
-        with Path(self._schemedict[self._scheme]['metadatafile']).open('r') as handle:
+
+        context = GeneDectectionContext(scheme, scheme_config)
+        with Path(scheme_config['metadatafile']).open('r') as handle:
             sequencedictlist: Dict[str, Dict[str, Any]] = json.load(handle)
             for sequencename in sequencedictlist:
                 """
@@ -142,22 +164,26 @@ class GeneDetectionIntoPsql:
                            'gene': 'BcII', 'product': 'BcII family subclass B1 metallo-beta-lactamase', 
                            'header_orig': 'NG_047221.1_BcII', 'cluster': 'Cluster_561'}}
                 """
-                if sequencedictlist[sequencename]['accession'] is None:
-                    sequencedictlist[sequencename]['accession'] = "-"
-                geneclusternamebigsdb = f"{self._schemedict[self._scheme]['schemename_bigsdb']}_Gene{sequencedictlist[sequencename]['cluster']}"
-                self._clusterdict['_'.join([(sequencedictlist[sequencename]['accession']),
-                                            (sequencedictlist[sequencename]['allele']).replace("'",
-                                                                                               "")])] = geneclusternamebigsdb
-                if not self._descriptiondict.get(geneclusternamebigsdb):
-                    self._descriptiondict[geneclusternamebigsdb] = []
-                if self._schemedict[self._scheme]['schemename_bigsdb'] != 'VFDB_core':
-                    self._descriptiondict[geneclusternamebigsdb].append(
-                        (sequencedictlist[sequencename]['allele']).replace("'", ""))
-                else:
-                    self._descriptiondict[geneclusternamebigsdb].append(
-                        (sequencedictlist[sequencename]['gene']).replace("'", ""))
+                sequence_details = sequencedictlist[sequencename]
+                if sequence_details['accession'] is None:
+                    sequence_details['accession'] = "-"
 
-    def __insert_loci_and_alleles(self, species: str) -> None:
+                bigsdb_scheme_name = scheme_config['schemename_bigsdb']
+                bigsdb_genecluster_name = f"{bigsdb_scheme_name}_Gene{sequence_details['cluster']}"
+
+                context.set_sequence_genecluster_name(GeneDetectionIntoPsql._create_sequence_id(sequence_details), bigsdb_genecluster_name)
+
+                key = 'allele' if bigsdb_scheme_name != 'VFDB_core' else 'gene'
+                value = (sequence_details[key]).replace("'", "")
+                context.add_description(key, value)
+
+        return context
+
+    @staticmethod
+    def _create_sequence_id(sequence_details: Dict[str, any]):
+        return '_'.join([(sequence_details['accession']), (sequence_details['allele']).replace("'", "")])
+
+    def __insert_loci_and_alleles(self, species: str, context: GeneDectectionContext) -> None:
         """
         Inserts all the loci (clusters), scheme members and alleles (dummy boolean) in seqdef and isolate dbs if they are not
         :param species: commonly used bioit species name: either genus or specific like stec.
@@ -165,30 +191,30 @@ class GeneDetectionIntoPsql:
         """
         json_superclass_instance = JsonSuperClass('dummyname', species, JsonReportDict({'dummydictkey': 'dummydictvalue'}), config_data=self._bigsdb_config_data)
         with TblSequences(species) as seqdef_sequences_psql_tbl, TblLoci(species, 'seqdef') as seqdef_loci_psql_tbl:
-            for cluster in self._clusterlist:
+            for cluster in context.description_dict.keys():
                 present: List[Tuple[int]] = seqdef_loci_psql_tbl.count_locus((cluster,))
                 if present[0][0] == 0:
-                    json_superclass_instance.insert_locus_if_needed(
-                        cluster, self._schemedict[self._scheme]['schemename_bigsdb'])
+                    json_superclass_instance.insert_locus_if_needed(cluster, context.scheme_config['schemename_bigsdb'])
                     seqdef_sequences_psql_tbl.insert_sequence((cluster, '1', 'dummy1'))
                     seqdef_sequences_psql_tbl.insert_sequence((cluster, '0', 'null allele'))
                 else:
                     continue
 
-    def __update_locus_descriptions(self, species: str) -> None:
+    @staticmethod
+    def __update_locus_descriptions(species: str, context: GeneDectectionContext) -> None:
         """
         Updates the locus descriptions to the new database version
         :param species: commonly used bioit species name: either genus or specific like stec.
         :return: None
         """
         with TblLocusDescriptions(species) as seqdef_locdescr_psql_tbl:
-            seqdef_locdescr_psql_tbl.delete_locus_description((f"{self._schemedict[self._scheme]['schemename_bigsdb']}_GeneCluster%",))
-            for cluster, description in self._descriptiondict.items():
+            seqdef_locdescr_psql_tbl.delete_locus_description((f"{context.scheme_config['schemename_bigsdb']}_%",))
+            for cluster, description in context.description_dict.items():
                 # convert list to more meaningfull and aesthatically pleasing string
                 descriptionstring = ' '.join(['Contains genes:', ', '.join([x for x in description])])
                 seqdef_locdescr_psql_tbl.insert_locus_description((cluster, descriptionstring.replace('Contains genes:', ''), descriptionstring))
 
-    def __recalculate_allele_designations(self, species: str) -> None:
+    def __recalculate_allele_designations(self, species: str, context: GeneDectectionContext) -> None:
         """
         Removes, recaculates and reinserts allele designations
         :param species: commonly used bioit species name: either genus or specific like stec.
@@ -197,46 +223,45 @@ class GeneDetectionIntoPsql:
         with TblAlleleDesignations(species) as isolates_ad_psql_tbl, \
                 TblEavText(species) as isolates_eavt_psql_tbl, \
                 TblHistory(species) as isolates_history_psql_tbl:
-            isolates_ad_psql_tbl.delete_designations((f"{self._schemedict[self._scheme]['schemename_bigsdb']}_GeneCluster%",))
+            isolates_ad_psql_tbl.delete_designations((f"{context.scheme_config['schemename_bigsdb']}_%",))
             with TblEavTextHidden(species) as isolates_eavth_psql_tbl:
-                listofsamplesandhits = isolates_eavth_psql_tbl.select_hidden((self._schemedict[self._scheme]['schemename_bigsdb'],))
+                listofsamplesandhits = isolates_eavth_psql_tbl.select_hidden((context.scheme_config['schemename_bigsdb'],))
             if len(listofsamplesandhits) > 0:
                 for sampleandhits in listofsamplesandhits:
+                    eavhtmltable = ''
+
                     isolate_id: str = sampleandhits[0]
                     isolate_name: str = sampleandhits[2]
-                    html_scheme_name = self._schemedict[self._scheme]['schemename_html']
-                    report_url = UrlHelper.report_for_isolate(self._species, isolate_id, html_scheme_name)
-                    if not self._scheme.endswith('vfdbcore') and not self._scheme.endswith('virulencefinder'):
-                        self._eavhtmltable = '<style>table.nice { text-align: center; border-spacing:0 }table.nice tr:nth-child(n+3) {background: #E4EFF3}table.nice tr:nth-child(2n+3) {background: #C1E6F3}</style>'
-                        self._eavhtmltable += f'<table class="data nice"><tr><th>GeneCluster</th><th>Locus</th></tr>'
-                        self._eavhtmltable += f'<tr align="left"><td colspan="4"><a href="{report_url}" target="_blank">Full report</a></td></tr>'
+                    html_scheme_name = context.scheme_config['schemename_html']
+                    report_url = UrlHelper.report_for_isolate(species, isolate_id, html_scheme_name)
+                    if not context.scheme.endswith('vfdbcore') and not context.scheme.endswith('virulencefinder'):
+                        eavhtmltable += '<style>table.nice { text-align: center; border-spacing:0 }table.nice tr:nth-child(n+3) {background: #E4EFF3}table.nice tr:nth-child(2n+3) {background: #C1E6F3}</style>'
+                        eavhtmltable += f'<table class="data nice"><tr><th>GeneCluster</th><th>Locus</th></tr>'
+                        eavhtmltable += f'<tr align="left"><td colspan="4"><a href="{report_url}" target="_blank">Full report</a></td></tr>'
                     else:
-                        self._eavhtmltable = f'<a href="{report_url}" target="_blank">Full report</a>'
+                        eavhtmltable += f'<a href="{report_url}" target="_blank">Full report</a>'
 
                     clusterhitset = set()  # in case loci that were in different clusters at some point get in the same cluster
                     hits = json.loads(sampleandhits[1])
                     if len(hits) != 0:
                         for y in range(len(hits)):
                             hit = '_'.join([hits[y]['Accession'], hits[y]['Locus']])
-                            if hit in self._clusterdict:
-                                clusterhit = self._clusterdict[hit]
-                                if not self._scheme.endswith('vfdbcore') and not self._scheme.endswith('virulencefinder'):
-                                    self.___append_to_htmltable(hits[y], clusterhit)
+                            if hit in context.cluster_dict:
+                                clusterhit = context.cluster_dict[hit]
+                                if not context.scheme.endswith('vfdbcore') and not context.scheme.endswith('virulencefinder'):
+                                    eavhtmltable += GeneDetectionIntoPsql.___create_gene_locus_row(hits[y], clusterhit)
 
                                 if clusterhit not in clusterhitset:
                                     isolates_ad_psql_tbl.insert_designation_by_isolateid((clusterhit, isolate_id, '1'))
                                     clusterhitset.add(clusterhit)
                             else:
-                                send_email(f"{hit} is not a valid key for self._clusterdict. The locus {hits[y]['Locus']} was found in isolate {isolate_name}\nCheck if it's due to the update of {self._scheme}",
+                                send_email(f"{hit} is not a valid key for self._clusterdict. The locus {hits[y]['Locus']} was found in isolate {isolate_name}\nCheck if it's due to the update of {context.scheme}",
                                            f"{Path(__file__).name} issue on host {socket.gethostname()}", dont_send_email=self._dont_send_email)
 
-                    self._eavhtmltable += f'</table>'
-                    isolates_eavt_psql_tbl.delete_eav(
-                        (isolate_id, self._schemedict[self._scheme]['schemename_bigsdb']))
-                    isolates_eavt_psql_tbl.insert_eav_id(
-                        (isolate_id, self._schemedict[self._scheme]['schemename_bigsdb'], self._eavhtmltable))
-                    isolates_history_psql_tbl.insert_history_id(
-                        (isolate_id, 'Gene detection results reevaluated after database update'))
+                    eavhtmltable += f'</table>'
+                    isolates_eavt_psql_tbl.delete_eav((isolate_id, context.scheme_config['schemename_bigsdb']))
+                    isolates_eavt_psql_tbl.insert_eav_id((isolate_id, context.scheme_config['schemename_bigsdb'], eavhtmltable))
+                    isolates_history_psql_tbl.insert_history_id((isolate_id, 'Gene detection results reevaluated after database update'))
 
     @staticmethod
     def ___get_report_name_from_mongo(samplename: str, species: str) -> Union[str, Path]:
@@ -251,7 +276,7 @@ class GeneDetectionIntoPsql:
         isolate_report_path = Mongoquerying.query_docs_by_ids(opened_collection=isolates_collection, ids=[samplename])
         return isolate_report_path[0]['report_directory']
 
-    def ___append_to_htmltable(self, hit: Dict[str, str], clusterhit: str) -> None:
+    def ___create_gene_locus_row(self, hit: Dict[str, str], clusterhit: str) -> str:
         """
         Appends a row to the html table
         :param hit: hit dictionary
@@ -262,8 +287,7 @@ class GeneDetectionIntoPsql:
         gene_cluster = clusterhit.split('Cluster_')[1]
         locus_name: str = hit['Locus']
 
-        self._eavhtmltable += f'<tr><td>{gene_cluster}</td><td>{locus_name}</td></tr>'
-
+        return f'<tr><td>{gene_cluster}</td><td>{locus_name}</td></tr>'
 
 if __name__ == '__main__':
 

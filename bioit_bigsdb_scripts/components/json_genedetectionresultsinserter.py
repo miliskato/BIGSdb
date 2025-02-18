@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Tuple, Union
 from bioit_mongodb_scripts.model.json_model import JsonReportDict
 from .json_superclass import JsonSuperClass
 from .psql import TblAlleleDesignations, TblHistory, TblEavTextHidden, TblEavText, TblIsolates
+from ..genedetection_intopsql import GeneDetectionIntoPsql
 from ..utils.url_helper import UrlHelper
 
 
@@ -33,7 +34,6 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
         self._eavhtmltable = None
         self._scheme = None
         self._clusterdict = None
-        self._ncbi_ab_class_dict = None
         self._schemename_bigsdb = None
 
     def insert_genedetection_results(self) -> None:
@@ -45,9 +45,12 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
             for scheme in self._genedetectiondict:
                 self._scheme = scheme
                 if self._scheme in self._json_report_dict:
-                    self._schemename_bigsdb = self._genedetectiondict[self._scheme]['schemename_bigsdb']
+                    scheme_config = self._genedetectiondict[self._scheme]
+                    self._schemename_bigsdb = scheme_config['schemename_bigsdb']
                     # create current clusterdict with names and current cluster
-                    self._clusterdict, self._ncbi_ab_class_dict = self._create_clusterdict_current_db_version()
+
+                    context = GeneDetectionIntoPsql.create_gene_detection_context(scheme, scheme_config)
+                    self._clusterdict = context.cluster_dict
                     # Get hits
                     listofhits: List = self._json_report_dict[self._scheme]['loci']
                     """
@@ -66,7 +69,7 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                         with TblEavTextHidden(self._species) as isolates_eavth_psql_tbl:
                             isolates_eavth_psql_tbl.insert_hidden_isolate((self._isolatename, self._schemename_bigsdb, json.dumps(listofhits)))
 
-                        html_scheme_name = self._genedetectiondict[self._scheme]['schemename_html']
+                        html_scheme_name = scheme_config['schemename_html']
                         with TblIsolates(self._species) as isolates_psql_tbl:
                             isolate_id = isolates_psql_tbl.select_id_for_isolate((self._isolatename,))
 
@@ -150,8 +153,7 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
         self.insert_locus_if_needed(locusname, scheme_name)
         self._insert_dummy_sequence_if_needed(locusname, genehit)
         self._insert_ad_if_needed(locusname, genehit)
-#        if self._schemename_bigsdb == 'NCBI_AMR':
-#            self._assign_schememember_if_needed(locusname, scheme_name)
+
 
     def _process_ab_schemes(self, hit: Dict[str, str], hit_name: str):
         """
@@ -160,12 +162,7 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
         :param hit_name: hit name: accesision _ locus
         :return:
         """
-        # Class scheme for NCBI_AMR only
- #       if self._schemename_bigsdb == 'NCBI_AMR':
- #           ncbi_class: str = self._ncbi_ab_class_dict[hit_name]
- #           self.__process_ab_scheme(ncbi_class, hit, amr_class=True)
-
-        # AB scheme for both ResFinder or NCBI_AMR
+        # AB scheme for both ResFinder4
         for antibiotic in hit['Antibiotic(s)'].split('/'):
             ab_hit = '_'.join([self._schemename_bigsdb, antibiotic.upper().replace(' ', '_')])
             self.__process_ab_scheme(ab_hit, hit)
@@ -175,39 +172,15 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
         Clusters change over time, to be able to link old clusters to new ones, a dictionary is created with the accesion name and allele name
         :return:
         """
-        # first create a cluster content list
-        ncbi_ab_class_dict: Dict[str, str] = {}
-        clusterdict: Dict[str, str] = {}  # e.g. 'accesion1_allele1': 'VFDB_GeneCluster_0'
-        with Path(self._genedetectiondict[self._scheme]['metadatafile']).open('r') as handle:
-            sequencedictlist: Dict[str, Dict[str, Any]] = json.load(handle)
-            for sequencename in sequencedictlist:
-                """
-                sequencename becomes accession concatenated with allele because in e.g. 
-                Resfinder, multiple accessions are not unique.
-                sequencedictlist looks like this: 
-                {'seq_0': {'accession': 'NG_047553.1', 'antibiotic': 'Bleomycin', 'allele': '1567214_ble', 
-                           'gene': '1567214_ble', 'product': 'BLMA family bleomycin binding protein', 
-                           'header_orig': 'NG_047553.1_1567214_ble', 'cluster': 'Cluster_881'}, 
-                 'seq_1': {'accession': 'NG_047554.1', 'antibiotic': 'Bleomycin', 'allele': '1567214_ble', 
-                           'gene': '1567214_ble', 'product': 'BLMA family bleomycin binding protein', 
-                           'header_orig': 'NG_047554.1_1567214_ble', 'cluster': 'Cluster_881'}, 
-                 'seq_2': {'accession': 'NG_056058.1', 'antibiotic': 'Carbapenem', 'allele': 'BcII', 
-                           'gene': 'BcII', 'product': 'BcII family subclass B1 metallo-beta-lactamase', 
-                           'header_orig': 'NG_056058.1_BcII', 'cluster': 'Cluster_561'}, 
-                 'seq_3': {'accession': 'NG_047221.1', 'antibiotic': 'Carbapenem', 'allele': 'BcII', 
-                           'gene': 'BcII', 'product': 'BcII family subclass B1 metallo-beta-lactamase', 
-                           'header_orig': 'NG_047221.1_BcII', 'cluster': 'Cluster_561'}}
-                """
-                if sequencedictlist[sequencename]['accession'] is None:
-                    # in VFDB, there are accessions with name "null", this borke the script,
-                    # therefore, now an - is added, and the allele should be enough to find.
-                    sequencedictlist[sequencename]['accession'] = "-"
-                geneclusternamebigsdb = f"{self._schemename_bigsdb}_Gene{sequencedictlist[sequencename]['cluster']}"
-                clusterdict['_'.join([(sequencedictlist[sequencename]['accession']),
-                                      (sequencedictlist[sequencename]['allele']).replace("'", "")])] = geneclusternamebigsdb
-#                if self._schemename_bigsdb == 'NCBI_AMR':
-#                    ncbi_ab_class_dict['_'.join(
-#                        [(sequencedictlist[sequencename]['accession']), (sequencedictlist[sequencename]['allele']).replace("'", "")])] = '_'.join(
-#                        ['NCBI_AMR', sequencedictlist[sequencename]['class'].upper().replace(' ', '_')])
 
-            return clusterdict, ncbi_ab_class_dict
+
+
+        clusterdict: Dict[str, str] = {}  # e.g. 'accesion1_allele1': 'VFDB_GeneCluster_0'
+
+        if self._schemename_bigsdb != 'ResFinder4':
+            GeneDetectionIntoPsql([self._species], do_not_recalculate=True,dont_send_email=True)._create_generic_gene_detection_context()
+        else:
+            GeneDetectionIntoPsql([self._species], do_not_recalculate=True, dont_send_email=True)._create_resfinder4_gene_detection_context()
+
+
+            return clusterdict
