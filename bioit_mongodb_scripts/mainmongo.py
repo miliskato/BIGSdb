@@ -26,6 +26,7 @@ from bioit_mongodb_scripts.config import CLUSTERING_CONFIG, COREQC_CONFIG
 from bioit_nrc_integration.python.config import CODES_GENOMIC_ODS
 from bioit_mongodb_scripts.model.json_model import JsonReportDict, MongoRecordDict
 from bioit_mongodb_scripts.util.error import *
+from bioit_mongodb_scripts.util.check_coreqc_metrics import CheckCoreQCMetrics
 from bioit_mongodb_scripts.util.mongo_custom_clustering import MongoCustomClustering
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.mongo_querying import Mongoquerying
@@ -235,7 +236,10 @@ class MainMongo:
 
         good_sample_quality = True
         if self._results_type == 'new_isolate':
-            good_sample_quality = self.___check_coreqc_metrics(json_report)
+            check_coreqc_metrics = CheckCoreQCMetrics(self._technical_id, json_report, self._species,
+                                                     self._reportdirectorypath, self._original_input_format,
+                                                     self._mongo_config_data, 'illumina')  # todo modify illumina to actual reads input type: illumina, R9 or R10
+            good_sample_quality = check_coreqc_metrics.check_coreqc_metrics()
 
         self.__process_mongo_record(mongo_records, good_sample_quality)
         return mongo_records
@@ -759,97 +763,6 @@ class MainMongo:
             drug_susceptibilities = {info['drug']: info for info in
                                      json_report['mykrobe']['mykrobe_drug_susceptibility']}
             json_report['mykrobe']['mykrobe_drug_susceptibility'] = drug_susceptibilities
-
-    def ___check_coreqc_metrics(self, json_report: JsonReportDict) -> bool:
-        """
-        This function checks the core quality metrics. If any failure threshold is surpassed, then the isolate is added
-        to the isolates_rejected_coreqc collection and the script is stopped.
-        If no failure threshold is surpassed, but any warning threshold is, then the function returns False.
-        If no failure or warning thresholds are exceeded, then the function returns True.
-        The core quality metrics used here, and found in the corresponding COREQC_CONFIG originate from the
-        D8.1_HERA_BE_WGS_Updated_quality_guidelines_report_29NOV2024 document that can be found in the HERA folder.
-        :param json_report: json dict containing all results which are found under the 'results' key
-        :return: Whether the input document is of good quality according to the core quality metrics (good quality =
-        does not surpass any warning threshold)
-        """
-        coreqc_config = load_config(COREQC_CONFIG)[self._species]
-        rejection_reasons = {}
-        good_sample_quality = True
-        for key, metrics_info in coreqc_config.items():
-            # For Influenza, for many segments the same thresholds need to be checked, the iteration and dummy
-            # bacterial iteration help to smoothly iterate over the segments whilst not modifying the original
-            # bacterial code too much.
-            for iteration in metrics_info.get('iterate', ['bacterial_dummy_iteration']):
-                if not metrics_info['available_for_fasta_input'] and self._original_input_format == 'fasta':
-                    continue
-                # Value extraction from JSON
-                if metrics_info.get('field'):
-                    field = metrics_info['field']
-                    if metrics_info.get('field_to_replace'):
-                        for key2, value in metrics_info['field_to_replace'].items():
-                            field = field.replace(key2, json_report[value])
-                    elif iteration != 'bacterial_dummy_iteration':
-                        field = field.replace('iterate', iteration)
-                    if not metrics_info.get('value_format_to_strip'):
-                        qc_value = float(json_report[metrics_info['category']][field])
-                    else:
-                        qc_value = float(json_report[metrics_info['category']][field].rstrip(metrics_info['value_format_to_strip']))
-                else:  # metrics_info.get('fields'):
-                    qc_value = sum(float(json_report[metrics_info['category']][field]) for field in metrics_info['fields']) / len(metrics_info['fields'])
-                # Value evaluation against reference values
-                for threshold in ['threshold_fail', 'threshold_warn']:
-                    if metrics_info['threshold_direction'] == 'higher':
-                        evaluation = float(qc_value) > metrics_info[threshold]
-                    else:  # if metrics_info['threshold_direction'] == 'lower':
-                        evaluation = float(qc_value) < metrics_info[threshold]
-                    if evaluation:
-                        if threshold == 'threshold_fail':
-                            if metrics_info.get('value_format_to_strip'):
-                                qc_value_formatted = f"{qc_value}{metrics_info['value_format_to_strip']}"
-                                threshold_formatted = f"{metrics_info[threshold]}{metrics_info['value_format_to_strip']}"
-                            else:
-                                qc_value_formatted = qc_value
-                                threshold_formatted = metrics_info[threshold]
-                            if iteration == 'bacterial_dummy_iteration':
-                                parameter_name = metrics_info['parameter_name']
-                            else:
-                                parameter_name = metrics_info['parameter_name'].replace('iterate', iteration)
-                            rejection_reasons[key] = {
-                                'value': qc_value,
-                                'reason': f"{parameter_name} (={qc_value_formatted}) "
-                                          f"{metrics_info['threshold_direction']} than allowed limit (="
-                                          f"{threshold_formatted})."}
-                            break
-                        else:  # if threshold == 'threshold_warn':
-                            good_sample_quality = False
-
-        if len(rejection_reasons) > 0:
-            isolates_rejected_coreqc_collection = self._mongoinit.initialise_isolates_rejected_coreqc_collection()
-            previous_rejected_sample_version: Optional[Dict[str, Any]] = isolates_rejected_coreqc_collection.find_one({'_id': self._technical_id})
-            if previous_rejected_sample_version:
-                previous_rejected_sample_version['isolates_id'] = self._technical_id
-                previous_rejected_sample_version.pop('_id')
-                isolates_rejected_coreqc_collection.insert_one(previous_rejected_sample_version)
-                isolates_rejected_coreqc_collection.delete_one({'_id': self._technical_id})
-            document_to_be_inserted = {
-                "_id": self._technical_id,
-                "report_directory": str(self._reportdirectorypath),
-                "rejection_reasons": rejection_reasons,
-                "creation_date": datetime.now(timezone.utc),
-                "insertion_type": 'automatic'}
-            # Quality control metrics are spread in 3 sections: quast, quality_checks and preprocess. We decided to
-            # keep track of all quality sections for potential post hoc analyses.
-            quality_sections = set(metrics_info['category'] for metrics_info in coreqc_config.values())
-            for quality_section in quality_sections:
-                document_to_be_inserted[quality_section] = json_report[quality_section]
-
-            isolates_rejected_coreqc_collection.insert_one(document_to_be_inserted)
-            logging.info(f"Sample {self._technical_id} failed one or more core QC checks. It was added to the "
-                         f"isolates_rejected_coreqc collection.")
-            # exit gracefully
-            sys.exit()
-        return good_sample_quality
-
 
 if __name__ == '__main__':
 
