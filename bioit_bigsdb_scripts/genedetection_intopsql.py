@@ -180,7 +180,7 @@ class GeneDetectionIntoPsql:
 
                 key = 'allele' if bigsdb_scheme_name != 'VFDB_core' else 'gene'
                 value = (sequence_details[key]).replace("'", "")
-                context.add_description(key, value)
+                context.add_description(bigsdb_genecluster_name, value)
 
         return context
 
