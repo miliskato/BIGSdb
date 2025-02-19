@@ -147,7 +147,10 @@ class GeneDetectionIntoPsql:
                 else:
                     gene = gene_accession.split("_")[0]
                     accession = "_".join((gene_accession.split("_")[2], gene_accession.split("_")[3]))
-                bigsdb_genecluster_name = f"{scheme_config['schemename_bigsdb']}_{gene}"
+                #🍌🍌🍌🍌🍌 add try catch
+
+                bigsdb_scheme_name = scheme_config['schemename_bigsdb']
+                bigsdb_genecluster_name = f"{bigsdb_scheme_name}_{gene}"
 
                 sequence_id = "_".join([gene, accession])
                 context.set_sequence_genecluster_name(sequence_id, bigsdb_genecluster_name)
