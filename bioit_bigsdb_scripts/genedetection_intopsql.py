@@ -25,8 +25,7 @@ def _parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     :return: Parsed arguments
     """
     argument_parser = argparse.ArgumentParser()
-    argument_parser.add_argument('--species', required=False, type=str,
-                                 choices=specieslist, default=specieslist, nargs='+')  # this does allow for the same species multiple times but doesnt really matter, theyre uniquely filtered using set()
+    argument_parser.add_argument('--species', type=str, choices=specieslist)
     argument_parser.add_argument('--do_not_recalculate', required=False, action='store_true', default=False)  # Since 2024/03/29 this script accesses Mongo directly to recalculate, in some instances mongo is not instantiated yet when this script is called (moving from local to Azure), requiring the ability to disable the recalculation
     return argument_parser.parse_args()
 
