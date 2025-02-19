@@ -249,7 +249,7 @@ class MongoToBigs:
             TypingLociIntoPsql([self._species], dont_send_email=True)
             TypingAllelesIntoPsql([self._species], dont_send_email=True)
             TypingSchemeProfilesIntoPsql([self._species], dont_send_email=True)
-            GeneDetectionIntoPsql([self._species], do_not_recalculate=True, dont_send_email=True).insert_schemes()
+            GeneDetectionIntoPsql(self._species, do_not_recalculate=True, dont_send_email=True).insert_schemes()
             # update last insertion date
             self._update_metadata_collection.update_one({'metadata': 'last_dbupdate_insertion_date'},
                                                         {'$set': {'last_update_date': datetime.datetime.now(

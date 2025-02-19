@@ -31,7 +31,6 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
 
         self._genedetectiondict: Union[None, Dict[str, Dict[str, str]]] = \
             self._bigsdb_config_data['species_json'][species]['genedetection_schemes']
-        self._eavhtmltable = None
         self._scheme = None
         self._clusterdict = None
         self._schemename_bigsdb = None
@@ -41,6 +40,7 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
         Inserts genedetection results into bigsdb from json
         :return: None
         """
+        eavhtmltable = None
         if self._genedetectiondict is not None:
             for scheme in self._genedetectiondict:
                 self._scheme = scheme
@@ -75,17 +75,17 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
 
                         report_url = UrlHelper.report_for_isolate(self._species, str(isolate_id[0][0]), anchor=html_scheme_name)
                         if self._scheme == 'resfinder4':
-                            self._eavhtmltable = '<style>table.nice { text-align: center; border-spacing:0 }table.nice tr:nth-child(n+3) {background: #E4EFF3}table.nice tr:nth-child(2n+3) {background: #C1E6F3}</style>'
-                            self._eavhtmltable += f'<table class="data nice"><tr><th>AMR</th><th>Resistance gene</th><th>Resistance gene</th><th>%Identity</th><th>Coverage</th></tr>'
+                            eavhtmltable += '<style>table.nice { text-align: center; border-spacing:0 }table.nice tr:nth-child(n+3) {background: #E4EFF3}table.nice tr:nth-child(2n+3) {background: #C1E6F3}</style>'
+                            eavhtmltable += f'<table class="data nice"><tr><th>AMR</th><th>Resistance gene</th><th>Resistance gene</th><th>%Identity</th><th>Coverage</th></tr>'
                             for dict in self._json_report_dict[self._scheme]['resfinder4_genes_hits']:
-                                self._eavhtmltable += f'<tr><td>{dict{'Phenotype'}}</td><td>{dict{'Resistance gene'}}</td><td>{dict{'Identity'}}</td><td>{dict{'Coverage'}}</td></tr>'
-                            self._eavhtmltable += f'<tr align="left"><td colspan="4"><a href="{report_url}" target="_blank">Full report</a></td></tr>'
+                                eavhtmltable += f'<tr><td>{dict{'Phenotype'}}</td><td>{dict{'Resistance gene'}}</td><td>{dict{'Identity'}}</td><td>{dict{'Coverage'}}</td></tr>'
+                            eavhtmltable += f'<tr align="left"><td colspan="4"><a href="{report_url}" target="_blank">Full report</a></td></tr>'
                         if not self._scheme.endswith('vfdb_core') and not self._scheme.endswith('virulencefinder'):
-                            self._eavhtmltable = '<style>table.nice { text-align: center; border-spacing:0 }table.nice tr:nth-child(n+3) {background: #E4EFF3}table.nice tr:nth-child(2n+3) {background: #C1E6F3}</style>'
-                            self._eavhtmltable += f'<table class="data nice"><tr><th>GeneCluster</th><th>Locus</th></tr>'
-                            self._eavhtmltable += f'<tr align="left"><td colspan="4"><a href="{report_url}" target="_blank">Full report</a></td></tr>'
+                            eavhtmltable += '<style>table.nice { text-align: center; border-spacing:0 }table.nice tr:nth-child(n+3) {background: #E4EFF3}table.nice tr:nth-child(2n+3) {background: #C1E6F3}</style>'
+                            eavhtmltable += f'<table class="data nice"><tr><th>GeneCluster</th><th>Locus</th></tr>'
+                            eavhtmltable += f'<tr align="left"><td colspan="4"><a href="{report_url}" target="_blank">Full report</a></td></tr>'
                         else:
-                            self._eavhtmltable = f'<a href="{report_url}" target="_blank">Full report</a>'
+                            eavhtmltable = f'<a href="{report_url}" target="_blank">Full report</a>'
 
                         clusterhitset = set()  # in case loci that were in different clusters at some point get in the same cluster
                         with TblAlleleDesignations(self._species) as isolates_ad_psql_tbl:
@@ -109,7 +109,8 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                                 clusterhitset.add(clusterhit)
 
                                 if not self._scheme.endswith('vfdb_core') and not self._scheme.endswith('virulencefinder'):
-                                    self._append_to_htmltable(hit, clusterhit)
+                                    eavhtmltable += GeneDetectionIntoPsql.create_gene_locus_row(hit, clusterhit)
+
 
                                 """
                                 Part 2 for the AB schemes
@@ -118,27 +119,14 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                                     self._process_ab_schemes(hit, hit_name)
 
                         # Close Html table
-                        self._eavhtmltable += '</table>'
+                        eavhtmltable += '</table>'
                         with TblEavText(self._species) as isolates_eavt_psql_tbl:
-                            isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, self._schemename_bigsdb, self._eavhtmltable))
+                            isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, self._schemename_bigsdb, eavhtmltable))
                 else:
                     logging.warning(f"scheme {self._scheme} not present in json file")
             with TblHistory(self._species) as isolates_history_psql_tbl:
                 isolates_history_psql_tbl.insert_history_isolate((self._isolatename, 'Gene detection results inserted'))
             logging.info('Gene detection insertion succesful')
-
-    def _append_to_htmltable(self, hit: Dict[str, str], clusterhit: str) -> None:
-        """
-        Appends a row to the html table
-        :param hit: hit dictionary
-        :param clusterhit: current cluster of the hit
-        :return: None
-        """
-        # append Cluster
-        gene_cluster = clusterhit.split('Cluster_')[1]
-        locus_name: str = hit['Locus']
-
-        self._eavhtmltable += f'<tr><td>{gene_cluster}</td><td>{locus_name}</td></tr>'
 
     def __process_ab_scheme(self, locusname: str, hit: Dict[str, str], amr_class: bool = False) -> None:
         """
@@ -166,21 +154,3 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
         for antibiotic in hit['Antibiotic(s)'].split('/'):
             ab_hit = '_'.join([self._schemename_bigsdb, antibiotic.upper().replace(' ', '_')])
             self.__process_ab_scheme(ab_hit, hit)
-
-    def _create_clusterdict_current_db_version(self) -> Tuple[Dict[str, str], Dict[str, str]]:
-        """
-        Clusters change over time, to be able to link old clusters to new ones, a dictionary is created with the accesion name and allele name
-        :return:
-        """
-
-
-
-        clusterdict: Dict[str, str] = {}  # e.g. 'accesion1_allele1': 'VFDB_GeneCluster_0'
-
-        if self._schemename_bigsdb != 'ResFinder4':
-            GeneDetectionIntoPsql([self._species], do_not_recalculate=True,dont_send_email=True)._create_generic_gene_detection_context()
-        else:
-            GeneDetectionIntoPsql([self._species], do_not_recalculate=True, dont_send_email=True)._create_resfinder4_gene_detection_context()
-
-
-            return clusterdict

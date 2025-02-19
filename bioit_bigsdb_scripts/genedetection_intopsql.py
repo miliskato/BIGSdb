@@ -71,18 +71,17 @@ class GeneDetectionIntoPsql:
     Class containing function to insert gene detection loci and alleles and update them
     """
 
-    def __init__(self, species_list: List[str], do_not_recalculate: bool, dont_send_email: bool = False) -> None:
+    def __init__(self, species: str, do_not_recalculate: bool, dont_send_email: bool = False) -> None:
         """
         Initialises this class and executes the main function: _gene_detection_insertion_and_recalculation
-        :param species_list: list of commonly used bioit species name: either genus or specific like stec.
+        :param species: commonly used bioit species name: either genus or specific like stec.
         :param do_not_recalculate: Whether the recalculation step should be skipped or not.
         :param dont_send_email: do not send emails, only log
         :return: None
         """
-        self._species_list = species_list
+        self._species = species
         self._do_not_recalculate = do_not_recalculate
         self._dont_send_email = dont_send_email
-
         self._bigsdb_config_data = get_bigsdb_config_data()
 
     def insert_schemes(self) -> None:
@@ -91,9 +90,8 @@ class GeneDetectionIntoPsql:
         :return: None
         """
         try:
-            for species in set(self._species_list):
-                scheme_dict: Dict[str, Any] = self._bigsdb_config_data['species'][species].get('genedetection_schemes')
-                self._gene_detection_insertion_and_recalculation(species, scheme_dict)
+            scheme_dict: Dict[str, Any] = self._bigsdb_config_data['species'][self._species].get('genedetection_schemes')
+            self._gene_detection_insertion_and_recalculation(self._species, scheme_dict)
 
         except Exception as exceptionmessage:
             send_email(f"{exceptionmessage}\n{traceback.format_exc()}", dont_send_email=self._dont_send_email)
@@ -104,6 +102,7 @@ class GeneDetectionIntoPsql:
         Inserts gene detection loci and alleles and recalculates existing loci/alleles
         Recalculation pertains the Clusters which are recalculated weekly on often 80% identity
         :param species: commonly used bioit species name: either genus or specific like stec.
+        :param scheme_dict: bigsdb config for the scheme
         :return: None
         """
         if scheme_dict is None:
