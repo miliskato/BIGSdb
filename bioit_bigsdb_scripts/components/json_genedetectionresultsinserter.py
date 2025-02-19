@@ -2,11 +2,11 @@ import json
 import logging
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Union
 
 from bioit_mongodb_scripts.model.json_model import JsonReportDict
 from .json_superclass import JsonSuperClass
-from .psql import TblAlleleDesignations, TblHistory, TblEavTextHidden, TblEavText, TblIsolates
+from .psql import TblAlleleDesignations, TblEavText, TblEavTextHidden, TblHistory, TblIsolates
 from ..genedetection_intopsql import GeneDetectionIntoPsql
 from ..utils.url_helper import UrlHelper
 
@@ -15,6 +15,7 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
     """
     Class containing definitions to insert gene detection results from json input
     """
+
     def __init__(self, isolatename: str, species: str,
                  json_report_dict: JsonReportDict, config_data: Dict[str, Any], report_access: str) -> None:
         """
@@ -99,7 +100,6 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                             if not scheme.endswith('vfdb_core') and not scheme.endswith('virulencefinder'):
                                 eavhtmltable += GeneDetectionIntoPsql.create_gene_locus_row(hit, clusterhit)
 
-
                             """
                             Part 2 for the AB schemes
                             """
@@ -114,7 +114,7 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                 logging.warning(f"scheme {scheme} not present in json file")
         with TblHistory(self._species) as isolates_history_psql_tbl:
             isolates_history_psql_tbl.insert_history_isolate((self._isolatename, 'Gene detection results inserted'))
-        logging.info('Gene detection insertion succesful')
+        logging.info('Gene detection insertion successful')
 
     def __process_ab_scheme(self, locusname: str, hit: Dict[str, str], amr_class: bool = False) -> None:
         """
@@ -129,7 +129,6 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
         self.insert_locus_if_needed(locusname, scheme_name)
         self._insert_dummy_sequence_if_needed(locusname, genehit)
         self._insert_ad_if_needed(locusname, genehit)
-
 
     def _process_ab_schemes(self, hit: Dict[str, str], bigsdb_scheme_name: str):
         """
