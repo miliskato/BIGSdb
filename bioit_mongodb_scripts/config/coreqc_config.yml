@@ -44,6 +44,15 @@ metrics:
     value_format_to_strip: x
     available_for_fasta_input: false
     parameter_name: Coverage against the assembled contigs
+  coverage_against_reference:  # e.g. qc_cov_ref_illumina_value: "18.00x"
+    threshold_direction: lower
+    category: quality_checks
+    field: qc_cov_ref_inputtype_value
+    field_to_replace:
+      inputtype: input_type
+    value_format_to_strip: x
+    available_for_fasta_input: false
+    parameter_name: Coverage against the reference
   assembly_length_deviation:  # e.g. qc_assembly_total_len_value: '0.90%'
     threshold_direction: higher
     category: quality_checks
@@ -187,7 +196,7 @@ species:
     typing_loci_detected:
       threshold_warn: 95.0
       threshold_fail: 90.0
-    coverage_against_assembly:
+    coverage_against_reference:
       threshold_warn: 35.0
       threshold_fail: 30.0
     assembly_length_deviation:
