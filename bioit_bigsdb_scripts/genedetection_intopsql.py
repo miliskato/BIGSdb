@@ -33,14 +33,25 @@ def _parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     argument_parser.add_argument('--do_not_recalculate', required=False, action='store_true', default=False)  # Since 2024/03/29 this script accesses Mongo directly to recalculate, in some instances mongo is not instantiated yet when this script is called (moving from local to Azure), requiring the ability to disable the recalculation
     return argument_parser.parse_args()
 
-class GeneDectectionContext:
+class GeneDetectionContext:
+    """Class to create the context for the scheme of interest"""
     def __init__(self, scheme: str, scheme_config: Dict[str, Any]) -> None:
+        """
+        :param scheme: name of the scheme
+        :param scheme_config: config from bigsdb config file for this scheme
+        :return: None
+        """
         self.scheme = scheme
         self.description_dict: Dict[str, List[str]] = {}
         self.cluster_dict: Dict[str, str] = {}
         self.scheme_config = scheme_config
 
     def add_description(self, gene_cluster: str, description: str) -> None:
+        """fill-in description dict with gene_cluster_name as keys and decription items (alles/mutations) as values
+        :param gene_cluster: gene cluster name
+        :param description: description of the gene cluster components
+        :return: None
+        """
         if not self.description_dict.get(gene_cluster):
             self.description_dict[gene_cluster] = []
         self.description_dict[gene_cluster].append(description)
@@ -92,7 +103,7 @@ class GeneDetectionIntoPsql:
 
         for scheme in scheme_dict:
             scheme_config = scheme_dict[scheme]
-            context = self.__create_gene_detection_context(scheme, scheme_config)
+            context = self.create_gene_detection_context(scheme, scheme_config)
             self.__insert_loci_and_alleles(species, context)
             self.__update_locus_descriptions(species, context)
 
@@ -100,10 +111,10 @@ class GeneDetectionIntoPsql:
                 self.__recalculate_allele_designations(species, context)
 
     @staticmethod
-    def create_gene_detection_context(scheme: str, scheme_config: Any) -> GeneDectectionContext:
+    def create_gene_detection_context(scheme: str, scheme_config: Any) -> GeneDetectionContext:
         """
-        Creates the necessary dictionaries of the current database version
-        :return: GeneDectectionContext
+        Creates the necessary dictionaries for the current version of the database
+        :return: GeneDetectionContext object
         """
         if scheme_config['schemename_bigsdb'] == 'ResFinder4':
             return GeneDetectionIntoPsql._create_resfinder4_gene_detection_context(scheme, scheme_config)
@@ -111,12 +122,12 @@ class GeneDetectionIntoPsql:
             return GeneDetectionIntoPsql._create_generic_gene_detection_context(scheme, scheme_config)
 
     @staticmethod
-    def _create_resfinder4_gene_detection_context(scheme: str, scheme_config: Dict[str, Any]) -> GeneDectectionContext:
+    def _create_resfinder4_gene_detection_context(scheme: str, scheme_config: Dict[str, Any]) -> GeneDetectionContext:
         """ based on metadata file of the scheme, create scheme related dict used to insert loci in seqdef
         This version of the function is looking into phenotypes.txt file of Resfinder4
         :return: The description dictionary
         """
-        context = GeneDectectionContext(scheme, scheme_config)
+        context = GeneDetectionContext(scheme, scheme_config)
         with Path(scheme_config['metadatafile']).open('r') as phenotypes:
             file_reader = csv.DictReader(phenotypes, delimiter="\t")
             for row in file_reader:
@@ -135,7 +146,7 @@ class GeneDetectionIntoPsql:
         return context
 
     @staticmethod
-    def _create_generic_gene_detection_context(scheme: str, scheme_config: Dict[str, Any]) -> GeneDectectionContext:
+    def _create_generic_gene_detection_context(scheme: str, scheme_config: Dict[str, Any]) -> GeneDetectionContext:
         """based on metadata file of the scheme, create scheme related dict used to insert loci in seqdef
         This version of the function typically handles metadatafile like "full_mapping.json"
         :param cluster_dict: dictionary with key 'locus_accession' and value 'scheme_name_gene'
@@ -143,27 +154,11 @@ class GeneDetectionIntoPsql:
         :return: The description dictionary
         """
 
-        context = GeneDectectionContext(scheme, scheme_config)
+        context = GeneDetectionContext(scheme, scheme_config)
         with Path(scheme_config['metadatafile']).open('r') as handle:
             sequencedictlist: Dict[str, Dict[str, Any]] = json.load(handle)
+            #sequence id must be based on accession and allele/mutation because some schemes have duplicate accession numbers
             for sequencename in sequencedictlist:
-                """
-                sequencename becomes accession concatenated with allele because in e.g. 
-                Resfinder, multiple accessions are not unique.
-                sequencefile looks like this: 
-                {'seq_0': {'accession': 'NG_047553.1', 'antibiotic': 'Bleomycin', 'allele': '1567214_ble', 
-                           'gene': '1567214_ble', 'product': 'BLMA family bleomycin binding protein', 
-                           'header_orig': 'NG_047553.1_1567214_ble', 'cluster': 'Cluster_881'}, 
-                 'seq_1': {'accession': 'NG_047554.1', 'antibiotic': 'Bleomycin', 'allele': '1567214_ble', 
-                           'gene': '1567214_ble', 'product': 'BLMA family bleomycin binding protein', 
-                           'header_orig': 'NG_047554.1_1567214_ble', 'cluster': 'Cluster_881'}, 
-                 'seq_2': {'accession': 'NG_056058.1', 'antibiotic': 'Carbapenem', 'allele': 'BcII', 
-                           'gene': 'BcII', 'product': 'BcII family subclass B1 metallo-beta-lactamase', 
-                           'header_orig': 'NG_056058.1_BcII', 'cluster': 'Cluster_561'}, 
-                 'seq_3': {'accession': 'NG_047221.1', 'antibiotic': 'Carbapenem', 'allele': 'BcII', 
-                           'gene': 'BcII', 'product': 'BcII family subclass B1 metallo-beta-lactamase', 
-                           'header_orig': 'NG_047221.1_BcII', 'cluster': 'Cluster_561'}}
-                """
                 sequence_details = sequencedictlist[sequencename]
                 if sequence_details['accession'] is None:
                     sequence_details['accession'] = "-"
@@ -183,7 +178,7 @@ class GeneDetectionIntoPsql:
     def _create_sequence_id(sequence_details: Dict[str, any]):
         return '_'.join([(sequence_details['accession']), (sequence_details['allele']).replace("'", "")])
 
-    def __insert_loci_and_alleles(self, species: str, context: GeneDectectionContext) -> None:
+    def __insert_loci_and_alleles(self, species: str, context: GeneDetectionContext) -> None:
         """
         Inserts all the loci (clusters), scheme members and alleles (dummy boolean) in seqdef and isolate dbs if they are not
         :param species: commonly used bioit species name: either genus or specific like stec.
@@ -201,7 +196,7 @@ class GeneDetectionIntoPsql:
                     continue
 
     @staticmethod
-    def __update_locus_descriptions(species: str, context: GeneDectectionContext) -> None:
+    def __update_locus_descriptions(species: str, context: GeneDetectionContext) -> None:
         """
         Updates the locus descriptions to the new database version
         :param species: commonly used bioit species name: either genus or specific like stec.
@@ -211,10 +206,10 @@ class GeneDetectionIntoPsql:
             seqdef_locdescr_psql_tbl.delete_locus_description((f"{context.scheme_config['schemename_bigsdb']}_%",))
             for cluster, description in context.description_dict.items():
                 # convert list to more meaningfull and aesthatically pleasing string
-                descriptionstring = ' '.join(['Contains genes:', ', '.join([x for x in description])])
-                seqdef_locdescr_psql_tbl.insert_locus_description((cluster, descriptionstring.replace('Contains genes:', ''), descriptionstring))
+                description_string = ' '.join(['Contains genes:', ', '.join([x for x in description])])
+                seqdef_locdescr_psql_tbl.insert_locus_description((cluster, description_string.replace('Contains genes:', ''), description_string))
 
-    def __recalculate_allele_designations(self, species: str, context: GeneDectectionContext) -> None:
+    def __recalculate_allele_designations(self, species: str, context: GeneDetectionContext) -> None:
         """
         Removes, recaculates and reinserts allele designations
         :param species: commonly used bioit species name: either genus or specific like stec.
@@ -249,7 +244,7 @@ class GeneDetectionIntoPsql:
                             if hit in context.cluster_dict:
                                 clusterhit = context.cluster_dict[hit]
                                 if not context.scheme.endswith('vfdbcore') and not context.scheme.endswith('virulencefinder'):
-                                    eavhtmltable += GeneDetectionIntoPsql.___create_gene_locus_row(hits[y], clusterhit)
+                                    eavhtmltable += GeneDetectionIntoPsql.create_gene_locus_row(hits[y], clusterhit)
 
                                 if clusterhit not in clusterhitset:
                                     isolates_ad_psql_tbl.insert_designation_by_isolateid((clusterhit, isolate_id, '1'))
@@ -276,12 +271,13 @@ class GeneDetectionIntoPsql:
         isolate_report_path = Mongoquerying.query_docs_by_ids(opened_collection=isolates_collection, ids=[samplename])
         return isolate_report_path[0]['report_directory']
 
-    def ___create_gene_locus_row(self, hit: Dict[str, str], clusterhit: str) -> str:
+    @staticmethod
+    def create_gene_locus_row(self, hit: Dict[str, str], clusterhit: str) -> str:
         """
-        Appends a row to the html table
+        Create the the html table
         :param hit: hit dictionary
         :param clusterhit: current cluster of the hit
-        :return: None
+        :return: line of html
         """
         # append Cluster
         gene_cluster = clusterhit.split('Cluster_')[1]
@@ -300,4 +296,4 @@ if __name__ == '__main__':
     # Parse arguments
     args = _parse_arguments(list(bigsdb_config_data['species']))
 
-    GeneDetectionIntoPsql(args.species, args.do_not_recalculate)
+    GeneDetectionIntoPsql(args.species, args.do_not_recalculate).insert_schemes()
