@@ -97,8 +97,8 @@ class TypingSchemeProfilesIntoPsql:
                 for locus in loci_only:
                     if locus == "'rplF":
                         locus = 'rplF'
-                    ###🍌🍌🍌🍌🍌 TRY CATCH TO DO
-                    locus_value = profile_line_df[locus].values[0]
+                    locus_value = TypingSchemeProfilesIntoPsql.___return_locus_allele(locus, profile_line_df, scheme)
+
                     if locus_value == '0':  # this will create a ForeignKeyViolation error so we prevent this by inserting a null allele if not yet present
                         nullpresent: List[Tuple[int]] = seqdef_sequences_psql_tbl.count_sequence_null((locus,))
                         if nullpresent[0][0] == 0:
@@ -117,6 +117,19 @@ class TypingSchemeProfilesIntoPsql:
             for profile_to_be_removed in profiles_to_be_removed:
                 seqdef_profiles_psql_tbl.delete_profile(
                     (schemedict[scheme]['schemename_bigsdb'], profile_to_be_removed))
+
+    @staticmethod
+    def ___return_locus_allele(locus: str, df_row: pd.DataFrame, scheme: str) -> str:
+        """
+        return locus (as can be changed
+        """
+        try:
+            locus_value = df_row[locus].values[0]
+        except KeyError as keyerror_message:
+            send_email(f"key error {keyerror_message} not found on {socket.gethostname()}\n{traceback.format_exc()}",
+                       f"locus {keyerror_message} not found in profiles.tsv for scheme {scheme} on host {socket.gethostname()}")
+            raise Exception(f"locus {keyerror_message} not found in profiles.tsv for scheme {scheme}")
+        return locus_value
 
     def _insert_all_profiles(self) -> None:
         """
@@ -146,7 +159,8 @@ class TypingSchemeProfilesIntoPsql:
                         self.__insert_profiles(scheme, schemedict, profiles, set_to_be_inserted,
                                                seqdef_profiles_psql_tbl, species)
 
-    def open_profiles_metadata_file(self, file_path: str, scheme: str, species: str) -> pd.DataFrame:
+    @staticmethod
+    def open_profiles_metadata_file(file_path: str, scheme: str, species: str) -> pd.DataFrame:
         """
         read profiles metadata file and return them as a pandas.DataFrame
         :param file_path: string = path to the file
