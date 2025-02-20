@@ -121,7 +121,11 @@ class TypingSchemeProfilesIntoPsql:
     @staticmethod
     def ___return_locus_allele(locus: str, df_row: pd.DataFrame, scheme: str) -> str:
         """
-        return locus (as can be changed
+        return locus value (allele) for the given profile
+        :param locus: locus id
+        :param df_row: pandas df containing only the row for the profile of interest
+        :param scheme: scheme name
+        :return: locus allelic value
         """
         try:
             locus_value = df_row[locus].values[0]
