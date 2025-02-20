@@ -8,6 +8,7 @@ from bioit_mongodb_scripts.model.json_model import JsonReportDict
 from .json_superclass import JsonSuperClass
 from .psql import TblAlleleDesignations, TblEavText, TblEavTextHidden, TblHistory, TblIsolates
 from ..genedetection_intopsql import GeneDetectionIntoPsql
+from ..utils.html_tbl_templates import HtmlLocusTableBuilder, HtmlResFinder4TableBuilder, HtmlTableBuilder
 from ..utils.url_helper import UrlHelper
 
 
@@ -41,43 +42,46 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
         if self._genedetectiondict is None:
             return
 
-        eavhtmltable = None
         for scheme in self._genedetectiondict:
-            if scheme in self._json_report_dict:
-                scheme_config = self._genedetectiondict[scheme]
-                schemename_bigsdb = scheme_config['schemename_bigsdb']
-                # create current clusterdict with names and current cluster
+            if scheme not in self._json_report_dict:
+                logging.warning(f"scheme {scheme} not present in json file")
+                continue
 
-                context = GeneDetectionIntoPsql.create_gene_detection_context(scheme, scheme_config)
-                clusterdict = context.cluster_dict
-                # Get hits
+            scheme_config = self._genedetectiondict[scheme]
+            schemename_bigsdb = scheme_config['schemename_bigsdb']
+            # create current clusterdict with names and current cluster
+
+            context = GeneDetectionIntoPsql.create_gene_detection_context(scheme, scheme_config)
+            clusterdict = context.cluster_dict
+            # Get hits
+            if scheme == 'resfinder4':
+                listofhits: List = self._json_report_dict[scheme]['resfinder4_genes_hits']
+            else:
                 listofhits: List = self._json_report_dict[scheme]['loci']
-                if len(listofhits) != 0:
-                    # Storing snapshot Clusters in eav_text_hidden to be used in periodical GeneCluster recalculation
-                    for index, hit in enumerate(listofhits):
-                        for k, v in hit.items():
-                            listofhits[index][k] = v.replace("'", "")
-                    with TblEavTextHidden(self._species) as isolates_eavth_psql_tbl:
-                        isolates_eavth_psql_tbl.insert_hidden_isolate((self._isolatename, schemename_bigsdb, json.dumps(listofhits)))
 
-                    html_scheme_name = scheme_config['schemename_html']
-                    with TblIsolates(self._species) as isolates_psql_tbl:
-                        isolate_id = isolates_psql_tbl.select_id_for_isolate((self._isolatename,))
+            if len(listofhits) != 0:
+                # Storing snapshot Clusters in eav_text_hidden to be used in periodical GeneCluster recalculation
+                for index, hit in enumerate(listofhits):
+                    for k, v in hit.items():
+                        v = v.replace("'","") if scheme != 'resfinder4' else v
+                        listofhits[index][k] = v
+                with TblEavTextHidden(self._species) as isolates_eavth_psql_tbl:
+                    isolates_eavth_psql_tbl.insert_hidden_isolate((self._isolatename, schemename_bigsdb, json.dumps(listofhits)))
 
-                    report_url = UrlHelper.report_for_isolate(self._species, str(isolate_id[0][0]), anchor=html_scheme_name)
-                    if scheme == 'resfinder4':
-                        eavhtmltable += '<style>table.nice { text-align: center; border-spacing:0 }table.nice tr:nth-child(n+3) {background: #E4EFF3}table.nice tr:nth-child(2n+3) {background: #C1E6F3}</style>'
-                        eavhtmltable += f'<table class="data nice"><tr><th>AMR</th><th>Resistance gene</th><th>Resistance gene</th><th>%Identity</th><th>Coverage</th></tr>'
-                        for dict in self._json_report_dict[scheme]['resfinder4_genes_hits']:
-                            eavhtmltable += f'<tr><td>{dict['Phenotype']}</td><td>{dict['Resistance gene']}</td><td>{dict['Identity']}</td><td>{dict['Coverage']}</td></tr>'
-                        eavhtmltable += f'<tr align="left"><td colspan="4"><a href="{report_url}" target="_blank">Full report</a></td></tr>'
-                    if not scheme.endswith('vfdb_core') and not scheme.endswith('virulencefinder'):
-                        eavhtmltable += '<style>table.nice { text-align: center; border-spacing:0 }table.nice tr:nth-child(n+3) {background: #E4EFF3}table.nice tr:nth-child(2n+3) {background: #C1E6F3}</style>'
-                        eavhtmltable += f'<table class="data nice"><tr><th>GeneCluster</th><th>Locus</th></tr>'
-                        eavhtmltable += f'<tr align="left"><td colspan="4"><a href="{report_url}" target="_blank">Full report</a></td></tr>'
-                    else:
-                        eavhtmltable = f'<a href="{report_url}" target="_blank">Full report</a>'
+                html_scheme_name = scheme_config['schemename_html']
+                with TblIsolates(self._species) as isolates_psql_tbl:
+                    isolate_id = isolates_psql_tbl.select_id_for_isolate((self._isolatename,))
 
+                report_url = UrlHelper.report_for_isolate(self._species, str(isolate_id[0][0]), anchor=html_scheme_name)
+                html = f'<a href="{report_url}" target="_blank">Full report</a>'
+
+                if scheme == 'resfinder4':
+                    resfinder4_table_builder = HtmlResFinder4TableBuilder(report_url)
+                    for hit in self._json_report_dict[scheme]['resfinder4_genes_hits']:
+                        resfinder4_table_builder.add_hit([hit['Phenotype'], hit['Resistance gene'], hit['Identity'], hit['Coverage']])
+                    html = resfinder4_table_builder.build()
+                elif not scheme.endswith('vfdb_core') and not scheme.endswith('virulencefinder'):
+                    locus_table_builder = HtmlLocusTableBuilder(report_url)
                     clusterhitset = set()  # in case loci that were in different clusters at some point get in the same cluster
                     with TblAlleleDesignations(self._species) as isolates_ad_psql_tbl:
                         for hit in listofhits:
@@ -93,28 +97,26 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                                 continue
 
                             if clusterhit not in clusterhitset:
-                                isolates_ad_psql_tbl.insert_designation_by_isolatename((clusterhit, self._isolatename, '1'))
+                                isolates_ad_psql_tbl.insert_designation_by_isolatename(
+                                    (clusterhit, self._isolatename, '1'))
 
                             clusterhitset.add(clusterhit)
 
                             if not scheme.endswith('vfdb_core') and not scheme.endswith('virulencefinder'):
-                                eavhtmltable += GeneDetectionIntoPsql.create_gene_locus_row(hit, clusterhit)
+                                locus_table_builder.add_locus([hit, clusterhit])
 
                             """
                             Part 2 for the AB schemes
                             """
                             if schemename_bigsdb == 'ResFinder':
                                 self._process_ab_schemes(hit, schemename_bigsdb)
+                    html = locus_table_builder.build()
 
-                    # Close Html table
-                    eavhtmltable += '</table>'
-                    with TblEavText(self._species) as isolates_eavt_psql_tbl:
-                        isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, schemename_bigsdb, eavhtmltable))
-            else:
-                logging.warning(f"scheme {scheme} not present in json file")
+                with TblEavText(self._species) as isolates_eavt_psql_tbl:
+                    isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, schemename_bigsdb, html))
         with TblHistory(self._species) as isolates_history_psql_tbl:
             isolates_history_psql_tbl.insert_history_isolate((self._isolatename, 'Gene detection results inserted'))
-        logging.info('Gene detection insertion successful')
+        logging.info('Gene detection insertion for {self._isolatename} is done')
 
     def __process_ab_scheme(self, locusname: str, hit: Dict[str, str], amr_class: bool = False) -> None:
         """
