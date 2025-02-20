@@ -1,10 +1,11 @@
 import argparse
 import logging
 import os
-import re
 import socket
 import sys
 import traceback
+
+import pandas as pd
 from pathlib import Path
 from typing import Dict, Final, List, Tuple
 
@@ -35,6 +36,7 @@ class TypingSchemeProfilesIntoPsql:
     """
     Class containing function to insert typing scheme profiles.
     """
+
     def __init__(self, species_list: List[str], dont_send_email: bool = False) -> None:
         """
         Initialises this class and executes the main function: _insert_alleles
@@ -44,7 +46,6 @@ class TypingSchemeProfilesIntoPsql:
         """
         self._species_list = species_list
         self._dont_send_email = dont_send_email
-
         self._bigsdb_config_data = get_bigsdb_config_data()
 
         try:
@@ -54,13 +55,12 @@ class TypingSchemeProfilesIntoPsql:
             raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}")
 
     @staticmethod
-    def __insert_profiles(scheme: str, schemedict: Dict[str, Dict[str, str]], indexdict: Dict[str, int], profile_line_dict: Dict[str, str],
-                          set_to_be_inserted: set, seqdef_profiles_psql_tbl: TblProfiles, species: str) -> None:
+    def __insert_profiles(scheme: str, schemedict: Dict[str, Dict[str, str]], profile_df: pd.DataFrame,
+                          set_to_be_inserted: set[str], seqdef_profiles_psql_tbl: TblProfiles, species: str) -> None:
         """
         Inserts profiles for a given scheme in a given species database (seqdef_profiles_psql_table)
         :param scheme: the currently iterating scheme
-        :param schemedict: dictionary containing scheme metadata
-        :param indexdict: dictionary containing profile locus indexes, and profile fields indexes in the tsv profiles file
+        :param profile_df: pandas dataframe containing profiles from tsv files
         :param profile_line_dict: dictionary of main numeric profile fields (often ST) and their corresponding lines in the tsv
         :param set_to_be_inserted: list of main numeric profile fields (often ST) to be inserted
         :param seqdef_profiles_psql_tbl: seqdef profiles table/ connection instance for a given species
@@ -68,9 +68,16 @@ class TypingSchemeProfilesIntoPsql:
         :return: None
         """
         # since we only need one db per scheme, it can stay open during the entire definition
+
+        dict_replacement = {'?':'','Neisseria ':'Neisseria_','N':'0'}
+        profile_df = profile_df.replace(dict_replacement)
+        first_col_name = profile_df.columns.values[0]
+        loci: List[str] = next(os.walk(schemedict[scheme]['dirdb']))[1]
+        loci_only = [x for x in loci if not x.startswith('.')] # to exclude hidden folders like .git
+
         for profile_id in set_to_be_inserted:
-            line: str = (profile_line_dict[profile_id].replace('? ', '').replace('Neisseria ', 'Neisseria_')
-                         .replace('N','0'))  # this is added because rflp profiles are malformatted
+
+            profile_line_df = profile_df[profile_df[first_col_name]==profile_id]
             # first table (profiles):
             seqdef_profiles_psql_tbl.insert_profile((schemedict[scheme]['schemename_bigsdb'], profile_id))
             profiles_to_be_removed = set()
@@ -78,34 +85,38 @@ class TypingSchemeProfilesIntoPsql:
             with TblProfileFields(species) as seqdef_profilefields_psql_table:
                 for field in schemedict[scheme]['scheme_fields']:
                     try:
-                        fieldvalue = " ".join(line.split()).split(' ')[indexdict[field]] #for each field ('ST','rplF_id','BAST' etc..) simply extract the value from the profile line
-                        seqdef_profilefields_psql_table.insert_profile_field((schemedict[scheme]['schemename_bigsdb'], field, profile_id, fieldvalue.replace('_', ' ')))
+                        field_value = profile_line_df[field].values[0]
+                        seqdef_profilefields_psql_table.insert_profile_field(
+                            (schemedict[scheme]['schemename_bigsdb'], field, profile_id, field_value.replace('_', ' ')))
                     except Exception:
                         profiles_to_be_removed.add(profile_id)
             # third table (profile members):
             # Loci are saved from dir to be able to know which columns to search for in profiles.tsv
-            loci: List[str] = next(os.walk(schemedict[scheme]['dirdb']))[1]
-            with TblProfileMembers(species) as seqdef_profilemembers_psql_tbl, TblSequences(species) as seqdef_sequences_psql_tbl:
-                for locus in loci:
-                    if not locus.startswith('.'):  # to exclude hidden folders like .git
-                        if locus == "'rplF":
-                            locus = 'rplF'
-                        locusvalue: str = " ".join(line.split()).split(' ')[indexdict[locus]]
-                        if locusvalue == '0':  # this will create a ForeignKeyViolation error so we prevent this by inserting a null allele if not yet present
-                            nullpresent: List[Tuple[int]] = seqdef_sequences_psql_tbl.count_sequence_null((locus,))
-                            if nullpresent[0][0] == 0:
-                                seqdef_sequences_psql_tbl.insert_sequence((locus, '0', 'null allele'))
-                        try:
-                            seqdef_profilemembers_psql_tbl.insert_profile_member((schemedict[scheme]['schemename_bigsdb'], locus, profile_id, locusvalue))
-                        except Exception as exceptionmessage:
-                            send_email(f"{exceptionmessage}\n{traceback.format_exc()}",
-                                       f"profile with field {schemedict[scheme]['scheme_fields'][0]} and value {profile_id} already exists as another field, find the profile that was misinserted (not all loci have allele_id), "
-                                       f"remove it, and all above and restart this script (on db {seqdef_profiles_psql_tbl.name()} on host {socket.gethostname()})")
-                            raise Exception(f"profile with field {schemedict[scheme]['scheme_fields'][0]} and value {profile_id} already exists as another field, find the profile that was misinserted (not all loci have allele_id), "
-                                            f"remove it, and all above and restart this script (on db {seqdef_profiles_psql_tbl.name()} on host {socket.gethostname()})")
+            with TblProfileMembers(species) as seqdef_profilemembers_psql_tbl, TblSequences(
+                    species) as seqdef_sequences_psql_tbl:
+                for locus in loci_only:
+                    if locus == "'rplF":
+                        locus = 'rplF'
+                    ###🍌🍌🍌🍌🍌 TRY CATCH TO DO
+                    locus_value = profile_line_df[locus].values[0]
+                    if locus_value == '0':  # this will create a ForeignKeyViolation error so we prevent this by inserting a null allele if not yet present
+                        nullpresent: List[Tuple[int]] = seqdef_sequences_psql_tbl.count_sequence_null((locus,))
+                        if nullpresent[0][0] == 0:
+                            seqdef_sequences_psql_tbl.insert_sequence((locus, '0', 'null allele'))
+                    try:
+                        seqdef_profilemembers_psql_tbl.insert_profile_member(
+                            (schemedict[scheme]['schemename_bigsdb'], locus, profile_id, locus_value))
+                    except Exception as exceptionmessage:
+                        send_email(f"{exceptionmessage}\n{traceback.format_exc()}",
+                                   f"profile with field {schemedict[scheme]['scheme_fields'][0]} and value {profile_id} already exists as another field, find the profile that was misinserted (not all loci have allele_id), "
+                                   f"remove it, and all above and restart this script (on db seqdef profiles members on host {socket.gethostname()})")
+                        raise Exception(
+                            f"profile with field {schemedict[scheme]['scheme_fields'][0]} and value {profile_id} already exists as another field, find the profile that was misinserted (not all loci have allele_id), "
+                            f"remove it, and all above and restart this script (on db seqdef profiles members on host {socket.gethostname()})")
             # remove profiles with incomplete profile fields
             for profile_to_be_removed in profiles_to_be_removed:
-                seqdef_profiles_psql_tbl.delete_profile((schemedict[scheme]['schemename_bigsdb'], profile_to_be_removed))
+                seqdef_profiles_psql_tbl.delete_profile(
+                    (schemedict[scheme]['schemename_bigsdb'], profile_to_be_removed))
 
     def _insert_all_profiles(self) -> None:
         """
@@ -113,46 +124,45 @@ class TypingSchemeProfilesIntoPsql:
         :return: None
         """
         for species in set(self._species_list):
+            schemedict: Dict[str, Dict[str, str]] = self._bigsdb_config_data['species'][species]['typing_schemes']
             with TblProfiles(species) as seqdef_profiles_psql_tbl:
-                schemedict: Dict[str, Dict[str, str]] = self._bigsdb_config_data['species'][species]['typing_schemes']
                 for scheme in schemedict:
-                    if schemedict[scheme].get('scheme_fields'):
-                        with Path('/'.join([schemedict[scheme]['dirdb'], PROFILE_FILE])).open('r') as handle:
-                            profiles = handle.readlines()
-                        # multiple whitespaces need to be replaced by single whitespace
-                        header = " ".join(profiles[0].split()).split(' ')
-                        indexdict: Dict[str, int] = {}
-                        for index, item in enumerate(header):
-                            if item == "'rplF":
-                                item = 'rplF'
-                            indexdict[item] = index
-                        profile_line_dict: Dict[str, str] = {}
-                        for line in profiles[1:]:
-                            profile_line_dict[" ".join(line.split()).split(' ')[0]] = line
-    
-                        list_of_profile_ids: List[Tuple[int]] = \
-                            seqdef_profiles_psql_tbl.select_profile((schemedict[scheme]['schemename_bigsdb'],))
-                        primary_fields = [int(x[0]) for x in list_of_profile_ids] if list_of_profile_ids is not None else None
-                        set_to_be_inserted = set()
-                        if len(primary_fields) > 0:
-                            # table is empty, so all need to be inserted
-                            for line in profiles[1:]:
-                                if scheme == 'rmlst' and not re.search(species, line):
-                                    continue
-                                if line != '\n':
-                                    set_to_be_inserted.add(" ".join(line.split()).split(' ')[0])
-                            self.__insert_profiles(scheme, schemedict, indexdict, profile_line_dict, set_to_be_inserted, seqdef_profiles_psql_tbl, species)
-                        else:
-                            # table needs to be updated
-                            for line in profiles[1:]:
-                                if scheme == 'rmlst' and not re.search(species, line):
-                                    continue
-                                if line != '\n' and int(" ".join(line.split()).split(' ')[0]) not in primary_fields:
-                                    set_to_be_inserted.add(" ".join(line.split()).split(' ')[0])
-                                else:
-                                    continue
-                            if len(set_to_be_inserted) > 0:
-                                self.__insert_profiles(scheme, schemedict, indexdict, profile_line_dict, set_to_be_inserted, seqdef_profiles_psql_tbl, species)
+                    if schemedict[scheme].get('scheme_fields') is None:
+                        continue
+
+                    path_to_profiles = '/'.join([schemedict[scheme]['dirdb'], PROFILE_FILE])
+                    profiles = self.open_profiles_metadata_file(path_to_profiles, scheme, species)
+
+                    list_of_profile_ids: List[Tuple[int]] = \
+                        seqdef_profiles_psql_tbl.select_profile((schemedict[scheme]['schemename_bigsdb'],))
+
+                    primary_fields = [str(x[0]) for x in list_of_profile_ids]
+                    profiles = profiles[~profiles[profiles.columns[0]].isin(primary_fields)]
+                    if profiles.empty:
+                        continue
+                    set_to_be_inserted = set(profiles.iloc[:, 0].to_list())
+
+                    if not profiles.empty:
+                        self.__insert_profiles(scheme, schemedict, profiles, set_to_be_inserted,
+                                               seqdef_profiles_psql_tbl, species)
+
+    def open_profiles_metadata_file(self, file_path: str, scheme: str, species: str) -> pd.DataFrame:
+        """
+        read profiles metadata file and return them as a pandas.DataFrame
+        :param file_path: string = path to the file
+        :param scheme: scheme name from bigsdb config file
+        :param species: species name
+        :return: pandas.DataFrame
+        """
+        if  scheme == f"{species}_rmlst":
+            profiles = pd.read_csv(file_path, delimiter='\t', dtype=str)
+            mask = profiles['genus'].str.contains(species, na=False, case=False)
+            profiles = profiles[mask]
+        else:
+            profiles = pd.read_csv(file_path, delimiter='\s+', dtype=str)
+        profiles.rename(columns={"'rplF": "rplF"})
+
+        return profiles
 
 
 if __name__ == '__main__':
