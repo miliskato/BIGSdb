@@ -389,6 +389,8 @@ class MainMongo:
                          "latest_analysis_date": convert_dmyhms_to_ymd(new_results["results.analysis_date"]),
                          "previous_latest_results_document": self.___write_document(self._old_isolateresults_collection,
                                                                                     MongoRecordDict(dict(deltas_new_old)))}})
+        asb_instance = AzureServiceBus(self._mongo_config_data, self._species, self._alternate_dtap)
+        asb_instance.send_message_to_queue(AzureServiceBusMessage(self._technical_id, self._isolates_collection.name))
         # after having updated the isolates collection, check for changes for HD ODS to respect the order of execution.
         self.___check_if_any_results_for_hd_ods_changed(dict(deltas_new_old))
         logging.info(f"Wrote new results and linked to isolate {self._technical_id} in {self._species}")
