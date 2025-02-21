@@ -298,6 +298,8 @@ class JsonTypingResultsInserter(JsonSuperClass):
         elif self._scheme == 'spifinder':
             for mode in ['fastq', 'fasta']:
                 hits: List = self._json_report_dict['spifinder'].get(f'{self._scheme}_{mode}')
+                if hits == 'n/a':
+                    continue
                 if hits and len(hits) != 0:
                     inserted_alleledesignations_list = set()
                     for spi in hits:
