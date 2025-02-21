@@ -63,39 +63,38 @@ class TypingLociIntoPsql:
                 schemedict: Dict[str, Dict[str, str]] = self._bigsdb_config_data['species'][species]['typing_schemes']
                 for scheme in schemedict:
                     if schemedict[scheme].get('dirdb') and schemedict[scheme]['dirdb'] != '':
+                        bigsdb_scheme_name = schemedict[scheme]['schemename_bigsdb']
                         dirs: List[str] = next(os.walk(schemedict[scheme]['dirdb']))[1]
-                        for directory in dirs:
-                            if not directory.startswith('.') and not (schemedict[scheme]['schemename_bigsdb'] == 'fHbp_nucl'
-                                                                      and (directory != 'fHbp_allele' and directory != 'fHbp_DNAfrag_Pasteur')) \
-                                    and not (schemedict[scheme]['schemename_bigsdb'] == 'fHbp_pept' and (directory == 'fHbp_allele'
-                                                                                                         or directory == 'fHbp_DNAfrag_Pasteur')):
-                                present = seqdef_loci_psql_tbl.count_locus((directory,))
-                                if present[0][0] == 0:
-                                    logging.info(f"locus {directory} not present in loci")
-                                    seqdef_loci_psql_tbl.insert_locus_seqdef((directory,))
-                                    seqdef_schememembers_psql_tbl.insert_scheme_member((schemedict[scheme]['schemename_bigsdb'], directory))
-                                    seqdef_clientdbaseloci_psql_tbl.insert_locus((directory,))
+                        dirs = [x for x in dirs if not x.startswith('.')]
 
-                                    # insert into isolates
-                                    dbaseurl = ''.join(['/cgi-bin/bigsdb/bigsdb.pl?db=', f'bigsdb_{species}_seqdef',
-                                                        '&page=alleleInfo&locus=', f"{directory}", '&allele_id=[?]'])
-                                    isolates_loci_psql_tbl.insert_locus_isolates((directory, f'bigsdb_{species}_seqdef', directory, dbaseurl))
+                        for directory in dirs:
+                            if (bigsdb_scheme_name == 'fHbp_nucl' and (directory not in ['fHbp_allele','fHbp_DNAfrag_Pasteur'])) \
+                                    or (bigsdb_scheme_name == 'fHbp_pept' and (directory in ['fHbp_allele', 'fHbp_DNAfrag_Pasteur'])):
+                                continue
+
+                            present = seqdef_loci_psql_tbl.count_locus((directory,))
+                            if present[0][0] == 0:
+                                logging.info(f"locus {directory} not present in loci")
+                                seqdef_loci_psql_tbl.insert_locus_seqdef((directory,))
+                                seqdef_schememembers_psql_tbl.insert_scheme_member((bigsdb_scheme_name, directory))
+                                seqdef_clientdbaseloci_psql_tbl.insert_locus((directory,))
+
+                                # insert into isolates
+                                dbaseurl = ''.join(['/cgi-bin/bigsdb/bigsdb.pl?db=', f'bigsdb_{species}_seqdef',
+                                                    '&page=alleleInfo&locus=', f"{directory}", '&allele_id=[?]'])
+                                isolates_loci_psql_tbl.insert_locus_isolates((directory, f'bigsdb_{species}_seqdef', directory, dbaseurl))
+                                isolates_schememembers_psql_tbl.insert_scheme_member(
+                                    (bigsdb_scheme_name, directory))
+                            elif present[0][0] == 1:
+                                present2 = seqdef_schememembers_psql_tbl.count_scheme_member(
+                                    (bigsdb_scheme_name, directory))
+                                if present2[0][0] == 0:
+                                    logging.info(f"locus {directory} not present in scheme members")
+                                    # add into seqdef scheme members
+                                    seqdef_schememembers_psql_tbl.insert_scheme_member(
+                                        (bigsdb_scheme_name, directory))
                                     isolates_schememembers_psql_tbl.insert_scheme_member(
-                                        (schemedict[scheme]['schemename_bigsdb'], directory))
-                                elif present[0][0] == 1:
-                                    present2 = seqdef_schememembers_psql_tbl.count_scheme_member(
-                                        (schemedict[scheme]['schemename_bigsdb'], directory))
-                                    if present2[0][0] == 0:
-                                        logging.info(f"locus {directory} not present in scheme members")
-                                        # add into seqdef scheme members
-                                        seqdef_schememembers_psql_tbl.insert_scheme_member(
-                                            (schemedict[scheme]['schemename_bigsdb'], directory))
-                                        isolates_schememembers_psql_tbl.insert_scheme_member(
-                                            (schemedict[scheme]['schemename_bigsdb'], directory))
-                                    else:
-                                        continue
-                                else:
-                                    continue
+                                        (bigsdb_scheme_name, directory))
 
 
 if __name__ == '__main__':
