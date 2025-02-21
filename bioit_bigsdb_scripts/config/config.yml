@@ -403,8 +403,8 @@ species_json:
     genedetection_schemes:
       resfinder4:
         clusteredfasta: /db/resfinder4/resfinder/all.fsa
-        metadatafile: null
-        schemename_bigsdb: resfinder4
+        metadatafile: /db/resfinder4/resfinder/phenotypes.txt
+        schemename_bigsdb: ResFinder4
         schemename_html: amr
       vfdb_core:
         clusteredfasta: /db/gene_detection/VFDB_core/vfdb_core-clustered_80.fasta

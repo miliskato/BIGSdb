@@ -78,7 +78,7 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                 if scheme == 'resfinder4':
                     resfinder4_table_builder = HtmlResFinder4TableBuilder(report_url)
                     for hit in self._json_report_dict[scheme]['resfinder4_genes_hits']:
-                        resfinder4_table_builder.add_hit([hit['Phenotype'], hit['Resistance gene'], hit['Identity'], hit['Coverage']])
+                        resfinder4_table_builder.add_hit(hit['Phenotype'], hit['Resistance gene'], hit['Identity'], hit['Coverage'])
                     html = resfinder4_table_builder.build()
                 elif not scheme.endswith('vfdb_core') and not scheme.endswith('virulencefinder'):
                     locus_table_builder = HtmlLocusTableBuilder(report_url)
