@@ -4,11 +4,6 @@ import json
 class AzureServiceBusMessage:
     """
     This class contains methods to handle a single Azure service bus message.
-    Can be tested like this:
-
-    message = AzureServiceBusMessage('abc', 'collection')
-    print(message.to_json())
-    print(AzureServiceBusMessage.from_json(message.to_json()).__dict__)
     """
     def __init__(self, pseudo_id: str, collection: str):
         """

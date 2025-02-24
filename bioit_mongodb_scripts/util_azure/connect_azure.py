@@ -19,6 +19,7 @@ class ConnectAzure:
         :return: None
         """
         self._dtap = dtap
+        self._connect_to_keyvault()
 
     def _connect_to_keyvault(self) -> None:
         """
