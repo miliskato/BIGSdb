@@ -400,6 +400,8 @@ species_json:
         type: irregular
       abritamr:
         type: irregular
+      resfinder_4_mutation:
+        type: irregular
     genedetection_schemes:
       resfinder4:
         clusteredfasta: /db/resfinder4/resfinder/all.fsa
