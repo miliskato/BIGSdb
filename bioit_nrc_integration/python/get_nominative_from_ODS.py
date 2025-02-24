@@ -214,7 +214,7 @@ class MainNominativeDataParserFromOds(SFTPConnection):
             if species == 'salmonella':
                 self.___parse_salmonella_repeat_fields(data_unprocessed, data_translated, 'TX_TTL_SYMP_REPEAT',
                                                        'CD_PROB_NAM', 'CD_PROB_NAM_codes', 'symptom')
-                self.___parse_salmonella_repeat_fields(data_unprocessed, data_translated, 'CD_EPILINK_REPEAT',
+                self.___parse_salmonella_repeat_fields(data_unprocessed, data_translated, 'TX_TTL_EPILINK_REPEAT',
                                                        'CD_EPILINK', 'CD_EPILINK_codes', 'link')
         # loop over schema
         for hd_key, hd_key_property_dict in self._translation_codes['schema'][filetype].items():
