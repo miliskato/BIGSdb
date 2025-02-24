@@ -314,6 +314,8 @@ class PsqlQueries():
     # TBL schemes
     UNI_SEL_ID_TB_SCHEME_VAR_: Final[str] = """
         SELECT id FROM schemes WHERE name = 'cgMLST';"""
+    UNI_SEL_ID_TB_SCHEME_VAR_name: Final[str] = """
+        SELECT id FROM schemes WHERE name = %s;"""
 
     # TBL scheme members
     UNI_INS__TB_SCHMEM_VAR_SCHEME_LOCUS: Final[str] = """
