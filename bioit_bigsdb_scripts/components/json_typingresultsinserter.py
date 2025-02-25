@@ -47,6 +47,8 @@ class JsonTypingResultsInserter(JsonSuperClass):
                         self._process_irregular_typing_scheme()
                 elif self._scheme == 'rmlst_identification':
                     self._processing_rmlst_identification()
+                elif self._scheme == 'resfinder4_mutations':
+                    self._process_irregular_typing_scheme()
                 else:
                     logging.warning(f"scheme {self._scheme} not present in json file")
             with TblHistory(self._species) as isolates_history_psql_tbl:
@@ -323,13 +325,13 @@ class JsonTypingResultsInserter(JsonSuperClass):
                         amr_detection = 'NA'
                     self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, item[0], amr_detection))
 
-        elif self._scheme == 'resfinder4_mutation':
+        elif self._scheme == 'resfinder4_mutations':
             mutations_found = self._json_report_dict['resfinder4']['resfinder4_mutations']
             mutation_list = mutations_found.split(',')
-            with TblEavText(self._species) as isolates_eavt_psql_tbl, TblEavFields as isolates_eavf_psql_tbl:
-            for item in mutation_list:
-                value = isolates_eavf_psql_tbl.get_description_from_eav_field((item,))
-                isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, str(item), value[0][0]))
+            with TblEavText(self._species) as isolates_eavt_psql_tbl, TblEavFields(self._species) as isolates_eavf_psql_tbl:
+                for item in mutation_list:
+                    value = isolates_eavf_psql_tbl.get_description_from_eav_field((item,))
+                    isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, str(item), value[0][0]))
 
     def ___salmonella_insert_antigens_into_db(self, raw_formula: str,
                                               mode: Optional[Literal['kmer', 'kmerread', 'allele']] = None) -> None:

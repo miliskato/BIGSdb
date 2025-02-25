@@ -400,7 +400,7 @@ species_json:
         type: irregular
       abritamr:
         type: irregular
-      resfinder_4_mutation:
+      resfinder4_mutations:
         type: irregular
     genedetection_schemes:
       resfinder4:
