@@ -2,7 +2,7 @@ import logging
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
@@ -69,7 +69,7 @@ class CheckCoreQCMetrics:
         :return: None
         """
         qc_value = self.__get_qcvalue_for_metric(metric_info)
-        self.__evaluate_thresholds_for_qcvalue(metric_info, qc_value, core_qc_metric)
+        self.__process_thresholds(metric_info, qc_value, core_qc_metric)
         
     def __get_qcvalue_for_metric(self, metric_info: dict[str, Any]) -> float:
         """
@@ -94,7 +94,7 @@ class CheckCoreQCMetrics:
                 metric_info['fields'])
         return qc_value
 
-    def __evaluate_thresholds_for_qcvalue(self, metric_info: dict[str, Any], qc_value: float, core_qc_metric: str):
+    def __process_thresholds(self, metric_info: dict[str, Any], qc_value: float, core_qc_metric: str) -> None:
         """
         Evaluates a given qc_value against the failure and warning thresholds for the current core quality metric.
         If the failure threshold is exceeded, then a reason is added to the rejection_reasons.
@@ -104,28 +104,46 @@ class CheckCoreQCMetrics:
         :param core_qc_metric: the current core qc metric's name in the config.
         :return: None
         """
-        for threshold in ['threshold_fail', 'threshold_warn']:
-            if metric_info['threshold_direction'] == 'higher':
-                evaluation = float(qc_value) > metric_info[threshold]
-            else:  # if metric_info['threshold_direction'] == 'lower':
-                evaluation = float(qc_value) < metric_info[threshold]
-            if evaluation:
-                if threshold == 'threshold_fail':
-                    if metric_info.get('value_format_to_strip'):
-                        qc_value_formatted = f"{qc_value}{metric_info['value_format_to_strip']}"
-                        threshold_formatted = f"{metric_info[threshold]}{metric_info['value_format_to_strip']}"
-                    else:
-                        qc_value_formatted = qc_value
-                        threshold_formatted = metric_info[threshold]
-                    parameter_name = metric_info['parameter_name']
-                    self._rejection_reasons[core_qc_metric] = {
-                        'value': qc_value,
-                        'reason': f"{parameter_name} (={qc_value_formatted}) "
-                                  f"{metric_info['threshold_direction']} than allowed limit (="
-                                  f"{threshold_formatted})."}
-                    break
-                else:  # if threshold == 'threshold_warn':
-                    self._good_sample_quality = False
+        if self.___evaluate_threshold(metric_info, qc_value, 'threshold_fail'):
+            qc_value_formatted, threshold_formatted = self.___format_values(metric_info, qc_value, 'threshold_fail')
+            self._rejection_reasons[core_qc_metric] = {
+                'value': qc_value,
+                'reason': f"{metric_info['parameter_name']} (={qc_value_formatted}) "
+                          f"{metric_info['threshold_direction']} than allowed limit (={threshold_formatted})."
+            }
+        elif self.___evaluate_threshold(metric_info, qc_value, 'threshold_warn'):
+            self._good_sample_quality = False
+
+    @staticmethod
+    def ___evaluate_threshold(metric_info: dict[str, Any], qc_value: float,
+                              threshold: Literal['threshold_fail', 'threshold_warn']) -> bool:
+        """
+        Evaluates whether the QC value exceeds the given threshold based on threshold direction.
+        :param metric_info: the current metric's info
+        :param qc_value: the current metric's value in the json_report that needs to be evaluated against the thresholds.
+        :param threshold: the current threshold; threshold_fail or threshold_warn
+        :return: Bool, True if threshold exceeded, False if not
+        """
+        if metric_info['threshold_direction'] == 'higher':
+            return float(qc_value) > metric_info[threshold]
+        else:  # 'lower'
+            return float(qc_value) < metric_info[threshold]
+
+    @staticmethod
+    def ___format_values(metric_info: dict[str, Any], qc_value: float,
+                         threshold: Literal['threshold_fail', 'threshold_warn']) -> (str, str):
+        """
+        Formats QC value and threshold with unit if applicable.
+        :param metric_info: the current metric's info
+        :param qc_value: the current metric's value in the json_report that needs to be evaluated against the thresholds.
+        :param threshold: the current threshold; threshold_fail or threshold_warn
+        :return: the formatted qc_value & threshold value
+        """
+        if metric_info.get('value_format_to_strip'):
+            unit = metric_info['value_format_to_strip']
+            return f"{qc_value}{unit}", f"{metric_info[threshold]}{unit}"
+        else:
+            return qc_value, metric_info[threshold]
 
     def _insert_into_rejected_isolates_collection(self, sample_coreqc_metrics: dict[str, dict[str, Any]]) -> None:
         """"
