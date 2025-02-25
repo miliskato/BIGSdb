@@ -36,7 +36,7 @@ class HtmlUpdateMerger:
     def __init__(self, base_html: Path, updated_html: Path, analysis_arguments: List[str], species: str,
                  new_file: Optional[Path]) -> None:
         """
-        Initializes this class and executes the main function.
+        Initializes this class.
         :param base_html: Path to the base html report
         :param updated_html: Path to the updated html report
         :param analysis_arguments: analysis arguments
@@ -49,24 +49,23 @@ class HtmlUpdateMerger:
         self._analysis_arguments = analysis_arguments
         self._species = species
         self._new_file = new_file if new_file else updated_html
-        # Execute main function
-        self._adapt_html()
 
-    def _adapt_html(self) -> None:
+    def adapt_html(self) -> None:
         """
         Adapts the html report.
         :return: None
         """
-        soup_base = self.__load_html(self._base_html)
-        soup_updated = self.__load_html(self._updated_html)
-        new_arguments = self.__convert_arguments_to_headers()
+        soup_base = self._load_html(self._base_html)
+        soup_updated = self._load_html(self._updated_html)
+        new_arguments = self._convert_arguments_to_headers()
         for analysis_argument in new_arguments:
-            soup_base = self.__replace_section(soup_base, soup_updated, analysis_argument)
+            soup_base = self._replace_section(soup_base, soup_updated, analysis_argument)
+        soup_base = self._replace_analysis_date(soup_base, soup_updated)
         with self._new_file.open('w') as handle:
             handle.write(str(soup_base))
 
     @staticmethod
-    def __load_html(filename: Path) -> BeautifulSoup:
+    def _load_html(filename: Path) -> BeautifulSoup:
         """
         Loads the html report into a BeautifulSoup object.
         :param filename: Path to the file that has to be loaded
@@ -76,7 +75,7 @@ class HtmlUpdateMerger:
             soup = BeautifulSoup(handle, 'lxml')
         return soup
 
-    def __convert_arguments_to_headers(self) -> List[str]:
+    def _convert_arguments_to_headers(self) -> List[str]:
         """
         Changes the arguments into the strings used in the header of the report.
         :return: list of the changed arguments
@@ -92,25 +91,38 @@ class HtmlUpdateMerger:
                             new_arguments.extend(value)
                         else:
                             new_arguments.append(value)
-        new_arguments.append('Input')
         return new_arguments
 
-    def __replace_section(self, soup1: BeautifulSoup, soup2: BeautifulSoup, header_text: str) -> BeautifulSoup:
+    def _replace_section(self, soup1: BeautifulSoup, soup2: BeautifulSoup, header_text: str) -> BeautifulSoup:
         """
         Replaces a section of the first BeautifulSoup object by a section of the second BeautifulSoup object.
         :param soup1: first BeautifulSoup object
         :param soup2: second BeautifulSoup object
         :return: the first BeautifulSoup object which contains the replaced section
         """
-        section_to_replace = self.___find_section_by_header(soup1, header_text)
-        new_section = self.___find_section_by_header(soup2, header_text)
+        section_to_replace = self.__find_section_by_header(soup1, header_text)
+        new_section = self.__find_section_by_header(soup2, header_text)
         # Replace this section
         if section_to_replace and new_section:
             section_to_replace.replace_with(new_section)
         return soup1
 
+    def _replace_analysis_date(self, soup1: BeautifulSoup, soup2: BeautifulSoup):
+        """
+        Replace the analysis date in an HTML report with the new date.
+        :param soup1: first BeautifulSoup object
+        :param soup2: second BeautifulSoup object
+        :return: the first BeautifulSoup object which contains the replaced analysis date
+        """
+        new_analysis_date = self.__find_analysis_date(soup2)
+        for row in soup1.find_all('tr'):
+            if row.find('td') and row.find('td').text.strip() == "Analysis date:":
+                row.find_all('td')[1].string = new_analysis_date
+                break
+        return soup1
+
     @staticmethod
-    def ___find_section_by_header(soup: BeautifulSoup, header_text: str) -> Union[Tag, None]:
+    def __find_section_by_header(soup: BeautifulSoup, header_text: str) -> Union[Tag, None]:
         """
         Finds a section of the report by using the header text.
         :param soup: BeautifulSoup object that has to be searched
@@ -124,6 +136,18 @@ class HtmlUpdateMerger:
             if section.p and section.p.text.startswith(header_text):
                 return section
 
+    @staticmethod
+    def __find_analysis_date(soup: BeautifulSoup) -> str:
+        """
+        Finds the analysis date in the BeautifulSoup object.
+        :param soup: BeautifulSoup object that has to be searched
+        :return: str, the analysis date
+        """
+        for row in soup.find_all('tr'):
+            if row.find('td') and row.find('td').text.strip() == "Analysis date:":
+                analysis_date = row.find_all('td')[1].text.strip()
+                return analysis_date
+
 
 if __name__ == '__main__':
     # Parse config
@@ -132,9 +156,9 @@ if __name__ == '__main__':
     # Parse arguments
     args = parse_arguments(mongo_config_data['species'])
 
-    # Run main
-    HtmlUpdateMerger(args.base_html,
-                     args.updated_html,
-                     args.analysis_arguments,
-                     args.species,
-                     args.new_file)
+    # Initialize class
+    html_update_merger = HtmlUpdateMerger(
+        args.base_html, args.updated_html, args.analysis_arguments, args.species, args.new_file)
+
+    # Run main function
+    html_update_merger.adapt_html()

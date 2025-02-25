@@ -1,4 +1,87 @@
 species:
+  enterococcus_faecalis:
+    mlst:
+      dirdb: /db/sequence_typing/enterococcus_faecalis/mlst
+      cmd_argument: mlst
+    cgmlst:
+      dirdb: /db/sequence_typing/enterococcus_faecalis/cgmlst
+      cmd_argument: cgmlst
+#    Not updated automatically + no git repo
+#    rmlst:
+#      dirdb: /db/sequence_typing/various/rmlst
+#      cmd_argument: rmlst
+#    No database
+#    lrefinder:
+#      cmd_argument: lrefinder
+#    Not updated automatically + no git repo
+#    amrfinder:
+#      dirdb: /db/amrfinder/by_version/latest
+#      cmd_argument: amrfinder
+    resfinder4:
+      dirdb: /db/resfinder4/resfinder
+      cmd_argument: resfinder4
+    pointfinder4:
+      dirdb: /db/resfinder4/pointfinder
+      cmd_argument: pointfinder
+    vfdb-core:
+      dirdb: /db/gene_detection/VFDB_core
+      cmd_argument: vfdb-core
+    virulencefinder:
+      dirdb: /db/gene_detection/VirulenceFinder-Enterococcus
+      cmd_argument: virulencefinder
+    plasmidfinder:
+      dirdb: /db/gene_detection/PlasmidFinder-gram_positive
+      cmd_argument: plasmidfinder
+#    Not updated automatically + no git repo
+#    mob-suite:
+#      dirdb: /db/mob_suite/latest
+#      cmd_argument: mob-suite
+#    bacmet:
+#      dirdb: /db/bacmet/latest
+#      cmd_argument: bacmet
+  enterococcus_faecium:
+    mlst:
+      dirdb: /db/sequence_typing/enterococcus_faecium/mlst
+      cmd_argument: mlst
+    mlst_bezdicek:
+      dirdb: /db/sequence_typing/enterococcus_faecium/mlst_bezdicek
+      cmd_argument: mlst
+    cgmlst:
+      dirdb: /db/sequence_typing/enterococcus_faecium/cgmlst
+      cmd_argument: cgmlst
+#    Not updated automatically + no git repo
+#    rmlst:
+#      dirdb: /db/sequence_typing/various/rmlst
+#      cmd_argument: rmlst
+#    No database
+#    lrefinder:
+#      cmd_argument: lrefinder
+#    Not updated automatically + no git repo
+#    amrfinder:
+#      dirdb: /db/amrfinder/by_version/latest
+#      cmd_argument: amrfinder
+    resfinder4:
+      dirdb: /db/resfinder4/resfinder
+      cmd_argument: resfinder4
+    pointfinder4:
+      dirdb: /db/resfinder4/pointfinder
+      cmd_argument: pointfinder
+    vfdb-core:
+      dirdb: /db/gene_detection/VFDB_core
+      cmd_argument: vfdb-core
+    virulencefinder:
+      dirdb: /db/gene_detection/VirulenceFinder-Enterococcus
+      cmd_argument: virulencefinder
+    plasmidfinder:
+      dirdb: /db/gene_detection/PlasmidFinder-gram_positive
+      cmd_argument: plasmidfinder
+#    Not updated automatically + no git repo
+#    mob-suite:
+#      dirdb: /db/mob_suite/latest
+#      cmd_argument: mob-suite
+#    bacmet:
+#      dirdb: /db/bacmet/latest
+#      cmd_argument: bacmet
   listeria:
     mlst:
       dirdb: /db/sequence_typing/listeria/mlst

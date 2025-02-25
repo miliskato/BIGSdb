@@ -1,25 +1,25 @@
 species:
+    enterococcus_faecalis:
+        lmod: camel_hera/0.1
+        main_script: mainenterococcuspipeline.py
+    enterococcus_faecium:
+        lmod: camel_hera/0.1
+        main_script: mainenterococcuspipeline.py
     listeria:
         lmod: camel_hera/0.1
         main_script: mainlisteriapipeline.py
-        options: ['--species-confirmation', '--mlst', '--resfinder', '--ncbi-amr', '--virulencefinder', '--vfdb-core', '--plasmidfinder', '--typing-amr', '--cgmlst', '--metal-detergent', '--pcr-serogroup', '--typing-virulence']
     mycobacterium:
         lmod: camel_hera/0.1
         main_script: mainmycobacteriumpipeline.py
-        options: ['--hsp65', '--snpit', '--amr', '--ncbi-16s', '--mlst', '--cgmlst', '--snp-lineage']
-        options_without_vcf: ['--hsp65', '--ncbi-16s', '--mlst', '--cgmlst']
     neisseria:
         lmod: camel_hera/0.1
         main_script: mainneisseriapipeline.py
-        options: ['--resfinder', '--ncbi-amr', '--mlst', '--rplf', '--bast', '--pora', '--porb', '--feta', '--fhbp', '--resistance-genes', '--vaccine-targets', '--cgmlst', '--serogroup']
     stec:
         lmod: camel_hera/0.1
         main_script: mainstecpipeline.py
-        options: ['--resfinder', '--ncbi-amr', '--virulencefinder', '--serotype', '--plasmidfinder', '--mlst-pasteur', '--mlst-warwick', '--cgmlst']
     salmonella:
         lmod: camel_hera/0.1
         main_script: mainsalmonellapipeline.py
-        options: ['--serotype', '--spifinder', '--mlst', '--cgmlst', '--resfinder', '--ncbi-amr', '--vfdb-core', '--plasmidfinder', '--abritamr']
     influenza_a:
         lmod: camel_hera/0.1
         main_script: mainviralconsensuspipeline.py

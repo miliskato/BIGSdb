@@ -102,8 +102,8 @@ class BatchPipelinesReanalysis:
 
     def _batch_pipelines(self) -> None:
         """
-        # Main function, creates the pool if it doesn't exist and then submits a job containing a single task
-        which is the execution of the pipeline
+        Main function, creates the pool if it doesn't exist and then submits a job containing a single task
+        which is the execution of the pipeline.
         :return: None
         """
         self.__create_pool()
@@ -416,7 +416,7 @@ class BatchPipelinesReanalysis:
             ' '.join([f"--{x}" for x in analysis_arguments]),
             '--threads 2',
             f'--sample-name {isolate_id}',
-            f"--reanalysis-original-input {mongodb_document['original_input_format']}"
+            f'--species {self._species_mongodb}' if self._species_mongodb in ['enterococcus_faecalis', 'enterococcus_faecium'] else '',
         ])
         if self._species == 'mycobacterium' and mongodb_document['original_input_format'] != 'fasta':
             base_command += f' --vcf-unfiltered {mongodb_document["vcf_path_unfiltered"]}' if mongodb_document.get(
