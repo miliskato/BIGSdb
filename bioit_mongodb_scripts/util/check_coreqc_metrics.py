@@ -40,9 +40,10 @@ class CheckCoreQCMetrics:
         # Add class variables
         self._coreqc_config = load_config(COREQC_CONFIG)
         self._rejection_reasons = {}
+        self._rejected_document = None
         self._good_sample_quality = True
 
-    def check_coreqc_metrics(self) -> bool:
+    def check_coreqc_metrics(self) -> (bool, Optional[dict[str, Any]]):
         """
         This function checks the core quality metrics. If any failure threshold is surpassed, then the isolate is added
         to the isolates_rejected_coreqc collection and the script is stopped.
@@ -51,15 +52,16 @@ class CheckCoreQCMetrics:
         The core quality metrics used here, and found in the corresponding COREQC_CONFIG originate from the
         D8.1_HERA_BE_WGS_Updated_quality_guidelines_report_29NOV2024 document that can be found in the HERA folder.
         :return: Whether the input document is of good quality according to the core quality metrics (good quality =
-        does not surpass any warning threshold)
+        does not surpass any warning threshold) + if a rejected_document has been generated (rejection_reasons > 0),
+        then the function returns this document as the second output
         """
         for metric, metric_info in self._sample_coreqc_metrics.items():
             self._evaluate_core_qc_metric(metric_info, metric)
 
         if len(self._rejection_reasons) > 0:
-            self._insert_into_rejected_isolates_collection(self._sample_coreqc_metrics)
+            self._generate_rejected_document()
 
-        return self._good_sample_quality
+        return self._good_sample_quality, self._rejected_document
 
     def _evaluate_core_qc_metric(self, metric_info: dict[str, Any], core_qc_metric: str) -> None:
         """
@@ -100,7 +102,8 @@ class CheckCoreQCMetrics:
         If the failure threshold is exceeded, then a reason is added to the rejection_reasons.
         If the warning threshold is exceeded, then the good_sample_quality is set to false.
         :param metric_info: the current metric's info
-        :param qc_value: the current metric's value in the json_report that needs to be evaluated against the thresholds.
+        :param qc_value: the current metric's value in the json_report that needs to be evaluated against the
+        thresholds.
         :param core_qc_metric: the current core qc metric's name in the config.
         :return: None
         """
@@ -120,7 +123,8 @@ class CheckCoreQCMetrics:
         """
         Evaluates whether the QC value exceeds the given threshold based on threshold direction.
         :param metric_info: the current metric's info
-        :param qc_value: the current metric's value in the json_report that needs to be evaluated against the thresholds.
+        :param qc_value: the current metric's value in the json_report that needs to be evaluated against the
+        thresholds.
         :param threshold: the current threshold; threshold_fail or threshold_warn
         :return: Bool, True if threshold exceeded, False if not
         """
@@ -135,7 +139,8 @@ class CheckCoreQCMetrics:
         """
         Formats QC value and threshold with unit if applicable.
         :param metric_info: the current metric's info
-        :param qc_value: the current metric's value in the json_report that needs to be evaluated against the thresholds.
+        :param qc_value: the current metric's value in the json_report that needs to be evaluated against the
+        thresholds.
         :param threshold: the current threshold; threshold_fail or threshold_warn
         :return: the formatted qc_value & threshold value
         """
@@ -145,27 +150,11 @@ class CheckCoreQCMetrics:
         else:
             return qc_value, metric_info[threshold]
 
-    def _insert_into_rejected_isolates_collection(self, sample_coreqc_metrics: dict[str, dict[str, Any]]) -> None:
+    def _generate_rejected_document(self) -> dict[str, Any]:
         """"
-        Inserts an isolate into the rejected isolates collection and includes the reasons for rejection and all quality
-        sections.
-        :param sample_coreqc_metrics: The current pathogen/sample's coreqc metrics.
+        Generates a document that can be inserted into the isolates_rejected_coreqc Azure MongoDB collection.
         :return: None
         """
-        # Open collections
-        self._mongoinit = MongoInitialisation(self._species, mongo_config_data=self._mongo_config_data,
-                                              selected_connection_string='CONNECTION_STRING_AZURE')
-        isolates_rejected_coreqc_collection = self._mongoinit.initialise_isolates_rejected_coreqc_collection()
-
-        # Logic to handle previously rejected versions of the same sample
-        previous_rejected_sample_version: Optional[dict[str, Any]] = isolates_rejected_coreqc_collection.find_one(
-            {'_id': self._technical_id})
-        if previous_rejected_sample_version:
-            previous_rejected_sample_version['isolates_id'] = self._technical_id
-            previous_rejected_sample_version.pop('_id')
-            isolates_rejected_coreqc_collection.insert_one(previous_rejected_sample_version)
-            isolates_rejected_coreqc_collection.delete_one({'_id': self._technical_id})
-
         # Prepare the document that is to be inserted into the isolates_rejected_coreqc collection
         document_to_be_inserted = {
             "_id": self._technical_id,
@@ -175,12 +164,8 @@ class CheckCoreQCMetrics:
             "insertion_type": 'automatic'}
         # Quality control metrics are spread in 3 sections: quast, quality_checks and preprocess. We decided to
         # keep track of all quality sections for potential post hoc analyses.
-        quality_sections = set(metric_info['category'] for metric_info in sample_coreqc_metrics.values())
+        quality_sections = set(metric_info['category'] for metric_info in self._sample_coreqc_metrics.values())
         for quality_section in quality_sections:
             document_to_be_inserted[quality_section] = self._json_report[quality_section]
 
-        isolates_rejected_coreqc_collection.insert_one(document_to_be_inserted)
-        logging.info(f"Sample {self._technical_id} failed one or more core QC checks. It was added to the "
-                     f"isolates_rejected_coreqc collection.")
-        # exit gracefully
-        sys.exit()
+        return document_to_be_inserted

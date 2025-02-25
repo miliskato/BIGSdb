@@ -22,7 +22,7 @@ from pymongo.write_concern import WriteConcern
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
-from bioit_mongodb_scripts.config import CLUSTERING_CONFIG, COREQC_CONFIG
+from bioit_mongodb_scripts.config import CLUSTERING_CONFIG
 from bioit_nrc_integration.python.config import CODES_GENOMIC_ODS
 from bioit_mongodb_scripts.model.json_model import JsonReportDict, MongoRecordDict
 from bioit_mongodb_scripts.util.error import *
@@ -30,6 +30,7 @@ from bioit_mongodb_scripts.util.check_coreqc_metrics import CheckCoreQCMetrics
 from bioit_mongodb_scripts.util.get_coreqc_metrics import GetCoreQCMetrics
 from bioit_mongodb_scripts.util.mongo_custom_clustering import MongoCustomClustering
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
+from bioit_mongodb_scripts.util.mongo_insertion import insert_document_into_rejected_collection
 from bioit_mongodb_scripts.util.mongo_querying import Mongoquerying
 from bioit_mongodb_scripts.util.python_utility_functions import access_value_in_dict_using_list_as_dictpath, \
     convert_dmyhms_to_ymd, get_mongodb_config_data, is_viral, send_email, load_config
@@ -242,7 +243,15 @@ class MainMongo:
             check_coreqc_metrics = CheckCoreQCMetrics(self._technical_id, json_report, self._species,
                                                       self._reportdirectorypath, sample_coreqc_metrics,
                                                       self._mongo_config_data)
-            good_sample_quality = check_coreqc_metrics.check_coreqc_metrics()
+            good_sample_quality, rejected_document = check_coreqc_metrics.check_coreqc_metrics()
+            if rejected_document:
+                isolates_rejected_coreqc_collection = self._mongoinit.initialise_isolates_rejected_coreqc_collection()
+
+                insert_document_into_rejected_collection(isolates_rejected_coreqc_collection, rejected_document)
+                logging.info(f"Sample {self._technical_id} failed one or more core QC checks. It was added to the "
+                             f"isolates_rejected_coreqc collection.")
+                # exit gracefully
+                sys.exit()
 
         self.__process_mongo_record(mongo_records, good_sample_quality)
         return mongo_records
@@ -766,6 +775,7 @@ class MainMongo:
             drug_susceptibilities = {info['drug']: info for info in
                                      json_report['mykrobe']['mykrobe_drug_susceptibility']}
             json_report['mykrobe']['mykrobe_drug_susceptibility'] = drug_susceptibilities
+
 
 if __name__ == '__main__':
 

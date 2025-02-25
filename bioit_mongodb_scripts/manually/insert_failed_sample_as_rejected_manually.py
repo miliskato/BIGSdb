@@ -3,7 +3,7 @@ import argparse
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import List, Literal, Union
 
 # import dnspython
 # somehow this package is a requirement without actually needing to be imported, probably imported in pymongo
@@ -12,6 +12,7 @@ PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
+from bioit_mongodb_scripts.util.mongo_insertion import insert_document_into_rejected_collection
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data
 
 REJECTION_REASONS = {
@@ -56,20 +57,13 @@ def insert_failed_sample_as_rejected_manually(technical_id: str, species: str, r
 
     isolates_rejected_coreqc_collection = mongoinit.initialise_isolates_rejected_coreqc_collection()
 
-    previous_rejected_sample_version: Optional[Dict[str, Any]] = isolates_rejected_coreqc_collection.find_one(
-        {'_id': technical_id})
-    if previous_rejected_sample_version:
-        previous_rejected_sample_version['isolates_id'] = technical_id
-        previous_rejected_sample_version.pop('_id')
-        isolates_rejected_coreqc_collection.insert_one(previous_rejected_sample_version)
-        isolates_rejected_coreqc_collection.delete_one({'_id': technical_id})
+    document_to_be_inserted = {"_id": technical_id,
+                               "rejection_reasons": {'manual': rejection_reason},
+                               "creation_date": datetime.now(timezone.utc),
+                               "insertion_type": 'manual'}
 
-    isolates_rejected_coreqc_collection.insert_one({
-        "_id": technical_id,
-        "rejection_reasons": {'manual': rejection_reason},
-        "creation_date": datetime.now(timezone.utc),
-        "insertion_type": 'manual'})
-
+    insert_document_into_rejected_collection(isolates_rejected_coreqc_collection,
+                                             document_to_be_inserted)
 
 if __name__ == '__main__':
     # Parse config
