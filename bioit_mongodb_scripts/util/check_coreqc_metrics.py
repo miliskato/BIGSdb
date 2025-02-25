@@ -59,7 +59,7 @@ class CheckCoreQCMetrics:
             self._evaluate_core_qc_metric(metric_info, metric)
 
         if len(self._rejection_reasons) > 0:
-            self._generate_rejected_document()
+            self._rejected_document = self._generate_rejected_document()
 
         return self._good_sample_quality, self._rejected_document
 
