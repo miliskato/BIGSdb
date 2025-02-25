@@ -35,28 +35,35 @@ enterococcus_faecium:
 listeria:
   mlst: Classic MLST
   cgmlst: cgMLST
+  rmlst: rMLST taxonomic identification
   pcr-serogroup: PCR-serogroup
-  metal-detergent: Metal and detergent resistance
   typing-virulence: Virulence
   typing-amr: Antibiotic resistance
   species-confirmation: Species confirmation
-  ncbi-amr: NCBI AMR genes (NDARO)
-  resfinder: ResFinder
+  amrfinder: AMRFinder (AMRFinder 3.11.26)
+  resfinder4: ResFinder (ResFinder 4.4.2)
   virulencefinder: VirulenceFinder - Listeria
   vfdb-core: Virulence Factor DB - Core
   plasmidfinder: PlasmidFinder - Gram positive
+  mob-suite:
+    - MOB-recon (MOB-recon 3.1.8)
+    - Genomic context
 mycobacterium:
   mlst: Classic MLST (PubMLST)
   cgmlst: cgMLST (PubMLST)
+  rmlst: rMLST taxonomic identification
   ncbi-16s: NCBI-16S
   51snp: 51 SNP-based
   amr: AMR detection
   hsp65: hsp65-based differentiation
   snp-lineage: SNP lineage
   snpit: Snpit
+  csb-rd: csb & regions of difference (RD1, RD9)
+  spoligotyping: Spoligotyping (SpoTyping 2.1)
 neisseria:
   mlst: Classic MLST
   cgmlst: cgMLST
+  rmlst: rMLST taxonomic identification
   rplf: rplF (50S) Species identification
   bast: Bexsero antigen sequence typing (BAST)
   pora: PorA variable regions
@@ -65,38 +72,52 @@ neisseria:
   resistance-genes: Antibiotic resistance
   vaccine-targets: Vaccine targets
   fhbp: Factor-H binding protein (fHbp)
-  ncbi-amr: NCBI AMR genes (NDARO)
-  resfinder: ResFinder
-  serogroup: Serogroup determination
+  amrfinder: AMRFinder (AMRFinder 3.11.26)
+  resfinder4: ResFinder (ResFinder 4.4.2)
+  serogroup:
+    - Capsule characterization (characterize_neisseria_capsule a75a009)
+    - Serogroup determination (Legacy)
+  gmats: gMATS
+  mendevar: MenDeVAR indexes
+salmonella:
+  mlst: Classic MLST
+  cgmlst: cgMLST
+  rmlst: rMLST taxonomic identification
+  spifinder: SPIFinder (SPIFinder 0.1)
+  serotype:
+    - SISTR (SISTR 1.1.1)
+    - SeqSero2 (SeqSero2 1.2.1)
+  abritamr: abriTAMR (AbriTAMR run 1.0.19)
+  resfinder4: ResFinder (ResFinder 4.4.2)
+  vfdb-core: Virulence Factor DB - Core
+  mykrobe: Mykrobe (mykrobe 0.13.0)
+  mob-suite:
+    - MOB-recon (MOB-recon 3.1.8)
+    - Genomic context
 stec:
   mlst-warwick: Classic MLST (Warwick)
   mlst-pasteur: Classic MLST (Pasteur)
   cgmlst: cgMLST
+  rmlst: rMLST taxonomic identification
   serotype:
     - SerotypeFinder - H-type
     - SerotypeFinder - O-type
     - Detected serotype
-  ncbi-amr: NCBI AMR genes (NDARO)
-  resfinder: ResFinder
+  amrfinder: AMRFinder (AMRFinder 3.11.26)
+  resfinder4: ResFinder (ResFinder 4.4.2)
   plasmidfinder: PlasmidFinder - Enterobacteriales
   virulencefinder:
     - VirulenceFinder - E. coli
     - VirulenceFinder - Shiga-toxin genes
-salmonella:
-  mlst: Classic MLST
-  cgmlst: cgMLST
-  spifinder: SPIFinder (SPIFinder 0.1)
-  serotype: Serotyping (SISTR 1.1.1)
-  abritamr: abriTAMR (AbriTAMR run 1.0.13)
-  ncbi-amr: NCBI AMR genes (NDARO)
-  resfinder: ResFinder
-  plasmidfinder: PlasmidFinder - Enterobacteriales
-  vfdb-core: Virulence Factor DB - Core
+  ncbi-stress: NCBI stress response genes
+  mob-suite:
+    - MOB-recon (MOB-recon 3.1.8)
+    - Genomic context
 sars_cov_2:
   sars_cov_2:
-    - Nextclade (Nextclade 2.14.0)
+    - Nextclade (Nextclade 3.1.1)
     - Subtype determination (mash screen 2.3)
 influenza:
   influenza:
-    - Nextclade (Nextclade 2.14.0)
+    - Nextclade (Nextclade 3.1.1)
     - Subtype determination (mash screen 2.3)
