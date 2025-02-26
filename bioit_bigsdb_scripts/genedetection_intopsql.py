@@ -8,6 +8,8 @@ import traceback
 from pathlib import Path
 from typing import Any, Dict, List, Tuple, Union
 
+import pandas as pd
+
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
@@ -124,6 +126,8 @@ class GeneDetectionIntoPsql:
         """
         if scheme_config['schemename_bigsdb'] == 'ResFinder4':
             return GeneDetectionIntoPsql._create_resfinder4_gene_detection_context(scheme, scheme_config)
+        elif scheme_config['schemename_bigsdb'] == 'AMRFinder':
+            return GeneDetectionIntoPsql._create_amrfinder_gene_detection_context(scheme,scheme_config)
         else:
             return GeneDetectionIntoPsql._create_generic_gene_detection_context(scheme, scheme_config)
 
@@ -154,6 +158,30 @@ class GeneDetectionIntoPsql:
                 sequence_id = "_".join([gene, accession])
                 context.set_sequence_genecluster_name(sequence_id, bigsdb_genecluster_name)
                 context.add_description(bigsdb_genecluster_name, accession)
+        return context
+
+    @staticmethod
+    def _create_amrfinder_gene_detection_context(scheme: str, scheme_config: Dict[str, Any]) -> GeneDetectionContext:
+        """
+        Based on "phenotypes.txt" file from ResFinder4, create dictionaries used to insert loci in seqdef
+        :param scheme: name of the scheme
+        :param scheme_config: bigsdb config for this scheme
+        :return: GeneDetectionContext object
+        """
+        context = GeneDetectionContext(scheme, scheme_config)
+        file_path = scheme_config['metadatafile']
+        mutations = pd.read_csv(file_path, delimiter="|", header=None)
+        mask = mutations[0].str.contains('>', na=False, case=False)
+        mutations = mutations[mask]
+        genes = mutations[4].to_list()
+        accession_ids = mutations[1].to_list()
+        bigsdb_scheme_name = scheme_config['schemename_bigsdb']
+
+        for index, gene in enumerate(genes):
+            bigsdb_genecluster_name = f"{bigsdb_scheme_name}_{gene}"
+            sequence_id = "_".join([gene, accession_ids[index]])
+            context.set_sequence_genecluster_name(sequence_id, bigsdb_genecluster_name)
+            context.add_description(bigsdb_genecluster_name, accession_ids[index])
         return context
 
     @staticmethod
