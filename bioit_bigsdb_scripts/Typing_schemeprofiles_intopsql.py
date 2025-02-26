@@ -172,12 +172,10 @@ class TypingSchemeProfilesIntoPsql:
         :param species: species name
         :return: pandas.DataFrame
         """
-        if  scheme == f"{species}_rmlst":
-            profiles = pd.read_csv(file_path, delimiter='\t', dtype=str)
+        profiles = pd.read_csv(file_path, delimiter='\t', dtype=str)
+        if scheme == f"{species}_rmlst":
             mask = profiles['genus'].str.contains(species, na=False, case=False)
             profiles = profiles[mask]
-        else:
-            profiles = pd.read_csv(file_path, delimiter='\s+', dtype=str)
         profiles.rename(columns={"'rplF": "rplF"})
 
         return profiles
