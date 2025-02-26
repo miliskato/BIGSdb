@@ -149,6 +149,12 @@
     line: "dtap: {{ 'test' if dtap == 'devtest' else 'prod' }}"
   become: yes
 
+- name: remove Python virtual environment
+  ansible.builtin.file:
+    path: "{{ nrcint_venv }}"
+    state: absent
+  become: yes
+
 - name: Create Python virtual environment
   pip:
     requirements: "{{ bioit_bigs_home }}/bioit_nrc_integration/python/requirements.txt"
