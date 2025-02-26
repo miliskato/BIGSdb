@@ -114,12 +114,17 @@ class ErrorCheckerForMainSenderToHD(SFTPConnection):
                 # get species name based on dcd name which is a metadata value in both outgoing DCDs
                 species = next(pathogen for pathogen, details in self._translation_codes['pathogens'].items() if details['dcd_name'] == dcd_name)
                 # Open correct pathogen specific MongoDB database
+                mongoinit_local = MongoInitialisation(species, mongo_config_data=self._mongo_config_data,
+                                                      selected_connection_string='CONNECTION_STRING_LOCAL',
+                                                      alternate_dtap=self._alternate_dtap)
+                mapping_collection = mongoinit_local.initialise_mapping_table_collection()
+                pseudo_id = mapping_collection.find_one({'_id': contents['data']['TX_SAMPLE_ID']})['pseudo_id']
                 mongoinit_azure = MongoInitialisation(species, mongo_config_data=self._mongo_config_data,
                                                       selected_connection_string='CONNECTION_STRING_AZURE',
                                                       alternate_dtap=self._alternate_dtap)
                 isolates_collection, old_isolateresults_collection, isolates_badqc_collection, \
                     isolates_resequencing_collection = mongoinit_azure.initialise_collections()
-                isolates_collection.update_one({'_id': contents['data']['TX_BIOIT_TECHNICAL_ID']},
+                isolates_collection.update_one({'_id': pseudo_id},
                                                {"$set": {f"accepted_by_ODS": True,
                                                          f"changes_accepted_by_ODS": True}})
                 # the 'changes_accepted_by_ODS' field interplays with 'changed_since_sent_to_ODS' that is set by
