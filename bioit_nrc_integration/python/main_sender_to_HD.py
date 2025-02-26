@@ -110,9 +110,9 @@ class MainSenderToHD:
         mapping_table_collection = mongoinit_local.initialise_mapping_table_collection()
         return mapping_table_collection, isolates_collection
 
-    def __trigger_sending_to_ods_and_dwh(self, document_genomic: Dict[str, Any], species: str,
-                                         mapping_table_collection: Collection,
-                                         isolates_collection: Collection) -> None:
+    def __trigger_sending_to_ods(self, document_genomic: Dict[str, Any], species: str,
+                                 mapping_table_collection: Collection,
+                                 isolates_collection: Collection) -> None:
         """
         Triggers the scripts to send the data to the ODS if they have not been sent yet
         :param document_genomic: genomic document
