@@ -4,15 +4,19 @@ import os
 import socket
 import sys
 import traceback
+from datetime import date
 
 import pandas as pd
 from pathlib import Path
 from typing import Dict, Final, List, Tuple
 
+from psycopg2._psycopg import cursor
+
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
-from bioit_bigsdb_scripts.components.psql import TblProfiles, TblProfileFields, TblProfileMembers, TblSequences
+from bioit_bigsdb_scripts.components.psql import TblProfiles, TblProfileFields, TblProfileMembers, TblSchemes, \
+    TblSequences
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data, send_email
 # For this script I am assuming that profiles do not retire.
 
@@ -74,12 +78,14 @@ class TypingSchemeProfilesIntoPsql:
         first_col_name = profile_df.columns.values[0]
         loci: List[str] = next(os.walk(schemedict[scheme]['dirdb']))[1]
         loci_only = [x for x in loci if not x.startswith('.')] # to exclude hidden folders like .git
-
-        for profile_id in set_to_be_inserted:
+        bigsdb_scheme_name = schemedict[scheme]['schemename_bigsdb']
+        with TblSchemes(species,'seqdef') as tbl_schemes:
+            scheme_id_psql = tbl_schemes.select_scheme_id_based_on_scheme_name((bigsdb_scheme_name,))[0][0]
+        for profile_id in    set_to_be_inserted:
 
             profile_line_df = profile_df[profile_df[first_col_name]==profile_id]
             # first table (profiles):
-            seqdef_profiles_psql_tbl.insert_profile((schemedict[scheme]['schemename_bigsdb'], profile_id))
+            seqdef_profiles_psql_tbl.insert_profile((bigsdb_scheme_name, profile_id))
             profiles_to_be_removed = set()
             # second table (profile fields):
             with TblProfileFields(species) as seqdef_profilefields_psql_table:
@@ -87,13 +93,14 @@ class TypingSchemeProfilesIntoPsql:
                     try:
                         field_value = profile_line_df[field].values[0]
                         seqdef_profilefields_psql_table.insert_profile_field(
-                            (schemedict[scheme]['schemename_bigsdb'], field, profile_id, field_value.replace('_', ' ')))
+                            (bigsdb_scheme_name, field, profile_id, field_value.replace('_', ' ')))
                     except Exception:
                         profiles_to_be_removed.add(profile_id)
             # third table (profile members):
             # Loci are saved from dir to be able to know which columns to search for in profiles.tsv
             with TblProfileMembers(species) as seqdef_profilemembers_psql_tbl, TblSequences(
                     species) as seqdef_sequences_psql_tbl:
+                table_profile = []
                 for locus in loci_only:
                     if locus == "'rplF":
                         locus = 'rplF'
@@ -103,20 +110,21 @@ class TypingSchemeProfilesIntoPsql:
                         nullpresent: List[Tuple[int]] = seqdef_sequences_psql_tbl.count_sequence_null((locus,))
                         if nullpresent[0][0] == 0:
                             seqdef_sequences_psql_tbl.insert_sequence((locus, '0', 'null allele'))
-                    try:
-                        seqdef_profilemembers_psql_tbl.insert_profile_member(
-                            (schemedict[scheme]['schemename_bigsdb'], locus, profile_id, locus_value))
-                    except Exception as exceptionmessage:
-                        send_email(f"{exceptionmessage}\n{traceback.format_exc()}",
-                                   f"profile with field {schemedict[scheme]['scheme_fields'][0]} and value {profile_id} already exists as another field, find the profile that was misinserted (not all loci have allele_id), "
-                                   f"remove it, and all above and restart this script (on db seqdef profiles members on host {socket.gethostname()})")
-                        raise Exception(
-                            f"profile with field {schemedict[scheme]['scheme_fields'][0]} and value {profile_id} already exists as another field, find the profile that was misinserted (not all loci have allele_id), "
-                            f"remove it, and all above and restart this script (on db seqdef profiles members on host {socket.gethostname()})")
+                    table_profile.append((scheme_id_psql, locus, profile_id, locus_value, 1, str(date.today())))
+                try:
+                    seqdef_profilemembers_psql_tbl.method_string_building(table_profile)
+                except Exception as exceptionmessage:
+                    send_email(f"{exceptionmessage}\n{traceback.format_exc()}",
+                                f"profile with field {schemedict[scheme]['scheme_fields'][0]} and value {profile_id} already exists as another field, find the profile that was misinserted (not all loci have allele_id), "
+                                f"remove it, and all above and restart this script (on db seqdef profiles members on host {socket.gethostname()})")
+                    raise Exception(
+                        f"profile with field {schemedict[scheme]['scheme_fields'][0]} and value {profile_id} already exists as another field, find the profile that was misinserted (not all loci have allele_id), "
+                        f"remove it, and all above and restart this script (on db seqdef profiles members on host {socket.gethostname()})")
             # remove profiles with incomplete profile fields
             for profile_to_be_removed in profiles_to_be_removed:
                 seqdef_profiles_psql_tbl.delete_profile(
-                    (schemedict[scheme]['schemename_bigsdb'], profile_to_be_removed))
+                    (bigsdb_scheme_name, profile_to_be_removed))
+
 
     @staticmethod
     def ___return_locus_allele(locus: str, df_row: pd.DataFrame, scheme: str) -> str:
