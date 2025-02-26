@@ -14,7 +14,7 @@
  all_plugins="yes"
  microreact_year_field="isolation_date"
  tblastx_tagging="yes"
- eav_groups="Gene detection|fas fa-search,ResFinder4 mutations|fas fa-pills,galaxy report|fas fa-file-medical-alt,rMLST identification|fas fa-angle-right,Antibiotic resistance|fas fa-angle-right,AbritAMR|fas fa-pills,Serotyping|fas fa-bacteria,Mykrobe|fas fa-pills,SPIFinder|fas fa-angle-right"
+ eav_groups="Gene detection|fas fa-search,rMLST identification|fas fa-bacteria,ResFinder4 mutations|fas fa-pills,galaxy report|fas fa-file-medical-alt,Antibiotic resistance|fas fa-angle-right,AbritAMR|fas fa-pills,Serotyping|fas fa-bacteria,Mykrobe|fas fa-pills,SPIFinder|fas fa-angle-right"
  field_groups="Curation history|fas fa-history,nominative metadata|fas fa-search"
  user_projects="yes"
  submissions="yes"

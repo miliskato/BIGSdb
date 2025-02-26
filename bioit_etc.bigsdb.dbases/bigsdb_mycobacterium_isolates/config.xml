@@ -14,7 +14,7 @@
  all_plugins="yes"
  microreact_year_field="isolation_date"
  tblastx_tagging="yes"
- eav_groups="Gene detection|fas fa-search,galaxy report|fas fa-file-medical-alt,rMLST identification|fas fa-angle-right,51SNP assay|fas fa-angle-right,AMR detection|fas fa-angle-right,spoligotyping|fas fa-angle-right,snpit|fas fa-angle-right,hsp65|fas fa-angle-right,SNP lineage|fas fa-angle-right,NCBI 16S|fas fa-angle-right"
+ eav_groups="Gene detection|fas fa-search,galaxy report|fas fa-file-medical-alt,rMLST identification|fas fa-bacteria,51SNP assay|fas fa-angle-right,AMR detection|fas fa-angle-right,spoligotyping|fas fa-angle-right,snpit|fas fa-angle-right,hsp65|fas fa-angle-right,SNP lineage|fas fa-angle-right,NCBI 16S|fas fa-angle-right"
  field_groups="Curation history|fas fa-history,nominative metadata|fas fa-search"
  user_projects="yes"
  submissions="yes"

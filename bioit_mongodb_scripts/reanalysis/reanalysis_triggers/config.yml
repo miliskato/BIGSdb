@@ -9,9 +9,6 @@ species:
     pcr_serogroup:
       dirdb: /db/sequence_typing/listeria/serogroup
       cmd_argument: pcr-serogroup
-    metal_detergent:
-      dirdb: /db/sequence_typing/listeria/metal_detergent_resistance
-      cmd_argument: metal-detergent
     typing_virulence:
       dirdb: /db/sequence_typing/listeria/virulence
       cmd_argument: typing-virulence

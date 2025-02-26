@@ -56,9 +56,6 @@ species:
           - profile_id
           - serogroup
         schemename_bigsdb: PCR serogroup
-      listeria_metal_detergent_resistance:
-        dirdb: /db/sequence_typing/listeria/metal_detergent_resistance
-        schemename_bigsdb: Metal and detergent resistance
       listeria_typing_virulence:
         dirdb: /db/sequence_typing/listeria/virulence
         schemename_bigsdb: Virulence
@@ -69,16 +66,10 @@ species:
         dirdb: /db/sequence_typing/listeria/species_confirmation
         schemename_bigsdb: Species confirmation
     genedetection_schemes:
-      listeria_ndaro:
-        clusteredfasta: /db/gene_detection/NCBI_AMR/ncbi_amr-clustered_80.fasta
-        metadatafile: /db/gene_detection/NCBI_AMR/mapping_full.json
-        schemename_bigsdb: NCBI_AMR
-        schemename_html: NCBI AMR genes (NDARO)
-      listeria_resfinder:
-        clusteredfasta: /db/gene_detection/ResFinder/resfinder-clustered_80.fasta
-        metadatafile: /db/gene_detection/ResFinder/mapping_full.json
-        schemename_bigsdb: ResFinder
-        schemename_html: ResFinder
+      resfinder4:
+        metadatafile: /db/resfinder4/resfinder/phenotypes.txt
+        schemename_bigsdb: ResFinder4
+        schemename_html: amr
       listeria_virulencefinder:
         clusteredfasta: /db/gene_detection/VirulenceFinder-Listeria/virulencefinder-listeria-clustered_80.fasta
         metadatafile: /db/gene_detection/VirulenceFinder-Listeria/mapping_full.json
@@ -94,6 +85,10 @@ species:
         metadatafile: /db/gene_detection/PlasmidFinder-gram_positive/mapping_full.json
         schemename_bigsdb: PlasmidFinder_grampositive
         schemename_html: PlasmidFinder - Gram positive
+      amrfinder:
+        metadatafile: /db/amrfinder/latest/AMRProt
+        schemename_bigsdb: AMRFinder
+        schemename_html: amr
   mycobacterium:
     typing_schemes:
       mycobacterium_mlst:
@@ -172,11 +167,10 @@ species:
         dirdb: /db/sequence_typing/neisseria/fhbp
         schemename_bigsdb: fHbp_pept
     genedetection_schemes:
-      neisseria_resfinder:
-        clusteredfasta: /db/gene_detection/ResFinder/resfinder-clustered_80.fasta
-        metadatafile: /db/gene_detection/ResFinder/mapping_full.json
+      resfinder4:
+        metadatafile: /db/resfinder4/resfinder/phenotypes.txt
         schemename_bigsdb: ResFinder4
-        schemename_html: ResFinder
+        schemename_html: amr
   stec:
     typing_schemes:
       stec_mlst_warwick:
@@ -275,6 +269,8 @@ species_json:
         type: regular
       species_confirmation:
         type: regular
+      resfinder4_mutations:
+        type: irregular
     genedetection_schemes:
 #      resfinder:
 #        clusteredfasta: /db/gene_detection/ResFinder/resfinder-clustered_80.fasta
@@ -348,6 +344,8 @@ species_json:
       serogroup:
         type: irregular
         schemename_bigsdb: serogroup_capsule
+      resfinder4_mutations:
+        type: irregular
     genedetection_schemes:
 #      resfinder:
 #        clusteredfasta: /db/gene_detection/ResFinder/resfinder-clustered_80.fasta
