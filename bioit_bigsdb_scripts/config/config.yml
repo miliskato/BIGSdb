@@ -171,52 +171,6 @@ species:
         metadatafile: /db/resfinder4/resfinder/phenotypes.txt
         schemename_bigsdb: ResFinder4
         schemename_html: amr
-  stec:
-    typing_schemes:
-      stec_mlst_warwick:
-        dirdb: /db/sequence_typing/ecoli/mlst_warwick
-        scheme_fields:
-          - ST
-        schemename_bigsdb: MLST_Warwick
-      stec_mlst_pasteur:
-        dirdb: /db/sequence_typing/ecoli/mlst_pasteur
-        scheme_fields:
-          - ST
-        schemename_bigsdb: MLST_Pasteur
-      stec_cgmlst:
-        dirdb: /db/sequence_typing/ecoli/cgmlst
-        schemename_bigsdb: cgMLST
-      stec_serotype:
-        dirdb: ''
-    genedetection_schemes:
-      stec_ndaro:
-        clusteredfasta: /db/gene_detection/NCBI_AMR/ncbi_amr-clustered_80.fasta
-        metadatafile: /db/gene_detection/NCBI_AMR/mapping_full.json
-        schemename_bigsdb: NCBI_AMR
-        schemename_html: NCBI AMR genes (NDARO)
-      stec_resfinder:
-        clusteredfasta: /db/gene_detection/ResFinder/resfinder-clustered_80.fasta
-        metadatafile: /db/gene_detection/ResFinder/mapping_full.json
-        schemename_bigsdb: ResFinder
-        schemename_html: ResFinder
-      stec_plasmidfinder:
-        clusteredfasta: >-
-          /db/gene_detection/PlasmidFinder-entero/plasmidfinder-entero-clustered_80.fasta
-        metadatafile: /db/gene_detection/PlasmidFinder-entero/mapping_full.json
-        schemename_bigsdb: PlasmidFinder_entero
-        schemename_html: PlasmidFinder - Enterobacteriaceae
-      stec_virulencefinder_ecoli:
-        clusteredfasta: >-
-          /db/gene_detection/VirulenceFinder-Ecoli/virulencefinder-ecoli-clustered_80.fasta
-        metadatafile: /db/gene_detection/VirulenceFinder-Ecoli/mapping_full.json
-        schemename_bigsdb: VirulenceFinder_Ecoli
-        schemename_html: VirulenceFinder - <i>E. coli</i>
-      stec_virulencefinder_shiga:
-        clusteredfasta: >-
-          /db/gene_detection/VirulenceFinder-Shiga/virulencefinder-shiga-clustered_80.fasta
-        metadatafile: /db/gene_detection/VirulenceFinder-Shiga/mapping_full.json
-        schemename_bigsdb: VirulenceFinder_Shiga
-        schemename_html: VirulenceFinder - Shiga-toxin genes
   salmonella:
     typing_schemes:
       salmonella_mlst:
@@ -269,14 +223,12 @@ species_json:
         type: regular
       species_confirmation:
         type: regular
-      resfinder4_mutations:
-        type: irregular
     genedetection_schemes:
-#      resfinder:
-#        clusteredfasta: /db/gene_detection/ResFinder/resfinder-clustered_80.fasta
-#        metadatafile: /db/gene_detection/ResFinder/mapping_full.json
-#        schemename_bigsdb: ResFinder
-#        schemename_html: ResFinder
+      resfinder4:
+        clusteredfasta: /db/resfinder4/resfinder/all.fsa
+        metadatafile: /db/resfinder4/resfinder/phenotypes.txt
+        schemename_bigsdb: ResFinder4
+        schemename_html: amr
       virulencefinder:
         clusteredfasta: /db/gene_detection/VirulenceFinder-Listeria/virulencefinder-listeria-clustered_80.fasta
         metadatafile: /db/gene_detection/VirulenceFinder-Listeria/mapping_full.json
@@ -292,6 +244,10 @@ species_json:
         metadatafile: /db/gene_detection/PlasmidFinder-gram_positive/mapping_full.json
         schemename_bigsdb: PlasmidFinder_grampositive
         schemename_html: PlasmidFinder - Gram positive
+      amrfinder:
+        metadatafile: /db/amrfinder/latest/AMRProt
+        schemename_bigsdb: AMRFinder
+        schemename_html: amr
   mycobacterium:
     typing_schemes:
       mlst:
@@ -344,42 +300,12 @@ species_json:
       serogroup:
         type: irregular
         schemename_bigsdb: serogroup_capsule
-      resfinder4_mutations:
-        type: irregular
     genedetection_schemes:
-#      resfinder:
-#        clusteredfasta: /db/gene_detection/ResFinder/resfinder-clustered_80.fasta
-#        metadatafile: /db/gene_detection/ResFinder/mapping_full.json
-#        schemename_bigsdb: ResFinder
-#        schemename_html: ResFinder
-  stec:
-    typing_schemes:
-      mlst_warwick:
-        type: regular
-      mlst_pasteur:
-        type: regular
-      cgmlst:
-        type: regular
-      serotype:
-        type: irregular
-    genedetection_schemes:
-#      resfinder:
-#        clusteredfasta: /db/gene_detection/ResFinder/resfinder-clustered_80.fasta
-#        metadatafile: /db/gene_detection/ResFinder/mapping_full.json
-#        schemename_bigsdb: ResFinder
-#        schemename_html: ResFinder
-      virulencefinder:
-        clusteredfasta: >-
-          /db/gene_detection/VirulenceFinder-Ecoli/virulencefinder-ecoli-clustered_80.fasta
-        metadatafile: /db/gene_detection/VirulenceFinder-Ecoli/mapping_full.json
-        schemename_bigsdb: VirulenceFinder_Ecoli
-        schemename_html: VirulenceFinder - <i>E. coli</i>
-      virulencefinder_shiga:
-        clusteredfasta: >-
-          /db/gene_detection/VirulenceFinder-Shiga/virulencefinder-shiga-clustered_80.fasta
-        metadatafile: /db/gene_detection/VirulenceFinder-Shiga/mapping_full.json
-        schemename_bigsdb: VirulenceFinder_Shiga
-        schemename_html: VirulenceFinder - Shiga-toxin genes
+      resfinder4:
+        clusteredfasta: /db/resfinder4/resfinder/all.fsa
+        metadatafile: /db/resfinder4/resfinder/phenotypes.txt
+        schemename_bigsdb: ResFinder4
+        schemename_html: amr
   salmonella:
     typing_schemes:
       mlst:
