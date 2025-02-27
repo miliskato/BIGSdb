@@ -125,12 +125,20 @@ class PsqlQueries():
     ISO_SEL_FIELD_TB_EAVF_VAR_: Final[str] = """SELECT field FROM eav_fields WHERE category='AMR detection'"""
     ISO_SEL_FIELD_TB_EAVF_VAR_CAT: Final[str] = """SELECT field FROM eav_fields WHERE category=%s"""
     ISO_SEL_FIELD_TB_EAVF_VAR_FIELD: Final[str] = """SELECT field FROM eav_fields WHERE field LIKE %s;"""
+    ISO_SEL_DESCR_TB_EAVF_VAR_FIELD: Final[str] = """SELECT description FROM eav_fields WHERE field=%s;"""
 
     # TBL extended attribute values bool
     ISO_DEL__TB_EAVB_VAR_ISO: Final[str] = """
         DELETE FROM eav_boolean where isolate_id=(SELECT id FROM isolates WHERE isolate=%s);"""
     ISO_INS__TB_EAVB_VAR_ISO_FIELD_VAL: Final[str] = """
         INSERT INTO eav_boolean(isolate_id, field, value) 
+        VALUES((SELECT id FROM isolates WHERE isolate=%s), %s, %s);"""
+
+    # TBL extended attribute values float
+    ISO_DEL__TB_EAVFL_VAR_ISO: Final[str] = """
+        DELETE FROM eav_float where isolate_id=(SELECT id FROM isolates WHERE isolate=%s);"""
+    ISO_INS__TB_EAVFL_VAR_ISO_FIELD_VAL: Final[str] = """
+        INSERT INTO eav_float(isolate_id, field, value) 
         VALUES((SELECT id FROM isolates WHERE isolate=%s), %s, %s);"""
 
     # TBL extended attribute values int
@@ -307,6 +315,8 @@ class PsqlQueries():
     # TBL schemes
     UNI_SEL_ID_TB_SCHEME_VAR_: Final[str] = """
         SELECT id FROM schemes WHERE name = 'cgMLST';"""
+    UNI_SEL_ID_TB_SCHEME_VAR_name: Final[str] = """
+        SELECT id FROM schemes WHERE name = %s;"""
 
     # TBL scheme members
     UNI_SEL_EXISTS_TB_SCHMEM_VAR_SCHID: Final[str] = """

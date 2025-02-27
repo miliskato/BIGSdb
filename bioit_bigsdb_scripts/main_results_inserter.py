@@ -12,7 +12,7 @@ sys.path.append(str(PYTHONPATH))
 from bioit_bigsdb_scripts.components.maininserter import MainInserter
 from bioit_bigsdb_scripts.components.json_typingresultsinserter import JsonTypingResultsInserter
 from bioit_bigsdb_scripts.components.json_genedetectionresultsinserter import JsonGeneDetectionResultsInserter
-from bioit_bigsdb_scripts.components.psql import TblAlleleDesignations, TblEavText, TblEavBoolean, \
+from bioit_bigsdb_scripts.components.psql import TblAlleleDesignations, TblEavFloat, TblEavText, TblEavBoolean, \
     TblEavInt, TblEavTextHidden
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data, send_email
 from bioit_mongodb_scripts.model.json_model import JsonReportDict, ResultType
@@ -86,13 +86,15 @@ class MainResultsInserter:
         :return: None
         """
         if self._results_type == 'reanalysis' or self._results_type == 'resequencing':
-            with TblAlleleDesignations(self._species) as isolates_ad_psql_tbl, TblEavText(self._species) as \
+            with (TblAlleleDesignations(self._species) as isolates_ad_psql_tbl, TblEavText(self._species) as \
                     isolates_eavt_psql_tbl, TblEavBoolean(self._species) as \
-                    isolates_eavb_psql_tbl, TblEavInt(self._species) as isolates_eavi_psql_tbl:
+                    isolates_eavb_psql_tbl, TblEavInt(self._species) as isolates_eavi_psql_tbl, \
+                    TblEavFloat(self._species) as isolates_eavfl_psql_tbl):
                 isolates_ad_psql_tbl.delete_all_designations_of_isolate((self._isolatename,))
                 isolates_eavt_psql_tbl.delete_all_eav_of_isolate((self._isolatename,))
                 isolates_eavb_psql_tbl.delete_eavbool_for_isolate((self._isolatename,))
                 isolates_eavi_psql_tbl.delete_eav_int_for_isolate((self._isolatename,))
+                isolates_eavfl_psql_tbl.delete_eav_float_for_isolate((self._isolatename,))
             with TblEavTextHidden(self._species) as isolates_eavt_hidden_psql_tbl:
                 isolates_eavt_hidden_psql_tbl.delete_eavt_hidden((self._isolatename,))
             self._nominative_labtest_clinical_metadata_collection.update_one({'_id': self._isolatename},

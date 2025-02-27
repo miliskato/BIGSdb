@@ -1,4 +1,4 @@
-from typing import Any, List, Tuple, Union
+from typing import List, Tuple, Union
 
 from .databaseconnection import DatabaseConnection
 from .psql_queries import PsqlQueries
@@ -8,6 +8,7 @@ class TblClassificationSchemes(DatabaseConnection):
     """
     classification_schemes table in both databases
     """
+
     def __init__(self, species: str, db_type: str) -> None:
         super().__init__(species, db_type)
         if self._db_type != 'seqdef' and self._db_type != 'isolates':

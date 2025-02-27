@@ -1,0 +1,78 @@
+---
+bioit_filedb_databases:
+#  dev/test
+  - { name: 'amrfinder', version: '2021-12-21.1', latest_symlink: yes }
+  - { name: 'amrfinder', version: 'by_version' }
+  - { name: 'bacmet', version: '2.0', latest_symlink: yes }
+  - { name: 'busco', version: 'odb10', latest_symlink: no }
+  - { name: 'confindr', version: '0.7.4', latest_symlink: no }
+  - { name: 'confindr', version: '0.8.1', latest_symlink: no }
+  - { name: 'mob_suite', version: '20230317', latest_symlink: yes }
+  - { name: 'nextclade3', version: 'flu_h1n1pdm', latest_symlink: no }
+  - { name: 'nextclade3', version: 'flu_h3n2', latest_symlink: no }
+  - { name: 'nextclade3', version: 'flu_vic', latest_symlink: no }
+  - { name: 'nextclade3', version: 'flu_yam', latest_symlink: no }
+  - { name: 'nextclade3', version: 'rsv_a', latest_symlink: no }
+  - { name: 'nextclade3', version: 'rsv_b', latest_symlink: no }
+  - { name: 'pipeline', version: 'sarscov2', latest_symlink: no }
+  - { name: 'refgenomes', version: 'enterococcusfaecalis', latest_symlink: no }
+  - { name: 'refgenomes', version: 'enterococcusfaecium', latest_symlink: no }
+  - { name: 'sequence_typing', version: 'various', latest_symlink: no }
+  - { name: 'viral_consensus', version: 'influenza_a-gisaid' }
+  - { name: 'viral_consensus', version: 'influenza_a-ncbi' }
+  - { name: 'viral_consensus', version: 'influenza_b-gisaid' }
+  - { name: 'viral_consensus', version: 'sars_cov_2-ncbi' }
+
+#acc/prod
+    #- { name: 'nextclade', version: 'flu_h1n1pdm_ha', latest_symlink: no }
+    #- { name: 'nextclade', version: 'flu_h3n2_ha', latest_symlink: no }
+    #- { name: 'nextclade', version: 'flu_vic_ha', latest_symlink: no }
+    #- { name: 'nextclade', version: 'flu_yam_ha', latest_symlink: no }
+    #- { name: 'nextclade', version: 'sars-cov-2', latest_symlink: no }
+
+# all
+  - { name: 'abritamr', version: 'no_version', latest_symlink: yes }
+  - { name: 'abritamr', version: '3.10.16', latest_symlink: no }
+  - { name: 'clair3', version: 'models' }
+  - { name: 'gene_detection', version: 'ncbi_amr', latest_symlink: no }
+  - { name: 'gene_detection', version: 'ncbi_stress', latest_symlink: no }
+  - { name: 'gene_detection', version: 'ncbi_virulence', latest_symlink: no }
+  - { name: 'gene_detection', version: 'ncbi_16s', latest_symlink: no }
+  - { name: 'gene_detection', version: 'plasmidfinder_entero', latest_symlink: no }
+  - { name: 'gene_detection', version: 'plasmidfinder_gram_positive', latest_symlink: no }
+  - { name: 'gene_detection', version: 'resfinder', latest_symlink: no }
+  - { name: 'gene_detection', version: 'serotypefinder_h_type', latest_symlink: no }
+  - { name: 'gene_detection', version: 'serotypefinder_o_type', latest_symlink: no }
+  - { name: 'gene_detection', version: 'vfdb_core', latest_symlink: no }
+  - { name: 'gene_detection', version: 'virulencefinder_ecoli', latest_symlink: no }
+  - { name: 'gene_detection', version: 'virulencefinder_enterococcus', latest_symlink: no }
+  - { name: 'gene_detection', version: 'virulencefinder_listeria', latest_symlink: no }
+  - { name: 'gene_detection', version: 'virulencefinder_saureus_exoenzyme', latest_symlink: no }
+  - { name: 'gene_detection', version: 'virulencefinder_saureus_hostimm', latest_symlink: no }
+  - { name: 'gene_detection', version: 'virulencefinder_saureus_toxin', latest_symlink: no }
+  - { name: 'gene_detection', version: 'virulencefinder_shiga', latest_symlink: no }
+  - { name: 'krona', version: '20180124' }
+  - { name: 'krona', version: '20190218' }
+  - { name: 'krona', version: '20210211', latest_symlink: yes }
+  - { name: 'mykrobe', version: 'latest', latest_symlink: no }
+  - { name: 'pipeline', version: 'mycobacterium', latest_symlink: no }
+  - { name: 'pipeline', version: 'neisseria', latest_symlink: no }
+  - { name: 'pipeline', version: 'salmonella', latest_symlink: no }
+  - { name: 'pipeline', version: 'saureus', latest_symlink: no }
+  - { name: 'pipeline', version: 'viral_consensus', latest_symlink: no }
+  - { name: 'refgenomes', version: 'ecoli', latest_symlink: no }
+  - { name: 'refgenomes', version: 'listeria' }
+  - { name: 'refgenomes', version: 'mycobacterium' }
+  - { name: 'refgenomes', version: 'neisseria' }
+  - { name: 'refgenomes', version: 'salmonella' }
+  - { name: 'resfinder4', version: 'pointfinder', latest_symlink: yes }
+  - { name: 'resfinder4', version: 'resfinder', latest_symlink: yes }
+  - { name: 'sequence_typing', version: 'ecoli', latest_symlink: no }
+  - { name: 'sequence_typing', version: 'enterococcus_faecalis', latest_symlink: no }
+  - { name: 'sequence_typing', version: 'enterococcus_faecium', latest_symlink: no }
+  - { name: 'sequence_typing', version: 'listeria', latest_symlink: no }
+  - { name: 'sequence_typing', version: 'mycobacterium', latest_symlink: no }
+  - { name: 'sequence_typing', version: 'neisseria', latest_symlink: no }
+  - { name: 'sequence_typing', version: 'salmonella', latest_symlink: no }
+  - { name: 'SISTR', version: '1.1.1', latest_symlink: no }
+...

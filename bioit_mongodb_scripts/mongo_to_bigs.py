@@ -78,7 +78,7 @@ class MongoToBigs:
         self._mongo_config_data = mongo_config_data if mongo_config_data else get_mongodb_config_data()
         self._naive_clustering_distance_matrix_file = Path(
             self._mongo_config_data['naive_clustering_distance_matrix_file'].replace('species', self._species).replace(
-                'dtap', self._mongo_config_data.get('dtap')).replace('.bioit_database', '.bioit_database_azure'))
+                'dtap', self._mongo_config_data.get('dtap')))
         # Parse Bigsdb config
         self._bigsdb_config_data = get_bigsdb_config_data()
         # Open collections
@@ -250,7 +250,7 @@ class MongoToBigs:
             TypingLociIntoPsql([self._species], dont_send_email=True)
             TypingAllelesIntoPsql([self._species], dont_send_email=True)
             TypingSchemeProfilesIntoPsql([self._species], dont_send_email=True)
-            GeneDetectionIntoPsql([self._species], do_not_recalculate=True, dont_send_email=True)
+            GeneDetectionIntoPsql(self._species, do_not_recalculate=True, dont_send_email=True).insert_schemes()
             # update last insertion date
             self._update_metadata_collection.update_one({'metadata': 'last_dbupdate_insertion_date'},
                                                         {'$set': {'last_update_date': datetime.datetime.now(

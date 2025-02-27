@@ -1,4 +1,4 @@
-from typing import Any, List, Tuple, Union
+from typing import List, Tuple
 
 from .databaseconnection import DatabaseConnection
 from .psql_queries import PsqlQueries
@@ -8,6 +8,7 @@ class TblClassificationGroups(DatabaseConnection):
     """
     classification_groupstable in the seqdef database
     """
+
     def __init__(self, species: str) -> None:
         """
         Initialises this class by opening a database connection.

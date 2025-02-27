@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Tuple, Union
+from typing import List, Optional, Tuple
 
 from .databaseconnection import DatabaseConnection
 from .psql_queries import PsqlQueries
@@ -67,3 +67,11 @@ class TblEavFields(DatabaseConnection):
         :return: list of tuples containing one string
         """
         return self.select_fields_like(('cgMLST_differences_%',))
+
+    def get_description_from_eav_field(self, param: Tuple[str])->List[Optional[Tuple[str]]]:
+        """
+        Return the description stored for the given field
+        :param param: field from eav_fields table
+        :return: description field from the row
+        """
+        return self.execute_query(PsqlQueries.ISO_SEL_DESCR_TB_EAVF_VAR_FIELD, param)

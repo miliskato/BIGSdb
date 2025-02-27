@@ -1,4 +1,4 @@
-from typing import Any, List, Tuple, Union
+from typing import Tuple
 
 from .databaseconnection import DatabaseConnection
 from .psql_queries import PsqlQueries
@@ -8,6 +8,7 @@ class TblProfileFields(DatabaseConnection):
     """
     profile_fields table in the seqdef database
     """
+
     def __init__(self, species: str) -> None:
         """
         Initialises this class by opening a database connection.
@@ -17,7 +18,7 @@ class TblProfileFields(DatabaseConnection):
         self._autocommit = True
         super().__init__(species, self._db_type, autocommit=self._autocommit)
 
-    def insert_profile_field(self, param: Tuple[str, str, str, str]) -> None:
+    def insert_profile_field(self, param: Tuple[int, str, str, str]) -> None:
         """
         Inserts a profile field value for a given scheme and scheme field
         :param param: variables to feed to the PSQL query, which also sanitizes these variables,
