@@ -56,6 +56,8 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
             # Get hits
             if scheme == 'resfinder4':
                 listofhits: List = self._json_report_dict[scheme]['resfinder4_genes_hits']
+            elif scheme == 'amrfinder':
+                listofhits: List = self._json_report_dict[scheme]['amr_genes_hits']
             else:
                 listofhits: List = self._json_report_dict[scheme]['loci']
 
@@ -63,7 +65,7 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                 # Storing snapshot Clusters in eav_text_hidden to be used in periodical GeneCluster recalculation
                 for index, hit in enumerate(listofhits):
                     for k, v in hit.items():
-                        v = v.replace("'","") if scheme != 'resfinder4' else v
+                        v = v.replace("'","") if scheme not in ['resfinder4','amrfinder'] else v
                         listofhits[index][k] = v
                 with TblEavTextHidden(self._species) as isolates_eavth_psql_tbl:
                     isolates_eavth_psql_tbl.insert_hidden_isolate((self._isolatename, schemename_bigsdb, json.dumps(listofhits)))
@@ -80,6 +82,11 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                     for hit in self._json_report_dict[scheme]['resfinder4_genes_hits']:
                         resfinder4_table_builder.add_hit(hit['Phenotype'], hit['Resistance gene'], hit['Identity'], hit['Coverage'])
                     html = resfinder4_table_builder.build()
+                elif scheme == 'amrfinder':
+                    amrfinder_table_builder = HtmlResFinder4TableBuilder(report_url)
+                    for hit in self._json_report_dict[scheme]['amr_genes_hits']:
+                        amrfinder_table_builder.add_hit(hit['Subclass'], hit['Gene symbol'], hit['% Identity to reference sequence'], hit['% Coverage of reference sequence'])
+                    html = amrfinder_table_builder.build()
                 elif not scheme.endswith('vfdb_core') and not scheme.endswith('virulencefinder'):
                     locus_table_builder = HtmlLocusTableBuilder(report_url)
                     clusterhitset = set()  # in case loci that were in different clusters at some point get in the same cluster

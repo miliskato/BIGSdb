@@ -81,7 +81,7 @@ class TypingSchemeProfilesIntoPsql:
         bigsdb_scheme_name = schemedict[scheme]['schemename_bigsdb']
         with TblSchemes(species,'seqdef') as tbl_schemes:
             scheme_id_psql = tbl_schemes.select_scheme_id_based_on_scheme_name((bigsdb_scheme_name,))[0][0]
-        for profile_id in    set_to_be_inserted:
+        for profile_id in set_to_be_inserted:
 
             profile_line_df = profile_df[profile_df[first_col_name]==profile_id]
             # first table (profiles):
