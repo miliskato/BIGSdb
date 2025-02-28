@@ -9,7 +9,6 @@ sys.path.append(str(PYTHONPATH))
 
 from bioit_mongodb_scripts.config import COREQC_CONFIG
 from bioit_mongodb_scripts.model.json_model import JsonReportDict
-from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, load_config
 
 
@@ -107,19 +106,19 @@ class CheckCoreQCMetrics:
         :param core_qc_metric: the current core qc metric's name in the config.
         :return: None
         """
-        if self.___evaluate_threshold(metric_info, qc_value, 'threshold_fail'):
+        if self.___evaluate_threshold_exceedance(metric_info, qc_value, 'threshold_fail'):
             qc_value_formatted, threshold_formatted = self.___format_values(metric_info, qc_value, 'threshold_fail')
             self._rejection_reasons[core_qc_metric] = {
                 'value': qc_value,
                 'reason': f"{metric_info['parameter_name']} (={qc_value_formatted}) "
                           f"{metric_info['threshold_direction']} than allowed limit (={threshold_formatted})."
             }
-        elif self.___evaluate_threshold(metric_info, qc_value, 'threshold_warn'):
+        elif self.___evaluate_threshold_exceedance(metric_info, qc_value, 'threshold_warn'):
             self._good_sample_quality = False
 
     @staticmethod
-    def ___evaluate_threshold(metric_info: dict[str, Any], qc_value: float,
-                              threshold: Literal['threshold_fail', 'threshold_warn']) -> bool:
+    def ___evaluate_threshold_exceedance(metric_info: dict[str, Any], qc_value: float,
+                                         threshold: Literal['threshold_fail', 'threshold_warn']) -> bool:
         """
         Evaluates whether the QC value exceeds the given threshold based on threshold direction.
         :param metric_info: the current metric's info
