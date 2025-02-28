@@ -59,6 +59,8 @@ def insert_into_mongodb(mapping_table_dict: Dict[str, str], start_response: Call
     The TX_BUSINESS_KEY is a key by HD that is a concatenation of the codeid of the HCO (not RIZIV nr) and the sample ID.
     Seeing as it uses the codeid of the HCO and not the actual RIZIV nr, it is of no further use to us, but
     we need to send this to HD through our outgoing DCD(s)/SFTP flow(s).
+    The count serves to keep track how many times the pseudonymization for this _id was done, and to name the fq/fa
+    files in Azure differently so that they do not interfere with eachother during the archival step.
     :param mapping_table_dict: the mapping table dictionary
     :param start_response: the response Callable belonging to the incoming POST request
     :return: a success or failure response
@@ -71,13 +73,16 @@ def insert_into_mongodb(mapping_table_dict: Dict[str, str], start_response: Call
                                         alternate_dtap=mapping_table_dict['dtap'])
         mapping_table_collection = mongoinit.initialise_mapping_table_collection()
         already_present = mapping_table_collection.find_one({'_id': mapping_table_dict['id']})
+        count = 1
         if not already_present:
             pseudo_id = str(uuid.uuid4())
             mapping_table_collection.insert_one({'_id': mapping_table_dict['id'],
                                                  'pseudo_id': pseudo_id,
-                                                 'TX_BUSINESS_KEY': mapping_table_dict['TX_BUSINESS_KEY']})
+                                                 'TX_BUSINESS_KEY': mapping_table_dict['TX_BUSINESS_KEY'],
+                                                 'count': count})
         else:
             pseudo_id = already_present['pseudo_id']
+            count = already_present.get('count', count) + 1
 
         # Set the response status and headers
         status = '200 OK'
@@ -85,7 +90,7 @@ def insert_into_mongodb(mapping_table_dict: Dict[str, str], start_response: Call
         start_response(status, response_headers)
 
         # Return the unique pseudo_id for the id
-        return [pseudo_id.encode('utf-8')]
+        return [f"{pseudo_id}_{count}".encode('utf-8')]
     except Exception as exceptionmessage:
         # Set the response status and headers
         status = '400 Bad Request'
