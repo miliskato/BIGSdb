@@ -1,17 +1,32 @@
+enterococcus_faecalis:
+  AMRFinder (AMRFinder 3.11.26): amrfinder
+  ResFinder (ResFinder 4.4.2): resfinder4
+  Virulence Factor DB - Core: vfdb-core
+  VirulenceFinder - Enterococcus: virulencefinder
+  PlasmidFinder - Gram positive: plasmidfinder
+enterococcus_faecium:
+  AMRFinder (AMRFinder 3.11.26): amrfinder
+  ResFinder (ResFinder 4.4.2): resfinder4
+  Virulence Factor DB - Core: vfdb-core
+  VirulenceFinder - Enterococcus: virulencefinder
+  PlasmidFinder - Gram positive: plasmidfinder
 listeria:
-  listeria_resfinder: ResFinder
-  listeria_virulencefinder: VirulenceFinder - <i>Listeria</i>
-  listeria_vfdbcore: Virulence Factor DB - Core
-  listeria_plasmidfinder': PlasmidFinder - Gram positive
+  AMRFinder (AMRFinder 3.11.26): amrfinder
+  ResFinder (ResFinder 4.4.2): resfinder4
+  Virulence Factor DB - Core: vfdb-core
+  VirulenceFinder - Listeria: virulencefinder
+  PlasmidFinder - Gram positive: plasmidfinder
 neisseria:
-  neisseria_resfinder: ResFinder
+  AMRFinder (AMRFinder 3.11.26): amrfinder
+  ResFinder (ResFinder 4.4.2): resfinder4
 stec:
-  stec_resfinder: ResFinder
-  stec_virulencefinder_ecoli: VirulenceFinder - <i>E. coli</i>
-  stec_virulencefinder_shiga: VirulenceFinder - Shiga-toxin genes
-  stec_plasmidfinder: PlasmidFinder - Enterobacteriaceae
-salmonella':
-  salmonella_spifinder: SPIFinder
-  salmonella_resfinder: ResFinder
-  salmonella_vfdbcore: Virulence Factor DB - Core
-  salmonella_abritamr: AbritAMR
+  AMRFinder (AMRFinder 3.11.26): amrfinder
+  ResFinder (ResFinder 4.4.2): resfinder4
+  VirulenceFinder - E. coli: virulencefinder_ecoli
+  VirulenceFinder - Shiga-toxin genes: virulencefinder_shiga-toxin_genes
+  PlasmidFinder - Enterobacteriales: plasmidfinder
+salmonella:
+  abriTAMR (AbriTAMR run 1.0.19): abritamr
+  ResFinder (ResFinder 4.4.2): resfinder4
+  SPIFinder (SPIFinder 0.1): spifinder
+  Virulence Factor DB - Core: vfdb-core

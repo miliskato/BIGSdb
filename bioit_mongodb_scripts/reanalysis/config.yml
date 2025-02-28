@@ -36,7 +36,7 @@ species:
 mongodb:
     lmod: bioit_mongodb/0.1
     main_script: mainmongo.py
-    report_script: html_update_merger.py
+    report_script: htmlreplacer.py
     tagger_script: htmltagger.py
 
 failsafe:

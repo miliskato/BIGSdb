@@ -25,7 +25,7 @@ sys.path.append(str(PYTHONPATH))
 from bioit_mongodb_scripts.reanalysis import MONGO_REANALYSIS_CONFIG
 from bioit_mongodb_scripts.reanalysis.reanalysis_triggers import TRIGGER_CONFIG
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
-from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, is_viral
+from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, is_viral, load_config
 
 BATCH_POOL_NAME: Final[str] = 'analysis_pool_focal'
 BATCH_JOB_NAME_PREFIX: Final[str] = 'reanalysis_tasks_focal_'
@@ -87,12 +87,10 @@ class BatchPipelinesReanalysis:
         self._mongo_config_data = get_mongodb_config_data()
 
         # Read the reanalysis config
-        with open(MONGO_REANALYSIS_CONFIG, encoding='utf-8') as handle:
-            self._reanalysis_config = yaml.safe_load(handle)
-            
+        self._reanalysis_config = load_config(MONGO_REANALYSIS_CONFIG)
+
         # Read the trigger config
-        with open(TRIGGER_CONFIG, encoding='utf-8') as handle:
-            self._trigger_config = yaml.safe_load(handle)
+        self._trigger_config = load_config(TRIGGER_CONFIG)
 
         # Connect to keyvault, batch account and storages
         self._connection_azure = ConnectAzure(self._dtap)
@@ -433,7 +431,7 @@ class BatchPipelinesReanalysis:
         ])
         tagger_command = ' '.join([
             f"{config_mongodb['tagger_script']}",
-            f"--htmlfilepath {report_dir}/report.html",
+            f"--html-path {report_dir}/report.html",
             f"--species {self._species_mongodb}"
         ])
         # Copy the stderr and stdout files from the temporary working dir to the fileshare because they
