@@ -227,3 +227,53 @@ species:
     coverage_all_segments:
       threshold_warn: 0.95
       threshold_fail: 0.8
+  enterococcus_faecalis:
+    contamination:
+      threshold_warn: 1.0
+      threshold_fail: 5.0
+    average_quality_score_illumina:
+      threshold_warn: 30.0
+      threshold_fail: 25.0
+    average_quality_score_ont_R9:
+      threshold_warn: 10.0
+      threshold_fail: 7.0
+    average_quality_score_ont_R10:
+      threshold_warn: 16.0
+      threshold_fail: 14.0
+    typing_loci_detected:
+      threshold_warn: 95.0
+      threshold_fail: 90.0
+    coverage_against_assembly:
+      threshold_warn: 25.0
+      threshold_fail: 20.0
+    assembly_length_deviation:
+      threshold_warn: 10.0
+      threshold_fail: 20.0
+    number_of_contigs:
+      threshold_warn: 250.0
+      threshold_fail: 300.0
+  enterococcus_faecium:
+    contamination:
+      threshold_warn: 1.0
+      threshold_fail: 5.0
+    average_quality_score_illumina:
+      threshold_warn: 30.0
+      threshold_fail: 25.0
+    average_quality_score_ont_R9:
+      threshold_warn: 10.0
+      threshold_fail: 7.0
+    average_quality_score_ont_R10:
+      threshold_warn: 16.0
+      threshold_fail: 14.0
+    typing_loci_detected:
+      threshold_warn: 95.0
+      threshold_fail: 90.0
+    coverage_against_assembly:
+      threshold_warn: 25.0
+      threshold_fail: 20.0
+    assembly_length_deviation:
+      threshold_warn: 10.0
+      threshold_fail: 20.0
+    number_of_contigs:
+      threshold_warn: 250.0
+      threshold_fail: 300.0
