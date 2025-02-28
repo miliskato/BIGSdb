@@ -360,8 +360,7 @@ class MongoToBigs:
         :return: None
         """
         with TblSchemeMembers(self._species, 'seqdef') as seqdef_schememembers_psql_tbl:
-            scheme_members_exist: List[Tuple[bool]] = seqdef_schememembers_psql_tbl.check_scheme_member_presence(
-                (self._cgmlst_bigsdb_scheme_id,))
+            scheme_members_exist: List[Tuple[bool]] = seqdef_schememembers_psql_tbl.check_scheme_member_presence((self._cgmlst_bigsdb_scheme_id,))
             if not scheme_members_exist[0][0]:
                 send_email(
                     f"Scheme members are missing in seqdef for scheme {self._cgmlst_bigsdb_scheme_id} on {socket.gethostname()}, "

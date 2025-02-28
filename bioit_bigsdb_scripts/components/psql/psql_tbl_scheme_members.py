@@ -18,7 +18,7 @@ class TblSchemeMembers(DatabaseConnection):
         :param param: scheme id from BIGSdb
         :return: t or f
         """
-        return self.execute(PsqlQueries.UNI_SEL_EXISTS_TB_SCHMEM_VAR_SCHID, param)
+        return self.execute_query(PsqlQueries.UNI_SEL_EXISTS_TB_SCHMEM_VAR_SCHID, param)
 
     def count_scheme_member(self, param: Tuple[str, str]) -> List[Tuple[int]]:
         """
