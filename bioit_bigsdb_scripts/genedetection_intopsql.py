@@ -4,20 +4,22 @@ import logging
 import socket
 import sys
 import traceback
+from datetime import date
 from pathlib import Path
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Union
 
-from bioit_bigsdb_scripts.inserters.context.gene_detection_context_builder_factory import ContextBuilderFactory
+from bioit_bigsdb_scripts.components.psql.insert_gene_detection_profiles_by_batch import GeneDetectionProfilesBatchData, \
+    GeneDetectionProfilesBatchInserter
 from bioit_bigsdb_scripts.inserters.context.gene_detection_context import GeneDetectionContext
+from bioit_bigsdb_scripts.inserters.context.gene_detection_context_builder_factory import \
+    GeneDetectionContextBuilderFactory
 
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
-from bioit_bigsdb_scripts.components.json_superclass import JsonSuperClass
-from bioit_bigsdb_scripts.components.psql import TblLocusDescriptions, TblLoci, TblSequences, TblAlleleDesignations, TblEavText, TblEavTextHidden, TblHistory
+from bioit_bigsdb_scripts.components.psql import TblLocusDescriptions, TblLoci, TblSchemes, TblAlleleDesignations, TblEavText, TblEavTextHidden, TblHistory
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data, send_email
 from bioit_bigsdb_scripts.utils.url_helper import UrlHelper
-from bioit_mongodb_scripts.model.json_model import JsonReportDict
 
 
 def _parse_arguments(specieslist: List[str]) -> argparse.Namespace:
@@ -74,7 +76,7 @@ class GeneDetectionIntoPsql:
         if scheme_dict is None:
             return
 
-        context_builder_factory = ContextBuilderFactory()
+        context_builder_factory = GeneDetectionContextBuilderFactory()
 
         for scheme in scheme_dict:
             scheme_config = scheme_dict[scheme]
@@ -92,18 +94,32 @@ class GeneDetectionIntoPsql:
         :param context: GeneDetectionContext object
         :return: None
         """
-        json_superclass_instance = JsonSuperClass('dummyname', species,
-                                                  JsonReportDict({'dummydictkey': 'dummydictvalue'}),
-                                                  config_data=self._bigsdb_config_data)
-        with TblSequences(species) as seqdef_sequences_psql_tbl, TblLoci(species, 'seqdef') as seqdef_loci_psql_tbl:
-            for cluster in context.description_dict.keys():
-                present: List[Tuple[int]] = seqdef_loci_psql_tbl.count_locus((cluster,))
-                if present[0][0] == 0:
-                    json_superclass_instance.insert_locus_if_needed(cluster, context.scheme_config['schemename_bigsdb'])
-                    seqdef_sequences_psql_tbl.insert_sequence((cluster, '1', 'dummy1'))
-                    seqdef_sequences_psql_tbl.insert_sequence((cluster, '0', 'null allele'))
-                else:
-                    continue
+        scheme = context.scheme_config['schemename_bigsdb']
+        client_db_id = f'bigsdb_{self._species}_seqdef'
+        dbaseurl = ''.join(['/cgi-bin/bigsdb/bigsdb.pl?db=', f'bigsdb_{self._species}_seqdef','&page=alleleInfo&locus=', f"{scheme}", '&allele_id=[?]'])
+
+        with TblSchemes(species,'seqdef') as seqdef_schemes_psql_tbl, \
+             TblLoci(self._species, 'seqdef') as seqdef_loci_psql_tbl:
+
+            seqdef_scheme_id=int(seqdef_schemes_psql_tbl.select_scheme_id_based_on_scheme_name((scheme,))[0][0])
+            present = seqdef_loci_psql_tbl.get_locus_list()
+
+        cluster_list = [ x for x in list(context.description_dict.keys()) if x not in present]
+        if len(cluster_list) == 0:
+            return
+
+        batch_data = GeneDetectionProfilesBatchData()
+        for cluster in cluster_list:
+            date_string = str(date.today())
+            batch_data.loci_fields.append((cluster, 'DNA', 'text', 't', 't', 1, date_string, date_string))
+            batch_data.scheme_members_fields.append((seqdef_scheme_id, cluster, 1, date_string))
+            batch_data.client_dbase_loci_fields.append((1, cluster, 1, date_string))
+            batch_data.isolates_loci_fields.append((cluster, 'DNA', 'text', 't', 't', client_db_id, cluster, dbaseurl, 'allele_only', 'f', 't', 't', 'f', 1, date_string, date_string))
+            batch_data.sequences_fields.append((cluster, '1', 'dummy1', 'unchecked', 1, 1, date_string, date_string))
+            batch_data.sequences_fields.append((cluster, '0', 'null allele', 'unchecked', 1, 1, date_string, date_string))
+
+        with GeneDetectionProfilesBatchInserter(self._species) as batch_inserter:
+            batch_inserter.insert(batch_data)
 
     @staticmethod
     def __update_locus_descriptions(species: str, context: GeneDetectionContext) -> None:
@@ -177,7 +193,6 @@ class GeneDetectionIntoPsql:
                     isolates_history_psql_tbl.insert_history_id(
                         (isolate_id, 'Gene detection results reevaluated after database update'))
 
-
     @staticmethod
     def create_gene_locus_row(hit: Dict[str, str], clusterhit: str) -> str:
         """
@@ -191,6 +206,11 @@ class GeneDetectionIntoPsql:
         locus_name: str = hit['Locus']
 
         return f'<tr><td>{gene_cluster}</td><td>{locus_name}</td></tr>'
+
+
+
+
+
 
 
 if __name__ == '__main__':

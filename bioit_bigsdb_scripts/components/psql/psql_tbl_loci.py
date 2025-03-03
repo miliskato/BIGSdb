@@ -44,3 +44,16 @@ class TblLoci(DatabaseConnection):
         if self._db_type != 'seqdef':
             raise ValueError(f'Wrong db_type {self._db_type} for the current table object/instance')
         self.execute_query(PsqlQueries.SEQ_INS__TB_LOCI_VAR_LOCUS, param)
+
+    def get_locus_list(self)-> List[str]:
+        """
+        Get list of loci already present in the sequence definition database
+        :return: List of loci found in sequence definition database
+        """
+        if self._db_type != 'seqdef':
+            raise ValueError(f'Wrong db_type {self._db_type} for the current table object/instance')
+        query_result = self.execute(PsqlQueries.SEQ_SEL__TB_LOCI_VAR_ID)
+        result = []
+        for locus in query_result:
+            result.append(locus[0])
+        return result

@@ -263,6 +263,8 @@ class PsqlQueries():
         VALUES(%s, 'DNA', 'text', 't', 't', %s, %s, 
         %s, 'allele_only', 'f', 't', 't', 'f', 
         1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));"""
+    SEQ_SEL__TB_LOCI_VAR_ID: Final [str] = """
+        SELECT id FROM loci;"""
     SEQ_INS__TB_LOCI_VAR_LOCUS: Final[str] = """
         INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, curator, date_entered, datestamp) 
         VALUES(%s, 'DNA', 'text', 't', 't', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));"""
