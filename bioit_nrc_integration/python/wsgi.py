@@ -60,7 +60,7 @@ def insert_into_mongodb(mapping_table_dict: Dict[str, str], start_response: Call
     Seeing as it uses the codeid of the HCO and not the actual RIZIV nr, it is of no further use to us, but
     we need to send this to HD through our outgoing DCD(s)/SFTP flow(s).
     The count serves to keep track how many times the pseudonymization for this _id was done, and to name the fq/fa
-    files in Azure differently so that they do not interfere with eachother during the archival step.
+    files in Azure differently so that they do not interfere with each other during the archival step.
     :param mapping_table_dict: the mapping table dictionary
     :param start_response: the response Callable belonging to the incoming POST request
     :return: a success or failure response
@@ -83,6 +83,8 @@ def insert_into_mongodb(mapping_table_dict: Dict[str, str], start_response: Call
         else:
             pseudo_id = already_present['pseudo_id']
             count = already_present.get('count', count) + 1
+            mapping_table_collection.update_one({'_id': mapping_table_dict['id']},
+                                                {'$set': {'count': count}})
 
         # Set the response status and headers
         status = '200 OK'
