@@ -65,6 +65,7 @@ def insert_failed_sample_as_rejected_manually(technical_id: str, species: str, r
     insert_document_into_rejected_collection(isolates_rejected_coreqc_collection,
                                              document_to_be_inserted)
 
+
 if __name__ == '__main__':
     # Parse config
     mongo_config_data = get_mongodb_config_data()
