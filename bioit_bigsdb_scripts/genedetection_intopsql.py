@@ -1,5 +1,4 @@
 import argparse
-import csv
 import json
 import logging
 import socket
@@ -8,7 +7,8 @@ import traceback
 from pathlib import Path
 from typing import Any, Dict, List, Tuple, Union
 
-import pandas as pd
+from bioit_bigsdb_scripts.inserters.context.gene_detection_context_builder_factory import ContextBuilderFactory
+from bioit_bigsdb_scripts.inserters.context.gene_detection_context import GeneDetectionContext
 
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
@@ -30,41 +30,6 @@ def _parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     argument_parser.add_argument('--species', type=str, choices=specieslist)
     argument_parser.add_argument('--do_not_recalculate', required=False, action='store_true', default=False)  # Since 2024/03/29 this script accesses Mongo directly to recalculate, in some instances mongo is not instantiated yet when this script is called (moving from local to Azure), requiring the ability to disable the recalculation
     return argument_parser.parse_args()
-
-
-class GeneDetectionContext:
-    """Class to create the context for the scheme of interest"""
-
-    def __init__(self, scheme: str, scheme_config: Dict[str, Any]) -> None:
-        """
-        :param scheme: name of the scheme
-        :param scheme_config: config from bigsdb config file for this scheme
-        :return: None
-        """
-        self.scheme = scheme
-        self.description_dict: Dict[str, List[str]] = {}
-        self.cluster_dict: Dict[str, str] = {}
-        self.scheme_config = scheme_config
-
-    def add_description(self, gene_cluster: str, description: str) -> None:
-        """
-        Fills in dict with gene_cluster_name as keys and description of the gene_cluster (alleles/mutations) as values
-        :param gene_cluster: gene cluster name
-        :param description: description of the gene cluster components
-        :return: None
-        """
-        if not self.description_dict.get(gene_cluster):
-            self.description_dict[gene_cluster] = []
-        self.description_dict[gene_cluster].append(description)
-
-    def set_sequence_genecluster_name(self, sequence_id: str, bigsdb_genecluster_name: str) -> None:
-        """
-        Fills in dict with sequence_id as key and combination of bigsdb scheme name and gene cluster name as values
-        :param sequence_id: sequence id
-        :param bigsdb_genecluster_name: gene cluster name
-        :return: None
-        """
-        self.cluster_dict[sequence_id] = bigsdb_genecluster_name
 
 
 class GeneDetectionIntoPsql:
@@ -109,119 +74,16 @@ class GeneDetectionIntoPsql:
         if scheme_dict is None:
             return
 
+        context_builder_factory = ContextBuilderFactory()
+
         for scheme in scheme_dict:
             scheme_config = scheme_dict[scheme]
-            context = self.create_gene_detection_context(scheme, scheme_config)
+            context = context_builder_factory.build(scheme, scheme_config)
             self.__insert_loci_and_alleles(species, context)
             self.__update_locus_descriptions(species, context)
 
             if not self._do_not_recalculate:
                 self.__recalculate_allele_designations(species, context)
-
-    @staticmethod
-    def create_gene_detection_context(scheme: str, scheme_config: Any) -> GeneDetectionContext:
-        """
-        Creates the necessary dictionaries for the current version of the database
-        :return: GeneDetectionContext object
-        """
-        if scheme_config['schemename_bigsdb'] == 'ResFinder4':
-            return GeneDetectionIntoPsql._create_resfinder4_gene_detection_context(scheme, scheme_config)
-        elif scheme_config['schemename_bigsdb'] == 'AMRFinder':
-            return GeneDetectionIntoPsql._create_amrfinder_gene_detection_context(scheme,scheme_config)
-        else:
-            return GeneDetectionIntoPsql._create_generic_gene_detection_context(scheme, scheme_config)
-
-    @staticmethod
-    def _create_resfinder4_gene_detection_context(scheme: str, scheme_config: Dict[str, Any]) -> GeneDetectionContext:
-        """
-        Based on "phenotypes.txt" file from ResFinder4, create dictionaries used to insert loci in seqdef
-        :param scheme: name of the scheme
-        :param scheme_config: bigsdb config for this scheme
-        :return: GeneDetectionContext object
-        """
-        context = GeneDetectionContext(scheme, scheme_config)
-        with Path(scheme_config['metadatafile']).open('r') as phenotypes:
-            file_reader = csv.DictReader(phenotypes, delimiter="\t")
-            for row in file_reader:
-                gene_accession = row.get('Gene_accession no.')
-
-                if len(gene_accession.split("_")) == 3:
-                    gene, _, accession = gene_accession.split("_")
-                else:
-                    gene = gene_accession.split("_")[0]
-                    accession = "_".join((gene_accession.split("_")[2], gene_accession.split("_")[3]))
-                #🍌🍌🍌🍌🍌 add try catch
-
-                bigsdb_scheme_name = scheme_config['schemename_bigsdb']
-                bigsdb_genecluster_name = f"{bigsdb_scheme_name}_{gene}"
-
-                sequence_id = "_".join([gene, accession])
-                context.set_sequence_genecluster_name(sequence_id, bigsdb_genecluster_name)
-                context.add_description(bigsdb_genecluster_name, accession)
-        return context
-
-    @staticmethod
-    def _create_amrfinder_gene_detection_context(scheme: str, scheme_config: Dict[str, Any]) -> GeneDetectionContext:
-        """
-        Based on "phenotypes.txt" file from ResFinder4, create dictionaries used to insert loci in seqdef
-        :param scheme: name of the scheme
-        :param scheme_config: bigsdb config for this scheme
-        :return: GeneDetectionContext object
-        """
-        context = GeneDetectionContext(scheme, scheme_config)
-        file_path = scheme_config['metadatafile']
-        mutations = pd.read_csv(file_path, delimiter="|", header=None)
-        mask = mutations[0].str.contains('>', na=False, case=False)
-        mutations = mutations[mask]
-        genes = mutations[4].to_list()
-        accession_ids = mutations[1].to_list()
-        bigsdb_scheme_name = scheme_config['schemename_bigsdb']
-
-        for index, gene in enumerate(genes):
-            bigsdb_genecluster_name = f"{bigsdb_scheme_name}_{gene}"
-            sequence_id = "_".join([gene, accession_ids[index]])
-            context.set_sequence_genecluster_name(sequence_id, bigsdb_genecluster_name)
-            context.add_description(bigsdb_genecluster_name, accession_ids[index])
-        return context
-
-    @staticmethod
-    def _create_generic_gene_detection_context(scheme: str, scheme_config: Dict[str, Any]) -> GeneDetectionContext:
-        """
-        Based on metadata file (json like) of the scheme, create dictionaries used to insert loci in seqdef
-        :param scheme: name of the scheme
-        :param scheme_config: bigsdb config for this scheme
-        :return: GeneDetectionContext object
-        """
-
-        context = GeneDetectionContext(scheme, scheme_config)
-        with Path(scheme_config['metadatafile']).open('r') as handle:
-            sequencedictlist: Dict[str, Dict[str, Any]] = json.load(handle)
-            # sequence id must be based on accession and allele/mutation because some schemes have duplicate accession numbers
-            for sequencename in sequencedictlist:
-                sequence_details = sequencedictlist[sequencename]
-                if sequence_details['accession'] is None:
-                    sequence_details['accession'] = "-"
-
-                bigsdb_scheme_name = scheme_config['schemename_bigsdb']
-                bigsdb_genecluster_name = f"{bigsdb_scheme_name}_Gene{sequence_details['cluster']}"
-
-                context.set_sequence_genecluster_name(GeneDetectionIntoPsql._create_sequence_id(sequence_details),
-                                                      bigsdb_genecluster_name)
-
-                key = 'allele' if bigsdb_scheme_name != 'VFDB_core' else 'gene'
-                value = (sequence_details[key]).replace("'", "")
-                context.add_description(bigsdb_genecluster_name, value)
-
-        return context
-
-    @staticmethod
-    def _create_sequence_id(sequence_details: Dict[str, any]) -> str:
-        """
-        Generate the sequence_id which is a jonction of accession and allele items
-        :param sequence_details: dictionary containing the details of the sequences
-        :return: sequence_id
-        """
-        return '_'.join([(sequence_details['accession']), (sequence_details['allele']).replace("'", "")])
 
     def __insert_loci_and_alleles(self, species: str, context: GeneDetectionContext) -> None:
         """

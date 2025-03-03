@@ -8,6 +8,7 @@ from bioit_mongodb_scripts.model.json_model import JsonReportDict
 from .json_superclass import JsonSuperClass
 from .psql import TblAlleleDesignations, TblEavText, TblEavTextHidden, TblHistory, TblIsolates
 from ..genedetection_intopsql import GeneDetectionIntoPsql
+from ..inserters.context.gene_detection_context_builder_factory import ContextBuilderFactory
 from ..utils.html_tbl_templates import HtmlLocusTableBuilder, HtmlResFinder4TableBuilder, HtmlTableBuilder
 from ..utils.url_helper import UrlHelper
 
@@ -42,6 +43,8 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
         if self._genedetectiondict is None:
             return
 
+        context_builder_factory = ContextBuilderFactory()
+
         for scheme in self._genedetectiondict:
             if scheme not in self._json_report_dict:
                 logging.warning(f"scheme {scheme} not present in json file")
@@ -51,7 +54,7 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
             schemename_bigsdb = scheme_config['schemename_bigsdb']
             # create current clusterdict with names and current cluster
 
-            context = GeneDetectionIntoPsql.create_gene_detection_context(scheme, scheme_config)
+            context = context_builder_factory.build(scheme, scheme_config)
             clusterdict = context.cluster_dict
             # Get hits
             if scheme == 'resfinder4':
