@@ -1,6 +1,6 @@
 import csv
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Tuple
 
 from bioit_bigsdb_scripts.inserters.context.gene_detection_context import GeneDetectionContext
 from bioit_bigsdb_scripts.inserters.context.gene_detection_context_builder import GeneDetectionContextBuilder
@@ -28,12 +28,8 @@ class Resfinder4GeneDetectionContextBuilder(GeneDetectionContextBuilder):
             for row in file_reader:
                 gene_accession = row.get('Gene_accession no.')
 
-                if len(gene_accession.split("_")) == 3:
-                    gene, _, accession = gene_accession.split("_")
-                else:
-                    gene = gene_accession.split("_")[0]
-                    accession = "_".join((gene_accession.split("_")[2], gene_accession.split("_")[3]))
-                #🍌🍌🍌🍌🍌 add try catch
+                gene = self.custom_split(gene_accession, '_',1)[0]
+                accession = self.custom_split(gene_accession, '_', 2)[1]
 
                 bigsdb_scheme_name = scheme_config['schemename_bigsdb']
                 bigsdb_genecluster_name = f"{bigsdb_scheme_name}_{gene}"
@@ -42,3 +38,15 @@ class Resfinder4GeneDetectionContextBuilder(GeneDetectionContextBuilder):
                 context.set_sequence_genecluster_name(sequence_id, bigsdb_genecluster_name)
                 context.add_description(bigsdb_genecluster_name, accession)
         return context
+
+    @staticmethod
+    def custom_split(string_to_split: str, separator: str, position_of_separator: int) -> Tuple[str,str]:
+        """
+        used to split string only on the ith occurence of the separator
+        :param string_to_split: string
+        :param separator: separator
+        :param position_of_separator: occurence of the separator used to split the string
+        :return: list of two strings
+        """
+        string_to_split = string_to_split.split(separator)
+        return separator.join(string_to_split[:position_of_separator]), separator.join(string_to_split[position_of_separator:])
