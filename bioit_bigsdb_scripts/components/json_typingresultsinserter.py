@@ -240,6 +240,17 @@ class JsonTypingResultsInserter(JsonSuperClass):
                 self._insert_dummy_sequence_if_needed(f'{scheme}_{gene}', '1')
                 self._isolates_ad_psql_tbl.insert_designation_by_isolatename(
                     (f'{scheme}_{gene}', self._isolatename, '1'))
+        elif self._scheme == 'gmats' and self._json_report_dict['gmats']['gmats_status'] != "":
+            with TblEavText(self._species) as isolates_eav_psql_tbl:
+                isolates_eav_psql_tbl.insert_eav_isolate((self._isolatename, 'gMATS status', self._json_report_dict['gmats']['gmats_status']))
+        elif self._scheme == 'mendevar':
+            bexero_status = self._json_report_dict['mendevar'].get('mendevar_bexero_status')
+            trumenba_status = self._json_report_dict['mendevar'].get('mendevar_trumenba_status')
+            with TblEavText(self._species) as isolates_eav_psql_tbl:
+                if bexero_status :
+                    isolates_eav_psql_tbl.insert_eav_isolate((self._isolatename, 'MenDeVar Bexero status', bexero_status)
+                if trumenba_status :
+                    isolates_eav_psql_tbl.insert_eav_isolate((self._isolatename, 'MenDeVar Trumenba status', trumenba_status)
 
     def __process_irregular_typing_scheme_stec_specific(self) -> None:
         """

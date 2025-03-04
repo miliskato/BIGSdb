@@ -83,7 +83,9 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                 if scheme == 'resfinder4':
                     resfinder4_table_builder = HtmlResFinder4TableBuilder(report_url)
                     for hit in self._json_report_dict[scheme]['resfinder4_genes_hits']:
-                        resfinder4_table_builder.add_hit(hit['Phenotype'], hit['Resistance gene'], hit['Identity'], hit['Coverage'])
+                        identity = f'{round(float(hit['Identity']),2)}'
+                        coverage = f'{round(float(hit['Coverage']), 2)}'
+                        resfinder4_table_builder.add_hit(hit['Phenotype'], hit['Resistance gene'], identity , coverage)
                     html = resfinder4_table_builder.build()
                 elif scheme == 'amrfinder':
                     amrfinder_table_builder = HtmlResFinder4TableBuilder(report_url)

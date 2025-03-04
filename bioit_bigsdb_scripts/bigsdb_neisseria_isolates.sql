@@ -38,7 +38,6 @@ INSERT INTO eav_fields(field, value_format, category, description, no_curate, no
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('penicillin_SIR_R_frequency', 'text', 'Antibiotic resistance', 'Number of Penicillin resistant isolates in PubMLST', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('rifampicin_SIR_S_frequency', 'text', 'Antibiotic resistance', 'Number of Rifampicin susceptible isolates in PubMLST', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('rifampicin_SIR_R_frequency', 'text', 'Antibiotic resistance', 'Number of Rifampicin resistant isolates in PubMLST', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
-UPDATE eav_fields SET field='Serogroup_legacy' WHERE field='Serogroup';
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('Serogroup_legacy', 'text', 'Serotyping', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('Serogroup_capsule', 'text', 'Serotyping', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
 INSERT INTO eav_fields(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('cgMLST_differences_0-4', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
@@ -55,6 +54,11 @@ INSERT INTO eav_fields(field, value_format, category, description, no_curate, no
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('rmlst-other_designation', 'text', 'rMLST identification', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('rmlst-notes', 'text', 'rMLST identification', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('rmlst-%_detected', 'float', 'rMLST identification', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
+
+--vaccine reactivity fields
+INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('gMATS status', 'text', 'Vaccine reactivity', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
+INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('MenDeVar Bexero status', 'text', 'Vaccine reactivity', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
+INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('MenDeVar Trumenba status', 'text', 'Vaccine reactivity', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
 
 --ResFinder4 mutations (PointFinder)
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('pmrA p.G15R', 'text', 'ResFinder4 mutations', 'Resistance to Colistin', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;

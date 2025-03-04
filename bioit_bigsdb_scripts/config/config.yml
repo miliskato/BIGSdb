@@ -71,17 +71,14 @@ species:
         schemename_bigsdb: ResFinder4
         schemename_html: amr
       listeria_virulencefinder:
-        clusteredfasta: /db/gene_detection/VirulenceFinder-Listeria/virulencefinder-listeria-clustered_80.fasta
         metadatafile: /db/gene_detection/VirulenceFinder-Listeria/mapping_full.json
         schemename_bigsdb: VirulenceFinder_Listeria
         schemename_html: VirulenceFinder - <i>Listeria</i>
       listeria_vfdbcore:
-        clusteredfasta: /db/gene_detection/VFDB_core/vfdb_core-clustered_80.fasta
         metadatafile: /db/gene_detection/VFDB_core/mapping_full.json
         schemename_bigsdb: VFDB_core
         schemename_html: Virulence Factor DB - Core
       listeria_plasmidfinder:
-        clusteredfasta: /db/gene_detection/PlasmidFinder-gram_positive/plasmidfinder-gram_positive-clustered_80.fasta
         metadatafile: /db/gene_detection/PlasmidFinder-gram_positive/mapping_full.json
         schemename_bigsdb: PlasmidFinder_grampositive
         schemename_html: PlasmidFinder - Gram positive
@@ -116,7 +113,7 @@ species:
         dirdb: ''
       mycobacterium_ncbi16s:
         dirdb: ''
-    genedetection_schemes: null
+    genedetection_schemes: ''
   neisseria:
     typing_schemes:
       neisseria_mlst:
@@ -166,6 +163,10 @@ species:
       neisseria_fhbppept:
         dirdb: /db/sequence_typing/neisseria/fhbp
         schemename_bigsdb: fHbp_pept
+      gmats:
+        dirdb : ''
+      mendevar:
+        dirdb : ''
     genedetection_schemes:
       resfinder4:
         metadatafile: /db/resfinder4/resfinder/phenotypes.txt
@@ -198,7 +199,6 @@ species:
         schemename_bigsdb: ResFinder4
         schemename_html: amr
       salmonella_vfdbcore:
-        clusteredfasta: /db/gene_detection/VFDB_core/vfdb_core-clustered_80.fasta
         metadatafile: /db/gene_detection/VFDB_core/mapping_full.json
         schemename_bigsdb: VFDB_core
         schemename_html: Virulence Factor DB - Core
@@ -225,22 +225,18 @@ species_json:
         type: regular
     genedetection_schemes:
       resfinder4:
-        clusteredfasta: /db/resfinder4/resfinder/all.fsa
         metadatafile: /db/resfinder4/resfinder/phenotypes.txt
         schemename_bigsdb: ResFinder4
         schemename_html: amr
       virulencefinder:
-        clusteredfasta: /db/gene_detection/VirulenceFinder-Listeria/virulencefinder-listeria-clustered_80.fasta
         metadatafile: /db/gene_detection/VirulenceFinder-Listeria/mapping_full.json
         schemename_bigsdb: VirulenceFinder_Listeria
         schemename_html: VirulenceFinder - <i>Listeria</i>
       vfdb_core:
-        clusteredfasta: /db/gene_detection/VFDB_core/vfdb_core-clustered_80.fasta
         metadatafile: /db/gene_detection/VFDB_core/mapping_full.json
         schemename_bigsdb: VFDB_core
         schemename_html: Virulence Factor DB - Core
       plasmidfinder:
-        clusteredfasta: /db/gene_detection/PlasmidFinder-gram_positive/plasmidfinder-gram_positive-clustered_80.fasta
         metadatafile: /db/gene_detection/PlasmidFinder-gram_positive/mapping_full.json
         schemename_bigsdb: PlasmidFinder_grampositive
         schemename_html: PlasmidFinder - Gram positive
@@ -272,7 +268,7 @@ species_json:
         type: irregular
       rmlst_identification:
         type: irregular
-    genedetection_schemes: null
+    genedetection_schemes: ''
   neisseria:
     typing_schemes:
       mlst:
@@ -300,9 +296,12 @@ species_json:
       serogroup:
         type: irregular
         schemename_bigsdb: serogroup_capsule
+      gmats:
+        type: irregular
+      mendevar:
+        type: irregular
     genedetection_schemes:
       resfinder4:
-        clusteredfasta: /db/resfinder4/resfinder/all.fsa
         metadatafile: /db/resfinder4/resfinder/phenotypes.txt
         schemename_bigsdb: ResFinder4
         schemename_html: amr
@@ -328,12 +327,10 @@ species_json:
         type: irregular
     genedetection_schemes:
       resfinder4:
-        clusteredfasta: /db/resfinder4/resfinder/all.fsa
         metadatafile: /db/resfinder4/resfinder/phenotypes.txt
         schemename_bigsdb: ResFinder4
         schemename_html: amr
       vfdb_core:
-        clusteredfasta: /db/gene_detection/VFDB_core/vfdb_core-clustered_80.fasta
         metadatafile: /db/gene_detection/VFDB_core/mapping_full.json
         schemename_bigsdb: VFDB_core
         schemename_html: Virulence Factor DB - Core
