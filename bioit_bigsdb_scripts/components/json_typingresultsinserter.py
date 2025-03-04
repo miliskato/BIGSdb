@@ -248,9 +248,9 @@ class JsonTypingResultsInserter(JsonSuperClass):
             trumenba_status = self._json_report_dict['mendevar'].get('mendevar_trumenba_status')
             with TblEavText(self._species) as isolates_eav_psql_tbl:
                 if bexero_status :
-                    isolates_eav_psql_tbl.insert_eav_isolate((self._isolatename, 'MenDeVar Bexero status', bexero_status)
+                    isolates_eav_psql_tbl.insert_eav_isolate((self._isolatename, 'MenDeVar Bexero status', bexero_status))
                 if trumenba_status :
-                    isolates_eav_psql_tbl.insert_eav_isolate((self._isolatename, 'MenDeVar Trumenba status', trumenba_status)
+                    isolates_eav_psql_tbl.insert_eav_isolate((self._isolatename, 'MenDeVar Trumenba status', trumenba_status))
 
     def __process_irregular_typing_scheme_stec_specific(self) -> None:
         """
