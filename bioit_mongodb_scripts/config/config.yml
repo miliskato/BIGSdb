@@ -45,6 +45,7 @@ schemes_sequence_typing:
     - cgmlst
     - mlst_warwick
     - mlst_pasteur
+    - mlst_bezdicek
 
 temp_dir: /scratch/temp
 

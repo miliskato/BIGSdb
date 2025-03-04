@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import argparse
+import sys
 from pathlib import Path
 from typing import Optional
 
@@ -8,11 +9,12 @@ import yaml
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
+from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, load_config
 from bioit_mongodb_scripts.reanalysis import PARSING_ARGUMENTS
 from bioit_mongodb_scripts.util_azure.htmlreport import HtmlReport
 
 
-def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
+def parse_arguments(specieslist: list[str]) -> argparse.Namespace:
     """
     Parses the command line arguments.
     :param specieslist: list of all the species choices
@@ -58,7 +60,7 @@ class HtmlReplacer:
         for analysis_argument in new_arguments:
             self._replace_section(analysis_argument)
         self._replace_analysis_date()
-        self._base_html.save_file(self._new_file_path)
+        self._base_html.save_file(self._new_file)
 
     def _convert_arguments_to_headers(self) -> list[str]:
         """

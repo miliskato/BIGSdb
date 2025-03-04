@@ -44,6 +44,8 @@ failsafe:
   flag_append: reanalysis_start_flag
 
 reference_genome_size:
+    enterococcus_faecalis: 2806553
+    enterococcus_faecium: 2796178
     listeria: 2986663
     mycobacterium: 4485135
     neisseria: 2188343
