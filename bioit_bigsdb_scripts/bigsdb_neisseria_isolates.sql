@@ -22,6 +22,7 @@ INSERT INTO scheme_fields(scheme_id, field, type, description, field_order, drop
 INSERT INTO scheme_fields(scheme_id, field, type, description, field_order, dropdown, primary_key, curator, datestamp, isolate_display, main_display, query_field) VALUES(4, 'BAST', 'integer', 'BAST sequence type', 1, 'f', 't', 1, (SELECT CURRENT_DATE), 't', 't', 't') ON CONFLICT DO NOTHING;
 INSERT INTO scheme_fields(scheme_id, field, type, description, field_order, dropdown, primary_key, curator, datestamp, isolate_display, main_display, query_field) VALUES(4, 'MenDeVAR_Bexsero_reactivity', 'text', 'MenDeVAR_Bexsero_reactivity', 2, 'f', 'f', 1, (SELECT CURRENT_DATE), 't', 't', 't') ON CONFLICT DO NOTHING;
 INSERT INTO scheme_fields(scheme_id, field, type, description, field_order, dropdown, primary_key, curator, datestamp, isolate_display, main_display, query_field) VALUES(4, 'MenDeVAR_Trumenba_reactivity', 'text', 'MenDeVAR_Trumenba_reactivity', 3, 'f', 'f', 1, (SELECT CURRENT_DATE), 't', 't', 't') ON CONFLICT DO NOTHING;
+INSERT INTO scheme_fields(scheme_id, field, type, description, field_order, dropdown, primary_key, curator, datestamp, isolate_display, main_display, query_field) VALUES((SELECT id FROM schemes WHERE name='rMLST'), 'rST', 'integer', 'Sequence Type for rMLST', 1, 'f', 't', 1, (SELECT CURRENT_DATE), 't', 't', 't') ON CONFLICT DO NOTHING;
 
 
 INSERT INTO eav_fields_hidden(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('mongo_results_version', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
