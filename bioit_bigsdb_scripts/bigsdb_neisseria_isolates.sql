@@ -57,7 +57,7 @@ INSERT INTO eav_fields(field, value_format, category, description, no_curate, no
 
 --vaccine reactivity fields
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('gMATS status', 'text', 'Vaccine reactivity', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
-INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('MenDeVar Bexero status', 'text', 'Vaccine reactivity', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
+INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('MenDeVar Bexsero status', 'text', 'Vaccine reactivity', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('MenDeVar Trumenba status', 'text', 'Vaccine reactivity', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
 
 --ResFinder4 mutations (PointFinder)
