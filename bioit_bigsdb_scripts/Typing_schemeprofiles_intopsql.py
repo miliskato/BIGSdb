@@ -102,8 +102,8 @@ class TypingSchemeProfilesIntoPsql:
                     species) as seqdef_sequences_psql_tbl:
                 table_profile = []
                 for locus in loci_only:
-                    if locus == "'rplF":
-                        locus = 'rplF'
+                    if locus == 'rplF':
+                        profile_line_df = profile_line_df.rename(columns={"'rplF": "rplF"})
                     locus_value = TypingSchemeProfilesIntoPsql.___return_locus_allele(locus, profile_line_df, scheme)
 
                     if locus_value == '0':  # this will create a ForeignKeyViolation error so we prevent this by inserting a null allele if not yet present
