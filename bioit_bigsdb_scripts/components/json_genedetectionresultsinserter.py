@@ -8,7 +8,7 @@ from bioit_mongodb_scripts.model.json_model import JsonReportDict
 from .json_superclass import JsonSuperClass
 from .psql import TblAlleleDesignations, TblEavText, TblEavTextHidden, TblHistory, TblIsolates
 from ..genedetection_intopsql import GeneDetectionIntoPsql
-from ..inserters.context.gene_detection_context_builder_factory import ContextBuilderFactory
+from ..inserters.context.gene_detection_context_builder_factory import GeneDetectionContextBuilderFactory
 from ..utils.html_tbl_templates import HtmlLocusTableBuilder, HtmlResFinder4TableBuilder, HtmlTableBuilder
 from ..utils.url_helper import UrlHelper
 
@@ -43,7 +43,7 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
         if self._genedetectiondict is None:
             return
 
-        context_builder_factory = ContextBuilderFactory()
+        context_builder_factory = GeneDetectionContextBuilderFactory()
 
         for scheme in self._genedetectiondict:
             if scheme not in self._json_report_dict:
