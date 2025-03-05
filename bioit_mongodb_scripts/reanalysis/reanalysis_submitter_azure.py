@@ -27,8 +27,8 @@ from bioit_mongodb_scripts.reanalysis.reanalysis_triggers import TRIGGER_CONFIG
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, is_viral, load_config
 
-BATCH_POOL_NAME: Final[str] = 'analysis_pool_focal'
-BATCH_JOB_NAME_PREFIX: Final[str] = 'reanalysis_tasks_focal_'
+BATCH_POOL_NAME: Final[str] = 'analysis_pool_jammy'
+BATCH_JOB_NAME_PREFIX: Final[str] = 'reanalysis_tasks_jammy_'
 AUTOSCALE_FORMULA = """$TargetLowPriorityNodes = max(0, min(50, $PendingTasks.GetSample(TimeInterval_Minute*5)));\n$NodeDeallocationOption = taskcompletion;"""
 
 
@@ -124,7 +124,7 @@ class BatchPipelinesReanalysis:
         # Create a new pool if none exists
         logging.info(f"Checking pool {BATCH_POOL_NAME}'s existence")
         vm_size = self._connection_azure.get_secret_value('BATCH-VM-SIZE')
-        node_agent_sku_id = 'batch.node.ubuntu 20.04'
+        node_agent_sku_id = 'batch.node.ubuntu 22.04'
         # listing popular images: az vm image list --output table # https://learn.microsoft.com/en-us/azure/virtual-machines/linux/cli-ps-findimage#list-popular-images
         # image_ref = ImageReference(publisher='Canonical', offer='0001-com-ubuntu-server-jammy', sku='22_04-lts-gen2')
 
@@ -398,15 +398,16 @@ class BatchPipelinesReanalysis:
         We're creating the report dir before the smk pipe does it, because then if the smk fails for whatever reason,
         the stderr.txt and stdout.txt files can still be copied to the report_dir in the post_command
         """
+        input_type = self.____get_input_type(mongodb_document)
         base_command = ' '.join([
             f"module load {config_species['lmod']};",
             'pipeline_hash=$(git --git-dir=$PYTHONPATH/.git rev-parse --short=10 HEAD);',  # need to be double "
             f"mkdir -p {working_dir};",
             f"cd {working_dir};"
             f"{config_species['main_script']} ",
+            f"--input-type {input_type} "
             f"--fasta {mongodb_document['fasta_path']} ",
             '--detection-method blast' if self._species_mongodb not in self._mongo_config_data['viral_species'] else '',
-            '--library NexteraPE',  # should be changed in the future?
             f'--working-dir {working_dir}',
             f'--output-dir {report_dir}',
             f"--output-html {report_dir}/report.html",
@@ -459,6 +460,16 @@ class BatchPipelinesReanalysis:
                         f'{unload_command}; {report_command}; {tagger_command}; {post_command}; {cleanup_command}; '
                         f'{mongodb_command}"')
         return task_command
+
+    def ____get_input_type(self, mongodb_document: dict[str, Any]) -> str:
+        """
+        Returns the input type that is needed for the camel command.
+        :param mongodb_document
+        :return: str, either fasta or fasta_with_vcf
+        """
+        if self._species != 'mycobacterium' or mongodb_document.get('original_input_format') == 'fasta':
+            return 'fasta'
+        return 'fasta_with_vcf' if mongodb_document.get("vcf_path_unfiltered") else 'fasta'
 
 
 if __name__ == '__main__':

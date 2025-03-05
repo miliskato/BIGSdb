@@ -35,5 +35,6 @@ if __name__ == '__main__':
     # Run main
     html_tagger = HtmlReport(args.html_path)
     headers_names = load_config(TAGGER_CONFIG).get(args.species)
-    html_tagger.add_anchor_tags(headers_names)
-    html_tagger.save_file(args.html_path)
+    if headers_names:
+        html_tagger.add_anchor_tags(headers_names)
+        html_tagger.save_file(args.html_path)

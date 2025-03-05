@@ -323,9 +323,24 @@ viral:
       - /db/nextclade3/sars-cov-2
   influenza_a:
     dirsdb:
-      - /db/nextclade3/flu_h1n1pdm
-      - /db/nextclade3/flu_h3n2
+      - /db/nextclade3/flu_h1n1pdm/ha
+      - /db/nextclade3/flu_h1n1pdm/mp
+      - /db/nextclade3/flu_h1n1pdm/na
+      - /db/nextclade3/flu_h1n1pdm/np
+      - /db/nextclade3/flu_h1n1pdm/ns
+      - /db/nextclade3/flu_h1n1pdm/pa
+      - /db/nextclade3/flu_h1n1pdm/pb1
+      - /db/nextclade3/flu_h1n1pdm/pb2
+      - /db/nextclade3/flu_h3n2/ha
+      - /db/nextclade3/flu_h3n2/mp
+      - /db/nextclade3/flu_h3n2/na
+      - /db/nextclade3/flu_h3n2/np
+      - /db/nextclade3/flu_h3n2/ns
+      - /db/nextclade3/flu_h3n2/pa
+      - /db/nextclade3/flu_h3n2/pb1
+      - /db/nextclade3/flu_h3n2/pb2
   influenza_b:
     dirsdb:
-      - /db/nextclade3/flu_vic
-      - /db/nextclade3/flu_yam
+      - /db/nextclade3/flu_vic/ha
+      - /db/nextclade3/flu_vic/na
+      - /db/nextclade3/flu_yam/ha
