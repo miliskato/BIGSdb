@@ -51,7 +51,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
                 elif self._scheme == 'resfinder4_mutations':
                     self._processing_resfinder4_mutations()
                 elif self._scheme == 'mob_suite':
-                    self._processing_mob_suite_mutations()
+                    self._processing_mob_suite()
                 else:
                     logging.warning(f"scheme {self._scheme} not present in json file")
             with TblHistory(self._species) as isolates_history_psql_tbl:
@@ -126,7 +126,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
                 value = isolates_eavf_psql_tbl.get_description_from_eav_field((item,))
                 isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, str(item), value[0][0]))
 
-    def _processing_mob_suite_mutations(self) -> None:
+    def _processing_mob_suite(self) -> None:
         """
         Inserts resfinder 4 mutations results into bigsdb eav_text table (isolates db)
         :return: None

@@ -1,24 +1,25 @@
-from typing import Dict, List, Self
+from typing import List, Self
 
 class HtmlTableBuilder:
     """General class to build the html table for gene detection results"""
-    def __init__(self, headers: List[str]):
+    def __init__(self, headers: List[str], width_px: int | None = None):
         """initialize the general class HtmlTableBuilder
         :param headers: list of headers fields
         :return: None
         """
         self._table = ''
         self._cols = len(headers)
-        self._open_table()
+        self._open_table(width_px)
         self._add_header(headers)
 
-    def _open_table(self) -> None:
+    def _open_table(self, width_px: int | None = None) -> None:
         """
         initialize the html table
         :return: None
         """
+        style = '' if width_px is None else f' width: {width_px}px;'
         self._table += '<style>table.nice { text-align: center; border-spacing:0 }table.nice tr:nth-child(n+3) {background: #E4EFF3}table.nice tr:nth-child(2n+3) {background: #C1E6F3}</style>'
-        self._table += '<table class="data nice">'
+        self._table += f'<table class="data nice"{style}>'
 
     def _add_header(self, headers: List[str]) -> None:
         """
@@ -93,7 +94,7 @@ class HtmlResFinder4TableBuilder(HtmlTableBuilder):
         """
         :param report_url: url to call the api to get the html report
         """
-        super().__init__(headers=['AMR', 'Resistance gene', '%Identity', 'Coverage'])
+        super().__init__(headers=['AMR', 'Resistance gene', '%Identity', 'Coverage'], width_px=500)
         self.add_report_row(report_url)
 
     def add_hit(self, amr: str, resistance_gene: str, identity: str, coverage: str):
