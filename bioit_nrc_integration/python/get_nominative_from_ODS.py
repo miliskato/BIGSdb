@@ -245,7 +245,7 @@ class MainNominativeDataParserFromOds(SFTPConnection):
         """
         # DOB is not a mandatory field so it can be missing = None
         dob = MainNominativeDataParserFromOds.___get_value_by_capitalization_agnostic_key(data_unprocessed, 'DT_PAT_DOB')
-        if dob:
+        if dob and datetime.strptime(dob, "%Y-%m-%d") != '1900/01/01':
             # Calculate the number of years
             # Average year length considering leap years = 365.25 days
             patient_age = math.floor((datetime.strptime(MainNominativeDataParserFromOds.___get_value_by_capitalization_agnostic_key(data_unprocessed, 'DT_LAB_COLLCN'), "%Y-%m-%dT%H:%M:%S") -
