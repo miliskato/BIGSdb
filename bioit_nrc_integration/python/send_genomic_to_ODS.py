@@ -1,8 +1,9 @@
 import logging
+import re
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import yaml
 
@@ -23,7 +24,7 @@ class SendGenomicToODS(SFTPConnection):
     Class to get all required values for a pathogen from a MongoDB document and
     to send these values as a JSON file to the ODS over SFTP.
     """
-    def __init__(self, document: Dict[str, Any], mongo_config_data: Dict[str, Any], species: str,
+    def __init__(self, document: dict[str, Any], mongo_config_data: dict[str, Any], species: str,
                  alternate_dtap: str = None) -> None:
         """
         Initialises this class and executes the main function.
@@ -61,33 +62,46 @@ class SendGenomicToODS(SFTPConnection):
 
         self._close_sftp_connection(self._ssh, self._sftp)
 
-    def _create_output_json_dict(self) -> Dict[str, Any]:
+    def _create_output_json_dict(self) -> dict[str, Any]:
         """"
         Finds the required values for the ODS in the document and puts them in a dictionary with the right format.
         :return: output dictionary in the right format ready to be sent to the ODS
         """
         data_dict = {}
-        for variable, list_path in self._translation_codes['common'].items():
-            data_dict[variable] = access_value_in_dict_using_list_as_dictpath(list_path, self._document)
+        for variable, variable_info in self._translation_codes['common'].items():
+            dict_path = variable_info['dict_path']
+            data_dict[variable] = access_value_in_dict_using_list_as_dictpath(dict_path, self._document)
         # although the DT_PIPELINE_ANAL is common, it can not be processed regularly using
         # the previous function because it needs to be converted
         data_dict['DT_PIPELINE_ANAL'] = datetime.strptime(self._document['results']['analysis_date'],
                                                           '%d/%m/%Y - %X').strftime('%Y-%m-%dT%X')
 
         if self._translation_codes.get(self._species):
-            for variable, list_path in self._translation_codes[self._species].items():
-                data_dict[variable] = access_value_in_dict_using_list_as_dictpath(list_path, self._document)
-                if 'CD_GENTPE' in variable:
-                    if not data_dict[variable]:
-                        # The Mykrobe fields are optional
-                        data_dict.pop(variable)
-                    else:
-                        # I have at least noticed one instance where an R was lowercase
-                        data_dict[variable] = (data_dict[variable]).upper()
+            for variable, variable_info in self._translation_codes[self._species].items():
+                dict_path = variable_info['dict_path']
+                data_dict[variable] = access_value_in_dict_using_list_as_dictpath(dict_path, self._document)
+                if variable_info.get('code_list'):
+                    data_dict[variable] = self._translation_codes['code_lists'][variable_info['code_list']][data_dict[variable]]
+            if self._species == 'influenza':
+                self.__add_influenza_a_hgna_info(data_dict)
         return {'metadata': {'version': self._translation_codes['pathogens'][self._species]['dcd_version'],
                              'data_collection': self._translation_codes['pathogens'][self._species]['dcd_code'],
                              'dcd_name': self._translation_codes['pathogens'][self._species]['dcd_name']},
                 'data': data_dict}
+
+    @staticmethod
+    def __add_influenza_a_hgna_info(data_dict: dict[str, Any]) -> None:
+        """
+        Checks if the pathogen is influenza A, then checks if the Type matches HxNx, and if it does, splits HxNx into Hx
+        and Nx and adds these to their corresponding variables in the data dictionary to be sent.
+        :param data_dict: the data dictionary to send to the ODS, to be modified in place.
+        :return: None
+        """
+        if data_dict['TX_GENTPE_TPE'] == 'A':
+            match = re.match(r"^H(\d+)N(\d+)$", data_dict['TX_GENTPE_SUBTPE'])
+            if match:
+                data_dict['TX_GENTPE_SUBTPE_HEMAG'] = f"H{match.group(1)}"
+                data_dict['TX_GENTPE_SUBTPE_NEURAM'] = f"N{match.group(2)}"
 
     def __del__(self) -> None:
         """

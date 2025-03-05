@@ -208,7 +208,7 @@ class MainNominativeDataParserFromOds(SFTPConnection):
             self.___calculate_age_fields(data_unprocessed, data_translated)
             self.___parse_complex_labtest_results(data_unprocessed, data_translated)
             if species == 'salmonella':
-                self.___choose_serovar_final(data_translated)
+                self.___choose_seroval_final(data_translated)
         if filetype == 'CLIN':
             self.___parse_complex_country_field(data_unprocessed, data_translated)
             if species == 'salmonella':
@@ -314,7 +314,7 @@ class MainNominativeDataParserFromOds(SFTPConnection):
             data_translated['mic_resistances'] = ' '.join([resistance for resistance in mic_resistances_list])
 
     @staticmethod
-    def ___choose_serovar_final(data_translated: Dict[str, Any]) -> None:
+    def ___choose_seroval_final(data_translated: Dict[str, Any]) -> None:
         """
         Picks the serovar_final based on logic that Florian sent through mail:
         serovar_luminex > serovar_agglutination > malditof_identification

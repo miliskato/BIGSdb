@@ -403,9 +403,9 @@ class MainMongo:
             translation_codes = yaml.safe_load(handle)
         if not translation_codes.get(self._species):
             return
-        for variable, list_path in translation_codes[self._species].items():
-            list_path = list_path[1:]  # skip the first value which is always 'results' and is not in the delta
-            if access_value_in_dict_using_list_as_dictpath(list_path, deltas_new_old):
+        for variable, variable_info in translation_codes[self._species].items():
+            dict_path = variable_info['dict_path'][1:]  # skip the first value which is always 'results' and is not in the delta
+            if access_value_in_dict_using_list_as_dictpath(dict_path, deltas_new_old):
                 self._isolates_collection.update_one({'_id': deltas_new_old['isolates_id']},
                                                      {'$set': {'changed_since_sent_to_ODS': True,
                                                                'changes_accepted_by_ODS': False}})

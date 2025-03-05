@@ -6,7 +6,7 @@
     "outcome": "Cured",
     "antibiotic_therapy": "Yes",
     "antibiotic": "Product containing tigecycline",
-    "link": "Isolated case",
+    "link_isolated_case": "Yes",
     "comment": "Specimen comment",
     "country": "BE",
     "mic_amp_1": "Intermediate",
