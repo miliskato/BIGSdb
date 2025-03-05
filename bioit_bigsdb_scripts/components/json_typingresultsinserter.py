@@ -7,6 +7,7 @@ from bioit_mongodb_scripts.model.json_model import JsonReportDict
 from .json_superclass import JsonSuperClass
 from .psql import (TblAlleleDesignations, TblEavBoolean, TblEavFields, TblEavFloat, TblEavText, TblHistory, TblIsolates,
     TblSchemeMembers)
+from ..utils.html_tbl_templates import HtmlMobSuiteTableBuilder
 
 
 class JsonTypingResultsInserter(JsonSuperClass):
@@ -49,6 +50,8 @@ class JsonTypingResultsInserter(JsonSuperClass):
                     self._processing_rmlst_identification()
                 elif self._scheme == 'resfinder4_mutations':
                     self._processing_resfinder4_mutations()
+                elif self._scheme == 'mob_suite':
+                    self._processing_mob_suite_mutations()
                 else:
                     logging.warning(f"scheme {self._scheme} not present in json file")
             with TblHistory(self._species) as isolates_history_psql_tbl:
@@ -120,6 +123,23 @@ class JsonTypingResultsInserter(JsonSuperClass):
         mutation_list = mutations_found.split(',')
         with TblEavText(self._species) as isolates_eavt_psql_tbl, TblEavFields(self._species) as isolates_eavf_psql_tbl:
             for item in mutation_list:
+                value = isolates_eavf_psql_tbl.get_description_from_eav_field((item,))
+                isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, str(item), value[0][0]))
+
+    def _processing_mob_suite_mutations(self) -> None:
+        """
+        Inserts resfinder 4 mutations results into bigsdb eav_text table (isolates db)
+        :return: None
+        """
+        plasmid_list = self._json_report_dict['mob_suite']['mob_suite_overview']
+        if len(plasmid_list) == 0:
+            return
+        html_table = HtmlMobSuiteTableBuilder()
+            for item in plasmid_list:
+                html_table.add_plasmid(item['id'], item['num_contigs'], item['size'], item['gc'], item['predicted_mobility'], item['rep_type(s)'], item['relaxases_types'])
+
+        with TblEavText(self._species) as isolates_eavt_psql_tbl, TblEavFields(self._species) as isolates_eavf_psql_tbl:
+            for i in mutation_list:
                 value = isolates_eavf_psql_tbl.get_description_from_eav_field((item,))
                 isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, str(item), value[0][0]))
 

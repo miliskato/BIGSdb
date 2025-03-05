@@ -106,3 +106,26 @@ class HtmlResFinder4TableBuilder(HtmlTableBuilder):
         :return: None
         """
         self.add_row([amr, resistance_gene, identity, coverage])
+
+class HtmlMobSuiteTableBuilder(HtmlTableBuilder):
+    """subclass used to create the html table following the for Mob-suite results"""
+    def __init__(self, report_url: str):
+        """
+        :param report_url: url to call the api to get the html report
+        """
+        super().__init__(headers=['id', 'num_contigs', 'size', 'gc content', 'predicted_mobility', 'rep type(s)', 'relaxases types'])
+        self.add_report_row(report_url)
+
+    def add_plasmid(self, id:str, num_contigs: str, size: str, gc_content: str, predicted_mobility: str, rep_types: str, relaxases_types: str):
+        """
+        add characteristics of the plasmid detected by Mob-suite
+        :param id: plasmid id
+        :param num_contig: number of contigs
+        :param size: plasmid size
+        :param gc_content: plasmid gc content
+        :param predicted_mobility: predicted mobility
+        :param rep_types: rep types
+        :param relaxases_types: relaxases types
+        :return: None
+        """
+        self.add_row([id, num_contigs, size, gc_content, predicted_mobility, rep_types, relaxases_types])
