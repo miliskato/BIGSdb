@@ -10,9 +10,20 @@ class GenericGeneDetectionContextBuilder(GeneDetectionContextBuilder):
     Builder for gene detection context that catches all schemes except resfinder4 and amrfinder.
     """
     def accept(self, scheme: str) -> bool:
+        """
+        It always accepts the scheme as it is the last builder listed in the constructor of the factory
+        :param scheme: name of the scheme
+        :return: True
+        """
         return True
 
     def build(self, scheme: str, scheme_config: Dict[str, Any]) -> GeneDetectionContext:
+        """
+        Based on "profiles.tsv" file from the corresponding db, creates dictionaries used to insert loci in seqdef
+        :param scheme: name of the scheme
+        :param scheme_config: bigsdb config for this scheme
+        :return: GeneDetectionContext object
+        """
         context = GeneDetectionContext(scheme, scheme_config)
         with Path(scheme_config['metadatafile']).open('r') as handle:
             sequencedictlist: Dict[str, Dict[str, Any]] = json.load(handle)

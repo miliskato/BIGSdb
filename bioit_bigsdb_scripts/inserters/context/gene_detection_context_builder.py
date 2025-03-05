@@ -13,14 +13,14 @@ class GeneDetectionContextBuilder:
         """
         Evaluate if the scheme should be accepted.
         :param scheme: name of the scheme
-        :return: True if the scheme should be accepted by the builder
+        :return: True if the scheme should be accepted by the builder otherwise False
         """
         pass
 
     @abstractmethod
     def build(self, scheme: str, scheme_config: Dict[str, Any]) -> GeneDetectionContext:
         """
-        Based on metadata file (json like) of the scheme, create dictionaries used to insert loci in seqdef
+        Based on metadata file containing the profiles of the scheme, creates dictionaries used to insert loci in seqdef
         :param scheme: name of the scheme
         :param scheme_config: bigsdb config for this scheme
         :return: GeneDetectionContext object

@@ -8,10 +8,21 @@ class AmrFinderGeneDetectionContextBuilder(GeneDetectionContextBuilder):
     SCHEME_NAME = 'amrfinder'
 
     def accept(self, scheme: str) -> bool:
+        """
+        Accept or reject the scheme
+        :param scheme: name of the scheme
+        :return: True if accepted, False otherwise
+        """
 
         return scheme == self.SCHEME_NAME
 
     def build(self, scheme: str, scheme_config: Dict[str, Any]) -> GeneDetectionContext:
+        """
+        Based on "phenotypes.txt" file from ResFinder4, create dictionaries used to insert loci in seqdef
+        :param scheme: name of the scheme
+        :param scheme_config: bigsdb config for this scheme
+        :return: GeneDetectionContext object
+        """
 
         context = GeneDetectionContext(scheme, scheme_config)
         file_path = scheme_config['metadatafile']

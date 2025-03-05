@@ -21,6 +21,8 @@ class GeneDetectionContextBuilderFactory:
     def build(self, scheme: str, scheme_config: Dict[str, Any]) -> GeneDetectionContext:
         """
         This method calls the right context builder among those specified in the constructor.
+        :param scheme: The scheme for which a context is needed
+        :param scheme_config: The configuration of the scheme
         :return: A GeneDetectionContext
         """
         for context_builder in self.gene_detection_context_builders:
