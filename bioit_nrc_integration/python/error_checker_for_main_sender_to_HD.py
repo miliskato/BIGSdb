@@ -50,8 +50,6 @@ class ErrorCheckerForMainSenderToHD(SFTPConnection):
         with CODES_GENOMIC_ODS.open('r') as handle:
             self._translation_codes = yaml.safe_load(handle)
 
-        self._fail_log_dict = {'ODS': 0}
-
         try:
             self._main_error_checker_for_main_sender_to_hd()
             self._main_processed_files_acknowledger()
@@ -75,12 +73,12 @@ class ErrorCheckerForMainSenderToHD(SFTPConnection):
         self._close_sftp_connection(ssh, sftp)
 
         # Filter out directories, only list files
-        error_files_count = sum(entry.filename for entry in files_and_dirs if not stat.S_ISDIR(entry.st_mode))
+        error_files_count = len([entry.filename for entry in files_and_dirs if not stat.S_ISDIR(entry.st_mode)])
         # need to divide files by 2 because we have decided to also add .log files.
         # it remains to be seen if they actually do but it needs to be implemented here nevertheless
-        self._fail_log_dict['ODS'] = error_files_count / 2
-        if sum(error_count for healtdata_receiver, error_count in self._fail_log_dict.items()) > 0:
-            send_email(f"Found {self._fail_log_dict['ODS']} "
+        error_count = error_files_count / 2
+        if error_count > 0:
+            send_email(f"Found {error_count} "
                        f"errors in the ODS SFTP error folder. Please go "
                        f"and investigate manually, resolve the errors using the .log files, add the correct file to "
                        f"the root location again and remove the error and log files.")
@@ -116,12 +114,17 @@ class ErrorCheckerForMainSenderToHD(SFTPConnection):
                 # get species name based on dcd name which is a metadata value in both outgoing DCDs
                 species = next(pathogen for pathogen, details in self._translation_codes['pathogens'].items() if details['dcd_name'] == dcd_name)
                 # Open correct pathogen specific MongoDB database
+                mongoinit_local = MongoInitialisation(species, mongo_config_data=self._mongo_config_data,
+                                                      selected_connection_string='CONNECTION_STRING_LOCAL',
+                                                      alternate_dtap=self._alternate_dtap)
+                mapping_collection = mongoinit_local.initialise_mapping_table_collection()
+                pseudo_id = mapping_collection.find_one({'_id': contents['data']['TX_SAMPLE_ID']})['pseudo_id']
                 mongoinit_azure = MongoInitialisation(species, mongo_config_data=self._mongo_config_data,
                                                       selected_connection_string='CONNECTION_STRING_AZURE',
                                                       alternate_dtap=self._alternate_dtap)
                 isolates_collection, old_isolateresults_collection, isolates_badqc_collection, \
                     isolates_resequencing_collection = mongoinit_azure.initialise_collections()
-                isolates_collection.update_one({'_id': contents['data']['TX_BIOIT_TECHNICAL_ID']},
+                isolates_collection.update_one({'_id': pseudo_id},
                                                {"$set": {f"accepted_by_ODS": True,
                                                          f"changes_accepted_by_ODS": True}})
                 # the 'changes_accepted_by_ODS' field interplays with 'changed_since_sent_to_ODS' that is set by
