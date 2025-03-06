@@ -36,7 +36,7 @@ class GenericGeneDetectionContextBuilder(GeneDetectionContextBuilder):
                 bigsdb_scheme_name = scheme_config['schemename_bigsdb']
                 bigsdb_genecluster_name = f"{bigsdb_scheme_name}_Gene{sequence_details['cluster']}"
 
-                context.set_sequence_genecluster_name(GenericContextBuilder._create_sequence_id(sequence_details),
+                context.set_sequence_genecluster_name(GenericGeneDetectionContextBuilder._create_sequence_id(sequence_details),
                                                       bigsdb_genecluster_name)
 
                 key = 'allele' if bigsdb_scheme_name != 'VFDB_core' else 'gene'
