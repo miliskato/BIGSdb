@@ -17,7 +17,7 @@ class HtmlTableBuilder:
         initialize the html table
         :return: None
         """
-        style = '' if width_px is None else f' width: {width_px}px;'
+        style = '' if width_px is None else f' style="width: {width_px}px;"'
         self._table += '<style>table.nice { text-align: center; border-spacing:0 }table.nice tr:nth-child(n+3) {background: #E4EFF3}table.nice tr:nth-child(2n+3) {background: #C1E6F3}</style>'
         self._table += f'<table class="data nice"{style}>'
 
@@ -114,7 +114,7 @@ class HtmlMobSuiteTableBuilder(HtmlTableBuilder):
         """
         :param report_url: url to call the api to get the html report
         """
-        super().__init__(headers=['id', 'num_contigs', 'size', 'gc content', 'predicted_mobility', 'rep type(s)', 'relaxases types'])
+        super().__init__(headers=['id', 'num_contigs', 'size', 'gc content', 'predicted_mobility', 'rep type(s)', 'relaxases types'], width_px=700)
         self.add_report_row(report_url)
 
     def add_plasmid(self, id:str, num_contigs: str, size: str, gc_content: str, predicted_mobility: str, rep_types: str, relaxases_types: str):
