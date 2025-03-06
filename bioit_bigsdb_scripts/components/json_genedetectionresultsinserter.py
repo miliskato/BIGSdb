@@ -7,9 +7,8 @@ from typing import Any, Dict, List, Union
 from bioit_mongodb_scripts.model.json_model import JsonReportDict
 from .json_superclass import JsonSuperClass
 from .psql import TblAlleleDesignations, TblEavText, TblEavTextHidden, TblHistory, TblIsolates
-from ..genedetection_intopsql import GeneDetectionIntoPsql
 from ..inserters.context.gene_detection_context_builder_factory import GeneDetectionContextBuilderFactory
-from ..utils.html_tbl_templates import HtmlLocusTableBuilder, HtmlResFinder4TableBuilder, HtmlTableBuilder
+from ..utils.html_tbl_templates import HtmlAmrTableBuilder, HtmlLocusTableBuilder
 from ..utils.url_helper import UrlHelper
 
 
@@ -81,14 +80,14 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                 html = f'<a href="{report_url}" target="_blank">Full report</a>'
 
                 if scheme == 'resfinder4':
-                    resfinder4_table_builder = HtmlResFinder4TableBuilder(report_url)
+                    resfinder4_table_builder = HtmlAmrTableBuilder(report_url)
                     for hit in self._json_report_dict[scheme]['resfinder4_genes_hits']:
                         identity = f'{round(float(hit["Identity"]),2)}'
                         coverage = f'{round(float(hit["Coverage"]), 2)}'
                         resfinder4_table_builder.add_hit(hit['Phenotype'], hit['Resistance gene'], identity , coverage)
                     html = resfinder4_table_builder.build()
                 elif scheme == 'amrfinder':
-                    amrfinder_table_builder = HtmlResFinder4TableBuilder(report_url)
+                    amrfinder_table_builder = HtmlAmrTableBuilder(report_url)
                     for hit in self._json_report_dict[scheme]['amr_genes_hits']:
                         identity = f'{round(float(hit["% Identity to reference sequence"]), 2)}'
                         coverage = f'{round(float(hit["% Coverage of reference sequence"]), 2)}'

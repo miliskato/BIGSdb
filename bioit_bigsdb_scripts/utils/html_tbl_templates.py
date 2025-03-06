@@ -88,7 +88,7 @@ class HtmlLocusTableBuilder(HtmlTableBuilder):
         """
         self.add_row([gene_cluster, locus])
 
-class HtmlResFinder4TableBuilder(HtmlTableBuilder):
+class HtmlAmrTableBuilder(HtmlTableBuilder):
     """subclass used to create the html table following the format for AMR resistances"""
     def __init__(self, report_url: str):
         """
