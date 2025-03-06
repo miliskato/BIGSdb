@@ -131,6 +131,9 @@ class MainMongo:
         # Open querying class instance
         self._mongoquerying = Mongoquerying()
 
+        # Create AzureServiceBus instance
+        self._asb_instance = AzureServiceBus(self._mongo_config_data, self._species, self._alternate_dtap)
+
         # Parameter compatibility checks
         self._parameter_compatibility_checks()
 
@@ -250,6 +253,7 @@ class MainMongo:
                 isolates_rejected_coreqc_collection = self._mongoinit.initialise_isolates_rejected_coreqc_collection()
 
                 insert_document_into_rejected_collection(isolates_rejected_coreqc_collection, rejected_document)
+                self._asb_instance.send_message_to_queue(AzureServiceBusMessage(self._technical_id, isolates_rejected_coreqc_collection.name))
                 logging.info(f"Sample {self._technical_id} failed one or more core QC checks. It was added to the "
                              f"isolates_rejected_coreqc collection.")
                 # exit gracefully
@@ -389,8 +393,7 @@ class MainMongo:
                          "latest_analysis_date": convert_dmyhms_to_ymd(new_results["results.analysis_date"]),
                          "previous_latest_results_document": self.___write_document(self._old_isolateresults_collection,
                                                                                     MongoRecordDict(dict(deltas_new_old)))}})
-        asb_instance = AzureServiceBus(self._mongo_config_data, self._species, self._alternate_dtap)
-        asb_instance.send_message_to_queue(AzureServiceBusMessage(self._technical_id, self._isolates_collection.name))
+        self._asb_instance.send_message_to_queue(AzureServiceBusMessage(self._technical_id, self._isolates_collection.name))
         # after having updated the isolates collection, check for changes for HD ODS to respect the order of execution.
         self.___check_if_any_results_for_hd_ods_changed(dict(deltas_new_old))
         logging.info(f"Wrote new results and linked to isolate {self._technical_id} in {self._species}")
@@ -438,8 +441,7 @@ class MainMongo:
 
         # Send message to Azure Service Bus
         if 'isolates' in opened_collection.name:
-            asb_instance = AzureServiceBus(self._mongo_config_data, self._species, self._alternate_dtap)
-            asb_instance.send_message_to_queue(AzureServiceBusMessage(
+            self._asb_instance.send_message_to_queue(AzureServiceBusMessage(
                 collection_write.inserted_id, opened_collection.name))
         logging.debug(f"Writing {collection_write.inserted_id} in collection {opened_collection}")
         return collection_write.inserted_id
