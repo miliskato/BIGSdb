@@ -1,16 +1,14 @@
 #!/usr/bin/env python
 import argparse
 import sys
-from os import fdopen, remove
 from pathlib import Path
-from shutil import move, copymode
 
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
 from bioit_mongodb_scripts.config import TAGGER_CONFIG
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, load_config
-from bioit_mongodb_scripts.util_azure.htmlreport import HtmlReport
+from bioit_mongodb_scripts.util.htmlreport import HtmlReport
 
 
 def parse_arguments(specieslist: list[str]) -> argparse.Namespace:

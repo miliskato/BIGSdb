@@ -1,10 +1,7 @@
 from pathlib import Path
-from typing import Union
+from typing import Optional
 
 from bs4 import BeautifulSoup, Tag
-
-from bioit_mongodb_scripts.reanalysis import PARSING_ARGUMENTS
-from bioit_mongodb_scripts.util.python_utility_functions import load_config
 
 
 class HtmlReport:
@@ -30,7 +27,7 @@ class HtmlReport:
             soup = BeautifulSoup(handle, 'lxml')
         return soup
 
-    def find_report_section_by_header(self, header_text: str) -> Union[Tag, None]:
+    def find_report_section_by_header(self, header_text: str) -> Optional[Tag]:
         """
         Finds a section of the report by using the header text.
         :param header_text: header text that has to be found
@@ -71,7 +68,7 @@ class HtmlReport:
     def save_file(self, file: Path) -> None:
         """
         Saves the BeautifulSoup object as a file.
-        :param: Path to the output file
+        :param file: Path to the output file
         :return: None
         """
         with file.open('w') as handle:

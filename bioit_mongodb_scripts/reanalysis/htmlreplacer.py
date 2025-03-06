@@ -4,14 +4,12 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-import yaml
-
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, load_config
 from bioit_mongodb_scripts.reanalysis import PARSING_ARGUMENTS
-from bioit_mongodb_scripts.util_azure.htmlreport import HtmlReport
+from bioit_mongodb_scripts.util.htmlreport import HtmlReport
 
 
 def parse_arguments(specieslist: list[str]) -> argparse.Namespace:
@@ -82,9 +80,8 @@ class HtmlReplacer:
     def _replace_section(self, header_text: str) -> None:
         """
         Replaces a section of the first BeautifulSoup object by a section of the second BeautifulSoup object.
-        :param soup1: first BeautifulSoup object
-        :param soup2: second BeautifulSoup object
-        :return: the first BeautifulSoup object which contains the replaced section
+        :param header_text: header text with which the section should be found
+        :return: None
         """
         section_to_replace = self._base_html.find_report_section_by_header(header_text)
         new_section = self._updated_html.find_report_section_by_header(header_text)
