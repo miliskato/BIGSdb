@@ -134,14 +134,13 @@ class JsonTypingResultsInserter(JsonSuperClass):
         plasmid_list = self._json_report_dict['mob_suite']['mob_suite_overview']
         if len(plasmid_list) == 0:
             return
-        html_table = HtmlMobSuiteTableBuilder()
-            for item in plasmid_list:
-                html_table.add_plasmid(item['id'], item['num_contigs'], item['size'], item['gc'], item['predicted_mobility'], item['rep_type(s)'], item['relaxases_types'])
+        mob_suite_table_builder = HtmlMobSuiteTableBuilder()
+        for item in plasmid_list:
+            mob_suite_table_builder.add_plasmid(item['id'], item['num_contigs'], item['size'], item['gc'], item['predicted_mobility'], item['rep_type(s)'], item['relaxases_types'])
+        html = mob_suite_table_builder.build()
 
-        with TblEavText(self._species) as isolates_eavt_psql_tbl, TblEavFields(self._species) as isolates_eavf_psql_tbl:
-            for i in mutation_list:
-                value = isolates_eavf_psql_tbl.get_description_from_eav_field((item,))
-                isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, str(item), value[0][0]))
+        with TblEavText(self._species) as isolates_eavt_psql_tbl:
+            isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'MOB-Suite', html))
 
     def ___get_isolate_id(self) -> str:
         """
