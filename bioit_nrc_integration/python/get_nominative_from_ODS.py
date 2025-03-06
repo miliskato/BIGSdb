@@ -59,7 +59,7 @@ class MainNominativeDataParserFromOds(SFTPConnection):
         # get mongodb config data
         self._mongo_config_data = get_mongodb_config_data()
 
-        # get HD ODS dictionaries to be able to translate to useable text
+        # get HD ODS dictionaries to be able to translate to usable text
         with CODES_NOMINATIVE_ODS.open('r') as handle:
             self._translation_codes = yaml.safe_load(handle)
         # get sftp credentials
@@ -207,10 +207,15 @@ class MainNominativeDataParserFromOds(SFTPConnection):
         if filetype == 'LAB':
             self.___calculate_age_fields(data_unprocessed, data_translated)
             self.___parse_complex_labtest_results(data_unprocessed, data_translated)
+            if species == 'salmonella':
+                self.___choose_serovar_final(data_translated)
         if filetype == 'CLIN':
             self.___parse_complex_country_field(data_unprocessed, data_translated)
             if species == 'salmonella':
-                self.___parse_salmonella_symptom_fields(data_unprocessed, data_translated)
+                self.___parse_salmonella_repeat_fields(data_unprocessed, data_translated, 'TX_TTL_SYMP_REPEAT',
+                                                       'CD_PROB_NAM', 'CD_PROB_NAM_codes', 'symptom')
+                self.___parse_salmonella_repeat_fields(data_unprocessed, data_translated, 'TX_TTL_EPILINK_REPEAT',
+                                                       'CD_EPILINK', 'CD_EPILINK_codes', 'link')
         # loop over schema
         for hd_key, hd_key_property_dict in self._translation_codes['schema'][filetype].items():
             unprocessed_value = self.___get_value_by_capitalization_agnostic_key(data_unprocessed, hd_key)
@@ -309,6 +314,21 @@ class MainNominativeDataParserFromOds(SFTPConnection):
             data_translated['mic_resistances'] = ' '.join([resistance for resistance in mic_resistances_list])
 
     @staticmethod
+    def ___choose_serovar_final(data_translated: Dict[str, Any]) -> None:
+        """
+        Picks the serovar_final based on logic that Florian sent through mail:
+        serovar_luminex > serovar_agglutination > malditof_identification
+        :param data_translated: translated data to be inserted in MongoDB to be inserted in BIGSdb
+        :return: None
+        """
+        if data_translated.get('serovar_luminex'):
+            data_translated['serovar_final'] = data_translated['serovar_luminex']
+        elif data_translated.get('serovar_agglutination'):
+            data_translated['serovar_final'] = data_translated['serovar_agglutination']
+        elif data_translated.get('malditof_identification'):
+            data_translated['serovar_final'] = data_translated['malditof_identification']
+
+    @staticmethod
     def ___parse_complex_country_field(data_unprocessed: Dict[str, Any], data_translated: Dict[str, Any]) -> None:
         """
         Parses the optional infection country field list which didn't really fit in the main codes schema,
@@ -323,19 +343,25 @@ class MainNominativeDataParserFromOds(SFTPConnection):
                 for key, value in country_dict.items():
                     data_translated[f"country_{index + 1}"] = value
 
-    def ___parse_salmonella_symptom_fields(self, data_unprocessed: Dict[str, Any], data_translated: Dict[str, Any]) -> None:
+    def ___parse_salmonella_repeat_fields(self, data_unprocessed: Dict[str, Any], data_translated: Dict[str, Any],
+                                          repeat_field_name: str, field_name: str, code_list_name: str, bigsdb_prefix: str) -> None:
         """
         Parses the mandatory symptom field list which didn't really fit in the main codes schema,
         e.g. "tx_ttl_symp": [{"cd_prob_nam": "25374005"}, {"cd_prob_nam": "91302008"}]
         :param data_unprocessed: original unprocessed data
         :param data_translated: translated data to be inserted in MongoDB to be inserted in BIGSdb
+        :param repeat_field_name: the key name of the repeat field in the DCD
+        :param field_name: the key name of the value in the dictionary in the repeat field's list
+        :param code_list_name: the name of the code list in the config file
+        :bigsdb_prefix: the prefix used for the concatenation of the
         :return: None
         """
-        symptom_list_of_dicts: List[Dict[str, str]] = self.___get_value_by_capitalization_agnostic_key(data_unprocessed, 'TX_TTL_SYMP')
-        for symptom_dict in symptom_list_of_dicts:
-            symptom_code = self.___get_value_by_capitalization_agnostic_key(symptom_dict, 'CD_PROB_NAM')
-            symptom_code_translation = self._translation_codes['code_lists']['CD_PROB_NAM_codes'][self.___cast_as_int_if_int(symptom_code)]
-            data_translated[f"symptom_{symptom_code_translation.replace(' ', '_').lower()}"] = "Yes"
+        repeat_list_of_dicts: List[Dict[str, str]] = self.___get_value_by_capitalization_agnostic_key(
+            data_unprocessed, repeat_field_name)
+        for symptom_dict in repeat_list_of_dicts:
+            symptom_code = self.___get_value_by_capitalization_agnostic_key(symptom_dict, field_name)
+            symptom_code_translation = self._translation_codes['code_lists'][code_list_name][self.___cast_as_int_if_int(symptom_code)]
+            data_translated[f"{bigsdb_prefix}_{symptom_code_translation.replace(' ', '_').lower()}"] = "Yes"
 
     @staticmethod
     def ___get_value_by_capitalization_agnostic_key(search_dictionary: Dict[str, Any], target_key: str) -> Optional[Union[Dict[str, Any], List[Any], str]]:

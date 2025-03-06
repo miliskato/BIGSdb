@@ -1,5 +1,6 @@
 import logging
 import sys
+from copy import deepcopy
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
@@ -144,10 +145,11 @@ class MongoCustomClustering:
         """
         distance_cluster = DistanceAndClusterComputer(self._species, self._mongo_config_data)
         cluster_thresholds_not_in_db = []
+        cluster_thresholds_deepcopy = deepcopy(cluster_thresholds)
         for cluster_threshold in cluster_thresholds:
             if not self._cluster_membership_collection.find_one({'threshold': cluster_threshold}):
                 cluster_thresholds_not_in_db.append(cluster_threshold)
-                cluster_thresholds.remove(cluster_threshold)
+                cluster_thresholds_deepcopy.remove(cluster_threshold)
 
         if not self._naive_clustering_distance_matrix_file.is_file():
             hd_np_array = distance_cluster.compute_hamming_distances('full')
@@ -155,8 +157,8 @@ class MongoCustomClustering:
         else:
             self.__compute_and_save_distance_matrix_for_last_st(distance_cluster)
 
-            if cluster_thresholds:
-                distance_cluster.new_st_cluster_membership(cluster_thresholds)
+            if cluster_thresholds_deepcopy:
+                distance_cluster.new_st_cluster_membership(cluster_thresholds_deepcopy)
         if cluster_thresholds_not_in_db:
             # cluster thresholds can have been added to the config, or it could have been a full calculation.
             distance_cluster.init_clustering_and_cluster_membership(set(cluster_thresholds_not_in_db))

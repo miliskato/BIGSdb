@@ -30,8 +30,8 @@
     state: latest
   vars:
     packages:
-      - python3.10-dev
-      - python3.10-venv
+      - python3.12-dev
+      - python3.12-venv
       - virtualenv
       - uwsgi
       - uwsgi-plugin-python3
@@ -149,18 +149,24 @@
     line: "dtap: {{ 'test' if dtap == 'devtest' else 'prod' }}"
   become: yes
 
+- name: remove Python virtual environment
+  ansible.builtin.file:
+    path: "{{ nrcint_venv }}"
+    state: absent
+  become: yes
+
 - name: Create Python virtual environment
   pip:
     requirements: "{{ bioit_bigs_home }}/bioit_nrc_integration/python/requirements.txt"
     virtualenv: "{{ nrcint_venv }}"
-    virtualenv_python: python3.10
+    virtualenv_python: python3.12
   become: yes
 
 - name: Install bioit_mongodb_scripts requirements to be able to use MainMongo in the test all script (not needed elsewhere)
   pip:
     requirements: "{{ bioit_bigs_home }}/bioit_mongodb_scripts/requirements.txt"
     virtualenv: "{{ nrcint_venv }}"
-    virtualenv_python: python3.10
+    virtualenv_python: python3.12
   become: yes
 
 - name: restart nrcint supervisord which manages WSGI
@@ -189,7 +195,7 @@
     minute: '0'
     hour: '*/1'  # every hour
     weekday: '*'
-    job: "/usr/bin/flock -n /tmp/get_nominative_from_ODS.lockfile {{ nrcint_venv }}/bin/python3.10 {{ bioit_bigs_home }}//bioit_nrc_integration/python/get_nominative_from_ODS.py"
+    job: "/usr/bin/flock -n /tmp/get_nominative_from_ODS.lockfile {{ nrcint_venv }}/bin/python3.12 {{ bioit_bigs_home }}//bioit_nrc_integration/python/get_nominative_from_ODS.py"
     user: 'root'
     cron_file: get_nominative_from_ODS
   become: yes
@@ -200,7 +206,7 @@
     minute: '5'
     hour: '*/1'  # every hour
     weekday: '*'
-    job: "/usr/bin/flock -n /tmp/main_sender_to_HD.lockfile {{ nrcint_venv }}/bin/python3.10 {{ bioit_bigs_home }}//bioit_nrc_integration/python/main_sender_to_HD.py"
+    job: "/usr/bin/flock -n /tmp/main_sender_to_HD.lockfile {{ nrcint_venv }}/bin/python3.12 {{ bioit_bigs_home }}//bioit_nrc_integration/python/main_sender_to_HD.py"
     user: 'root'
     cron_file: main_sender_to_HD
   become: yes
@@ -211,7 +217,7 @@
     minute: '10'
     hour: '*/12'  # every 12 hours
     weekday: '*'
-    job: "/usr/bin/flock -n /tmp/error_checker_for_main_sender_to_HD.lockfile {{ nrcint_venv }}/bin/python3.10 {{ bioit_bigs_home }}//bioit_nrc_integration/python/error_checker_for_main_sender_to_HD.py"
+    job: "/usr/bin/flock -n /tmp/error_checker_for_main_sender_to_HD.lockfile {{ nrcint_venv }}/bin/python3.12 {{ bioit_bigs_home }}//bioit_nrc_integration/python/error_checker_for_main_sender_to_HD.py"
     user: 'root'
     cron_file: error_checker_for_main_sender_to_HD
   become: yes

@@ -76,5 +76,4 @@ if __name__ == '__main__':
     args = parse_arguments(mongo_config_data['species'])
 
     # Run main
-    HtmlTagger(args.htmlfilepath,
-               args.species)
+    HtmlTagger(args.htmlfilepath, args.species)

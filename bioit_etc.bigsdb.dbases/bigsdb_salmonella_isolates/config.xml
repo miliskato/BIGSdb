@@ -57,9 +57,7 @@
 <field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="antibiotic therapy">antibiotic_therapy</field> # found
 <field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="antibiotic">antibiotic</field> # found
 <field type="text" required="no" length="20" maindisplay="no" group ="nominative metadata" comments="outcome">outcome</field> # found
-<field type="text" required="no" length="60" maindisplay="no" group ="nominative metadata" comments="link">link</field> # found
 <field type="text" required="no" length="40" maindisplay="no" group ="nominative metadata" comments="serovar final">serovar_final</field> # found
-<field type="text" required="no" length="40" maindisplay="no" group ="nominative metadata" comments="aggl. serogroup">aggl_serogroup</field># found TEST_METHOD	117871005
 <field type="text" required="no" length="40" maindisplay="no" group ="nominative metadata" comments="MLVA profile">mlva_profile</field>
 <field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Amp">mic_amp</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Amp I">mic_amp_I</field>
@@ -100,4 +98,14 @@
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="symptom_sepsis">symptom_sepsis</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="symptom_urinary_tract_infection">symptom_urinary_tract_infection</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="symptom_unknown">symptom_unknown</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="link_human_to_human_transmission">link_human_to_human_transmission</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="link_isolated_case">link_isolated_case</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="link_foodborne_transmission">link_foodborne_transmission</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="link_not_applicable">link_not_applicable</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="link_other">link_other</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="link_unknown">link_unknown</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="serovar_luminex">serovar_luminex</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="serovar_agglutination">serovar_agglutination</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="serovar_agglutination_formula">serovar_agglutination_formula</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="malditof_identification">malditof_identification</field>
 </db>
