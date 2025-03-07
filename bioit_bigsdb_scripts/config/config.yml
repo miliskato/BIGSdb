@@ -65,6 +65,9 @@ species:
       listeria_species_confirmation:
         dirdb: /db/sequence_typing/listeria/species_confirmation
         schemename_bigsdb: Species confirmation
+      mob_suite_detection:
+        dirdb: ''
+        schemename_bigsdb: ''
     genedetection_schemes:
       resfinder4:
         metadatafile: /db/resfinder4/resfinder/phenotypes.txt
@@ -193,6 +196,9 @@ species:
         dirdb: ''
       salmonella_spifinder:
         dirdb: ''
+    mob_suite_detection:
+      dirdb: ''
+      schemename_bigsdb: ''
     genedetection_schemes:
       resfinder4:
         metadatafile: /db/resfinder4/resfinder/phenotypes.txt
@@ -223,6 +229,8 @@ species_json:
         type: regular
       species_confirmation:
         type: regular
+      mob_suite_detection:
+        type: irregular
     genedetection_schemes:
       resfinder4:
         metadatafile: /db/resfinder4/resfinder/phenotypes.txt
@@ -324,6 +332,8 @@ species_json:
       abritamr:
         type: irregular
       resfinder4_mutations:
+        type: irregular
+      mob_suite_detection:
         type: irregular
     genedetection_schemes:
       resfinder4:
