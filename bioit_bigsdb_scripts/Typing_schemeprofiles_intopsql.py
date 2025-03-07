@@ -5,12 +5,11 @@ import socket
 import sys
 import traceback
 from datetime import date
-
-import pandas as pd
 from pathlib import Path
 from typing import Dict, Final, List, Tuple
 
-from psycopg2._psycopg import cursor
+import pandas as pd
+pd.set_option('futur.no_silent_downcasting', True)
 
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
@@ -65,7 +64,6 @@ class TypingSchemeProfilesIntoPsql:
         Inserts profiles for a given scheme in a given species database (seqdef_profiles_psql_table)
         :param scheme: the currently iterating scheme
         :param profile_df: pandas dataframe containing profiles from tsv files
-        :param profile_line_dict: dictionary of main numeric profile fields (often ST) and their corresponding lines in the tsv
         :param set_to_be_inserted: list of main numeric profile fields (often ST) to be inserted
         :param seqdef_profiles_psql_tbl: seqdef profiles table/ connection instance for a given species
         :param species: commonly used bioit species name: either genus or specific like stec
@@ -74,7 +72,7 @@ class TypingSchemeProfilesIntoPsql:
         # since we only need one db per scheme, it can stay open during the entire definition
 
         dict_replacement = {'?':'','Neisseria ':'Neisseria_','N':'0'}
-        profile_df = profile_df.replace(dict_replacement)
+        profile_df = profile_df.replace(dict_replacement).infer_objects(copy=False)
         first_col_name = profile_df.columns.values[0]
         loci: List[str] = next(os.walk(schemedict[scheme]['dirdb']))[1]
         loci_only = [x for x in loci if not x.startswith('.')] # to exclude hidden folders like .git
