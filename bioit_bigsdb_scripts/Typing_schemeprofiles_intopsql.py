@@ -63,6 +63,7 @@ class TypingSchemeProfilesIntoPsql:
         """
         Inserts profiles for a given scheme in a given species database (seqdef_profiles_psql_table)
         :param scheme: the currently iterating scheme
+        :param schemedict: dict of scheme profiles
         :param profile_df: pandas dataframe containing profiles from tsv files
         :param set_to_be_inserted: list of main numeric profile fields (often ST) to be inserted
         :param seqdef_profiles_psql_tbl: seqdef profiles table/ connection instance for a given species
@@ -131,7 +132,7 @@ class TypingSchemeProfilesIntoPsql:
         :param locus: locus id
         :param df_row: pandas df containing only the row for the profile of interest
         :param scheme: scheme name
-        :return: locus allelic value
+        :return: allelic value at this locus
         """
         try:
             locus_value = df_row[locus].values[0]
