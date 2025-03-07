@@ -8,6 +8,7 @@ from .json_superclass import JsonSuperClass
 from .psql import (TblAlleleDesignations, TblEavBoolean, TblEavFields, TblEavFloat, TblEavText, TblHistory, TblIsolates,
     TblSchemeMembers)
 from ..utils.html_tbl_templates import HtmlMobSuiteTableBuilder
+from ..utils.url_helper import UrlHelper
 
 
 class JsonTypingResultsInserter(JsonSuperClass):
@@ -50,7 +51,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
                     self._processing_rmlst_identification()
                 elif self._scheme == 'resfinder4_mutations':
                     self._processing_resfinder4_mutations()
-                elif self._scheme == 'mob_suite':
+                elif self._scheme == 'mob_suite_detection':
                     self._processing_mob_suite()
                 else:
                     logging.warning(f"scheme {self._scheme} not present in json file")
@@ -134,9 +135,11 @@ class JsonTypingResultsInserter(JsonSuperClass):
         plasmid_list = self._json_report_dict['mob_suite']['mob_suite_overview']
         if len(plasmid_list) == 0:
             return
-        mob_suite_table_builder = HtmlMobSuiteTableBuilder()
+        html_scheme_name = ''
+        report_url = UrlHelper.report_for_isolate(self._species, self._isolatename, anchor=html_scheme_name)
+        mob_suite_table_builder = HtmlMobSuiteTableBuilder(report_url)
         for item in plasmid_list:
-            mob_suite_table_builder.add_plasmid(item['id'], item['num_contigs'], item['size'], item['gc'], item['predicted_mobility'], item['rep_type(s)'], item['relaxases_types'])
+            mob_suite_table_builder.add_plasmid(item['id'], item['num_contigs'], item['size'], item['gc'], item['predicted_mobility'], item['rep_type(s)'], item['relaxase_types'])
         html = mob_suite_table_builder.build()
 
         with TblEavText(self._species) as isolates_eavt_psql_tbl:

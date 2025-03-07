@@ -94,7 +94,7 @@ class HtmlAmrTableBuilder(HtmlTableBuilder):
         """
         :param report_url: url to call the api to get the html report
         """
-        super().__init__(headers=['AMR', 'Resistance gene', '%Identity', 'Coverage'], width_px=500)
+        super().__init__(headers=['AMR', 'Resistance gene', '%Identity', '%Coverage'], width_px=500)
         self.add_report_row(report_url)
 
     def add_hit(self, amr: str, resistance_gene: str, identity: str, coverage: str):
@@ -114,7 +114,7 @@ class HtmlMobSuiteTableBuilder(HtmlTableBuilder):
         """
         :param report_url: url to call the api to get the html report
         """
-        super().__init__(headers=['id', 'num_contigs', 'size', 'gc content', 'predicted_mobility', 'rep type(s)', 'relaxases types'], width_px=700)
+        super().__init__(headers=['id', 'num. contigs', 'size', 'GC content', 'predicted mobility', 'rep type(s)', 'relaxases types'], width_px=700)
         self.add_report_row(report_url)
 
     def add_plasmid(self, id:str, num_contigs: str, size: str, gc_content: str, predicted_mobility: str, rep_types: str, relaxases_types: str):
