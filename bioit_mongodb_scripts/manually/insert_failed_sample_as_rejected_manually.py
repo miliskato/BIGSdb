@@ -19,7 +19,7 @@ REJECTION_REASONS = {
     "1": "Insufficient reads remaining after human read scrubbing to generate an assembly or consensus sequence.",
     "2": "Insufficient reads remaining after read trimming to generate an assembly or consensus sequence.",
     "3": "Input forward and reverse reads do not match.",
-    "4": "Insufficient contigs left after human read scrubbing to execute pipeline.",
+    "4": "Insufficient contigs left after human read scrubbing to execute the pipeline.",
     "5": "One or more input files were corrupted."
 }
 
