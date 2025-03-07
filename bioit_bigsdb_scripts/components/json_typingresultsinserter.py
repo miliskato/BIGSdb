@@ -90,14 +90,12 @@ class JsonTypingResultsInserter(JsonSuperClass):
             self.__process_irregular_typing_scheme_mycobacterium_specific()
         elif self._species == 'neisseria':
             self.__process_irregular_typing_scheme_neisseria_specific()
-        elif self._species == 'stec':
-            self.__process_irregular_typing_scheme_stec_specific()
         elif self._species == 'salmonella':
             self.__process_irregular_typing_scheme_salmonella_specific()
 
     def _processing_rmlst_identification(self) -> None:
         """
-        Inserts taxonomy identification based on rMLST in eav fields specific tables
+        Inserts taxonomy identification based on rMLST in eav fields related tables
         :return: None
         """
         if 'rmlst' in self._json_report_dict:
@@ -117,7 +115,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
 
     def _processing_resfinder4_mutations(self) -> None:
         """
-        Inserts resfinder 4 mutations results into bigsdb eav_text table (isolates db)
+        Inserts ResFinder 4 mutations results into bigsdb eav_text table
         :return: None
         """
         mutations_found = self._json_report_dict['resfinder4']['resfinder4_mutations']
@@ -129,7 +127,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
 
     def _processing_mob_suite(self) -> None:
         """
-        Inserts resfinder 4 mutations results into bigsdb eav_text table (isolates db)
+        Inserts MOB-Suite results into bigsdb eav_text table
         :return: None
         """
         plasmid_list = self._json_report_dict['mob_suite']['mob_suite_overview']
@@ -273,19 +271,6 @@ class JsonTypingResultsInserter(JsonSuperClass):
                 if trumenba_status :
                     isolates_eav_psql_tbl.insert_eav_isolate((self._isolatename, 'MenDeVar Trumenba status', trumenba_status))
 
-    def __process_irregular_typing_scheme_stec_specific(self) -> None:
-        """
-        Processes and inserts stec results
-        :return: None
-        """
-        if self._scheme == 'serotype':
-            serotypedict = {'O_antigen': self._json_report_dict[self._scheme]['serotype'].split(':')[0],
-                            'H_antigen': self._json_report_dict[self._scheme]['serotype'].split(':')[1]}
-            for antigen, antigen_allele in serotypedict.items():
-                if antigen_allele != '-':
-                    self._insert_dummy_sequence_if_needed(antigen, antigen_allele)
-                    self._isolates_ad_psql_tbl.insert_designation_by_isolatename(
-                        (antigen, self._isolatename, antigen_allele))
 
     def __process_irregular_typing_scheme_salmonella_specific(self) -> None:
         """
@@ -298,8 +283,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
             for item in fields_mykrobe:
                 item_in_mongo = item[0].replace('_susceptibility', '')
                 if item_in_mongo in self._json_report_dict[self._scheme]['mykrobe_drug_susceptibility']:
-                    susceptibility: str = \
-                    self._json_report_dict[self._scheme]['mykrobe_drug_susceptibility'][item_in_mongo]['susceptibility']
+                    susceptibility: str = self._json_report_dict[self._scheme]['mykrobe_drug_susceptibility'][item_in_mongo]['susceptibility']
                     self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, item[0], susceptibility))
                     # insert new alleles
                     # example of structure in output dict:
@@ -309,10 +293,8 @@ class JsonTypingResultsInserter(JsonSuperClass):
                     #                                                           "genes": "-"}}}
                     mykrobe_field = 'MYKROBE_' + item_in_mongo.upper()
                     # get the genes and variants
-                    future_alleles = self._json_report_dict[self._scheme]['mykrobe_drug_susceptibility'][item_in_mongo][
-                                         'variants'].split(';') + \
-                                     self._json_report_dict[self._scheme]['mykrobe_drug_susceptibility'][item_in_mongo][
-                                         'genes'].split(';')
+                    future_alleles = self._json_report_dict[self._scheme]['mykrobe_drug_susceptibility'][item_in_mongo]['variants'].split(';') + \
+                        self._json_report_dict[self._scheme]['mykrobe_drug_susceptibility'][item_in_mongo]['genes'].split(';')
                     for value in future_alleles:
                         if value != '-':
                             self._insert_dummy_sequence_if_needed(mykrobe_field, value)

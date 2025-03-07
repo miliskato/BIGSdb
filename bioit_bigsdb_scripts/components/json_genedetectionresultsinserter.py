@@ -118,11 +118,6 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                             if not scheme.endswith('vfdb_core') and not scheme.endswith('virulencefinder'):
                                 locus_table_builder.add_locus([hit, clusterhit])
 
-                            """
-                            Part 2 for the AB schemes
-                            """
-                            if schemename_bigsdb == 'ResFinder':
-                                self._process_ab_schemes(hit, schemename_bigsdb)
                     html = locus_table_builder.build()
 
                 with TblEavText(self._species) as isolates_eavt_psql_tbl:
@@ -130,29 +125,3 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
         with TblHistory(self._species) as isolates_history_psql_tbl:
             isolates_history_psql_tbl.insert_history_isolate((self._isolatename, 'Gene detection results inserted'))
         logging.info('Gene detection insertion for {self._isolatename} is done')
-
-    def __process_ab_scheme(self, locusname: str, hit: Dict[str, str], amr_class: bool = False) -> None:
-        """
-        Insert a scheme
-        :param locusname: name of the locus
-        :param hit: hit dictionary
-        :param amr_class: Whether the scheme is a class
-        :return:
-        """
-        genehit = re.sub('[.]| ', '_', hit['Locus'])
-        scheme_name = f'{self._bigsdb_scheme_name}_AB' if not amr_class else f'{self._bigsdb_scheme_name}_AB_CLASS'
-        self.insert_locus_if_needed(locusname, scheme_name)
-        self._insert_dummy_sequence_if_needed(locusname, genehit)
-        self._insert_ad_if_needed(locusname, genehit)
-
-    def _process_ab_schemes(self, hit: Dict[str, str], bigsdb_scheme_name: str):
-        """
-        Inserts everything required for antibiotic schemes
-        :param hit: hit dictionarys
-        :return:
-        """
-        self._bigsdb_scheme_name = bigsdb_scheme_name
-        # AB scheme for both ResFinder4
-        for antibiotic in hit['Antibiotic(s)'].split('/'):
-            ab_hit = '_'.join([self._bigsdb_scheme_name, antibiotic.upper().replace(' ', '_')])
-            self.__process_ab_scheme(ab_hit, hit)

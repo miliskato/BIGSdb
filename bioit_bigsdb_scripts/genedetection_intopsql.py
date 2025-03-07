@@ -89,7 +89,7 @@ class GeneDetectionIntoPsql:
 
     def __insert_loci_and_alleles(self, species: str, context: GeneDetectionContext) -> None:
         """
-        Inserts all the loci (clusters), scheme members and alleles (dummy boolean) in seqdef and isolate dbs if they are not
+        Inserts all the loci (clusters), scheme members and alleles (0/1) which are not already in seqdef and isolate dbs
         :param species: commonly used bioit species name: either genus or specific like stec.
         :param context: GeneDetectionContext object
         :return: None
