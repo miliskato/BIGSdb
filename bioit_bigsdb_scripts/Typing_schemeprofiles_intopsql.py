@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Dict, Final, List, Tuple
 
 import pandas as pd
-pd.set_option('futur.no_silent_downcasting', True)
+pd.set_option('future.no_silent_downcasting', True)
 
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
