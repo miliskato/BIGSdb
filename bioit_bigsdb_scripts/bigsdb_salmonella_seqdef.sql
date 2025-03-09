@@ -16,7 +16,7 @@ INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no
 ---fields for typing schemes
 INSERT INTO scheme_fields(scheme_id, field, type, description, field_order, dropdown, primary_key, curator, datestamp) VALUES(1, 'ST', 'integer', 'Sequence Type', 1, 'f', 't', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
 INSERT INTO scheme_fields(scheme_id, field, type, description, field_order, dropdown, primary_key, curator, datestamp) VALUES(2, 'cgST', 'integer', 'Sequence Type for cgMLST', 1, 'f', 't', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
-INSERT INTO scheme_fields(scheme_id, field, type, description, field_order, dropdown, primary_key, curator, datestamp) VALUES(15, 'rST', 'integer', 'Sequence Type for cgMLST', 1, 'f', 't', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
+INSERT INTO scheme_fields(scheme_id, field, type, description, field_order, dropdown, primary_key, curator, datestamp) VALUES(14, 'rST', 'integer', 'Sequence Type for cgMLST', 1, 'f', 't', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
 
 
 --client dbase
