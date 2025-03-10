@@ -119,6 +119,8 @@ class JsonTypingResultsInserter(JsonSuperClass):
         :return: None
         """
         mutations_found = self._json_report_dict['resfinder4']['resfinder4_mutations']
+        if mutations_found == '-':
+            return
         mutation_list = mutations_found.split(',')
         with TblEavText(self._species) as isolates_eavt_psql_tbl, TblEavFields(self._species) as isolates_eavf_psql_tbl:
             for item in mutation_list:
@@ -130,14 +132,14 @@ class JsonTypingResultsInserter(JsonSuperClass):
         Inserts MOB-Suite results into bigsdb eav_text table
         :return: None
         """
-        plasmid_list = self._json_report_dict['mob_suite']['mob_suite_overview']
-        if len(plasmid_list) == 0:
+        if not self._json_report_dict['mob_suite'].get('mob_suite_overview'):
             return
+        plasmid_list = self._json_report_dict['mob_suite']['mob_suite_overview']
         html_scheme_name = ''
         report_url = UrlHelper.report_for_isolate(self._species, self._isolatename, anchor=html_scheme_name)
         mob_suite_table_builder = HtmlMobSuiteTableBuilder(report_url)
         for item in plasmid_list:
-            mob_suite_table_builder.add_plasmid(item['id'], item['num_contigs'], item['size'], item['gc'], item['predicted_mobility'], item['rep_type(s)'], item['relaxase_types'])
+            mob_suite_table_builder.add_plasmid(item['id'], item['num_contigs'], item['size'], item['gc'], item['predicted_mobility'], item['rep_type(s)'], item['relaxase_type(s)'])
         html = mob_suite_table_builder.build()
 
         with TblEavText(self._species) as isolates_eavt_psql_tbl:
