@@ -72,7 +72,7 @@ class TypingSchemeProfilesIntoPsql:
         """
         # since we only need one db per scheme, it can stay open during the entire definition
 
-        dict_replacement = {'?':'','Neisseria ':'Neisseria_','N':'0'}
+        dict_replacement = {'?':'','Neisseria ':'Neisseria_'}
         profile_df = profile_df.replace(dict_replacement).infer_objects(copy=False)
         first_col_name = profile_df.columns.values[0]
         loci: List[str] = next(os.walk(schemedict[scheme]['dirdb']))[1]
@@ -105,7 +105,7 @@ class TypingSchemeProfilesIntoPsql:
                         profile_line_df = profile_line_df.rename(columns={"'rplF": "rplF"})
                     locus_value = TypingSchemeProfilesIntoPsql.___return_locus_allele(locus, profile_line_df, scheme)
 
-                    if locus_value == '0':  # this will create a ForeignKeyViolation error so we prevent this by inserting a null allele if not yet present
+                    if locus_value == '0' and locus != 'N':  # this will create a ForeignKeyViolation error so we prevent this by inserting a null allele if not yet present
                         nullpresent: List[Tuple[int]] = seqdef_sequences_psql_tbl.count_sequence_null((locus,))
                         if nullpresent[0][0] == 0:
                             seqdef_sequences_psql_tbl.insert_sequence((locus, '0', 'null allele'))
