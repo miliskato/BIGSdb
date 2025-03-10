@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Insertion of gene detection schemes
 - Insertion of sequence typing schemes
 
-### Bugfix:
+### Fixed:
 - Mykrobe scheme : typo in two AB names
 - issue if PubMLST add some extra blank lines at the end of the profiles.tsv files
 
@@ -44,7 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rework integration SFTP flow 11 to send genomic indicators to ODS instead of DWH, remove mapping table flow to ODS
 - Simplification of html generation azure script
 
-### Bugfix
+### Fixed
 - Bugfix reanalysis influenza
 
 ## [2.1.0]
@@ -62,14 +62,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The bioit-bigsdb.yml playbook includes extra roles in order to skip the manual run of the bioit-db.yml and bioit-filedb.yml
   playbooks during the deployment of the platform.
 
-### Bugfix
+### Fixed
 - Insertion of assembly is now using the "fasta_path" from mongo instead of reconstructing a path based on the "report_dir" field.
 - Insertion of nominative data (broken in 2.0.1)
 - Fix in mongo_to_bigs in the code handling comparison of cgst in case of reanalysis (600a28e4051574fb7d38bb68d44d3b68b2771d48)
 - ANSIBLE 2.18.1 - fix community.general.cpan module
 
 ## [2.0.2] - 2025-01-20 (myc dev and test)
-### Bugfix
+### Fixed
 - insertion of reanalysed badqc isolates (bug: removing of the validated badqc from BIGSdb before reinserting its new results was not done)
 - fix a type issue in a condition during the cgst reevaluation
 
@@ -78,7 +78,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - cron job to ensure that badqcs stored in MongoDB are all well inserted into BIGSdb submission system
 - Utility script for the validation of all badqcs submitted in BIGSdb
 
-### Bugfix
+### Fixed
 - Insertion of clustering/nominative data and alert computation is disabled when BIGSdb is still empty
 - Fix access rights on /home/bigsdb/BIGSdb
 - Fix the lockfile command configuration to avoid simultaneous connections to the matrix file in AZURE. 
@@ -110,7 +110,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - BIGSdb was upload from V1.36 -> V1.47
 - Local MongoDB hosts the mapping table for pseudonymization and the other collections are stored in MongoDB Atlas
 
-### Bugfix
+### Fixed
 - API call for Download/visualisation of the html reports 
 - Sequence bin plugin in BIGSdb
 
