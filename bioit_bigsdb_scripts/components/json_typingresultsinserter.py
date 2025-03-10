@@ -121,11 +121,14 @@ class JsonTypingResultsInserter(JsonSuperClass):
         mutations_found = self._json_report_dict['resfinder4']['resfinder4_mutations']
         if mutations_found == '-':
             return
-        mutation_list = mutations_found.split(',')
         with TblEavText(self._species) as isolates_eavt_psql_tbl, TblEavFields(self._species) as isolates_eavf_psql_tbl:
-            for item in mutation_list:
-                value = isolates_eavf_psql_tbl.get_description_from_eav_field((item,))
-                isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, str(item), value[0][0]))
+            for key, value in mutations_found.items():
+                resistance = ', '.join(value)
+                if not isolates_eavf_psql_tbl.exists_in_eav_field((key, 'ResFinder4 mutations')):
+                    isolates_eavf_psql_tbl.insert_text_field((key, 'ResFinder4 mutations'))
+                isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, str(key), f"Resistance to {resistance}"))
+
+
 
     def _processing_mob_suite(self) -> None:
         """

@@ -26,6 +26,14 @@ class TblEavFields(DatabaseConnection):
         """
         self.execute_query(PsqlQueries.ISO_INS__TB_EAVF_VAR_FIELD, param)
 
+    def insert_text_field(self, param: Tuple[str, str]) -> None:
+        """
+        Inserts a metadata field in the NCBI 16S category
+        :param param: field to insert, its category
+        :return: None
+        """
+        self.execute_query(PsqlQueries.ISO_INS__TB_EAVF_VAR_FIELD_TEXT, param)
+
     def select_fields_amr(self) -> List[Optional[Tuple[str]]]:
         """
         Selects all the fields in the mycobacterium-specific amr who category
@@ -68,10 +76,11 @@ class TblEavFields(DatabaseConnection):
         """
         return self.select_fields_like(('cgMLST_differences_%',))
 
-    def get_description_from_eav_field(self, param: Tuple[str])->List[Optional[Tuple[str]]]:
+    def exists_in_eav_field(self, param: Tuple[str, str]) -> bool:
         """
         Return the description stored for the given field
-        :param param: field from eav_fields table
-        :return: description field from the row
+        :param param: field from eav_fields table, category for this field
+        :return: True if present, False if not
         """
-        return self.execute_query(PsqlQueries.ISO_SEL_DESCR_TB_EAVF_VAR_FIELD, param)
+        count_occurence = self.execute_query(PsqlQueries.ISO_SEL_COUNT_TB_EAVF_VAR_FIELD_VAR_CAT, param)
+        return True if count_occurence[0][0] > 0 else False

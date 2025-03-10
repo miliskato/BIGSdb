@@ -120,12 +120,15 @@ class PsqlQueries():
     ISO_INS__TB_EAVF_VAR_FIELD: Final[str] = """
         INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) 
         VALUES(%s, 'boolean', 'NCBI 16S', '', 't', 't', (SELECT CURRENT_DATE), 1);"""
+    ISO_INS__TB_EAVF_VAR_FIELD_TEXT: Final[str] = """
+        INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) 
+        VALUES(%s, 'text', %s, 't', 't', 't', (SELECT CURRENT_DATE), 1);"""
     ISO_SEL_COUNT_TB_EAVF_VAR_FIELD: Final[str] = """
         SELECT COUNT(*) FROM eav_fields WHERE category='NCBI 16S' AND field=%s;"""
     ISO_SEL_FIELD_TB_EAVF_VAR_: Final[str] = """SELECT field FROM eav_fields WHERE category='AMR detection'"""
     ISO_SEL_FIELD_TB_EAVF_VAR_CAT: Final[str] = """SELECT field FROM eav_fields WHERE category=%s"""
     ISO_SEL_FIELD_TB_EAVF_VAR_FIELD: Final[str] = """SELECT field FROM eav_fields WHERE field LIKE %s;"""
-    ISO_SEL_DESCR_TB_EAVF_VAR_FIELD: Final[str] = """SELECT description FROM eav_fields WHERE field=%s;"""
+    ISO_SEL_COUNT_TB_EAVF_VAR_FIELD_VAR_CAT: Final[str] = """SELECT count(*) FROM eav_fields WHERE field=%s AND category=%s ;"""
 
     # TBL extended attribute values bool
     ISO_DEL__TB_EAVB_VAR_ISO: Final[str] = """
