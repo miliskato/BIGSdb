@@ -5,23 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased - 2.2.0] 
+## [Unreleased] 
 ### Added:
-- rMLST assay
-- resFinder4 
+- rMLST scheme
+- ResFinder4
+- AMRFinder
+- MOB-Suite
+- gMATS
+- MenDeVar
 
 ### Changed
 - All Jammy existing assays to bigsdb for neisseria listeria salmonella mycobacterium influenza.
-- rm PointFinder, ResFinder, NCBI amr,
 - Adaptations done in 2.1.1 to avoid the usage of hard link to the mount were exported in this version.
+- Insertion of gene detection schemes
+- Insertion of sequence typing schemes
 
+### Bugfix:
+- Mykrobe scheme : typo in two AB names
+- issue if PubMLST add some extra blank lines at the end of the profiles.tsv files
+
+### Removed:
+- PointFinder, ResFinder, NCBI AMR, PlasmidFinder
+- Ability to support stec species
 
 ## [2.1.1 - support/2.1.0]
 ### Changed:
 - remove mount of the local db catalog. Only keep the Azure one and named the mount ".bioit_database" instead of ".bioit_database_azure"
   (this part is handle on the ANSIBLE side)
 - use the /db folder instead of the /.bioit_database path in the project (in order to use the symlinks and not the mount directly)
-## [Unreleased]
+
 ### Added
 - check for presence of cgMLST scheme members and for presence of mv_scheme_x table in seqdef before trying a 
   cache update of the scheme. 
