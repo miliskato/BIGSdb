@@ -231,6 +231,8 @@ species_json:
         type: regular
       mob_suite_detection:
         type: irregular
+      rmlst_identification:
+        type: irregular
     genedetection_schemes:
       resfinder4:
         metadatafile: /db/resfinder4/resfinder/phenotypes.txt
@@ -308,6 +310,8 @@ species_json:
         type: irregular
       mendevar:
         type: irregular
+      rmlst_identification:
+        type: irregular
     genedetection_schemes:
       resfinder4:
         metadatafile: /db/resfinder4/resfinder/phenotypes.txt
@@ -334,6 +338,8 @@ species_json:
       resfinder4_mutations:
         type: irregular
       mob_suite_detection:
+        type: irregular
+      rmlst_identification:
         type: irregular
     genedetection_schemes:
       resfinder4:
