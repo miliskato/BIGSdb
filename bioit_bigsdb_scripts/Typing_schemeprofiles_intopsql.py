@@ -111,7 +111,7 @@ class TypingSchemeProfilesIntoPsql:
                             seqdef_sequences_psql_tbl.insert_sequence((locus, '0', 'null allele'))
                     table_profile.append((scheme_id_psql, locus, profile_id, locus_value, 1, str(date.today())))
                 try:
-                    seqdef_profilemembers_psql_tbl.method_string_building(table_profile)
+                    seqdef_profilemembers_psql_tbl.insert_all_loci_of_profile(table_profile)
                 except Exception as exceptionmessage:
                     send_email(f"{exceptionmessage}\n{traceback.format_exc()}",
                                 f"profile with field {schemedict[scheme]['scheme_fields'][0]} and value {profile_id} already exists as another field, find the profile that was misinserted (not all loci have allele_id), "

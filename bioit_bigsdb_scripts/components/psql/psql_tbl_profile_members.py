@@ -27,7 +27,7 @@ class TblProfileMembers(DatabaseConnection):
         """
         self.execute_query(PsqlQueries.SEQ_INS__TB_PROFMEM_VAR_SCHEME_SCHFIELD_PROFID_VALUE, param)
 
-    def method_string_building(self, data):
+    def insert_all_loci_of_profile(self, data):
         cur = self._cursor
         args_str = ','.join(cur.mogrify('(%s, %s, %s, %s, %s, %s)', row).decode("utf-8") for row in data)
         cur.execute("INSERT INTO {table} VALUES".format(table='profile_members') + args_str)
