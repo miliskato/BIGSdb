@@ -21,8 +21,8 @@ class TblSchemes(DatabaseConnection):
 
     def select_scheme_id_based_on_scheme_name(self, param: Tuple[str]) -> List[Optional[Tuple[int]]]:
         """
-        Selects the scheme id of the cgMLST schema in bigsdb (usually 2, after 1 mlst,
-        but in the case of stec that has 2 mlst it is 3)
-        :return: List of tuples of single strings
+        Selects the scheme id from in bigsdb
+        :param param: scheme name
+        :return: List of tuples of single int
         """
         return self.execute_query(PsqlQueries.UNI_SEL_ID_TB_SCHEME_VAR_name, param)

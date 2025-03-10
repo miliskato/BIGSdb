@@ -1,7 +1,7 @@
 from typing import Any, Dict
 
 from bioit_mongodb_scripts.model.json_model import JsonReportDict
-from .psql import TblAlleleDesignations, TblSequences, TblLoci, TblSchemeMembers, TblClientDbaseLoci
+from .psql import TblAlleleDesignations, TblClientDbaseLoci, TblLoci, TblSchemeMembers, TblSequences
 
 
 class JsonSuperClass:

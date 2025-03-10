@@ -5,6 +5,7 @@ from typing import Any, Dict, Tuple
 from bioit_bigsdb_scripts.inserters.context.gene_detection_context import GeneDetectionContext
 from bioit_bigsdb_scripts.inserters.context.gene_detection_context_builder import GeneDetectionContextBuilder
 
+
 class Resfinder4GeneDetectionContextBuilder(GeneDetectionContextBuilder):
     """
     Builder of context specific to the ResFinder4 gene detection scheme.
@@ -33,7 +34,7 @@ class Resfinder4GeneDetectionContextBuilder(GeneDetectionContextBuilder):
             for row in file_reader:
                 gene_accession = row.get('Gene_accession no.')
 
-                gene = self.custom_split(gene_accession, '_',1)[0]
+                gene = self.custom_split(gene_accession, '_', 1)[0]
                 accession = self.custom_split(gene_accession, '_', 2)[1]
 
                 bigsdb_scheme_name = scheme_config['schemename_bigsdb']
@@ -45,7 +46,7 @@ class Resfinder4GeneDetectionContextBuilder(GeneDetectionContextBuilder):
         return context
 
     @staticmethod
-    def custom_split(string_to_split: str, separator: str, position_of_separator: int) -> Tuple[str,str]:
+    def custom_split(string_to_split: str, separator: str, position_of_separator: int) -> Tuple[str, str]:
         """
         used to split string only on the ith occurence of the separator
         :param string_to_split: string

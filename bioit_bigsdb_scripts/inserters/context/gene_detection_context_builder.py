@@ -8,6 +8,7 @@ class GeneDetectionContextBuilder:
     """
     Abstract class that sets the contract for GeneDetectionContext
     """
+
     @abstractmethod
     def accept(self, scheme: str) -> bool:
         """
@@ -26,4 +27,3 @@ class GeneDetectionContextBuilder:
         :return: GeneDetectionContext object
         """
         pass
-

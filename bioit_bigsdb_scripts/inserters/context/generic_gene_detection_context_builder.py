@@ -5,10 +5,12 @@ from typing import Any, Dict
 from bioit_bigsdb_scripts.inserters.context.gene_detection_context import GeneDetectionContext
 from bioit_bigsdb_scripts.inserters.context.gene_detection_context_builder import GeneDetectionContextBuilder
 
+
 class GenericGeneDetectionContextBuilder(GeneDetectionContextBuilder):
     """
     Builder for gene detection context that catches all schemes except resfinder4 and amrfinder.
     """
+
     def accept(self, scheme: str) -> bool:
         """
         It always accepts the scheme as it is the last builder listed in the constructor of the factory

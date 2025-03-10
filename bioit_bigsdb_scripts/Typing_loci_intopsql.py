@@ -31,6 +31,7 @@ class TypingLociIntoPsql:
     """
     Class containing function to insert typing loci into psql
     """
+
     def __init__(self, species_list: List[str], dont_send_email: bool = False) -> None:
         """
         Initialises this class and executes the main function: _insert_loci

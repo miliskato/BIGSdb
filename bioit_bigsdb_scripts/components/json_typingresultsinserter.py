@@ -101,7 +101,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
         if 'rmlst' in self._json_report_dict:
             rmlst_dict = self._json_report_dict['rmlst']
             identification_keys = list({e for e in rmlst_dict if rmlst_dict[e]})
-            unused_keys = ['db_version','loci','rmlst-rST']
+            unused_keys = ['db_version', 'loci', 'rmlst-rST']
             identification_keys = [item for i, item in enumerate(identification_keys) if item not in unused_keys]
 
             for k in identification_keys:
@@ -127,8 +127,6 @@ class JsonTypingResultsInserter(JsonSuperClass):
                 if not isolates_eavf_psql_tbl.exists_in_eav_field((key, 'ResFinder4 mutations')):
                     isolates_eavf_psql_tbl.insert_text_field((key, 'ResFinder4 mutations'))
                 isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, str(key), f"Resistance to {resistance}"))
-
-
 
     def _processing_mob_suite(self) -> None:
         """
@@ -355,7 +353,6 @@ class JsonTypingResultsInserter(JsonSuperClass):
                     if amr_detection == '-':
                         amr_detection = 'NA'
                     self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, item[0], amr_detection))
-
 
     def ___salmonella_insert_antigens_into_db(self, raw_formula: str,
                                               mode: Optional[Literal['kmer', 'kmerread', 'allele']] = None) -> None:

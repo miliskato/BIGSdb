@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Dict, Final, List, Tuple
 
 import pandas as pd
+
 pd.set_option('future.no_silent_downcasting', True)
 
 PYTHONPATH = Path(__file__).resolve().parent.parent
@@ -17,6 +18,7 @@ sys.path.append(str(PYTHONPATH))
 from bioit_bigsdb_scripts.components.psql import TblProfiles, TblProfileFields, TblProfileMembers, TblSchemes, \
     TblSequences
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data, send_email
+
 # For this script I am assuming that profiles do not retire.
 
 PROFILE_FILE: Final[str] = 'profiles.tsv'
@@ -72,17 +74,17 @@ class TypingSchemeProfilesIntoPsql:
         """
         # since we only need one db per scheme, it can stay open during the entire definition
 
-        dict_replacement = {'?':'','Neisseria ':'Neisseria_'}
+        dict_replacement = {'?': '', 'Neisseria ': 'Neisseria_'}
         profile_df = profile_df.replace(dict_replacement).infer_objects(copy=False)
         first_col_name = profile_df.columns.values[0]
         loci: List[str] = next(os.walk(schemedict[scheme]['dirdb']))[1]
-        loci_only = [x for x in loci if not x.startswith('.')] # to exclude hidden folders like .git
+        loci_only = [x for x in loci if not x.startswith('.')]  # to exclude hidden folders like .git
         bigsdb_scheme_name = schemedict[scheme]['schemename_bigsdb']
-        with TblSchemes(species,'seqdef') as tbl_schemes:
+        with TblSchemes(species, 'seqdef') as tbl_schemes:
             scheme_id_psql = tbl_schemes.select_scheme_id_based_on_scheme_name((bigsdb_scheme_name,))[0][0]
         for profile_id in set_to_be_inserted:
 
-            profile_line_df = profile_df[profile_df[first_col_name]==profile_id]
+            profile_line_df = profile_df[profile_df[first_col_name] == profile_id]
             # first table (profiles):
             seqdef_profiles_psql_tbl.insert_profile((bigsdb_scheme_name, profile_id))
             profiles_to_be_removed = set()
@@ -114,8 +116,8 @@ class TypingSchemeProfilesIntoPsql:
                     seqdef_profilemembers_psql_tbl.insert_all_loci_of_profile(table_profile)
                 except Exception as exceptionmessage:
                     send_email(f"{exceptionmessage}\n{traceback.format_exc()}",
-                                f"profile with field {schemedict[scheme]['scheme_fields'][0]} and value {profile_id} already exists as another field, find the profile that was misinserted (not all loci have allele_id), "
-                                f"remove it, and all above and restart this script (on db seqdef profiles members on host {socket.gethostname()})")
+                               f"profile with field {schemedict[scheme]['scheme_fields'][0]} and value {profile_id} already exists as another field, find the profile that was misinserted (not all loci have allele_id), "
+                               f"remove it, and all above and restart this script (on db seqdef profiles members on host {socket.gethostname()})")
                     raise Exception(
                         f"profile with field {schemedict[scheme]['scheme_fields'][0]} and value {profile_id} already exists as another field, find the profile that was misinserted (not all loci have allele_id), "
                         f"remove it, and all above and restart this script (on db seqdef profiles members on host {socket.gethostname()})")
@@ -123,7 +125,6 @@ class TypingSchemeProfilesIntoPsql:
             for profile_to_be_removed in profiles_to_be_removed:
                 seqdef_profiles_psql_tbl.delete_profile(
                     (bigsdb_scheme_name, profile_to_be_removed))
-
 
     @staticmethod
     def ___return_locus_allele(locus: str, df_row: pd.DataFrame, scheme: str) -> str:

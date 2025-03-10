@@ -1,6 +1,5 @@
 import json
 import logging
-import re
 from pathlib import Path
 from typing import Any, Dict, List, Union
 
@@ -67,7 +66,7 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                 # Storing snapshot Clusters in eav_text_hidden to be used in periodical GeneCluster recalculation
                 for index, hit in enumerate(listofhits):
                     for k, v in hit.items():
-                        v = v.replace("'","") if scheme not in ['resfinder4','amrfinder'] else v
+                        v = v.replace("'", "") if scheme not in ['resfinder4', 'amrfinder'] else v
                         listofhits[index][k] = v
                 with TblEavTextHidden(self._species) as isolates_eavth_psql_tbl:
                     isolates_eavth_psql_tbl.insert_hidden_isolate((self._isolatename, schemename_bigsdb, json.dumps(listofhits)))
@@ -82,9 +81,9 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                 if scheme == 'resfinder4':
                     resfinder4_table_builder = HtmlAmrTableBuilder(report_url)
                     for hit in self._json_report_dict[scheme]['resfinder4_genes_hits']:
-                        identity = f'{round(float(hit["Identity"]),2)}'
+                        identity = f'{round(float(hit["Identity"]), 2)}'
                         coverage = f'{round(float(hit["Coverage"]), 2)}'
-                        resfinder4_table_builder.add_hit(hit['Phenotype'], hit['Resistance gene'], identity , coverage)
+                        resfinder4_table_builder.add_hit(hit['Phenotype'], hit['Resistance gene'], identity, coverage)
                     html = resfinder4_table_builder.build()
                 elif scheme == 'amrfinder':
                     amrfinder_table_builder = HtmlAmrTableBuilder(report_url)

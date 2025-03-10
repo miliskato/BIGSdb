@@ -14,6 +14,7 @@ sys.path.append(str(PYTHONPATH))
 
 from bioit_bigsdb_scripts.config import BIGSDB_CONFIG
 
+
 def get_bigsdb_config_data() -> Dict[str, Union[str, List[Any], Dict[str, Union[str, Dict[str, Any]]]]]:
     """
     Reads the global bigsdb config

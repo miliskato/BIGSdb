@@ -1,8 +1,10 @@
-import pandas as pd
 from typing import Any, Dict
+
+import pandas as pd
 
 from bioit_bigsdb_scripts.inserters.context.gene_detection_context import GeneDetectionContext
 from bioit_bigsdb_scripts.inserters.context.gene_detection_context_builder import GeneDetectionContextBuilder
+
 
 class AmrFinderGeneDetectionContextBuilder(GeneDetectionContextBuilder):
     SCHEME_NAME = 'amrfinder'

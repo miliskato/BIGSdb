@@ -11,6 +11,7 @@ class GeneDetectionContextBuilderFactory:
     Factory to create the context used to insert the scheme in seqdef.
     It can handle the context builders specified in the constructor.
     """
+
     def __init__(self):
         self.gene_detection_context_builders : List[GeneDetectionContextBuilder] = [
             Resfinder4GeneDetectionContextBuilder(),
