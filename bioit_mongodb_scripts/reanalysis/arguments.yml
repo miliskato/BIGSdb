@@ -1,19 +1,37 @@
-#enterococcus: # TODO check after configuration has been decided
-#  mlst: MLST
-#  cgmlst: cgMLST
-#  rmlst: rMLST taxonomic identification
-#  lrefinder: LRE-Finder (LRE-Finder 20200812)
-#  amrfinder: AMRFinder (AMRFinder 3.11.26)
-#  resfinder4: ResFinder (ResFinder 4.4.2)
-#  vfdb-core: Virulence Factor DB - Core
-#  virulencefinder: VirulenceFinder - Enterococcus
-#  plasmidfinder: PlasmidFinder - Gram positive
-#  mob-suite:
-#    - MOB-recon (MOB-recon 3.1.8)
-#    - Genomic context
-#  bacmet:
-#    - Prodigal (Prodigal 2.6.3)
-#    - BacMet (blastp 2.14.0)
+enterococcus_faecalis:
+  mlst: MLST
+  cgmlst: cgMLST
+  rmlst: rMLST taxonomic identification
+  lrefinder: LRE-Finder (LRE-Finder 20200812)
+  amrfinder: AMRFinder (AMRFinder 3.11.26)
+  resfinder4: ResFinder (ResFinder 4.4.2)
+  vfdb-core: Virulence Factor DB - Core
+  virulencefinder: VirulenceFinder - Enterococcus
+  plasmidfinder: PlasmidFinder - Gram positive
+  mob-suite:
+    - MOB-recon (MOB-recon 3.1.8)
+    - Genomic context
+  bacmet:
+    - Prodigal (Prodigal 2.6.3)
+    - BacMet (blastp 2.14.0)
+enterococcus_faecium:
+  mlst:
+    - MLST
+    - MLST Bezdicek
+  cgmlst: cgMLST
+  rmlst: rMLST taxonomic identification
+  lrefinder: LRE-Finder (LRE-Finder 20200812)
+  amrfinder: AMRFinder (AMRFinder 3.11.26)
+  resfinder4: ResFinder (ResFinder 4.4.2)
+  vfdb-core: Virulence Factor DB - Core
+  virulencefinder: VirulenceFinder - Enterococcus
+  plasmidfinder: PlasmidFinder - Gram positive
+  mob-suite:
+    - MOB-recon (MOB-recon 3.1.8)
+    - Genomic context
+  bacmet:
+    - Prodigal (Prodigal 2.6.3)
+    - BacMet (blastp 2.14.0)
 listeria:
   mlst: Classic MLST
   cgmlst: cgMLST

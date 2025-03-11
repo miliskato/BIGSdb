@@ -9,6 +9,8 @@ mail:
     host: bioit-mailhog.sciensano.be:1025
 
 species:
+    - enterococcus_faecalis
+    - enterococcus_faecium
     - listeria
     - mycobacterium
     - neisseria
@@ -45,6 +47,7 @@ schemes_sequence_typing:
     - cgmlst
     - mlst_warwick
     - mlst_pasteur
+    - mlst_bezdicek
 
 temp_dir: /scratch/temp
 
