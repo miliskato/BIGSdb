@@ -125,8 +125,8 @@ class PsqlQueries():
         VALUES(%s, 'text', %s, 't', 't', 't', (SELECT CURRENT_DATE), 1);"""
     ISO_SEL_COUNT_TB_EAVF_VAR_FIELD: Final[str] = """
         SELECT COUNT(*) FROM eav_fields WHERE category='NCBI 16S' AND field=%s;"""
-    ISO_SEL_FIELD_TB_EAVF_VAR_: Final[str] = """SELECT field FROM eav_fields WHERE category='AMR detection'"""
-    ISO_SEL_FIELD_TB_EAVF_VAR_CAT: Final[str] = """SELECT field FROM eav_fields WHERE category=%s"""
+    ISO_SEL_FIELD_TB_EAVF_VAR_: Final[str] = """SELECT field FROM eav_fields WHERE category='AMR detection';"""
+    ISO_SEL_FIELD_TB_EAVF_VAR_CAT: Final[str] = """SELECT field FROM eav_fields WHERE category=%s;"""
     ISO_SEL_FIELD_TB_EAVF_VAR_FIELD: Final[str] = """SELECT field FROM eav_fields WHERE field LIKE %s;"""
     ISO_SEL_COUNT_TB_EAVF_VAR_FIELD_VAR_CAT: Final[str] = """SELECT count(*) FROM eav_fields WHERE field=%s AND category=%s ;"""
 
