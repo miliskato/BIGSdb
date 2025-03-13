@@ -264,15 +264,16 @@ class JsonTypingResultsInserter(JsonSuperClass):
                 self._isolates_ad_psql_tbl.insert_designation_by_isolatename((f'{scheme}_{gene}', self._isolatename, '1'))
         elif self._scheme == 'gmats' and self._json_report_dict['gmats']['gmats_status'] != "":
             with TblEavText(self._species) as isolates_eav_psql_tbl:
-                isolates_eav_psql_tbl.insert_eav_isolate((self._isolatename, 'gMATS status', self._json_report_dict['gmats']['gmats_status']))
+                gmat_clean_status = self._json_report_dict['gmats']['gmats_status'].replace('_',' ')
+                isolates_eav_psql_tbl.insert_eav_isolate((self._isolatename, 'gMATS status', gmat_clean_status))
         elif self._scheme == 'mendevar':
             bexsero_status = self._json_report_dict['mendevar'].get('mendevar_bexsero_status')
             trumenba_status = self._json_report_dict['mendevar'].get('mendevar_trumenba_status')
             with TblEavText(self._species) as isolates_eav_psql_tbl:
                 if bexsero_status :
-                    isolates_eav_psql_tbl.insert_eav_isolate((self._isolatename, 'MenDeVar Bexsero status', bexsero_status))
+                    isolates_eav_psql_tbl.insert_eav_isolate((self._isolatename, 'MenDeVar Bexsero status', bexsero_status.replace('_',' ')))
                 if trumenba_status :
-                    isolates_eav_psql_tbl.insert_eav_isolate((self._isolatename, 'MenDeVar Trumenba status', trumenba_status))
+                    isolates_eav_psql_tbl.insert_eav_isolate((self._isolatename, 'MenDeVar Trumenba status', trumenba_status.replace('_',' ')))
 
 
     def __process_irregular_typing_scheme_salmonella_specific(self) -> None:
