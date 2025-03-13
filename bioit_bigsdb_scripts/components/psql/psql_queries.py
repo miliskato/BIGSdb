@@ -139,7 +139,7 @@ class PsqlQueries():
 
     # TBL extended attribute values float
     ISO_DEL__TB_EAVFL_VAR_ISO: Final[str] = """
-        DELETE FROM eav_float where isolate_id=(SELECT id FROM isolates WHERE isolate=%s);"""
+        DELETE FROM eav_float WHERE isolate_id=(SELECT id FROM isolates WHERE isolate=%s);"""
     ISO_INS__TB_EAVFL_VAR_ISO_FIELD_VAL: Final[str] = """
         INSERT INTO eav_float(isolate_id, field, value) 
         VALUES((SELECT id FROM isolates WHERE isolate=%s), %s, %s);"""
