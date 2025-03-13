@@ -1,10 +1,9 @@
 import argparse
 import logging
-import os
 import signal
 from typing import Any
 
-from azure.servicebus.aio import ServiceBusClient
+from azure.servicebus import ServiceBusClient
 
 from bioit_mongodb_scripts.mongo_to_bigs import MongoToBigs
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
