@@ -117,6 +117,13 @@ class MongoToBigs:
 
             # Execute main function
             self._exception_in_alerts = False
+            self._changes_in_bigsdb = False
+
+    def run_mongo_to_bigs(self) -> None:
+        """
+        This runs the insertion of pending documents into bigsdb
+        :return: None
+        """
         try:
             self._mongo_to_bigs()
         except Exception as exceptionmessage1:
@@ -126,14 +133,13 @@ class MongoToBigs:
             for this purpose the cache first needs to be updated after having inserted new isolates/cgsts
             (the cgst needs to come from the seqdef db).
             """
-            self._exceptionmessage1 = exceptionmessage1
-            self._traceback1 = traceback.format_exc()
+            traceback1 = traceback.format_exc()
 
-            self._run_alerts_to_bigs_upon_exception()
+            self._run_alerts_to_bigs_upon_exception(exceptionmessage1)
 
-            send_email(f"{self._exceptionmessage1}\n{self._traceback1}")
+            send_email(f"{exceptionmessage1}\n{traceback1}")
             raise Exception(
-                f"{Path(__file__).name} fail on host {socket.gethostname()}: {self._exceptionmessage1}\n{self._traceback1}")
+                f"{Path(__file__).name} fail on host {socket.gethostname()}: {exceptionmessage1}\n{traceback1}")
 
     def _mongo_to_bigs(self) -> None:
         """
@@ -175,7 +181,6 @@ class MongoToBigs:
         SamplesToValidationBigs(self._species, mongo_config_data=self._mongo_config_data)
 
         # Main insertion into bigsdb for loop + track if changes are done
-        changes_in_bigsdb = False
         for document in list_of_documents:
             isolate_id = self._mappingtable_collection.find_one({'pseudo_id': document['_id']})['_id']
             results_type, new_document_version, cgst_changed = self.__get_results_type(document, isolate_id)
@@ -184,34 +189,42 @@ class MongoToBigs:
 
             self.__add_isolate_cgst_to_alert_lists(document, isolate_id, results_type, cgst_changed)
 
-            # continuation of for loop:
-            # extract json file to be given to bigs
             if document.get('validation'):
                 # copy validation metadata to results section in order to be able to insert them into BIGSdb
                 document['results']['validation'] = document['validation']
             self._mongoquerying.revert_typinghitlists_to_dictionaries(document, self._headers_collection)
-            jsonfile = document.get_json_results()
 
-            self.__fail_safe_mechanism(self._isolates_psql_tbl, isolate=isolate_id, results_type=results_type)
+            self.safely_insert_results_and_assembly(document, isolate_id, results_type)
 
-            MainResultsInserter(isolate_id, self._uploader_mail_address, self._species, results_type,
-                                vcf_path=document['vcf_path'], json_results=jsonfile,
-                                report_access=document['report_directory'],
-                                mongo_dtap=self._mongo_config_data.get('dtap'),
-                                isolation_date=document['technical_metadata']['data']['IsolationDate'],
-                                nominative_labtest_clinical_metadata_collection=self._nominative_labtest_clinical_metadata_collection)
+            self._changes_in_bigsdb = True
 
-            self.__insert_assembly_into_bigs(results_type, document, isolate_id)
+    def safely_insert_results_and_assembly(self, document: MongoRecordDict, isolate_id: str, results_type: ResultType ) -> None:
+        """
+        Insures insertion of genomic indicators ans assembly of the isolate in BIGSdb using the fail-safe mechanism.
+        :param document: mongo db document for this isolate
+        :param isolate_id: isolate id
+        :param results_type: type of results to insert into bigsdb
+        """
+        jsonfile = document.get_json_results()
+        self.__fail_safe_mechanism(self._isolates_psql_tbl, isolate=isolate_id, results_type=results_type)
+        MainResultsInserter(isolate_id, self._uploader_mail_address, self._species, results_type,
+                            vcf_path=document['vcf_path'], json_results=jsonfile,
+                            report_access=document['report_directory'],
+                            mongo_dtap=self._mongo_config_data.get('dtap'),
+                            isolation_date=document['technical_metadata']['data']['IsolationDate'],
+                            nominative_labtest_clinical_metadata_collection=self._nominative_labtest_clinical_metadata_collection)
+        self.__insert_assembly_into_bigs(results_type, document, isolate_id)
+        if results_type not in ["reanalysis", "resequencing"]:
+            with TblMappingTable(self._species) as isolates_mapping_psql_tbl:
+                isolates_mapping_psql_tbl.insert_mapping_for_isolate((isolate_id, document['_id'],))
+        self.__delete_flagfile(isolate=isolate_id)
 
-            if results_type not in ["reanalysis", "resequencing"]:
-                with TblMappingTable(self._species) as isolates_mapping_psql_tbl:
-                    isolates_mapping_psql_tbl.insert_mapping_for_isolate((isolate_id, document['_id'],))
-
-            self.__delete_flagfile(isolate=isolate_id)
-
-            changes_in_bigsdb = True
-
-        if changes_in_bigsdb:
+    def cache_and_clustering_update(self) -> None:
+        """
+        This method updates the clustering and the cache. It should be run after the insertion of new documents in BIGSdb
+        :return: None
+        """
+        if self._changes_in_bigsdb and not is_viral(self._species):
             # Run clustering and new cgST insertion before cache update
             NewClusteringInfoToBigs(self._species, self._naive_clustering_distance_matrix_file,
                                     self._cgmlst_bigsdb_scheme_id, mongo_config_data=self._mongo_config_data)
@@ -334,21 +347,7 @@ class MongoToBigs:
             if document.get('validation'):
                 # copy validation metadata to results section in order to be able to insert them into BIGSdb
                 document['results']['validation'] = document['validation']
-            jsonfile = document.get_json_results()
-            self.__fail_safe_mechanism(self._isolates_psql_tbl, isolate=isolate_id, results_type=results_type)
-            MainResultsInserter(isolate_id, self._uploader_mail_address, self._species, results_type,
-                                vcf_path=document['vcf_path'], json_results=jsonfile,
-                                report_access=document['report_directory'],
-                                mongo_dtap=self._mongo_config_data.get('dtap'),
-                                isolation_date=document['technical_metadata']['data']['IsolationDate'],
-                                nominative_labtest_clinical_metadata_collection=self._nominative_labtest_clinical_metadata_collection)
-            self.__insert_assembly_into_bigs(results_type, document, isolate_id)
-
-            if results_type not in ["reanalysis", "resequencing"]:
-                with TblMappingTable(self._species) as isolates_mapping_psql_tbl:
-                    isolates_mapping_psql_tbl.insert_mapping_for_isolate((isolate_id, document['_id'],))
-
-            self.__delete_flagfile(isolate=isolate_id)
+            self.safely_insert_results_and_assembly(document, isolate_id, results_type)
             changes_in_bigsdb = True
         if changes_in_bigsdb:
             MongoToBigsNominative(self._species, self._mongo_config_data, dont_send_email=True)
@@ -509,7 +508,7 @@ class MongoToBigs:
         """
         self._isolates_psql_tbl.close()
 
-    def _run_alerts_to_bigs_upon_exception(self) -> None:
+    def _run_alerts_to_bigs_upon_exception(self, exception_msg_1: Exception) -> None:
         """
         If an insertion into BIGSdb fails, the alerts for the succeeded insertions need to be evaluated,
         because else they would not be evaluated at all
@@ -534,11 +533,11 @@ class MongoToBigs:
                              self._species, self._cgmlst_bigsdb_scheme_id, self._naive_clustering_distance_matrix_file)
             except Exception as exceptionmessage2:
                 traceback2 = traceback.format_exc()
-                send_email(f"Failure 1: {self._exceptionmessage1}\n{self._traceback1}\n"
+                send_email(f"Failure 1: {exception_msg_1}\n{self._traceback1}\n"
                            f"Failure 2: {exceptionmessage2}\n{traceback2}",
                            subject=f"{Path(__file__).name} double fail on host {socket.gethostname()}")
                 raise Exception(f"{Path(__file__).name} double fail on host {socket.gethostname()}: "
-                                f"Failure 1: {self._exceptionmessage1}\n{self._traceback1}\n"
+                                f"Failure 1: {exception_msg_1}\n{self._traceback1}\n"
                                 f"Failure 2: {exceptionmessage2}\n{traceback2}")
 
     def ___make_flagfilepath(self, isolate: str) -> Path:
@@ -610,6 +609,8 @@ if __name__ == '__main__':
     args = parse_arguments(mongo_config_data['species'])
 
     # run main
-    MongoToBigs(args.species, args.uploader_mail_address,
+    mongo_to_bigs_instance = MongoToBigs(args.species, args.uploader_mail_address,
                 single_sample_id=(args.single_sample_id if args.single_sample_id else None),
                 mongo_config_data=mongo_config_data)
+    mongo_to_bigs_instance.run_mongo_to_bigs()
+    mongo_to_bigs_instance.cache_and_clustering_update()
