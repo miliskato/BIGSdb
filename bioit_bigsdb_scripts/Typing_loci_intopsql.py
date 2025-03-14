@@ -69,7 +69,7 @@ class TypingLociIntoPsql:
                         dirs = [x for x in dirs if not x.startswith('.')]
 
                         for directory in dirs:
-                            if (bigsdb_scheme_name == 'fHbp_nucl' and (directory not in ['fHbp_allele','fHbp_DNAfrag_Pasteur'])) \
+                            if (bigsdb_scheme_name == 'fHbp_nucl' and (directory not in ['fHbp_allele', 'fHbp_DNAfrag_Pasteur'])) \
                                     or (bigsdb_scheme_name == 'fHbp_pept' and (directory in ['fHbp_allele', 'fHbp_DNAfrag_Pasteur'])):
                                 continue
 
