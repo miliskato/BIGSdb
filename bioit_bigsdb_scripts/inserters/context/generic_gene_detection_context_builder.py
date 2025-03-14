@@ -50,7 +50,7 @@ class GenericGeneDetectionContextBuilder(GeneDetectionContextBuilder):
     @staticmethod
     def _create_sequence_id(sequence_details: Dict[str, any]) -> str:
         """
-        Generate the sequence_id which is a jonction of accession and allele items
+        Generate the sequence_id which is a junction of accession and allele items
         :param sequence_details: dictionary containing the details of the sequences
         :return: sequence_id
         """
