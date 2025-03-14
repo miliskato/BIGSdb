@@ -175,7 +175,7 @@ class GeneDetectionIntoPsql:
                                 clusterhit = context.cluster_dict[hit]
                                 if not context.scheme.endswith('vfdbcore') and not context.scheme.endswith(
                                         'virulencefinder'):
-                                    eavhtmltable += GeneDetectionIntoPsql.create_gene_locus_row(hits[y], clusterhit)
+                                    eavhtmltable += self.create_gene_locus_row(hits[y], clusterhit)
 
                                 if clusterhit not in clusterhitset:
                                     isolates_ad_psql_tbl.insert_designation_by_isolateid((clusterhit, isolate_id, '1'))
