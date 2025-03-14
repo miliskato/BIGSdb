@@ -123,8 +123,7 @@ class TypingSchemeProfilesIntoPsql:
                         f"remove it, and all above and restart this script (on db seqdef profiles members on host {socket.gethostname()})")
             # remove profiles with incomplete profile fields
             for profile_to_be_removed in profiles_to_be_removed:
-                seqdef_profiles_psql_tbl.delete_profile(
-                    (bigsdb_scheme_name, profile_to_be_removed))
+                seqdef_profiles_psql_tbl.delete_profile((bigsdb_scheme_name, profile_to_be_removed))
 
     @staticmethod
     def ___return_locus_allele(locus: str, df_row: pd.DataFrame, scheme: str) -> str:
