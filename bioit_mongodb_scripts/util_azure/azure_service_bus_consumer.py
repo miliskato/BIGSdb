@@ -1,11 +1,13 @@
 import argparse
 import logging
 import signal
-from typing import Any
+from typing import Any, List
 
-from azure.servicebus import ServiceBusClient
+from azure.servicebus import ServiceBusClient, ServiceBusReceivedMessage, ServiceBusReceiver
 
+from bioit_bigsdb_scripts.components.psql import TblFailedIsolates
 from bioit_mongodb_scripts.mongo_to_bigs import MongoToBigs
+from bioit_mongodb_scripts.update_bigsdb_seqdef import UpdateBIGSdbSeqDef
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data
 from bioit_mongodb_scripts.util_azure.azure_service_bus import AzureServiceBus
@@ -49,28 +51,67 @@ class MessageConsumerDataInserter(AzureServiceBus):
         with (ServiceBusClient.from_connection_string(conn_str=self._connection_string_asb, logging_enable=True) as service_bus_client):
             with service_bus_client.get_queue_receiver(queue_name=self._queue_name) as receiver:
                 pending_messages = []
+                need_to_run_cache = []
 
                 while not self._ct.cancelled:
+                    update_tool = UpdateBIGSdbSeqDef(self._species)
+                    update_tool.update_bigsdb_psql_if_needed()
                     received_msgs = receiver.receive_messages(max_wait_time=5, max_message_count=20)
                     for msg in received_msgs:
-                        data_msg = AzureServiceBusMessage.from_json(msg)
-                        pending_messages.append(data_msg)
+                        pending_messages.append(msg)
+
 
                     if not received_msgs and pending_messages:
                         for msg in pending_messages:
-                            isolate_id = self._get_isolate_identifier(msg.pseudo_id)
                             if self._ct.cancelled:
                                 break
-                            mongo_to_bigs_instance = MongoToBigs(self._species, self._uploader_mail_address, single_sample_id=isolate_id)
-                            try:
-                                mongo_to_bigs_instance.run_mongo_to_bigs()
-                            except Exception as e:
-                                logging.error('%s isolate failed with subsequent error %s', isolate_id, e)
 
-                            receiver.complete_message(msg)
+                            pseudo_id = AzureServiceBusMessage.from_json(str(msg)).pseudo_id
+                            isolate_id = self._try_return_isolate_identifier(msg, pseudo_id, receiver)
 
+                            change_done_in_bigs = self._try_mongo_to_bigs_insertion(isolate_id, msg, pseudo_id, receiver)
+                            need_to_run_cache.append(change_done_in_bigs)
+
+                        if True in need_to_run_cache:
+                            mongo_to_bigs_instance = MongoToBigs(self._species, self._uploader_mail_address)
+                            mongo_to_bigs_instance.cache_and_clustering_update()
+                        need_to_run_cache = []
                         pending_messages = []
-                        mongo_to_bigs_instance.cache_and_clustering_update()
+
+
+    def _try_mongo_to_bigs_insertion(self, isolate_id, msg, pseudo_id, receiver):
+        changes_done_in_bigs = False
+        try:
+            mongo_to_bigs_instance = MongoToBigs(self._species, self._uploader_mail_address,
+                                                 single_sample_id=isolate_id)
+            changes_done_in_bigs = mongo_to_bigs_instance.run_mongo_to_bigs()
+
+        except Exception as e:
+            logging.error('%s insertion failed with subsequent error %s', isolate_id, e)
+            with TblFailedIsolates(self._species) as psql_tbl_failed_isolates:
+                psql_tbl_failed_isolates.insert_failure((pseudo_id, '/var/log/bigsdb_insertions.log'))
+
+        finally:
+            receiver.complete_message(msg)
+            return  changes_done_in_bigs
+
+
+    def _try_return_isolate_identifier(self, msg: ServiceBusReceivedMessage, pseudo_id:str, receiver: ServiceBusReceiver) -> str | None:
+        """
+        return the isolate identifier based on the pseudo_id found in message
+        :param msg: one message from the list of ServiceBusReceivedMessage
+        :param receiver: ServiceBusReceiver
+        """
+        try:
+            isolate_id = self._get_isolate_identifier(self._species, pseudo_id)
+            return isolate_id
+
+        except Exception as e:
+            logging.error('%s did not get isolate_id from query on mapping collection: %s', pseudo_id, e)
+            with TblFailedIsolates(self._species) as psql_tbl_failed_isolates:
+                psql_tbl_failed_isolates.insert_failure((pseudo_id, 'isolate_id not found'))
+            receiver.complete_message(msg)
+
 
 
     def _get_isolate_identifier(self, species: str, pseudo_id: str) -> str:
@@ -91,7 +132,7 @@ if __name__ == '__main__':
     signal.signal(signal.SIGTERM, handle_shutdown)
 
     # Configure stdout logging
-    logging.basicConfig(level=logging.WARNING, filename='/var/log/service_bus_inserter.log', filemode='w',)
+    logging.basicConfig(level=logging.WARNING, filename='/var/log/bigsdb_insertions.log', filemode='w',)
 
     # Parse Mongo config
     mongo_config_data = get_mongodb_config_data()

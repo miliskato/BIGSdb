@@ -177,7 +177,9 @@ class PsqlQueries():
     ISO_SEL_VERSION_TB_EAVTH_VAR_ISO: Final[str] = """
         SELECT value FROM eav_text_hidden WHERE field='mongo_results_version' AND 
         isolate_id=(SELECT id FROM isolates WHERE isolate=%s);"""
-
+    # TBL failed_isolates
+    ISO_INS__TB_FAIL_ISO_VAR_ID_MESS: Final[str] = """
+        INSERT INTO failed_isolates(pseudo_id, timestamp, comment) VALUES(%s, (SELECT NOW()::TIMESTAMP), %s);"""
     # TBL history
     ISO_INS__TB_HIST_VAR_ID_MESS: Final[str] = """
         INSERT INTO history(isolate_id, timestamp, action, curator) 

@@ -18,17 +18,13 @@ PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
 from bioit_bigsdb_scripts.components.psql.databaseconnection import DatabaseConnection
-from bioit_bigsdb_scripts.components.psql import TblAlleleDesignations, TblIsolates, TblEavTextHidden, TblMappingTable, \
+from bioit_bigsdb_scripts.components.psql import TblIsolates, TblEavTextHidden, TblMappingTable, \
     TblSchemeMembers, TblSchemes, TblTempIsolatesSchemeFields
 from bioit_bigsdb_scripts.components.psql.psql_queries import PsqlQueries
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data
 from bioit_bigsdb_scripts.insert_assembly import insert_assembly
-from bioit_bigsdb_scripts.genedetection_intopsql import GeneDetectionIntoPsql
 from bioit_bigsdb_scripts.main_results_inserter import MainResultsInserter
 from bioit_mongodb_scripts.model.json_model import MongoRecordDict, ResultType
-from bioit_bigsdb_scripts.Typing_alleles_intopsql import TypingAllelesIntoPsql
-from bioit_bigsdb_scripts.Typing_loci_intopsql import TypingLociIntoPsql
-from bioit_bigsdb_scripts.Typing_schemeprofiles_intopsql import TypingSchemeProfilesIntoPsql
 from bioit_mongodb_scripts.util.alerts_to_bigs import AlertsToBigs
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.mongo_querying import Mongoquerying
@@ -119,13 +115,14 @@ class MongoToBigs:
             self._exception_in_alerts = False
             self._changes_in_bigsdb = False
 
-    def run_mongo_to_bigs(self) -> None:
+    def run_mongo_to_bigs(self) -> bool:
         """
         This runs the insertion of pending documents into bigsdb
         :return: None
         """
         try:
             self._mongo_to_bigs()
+            return self._changes_in_bigsdb
         except Exception as exceptionmessage1:
             """
             If an insertion into bigsdb fails, the alerts for the succeeded insertions need to be evaluated,
@@ -157,9 +154,6 @@ class MongoToBigs:
         Syncs all bacterial samples with the bigsdb database
         :return: None
         """
-
-        # Check if dbs were updated and update bigsdb accordingly
-        self.__update_bigsdb_psql_if_needed()
 
         # get list of documents before Temporary alleles insertion so that no new documents with new alleles can be
         # added in the time that it takes between the new alleles to start and the list of documents to be queried
@@ -194,11 +188,11 @@ class MongoToBigs:
                 document['results']['validation'] = document['validation']
             self._mongoquerying.revert_typinghitlists_to_dictionaries(document, self._headers_collection)
 
-            self.safely_insert_results_and_assembly(document, isolate_id, results_type)
+            self.__safely_insert_results_and_assembly(document, isolate_id, results_type)
 
             self._changes_in_bigsdb = True
 
-    def safely_insert_results_and_assembly(self, document: MongoRecordDict, isolate_id: str, results_type: ResultType ) -> None:
+    def __safely_insert_results_and_assembly(self, document: MongoRecordDict, isolate_id: str, results_type: ResultType) -> None:
         """
         Insures insertion of genomic indicators ans assembly of the isolate in BIGSdb using the fail-safe mechanism.
         :param document: mongo db document for this isolate
@@ -224,7 +218,7 @@ class MongoToBigs:
         This method updates the clustering and the cache. It should be run after the insertion of new documents in BIGSdb
         :return: None
         """
-        if self._changes_in_bigsdb and not is_viral(self._species):
+        if not is_viral(self._species):
             # Run clustering and new cgST insertion before cache update
             NewClusteringInfoToBigs(self._species, self._naive_clustering_distance_matrix_file,
                                     self._cgmlst_bigsdb_scheme_id, mongo_config_data=self._mongo_config_data)
@@ -248,27 +242,6 @@ class MongoToBigs:
             self._exception_in_alerts = True
             raise
 
-    def __update_bigsdb_psql_if_needed(self) -> None:
-        """
-        This function checks whether a new dbupdate occured in Azure and updates all info in Bigsdb accordingly.
-        :return: None
-        """
-        last_schema_update_date_document = self._update_metadata_collection.find_one({'metadata': 'last_dbupdate_insertion_date'})
-        last_dbupdate_date = self._update_metadata_collection.find_one({'metadata': 'last_dbupdate_date'})['last_update_date']
-        if not last_schema_update_date_document or last_dbupdate_date > last_schema_update_date_document['last_update_date']:
-            # Run the temporary id replacer
-            self.___replace_tempids()
-
-            # Insert new typing loci, alleles, typing profiles & gene detection alleles into psql
-            TypingLociIntoPsql([self._species], dont_send_email=True)
-            TypingAllelesIntoPsql([self._species], dont_send_email=True)
-            TypingSchemeProfilesIntoPsql([self._species], dont_send_email=True)
-            GeneDetectionIntoPsql(self._species, do_not_recalculate=True, dont_send_email=True).insert_schemes()
-            # update last insertion date
-            self._update_metadata_collection.update_one({'metadata': 'last_dbupdate_insertion_date'},
-                                                        {'$set': {'last_update_date': datetime.datetime.now(
-                                                            datetime.timezone.utc)}}, upsert=True)
-
     def __add_isolate_cgst_to_alert_lists(self, document: MongoRecordDict, isolate_id: str, results_type: ResultType,
                                           cgst_changed: bool) -> None:
         """
@@ -291,24 +264,6 @@ class MongoToBigs:
                      'isolation_date': document['technical_metadata']['data']['IsolationDate']})
                 with TblTempIsolatesSchemeFields(self._species, 2) as temp_isolates_scheme_fields:
                     temp_isolates_scheme_fields.delete_profile((isolate_id,))
-
-    def ___replace_tempids(self) -> None:
-        """
-        Replaces the temporary ids of alleles in bigsdb by actual allele numbers found in Pubmlst/Enterobase and
-        indicated as such by Azure: "resolved_AD".
-        :return: None
-        """
-        documents_list = [document for document in self._hashed_ad_collection.find(
-            {'scheme': {'$in': self._mongo_config_data['schemes_sequence_typing']},
-             'resolved_AD': {'$ne': 0}, 'replaced_in_bigs_date': {'$exists': False}})]
-
-        with TblAlleleDesignations(self._species) as isolates_ad_psql_tbl:
-            for hash_document in documents_list:
-                isolates_ad_psql_tbl.update_designations(
-                    (hash_document['resolved_AD'], hash_document['locus'], hash_document['hashed_allele']))
-        self._hashed_ad_collection.update_many(
-            {'_id': {'$in': [hash_document['_id'] for hash_document in documents_list]}},
-            {'$set': {'replaced_in_bigs_date': datetime.datetime.now()}})
 
     def __update_scheme_caches_full_once_if_needed(self) -> None:
         """
@@ -347,7 +302,7 @@ class MongoToBigs:
             if document.get('validation'):
                 # copy validation metadata to results section in order to be able to insert them into BIGSdb
                 document['results']['validation'] = document['validation']
-            self.safely_insert_results_and_assembly(document, isolate_id, results_type)
+            self.__safely_insert_results_and_assembly(document, isolate_id, results_type)
             changes_in_bigsdb = True
         if changes_in_bigsdb:
             MongoToBigsNominative(self._species, self._mongo_config_data, dont_send_email=True)
