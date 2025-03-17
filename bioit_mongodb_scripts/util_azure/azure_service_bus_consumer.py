@@ -50,36 +50,44 @@ class MessageConsumerDataInserter(AzureServiceBus):
     def execute(self) -> None:
         with (ServiceBusClient.from_connection_string(conn_str=self._connection_string_asb, logging_enable=True) as service_bus_client):
             with service_bus_client.get_queue_receiver(queue_name=self._queue_name) as receiver:
-                pending_messages = []
-                need_to_run_cache = []
 
                 while not self._ct.cancelled:
                     update_tool = UpdateBIGSdbSeqDef(self._species)
                     update_tool.update_bigsdb_psql_if_needed()
-                    received_msgs = receiver.receive_messages(max_wait_time=5, max_message_count=20)
+                    need_to_run_cache = False
+                    received_msgs = receiver.receive_messages(max_wait_time=5, max_message_count=1)
+
                     for msg in received_msgs:
-                        pending_messages.append(msg)
+                        if self._ct.cancelled:
+                            break
+                        pseudo_id = AzureServiceBusMessage.from_json(str(msg)).pseudo_id
+                        self._enter_msg_in_postgres(msg, pseudo_id)
+                        receiver.complete_message(msg)
+                        isolate_id = self._try_return_isolate_identifier(msg, pseudo_id, receiver)
 
+                        change_done_in_bigs = self._try_mongo_to_bigs_insertion(isolate_id, msg)
+                        self._rm_entry_for_msg(msg)
+                        if not need_to_run_cache:
+                            need_to_run_cache = change_done_in_bigs
+                        received_msgs.append(receiver.receive_messages(max_wait_time=5, max_message_count=1)[0])
 
-                    if not received_msgs and pending_messages:
-                        for msg in pending_messages:
-                            if self._ct.cancelled:
-                                break
+                    if not received_msgs and (True in need_to_run_cache):
+                        mongo_to_bigs_instance = MongoToBigs(self._species, self._uploader_mail_address)
+                        mongo_to_bigs_instance.cache_and_clustering_update()
 
-                            pseudo_id = AzureServiceBusMessage.from_json(str(msg)).pseudo_id
-                            isolate_id = self._try_return_isolate_identifier(msg, pseudo_id, receiver)
+    def _enter_msg_in_postgres(self, msg: ServiceBusReceivedMessage, pseudo_id: str) -> None:
+        with TblFailedIsolates(self._species) as psql_tbl_failed_isolates:
+            psql_tbl_failed_isolates.insert_message_id((msg.message_id, pseudo_id))
 
-                            change_done_in_bigs = self._try_mongo_to_bigs_insertion(isolate_id, msg, pseudo_id, receiver)
-                            need_to_run_cache.append(change_done_in_bigs)
+    def _add_exception_to_msg(self, msg: ServiceBusReceivedMessage, exception_msg: str) -> None:
+        with TblFailedIsolates(self._species) as psql_tbl_failed_isolates:
+            psql_tbl_failed_isolates.insert_exception_for_message_id((exception_msg, msg.message_id))
 
-                        if True in need_to_run_cache:
-                            mongo_to_bigs_instance = MongoToBigs(self._species, self._uploader_mail_address)
-                            mongo_to_bigs_instance.cache_and_clustering_update()
-                        need_to_run_cache = []
-                        pending_messages = []
+    def _rm_entry_for_msg(self, msg: ServiceBusReceivedMessage) -> None:
+        with TblFailedIsolates(self._species) as psql_tbl_failed_isolates:
+            psql_tbl_failed_isolates.delete_message_id((msg.message_id,))
 
-
-    def _try_mongo_to_bigs_insertion(self, isolate_id, msg, pseudo_id, receiver):
+    def _try_mongo_to_bigs_insertion(self, isolate_id, msg):
         changes_done_in_bigs = False
         try:
             mongo_to_bigs_instance = MongoToBigs(self._species, self._uploader_mail_address,
@@ -88,11 +96,11 @@ class MessageConsumerDataInserter(AzureServiceBus):
 
         except Exception as e:
             logging.error('%s insertion failed with subsequent error %s', isolate_id, e)
-            with TblFailedIsolates(self._species) as psql_tbl_failed_isolates:
-                psql_tbl_failed_isolates.insert_failure((pseudo_id, '/var/log/bigsdb_insertions.log'))
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            exception_msg = template.format(type(e).__name__, e.args)
+            self._add_exception_to_msg(msg, exception_msg)
 
         finally:
-            receiver.complete_message(msg)
             return  changes_done_in_bigs
 
 
@@ -108,9 +116,9 @@ class MessageConsumerDataInserter(AzureServiceBus):
 
         except Exception as e:
             logging.error('%s did not get isolate_id from query on mapping collection: %s', pseudo_id, e)
-            with TblFailedIsolates(self._species) as psql_tbl_failed_isolates:
-                psql_tbl_failed_isolates.insert_failure((pseudo_id, 'isolate_id not found'))
-            receiver.complete_message(msg)
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            exception_msg = template.format(type(e).__name__, e.args)
+            self._add_exception_to_msg(msg, exception_msg)
 
 
 

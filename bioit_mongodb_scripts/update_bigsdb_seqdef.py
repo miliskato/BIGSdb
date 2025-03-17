@@ -19,11 +19,11 @@ class UpdateBIGSdbSeqDef:
         :param species: species name
         """
         self._mongo_config_data = get_mongodb_config_data()
+        self._species = species
         mongoinit_azure = MongoInitialisation(self._species, mongo_config_data=self._mongo_config_data,
                                                     selected_connection_string='CONNECTION_STRING_AZURE')
         self._update_metadata_collection = mongoinit_azure.initialise_update_collection()
         self._hashed_ad_collection = mongoinit_azure.initialise_hashing_collection()
-        self._species = species
 
 
     def update_bigsdb_psql_if_needed(self) -> None:

@@ -179,7 +179,11 @@ class PsqlQueries():
         isolate_id=(SELECT id FROM isolates WHERE isolate=%s);"""
     # TBL failed_isolates
     ISO_INS__TB_FAIL_ISO_VAR_ID_MESS: Final[str] = """
-        INSERT INTO failed_isolates(pseudo_id, timestamp, comment) VALUES(%s, (SELECT NOW()::TIMESTAMP), %s);"""
+        INSERT INTO failed_isolates(message_id, pseudo_id, timestamp, comment) VALUES(%s, %s, (SELECT NOW()::TIMESTAMP), 'Insertion started');"""
+    ISO_UPD_VAR_COM_TB_FAIL_ISO: Final[str] = """
+        UPDATE failed_isolates set comment = %s WHERE message_id = %s;"""
+    ISO_DEL__TB_FAIL_ISO_VAR_MSG_ID: Final[str] = """
+        DELETE FROM failed_isolates WHERE message_id = %s;"""
     # TBL history
     ISO_INS__TB_HIST_VAR_ID_MESS: Final[str] = """
         INSERT INTO history(isolate_id, timestamp, action, curator) 
