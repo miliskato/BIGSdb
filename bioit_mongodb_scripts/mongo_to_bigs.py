@@ -4,7 +4,6 @@
 # /home/bigsdb/BIGSdb/3.12PythonVenv/bin/python3.12 /home/mikelchtermans/Bigsdb_new/bioit_mongodb_scripts/mongo_to_bigs.py --species listeria --uploader_mail_address bioit@sciensano.be --pyvenvpythonpath /home/bigsdb/BIGSdb/3.12PythonVenv/bin/python3.12
 
 import argparse
-import datetime
 import logging
 import os
 import socket
@@ -32,7 +31,6 @@ from bioit_mongodb_scripts.util.mongo_to_bigs_nominative import MongoToBigsNomin
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email, is_viral
 from bioit_mongodb_scripts.util.new_clustering_info_to_bigs import NewClusteringInfoToBigs
 from bioit_mongodb_scripts.util.new_temporary_alleles_to_bigs import NewTemporaryAllelesToBigs
-from bioit_mongodb_scripts.util.samples_to_validation_bigs import SamplesToValidationBigs
 from bioit_mongodb_scripts.util.command.command import Command
 
 
@@ -171,9 +169,6 @@ class MongoToBigs:
         self.__check_sql_exceptions_for_cache_update()
         self.__update_scheme_caches_full_once_if_needed()
 
-        # send bad samples from the badqc_isolates collection to BIGSdb
-        SamplesToValidationBigs(self._species, mongo_config_data=self._mongo_config_data)
-
         # Main insertion into bigsdb for loop + track if changes are done
         for document in list_of_documents:
             isolate_id = self._mappingtable_collection.find_one({'pseudo_id': document['_id']})['_id']
@@ -292,7 +287,6 @@ class MongoToBigs:
         :return: None
         """
         list_of_documents = self.__get_list_of_documents()
-        SamplesToValidationBigs(self._species, mongo_config_data=self._mongo_config_data)
         changes_in_bigsdb = False
         for document in list_of_documents:
             isolate_id = self._mappingtable_collection.find_one({'pseudo_id': document['_id']})['_id']

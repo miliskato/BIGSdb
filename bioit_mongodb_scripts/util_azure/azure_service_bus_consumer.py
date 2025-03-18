@@ -5,11 +5,12 @@ from typing import Any, List
 
 from azure.servicebus import ServiceBusClient, ServiceBusReceivedMessage, ServiceBusReceiver
 
-from bioit_bigsdb_scripts.components.psql import TblFailedIsolates
+from bioit_bigsdb_scripts.components.psql import TblFailedInsertions
 from bioit_mongodb_scripts.mongo_to_bigs import MongoToBigs
 from bioit_mongodb_scripts.update_bigsdb_seqdef import UpdateBIGSdbSeqDef
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data
+from bioit_mongodb_scripts.util.samples_to_validation_bigs import SamplesToValidationBigs
 from bioit_mongodb_scripts.util_azure.azure_service_bus import AzureServiceBus
 
 
@@ -57,35 +58,46 @@ class MessageConsumerDataInserter(AzureServiceBus):
                     need_to_run_cache = False
                     received_msgs = receiver.receive_messages(max_wait_time=5, max_message_count=1)
 
-                    for msg in received_msgs:
+                    while len(received_msgs) > 0:
+                        msg = received_msgs[0]
                         if self._ct.cancelled:
                             break
                         pseudo_id = AzureServiceBusMessage.from_json(str(msg)).pseudo_id
-                        self._enter_msg_in_postgres(msg, pseudo_id)
+                        collection = AzureServiceBusMessage.from_json(str(msg)).collection
+                        self.__insert_new_message_in_postgres(msg, pseudo_id)
                         receiver.complete_message(msg)
                         isolate_id = self._try_return_isolate_identifier(msg, pseudo_id, receiver)
 
-                        change_done_in_bigs = self._try_mongo_to_bigs_insertion(isolate_id, msg)
-                        self._rm_entry_for_msg(msg)
-                        if not need_to_run_cache:
-                            need_to_run_cache = change_done_in_bigs
-                        received_msgs.append(receiver.receive_messages(max_wait_time=5, max_message_count=1)[0])
+                        ######✨✨✨✨✨✨🎨🎨🎨🎨🧦🧦🧦 would like to use method but how to change need_to_run_cache
+                        if isolate_id and collection == 'isolates_badqc':
+                            SamplesToValidationBigs(self._species, mongo_config_data=self._mongo_config_data)
 
-                    if not received_msgs and (True in need_to_run_cache):
+                        elif isolate_id and collection == 'isolates':
+                            change_done_in_bigs = self._try_mongo_to_bigs_insertion(isolate_id, msg)
+                            self._rm_msg_from_postgres(msg)
+                            if not need_to_run_cache:
+                                need_to_run_cache = change_done_in_bigs
+                        received_msgs.clear()
+                        received_msgs = receiver.receive_messages(max_wait_time=5, max_message_count=1)
+
+                    if need_to_run_cache and not received_msgs :
                         mongo_to_bigs_instance = MongoToBigs(self._species, self._uploader_mail_address)
                         mongo_to_bigs_instance.cache_and_clustering_update()
 
-    def _enter_msg_in_postgres(self, msg: ServiceBusReceivedMessage, pseudo_id: str) -> None:
-        with TblFailedIsolates(self._species) as psql_tbl_failed_isolates:
-            psql_tbl_failed_isolates.insert_message_id((msg.message_id, pseudo_id))
+    def __insert_new_message_in_postgres(self, msg: ServiceBusReceivedMessage, pseudo_id: str) -> None:
+        """
+        insert a message in table Failed
+        """
+        with TblFailedInsertions(self._species) as psql_tbl_failed_insertions:
+            psql_tbl_failed_insertions.insert_message_id((msg.message_id, pseudo_id))
 
     def _add_exception_to_msg(self, msg: ServiceBusReceivedMessage, exception_msg: str) -> None:
-        with TblFailedIsolates(self._species) as psql_tbl_failed_isolates:
-            psql_tbl_failed_isolates.insert_exception_for_message_id((exception_msg, msg.message_id))
+        with TblFailedInsertions(self._species) as psql_tbl_failed_insertions:
+            psql_tbl_failed_insertions.insert_exception_for_message_id((exception_msg, msg.message_id))
 
-    def _rm_entry_for_msg(self, msg: ServiceBusReceivedMessage) -> None:
-        with TblFailedIsolates(self._species) as psql_tbl_failed_isolates:
-            psql_tbl_failed_isolates.delete_message_id((msg.message_id,))
+    def _rm_msg_from_postgres(self, msg: ServiceBusReceivedMessage) -> None:
+        with TblFailedInsertions(self._species) as psql_tbl_failed_insertions:
+            psql_tbl_failed_insertions.delete_message_id((msg.message_id,))
 
     def _try_mongo_to_bigs_insertion(self, isolate_id, msg):
         changes_done_in_bigs = False

@@ -4,7 +4,7 @@ from .databaseconnection import DatabaseConnection
 from .psql_queries import PsqlQueries
 
 
-class TblFailedIsolates(DatabaseConnection):
+class TblFailedInsertions(DatabaseConnection):
     """
     failed_isolates table in the isolates database
     """
