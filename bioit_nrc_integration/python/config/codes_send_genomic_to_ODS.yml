@@ -1,15 +1,15 @@
 pathogens:
   salmonella:
     dcd_name: BIOIT_SLM
-    dcd_code: HDBP0041
+    dcd_code: HDBP0345
     dcd_version: 1.0.1-draft4
   listeria:
     dcd_name: BIOIT_LIST
-    dcd_code: HDBP0041
+    dcd_code: HDBP0335
     dcd_version: 1.0.1-draft3
   influenza:
     dcd_name: BIOIT_INFL
-    dcd_code: HDBP0041
+    dcd_code: HDBP0333
     dcd_version: 1.0.1-draft3
 
 common:
@@ -41,6 +41,11 @@ common:
       - _id
 
 salmonella:
+  TX_SEROTPE_WGS:
+    dict_path:
+      - results
+      - sistr
+      - sistr_serotype_consensus
   TX_MLST_ST:
     dict_path:
       - results
@@ -158,6 +163,11 @@ listeria:
       - results
       - mlst
       - mlst-Lineage
+  TX_PCR_SEROGR:
+    dict_path:
+      - results
+      - pcr_serogroup
+      - pcr_serogroup-serogroup
 
 influenza:
   TX_GENTPE_TOOL_VER:

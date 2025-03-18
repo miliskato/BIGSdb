@@ -63,7 +63,7 @@ class SendGenomicToODS(SFTPConnection):
         self._close_sftp_connection(self._ssh, self._sftp)
 
     def _create_output_json_dict(self) -> dict[str, Any]:
-        """"
+        """
         Finds the required values for the ODS in the document and puts them in a dictionary with the right format.
         :return: output dictionary in the right format ready to be sent to the ODS
         """
