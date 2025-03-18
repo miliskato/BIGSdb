@@ -878,15 +878,10 @@
         path: /etc/cron.d/temporary_alerts_implementation
         state: absent
 
-    - name: add hourly cronjob for mongo to bigs
+    - name: Remove the cronjob for mongo to bigs
       cron:
-        name: "mongo_to_bigs_hourly"
-        minute: '*/5'
-        hour: '*'  # every 5 minutes
-        weekday: '*'
-        job: "/usr/bin/flock -n /tmp/mongo_to_bigs_hourly.lockfile {{ bioit_bigs_home }}/3.12PythonVenv/bin/python3.12 {{ bioit_bigs_home }}/bioit_mongodb_scripts/mongo_to_bigs.py --species {{ species }} --uploader_mail_address bioit@sciensano.be"
-        user: 'bigsdb'
-        cron_file: mongo_to_bigs_hourly
+        path: /etc/cron.d/mongo_to_bigs_hourly
+        state: absent
 
     - name: add hourly cronjob to check killed pid
       cron:
