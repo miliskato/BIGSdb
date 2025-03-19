@@ -4,16 +4,19 @@ import signal
 from typing import Any, List
 
 from azure.servicebus import ServiceBusClient, ServiceBusReceivedMessage
+from tenacity import before_log, retry, stop_after_attempt, wait_fixed
 
 from bioit_bigsdb_scripts.components.psql import TblFailedInsertions
 from bioit_mongodb_scripts.mongo_to_bigs import MongoToBigs
 from bioit_mongodb_scripts.update_bigsdb_seqdef import UpdateBIGSdbSeqDef
+from bioit_mongodb_scripts.util.error import BadCollectionError, IsolateNotFoundException, NetworkOrCommunicationError
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data
 from bioit_mongodb_scripts.util.samples_to_validation_bigs import SamplesToValidationBigs
 from bioit_mongodb_scripts.util_azure.azure_service_bus import AzureServiceBus
 from bioit_mongodb_scripts.util_azure.azure_service_bus_message import AzureServiceBusMessage
 
+logger = logging.getLogger(__name__)
 
 def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     """
@@ -25,7 +28,6 @@ def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     argument_parser.add_argument('--species', required=True, type=str, choices=specieslist)
     argument_parser.add_argument('--uploader_mail_address', required=True, type=str)
     return argument_parser.parse_args()
-
 
 class Cancellation:
     """
@@ -44,13 +46,6 @@ class Cancellation:
         :return: None
         """
         self.cancelled = True
-
-class BadCollectionError(Exception):
-    """
-    class to raise error if the collection of the isolates is not handled by the inerter
-    """
-    def __init__(self):
-        super().__init__("The iserter only handles 'isolates' and 'badqc' collections.")
 
 class MessageConsumerDataInserter(AzureServiceBus):
     """
@@ -109,12 +104,13 @@ class MessageConsumerDataInserter(AzureServiceBus):
 
                         received_msgs = receiver.receive_messages(max_wait_time=20, max_message_count=1)
 
-                    if should_update_cache and not received_msgs:
-                        try:
-                            mongo_to_bigs_instance = MongoToBigs(self._species, self._uploader_mail_address)
-                            mongo_to_bigs_instance.cache_and_clustering_update()
-                        except Exception as e:
-                            logging.error('cache update or clustering failed with error: %s', e)
+                        if should_update_cache and not received_msgs:
+                            try:
+                                mongo_to_bigs_instance = MongoToBigs(self._species, self._uploader_mail_address)
+                                mongo_to_bigs_instance.cache_and_clustering_update()
+                            except Exception as e:
+                                logging.error('cache update or clustering failed with error: %s', e)
+
 
     def __insert_known_isolate(self, collection_name: str, isolate_id: str, msg: ServiceBusReceivedMessage) -> bool :
         """ inserts isolates for which an isolate_id is known
@@ -198,17 +194,6 @@ class MessageConsumerDataInserter(AzureServiceBus):
           raise IsolateNotFoundException(pseudo_id)
         return isolate_id
 
-class IsolateNotFoundException(Exception):
-    """
-    To catch the exception when the pseudo id didn't get its equivalent isolate_id in Mongo
-    """
-    def __init__(self, pseudo_id: str) -> None:
-        """
-        :param pseudo_id: the pseudo id of the isolate
-        :return: None
-        """
-        super().__init__(f'The specified isolate with pseudo_id={pseudo_id} does not exist')
-        self.pseudo_id = pseudo_id
 
 cancel_token = Cancellation()
 
@@ -222,6 +207,18 @@ def handle_shutdown(signum: int, frame: Any) -> None:
     """
     cancel_token.cancel()
 
+@retry(stop=stop_after_attempt(10),wait=wait_fixed(300),before=before_log(logger, logging.INFO))
+def run_application(ct: Cancellation, species: str, mongo_config_data: dict[str, Any], uploader_mail_address: str) -> None:
+    """a decorateur function to try again on Exception before stopping execution
+    :param ct: a Cancellation object
+    :param species: the species name
+    :param mongo_config_data: the mongo_config_data
+    :param uploader_mail_address: the mail address
+    :return: None
+    """
+    data_inserter = MessageConsumerDataInserter(ct, species, mongo_config_data,uploader_mail_address)
+    data_inserter.execute()
+    raise NetworkOrCommunicationError()
 
 if __name__ == '__main__':
 
@@ -231,15 +228,15 @@ if __name__ == '__main__':
 
     # Configure stdout logging
     logging.basicConfig(level=logging.WARNING, filename='/var/log/bigsdb_insertions.log', filemode='w', )
+    logger = logging.getLogger(__name__)
 
     # Parse Mongo config
     mongo_config_data = get_mongodb_config_data()
 
     # Parse arguments
     args = parse_arguments(mongo_config_data['species'])
+
     try:
-        data_inserter = MessageConsumerDataInserter(cancel_token, args.species, mongo_config_data,
-                                                    args.uploader_mail_address)
-        data_inserter.execute()
+        run_application(cancel_token, args.species, mongo_config_data, args.uploader_mail_address)
     except (SystemExit, KeyboardInterrupt):
         pass

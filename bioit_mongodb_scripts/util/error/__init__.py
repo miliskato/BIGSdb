@@ -4,3 +4,4 @@ from .mongoreanalysisdateerror import MongoReanalysisDateError
 from .mongoresequencingalreadyexistserror import MongoResequencingAlreadyExistsError
 from .mongoresequencingnoisolateerror import MongoResequencingNoIsolateError
 from .mongotoomanyresequencingserror import MongoTooManyResequencingsError
+from .event_bus_inserter_errors import BadCollectionError, IsolateNotFoundException, NetworkOrCommunicationError
