@@ -16,9 +16,3 @@ class IsolateNotFoundException(Exception):
         """
         super().__init__(f'The specified isolate with pseudo_id={pseudo_id} does not exist')
 
-class NetworkOrCommunicationError(Exception):
-    """
-    The error might be due to issue to connect to Azure event bus or anything else outside of the scope of the business tasks
-    """
-    def __init__(self):
-        super().__init__("The network connection to Azure might be bad or something else outside of your business tasksw\nCheck the service itself")
