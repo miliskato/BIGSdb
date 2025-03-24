@@ -32,10 +32,6 @@ schema:
       required: False
       default: N/A
       translation: comment
-#    CD_LAB_PATHOGEN:  # todo disable until Florain confirms what this is
-#      required: False
-#      translation: aggl_serogroup
-#      code_list: serovar_codes
   CLIN:
     CD_HP_HCO_VAL:  # needed for link with WGS meta
       required: True
