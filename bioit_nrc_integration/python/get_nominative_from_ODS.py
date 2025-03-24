@@ -250,6 +250,8 @@ class MainNominativeDataParserFromOds(SFTPConnection):
             # Average year length considering leap years = 365.25 days
             patient_age = math.floor((datetime.strptime(MainNominativeDataParserFromOds.___get_value_by_capitalization_agnostic_key(data_unprocessed, 'DT_LAB_COLLCN'), "%Y-%m-%dT%H:%M:%S") -
                                       datetime.strptime(dob, "%Y-%m-%d")).days / 365.25)
+            if patient_age < -1:
+                raise Exception(f"Patient age '{patient_age}' ('DT_LAB_COLLCN' - 'DT_PAT_DOB') is impossible!")
             data_translated['patient_age'] = patient_age
             age_groups = [
                 ("Below 1", -1, 0),
