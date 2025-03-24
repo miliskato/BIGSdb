@@ -494,7 +494,6 @@ class MainMongo:
             metadata['data']['ReferenceAccession'] = tx_ref_accn
         return metadata
 
-
     def ____get_technical_metadata_bacterial_fasta(self, results: JsonReportDict) -> Tuple[str, str, str, str, str, None]:
         """
         Returns the FASTA technical metadata fields if the species is bacterial.
@@ -509,7 +508,7 @@ class MainMongo:
                                       f"filtering of assembly: {results['quast']['assembly_filtering_tool_version']}"
                                       ])
         cd_seq_assy_meth = 'SPAdes'
-        tx_seq_assy_meth_ver = results['quast']['assembly_tool_version']
+        tx_seq_assy_meth_ver = results['quast']['assembly_tool_versions']
         ms_genome_cvge = results[f'downsampling_{appendix}']['downsampling_coverage_estimated']
         cd_novo_assy = 'Yes'
         tx_ref_accn = None
@@ -587,20 +586,20 @@ class MainMongo:
             if typing_scheme in json_report:
                 for locus_index, allele_info in enumerate(json_report[typing_scheme]['loci']):
                     # check if allele designation is md5 hash (32 char combination of letters andor numbers)
-                    if re.findall(r'(?i)(?<![a-z0-9])[a-z0-9]{32}(?![a-z0-9])', allele_info['Allele']):
+                    if allele_info.get('Allele (hash)'):
                         logging.info('new allele detected')
                         existing_document = hashed_ad_collection.with_options(
                             read_concern=ReadConcern(level="majority")).find_one(
                             {"scheme": typing_scheme, "locus": allele_info['Locus'],
-                             "hashed_allele": allele_info['Allele']})
+                             "hashed_allele": allele_info['Allele (hash)']})
                         if existing_document is None:
                             temp_allele = self.___max_temp_allele_name_new_entry(hashed_ad_collection, allele_info['Locus'],
                                                                                  typing_scheme)
                             self.___write_document(hashed_ad_collection,
                                                    MongoRecordDict({"scheme": typing_scheme,
                                                                     "locus": allele_info['Locus'],
-                                                                    "hashed_allele": allele_info['Allele'],
-                                                                    "allele_sequence": allele_info['Allele_sequence'],
+                                                                    "hashed_allele": ['Allele (hash)'],
+                                                                    "allele_sequence": allele_info['Allele sequence'],
                                                                     "encountered_count": 1,
                                                                     "resolved_AD": 0,
                                                                     "temp_allele_name": temp_allele,
@@ -627,7 +626,12 @@ class MainMongo:
                             else:
                                 json_report[typing_scheme]['loci'][locus_index][
                                     'Allele'] = existing_document['resolved_AD']
-                        json_report[typing_scheme]['loci'][locus_index].pop('Allele_sequence')
+                        json_report[typing_scheme]['loci'][locus_index].pop('Allele sequence')
+                        json_report[typing_scheme]['loci'][locus_index].pop('Allele (hash)')
+                        json_report[typing_scheme]['loci'][locus_index].pop('New allele')
+                        # In the new output, the identity is not 100% anymore, but the pid to the closest allele.
+                        # We need 100% identity for further processing.
+                        json_report[typing_scheme]['loci'][locus_index]['% Identity'] = "100.00"
 
     @staticmethod
     def ___check_if_results_changed(current_results: JsonReportDict, new_results: JsonReportDict) -> Tuple[bool, set, set]:
