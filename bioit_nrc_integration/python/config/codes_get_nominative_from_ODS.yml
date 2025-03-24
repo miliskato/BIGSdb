@@ -40,7 +40,7 @@ schema:
     CD_HP_HCO_VAL:  # needed for link with WGS meta
       required: True
       translation: HCO
-    TX_LAB_SAMPLE:  # needed for link with WGS meta
+    TX_LAB_SAMPLE_VAL:  # needed for link with WGS meta
       required: True
       translation: sample_id
     TX_BUSINESS_KEY:
