@@ -18,7 +18,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Upgrade from python 3.9 to python 3.12
 - Rework integration SFTP flow 11 to send genomic indicators to ODS instead of DWH, remove mapping table flow to ODS
 - Simplification of html generation azure script
-- Updated NRC integration according to latest DCD's
+- Updated NRC integration according to latest DCD's:
+  - Salmonella CLIN v1.0.5-draft7
+  - Salmonella LAB v1.0.6-draft5
+  - Salmonella genomic 1.0.1-draft4
+  - Listeria genomic 1.0.1-draft3
+  - Influenza genomic 1.0.1-draft3
 - Modified pseudonymization slightly to be able to rename resequencing files in Azure so that they do not cause issues during the archival.
 
 ### Bugfix

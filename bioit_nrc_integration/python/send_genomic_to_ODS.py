@@ -69,8 +69,8 @@ class SendGenomicToODS(SFTPConnection):
         """
         data_dict = {}
         for variable, variable_info in self._translation_codes['common'].items():
-            dict_path = variable_info['dict_path']
-            data_dict[variable] = access_value_in_dict_using_list_as_dictpath(dict_path, self._document)
+            data_dict[variable] = access_value_in_dict_using_list_as_dictpath(variable_info['dict_path'],
+                                                                              self._document)
         # although the DT_PIPELINE_ANAL is common, it can not be processed regularly using
         # the previous function because it needs to be converted
         data_dict['DT_PIPELINE_ANAL'] = datetime.strptime(self._document['results']['analysis_date'],
@@ -78,10 +78,11 @@ class SendGenomicToODS(SFTPConnection):
 
         if self._translation_codes.get(self._species):
             for variable, variable_info in self._translation_codes[self._species].items():
-                dict_path = variable_info['dict_path']
-                data_dict[variable] = access_value_in_dict_using_list_as_dictpath(dict_path, self._document)
+                data_dict[variable] = access_value_in_dict_using_list_as_dictpath(variable_info['dict_path'],
+                                                                                  self._document)
                 if variable_info.get('code_list'):
-                    data_dict[variable] = self._translation_codes['code_lists'][variable_info['code_list']][data_dict[variable]]
+                    data_dict[variable] = self._translation_codes['code_lists'][
+                        variable_info['code_list']][data_dict[variable]]
             if self._species == 'influenza':
                 self.__add_influenza_a_ha_na_info(data_dict)
         return {'metadata': {'version': self._translation_codes['pathogens'][self._species]['dcd_version'],
