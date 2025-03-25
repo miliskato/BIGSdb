@@ -13,7 +13,7 @@ class GeneDetectionContextBuilderFactory:
     """
 
     def __init__(self):
-        """ initiate the list with specific builders that might be order with the more general builder at the end (order of builders are important)"""
+        """Initiates the list of specific builders. The more generic builder must be kept as the last one in the list"""
         self.gene_detection_context_builders : List[GeneDetectionContextBuilder] = [
             Resfinder4GeneDetectionContextBuilder(),
             AmrFinderGeneDetectionContextBuilder(),
