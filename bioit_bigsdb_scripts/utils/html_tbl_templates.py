@@ -1,10 +1,13 @@
 from typing import List, Self
 
+
 class HtmlTableBuilder:
     """General class to build the html table for gene detection results"""
+
     def __init__(self, headers: List[str], width_px: int | None = None):
         """initialize the general class HtmlTableBuilder
         :param headers: list of headers fields
+        :param width_px: width of the table in pixels
         :return: None
         """
         self._table = ''
@@ -15,6 +18,7 @@ class HtmlTableBuilder:
     def _open_table(self, width_px: int | None = None) -> None:
         """
         initialize the html table
+        :param width_px: width of the table in pixels
         :return: None
         """
         style = '' if width_px is None else f' style="width: {width_px}px;"'
@@ -70,8 +74,10 @@ class HtmlTableBuilder:
         self._close_table()
         return self._table
 
+
 class HtmlLocusTableBuilder(HtmlTableBuilder):
     """subclass used to create the html table following the format GeneCluster | Locus"""
+
     def __init__(self, report_url: str):
         """
         :param report_url: url to call the api to get the html report
@@ -79,7 +85,7 @@ class HtmlLocusTableBuilder(HtmlTableBuilder):
         super().__init__(headers=['GeneCluster', 'Locus'])
         self.add_report_row(report_url)
 
-    def add_locus(self, gene_cluster: str, locus: str):
+    def add_locus(self, gene_cluster: str, locus: str) -> None:
         """
         add locus to the html table
         :param gene_cluster: gene cluster
@@ -88,8 +94,10 @@ class HtmlLocusTableBuilder(HtmlTableBuilder):
         """
         self.add_row([gene_cluster, locus])
 
+
 class HtmlAmrTableBuilder(HtmlTableBuilder):
     """subclass used to create the html table following the format for AMR resistances"""
+
     def __init__(self, report_url: str):
         """
         :param report_url: url to call the api to get the html report
@@ -97,7 +105,7 @@ class HtmlAmrTableBuilder(HtmlTableBuilder):
         super().__init__(headers=['AMR', 'Resistance gene', '%Identity', '%Coverage'], width_px=500)
         self.add_report_row(report_url)
 
-    def add_hit(self, amr: str, resistance_gene: str, identity: str, coverage: str):
+    def add_hit(self, amr: str, resistance_gene: str, identity: str, coverage: str) -> None:
         """
         add hit to the html table
         :param amr: amr
@@ -108,8 +116,10 @@ class HtmlAmrTableBuilder(HtmlTableBuilder):
         """
         self.add_row([amr, resistance_gene, identity, coverage])
 
+
 class HtmlMobSuiteTableBuilder(HtmlTableBuilder):
     """subclass used to create the html table following the for Mob-suite results"""
+
     def __init__(self, report_url: str):
         """
         :param report_url: url to call the api to get the html report
@@ -117,11 +127,11 @@ class HtmlMobSuiteTableBuilder(HtmlTableBuilder):
         super().__init__(headers=['id', 'num. contigs', 'size', 'GC content', 'predicted mobility', 'rep type(s)', 'relaxases types'], width_px=800)
         self.add_report_row(report_url)
 
-    def add_plasmid(self, id:str, num_contigs: str, size: str, gc_content: str, predicted_mobility: str, rep_types: str, relaxases_types: str):
+    def add_plasmid(self, id:str, num_contigs: str, size: str, gc_content: str, predicted_mobility: str, rep_types: str, relaxases_types: str) -> None:
         """
         add characteristics of the plasmid detected by Mob-suite
         :param id: plasmid id
-        :param num_contig: number of contigs
+        :param num_contigs: number of contigs
         :param size: plasmid size
         :param gc_content: plasmid gc content
         :param predicted_mobility: predicted mobility
