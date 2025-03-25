@@ -44,6 +44,7 @@ metrics:
     value_format_to_strip: x
     available_for_fasta_input: false
     parameter_name: Coverage against the assembled contigs
+    global_ont_coverage: true
   coverage_against_reference:  # e.g. qc_cov_ref_illumina_value: "18.00x"
     threshold_direction: lower
     category: quality_checks
@@ -53,6 +54,7 @@ metrics:
     value_format_to_strip: x
     available_for_fasta_input: false
     parameter_name: Coverage against the reference
+    global_ont_coverage: true
   assembly_length_deviation:  # e.g. qc_assembly_total_len_value: '0.90%'
     threshold_direction: higher
     category: quality_checks
@@ -75,6 +77,7 @@ metrics:
       - NA
     available_for_fasta_input: false
     parameter_name: Coverage depth on iterate segment (vertical)
+    global_ont_coverage: true
   median_depth_other_segments: # e.g. preprocess_MP_depth_median_post: '250'
     threshold_direction: lower
     category: preprocess
@@ -88,6 +91,7 @@ metrics:
       - PB2
     available_for_fasta_input: false
     parameter_name: Coverage depth on iterate segment (vertical)
+    global_ont_coverage: true
   coverage_all_segments: # e.g. preprocess_MP_covered_rate_post: '1.0'
     threshold_direction: lower
     category: preprocess
@@ -121,7 +125,7 @@ species:
     typing_loci_detected:
       threshold_warn: 95.0
       threshold_fail: 90.0
-    coverage_against_assembly:
+    coverage_against_assembly:  # ont thresholds are set in get_coreqc_metrics.py
       threshold_warn: 25.0
       threshold_fail: 20.0
     assembly_length_deviation:
@@ -146,7 +150,7 @@ species:
     typing_loci_detected:
       threshold_warn: 95.0
       threshold_fail: 90.0
-    coverage_against_assembly:
+    coverage_against_assembly:  # ont thresholds are set in get_coreqc_metrics.py
       threshold_warn: 35.0
       threshold_fail: 30.0
     assembly_length_deviation:
@@ -171,7 +175,7 @@ species:
     typing_loci_detected:
       threshold_warn: 95.0
       threshold_fail: 90.0
-    coverage_against_assembly:
+    coverage_against_assembly:  # ont thresholds are set in get_coreqc_metrics.py
       threshold_warn: 25.0
       threshold_fail: 20.0
     assembly_length_deviation:
@@ -196,7 +200,7 @@ species:
     typing_loci_detected:
       threshold_warn: 95.0
       threshold_fail: 90.0
-    coverage_against_reference:
+    coverage_against_reference:  # ont thresholds are set in get_coreqc_metrics.py
       threshold_warn: 35.0
       threshold_fail: 30.0
     assembly_length_deviation:
@@ -218,10 +222,10 @@ species:
     average_quality_score_ont_R10:
       threshold_warn: 16.0
       threshold_fail: 14.0
-    median_depth_HA_NA:
+    median_depth_HA_NA:  # ont thresholds are set in get_coreqc_metrics.py
       threshold_warn: 30.0
       threshold_fail: 20.0
-    median_depth_other_segments:
+    median_depth_other_segments:  # ont thresholds are set in get_coreqc_metrics.py
       threshold_warn: 20.0
       threshold_fail: 10.0
     coverage_all_segments:
@@ -243,7 +247,7 @@ species:
     typing_loci_detected:
       threshold_warn: 95.0
       threshold_fail: 90.0
-    coverage_against_assembly:
+    coverage_against_assembly:  # ont thresholds are set in get_coreqc_metrics.py
       threshold_warn: 25.0
       threshold_fail: 20.0
     assembly_length_deviation:
@@ -268,7 +272,7 @@ species:
     typing_loci_detected:
       threshold_warn: 95.0
       threshold_fail: 90.0
-    coverage_against_assembly:
+    coverage_against_assembly:  # ont thresholds are set in get_coreqc_metrics.py
       threshold_warn: 25.0
       threshold_fail: 20.0
     assembly_length_deviation:
