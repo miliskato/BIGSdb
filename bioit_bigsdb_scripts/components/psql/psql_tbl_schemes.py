@@ -21,8 +21,8 @@ class TblSchemes(DatabaseConnection):
 
     def select_scheme_id_based_on_scheme_name(self, param: Tuple[str]) -> List[Optional[Tuple[int]]]:
         """
-        Selects the scheme id from in bigsdb
+        Selects the scheme id from bigsdb
         :param param: scheme name
         :return: List of tuples of single int
         """
-        return self.execute_query(PsqlQueries.UNI_SEL_ID_TB_SCHEME_VAR_name, param)
+        return self.execute_query(PsqlQueries.UNI_SEL_ID_TB_SCHEME_VAR_NAME, param)

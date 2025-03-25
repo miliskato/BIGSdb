@@ -45,14 +45,15 @@ class TblLoci(DatabaseConnection):
             raise ValueError(f'Wrong db_type {self._db_type} for the current table object/instance')
         self.execute_query(PsqlQueries.SEQ_INS__TB_LOCI_VAR_LOCUS, param)
 
-    def get_locus_list(self)-> List[str]:
+    def get_locus_list_for_this_scheme(self, param: Tuple[str]) -> List[str]:
         """
-        Get list of loci already present in the sequence definition database
-        :return: List of loci found in sequence definition database
+        Get list of loci already present in the sequence definition database for the given scheme
+        :param: name of the scheme in BIGSdb
+        :return: List of loci found in sequence definition database for this scheme
         """
         if self._db_type != 'seqdef':
             raise ValueError(f'Wrong db_type {self._db_type} for the current table object/instance')
-        query_result = self.execute(PsqlQueries.SEQ_SEL__TB_LOCI_VAR_ID)
+        query_result = self.execute_query(PsqlQueries.SEQ_SEL__TB_SCHEME_MBR_VAR_ID, param)
         result = []
         for locus in query_result:
             result.append(locus[0])

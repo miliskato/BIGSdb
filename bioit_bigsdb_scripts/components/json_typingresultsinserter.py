@@ -5,8 +5,7 @@ from typing import Any, Dict, List, Literal, Optional, Tuple
 
 from bioit_mongodb_scripts.model.json_model import JsonReportDict
 from .json_superclass import JsonSuperClass
-from .psql import (TblAlleleDesignations, TblEavBoolean, TblEavFields, TblEavFloat, TblEavText, TblHistory, TblIsolates,
-    TblSchemeMembers)
+from .psql import TblAlleleDesignations, TblEavBoolean, TblEavFields, TblEavFloat, TblEavText, TblHistory, TblIsolates, TblSchemeMembers
 from ..utils.html_tbl_templates import HtmlMobSuiteTableBuilder
 from ..utils.url_helper import UrlHelper
 
@@ -48,11 +47,11 @@ class JsonTypingResultsInserter(JsonSuperClass):
                     elif self._schemedict[self._scheme]['type'] == 'irregular':
                         self._process_irregular_typing_scheme()
                 elif self._scheme == 'rmlst_identification':
-                    self._processing_rmlst_identification()
+                    self._process_rmlst_identification()
                 elif self._scheme == 'resfinder4_mutations':
-                    self._processing_resfinder4_mutations()
+                    self._process_resfinder4_mutations()
                 elif self._scheme == 'mob_suite_detection':
-                    self._processing_mob_suite()
+                    self._process_mob_suite()
                 else:
                     logging.warning(f"scheme {self._scheme} not present in json file")
             with TblHistory(self._species) as isolates_history_psql_tbl:
@@ -93,7 +92,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
         elif self._species == 'salmonella':
             self.__process_irregular_typing_scheme_salmonella_specific()
 
-    def _processing_rmlst_identification(self) -> None:
+    def _process_rmlst_identification(self) -> None:
         """
         Inserts taxonomy identification based on rMLST in eav fields related tables
         :return: None
@@ -111,9 +110,9 @@ class JsonTypingResultsInserter(JsonSuperClass):
                 else:
                     with TblEavFloat(self._species) as self._isolates_eavfl_psql_tbl:
                         self._isolates_eavfl_psql_tbl.insert_eav_float_isolate(
-                            (self._isolatename, 'rmlst-%_detected', rmlst_dict[k]))
+                            (self._isolatename, 'rmlst-%_detected', float(rmlst_dict[k])))
 
-    def _processing_resfinder4_mutations(self) -> None:
+    def _process_resfinder4_mutations(self) -> None:
         """
         Inserts ResFinder 4 mutations results into bigsdb eav_text table
         :return: None
@@ -128,7 +127,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
                     isolates_eavf_psql_tbl.insert_text_field((key, 'ResFinder4 mutations'))
                 isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, str(key), f"Resistance to {resistance}"))
 
-    def _processing_mob_suite(self) -> None:
+    def _process_mob_suite(self) -> None:
         """
         Inserts MOB-Suite results into bigsdb eav_text table
         :return: None
@@ -264,17 +263,16 @@ class JsonTypingResultsInserter(JsonSuperClass):
                 self._isolates_ad_psql_tbl.insert_designation_by_isolatename((f'{scheme}_{gene}', self._isolatename, '1'))
         elif self._scheme == 'gmats' and self._json_report_dict['gmats']['gmats_status'] != "":
             with TblEavText(self._species) as isolates_eav_psql_tbl:
-                gmat_clean_status = self._json_report_dict['gmats']['gmats_status'].replace('_',' ')
-                isolates_eav_psql_tbl.insert_eav_isolate((self._isolatename, 'gMATS status', gmat_clean_status))
+                clean_gmat_status = self._json_report_dict['gmats']['gmats_status'].replace('_', ' ')
+                isolates_eav_psql_tbl.insert_eav_isolate((self._isolatename, 'gMATS status', clean_gmat_status))
         elif self._scheme == 'mendevar':
             bexsero_status = self._json_report_dict['mendevar'].get('mendevar_bexsero_status')
             trumenba_status = self._json_report_dict['mendevar'].get('mendevar_trumenba_status')
             with TblEavText(self._species) as isolates_eav_psql_tbl:
-                if bexsero_status :
-                    isolates_eav_psql_tbl.insert_eav_isolate((self._isolatename, 'MenDeVar Bexsero status', bexsero_status.replace('_',' ')))
-                if trumenba_status :
-                    isolates_eav_psql_tbl.insert_eav_isolate((self._isolatename, 'MenDeVar Trumenba status', trumenba_status.replace('_',' ')))
-
+                if bexsero_status:
+                    isolates_eav_psql_tbl.insert_eav_isolate((self._isolatename, 'MenDeVar Bexsero status', bexsero_status.replace('_', ' ')))
+                if trumenba_status:
+                    isolates_eav_psql_tbl.insert_eav_isolate((self._isolatename, 'MenDeVar Trumenba status', trumenba_status.replace('_', ' ')))
 
     def __process_irregular_typing_scheme_salmonella_specific(self) -> None:
         """

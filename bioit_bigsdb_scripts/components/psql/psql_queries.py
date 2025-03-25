@@ -266,8 +266,8 @@ class PsqlQueries():
         VALUES(%s, 'DNA', 'text', 't', 't', %s, %s, 
         %s, 'allele_only', 'f', 't', 't', 'f', 
         1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));"""
-    SEQ_SEL__TB_LOCI_VAR_ID: Final [str] = """
-        SELECT id FROM loci;"""
+    SEQ_SEL__TB_SCHEME_MBR_VAR_ID: Final[str] = """
+        SELECT locus FROM scheme_members WHERE scheme_id=(SELECT id FROM schemes WHERE name = %s);"""
     SEQ_INS__TB_LOCI_VAR_LOCUS: Final[str] = """
         INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, curator, date_entered, datestamp) 
         VALUES(%s, 'DNA', 'text', 't', 't', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));"""
@@ -320,7 +320,7 @@ class PsqlQueries():
     # TBL schemes
     UNI_SEL_ID_TB_SCHEME_VAR_: Final[str] = """
         SELECT id FROM schemes WHERE name = 'cgMLST';"""
-    UNI_SEL_ID_TB_SCHEME_VAR_name: Final[str] = """
+    UNI_SEL_ID_TB_SCHEME_VAR_NAME: Final[str] = """
         SELECT id FROM schemes WHERE name = %s;"""
 
     # TBL scheme members

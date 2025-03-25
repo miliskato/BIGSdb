@@ -27,8 +27,12 @@ class TblProfileMembers(DatabaseConnection):
         """
         self.execute_query(PsqlQueries.SEQ_INS__TB_PROFMEM_VAR_SCHEME_SCHFIELD_PROFID_VALUE, param)
 
-    def insert_all_loci_of_profile(self, data):
+    def insert_all_loci_of_profile(self, data) -> None:
+        """
+        Inserts all loci of the prodile in profile_members table
+        :param data: data to insert into the table (consisting of values used to fill in each row associated to this profile).
+        :return: None
+        """
         cur = self._cursor
         args_str = ','.join(cur.mogrify('(%s, %s, %s, %s, %s, %s)', row).decode("utf-8") for row in data)
         cur.execute("INSERT INTO {table} VALUES".format(table='profile_members') + args_str)
-        #self.connection.commit()

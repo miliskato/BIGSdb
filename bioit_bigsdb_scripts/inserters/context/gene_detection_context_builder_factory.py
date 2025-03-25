@@ -13,6 +13,7 @@ class GeneDetectionContextBuilderFactory:
     """
 
     def __init__(self):
+        """ initiate the class by calling the specific builders until one accept the scheme (order of builders are important)"""
         self.gene_detection_context_builders : List[GeneDetectionContextBuilder] = [
             Resfinder4GeneDetectionContextBuilder(),
             AmrFinderGeneDetectionContextBuilder(),

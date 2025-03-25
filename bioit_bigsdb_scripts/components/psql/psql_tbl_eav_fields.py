@@ -78,7 +78,7 @@ class TblEavFields(DatabaseConnection):
 
     def exists_in_eav_field(self, param: Tuple[str, str]) -> bool:
         """
-        Return the description stored for the given field
+        Checks whether a given field/category combination exists in the eav_fields table.
         :param param: field from eav_fields table, category for this field
         :return: True if present, False if not
         """

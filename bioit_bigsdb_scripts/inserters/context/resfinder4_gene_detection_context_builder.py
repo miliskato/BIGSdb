@@ -23,7 +23,7 @@ class Resfinder4GeneDetectionContextBuilder(GeneDetectionContextBuilder):
     def build(self, scheme: str, scheme_config: Dict[str, Any]) -> GeneDetectionContext:
 
         """
-        Based on "/db/amrfinder/latest/AMRProt" file from AMRFinder db, creates dictionaries used to insert loci in seqdef
+        Based on "phenotypes.txt" file from ResFinder4, create dictionaries used to insert loci in seqdef
         :param scheme: name of the scheme
         :param scheme_config: bigsdb config for this scheme
         :return: GeneDetectionContext object

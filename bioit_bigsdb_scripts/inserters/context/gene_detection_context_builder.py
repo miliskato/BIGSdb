@@ -1,10 +1,10 @@
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from typing import Any, Dict
 
 from bioit_bigsdb_scripts.inserters.context.gene_detection_context import GeneDetectionContext
 
 
-class GeneDetectionContextBuilder:
+class GeneDetectionContextBuilder(ABC):
     """
     Abstract class that sets the contract for GeneDetectionContext
     """

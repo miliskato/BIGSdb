@@ -54,7 +54,7 @@ class GeneDetectionIntoPsql:
 
     def insert_schemes(self) -> None:
         """
-        Inserts schemes into BIGSdb seqdef database
+        Inserts schemes into BIGSdb databases
         :return: None
         """
         try:
@@ -102,7 +102,7 @@ class GeneDetectionIntoPsql:
              TblLoci(self._species, 'seqdef') as seqdef_loci_psql_tbl:
 
             seqdef_scheme_id=int(seqdef_schemes_psql_tbl.select_scheme_id_based_on_scheme_name((scheme,))[0][0])
-            present = seqdef_loci_psql_tbl.get_locus_list()
+            present = seqdef_loci_psql_tbl.get_locus_list_for_this_scheme((scheme,))
 
         cluster_list = [ x for x in list(context.description_dict.keys()) if x not in present]
         if len(cluster_list) == 0:
@@ -206,11 +206,6 @@ class GeneDetectionIntoPsql:
         locus_name: str = hit['Locus']
 
         return f'<tr><td>{gene_cluster}</td><td>{locus_name}</td></tr>'
-
-
-
-
-
 
 
 if __name__ == '__main__':

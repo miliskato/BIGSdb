@@ -1,3 +1,4 @@
+--insert schemes
 INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, curator, date_entered, datestamp, isolate_display, main_display, query_field, query_status, analysis, recommended, quality_metric, dbase_name, dbase_id) VALUES(1, 'MLST', 'MLST scheme downloaded and updated weekly from the Pasteur-institute Bigsdb-interface.', 't', 1, 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE), 't', 't', 't', 'f', 't', 't', 'f', 'bigsdb_listeria_seqdef', 1) ON CONFLICT DO NOTHING;
 INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, curator, date_entered, datestamp, isolate_display, main_display, query_field, query_status, analysis, recommended, quality_metric, dbase_name, dbase_id) VALUES(2, 'cgMLST', 'cgMLST scheme downloaded and updated weekly from the Pasteur-institute Bigsdb-interface.', 't', 2, 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE), 't', 't', 't', 'f', 't', 't', 'f', 'bigsdb_listeria_seqdef', 2) ON CONFLICT DO NOTHING;
 INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, curator, date_entered, datestamp, isolate_display, main_display, query_field, query_status, analysis, recommended, quality_metric, dbase_name, dbase_id) VALUES(3, 'PCR serogroup', 'PCR Serogroup scheme downloaded and updated weekly from the Pasteur-institute Bigsdb-interface.', 't', 4, 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE), 't', 't', 't', 'f', 't', 't', 'f', 'bigsdb_listeria_seqdef', 3) ON CONFLICT DO NOTHING;
@@ -11,9 +12,7 @@ INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, cu
 INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, curator, date_entered, datestamp, isolate_display, main_display, query_field, query_status, analysis, recommended, quality_metric, dbase_name, dbase_id) VALUES(11, 'PlasmidFinder_grampositive', 'PlasmidFinder gram-positive bacteria', 't', 11, 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE), 't', 't', 't', 'f', 't', 't', 'f', 'bigsdb_listeria_seqdef', 11) ON CONFLICT DO NOTHING;
 INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, curator, date_entered, datestamp, isolate_display, main_display, query_field, query_status, analysis, recommended, quality_metric, dbase_name, dbase_id) VALUES(12, 'ResFinder4 mutations', 'ResFinder4 - PointFinder database', 't', 12, 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE), 't', 't', 't', 'f', 't', 't', 'f', 'bigsdb_listeria_seqdef', 12) ON CONFLICT DO NOTHING;
 INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, curator, date_entered, datestamp, isolate_display, main_display, query_field, query_status, analysis, recommended, quality_metric, dbase_name, dbase_id) VALUES(13, 'AMRFinder', 'AMRFinder', 't', 13, 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE), 't', 't', 't', 'f', 't', 't', 'f', 'bigsdb_listeria_seqdef', 13) ON CONFLICT DO NOTHING;
-
-
-
+--insert scheme_fields
 INSERT INTO scheme_fields(scheme_id, field, type, description, field_order, dropdown, primary_key, curator, datestamp, isolate_display, main_display, query_field) VALUES(1, 'ST', 'integer', 'Sequence Type', 1, 'f', 't', 1, (SELECT CURRENT_DATE), 't', 't', 't') ON CONFLICT DO NOTHING;
 INSERT INTO scheme_fields(scheme_id, field, type, description, field_order, dropdown, primary_key, curator, datestamp, isolate_display, main_display, query_field) VALUES(1, 'CC', 'text', 'Clonal Complex', 2, 'f', 'f', 1, (SELECT CURRENT_DATE), 't', 't', 't') ON CONFLICT DO NOTHING;
 INSERT INTO scheme_fields(scheme_id, field, type, description, field_order, dropdown, primary_key, curator, datestamp, isolate_display, main_display, query_field) VALUES(1, 'lineage', 'text', 'Lineage', 3, 'f', 'f', 1, (SELECT CURRENT_DATE), 't', 't', 't') ON CONFLICT DO NOTHING;
@@ -21,8 +20,7 @@ INSERT INTO scheme_fields(scheme_id, field, type, description, field_order, drop
 INSERT INTO scheme_fields(scheme_id, field, type, description, field_order, dropdown, primary_key, curator, datestamp, isolate_display, main_display, query_field) VALUES(3, 'profile_id', 'integer', 'Profile id', 1, 'f', 't', 1, (SELECT CURRENT_DATE), 't', 't', 't') ON CONFLICT DO NOTHING;
 INSERT INTO scheme_fields(scheme_id, field, type, description, field_order, dropdown, primary_key, curator, datestamp, isolate_display, main_display, query_field) VALUES(3, 'serogroup', 'text', 'Serogroup', 2, 'f', 'f', 1, (SELECT CURRENT_DATE), 't', 't', 't') ON CONFLICT DO NOTHING;
 INSERT INTO scheme_fields(scheme_id, field, type, description, field_order, dropdown, primary_key, curator, datestamp, isolate_display, main_display, query_field) VALUES((SELECT id FROM schemes WHERE name='rMLST'), 'rST', 'integer', 'Sequence Type for rMLST', 1, 'f', 't', 1, (SELECT CURRENT_DATE), 't', 't', 't') ON CONFLICT DO NOTHING;
-
-
+--insert eav_fields
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('html', 'text', 'galaxy report', 'galaxy html report', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('ResFinder4', 'text', 'ResFinder4', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('VFDB_core', 'text', 'Gene detection', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
@@ -31,20 +29,18 @@ INSERT INTO eav_fields(field, value_format, category, description, no_curate, no
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('assembly', 'text', 'galaxy report', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('AMRFinder', 'text', 'AMRFinder', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('MOB-Suite', 'text', 'MOB-Suite', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
-
-
+--insert eav_fields_hidden
 INSERT INTO eav_fields_hidden(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('mongo_results_version', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
 INSERT INTO eav_fields_hidden(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('ResFinder4', 'text', 'Gene detection', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
 INSERT INTO eav_fields_hidden(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('VFDB_core', 'text', 'Gene detection', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
 INSERT INTO eav_fields_hidden(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('VirulenceFinder_Listeria', 'text', 'Gene detection', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
 INSERT INTO eav_fields_hidden(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('PlasmidFinder_grampositive', 'text', 'Gene detection', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
 INSERT INTO eav_fields_hidden(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('AMRFinder', 'text', 'Gene detection', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
-
+--insert classification_schemes for clustering
 INSERT INTO classification_schemes(id, scheme_id, name, description, inclusion_threshold, use_relative_threshold, seqdef_cscheme_id, display_order, status, curator, datestamp) VALUES(1, (SELECT id FROM schemes WHERE name = 'cgMLST'), 'cgMLST_4_diffs_clustering', 'cgMLST profiles clustering at the threshold of 4 allelic differences', 4, false, 1, 1, 'experimental', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
 INSERT INTO classification_schemes(id, scheme_id, name, description, inclusion_threshold, use_relative_threshold, seqdef_cscheme_id, display_order, status, curator, datestamp) VALUES(2, (SELECT id FROM schemes WHERE name = 'cgMLST'), 'cgMLST_7_diffs_clustering', 'cgMLST profiles clustering at the threshold of 7 allelic differences', 7, false, 2, 2, 'experimental', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
 INSERT INTO eav_fields(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('cgMLST_differences_0-4', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
 INSERT INTO eav_fields(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('cgMLST_differences_0-7', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
-
 --rmlst identification:
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('rmlst-genus', 'text', 'rMLST identification', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('rmlst-species', 'text', 'rMLST identification', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
@@ -54,7 +50,6 @@ INSERT INTO eav_fields(field, value_format, category, description, no_curate, no
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('rmlst-other_designation', 'text', 'rMLST identification', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('rmlst-notes', 'text', 'rMLST identification', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('rmlst-%_detected', 'float', 'rMLST identification', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
-
 --ResFinder4 mutations (PointFinder)
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('pmrA p.G15R', 'text', 'ResFinder4 mutations', 'Resistance to Colistin', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('pmrA p.G53R', 'text', 'ResFinder4 mutations', 'Resistance to Colistin', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;

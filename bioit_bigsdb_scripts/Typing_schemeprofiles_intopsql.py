@@ -167,8 +167,7 @@ class TypingSchemeProfilesIntoPsql:
                         continue
                     set_to_be_inserted = set(profiles.iloc[:, 0].to_list())
 
-                    if not profiles.empty:
-                        self.__insert_profiles(scheme, schemedict, profiles, set_to_be_inserted,
+                    self.__insert_profiles(scheme, schemedict, profiles, set_to_be_inserted,
                                                seqdef_profiles_psql_tbl, species)
 
     @staticmethod

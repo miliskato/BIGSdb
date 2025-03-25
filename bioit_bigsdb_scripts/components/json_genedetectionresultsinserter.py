@@ -113,9 +113,7 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                                     (clusterhit, self._isolatename, '1'))
 
                             clusterhitset.add(clusterhit)
-
-                            if not scheme.endswith('vfdb_core') and not scheme.endswith('virulencefinder'):
-                                locus_table_builder.add_locus([hit, clusterhit])
+                            locus_table_builder.add_locus([hit, clusterhit])
 
                     html = locus_table_builder.build()
 
