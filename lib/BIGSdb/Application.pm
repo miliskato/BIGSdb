@@ -68,6 +68,7 @@ use BIGSdb::ProjectsPage;
 use BIGSdb::PubQueryPage;
 use BIGSdb::QueryPage;
 use BIGSdb::RecordInfoPage;
+use BIGSdb::RejectedPage;
 use BIGSdb::RestMonitorPage;
 use BIGSdb::SchemeInfoPage;
 use BIGSdb::SchemesPage;
@@ -89,9 +90,9 @@ use List::MoreUtils qw(any);
 use Config::Tiny;
 use Try::Tiny;
 use constant PAGES_NEEDING_AUTHENTICATION => qw(authorizeClient changePassword userProjects bookmarks
-  submit alert login logout);
+  submit alert rejected login logout);
 use constant PAGES_NEEDING_JOB_MANAGER => qw(plugin job jobs index dashboard project login logout options ajaxJobs);
-use constant PAGES_NEEDING_SUBMISSION_HANDLER => qw(submit alert batchAddFasta profileAdd profileBatchAdd batchAdd
+use constant PAGES_NEEDING_SUBMISSION_HANDLER => qw(submit alert rejected batchAddFasta profileAdd profileBatchAdd batchAdd
   batchAddSequences batchIsolateUpdate batchAddSeqbin isolateAdd isolateUpdate index logout);
 use constant PAGES_NOT_NEEDING_PLUGINS => qw(ajaxJobs jobMonitor ajaxRest restMonitor);
 
@@ -491,6 +492,7 @@ sub print_page {
 		projects           => 'ProjectsPage',
 		recordInfo         => 'RecordInfoPage',
 		registration       => 'UserRegistrationPage',
+		rejected           => 'RejectedPage',
 		restMonitor        => 'RestMonitorPage',
 		schemeInfo         => 'SchemeInfoPage',
 		schemes            => 'SchemesPage',

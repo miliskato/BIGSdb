@@ -51,3 +51,24 @@ class UrlHelper:
             'getzip': 'yes' if getzip else 'no'
         }
         return UrlHelper._create(UrlHelper.SCIENSANO_PAGE, species, query)
+
+    @staticmethod
+    def report_for_validation_rejected_isolate_id(species: str, pseudo_id: str, rejected_isolate_id: str, submit_date: str, validation_type: str, getzip: bool = False) -> str:
+        """
+        encodes url to get the report waiting for validation
+        :param species: species of interest
+        :param pseudo_id: pseudo id found in MongoDB
+        :param rejected_isolate_id: id of the rejected isolate
+        :param submit_date: creation date in MongoDB
+        :param validation_type: type of validation based on info from submission
+        :param getzip: if "False" (default), only html report is provided and if "True", zip archive is created
+        :return: url used to get the report for the submitted isolate
+        """
+        query = {
+            'pseudo_id': pseudo_id,
+            'rejected_isolate_id': rejected_isolate_id,
+            'submit_date': submit_date,
+            'validation_type': validation_type,
+            'getzip': 'yes' if getzip else 'no'
+        }
+        return UrlHelper._create(UrlHelper.SCIENSANO_PAGE, species, query)

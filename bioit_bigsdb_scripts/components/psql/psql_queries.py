@@ -1,7 +1,7 @@
 from typing import Final
 
 
-class PsqlQueries():
+class PsqlQueries:
     """
     QUERIES
     naming convention (made up by MK):
@@ -303,6 +303,18 @@ class PsqlQueries():
         locus, profile_id, allele_id, curator, datestamp) 
         VALUES((SELECT id FROM schemes WHERE name=%s), 
         %s, %s, %s, 1, (SELECT CURRENT_DATE));"""
+
+    # TBL rejected isolates
+    ISO_INS__TB_REJISO_VAR_ISO_DATE_REJREAS_TYPE_REPORT: Final[str] = """
+        INSERT INTO rejected_isolates(id, isolate, insertion_date, rejection_reasons, insertion_type, report_link, status) \
+        VALUES((SELECT CASE WHEN (SELECT MAX(id) FROM rejected_isolates) IS NULL THEN 1 ELSE (SELECT(SELECT MAX(id) FROM rejected_isolates)+1) END), \
+        %s, %s, %s, %s, %s, 'pending');"""
+    ISO_DEL__TB_REJISO_VAR_ISO: Final[str] = """
+        DELETE FROM rejected_isolates WHERE isolate=%s;"""
+    ISO_SEL_EXISTS_TB_REJISO_VAR_ISO: Final[str] = """
+        SELECT EXISTS(SELECT 1 FROM rejected_isolates WHERE isolate=%s);"""
+    ISO_SEL_MAX_REJISO: Final[str] = """
+        SELECT MAX(id) FROM rejected_isolates"""
 
     # TBL schemes
     UNI_SEL_ID_TB_SCHEME_VAR_: Final[str] = """

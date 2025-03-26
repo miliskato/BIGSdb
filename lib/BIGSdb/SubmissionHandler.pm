@@ -310,6 +310,13 @@ sub get_alert {
 		$alert_id, { fetch => 'row_hashref', cache => 'SubmissionHandler::get_alert' } );
 }
 
+sub get_rejected_isolate {
+	my ( $self, $rejected_isolate_id ) = @_;
+	$logger->logcarp('No rejected_isolate_id passed') if !$rejected_isolate_id;
+	return $self->{'datastore'}->run_query( 'SELECT * FROM rejected_isolates WHERE id=?',
+		$rejected_isolate_id, { fetch => 'row_hashref', cache => 'SubmissionHandler::get_rejected_isolate' } );
+}
+
 sub get_alert_details {
         my ( $self, $alert_id ) = @_;
         $logger->logcarp('No submission_id passed') if !$alert_id;
