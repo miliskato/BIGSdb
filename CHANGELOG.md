@@ -9,12 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - check for presence of cgMLST scheme members and for presence of mv_scheme_x table in seqdef before trying a 
   cache update of the scheme. 
+- Enterococcus
+- Core QC page
 
 ### Changed
 - All Jammy existing assays to bigsdb for neisseria listeria salmonella mycobacterium influenza.
 - Upgrade from python 3.9 to python 3.12
 - Rework integration SFTP flow 11 to send genomic indicators to ODS instead of DWH, remove mapping table flow to ODS
 - Simplification of html generation azure script
+- Simplification of html tagger and html update merger scripts (renamed to html replacer) + creation of general html report class
+- Update of reanalysis + reanalysis configs to account for the jammy changes
+- Update of tagger config to account for the jammy changes
 
 ### Bugfix
 - Bugfix reanalysis influenza
