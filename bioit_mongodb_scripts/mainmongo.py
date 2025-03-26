@@ -582,7 +582,7 @@ class MainMongo:
         :return: results
         """
         hashed_ad_collection = self._mongoinit.initialise_hashing_collection()
-        for typing_scheme in ['mlst', 'cgmlst', 'mlst_warwick', 'mlst_pasteur']:
+        for typing_scheme in self._mongo_config_data['schemes_sequence_typing']:
             if typing_scheme in json_report:
                 for locus_index, allele_info in enumerate(json_report[typing_scheme]['loci']):
                     # check if allele designation is md5 hash (32 char combination of letters andor numbers)
