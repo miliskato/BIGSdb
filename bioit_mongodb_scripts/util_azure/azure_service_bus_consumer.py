@@ -5,6 +5,7 @@ import socket
 from typing import Any, List
 
 from azure.servicebus import ServiceBusClient, ServiceBusReceivedMessage
+from pymongo.errors import ConnectionFailure, OperationFailure
 from tenacity import RetryCallState, after_log, retry, stop_after_attempt, wait_fixed
 
 from bioit_bigsdb_scripts.components.psql import TblFailedInsertions
@@ -72,10 +73,10 @@ class MessageConsumerDataInserter(AzureServiceBus):
         checks for Azure service bus message and try to insert the isolates notified in these messages
         :return: None
         """
-        with (ServiceBusClient.from_connection_string(conn_str=self._connection_string_asb,
+        while not self._ct.cancelled:
+            with (ServiceBusClient.from_connection_string(conn_str=self._connection_string_asb,
                                                       logging_enable=True) as service_bus_client):
-            with service_bus_client.get_queue_receiver(queue_name=self._queue_name) as receiver:
-                while not self._ct.cancelled:
+                with service_bus_client.get_queue_receiver(queue_name=self._queue_name) as receiver:
                     update_tool = UpdateBIGSdbSeqDef(self._species)
                     update_tool.update_bigsdb_psql_if_needed()
                     should_update_cache = False
@@ -97,6 +98,10 @@ class MessageConsumerDataInserter(AzureServiceBus):
                             bigs_db_was_modified = self.__insert_known_isolate(collection_name, isolate_id, msg)
                             if not should_update_cache:
                                 should_update_cache = bigs_db_was_modified
+                        except ConnectionFailure:
+                            raise ConnectionFailure("Connection Failure with local MongoDB")
+                        except OperationFailure as e:
+                            raise OperationFailure("Connection Failure with local MongoDB")
                         except IsolateNotFoundException as e:
                             self.__handle_exception(e, msg)
                         except BadCollectionError as e:
@@ -195,6 +200,12 @@ class MessageConsumerDataInserter(AzureServiceBus):
         """
         mongo_init_local = MongoInitialisation(species, mongo_config_data=self._mongo_config_data,
                                                selected_connection_string='CONNECTION_STRING_LOCAL')
+        try:
+            mongo_init_local.client.admin.command('ping')
+        except ConnectionFailure:
+            raise ConnectionFailure()
+        except OperationFailure:
+            raise OperationFailure("Connection Failure with local MongoDB")
         mapping_table_collection = mongo_init_local.initialise_mapping_table_collection()
         try:
             isolate_id = mapping_table_collection.find_one({'pseudo_id': pseudo_id}).get('_id')
@@ -237,6 +248,7 @@ def run_application(ct: Cancellation, species: str, mongo_config_data: dict[str,
     :return: None
     """
     data_inserter = MessageConsumerDataInserter(ct, species, mongo_config_data,uploader_mail_address)
+    print('🌈🌈🌈')
     data_inserter.execute()
 
 
