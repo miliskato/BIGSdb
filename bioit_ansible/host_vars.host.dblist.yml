@@ -1,6 +1,5 @@
 ---
 bioit_filedb_databases:
-#  dev/test
   - { name: 'amrfinder', version: '2021-12-21.1', latest_symlink: yes }
   - { name: 'amrfinder', version: 'by_version' }
   - { name: 'bacmet', version: '2.0', latest_symlink: yes }
@@ -14,7 +13,6 @@ bioit_filedb_databases:
   - { name: 'nextclade3', version: 'flu_yam', latest_symlink: no }
   - { name: 'nextclade3', version: 'rsv_a', latest_symlink: no }
   - { name: 'nextclade3', version: 'rsv_b', latest_symlink: no }
-  - { name: 'pipeline', version: 'sarscov2', latest_symlink: no }
   - { name: 'refgenomes', version: 'enterococcusfaecalis', latest_symlink: no }
   - { name: 'refgenomes', version: 'enterococcusfaecium', latest_symlink: no }
   - { name: 'sequence_typing', version: 'various', latest_symlink: no }
@@ -22,15 +20,11 @@ bioit_filedb_databases:
   - { name: 'viral_consensus', version: 'influenza_a-ncbi' }
   - { name: 'viral_consensus', version: 'influenza_b-gisaid' }
   - { name: 'viral_consensus', version: 'sars_cov_2-ncbi' }
-
-#acc/prod
-    #- { name: 'nextclade', version: 'flu_h1n1pdm_ha', latest_symlink: no }
-    #- { name: 'nextclade', version: 'flu_h3n2_ha', latest_symlink: no }
-    #- { name: 'nextclade', version: 'flu_vic_ha', latest_symlink: no }
-    #- { name: 'nextclade', version: 'flu_yam_ha', latest_symlink: no }
-    #- { name: 'nextclade', version: 'sars-cov-2', latest_symlink: no }
-
-# all
+  - { name: 'nextclade', version: 'flu_h1n1pdm_ha', latest_symlink: no }
+  - { name: 'nextclade', version: 'flu_h3n2_ha', latest_symlink: no }
+  - { name: 'nextclade', version: 'flu_vic_ha', latest_symlink: no }
+  - { name: 'nextclade', version: 'flu_yam_ha', latest_symlink: no }
+  - { name: 'nextclade', version: 'sars-cov-2', latest_symlink: no }
   - { name: 'abritamr', version: 'no_version', latest_symlink: yes }
   - { name: 'abritamr', version: '3.10.16', latest_symlink: no }
   - { name: 'clair3', version: 'models' }
