@@ -13,7 +13,7 @@ class RejectedIsolate:
     Class to insert a rejected isolate in BIGSdb.
     """
 
-    def __init__(self, species: str, pseudo_id) -> None:
+    def __init__(self, species: str, pseudo_id: str) -> None:
         """
         Initializes this class.
         :param species: Commonly used bioit species name: either genus or specific like stec
@@ -87,21 +87,19 @@ class RejectedIsolate:
         insertion_type = str(self._rejected_isolate_document['insertion_type'])
         if insertion_type == 'manual':
             rejection_reasons = self._rejected_isolate_document['rejection_reasons']['manual']
-            report_link = 'could not be generated'
+            report_link = 'unavailable'
         else:
-            rejection_reasons_list = []
-            for core_qc_metric in self._rejected_isolate_document['rejection_reasons']:
-                rejection_reasons_list.append(
-                    self._rejected_isolate_document['rejection_reasons'][core_qc_metric]['reason'])
-            rejection_reasons = ', '.join(x for x in rejection_reasons_list)
-            rejected_isolate_id = str(self._rejected_isolates_psql_tbl.select_last_isolate_id() + 1)
-            report_url = UrlHelper.report_for_validation_rejected_isolate_id(self._species, self._pseudo_id, rejected_isolate_id, insertion_date, 'rejected_isolate')
+            rejection_reasons = ', '.join(
+                qc_metric['reason'] for qc_metric in self._rejected_isolate_document['rejection_reasons'].values())
+            rejected_isolate_id = str(self._rejected_isolates_psql_tbl.select_last_rejected_isolate_id() + 1)
+            report_url = UrlHelper.report_for_validation_rejected_isolate_id(
+                self._species, self._pseudo_id, rejected_isolate_id, insertion_date, 'rejected_isolate')
             report_link = f'<a href="{report_url}" target = "_blank"> report </a>'
         return insertion_date, insertion_type, rejection_reasons, report_link
 
     def _update_mongodb(self) -> None:
         """
-        Inserts in MongoDB for the rejected isolate an extra field inserted_in_bigsdb.
+        Inserts an extra field inserted_in_bigsdb in MongoDB for the rejected isolate.
         :return: None
         """
         self._rejected_isolates_collection.update_one({'_id': self._pseudo_id}, {'$set': {'inserted_in_bigsdb': True}})

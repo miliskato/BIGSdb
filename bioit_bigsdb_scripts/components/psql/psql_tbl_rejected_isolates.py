@@ -45,9 +45,9 @@ class TblRejectedIsolates(DatabaseConnection):
         """
         return self.execute_query(PsqlQueries.ISO_SEL_EXISTS_TB_REJISO_VAR_ISO, param)
 
-    def select_last_isolate_id(self) -> int:
+    def select_last_rejected_isolate_id(self) -> int:
         """
-        Selects the id of the lastly added isolate.
+        Selects the id of the lastly added rejected isolate.
         :return: id of the lastly added isolate
         """
         isolate_id_tuple = self.execute(PsqlQueries.ISO_SEL_MAX_REJISO)

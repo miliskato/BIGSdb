@@ -113,7 +113,7 @@ sub _any_rejected_isolates_to_show {
 
 sub _get_rejected_isolates_by_status {
     my ( $self, $status ) = @_;
-    my $rejected_isolates = $self->{'datastore'}->run_query( "SELECT * FROM rejected_isolates WHERE status=?", [$status], { fetch => 'all_arrayref', slice => {}} );
+    my $rejected_isolates = $self->{'datastore'}->run_query( "SELECT * FROM rejected_isolates WHERE status=? ORDER BY id ASC", [$status], { fetch => 'all_arrayref', slice => {}} );
     return $rejected_isolates;
 }
 
