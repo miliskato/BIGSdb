@@ -1,22 +1,23 @@
+from dataclasses import dataclass, field
 import socket
 from types import TracebackType
-from typing import List, Type
+from typing import List, Tuple, Type, Union
 
 import psycopg2
 
 from bioit_mongodb_scripts.util.python_utility_functions import send_email
 from .databaseconnection import DatabaseConnection
 
+@dataclass
 class GeneDetectionProfilesBatchData:
     """
     This class initializes the lists to store the values that will fill the db fields.
     """
-    def __init__(self):
-        self.loci_fields = []
-        self.scheme_members_fields = []
-        self.client_dbase_loci_fields = []
-        self.isolates_loci_fields = []
-        self.sequences_fields = []
+    loci_fields: List[Tuple[Union[int, str],...]] = field(default_factory=list)
+    scheme_members_fields: List[Tuple[Union[str, int], ...]] = field(default_factory=list)
+    client_dbase_loci_fields: List[Tuple[Union[str, int],...]] = field(default_factory=list)
+    isolates_loci_fields: List[Tuple[Union[str, int], ...]] = field(default_factory=list)
+    sequences_fields: List[Tuple[Union[str, int], ...]] = field(default_factory=list)
 
 class GeneDetectionProfilesBatchInserter:
     """
