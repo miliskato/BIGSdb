@@ -53,7 +53,7 @@ class TblLoci(DatabaseConnection):
         """
         if self._db_type != 'seqdef':
             raise ValueError(f'Wrong db_type {self._db_type} for the current table object/instance')
-        query_result = self.execute_query(PsqlQueries.SEQ_SEL__TB_SCHEME_MBR_VAR_ID, param)
+        query_result = self.execute_query(PsqlQueries.SEQ_SEL__TB_SCHEME_MBR_VAR_SCHEME_ID, param)
         result = []
         for locus in query_result:
             result.append(locus[0])

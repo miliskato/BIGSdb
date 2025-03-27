@@ -32,7 +32,7 @@ class TblEavFields(DatabaseConnection):
         :param param: field to insert, its category
         :return: None
         """
-        self.execute_query(PsqlQueries.ISO_INS__TB_EAVF_VAR_FIELD_TEXT, param)
+        self.execute_query(PsqlQueries.ISO_INS__TB_EAVF_VAR_FIELD_CAT, param)
 
     def select_fields_amr(self) -> List[Optional[Tuple[str]]]:
         """
@@ -82,5 +82,5 @@ class TblEavFields(DatabaseConnection):
         :param param: field from eav_fields table, category for this field
         :return: True if present, False if not
         """
-        count_occurence = self.execute_query(PsqlQueries.ISO_SEL_COUNT_TB_EAVF_VAR_FIELD_VAR_CAT, param)
+        count_occurence = self.execute_query(PsqlQueries.ISO_SEL_COUNT_TB_EAVF_VAR_FIELD_CAT, param)
         return True if count_occurence[0][0] > 0 else False
