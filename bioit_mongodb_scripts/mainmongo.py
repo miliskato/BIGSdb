@@ -10,7 +10,7 @@ import traceback
 from copy import deepcopy
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Literal, List, Tuple, Union
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
 # import dnspython
 # somehow this package is a requirement without actually needing to be imported, probably imported in pymongo
@@ -25,12 +25,17 @@ sys.path.append(str(PYTHONPATH))
 from bioit_mongodb_scripts.config import CLUSTERING_CONFIG
 from bioit_nrc_integration.python.config import CODES_GENOMIC_ODS
 from bioit_mongodb_scripts.model.json_model import JsonReportDict, MongoRecordDict
+from bioit_mongodb_scripts.util_azure.azure_service_bus_message import AzureServiceBusMessage
+from bioit_mongodb_scripts.util_azure.azure_service_bus import AzureServiceBus
 from bioit_mongodb_scripts.util.error import *
+from bioit_mongodb_scripts.util.check_coreqc_metrics import CheckCoreQCMetrics
+from bioit_mongodb_scripts.util.get_coreqc_metrics import GetCoreQCMetrics
 from bioit_mongodb_scripts.util.mongo_custom_clustering import MongoCustomClustering
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
+from bioit_mongodb_scripts.util.mongo_insertion import insert_document_into_rejected_collection
 from bioit_mongodb_scripts.util.mongo_querying import Mongoquerying
 from bioit_mongodb_scripts.util.python_utility_functions import access_value_in_dict_using_list_as_dictpath, \
-    convert_dmyhms_to_ymd, get_mongodb_config_data, is_viral, send_email
+    convert_dmyhms_to_ymd, get_mongodb_config_data, is_viral, send_email, load_config
 
 
 def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
@@ -51,7 +56,7 @@ def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     parser.add_argument("--fastafilepath", required=False, type=str)  # not mandatory because of reanalysis
     parser.add_argument("--vcffilepath", required=False, type=str)  # not mandatory because of reanalysis
     parser.add_argument("--vcffilepath_unfiltered", required=False, type=str)  # not mandatory because of reanalysis
-    parser.add_argument("--original_input_format", required=False, type=str)  # maybe later change it to choices
+    parser.add_argument("--original_input_format", required=False, type=str, choices=['fastq', 'fasta'])
     parser.add_argument("--technical_id", required=True, type=str)
     parser.add_argument("--technical_metadata_path", required=False, type=Path)  # not mandatory because of reanalysis
     parser.add_argument("--pipeline_hash", required=True, type=str)  # Required for DCD NRC->ODS
@@ -67,8 +72,9 @@ class MainMongo:
     """
     def __init__(self, technical_id: str, species: str, results_type: str, pipeline_hash: str = None, jsonfilepath: Path = None,
                  subvaldict: Dict[str, str] = None, technical_metadata_path: Path = None, reportdirectorypath: Path = None, fastafilepath: Path = None,
-                 vcffilepath: Path = None, vcffilepath_unfiltered: Path = None, original_input_format: str = None, connection_string: str = None, alternate_dtap: Union[str, None] = None,
-                 dont_send_email: bool = False, mongo_config_data: Dict[str, Any] = None) -> None:
+                 vcffilepath: Path = None, vcffilepath_unfiltered: Path = None, original_input_format: Optional[Literal['fastq', 'fasta']] = None,
+                 connection_string: str = None, alternate_dtap: Union[str, None] = None, dont_send_email: bool = False,
+                 mongo_config_data: Dict[str, Any] = None) -> None:
         """
         Initialises this class and executes the main function which will insert/update the sample in a mongodb collection containing isolates
         !! If parameters/arguments are added here, also add them to the argparse function!!
@@ -124,6 +130,9 @@ class MainMongo:
 
         # Open querying class instance
         self._mongoquerying = Mongoquerying()
+
+        # Create AzureServiceBus instance
+        self._asb_instance = AzureServiceBus(self._mongo_config_data, self._species, self._alternate_dtap)
 
         # Parameter compatibility checks
         self._parameter_compatibility_checks()
@@ -233,8 +242,22 @@ class MainMongo:
         mongo_records = self.___initialize_mongo_record(json_report)
 
         good_sample_quality = True
-        if self._results_type == 'new_isolate' and not is_viral(self._species):  # viral pathogens do not have a qc section
-            good_sample_quality = self.___is_good_quality(json_report)
+        if self._results_type == 'new_isolate':
+            sample_coreqc_metrics = GetCoreQCMetrics(self._species, self._original_input_format, 'illumina').\
+                get_sample_coreqc_metrics()  # todo modify illumina to actual reads input type: illumina, R9 or R10
+            check_coreqc_metrics = CheckCoreQCMetrics(self._technical_id, json_report, self._species,
+                                                      self._reportdirectorypath, sample_coreqc_metrics,
+                                                      self._mongo_config_data)
+            good_sample_quality, rejected_document = check_coreqc_metrics.check_coreqc_metrics()
+            if rejected_document:
+                isolates_rejected_coreqc_collection = self._mongoinit.initialise_isolates_rejected_coreqc_collection()
+
+                insert_document_into_rejected_collection(isolates_rejected_coreqc_collection, rejected_document)
+                self._asb_instance.send_message_to_queue(AzureServiceBusMessage(self._technical_id, isolates_rejected_coreqc_collection.name))
+                logging.info(f"Sample {self._technical_id} failed one or more core QC checks. It was added to the "
+                             f"isolates_rejected_coreqc collection.")
+                # exit gracefully
+                sys.exit()
 
         self.__process_mongo_record(mongo_records, good_sample_quality)
         return mongo_records
@@ -264,23 +287,6 @@ class MainMongo:
             self.___write_document(self._isolates_badqc_collection, mongo_records)
             logging.warning(
                 f"New isolate {self._technical_id} failed quality control for one or more checks. It's results were written to the 'isolates_badqc' collection in the {self._species} database")
-
-    def ___is_good_quality(self, new_json_report: JsonReportDict) -> bool:
-        """
-        Evaluates the quality of the isolates based on qc from camel
-        :param new_json_report: json report containing the results from the pipeline
-        :return : True (if good quality) or False (if bad quality)
-        """
-        qc = new_json_report.get('quality_checks')
-        if qc is None:
-            send_email(f"No qc values found in the given results for {self._technical_id}\n{traceback.format_exc()}", dont_send_email=self._dont_send_email)
-            raise KeyError('No qc values found in the given results')
-
-        for qc_type in qc:
-            for key in qc[qc_type]:
-                if key.endswith('status') and qc[qc_type][key] == 'Failed':
-                    return False
-        return True
 
     def __new_resequencing_arrival(self, new_json_report: JsonReportDict, document_original: MongoRecordDict,
                                    collection_in: Collection) -> None:
@@ -387,6 +393,7 @@ class MainMongo:
                          "latest_analysis_date": convert_dmyhms_to_ymd(new_results["results.analysis_date"]),
                          "previous_latest_results_document": self.___write_document(self._old_isolateresults_collection,
                                                                                     MongoRecordDict(dict(deltas_new_old)))}})
+        self._asb_instance.send_message_to_queue(AzureServiceBusMessage(self._technical_id, self._isolates_collection.name))
         # after having updated the isolates collection, check for changes for HD ODS to respect the order of execution.
         self.___check_if_any_results_for_hd_ods_changed(dict(deltas_new_old))
         logging.info(f"Wrote new results and linked to isolate {self._technical_id} in {self._species}")
@@ -421,8 +428,7 @@ class MainMongo:
         validation_date = self._subvaldict['date']
         new_results['submission_status'] = f'validated on {validation_date}'
 
-    @staticmethod
-    def ___write_document(opened_collection: Collection, json_input: MongoRecordDict) -> str:
+    def ___write_document(self, opened_collection: Collection, json_input: MongoRecordDict) -> str:
         """
         Write a document into a collection. if the provided document doesnt contain an _id key, then it is autogenerated
         else the _id field that is autogenerated is overwritten by the one provided
@@ -432,6 +438,11 @@ class MainMongo:
         """
         collection_write = opened_collection.with_options(write_concern=WriteConcern(w="majority")).insert_one(
             json_input)
+
+        # Send message to Azure Service Bus
+        if 'isolates' in opened_collection.name:
+            self._asb_instance.send_message_to_queue(AzureServiceBusMessage(
+                collection_write.inserted_id, opened_collection.name))
         logging.debug(f"Writing {collection_write.inserted_id} in collection {opened_collection}")
         return collection_write.inserted_id
 
@@ -745,7 +756,8 @@ class MainMongo:
                                                   self._mongo_config_data)
         logging.info(f"Running the clustering for the isolate {self._technical_id}")
         sp_thresholds = f"clustering_thresholds_{self._species}"
-        sequence_type = custom_clustering.run_custom_clustering(CLUSTERING_CONFIG[sp_thresholds])
+        clustering_config = load_config(CLUSTERING_CONFIG)
+        sequence_type = custom_clustering.run_custom_clustering(clustering_config[sp_thresholds])
         json_report["cgST"] = sequence_type
 
     @staticmethod

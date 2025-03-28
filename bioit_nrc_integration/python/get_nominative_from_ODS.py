@@ -299,14 +299,21 @@ class MainNominativeDataParserFromOds(SFTPConnection):
                         labtest_result_dict, 'CD_LAB_TEST_CODE'))))
 
                 if labtest_code_combination.get('code_list'):
-                    data_translated[labtest_code_combination['translation']] = \
-                        self._translation_codes['code_lists'][labtest_code_combination['code_list']][
-                            self.___cast_as_int_if_int(self.___get_value_by_capitalization_agnostic_key(
-                                labtest_result_dict, labtest_code_combination['value_field']))]
-                    if labtest_code_combination['translation'].startswith('mic_') and labtest_code_combination[
-                        'translation'].endswith('_I') and data_translated[labtest_code_combination['translation']] == \
-                            'Resistant':
-                        mic_resistances_list.append((labtest_code_combination['translation'].split('_'))[1])
+                    # Even if the field's value supposedly needs to come from a code list, there can be exceptions
+                    # where it doesn't. E.g. it is impossible to list all serotype formulas, and new ones keep being
+                    # added. The following if else catches these exceptions.
+                    code_value = self.___cast_as_int_if_int(self.___get_value_by_capitalization_agnostic_key(
+                        labtest_result_dict, labtest_code_combination['value_field']))
+                    if code_value:
+                        data_translated[labtest_code_combination['translation']] = \
+                            self._translation_codes['code_lists'][labtest_code_combination['code_list']][code_value]
+                        if labtest_code_combination['translation'].startswith('mic_') and \
+                                labtest_code_combination['translation'].endswith('_I') and \
+                                data_translated[labtest_code_combination['translation']] == 'Resistant':
+                            mic_resistances_list.append((labtest_code_combination['translation'].split('_'))[1])
+                    else:
+                        data_translated[labtest_code_combination['translation']] = \
+                            self.___get_value_by_capitalization_agnostic_key(labtest_result_dict, 'TX_LAB_TEST_RSLT_TXT')
                 else:
                     data_translated[labtest_code_combination['translation']] = \
                         self.___get_value_by_capitalization_agnostic_key(

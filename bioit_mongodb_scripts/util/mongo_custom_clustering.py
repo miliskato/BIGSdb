@@ -15,7 +15,7 @@ from bioit_mongodb_scripts.config import CLUSTERING_CONFIG
 from bioit_mongodb_scripts.util.cgmlst_profile import cgMLSTProfile
 from bioit_mongodb_scripts.util.distance_and_cluster_computer import DistanceAndClusterComputer
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
-from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data
+from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, load_config
 
 
 class MongoCustomClustering:
@@ -24,8 +24,7 @@ class MongoCustomClustering:
                  mongo_config_data: Dict[str, Any] = None) -> None:
         """
         Initializes the class
-        :param headers: the headers of the sequence type file from HierCC (so the headers store
-        in the sequence type collection of the species).
+        :param headers: The headers stored in the sequence type collection of the species.
         :param data: the list of the alleles of the cgmlst profile of the isolate to process.
         :param species: commonly used bioit species name: either genus or specific like stec
         :param naive_clustering_distance_matrix_file: The path to the naive clustering cgmlst distance matrix file
@@ -38,7 +37,8 @@ class MongoCustomClustering:
         self._mongo_config_data = mongo_config_data if mongo_config_data else get_mongodb_config_data()
         self._initialize_cluster_index = False
         # Open collections
-        self._mongoinit = MongoInitialisation(self._species, mongo_config_data=self._mongo_config_data, selected_connection_string='CONNECTION_STRING_AZURE')
+        self._mongoinit = MongoInitialisation(self._species, mongo_config_data=self._mongo_config_data,
+                                              selected_connection_string='CONNECTION_STRING_AZURE')
         self._headers_collection = self._mongoinit.initialise_headers_collection()
         self._st_collection, self._cluster_membership_collection, self._cluster_merging_collection = \
             self._mongoinit.initialise_clustering_collections()
@@ -115,7 +115,8 @@ class MongoCustomClustering:
         missing_alleles = self._cgmlst_profile.cgmlst.count(0)
         proportion_of_missing_alleles = missing_alleles / len(self._cgmlst_profile.cgmlst)
         logging.info(f"Proportion of missing allele is {proportion_of_missing_alleles}")
-        if proportion_of_missing_alleles > CLUSTERING_CONFIG["allowed_missing_data_proportion"]:
+        clustering_config = load_config(CLUSTERING_CONFIG)
+        if proportion_of_missing_alleles > clustering_config["allowed_missing_data_proportion"]:
             return False
         else:
             return True
