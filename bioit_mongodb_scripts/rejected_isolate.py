@@ -70,10 +70,10 @@ class RejectedIsolate:
         Inserts the rejected isolate into the rejected isolates table in BIGSdb.
         :return: None
         """
-        insertion_date, insertion_type, rejection_reasons, report_link = self._retrieve_fields()
         isolate_exists = self._rejected_isolates_psql_tbl.exists_isolate((self._isolate,))
         if isolate_exists[0][0]:
             self._rejected_isolates_psql_tbl.delete_isolate((self._isolate,))
+        insertion_date, insertion_type, rejection_reasons, report_link = self._retrieve_fields()
         self._rejected_isolates_psql_tbl.insert_isolate(
             (self._isolate, insertion_date, rejection_reasons, insertion_type, report_link))
         self._update_mongodb()
