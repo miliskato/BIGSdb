@@ -4,7 +4,7 @@ from typing import List, Self
 class HtmlTableBuilder:
     """General class to build the html table for gene detection results"""
 
-    def __init__(self, headers: List[str], width_px: int | None = None):
+    def __init__(self, headers: List[str], width_px: int = None):
         """initialize the general class HtmlTableBuilder
         :param headers: list of headers fields
         :param width_px: width of the table in pixels
@@ -15,7 +15,7 @@ class HtmlTableBuilder:
         self._open_table(width_px)
         self._add_header(headers)
 
-    def _open_table(self, width_px: int | None = None) -> None:
+    def _open_table(self, width_px: int = None) -> None:
         """
         initialize the html table
         :param width_px: width of the table in pixels
@@ -124,10 +124,10 @@ class HtmlMobSuiteTableBuilder(HtmlTableBuilder):
         """
         :param report_url: url to call the api to get the html report
         """
-        super().__init__(headers=['id', 'num. contigs', 'size', 'GC content', 'predicted mobility', 'rep type(s)', 'relaxases types'], width_px=800)
+        super().__init__(headers=['id', 'num. contigs', 'size', 'GC content', 'predicted mobility', 'rep type(s)', 'relaxase types'], width_px=800)
         self.add_report_row(report_url)
 
-    def add_plasmid(self, id:str, num_contigs: str, size: str, gc_content: str, predicted_mobility: str, rep_types: str, relaxases_types: str) -> None:
+    def add_plasmid(self, id:str, num_contigs: str, size: str, gc_content: str, predicted_mobility: str, rep_types: str, relaxase_types: str) -> None:
         """
         add characteristics of the plasmid detected by Mob-suite
         :param id: plasmid id
@@ -136,7 +136,7 @@ class HtmlMobSuiteTableBuilder(HtmlTableBuilder):
         :param gc_content: plasmid gc content
         :param predicted_mobility: predicted mobility
         :param rep_types: rep types
-        :param relaxases_types: relaxases types
+        :param relaxase_types: relaxase types
         :return: None
         """
-        self.add_row([id, num_contigs, size, gc_content, predicted_mobility, rep_types, relaxases_types])
+        self.add_row([id, num_contigs, size, gc_content, predicted_mobility, rep_types, relaxase_types])

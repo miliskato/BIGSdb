@@ -39,17 +39,17 @@ class GeneDetectionProfilesBatchInserter:
         """
         try:
             self.insert_multiple_loci_seqdef(batch_data.loci_fields)
-            self.insert_multiple_scheme_members(self.seqdef_db_connection._cursor, batch_data.scheme_members_fields)
+            self.insert_multiple_scheme_members(self.seqdef_db_connection.cursor, batch_data.scheme_members_fields)
             self.insert_multiple_loci_client_db(batch_data.client_dbase_loci_fields)
             self.insert_multiple_loci_isolates(batch_data.isolates_loci_fields)
-            self.insert_multiple_scheme_members(self.isolates_db_connection._cursor, batch_data.scheme_members_fields)
+            self.insert_multiple_scheme_members(self.isolates_db_connection.cursor, batch_data.scheme_members_fields)
             self.insert_multiple_sequences(batch_data.sequences_fields)
 
-            self.seqdef_db_connection._connection.commit()
-            self.isolates_db_connection._connection.commit()
+            self.seqdef_db_connection.connection.commit()
+            self.isolates_db_connection.connection.commit()
         except Exception as e:
-            self.seqdef_db_connection._connection.rollback()
-            self.isolates_db_connection._connection.rollback()
+            self.seqdef_db_connection.connection.rollback()
+            self.isolates_db_connection.connection.rollback()
             send_email( f'The followind error was raised during the insertion of gene detection scheme elements by batch: {e.args[0]}', f'GeneDetectionProfilesBatchInserter failed on {socket.gethostname()}')
             raise Exception
 
@@ -60,7 +60,7 @@ class GeneDetectionProfilesBatchInserter:
         :param data: list of values to fill the sql insert statements
         :return: None
         """
-        cur = self.seqdef_db_connection._cursor
+        cur = self.seqdef_db_connection.cursor
         args_str = ','.join(cur.mogrify('(%s,%s,%s,%s,%s,%s,%s,%s)',row).decode("utf-8") for row in data)
         cur.execute("INSERT INTO {table} (id, data_type, allele_id_format, length_varies, coding_sequence, curator, date_entered, datestamp) VALUES ".format(table='loci') + args_str)
 
@@ -81,7 +81,7 @@ class GeneDetectionProfilesBatchInserter:
         :param data: list of values to fill the sql insert statements
         :return: None
         """
-        cur=self.seqdef_db_connection._cursor
+        cur=self.seqdef_db_connection.cursor
         args_str = ','.join(cur.mogrify('(%s,%s,%s,%s)', row).decode("utf-8") for row in data)
         cur.execute("INSERT INTO {table} (client_dbase_id, locus, curator, datestamp) VALUES ".format(table='client_dbase_loci')+args_str)
 
@@ -91,7 +91,7 @@ class GeneDetectionProfilesBatchInserter:
         :param data: list of values to fill the sql insert statement
         :return: None
         """
-        cur = self.isolates_db_connection._cursor
+        cur = self.isolates_db_connection.cursor
         args_str = ','.join(cur.mogrify('(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)', row).decode("utf-8") for row in data)
         cur.execute("INSERT INTO {table} (id, data_type, allele_id_format, length_varies, coding_sequence, dbase_name, dbase_id, url, isolate_display, main_display, query_field, analysis, submission_template, curator, date_entered, datestamp) VALUES ".format(table='loci') + args_str)
 
@@ -101,7 +101,7 @@ class GeneDetectionProfilesBatchInserter:
         :param data: list of values to fill the sql insert statement
         :return: None
         """
-        cur = self.seqdef_db_connection._cursor
+        cur = self.seqdef_db_connection.cursor
         args_str = ','.join(cur.mogrify('(%s, %s, %s, %s, %s, %s, %s, %s)',row).decode("utf-8") for row in data)
         cur.execute("INSERT INTO {table} (locus, allele_id, sequence, status, sender,curator, date_entered, datestamp) VALUES ".format(table='sequences')+args_str)
 

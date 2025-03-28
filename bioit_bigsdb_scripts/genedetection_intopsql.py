@@ -8,7 +8,7 @@ from datetime import date
 from pathlib import Path
 from typing import Any, Dict, List, Union
 
-from bioit_bigsdb_scripts.components.psql.insert_gene_detection_profiles_by_batch import GeneDetectionProfilesBatchData, \
+from bioit_bigsdb_scripts.components.psql.gene_detection_profiles_batch_inserter import GeneDetectionProfilesBatchData, \
     GeneDetectionProfilesBatchInserter
 from bioit_bigsdb_scripts.inserters.context.gene_detection_context import GeneDetectionContext
 from bioit_bigsdb_scripts.inserters.context.gene_detection_context_builder_factory import \
@@ -78,8 +78,7 @@ class GeneDetectionIntoPsql:
 
         context_builder_factory = GeneDetectionContextBuilderFactory()
 
-        for scheme in scheme_dict:
-            scheme_config = scheme_dict[scheme]
+        for scheme, scheme_config in scheme_dict.items():
             context = context_builder_factory.build(scheme, scheme_config)
             self.__insert_loci_and_alleles(species, context)
             self.__update_locus_descriptions(species, context)
