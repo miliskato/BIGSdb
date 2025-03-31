@@ -249,6 +249,23 @@
             </VirtualHost>
   when: reportsapi_proxy_check.stdout.find("Line doesn't exist") != -1
 
+- name: Check if perl.conf exists in /etc/apache2/mods-available
+  stat:
+    path: /etc/apache2/mods-available/perl.conf
+  register: stat_perl_conf
+
+- name: Copy the perl.conf template if it doesn't already exist
+  ansible.builtin.template:
+    src: "templates/perl_config.j2"
+    dest: /etc/apache2/mods-available/perl.conf
+    owner: root
+    group: root
+    mode: "u=rw,g=r,o=r"
+  when: not stat_perl_conf.stat.exists
+
+- name: Execute a2enmod perl command
+  command: sudo a2enmod perl
+
 - name: Restart service apache2
   ansible.builtin.systemd:
     state: restarted
