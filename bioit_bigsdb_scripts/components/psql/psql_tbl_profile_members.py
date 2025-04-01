@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import List, Tuple, Union
 
 from .databaseconnection import DatabaseConnection
 from .psql_queries import PsqlQueries
@@ -27,9 +27,9 @@ class TblProfileMembers(DatabaseConnection):
         """
         self.execute_query(PsqlQueries.SEQ_INS__TB_PROFMEM_VAR_SCHEME_SCHFIELD_PROFID_VALUE, param)
 
-    def insert_all_loci_of_profile(self, data) -> None:
+    def insert_all_loci_of_profile(self, data: List[Tuple[Union[str, int]]]) -> None:
         """
-        Inserts all loci of the prodile in profile_members table
+        Inserts all loci of the profile in profile_members table
         :param data: data to insert into the table (consisting of values used to fill in each row associated to this profile).
         :return: None
         """

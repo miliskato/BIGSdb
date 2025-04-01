@@ -67,8 +67,7 @@ class GeneDetectionProfilesBatchInserter:
         cur = self.seqdef_db_connection.cursor
         args_str = ','.join(cur.mogrify('(%s,%s,%s,%s,%s,%s,%s,%s)', row).decode("utf-8") for row in data)
         cur.execute(
-            "INSERT INTO {table} (id, data_type, allele_id_format, length_varies, coding_sequence, curator, date_entered, datestamp) VALUES ".format(
-                table='loci') + args_str)
+            "INSERT INTO {table} (id, data_type, allele_id_format, length_varies, coding_sequence, curator, date_entered, datestamp) VALUES ".format(table='loci') + args_str)
 
     @staticmethod
     def insert_multiple_scheme_members(cur: psycopg2.extensions.cursor, data: List) -> None:
@@ -101,8 +100,7 @@ class GeneDetectionProfilesBatchInserter:
         args_str = ','.join(
             cur.mogrify('(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)', row).decode("utf-8") for row in data)
         cur.execute(
-            "INSERT INTO {table} (id, data_type, allele_id_format, length_varies, coding_sequence, dbase_name, dbase_id, url, isolate_display, main_display, query_field, analysis, submission_template, curator, date_entered, datestamp) VALUES ".format(
-                table='loci') + args_str)
+            "INSERT INTO {table} (id, data_type, allele_id_format, length_varies, coding_sequence, dbase_name, dbase_id, url, isolate_display, main_display, query_field, analysis, submission_template, curator, date_entered, datestamp) VALUES ".format(table='loci') + args_str)
 
     def insert_multiple_sequences(self, data: List) -> None:
         """

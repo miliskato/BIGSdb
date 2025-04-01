@@ -110,7 +110,8 @@ class TempidReplacer:
                 with TblAlleleDesignations(self._species) as isolates_ad_psql_tbl:
                     for hash_document in self._documents_list:
                         if hash_document['resolved_AD'] != 0:
-                            isolates_ad_psql_tbl.update_designations((hash_document['resolved_AD'], hash_document['locus'], hash_document['hashed_allele']))
+                            isolates_ad_psql_tbl.update_designations(
+                                (hash_document['resolved_AD'], hash_document['locus'], hash_document['hashed_allele']))
 
     def __query_hashes_of_scheme(self) -> List[Dict[str, Any]]:
         """
@@ -184,10 +185,13 @@ class TempidReplacer:
         allele_index = hit_metadata[f"{self._scheme}_loci"].index('Allele')
         # Update collections
         logging.debug(f"replacing {temp_allele_name} by {new_allele_id} for locus {locus}")
-        self.___update_temp_allele_to_new(self._isolates_collection, locus, temp_allele_name, new_allele_id, allele_index)
+        self.___update_temp_allele_to_new(self._isolates_collection, locus, temp_allele_name, new_allele_id,
+                                          allele_index)
         self.___update_temp_allele_to_new(self._isolates_badqc_collection, locus, temp_allele_name, new_allele_id)
-        self.___update_temp_allele_to_new(self._isolates_resequencing_collection, locus, temp_allele_name, new_allele_id)
-        self.___update_temp_allele_to_new(self._old_isolateresults_collection, locus, temp_allele_name, new_allele_id, allele_index, in_results=False)
+        self.___update_temp_allele_to_new(self._isolates_resequencing_collection, locus, temp_allele_name,
+                                          new_allele_id)
+        self.___update_temp_allele_to_new(self._old_isolateresults_collection, locus, temp_allele_name, new_allele_id,
+                                          allele_index, in_results=False)
         # Update document but do not delete
         self._hashed_ad_collection.with_options(write_concern=WriteConcern(w="majority")).update_one(
             {"scheme": self._scheme, "resolved_AD": 0, "locus": locus, "temp_allele_name": temp_allele_name},
@@ -208,7 +212,8 @@ class TempidReplacer:
                 {f"cgMLST.{locus_index}": temp_allele_name},
                 update={"$set": {f"cgMLST.{locus_index}": int(new_allele_id)}}
             )
-            logging.debug(f'[information_temp_id_replacer] Locus {locus} at position {locus_index} is replacing {temp_allele_name} by {new_allele_id}')
+            logging.debug(
+                f'[information_temp_id_replacer] Locus {locus} at position {locus_index} is replacing {temp_allele_name} by {new_allele_id}')
 
     def ___update_temp_allele_to_new(self, collection: Collection, locus: str, temp_allele_name: str,
                                      new_allele_id: str, allele_index: int = None, in_results: bool = True) -> None:
