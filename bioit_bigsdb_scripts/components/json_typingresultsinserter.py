@@ -132,9 +132,9 @@ class JsonTypingResultsInserter(JsonSuperClass):
         Inserts MOB-Suite results into bigsdb eav_text table
         :return: None
         """
-        if not self._json_report_dict['mob_suite'].get('mob_suite_overview'):
+        plasmid_list = self._json_report_dict['mob_suite'].get('mob_suite_overview')
+        if not plasmid_list:
             return
-        plasmid_list = self._json_report_dict['mob_suite']['mob_suite_overview']
         report_url = UrlHelper.report_for_isolate(self._species, self._isolatename)
         mob_suite_table_builder = HtmlMobSuiteTableBuilder(report_url)
         for item in plasmid_list:

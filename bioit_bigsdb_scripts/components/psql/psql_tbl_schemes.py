@@ -23,6 +23,6 @@ class TblSchemes(DatabaseConnection):
         """
         Selects the scheme id from bigsdb
         :param param: scheme name
-        :return: List of tuples of single int
+        :return: List with 1 optional tuple containing the scheme id as an integer
         """
         return self.execute_query(PsqlQueries.UNI_SEL_ID_TB_SCHEME_VAR_NAME, param)

@@ -121,4 +121,4 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                     isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, schemename_bigsdb, html))
         with TblHistory(self._species) as isolates_history_psql_tbl:
             isolates_history_psql_tbl.insert_history_isolate((self._isolatename, 'Gene detection results inserted'))
-        logging.info('Gene detection insertion for {self._isolatename} is done')
+        logging.info(f'Gene detection insertion for {self._isolatename} is done')

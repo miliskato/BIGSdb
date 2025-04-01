@@ -28,7 +28,7 @@ class TblEavFields(DatabaseConnection):
 
     def insert_text_field(self, param: Tuple[str, str]) -> None:
         """
-        Inserts a metadata field in the NCBI 16S category
+        Inserts a metadata field in a given category
         :param param: field to insert, its category
         :return: None
         """
