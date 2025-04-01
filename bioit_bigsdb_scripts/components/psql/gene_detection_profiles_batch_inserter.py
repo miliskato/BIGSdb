@@ -77,7 +77,7 @@ class GeneDetectionProfilesBatchInserter:
         :param data: list of values to fill the sql insert statements
         :return: None
         """
-        args_str = ','.join(cur.mogrify('(%s,%s,%s,%s)',row).decode("utf-8") for row in data)
+        args_str = ','.join(cur.mogrify('(%s,%s,%s,%s)', row).decode("utf-8") for row in data)
         cur.execute("INSERT INTO {table} (scheme_id, locus, curator, datestamp) VALUES ".format(table='scheme_members') + args_str)
 
     def insert_multiple_loci_client_db(self, data: List) -> None:
@@ -88,7 +88,7 @@ class GeneDetectionProfilesBatchInserter:
         """
         cur = self.seqdef_db_connection.cursor
         args_str = ','.join(cur.mogrify('(%s,%s,%s,%s)', row).decode("utf-8") for row in data)
-        cur.execute("INSERT INTO {table} (client_dbase_id, locus, curator, datestamp) VALUES ".format(table='client_dbase_loci')+args_str)
+        cur.execute("INSERT INTO {table} (client_dbase_id, locus, curator, datestamp) VALUES ".format(table='client_dbase_loci') + args_str)
 
     def insert_multiple_loci_isolates(self, data: List) -> None:
         """
@@ -100,7 +100,9 @@ class GeneDetectionProfilesBatchInserter:
         args_str = ','.join(
             cur.mogrify('(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)', row).decode("utf-8") for row in data)
         cur.execute(
-            "INSERT INTO {table} (id, data_type, allele_id_format, length_varies, coding_sequence, dbase_name, dbase_id, url, isolate_display, main_display, query_field, analysis, submission_template, curator, date_entered, datestamp) VALUES ".format(table='loci') + args_str)
+            "INSERT INTO {table} (id, data_type, allele_id_format, length_varies, coding_sequence, dbase_name, dbase_id, url, isolate_display, main_display, query_field, "
+            "analysis, submission_template, curator, date_entered, datestamp) VALUES ".format(
+                table='loci') + args_str)
 
     def insert_multiple_sequences(self, data: List) -> None:
         """
@@ -109,8 +111,8 @@ class GeneDetectionProfilesBatchInserter:
         :return: None
         """
         cur = self.seqdef_db_connection.cursor
-        args_str = ','.join(cur.mogrify('(%s, %s, %s, %s, %s, %s, %s, %s)',row).decode("utf-8") for row in data)
-        cur.execute("INSERT INTO {table} (locus, allele_id, sequence, status, sender,curator, date_entered, datestamp) VALUES ".format(table='sequences')+args_str)
+        args_str = ','.join(cur.mogrify('(%s, %s, %s, %s, %s, %s, %s, %s)', row).decode("utf-8") for row in data)
+        cur.execute("INSERT INTO {table} (locus, allele_id, sequence, status, sender,curator, date_entered, datestamp) VALUES ".format(table='sequences') + args_str)
 
     def __enter__(self):
         """enter the runtime context related to the class (interest: connections)"""

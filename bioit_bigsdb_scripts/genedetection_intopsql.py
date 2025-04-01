@@ -8,15 +8,12 @@ from datetime import date
 from pathlib import Path
 from typing import Any, Dict, List, Union
 
-from bioit_bigsdb_scripts.components.psql.gene_detection_profiles_batch_inserter import GeneDetectionProfilesBatchData, \
-    GeneDetectionProfilesBatchInserter
-from bioit_bigsdb_scripts.inserters.context.gene_detection_context import GeneDetectionContext
-from bioit_bigsdb_scripts.inserters.context.gene_detection_context_builder_factory import \
-    GeneDetectionContextBuilderFactory
-
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
+from bioit_bigsdb_scripts.components.psql.gene_detection_profiles_batch_inserter import GeneDetectionProfilesBatchData, GeneDetectionProfilesBatchInserter
+from bioit_bigsdb_scripts.inserters.context.gene_detection_context import GeneDetectionContext
+from bioit_bigsdb_scripts.inserters.context.gene_detection_context_builder_factory import GeneDetectionContextBuilderFactory
 from bioit_bigsdb_scripts.components.psql import TblLocusDescriptions, TblLoci, TblSchemes, TblAlleleDesignations, TblEavText, TblEavTextHidden, TblHistory
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data, send_email
 from bioit_bigsdb_scripts.utils.url_helper import UrlHelper
@@ -30,7 +27,9 @@ def _parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     """
     argument_parser = argparse.ArgumentParser()
     argument_parser.add_argument('--species', type=str, choices=specieslist)
-    argument_parser.add_argument('--do_not_recalculate', required=False, action='store_true', default=False)  # Since 2024/03/29 this script accesses Mongo directly to recalculate, in some instances mongo is not instantiated yet when this script is called (moving from local to Azure), requiring the ability to disable the recalculation
+    argument_parser.add_argument('--do_not_recalculate', required=False, action='store_true',
+                                 default=False)  # Since 2024/03/29 this script accesses Mongo directly to recalculate, in some instances mongo is not instantiated yet when this
+    # script is called (moving from local to Azure), requiring the ability to disable the recalculation
     return argument_parser.parse_args()
 
 
@@ -95,15 +94,15 @@ class GeneDetectionIntoPsql:
         """
         scheme = context.scheme_config['schemename_bigsdb']
         client_db_id = f'bigsdb_{self._species}_seqdef'
-        dbaseurl = ''.join(['/cgi-bin/bigsdb/bigsdb.pl?db=', f'bigsdb_{self._species}_seqdef','&page=alleleInfo&locus=', f"{scheme}", '&allele_id=[?]'])
+        dbaseurl = ''.join(['/cgi-bin/bigsdb/bigsdb.pl?db=', f'bigsdb_{self._species}_seqdef', '&page=alleleInfo&locus=', f"{scheme}", '&allele_id=[?]'])
 
-        with TblSchemes(species,'seqdef') as seqdef_schemes_psql_tbl, \
-             TblLoci(self._species, 'seqdef') as seqdef_loci_psql_tbl:
+        with TblSchemes(species, 'seqdef') as seqdef_schemes_psql_tbl, \
+                TblLoci(self._species, 'seqdef') as seqdef_loci_psql_tbl:
 
-            seqdef_scheme_id=int(seqdef_schemes_psql_tbl.select_scheme_id_based_on_scheme_name((scheme,))[0][0])
+            seqdef_scheme_id = int(seqdef_schemes_psql_tbl.select_scheme_id_based_on_scheme_name((scheme,))[0][0])
             present = seqdef_loci_psql_tbl.get_locus_list_for_this_scheme((scheme,))
 
-        cluster_list = [ x for x in list(context.description_dict.keys()) if x not in present]
+        cluster_list = [x for x in list(context.description_dict.keys()) if x not in present]
         if len(cluster_list) == 0:
             return
 
@@ -113,7 +112,8 @@ class GeneDetectionIntoPsql:
             batch_data.loci_fields.append((cluster, 'DNA', 'text', 't', 't', 1, date_string, date_string))
             batch_data.scheme_members_fields.append((seqdef_scheme_id, cluster, 1, date_string))
             batch_data.client_dbase_loci_fields.append((1, cluster, 1, date_string))
-            batch_data.isolates_loci_fields.append((cluster, 'DNA', 'text', 't', 't', client_db_id, cluster, dbaseurl, 'allele_only', 'f', 't', 't', 'f', 1, date_string, date_string))
+            batch_data.isolates_loci_fields.append(
+                (cluster, 'DNA', 'text', 't', 't', client_db_id, cluster, dbaseurl, 'allele_only', 'f', 't', 't', 'f', 1, date_string, date_string))
             batch_data.sequences_fields.append((cluster, '1', 'dummy1', 'unchecked', 1, 1, date_string, date_string))
             batch_data.sequences_fields.append((cluster, '0', 'null allele', 'unchecked', 1, 1, date_string, date_string))
 
@@ -159,7 +159,8 @@ class GeneDetectionIntoPsql:
                     html_scheme_name = context.scheme_config['schemename_html']
                     report_url = UrlHelper.report_for_isolate(species, isolate_id, html_scheme_name)
                     if not context.scheme.endswith('vfdbcore') and not context.scheme.endswith('virulencefinder'):
-                        eavhtmltable += '<style>table.nice { text-align: center; border-spacing:0 }table.nice tr:nth-child(n+3) {background: #E4EFF3}table.nice tr:nth-child(2n+3) {background: #C1E6F3}</style>'
+                        eavhtmltable += ('<style>table.nice { text-align: center; border-spacing:0 }table.nice tr:nth-child(n+3) {background: #E4EFF3}table.nice tr:nth-child('
+                                         '2n+3) {background: #C1E6F3}</style>')
                         eavhtmltable += f'<table class="data nice"><tr><th>GeneCluster</th><th>Locus</th></tr>'
                         eavhtmltable += f'<tr align="left"><td colspan="4"><a href="{report_url}" target="_blank">Full report</a></td></tr>'
                     else:
@@ -181,7 +182,8 @@ class GeneDetectionIntoPsql:
                                     clusterhitset.add(clusterhit)
                             else:
                                 send_email(
-                                    f"{hit} is not a valid key for self._clusterdict. The locus {hits[y]['Locus']} was found in isolate {isolate_name}\nCheck if it's due to the update of {context.scheme}",
+                                    f"{hit} is not a valid key for self._clusterdict. The locus {hits[y]['Locus']} was found in isolate {isolate_name}\nCheck if it's due to the "
+                                    f"update of {context.scheme}",
                                     f"{Path(__file__).name} issue on host {socket.gethostname()}",
                                     dont_send_email=self._dont_send_email)
 

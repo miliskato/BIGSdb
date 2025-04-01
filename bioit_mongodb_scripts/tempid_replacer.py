@@ -29,7 +29,7 @@ def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     :return: Parsed arguments
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("--scheme", required=True, type=str, help='lower case scheme as in json reports/mongodb documents') #cgmlst / mlst
+    parser.add_argument("--scheme", required=True, type=str, help='lower case scheme as in json reports/mongodb documents')
     parser.add_argument("--species", required=True, type=str, choices=specieslist)
     parser.add_argument("--connection_string", required=True, type=str, help='connection string variable from the config file')
 
@@ -239,15 +239,10 @@ class TempidReplacer:
         if allele_index:  # new way of storing typing results
             collection.with_options(write_concern=WriteConcern(w="majority")).update_many(
                 {f"{'results.' if in_results else ''}{self._scheme}.loci.{locus}.{allele_index}": temp_allele_name},
-                {"$set":
-                     {f"{'results.' if in_results else ''}{self._scheme}.loci.{locus}.{allele_index}": new_allele_id}})
+                {"$set": {f"{'results.' if in_results else ''}{self._scheme}.loci.{locus}.{allele_index}": new_allele_id}})
         else:
             collection.with_options(write_concern=WriteConcern(w="majority")).update_many(
-                {f"{self._scheme}.loci":
-                     {"$elemMatch":
-                          {"Locus": locus, "Allele": temp_allele_name}}},
-                {"$set":
-                     {f"{self._scheme}.loci.$.Allele": new_allele_id}})
+                {f"{self._scheme}.loci": {"$elemMatch": {"Locus": locus, "Allele": temp_allele_name}}}, {"$set": {f"{self._scheme}.loci.$.Allele": new_allele_id}})
 
 
 if __name__ == '__main__':

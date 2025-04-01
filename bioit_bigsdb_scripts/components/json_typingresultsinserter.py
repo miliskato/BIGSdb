@@ -99,9 +99,9 @@ class JsonTypingResultsInserter(JsonSuperClass):
         """
         if 'rmlst' in self._json_report_dict:
             rmlst_dict = self._json_report_dict['rmlst']
-            identification_keys = list({e for e in rmlst_dict if rmlst_dict[e]})
-            unused_keys = ['db_version', 'loci', 'rmlst-rST']
-            identification_keys = [item for i, item in enumerate(identification_keys) if item not in unused_keys]
+            identification_keys = {e for e in rmlst_dict if rmlst_dict[e]}
+            unused_keys = {'db_version', 'loci', 'rmlst-rST'}
+            identification_keys = {item for item in identification_keys if item not in unused_keys}
 
             for k in identification_keys:
                 if k != 'rmlst-percent_detected':
@@ -135,8 +135,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
         if not self._json_report_dict['mob_suite'].get('mob_suite_overview'):
             return
         plasmid_list = self._json_report_dict['mob_suite']['mob_suite_overview']
-        html_scheme_name = ''
-        report_url = UrlHelper.report_for_isolate(self._species, self._isolatename, anchor=html_scheme_name)
+        report_url = UrlHelper.report_for_isolate(self._species, self._isolatename)
         mob_suite_table_builder = HtmlMobSuiteTableBuilder(report_url)
         for item in plasmid_list:
             mob_suite_table_builder.add_plasmid(item['id'], item['num_contigs'], item['size'], item['gc'], item['predicted_mobility'], item['rep_type(s)'], item['relaxase_type(s)'])
@@ -151,8 +150,8 @@ class JsonTypingResultsInserter(JsonSuperClass):
         :return: BIGSdb id of the isolate
         """
         with TblIsolates(self._species) as isolates_tbl:
-            id = isolates_tbl.select_id_for_isolate((self._isolatename,))
-        return str(id[0][0])
+            bigsdb_id = isolates_tbl.select_id_for_isolate((self._isolatename,))
+        return str(bigsdb_id[0][0])
 
     def __process_irregular_typing_scheme_mycobacterium_specific(self) -> None:
         """

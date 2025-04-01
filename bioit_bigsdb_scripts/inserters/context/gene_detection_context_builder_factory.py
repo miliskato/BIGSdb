@@ -6,6 +6,7 @@ from bioit_bigsdb_scripts.inserters.context.gene_detection_context_builder impor
 from bioit_bigsdb_scripts.inserters.context.generic_gene_detection_context_builder import GenericGeneDetectionContextBuilder
 from bioit_bigsdb_scripts.inserters.context.resfinder4_gene_detection_context_builder import Resfinder4GeneDetectionContextBuilder
 
+
 class GeneDetectionContextBuilderFactory:
     """
     Factory to create the context used to insert the scheme in seqdef.
@@ -14,7 +15,7 @@ class GeneDetectionContextBuilderFactory:
 
     def __init__(self):
         """Initiates the list of specific builders. The more generic builder must be kept as the last one in the list"""
-        self.gene_detection_context_builders : List[GeneDetectionContextBuilder] = [
+        self.gene_detection_context_builders: List[GeneDetectionContextBuilder] = [
             Resfinder4GeneDetectionContextBuilder(),
             AmrFinderGeneDetectionContextBuilder(),
             GenericGeneDetectionContextBuilder()
