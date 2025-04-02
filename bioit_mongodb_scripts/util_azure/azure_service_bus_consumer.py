@@ -30,6 +30,7 @@ def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     argument_parser.add_argument('--uploader_mail_address', required=True, type=str)
     return argument_parser.parse_args()
 
+
 class Cancellation:
     """
     Class to define the cancellation token
@@ -47,6 +48,7 @@ class Cancellation:
         :return: None
         """
         self.cancelled = True
+
 
 class MessageConsumerDataInserter(AzureServiceBus):
     """
@@ -75,7 +77,7 @@ class MessageConsumerDataInserter(AzureServiceBus):
         """
         while not self._ct.cancelled:
             with (ServiceBusClient.from_connection_string(conn_str=self._connection_string_asb,
-                                                      logging_enable=True) as service_bus_client):
+                                                          logging_enable=True) as service_bus_client):
                 with service_bus_client.get_queue_receiver(queue_name=self._queue_name) as receiver:
                     update_tool = UpdateBIGSdbSeqDef(self._species)
                     update_tool.update_bigsdb_psql_if_needed()
@@ -100,7 +102,7 @@ class MessageConsumerDataInserter(AzureServiceBus):
                                 should_update_cache = bigs_db_was_modified
                         except ConnectionFailure:
                             raise ConnectionFailure("Connection Failure with local MongoDB")
-                        except OperationFailure as e:
+                        except OperationFailure:
                             raise OperationFailure("Connection Failure with local MongoDB")
                         except IsolateNotFoundException as e:
                             self.__handle_exception(e, msg)
@@ -108,10 +110,9 @@ class MessageConsumerDataInserter(AzureServiceBus):
                             self.__handle_exception(e, msg)
                         except Exception as e:
                             send_email(f'{e.args}',
-                                           f'MessageConsumerDataInserter failed on {socket.gethostname()}')
+                                       f'MessageConsumerDataInserter failed on {socket.gethostname()}')
                             logging.error(e)
                             self.__handle_exception(e, msg)
-
 
                         received_msgs = receiver.receive_messages(max_wait_time=20, max_message_count=1)
 
@@ -124,8 +125,7 @@ class MessageConsumerDataInserter(AzureServiceBus):
                                 send_email(f'{e.args}',
                                            f'MessageConsumerDataInserter failed on {socket.gethostname()}')
 
-
-    def __insert_known_isolate(self, collection_name: str, isolate_id: str, msg: ServiceBusReceivedMessage) -> bool :
+    def __insert_known_isolate(self, collection_name: str, isolate_id: str, msg: ServiceBusReceivedMessage) -> bool:
         """ inserts isolates for which an isolate_id is known
         :param collection_name: MongoDB collection to which belongs the isolates
         :isolate_id: Isolate ID
@@ -138,7 +138,6 @@ class MessageConsumerDataInserter(AzureServiceBus):
             return self.__mongo_to_bigs_insertion(isolate_id, msg)
         else:
             raise BadCollectionError()
-
 
     def __handle_exception(self, e: Exception, msg: ServiceBusReceivedMessage) -> None:
         """
@@ -210,7 +209,7 @@ class MessageConsumerDataInserter(AzureServiceBus):
         try:
             isolate_id = mapping_table_collection.find_one({'pseudo_id': pseudo_id}).get('_id')
         except:
-          raise IsolateNotFoundException(pseudo_id)
+            raise IsolateNotFoundException(pseudo_id)
         return isolate_id
 
 
@@ -226,6 +225,7 @@ def handle_shutdown(signum: int, frame: Any) -> None:
     """
     cancel_token.cancel()
 
+
 def on_error(retry_state: RetryCallState) -> None:
     """
     function to log the error although not catching it
@@ -238,7 +238,8 @@ def on_error(retry_state: RetryCallState) -> None:
     send_email(f'{retry_state.outcome.exception()}', f'WARNING: azure_service_bus_consumer has stopped on {socket.gethostname()}')
     raise retry_state.retry_object.retry_error_cls(retry_state.outcome) from retry_state.outcome.exception()
 
-@retry(stop=stop_after_attempt(2),wait=wait_fixed(3),after=after_log(logging.getLogger(__name__), logging.WARNING),retry_error_callback=on_error)
+
+@retry(stop=stop_after_attempt(2), wait=wait_fixed(3), after=after_log(logging.getLogger(__name__), logging.WARNING), retry_error_callback=on_error)
 def run_application(ct: Cancellation, species: str, mongo_config_data: dict[str, Any], uploader_mail_address: str) -> None:
     """a decorateur function to try again on Exception before stopping execution
     :param ct: a Cancellation object
@@ -247,7 +248,7 @@ def run_application(ct: Cancellation, species: str, mongo_config_data: dict[str,
     :param uploader_mail_address: the mail address
     :return: None
     """
-    data_inserter = MessageConsumerDataInserter(ct, species, mongo_config_data,uploader_mail_address)
+    data_inserter = MessageConsumerDataInserter(ct, species, mongo_config_data, uploader_mail_address)
     print('🌈🌈🌈')
     data_inserter.execute()
 
