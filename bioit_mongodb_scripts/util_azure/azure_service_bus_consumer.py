@@ -249,7 +249,6 @@ def run_application(ct: Cancellation, species: str, mongo_config_data: dict[str,
     :return: None
     """
     data_inserter = MessageConsumerDataInserter(ct, species, mongo_config_data, uploader_mail_address)
-    print('🌈🌈🌈')
     data_inserter.execute()
 
 
