@@ -1,0 +1,279 @@
+metrics:
+  contamination:  # e.g. qc_kraken_illumina_value: "0.00%"
+    threshold_direction: higher
+    category: quality_checks
+    field: qc_kraken_inputtype_value
+    field_to_replace:
+      inputtype: input_type
+    value_format_to_strip: "%"
+    available_for_fasta_input: true
+    parameter_name: "% contamination (Kraken)"
+  average_quality_score_illumina:  # e.g. qc_fqc_avg_qual_fwd_value: '250'
+    threshold_direction: lower
+    category: quality_checks
+    fields:
+      - qc_fqc_avg_qual_fwd_value
+      - qc_fqc_avg_qual_rev_value
+    available_for_fasta_input: false
+    parameter_name: Average quality score
+  average_quality_score_ont_R9:  # e.g. qc_nanoplot_qual_value: '250'
+    threshold_direction: lower
+    category: quality_checks
+    field: qc_nanoplot_qual_value
+    available_for_fasta_input: false
+    parameter_name: Average quality score
+  average_quality_score_ont_R10:  # e.g. qc_nanoplot_qual_value: '250'
+    threshold_direction: lower
+    category: quality_checks
+    field: qc_nanoplot_qual_value
+    available_for_fasta_input: false
+    parameter_name: Average quality score
+  typing_loci_detected: # e.g. qc_typing_loci_value: '99.0%'
+    threshold_direction: lower
+    category: quality_checks
+    field: qc_typing_loci_value
+    value_format_to_strip: "%"
+    available_for_fasta_input: true
+    parameter_name: "Typing loci detected (%)"
+  coverage_against_assembly:  # e.g. qc_cov_assembly_illumina_value: "18.00x"
+    threshold_direction: lower
+    category: quality_checks
+    field: qc_cov_assembly_inputtype_value
+    field_to_replace:
+      inputtype: input_type
+    value_format_to_strip: x
+    available_for_fasta_input: false
+    parameter_name: Coverage against the assembled contigs
+  coverage_against_reference:  # e.g. qc_cov_ref_illumina_value: "18.00x"
+    threshold_direction: lower
+    category: quality_checks
+    field: qc_cov_ref_inputtype_value
+    field_to_replace:
+      inputtype: input_type
+    value_format_to_strip: x
+    available_for_fasta_input: false
+    parameter_name: Coverage against the reference
+  assembly_length_deviation:  # e.g. qc_assembly_total_len_value: '0.90%'
+    threshold_direction: higher
+    category: quality_checks
+    field: qc_assembly_total_len_value
+    value_format_to_strip: "%"
+    available_for_fasta_input: true
+    parameter_name: Total assembly length deviation
+  number_of_contigs:  # e.g. assembly_nb_contigs: "1"
+    threshold_direction: higher
+    category: quast
+    field: assembly_nb_contigs
+    available_for_fasta_input: true
+    parameter_name: Number of contigs
+  median_depth_HA_NA: # e.g. preprocess_HA_covered_rate_post: '250'
+    threshold_direction: lower
+    category: preprocess
+    field: preprocess_iterate_depth_median_post
+    iterate:
+      - HA
+      - NA
+    available_for_fasta_input: false
+    parameter_name: Coverage depth on iterate segment (vertical)
+  median_depth_other_segments: # e.g. preprocess_MP_depth_median_post: '250'
+    threshold_direction: lower
+    category: preprocess
+    field: preprocess_iterate_depth_median_post
+    iterate:
+      - MP
+      - NP
+      - NS
+      - PA
+      - PB1
+      - PB2
+    available_for_fasta_input: false
+    parameter_name: Coverage depth on iterate segment (vertical)
+  coverage_all_segments: # e.g. preprocess_MP_covered_rate_post: '1.0'
+    threshold_direction: lower
+    category: preprocess
+    field: preprocess_iterate_covered_rate_post
+    iterate:
+      - HA
+      - NA
+      - MP
+      - NP
+      - NS
+      - PA
+      - PB1
+      - PB2
+    available_for_fasta_input: false
+    parameter_name: Coverage of iterate segment (horizontal)
+
+species:
+  listeria:
+    contamination:
+      threshold_warn: 1.0
+      threshold_fail: 5.0
+    average_quality_score_illumina:
+      threshold_warn: 30.0
+      threshold_fail: 25.0
+    average_quality_score_ont_R9:
+      threshold_warn: 10.0
+      threshold_fail: 7.0
+    average_quality_score_ont_R10:
+      threshold_warn: 16.0
+      threshold_fail: 14.0
+    typing_loci_detected:
+      threshold_warn: 95.0
+      threshold_fail: 90.0
+    coverage_against_assembly:
+      threshold_warn: 25.0
+      threshold_fail: 20.0
+    assembly_length_deviation:
+      threshold_warn: 10.0
+      threshold_fail: 20.0
+    number_of_contigs:
+      threshold_warn: 250.0
+      threshold_fail: 300.0
+  salmonella:
+    contamination:
+      threshold_warn: 1.0
+      threshold_fail: 5.0
+    average_quality_score_illumina:
+      threshold_warn: 30.0
+      threshold_fail: 25.0
+    average_quality_score_ont_R9:
+      threshold_warn: 10.0
+      threshold_fail: 7.0
+    average_quality_score_ont_R10:
+      threshold_warn: 16.0
+      threshold_fail: 14.0
+    typing_loci_detected:
+      threshold_warn: 95.0
+      threshold_fail: 90.0
+    coverage_against_assembly:
+      threshold_warn: 35.0
+      threshold_fail: 30.0
+    assembly_length_deviation:
+      threshold_warn: 10.0
+      threshold_fail: 20.0
+    number_of_contigs:
+      threshold_warn: 250.0
+      threshold_fail: 300.0
+  neisseria:
+    contamination:
+      threshold_warn: 1.0
+      threshold_fail: 5.0
+    average_quality_score_illumina:
+      threshold_warn: 30.0
+      threshold_fail: 25.0
+    average_quality_score_ont_R9:
+      threshold_warn: 10.0
+      threshold_fail: 7.0
+    average_quality_score_ont_R10:
+      threshold_warn: 16.0
+      threshold_fail: 14.0
+    typing_loci_detected:
+      threshold_warn: 95.0
+      threshold_fail: 90.0
+    coverage_against_assembly:
+      threshold_warn: 25.0
+      threshold_fail: 20.0
+    assembly_length_deviation:
+      threshold_warn: 10.0
+      threshold_fail: 20.0
+    number_of_contigs:
+      threshold_warn: 250.0
+      threshold_fail: 300.0
+  mycobacterium:
+    contamination:
+      threshold_warn: 1.0
+      threshold_fail: 5.0
+    average_quality_score_illumina:
+      threshold_warn: 30.0
+      threshold_fail: 25.0
+    average_quality_score_ont_R9:
+      threshold_warn: 10.0
+      threshold_fail: 7.0
+    average_quality_score_ont_R10:
+      threshold_warn: 16.0
+      threshold_fail: 14.0
+    typing_loci_detected:
+      threshold_warn: 95.0
+      threshold_fail: 90.0
+    coverage_against_reference:
+      threshold_warn: 35.0
+      threshold_fail: 30.0
+    assembly_length_deviation:
+      threshold_warn: 10.0
+      threshold_fail: 20.0
+    number_of_contigs:
+      threshold_warn: 250.0
+      threshold_fail: 300.0
+  influenza:
+    contamination:
+      threshold_warn: 1.0
+      threshold_fail: 5.0
+    average_quality_score_illumina:
+      threshold_warn: 30.0
+      threshold_fail: 25.0
+    average_quality_score_ont_R9:
+      threshold_warn: 10.0
+      threshold_fail: 7.0
+    average_quality_score_ont_R10:
+      threshold_warn: 16.0
+      threshold_fail: 14.0
+    median_depth_HA_NA:
+      threshold_warn: 30.0
+      threshold_fail: 20.0
+    median_depth_other_segments:
+      threshold_warn: 20.0
+      threshold_fail: 10.0
+    coverage_all_segments:
+      threshold_warn: 0.95
+      threshold_fail: 0.8
+  enterococcus_faecalis:
+    contamination:
+      threshold_warn: 1.0
+      threshold_fail: 5.0
+    average_quality_score_illumina:
+      threshold_warn: 30.0
+      threshold_fail: 25.0
+    average_quality_score_ont_R9:
+      threshold_warn: 10.0
+      threshold_fail: 7.0
+    average_quality_score_ont_R10:
+      threshold_warn: 16.0
+      threshold_fail: 14.0
+    typing_loci_detected:
+      threshold_warn: 95.0
+      threshold_fail: 90.0
+    coverage_against_assembly:
+      threshold_warn: 25.0
+      threshold_fail: 20.0
+    assembly_length_deviation:
+      threshold_warn: 10.0
+      threshold_fail: 20.0
+    number_of_contigs:
+      threshold_warn: 250.0
+      threshold_fail: 300.0
+  enterococcus_faecium:
+    contamination:
+      threshold_warn: 1.0
+      threshold_fail: 5.0
+    average_quality_score_illumina:
+      threshold_warn: 30.0
+      threshold_fail: 25.0
+    average_quality_score_ont_R9:
+      threshold_warn: 10.0
+      threshold_fail: 7.0
+    average_quality_score_ont_R10:
+      threshold_warn: 16.0
+      threshold_fail: 14.0
+    typing_loci_detected:
+      threshold_warn: 95.0
+      threshold_fail: 90.0
+    coverage_against_assembly:
+      threshold_warn: 25.0
+      threshold_fail: 20.0
+    assembly_length_deviation:
+      threshold_warn: 10.0
+      threshold_fail: 20.0
+    number_of_contigs:
+      threshold_warn: 250.0
+      threshold_fail: 300.0

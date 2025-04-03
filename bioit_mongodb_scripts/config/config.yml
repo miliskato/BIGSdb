@@ -1,6 +1,7 @@
 CONNECTION_STRING_ALTERNATE: mongodb+srv://mikelchtermans:YMFOH4BLF1U79dDk@hera-bioit-trial.vajezh0.mongodb.net
 CONNECTION_STRING_AZURE: to_be_replaced_by_ansible
 CONNECTION_STRING_LOCAL: to_be_replaced_by_ansible
+CONNECTION_STRING_ASB: to_be_replaced_by_ansible
 
 mail:
     from: MongoDB internal HERA
@@ -8,6 +9,8 @@ mail:
     host: bioit-mailhog.sciensano.be:1025
 
 species:
+    - enterococcus_faecalis
+    - enterococcus_faecium
     - listeria
     - mycobacterium
     - neisseria
@@ -37,12 +40,14 @@ collections:
     - nominative_labtest_clinical_metadata
     - unprocessed_nominative_labtest_metadata
     - unprocessed_nominative_clinical_metadata
+    - isolates_rejected_coreqc
 
 schemes_sequence_typing:
     - mlst
     - cgmlst
     - mlst_warwick
     - mlst_pasteur
+    - mlst_bezdicek
 
 temp_dir: /scratch/temp
 

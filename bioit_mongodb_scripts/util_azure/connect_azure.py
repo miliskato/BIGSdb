@@ -9,11 +9,15 @@ from azure.storage.blob import AccountSasPermissions, BlobServiceClient, generat
 
 class ConnectAzure:
     """
-    This class is used to connect to the keyvault, the batch service, the blob storage and the fileshare of a specific
-    environment.
+    This class is used to connect to the keyvault, the batch service, the blob storage, and the fileshare of a
+    specific environment.
     """
-
-    def __init__(self, dtap: str):
+    def __init__(self, dtap: str) -> None:
+        """
+        Initialises this class for a given environment and opens the connection to the keyvault if required.
+        :param dtap: environment; dev, test, acc, or prod
+        :return: None
+        """
         self._dtap = dtap
         self._connect_to_keyvault()
 
@@ -29,7 +33,7 @@ class ConnectAzure:
     def connect_to_batch_client(self) -> batch.BatchServiceClient:
         """
         Connects to batch service.
-        :return: None
+        :return: Batch service client
         """
         batch_url = f"https://baweu{self._dtap}herawgs.westeurope.batch.azure.com"
 
@@ -50,7 +54,7 @@ class ConnectAzure:
     def connect_to_storages(self) -> BlobServiceClient:
         """
         Connects to the blob storage, which is needed to access the files.
-        :return: None
+        :return: blob service client
         """
         # Instantiate a BlobServiceClient
         input_storage_connection_string = self.get_secret_value(

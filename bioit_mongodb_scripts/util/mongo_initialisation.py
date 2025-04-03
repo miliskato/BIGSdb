@@ -17,7 +17,8 @@ class MongoInitialisation:
         """
         Initialises this class and opens the species/dtap specific mongo database
         :param species: commonly used bioit species name: either genus or specific like stec
-        :param selected_connection_string: to select the connection string from the config file that should be used to initialize the connection
+        :param selected_connection_string: to select the connection string from the config file that should be used to
+        initialise the connection
         :param alternate_dtap: alternative dtap than what is in the config file
         :param mongo_config_data: Use provided mongo_config_data, else get mongo_config_data from file
         """
@@ -65,7 +66,8 @@ class MongoInitialisation:
     def initialise_collections(self) -> (Collection, Collection, Collection, Collection):
         """
         Initialises database and collections for interaction
-        :return: opened isolate, isolatesresults, isolatesbadqc, and isolates resequencing collections (instances) for a given species
+        :return: opened isolate, isolatesresults, isolatesbadqc, and isolates resequencing collections (instances) for a
+         given species.
         """
         # open isolates collection
         isolates_collection = self._open_mongo_collection(self.opened_mongo_database, "isolates")
@@ -74,7 +76,8 @@ class MongoInitialisation:
         # open isolates badqc collection
         isolates_badqc_collection = self._open_mongo_collection(self.opened_mongo_database, "isolates_badqc")
         # open isolates resequencing collection
-        isolates_resequencing_collection = self._open_mongo_collection(self.opened_mongo_database, "isolates_resequencing")
+        isolates_resequencing_collection = self._open_mongo_collection(self.opened_mongo_database,
+                                                                       "isolates_resequencing")
         return isolates_collection, isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection
 
     def initialise_clustering_collections(self) -> (Collection, Collection, Collection):
@@ -128,7 +131,8 @@ class MongoInitialisation:
         Initialises collection containing the processed nominative clinical and labtest data acquired from the ODS sftp.
         :return: Opened nominative labtest and clinical metadata collection
         """
-        nominative_labtest_clinical_metadata_collection = self._open_mongo_collection(self.opened_mongo_database, "nominative_labtest_clinical_metadata")
+        nominative_labtest_clinical_metadata_collection = self._open_mongo_collection(
+            self.opened_mongo_database, "nominative_labtest_clinical_metadata")
         return nominative_labtest_clinical_metadata_collection
 
     def initialise_unprocessed_nominative_labtest_metadata_collection(self) -> Collection:
@@ -136,7 +140,8 @@ class MongoInitialisation:
         Initialises collection containing the unprocessed nominative labtest data acquired from the ODS sftp.
         :return: Opened unprocessed labtest metadata collection
         """
-        unprocessed_nominative_labtest_metadata_collection = self._open_mongo_collection(self.opened_mongo_database, "unprocessed_nominative_labtest_metadata")
+        unprocessed_nominative_labtest_metadata_collection = self._open_mongo_collection(
+            self.opened_mongo_database, "unprocessed_nominative_labtest_metadata")
         return unprocessed_nominative_labtest_metadata_collection
 
     def initialise_unprocessed_nominative_clinical_metadata_collection(self) -> Collection:
@@ -144,5 +149,15 @@ class MongoInitialisation:
         Initialises collection containing the unprocessed nominative clinical data acquired from the ODS sftp.
         :return: Opened unprocessed clinical metadata collection
         """
-        unprocessed_nominative_clinical_metadata_collection = self._open_mongo_collection(self.opened_mongo_database, "unprocessed_nominative_clinical_metadata")
+        unprocessed_nominative_clinical_metadata_collection = self._open_mongo_collection(
+            self.opened_mongo_database, "unprocessed_nominative_clinical_metadata")
         return unprocessed_nominative_clinical_metadata_collection
+
+    def initialise_isolates_rejected_coreqc_collection(self) -> Collection:
+        """
+        Initialises collection containing the isolates rejected because of the core quality metrics.
+        :return: Opened isolates rejected coreqc collection
+        """
+        isolates_rejected_coreqc_collection = self._open_mongo_collection(
+            self.opened_mongo_database, "isolates_rejected_coreqc")
+        return isolates_rejected_coreqc_collection
