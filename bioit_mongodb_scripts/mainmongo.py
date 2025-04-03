@@ -598,7 +598,7 @@ class MainMongo:
                             self.___write_document(hashed_ad_collection,
                                                    MongoRecordDict({"scheme": typing_scheme,
                                                                     "locus": allele_info['Locus'],
-                                                                    "hashed_allele": ['Allele (hash)'],
+                                                                    "hashed_allele": allele_info['Allele (hash)'],
                                                                     "allele_sequence": allele_info['Allele sequence'],
                                                                     "encountered_count": 1,
                                                                     "resolved_AD": 0,
