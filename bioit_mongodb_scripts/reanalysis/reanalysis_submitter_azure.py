@@ -392,8 +392,6 @@ class BatchPipelinesReanalysis:
         # Create the command to re-analyze the datasets
         config_species = self._reanalysis_config['species'][self._species]
         isolate_id = mongodb_document['results']['isolates_id']
-        reference_genome_size = int(1.5*self._reanalysis_config['reference_genome_size'][self._species])
-        size_command = f"assembly_size=$(stat -c%s {mongodb_document['fasta_path']}); if [ $assembly_size -gt {reference_genome_size} ]; then echo \'Error: The size of the assembly is larger than 1.5 times the reference genome size of {self._species}.\' >&2; exit 1; fi"
         """
         We're creating the report dir before the smk pipe does it, because then if the smk fails for whatever reason,
         the stderr.txt and stdout.txt files can still be copied to the report_dir in the post_command
@@ -456,8 +454,8 @@ class BatchPipelinesReanalysis:
             f"--alternate_dtap {self._dtap}",
             f"--connection_string 'CONNECTION_STRING_AZURE'"
         ])
-        task_command = (f'/bin/bash -c "{pre_command}; {trap_command}; {size_command}; {base_command}; '
-                        f'{unload_command}; {report_command}; {tagger_command}; {post_command}; {cleanup_command}; '
+        task_command = (f'/bin/bash -c "{pre_command}; {trap_command}; {base_command}; {unload_command}; '
+                        f'{report_command}; {tagger_command}; {post_command}; {cleanup_command}; '
                         f'{mongodb_command}"')
         return task_command
 
