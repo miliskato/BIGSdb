@@ -1,0 +1,20 @@
+{
+  "metadata": {
+    "version": "1.0.1-draft3",
+    "data_collection": "HDBP0041",
+    "dcd_name": "BIOIT_INFL"
+  },
+  "data": {
+    "TX_BIOIT_TECHNICAL_ID": "test_dummy_influenza_pseudonymized",
+    "CD_HCO_NIHDI": "82860665",
+    "TX_PIPELINE_NAM": "Viral consensus pipeline",
+    "TX_PIPELINE_VER": "1.1",
+    "TX_PIPELINE_HASH": null,
+    "DT_PIPELINE_ANAL": "2024-08-01T13:40:14",
+    "TX_GENTPE_TOOL_VER": "Nextclade 3.1.1",
+    "TX_GENTPE_TPE": "A",
+    "TX_GENTPE_SUBTPE": "H1N1",
+    "TX_GENTPE_SUBTPE_HEMAG": "H1",
+    "TX_GENTPE_SUBTPE_NEURAM": "N1"
+  }
+}

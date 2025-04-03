@@ -1,128 +1,208 @@
 pathogens:
   salmonella:
     dcd_name: BIOIT_SLM
-    dcd_code: HDBP0041
-    dcd_version: 1.0.0
+    dcd_code: HDBP0345
+    dcd_version: 1.0.1-draft4
+  listeria:
+    dcd_name: BIOIT_LIST
+    dcd_code: HDBP0335
+    dcd_version: 1.0.1-draft3
+  influenza:
+    dcd_name: BIOIT_INFL
+    dcd_code: HDBP0333
+    dcd_version: 1.0.1-draft3
 
 common:
   CD_HCO_NIHDI:
-    - technical_metadata
-    - CD_HCO_NIHDI  # this value is not converted in the HERA_Azure code and should not be
+    dict_path:
+      - technical_metadata
+      - CD_HCO_NIHDI  # this value is not converted in the HERA_Azure code and should not be
   TX_PIPELINE_NAM:
-    - results
-    - pipeline_name
+    dict_path:
+      - results
+      - pipeline_name
   TX_PIPELINE_VER:
-    - results
-    - pipeline_version
+    dict_path:
+      - results
+      - pipeline_version
   TX_PIPELINE_HASH:
-    - results
-    - pipeline_hash
+    dict_path:
+      - results
+      - pipeline_hash
 #  DT_PIPELINE_ANAL:  # needs to be in “YYYY-MM-DDT00:00:00”  format; added to main code
-#    - results
-#    - analysis_date
+#    dict_path:
+#      - results
+#      - analysis_date
   TX_BUSINESS_KEY:
-    - TX_BUSINESS_KEY
-  TX_SAMPLE_ID:
-    - _id
+    dict_path:
+      - TX_BUSINESS_KEY
+  TX_LAB_SAMPLE_VAL:
+    dict_path:
+      - _id
 
 salmonella:
+  TX_SEROTPE_WGS:
+    dict_path:
+      - results
+      - sistr
+      - sistr_serotype_consensus
   TX_MLST_ST:
-    - results
-    - mlst
-    - mlst-ST
-#  CD_GENTPE_ESBLS_SUSC:
-#    - results
-#    - mykrobe
-#    - mykrobe_drug_susceptibility
-#    - ESBLS
-#    - susceptibility
-  CD_GENTPE_INCFIAHI1_SUSC:
-    - results
-    - mykrobe
-    - mykrobe_drug_susceptibility
-    - IncFIAHI1
-    - susceptibility
-  CD_GENTPE_INCHI1A_SUSC:
-    - results
-    - mykrobe
-    - mykrobe_drug_susceptibility
-    - IncHI1A
-    - susceptibility
-  CD_GENTPE_INCHI1BR27_SUSC:
-    - results
-    - mykrobe
-    - mykrobe_drug_susceptibility
-    - IncHI1BR27
-    - susceptibility
-  CD_GENTPE_INCY_SUSC:
-    - results
-    - mykrobe
-    - mykrobe_drug_susceptibility
-    - IncY
-    - susceptibility
-#  CD_GENTPE_AMNGLY_SUSC:
-#    - results
-#    - mykrobe
-#    - mykrobe_drug_susceptibility
-#    - IncHI1A
-#    - susceptibility
-  CD_GENTPE_AZI_SUSC:
-    - results
-    - mykrobe
-    - mykrobe_drug_susceptibility
-    - azithromycin
-    - susceptibility
-#  CD_GENTPE_BLAC_SUSC:
-#    - results
-#    - mykrobe
-#    - mykrobe_drug_susceptibility
-#    - BLAC
-#    - susceptibility
-#  CD_GENTPE_MACROL_SUSC:
-#    - results
-#    - mykrobe
-#    - mykrobe_drug_susceptibility
-#    - MACROL
-#    - susceptibility
-  CD_GENTPE_PST_SUSC:
-    - results
-    - mykrobe
-    - mykrobe_drug_susceptibility
-    - pST
-    - susceptibility
-#  CD_GENTPE_PHENI_SUSC:
-#    - results
-#    - mykrobe
-#    - mykrobe_drug_susceptibility
-#    - PHENI
-#    - susceptibility
-#  CD_GENTPE_QUINOL_SUSC:
-#    - results
-#    - mykrobe
-#    - mykrobe_drug_susceptibility
-#    - QUINOL
-#    - susceptibility
-  CD_GENTPE_SULFON_SUSC:
-    - results
-    - mykrobe
-    - mykrobe_drug_susceptibility
-    - sulfonamides
-    - susceptibility
-  CD_GENTPE_TETRACY_SUSC:
-    - results
-    - mykrobe
-    - mykrobe_drug_susceptibility
-    - tetracycline
-    - susceptibility
-  CD_GENTPE_TRIMETH_SUSC:
-    - results
-    - mykrobe
-    - mykrobe_drug_susceptibility
-    - trimethoprim
-    - susceptibility
-  CD_GENTPE_Z66_SUSC:
-    - results
-    - mykrobe
-    - mykrobe_drug_susceptibility
-    - z66
-    - susceptibility
+    dict_path:
+      - results
+      - mlst
+      - mlst-ST
+  CD_ABRITAMR_AMP_SUSC:
+    dict_path:
+      - results
+      - abritamr
+      - abritamr_Ampicillin_Interpretation
+    code_list: SRI
+  CD_ABRITAMR_CEF_ESBL_SUSC:
+    dict_path:
+      - results
+      - abritamr
+      - abritamr_Cefotaxime (ESBL)_Interpretation
+    code_list: SRI
+  CD_ABRITAMR_CEF_AMPC_SUSC:
+    dict_path:
+      - results
+      - abritamr
+      - abritamr_Cefotaxime (AmpC)_Interpretation
+    code_list: SRI
+  CD_ABRITAMR_TETRACY_SUSC:
+    dict_path:
+      - results
+      - abritamr
+      - abritamr_Tetracycline_Interpretation
+    code_list: SRI
+  CD_ABRITAMR_GENTMC_SUSC:
+    dict_path:
+      - results
+      - abritamr
+      - abritamr_Gentamicin_Interpretation
+    code_list: SRI
+  CD_ABRITAMR_KANMC_SUSC:
+    dict_path:
+      - results
+      - abritamr
+      - abritamr_Kanamycin_Interpretation
+    code_list: SRI
+  CD_ABRITAMR_STREPMC_SUSC:
+    dict_path:
+      - results
+      - abritamr
+      - abritamr_Streptomycin_Interpretation
+    code_list: SRI
+  CD_ABRITAMR_SULFZL_SUSC:
+    dict_path:
+      - results
+      - abritamr
+      - abritamr_Sulfathiazole_Interpretation
+    code_list: SRI
+  CD_ABRITAMR_TRIMETH_SUSC:
+    dict_path:
+      - results
+      - abritamr
+      - abritamr_Trimethoprim_Interpretation
+    code_list: SRI
+  CD_ABRITAMR_TRIMS_SUSC:
+    dict_path:
+      - results
+      - abritamr
+      - abritamr_Trim-Sulpha_Interpretation
+    code_list: SRI
+  CD_ABRITAMR_CHLORP_SUSC:
+    dict_path:
+      - results
+      - abritamr
+      - abritamr_Chloramphenicol_Interpretation
+    code_list: SRI
+  CD_ABRITAMR_CIPR_SUSC:
+    dict_path:
+      - results
+      - abritamr
+      - abritamr_Ciprofloxacin_Interpretation
+    code_list: SRI
+  CD_ABRITAMR_MER_SUSC:
+    dict_path:
+      - results
+      - abritamr
+      - abritamr_Meropenem_Interpretation
+    code_list: SRI
+  CD_ABRITAMR_AZI_SUSC:
+    dict_path:
+      - results
+      - abritamr
+      - abritamr_Azithromycin_Interpretation
+    code_list: SRI
+  CD_ABRITAMR_AMNGLY_SUSC:
+    dict_path:
+      - results
+      - abritamr
+      - abritamr_Aminoglycosides (RMT)_Interpretation
+    code_list: SRI
+  CD_ABRITAMR_COL_SUSC:
+    dict_path:
+      - results
+      - abritamr
+      - abritamr_Colistin_Interpretation
+    code_list: SRI
+listeria:
+  TX_MLST_ST:
+    dict_path:
+      - results
+      - mlst
+      - mlst-ST
+  TX_MLST_CC:
+    dict_path:
+      - results
+      - mlst
+      - mlst-CC
+  TX_MLST_LINEAGE:
+    dict_path:
+      - results
+      - mlst
+      - mlst-Lineage
+  TX_PCR_SEROGR:
+    dict_path:
+      - results
+      - pcr_serogroup
+      - pcr_serogroup-serogroup
+
+influenza:
+  TX_GENTPE_TOOL_VER:
+    dict_path:
+      - results
+      - nextclade
+      - nextclade_tool_version
+  TX_GENTPE_TPE:
+    dict_path:
+      - technical_metadata
+      - data
+      - Microorganism
+    code_list: influenza_species
+  TX_GENTPE_SUBTPE:
+    dict_path:
+      - results
+      - nextclade
+      - nextclade_detected_subtype
+#  TX_GENTPE_SUBTPE_HEMAG:  # is dependent on influenza A, incorporated in main code
+#    dict_path:
+#      - results
+#      - nextclade
+#      - nextclade_detected_subtype
+#  TX_GENTPE_SUBTPE_NEURAM:  # is dependent on influenza A, incorporated in main code
+#    dict_path:
+#      - results
+#      - nextclade
+#      - nextclade_detected_subtype
+code_lists:
+  SRI:
+    Susceptible: 131196009
+    Resistant: 30714006
+    Intermediate: 11896004
+    Unknown: 261665006
+    '-': 261665006
+  influenza_species:
+    Influenza A virus (organism): A
+    Influenza B virus (organism): B
