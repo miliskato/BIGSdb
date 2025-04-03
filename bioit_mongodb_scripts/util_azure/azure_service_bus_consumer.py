@@ -132,7 +132,7 @@ class MessageConsumerDataInserter(AzureServiceBus):
         :param msg: a ServiceBusReceivedMessage object
         """
         if collection_name == 'isolates_badqc':
-            SamplesToValidationBigs(self._species, mongo_config_data=self._mongo_config_data)
+            SamplesToValidationBigs(self._species, isolate_id, mongo_config_data=self._mongo_config_data)
             return False
         elif collection_name == 'isolates':
             return self.__mongo_to_bigs_insertion(isolate_id, msg)
