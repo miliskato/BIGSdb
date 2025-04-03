@@ -53,7 +53,6 @@ sub get_javascript {
 sub initiate {
     my ( $self )        = @_;
     my $q               = $self->{'cgi'};
-    my $rejected_isolate_id = $q->param('rejected_isolate_id');
     $self->{$_} = 1 foreach qw (jQuery jQuery.jstree noCache tooltips dropzone);
     $self->set_level1_breadcrumbs;
     return;
