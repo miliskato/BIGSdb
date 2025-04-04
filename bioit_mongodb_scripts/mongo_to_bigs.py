@@ -436,7 +436,7 @@ class MongoToBigs:
                 insert_assembly(isolate_id, self._species, temp_fasta_path, results_type)
                 logging.info(f"Inserted assembly for isolate {isolate_id} into bigsdb")
 
-                # The resequencing is for now disable as also commented in samples_to_validation_bigs.py
+                # The resequencing is for now disable as also commented in sample_to_validation_bigs.py
                 # if document.get_validation_type() == 'resequencing': #is it the place to check that isolation date are different, I don't think so
                 #     last_two_validation_dates = self._isolates_psql_tbl.select_validationdate_for_isolate(
                 #         (isolate_id,))

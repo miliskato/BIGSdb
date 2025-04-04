@@ -16,7 +16,7 @@ from bioit_mongodb_scripts.model.json_model import MongoRecordDict
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 
 
-class SamplesToValidationBigs:
+class SampleToValidationBigs:
     """
     Pushes isolates from MongoDB badqc/resequencing collections into BIGSdb's submission system if it's not already done
     """

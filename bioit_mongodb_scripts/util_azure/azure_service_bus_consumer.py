@@ -14,7 +14,7 @@ from bioit_mongodb_scripts.update_bigsdb_seqdef import UpdateBIGSdbSeqDef
 from bioit_mongodb_scripts.util.error import BadCollectionError, IsolateNotFoundException
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email
-from bioit_mongodb_scripts.util.samples_to_validation_bigs import SamplesToValidationBigs
+from bioit_mongodb_scripts.util.sample_to_validation_bigs import SampleToValidationBigs
 from bioit_mongodb_scripts.util_azure.azure_service_bus import AzureServiceBus
 from bioit_mongodb_scripts.util_azure.azure_service_bus_message import AzureServiceBusMessage
 
@@ -132,7 +132,7 @@ class MessageConsumerDataInserter(AzureServiceBus):
         :param msg: a ServiceBusReceivedMessage object
         """
         if collection_name == 'isolates_badqc':
-            SamplesToValidationBigs(self._species, isolate_id, mongo_config_data=self._mongo_config_data)
+            SampleToValidationBigs(self._species, isolate_id, mongo_config_data=self._mongo_config_data)
             return False
         elif collection_name == 'isolates':
             return self.__mongo_to_bigs_insertion(isolate_id, msg)
