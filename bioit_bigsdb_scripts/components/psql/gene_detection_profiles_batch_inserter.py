@@ -115,10 +115,13 @@ class GeneDetectionProfilesBatchInserter:
         cur.execute("INSERT INTO {table} (locus, allele_id, sequence, status, sender,curator, date_entered, datestamp) VALUES ".format(table='sequences') + args_str)
 
     def __enter__(self):
-        """enter the runtime context related to the class (interest: connections)"""
+        """
+        Enter the runtime context related to the class (interest: connections).
+        __enter__/__exit__ methods are used to get the context manager to call the class in a "with" statement
+        """
         return self
 
     def __exit__(self, exc_type: Type[BaseException], exc_val: BaseException, exc_tb: TracebackType) -> None:
-        """close the db connections at the end of the run"""
+        """Close the db connections at the end of the run. __enter__/__exit__ are used to get the context manager to call the class in a "with" statement"""
         self.isolates_db_connection.close()
         self.seqdef_db_connection.close()
