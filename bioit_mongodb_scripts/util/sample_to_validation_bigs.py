@@ -50,7 +50,7 @@ class SampleToValidationBigs:
         mongo_collection = isolates_badqc_collection if sample_type == 'bad_quality' else isolates_resequencing_collection
 
         isolate_to_submit = MongoRecordDict(mongo_collection.find_one({"_id": self.isolate_id}))
-        current_date = datetime.datetime.now(datetime.timezone.utc) if len(isolate_to_submit) > 0 else None
+        current_date = datetime.datetime.now(datetime.timezone.utc)
         self.__insert_submission_bigs(isolate_to_submit, sample_type)
         for isolate in isolate_to_submit:
             doc_id = isolate.get_id()
