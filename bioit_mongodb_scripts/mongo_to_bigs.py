@@ -28,7 +28,7 @@ from bioit_mongodb_scripts.util.alerts_to_bigs import AlertsToBigs
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.mongo_querying import Mongoquerying
 from bioit_mongodb_scripts.util.mongo_to_bigs_nominative import MongoToBigsNominative
-from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email, is_viral
+from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, is_viral
 from bioit_mongodb_scripts.util.new_clustering_info_to_bigs import NewClusteringInfoToBigs
 from bioit_mongodb_scripts.util.new_temporary_alleles_to_bigs import NewTemporaryAllelesToBigs
 from bioit_mongodb_scripts.util.command.command import Command
@@ -130,9 +130,8 @@ class MongoToBigs:
             """
             traceback1 = traceback.format_exc()
 
-            self._run_alerts_to_bigs_upon_exception(exceptionmessage1)
+            self._run_alerts_to_bigs_upon_exception(exceptionmessage1, traceback1)
 
-            send_email(f"{exceptionmessage1}\n{traceback1}")
             raise Exception(
                 f"{Path(__file__).name} fail on host {socket.gethostname()}: {exceptionmessage1}\n{traceback1}")
 
@@ -221,7 +220,6 @@ class MongoToBigs:
             # Update cache again before alerts implementation because new isolates won't have cgST's but are needed for alerts implementation
             self._cache_command_object.run(Path(os.getcwd()))
             if self._cache_command_object.returncode != 0:
-                send_email(f"update of the cache to display the cgsts of new isolates failed on host {socket.gethostname()}")
                 raise RuntimeError(f"update of the cache to display the cgsts of new isolates failed on host {socket.gethostname()}")
 
             # Insert nominative and labtest metadata after having done everything else except the alerts in order to not break the alerts 'failsafe'
@@ -233,7 +231,7 @@ class MongoToBigs:
             if len(self._list_of_new_isolates_for_alerts + self._list_of_new_versions_for_alerts) > 0:
                 AlertsToBigs(self._list_of_new_isolates_for_alerts, self._list_of_new_versions_for_alerts, self._species,
                              self._cgmlst_bigsdb_scheme_id, self._naive_clustering_distance_matrix_file)
-        except:
+        except Exception:
             self._exception_in_alerts = True
             raise
 
@@ -276,7 +274,6 @@ class MongoToBigs:
                 cache_command_object = Command(cache_command)
                 cache_command_object.run(Path(os.getcwd()))
                 if cache_command_object.returncode != 0:
-                    send_email(f"update of the cache to display the clustering failed on host {socket.gethostname()}")
                     raise RuntimeError(
                         f"update of the cache to display the clustering failed on host {socket.gethostname()}")
 
@@ -310,20 +307,16 @@ class MongoToBigs:
         with TblSchemeMembers(self._species, 'seqdef') as seqdef_schememembers_psql_tbl:
             scheme_members_exist: List[Tuple[bool]] = seqdef_schememembers_psql_tbl.check_scheme_member_presence((self._cgmlst_bigsdb_scheme_id,))
             if not scheme_members_exist[0][0]:
-                send_email(
-                    f"Scheme members are missing in seqdef for scheme {self._cgmlst_bigsdb_scheme_id} on {socket.gethostname()}, "
-                    f"check the metadata collection in Mongo to ensure that seqdef has been populated properly")
                 raise RuntimeError(
-                    f"Update of the cache cannot be computed on {socket.gethostname()} for scheme {self._cgmlst_bigsdb_scheme_id} because no scheme members were found in seqdef")
+                    f"Update of the cache cannot be computed on {socket.gethostname()} for scheme {self._cgmlst_bigsdb_scheme_id} because no scheme members were found in seqdef,"
+                    f"check if the metadata collection in Mongo to ensure that seqdef has been populated properly")
 
         with DatabaseConnection(self._species, 'seqdef') as seqdef_psql_db:
             mv_scheme_exists: List[Tuple[bool]] = seqdef_psql_db.execute_query(PsqlQueries.SEL_TABLE_EXISTS, (f'mv_scheme_{self._cgmlst_bigsdb_scheme_id}',))
             if not mv_scheme_exists[0][0]:
-                send_email(
-                    f"table mv_scheme_{self._cgmlst_bigsdb_scheme_id} is missing on host {socket.gethostname()}, "
-                    f"try to repair the scheme from bigsdb seqdef curator interface using the 'Configuration repair' tool")
                 raise RuntimeError(
-                    f"update of the cache cannot be computed on {socket.gethostname()} because mv_scheme_{self._cgmlst_bigsdb_scheme_id} is missing")
+                    f"update of the cache cannot be computed on {socket.gethostname()} because mv_scheme_{self._cgmlst_bigsdb_scheme_id} is missing. Try to repair the scheme "
+                    f"from bigsdb seqdef curator interface using the 'Configuration repair' tool")
 
     def __get_list_of_documents(self) -> List[MongoRecordDict]:
         """
@@ -334,7 +327,6 @@ class MongoToBigs:
             pseudo_id = str(self._mappingtable_collection.find_one({'_id': self._single_sample_id})['pseudo_id'])
             query_single = MongoRecordDict(self._isolates_collection.find_one({'_id': pseudo_id}))
             if not query_single:
-                send_email(f"Can not find document with _id '{self._single_sample_id}', check the validation status")
                 raise Exception(f"Can not find document with _id '{self._single_sample_id}'")
             list_of_documents = [query_single]
             for document in list_of_documents:
@@ -367,7 +359,7 @@ class MongoToBigs:
         different_version = True
         cgst_changed = True
         if sample_presence[0][0] == 0 or (if_sample_failed and document.get("results").get("results_changed_since_last_version") is None):
-                results_type = "new_isolate"
+            results_type = "new_isolate"
         elif document.get_validation_type():
             results_type = document.get_validation_type()
             if results_type == 'resequencing' or results_type == 'badqc':
@@ -408,7 +400,8 @@ class MongoToBigs:
             # check whether the cgST that is currently in the db for the isolate is the same as the
             # cgST of the new version in Mongo.
             cgst_query_result = self._isolates_psql_tbl.select_current_cgst_of_isolate((self._cgmlst_bigsdb_scheme_id, isolate_id))
-            if (cgst_query_result[0][0] is None and new_results.get('cgST') is not None) or (cgst_query_result[0][0] is not None and int(cgst_query_result[0][0]) != new_results.get('cgST')):
+            if (cgst_query_result[0][0] is None and new_results.get('cgST') is not None) or (
+                    cgst_query_result[0][0] is not None and int(cgst_query_result[0][0]) != new_results.get('cgST')):
                 cgst_changed = True
         return different_version, cgst_changed
 
@@ -457,7 +450,7 @@ class MongoToBigs:
         """
         self._isolates_psql_tbl.close()
 
-    def _run_alerts_to_bigs_upon_exception(self, exception_msg_1: Exception) -> None:
+    def _run_alerts_to_bigs_upon_exception(self, exception_msg_1: Exception, traceback1: str) -> None:
         """
         If an insertion into BIGSdb fails, the alerts for the succeeded insertions need to be evaluated,
         because else they would not be evaluated at all
@@ -469,7 +462,6 @@ class MongoToBigs:
             return
         self._cache_command_object.run(Path(os.getcwd()))
         if self._cache_command_object.returncode != 0:
-            send_email(f"update of the cache to display the clustering failed on host {socket.gethostname()}")
             raise RuntimeError(
                 f"update of the cache to display the clustering failed on host {socket.gethostname()}")
 
@@ -482,11 +474,8 @@ class MongoToBigs:
                              self._species, self._cgmlst_bigsdb_scheme_id, self._naive_clustering_distance_matrix_file)
             except Exception as exceptionmessage2:
                 traceback2 = traceback.format_exc()
-                send_email(f"Failure 1: {exception_msg_1}\n{self._traceback1}\n"
-                           f"Failure 2: {exceptionmessage2}\n{traceback2}",
-                           subject=f"{Path(__file__).name} double fail on host {socket.gethostname()}")
                 raise Exception(f"{Path(__file__).name} double fail on host {socket.gethostname()}: "
-                                f"Failure 1: {exception_msg_1}\n{self._traceback1}\n"
+                                f"Failure 1: {exception_msg_1}\n{traceback1}\n"
                                 f"Failure 2: {exceptionmessage2}\n{traceback2}")
 
     def ___make_flagfilepath(self, isolate: str) -> Path:
@@ -525,11 +514,9 @@ class MongoToBigs:
                 flagfilepath.touch()
                 flagfilepath.chmod(0o755)
                 logging.info(f"flagfilepath {flagfilepath}")
-        except Exception as exceptionmessage:
-            send_email(f"{exceptionmessage}\n{traceback.format_exc()}",
-                       f"{Path(__file__).name}: bigsdb upload fail safe mechanism fail on host {socket.gethostname()}")
+        except Exception:
             raise Exception(
-                f"{Path(__file__).name}: bigsdb upload fail safe mechanism fail on host {socket.gethostname()}")
+                f"{Path(__file__).name}: bigsdb upload fail safe mechanism fail on host {socket.gethostname()}. Traceback: {traceback.format_exc()}")
 
     def __delete_flagfile(self, isolate: str) -> None:
         """
@@ -540,11 +527,9 @@ class MongoToBigs:
         flagfilepath: Path = self.___make_flagfilepath(isolate)
         try:
             flagfilepath.unlink()
-        except Exception as exceptionmessage:
-            send_email(f"{exceptionmessage}\n{traceback.format_exc()}",
-                       f"{Path(__file__).name}: Could not remove flag file {flagfilepath} on host {socket.gethostname()}")
+        except Exception:
             raise Exception(
-                f"{Path(__file__).name}: Could not remove flag file {flagfilepath} on host {socket.gethostname()}")
+                f"{Path(__file__).name}: Could not remove flag file {flagfilepath} on host {socket.gethostname()}. Traceback: {traceback.format_exc()}")
 
 
 if __name__ == '__main__':
@@ -559,7 +544,7 @@ if __name__ == '__main__':
 
     # run main
     mongo_to_bigs_instance = MongoToBigs(args.species, args.uploader_mail_address,
-                single_sample_id=(args.single_sample_id if args.single_sample_id else None),
-                mongo_config_data=mongo_config_data)
+                                         single_sample_id=(args.single_sample_id if args.single_sample_id else None),
+                                         mongo_config_data=mongo_config_data)
     mongo_to_bigs_instance.run_mongo_to_bigs()
     mongo_to_bigs_instance.cache_and_clustering_update()
