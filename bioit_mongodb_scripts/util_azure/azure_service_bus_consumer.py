@@ -6,7 +6,7 @@ from typing import Any, List
 
 from azure.servicebus import ServiceBusClient, ServiceBusReceivedMessage
 from pymongo.errors import ConnectionFailure, OperationFailure
-from tenacity import RetryCallState, after_log, retry, stop_after_attempt, wait_fixed
+from tenacity import RetryCallState, after_log, retry, stop_after_delay, wait_exponential
 
 from bioit_bigsdb_scripts.components.psql import TblFailedInsertions
 from bioit_mongodb_scripts.mongo_to_bigs import MongoToBigs
@@ -208,7 +208,7 @@ class MessageConsumerDataInserter(AzureServiceBus):
         mapping_table_collection = mongo_init_local.initialise_mapping_table_collection()
         try:
             isolate_id = mapping_table_collection.find_one({'pseudo_id': pseudo_id}).get('_id')
-        except:
+        except AttributeError:
             raise IsolateNotFoundException(pseudo_id)
         return isolate_id
 
@@ -239,9 +239,11 @@ def on_error(retry_state: RetryCallState) -> None:
     raise retry_state.retry_object.retry_error_cls(retry_state.outcome) from retry_state.outcome.exception()
 
 
-@retry(stop=stop_after_attempt(2), wait=wait_fixed(3), after=after_log(logging.getLogger(__name__), logging.WARNING), retry_error_callback=on_error)
+@retry(wait=wait_exponential(multiplier=1, min=2, max=600), stop=(stop_after_delay(3600)), after=after_log(logging.getLogger(__name__), logging.WARNING), retry_error_callback=on_error)
 def run_application(ct: Cancellation, species: str, mongo_config_data: dict[str, Any], uploader_mail_address: str) -> None:
-    """a decorateur function to try again on Exception before stopping execution
+    """
+    a decorator function to try again on Exception before stopping execution, retry after 2,4,8... seconds with max of 10 minutes between to attempts.
+    It will stop the execution if retrying consecutively for more than 1h
     :param ct: a Cancellation object
     :param species: the species name
     :param mongo_config_data: the mongo_config_data
