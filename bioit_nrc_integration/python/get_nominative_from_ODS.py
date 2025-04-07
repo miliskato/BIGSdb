@@ -212,10 +212,17 @@ class MainNominativeDataParserFromOds(SFTPConnection):
         if filetype == 'CLIN':
             self.___parse_complex_country_field(data_unprocessed, data_translated)
             if species == 'salmonella':
-                self.___parse_salmonella_repeat_fields(data_unprocessed, data_translated, 'TX_TTL_SYMP_REPEAT',
-                                                       'CD_PROB_NAM', 'CD_PROB_NAM_codes', 'symptom')
-                self.___parse_salmonella_repeat_fields(data_unprocessed, data_translated, 'TX_TTL_EPILINK_REPEAT',
-                                                       'CD_EPILINK', 'CD_EPILINK_codes', 'link')
+                self.___parse_repeat_fields(data_unprocessed, data_translated, 'TX_TTL_SYMP_REPEAT', 'CD_PROB_NAM',
+                                            'CD_PROB_NAM_codes', 'symptom')
+            elif species == 'listeria':
+                self.___parse_repeat_fields(data_unprocessed, data_translated, 'TX_TTL_PERNAT_REPEAT', 'CD_PERNAT',
+                                            'CD_PERNAT_codes', 'perinatal')
+                self.___parse_repeat_fields(data_unprocessed, data_translated, 'TX_SUSPC_VEH_REPEAT', 'CD_SUSPC_VEH',
+                                            'CD_SUSPC_VEH_codes', 'suspected_vehicle')
+                self.___parse_repeat_fields(data_unprocessed, data_translated, 'TX_TTL_SYMP_ADLT_REPEAT', 'CD_PROB_NAM_ADLT',
+                                            'CD_PROB_NAM_codes', 'symptom_adult')  # todo do i need to catch other? do i need to be able to catch multiple 'other's?
+                self.___parse_repeat_fields(data_unprocessed, data_translated, 'TX_TTL_SYMP_CHLD_REPEAT', 'CD_PROB_NAM_CHLD',
+                                            'CD_PROB_NAM_codes', 'symptom_child')  # todo do i need to catch other? do i need to be able to catch multiple 'other's?
         # loop over schema
         for hd_key, hd_key_property_dict in self._translation_codes['schema'][filetype].items():
             unprocessed_value = self.___get_value_by_capitalization_agnostic_key(data_unprocessed, hd_key)
@@ -230,6 +237,8 @@ class MainNominativeDataParserFromOds(SFTPConnection):
                 if hd_key_property_dict['required'] is False:
                     if hd_key_property_dict.get('default'):
                         data_translated[hd_key_property_dict['translation']] = hd_key_property_dict['default']
+                elif species not in hd_key_property_dict['required']:
+                    pass
                 else:
                     raise Exception(f"key {hd_key} is missing but is required in {filetype} file!!")
         # add id to be able to find in MongoDB
@@ -352,10 +361,10 @@ class MainNominativeDataParserFromOds(SFTPConnection):
                 for key, value in country_dict.items():
                     data_translated[f"country_{index + 1}"] = value
 
-    def ___parse_salmonella_repeat_fields(self, data_unprocessed: Dict[str, Any], data_translated: Dict[str, Any],
+    def ___parse_repeat_fields(self, data_unprocessed: Dict[str, Any], data_translated: Dict[str, Any],
                                           repeat_field_name: str, field_name: str, code_list_name: str, bigsdb_prefix: str) -> None:
         """
-        Parses the mandatory symptom field list which didn't really fit in the main codes schema,
+        Parses the mandatory repeat field lists which didn't really fit in the main codes schema,
         e.g. "tx_ttl_symp": [{"cd_prob_nam": "25374005"}, {"cd_prob_nam": "91302008"}]
         :param data_unprocessed: original unprocessed data
         :param data_translated: translated data to be inserted in MongoDB to be inserted in BIGSdb

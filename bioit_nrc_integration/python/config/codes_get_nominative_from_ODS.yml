@@ -1,6 +1,8 @@
 pathogens:
   HDBP0345_SLM_LAB: salmonella
   HDBP0345_SLM_CLIN: salmonella
+  todo: listeria # something like HDBP0335_LIS_CLIN, will only know after testfile is sent
+  todo2: listeria
 
 schema:
   LAB:
@@ -47,26 +49,72 @@ schema:
       translation: hospitalisation
       code_list: CD_HOSPZ_codes
     CD_EVOL:
-      required: True
+      required:
+        - salmonella
       translation: outcome
       code_list: CD_EVOL_codes
     CD_ANTBIO:
-      required: True
+      required:
+        - salmonella
       translation: antibiotic_therapy
       code_list: CD_ANTBIO_codes
     CD_ANTBIO_SPECIF:
-      required: True
+      required:
+        - salmonella
       translation: antibiotic
       code_list: CD_ANTBIO_SPECIF_codes
 #    CD_PROB_NAM:  # this is a list with 5 options, in mail discussions with Florian we decided that these should be 5 separate fields in bigsdb instead of the single clinical_info field because multiple options are possible and else it would be hard to query and do e.g. two field breakdown in bigsdb. Therefore this was implemented in a separate function
 #      required: True
 #      translation: clinical_info
 #      code_list: CD_PROB_NAM_codes
-#    CD_EPILINK:  # This is a list of 6 options; previously there was only one option and it turned into a repeat field on 2024/12/11. Following the CD_PROB_NAM example, I decided to create 6 separate fields for this.
-#      required: True
-#      translation: link
-#      code_list: CD_EPILINK_codes
-
+    CD_EPILINK:
+      required: True
+      translation: epi_link
+      code_list: CD_EPILINK_codes
+    CD_TPE:
+      required:
+        - listeria
+      translation: case_type
+      code_list: CD_TPE_codes
+    CD_OUTCM:
+      required:
+        - listeria
+      translation: outcome
+      code_list: CD_OUTCM_codes
+    CD_TRANSM_ZOONSS:
+      required:
+        - listeria
+      translation: mode_of_transmission
+      code_list: CD_TRANSM_ZOONSS_codes
+#    CD_PERNAT:  # in main script
+#      required:
+#        - listeria
+#      translation:
+#      code_list: CD_PERNAT_codes
+    CD_PROB_NAM_PREGY:
+      required: False
+      translation: pregnancy_symptom
+      code_list: CD_PROB_NAM_PREGY_codes
+    CD_PREGY_OUTCM:
+      required:
+        - listeria
+      translation: pregnancy_outcome
+      code_list: CD_PREGY_OUTCM_codes
+#    CD_SUSPC_VEH:  # in main script
+#      required:
+#        - listeria
+#      translation:
+#      code_list: CD_SUSPC_VEH_codes
+#    CD_PROB_NAM_ADLT:  # in main script
+#      required:
+#        - listeria
+#      translation:
+#      code_list: CD_PROB_NAM_codes
+#    CD_PROB_NAM_CHLD:  # in main script
+#      required:
+#        - listeria
+#      translation:
+#      code_list: CD_PROB_NAM_codes
 code_lists:
   CD_PAT_SEX_codes:
     248152002: Female
@@ -110,11 +158,82 @@ code_lists:
     385432009: Not applicable
     74964007: Other
     261665006: 'Unknown'
+    1: Exposure to a common source
+    230102009: Contaminated food intake
+    102430008: Exposure to polluted drinking water
   CD_PROB_NAM_codes:
     84387000: Asymptomatic
     25374005: Gastroenteritis
     91302008: Sepsis
     68566005: Urinary tract infection
+    261665006: 'Unknown'
+    449335002: Sepsis due to Listeria monocytogenes
+    PN0001: Meningitis and meningoencephalitis
+    443138004: Granulomatosis
+    74964007: Other
+  CD_TPE_codes:
+    255409004: Pregnant woman
+    133933007: Newborn
+    74964007: Other
+  CD_OUTCM_codes:
+    371001000: Patient cured
+    170968001: Prognosis favorable
+    170969009: Prognosis poor
+    419099009: Died
+    261665006: 'Unknown'
+  CD_TRANSM_ZOONSS_codes:
+    416086007: Food-borne transmission
+    226034001: Injecting drug users
+    16090731000119102: Occupational exposure to risk factor
+    417409004: Transplacental transmission
+    161663000: History of organ transplant
+    417403003: Fecal-oral transmission
+    418117003: Water-born transmission
+    416085006: Nosocomial transmission
+    418912005: Transfusion transmission
+    417564009: Sexual transmission
+    74964007: Other
+    261665006: 'Unknown'
+  CD_PERNAT_codes:
+    1: Isolate strain mother
+    2: Isolate strain fetus
+    3: Isolate strain newborn
+    4: Unknown perinatal info
+    385432009: Not applicable
+  CD_PROB_NAM_PREGY_codes:
+    367494004: Premature birth of newborn
+    57420002: Listeria abortion
+    237364002: Stillbirth
+    260413007: 'None'
+    261665006: 'Unknown'
+  CD_PREGY_OUTCM_codes:
+    438949009: Alive
+    399166001: Fatal
+    261665006: 'Unknown'
+    385432009: Not applicable
+  CD_SUSPC_VEH_codes:
+    227989005: canned_food_products
+    226465004: drinks
+    890302005: drinking_water
+    22836000: vegetable_and_products_thereof
+    226529007: starchy_food
+    230034002: nuts_and_seeds
+    227607007: candy_chocolate_candy_and_sugar_candy
+    1003736004: mammalian_milk_based_food
+    102264005: cheese
+    102263004: eggs_edible_and_products_thereof
+    44027008: seafood_and_products_thereof
+    226916002: beef_and_products_thereof
+    226934003: pork_and_products_thereof
+    226942002: lamb_meat_and_products_thereof
+    226955001: chicken_meat_and_products_thereof
+    28230009: poultry_and_products_thereof
+    226967004: turkey_meat_and_products_thereof
+    388618001: cats
+    388074005: bats
+    1: other_pets
+    2: captive_wild_animals_in_zoo
+    3: other_wild_animals
     261665006: 'Unknown'
   TX_TTL_LAB_TEST_combinations:  # CD_LAB_TEST_METH, CD_LAB_TEST_CODE, value_field, code_list, translation  # for the quantitative ones, they have been encoded in bigsdb as floats -> no need for units
     - CD_LAB_TEST_METH: '117871005'
@@ -137,10 +256,44 @@ code_lists:
       value_field: 'CD_LAB_TEST_RSLT_QL'
       code_list: 'serovar_codes'
       translation: 'malditof_identification'
+    - CD_LAB_TEST_METH: '118118006'
+      CD_LAB_TEST_CODE: 'TC0004'
+      value_field: 'CD_LAB_TEST_RSLT_QL'
+      code_list: 'serovar_codes'
+      translation: 'serotype_pheno'
+    - CD_LAB_TEST_METH: '9718006'
+      CD_LAB_TEST_CODE: 'TC0002'
+      value_field: 'CD_LAB_TEST_RSLT_QL'
+      code_list: 'serovar_codes'
+      translation: 'serogroup_pheno'
+    - CD_LAB_TEST_METH: '118118006' # todo
+      CD_LAB_TEST_CODE: '90100-9'
+      value_field: 'CD_LAB_TEST_RSLT_QL'
+      code_list: 'serovar_codes'
+      translation: 'identification_culture'
+    - CD_LAB_TEST_METH: '9718006'
+      CD_LAB_TEST_CODE: 'TC0002'
+      value_field: 'CD_LAB_TEST_RSLT_QL'
+      code_list: 'serovar_codes'
+      translation: 'identification_pcr'
+    - CD_LAB_TEST_METH: '118118006' # todo
+      CD_LAB_TEST_CODE: 'TC0003'
+      value_field: 'CD_LAB_TEST_RSLT_QL'
+      code_list: 'serovar_codes'
+      translation: 'identification_malditof'
     - CD_LAB_TEST_METH: '409588007'
       CD_LAB_TEST_CODE: null  # can be either TC0032 or TC0033
       value_field: 'CD_LAB_TEST_RSLT_TXT'
       translation: 'mlva_profile'
+    - CD_LAB_TEST_METH: '14788002'
+      CD_LAB_TEST_CODE: '28-1'
+      value_field: 'MS_LAB_TEST_RSLT_QN_VAL'
+      translation: 'mic_amo'
+    - CD_LAB_TEST_METH: '14788002'
+      CD_LAB_TEST_CODE: '18864-9'
+      value_field: 'CD_LAB_TEST_RSLT_QL'
+      code_list: 'labtest_codes'
+      translation: 'mic_amo_I'
     - CD_LAB_TEST_METH: '14788002'
       CD_LAB_TEST_CODE: '28-1'
       value_field: 'MS_LAB_TEST_RSLT_QN_VAL'
@@ -205,6 +358,15 @@ code_lists:
       code_list: 'labtest_codes'
       translation: 'mic_col_I'
     - CD_LAB_TEST_METH: '14788002'
+      CD_LAB_TEST_CODE: '233-7'
+      value_field: 'MS_LAB_TEST_RSLT_QN_VAL'
+      translation: 'mic_ery'
+    - CD_LAB_TEST_METH: '14788002'
+      CD_LAB_TEST_CODE: '18919-1'
+      value_field: 'CD_LAB_TEST_RSLT_QL'
+      code_list: 'labtest_codes'
+      translation: 'mic_ery_I'
+    - CD_LAB_TEST_METH: '14788002'
       CD_LAB_TEST_CODE: '35801-0'
       value_field: 'MS_LAB_TEST_RSLT_QN_VAL'
       translation: 'mic_etp'
@@ -241,6 +403,15 @@ code_lists:
       code_list: 'labtest_codes'
       translation: 'mic_smx_I'
     - CD_LAB_TEST_METH: '14788002'
+      CD_LAB_TEST_CODE: '460-6'
+      value_field: 'MS_LAB_TEST_RSLT_QN_VAL'
+      translation: 'mic_str'
+    - CD_LAB_TEST_METH: '14788002'
+      CD_LAB_TEST_CODE: '18982-9'
+      value_field: 'CD_LAB_TEST_RSLT_QL'
+      code_list: 'labtest_codes'
+      translation: 'mic_str_I'
+    - CD_LAB_TEST_METH: '14788002'
       CD_LAB_TEST_CODE: '496-0'
       value_field: 'MS_LAB_TEST_RSLT_QN_VAL'
       translation: 'mic_tet'
@@ -267,6 +438,24 @@ code_lists:
       value_field: 'CD_LAB_TEST_RSLT_QL'
       code_list: 'labtest_codes'
       translation: 'mic_tmp_I'
+    - CD_LAB_TEST_METH: '14788002'
+      CD_LAB_TEST_CODE: '516-5'
+      value_field: 'MS_LAB_TEST_RSLT_QN_VAL'
+      translation: 'mic_tmpsmx'
+    - CD_LAB_TEST_METH: '14788002'
+      CD_LAB_TEST_CODE: '18998-5'
+      value_field: 'CD_LAB_TEST_RSLT_QL'
+      code_list: 'labtest_codes'
+      translation: 'mic_tmpsmx_I'
+    - CD_LAB_TEST_METH: '14788002'
+      CD_LAB_TEST_CODE: '524-9'
+      value_field: 'MS_LAB_TEST_RSLT_QN_VAL'
+      translation: 'mic_van'
+    - CD_LAB_TEST_METH: '14788002'
+      CD_LAB_TEST_CODE: '19000-9'
+      value_field: 'CD_LAB_TEST_RSLT_QL'
+      code_list: 'labtest_codes'
+      translation: 'mic_van_I'
   labtest_codes:
     83185005: Susceptible
     11896004: Intermediate
@@ -4859,3 +5048,35 @@ code_lists:
     14621000146108: 'Zygosaccharomyces lentus'
     4341000146107: 'Zygosaccharomyces rouxii'
     4321000146101: 'Zygotorulaspora florentina'
+    # below fields of listeria dcd
+    #36094007: Listeria monocytogenes
+    # QL0002: No Listeria monocytogenes  # in salmonella this is 'not interpretable'
+    260385009: Negative
+    419984006: Inconclusive
+    QL0003: Listeria monocytogenes serogroup IIa
+    QL0004: Listeria monocytogenes serogroup IIb
+    QL0005: Listeria monocytogenes serogroup IIc
+    QL0006: Listeria monocytogenes serogroup IVa
+    QL0007: Listeria monocytogenes serogroup IVb
+    QL0008: Listeria monocytogenes serogroup L
+    385432009: Not applicable
+    QL0009: Listeria monocytogenes serotype 1/2a
+    QL0010: Listeria monocytogenes serotype 1/2b
+    QL0011: Listeria monocytogenes serotype 1/2c
+    QL0012: Listeria monocytogenes serotype 3a
+    QL0013: Listeria monocytogenes serotype 3b
+    QL0014: Listeria monocytogenes serotype 3c
+    QL0015: Listeria monocytogenes serotype 4a
+    QL0016: Listeria monocytogenes serotype 4ab
+    QL0017: Listeria monocytogenes serotype 4b
+    QL0018: Listeria monocytogenes serotype 4c
+    QL0019: Listeria monocytogenes serotype 4d
+    QL0020: Listeria monocytogenes serotype 4e
+    QL0021: Listeria monocytogenes serotype 4f
+    QL0022: Listeria monocytogenes serotype 4g
+    QL0023: Listeria monocytogenes serotype 4h
+    QL0024: Listeria monocytogenes serotype 5
+    QL0025: Listeria monocytogenes serotype 6a
+    QL0026: Listeria monocytogenes serotype 6b
+    QL0027: Listeria monocytogenes serotype 7
+    QL0028: Autoagglutinable
