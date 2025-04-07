@@ -1,0 +1,11 @@
+Alias /cgi-bin/ /usr/lib/cgi-bin/
+
+PerlModule ModPerl::Registry
+<Location /cgi-bin>
+  SetHandler perl-script
+  PerlHandler ModPerl::Registry
+  PerlOptions +ParseHeaders
+  Options +ExecCGI
+  Order allow,deny
+  Allow from all
+</Location>

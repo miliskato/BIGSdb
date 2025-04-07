@@ -29,5 +29,5 @@ class AzureServiceBus:
         :return: None
         """
         with ServiceBusClient.from_connection_string(conn_str=self._mongo_config_data['CONNECTION_STRING_ASB'], logging_enable=True) as service_bus_client:
-        	with service_bus_client.get_queue_sender(queue_name=self._queue_name) as sender:
-            	sender.send_messages(ServiceBusMessage(message.to_json()))
+            with service_bus_client.get_queue_sender(queue_name=self._queue_name) as sender:
+                sender.send_messages(ServiceBusMessage(message.to_json()))
