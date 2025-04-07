@@ -1,5 +1,6 @@
 -- migrate:up
 ALTER TABLE isolates
+    ADD COLUMN outcome text,
     ADD COLUMN epi_link text,
     ADD COLUMN serovar_final text,
     ADD COLUMN serovar_luminex text,
@@ -45,6 +46,7 @@ ALTER TABLE isolates
 
 -- migrate:down
 ALTER TABLE isolates
+    DROP COLUMN outcome,
     DROP COLUMN epi_link,
     DROP COLUMN serovar_final,
     DROP COLUMN serovar_luminex,

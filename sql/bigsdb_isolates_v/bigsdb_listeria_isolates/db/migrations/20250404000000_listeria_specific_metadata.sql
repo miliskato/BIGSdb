@@ -1,5 +1,6 @@
 -- migrate:up
 ALTER TABLE isolates
+    ADD COLUMN outcome text,
     ADD COLUMN epi_link text,
     ADD COLUMN perinatal_isolate_strain_mother text,
     ADD COLUMN perinatal_isolate_strain_fetus text,
@@ -74,6 +75,7 @@ ALTER TABLE isolates
 
 -- migrate:down
 ALTER TABLE isolates
+    DROP COLUMN outcome,
     DROP COLUMN epi_link,
     DROP COLUMN perinatal_isolate_strain_mother,
     DROP COLUMN perinatal_isolate_strain_fetus,

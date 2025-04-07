@@ -1,5 +1,8 @@
 -- migrate:up
 ALTER TABLE isolates
+    -- Remove shared fields but not shared among all
+    DROP COLUMN case_type,
+    DROP COLUMN outcome,
     -- Remove salmonella specific and add in salmonella specific migration
     DROP COLUMN link_human_to_human_transmission,
     DROP COLUMN link_isolated_case,
@@ -110,6 +113,8 @@ ALTER TABLE isolates
 
 -- migrate:down
 ALTER TABLE isolates
+    ADD COLUMN case_type text,
+    ADD COLUMN outcome text,
     ADD COLUMN link_human_to_human_transmission text,
     ADD COLUMN link_isolated_case text,
     ADD COLUMN link_foodborne_transmission text,

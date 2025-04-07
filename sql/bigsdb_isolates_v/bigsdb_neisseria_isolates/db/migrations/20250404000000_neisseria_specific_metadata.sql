@@ -2,6 +2,7 @@
 ALTER TABLE isolates
     ADD COLUMN case_type text,
     ADD COLUMN evolution text,
+    ADD COLUMN identification text,
     ADD COLUMN mic_amo real,
     ADD COLUMN mic_amo_I text,
     ADD COLUMN mic_amp real,
@@ -23,6 +24,7 @@ ALTER TABLE isolates
 ALTER TABLE isolates
     DROP COLUMN case_type,
     DROP COLUMN evolution,
+    DROP COLUMN identification,
     DROP COLUMN mic_amo,
     DROP COLUMN mic_amo_I,
     DROP COLUMN mic_amp,

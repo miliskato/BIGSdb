@@ -548,15 +548,10 @@
       - { dbmate_repo: "bigsdb_isolates", db_name: "bigsdb_{{ species }}_isolates" }
   tags: always
 
-- name: Create species (refseq and isolates) data db (if they don't already exist) and run any pending species specific migrations
+- name: Update isolates data db with any run any pending species specific migrations
   ansible.builtin.shell:
-    chdir: "{{ bioit_bigs_home }}/sql/{{ item.dbmate_repo }}_v/{{ item.dbmate_repo }}"
-    cmd: DATABASE_URL=postgres://postgres:{{ postgresql_postgres_user_password }}@127.0.0.1:5432/{{ item.db_name }}?sslmode=disable dbmate up
-  loop: "{{ db_info|flatten(levels=1) }}"
-  vars:
-    db_info:
-      - { dbmate_repo: "bigsdb_seqdef", dbmate_folder: "bigsdb_{{ species }}_seqdef", db_name: "bigsdb_{{ species }}_seqdef" }
-      - { dbmate_repo: "bigsdb_isolates", dbmate_folder: "bigsdb_{{ species }}_isolates", db_name: "bigsdb_{{ species }}_isolates" }
+    chdir: "{{ bioit_bigs_home }}/sql/bigsdb_isolates_v/bigsdb_{{ species }}_isolates"
+    cmd: DATABASE_URL=postgres://postgres:{{ postgresql_postgres_user_password }}@127.0.0.1:5432/bigsdb_{{ species }}_isolates?sslmode=disable dbmate up
   tags: always
 
 - name: create global user database
