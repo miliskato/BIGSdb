@@ -913,6 +913,7 @@
         dest: /lib/systemd/system/
     - name: activate the service
       ansible.builtin.systemd:
+        daemon-reload: true
         state: started
         enabled: true
         name: bigsdb-insertion.service
