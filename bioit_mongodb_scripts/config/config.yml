@@ -29,6 +29,7 @@ collections:
     - isolates
     - old_isolate_results
     - isolates_badqc
+    - isolates_goodqc
     - sequence_types
     - new_allele_hashes
     - cluster_membership
