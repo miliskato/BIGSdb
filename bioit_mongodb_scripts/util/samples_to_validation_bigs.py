@@ -18,12 +18,13 @@ from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 
 class SamplesToValidationBigs:
     """
-    Pushes isolates from MongoDB badqc/resequencing collections into BIGSdb's submission system if it's not already done
+    Pushes isolates from MongoDB goodqc/badqc/resequencing collections into BIGSdb's submission system if it's not
+    already done.
     """
 
     def __init__(self, species: str, mongo_config_data: Dict[str, Any] = None) -> None:
         """
-        Call methods to insert samples into BIGSdb submission table
+        Call methods to insert samples into BIGSdb submission table.
         :param species: commonly used bioit species name: either genus or specific like stec
         :param mongo_config_data: mongo_config_data for MongoInitialisation
         :return: None
@@ -31,21 +32,24 @@ class SamplesToValidationBigs:
         self.mongo_config_data = mongo_config_data
         self.species = species
 
+        self._submission_into_bigs('good_quality')
         self._submission_into_bigs('bad_quality')
         # self._submission_into_bigs('resequencing')
 
-    def _submission_into_bigs(self, sample_type: Literal['bad_quality', 'resequencing']) -> None:
+    def _submission_into_bigs(self, sample_type: Literal['good_quality', 'bad_quality', 'resequencing']) -> None:
         """
-        Select samples pending for submission from either badqc or resequencing collection and launches their submission in BIGSdb
-        :param: sample_type: str that should be either "bad_quality" or "resequencing"
+        Select samples pending for submission from either the goodqc, badqc or resequencing collection and launches
+        their submission in BIGSdb.
+        :param: sample_type: str that should be either "good_quality", "bad_quality" or "resequencing"
         :return: None
         """
         mongoinit = MongoInitialisation(self.species, mongo_config_data=self.mongo_config_data,
                                         selected_connection_string='CONNECTION_STRING_AZURE')
-        _, _, isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections()
+        _, _, isolates_badqc_collection, isolates_resequencing_collection, isolates_goodqc_collection = mongoinit.initialise_collections()
         update_collection = mongoinit.initialise_update_collection()
 
-        mongo_collection = isolates_badqc_collection if sample_type == 'bad_quality' else isolates_resequencing_collection
+        mongo_collection = isolates_badqc_collection if sample_type == 'bad_quality' else \
+            isolates_resequencing_collection if sample_type == 'resequencing' else isolates_goodqc_collection
 
         isolates_for_submission = list(map(lambda x: MongoRecordDict(x),
                                            mongo_collection.find({'submission_status': 'pending_for_submission'})))
@@ -64,7 +68,7 @@ class SamplesToValidationBigs:
         """
         Inserts a given list of submissions into bigsdb
         :param sample_docs: list of documents to be submitted
-        :param validation_type: either bad_quality or resequencing
+        :param validation_type: either good_quality, bad_quality or resequencing
         :return: None
         """
         mongoinit_local = MongoInitialisation(self.species, mongo_config_data=self.mongo_config_data,
@@ -80,7 +84,7 @@ class SamplesToValidationBigs:
                 isolates_sub_psql_tbl.insert_submission((validation_type,))
                 report_url = UrlHelper.report_for_validation(self.species, mongo_record['_id'],
                                                              mongo_record['latest_analysis_date'], validation_type)
-                report_link = f'<a href="{report_url}" target = "_blank" class="small_submit"> Get report preview </a>'
+                report_link = f'<a href="{report_url}" target = "_blank"> report </a>'
 
                 isolates_isosubiso_psql_tbl.insert_validation_metadata(('html_report', report_link))
                 isolates_isosubiso_psql_tbl.insert_validation_metadata(('isolate_id', isolate_id))

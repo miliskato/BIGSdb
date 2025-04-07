@@ -26,13 +26,13 @@ class BridgeDict(UserDict):
 
 class JsonReportDict(BridgeDict):
     """
-    Class to handle results of the pipeline, light typing for code clarity
-    Also includes the open method for json file
+    Class to handle results of the pipeline, light typing for code clarity.
+    Also includes the open method for json file.
     """
     @staticmethod
     def from_json(path: Path) -> 'JsonReportDict':
         """
-        Opens the json file in a JsonReportDict object
+        Opens the json file in a JsonReportDict object.
         :param path: path to the json file
         :return: JsonReportDict object
         """
@@ -42,25 +42,34 @@ class JsonReportDict(BridgeDict):
 
 class MongoRecordDict(BridgeDict):
     """
-    Class to handle documents extracted from MongoDB, light typing for code clarity
-    Also includes relevant methods for this object
+    Class to handle documents extracted from MongoDB, light typing for code clarity.
+    Also includes relevant methods for this object.
     """
     def get_id(self) -> str:
-        """return the _id field from mongoDB"""
+        """
+        Returns the _id field from mongoDB.
+        :return: id
+        """
         return self.get('_id')
 
     def set_isolate_id(self, isolate_id: str) -> None:
         """
-        Set the value for the isolates_id key
+        Set the value for the isolates_id key.
         :param isolate_id: isolate id
         :return: None
         """
         self['isolates_id'] = isolate_id
 
     def get_validation_type(self) -> Union[ResultType, None]:
-        """return validation type info from Mongo document if present"""
+        """
+        Returns validation type info from Mongo document if present.
+        :return: validation type info
+        """
         return self.get('validation',{}).get('type',None)
 
     def get_json_results(self) -> JsonReportDict:
-        """return the results section of the Mongo document as a JsonReportDict object"""
+        """
+        Returns the results section of the Mongo document as a JsonReportDict object.
+        :return: JsonReportDict object
+        """
         return JsonReportDict(self.get("results"))

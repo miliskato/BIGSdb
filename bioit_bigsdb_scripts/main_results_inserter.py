@@ -28,7 +28,7 @@ class MainResultsInserter:
         :param isolatename: name of the isolate
         :param uploader_mail_address: mailadress of the uploader
         :param species: commonly used bioit species name: either genus or specific like stec
-        :param results_type: either 'new_isolate','badqc','resequencing','reanalysis'
+        :param results_type: either 'new_isolate', 'goodqc', 'badqc','resequencing','reanalysis'
         :param report_access: report_directory from MongoDB
         :param vcf_path: subdirectory containing the vcf file
         :param mongo_dtap: dtap from mongo config
@@ -68,7 +68,7 @@ class MainResultsInserter:
 
         maininserter = MainInserter(self._isolatename, self._species, self._json_report, self._bigsdb_config_data,
                                     self._report_access, self._vcf_path, self._mongo_dtap)
-        if self._results_type == 'new_isolate' or self._results_type == 'badqc':
+        if self._results_type == 'new_isolate' or self._results_type == 'badqc' or self._results_type == 'goodqc':
             maininserter.insert_new_isolate(self._uploader_mail_address, self._isolation_date)
         elif self._results_type == 'reanalysis' or self._results_type == 'resequencing':
             self._handle_reanalysis_and_reseq()
