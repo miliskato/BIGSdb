@@ -1,4 +1,4 @@
-from typing import Any, List, Tuple, Union
+from typing import List, Tuple, Union
 
 from .databaseconnection import DatabaseConnection
 from .psql_queries import PsqlQueries
@@ -8,6 +8,7 @@ class TblProfileMembers(DatabaseConnection):
     """
     profile_members table in the seqdef database
     """
+
     def __init__(self, species: str) -> None:
         """
         Initialises this class by opening a database connection.
@@ -25,3 +26,13 @@ class TblProfileMembers(DatabaseConnection):
         :return: None
         """
         self.execute_query(PsqlQueries.SEQ_INS__TB_PROFMEM_VAR_SCHEME_SCHFIELD_PROFID_VALUE, param)
+
+    def insert_all_loci_of_profile(self, data: List[Tuple[Union[str, int]]]) -> None:
+        """
+        Inserts all loci of the profile in profile_members table
+        :param data: data to insert into the table (consisting of values used to fill in each row associated to this profile).
+        :return: None
+        """
+        cur = self.cursor
+        args_str = ','.join(cur.mogrify('(%s, %s, %s, %s, %s, %s)', row).decode("utf-8") for row in data)
+        cur.execute("INSERT INTO {table} VALUES".format(table='profile_members') + args_str)

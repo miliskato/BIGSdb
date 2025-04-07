@@ -1,7 +1,7 @@
 from typing import Any, Dict
 
 from bioit_mongodb_scripts.model.json_model import JsonReportDict
-from .psql import TblAlleleDesignations, TblSequences, TblLoci, TblSchemeMembers, TblClientDbaseLoci
+from .psql import TblAlleleDesignations, TblClientDbaseLoci, TblLoci, TblSchemeMembers, TblSequences
 
 
 class JsonSuperClass:
@@ -73,8 +73,7 @@ class JsonSuperClass:
                 dbaseurl = ''.join(['/cgi-bin/bigsdb/bigsdb.pl?db=', f'bigsdb_{self._species}_seqdef',
                                     '&page=alleleInfo&locus=', f"{locus}", '&allele_id=[?]'])
                 isolates_loci_psql_tbl.insert_locus_isolates((locus, f'bigsdb_{self._species}_seqdef', locus, dbaseurl))
-                isolates_schememembers_psql_tbl.insert_scheme_member(
-                    (scheme, locus))
+                isolates_schememembers_psql_tbl.insert_scheme_member((scheme, locus))
 
     def _assign_schememember_if_needed(self, locus: str, scheme: str) -> None:
         """

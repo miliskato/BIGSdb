@@ -120,17 +120,28 @@ class PsqlQueries():
     ISO_INS__TB_EAVF_VAR_FIELD: Final[str] = """
         INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) 
         VALUES(%s, 'boolean', 'NCBI 16S', '', 't', 't', (SELECT CURRENT_DATE), 1);"""
+    ISO_INS__TB_EAVF_VAR_FIELD_CAT: Final[str] = """
+        INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) 
+        VALUES(%s, 'text', %s, 't', 't', 't', (SELECT CURRENT_DATE), 1);"""
     ISO_SEL_COUNT_TB_EAVF_VAR_FIELD: Final[str] = """
         SELECT COUNT(*) FROM eav_fields WHERE category='NCBI 16S' AND field=%s;"""
-    ISO_SEL_FIELD_TB_EAVF_VAR_: Final[str] = """SELECT field FROM eav_fields WHERE category='AMR detection'"""
-    ISO_SEL_FIELD_TB_EAVF_VAR_CAT: Final[str] = """SELECT field FROM eav_fields WHERE category=%s"""
+    ISO_SEL_FIELD_TB_EAVF_VAR_: Final[str] = """SELECT field FROM eav_fields WHERE category='AMR detection';"""
+    ISO_SEL_FIELD_TB_EAVF_VAR_CAT: Final[str] = """SELECT field FROM eav_fields WHERE category=%s;"""
     ISO_SEL_FIELD_TB_EAVF_VAR_FIELD: Final[str] = """SELECT field FROM eav_fields WHERE field LIKE %s;"""
+    ISO_SEL_COUNT_TB_EAVF_VAR_FIELD_CAT: Final[str] = """SELECT count(*) FROM eav_fields WHERE field=%s AND category=%s ;"""
 
     # TBL extended attribute values bool
     ISO_DEL__TB_EAVB_VAR_ISO: Final[str] = """
         DELETE FROM eav_boolean where isolate_id=(SELECT id FROM isolates WHERE isolate=%s);"""
     ISO_INS__TB_EAVB_VAR_ISO_FIELD_VAL: Final[str] = """
         INSERT INTO eav_boolean(isolate_id, field, value) 
+        VALUES((SELECT id FROM isolates WHERE isolate=%s), %s, %s);"""
+
+    # TBL extended attribute values float
+    ISO_DEL__TB_EAVFL_VAR_ISO: Final[str] = """
+        DELETE FROM eav_float WHERE isolate_id=(SELECT id FROM isolates WHERE isolate=%s);"""
+    ISO_INS__TB_EAVFL_VAR_ISO_FIELD_VAL: Final[str] = """
+        INSERT INTO eav_float(isolate_id, field, value) 
         VALUES((SELECT id FROM isolates WHERE isolate=%s), %s, %s);"""
 
     # TBL extended attribute values int
@@ -255,6 +266,8 @@ class PsqlQueries():
         VALUES(%s, 'DNA', 'text', 't', 't', %s, %s, 
         %s, 'allele_only', 'f', 't', 't', 'f', 
         1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));"""
+    SEQ_SEL__TB_SCHEME_MBR_VAR_SCHEME_ID: Final[str] = """
+        SELECT locus FROM scheme_members WHERE scheme_id=(SELECT id FROM schemes WHERE name = %s);"""
     SEQ_INS__TB_LOCI_VAR_LOCUS: Final[str] = """
         INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, curator, date_entered, datestamp) 
         VALUES(%s, 'DNA', 'text', 't', 't', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE));"""
@@ -307,6 +320,8 @@ class PsqlQueries():
     # TBL schemes
     UNI_SEL_ID_TB_SCHEME_VAR_: Final[str] = """
         SELECT id FROM schemes WHERE name = 'cgMLST';"""
+    UNI_SEL_ID_TB_SCHEME_VAR_NAME: Final[str] = """
+        SELECT id FROM schemes WHERE name = %s;"""
 
     # TBL scheme members
     UNI_SEL_EXISTS_TB_SCHMEM_VAR_SCHID: Final[str] = """

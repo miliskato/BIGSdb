@@ -3,12 +3,10 @@ import re
 from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional, Tuple
 
-import requests
-
 from bioit_mongodb_scripts.model.json_model import JsonReportDict
 from .json_superclass import JsonSuperClass
-from .psql import TblAlleleDesignations, TblHistory, TblEavBoolean, TblEavText, TblEavFields, TblSchemeMembers, \
-    TblIsolates
+from .psql import TblAlleleDesignations, TblEavBoolean, TblEavFields, TblEavFloat, TblEavText, TblHistory, TblIsolates, TblSchemeMembers
+from ..utils.html_tbl_templates import HtmlMobSuiteTableBuilder
 from ..utils.url_helper import UrlHelper
 
 
@@ -48,6 +46,12 @@ class JsonTypingResultsInserter(JsonSuperClass):
                         self._process_regular_typing_scheme()
                     elif self._schemedict[self._scheme]['type'] == 'irregular':
                         self._process_irregular_typing_scheme()
+                elif self._scheme == 'rmlst_identification':
+                    self._process_rmlst_identification()
+                elif self._scheme == 'resfinder4_mutations':
+                    self._process_resfinder4_mutations()
+                elif self._scheme == 'mob_suite_detection':
+                    self._process_mob_suite()
                 else:
                     logging.warning(f"scheme {self._scheme} not present in json file")
             with TblHistory(self._species) as isolates_history_psql_tbl:
@@ -85,10 +89,60 @@ class JsonTypingResultsInserter(JsonSuperClass):
             self.__process_irregular_typing_scheme_mycobacterium_specific()
         elif self._species == 'neisseria':
             self.__process_irregular_typing_scheme_neisseria_specific()
-        elif self._species == 'stec':
-            self.__process_irregular_typing_scheme_stec_specific()
         elif self._species == 'salmonella':
             self.__process_irregular_typing_scheme_salmonella_specific()
+
+    def _process_rmlst_identification(self) -> None:
+        """
+        Inserts taxonomy identification based on rMLST in eav fields related tables
+        :return: None
+        """
+        if 'rmlst' in self._json_report_dict:
+            rmlst_dict = self._json_report_dict['rmlst']
+            identification_keys = {e for e in rmlst_dict if rmlst_dict[e]}
+            unused_keys = {'db_version', 'loci', 'rmlst-rST'}
+            identification_keys = {item for item in identification_keys if item not in unused_keys}
+
+            for k in identification_keys:
+                if k != 'rmlst-percent_detected':
+                    with TblEavText(self._species) as self._isolates_eavt_psql_tbl:
+                        self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, k, rmlst_dict[k]))
+                else:
+                    with TblEavFloat(self._species) as self._isolates_eavfl_psql_tbl:
+                        self._isolates_eavfl_psql_tbl.insert_eav_float_isolate(
+                            (self._isolatename, 'rmlst-%_detected', float(rmlst_dict[k])))
+
+    def _process_resfinder4_mutations(self) -> None:
+        """
+        Inserts ResFinder 4 mutations results into bigsdb eav_text table
+        :return: None
+        """
+        mutations_found = self._json_report_dict['resfinder4']['resfinder4_mutations']
+        if mutations_found == '-':
+            return
+        with TblEavText(self._species) as isolates_eavt_psql_tbl, TblEavFields(self._species) as isolates_eavf_psql_tbl:
+            for key, value in mutations_found.items():
+                resistance = ', '.join(value)
+                if not isolates_eavf_psql_tbl.exists_in_eav_field((key, 'ResFinder4 mutations')):
+                    isolates_eavf_psql_tbl.insert_text_field((key, 'ResFinder4 mutations'))
+                isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, str(key), f"Resistance to {resistance}"))
+
+    def _process_mob_suite(self) -> None:
+        """
+        Inserts MOB-Suite results into bigsdb eav_text table
+        :return: None
+        """
+        plasmid_list = self._json_report_dict['mob_suite'].get('mob_suite_overview')
+        if not plasmid_list:
+            return
+        report_url = UrlHelper.report_for_isolate(self._species, self._isolatename)
+        mob_suite_table_builder = HtmlMobSuiteTableBuilder(report_url)
+        for item in plasmid_list:
+            mob_suite_table_builder.add_plasmid(item['id'], item['num_contigs'], item['size'], item['gc'], item['predicted_mobility'], item['rep_type(s)'], item['relaxase_type(s)'])
+        html = mob_suite_table_builder.build()
+
+        with TblEavText(self._species) as isolates_eavt_psql_tbl:
+            isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'MOB-Suite', html))
 
     def ___get_isolate_id(self) -> str:
         """
@@ -96,8 +150,8 @@ class JsonTypingResultsInserter(JsonSuperClass):
         :return: BIGSdb id of the isolate
         """
         with TblIsolates(self._species) as isolates_tbl:
-            id = isolates_tbl.select_id_for_isolate((self._isolatename,))
-        return str(id[0][0])
+            bigsdb_id = isolates_tbl.select_id_for_isolate((self._isolatename,))
+        return str(bigsdb_id[0][0])
 
     def __process_irregular_typing_scheme_mycobacterium_specific(self) -> None:
         """
@@ -206,20 +260,18 @@ class JsonTypingResultsInserter(JsonSuperClass):
                 self.insert_locus_if_needed(f'{scheme}_{gene}', scheme)
                 self._insert_dummy_sequence_if_needed(f'{scheme}_{gene}', '1')
                 self._isolates_ad_psql_tbl.insert_designation_by_isolatename((f'{scheme}_{gene}', self._isolatename, '1'))
-
-    def __process_irregular_typing_scheme_stec_specific(self) -> None:
-        """
-        Processes and inserts stec results
-        :return: None
-        """
-        if self._scheme == 'serotype':
-            serotypedict = {'O_antigen': self._json_report_dict[self._scheme]['serotype'].split(':')[0],
-                            'H_antigen': self._json_report_dict[self._scheme]['serotype'].split(':')[1]}
-            for antigen, antigen_allele in serotypedict.items():
-                if antigen_allele != '-':
-                    self._insert_dummy_sequence_if_needed(antigen, antigen_allele)
-                    self._isolates_ad_psql_tbl.insert_designation_by_isolatename(
-                        (antigen, self._isolatename, antigen_allele))
+        elif self._scheme == 'gmats' and self._json_report_dict['gmats']['gmats_status'] != "":
+            with TblEavText(self._species) as isolates_eav_psql_tbl:
+                clean_gmat_status = self._json_report_dict['gmats']['gmats_status'].replace('_', ' ')
+                isolates_eav_psql_tbl.insert_eav_isolate((self._isolatename, 'gMATS status', clean_gmat_status))
+        elif self._scheme == 'mendevar':
+            bexsero_status = self._json_report_dict['mendevar'].get('mendevar_bexsero_status')
+            trumenba_status = self._json_report_dict['mendevar'].get('mendevar_trumenba_status')
+            with TblEavText(self._species) as isolates_eav_psql_tbl:
+                if bexsero_status:
+                    isolates_eav_psql_tbl.insert_eav_isolate((self._isolatename, 'MenDeVar Bexsero status', bexsero_status.replace('_', ' ')))
+                if trumenba_status:
+                    isolates_eav_psql_tbl.insert_eav_isolate((self._isolatename, 'MenDeVar Trumenba status', trumenba_status.replace('_', ' ')))
 
     def __process_irregular_typing_scheme_salmonella_specific(self) -> None:
         """
@@ -275,6 +327,8 @@ class JsonTypingResultsInserter(JsonSuperClass):
         elif self._scheme == 'spifinder':
             for mode in ['fastq', 'fasta']:
                 hits: List = self._json_report_dict['spifinder'].get(f'{self._scheme}_{mode}')
+                if hits == 'n/a':
+                    continue
                 if hits and len(hits) != 0:
                     inserted_alleledesignations_list = set()
                     for spi in hits:
@@ -298,7 +352,8 @@ class JsonTypingResultsInserter(JsonSuperClass):
                         amr_detection = 'NA'
                     self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, item[0], amr_detection))
 
-    def ___salmonella_insert_antigens_into_db(self, raw_formula: str, mode: Optional[Literal['kmer', 'kmerread', 'allele']] = None) -> None:
+    def ___salmonella_insert_antigens_into_db(self, raw_formula: str,
+                                              mode: Optional[Literal['kmer', 'kmerread', 'allele']] = None) -> None:
         """
         Inserts antigens separately from the formula
         :param raw_formula: serotype formula O:H1:H2

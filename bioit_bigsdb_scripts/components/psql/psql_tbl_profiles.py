@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Tuple, Union
+from typing import List, Optional, Tuple
 
 from .databaseconnection import DatabaseConnection
 from .psql_queries import PsqlQueries
@@ -8,6 +8,7 @@ class TblProfiles(DatabaseConnection):
     """
     profiles table in the seqdef database
     """
+
     def __init__(self, species: str) -> None:
         """
         Initialises this class by opening a database connection.
@@ -38,8 +39,7 @@ class TblProfiles(DatabaseConnection):
     def select_profile(self, param: Tuple[str]) -> List[Optional[Tuple[int]]]:
         """
         Select all profile_id's for a given scheme
-        :param param: variables to feed to the PSQL query, which also sanitizes these variables,
-        necessary parameters visible in the PSQL query name and query
-        :return: list of tuples containing one integer
+        :param param: name of the scheme in BIGSdb
+        :return: all "profile_id" found in the table for this specific scheme
         """
         return self.execute_query(PsqlQueries.SEQ_SEL_PROFID_TB_PROF_VAR_SCHEME, param)

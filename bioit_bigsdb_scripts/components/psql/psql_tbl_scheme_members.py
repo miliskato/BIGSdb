@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Tuple, Union
+from typing import List, Optional, Tuple
 
 from .databaseconnection import DatabaseConnection
 from .psql_queries import PsqlQueries
@@ -8,6 +8,7 @@ class TblSchemeMembers(DatabaseConnection):
     """
     scheme_members table in both databases
     """
+
     def __init__(self, species: str, db_type: str) -> None:
         super().__init__(species, db_type)
 
@@ -17,7 +18,7 @@ class TblSchemeMembers(DatabaseConnection):
         :param param: scheme id from BIGSdb
         :return: t or f
         """
-        return self.execute(PsqlQueries.UNI_SEL_EXISTS_TB_SCHMEM_VAR_SCHID, param)
+        return self.execute_query(PsqlQueries.UNI_SEL_EXISTS_TB_SCHMEM_VAR_SCHID, param)
 
     def count_scheme_member(self, param: Tuple[str, str]) -> List[Tuple[int]]:
         """
