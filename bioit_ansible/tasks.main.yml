@@ -905,6 +905,18 @@
 
   tags: cron_jobs
 
+- name: create service for bigsdb_insertion
+  block:
+    - name: Create the bigsdb-insertion systemd service file
+      template:
+        src: /home/bigsdb/BIGSdb/bigsdb-insertion.service
+        dest: /lib/systemd/system/
+    - name: activate the service
+      ansible.builtin.systemd:
+        state: started
+        enabled: true
+        name: bigsdb-insertion.service
+
 - name: create galaxy user
   block:
     - name: Setup user without UID (You have to create key manually because format error)
