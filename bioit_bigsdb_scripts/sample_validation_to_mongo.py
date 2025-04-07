@@ -23,7 +23,6 @@ sys.path.append(str(PYTHONPATH))
 from bioit_bigsdb_scripts.components.psql import TblSubmissions
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data, send_email
 from bioit_mongodb_scripts.mainmongo import MainMongo
-#from bioit_mongodb_scripts.mongo_to_bigs import MongoToBigs
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 
 
@@ -116,9 +115,7 @@ class SampleValidationToMongo:
                 elif validation_type == 'resequencing':
                     self.__remove_id_from_document_to_be_unique_again_if_bad(self._isolates_resequencing_collection,
                                                                                  pseudo_id, validation_dict)
-                # update status once everything is finished
-                self._isolates_submissions_psql_tbl.update_submission((str(self._sub_id),))
-                #MongoToBigs(self._species, uploader_mail_address=curator_mailadress, single_sample_id=isolatename)
+        # TODO AzureServiceBus
 
     @staticmethod
     def __get_results_type(validation_type: str) -> str:
