@@ -102,6 +102,11 @@
     owner: bigsdb
     mode: "u=rwx,g=rx,o=rx"
 
+- name: Change parent repo permission
+  ansible.builtin.file:
+    path: /home/bigsdb
+    mode: "u=rwx,g=rx,o=rx"
+
 - name: Change Mongo dtap version in config based on playbook argument
   lineinfile:
     path: "{{ bioit_bigs_home }}/bioit_mongodb_scripts/config/config.yml"
@@ -154,7 +159,7 @@
 
     - name: set path to the encrypted file for ssh key in acc/prod instances
       set_fact:
-        path_to_key_file: "{{ path_to_key_file_ac }}"
+        path_to_key_file: "{{ path_to_key_file_ap }}"
       when: mongo_dtap == "acc" or mongo_dtap == "prod"
 
     - name: Write secret private key to the file, replace literal linebreaks in secret by actual linebreaks
@@ -248,6 +253,17 @@
               ProxyPassReverse "/reportsapi" "http://{{ azure_reportsapi_ip }}:9090" timeout=10000
             </VirtualHost>
   when: reportsapi_proxy_check.stdout.find("Line doesn't exist") != -1
+
+- name: Copy the perl.conf template
+  ansible.builtin.template:
+    src: "templates/perl_config.j2"
+    dest: /etc/apache2/mods-available/perl.conf
+    owner: root
+    group: root
+    mode: "u=rw,g=r,o=r"
+
+- name: Execute a2enmod perl command
+  command: sudo a2enmod perl
 
 - name: Restart service apache2
   ansible.builtin.systemd:
@@ -728,7 +744,16 @@
 
 - name: populate databases
   block:
-    - name: run a collection of insert into on clonfict do nothing for the dedicated specie
+    - name: Change file ownership for postgres scripts
+      ansible.builtin.file:
+        path: "{{ bioit_bigs_home }}/bioit_bigsdb_scripts/bigsdb_{{ item }}.sql"
+        mode: u=rwx,g=rx,o=rx
+      when: item != 'influenza_seqdef'
+      loop:
+        - "{{ species }}_seqdef"
+        - "{{ species }}_isolates"
+
+    - name: run a collection of insert into on clonfict do nothing for the dedicated species
       community.postgresql.postgresql_script:
         login_user: postgres
         db: "{{ item.db }}"
@@ -879,7 +904,7 @@
         state: absent
 
     - name: Remove the cronjob for mongo to bigs
-      cron:
+      ansible.builtin.file:
         path: /etc/cron.d/mongo_to_bigs_hourly
         state: absent
 
@@ -907,10 +932,48 @@
 
 - name: create service for bigsdb_insertion
   block:
-    - name: Create the bigsdb-insertion systemd service file
-      template:
-        src: /home/bigsdb/BIGSdb/bigsdb-insertion.service
-        dest: /lib/systemd/system/
+    - name: add systemd service for automatic insertion
+      ansible.builtin.copy:
+        src: "{{ bioit_bigs_home }}/bigsdb-insertion.service"
+        dest: '/etc/systemd/system/bigsdb-insertion.service'
+        owner: root
+        group: root
+        remote_src: yes
+        mode: "u=rwx,g=rwx,o=rx"
+
+    - name: replace species in bigsdb-insertion service
+      ansible.builtin.replace:
+        path: '/etc/systemd/system/bigsdb-insertion.service'
+        regexp: 'to_be_replaced_by_ansible'
+        replace: "{{ species }}"
+
+    - name: replace species in bigsdb-insertion service
+      ansible.builtin.replace:
+        path: '/etc/systemd/system/bigsdb-insertion.service'
+        regexp: 'to_be_replaced_by_ansible'
+        replace: "{{ species }}"
+
+    - name: Change connection str in mongo config based on playbook argument for dev-test
+      lineinfile:
+        path: "{{ bioit_bigs_home }}/bioit_mongodb_scripts/config/config.yml"
+        regexp: 'CONNECTION_STRING_ASB: to_be_replaced_by_ansible'
+        line: "CONNECTION_STRING_ASB: {{ asb_connection_str_dt }}"
+      when: mongo_dtap == "dev" or mongo_dtap == "test"
+
+    - name: Change connection str in mongo config based on playbook argument for acc-prod
+      lineinfile:
+        path: "{{ bioit_bigs_home }}/bioit_mongodb_scripts/config/config.yml"
+        regexp: 'CONNECTION_STRING_ASB: to_be_replaced_by_ansible'
+        line: "CONNECTION_STRING_ASB: {{ asb_connection_str_ap }}"
+      when: mongo_dtap == "acc" or mongo_dtap == "prod"
+
+    - name: Touche log file for bigsdb_insertion service
+      ansible.builtin.file:
+        path: /var/log/bigsdb_insertions.log
+        state: touch
+        mode: "u=rwx,g=rwx,o=rwx"
+        owner: bigsdb
+
     - name: activate the service
       ansible.builtin.systemd:
         daemon-reload: true
@@ -918,91 +981,4 @@
         enabled: true
         name: bigsdb-insertion.service
 
-- name: create galaxy user
-  block:
-    - name: Setup user without UID (You have to create key manually because format error)
-      user:
-        name: galaxy
-        state: "present"
-        append: no
-
-    - name: create galaxy mongo dir
-      ansible.builtin.file:
-        path: /home/galaxy/mongo
-        state: directory
-        owner: galaxy
-        mode: "u=rwx,g=rwx,o=rwx"
-
-    - name: generate SSH key galaxy user
-      user:
-        name: galaxy
-        generate_ssh_key: yes
-        ssh_key_type: rsa
-        ssh_key_bits: 4096
-        ssh_key_file: .ssh/id_rsa
-        group: galaxy
-        force: no
-
-    - name: copy ssh key to authenticated users
-      ansible.builtin.copy:
-        src: /home/galaxy/.ssh/id_rsa.pub
-        dest: /home/galaxy/.ssh/authorized_keys
-        owner: galaxy
-        group: galaxy
-        mode: "u=rw,g=r"
-        remote_src: yes
-
-    - name: mkdir folder for jail
-      ansible.builtin.file:
-        path: /scratch/bigsupload
-        state: directory
-        owner: root
-        mode: "u=rwx,g=rx,o=x"
-      tags: galaxy_jail
-
-    - name: creation of jail section for galaxy
-      blockinfile:
-        path: /etc/ssh/sshd_config
-        block: |
-          Match User galaxy
-            ChrootDirectory /scratch/bigsupload
-            PermitTunnel no
-            X11Forwarding no
-            AllowTcpForwarding no
-            ForceCommand internal-sftp
-      tags: galaxy_jail
-
-    - name: creation of mongo dir in jail
-      ansible.builtin.file:
-        path: /scratch/bigsupload/mongo
-        state: directory
-        owner: galaxy
-        mode: "u=rwx,g=rwx,o=rwx"
-      tags: galaxy_jail
-
-    - name: creation of not_json dir in jail
-      ansible.builtin.file:
-        path: /scratch/bigsupload/not_json
-        state: directory
-        owner: galaxy
-        mode: "u=rwx,g=rwx,o=rwx"
-      tags: galaxy_jail
-
-    - name: Touch list_of_isolates.txt
-      ansible.builtin.file:
-        path: /scratch/bigsupload/mongo/list_of_isolates.txt
-        state: touch
-        mode: "u=rw,g=r,o=r"
-        owner: bigsdb
-      tags: isolates_touch
-
-    - name: chmod scratch folder (currently too open)
-      ansible.builtin.file:
-        path: /scratch
-        owner: root
-        group: root
-        mode: "u=rwx,g=rx,o=rx"
-
-    - debug: msg="TODO manually; copy the private key to the right galaxy host manually in /home/galaxy/.ssh, chmod 0600 it !"
-  tags: gal_user
 ...
