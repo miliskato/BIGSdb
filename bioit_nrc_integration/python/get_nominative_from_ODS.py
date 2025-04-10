@@ -230,6 +230,8 @@ class MainNominativeDataParserFromOds(SFTPConnection):
                 if hd_key_property_dict.get('code_list'):
                     value = self._translation_codes['code_lists'][hd_key_property_dict['code_list']][
                         self.___cast_as_int_if_int(unprocessed_value)]
+                    if hd_key_property_dict.get('other') and value == 'Other':
+                        value = self.___get_value_by_capitalization_agnostic_key(data_unprocessed, hd_key_property_dict['other'])
                 else:
                     value = unprocessed_value
                 data_translated[hd_key_property_dict['translation']] = value

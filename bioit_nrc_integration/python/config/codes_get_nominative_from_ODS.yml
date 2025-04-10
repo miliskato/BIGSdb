@@ -63,6 +63,7 @@ schema:
         - salmonella
       translation: antibiotic
       code_list: CD_ANTBIO_SPECIF_codes
+      other: CD_ANTBIO_SPECIF_OTH
 #    CD_PROB_NAM:  # this is a list with 5 options, in mail discussions with Florian we decided that these should be 5 separate fields in bigsdb instead of the single clinical_info field because multiple options are possible and else it would be hard to query and do e.g. two field breakdown in bigsdb. Therefore this was implemented in a separate function
 #      required: True
 #      translation: clinical_info
