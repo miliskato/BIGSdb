@@ -24,6 +24,7 @@ from bioit_bigsdb_scripts.components.psql import TblSubmissions
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data, send_email
 from bioit_mongodb_scripts.mainmongo import MainMongo
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
+from bioit_mongodb_scripts.model.json_model import MongoRecordDict
 
 
 def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
@@ -106,16 +107,19 @@ class SampleValidationToMongo:
                 }
                 if outcome == 'good' and (validation_type == 'good_quality' or validation_type == 'bad_quality' or validation_type == 'resequencing'):
                     MainMongo(pseudo_id, self._species, results_type, subvaldict=validation_dict, connection_string='CONNECTION_STRING_AZURE')
+                    self.__export_json_results(self._isolates_collection, isolatename, pseudo_id, 'accepted')
                 elif validation_type == 'good_quality':
+                    self.__export_json_results(self._isolates_goodqc_collection, isolatename, pseudo_id, 'rejected')
                     self.__remove_id_from_document_to_be_unique_again_if_bad(self._isolates_goodqc_collection,
                                                                              pseudo_id, validation_dict)
                 elif validation_type == 'bad_quality':  # outcome == 'bad'
+                    self.__export_json_results(self._isolates_badqc_collection, isolatename, pseudo_id, 'rejected')
                     self.__remove_id_from_document_to_be_unique_again_if_bad(self._isolates_badqc_collection,
                                                                                  pseudo_id, validation_dict)
                 elif validation_type == 'resequencing':
+                    self.__export_json_results(self._isolates_resequencing_collection, isolatename, pseudo_id, 'rejected')
                     self.__remove_id_from_document_to_be_unique_again_if_bad(self._isolates_resequencing_collection,
                                                                                  pseudo_id, validation_dict)
-        # TODO AzureServiceBus
 
     @staticmethod
     def __get_results_type(validation_type: str) -> str:
@@ -156,6 +160,25 @@ class SampleValidationToMongo:
             negatively_validated_document)  # Modified doc
         collection_in.with_options(write_concern=WriteConcern(w="majority")).delete_one(
             {'_id': isolatename})  # Unmodified doc
+
+    @staticmethod
+    def __export_json_results(collection: Collection, isolate_id: str, pseudo_id, subfolder: str) -> None:
+        """
+        Exports the results as a JSON file to a specific location on the NRC platform.
+        :param collection: in which the collection the results are located
+        :param isolate_id: id of the isolate
+        :param pseudo_id: pseudo id of the isolate
+        :param subfolder: in which subfolder the reports have to be created
+        :return: None
+        """
+        bigsdb_config_data = get_bigsdb_config_data()
+        reports_dir = bigsdb_config_data.get('reports_dir')
+        path = Path(f'{reports_dir}/{subfolder}/{isolate_id}.json')
+        json_results = MongoRecordDict(collection.find_one({'_id': pseudo_id})).get_json_results()
+        json_results['sample'] = json_results['sample'].replace(pseudo_id, isolate_id)
+        json_results['input_files'] = json_results['input_files'].replace(pseudo_id, isolate_id)
+        json_results.pop('isolates_id')
+        json_results.to_json(path)
 
 
 if __name__ == '__main__':

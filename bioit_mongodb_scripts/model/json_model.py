@@ -3,7 +3,7 @@ from collections import UserDict
 from pathlib import Path
 from typing import Dict, Any, Literal, Union
 
-ResultType = Literal['new_isolate', 'badqc', 'resequencing', 'reanalysis']
+ResultType = Literal['new_isolate', 'goodqc', 'badqc', 'resequencing', 'reanalysis']
 
 
 class BridgeDict(UserDict):
@@ -39,6 +39,15 @@ class JsonReportDict(BridgeDict):
         with path.open('r') as f:
             return JsonReportDict(json.load(f))
 
+    def to_json(self, path: Path) -> None:
+        """
+        Loads the JsonReportDict into a json file.
+        :param path: Path to the json file
+        :return: None
+        """
+        with path.open('w') as f:
+            json.dump(dict(self), f)
+
 
 class MongoRecordDict(BridgeDict):
     """
@@ -65,7 +74,7 @@ class MongoRecordDict(BridgeDict):
         Returns validation type info from Mongo document if present.
         :return: validation type info
         """
-        return self.get('validation',{}).get('type',None)
+        return self.get('validation', {}).get('type', None)
 
     def get_json_results(self) -> JsonReportDict:
         """
