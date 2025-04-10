@@ -1,0 +1,19 @@
+{
+  "metadata": {
+    "version": "1.0.1-draft3",
+    "data_collection": "HDBP0041",
+    "dcd_name": "BIOIT_LIST"
+  },
+  "data": {
+    "CD_HCO_NIHDI": "82860665",
+    "TX_PIPELINE_NAM": "Listeria pipeline",
+    "TX_PIPELINE_VER": "1.3",
+    "TX_PIPELINE_HASH": null,
+    "TX_BUSINESS_KEY": "HCOtest_dummy_listeria",
+    "TX_LAB_SAMPLE_VAL": "test_dummy_listeria",
+    "DT_PIPELINE_ANAL": "2025-01-06T08:44:34",
+    "TX_MLST_ST": "6",
+    "TX_MLST_CC": "CC6",
+    "TX_MLST_LINEAGE": "I"
+  }
+}

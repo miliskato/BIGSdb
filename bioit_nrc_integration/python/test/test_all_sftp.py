@@ -44,39 +44,40 @@ for species, species_testfiles in testfiles_dict.items():
                                           alternate_dtap=DTAP)
     mapping_table_collection = mongoinit_local.initialise_mapping_table_collection()
 
-    """
-    Upload CLIN and LAB files to ODS sftp. 
-    """
-    # Create an SSH client
-    ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    # Connect to the server
-    ssh.connect(sftp_credentials_hd['hostname_get_nominative_from_ODS'],
-                sftp_credentials_hd['port_get_nominative_from_ODS'],
-                sftp_credentials_hd['username_get_nominative_from_ODS'],
-                sftp_credentials_hd['password_get_nominative_from_ODS'])
-    # Create an SFTP session
-    sftp = ssh.open_sftp()
-    sftp.put(str(testfiles_folder / species_testfiles['get_nominative_from_ODS_CLIN']),
-             f"upload/{DTAP}/test_dummy_{species}_CLIN_.json")
-    sftp.put(str(testfiles_folder / species_testfiles['get_nominative_from_ODS_LAB']),
-             f"upload/{DTAP}/test_dummy_{species}_LAB_.json")
-    with (testfiles_folder / species_testfiles['get_nominative_from_ODS_CLIN']).open('r') as handle:
-        content = json.load(handle)['data']
-        business_key_ods_different_from_wgsmeta = content.get('tx_business_key') if content.get('tx_business_key') else content['TX_BUSINESS_KEY']
+    if species_testfiles.get('get_nominative_from_ODS_CLIN'):
+        """
+        Upload CLIN and LAB files to ODS sftp. 
+        """
+        # Create an SSH client
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        # Connect to the server
+        ssh.connect(sftp_credentials_hd['hostname_get_nominative_from_ODS'],
+                    sftp_credentials_hd['port_get_nominative_from_ODS'],
+                    sftp_credentials_hd['username_get_nominative_from_ODS'],
+                    sftp_credentials_hd['password_get_nominative_from_ODS'])
+        # Create an SFTP session
+        sftp = ssh.open_sftp()
+        sftp.put(str(testfiles_folder / species_testfiles['get_nominative_from_ODS_CLIN']),
+                 f"upload/{DTAP}/test_dummy_{species}_CLIN_.json")
+        sftp.put(str(testfiles_folder / species_testfiles['get_nominative_from_ODS_LAB']),
+                 f"upload/{DTAP}/test_dummy_{species}_LAB_.json")
+        with (testfiles_folder / species_testfiles['get_nominative_from_ODS_CLIN']).open('r') as handle:
+            content = json.load(handle)['data']
+            business_key_ods_different_from_wgsmeta = content.get('tx_business_key') if content.get('tx_business_key') else content['TX_BUSINESS_KEY']
 
-    """
-    Run Nominative data parser on CLIN and LAB files uploaded to ODS
-    """
-    MainNominativeDataParserFromOds(test_dummy=True, alternate_dtap=DTAP)
+        """
+        Run Nominative data parser on CLIN and LAB files uploaded to ODS
+        """
+        MainNominativeDataParserFromOds(test_dummy=True, alternate_dtap=DTAP)
 
-    """
-    After successful parsing the file is moved to the processed folder, remove it from there to clean up.
-    """
-    sftp.remove(f"upload/{DTAP}/processed/test_dummy_{species}_CLIN_.json")
-    sftp.remove(f"upload/{DTAP}/processed/test_dummy_{species}_LAB_.json")
-    sftp.close()
-    ssh.close()
+        """
+        After successful parsing the file is moved to the processed folder, remove it from there to clean up.
+        """
+        sftp.remove(f"upload/{DTAP}/processed/test_dummy_{species}_CLIN_.json")
+        sftp.remove(f"upload/{DTAP}/processed/test_dummy_{species}_LAB_.json")
+        sftp.close()
+        ssh.close()
 
     """
     Insert dummy genomic report JSON into remote isolates collection, skip MainMongo. 
@@ -127,7 +128,7 @@ for species, species_testfiles in testfiles_dict.items():
     """
     Run MainMongo for reanalysis
     """
-    MainMongo(dummy_genomic_report['_id'], 'salmonella', 'reanalysis', pipeline_hash='0123456789',
+    MainMongo(dummy_genomic_report['_id'], species, 'reanalysis', pipeline_hash='0123456789',
               jsonfilepath=testfiles_folder / species_testfiles['genomic_json_reanalysis_report'], alternate_dtap=DTAP,
               connection_string='CONNECTION_STRING_AZURE')
 
@@ -170,10 +171,11 @@ for species, species_testfiles in testfiles_dict.items():
     # MongoDB local
     mapping_table_collection.delete_one({'_id': dummy_mapping_table['_id']})  # id = id
 
-    nominative_labtest_clinical_metadata_collection = mongoinit_local.initialise_nominative_labtest_clinical_metadata_collection()
-    unprocessed_nominative_labtest_metadata_collection = mongoinit_local.initialise_unprocessed_nominative_labtest_metadata_collection()
-    unprocessed_nominative_clinical_metadata_collection = mongoinit_local.initialise_unprocessed_nominative_clinical_metadata_collection()
+    if species_testfiles.get('get_nominative_from_ODS_CLIN'):
+        nominative_labtest_clinical_metadata_collection = mongoinit_local.initialise_nominative_labtest_clinical_metadata_collection()
+        unprocessed_nominative_labtest_metadata_collection = mongoinit_local.initialise_unprocessed_nominative_labtest_metadata_collection()
+        unprocessed_nominative_clinical_metadata_collection = mongoinit_local.initialise_unprocessed_nominative_clinical_metadata_collection()
 
-    nominative_labtest_clinical_metadata_collection.delete_one({'_id': business_key_ods_different_from_wgsmeta})
-    unprocessed_nominative_labtest_metadata_collection.delete_one({'_id': business_key_ods_different_from_wgsmeta})
-    unprocessed_nominative_clinical_metadata_collection.delete_one({'_id': business_key_ods_different_from_wgsmeta})
+        nominative_labtest_clinical_metadata_collection.delete_one({'_id': business_key_ods_different_from_wgsmeta})
+        unprocessed_nominative_labtest_metadata_collection.delete_one({'_id': business_key_ods_different_from_wgsmeta})
+        unprocessed_nominative_clinical_metadata_collection.delete_one({'_id': business_key_ods_different_from_wgsmeta})

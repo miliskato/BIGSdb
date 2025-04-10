@@ -118,7 +118,7 @@ class ErrorCheckerForMainSenderToHD(SFTPConnection):
                                                       selected_connection_string='CONNECTION_STRING_LOCAL',
                                                       alternate_dtap=self._alternate_dtap)
                 mapping_collection = mongoinit_local.initialise_mapping_table_collection()
-                pseudo_id = mapping_collection.find_one({'_id': contents['data']['TX_SAMPLE_ID']})['pseudo_id']
+                pseudo_id = mapping_collection.find_one({'_id': contents['data']['TX_LAB_SAMPLE_VAL']})['pseudo_id']
                 mongoinit_azure = MongoInitialisation(species, mongo_config_data=self._mongo_config_data,
                                                       selected_connection_string='CONNECTION_STRING_AZURE',
                                                       alternate_dtap=self._alternate_dtap)

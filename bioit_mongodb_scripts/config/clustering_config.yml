@@ -1,4 +1,6 @@
 allowed_missing_data_proportion: 0.10
+clustering_thresholds_enterococcus_faecalis: [15, 20]
+clustering_thresholds_enterococcus_faecium: [15, 20]
 clustering_thresholds_listeria: [4, 7]  # threshold ECDC 4= 'core cluster', 7= 'extended cluster'
 clustering_thresholds_mycobacterium: [5, 12]
 clustering_thresholds_neisseria: [4, 7]
