@@ -4,3 +4,15 @@ salmonella:
   mapping_table: salmonella_mapping_table.json
   genomic_json_report: salmonella_report.json
   genomic_json_reanalysis_report: salmonella_report_reanalysis.json
+listeria:
+#  get_nominative_from_ODS_CLIN: listeria_get_nominative_from_ODS_CLIN.json
+#  get_nominative_from_ODS_LAB: listeria_get_nominative_from_ODS_LAB.json
+  mapping_table: listeria_mapping_table.json
+  genomic_json_report: listeria_report.json
+  genomic_json_reanalysis_report: listeria_report_reanalysis.json
+influenza:
+#  get_nominative_from_ODS_CLIN: influenza_get_nominative_from_ODS_CLIN.json
+#  get_nominative_from_ODS_LAB: influenza_get_nominative_from_ODS_LAB.json
+  mapping_table: influenza_mapping_table.json
+  genomic_json_report: influenza_report.json
+  genomic_json_reanalysis_report: influenza_report_reanalysis.json

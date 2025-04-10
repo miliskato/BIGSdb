@@ -245,11 +245,13 @@ class MainNominativeDataParserFromOds(SFTPConnection):
         """
         # DOB is not a mandatory field so it can be missing = None
         dob = MainNominativeDataParserFromOds.___get_value_by_capitalization_agnostic_key(data_unprocessed, 'DT_PAT_DOB')
-        if dob:
+        if dob and dob != '1900-01-01':
             # Calculate the number of years
             # Average year length considering leap years = 365.25 days
             patient_age = math.floor((datetime.strptime(MainNominativeDataParserFromOds.___get_value_by_capitalization_agnostic_key(data_unprocessed, 'DT_LAB_COLLCN'), "%Y-%m-%dT%H:%M:%S") -
                                       datetime.strptime(dob, "%Y-%m-%d")).days / 365.25)
+            if patient_age < -1:
+                raise Exception(f"Patient age '{patient_age}' ('DT_LAB_COLLCN' - 'DT_PAT_DOB') is impossible!")
             data_translated['patient_age'] = patient_age
             age_groups = [
                 ("Below 1", -1, 0),
@@ -297,14 +299,21 @@ class MainNominativeDataParserFromOds(SFTPConnection):
                         labtest_result_dict, 'CD_LAB_TEST_CODE'))))
 
                 if labtest_code_combination.get('code_list'):
-                    data_translated[labtest_code_combination['translation']] = \
-                        self._translation_codes['code_lists'][labtest_code_combination['code_list']][
-                            self.___cast_as_int_if_int(self.___get_value_by_capitalization_agnostic_key(
-                                labtest_result_dict, labtest_code_combination['value_field']))]
-                    if labtest_code_combination['translation'].startswith('mic_') and labtest_code_combination[
-                        'translation'].endswith('_I') and data_translated[labtest_code_combination['translation']] == \
-                            'Resistant':
-                        mic_resistances_list.append((labtest_code_combination['translation'].split('_'))[1])
+                    # Even if the field's value supposedly needs to come from a code list, there can be exceptions
+                    # where it doesn't. E.g. it is impossible to list all serotype formulas, and new ones keep being
+                    # added. The following if else catches these exceptions.
+                    code_value = self.___cast_as_int_if_int(self.___get_value_by_capitalization_agnostic_key(
+                        labtest_result_dict, labtest_code_combination['value_field']))
+                    if code_value:
+                        data_translated[labtest_code_combination['translation']] = \
+                            self._translation_codes['code_lists'][labtest_code_combination['code_list']][code_value]
+                        if labtest_code_combination['translation'].startswith('mic_') and \
+                                labtest_code_combination['translation'].endswith('_I') and \
+                                data_translated[labtest_code_combination['translation']] == 'Resistant':
+                            mic_resistances_list.append((labtest_code_combination['translation'].split('_'))[1])
+                    else:
+                        data_translated[labtest_code_combination['translation']] = \
+                            self.___get_value_by_capitalization_agnostic_key(labtest_result_dict, 'TX_LAB_TEST_RSLT_TXT')
                 else:
                     data_translated[labtest_code_combination['translation']] = \
                         self.___get_value_by_capitalization_agnostic_key(
