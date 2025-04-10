@@ -50,6 +50,8 @@ class GetCoreQCMetrics:
             for key, metric_info in deepcopy(sample_coreqc_metrics).items():
                 if not metric_info['available_for_fasta_input']:
                     sample_coreqc_metrics.pop(key)
+        elif self._reads_input_type != 'illumina':
+            self.__set_global_ont_coverage_thresholds(sample_coreqc_metrics)
 
         self.__convert_iterations_to_separate_keys(sample_coreqc_metrics)
 
@@ -62,18 +64,33 @@ class GetCoreQCMetrics:
         place.
         :return: None
         """
-        average_quality_score_metrics_to_remove = ['average_quality_score_illumina', 'average_quality_score_ont_R9',
-                                                   'average_quality_score_ont_R10']
-        if self._reads_input_type == 'illumina':
-            average_quality_score_metrics_to_remove.remove('average_quality_score_illumina')
-        elif self._reads_input_type == 'R9':
-            average_quality_score_metrics_to_remove.remove('average_quality_score_ont_R9')
-        elif self._reads_input_type == 'R10':
-            average_quality_score_metrics_to_remove.remove('average_quality_score_ont_R10')
-        else:  # self._reads_input_type is None
-            pass
+        average_quality_score_metrics = {
+            'illumina': 'average_quality_score_illumina',
+            'R9': 'average_quality_score_ont_R9',
+            'R10': 'average_quality_score_ont_R10'
+        }
+        # if self._reads_input_type is None, then no metrics are kept
+        metric_to_keep = average_quality_score_metrics.get(self._reads_input_type)
+
+        average_quality_score_metrics_to_remove = [metric for metric in average_quality_score_metrics.values() if
+                                                   metric != metric_to_keep]
+
         for metric_to_remove in average_quality_score_metrics_to_remove:
-            pathogen_metrics_thresholds.pop(metric_to_remove)
+            pathogen_metrics_thresholds.pop(metric_to_remove, None)
+
+    @staticmethod
+    def __set_global_ont_coverage_thresholds(sample_coreqc_metrics: dict[str, Any]) -> None:
+        """
+        For ONT, according to the latest discussion, the coverage warning threshold should be 50 and the failure
+        threshold 30. It is cumbersome to implement it in the coreqc_config.yml in a clean way without too much
+        duplication,because there are 4 different coverage-related fields. That's why it is done this way.
+        :param sample_coreqc_metrics: core quality metrics and thresholds for current sample, to be modified in place.
+        :return: None
+        """
+        for key, metric_info in deepcopy(sample_coreqc_metrics).items():
+            if metric_info.get('global_ont_coverage'):
+                metric_info['threshold_warn'] = 50.0
+                metric_info['threshold_fail'] = 30.0
 
     @staticmethod
     def __convert_iterations_to_separate_keys(sample_coreqc_metrics: dict[str, Any]) -> None:
