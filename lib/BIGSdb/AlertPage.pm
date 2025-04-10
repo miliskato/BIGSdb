@@ -44,35 +44,9 @@ sub get_help_url {
 sub get_javascript {
 	my ($self) = @_;
 	my $q = $self->{'cgi'};
-	my $max         = $self->{'config'}->{'max_upload_size'} / ( 1024 * 1024 );
-	my $max_files   = LIMIT;
-	my $tree_js     = $self->get_tree_javascript( { checkboxes => 1, check_schemes => 1, submit_name => 'filter' } );
-	my $submit_type = q();
 	my $alert_id = $q->param('alert_id') // q();
-	my $links         = $self->get_related_databases;
-	my $db_trigger    = q();
-	if ( @$links > 1 ) {
-		$db_trigger = << "END";
-+\$("#related_db_trigger,#close_related_db").click(function(){
-		\$("#related_db_panel").toggle("slide",{direction:"right"},"fast");
-		return false;
-	});
-END
-	}
 	my $buffer = << "END";
 \$(function () {
-	\$("fieldset#scheme_fieldset").css("display","block");
-	\$("#filter").click(function() {
-		var fields = ["technology", "assembly", "software", "read_length", "coverage", "locus", "fasta"];
-		for (i=0; i<fields.length; i++){
-			\$("#" + fields[i]).prop("required",false);
-		}
-
-	});
-	\$("#technology").change(function() {
-		check_technology();
-	});
-	check_technology();
 	\$( "#show_closed" ).click(function() {
 		if (\$("span#show_closed_text").css('display') == 'none'){
 			\$("span#show_closed_text").css('display', 'inline');
@@ -84,58 +58,7 @@ END
 		\$( "#closed" ).toggle( 'blind', {} , 500 );
 		return false;
 	});
-	\$("form#file_upload_form").dropzone({
-		paramName: function() { return 'file_upload'; },
-		parallelUploads: 6,
-		maxFiles: $max_files,
-		uploadMultiple: true,
-		maxFilesize: $max,
-		init: function () {
-        	this.on('queuecomplete', function () {
-         		if (this.getUploadingFiles().length === 0 && this.getQueuedFiles().length === 0) {
-	         		var url = "$self->{'system'}->{'script_name'}?db=$self->{'instance'}&page=alert";
-	         		if ('$submit_type'.length){
-	         			url += "&$submit_type=1";
-	         		} else if ('$alert_id'.length){
-	         			url += "&alert_id=$alert_id";
-	         		}
-	             	location.href = url;
-         		}
-        	});
-    	}
-	});
-	\$("form#file_upload_form").addClass("dropzone");
-	$db_trigger
-	resize_rmlst_cell();
 });
-
-function resize_rmlst_cell(){
-	var width=0;
-	\$(".rmlst_result").each(function( index ) {
-		if (\$(this).width() > width){
-			width = \$(this).width();
-		}
-	});
-	\$(".rmlst_cell").css("min-width", width + 20 + "px");
-}
-
-function status_markall(status){
-	\$("select[name^='status_']").val(status);
-}
-
-function check_technology() {
-	var fields = [ "read_length", "coverage"];
-	for (i=0; i<fields.length; i++){
-		if (\$("#technology").val() == 'Illumina'){
-			\$("#" + fields[i]).prop("required",true);
-			\$("#" + fields[i] + "_label").text((fields[i]+":!").replace("_", " "));
-		} else {
-			\$("#" + fields[i]).prop("required",false);
-			\$("#" + fields[i] + "_label").text((fields[i]+":").replace("_", " "));
-		}
-	}
-}
-$tree_js
 END
 	return $buffer;
 }
@@ -144,18 +67,12 @@ sub initiate {
 	my ($self)        = @_;
 	my $q             = $self->{'cgi'};
 	my $alert_id = $q->param('alert_id');
-	if ( $q->param('tar') && $q->param('alert_id') ) {
-		$self->{'type'}       = 'tar';
-		$self->{'attachment'} = "$alert_id\.tar";
-		$self->{'noCache'}    = 1;
-		return;
-	}
 	$self->{$_} = 1 foreach qw (jQuery jQuery.jstree noCache tooltips dropzone);
 	if ( $q->param('curate') ) {
 		$self->set_level2_breadcrumbs('Curate alert');
 	} else {
 		$self->{'processing'} = 1 if defined $q->param('alert_id');
-		foreach my $method (qw(abort finalize close remove cancel)) {
+		foreach my $method (qw(close)) {
 			if ( $q->param($method) ) {
 				$self->{'processing'} = 0;
 				last;
@@ -168,14 +85,6 @@ sub initiate {
 
 sub print_content {
 	my ($self) = @_;
-#	if ( ( $self->{'system'}->{'submissions'} // '' ) ne 'yes' || !$self->{'config'}->{'submission_dir'} ) {
-#		say q(<h1>Manage alerts</h1>);
-#		$self->print_bad_status( { message => q(The alert system is not enabled.) } );
-#		say q(<div style="position:relative;margin-top:-8em">);
-#		$self->print_related_database_panel;
-#		say q(</div>);
-#		return;
-#	}
 	my $q = $self->{'cgi'};
 	$self->choose_set;
 	my $alert_id = $q->param('alert_id');
@@ -186,7 +95,7 @@ sub print_content {
 		my %return_after = map { $_ => 1 } qw (view curate);
 		my $action_performed;
 		# i think this is the dispatch table ~MK 2024/01/11
-		foreach my $action (qw (abort finalize close remove view curate cancel)) {
+		foreach my $action (qw (close view curate)) {
 			if ( $q->param($action) ) {
 				my $method = "_${action}_alert";
 				$self->$method($alert_id);
@@ -206,22 +115,25 @@ sub print_content {
 		return;
 	}
 	my $alerts_to_show = $self->_any_pending_alerts_to_show;
-	my $closed_buffer =
-	  $self->print_alerts_for_curation( { status => 'archived', show_outcome => 1, get_only => 1 } );
+	my $closed_buffer = $self->_print_archived_alerts( { get_only => 1 } );
 	if ($alerts_to_show) {
 		say q(<div class="box resultstable"><div class="scrollable">);
 		$self->_print_pending_alerts;
 		$self->print_alerts_for_curation;
-		$self->_print_archived_alerts;
-		$self->print_navigation_bar( { closed_submissions => $closed_buffer ? 1 : 0 } );
+		$self->print_navigation_bar( { closed_alerts => $closed_buffer ? 1 : 0 } );
 		say q(</div></div>);
 	}
 	if ($closed_buffer) {
 		say q(<div class="box resultstable" id="closed" style="display:none"><div class="scrollable">);
-		say q(<h2>Archived alerts for which you had curator rights</h2>);
-		say q(<p>The following alerts are now closed);
+		say q(<h2>Archived alerts</h2>);
+		say q(<p>The following alerts are closed:);
 		say $closed_buffer;
 		say q(</div></div>);
+	}
+	if (!$alerts_to_show) {
+	    say q(<div class="box resultstable"><div class="scrollable">);
+	    say q(<p>There are no alerts.);
+	    say q(</div></div>);
 	}
 	return;
 }
@@ -264,7 +176,6 @@ sub _get_own_alerts {
 		my $set_id = $self->get_set_id;
 		my $table_buffer;
 		foreach my $alert (@$alerts) {
-			my $details = '';
 			my $url = qq($self->{'system'}->{'script_name'}?db=$self->{'instance'}&amp;page=alert&amp;)
 			  . qq(alert_id=$alert->{'id'}&amp;view=1);
 			$table_buffer .=
@@ -272,27 +183,12 @@ sub _get_own_alerts {
 			  . qq(<td>$alert->{'date_submitted'}</td><td>$alert->{'datestamp'}</td>)
 			  . qq(<td>$alert->{'type'}</td>)
 			  . qq(<td>$alert->{'value'}</td><td>$alert->{'isolate'}</td>);  # trigger cgst and isolate
-			$table_buffer .= qq(<td>$details</td>);
-			if ( $options->{'show_outcome'} ) {
-				my %style = FACE_STYLE;
-				$table_buffer .= qq(<td><span $style{$alert->{'outcome'}}></span></td>);
-			}
-=begin
-			if ( $options->{'allow_remove'} ) {
-				$table_buffer .=
-				    qq(<td><a href="$self->{'system'}->{'script_name'}?db=$self->{'instance'}&amp;)
-				  . qq(page=alert&amp;alert_id=$alert->{'id'}&amp;remove=1">)
-				  . q(<span class="fas fa-lg fa-times"></span></a></td>);
-			}
-=cut
 			$table_buffer .= q(</tr>);
 			$td = $td == 1 ? 2 : 1;
 		}
 		if ($table_buffer) {
 			$buffer .= q(<table class="resultstable"><tr><th>Alert id</th><th>Submitted</th><th>Updated</th>)
 			  . q(<th>Type</th><th>cgST</th><th>trigger</th>);
-			$buffer .= q(<th>Outcome</th>) if $options->{'show_outcome'};
-			#$buffer .= q(<th>Remove</th>)  if $options->{'allow_remove'};
 			$buffer .= q(</tr>);
 			$buffer .= $table_buffer;
 			$buffer .= q(</table>);
@@ -308,6 +204,8 @@ sub _print_pending_alerts {
 		say q(<h2>Pending alerts</h2>);
 		say q(<p>You have submitted the following alerts that are pending curation:</p>);
 		say $buffer;
+	} else {
+		say q(<p>There are no alerts that are pending curation.</p>);
 	}
 	return;
 }
@@ -368,52 +266,13 @@ sub _get_alerts_for_curation {
 }
 
 sub _print_archived_alerts {
-	my ($self) = @_;
-	my $buffer = $self->_get_own_alerts( 'archived', { show_outcome => 1, allow_remove => 1 } );
+	my ($self, $options) = @_;
+	$options = {} if ref $options ne 'HASH';
+	my $buffer = $self->_get_own_alerts( 'archived' );
 	if ($buffer) {
-		say q(<h2>Recently archived alerts</h2>);
-		say q(<p>You have submitted the following alerts which are now archived);
-		say $buffer;
+		return $buffer if $options->{'get_only'};
+	    say $buffer if $buffer;
 	}
-	return;
-}
-
-sub _abort_alert {    ## no critic (ProhibitUnusedPrivateSubroutines) #Called by dispatch table, see also the line containing "_${action}_alert"
-	my ( $self, $alert_id ) = @_;
-	return if !$self->{'cgi'}->param('confirm');
-	my $user_info = $self->{'datastore'}->get_user_info_from_username( $self->{'username'} );
-	my $alert =
-	  $self->{'datastore'}
-	  ->run_query( 'SELECT id FROM alerts WHERE (id,submitter)=(?,?)', [ $alert_id, $user_info->{'id'} ] );
-	$self->{'submissionHandler'}->delete_alert($alert_id) if $alert_id;
-	return;
-}
-
-sub _finalize_alert {    ## no critic (ProhibitUnusedPrivateSubroutines) #Called by dispatch table, see also the line containing "_${action}_alert"
-	my ( $self, $alert_id ) = @_;
-	my $q          = $self->{'cgi'};
-	my $alert = $self->{'submissionHandler'}->get_alert($alert_id);
-	return if !$alert || $alert->{'status'} ne 'started';
-	$logger->info("$self->{'instance'}: New $alert->{'type'} alert");
-	my $user_info = $self->{'datastore'}->get_user_info_from_username( $self->{'username'} );
-	eval {
-		$self->{'db'}->do(
-			'UPDATE alerts SET (status,datestamp,email)=(?,?,?) WHERE (id,submitter)=(?,?)',
-			undef, 'pending', 'now', $q->param('email') // undef,
-			$alert_id, $user_info->{'id'}
-		);
-	};
-	if ($@) {
-		$logger->error($@);
-		$self->{'db'}->rollback;
-	} else {
-		$self->{'db'}->commit;
-	}
-	my $guid = $self->get_guid;
-	return if !$guid;
-	$self->{'prefstore'}
-	  ->set_general( $guid, $self->{'system'}->{'db'}, 'submit_email', $q->param('email') ? 'on' : 'off' );
-	$self->{'submissionHandler'}->notify_curators($alert_id);
 	return;
 }
 
@@ -430,7 +289,6 @@ sub _print_alert_table_fieldset {
 	my $csv_icon = $self->get_file_icon('CSV');
 	say $q->start_form;
 	$self->_print_alert_table( $alert_id, $options );
-	#$self->_print_update_button( { record_status => 1 } ) if $options->{'curate'};
 	say $q->hidden($_) foreach qw(db page alert_id curate);
 	say $q->end_form;
 =begin
@@ -452,17 +310,6 @@ sub _print_alert_table_fieldset {
 	say q(<div id="dialog"></div>);
 	$self->{'all_assigned_or_archived'} = $alert->{'outcome'} ? 1 : 0;
 	return;
-}
-
-sub _get_outcome {
-	my ( $self,         $args )         = @_;
-	my ( $all_assigned, $all_archived ) = @{$args}{qw(all_assigned all_archived)};
-	if ($all_assigned) {
-		return 'good';
-	} elsif ($all_archived) {
-		return 'bad';
-	}
-	return 'mixed';
 }
 
 sub _print_alert_table {
@@ -497,32 +344,6 @@ sub _print_alert_table {
 	say q(</table></div></div>);
 	return;
 }
-
-#sub _print_update_button {
-#	my ( $self, $options ) = @_;
-#	$options = {} if ref $options ne 'HASH';
-#	my $q = $self->{'cgi'};
-#	say q(<div style="float:right">);
-#	if ( $options->{'mark_all'} ) {
-#		say q(<span style="margin-right:1em">)
-#		  . q(Mark all: <input type="button" onclick='status_markall("pending")' )
-#		  . q(value="Pending" class="small_reset" /><input type="button" )
-#		  . q(onclick='status_markall("archived")' value="archived" class="small_reset" />)
-#		  . q(</span>);
-#	}
-#	if ( $options->{'record_status'} ) {
-#		say q(<label for="record_status">Record status:</label>);
-#		say $q->popup_menu(
-#			-name  => 'record_status',
-#			id     => 'record_status',
-#			# values => [qw(pending accepted archived)]
-#			values => [qw(pending archived)]
-#		);
-#	}
-#	say $q->submit( -name => 'update', -label => 'Update', -class => 'small_submit' );
-#	say q(</div>);
-#	return;
-#}
 
 sub _print_close_alert_fieldset {
 	my ( $self, $alert_id ) = @_;
@@ -689,9 +510,6 @@ sub _close_alert {    ## no critic (ProhibitUnusedPrivateSubroutines) #Called by
 		$self->{'db'}->commit;
 	}
         my $dbname = $self->{'datastore'}->run_query('select current_database()');
-#        open(BASH, "|-", "bash");
-#        print BASH "/home/bigsdb/BIGSdb/3.12PythonVenv/bin/python3.12 /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/sample_validation_to_mongo.py --db $dbname --sub_id $alert_id \n";
-#        close(BASH);
         $alert = $self->{'submissionHandler'}->get_alert($alert_id);
 	my $curator_info = $self->{'datastore'}->get_user_info($curator_id);
 	if ( $alert->{'email'} ) {
@@ -708,47 +526,6 @@ sub _close_alert {    ## no critic (ProhibitUnusedPrivateSubroutines) #Called by
 			}
 		);
 	}
-	return;
-}
-
-=begin
-sub _remove_alert {    ## no critic (ProhibitUnusedPrivateSubroutines) #Called by dispatch table, see also the line containing "_${action}_alert"
-	my ( $self, $alert_id ) = @_;
-	return if !$self->_is_alert_valid( $alert_id, { no_message => 1, user_owns => 1 } );
-	$self->{'submissionHandler'}->delete_alert($alert_id);
-	return;
-}
-=cut
-
-sub _cancel_alert {    ## no critic (ProhibitUnusedPrivateSubroutines) #Called by dispatch table, see also the line containing "_${action}_alert"
-	my ( $self, $alert_id ) = @_;
-	return if !$self->_is_alert_valid( $alert_id, { no_message => 1, user_owns => 1 } );
-	my $alert = $self->{'submissionHandler'}->get_alert($alert_id);
-	return if $alert->{'status'} ne 'pending';
-	my $curators = $self->{'submissionHandler'}->_get_curators($alert_id);
-	my $desc     = $self->{'system'}->{'description'} || 'BIGSdb';
-	my $subject  = "CANCELLED $alert->{'type'} alert ($desc) - $alert_id";
-	my $message  = "This alert has been CANCELLED by the submitter.\n\n";
-	$message .= $self->{'submissionHandler'}->get_text_summary( $alert_id, { messages => 1 } );
-	$logger->info("$self->{'instance'}: Alert cancelled.");
-	$self->{'submissionHandler'}->remove_submission_from_digest($alert_id);
-
-	foreach my $curator_id (@$curators) {
-		my $user_info = $self->{'datastore'}->get_user_info($curator_id);
-		next if $user_info->{'submission_digests'};
-		next if !$self->{'submissionHandler'}->can_email_curator($curator_id);
-		$self->{'submissionHandler'}->email(
-			$alert_id,
-			{
-				recipient => $curator_id,
-				sender    => $alert->{'submitter'},
-				subject   => $subject,
-				message   => $message,
-			}
-		);
-		$self->{'submissionHandler'}->write_flood_protection_file($curator_id);
-	}
-	$self->{'submissionHandler'}->delete_alert($alert_id);
 	return;
 }
 
@@ -776,21 +553,23 @@ sub _reopen_alert {
 	return;
 }
 
-sub set_pref_requirements {
-	my ($self) = @_;
-	$self->{'pref_requirements'} =
-	  { general => 1, main_display => 0, isolate_display => 0, analysis => 0, query_field => 0 };
-	return;
-}
-
 sub get_title {
 	my ($self) = @_;
 	return 'Alerts';
 }
 
-sub print_panel_buttons {
-	my ($self) = @_;
-	$self->print_related_dbases_button;
+sub print_navigation_bar {
+    my ( $self, $options ) = @_;
+    my $buffer = q();
+    if ( $options->{'closed_alerts'} ) {
+		$buffer .=
+			q(<a id="show_closed" style="cursor:pointer;margin-right:1em" class="small_submit">)
+		  . q(<span id="show_closed_text" style="display:inline">)
+		  . q(<span class="fas fa fa-eye"></span> Show archived alerts</span>)
+		  . q(<span id="hide_closed_text" style="display:none">)
+		  . q(<span class="fas fa fa-eye-slash"></span> Hide archived alerts</span></a>);
+	}
+	say $buffer;
 	return;
 }
 1;

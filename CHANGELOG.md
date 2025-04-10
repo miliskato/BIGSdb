@@ -40,6 +40,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Listeria & Influenza output DCD's to NRC integration
 - Added core quality metrics checking for both Illumina & ONT
 - Added Azure Service Bus implementation to Azure side
+- Enterococcus
+- Core QC page
 
 ### Changed
 - All Jammy existing assays to bigsdb for neisseria listeria salmonella mycobacterium influenza.
@@ -53,6 +55,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Listeria genomic 1.0.1-draft3
   - Influenza genomic 1.0.1-draft3
 - Modified pseudonymization slightly to be able to rename resequencing files in Azure so that they do not cause issues during the archival.
+- Simplification of html tagger and html update merger scripts (renamed to html replacer) + creation of general html report class
+- Update of reanalysis + reanalysis configs to account for the jammy changes
+- Update of tagger config to account for the jammy changes
 
 ### Fixed
 - Bugfix reanalysis influenza

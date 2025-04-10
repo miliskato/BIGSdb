@@ -80,6 +80,7 @@ sub print_page_content {
 	my $get_zip  = $q->param('get_zip');
 	my $get_file = $q->param('get_file');
 	my $content_type = 'text/html';
+	my $rejected_isolate_id = $q->param('rejected_isolate_id');
 
 	if ($get_file ne "") {
 		unless ($get_file  =~ /\.html$/) {
@@ -93,6 +94,8 @@ sub print_page_content {
 	if (defined($isolate_id)){
 		$self->{'isolate_data'} = get_isolate_data_from_id($self);
 		$identifier = $self->{'isolate_data'}->{'isolate'};
+	} elsif (defined($rejected_isolate_id)) {
+	    $self->{'isolate_data'} = get_isolate_data_from_rejected_isolate_id($self);
 	} else {
 		$identifier = get_isolate_identifier_from_pseudo_id($self);
 	}
@@ -142,9 +145,11 @@ sub print_content {
 	my ($self)      = @_;
 	my $q           = $self->{'cgi'};
 	my $isolate_id  = $q->param('id');
+	my $rejected_isolate_id = $q->param('rejected_isolate_id');
 	my $pseudo_id   = $q->param('pseudo_id');
 
 	my $has_isolate_id = (defined $isolate_id);# && ($isolate_id ne '');
+	my $has_rejected_isolate_id = (defined $rejected_isolate_id);
 	my $has_pseudo_id = (defined $pseudo_id);# && $pseudo_id ne '');
 
 	if ( $self->{'system'}->{'dbtype'} ne 'isolates' ) {
@@ -155,11 +160,11 @@ sub print_content {
 
 	my $data;
 
-	if ( !$has_isolate_id && !$has_pseudo_id ) {
+	if ( !$has_isolate_id && !$has_pseudo_id ) || ( !$has_rejected_isolate_id && !$has_pseudo_id )  {
 		say q(<h1>Isolate information</h1>);
 	 	say q(<div class="box statusbad"><p>No isolate id provided.</p></div>);
 	 	return;
-	 } elsif ( $has_isolate_id eq "1" && !BIGSdb::Utils::is_int($isolate_id)) {
+	 } elsif ( $has_isolate_id eq "1" && !BIGSdb::Utils::is_int($isolate_id)) || ( $has_rejected_isolate_id eq "1" && !BIGSdb::Utils::is_int($rejected_isolate_id)){
 	 	say q(<h1>Isolate information</h1>);
 	 	$self->print_bad_status( { message => q(Isolate id must be an integer.) } );
 	 	return;
@@ -171,6 +176,18 @@ sub print_content {
 	 		return;
 	 	}
 	 	elsif (!$self->is_allowed_to_view_isolate($isolate_id)) {
+	 		say q(<h1>Isolate information</h1>);
+	 		$self->print_bad_status( { message => q(Your user account does not have permission to view this record.) } );
+	 		return;
+	 	}
+	} elsif ( $has_rejected_isolate_id eq "1" ) {
+	 	$data = $self->{'isolate_data'};
+	 	if (!$self->{'isolate_data'}) {
+	 		say qq(<h1>Isolate information: id-$rejected_isolate_id</h1>);
+	 		$self->print_bad_status( { message => q(The database contains no record of this isolate.) } );
+	 		return;
+	 	}
+	 	elsif (!$self->is_allowed_to_view_rejected_isolate($rejected_isolate_id)) {
 	 		say q(<h1>Isolate information</h1>);
 	 		$self->print_bad_status( { message => q(Your user account does not have permission to view this record.) } );
 	 		return;
@@ -193,8 +210,10 @@ sub print_content {
 			$identifier = qq(id $data->{'id'});
 			$isolate_name = $identifier;
 		}
+	} elsif (!$has_rejected_isolate_id) {
+		$isolate_name = get_isolate_identifier_from_pseudo_id($self);
 	} else {
-		$isolate_name = get_isolate_identifier_from_pseudo_id($self)
+	    $isolate_name = get_isolate_identifier_from_rejected_isolate_id($self);
 	}
 
 	# Call azure to get token
@@ -335,12 +354,36 @@ sub get_isolate_data_from_id {
 	return $isolate_data;
 }
 
+sub get_isolate_data_from_rejected_isolate_id {
+	my ($self) = @_;
+	my $q          = $self->{'cgi'};
+    my $rejected_isolate_id = $q->param('rejected_isolate_id');
+ 	my $isolate_data = $self->{'datastore'}->run_query( "SELECT * FROM rejected_isolates WHERE id=?", $rejected_isolate_id, { fetch => 'row_hashref' });
+	return $isolate_data;
+}
+
 sub get_isolate_identifier_from_pseudo_id {
 	my ($self) = @_;
 	my $q          = $self->{'cgi'};
     my $pseudo_id = $q->param('pseudo_id');
 	my $data = $self->{'datastore'}->run_query("SELECT * FROM isolate_submission_isolates WHERE field = 'isolate_id' AND submission_id = (SELECT submission_id FROM isolate_submission_isolates WHERE value ~ ? LIMIT 1)", $pseudo_id, { fetch => 'row_hashref' });
 	return $data->{'value'};
+}
+
+sub get_isolate_identifier_from_rejected_isolate_id {
+	my ($self) = @_;
+	my $q          = $self->{'cgi'};
+    my $rejected_isolate_id = $q->param('rejected_isolate_id');
+	my $data = $self->{'datastore'}->run_query("SELECT * FROM rejected_isolates WHERE id=?", $rejected_isolate_id, { fetch => 'row_hashref' });
+	return $data->{'isolate'};
+}
+
+sub is_allowed_to_view_rejected_isolate {
+    my ( $self, $rejected_isolate_id ) = @_;
+	my $allowed =
+	  $self->{'datastore'}->run_query( "SELECT EXISTS (SELECT * FROM rejected_isolates WHERE id=?)",
+		$rejected_isolate_id, { cache => 'is_allowed_to_view_rejected_isolate' } );
+	return $allowed;
 }
 
 sub replace_id_in_zip {
