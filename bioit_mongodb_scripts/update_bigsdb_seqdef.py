@@ -13,6 +13,7 @@ class UpdateBIGSdbSeqDef:
     """
     Updates the scheme definitions stored in BIGSdb seqdef database if the reference db used to run the pipelines were updated.
     """
+
     def __init__(self, species: str):
         """
         intializes the connection to mongodb AZURE collections "update_metadata" and "new_allele_hashes"
@@ -21,10 +22,9 @@ class UpdateBIGSdbSeqDef:
         self._mongo_config_data = get_mongodb_config_data()
         self._species = species
         mongoinit_azure = MongoInitialisation(self._species, mongo_config_data=self._mongo_config_data,
-                                                    selected_connection_string='CONNECTION_STRING_AZURE')
+                                              selected_connection_string='CONNECTION_STRING_AZURE')
         self._update_metadata_collection = mongoinit_azure.initialise_update_collection()
         self._hashed_ad_collection = mongoinit_azure.initialise_hashing_collection()
-
 
     def update_bigsdb_psql_if_needed(self) -> None:
         """

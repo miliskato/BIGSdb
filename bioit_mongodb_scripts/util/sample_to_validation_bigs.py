@@ -64,7 +64,7 @@ class SampleToValidationBigs:
     def __insert_submission_bigs(self, sample_doc: MongoRecordDict, validation_type: str) -> None:
         """
         Inserts a given list of submissions into bigsdb
-        :param sample_doc: document of the isolate undergoing submission in BIGSdb
+        :param sample_doc: mongo db document of the isolate
         :param validation_type: either bad_quality or resequencing
         :return: None
         """
