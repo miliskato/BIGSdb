@@ -261,7 +261,7 @@ if __name__ == '__main__':
     signal.signal(signal.SIGTERM, handle_shutdown)
 
     # Configure stdout logging
-    logging.basicConfig(level=logging.WARNING, filename='/var/log/bigsdb_insertions.log', filemode='w', )
+    logging.basicConfig(level=logging.WARNING, filename='/var/log/bigsdb_insertions.log', filemode='w', datefmt='%Y-%m-%d %H:%M:%S', format='%(asctime)s %(levelname)-8s %(message)s')
 
     # Parse Mongo config
     mongo_config_data = get_mongodb_config_data()
