@@ -1,9 +1,13 @@
 import logging
 import sys
+import tempfile
+from pathlib import Path
 from typing import Tuple
 
 from bioit_bigsdb_scripts.components.psql.psql_tbl_rejected_isolates import TblRejectedIsolates
 from bioit_bigsdb_scripts.utils.url_helper import UrlHelper
+from bioit_mongodb_scripts.model.json_model import JsonReportDict
+from bioit_mongodb_scripts.util.command.command import Command
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data
 
@@ -77,6 +81,8 @@ class RejectedIsolate:
         self._rejected_isolates_psql_tbl.insert_isolate(
             (self._isolate, insertion_date, rejection_reasons, insertion_type, report_link))
         self._update_mongodb()
+        if insertion_type != 'manual':
+            self._export_json_report()
 
     def _retrieve_fields(self) -> Tuple[str, str, str, str]:
         """
@@ -103,3 +109,23 @@ class RejectedIsolate:
         :return: None
         """
         self._rejected_isolates_collection.update_one({'_id': self._pseudo_id}, {'$set': {'inserted_in_bigsdb': True}})
+
+    def _export_json_report(self) -> None:
+        """
+        Exports the JSON report to the report directory.
+        :return: None
+        """
+        json_path_remote = Path(self._rejected_isolate_document['report_directory']) / 'report.json'
+        with tempfile.NamedTemporaryFile(dir=self._mongo_config_data.get('temp_dir'), mode="w") as temp_json:
+            temp_json_path = Path(self._mongo_config_data.get('temp_dir')) / temp_json.name
+            scp_command = f"scp -o StrictHostKeyChecking=no -i /home/bigsdb/.ssh/.id_rsa_reportsapi bigsdb@{self._mongo_config_data.get('azure_reportsapi_ip')}:{json_path_remote} {str(temp_json_path)}"
+            scp_cmd = Command(scp_command)
+            scp_cmd.run(Path(self._mongo_config_data.get('temp_dir')))
+            if scp_cmd.returncode != 0:
+                raise Exception(
+                    f"scp command to copy JSON report from Azure to onsite failed: {scp_cmd.stderr}\nscp command: {scp_command}")
+            json_file = JsonReportDict.from_json(temp_json_path)
+            json_file['sample'] = json_file['sample'].replace(self._pseudo_id, self._isolate)
+            json_file['input_files'] = json_file['input_files'].replace(self._pseudo_id, self._isolate)
+            path = Path(self._mongo_config_data.get('reports_dir')) / 'coreqc_rejected' / f'{self._isolate}.json'
+            json_file.to_json(path)
