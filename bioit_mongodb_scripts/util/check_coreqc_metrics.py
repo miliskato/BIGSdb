@@ -79,19 +79,28 @@ class CheckCoreQCMetrics:
         :return: qc_value as float
         """
         if metric_info.get('field'):
+            category = metric_info['category']
+            if metric_info.get('category_to_replace'):
+                for key, value in metric_info['category_to_replace'].items():
+                    category = category.replace(key, self._json_report[value])
             field = metric_info['field']
             if metric_info.get('field_to_replace'):
-                for key2, value in metric_info['field_to_replace'].items():
-                    field = field.replace(key2, self._json_report[value])
+                for key, value in metric_info['field_to_replace'].items():
+                    field = field.replace(key, self._json_report[value])
             if not metric_info.get('value_format_to_strip'):
-                qc_value = float(self._json_report[metric_info['category']][field])
+                qc_value = float(self._json_report[category][field])
             else:
                 qc_value = float(
-                    self._json_report[metric_info['category']][field].rstrip(metric_info['value_format_to_strip']))
+                    self._json_report[category][field].rstrip(metric_info['value_format_to_strip']))
         else:  # metric_info.get('fields'):
-            qc_value = sum(
-                float(self._json_report[metric_info['category']][field]) for field in metric_info['fields']) / len(
-                metric_info['fields'])
+            if not metric_info.get('value_format_to_strip'):
+                qc_value = sum(
+                    float(self._json_report[metric_info['category']][field]) for field in metric_info['fields']) / len(
+                    metric_info['fields'])
+            else:
+                qc_value = sum(
+                    float(self._json_report[metric_info['category']][field].rstrip(metric_info['value_format_to_strip']))
+                    for field in metric_info['fields']) / len(metric_info['fields'])
         return qc_value
 
     def __process_thresholds(self, metric_info: dict[str, Any], qc_value: float, core_qc_metric: str) -> None:
