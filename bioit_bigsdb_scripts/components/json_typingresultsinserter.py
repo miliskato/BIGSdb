@@ -101,7 +101,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
         if 'rmlst' in self._json_report_dict:
             rmlst_dict = self._json_report_dict['rmlst']
             identification_keys = list({e for e in rmlst_dict if rmlst_dict[e]})
-            unused_keys = ['db_version', 'loci', 'rmlst-rST']
+            unused_keys = ['db_version', 'loci', 'rmlst-rST', 'tool_version']
             identification_keys = [item for i, item in enumerate(identification_keys) if item not in unused_keys]
 
             for k in identification_keys:
