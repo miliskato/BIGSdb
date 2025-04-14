@@ -1,5 +1,4 @@
 import argparse
-import json
 import logging
 import socket
 import sys
@@ -14,9 +13,8 @@ sys.path.append(str(PYTHONPATH))
 from bioit_bigsdb_scripts.components.psql.gene_detection_profiles_batch_inserter import GeneDetectionProfilesBatchData, GeneDetectionProfilesBatchInserter
 from bioit_bigsdb_scripts.inserters.context.gene_detection_context import GeneDetectionContext
 from bioit_bigsdb_scripts.inserters.context.gene_detection_context_builder_factory import GeneDetectionContextBuilderFactory
-from bioit_bigsdb_scripts.components.psql import TblLocusDescriptions, TblLoci, TblSchemes, TblAlleleDesignations, TblEavText, TblEavTextHidden, TblHistory
+from bioit_bigsdb_scripts.components.psql import TblLocusDescriptions, TblLoci, TblSchemes
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data, send_email
-from bioit_bigsdb_scripts.utils.url_helper import UrlHelper
 
 
 def _parse_arguments(specieslist: List[str]) -> argparse.Namespace:
@@ -38,16 +36,14 @@ class GeneDetectionIntoPsql:
     Class containing function to insert gene detection loci and alleles and update them
     """
 
-    def __init__(self, species: str, do_not_recalculate: bool, dont_send_email: bool = False) -> None:
+    def __init__(self, species: str, dont_send_email: bool = False) -> None:
         """
         Initialises this class and executes the main function: _gene_detection_insertion_and_recalculation
         :param species: commonly used bioit species name: either genus or specific like stec.
-        :param do_not_recalculate: Whether the recalculation step should be skipped or not.
         :param dont_send_email: do not send emails, only log
         :return: None
         """
         self._species = species
-        self._do_not_recalculate = do_not_recalculate
         self._dont_send_email = dont_send_email
         self._bigsdb_config_data = get_bigsdb_config_data()
 
@@ -81,9 +77,6 @@ class GeneDetectionIntoPsql:
             context = context_builder_factory.build(scheme, scheme_config)
             self.__insert_loci_and_alleles(species, context)
             self.__update_locus_descriptions(species, context)
-
-            if not self._do_not_recalculate:
-                self.__recalculate_allele_designations(species, context)
 
     def __insert_loci_and_alleles(self, species: str, context: GeneDetectionContext) -> None:
         """
@@ -136,64 +129,6 @@ class GeneDetectionIntoPsql:
                 seqdef_locdescr_psql_tbl.insert_locus_description(
                     (cluster, description_string.replace('Contains genes:', ''), description_string))
 
-    def __recalculate_allele_designations(self, species: str, context: GeneDetectionContext) -> None:
-        """
-        Removes, recalculates and reinserts allele designations
-        :param species: commonly used bioit species name: either genus or specific like stec.
-        :param context: GeneDetectionContext object
-        :return: None
-        """
-        with TblAlleleDesignations(species) as isolates_ad_psql_tbl, \
-                TblEavText(species) as isolates_eavt_psql_tbl, \
-                TblHistory(species) as isolates_history_psql_tbl:
-            isolates_ad_psql_tbl.delete_designations((f"{context.scheme_config['schemename_bigsdb']}_%",))
-            with TblEavTextHidden(species) as isolates_eavth_psql_tbl:
-                listofsamplesandhits = isolates_eavth_psql_tbl.select_hidden(
-                    (context.scheme_config['schemename_bigsdb'],))
-            if len(listofsamplesandhits) > 0:
-                for sampleandhits in listofsamplesandhits:
-                    eavhtmltable = ''
-
-                    isolate_id: str = sampleandhits[0]
-                    isolate_name: str = sampleandhits[2]
-                    html_scheme_name = context.scheme_config['schemename_html']
-                    report_url = UrlHelper.report_for_isolate(species, isolate_id, html_scheme_name)
-                    if not context.scheme.endswith('vfdbcore') and not context.scheme.endswith('virulencefinder'):
-                        eavhtmltable += ('<style>table.nice { text-align: center; border-spacing:0 }table.nice tr:nth-child(n+3) {background: #E4EFF3}table.nice tr:nth-child('
-                                         '2n+3) {background: #C1E6F3}</style>')
-                        eavhtmltable += f'<table class="data nice"><tr><th>GeneCluster</th><th>Locus</th></tr>'
-                        eavhtmltable += f'<tr align="left"><td colspan="4"><a href="{report_url}" target="_blank">Full report</a></td></tr>'
-                    else:
-                        eavhtmltable += f'<a href="{report_url}" target="_blank">Full report</a>'
-
-                    clusterhitset = set()  # in case loci that were in different clusters at some point get in the same cluster
-                    hits = json.loads(sampleandhits[1])
-                    if len(hits) != 0:
-                        for y in range(len(hits)):
-                            hit = '_'.join([hits[y]['Accession'], hits[y]['Locus']])
-                            if hit in context.cluster_dict:
-                                clusterhit = context.cluster_dict[hit]
-                                if not context.scheme.endswith('vfdbcore') and not context.scheme.endswith(
-                                        'virulencefinder'):
-                                    eavhtmltable += self.create_gene_locus_row(hits[y], clusterhit)
-
-                                if clusterhit not in clusterhitset:
-                                    isolates_ad_psql_tbl.insert_designation_by_isolateid((clusterhit, isolate_id, '1'))
-                                    clusterhitset.add(clusterhit)
-                            else:
-                                send_email(
-                                    f"{hit} is not a valid key for self._clusterdict. The locus {hits[y]['Locus']} was found in isolate {isolate_name}\nCheck if it's due to the "
-                                    f"update of {context.scheme}",
-                                    f"{Path(__file__).name} issue on host {socket.gethostname()}",
-                                    dont_send_email=self._dont_send_email)
-
-                    eavhtmltable += f'</table>'
-                    isolates_eavt_psql_tbl.delete_eav((isolate_id, context.scheme_config['schemename_bigsdb']))
-                    isolates_eavt_psql_tbl.insert_eav_id(
-                        (isolate_id, context.scheme_config['schemename_bigsdb'], eavhtmltable))
-                    isolates_history_psql_tbl.insert_history_id(
-                        (isolate_id, 'Gene detection results reevaluated after database update'))
-
     @staticmethod
     def create_gene_locus_row(hit: Dict[str, str], clusterhit: str) -> str:
         """
@@ -220,4 +155,4 @@ if __name__ == '__main__':
     # Parse arguments
     args = _parse_arguments(list(bigsdb_config_data['species']))
 
-    GeneDetectionIntoPsql(args.species, args.do_not_recalculate).insert_schemes()
+    GeneDetectionIntoPsql(args.species).insert_schemes()
