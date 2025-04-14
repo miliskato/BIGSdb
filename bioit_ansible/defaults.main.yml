@@ -1,4 +1,5 @@
 bioit_bigs_home: '/home/bigsdb/BIGSdb'
+bioit_deployments_home: '/home/bigsdb/BIGSdb_Deployments'
 mongo_host: ''
 mongo_host_dt: 'bioit-mongo-d01.sciensano.be,bioit-mongo-d02.sciensano.be,bioit-mongo-d03.sciensano.be'
 mongo_host_ap: 'bioit-mongo-p01.sciensano.be,bioit-mongo-p02.sciensano.be,bioit-mongo-p03.sciensano.be'
