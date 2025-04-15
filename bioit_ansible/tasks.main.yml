@@ -111,6 +111,14 @@
       register: bigsdb_branch_cmd
       ignore_errors: yes
 
+    - name: get detached branch name used for deployment
+      ansible.builtin.shell:
+      args:
+        chdir: "{{ bioit_bigs_home }}"
+        cmd: git reflog | awk 'NR==1{ print $8; exit }'
+      register: bigsdb_detached_branch_cmd
+      ignore_errors: yes
+
     - name: get potential tag used for deployment
       ansible.builtin.shell:
       args:
@@ -119,10 +127,15 @@
       register: bigsdb_tag_cmd
       ignore_errors: yes
 
-    - name: set variables
+    - name: set variables 1
+      set_fact:
+        git_branch: "{{ bigsdb_branch_cmd.stdout if bigsdb_branch_cmd.rc == 0 else '' }}"
+        git_detached_branch: "{{ bigsdb_detached_branch_cmd.stdout if bigsdb_detached_branch_cmd.rc == 0 else '' }}"
+
+    - name: set variables 2
       set_fact:
         bigsdb_commit_sha: "{{ bigsdb_commit_sha_cmd.stdout if bigsdb_commit_sha_cmd.rc == 0 else '' }}"
-        bigsdb_branch: "{{ bigsdb_branch_cmd.stdout if bigsdb_branch_cmd.rc == 0 else '' }}"
+        bigsdb_branch: "{{ git_branch if git_branch != 'HEAD' else git_detached_branch }}"
         bigsdb_tag: "{{ bigsdb_tag_cmd.stdout if bigsdb_tag_cmd.rc == 0 else '' }}"
 
     - name: Check if folder /home/bigsdb/BIGSdb_deployments already exists
