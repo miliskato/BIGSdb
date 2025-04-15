@@ -145,7 +145,9 @@
 
     - name: mark bigsdb_deployments as safe
       ansible.builtin.shell:
-        cmd: git config --global --add safe.directory "{{ bioit_deployments_home }}"
+      args:
+        chdir: "{{ bioit_deployments_home }}"
+        cmd: git config --global --add safe.directory "{{ bioit_deployments_home }}" && git config user.email bioit.beprepared@sciensano.be && git config user.name "Bigsdb Deployment"
 
     - name: keep track of the version deployed
       ansible.builtin.shell:
@@ -156,6 +158,16 @@
       ansible.builtin.shell:
         chdir: "{{ bioit_deployments_home }}"
         cmd: git add "{{species}}.json" && git commit -m "Deployment info for {{ species }}@{{ mongo_dtap}}"
+
+    - name: decrypt git password
+      set_fact:
+        git_password_for_bigsdb: "{{ secret_bioit_git_bigsdb_password }}"
+
+    - name: push to space
+      ansible.builtin.shell:
+      args:
+        chdir: "{{ bioit_deployments_home }}"
+        cmd: "git push https://{{ bioit_git_bigsdb_user }}:{{ git_password_for_bigsdb | urlencode }}@{{bioit_git_server}}/bigsdb/bigsdb_deployments.git"
 
     - name: Go back to bigsdb home
       ansible.builtin.shell:
