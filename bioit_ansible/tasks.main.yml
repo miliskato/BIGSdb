@@ -125,7 +125,7 @@
         bigsdb_branch: "{{ bigsdb_branch_cmd.stdout if bigsdb_branch_cmd.rc == 0 else '' }}"
         bigsdb_tag: "{{ bigsdb_tag_cmd.stdout if bigsdb_tag_cmd.rc == 0 else '' }}"
 
-    - name: Check if folder /home/bigsdb/BIGSdb_Deployements already exists
+    - name: Check if folder /home/bigsdb/BIGSdb_deployments already exists
       stat:
         path: "{{ bioit_deployments_home }}"
       register: deployments_folder_stat
@@ -152,7 +152,7 @@
     - name: keep track of the version deployed
       ansible.builtin.shell:
         chdir: "{{ bioit_deployments_home }}"
-        cmd: "/bin/bash ./InsertDeployement.sh '{{ species }}' '{{ mongo_dtap }}' '{{ bigsdb_commit_sha }}' '{{ bigsdb_branch }}' '{{ bigsdb_tag }}' '{{ ansible_run_tags }}' '{{ lookup('env', 'USER') }}'"
+        cmd: "/bin/bash ./InsertDeployment.sh '{{ species }}' '{{ mongo_dtap }}' '{{ bigsdb_commit_sha }}' '{{ bigsdb_branch }}' '{{ bigsdb_tag }}' '{{ ansible_run_tags }}' '{{ lookup('env', 'USER') }}'"
 
     - name: commit modification of deployments file
       ansible.builtin.shell:
