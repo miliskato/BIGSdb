@@ -1,4 +1,4 @@
-from typing import Any, List, Tuple, Union
+from typing import List
 
 from .databaseconnection import DatabaseConnection
 from .psql_queries import PsqlQueries
@@ -8,6 +8,7 @@ class TblSeqBinStats(DatabaseConnection):
     """
     seqbin_stats in the isolates database
     """
+
     def __init__(self, species: str) -> None:
         """
         Initialises this class by opening a database connection.
