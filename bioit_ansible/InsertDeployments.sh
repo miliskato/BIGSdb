@@ -6,7 +6,8 @@ COMMIT_SHA=$3
 BRANCH=$4
 GIT_TAG=$5
 ANSIBLE_TAGS=$6
-WHO=$7
+ANSIBLE_SKIP_TAGS=$7
+WHO=$8
 FILE="$SPECIES.json"
 
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
@@ -28,6 +29,7 @@ echo "        \"branch\": \"$BRANCH\"," >> "$FILE"
 echo "        \"commitSha\": \"$COMMIT_SHA\"," >> "$FILE"
 echo "        \"tag\": \"$GIT_TAG\"," >> "$FILE"
 echo "        \"ansibleTags\": \"$ANSIBLE_TAGS\"," >> "$FILE"
+echo "        \"ansibleSkipTags\": \"$ANSIBLE_SKIP_TAGS\"," >> "$FILE"
 echo "        \"when\": \"$TIMESTAMP\"," >> "$FILE"
 echo "        \"who\": \"$WHO\"" >> "$FILE"
 echo "    }" >> "$FILE"

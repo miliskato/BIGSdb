@@ -165,7 +165,7 @@
     - name: keep track of the version deployed
       ansible.builtin.shell:
         chdir: "{{ bioit_deployments_home }}"
-        cmd: "/bin/bash ./InsertDeployment.sh '{{ species }}' '{{ mongo_dtap }}' '{{ bigsdb_commit_sha }}' '{{ bigsdb_branch }}' '{{ bigsdb_tag }}' '{{ ansible_run_tags }}' '{{ lookup('env', 'USER') }}'"
+        cmd: "/bin/bash ./InsertDeployment.sh '{{ species }}' '{{ mongo_dtap }}' '{{ bigsdb_commit_sha }}' '{{ bigsdb_branch }}' '{{ bigsdb_tag }}' '{{ ansible_run_tags }}' '{{ ansible_skip_tags }}' '{{ lookup('env', 'USER') }}'"
 
     - name: commit modification of deployments file
       ansible.builtin.shell:
