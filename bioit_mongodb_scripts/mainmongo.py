@@ -3,7 +3,6 @@ import argparse
 import hashlib
 import json
 import logging
-import re
 import socket
 import sys
 import traceback
