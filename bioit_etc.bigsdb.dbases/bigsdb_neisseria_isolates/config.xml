@@ -14,7 +14,7 @@
  all_plugins="yes"
  microreact_year_field="isolation_date"
  tblastx_tagging="yes"
- eav_groups="Gene detection|fas fa-search,galaxy report|fas fa-file-medical-alt,Antibiotic resistance|fas fa-angle-right,Serotyping|fas fa-angle-right"
+ eav_groups="Gene detection|fas fa-search,galaxy report|fas fa-file-medical-alt,rMLST identification|fas fa-bacteria,ResFinder4 mutations|fas fa-pills,ResFinder4|fas fa-pills,Vaccine reactivity|fas fa-syringe,AMRFinder|fas fa-pills,Antibiotic resistance|fas fa-angle-right,Serotyping|fas fa-angle-right,Vaccine reactivity|fas fa-syringe"
  field_groups="Curation history|fas fa-history,nominative metadata|fas fa-search"
  user_projects="yes"
  submissions="yes"
@@ -45,8 +45,6 @@
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" geography_point_lookup="yes" comments="patient zip">patient_zip</field>
 <field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="province">province</field>
 <field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="region">region</field>
-<field type="float" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="latitude">latitude</field>
-<field type="float" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="longitude">longitude</field>
 <field type="text" required="no" length="20" maindisplay="no" group ="nominative metadata" comments="patient sex">patient_sex</field>
 <field type="int" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="patient age">patient_age</field>
 <field type="text" required="no" length="30" maindisplay="no" group ="nominative metadata" comments="patient age group">patient_age_group</field>

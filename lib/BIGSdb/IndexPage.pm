@@ -91,6 +91,7 @@ sub print_menu {
 	$self->print_login_menu_item;
 	$self->print_query_menu_item;
 	$self->_print_submissions_menu_item;
+	$self->_print_rejections_menu_item;
 	$self->_print_alerts_menu_item;
 	$self->_print_private_data_menu_item;
 	$self->print_projects_menu_item;
@@ -650,6 +651,32 @@ sub _print_submissions_menu_item {
 	return;
 }
 
+sub _print_rejections_menu_item {
+	my ($self) = @_;
+	my $set_id = $self->get_set_id // 0;
+	my $set_string =
+	  ( $self->{'system'}->{'sets'} // '' ) eq 'yes' ? qq(&amp;choose_set=1&amp;sets_list=$set_id) : q();
+	my $pending_rejected_isolates = $self->_get_pending_rejected_isolates_count;
+	my $number_icon         = q();
+	if ($pending_rejected_isolates) {
+		$pending_rejected_isolates = '99+' if $pending_rejected_isolates > 99;
+		$number_icon .=
+		  q(<span class="fa-stack" style="font-size:0.7em;letter-spacing:normal;margin:-0.5em 0 -0.2em 0.5em">);
+		$number_icon .= q(<span class="fas fa-circle fa-stack-2x submission_indicator"></span>);
+		$number_icon .=
+		  q(<span class="fa fa-stack-1x fa-stack-text" style="font-size:1.2em">) . qq($pending_rejected_isolates</span>);
+		$number_icon .= q(</span>);
+	}
+	$self->_print_menu_item(
+		{
+			icon  => 'fa-solid fa-xmark',
+			label => "REJECTED ISOLATES $number_icon",
+			href  => "$self->{'system'}->{'script_name'}?db=$self->{'instance'}&amp;page=rejected$set_string"
+		}
+	);
+	return;
+}
+
 sub _print_alerts_menu_item {
 	my ($self) = @_;
 	return
@@ -900,6 +927,22 @@ sub _get_pending_alert_count {
 		#return 0 if !$self->can_modify_table('isolates');
 		my $count = $self->{'datastore'}
 		  ->run_query( 'SELECT COUNT(*) FROM alerts WHERE (type,status)=(?,?)', [ $alert_type, 'pending' ] );
+		return $count;
+	} else {
+		my $count = 0;
+	return $count;
+	}
+}
+
+sub _get_pending_rejected_isolates_count {
+	my ($self) = @_;
+	return 0 if !$self->{'username'};
+	my $user_info = $self->{'datastore'}->get_user_info_from_username( $self->{'username'} );
+	return 0 if $user_info->{'status'} ne 'admin' && $user_info->{'status'} ne 'curator';
+	if ( $self->{'system'}->{'dbtype'} eq 'isolates' ) {
+		#return 0 if !$self->can_modify_table('isolates');
+		my $count = $self->{'datastore'}
+		  ->run_query( 'SELECT COUNT(*) FROM rejected_isolates WHERE status=?', ['pending'] );
 		return $count;
 	} else {
 		my $count = 0;

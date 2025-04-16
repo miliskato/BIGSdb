@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, List, Optional, Tuple
 
 from .databaseconnection import DatabaseConnection
 from .psql_queries import PsqlQueries
@@ -8,6 +8,7 @@ class TblSequences(DatabaseConnection):
     """
     sequences table in the seqdef database
     """
+
     def __init__(self, species: str) -> None:
         """
         Initialises this class by opening a database connection.

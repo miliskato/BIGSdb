@@ -1,8 +1,4 @@
 #!/usr/bin/env python
-# Hybrid between Bigs components and Mongodb components
-# to be executed on bigs host of choice
-# /home/bigsdb/BIGSdb/3.12PythonVenv/bin/python3.12 /home/mikelchtermans/Bigsdb_new/bioit_mongodb_scripts/mongo_to_bigs.py --species listeria --uploader_mail_address bioit@sciensano.be --pyvenvpythonpath /home/bigsdb/BIGSdb/3.12PythonVenv/bin/python3.12
-
 import argparse
 import datetime
 import logging
@@ -78,7 +74,7 @@ class MongoToBigs:
         self._mongo_config_data = mongo_config_data if mongo_config_data else get_mongodb_config_data()
         self._naive_clustering_distance_matrix_file = Path(
             self._mongo_config_data['naive_clustering_distance_matrix_file'].replace('species', self._species).replace(
-                'dtap', self._mongo_config_data.get('dtap')).replace('.bioit_database', '.bioit_database_azure'))
+                'dtap', self._mongo_config_data.get('dtap')))
         # Parse Bigsdb config
         self._bigsdb_config_data = get_bigsdb_config_data()
         # Open collections
@@ -250,7 +246,7 @@ class MongoToBigs:
             TypingLociIntoPsql([self._species], dont_send_email=True)
             TypingAllelesIntoPsql([self._species], dont_send_email=True)
             TypingSchemeProfilesIntoPsql([self._species], dont_send_email=True)
-            GeneDetectionIntoPsql([self._species], do_not_recalculate=True, dont_send_email=True)
+            GeneDetectionIntoPsql(self._species, dont_send_email=True).insert_schemes()
             # update last insertion date
             self._update_metadata_collection.update_one({'metadata': 'last_dbupdate_insertion_date'},
                                                         {'$set': {'last_update_date': datetime.datetime.now(
@@ -352,7 +348,7 @@ class MongoToBigs:
             changes_in_bigsdb = True
         if changes_in_bigsdb:
             MongoToBigsNominative(self._species, self._mongo_config_data, dont_send_email=True)
-          
+
     def __check_sql_exceptions_for_cache_update(self) -> None:
         """
         Checks for irregularities in BIGSdb dbs that would lead to an error of the cache update. If one of them is found,
@@ -360,8 +356,7 @@ class MongoToBigs:
         :return: None
         """
         with TblSchemeMembers(self._species, 'seqdef') as seqdef_schememembers_psql_tbl:
-            scheme_members_exist: List[Tuple[bool]] = seqdef_schememembers_psql_tbl.check_scheme_member_presence(
-                (self._cgmlst_bigsdb_scheme_id,))
+            scheme_members_exist: List[Tuple[bool]] = seqdef_schememembers_psql_tbl.check_scheme_member_presence((self._cgmlst_bigsdb_scheme_id,))
             if not scheme_members_exist[0][0]:
                 send_email(
                     f"Scheme members are missing in seqdef for scheme {self._cgmlst_bigsdb_scheme_id} on {socket.gethostname()}, "

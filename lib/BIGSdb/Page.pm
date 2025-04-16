@@ -951,8 +951,9 @@ sub print_action_fieldset {
 	my $submit_name  = $options->{'submit_name'}  // 'submit';
 	my $submit_label = $options->{'submit_label'} // 'Submit';
 	my $reset_label  = $options->{'reset_label'}  // 'Reset';
+	my $class        = $options ->{'class'}       // 'submit';
 	my $legend       = $options->{'legend'}       // 'Action';
-	my $buffer       = qq(<fieldset style="float:left"><legend>$legend</legend>\n);
+	my $buffer       = $legend ne '' ? qq(<fieldset style="float:left"><legend>$legend</legend>\n) : qq();
 	$buffer .= $options->{'text'} if $options->{'text'};
 	my $url    = qq($self->{'system'}->{'script_name'}?db=$self->{'instance'}&amp;page=$page);
 	my @fields = qw (isolate_id id scheme_id table name ruleset locus
@@ -973,13 +974,13 @@ sub print_action_fieldset {
 	local $" = q( );
 	my %id = $options->{'id'} ? ( id => $options->{'id'} ) : ();
 	$buffer .=
-	  $q->submit( -id => $submit_name, -name => $submit_name, -label => $submit_label, -class => 'submit', %id );
+	  $q->submit( -id => $submit_name, -name => $submit_name, -label => $submit_label, -class => $class, %id );
 	if ( $options->{'submit2'} ) {
 		$options->{'submit2_label'} //= $options->{'submit2'};
 		$buffer .= $q->submit(
 			-name  => $options->{'submit2'},
 			-label => $options->{'submit2_label'},
-			-class => 'submit',
+			-class => $class,
 			-style => 'margin-left:0.2em'
 		);
 	}

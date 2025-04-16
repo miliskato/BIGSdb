@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Tuple, Union
+from typing import List, Optional, Tuple
 
 from .databaseconnection import DatabaseConnection
 from .psql_queries import PsqlQueries
@@ -25,6 +25,14 @@ class TblEavFields(DatabaseConnection):
         :return: None
         """
         self.execute_query(PsqlQueries.ISO_INS__TB_EAVF_VAR_FIELD, param)
+
+    def insert_text_field(self, param: Tuple[str, str]) -> None:
+        """
+        Inserts a metadata field in a given category
+        :param param: field to insert, its category
+        :return: None
+        """
+        self.execute_query(PsqlQueries.ISO_INS__TB_EAVF_VAR_FIELD_CAT, param)
 
     def select_fields_amr(self) -> List[Optional[Tuple[str]]]:
         """
@@ -67,3 +75,12 @@ class TblEavFields(DatabaseConnection):
         :return: list of tuples containing one string
         """
         return self.select_fields_like(('cgMLST_differences_%',))
+
+    def exists_in_eav_field(self, param: Tuple[str, str]) -> bool:
+        """
+        Checks whether a given field/category combination exists in the eav_fields table.
+        :param param: field from eav_fields table, category for this field
+        :return: True if present, False if not
+        """
+        count_occurence = self.execute_query(PsqlQueries.ISO_SEL_COUNT_TB_EAVF_VAR_FIELD_CAT, param)
+        return True if count_occurence[0][0] > 0 else False
