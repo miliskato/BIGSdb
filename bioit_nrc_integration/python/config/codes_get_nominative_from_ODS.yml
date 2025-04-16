@@ -35,8 +35,8 @@ schema:
       default: N/A
       translation: comment
   CLIN:
-    CD_HP_HCO_VAL:  # needed for link with WGS meta
-      required: True
+    CD_HP_HCO_VAL:
+      required: False
       translation: HCO
     TX_LAB_SAMPLE_VAL:  # needed for link with WGS meta
       required: True
@@ -59,8 +59,7 @@ schema:
       translation: antibiotic_therapy
       code_list: CD_ANTBIO_codes
     CD_ANTBIO_SPECIF:
-      required:
-        - salmonella
+      required: False
       translation: antibiotic
       code_list: CD_ANTBIO_SPECIF_codes
       other: CD_ANTBIO_SPECIF_OTH
@@ -111,6 +110,7 @@ schema:
 #        - listeria
 #      translation:
 #      code_list: CD_PROB_NAM_codes
+#      other: CD_ANTBIO_SPECIF_OTH
 #    CD_PROB_NAM_CHLD:  # in main script
 #      required:
 #        - listeria
@@ -267,17 +267,17 @@ code_lists:
       value_field: 'CD_LAB_TEST_RSLT_QL'
       code_list: 'serovar_codes'
       translation: 'serogroup_pheno'
-    - CD_LAB_TEST_METH: '118118006' # todo
+    - CD_LAB_TEST_METH: '1041780000'
       CD_LAB_TEST_CODE: '90100-9'
       value_field: 'CD_LAB_TEST_RSLT_QL'
       code_list: 'serovar_codes'
       translation: 'identification_culture'
     - CD_LAB_TEST_METH: '9718006'
-      CD_LAB_TEST_CODE: 'TC0002'
+      CD_LAB_TEST_CODE: 'TC0001'
       value_field: 'CD_LAB_TEST_RSLT_QL'
       code_list: 'serovar_codes'
       translation: 'identification_pcr'
-    - CD_LAB_TEST_METH: '118118006' # todo
+    - CD_LAB_TEST_METH: '53399006'
       CD_LAB_TEST_CODE: 'TC0003'
       value_field: 'CD_LAB_TEST_RSLT_QL'
       code_list: 'serovar_codes'

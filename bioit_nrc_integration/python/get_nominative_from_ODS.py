@@ -239,7 +239,7 @@ class MainNominativeDataParserFromOds(SFTPConnection):
                 if hd_key_property_dict['required'] is False:
                     if hd_key_property_dict.get('default'):
                         data_translated[hd_key_property_dict['translation']] = hd_key_property_dict['default']
-                elif species not in hd_key_property_dict['required']:
+                elif isinstance(hd_key_property_dict['required'], list) and species not in hd_key_property_dict['required']:
                     pass
                 else:
                     raise Exception(f"key {hd_key} is missing but is required in {filetype} file!!")
@@ -256,10 +256,11 @@ class MainNominativeDataParserFromOds(SFTPConnection):
         """
         # DOB is not a mandatory field so it can be missing = None
         dob = MainNominativeDataParserFromOds.___get_value_by_capitalization_agnostic_key(data_unprocessed, 'DT_PAT_DOB')
-        if dob and dob != '1900-01-01':
+        collection_date = MainNominativeDataParserFromOds.___get_value_by_capitalization_agnostic_key(data_unprocessed, 'DT_LAB_COLLCN')
+        if dob and dob != '1900-01-01' and collection_date:
             # Calculate the number of years
             # Average year length considering leap years = 365.25 days
-            patient_age = math.floor((datetime.strptime(MainNominativeDataParserFromOds.___get_value_by_capitalization_agnostic_key(data_unprocessed, 'DT_LAB_COLLCN'), "%Y-%m-%dT%H:%M:%S") -
+            patient_age = math.floor((datetime.strptime(collection_date, "%Y-%m-%dT%H:%M:%S") -
                                       datetime.strptime(dob, "%Y-%m-%d")).days / 365.25)
             if patient_age < -1:
                 raise Exception(f"Patient age '{patient_age}' ('DT_LAB_COLLCN' - 'DT_PAT_DOB') is impossible!")
