@@ -49,12 +49,11 @@ class SampleToValidationBigs:
 
         mongo_collection = isolates_badqc_collection if sample_type == 'bad_quality' else isolates_resequencing_collection
 
-        isolate_to_submit = MongoRecordDict(mongo_collection.find_one({"_id": self.isolate_id}))
+        isolate_to_submit= MongoRecordDict(mongo_collection.find_one({"_id": self.isolate_id}))
         current_date = datetime.datetime.now(datetime.timezone.utc)
         self.__insert_submission_bigs(isolate_to_submit, sample_type)
-        for isolate in isolate_to_submit:
-            doc_id = isolate.get_id()
-            mongo_collection.update_one({'_id': doc_id},
+        doc_id = isolate_to_submit.get_id()
+        mongo_collection.update_one({'_id': doc_id},
                                         {'$set': {'submission_status': 'submitted_in_bigsdb'}})
         if current_date:
             update_collection.with_options(write_concern=WriteConcern(w="majority")).update_one(
@@ -63,7 +62,7 @@ class SampleToValidationBigs:
 
     def __insert_submission_bigs(self, sample_doc: MongoRecordDict, validation_type: str) -> None:
         """
-        Inserts a given list of submissions into bigsdb
+        Inserts a given isolate in the submission system of bigsdb
         :param sample_doc: mongo db document of the isolate
         :param validation_type: either bad_quality or resequencing
         :return: None

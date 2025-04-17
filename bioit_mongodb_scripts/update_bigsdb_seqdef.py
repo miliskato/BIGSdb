@@ -28,7 +28,7 @@ class UpdateBIGSdbSeqDef:
 
     def update_bigsdb_psql_if_needed(self) -> None:
         """
-        This function checks whether a new dbupdate occured in Azure and updates all info in Bigsdb accordingly.
+        This function checks whether a new db update occurred in Azure and updates all info in Bigsdb accordingly.
         :return: None
         """
         last_schema_update_date_document = self._update_metadata_collection.find_one({'metadata': 'last_dbupdate_insertion_date'})

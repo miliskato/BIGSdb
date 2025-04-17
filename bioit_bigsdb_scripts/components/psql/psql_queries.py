@@ -179,9 +179,9 @@ class PsqlQueries():
         isolate_id=(SELECT id FROM isolates WHERE isolate=%s);"""
 
     # TBL failed_insertions
-    ISO_INS__TB_FAIL_ISO_VAR_ID_MESS: Final[str] = """
+    ISO_INS__TB_FAIL_INS_VAR_ID_MESS: Final[str] = """
         INSERT INTO failed_insertions(message_id, pseudo_id, timestamp, comment) VALUES(%s, %s, (SELECT NOW()::TIMESTAMP), 'Insertion started');"""
-    ISO_UPD_VAR_COM_TB_FAIL_ISO: Final[str] = """
+    ISO_UPD_TB_FAIL_ISO_VAR_COM_MSG: Final[str] = """
         UPDATE failed_insertions set comment = %s WHERE message_id = %s;"""
     ISO_DEL__TB_FAIL_ISO_VAR_MSG_ID: Final[str] = """
         DELETE FROM failed_insertions WHERE message_id = %s;"""

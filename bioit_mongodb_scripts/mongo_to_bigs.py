@@ -111,7 +111,7 @@ class MongoToBigs:
     def run_mongo_to_bigs(self) -> bool:
         """
         This runs the insertion of pending documents into bigsdb
-        :return: None
+        :return: True if something was changed in BIGSdb
         """
         try:
             self._mongo_to_bigs()
@@ -183,10 +183,11 @@ class MongoToBigs:
 
     def __safely_insert_results_and_assembly(self, document: MongoRecordDict, isolate_id: str, results_type: ResultType) -> None:
         """
-        Insures insertion of genomic indicators ans assembly of the isolate in BIGSdb using the fail-safe mechanism.
+        Ensures insertion of genomic indicators and assembly of the isolate in BIGSdb using the fail-safe mechanism.
         :param document: mongo db document for this isolate
         :param isolate_id: isolate id
         :param results_type: type of results to insert into bigsdb
+        :return: None
         """
         jsonfile = document.get_json_results()
         self.__fail_safe_mechanism(self._isolates_psql_tbl, isolate=isolate_id, results_type=results_type)
@@ -303,8 +304,8 @@ class MongoToBigs:
             scheme_members_exist: List[Tuple[bool]] = seqdef_schememembers_psql_tbl.check_scheme_member_presence((self._cgmlst_bigsdb_scheme_id,))
             if not scheme_members_exist[0][0]:
                 raise RuntimeError(
-                    f"Update of the cache cannot be computed on {socket.gethostname()} for scheme {self._cgmlst_bigsdb_scheme_id} because no scheme members were found in seqdef,"
-                    f"check if the metadata collection in Mongo to ensure that seqdef has been populated properly")
+                    f"Update of the cache cannot be computed on {socket.gethostname()} for scheme {self._cgmlst_bigsdb_scheme_id} because no scheme members were found in seqdef, "
+                    f"check the metadata collection in Mongo to ensure that seqdef has been populated properly")
 
         with DatabaseConnection(self._species, 'seqdef') as seqdef_psql_db:
             mv_scheme_exists: List[Tuple[bool]] = seqdef_psql_db.execute_query(PsqlQueries.SEL_TABLE_EXISTS, (f'mv_scheme_{self._cgmlst_bigsdb_scheme_id}',))

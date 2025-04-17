@@ -753,7 +753,7 @@
         - "{{ species }}_seqdef"
         - "{{ species }}_isolates"
 
-    - name: run a collection of insert into on clonfict do nothing for the dedicated species
+    - name: run a collection of "insert into/on conflict do nothing" for the dedicated species
       community.postgresql.postgresql_script:
         login_user: postgres
         db: "{{ item.db }}"
