@@ -947,19 +947,21 @@
         regexp: 'to_be_replaced_by_ansible'
         replace: "{{ species }}"
 
+    - name: set asb connection string for dev/test
+      set_fact:
+        asb_connection_str: "{{ asb_connection_str_dt }}"
+      when: mongo_dtap == "dev" or mongo_dtap == "test"
+
+    - name: set asb connection string for acc/prod
+      set_fact:
+        asb_connection_str: "{{ asb_connection_str_ap }}"
+      when: mongo_dtap == "acc" or mongo_dtap == "prod"
+
     - name: Change connection str in mongo config based on playbook argument for dev-test
       lineinfile:
         path: "{{ bioit_bigs_home }}/bioit_mongodb_scripts/config/config.yml"
         regexp: 'CONNECTION_STRING_ASB: to_be_replaced_by_ansible'
-        line: "CONNECTION_STRING_ASB: {{ asb_connection_str_dt }}"
-      when: mongo_dtap == "dev" or mongo_dtap == "test"
-
-    - name: Change connection str in mongo config based on playbook argument for acc-prod
-      lineinfile:
-        path: "{{ bioit_bigs_home }}/bioit_mongodb_scripts/config/config.yml"
-        regexp: 'CONNECTION_STRING_ASB: to_be_replaced_by_ansible'
-        line: "CONNECTION_STRING_ASB: {{ asb_connection_str_ap }}"
-      when: mongo_dtap == "acc" or mongo_dtap == "prod"
+        line: "CONNECTION_STRING_ASB: {{ asb_connection_str }}"
 
     - name: Touch log file for bigsdb_insertion service
       ansible.builtin.file:
