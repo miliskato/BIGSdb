@@ -1,8 +1,4 @@
 #!/usr/bin/env python
-# Hybrid between Bigs components and Mongodb components
-# to be executed on bigs host of choice
-# /home/bigsdb/BIGSdb/3.12PythonVenv/bin/python3.12 /home/mikelchtermans/Bigsdb_new/bioit_mongodb_scripts/mongo_to_bigs.py --species listeria --uploader_mail_address bioit@sciensano.be --pyvenvpythonpath /home/bigsdb/BIGSdb/3.12PythonVenv/bin/python3.12
-
 import argparse
 import datetime
 import logging
@@ -251,7 +247,7 @@ class MongoToBigs:
             TypingLociIntoPsql([self._species], dont_send_email=True)
             TypingAllelesIntoPsql([self._species], dont_send_email=True)
             TypingSchemeProfilesIntoPsql([self._species], dont_send_email=True)
-            GeneDetectionIntoPsql(self._species, do_not_recalculate=True, dont_send_email=True).insert_schemes()
+            GeneDetectionIntoPsql(self._species, dont_send_email=True).insert_schemes()
             # update last insertion date
             self._update_metadata_collection.update_one({'metadata': 'last_dbupdate_insertion_date'},
                                                         {'$set': {'last_update_date': datetime.datetime.now(

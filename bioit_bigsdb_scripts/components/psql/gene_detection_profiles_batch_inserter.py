@@ -32,8 +32,8 @@ class GeneDetectionProfilesBatchInserter:
         :param species: commonly used bioit species name: either genus or specific like stec
         :return: None
         """
-        self.isolates_db_connection = DatabaseConnection(species, db_type='isolates', autocommit=False)
-        self.seqdef_db_connection = DatabaseConnection(species, db_type='seqdef', autocommit=False)
+        self._isolates_db_connection = DatabaseConnection(species, db_type='isolates', autocommit=False)
+        self._seqdef_db_connection = DatabaseConnection(species, db_type='seqdef', autocommit=False)
 
     def insert(self, batch_data: GeneDetectionProfilesBatchData) -> None:
         """
@@ -42,17 +42,17 @@ class GeneDetectionProfilesBatchInserter:
         """
         try:
             self.insert_multiple_loci_seqdef(batch_data.loci_fields)
-            self.insert_multiple_scheme_members(self.seqdef_db_connection.cursor, batch_data.scheme_members_fields)
+            self.insert_multiple_scheme_members(self._seqdef_db_connection.cursor, batch_data.scheme_members_fields)
             self.insert_multiple_loci_client_db(batch_data.client_dbase_loci_fields)
             self.insert_multiple_loci_isolates(batch_data.isolates_loci_fields)
-            self.insert_multiple_scheme_members(self.isolates_db_connection.cursor, batch_data.scheme_members_fields)
+            self.insert_multiple_scheme_members(self._isolates_db_connection.cursor, batch_data.scheme_members_fields)
             self.insert_multiple_sequences(batch_data.sequences_fields)
 
-            self.seqdef_db_connection.connection.commit()
-            self.isolates_db_connection.connection.commit()
+            self._seqdef_db_connection.connection.commit()
+            self._isolates_db_connection.connection.commit()
         except Exception as e:
-            self.seqdef_db_connection.connection.rollback()
-            self.isolates_db_connection.connection.rollback()
+            self._seqdef_db_connection.connection.rollback()
+            self._isolates_db_connection.connection.rollback()
             send_email(
                 f'The followind error was raised during the insertion of gene detection scheme elements by batch: {e.args[0]}',
                 f'GeneDetectionProfilesBatchInserter failed on {socket.gethostname()}')
@@ -64,7 +64,7 @@ class GeneDetectionProfilesBatchInserter:
         :param data: list of values to fill the sql insert statements
         :return: None
         """
-        cur = self.seqdef_db_connection.cursor
+        cur = self._seqdef_db_connection.cursor
         args_str = ','.join(cur.mogrify('(%s,%s,%s,%s,%s,%s,%s,%s)', row).decode("utf-8") for row in data)
         cur.execute(
             "INSERT INTO {table} (id, data_type, allele_id_format, length_varies, coding_sequence, curator, date_entered, datestamp) VALUES ".format(table='loci') + args_str)
@@ -86,7 +86,7 @@ class GeneDetectionProfilesBatchInserter:
         :param data: list of values to fill the sql insert statements
         :return: None
         """
-        cur = self.seqdef_db_connection.cursor
+        cur = self._seqdef_db_connection.cursor
         args_str = ','.join(cur.mogrify('(%s,%s,%s,%s)', row).decode("utf-8") for row in data)
         cur.execute("INSERT INTO {table} (client_dbase_id, locus, curator, datestamp) VALUES ".format(table='client_dbase_loci') + args_str)
 
@@ -96,7 +96,7 @@ class GeneDetectionProfilesBatchInserter:
         :param data: list of values to fill the sql insert statement
         :return: None
         """
-        cur = self.isolates_db_connection.cursor
+        cur = self._isolates_db_connection.cursor
         args_str = ','.join(
             cur.mogrify('(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)', row).decode("utf-8") for row in data)
         cur.execute(
@@ -110,7 +110,7 @@ class GeneDetectionProfilesBatchInserter:
         :param data: list of values to fill the sql insert statement
         :return: None
         """
-        cur = self.seqdef_db_connection.cursor
+        cur = self._seqdef_db_connection.cursor
         args_str = ','.join(cur.mogrify('(%s, %s, %s, %s, %s, %s, %s, %s)', row).decode("utf-8") for row in data)
         cur.execute("INSERT INTO {table} (locus, allele_id, sequence, status, sender,curator, date_entered, datestamp) VALUES ".format(table='sequences') + args_str)
 
@@ -123,5 +123,5 @@ class GeneDetectionProfilesBatchInserter:
 
     def __exit__(self, exc_type: Type[BaseException], exc_val: BaseException, exc_tb: TracebackType) -> None:
         """Close the db connections at the end of the run. __enter__/__exit__ are used to get the context manager to call the class in a "with" statement"""
-        self.isolates_db_connection.close()
-        self.seqdef_db_connection.close()
+        self._isolates_db_connection.close()
+        self._seqdef_db_connection.close()
