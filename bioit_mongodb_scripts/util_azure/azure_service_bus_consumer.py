@@ -235,7 +235,7 @@ cancel_token = Cancellation()
 
 def handle_shutdown(signum: int, frame: Any) -> None:
     """
-    Pointer to act on cancel_token when the signal is received.
+    Handler to act on cancel_token when the signal is received.
     :param signum: int corresponding usually to either SIGINT or SIGTERM
     :param frame: current stack frame
     :return: None
@@ -253,7 +253,6 @@ def handling_retry_outcome(retry_state: RetryCallState) -> None:
     if not mail_sent:
         send_email(f'{retry_state.outcome.exception()}', f'WARNING: azure_service_bus_consumer raised errors on {socket.gethostname()}')
         mail_sent = True
-    # Ajouter des logs pour chaque tentative
     logger.error(f"Tentative number {retry_state.attempt_number} failed. Message:{retry_state.outcome.exception()}")
 
 
