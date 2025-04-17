@@ -7,7 +7,7 @@ User=bigsdb
 WorkingDirectory=/home/bigsdb/BIGSdb/
 Environment="PYTHONPATH=/home/bigsdb/BIGSdb/"
 ExecStart=/home/bigsdb/BIGSdb/3.12PythonVenv/bin/python3 /home/bigsdb/BIGSdb/bioit_mongodb_scripts/util_azure/azure_service_bus_consumer.py --species to_be_replaced_by_ansible --uploader_mail_address bioit@sciensano.be
-Restart=on-success
+Restart=always
 
 [Install]
 WantedBy=multi-user.target
