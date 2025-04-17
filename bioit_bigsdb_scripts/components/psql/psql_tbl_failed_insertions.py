@@ -6,7 +6,7 @@ from .psql_queries import PsqlQueries
 
 class TblFailedInsertions(DatabaseConnection):
     """
-    failed_isolates table in the isolates database
+    failed_insertions table in the isolates database
     """
 
     def __init__(self, species: str) -> None:
