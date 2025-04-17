@@ -253,7 +253,7 @@ def handling_retry_outcome(retry_state: RetryCallState) -> None:
     if not mail_sent:
         send_email(f'{retry_state.outcome.exception()}', f'WARNING: azure_service_bus_consumer raised errors on {socket.gethostname()}')
         mail_sent = True
-    logger.error(f"Tentative number {retry_state.attempt_number} failed. Message:{retry_state.outcome.exception()}")
+    logger.error("Tentative number %s failed. Message: %s", retry_state.attempt_number, retry_state.outcome.exception())
 
 
 @retry(wait=wait_exponential(multiplier=1, min=2, max=600), after=handling_retry_outcome)
