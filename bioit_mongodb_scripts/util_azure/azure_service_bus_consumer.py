@@ -112,20 +112,20 @@ class MessageConsumerDataInserter(AzureServiceBus):
                             self.__rm_msg_from_postgres(msg)
                             if not should_update_cache:
                                 should_update_cache = bigs_db_was_modified
-                        except ConnectionFailure:
-                            raise ConnectionFailure("Connection failure with local MongoDB, check status of connection")
-                        except OperationFailure:
-                            raise OperationFailure("Operation Failure with local MongoDB, check config parameters")
+                        except ConnectionFailure as e:
+                            raise e
+                        except OperationFailure as e:
+                            raise e
                         except IsolateNotFoundException as e:
                             self.__keep_error_in_postgres(e, msg)
-                            raise IsolateNotFoundException(e.args[0])
+                            raise e
                         except BadCollectionError as e:
                             self.__keep_error_in_postgres(e, msg)
-                            raise BadCollectionError()
+                            raise e
                         except Exception as e:
                             logger.error(e)
                             self.__keep_error_in_postgres(e, msg)
-                            raise Exception(e)
+                            raise e
 
                         if mail_sent:
                             mail_sent = False
@@ -139,7 +139,7 @@ class MessageConsumerDataInserter(AzureServiceBus):
                                 mongo_to_bigs_instance = MongoToBigs(self._species, self._uploader_mail_address)
                                 mongo_to_bigs_instance.cache_and_clustering_update()
                             except Exception as e:
-                                raise Exception(e)
+                                raise e
 
     def __insert_known_isolate(self, collection_name: str, isolate_id: str, msg: ServiceBusReceivedMessage) -> bool:
         """
@@ -251,7 +251,8 @@ def handling_retry_outcome(retry_state: RetryCallState) -> None:
     """
     global mail_sent
     if not mail_sent:
-        send_email(f'{retry_state.outcome.exception()}', f'WARNING: azure_service_bus_consumer raised errors on {socket.gethostname()}')
+        send_email(f"{retry_state.outcome.exception()}\nLook at the logs on {socket.gethostname()} (/var/log/bigsdb_insertions.log)",
+                   f'WARNING: azure_service_bus_consumer raised errors on {socket.gethostname()}')
         mail_sent = True
     logger.error("Tentative number %s failed. Message: %s", retry_state.attempt_number, retry_state.outcome.exception())
 
