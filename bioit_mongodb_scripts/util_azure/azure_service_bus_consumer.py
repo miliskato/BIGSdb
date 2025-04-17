@@ -2,11 +2,12 @@ import argparse
 import logging
 import signal
 import socket
+from logging import handlers
 from typing import Any, List
 
 from azure.servicebus import ServiceBusClient, ServiceBusReceivedMessage
 from pymongo.errors import ConnectionFailure, OperationFailure
-from tenacity import RetryCallState, after_log, retry, stop_after_delay, wait_exponential
+from tenacity import RetryCallState, retry, wait_exponential
 
 from bioit_bigsdb_scripts.components.psql import TblFailedInsertions
 from bioit_mongodb_scripts.mongo_to_bigs import MongoToBigs
@@ -17,6 +18,15 @@ from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_conf
 from bioit_mongodb_scripts.util.sample_to_validation_bigs import SampleToValidationBigs
 from bioit_mongodb_scripts.util_azure.azure_service_bus import AzureServiceBus
 from bioit_mongodb_scripts.util_azure.azure_service_bus_message import AzureServiceBusMessage
+
+mail_sent = False
+# Configure stdout logging
+logger = logging.getLogger('bigsdb_insertion')
+logger.setLevel(logging.INFO)
+handler = handlers.TimedRotatingFileHandler('/var/log/bigsdb_insertions.log', when="D", interval=1, backupCount=14)
+formatter = logging.Formatter('%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
 
 
 def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
@@ -55,26 +65,26 @@ class MessageConsumerDataInserter(AzureServiceBus):
     Checks for messages in Azure service bus and inserts pending isolates in BIGSdb
     """
 
-    def __init__(self, ct: Cancellation, species: str, mongo_config_data: dict[str, Any],
+    def __init__(self, ct: Cancellation, species: str, mongo_config_data_arg: dict[str, Any],
                  uploader_mail_address: str) -> None:
         """
         Method to initialize the class
         :param ct: Cancellation status: need to exit gracefully if something happens on the VM
         :param species: Species name
-        :param mongo_config_data: Mongo configuration data
+        :param mongo_config_data_arg: Mongo configuration data
         :return: None
         """
 
-        super().__init__(mongo_config_data, species)
+        super().__init__(mongo_config_data_arg, species)
         self._ct = ct
         self._uploader_mail_address = uploader_mail_address
-        self._species = species
 
     def execute(self) -> None:
         """
         checks for Azure service bus message and try to insert the isolates notified in these messages
         :return: None
         """
+        global mail_sent
         while not self._ct.cancelled:
             with (ServiceBusClient.from_connection_string(conn_str=self._connection_string_asb,
                                                           logging_enable=True) as service_bus_client):
@@ -101,18 +111,24 @@ class MessageConsumerDataInserter(AzureServiceBus):
                             if not should_update_cache:
                                 should_update_cache = bigs_db_was_modified
                         except ConnectionFailure:
-                            raise ConnectionFailure("Connection Failure with local MongoDB")
+                            raise ConnectionFailure("Connection failure with local MongoDB, check status of connection")
                         except OperationFailure:
-                            raise OperationFailure("Connection Failure with local MongoDB")
+                            raise OperationFailure("Operation Failure with local MongoDB, check config parameters")
                         except IsolateNotFoundException as e:
-                            self.__handle_exception(e, msg)
+                            self.__keep_error_in_postgres(e, msg)
+                            raise IsolateNotFoundException(e.args[0])
                         except BadCollectionError as e:
-                            self.__handle_exception(e, msg)
+                            self.__keep_error_in_postgres(e, msg)
+                            raise BadCollectionError()
                         except Exception as e:
-                            send_email(f'{e.args}',
-                                       f'MessageConsumerDataInserter failed on {socket.gethostname()}')
-                            logging.error(e)
-                            self.__handle_exception(e, msg)
+                            logger.error(e)
+                            self.__keep_error_in_postgres(e, msg)
+                            raise Exception(e)
+
+                        if mail_sent:
+                            mail_sent = False
+                            send_email(f'Service restart on success', f'RESTART: azure_service_bus_consumer restarts on {socket.gethostname()}')
+                            logger.info("System restarts on success")
 
                         received_msgs = receiver.receive_messages(max_wait_time=20, max_message_count=1)
 
@@ -121,9 +137,7 @@ class MessageConsumerDataInserter(AzureServiceBus):
                                 mongo_to_bigs_instance = MongoToBigs(self._species, self._uploader_mail_address)
                                 mongo_to_bigs_instance.cache_and_clustering_update()
                             except Exception as e:
-                                logging.error('cache update or clustering failed with error: %s', e)
-                                send_email(f'{e.args}',
-                                           f'MessageConsumerDataInserter failed on {socket.gethostname()}')
+                                raise Exception(e)
 
     def __insert_known_isolate(self, collection_name: str, isolate_id: str, msg: ServiceBusReceivedMessage) -> bool:
         """ inserts isolates for which an isolate_id is known
@@ -139,13 +153,12 @@ class MessageConsumerDataInserter(AzureServiceBus):
         else:
             raise BadCollectionError()
 
-    def __handle_exception(self, e: Exception, msg: ServiceBusReceivedMessage) -> None:
+    def __keep_error_in_postgres(self, e: Exception, msg: ServiceBusReceivedMessage) -> None:
         """
         keep track of the exception in postgres db and also in the /var/log/bigsdb_insertion.log
         :param e: Exception
         :param msg: a ServiceBusReceivedMessage object
         """
-        logging.error('Insertion failed with subsequent error %s', e)
         template = "An exception of type {0} occurred. Error: {1}"
         exception_msg = template.format(type(e).__name__, e.args[0])
         self.__add_exception_to_msg(msg, exception_msg)
@@ -202,9 +215,9 @@ class MessageConsumerDataInserter(AzureServiceBus):
         try:
             mongo_init_local.client.admin.command('ping')
         except ConnectionFailure:
-            raise ConnectionFailure()
+            raise ConnectionFailure("Connection failure with local MongoDB, check status of connection")
         except OperationFailure:
-            raise OperationFailure("Connection Failure with local MongoDB")
+            raise OperationFailure("Operation Failure with local MongoDB, check config parameters")
         mapping_table_collection = mongo_init_local.initialise_mapping_table_collection()
         try:
             isolate_id = mapping_table_collection.find_one({'pseudo_id': pseudo_id}).get('_id')
@@ -226,31 +239,32 @@ def handle_shutdown(signum: int, frame: Any) -> None:
     cancel_token.cancel()
 
 
-def on_error(retry_state: RetryCallState) -> None:
+def handling_retry_outcome(retry_state: RetryCallState) -> None:
     """
-    function to log the error although not catching it
-    :param retry_state: RetryCallState object from tenacity
+    Function that will write the errors in the log and also send an email if it fails for the first time
+    :param retry_state: RetryCallState from Tenacity
     :return: None
     """
-    logging.exception(
-        f'{retry_state.outcome.exception()}'
-    )
-    send_email(f'{retry_state.outcome.exception()}', f'WARNING: azure_service_bus_consumer has stopped on {socket.gethostname()}')
-    raise retry_state.retry_object.retry_error_cls(retry_state.outcome) from retry_state.outcome.exception()
+    global mail_sent
+    if not mail_sent:
+        send_email(f'{retry_state.outcome.exception()}', f'WARNING: azure_service_bus_consumer raised errors on {socket.gethostname()}')
+        mail_sent = True
+    # Ajouter des logs pour chaque tentative
+    logger.error(f"Tentative number {retry_state.attempt_number} failed. Message:{retry_state.outcome.exception()}")
 
 
-@retry(wait=wait_exponential(multiplier=1, min=2, max=600), stop=(stop_after_delay(3600)), after=after_log(logging.getLogger(__name__), logging.WARNING), retry_error_callback=on_error)
-def run_application(ct: Cancellation, species: str, mongo_config_data: dict[str, Any], uploader_mail_address: str) -> None:
+@retry(wait=wait_exponential(multiplier=1, min=2, max=600), after=handling_retry_outcome)
+def run_application(ct: Cancellation, species: str, mongo_config_data_arg: dict[str, Any], uploader_mail_address: str) -> None:
     """
-    a decorator function to try again on Exception before stopping execution, retry after 2,4,8... seconds with max of 10 minutes between to attempts.
-    It will stop the execution if retrying consecutively for more than 1h
+    a decorator function to try again on Exception before stopping execution, retry after 2,2,4,8... seconds with max of 10 minutes between two attempts.
+    There is no condition to stop running the service
     :param ct: a Cancellation object
     :param species: the species name
-    :param mongo_config_data: the mongo_config_data
+    :param mongo_config_data_arg: the mongo_config_data
     :param uploader_mail_address: the mail address
     :return: None
     """
-    data_inserter = MessageConsumerDataInserter(ct, species, mongo_config_data, uploader_mail_address)
+    data_inserter = MessageConsumerDataInserter(ct, species, mongo_config_data_arg, uploader_mail_address)
     data_inserter.execute()
 
 
@@ -259,9 +273,6 @@ if __name__ == '__main__':
     # signal handler will be executed when a SIGINT/SIGTERM signal is received
     signal.signal(signal.SIGINT, handle_shutdown)
     signal.signal(signal.SIGTERM, handle_shutdown)
-
-    # Configure stdout logging
-    logging.basicConfig(level=logging.WARNING, filename='/var/log/bigsdb_insertions.log', filemode='w', datefmt='%Y-%m-%d %H:%M:%S', format='%(asctime)s %(levelname)-8s %(message)s')
 
     # Parse Mongo config
     mongo_config_data = get_mongodb_config_data()
