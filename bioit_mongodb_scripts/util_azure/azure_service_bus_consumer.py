@@ -87,8 +87,8 @@ class MessageConsumerDataInserter(AzureServiceBus):
         """
         global mail_sent
         while not self._ct.cancelled:
-            with (ServiceBusClient.from_connection_string(conn_str=self._connection_string_asb,
-                                                          logging_enable=True) as service_bus_client):
+            with ServiceBusClient.from_connection_string(conn_str=self._connection_string_asb,
+                                                         logging_enable=True) as service_bus_client:
                 with service_bus_client.get_queue_receiver(queue_name=self._queue_name) as receiver:
                     update_tool = UpdateBIGSdbSeqDef(self._species)
                     update_tool.update_bigsdb_psql_if_needed()
