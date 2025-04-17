@@ -1008,4 +1008,72 @@
 
     - debug: msg="TODO manually; copy the private key to the right galaxy host manually in /home/galaxy/.ssh, chmod 0600 it !"
   tags: gal_user
+
+- name: create sftp users that can access the /output_reports
+  block:
+    - name: Create user group
+      group:
+        name: sftp
+        state: present
+
+    - name: select password for sftp user and DTAP
+      set_fact:
+        sftp_user_password: "{{ item.val }}"
+      loop: "{{ dtap_list|flatten(levels=1)  }}"
+      vars:
+        dtap_list:
+          - { val: "{{ sftp_user_pass_dev }}", dtap: dev }
+          - { val: "{{ sftp_user_pass_test }}", dtap: test }
+          - { val: "{{ sftp_user_pass_acc }}", dtap: acc }
+          - { val: "{{ sftp_user_pass_prod }}", dtap: prod }
+      when: mongo_dtap == item.dtap
+
+    - name: Create user
+      user:
+        name: "sftp_{{ species }}_{{ mongo_dtap }}"
+        group: "sftp"
+        shell: "/sbin/nologin"
+        home: "/home/sftp_{{ species }}_{{ mongo_dtap }}"
+        password: "{{ sftp_user_password }}"
+        state: present
+
+    - name: creation of jail section for output reports
+      blockinfile:
+        path: /etc/ssh/sshd_config
+        block: |
+          Match Group sftp
+            ChrootDirectory /output_reports
+            PermitTunnel no
+            X11Forwarding no
+            AllowTcpForwarding no
+            ForceCommand internal-sftp
+      tags: output_reports_jail
+
+    - name: restart sshd service
+      command: sudo systemctl restart sshd
+
+    - name: creation of accepted dir in jail
+      ansible.builtin.file:
+        path: /output_reports/accepted
+        state: directory
+        owner: root
+        mode: "u=rwx,g=rwx,o=rwx"
+      tags: output_reports_jail
+
+    - name: creation of rejected dir in jail
+      ansible.builtin.file:
+        path: /output_reports/rejected
+        state: directory
+        owner: root
+        mode: "u=rwx,g=rwx,o=rwx"
+      tags: output_reports_jail
+
+    - name: creation of coreqc_rejected dir in jail
+      ansible.builtin.file:
+        path: /output_reports/coreqc_rejected
+        state: directory
+        owner: root
+        mode: "u=rwx,g=rwx,o=rwx"
+      tags: output_reports_jail
+  tags: sftp_users
 ...
