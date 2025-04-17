@@ -138,7 +138,7 @@
         bigsdb_branch: "{{ git_branch if git_branch != 'HEAD' else git_detached_branch }}"
         bigsdb_tag: "{{ bigsdb_tag_cmd.stdout if bigsdb_tag_cmd.rc == 0 else '' }}"
 
-    - name: Check if folder /home/bigsdb/BIGSdb_deployments already exists
+    - name: Check if folder /home/bigsdb/BIGSdb_Deployments already exists
       stat:
         path: "{{ bioit_deployments_home }}"
       register: deployments_folder_stat
