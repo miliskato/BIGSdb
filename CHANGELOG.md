@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Adaptations done in 2.1.1 to avoid the usage of hard link to the mount were exported in this version.
 - Insertion of gene detection schemes
 - Insertion of sequence typing schemes
+- Validation of good quality isolates + exporting of JSON reports to /output_reports
 
 ### Fixed:
 - Mykrobe scheme : typo in two AB names
