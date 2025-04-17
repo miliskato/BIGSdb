@@ -160,7 +160,7 @@ sub print_content {
 
 	my $data;
 
-	if (( !$has_isolate_id && !$has_pseudo_id ) || ( !$has_rejected_isolate_id && !$has_pseudo_id ))  {
+	if ( !$has_isolate_id && !$has_pseudo_id && !$has_rejected_isolate_id )  {
 		say q(<h1>Isolate information</h1>);
 	 	say q(<div class="box statusbad"><p>No isolate id provided.</p></div>);
 	 	return;
