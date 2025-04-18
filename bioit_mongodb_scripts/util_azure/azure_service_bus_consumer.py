@@ -108,7 +108,7 @@ class MessageConsumerDataInserter(AzureServiceBus):
                             receiver.complete_message(msg)
 
                             isolate_id = self._get_isolate_id(self._species, pseudo_id)
-                            bigs_db_was_modified = self.__insert_known_isolate(collection_name, isolate_id, msg)
+                            bigs_db_was_modified = self.__insert_known_isolate(collection_name, isolate_id)
                             self.__rm_msg_from_postgres(msg)
                             if not should_update_cache:
                                 should_update_cache = bigs_db_was_modified
@@ -141,19 +141,18 @@ class MessageConsumerDataInserter(AzureServiceBus):
                             except Exception as e:
                                 raise e
 
-    def __insert_known_isolate(self, collection_name: str, isolate_id: str, msg: ServiceBusReceivedMessage) -> bool:
+    def __insert_known_isolate(self, collection_name: str, isolate_id: str) -> bool:
         """
         inserts isolate for which an isolate_id is known
         :param collection_name: MongoDB collection to which belongs the isolates
         :isolate_id: Isolate ID
-        :param msg: a ServiceBusReceivedMessage object
         :return: True if the insertion leads to some changes in BIGSdb else False
         """
         if collection_name == 'isolates_badqc':
             SampleToValidationBigs(self._species, isolate_id, mongo_config_data=self._mongo_config_data)
             return False
         elif collection_name == 'isolates':
-            return self.__mongo_to_bigs_insertion(isolate_id, msg)
+            return self.__mongo_to_bigs_insertion(isolate_id)
         else:
             raise BadCollectionError()
 
@@ -197,11 +196,10 @@ class MessageConsumerDataInserter(AzureServiceBus):
         with TblFailedInsertions(self._species) as psql_tbl_failed_insertions:
             psql_tbl_failed_insertions.delete_message_id((msg.message_id,))
 
-    def __mongo_to_bigs_insertion(self, isolate_id: str, msg: ServiceBusReceivedMessage) -> bool:
+    def __mongo_to_bigs_insertion(self, isolate_id: str) -> bool:
         """
         tries to insert the isolate coming from isolates collection in BIGSdb
         :param isolate_id: the isolate id of the isolate
-        :param msg: a ServiceBusReceivedMessage object
         :return: True if the insertion modifies something in BIGSdb else False
         """
         mongo_to_bigs_instance = MongoToBigs(self._species, self._uploader_mail_address, single_sample_id=isolate_id)
@@ -228,9 +226,6 @@ class MessageConsumerDataInserter(AzureServiceBus):
         except AttributeError:
             raise IsolateNotFoundException(pseudo_id)
         return isolate_id
-
-
-cancel_token = Cancellation()
 
 
 def handle_shutdown(signum: int, frame: Any) -> None:
@@ -273,6 +268,8 @@ def run_application(ct: Cancellation, species: str, mongo_config_data_arg: dict[
 
 
 if __name__ == '__main__':
+
+    cancel_token = Cancellation()
 
     # signal handler will be executed when a SIGINT/SIGTERM signal is received
     signal.signal(signal.SIGINT, handle_shutdown)
