@@ -186,7 +186,7 @@ class MessageConsumerDataInserter(AzureServiceBus):
         :return: None
         """
         with TblFailedInsertions(self._species) as psql_tbl_failed_insertions:
-            psql_tbl_failed_insertions.insert_exception_for_message_id((exception_msg, msg.message_id))
+            psql_tbl_failed_insertions.update_exception_for_message_id((exception_msg, msg.message_id))
 
     def __rm_msg_from_postgres(self, msg: ServiceBusReceivedMessage) -> None:
         """

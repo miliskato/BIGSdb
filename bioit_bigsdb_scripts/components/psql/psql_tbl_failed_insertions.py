@@ -25,7 +25,7 @@ class TblFailedInsertions(DatabaseConnection):
         """
         self.execute_query(PsqlQueries.ISO_INS__TB_FAIL_INS_VAR_ID_MESS, param)
 
-    def insert_exception_for_message_id(self, param: Tuple[str, str]) -> None:
+    def update_exception_for_message_id(self, param: Tuple[str, str]) -> None:
         """
         specifies type of exception for this message_id
         :param param: type of exception, message id
