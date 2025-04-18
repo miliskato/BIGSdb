@@ -23,7 +23,7 @@ class TblFailedInsertions(DatabaseConnection):
         :param param: message id, pseudo id
         :return: None
         """
-        self.execute_query(PsqlQueries.ISO_INS__TB_FAIL_INS_VAR_ID_MESS, param)
+        self.execute_query(PsqlQueries.ISO_INS__TB_FAILINS_VAR_MSGID_PSEUDOID, param)
 
     def update_exception_for_message_id(self, param: Tuple[str, str]) -> None:
         """
@@ -31,7 +31,7 @@ class TblFailedInsertions(DatabaseConnection):
         :param param: type of exception, message id
         :return: None
         """
-        self.execute_query(PsqlQueries.ISO_UPD_TB_FAIL_ISO_VAR_COM_MSG, param)
+        self.execute_query(PsqlQueries.ISO_UPD_COM_TB_FAILINS_VAR_MSGID, param)
 
     def delete_message_id(self, param: Tuple[str]) -> None:
         """
@@ -39,4 +39,4 @@ class TblFailedInsertions(DatabaseConnection):
         :param param: message id
         :return: None
         """
-        self.execute_query(PsqlQueries.ISO_DEL__TB_FAIL_ISO_VAR_MSG_ID, param)
+        self.execute_query(PsqlQueries.ISO_DEL__TB_FAILINS_VAR_MSGID, param)
