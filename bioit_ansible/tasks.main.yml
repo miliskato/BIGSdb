@@ -1050,30 +1050,21 @@
       tags: output_reports_jail
 
     - name: restart sshd service
-      command: sudo systemctl restart sshd
+      ansible.builtin.systemd:
+        state: restarted
+        daemon_reload: yes
+        name: sshd
 
-    - name: creation of accepted dir in jail
+    - name: creation of the subdirectories in the /output_reports jail
       ansible.builtin.file:
-        path: /output_reports/accepted
+        path: /output_reports/{{ item }}
         state: directory
         owner: root
         mode: "u=rwx,g=rwx,o=rwx"
-      tags: output_reports_jail
-
-    - name: creation of rejected dir in jail
-      ansible.builtin.file:
-        path: /output_reports/rejected
-        state: directory
-        owner: root
-        mode: "u=rwx,g=rwx,o=rwx"
-      tags: output_reports_jail
-
-    - name: creation of coreqc_rejected dir in jail
-      ansible.builtin.file:
-        path: /output_reports/coreqc_rejected
-        state: directory
-        owner: root
-        mode: "u=rwx,g=rwx,o=rwx"
+      loop:
+        - accepted
+        - rejected
+        - coreqc_rejected
       tags: output_reports_jail
   tags: sftp_users
 ...
