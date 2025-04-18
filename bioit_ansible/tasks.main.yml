@@ -172,7 +172,7 @@
         chdir: "{{ bioit_deployments_home }}"
         cmd: git add "{{species}}.json" && git commit -m "Deployment info for {{ species }}@{{ mongo_dtap}}"
 
-    - name: decrypt git password
+    - name: decrypt git password to be able to use "urlencode" in the following task
       set_fact:
         git_password_for_bigsdb: "{{ secret_bioit_git_bigsdb_password }}"
 
