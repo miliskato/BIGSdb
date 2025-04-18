@@ -85,9 +85,7 @@ class SendGenomicToODS(SFTPConnection):
                         variable_info['code_list']][data_dict[variable]]
             if self._species == 'influenza':
                 self.__add_influenza_a_ha_na_info(data_dict)
-        return {'metadata': {'version': self._translation_codes['pathogens'][self._species]['dcd_version'],
-                             'data_collection': self._translation_codes['pathogens'][self._species]['dcd_code'],
-                             'dcd_name': self._translation_codes['pathogens'][self._species]['dcd_name']},
+        return {'metadata': {key: value for key, value in self._translation_codes['pathogens'][self._species].items()},
                 'data': data_dict}
 
     @staticmethod

@@ -263,7 +263,10 @@ class MainNominativeDataParserFromOds(SFTPConnection):
             patient_age = math.floor((datetime.strptime(collection_date, "%Y-%m-%dT%H:%M:%S") -
                                       datetime.strptime(dob, "%Y-%m-%d")).days / 365.25)
             if patient_age < -1:
-                raise Exception(f"Patient age '{patient_age}' ('DT_LAB_COLLCN' - 'DT_PAT_DOB') is impossible!")
+                # in Salmonella test unknowns for patient_age and patient_age_group are encoded as UNK
+                data_translated['patient_age'] = 'UNK'
+                data_translated['patient_age_group'] = 'UNK'
+                pass
             data_translated['patient_age'] = patient_age
             age_groups = [
                 ("Below 1", -1, 0),
