@@ -37,7 +37,7 @@ for species, species_testfiles in testfiles_dict.items():
                                           selected_connection_string='CONNECTION_STRING_AZURE',
                                           alternate_dtap=DTAP)
     isolates_collection, old_isolateresults_collection, isolates_badqc_collection, \
-        isolates_resequencing_collection = mongoinit_azure.initialise_collections()
+        isolates_resequencing_collection, isolates_goodqc_collection = mongoinit_azure.initialise_collections()
 
     mongoinit_local = MongoInitialisation(species, mongo_config_data=mongo_config_data,
                                           selected_connection_string='CONNECTION_STRING_LOCAL',

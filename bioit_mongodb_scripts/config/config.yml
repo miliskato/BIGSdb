@@ -29,6 +29,7 @@ collections:
     - isolates
     - old_isolate_results
     - isolates_badqc
+    - isolates_goodqc
     - sequence_types
     - new_allele_hashes
     - cluster_membership
@@ -50,6 +51,7 @@ schemes_sequence_typing:
     - mlst_bezdicek
 
 temp_dir: /scratch/temp
+reports_dir: /output_reports
 
 azure_reportsapi_ip: to_be_replaced_by_ansible
 

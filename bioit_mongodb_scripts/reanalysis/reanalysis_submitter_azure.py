@@ -261,8 +261,7 @@ class BatchPipelinesReanalysis:
         mongoinit = MongoInitialisation(self._species,
                                         selected_connection_string='CONNECTION_STRING_AZURE',
                                         alternate_dtap=self._dtap)
-        isolates_collection, old_isolateresults_collection, \
-            isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections()
+        isolates_collection, _, _, _, _ = mongoinit.initialise_collections()
         # query all the documents as a projection
         documents_list = [doc for doc in
                           isolates_collection.find({'latest_analysis_date': {"$lt": maximal_analysis_date,
@@ -300,8 +299,7 @@ class BatchPipelinesReanalysis:
                 # '2024-05-08' > '2024-06-08' == False
                 latest_update_date = last_dir_update_date
 
-        isolates_collection, old_isolateresults_collection, \
-            isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections()
+        isolates_collection, _, _, _, _ = mongoinit.initialise_collections()
         # query all the documents as a projection
         fields_to_retrieve = {
             "_id": 1,

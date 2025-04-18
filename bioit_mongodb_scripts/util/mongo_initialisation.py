@@ -63,11 +63,11 @@ class MongoInitialisation:
         else:
             raise RuntimeError(f"Collection '{collection}' not in supported collections")
 
-    def initialise_collections(self) -> (Collection, Collection, Collection, Collection):
+    def initialise_collections(self) -> (Collection, Collection, Collection, Collection, Collection):
         """
-        Initialises database and collections for interaction
-        :return: opened isolate, isolatesresults, isolatesbadqc, and isolates resequencing collections (instances) for a
-         given species.
+        Initialises database and collections for interaction.
+        :return: opened isolates, isolatesresults, isolatesbadqc, isolates resequencing and isolates goodqc collections
+        (instances) for a given species.
         """
         # open isolates collection
         isolates_collection = self._open_mongo_collection(self.opened_mongo_database, "isolates")
@@ -78,7 +78,9 @@ class MongoInitialisation:
         # open isolates resequencing collection
         isolates_resequencing_collection = self._open_mongo_collection(self.opened_mongo_database,
                                                                        "isolates_resequencing")
-        return isolates_collection, isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection
+        # open isolates goodqc collection
+        isolates_goodqc_collection = self._open_mongo_collection(self.opened_mongo_database, "isolates_goodqc")
+        return isolates_collection, isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection, isolates_goodqc_collection
 
     def initialise_clustering_collections(self) -> (Collection, Collection, Collection):
         """

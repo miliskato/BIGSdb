@@ -29,7 +29,7 @@ def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     :return: Parsed arguments
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("--scheme", required=True, type=str, help='lower case scheme as in json reports/mongodb documents') #cgmlst / mlst
+    parser.add_argument("--scheme", required=True, type=str, help='lower case scheme as in json reports/mongodb documents')
     parser.add_argument("--species", required=True, type=str, choices=specieslist)
     parser.add_argument("--connection_string", required=True, type=str, help='connection string variable from the config file')
 
@@ -40,6 +40,7 @@ class TempidReplacer:
     """
     Class containing definitions to check and replace temporary ids in MongoDB (and BIGSdb)
     """
+
     def __init__(self, scheme: str, species: str, connection_string: str, alternate_dtap: Union[str, None] = None):
         """
         Initalizes the class and executes the main function (auto-executable)
@@ -61,7 +62,9 @@ class TempidReplacer:
                                               selected_connection_string=self._connection_string,
                                               alternate_dtap=self._alternate_dtap,
                                               mongo_config_data=self._mongo_config_data)
-        self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, self._isolates_resequencing_collection = self._mongoinit.initialise_collections()
+        self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, \
+            self._isolates_resequencing_collection, self._isolates_goodqc_collection = \
+            self._mongoinit.initialise_collections()
         self._hashed_ad_collection = self._mongoinit.initialise_hashing_collection()
         self._st_collection, self._cluster_membership_collection, self._cluster_merging_collection = self._mongoinit.initialise_clustering_collections()
         self._headers_collection = self._mongoinit.initialise_headers_collection()
@@ -109,7 +112,8 @@ class TempidReplacer:
                 with TblAlleleDesignations(self._species) as isolates_ad_psql_tbl:
                     for hash_document in self._documents_list:
                         if hash_document['resolved_AD'] != 0:
-                            isolates_ad_psql_tbl.update_designations((hash_document['resolved_AD'], hash_document['locus'], hash_document['hashed_allele']))
+                            isolates_ad_psql_tbl.update_designations(
+                                (hash_document['resolved_AD'], hash_document['locus'], hash_document['hashed_allele']))
 
     def __query_hashes_of_scheme(self) -> List[Dict[str, Any]]:
         """
@@ -149,10 +153,10 @@ class TempidReplacer:
         """
         if self._species == 'stec':
             fasta_file = Path(
-                f"/var/lib/.bioit_database_azure/sequence_typing/ecoli/{self._scheme.replace('-', '_')}/{locus}/{locus}.fasta")
+                f"/db/sequence_typing/ecoli/{self._scheme.replace('-', '_')}/{locus}/{locus}.fasta")
         else:
             fasta_file = Path(
-                f"/var/lib/.bioit_database_azure/sequence_typing/{self._species}/{self._scheme.replace('-', '_')}/{locus}/{locus}.fasta")
+                f"/db/sequence_typing/{self._species}/{self._scheme.replace('-', '_')}/{locus}/{locus}.fasta")
         if fasta_file.is_file():
             logging.info(f"opening fasta file: {fasta_file}")
         else:
@@ -162,7 +166,8 @@ class TempidReplacer:
                                f"does not seem to adhere to the normal fasta path syntax")
         return fasta_file
 
-    def __update_temp_to_real_mongodb(self, locus: str, allele: SeqRecord, hashed_allele: str, hash_list: List[str], values: Dict[str, List[Union[str, int]]]) -> None:
+    def __update_temp_to_real_mongodb(self, locus: str, allele: SeqRecord, hashed_allele: str, hash_list: List[str],
+                                      values: Dict[str, List[Union[str, int]]]) -> None:
         """
         Updates the temporary identifiers that are now newly in the source database to the source database's identifier in MongoDB.
         The cgmlst profiles that contains the temporary allele identifier are also updated at the same time.
@@ -182,10 +187,15 @@ class TempidReplacer:
         allele_index = hit_metadata[f"{self._scheme}_loci"].index('Allele')
         # Update collections
         logging.debug(f"replacing {temp_allele_name} by {new_allele_id} for locus {locus}")
-        self.___update_temp_allele_to_new(self._isolates_collection, locus, temp_allele_name, new_allele_id, allele_index)
+        self.___update_temp_allele_to_new(self._isolates_collection, locus, temp_allele_name, new_allele_id,
+                                          allele_index)
         self.___update_temp_allele_to_new(self._isolates_badqc_collection, locus, temp_allele_name, new_allele_id)
-        self.___update_temp_allele_to_new(self._isolates_resequencing_collection, locus, temp_allele_name, new_allele_id)
-        self.___update_temp_allele_to_new(self._old_isolateresults_collection, locus, temp_allele_name, new_allele_id, allele_index, in_results=False)
+        self.___update_temp_allele_to_new(self._isolates_resequencing_collection, locus, temp_allele_name,
+                                          new_allele_id)
+        self.___update_temp_allele_to_new(self._old_isolateresults_collection, locus, temp_allele_name, new_allele_id,
+                                          allele_index, in_results=False)
+        self.___update_temp_allele_to_new(self._isolates_goodqc_collection, locus, temp_allele_name, new_allele_id,
+                                          allele_index)
         # Update document but do not delete
         self._hashed_ad_collection.with_options(write_concern=WriteConcern(w="majority")).update_one(
             {"scheme": self._scheme, "resolved_AD": 0, "locus": locus, "temp_allele_name": temp_allele_name},
@@ -198,7 +208,7 @@ class TempidReplacer:
         hashed_allele_index_in_doclist = int(values['indices'][hash_list.index(hashed_allele)])
         self._documents_list[hashed_allele_index_in_doclist]['resolved_AD'] = new_allele_id
         # replace in all the cgST the old temp allele by the new id
-        #use the power of list to replace only where it's needed
+        # use the power of list to replace only where it's needed
         if self._scheme == 'cgmlst':
             headers_cgmlst = self._headers_collection.find_one({'type': 'cgmlst_headers'})['headers']
             locus_index = headers_cgmlst.index(locus)
@@ -206,7 +216,8 @@ class TempidReplacer:
                 {f"cgMLST.{locus_index}": temp_allele_name},
                 update={"$set": {f"cgMLST.{locus_index}": int(new_allele_id)}}
             )
-            logging.debug(f'[information_temp_id_replacer] Locus {locus} at position {locus_index} is replacing {temp_allele_name} by {new_allele_id}')
+            logging.debug(
+                f'[information_temp_id_replacer] Locus {locus} at position {locus_index} is replacing {temp_allele_name} by {new_allele_id}')
 
     def ___update_temp_allele_to_new(self, collection: Collection, locus: str, temp_allele_name: str,
                                      new_allele_id: str, allele_index: int = None, in_results: bool = True) -> None:
@@ -229,18 +240,13 @@ class TempidReplacer:
         #      {"$elemMatch": {"$eq": temp_allele_name, "$index": allele_index}}},
         #     {"$set":
         #      {f"{'results.' if in_results else ''}{self._scheme}.loci.{locus}.{allele_index}": new_allele_id}})
-        if allele_index: # new way of storing typing results
+        if allele_index:  # new way of storing typing results
             collection.with_options(write_concern=WriteConcern(w="majority")).update_many(
                 {f"{'results.' if in_results else ''}{self._scheme}.loci.{locus}.{allele_index}": temp_allele_name},
-                {"$set":
-                 {f"{'results.' if in_results else ''}{self._scheme}.loci.{locus}.{allele_index}": new_allele_id}})
+                {"$set": {f"{'results.' if in_results else ''}{self._scheme}.loci.{locus}.{allele_index}": new_allele_id}})
         else:
             collection.with_options(write_concern=WriteConcern(w="majority")).update_many(
-                {f"{self._scheme}.loci":
-                 {"$elemMatch":
-                  {"Locus": locus, "Allele": temp_allele_name}}},
-                {"$set":
-                 {f"{self._scheme}.loci.$.Allele": new_allele_id}})
+                {f"{self._scheme}.loci": {"$elemMatch": {"Locus": locus, "Allele": temp_allele_name}}}, {"$set": {f"{self._scheme}.loci.$.Allele": new_allele_id}})
 
 
 if __name__ == '__main__':
@@ -252,4 +258,3 @@ if __name__ == '__main__':
 
     # run main
     TempidReplacer(args.scheme, args.species, connection_string=args.connection_string)
-    

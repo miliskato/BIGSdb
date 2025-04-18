@@ -5,13 +5,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [Unreleased] 
+### Added:
+- rMLST scheme
+- ResFinder4
+- AMRFinder
+- MOB-Suite
+- gMATS
+- MenDeVar
+
+### Changed
+- All Jammy existing assays to bigsdb for neisseria listeria salmonella mycobacterium influenza.
+- Adaptations done in 2.1.1 to avoid the usage of hard link to the mount were exported in this version.
+- Insertion of gene detection schemes
+- Insertion of sequence typing schemes
+
+### Fixed:
+- Mykrobe scheme : typo in two AB names
+- issue if PubMLST add some extra blank lines at the end of the profiles.tsv files
+
+### Removed:
+- PointFinder, ResFinder, NCBI AMR, PlasmidFinder
+- Ability to support stec species
+
+## [2.1.1 - support/2.1.0]
+### Changed:
+- remove mount of the local db catalog. Only keep the Azure one and named the mount ".bioit_database" instead of ".bioit_database_azure"
+  (this part is handle on the ANSIBLE side)
+- use the /db folder instead of the /.bioit_database path in the project (in order to use the symlinks and not the mount directly)
+
 ### Added
 - check for presence of cgMLST scheme members and for presence of mv_scheme_x table in seqdef before trying a 
   cache update of the scheme. 
 - Added Listeria & Influenza output DCD's to NRC integration
 - Added core quality metrics checking for both Illumina & ONT
 - Added Azure Service Bus implementation to Azure side
+- Enterococcus
+- Core QC page
 
 ### Changed
 - All Jammy existing assays to bigsdb for neisseria listeria salmonella mycobacterium influenza.
@@ -25,8 +55,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Listeria genomic 1.0.1-draft3
   - Influenza genomic 1.0.1-draft3
 - Modified pseudonymization slightly to be able to rename resequencing files in Azure so that they do not cause issues during the archival.
+- Simplification of html tagger and html update merger scripts (renamed to html replacer) + creation of general html report class
+- Update of reanalysis + reanalysis configs to account for the jammy changes
+- Update of tagger config to account for the jammy changes
 
-### Bugfix
+### Fixed
 - Bugfix reanalysis influenza
 
 ## [2.1.0]
@@ -44,14 +77,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The bioit-bigsdb.yml playbook includes extra roles in order to skip the manual run of the bioit-db.yml and bioit-filedb.yml
   playbooks during the deployment of the platform.
 
-### Bugfix
+### Fixed
 - Insertion of assembly is now using the "fasta_path" from mongo instead of reconstructing a path based on the "report_dir" field.
 - Insertion of nominative data (broken in 2.0.1)
 - Fix in mongo_to_bigs in the code handling comparison of cgst in case of reanalysis (600a28e4051574fb7d38bb68d44d3b68b2771d48)
 - ANSIBLE 2.18.1 - fix community.general.cpan module
 
 ## [2.0.2] - 2025-01-20 (myc dev and test)
-### Bugfix
+### Fixed
 - insertion of reanalysed badqc isolates (bug: removing of the validated badqc from BIGSdb before reinserting its new results was not done)
 - fix a type issue in a condition during the cgst reevaluation
 
@@ -60,7 +93,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - cron job to ensure that badqcs stored in MongoDB are all well inserted into BIGSdb submission system
 - Utility script for the validation of all badqcs submitted in BIGSdb
 
-### Bugfix
+### Fixed
 - Insertion of clustering/nominative data and alert computation is disabled when BIGSdb is still empty
 - Fix access rights on /home/bigsdb/BIGSdb
 - Fix the lockfile command configuration to avoid simultaneous connections to the matrix file in AZURE. 
@@ -92,7 +125,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - BIGSdb was upload from V1.36 -> V1.47
 - Local MongoDB hosts the mapping table for pseudonymization and the other collections are stored in MongoDB Atlas
 
-### Bugfix
+### Fixed
 - API call for Download/visualisation of the html reports 
 - Sequence bin plugin in BIGSdb
 

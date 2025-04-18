@@ -1,4 +1,4 @@
-from typing import Any, List, Tuple, Union
+from typing import List, Tuple
 
 from .databaseconnection import DatabaseConnection
 from .psql_queries import PsqlQueries
@@ -8,6 +8,7 @@ class TblLoci(DatabaseConnection):
     """
     loci table in both databases
     """
+
     def __init__(self, species: str, db_type: str) -> None:
         super().__init__(species, db_type)
         if self._db_type != 'seqdef' and self._db_type != 'isolates':
@@ -43,3 +44,17 @@ class TblLoci(DatabaseConnection):
         if self._db_type != 'seqdef':
             raise ValueError(f'Wrong db_type {self._db_type} for the current table object/instance')
         self.execute_query(PsqlQueries.SEQ_INS__TB_LOCI_VAR_LOCUS, param)
+
+    def get_locus_list_for_this_scheme(self, param: Tuple[str]) -> List[str]:
+        """
+        Get list of loci already present in the sequence definition database for the given scheme
+        :param: name of the scheme in BIGSdb
+        :return: List of loci found in sequence definition database for this scheme
+        """
+        if self._db_type != 'seqdef':
+            raise ValueError(f'Wrong db_type {self._db_type} for the current table object/instance')
+        query_result = self.execute_query(PsqlQueries.SEQ_SEL__TB_SCHEME_MBR_VAR_SCHEME_ID, param)
+        result = []
+        for locus in query_result:
+            result.append(locus[0])
+        return result

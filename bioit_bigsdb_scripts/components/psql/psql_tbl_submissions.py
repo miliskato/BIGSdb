@@ -19,7 +19,7 @@ class TblSubmissions(DatabaseConnection):
 
     def insert_submission(self, param: Tuple[str]) -> None:
         """
-        Inserts a new submission for a given validation type (badqc or resequencing)
+        Inserts a new submission for a given validation type (good_quality, bad_quality or resequencing)
         :param param: variables to feed to the PSQL query, which also sanitizes these variables,
         necessary parameters visible in the PSQL query name and query
         :return: None

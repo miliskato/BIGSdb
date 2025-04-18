@@ -1,4 +1,4 @@
-from typing import Any, List, Tuple, Union
+from typing import Tuple
 
 from .databaseconnection import DatabaseConnection
 from .psql_queries import PsqlQueries
@@ -8,6 +8,7 @@ class TblClientDbaseLoci(DatabaseConnection):
     """
     client_dbase_loci table in the seqdef database (required for rest api)
     """
+
     def __init__(self, species: str) -> None:
         """
         Initialises this class by opening a database connection.

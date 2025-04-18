@@ -34,18 +34,18 @@ class DatabaseConnection:
         database = "bigsdb_jobs" if self._db_type == 'jobs' else f"bigsdb_{species}_{self._db_type}";
 
         try:
-            self._connection: psycopg2.extensions.connection = \
+            self.connection: psycopg2.extensions.connection = \
                 psycopg2.connect(database=database, user="apache",
                                  password=bigsdb_config_data.get('postgresql_apache_pass'),
                                  host="127.0.0.1", port="")
         except Exception:
             raise RuntimeError(f"Could not connect to {species}'s databases")
 
-        self._connection.autocommit = autocommit
-        self._cursor: psycopg2.extensions.cursor = self._connection.cursor()
-        self.name = self._cursor.name
+        self.connection.autocommit = autocommit
+        self.cursor: psycopg2.extensions.cursor = self.connection.cursor()
+        self.name = self.cursor.name
 
-    def execute_query(self, query: str, params: Union[Tuple[Union[str, int, Tuple[str]]], List[Union[str, int]]]) \
+    def execute_query(self, query: str, params: Union[Tuple[Union[str, int, Tuple[str]]], List[Union[str, int]], Tuple[str, str, float], Tuple[str, str, str, str, str]]) \
             -> Optional[List[Optional[Tuple[Any]]]]:
         """
         Executes a sql query using psycopg2 sanitazation
@@ -53,11 +53,11 @@ class DatabaseConnection:
         :param params: parameters to be passed to sqlquery
         :return: None or query results
         """
-        self._cursor.execute(query, params)
+        self.cursor.execute(query, params)
         # import logging
         # logging.info(self._cursor.query)  # if you ever want to see the filled in query for debugging purposes
         if query.strip().startswith('SELECT'):
-            return self._cursor.fetchall()
+            return self.cursor.fetchall()
 
     def execute(self, query: str) -> Optional[List[Optional[Tuple[Any]]]]:
         """
@@ -65,9 +65,9 @@ class DatabaseConnection:
         :param query: sql query to be used
         :return: None or query results
         """
-        self._cursor.execute(query)
+        self.cursor.execute(query)
         if query.strip().startswith('SELECT'):
-            return self._cursor.fetchall()
+            return self.cursor.fetchall()
 
     def __enter__(self) -> 'DatabaseConnection':
         """
@@ -81,10 +81,10 @@ class DatabaseConnection:
         Closes the cursor and database connection
         :return: None
         """
-        if not self._connection.autocommit:
-            self._connection.commit()
-        self._cursor.close()
-        self._connection.close()
+        if not self.connection.autocommit:
+            self.connection.commit()
+        self.cursor.close()
+        self.connection.close()
 
     def __exit__(self, exc_type: Type[BaseException], exc_val: BaseException, exc_tb: TracebackType) -> None:
         """

@@ -1,12 +1,10 @@
 #!/usr/bin/env python
 import argparse
 import logging
-import os
 import re
 import shutil
 import sys
 import traceback
-from datetime import datetime
 from pathlib import Path
 from typing import List, Literal
 
@@ -30,7 +28,7 @@ def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     mutually_exclusive_group.add_argument('--db', type=str)
     mutually_exclusive_group.add_argument('--species', type=str, choices=specieslist)
     argument_parser.add_argument('--technical_id', required=True, type=str)
-    argument_parser.add_argument('--validation_type', required=True, type=str, choices=['null', 'bad_quality', 'resequencing'])
+    argument_parser.add_argument('--validation_type', required=True, type=str, choices=['null', 'good_quality', 'bad_quality', 'resequencing', 'rejected_isolate'])
     argument_parser.add_argument('--dtap', required=True, type=str, choices=['dev', 'test', 'acc', 'prod'])
     return argument_parser.parse_args()
 
@@ -40,7 +38,7 @@ class HtmlreportGeneration:
     Generates a html report for a given isolate at a given results version
     """
     def __init__(self, species: str, technical_id: str, dtap: Literal['dev', 'test', 'acc', 'prod'],
-                 validation_type: Literal['null', 'bad_quality', 'resequencing']) -> None:
+                 validation_type: Literal['null', 'good_quality', 'bad_quality', 'resequencing', 'rejected_isolate']) -> None:
         """
         Initialises the class and runs the main function.
         See also argparse function for variables and their requiredness.
@@ -69,7 +67,9 @@ class HtmlreportGeneration:
             selected_connection_string='CONNECTION_STRING_AZURE'
         )
         self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, \
-            self._isolates_resequencing_collection = self._mongoinit.initialise_collections()
+            self._isolates_resequencing_collection, self._isolates_goodqc_collection = \
+            self._mongoinit.initialise_collections()
+        self._rejected_isolates_collection = self._mongoinit.initialise_isolates_rejected_coreqc_collection()
 
         # Run main
         try:
@@ -82,10 +82,14 @@ class HtmlreportGeneration:
         Main function; generates the requested report version and returns it.
         :return: None
         """
-        if self._validation_type == 'bad_quality':
+        if self._validation_type == 'good_quality':
+            requested_document = self._isolates_goodqc_collection.find_one({'_id': self._technical_id})
+        elif self._validation_type == 'bad_quality':
             requested_document = self._isolates_badqc_collection.find_one({'_id': self._technical_id})
         elif self._validation_type == 'resequencing':
             requested_document = self._isolates_resequencing_collection.find_one({'_id': self._technical_id})
+        elif self._validation_type == 'rejected_isolate':
+            requested_document = self._rejected_isolates_collection.find_one({'_id': self._technical_id})
         else:  # self._validation_type == 'null':
             requested_document = self._isolates_collection.find_one({'_id': self._technical_id})
 

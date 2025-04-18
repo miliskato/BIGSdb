@@ -78,7 +78,7 @@ class MongoToBigs:
         self._mongo_config_data = mongo_config_data if mongo_config_data else get_mongodb_config_data()
         self._naive_clustering_distance_matrix_file = Path(
             self._mongo_config_data['naive_clustering_distance_matrix_file'].replace('species', self._species).replace(
-                'dtap', self._mongo_config_data.get('dtap')).replace('.bioit_database', '.bioit_database_azure'))
+                'dtap', self._mongo_config_data.get('dtap')))
         # Parse Bigsdb config
         self._bigsdb_config_data = get_bigsdb_config_data()
         # Open collections
@@ -86,7 +86,8 @@ class MongoToBigs:
                                                   selected_connection_string='CONNECTION_STRING_AZURE')
         self._mongoinit = self.initialisation
         self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, \
-            self._isolates_resequencing_collection = self._mongoinit.initialise_collections()
+            self._isolates_resequencing_collection, self._isolates_goodqc_collection = \
+            self._mongoinit.initialise_collections()
         self._headers_collection = self._mongoinit.initialise_headers_collection()
         self._hashed_ad_collection = self._mongoinit.initialise_hashing_collection()
         self._update_metadata_collection = self._mongoinit.initialise_update_collection()
@@ -171,7 +172,7 @@ class MongoToBigs:
         self.__check_sql_exceptions_for_cache_update()
         self.__update_scheme_caches_full_once_if_needed()
 
-        # send bad samples from the badqc_isolates collection to BIGSdb
+        # send samples from the goodqc_isolates and badqc_isolates collection to BIGSdb
         SamplesToValidationBigs(self._species, mongo_config_data=self._mongo_config_data)
 
         # Main insertion into bigsdb for loop + track if changes are done
@@ -250,7 +251,7 @@ class MongoToBigs:
             TypingLociIntoPsql([self._species], dont_send_email=True)
             TypingAllelesIntoPsql([self._species], dont_send_email=True)
             TypingSchemeProfilesIntoPsql([self._species], dont_send_email=True)
-            GeneDetectionIntoPsql([self._species], do_not_recalculate=True, dont_send_email=True)
+            GeneDetectionIntoPsql(self._species, do_not_recalculate=True, dont_send_email=True).insert_schemes()
             # update last insertion date
             self._update_metadata_collection.update_one({'metadata': 'last_dbupdate_insertion_date'},
                                                         {'$set': {'last_update_date': datetime.datetime.now(
@@ -262,11 +263,11 @@ class MongoToBigs:
         Function to append isolate_id, cgST, and date_of_isolation to a list that will be used to re-compute BIGSdb alerts
         :param document: Mongo record from isolate collection
         :param isolate_id: isolate id (as found in BIGSdb)
-        :param results_type: one of the following string: 'new_isolate','badqc','resequencing','reanalysis'
+        :param results_type: one of the following string: 'new_isolate', 'goodqc', 'badqc','resequencing','reanalysis'
         :param cgst_changed: boolean whether the cgST changed
         :return: None
         """
-        if results_type == 'new_isolate' or results_type == 'badqc':
+        if results_type == 'new_isolate' or results_type == 'badqc' or results_type == 'goodqc':
             self._list_of_new_isolates_for_alerts.append(
                 {'isolate_name': isolate_id, 'cgST': document['results'].get('cgST'),
                  'isolation_date': document['technical_metadata']['data']['IsolationDate']})
@@ -352,7 +353,7 @@ class MongoToBigs:
             changes_in_bigsdb = True
         if changes_in_bigsdb:
             MongoToBigsNominative(self._species, self._mongo_config_data, dont_send_email=True)
-          
+
     def __check_sql_exceptions_for_cache_update(self) -> None:
         """
         Checks for irregularities in BIGSdb dbs that would lead to an error of the cache update. If one of them is found,
@@ -360,8 +361,7 @@ class MongoToBigs:
         :return: None
         """
         with TblSchemeMembers(self._species, 'seqdef') as seqdef_schememembers_psql_tbl:
-            scheme_members_exist: List[Tuple[bool]] = seqdef_schememembers_psql_tbl.check_scheme_member_presence(
-                (self._cgmlst_bigsdb_scheme_id,))
+            scheme_members_exist: List[Tuple[bool]] = seqdef_schememembers_psql_tbl.check_scheme_member_presence((self._cgmlst_bigsdb_scheme_id,))
             if not scheme_members_exist[0][0]:
                 send_email(
                     f"Scheme members are missing in seqdef for scheme {self._cgmlst_bigsdb_scheme_id} on {socket.gethostname()}, "
@@ -402,11 +402,11 @@ class MongoToBigs:
 
     def __get_results_type(self, document: MongoRecordDict, isolate_id: str) -> Tuple[ResultType, bool, bool]:
         """
-        Checks whether the document is a new_isolate or a reanalysis and whether the for loop should continue (bool output).
-        The for loop should continue to the next document if the reanalysis is not different.
+        Checks whether the document is a new_isolate or a reanalysis and whether the for loop should continue (bool
+        output). The for loop should continue to the next document if the reanalysis is not different.
         :param document: dictionary of the results of the current isolate
         :param isolate_id: the id of the isolate
-        :return: results_type and whether for loop should should continue to next sample (True) or proceed (False) and
+        :return: results_type and whether for loop should continue to next sample (True) or proceed (False) and
         boolean whether the cgST changed; always True if results_type is not reanalysis or resequencing
         """
         sample_presence = self._isolates_psql_tbl.count_isolate((isolate_id,))
@@ -423,9 +423,9 @@ class MongoToBigs:
                 results_type = "new_isolate"
         elif document.get_validation_type():
             results_type = document.get_validation_type()
-            if results_type == 'resequencing' or results_type == 'badqc':
+            if results_type == 'resequencing' or results_type == 'badqc' or results_type == 'goodqc':
                 different_version, cgst_changed = self.___check_if_reanalysis_different(document, isolate_id)
-                if results_type == 'badqc':
+                if results_type == 'badqc' or results_type == 'goodqc':
                     results_type = "reanalysis"
         else:
             results_type = "reanalysis"
@@ -558,7 +558,7 @@ class MongoToBigs:
         reinsert if multiple versions, if only one version, sample is reinserted in the main workflow below
         :param isolates_psql_tbl: isolates db isolates table/ connection instance for a given species
         :param isolate: BIGSdb isolate name
-        :param results_type: one of the following string: 'new_isolate','badqc','resequencing','reanalysis'
+        :param results_type: one of the following string: 'new_isolate', 'goodqc', 'badqc','resequencing','reanalysis'
         :return: None
         """
         try:

@@ -14,7 +14,7 @@
  all_plugins="yes"
  microreact_year_field="isolation_date"
  tblastx_tagging="yes"
- eav_groups="Gene detection|fas fa-search,galaxy report|fas fa-file-medical-alt,Antibiotic resistance|fas fa-angle-right,SPIFinder|fas fa-angle-right"
+ eav_groups="Gene detection|fas fa-search,galaxy report|fas fa-file-medical-alt,rMLST identification|fas fa-bacteria,ResFinder4 mutations|fas fa-pills,ResFinder4|fas fa-pills,MOB-Suite|fas fa-circle-notch,AMRFinder|fas fa-pills,Antibiotic resistance|fas fa-angle-right,SPIFinder|fas fa-angle-right"
  field_groups="Curation history|fas fa-history,nominative metadata|fas fa-search"
  user_projects="yes"
  submissions="yes"
@@ -46,8 +46,6 @@
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" geography_point_lookup="yes" comments="patient zip">patient_zip</field>
 <field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="province">province</field>
 <field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="region">region</field>
-<field type="float" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="latitude">latitude</field>
-<field type="float" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="longitude">longitude</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="patient sex">patient_sex</field>
 <field type="int" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="patient age">patient_age</field>
 <field type="text" required="no" length="30" maindisplay="no" group ="nominative metadata" comments="patient age group">patient_age_group</field>
@@ -56,7 +54,6 @@
 <field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="country 2">country_2</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="hospitalisation">hospitalisation</field>
 <field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="specimen">specimen</field>
-<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="clinical info">clinical_info</field>
 <field type="text" required="no" length="20" maindisplay="no" group ="nominative metadata" comments="case Type">case_type</field>
 <field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="perinatal info">perinatal_info</field>
 <field type="text" required="no" length="100" maindisplay="no" group ="nominative metadata" comments="related disease">related_disease</field>
@@ -66,30 +63,29 @@
 <field type="text" required="no" length="40" maindisplay="no" group ="nominative metadata" comments="serotype">serotype</field>
 <field type="text" required="no" length="30" maindisplay="no" group ="nominative metadata" comments="serogroup">serogroup_pheno</field>
 <field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Amo">mic_amo</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Amo I">mic_amo_1</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Amo I">mic_amo_i</field>
 <field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Amp">mic_amp</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Amp I">mic_amp_1</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Amp I">mic_amp_i</field>
 <field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Chl">mic_chl</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Chl I">mic_chl_1</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Chl I">mic_chl_i</field>
 <field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Cip">mic_cip</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Cip I">mic_cip_1</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Cip I">mic_cip_i</field>
 <field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Ery">mic_ery</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Ery I">mic_ery_1</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Ery I">mic_ery_i</field>
 <field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Gmn">mic_gmn</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Gmn I">mic_gmn_1</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Gmn I">mic_gmn_i</field>
 <field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Str">mic_str</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Str I">mic_str_1</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Str I">mic_str_i</field>
 <field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Tet">mic_tet</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Tet I">mic_tet_1</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Tet I">mic_tet_i</field>
 <field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC TmpSmx">mic_tmpsmx</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC TmpSmx I">mic_tmpsmx_1</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC TmpSmx I">mic_tmpsmx_i</field>
 <field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Van">mic_van</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Van I">mic_van_1</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Van I">mic_van_i</field>
 <field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="MIC resistances">mic_resistances</field>
 <field type="text" required="no" length="20" maindisplay="no" group ="nominative metadata" comments="indication for sequencing">indication_for_sequencing</field>
 <field type="text" required="no" length="20" maindisplay="no" group ="nominative metadata" comments="keep for clustering">keep_for_clustering</field>
 <field type="text" required="no" length="150" maindisplay="no" group ="nominative metadata" comments="comment">comment</field>
 <field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="isolate_label">isolate_label</field>
-<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="country reporting alert">country_reporting_alert</field>
 <field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="country">country</field>
 </db>
