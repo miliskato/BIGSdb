@@ -116,16 +116,15 @@ class RejectedIsolate:
         :return: None
         """
         json_path_remote = Path(self._rejected_isolate_document['report_directory']) / 'report.json'
-        with tempfile.NamedTemporaryFile(dir=self._mongo_config_data.get('temp_dir'), mode="w") as temp_json:
-            temp_json_path = Path(self._mongo_config_data.get('temp_dir')) / temp_json.name
-            scp_command = f"scp -o StrictHostKeyChecking=no -i /home/bigsdb/.ssh/.id_rsa_reportsapi bigsdb@{self._mongo_config_data.get('azure_reportsapi_ip')}:{json_path_remote} {str(temp_json_path)}"
+        with tempfile.NamedTemporaryFile(dir=self._mongo_config_data.get('temp_dir')) as temp_json:
+            scp_command = f"scp -o StrictHostKeyChecking=no -i /home/bigsdb/.ssh/.id_rsa_reportsapi bigsdb@{self._mongo_config_data.get('azure_reportsapi_ip')}:{json_path_remote} {temp_json.name})"
             scp_cmd = Command(scp_command)
             scp_cmd.run(Path(self._mongo_config_data.get('temp_dir')))
             if scp_cmd.returncode != 0:
                 raise Exception(
                     f"scp command to copy JSON report from Azure to onsite failed: {scp_cmd.stderr}\nscp command: {scp_command}")
-            json_file = JsonReportDict.from_json(temp_json_path)
+            json_file = JsonReportDict.from_json(Path(temp_json.name))
             json_file['sample'] = json_file['sample'].replace(self._pseudo_id, self._isolate)
             json_file['input_files'] = json_file['input_files'].replace(self._pseudo_id, self._isolate)
-            path = Path(self._mongo_config_data.get('reports_dir')) / 'coreqc_rejected' / f'{self._isolate}.json'
-            json_file.to_json(path)
+            path = Path(self._mongo_config_data.get('json_reports_dir')) / 'coreqc_rejected' / f'{self._isolate}.json'
+            json_file.dump_json_to_file(path)

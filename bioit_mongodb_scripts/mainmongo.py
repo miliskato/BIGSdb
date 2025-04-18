@@ -292,7 +292,7 @@ class MainMongo:
                 self._isolates_goodqc_collection.delete_one({'_id': mongo_records["_id"]}) if self._results_type == 'goodqc_validated' else self._isolates_badqc_collection.delete_one({'_id': mongo_records["_id"]})
                 self.___write_document(self._isolates_collection, mongo_records)
                 logging.info(f"Wrote new isolate {self._technical_id} and its result to {self._species} database")
-            if self._results_type == 'new_isolate':
+            elif self._results_type == 'new_isolate':
                 mongo_records['submission_status'] = 'pending_for_submission'
                 self.___write_document(self._isolates_goodqc_collection, mongo_records)
                 logging.warning(

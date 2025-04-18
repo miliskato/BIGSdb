@@ -9,7 +9,7 @@ failsafe:
 
 postgresql_apache_pass: to_be_replaced_by_ansible
 
-reports_dir: /output_reports
+json_reports_dir: /output_reports
 
 # the cgmlst thresholds are duplicated in the mongodb clustering config
 alerts:

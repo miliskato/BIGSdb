@@ -126,7 +126,7 @@ class SampleValidationToMongo:
         """
         Gets the corresponding results_type in MongoDB with the given validation_type from BIGSdb.
         :param validation_type: Bigsdb validation type: good_quality, bad_quality or resequencing
-        :return: results_type, either new_isolate_validated, badqc_validated or resequencing_validated
+        :return: results_type, either goodqc_validated, badqc_validated or resequencing_validated
         """
         if validation_type == 'good_quality':
             results_type = 'goodqc_validated'
@@ -172,13 +172,13 @@ class SampleValidationToMongo:
         :return: None
         """
         bigsdb_config_data = get_bigsdb_config_data()
-        reports_dir = bigsdb_config_data.get('reports_dir')
-        path = Path(f'{reports_dir}/{subfolder}/{isolate_id}.json')
+        json_reports_dir = bigsdb_config_data.get('json_reports_dir')
+        path = Path(json_reports_dir) / subfolder / f'{isolate_id}.json'
         json_results = MongoRecordDict(collection.find_one({'_id': pseudo_id})).get_json_results()
         json_results['sample'] = json_results['sample'].replace(pseudo_id, isolate_id)
         json_results['input_files'] = json_results['input_files'].replace(pseudo_id, isolate_id)
         json_results.pop('isolates_id')
-        json_results.to_json(path)
+        json_results.dump_json_to_file(path)
 
 
 if __name__ == '__main__':

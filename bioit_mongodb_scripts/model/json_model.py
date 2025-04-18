@@ -39,9 +39,9 @@ class JsonReportDict(BridgeDict):
         with path.open('r') as f:
             return JsonReportDict(json.load(f))
 
-    def to_json(self, path: Path) -> None:
+    def dump_json_to_file(self, path: Path) -> None:
         """
-        Loads the JsonReportDict into a json file.
+        Dumps the JsonReportDict into a json file.
         :param path: Path to the json file
         :return: None
         """
