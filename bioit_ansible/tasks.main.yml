@@ -90,11 +90,102 @@
     version: "{{ branch }}"
     force: true
 
-- name: keep track of the version deployed
-  copy:
-    content: "{{ species }} {{ mongo_dtap }} {{ branch }} {{ target }}\n"
-    dest: "{{ bioit_bigs_home }}/VERSION_{{ species }}_{{ mongo_dtap }}.LOG"
-    owner: bigsdb
+- name: tasks to track deployment changes
+  block:
+    - name: mark bigsdb as safe
+      ansible.builtin.shell:
+        cmd: git config --global --add safe.directory "{{ bioit_bigs_home }}"
+
+    - name: get commit hash used for deployment
+      ansible.builtin.shell:
+      args:
+        cmd: git rev-parse HEAD
+        chdir: "{{ bioit_bigs_home }}"
+      register: bigsdb_commit_sha_cmd
+
+    - name: get branch name used for deployment
+      ansible.builtin.shell:
+      args:
+        chdir: "{{ bioit_bigs_home }}"
+        cmd: git rev-parse --abbrev-ref HEAD
+      register: bigsdb_branch_cmd
+      ignore_errors: yes
+
+    - name: get detached branch name used for deployment
+      ansible.builtin.shell:
+      args:
+        chdir: "{{ bioit_bigs_home }}"
+        cmd: git reflog | awk 'NR==1{ print $8; exit }'
+      register: bigsdb_detached_branch_cmd
+      ignore_errors: yes
+
+    - name: get potential tag used for deployment
+      ansible.builtin.shell:
+      args:
+        chdir: "{{ bioit_bigs_home }}"
+        cmd: git describe --tags --exact-match
+      register: bigsdb_tag_cmd
+      ignore_errors: yes
+
+    - name: set variables 1
+      set_fact:
+        git_branch: "{{ bigsdb_branch_cmd.stdout if bigsdb_branch_cmd.rc == 0 else '' }}"
+        git_detached_branch: "{{ bigsdb_detached_branch_cmd.stdout if bigsdb_detached_branch_cmd.rc == 0 else '' }}"
+
+    - name: set variables 2
+      set_fact:
+        bigsdb_commit_sha: "{{ bigsdb_commit_sha_cmd.stdout if bigsdb_commit_sha_cmd.rc == 0 else '' }}"
+        bigsdb_branch: "{{ git_branch if git_branch != 'HEAD' else git_detached_branch }}"
+        bigsdb_tag: "{{ bigsdb_tag_cmd.stdout if bigsdb_tag_cmd.rc == 0 else '' }}"
+
+    - name: Check if folder /home/bigsdb/BIGSdb_Deployments already exists
+      stat:
+        path: "{{ bioit_deployments_home }}"
+      register: deployments_folder_stat
+
+    - name: Change bigs home owner where git needs to be cloned to root to not get dubious ownership error
+      file:
+        path: "{{ bioit_deployments_home }}"
+        owner: root
+      when: deployments_folder_stat.stat.exists and deployments_folder_stat.stat.isdir
+
+    - name: Get updated files from git repository
+      git:
+        repo: "https://{{bioit_git_ro_user}}:{{ secret_bioit_git_ro_password }}@{{bioit_git_server}}/bigsdb/bigsdb_deployments.git"
+        dest: "{{ bioit_deployments_home }}"
+        version: main
+        force: true
+
+    - name: mark bigsdb_deployments as safe
+      ansible.builtin.shell:
+      args:
+        chdir: "{{ bioit_deployments_home }}"
+        cmd: git config --global --add safe.directory "{{ bioit_deployments_home }}" && git config user.email bioit.beprepared@sciensano.be && git config user.name "Bigsdb Deployment"
+
+    - name: keep track of the version deployed
+      ansible.builtin.shell:
+        chdir: "{{ bioit_deployments_home }}"
+        cmd: "/bin/bash ./InsertDeployment.sh '{{ species }}' '{{ mongo_dtap }}' '{{ bigsdb_commit_sha }}' '{{ bigsdb_branch }}' '{{ bigsdb_tag }}' '{{ ansible_run_tags }}' '{{ ansible_skip_tags }}' '{{ lookup('env', 'USER') }}'"
+
+    - name: commit modification of deployments file
+      ansible.builtin.shell:
+        chdir: "{{ bioit_deployments_home }}"
+        cmd: git add "{{species}}.json" && git commit -m "Deployment info for {{ species }}@{{ mongo_dtap}}"
+
+    - name: decrypt git password
+      set_fact:
+        git_password_for_bigsdb: "{{ secret_bioit_git_bigsdb_password }}"
+
+    - name: push to space
+      ansible.builtin.shell:
+      args:
+        chdir: "{{ bioit_deployments_home }}"
+        cmd: "git push https://{{ bioit_git_bigsdb_user }}:{{ git_password_for_bigsdb | urlencode }}@{{bioit_git_server}}/bigsdb/bigsdb_deployments.git"
+
+    - name: Go back to bigsdb home
+      ansible.builtin.shell:
+        cmd: cd "{{ bioit_bigs_home }}"
+  tags: track_deployments
 
 - name: Change git cloned repo owner to bigsdb for it to be able to write the distance matrix here
   file:
