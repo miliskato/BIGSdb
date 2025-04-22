@@ -1068,9 +1068,6 @@
         enabled: true
         name: bigsdb-insertion.service
 
-    - debug: msg="TODO manually; copy the private key to the right galaxy host manually in /home/galaxy/.ssh, chmod 0600 it !"
-  tags: gal_user
-
 - name: create sftp users that can access the /output_reports
   block:
     - name: Create user group
