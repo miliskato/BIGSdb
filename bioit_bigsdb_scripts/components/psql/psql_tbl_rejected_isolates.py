@@ -51,4 +51,7 @@ class TblRejectedIsolates(DatabaseConnection):
         :return: id of the lastly added isolate
         """
         isolate_id_tuple = self.execute(PsqlQueries.ISO_SEL_MAX_REJISO)
-        return isolate_id_tuple[0][0] if isolate_id_tuple else 0
+        if isolate_id_tuple[0][0] is not None:
+            return isolate_id_tuple[0][0]
+        else:
+            return 0
