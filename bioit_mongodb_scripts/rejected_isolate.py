@@ -119,4 +119,4 @@ class RejectedIsolate:
             json_file['sample'] = json_file['sample'].replace(self._pseudo_id, self._isolate_id)
             json_file['input_files'] = json_file['input_files'].replace(self._pseudo_id, self._isolate_id)
             path = Path(self._mongo_config_data.get('json_reports_dir')) / 'coreqc_rejected' / f'{self._isolate_id}.json'
-            json_file.dump_json_to_file(path)
+            json_file.dump_to_json_file(path)

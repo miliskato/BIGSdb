@@ -59,9 +59,8 @@ class SampleValidationToMongo:
 
         # Open collections
         self._mongoinit = MongoInitialisation(self._species, selected_connection_string='CONNECTION_STRING_AZURE')
-        self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, \
-            self._isolates_resequencing_collection, self._isolates_goodqc_collection = \
-            self._mongoinit.initialise_collections()
+        self._isolates_collection, _, self._isolates_badqc_collection, self._isolates_resequencing_collection, \
+            self._isolates_goodqc_collection = self._mongoinit.initialise_collections()
 
         #open local mongo instance to get the mapping
         self._mongoinit_local = MongoInitialisation(self._species, selected_connection_string='CONNECTION_STRING_LOCAL')
@@ -96,7 +95,7 @@ class SampleValidationToMongo:
                 outcome: str = query[0][2]
                 curator_mailadress: str = query[0][3]
                 validation_type: str = query[0][4]
-                results_type = self.__get_results_type(validation_type) #goodqc_validated, badqc_validated or resequencing_validated
+                results_type = self.__get_results_type(validation_type)  # goodqc_validated, badqc_validated or resequencing_validated
                 pseudo_id = self._mapping_collection.find_one({"_id": isolatename})['pseudo_id']
                 # GO into MongoDB so type in Mongo might be either badqc or resequencing
                 validation_dict = {
@@ -108,18 +107,10 @@ class SampleValidationToMongo:
                 if outcome == 'good' and (validation_type == 'good_quality' or validation_type == 'bad_quality' or validation_type == 'resequencing'):
                     MainMongo(pseudo_id, self._species, results_type, subvaldict=validation_dict, connection_string='CONNECTION_STRING_AZURE')
                     self.__export_json_results(self._isolates_collection, isolatename, pseudo_id, 'accepted')
-                elif validation_type == 'good_quality':
-                    self.__export_json_results(self._isolates_goodqc_collection, isolatename, pseudo_id, 'rejected')
-                    self.__remove_id_from_document_to_be_unique_again_if_bad(self._isolates_goodqc_collection,
-                                                                             pseudo_id, validation_dict)
-                elif validation_type == 'bad_quality':  # outcome == 'bad'
-                    self.__export_json_results(self._isolates_badqc_collection, isolatename, pseudo_id, 'rejected')
-                    self.__remove_id_from_document_to_be_unique_again_if_bad(self._isolates_badqc_collection,
-                                                                                 pseudo_id, validation_dict)
-                elif validation_type == 'resequencing':
-                    self.__export_json_results(self._isolates_resequencing_collection, isolatename, pseudo_id, 'rejected')
-                    self.__remove_id_from_document_to_be_unique_again_if_bad(self._isolates_resequencing_collection,
-                                                                                 pseudo_id, validation_dict)
+                else:
+                    collection = self._isolates_goodqc_collection if validation_type == 'good_quality' else \
+                        self._isolates_badqc_collection if validation_type == 'bad_quality' else self._isolates_resequencing_collection
+                    self.__handle_bad_outcome(collection, isolatename, pseudo_id, validation_dict)
 
     @staticmethod
     def __get_results_type(validation_type: str) -> str:
@@ -137,6 +128,19 @@ class SampleValidationToMongo:
         else:
             results_type = '?'  # in order to not have issue 'variable referenced before assignment' and in order to leave possibility open
         return results_type
+
+    def __handle_bad_outcome(self, collection: Collection, isolatename: str, pseudo_id: str, validation_dict: dict) -> None:
+        """
+        Handles the isolates that are validated negatively.
+        :param collection: Collection in MongoDB where isolate is stored
+        :param isolatename: Name of the isolate
+        :param pseudo_id: Pseudo ID
+        :param validation_dict: dictionary containing the validation metadata
+        :return: None
+        """
+        self.__export_json_results(collection, isolatename, pseudo_id, 'rejected')
+        self.__remove_id_from_document_to_be_unique_again_if_bad(self._isolates_goodqc_collection, pseudo_id,
+                                                                 validation_dict)
 
     @staticmethod
     def __remove_id_from_document_to_be_unique_again_if_bad(collection_in: Collection,
@@ -178,7 +182,7 @@ class SampleValidationToMongo:
         json_results['sample'] = json_results['sample'].replace(pseudo_id, isolate_id)
         json_results['input_files'] = json_results['input_files'].replace(pseudo_id, isolate_id)
         json_results.pop('isolates_id')
-        json_results.dump_json_to_file(path)
+        json_results.dump_to_json_file(path)
 
 
 if __name__ == '__main__':

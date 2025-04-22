@@ -22,19 +22,21 @@ class SampleToValidationBigs:
     already done.
     """
 
-    def __init__(self, species: str, isolate_id: str, sample_type: Literal['good_quality', 'bad_quality', 'resequencing'],  mongo_config_data: Dict[str, Any] = None) -> None:
+    def __init__(self, species: str, isolate_id: str, pseudo_id: str, sample_type: Literal['good_quality', 'bad_quality', 'resequencing'],  mongo_config_data: Dict[str, Any] = None) -> None:
         """
         Call methods to insert samples into BIGSdb submission table.
         :param species: commonly used bioit species name: either genus or specific like stec
         :param isolate_id: name of the isolate
+        :param pseudo_id: Pseudo ID
         :param sample_type: str that should be either "good_quality", "bad_quality" or "resequencing"
         :param mongo_config_data: mongo_config_data for MongoInitialisation
         :return: None
         """
-        self.mongo_config_data = mongo_config_data
-        self.species = species
-        self.isolate_id = isolate_id
-        self.sample_type = sample_type
+        self._mongo_config_data = mongo_config_data
+        self._species = species
+        self._isolate_id = isolate_id
+        self._pseudo_id = pseudo_id
+        self._sample_type = sample_type
         self._submission_into_bigs()
 
     def _submission_into_bigs(self) -> None:
@@ -43,20 +45,19 @@ class SampleToValidationBigs:
         their submission in BIGSdb.
         :return: None
         """
-        mongoinit = MongoInitialisation(self.species, mongo_config_data=self.mongo_config_data,
+        mongoinit = MongoInitialisation(self._species, mongo_config_data=self._mongo_config_data,
                                         selected_connection_string='CONNECTION_STRING_AZURE')
         _, _, isolates_badqc_collection, isolates_resequencing_collection, isolates_goodqc_collection = mongoinit.initialise_collections()
         update_collection = mongoinit.initialise_update_collection()
 
-        mongo_collection = isolates_badqc_collection if self.sample_type == 'bad_quality' else \
-            isolates_resequencing_collection if self.sample_type == 'resequencing' else isolates_goodqc_collection
+        mongo_collection = isolates_badqc_collection if self._sample_type == 'bad_quality' else \
+            isolates_resequencing_collection if self._sample_type == 'resequencing' else isolates_goodqc_collection
 
-        isolate_to_submit = MongoRecordDict(mongo_collection.find_one({"_id": self.isolate_id}))
+        isolate_to_submit = MongoRecordDict(mongo_collection.find_one({"_id": self._pseudo_id}))
         current_date = datetime.datetime.now(datetime.timezone.utc)
         self.__insert_submission_bigs(isolate_to_submit)
-        doc_id = isolate_to_submit.get_id()
-        mongo_collection.update_one({'_id': doc_id},
-                                        {'$set': {'submission_status': 'submitted_in_bigsdb'}})
+        mongo_collection.update_one({'_id': self._pseudo_id},
+                                    {'$set': {'submission_status': 'submitted_in_bigsdb'}})
         if current_date:
             update_collection.with_options(write_concern=WriteConcern(w="majority")).update_one(
                 {'metadata': 'last_validation_to_bigs_update', 'host': socket.gethostname()},
@@ -68,23 +69,18 @@ class SampleToValidationBigs:
         :param sample_doc: mongo db document of the isolate
         :return: None
         """
-        mongoinit_local = MongoInitialisation(self.species, mongo_config_data=self.mongo_config_data,
-                                              selected_connection_string='CONNECTION_STRING_LOCAL')
-        mappingtable_collection = mongoinit_local.initialise_mapping_table_collection()
+        with TblSubmissions(self._species) as isolates_sub_psql_tbl, \
+                TblIsolateSubmissionIsolates(self._species) as isolates_isosubiso_psql_tbl, \
+                TblIsolateSubmissionFieldOrder(self._species) as isolates_isosubfo_psql_tbl:
 
-        with TblSubmissions(self.species) as isolates_sub_psql_tbl, \
-                TblIsolateSubmissionIsolates(self.species) as isolates_isosubiso_psql_tbl, \
-                TblIsolateSubmissionFieldOrder(self.species) as isolates_isosubfo_psql_tbl:
-
-            isolate_id = mappingtable_collection.find_one({'pseudo_id': sample_doc['_id']})['_id']
-            isolates_sub_psql_tbl.insert_submission((self.sample_type,))
-            report_url = UrlHelper.report_for_validation(self.species, sample_doc['_id'],
-                                                         sample_doc['latest_analysis_date'], self.sample_type)
+            isolates_sub_psql_tbl.insert_submission((self._sample_type,))
+            report_url = UrlHelper.report_for_validation(self._species, sample_doc['_id'],
+                                                         sample_doc['latest_analysis_date'], self._sample_type)
             report_link = f'<a href="{report_url}" target = "_blank"> report </a>'
 
             isolates_isosubiso_psql_tbl.insert_validation_metadata(('html_report', report_link))
-            isolates_isosubiso_psql_tbl.insert_validation_metadata(('isolate_id', isolate_id))
-            isolates_isosubiso_psql_tbl.insert_validation_metadata(('validation_type', self.sample_type))
+            isolates_isosubiso_psql_tbl.insert_validation_metadata(('isolate_id', self._isolate_id))
+            isolates_isosubiso_psql_tbl.insert_validation_metadata(('validation_type', self._sample_type))
             # The indexes below are necessary, if they are not inserted the values above are not visible
             isolates_isosubfo_psql_tbl.insert_validation_indexes(('html_report', 1))
             isolates_isosubfo_psql_tbl.insert_validation_indexes(('isolate_id', 2))
