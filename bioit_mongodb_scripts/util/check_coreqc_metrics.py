@@ -53,6 +53,8 @@ class CheckCoreQCMetrics:
         does not surpass any warning threshold) + if a rejected_document has been generated (rejection_reasons > 0),
         then the function returns this document as the second output
         """
+        self._replace_category_if_necessary()
+
         for metric, metric_info in self._sample_coreqc_metrics.items():
             self._evaluate_core_qc_metric(metric_info, metric)
 
@@ -60,6 +62,17 @@ class CheckCoreQCMetrics:
             self._rejected_document = self._generate_rejected_document()
 
         return self._good_sample_quality, self._rejected_document
+
+    def _replace_category_if_necessary(self) -> None:
+        """
+        Replaces values in the category name in place in self._sample_coreqc_metrics with values found in the
+        json_report if required.
+        :return: None
+        """
+        for metric, metric_info in self._sample_coreqc_metrics.items():
+            if metric_info.get('category_to_replace'):
+                for key, value in metric_info['category_to_replace'].items():
+                    metric_info['category'] = metric_info['category'].replace(key, self._json_report[value])
 
     def _evaluate_core_qc_metric(self, metric_info: dict[str, Any], core_qc_metric: str) -> None:
         """
@@ -79,19 +92,15 @@ class CheckCoreQCMetrics:
         :return: qc_value as float
         """
         if metric_info.get('field'):
-            category = metric_info['category']
-            if metric_info.get('category_to_replace'):
-                for key, value in metric_info['category_to_replace'].items():
-                    category = category.replace(key, self._json_report[value])
             field = metric_info['field']
             if metric_info.get('field_to_replace'):
                 for key, value in metric_info['field_to_replace'].items():
                     field = field.replace(key, self._json_report[value])
             if not metric_info.get('value_format_to_strip'):
-                qc_value = float(self._json_report[category][field])
+                qc_value = float(self._json_report[metric_info['category']][field])
             else:
                 qc_value = float(
-                    self._json_report[category][field].rstrip(metric_info['value_format_to_strip']))
+                    self._json_report[metric_info['category']][field].rstrip(metric_info['value_format_to_strip']))
         else:  # metric_info.get('fields'):
             if not metric_info.get('value_format_to_strip'):
                 qc_value = sum(
@@ -170,9 +179,9 @@ class CheckCoreQCMetrics:
             "rejection_reasons": self._rejection_reasons,
             "creation_date": datetime.now(timezone.utc),
             "insertion_type": 'automatic'}
-        # Quality control metrics are spread in 3 sections: quast, quality_checks and preprocess. We decided to
+        # Quality control metrics are spread over multiple sections. We decided to
         # keep track of all quality sections for potential post hoc analyses.
-        quality_sections = set(metric_info['category'] for metric_info in self._sample_coreqc_metrics.values())
+        quality_sections = set(metric_info['category'] for metric_info in self._sample_coreqc_metrics.values() if not metric_info.get('category_to_replace'))
         for quality_section in quality_sections:
             document_to_be_inserted[quality_section] = self._json_report[quality_section]
 

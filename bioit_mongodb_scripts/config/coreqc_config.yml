@@ -38,7 +38,7 @@ metrics:
     available_for_fasta_input: false
     parameter_name: Average GC deviation
   average_gc_deviation_ont:  # e.g. qc_fqc_gc_fwd_value: '1.5%'
-    threshold_direction: lower
+    threshold_direction: higher
     category: quality_checks
     field: qc_seqkit_gc_value
     value_format_to_strip: "%"
@@ -299,7 +299,7 @@ species:
       threshold_warn: 3.0
       threshold_fail: 5.0
     coverage_10x:
-      threshold_warn: 80.0
+      threshold_warn: 95.0
       threshold_fail: 90.0
     duplication_rate:
       threshold_warn: 0.3
