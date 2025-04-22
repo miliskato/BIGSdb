@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - MOB-Suite
 - gMATS
 - MenDeVar
+- Azure service bus to handle the insertion of isolates in BIGSdb
+- Service "bigsdb-insertion.service" to replace the cron job mongo_to_bigs_hourly
 
 ### Changed
 - All Jammy existing assays to bigsdb for neisseria listeria salmonella mycobacterium influenza.
@@ -29,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - PointFinder, ResFinder, NCBI AMR, PlasmidFinder
 - Ability to support stec species
 - Ability to recompute gene_detection (removal, recalculation and reinsertion of alleles designations disabled)
+- cron job to target insertion from MongoDB Atlas to BIGSdb
 
 ## [2.1.1 - support/2.1.0]
 ### Changed:
