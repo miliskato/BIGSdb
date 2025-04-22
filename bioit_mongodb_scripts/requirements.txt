@@ -17,9 +17,10 @@ azure-core==1.32.0
     #   azure-keyvault-keys
     #   azure-keyvault-secrets
     #   azure-monitor-ingestion
+    #   azure-servicebus
     #   azure-storage-blob
     #   msrest
-azure-identity==1.19.0
+azure-identity==1.21.0
     # via -r requirements.in
 azure-keyvault==4.2.0
     # via -r requirements.in
@@ -31,14 +32,16 @@ azure-keyvault-secrets==4.9.0
     # via azure-keyvault
 azure-monitor-ingestion==1.0.4
     # via -r requirements.in
-azure-servicebus==7.14.0
+azure-servicebus==7.14.1
 azure-storage-blob==12.24.0
     # via -r requirements.in
-beautifulsoup4==4.12.3
+azure-storage-blob==12.25.0
     # via -r requirements.in
-biopython==1.84
+beautifulsoup4==4.13.3
     # via -r requirements.in
-certifi==2024.12.14
+biopython==1.85
+    # via -r requirements.in
+certifi==2025.1.31
     # via
     #   msrest
     #   requests
@@ -46,7 +49,7 @@ cffi==1.17.1
     # via cryptography
 charset-normalizer==3.4.1
     # via requests
-cryptography==44.0.0
+cryptography==44.0.2
     # via
     #   adal
     #   azure-identity
@@ -70,13 +73,14 @@ isodate==0.7.2
     #   azure-keyvault-keys
     #   azure-keyvault-secrets
     #   azure-monitor-ingestion
+    #   azure-servicebus
     #   azure-storage-blob
     #   msrest
-llvmlite==0.43.0
+llvmlite==0.44.0
     # via numba
-lxml==5.3.0
+lxml==5.3.1
     # via -r requirements.in
-msal==1.31.1
+msal==1.32.0
     # via
     #   azure-identity
     #   msal-extensions
@@ -86,9 +90,9 @@ msrest==0.7.1
     # via msrestazure
 msrestazure==0.6.4.post1
     # via azure-batch
-numba==0.60.0
+numba==0.61.0
     # via -r requirements.in
-numpy==2.0.2
+numpy==2.1.3
     # via
     #   -r requirements.in
     #   biopython
@@ -106,7 +110,7 @@ pyjwt[crypto]==2.10.1
     #   adal
     #   msal
     #   pyjwt
-pymongo==4.10.1
+pymongo==4.11.2
     # via -r requirements.in
 python-dateutil==2.9.0.post0
     # via adal
@@ -121,9 +125,8 @@ requests==2.32.3
     #   requests-oauthlib
 requests-oauthlib==2.0.0
     # via msrest
-scipy==1.13.1
+scipy==1.15.2
     # via -r requirements.in
-    # Adapted from 1.15.1 to 1.13.1 as 1.15.1 was not available (cloud)
 six==1.17.0
     # via
     #   azure-core
@@ -143,6 +146,8 @@ typing-extensions==4.12.2
     #   azure-keyvault-keys
     #   azure-keyvault-secrets
     #   azure-monitor-ingestion
+    #   azure-servicebus
     #   azure-storage-blob
+    #   beautifulsoup4
 urllib3==2.3.0
     # via requests

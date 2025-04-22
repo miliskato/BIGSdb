@@ -31,7 +31,7 @@ class DatabaseConnection:
         # Read the global config
         bigsdb_config_data = get_bigsdb_config_data()
 
-        database = "bigsdb_jobs" if self._db_type == 'jobs' else f"bigsdb_{species}_{self._db_type}";
+        database = "bigsdb_jobs" if self._db_type == 'jobs' else f"bigsdb_{species}_{self._db_type}"
 
         try:
             self.connection: psycopg2.extensions.connection = \
