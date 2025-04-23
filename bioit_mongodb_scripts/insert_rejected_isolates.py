@@ -3,8 +3,8 @@
 import argparse
 
 from bioit_mongodb_scripts.rejected_isolate import RejectedIsolate
+from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
-from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data
 
 
 def parse_arguments(specieslist: list[str]) -> argparse.Namespace:
@@ -20,15 +20,11 @@ def parse_arguments(specieslist: list[str]) -> argparse.Namespace:
 
 if __name__ == '__main__':
     # TODO this script should be replaced by the AzureServiceBus
-    mongo_config_data = get_mongodb_config_data()
-    args = parse_arguments(mongo_config_data['species'])
+    mongo_config_provider = MongoConfigProvider()
+    args = parse_arguments(mongo_config_provider.get_all_species())
     species = args.species
-    mongoinit = MongoInitialisation(
-        species,
-        mongo_config_data=mongo_config_data,
-        alternate_dtap=mongo_config_data.get('dtap'),
-        selected_connection_string='CONNECTION_STRING_AZURE'
-    )
+    mongoinit = MongoInitialisation(species, mongo_config_provider.get_azure_connection_string(species), mongo_config_provider.dtap)
+
     rejected_isolates_collection = mongoinit.initialise_isolates_rejected_coreqc_collection()
     rejected_isolate_documents = rejected_isolates_collection.find({'inserted_in_bigsdb': {'$exists': False}})
     for rejected_isolate_document in rejected_isolate_documents:

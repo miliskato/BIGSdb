@@ -7,10 +7,10 @@ from typing import List, Tuple
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
-from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data, send_email
+from bioit_bigsdb_scripts.components.python_utility_functions import send_email
 from bioit_bigsdb_scripts.components.psql.databaseconnection import DatabaseConnection
+from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
-from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data
 
 
 def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
@@ -50,19 +50,14 @@ class TblSubmissionslocal(DatabaseConnection):
 if __name__ == '__main__':
 
     # Parse config
-    mongo_config_data = get_mongodb_config_data()
-    bigsdb_config_data = get_bigsdb_config_data()
+    mongo_config_provider = MongoConfigProvider()
     # Parse arguments
-    args = parse_arguments(list(bigsdb_config_data['species_json']))
+    args = parse_arguments(mongo_config_provider.get_all_species())
 
     # Open collections
-    mongoinit = MongoInitialisation(args.species,
-                                    selected_connection_string='CONNECTION_STRING_AZURE',
-                                    mongo_config_data=mongo_config_data)
+    mongoinit = MongoInitialisation(args.species, mongo_config_provider.get_azure_connection_string(args.species), mongo_config_provider.dtap)
     _, _, isolates_badqc_collection, _ = mongoinit.initialise_collections()
-    mongoinit_local = MongoInitialisation(args.species,
-                                          selected_connection_string='CONNECTION_STRING_LOCAL',
-                                          mongo_config_data=mongo_config_data)
+    mongoinit_local = MongoInitialisation(args.species, mongo_config_provider.get_local_connection_string(args.species), mongo_config_provider.dtap)
     mappingtable_collection = mongoinit_local.initialise_mapping_table_collection()
     all_badqc = isolates_badqc_collection.find({}, {'id': 1})
     list_badqc = list(all_badqc)

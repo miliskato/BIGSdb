@@ -1,7 +1,8 @@
 CONNECTION_STRING_ALTERNATE: mongodb+srv://mikelchtermans:YMFOH4BLF1U79dDk@hera-bioit-trial.vajezh0.mongodb.net
 CONNECTION_STRING_AZURE: to_be_replaced_by_ansible
-CONNECTION_STRING_LOCAL: to_be_replaced_by_ansible
+CONNECTION_STRING_LOCAL: 'bioit-mongo-d01.sciensano.be:27017,bioit-mongo-d02.sciensano.be:27017,bioit-mongo-d03.sciensano.be:27017/?authSource='
 CONNECTION_STRING_ASB: to_be_replaced_by_ansible
+MONGO_DB_PASSWORD: to_be_replaced_by_ansible
 
 mail:
     from: MongoDB internal HERA
@@ -24,23 +25,6 @@ viral_species:
     - sars_cov_2
 
 dtap: to_be_replaced_by_ansible
-
-collections:
-    - isolates
-    - old_isolate_results
-    - isolates_badqc
-    - sequence_types
-    - new_allele_hashes
-    - cluster_membership
-    - cluster_merging
-    - update_metadata
-    - isolates_resequencing
-    - headers
-    - mapping_table
-    - nominative_labtest_clinical_metadata
-    - unprocessed_nominative_labtest_metadata
-    - unprocessed_nominative_clinical_metadata
-    - isolates_rejected_coreqc
 
 schemes_sequence_typing:
     - mlst
