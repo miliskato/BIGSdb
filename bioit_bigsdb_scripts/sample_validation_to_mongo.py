@@ -62,7 +62,7 @@ class SampleValidationToMongo:
         self._isolates_collection, _, self._isolates_badqc_collection, self._isolates_resequencing_collection, \
             self._isolates_goodqc_collection = self._mongoinit.initialise_collections()
 
-        #open local mongo instance to get the mapping
+        # open local mongo instance to get the mapping
         self._mongoinit_local = MongoInitialisation(self._species, selected_connection_string='CONNECTION_STRING_LOCAL')
         self._mapping_collection = self._mongoinit_local.initialise_mapping_table_collection()
 
@@ -110,7 +110,8 @@ class SampleValidationToMongo:
                 else:
                     collection = self._isolates_goodqc_collection if validation_type == 'good_quality' else \
                         self._isolates_badqc_collection if validation_type == 'bad_quality' else self._isolates_resequencing_collection
-                    self.__handle_bad_outcome(collection, isolatename, pseudo_id, validation_dict)
+                    self.__export_json_results(collection, isolatename, pseudo_id, 'rejected')
+                    self.__remove_id_from_document_to_be_unique_again_if_bad(collection, pseudo_id, validation_dict)
 
     @staticmethod
     def __get_results_type(validation_type: str) -> str:
@@ -129,18 +130,6 @@ class SampleValidationToMongo:
             results_type = '?'  # in order to not have issue 'variable referenced before assignment' and in order to leave possibility open
         return results_type
 
-    def __handle_bad_outcome(self, collection: Collection, isolatename: str, pseudo_id: str, validation_dict: dict) -> None:
-        """
-        Handles the isolates that are validated negatively.
-        :param collection: Collection in MongoDB where isolate is stored
-        :param isolatename: Name of the isolate
-        :param pseudo_id: Pseudo ID
-        :param validation_dict: dictionary containing the validation metadata
-        :return: None
-        """
-        self.__export_json_results(collection, isolatename, pseudo_id, 'rejected')
-        self.__remove_id_from_document_to_be_unique_again_if_bad(self._isolates_goodqc_collection, pseudo_id,
-                                                                 validation_dict)
 
     @staticmethod
     def __remove_id_from_document_to_be_unique_again_if_bad(collection_in: Collection,
