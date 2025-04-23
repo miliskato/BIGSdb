@@ -3662,8 +3662,8 @@ sub _check_storage_report_dir {
     my ($self) = @_;
     my $usage_percentage = $self->_get_storage_report_dir;
     my $disk_full = 0;
-    if ($usage_percentage > 98) {
-        say q(<p class="warning" style="padding: 10px 0 10px 10px;">More than 98% of the disk is used. Isolates can not be accepted/rejected anymore until some JSON reports are removed from the /output_reports directory.);
+    if ($usage_percentage >= 99) {
+        say q(<p class="warning" style="padding: 10px 0 10px 10px;">More than 99% of the disk is used. Isolates can not be accepted/rejected anymore until some JSON reports are removed from the /output_reports directory.);
         $disk_full = 1;
     } elsif ($usage_percentage > 90) {
         say q(<p class="warning" style="padding: 10px 0 10px 10px;">More than 90% of the disk is used. Remove JSON reports from the /output_reports directory before accepting/rejecting other isolates.);
