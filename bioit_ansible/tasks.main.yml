@@ -36,6 +36,8 @@
       - stec
       - salmonella
       - influenza
+      - enterococcus_faecalis
+      - enterococcus_faecium
   fail:
     msg: "unsupported species requested, choose from {{ specieslist }}"
   when: species not in specieslist

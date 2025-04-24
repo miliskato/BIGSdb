@@ -4,8 +4,8 @@ from typing import Tuple
 
 from bioit_bigsdb_scripts.components.psql.psql_tbl_rejected_isolates import TblRejectedIsolates
 from bioit_bigsdb_scripts.utils.url_helper import UrlHelper
+from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
-from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data
 
 
 class RejectedIsolate:
@@ -25,22 +25,14 @@ class RejectedIsolate:
 
         self._species = species
         self._pseudo_id = pseudo_id
-        self._mongo_config_data = get_mongodb_config_data()
+        mongo_config_provider = MongoConfigProvider()
 
         # Open collection Atlas MongoDB
-        self._mongoinit = MongoInitialisation(
-            self._species,
-            mongo_config_data=self._mongo_config_data,
-            selected_connection_string='CONNECTION_STRING_AZURE'
-        )
+        self._mongoinit = MongoInitialisation(self._species,mongo_config_provider.get_azure_connection_string(self._species),mongo_config_provider.dtap)
         self._rejected_isolates_collection = self._mongoinit.initialise_isolates_rejected_coreqc_collection()
 
         # Open collection local MongoDB
-        self._mongoinit_local = MongoInitialisation(
-            self._species,
-            mongo_config_data=self._mongo_config_data,
-            selected_connection_string='CONNECTION_STRING_LOCAL'
-        )
+        self._mongoinit_local = MongoInitialisation(self._species,mongo_config_provider.get_local_connection_string(self._species),mongo_config_provider.dtap)
         self._mappingtable_collection = self._mongoinit_local.initialise_mapping_table_collection()
 
         # Open BIGSdb rejected_isolates table

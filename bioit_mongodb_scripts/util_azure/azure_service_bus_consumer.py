@@ -13,8 +13,9 @@ from bioit_bigsdb_scripts.components.psql import TblFailedInsertions
 from bioit_mongodb_scripts.mongo_to_bigs import MongoToBigs
 from bioit_mongodb_scripts.update_bigsdb_seqdef import UpdateBIGSdbSeqDef
 from bioit_mongodb_scripts.util.error import BadCollectionError, IsolateNotFoundException
+from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
-from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email
+from bioit_mongodb_scripts.util.python_utility_functions import send_email
 from bioit_mongodb_scripts.util.sample_to_validation_bigs import SampleToValidationBigs
 from bioit_mongodb_scripts.util_azure.azure_service_bus import AzureServiceBus
 from bioit_mongodb_scripts.util_azure.azure_service_bus_message import AzureServiceBusMessage
@@ -65,18 +66,18 @@ class MessageConsumerDataInserter(AzureServiceBus):
     Checks for messages in Azure service bus and inserts pending isolates in BIGSdb
     """
 
-    def __init__(self, ct: Cancellation, species: str, mongo_config_data_arg: dict[str, Any],
+    def __init__(self, ct: Cancellation, species: str, mongo_config_provider: MongoConfigProvider,
                  uploader_mail_address: str) -> None:
         """
         Method to initialize the class
         :param ct: Cancellation status: need to exit gracefully if something happens on the VM
         :param species: Species name
-        :param mongo_config_data_arg: Mongo configuration data
+        :param mongo_config_provider: the mongodb configuration provider
         :param uploader_mail_address: email address of the uploader
         :return: None
         """
 
-        super().__init__(mongo_config_data_arg, species)
+        super().__init__(mongo_config_provider, species)
         self._ct = ct
         self._uploader_mail_address = uploader_mail_address
 
@@ -149,7 +150,7 @@ class MessageConsumerDataInserter(AzureServiceBus):
         :return: True if the insertion leads to some changes in BIGSdb else False
         """
         if collection_name == 'isolates_badqc':
-            SampleToValidationBigs(self._species, isolate_id, mongo_config_data=self._mongo_config_data)
+            SampleToValidationBigs(self._species, isolate_id, self._mongo_config_provider)
             return False
         elif collection_name == 'isolates':
             return self.__mongo_to_bigs_insertion(isolate_id)
@@ -212,8 +213,7 @@ class MessageConsumerDataInserter(AzureServiceBus):
         :param species: the species name
 
         """
-        mongo_init_local = MongoInitialisation(species, mongo_config_data=self._mongo_config_data,
-                                               selected_connection_string='CONNECTION_STRING_LOCAL')
+        mongo_init_local = MongoInitialisation(species, self._mongo_config_provider.get_local_connection_string(species), self._mongo_config_provider.dtap)
         try:
             mongo_init_local.client.admin.command('ping')
         except ConnectionFailure:
@@ -253,17 +253,17 @@ def handling_retry_outcome(retry_state: RetryCallState) -> None:
 
 
 @retry(wait=wait_exponential(multiplier=1, min=2, max=600), after=handling_retry_outcome)
-def run_application(ct: Cancellation, species: str, mongo_config_data_arg: dict[str, Any], uploader_mail_address: str) -> None:
+def run_application(ct: Cancellation, species: str, mongo_config_provider: MongoConfigProvider, uploader_mail_address: str) -> None:
     """
     a decorator function to try again on Exception before stopping execution, retry after 2,2,4,8... seconds with max of 10 minutes between two attempts.
     There is no condition to stop running the service
     :param ct: a Cancellation object
     :param species: the species name
-    :param mongo_config_data_arg: the mongo_config_data
+    :param mongo_config_provider: the mongo config provider
     :param uploader_mail_address: the mail address
     :return: None
     """
-    data_inserter = MessageConsumerDataInserter(ct, species, mongo_config_data_arg, uploader_mail_address)
+    data_inserter = MessageConsumerDataInserter(ct, species, mongo_config_provider, uploader_mail_address)
     data_inserter.execute()
 
 
@@ -276,12 +276,12 @@ if __name__ == '__main__':
     signal.signal(signal.SIGTERM, handle_shutdown)
 
     # Parse Mongo config
-    mongo_config_data = get_mongodb_config_data()
+    mongo_config_provider = MongoConfigProvider()
 
     # Parse arguments
-    args = parse_arguments(mongo_config_data['species'])
+    args = parse_arguments(mongo_config_provider.get_all_species())
 
     try:
-        run_application(cancel_token, args.species, mongo_config_data, args.uploader_mail_address)
+        run_application(cancel_token, args.species, mongo_config_provider, args.uploader_mail_address)
     except (SystemExit, KeyboardInterrupt):
         pass

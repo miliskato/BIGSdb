@@ -5,8 +5,8 @@ from bioit_bigsdb_scripts.Typing_loci_intopsql import TypingLociIntoPsql
 from bioit_bigsdb_scripts.Typing_schemeprofiles_intopsql import TypingSchemeProfilesIntoPsql
 from bioit_bigsdb_scripts.components.psql import TblAlleleDesignations
 from bioit_bigsdb_scripts.genedetection_intopsql import GeneDetectionIntoPsql
+from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
-from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data
 
 
 class UpdateBIGSdbSeqDef:
@@ -19,10 +19,9 @@ class UpdateBIGSdbSeqDef:
         intializes the connection to mongodb AZURE collections "update_metadata" and "new_allele_hashes"
         :param species: species name
         """
-        self._mongo_config_data = get_mongodb_config_data()
+        self._mongo_config_provider = MongoConfigProvider()
         self._species = species
-        mongoinit_azure = MongoInitialisation(self._species, mongo_config_data=self._mongo_config_data,
-                                              selected_connection_string='CONNECTION_STRING_AZURE')
+        mongoinit_azure = MongoInitialisation(self._species, self._mongo_config_provider.get_azure_connection_string(species), self._mongo_config_provider.dtap)
         self._update_metadata_collection = mongoinit_azure.initialise_update_collection()
         self._hashed_ad_collection = mongoinit_azure.initialise_hashing_collection()
 
@@ -41,7 +40,7 @@ class UpdateBIGSdbSeqDef:
             TypingLociIntoPsql([self._species], dont_send_email=True)
             TypingAllelesIntoPsql([self._species], dont_send_email=True)
             TypingSchemeProfilesIntoPsql([self._species], dont_send_email=True)
-            GeneDetectionIntoPsql(self._species, do_not_recalculate=True, dont_send_email=True).insert_schemes()
+            GeneDetectionIntoPsql(self._species, dont_send_email=True).insert_schemes()
             # update last insertion date
             self._update_metadata_collection.update_one({'metadata': 'last_dbupdate_insertion_date'},
                                                         {'$set': {'last_update_date': datetime.datetime.now(
@@ -54,7 +53,7 @@ class UpdateBIGSdbSeqDef:
         :return: None
         """
         documents_list = [document for document in self._hashed_ad_collection.find(
-            {'scheme': {'$in': self._mongo_config_data['schemes_sequence_typing']},
+            {'scheme': {'$in': self._mongo_config_provider.get_schemes_sequence_typing()},
              'resolved_AD': {'$ne': 0}, 'replaced_in_bigs_date': {'$exists': False}})]
 
         with TblAlleleDesignations(self._species) as isolates_ad_psql_tbl:

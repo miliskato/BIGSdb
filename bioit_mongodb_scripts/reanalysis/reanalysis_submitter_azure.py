@@ -7,7 +7,7 @@ import subprocess
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, Final, List
+from typing import Any, Dict, Final, List, Literal
 
 import azure.batch as batch
 import azure.batch.models as batchmodels
@@ -17,6 +17,7 @@ from azure.batch.models import (VirtualMachineConfiguration, BatchErrorException
                                 NetworkConfiguration, OutputFile, OutputFileDestination, OutputFileUploadOptions,
                                 OutputFileBlobContainerDestination)
 
+from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 from bioit_mongodb_scripts.util_azure.connect_azure import ConnectAzure
 
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
@@ -25,7 +26,7 @@ sys.path.append(str(PYTHONPATH))
 from bioit_mongodb_scripts.reanalysis import MONGO_REANALYSIS_CONFIG
 from bioit_mongodb_scripts.reanalysis.reanalysis_triggers import TRIGGER_CONFIG
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
-from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, is_viral, load_config
+from bioit_mongodb_scripts.util.python_utility_functions import is_viral, load_config
 
 BATCH_POOL_NAME: Final[str] = 'analysis_pool_jammy'
 BATCH_JOB_NAME_PREFIX: Final[str] = 'reanalysis_tasks_jammy_'
@@ -72,7 +73,7 @@ class BatchPipelinesReanalysis:
     Therefore for this system we will work with a single pool, containing a single job per pathogen with all tasks
     The class is auto-executable.
     """
-    def __init__(self, species: str, dtap: str) -> None:
+    def __init__(self, species: str, dtap: Literal['dev', 'test', 'acc', 'prod']) -> None:
         """
         Initialises the class and runs the main function.
         :param species: commonly used bioit species name: either genus or specific like stec
@@ -81,10 +82,10 @@ class BatchPipelinesReanalysis:
         """
         self._species = species
         self._species_mongodb = self._species if self._species not in ['influenza_a', 'influenza_b'] else 'influenza'
-        self._dtap = dtap
 
         # Parse MongoDB config
-        self._mongo_config_data = get_mongodb_config_data()
+        self._mongo_config_provider = MongoConfigProvider(dtap)
+        self._dtap = dtap
 
         # Read the reanalysis config
         self._reanalysis_config = load_config(MONGO_REANALYSIS_CONFIG)
@@ -93,7 +94,7 @@ class BatchPipelinesReanalysis:
         self._trigger_config = load_config(TRIGGER_CONFIG)
 
         # Connect to keyvault, batch account and storages
-        self._connection_azure = ConnectAzure(self._dtap)
+        self._connection_azure = ConnectAzure(self._mongo_config_provider.dtap)
         self._batch_client = self._connection_azure.connect_to_batch_client()
         self._blob_service_client_input = self._connection_azure.connect_to_storages()
         self._batch_pipelines()
@@ -288,9 +289,7 @@ class BatchPipelinesReanalysis:
         :return: None
         """
         # Retrieve isolates that need to be re-analyzed
-        mongoinit = MongoInitialisation(self._species_mongodb,
-                                        selected_connection_string='CONNECTION_STRING_AZURE',
-                                        alternate_dtap=self._dtap)
+        mongoinit = MongoInitialisation(self._species_mongodb,self._mongo_config_provider.get_azure_connection_string(self._species_mongodb), self._mongo_config_provider.dtap)
         latest_update_date = ''
         for nextclade_dir in self._trigger_config['viral'][self._species]['dirsdb']:
             last_dir_update_date = self.___get_scheme_last_update(nextclade_dir)
@@ -405,7 +404,7 @@ class BatchPipelinesReanalysis:
             f"{config_species['main_script']} ",
             f"--input-type {input_type} "
             f"--fasta {mongodb_document['fasta_path']} ",
-            '--detection-method blast' if self._species_mongodb not in self._mongo_config_data['viral_species'] else '',
+            '--detection-method blast' if not is_viral(self._species_mongodb) else '',
             f'--working-dir {working_dir}',
             f'--output-dir {report_dir}',
             f"--output-html {report_dir}/report.html",
@@ -451,7 +450,7 @@ class BatchPipelinesReanalysis:
             "--pipeline_hash $pipeline_hash",
             f"--jsonfilepath {results_dir}/report.json",
             "--dont_send_email",
-            f"--alternate_dtap {self._dtap}",
+            f"--alternate_dtap {self._mongo_config_provider}",
             f"--connection_string 'CONNECTION_STRING_AZURE'"
         ])
         task_command = (f'/bin/bash -c "{pre_command}; {trap_command}; {base_command}; {unload_command}; '

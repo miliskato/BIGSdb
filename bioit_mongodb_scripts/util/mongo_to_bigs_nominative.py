@@ -4,14 +4,16 @@ import socket
 import sys
 import traceback
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import List
+
+from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
 from bioit_bigsdb_scripts.components.psql import TblIsolates
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
-from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email
+from bioit_mongodb_scripts.util.python_utility_functions import send_email
 
 
 def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
@@ -31,11 +33,11 @@ class MongoToBigsNominative:
     If the current host is a bigsdb host, inserts all nominative metadata for all samples in the bigsdb database that
     do not have their nominative metadata inserted yet.
     """
-    def __init__(self, species: str, mongo_config_data: Dict[str, Any] = None, dont_send_email: bool = False) -> None:
+    def __init__(self, species: str, mongo_config_provider: MongoConfigProvider, dont_send_email: bool = False) -> None:
         """
         Initializes this class and executes the main function
         :param species: commonly used bioit species name: either genus or specific like stec
-        :param mongo_config_data: Use provided mongo_config_data, else get mongo_config_data from file
+        :param mongo_config_provider: the mongodb provider.
         :param dont_send_email: do not send emails, only log
         :return: None
         """
@@ -45,12 +47,8 @@ class MongoToBigsNominative:
         self._species = species
         self._dont_send_email = dont_send_email
 
-        # Parse MongoDB config
-        self._mongo_config_data = mongo_config_data if mongo_config_data else get_mongodb_config_data()
-
         # Open collections local MongoDB
-        self._mongoinit_local = MongoInitialisation(self._species, mongo_config_data=self._mongo_config_data,
-                                                    selected_connection_string='CONNECTION_STRING_LOCAL')
+        self._mongoinit_local = MongoInitialisation(self._species, mongo_config_provider.get_local_connection_string(self._species), mongo_config_provider.dtap)
         self._nominative_labtest_clinical_metadata_collection = self._mongoinit_local.initialise_nominative_labtest_clinical_metadata_collection()
         self._mappingtable_collection = self._mongoinit_local.initialise_mapping_table_collection()
 
@@ -98,10 +96,10 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
     # Parse Mongo config
-    mongo_config_data = get_mongodb_config_data()
+    mongo_config_provider = MongoConfigProvider()
 
     # Parse arguments
-    args = parse_arguments(mongo_config_data['species'])
+    args = parse_arguments(mongo_config_provider.get_all_species())
 
     # run main
-    MongoToBigsNominative(args.species)
+    MongoToBigsNominative(args.species, mongo_config_provider)

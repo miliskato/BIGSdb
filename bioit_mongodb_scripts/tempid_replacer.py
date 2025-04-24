@@ -14,12 +14,14 @@ from pymongo.collection import Collection
 from pymongo.read_concern import ReadConcern
 from pymongo.write_concern import WriteConcern
 
+from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
+
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
 from bioit_bigsdb_scripts.components.psql import TblAlleleDesignations
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
-from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email
+from bioit_mongodb_scripts.util.python_utility_functions import send_email
 
 
 def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
@@ -53,15 +55,11 @@ class TempidReplacer:
         self._scheme = scheme
         self._species = species
         self._connection_string = connection_string
-        self._alternate_dtap = alternate_dtap
 
         # parse config data
-        self._mongo_config_data = get_mongodb_config_data()
+        mongo_config_provider = MongoConfigProvider(alternate_dtap)
         # Open collections
-        self._mongoinit = MongoInitialisation(self._species,
-                                              selected_connection_string=self._connection_string,
-                                              alternate_dtap=self._alternate_dtap,
-                                              mongo_config_data=self._mongo_config_data)
+        self._mongoinit = MongoInitialisation(self._species, self._connection_string, mongo_config_provider.dtap)
         self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, self._isolates_resequencing_collection = self._mongoinit.initialise_collections()
         self._hashed_ad_collection = self._mongoinit.initialise_hashing_collection()
         self._st_collection, self._cluster_membership_collection, self._cluster_merging_collection = self._mongoinit.initialise_clustering_collections()
@@ -247,10 +245,17 @@ class TempidReplacer:
 
 if __name__ == '__main__':
     # Parse config
-    mongo_config_data = get_mongodb_config_data()
+    # Parse config
+    mongo_config_provider = MongoConfigProvider()
 
     # Parse arguments
-    args = parse_arguments(mongo_config_data['species'])
+    args = parse_arguments(mongo_config_provider.get_all_species())
 
-    # run main
+    connection_string = mongo_config_provider.get_azure_connection_string(args.species)
+    if args.connection_string == 'CONNECTION_STRING_ALTERNATE':
+        connection_string = mongo_config_provider.get_alternate_connection_string()
+    elif args.connection_string == 'CONNECTION_STRING_LOCAL':
+        connection_string = mongo_config_provider.get_local_connection_string(args.species)
+
+    #run main
     TempidReplacer(args.scheme, args.species, connection_string=args.connection_string)
