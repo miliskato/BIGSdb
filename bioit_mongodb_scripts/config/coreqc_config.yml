@@ -277,7 +277,7 @@ species:
       threshold_warn: 3.0
       threshold_fail: 5.0
     coverage_10x:
-      threshold_warn: 80.0
+      threshold_warn: 95.0
       threshold_fail: 90.0
     duplication_rate:
       threshold_warn: 0.3
