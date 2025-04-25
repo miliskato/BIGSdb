@@ -43,7 +43,7 @@ def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
 class SampleValidationToMongo:
     """
     This class is used to send validation metadata from Bigsdb to MongoDB and move samples
-    from the resequencing or badqc collection to the isolates collection.
+    from the goodqc, resequencing or warningqc collection to the isolates collection.
     """
     def __init__(self, species: str, sub_id: int) -> None:
         """
@@ -59,7 +59,7 @@ class SampleValidationToMongo:
 
         # Open collections
         self._mongoinit = MongoInitialisation(self._species, selected_connection_string='CONNECTION_STRING_AZURE')
-        self._isolates_collection, _, self._isolates_badqc_collection, self._isolates_resequencing_collection, \
+        self._isolates_collection, _, self._isolates_warningqc_collection, self._isolates_resequencing_collection, \
             self._isolates_goodqc_collection = self._mongoinit.initialise_collections()
 
         # open local mongo instance to get the mapping
@@ -83,7 +83,7 @@ class SampleValidationToMongo:
         add the date of validation (which can't be passed through the json as the date object is not serializable).
         In addition, path to fasta and vcffile are also added.
         If the outcome is bad, the date is added to the dict of the validation outcome and this dict is saved into the
-        results of the badqc_isolates or goodqc_isolates
+        results of the warningqc_isolates or goodqc_isolates
         :return: None
         """
         # Connect to db and create cursor
@@ -94,38 +94,40 @@ class SampleValidationToMongo:
                 isolatename: str = query[0][1]
                 outcome: str = query[0][2]
                 curator_mailadress: str = query[0][3]
-                validation_type: str = query[0][4]
-                results_type = self.__get_results_type(validation_type)  # goodqc_validated, badqc_validated or resequencing_validated
+                quality: str = query[0][4]
+                resequencing: bool = query[0][5]
+                results_type = self.__get_results_type(quality, resequencing)  # goodqc_validated, warningqc_validated or resequencing_validated
                 pseudo_id = self._mapping_collection.find_one({"_id": isolatename})['pseudo_id']
-                # GO into MongoDB so type in Mongo might be either badqc or resequencing
+                # GO into MongoDB so type in Mongo might be either warningqc or resequencing
                 validation_dict = {
                     'outcome': outcome,
                     'curator': curator_mailadress,
                     'type': results_type.split('_')[0],
                     'date': datetime.datetime.now(datetime.timezone.utc).strftime('%d/%m/%Y - %X')
                 }
-                if outcome == 'good' and (validation_type == 'good_quality' or validation_type == 'bad_quality' or validation_type == 'resequencing'):
+                if outcome == 'good' and (results_type == 'goodqc_validated' or results_type == 'warningqc_validated' or results_type == 'resequencing_validated'):
                     MainMongo(pseudo_id, self._species, results_type, subvaldict=validation_dict, connection_string='CONNECTION_STRING_AZURE')
                     self.__export_json_results(self._isolates_collection, isolatename, pseudo_id, 'accepted')
                 else:
-                    collection = self._isolates_goodqc_collection if validation_type == 'good_quality' else \
-                        self._isolates_badqc_collection if validation_type == 'bad_quality' else self._isolates_resequencing_collection
+                    collection = self._isolates_resequencing_collection if resequencing == 'yes' else \
+                        self._isolates_warningqc_collection if quality == 'warning' else self._isolates_goodqc_collection
                     self.__export_json_results(collection, isolatename, pseudo_id, 'rejected')
                     self.__remove_id_from_document_to_be_unique_again_if_bad(collection, pseudo_id, validation_dict)
 
     @staticmethod
-    def __get_results_type(validation_type: str) -> str:
+    def __get_results_type(quality: str, resequencing: bool) -> str:
         """
         Gets the corresponding results_type in MongoDB with the given validation_type from BIGSdb.
-        :param validation_type: Bigsdb validation type: good_quality, bad_quality or resequencing
-        :return: results_type, either goodqc_validated, badqc_validated or resequencing_validated
+        :param quality: str, either good or bad
+        :param resequencing: boolean, whether it is a resequencing or not
+        :return: results_type, either goodqc_validated, warningqc_validated or resequencing_validated
         """
-        if validation_type == 'good_quality':
-            results_type = 'goodqc_validated'
-        elif validation_type == 'bad_quality':
-            results_type = 'badqc_validated'
-        elif validation_type == 'resequencing':
+        if resequencing == 'yes':
             results_type = 'resequencing_validated'
+        elif quality == 'good':
+            results_type = 'goodqc_validated'
+        elif quality == 'warning':
+            results_type = 'warningqc_validated'
         else:
             results_type = '?'  # in order to not have issue 'variable referenced before assignment' and in order to leave possibility open
         return results_type
@@ -137,8 +139,8 @@ class SampleValidationToMongo:
         """
         This function modifies the document to not have the unique bioit identifier anymore, but the MongoDB
         autogenerated one. Apparently the only or easiest way to do this is to reinsert the document.
-        The goal of this manipulation is to be able to insert new resequencings, good samples or bad samples.
-        Additionally, it adds the validation dict.
+        The goal of this manipulation is to be able to insert new resequencings, good samples or samples with a quality
+        warning. Additionally, it adds the validation dict.
         :param collection_in: collection document is in
         :param isolatename: name of the isolate
         :param validation_dict: dictionary containing the validation metadata

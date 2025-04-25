@@ -28,7 +28,7 @@ dtap: to_be_replaced_by_ansible
 collections:
     - isolates
     - old_isolate_results
-    - isolates_badqc
+    - isolates_warningqc
     - isolates_goodqc
     - sequence_types
     - new_allele_hashes

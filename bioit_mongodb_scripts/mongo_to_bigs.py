@@ -75,7 +75,7 @@ class MongoToBigs:
         self.initialisation = MongoInitialisation(self._species, mongo_config_data=self._mongo_config_data,
                                                   selected_connection_string='CONNECTION_STRING_AZURE')
         self._mongoinit = self.initialisation
-        self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, \
+        self._isolates_collection, self._old_isolateresults_collection, self._isolates_warningqc_collection, \
             self._isolates_resequencing_collection, self._isolates_goodqc_collection = \
             self._mongoinit.initialise_collections()
         self._headers_collection = self._mongoinit.initialise_headers_collection()
@@ -239,11 +239,12 @@ class MongoToBigs:
         Function to append isolate_id, cgST, and date_of_isolation to a list that will be used to re-compute BIGSdb alerts
         :param document: Mongo record from isolate collection
         :param isolate_id: isolate id (as found in BIGSdb)
-        :param results_type: one of the following string: 'new_isolate', 'goodqc', 'badqc','resequencing','reanalysis'
+        :param results_type: one of the following string: 'new_isolate', 'goodqc', 'warningqc','resequencing',
+        'reanalysis'
         :param cgst_changed: boolean whether the cgST changed
         :return: None
         """
-        if results_type == 'new_isolate' or results_type == 'badqc' or results_type == 'goodqc':
+        if results_type == 'new_isolate' or results_type == 'warningqc' or results_type == 'goodqc':
             self._list_of_new_isolates_for_alerts.append(
                 {'isolate_name': isolate_id, 'cgST': document['results'].get('cgST'),
                  'isolation_date': document['technical_metadata']['data']['IsolationDate']})
@@ -360,9 +361,9 @@ class MongoToBigs:
             results_type = "new_isolate"
         elif document.get_validation_type():
             results_type = document.get_validation_type()
-            if results_type == 'resequencing' or results_type == 'badqc' or results_type == 'goodqc':
+            if results_type == 'resequencing' or results_type == 'warningqc' or results_type == 'goodqc':
                 different_version, cgst_changed = self.___check_if_reanalysis_different(document, isolate_id)
-                if results_type == 'badqc' or results_type == 'goodqc':
+                if results_type == 'warningqc' or results_type == 'goodqc':
                     results_type = "reanalysis"
         else:
             results_type = "reanalysis"
@@ -492,7 +493,8 @@ class MongoToBigs:
         reinsert if multiple versions, if only one version, sample is reinserted in the main workflow below
         :param isolates_psql_tbl: isolates db isolates table/ connection instance for a given species
         :param isolate: BIGSdb isolate name
-        :param results_type: one of the following string: 'new_isolate', 'goodqc', 'badqc','resequencing','reanalysis'
+        :param results_type: one of the following string: 'new_isolate', 'goodqc', 'warningqc','resequencing',
+        'reanalysis'
         :return: None
         """
         try:

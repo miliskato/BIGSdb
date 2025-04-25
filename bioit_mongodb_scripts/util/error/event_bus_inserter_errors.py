@@ -4,7 +4,7 @@ class BadCollectionError(Exception):
     """
 
     def __init__(self):
-        super().__init__("The inserter only handles 'isolates' and 'badqc' collections.")
+        super().__init__("The inserter only handles 'isolates' and 'warningqc' collections.")
 
 
 class IsolateNotFoundException(Exception):

@@ -150,11 +150,11 @@ class MessageConsumerDataInserter(AzureServiceBus):
         :param pseudo_id: Pseudo ID
         :return: True if the insertion leads to some changes in BIGSdb else False
         """
-        if collection_name == 'isolates_badqc':
-            SampleToValidationBigs(self._species, isolate_id, pseudo_id, 'bad_quality', mongo_config_data=self._mongo_config_data)
+        if collection_name == 'isolates_warningqc':
+            SampleToValidationBigs(self._species, isolate_id, pseudo_id, 'warning', 'no', mongo_config_data=self._mongo_config_data)
             return False
         elif collection_name == 'isolates_goodqc':
-            SampleToValidationBigs(self._species, isolate_id, pseudo_id, 'good_quality', mongo_config_data=self._mongo_config_data)
+            SampleToValidationBigs(self._species, isolate_id, pseudo_id, 'good', 'no', mongo_config_data=self._mongo_config_data)
             return False
         elif collection_name == 'isolates':
             return self.__mongo_to_bigs_insertion(isolate_id)

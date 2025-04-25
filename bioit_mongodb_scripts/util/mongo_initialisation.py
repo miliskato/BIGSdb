@@ -66,21 +66,21 @@ class MongoInitialisation:
     def initialise_collections(self) -> (Collection, Collection, Collection, Collection, Collection):
         """
         Initialises database and collections for interaction.
-        :return: opened isolates, isolatesresults, isolatesbadqc, isolates resequencing and isolates goodqc collections
-        (instances) for a given species.
+        :return: opened isolates, isolatesresults, isolateswarningqc, isolates resequencing and isolates goodqc
+        collections (instances) for a given species.
         """
         # open isolates collection
         isolates_collection = self._open_mongo_collection(self.opened_mongo_database, "isolates")
         # open isolate_results collection
         isolateresults_collection = self._open_mongo_collection(self.opened_mongo_database, "old_isolate_results")
-        # open isolates badqc collection
-        isolates_badqc_collection = self._open_mongo_collection(self.opened_mongo_database, "isolates_badqc")
+        # open isolates warning collection
+        isolates_warningqc_collection = self._open_mongo_collection(self.opened_mongo_database, "isolates_warningqc")
         # open isolates resequencing collection
         isolates_resequencing_collection = self._open_mongo_collection(self.opened_mongo_database,
                                                                        "isolates_resequencing")
         # open isolates goodqc collection
         isolates_goodqc_collection = self._open_mongo_collection(self.opened_mongo_database, "isolates_goodqc")
-        return isolates_collection, isolateresults_collection, isolates_badqc_collection, isolates_resequencing_collection, isolates_goodqc_collection
+        return isolates_collection, isolateresults_collection, isolates_warningqc_collection, isolates_resequencing_collection, isolates_goodqc_collection
 
     def initialise_clustering_collections(self) -> (Collection, Collection, Collection):
         """

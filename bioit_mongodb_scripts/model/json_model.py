@@ -3,7 +3,7 @@ from collections import UserDict
 from pathlib import Path
 from typing import Dict, Any, Literal, Union
 
-ResultType = Literal['new_isolate', 'goodqc', 'badqc', 'resequencing', 'reanalysis']
+ResultType = Literal['new_isolate', 'goodqc', 'warningqc', 'resequencing', 'reanalysis']
 
 
 class BridgeDict(UserDict):

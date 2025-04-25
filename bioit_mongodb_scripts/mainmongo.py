@@ -50,7 +50,7 @@ def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     mutually_exclusive_group.add_argument('--jsonfilepath', type=Path)
     parser.add_argument("--species", required=True, type=str,
                         choices=specieslist)
-    parser.add_argument("--results_type", required=True, type=str, choices=['new_isolate', 'reanalysis', 'goodqc_validated', 'badqc_validated', 'resequencing_validated'])
+    parser.add_argument("--results_type", required=True, type=str, choices=['new_isolate', 'reanalysis', 'goodqc_validated', 'warningqc_validated', 'resequencing_validated'])
     parser.add_argument("--reportdirectorypath", required=False, type=str)  # not mandatory because of reanalysis
     parser.add_argument("--fastafilepath", required=False, type=str)  # not mandatory because of reanalysis
     parser.add_argument("--vcffilepath", required=False, type=str)  # not mandatory because of reanalysis
@@ -79,11 +79,11 @@ class MainMongo:
         !! If parameters/arguments are added here, also add them to the argparse function!!
         :param technical_id: sample id/ isolates id
         :param species: commonly used bioit species name: either genus or specific like stec
-        :param results_type: Any of 'new_isolate', 'reanalysis', 'goodqc_validated', 'badqc_validated', 'resequencing_validated'
+        :param results_type: Any of 'new_isolate', 'reanalysis', 'goodqc_validated', 'warningqc_validated', 'resequencing_validated'
         :param pipeline_hash: 10 first characters of the git hash of the pipeline used can be optional in case of validation
         :param technical_metadata_path: filepath of the json metadata file
         :param jsonfilepath: filepath of the json input file (output of pipeline)
-        :param subvaldict: validation dictionary, received after validation through bigsdb (either results type goodqc_validated, badqc_validated or resequencing_validated')
+        :param subvaldict: validation dictionary, received after validation through bigsdb (either results type goodqc_validated, warningqc_validated or resequencing_validated')
         :param reportdirectorypath: absolute path to where the directory containing all files required for html are stored (only required for new_isolate)
         :param fastafilepath: absolute path to where the fasta file is stored (only required for new_isolate)
         :param vcffilepath: absolute path to where the filtered VCF file is stored (only required for new_isolate)
@@ -121,7 +121,7 @@ class MainMongo:
                                               selected_connection_string=self._connection_string,
                                               alternate_dtap=self._alternate_dtap,
                                               mongo_config_data=self._mongo_config_data)
-        self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, \
+        self._isolates_collection, self._old_isolateresults_collection, self._isolates_warningqc_collection, \
             self._isolates_resequencing_collection, self._isolates_goodqc_collection \
             = self._mongoinit.initialise_collections()
         self._st_collection, self._cluster_membership_collection, self._cluster_merging_collection = \
@@ -153,8 +153,8 @@ class MainMongo:
         #     raise Exception('Bigs upload only available for new isolates')
         if self._results_type == 'goodqc_validated' and not self._subvaldict:
             raise Exception('subvaldict necessary when using results_type goodqc_validated')
-        if self._results_type == 'badqc_validated' and not self._subvaldict:
-            raise Exception('subvaldict necessary when using results_type badqc_validated')
+        if self._results_type == 'warningqc_validated' and not self._subvaldict:
+            raise Exception('subvaldict necessary when using results_type warningqc_validated')
         if self._results_type == 'resequencing_validated' and not self._subvaldict:
             raise Exception('subvaldict necessary when using results_type resequencing_validated')
         if self._results_type == 'new_isolate' and not self._jsonfilepath:
@@ -170,7 +170,7 @@ class MainMongo:
             raise Exception('vcffilepath necessary when using results_type new_isolate')
         if self._results_type == 'new_isolate' and not self._technical_metadata_path:
             raise Exception('technical metadata path necessary when using results_type new_isolate')
-        if self._results_type not in ['goodqc_validated', 'badqc_validated', 'resequencing_validation'] and not self._pipeline_hash:
+        if self._results_type not in ['goodqc_validated', 'warningqc_validated', 'resequencing_validation'] and not self._pipeline_hash:
             raise Exception('pipeline_hash not provided although mandatory for this result_type')
 
         # the below check is already handled in mongo initialisation
@@ -186,7 +186,7 @@ class MainMongo:
         if new_isolate; check whether really new, and if not resequencing, if really new insert into either bad or good
         if reanalysis; check if really new reanalysis, if so update
         if goodqc_validated; if good outcome, reinsert as new_isolate. Else update metadata
-        if badqc_validated; if good outcome, reinsert as new_isolate. Else update metadata
+        if warningqc_validated; if good outcome, reinsert as new_isolate. Else update metadata
         if resequencing_validated; if good outcome, treat as reanalysis. Else update metadata
         :return: None
         """
@@ -202,22 +202,22 @@ class MainMongo:
             if isolates_findone:
                 self.__new_resequencing_arrival(new_json_report, isolates_findone, self._isolates_collection)
             else:
-                # We're excluding documents that were validated, additionally only documents that were validated with a negative result are still in the badqc collection
+                # We're excluding documents that were validated, additionally only documents that were validated with a negative result are still in the warningqc collection
                 # Additionally, documents that were negatively validated now have their _id removed in sample_validation_to_mongo.py
                 isolates_goodqc_findone = MongoRecordDict(self._isolates_goodqc_collection.find_one({"_id": self._technical_id, "validation": None}))
-                isolates_badqc_findone = MongoRecordDict(self._isolates_badqc_collection.find_one({"_id": self._technical_id, "validation": None}))
+                isolates_warningqc_findone = MongoRecordDict(self._isolates_warningqc_collection.find_one({"_id": self._technical_id, "validation": None}))
                 if isolates_goodqc_findone:
                     self.__new_resequencing_arrival(new_json_report, isolates_goodqc_findone, self._isolates_goodqc_collection)
-                elif isolates_badqc_findone:
-                    # unvalidated badqc isolates are taken care of in the _new_resequencing_arrival function
-                    self.__new_resequencing_arrival(new_json_report, isolates_badqc_findone, self._isolates_badqc_collection)
+                elif isolates_warningqc_findone:
+                    # unvalidated warningqc isolates are taken care of in the _new_resequencing_arrival function
+                    self.__new_resequencing_arrival(new_json_report, isolates_warningqc_findone, self._isolates_warningqc_collection)
                 else:
                     self.__process_json_report(new_json_report)
         elif self._results_type == 'goodqc_validated':
             sample_doc = MongoRecordDict(self._isolates_goodqc_collection.find_one({"_id": self._technical_id}))
             self.__process_mongo_record(sample_doc)
-        elif self._results_type == 'badqc_validated':
-            sample_doc = MongoRecordDict(self._isolates_badqc_collection.find_one({"_id": self._technical_id}))
+        elif self._results_type == 'warningqc_validated':
+            sample_doc = MongoRecordDict(self._isolates_warningqc_collection.find_one({"_id": self._technical_id}))
             self.__process_mongo_record(sample_doc)
 
         elif self._results_type == "reanalysis" or self._results_type == 'resequencing_validated':
@@ -279,7 +279,7 @@ class MainMongo:
         :param good_sample_quality: boolean indicating whether the sample quality is good or bad
         :return: None
         """
-        if self._results_type not in ('badqc_validated', 'goodqc_validated'):  # badqc and goodqc documents have already had their typinghitdictionaries converted to lists and their cgsts/clustering computed
+        if self._results_type not in ('warningqc_validated', 'goodqc_validated'):  # badqc and goodqc documents have already had their typinghitdictionaries converted to lists and their cgsts/clustering computed
             json_report = mongo_records.get_json_results()
             self.___find_hashes_in_results_and_add_to_collection(json_report, 'new_isolate')
             self.___convert_typinghitdictionaries_to_lists(json_report)
@@ -287,9 +287,9 @@ class MainMongo:
             if 'cgmlst' in json_report:
                 self.__define_cgst_and_run_clustering(json_report)
         if good_sample_quality:
-            if self._results_type == 'goodqc_validated' or self._results_type == 'badqc_validated':
+            if self._results_type == 'goodqc_validated' or self._results_type == 'warningqc_validated':
                 self.___update_submission_status_after_validation(mongo_records)
-                self._isolates_goodqc_collection.delete_one({'_id': mongo_records["_id"]}) if self._results_type == 'goodqc_validated' else self._isolates_badqc_collection.delete_one({'_id': mongo_records["_id"]})
+                self._isolates_goodqc_collection.delete_one({'_id': mongo_records["_id"]}) if self._results_type == 'goodqc_validated' else self._isolates_warningqc_collection.delete_one({'_id': mongo_records["_id"]})
                 self.___write_document(self._isolates_collection, mongo_records)
                 logging.info(f"Wrote new isolate {self._technical_id} and its result to {self._species} database")
             elif self._results_type == 'new_isolate':
@@ -299,14 +299,14 @@ class MainMongo:
                     f"New isolate {self._technical_id} succeeded quality control. It's results were written to the 'isolates_goodqc' collection in the {self._species} database")
         else:
             mongo_records['submission_status'] = 'pending_for_submission'
-            self.___write_document(self._isolates_badqc_collection, mongo_records)
+            self.___write_document(self._isolates_warningqc_collection, mongo_records)
             logging.info(
-                f"New isolate {self._technical_id} failed quality control for one or more checks. It's results were written to the 'isolates_badqc' collection in the {self._species} database")
+                f"New isolate {self._technical_id} failed quality control for one or more checks. It's results were written to the 'isolates_warningqc' collection in the {self._species} database")
 
     def __new_resequencing_arrival(self, new_json_report: JsonReportDict, document_original: MongoRecordDict,
                                    collection_in: Collection) -> None:
         """
-        After an id is found in either isolates, isolates_badqc or isolates_goodqc; this workflow will determine if it
+        After an id is found in either isolates, isolates_warningqc or isolates_goodqc; this workflow will determine if it
         really is a resequencing, and if so insert it into isolates_resequencing.
         :param new_json_report: results dictionary that is modified and inserted
         :param document_original: original document including the sample metadata and headers and results
@@ -322,12 +322,12 @@ class MainMongo:
         if md5_original != md5_new:
             # this is an actual resequencing because the fastafilepath is different
 
-            if collection_in == self._isolates_badqc_collection:
+            if collection_in == self._isolates_warningqc_collection:
                 send_email(
-                    f"WARNING: a resequencing for sample {self._technical_id} was submitted to the isolates_resequencing while the sample is present in the isolates_badqc collection and has not yet been validated, validate the bad qc in bigs before trying to reupload this resequencing.",
+                    f"WARNING: a resequencing for sample {self._technical_id} was submitted to the isolates_resequencing while the sample is present in the isolates_warningqc collection and has not yet been validated, validate the bad qc in bigs before trying to reupload this resequencing.",
                     dont_send_email=self._dont_send_email)
                 raise MongoResequencingNoIsolateError(
-                    f"WARNING: a resequencing for sample {self._technical_id} was submitted to the isolates_resequencing while the sample is present in the isolates_badqc collection and has not yet been validated, validate the bad qc in bigs before trying to reupload this resequencing.")
+                    f"WARNING: a resequencing for sample {self._technical_id} was submitted to the isolates_resequencing while the sample is present in the isolates_warningqc collection and has not yet been validated, validate the bad qc in bigs before trying to reupload this resequencing.")
             if collection_in == self._isolates_goodqc_collection:
                 send_email(
                     f"WARNING: a resequencing for sample {self._technical_id} was submitted to the isolates_resequencing while the sample is present in the isolates_goodqc collection and has not yet been validated, validate the good qc in bigs before trying to reupload this resequencing.",
