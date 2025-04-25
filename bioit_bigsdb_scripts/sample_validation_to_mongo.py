@@ -117,7 +117,8 @@ class SampleValidationToMongo:
     @staticmethod
     def __get_results_type(quality: str, resequencing: bool) -> str:
         """
-        Gets the corresponding results_type in MongoDB with the given validation_type from BIGSdb.
+        Gets the corresponding results_type in MongoDB with the given quality and whether it is a resequencing or not
+        from BIGSdb.
         :param quality: str, either good or bad
         :param resequencing: boolean, whether it is a resequencing or not
         :return: results_type, either goodqc_validated, warningqc_validated or resequencing_validated

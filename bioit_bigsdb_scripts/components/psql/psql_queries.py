@@ -395,7 +395,7 @@ class PsqlQueries:
 
     # TBL submissions
     ISO_SEL_ID_VALUE_OUTCOME_EMAIL_TYPE_TB_SUB_VAR_SUBID: Final[str] = """
-        SELECT submissions.id, isolate_submission_isolates.value, submissions.outcome, users.email, submissions.validation_type
+        SELECT submissions.id, isolate_submission_isolates.value, submissions.outcome, users.email, submissions.quality, submissions.resequencing
         FROM submissions 
         LEFT JOIN users ON users.id = submissions.curator 
         LEFT JOIN isolate_submission_isolates ON isolate_submission_isolates.submission_id = submissions.id 
