@@ -12,7 +12,7 @@ ALTER TABLE clients
 
 GRANT INSERT,UPDATE,DELETE ON clients TO apache;
 
---migrate:down
+-- migrate:down
 ALTER TABLE users DROP COLUMN update_profile boolean;
 
 ALTER TABLE sessions DROP COLUMN update_profile boolean;
