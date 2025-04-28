@@ -1,5 +1,5 @@
 #Written by Keith Jolley
-#Copyright (c) 2010-2024, University of Oxford
+#Copyright (c) 2010-2025, University of Oxford
 #E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
@@ -635,7 +635,7 @@ sub _print_plugin_buttons {
 			'isolate_info',
 			$self->{'system'}->{'dbtype'},
 			$category || 'none',
-			{ single_isolate => $isolate_id }
+			{ single_isolate => $isolate_id, username => $self->{'username'} }
 		);
 		if (@$plugin_names) {
 			my $plugin_buffer;
@@ -721,19 +721,14 @@ sub _show_lincode_matches {
 		my $scheme_info = $self->{'datastore'}->get_scheme_info( $scheme->{'id'}, { get_pk => 1 } );
 		my $pk_info     = $self->{'datastore'}->get_scheme_field_info( $scheme->{'id'}, $scheme_info->{'primary_key'} );
 		local $" = q(_);
-		$buffer .= $self->get_list_block(
-			[
-				{
-					title => 'Scheme',
-					data  => qq(<a href="$self->{'system'}->{'script_name'}?db=$self->{'instance'})
-					  . qq(&amp;page=schemeInfo&scheme_id=$scheme->{'id'}">$scheme->{'name'}</a>)
-				},
-				{
-					title => 'LIN code',
-					data  => qq(@$lincode)
-				}
-			]
-		);
+		my $lincode_values = $self->_get_lincode_values( $isolate_id, $scheme->{'id'}, { listblock_values => 1 } );
+		unshift @$lincode_values,
+		  {
+			title => 'Scheme',
+			data  => qq(<a href="$self->{'system'}->{'script_name'}?db=$self->{'instance'})
+			  . qq(&amp;page=schemeInfo&scheme_id=$scheme->{'id'}">$scheme->{'name'}</a>)
+		  };
+		$buffer .= $self->get_list_block($lincode_values);
 		my $lincode_scheme =
 		  $self->{'datastore'}
 		  ->run_query( 'SELECT * FROM lincode_schemes WHERE scheme_id=?', $scheme->{'id'}, { fetch => 'row_hashref' } );
@@ -742,7 +737,6 @@ sub _show_lincode_matches {
 		my $i          = 0;
 		my $tdf        = 1;
 		my $tdu        = 1;
-		my $td         = 1;
 		my $default_show =
 		  BIGSdb::Utils::is_int( $self->{'system'}->{'show_lincode_thresholds'} )
 		  ? $self->{'system'}->{'show_lincode_thresholds'}
@@ -1208,8 +1202,9 @@ sub _get_provenance_fields {
 	my $q          = $self->{'cgi'};
 	my $set_id     = $self->get_set_id;
 	my $is_curator = $self->is_curator;
-	my $field_list = $self->{'xmlHandler'}->get_field_list( { no_curate_only => !$is_curator } );
-	my $maps       = [];
+	my $field_list =
+	  $self->{'xmlHandler'}->get_field_list( { no_curate_only => !$is_curator || !$self->{'curate'} } );
+	my $maps = [];
 	my ( $composites, $composite_display_pos ) = $self->_get_composites;
 	my $field_with_extended_attributes;
 
@@ -1237,7 +1232,7 @@ sub _get_provenance_fields {
 			next;    #Do not print row
 		}
 		my ( $web, $value );
-		if ( $thisfield->{'web'} ) {
+		if ( $thisfield->{'web'} || $thisfield->{'web_regex'} ) {
 			$web = $self->_get_web_links( $data, $field );
 		} else {
 			$value = $self->_get_field_value( $data, $field );
@@ -1524,23 +1519,79 @@ sub _get_web_links {
 	my $web;
 	my @values = ref $data->{ lc($field) } ? @{ $data->{ lc($field) } } : ( $data->{ lc($field) } );
 	my @links;
-	my $domain;
-	if ( ( lc( $thisfield->{'web'} ) =~ /https?:\/\/(.*?)\/+/x ) ) {
-		$domain = $1;
+	my %domains;
+	my $invalid_link;
+  VALUE: foreach my $value (@values) {
+		my $link_defined;
+		my $domain;
+		if ( defined $thisfield->{'web_regex'} ) {
+			my @regexes = split /;/x, $thisfield->{'web_regex'};
+		  REGEX: foreach my $regex_term (@regexes) {
+				my ( $pattern, $url ) = split /\|/x, $regex_term;
+				if ( defined $url && $url =~ /https?:\/\/(.*?)\/+/x ) {
+					$domain = $1;
+					if ( $value =~ /$pattern/x ) {
+						$url =~ s/\[\\*\?\]/$value/x;
+						$url =~ s/\&/\&amp;/gx;
+						push @links,
+						  {
+							link   => qq(<a href="$url">$value</a>),
+							domain => $domain
+						  };
+						$link_defined = 1;
+						$domains{$domain} = 1;
+						last REGEX;
+					}
+				} else {
+					$logger->error( "Invalid web_regex set for $field. Delimit pattern and URL with | "
+						  . 'and address must be begin with http:// or https://.' );
+					last REGEX;
+				}
+			}
+		}
+		if ( !$link_defined && defined $thisfield->{'web'} ) {
+			my $url = $thisfield->{'web'};
+			if ( defined $url && $url =~ /https?:\/\/(.*?)\/+/x ) {
+				$domain = $1;
+				$domains{$domain} = 1;
+				$url =~ s/\[\\*\?\]/$value/x;
+				$url =~ s/\&/\&amp;/gx;
+				push @links,
+				  {
+					link   => qq(<a href="$url">$value</a>),
+					domain => $domain
+				  };
+				$link_defined = 1;
+			} else {
+				$logger->error("Invalid web value URL set for $field. Address must be begin with http:// or https://.");
+			}
+		}
+		if ( !$link_defined ) {
+			$logger->error("No valid web link for $field - value: $value.");
+			$invalid_link = 1;
+			push @links, { link => $value };
+		}
 	}
-	foreach my $value (@values) {
-		my $url = $thisfield->{'web'};
-		$url =~ s/\[\\*\?\]/$value/x;
-		$url =~ s/\&/\&amp;/gx;
-		push @links, qq(<a href="$url">$value</a>);
+	my $first = 1;
+	foreach my $link (@links) {
+		$web .= q(; ) if !$first;
+		$first = 0;
+		$web .= $link->{'link'};
+		if ( $link->{'domain'} && ( keys %domains > 1 || $invalid_link ) ) {
+			if ( $link->{'domain'} ne $q->virtual_host ) {
+				$web .= qq( <span class="link">$link->{'domain'})
+				  . q(<span class="fa fas fa-external-link-alt" style="margin-left:0.5em"></span></span>);
+			}
+		}
 	}
-	if (@links) {
-		local $" = q(; );
-		$web = qq(@links);
-	}
-	if ( $domain && $domain ne $q->virtual_host ) {
-		$web .= qq( <span class="link">$domain)
-		  . q(<span class="fa fas fa-external-link-alt" style="margin-left:0.5em"></span></span>);
+
+	#Only indicate domain once if all links have the same domain.
+	if ( !$invalid_link && keys %domains == 1 ) {
+		my ($domain) = keys %domains;
+		if ( $domain ne $q->virtual_host ) {
+			$web .= qq( <span class="link">$domain)
+			  . q(<span class="fa fas fa-external-link-alt" style="margin-left:0.5em"></span></span>);
+		}
 	}
 	return $web;
 }
@@ -1721,7 +1772,17 @@ sub _get_user_field {
 	my $person   = qq($userdata->{first_name} $userdata->{surname});
 	if ( !$summary_view && !( $field eq 'sender' && $data->{'sender'} == $data->{'curator'} ) ) {
 		my $thisfield = $self->{'xmlHandler'}->get_field_attributes($field);
-		$person .= qq(, $userdata->{affiliation}) if $value > 0;
+		if ( $value > 0 ) {
+			$person .= qq(, $userdata->{'affiliation'});
+			if (   $self->{'config'}->{'site_user_country'}
+				&& $userdata->{'country'} )
+			{
+				( my $stripped_user_county = $userdata->{'country'} ) =~ s/\s+\[.*?\]$//x;
+				if ( $userdata->{'affiliation'} !~ /$stripped_user_county$/ix ) {
+					$person .= qq(, $userdata->{'country'});
+				}
+			}
+		}
 		if (
 			$field eq 'curator'
 			|| ( ( $field eq 'sender' || ( ( $thisfield->{'userfield'} // '' ) eq 'yes' ) )
@@ -2044,13 +2105,20 @@ sub _get_lincode_values {
 	my ( $self, $isolate_id, $scheme_id, $args ) = @_;
 	my $lincode = $self->{'datastore'}->get_lincode_value( $isolate_id, $scheme_id );
 	my $buffer  = q();
+	my $values  = [];
 	if ( defined $lincode ) {
 		local $" = q(_);
 		my $lincode_string = qq(@$lincode);
-		$buffer .=
-		  $args->{'no_render'}
-		  ? qq(<dt>LINcode</dt><dd>$lincode_string</dd>)
-		  : qq(<dl class="profile"><dt>LINcode</dt><dd>$lincode_string</dd></dl>);
+		if ( $args->{'no_render'} ) {
+			$buffer .= qq(<dt>LIN code</dt><dd>$lincode_string</dd>);
+		} else {
+			$buffer .= qq(<dl class="profile"><dt>LIN code</dt><dd>$lincode_string</dd></dl>);
+		}
+		push @$values,
+		  {
+			title => 'LIN code',
+			data  => $lincode_string
+		  };
 		my $prefix_table = $self->{'datastore'}->create_temp_lincode_prefix_values_table($scheme_id);
 		my $data         = $self->{'datastore'}
 		  ->run_query( "SELECT * FROM $prefix_table", undef, { fetch => 'all_arrayref', slice => {} } );
@@ -2077,11 +2145,20 @@ sub _get_lincode_values {
 			@values = sort @values;
 			local $" = q(; );
 			next if !@values;
-			$buffer .=
-			  $args->{'no_render'}
-			  ? qq(<dt>$field</dt><dd>@values</dd>)
-			  : qq(<dl class="profile"><dt>$field</dt><dd>@values</dd></dl>);
+			if ( $args->{'no_render'} ) {
+				$buffer .= qq(<dt>$field</dt><dd>@values</dd>);
+			} else {
+				$buffer .= qq(<dl class="profile"><dt>$field</dt><dd>@values</dd></dl>);
+			}
+			push @$values,
+			  {
+				title => $field,
+				data  => qq(@values)
+			  };
 		}
+	}
+	if ( $args->{'listblock_values'} ) {
+		return $values;
 	}
 	return $buffer;
 }
@@ -2352,8 +2429,34 @@ sub _get_seqbin_link {
 		$buffer .= q(<span class="info_icon fas fa-2x fa-fw fa-dna fa-pull-left" style="margin-top:-0.1em"></span>);
 		$buffer .= qq(<h2>Sequence bin</h2>\n);
 		$buffer .= qq(<div id="$div_id">);
-		push @$list, { title => 'contigs', data => $commify{'contigs'} };
+		my $method = $self->{'datastore'}->run_query(
+			'SELECT method,count(*) AS count FROM sequence_bin WHERE isolate_id=? '
+			  . 'GROUP BY method ORDER BY count DESC',
+			$isolate_id,
+			{ fetch => 'all_arrayref', slice => {} }
+		);
 
+		if ( @$method == 1 ) {
+			push @$list,
+			  {
+				title => 'method',
+				data  => $method->[0]->{'method'} || 'Unknown'
+			  };
+		} else {
+			my @values;
+			foreach my $method (@$method) {
+				$plural = $method->{'count'} == 1 ? q() : q(s);
+				$method->{'method'} ||= 'Unknown';
+				push @values, qq($method->{'method'} ($method->{'count'} contig$plural));
+			}
+			local $" = q(<br />);
+			push @$list,
+			  {
+				title => 'method',
+				data  => qq(@values)
+			  };
+		}
+		push @$list, { title => 'contigs', data => $commify{'contigs'} };
 		if ( $seqbin_stats->{'contigs'} > 1 ) {
 			my $n_stats = BIGSdb::Utils::get_N_stats( $seqbin_stats->{'total_length'}, $seqbin_stats->{'lengths'} );
 			if ( $seqbin_stats->{'n50'} != $n_stats->{'N50'} ) {

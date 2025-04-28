@@ -42,8 +42,8 @@ sub get_attributes {
 		  . 'the field is compulsory or optional and the maximum length of values is displayed.',
 		menutext => 'Description of database fields',
 		module   => 'DatabaseFields',
-		version  => '1.1.9',
-		section  => 'miscellaneous',
+		version  => '1.1.11',
+		section  => 'info',
 		order    => 10,
 		dbtype   => 'isolates',
 		image    => '/images/plugins/FieldDescription/screenshot.png'
@@ -85,7 +85,6 @@ sub run {
 sub _provenance_print_fields {
 	my ($self)     = @_;
 	my $q          = $self->{'cgi'};
-	my $set_id     = $self->get_set_id;
 	my $is_curator = $self->is_curator;
 	my $field_list = $self->{'xmlHandler'}->get_field_list( { no_curate_only => !$is_curator } );
 	my $td         = 1;
@@ -214,7 +213,7 @@ sub _print_eav_fields {
 sub _print_allowed_values {
 	my ( $self, $field ) = @_;
 	my $thisfield = $self->{'xmlHandler'}->get_field_attributes($field);
-	if ( $thisfield->{'optlist'} ) {
+	if ( ($thisfield->{'optlist'} // q() ) eq 'yes') {
 		my $option_list = $self->{'xmlHandler'}->get_field_option_list($field);
 		my $hide        = @$option_list > HIDE_VALUES;
 		my $class       = $hide ? q(expandable_retracted) : q();

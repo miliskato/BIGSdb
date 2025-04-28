@@ -1,5 +1,5 @@
 #Written by Keith Jolley
-#Copyright (c) 2010-2024, University of Oxford
+#Copyright (c) 2010-2025, University of Oxford
 #E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
@@ -127,6 +127,7 @@ sub blast_multiple_loci {
 			$params{'-evalue'} = 1000;
 		}
 		system( "$self->{'config'}->{'blast+_path'}/$program", %params );
+		$self->reconnect;
 		next DATATYPE if !-e $temp_outfile;
 		my $matched_regions;
 		( $datatype_exact_matches->{$data_type}, $matched_regions ) = $self->_parse_blast_exact(
@@ -321,6 +322,7 @@ sub _lookup_partial_matches {
 	return if !@{ $partial_matches->{$locus} };
 	my %already_matched_alleles = map { $_->{'allele'} => 1 } @{ $exact_matches->{$locus} };
 	my $locus_info              = $self->{'datastore'}->get_locus_info($locus);
+	$self->reconnect;
 	foreach my $match ( @{ $partial_matches->{$locus} } ) {
 		my $seq = $self->extract_seq_from_match($match);
 		if ( $locus_info->{'data_type'} eq 'peptide' ) {
@@ -1134,6 +1136,7 @@ sub _get_row {
 		$buffer .=
 		  $q->checkbox( -name => "id_${isolate_id}_${locus}_allele_$id", -label => '', disabled => 'disabled' );
 	}
+	$args->{'exact'} = $exact;    #This may have been modified since args passed in.
 	$buffer .= q(</td><td>);
 	$buffer .= $self->_get_tag_checkbox(
 		{

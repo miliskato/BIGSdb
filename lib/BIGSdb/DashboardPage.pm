@@ -1,5 +1,5 @@
 #Written by Keith Jolley
-#Copyright (c) 2021-2024, University of Oxford
+#Copyright (c) 2021-2025, University of Oxford
 #E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
@@ -97,8 +97,6 @@ sub print_content {
 	say qq(<div id="title_container" style="width:95vw;max-width:$title_max_width_style">);
 	say qq(<h1>$heading</h1>);
 	$self->print_general_announcement;
-
-	#	my $date_restriction_message = $self->get_date_restriction_message;
 	my $additional_message = $self->get_date_restriction_message;
 	$additional_message .= $self->get_embargo_message;
 	if ( $options->{'banner_text'} ) {
@@ -2156,9 +2154,11 @@ sub _get_scheme_annotation_values {
 	} else {
 		$view_count = $count;
 	}
-	my $max_threshold = $scheme_info->{'quality_metric_good_threshold'} // @$loci;
+	my $max_threshold = $scheme_info->{'quality_metric_good_threshold'}
+	  // $scheme_info->{'quality_metric_bad_threshold'} // @$loci;
 	$max_threshold = $scheme_info->{'loci'} if $max_threshold > @$loci;
-	my $min_threshold = $scheme_info->{'quality_metric_bad_threshold'} // @$loci;
+	my $min_threshold = $scheme_info->{'quality_metric_bad_threshold'}
+	  // $scheme_info->{'quality_metric_good_threshold'} // @$loci;
 	$min_threshold = 0 if $min_threshold < 0;
 	my $filter_clause = @$filters ? " AND @$filters" : q();
 	my $table         = $self->{'datastore'}->create_temp_scheme_status_table($scheme_id);
@@ -3706,7 +3706,8 @@ sub _get_field_breakdown_map_content {
 	my $countries = dclone(COUNTRIES);
 	foreach my $value (@$data) {
 		if ( $element->{'field'} eq 'f_country' ) {
-			$value->{'iso3'} = defined $value->{'label'}
+			$value->{'iso3'} =
+			  defined $value->{'label'}
 			  ? $countries->{ $value->{'label'} }->{'iso3'} // q(XXX)
 			  : q(XXX);
 		} else {
@@ -4459,6 +4460,7 @@ sub print_modify_dashboard_fieldset {
 	say q(</li></ul>);
 	say q(</fieldset>);
 	$self->_print_dashboard_management_fieldset;
+	say q(</div>);
 	return;
 }
 
@@ -4560,9 +4562,15 @@ sub _print_dashboard_management_fieldset {
 	}
 	say q(</li></ul>);
 	say q(</form>);
-	return if !$self->{'username'};
+	if (!$self->{'username'}){
+		say q(</fieldset>);
+		return;
+	}
 	my $user_info = $self->{'datastore'}->get_user_info_from_username( $self->{'username'} );
-	return if $user_info->{'status'} ne 'curator' && $user_info->{'status'} ne 'admin';
+	if ($user_info->{'status'} ne 'curator' && $user_info->{'status'} ne 'admin'){
+		say q(</fieldset>);
+		return;
+	}
 	my $project_clause = $self->{'project_id'} ? qq(&amp;project_id=$self->{'project_id'}) : q();
 	say q(<div style="display:flex;margin-top:1em">)
 	  . q(<span class="icon_button"><a class="dashboard_file small_reset" )

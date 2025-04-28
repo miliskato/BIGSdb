@@ -74,6 +74,7 @@ use BIGSdb::SchemeInfoPage;
 use BIGSdb::Offline::UpdateSchemeCaches;
 use Log::Log4perl qw(get_logger);
 my $logger = get_logger('BIGSdb.Page');
+use constant PAGES_NOT_NEEDING_PLUGINS => qw(ajaxJobs jobMonitor ajaxRest restMonitor);
 
 sub print_page {
 	my ($self) = @_;
@@ -181,6 +182,7 @@ sub print_page {
 	my $page;
 	my $continue = 1;
 	my $auth_cookies_ref;
+
 	if ( $self->{'error'} ) {
 		$page_attributes{'error'}              = $self->{'error'};
 		$page_attributes{'max_upload_size_mb'} = $self->{'max_upload_size_mb'};
@@ -198,6 +200,11 @@ sub print_page {
 		( $continue, $auth_cookies_ref ) = $self->authenticate( \%page_attributes );
 	}
 	return if !$continue;
+	my %no_plugins = map { $_ => 1 } PAGES_NOT_NEEDING_PLUGINS;
+
+	#Read system.overrides file again to set any user specific values.
+	$self->set_system_overrides( { user => 1 } );
+	$self->{'pluginManager'}->initiate if !$no_plugins{ $self->{'page'} };
 	if ( $self->{'page'} ne 'user' ) {
 		my $user_status =
 		  $self->{'datastore'}->run_query( 'SELECT status FROM users WHERE user_name=?', $page_attributes{'username'} );
@@ -259,6 +266,9 @@ sub print_page {
 			}
 		}
 		$page = "BIGSdb::$classes{$self->{'page'}}"->new(%page_attributes);
+
+		#Read system.overrides file again to set any user specific values.
+		$self->set_system_overrides( { user => 1 } );
 		$page->print_page_content;
 		$self->log_call( { curate => 1 } );
 		return;

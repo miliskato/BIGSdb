@@ -1,5 +1,5 @@
 #Written by Keith Jolley
-#Copyright (c) 2015-2024, University of Oxford
+#Copyright (c) 2015-2025, University of Oxford
 #E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
@@ -607,7 +607,7 @@ sub _get_allele_submission_details {    ## no critic (ProhibitUnusedPrivateSubro
 	my $allele_submission = $self->{'submissionHandler'}->get_allele_submission( $submission->{'id'} );
 	my $allele_count      = @{ $allele_submission->{'seqs'} };
 	my $plural            = $allele_count == 1 ? '' : 's';
-	next if $set_id && !$self->{'datastore'}->is_locus_in_set( $allele_submission->{'locus'}, $set_id );
+	return if $set_id && !$self->{'datastore'}->is_locus_in_set( $allele_submission->{'locus'}, $set_id );
 	my $clean_locus = $self->clean_locus( $allele_submission->{'locus'} );
 	return "$allele_count $clean_locus sequence$plural";
 }
@@ -618,7 +618,7 @@ sub _get_profile_submission_details {    ## no critic (ProhibitUnusedPrivateSubr
 	my $profile_submission = $self->{'submissionHandler'}->get_profile_submission( $submission->{'id'} );
 	my $profile_count      = @{ $profile_submission->{'profiles'} };
 	my $plural             = $profile_count == 1 ? '' : 's';
-	next
+	return
 	  if $set_id
 	  && !$self->{'datastore'}->is_scheme_in_set( $profile_submission->{'scheme_id'}, $set_id );
 	my $scheme_info =
@@ -719,12 +719,12 @@ sub _get_allele_submissions_for_curation {
 			$return_buffer .= $self->print_file( $allele_curate_message, { get_only => 1 } )
 			  if -e $allele_curate_message;
 		}
-		$return_buffer .= q(<table class="resultstable"><tr><th>Submission id</th><th>Submitted</th><th>Updated</th>)
-		  . q(<th>Submitter</th><th>Locus</th><th>Technology</th><th>Sequences</th>);
+		$return_buffer .= q(<div class="scrollable"><table class="resultstable"><tr><th>Submission id</th>)
+		  . q(<th>Submitted</th><th>Updated</th><th>Submitter</th><th>Locus</th><th>Technology</th><th>Sequences</th>);
 		$return_buffer .= q(<th>Outcome</th>) if $status eq 'closed';
 		$return_buffer .= qq(</tr>\n);
 		$return_buffer .= $buffer;
-		$return_buffer .= qq(</table>\n);
+		$return_buffer .= qq(</table></div>\n);
 	}
 	return $return_buffer;
 }
@@ -796,9 +796,9 @@ sub _get_isolate_submissions_for_curation {
 	foreach my $submission (@$submissions) {
 		next if $submission->{'type'} ne 'isolates' && $submission->{'type'} ne 'genomes';
 		next if $submission->{'type'} eq 'genomes'  && !$self->can_modify_table('sequence_bin');
-		my $isolate_submission = $self->{'submissionHandler'}->get_isolate_submission( $submission->{'id'} );
-		my $submitter_string   = $self->{'datastore'}->get_user_string( $submission->{'submitter'}, { email => 1 } );
-		my $isolate_count      = @{ $isolate_submission->{'isolates'} };
+		my $submitter_string =
+		  $self->{'datastore'}->get_user_string( $submission->{'submitter'}, { email => 1 } );
+		my $isolate_count = $self->{'submissionHandler'}->get_isolate_submission_count( $submission->{'id'} );
 		$buffer .=
 			qq(<tr class="td$td"><td><a href="$self->{'system'}->{'script_name'}?db=$self->{'instance'}&amp;)
 		  . qq(page=submit&amp;submission_id=$submission->{'id'}&amp;curate=1">$submission->{'id'}</a></td>)
@@ -1499,10 +1499,11 @@ sub _print_sequence_details_fieldset {
 	);
 	say q(</li><li><label for="software" class="parameter">assembly software:!</label>);
 	say $q->textfield(
-		-name     => 'software',
-		-id       => 'software',
-		-required => 'required',
-		-default  => $allele_submission->{'software'} // $self->{'prefs'}->{'submit_allele_software'}
+		-name      => 'software',
+		-id        => 'software',
+		-required  => 'required',
+		-maxlength => 50,
+		-default   => $allele_submission->{'software'} // $self->{'prefs'}->{'submit_allele_software'}
 	);
 	say q(</li><li>);
 	say $q->checkbox( -name => 'ignore_length', -label => 'Sequence length outside usual range' );

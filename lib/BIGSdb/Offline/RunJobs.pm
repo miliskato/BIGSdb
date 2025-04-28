@@ -1,5 +1,5 @@
 #Written by Keith Jolley
-#Copyright (c) 2011-2022, University of Oxford
+#Copyright (c) 2011-2025, University of Oxford
 #E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
@@ -64,7 +64,8 @@ sub _initiate_db {
 		}
 	);
 	if ( $self->{'system'}->{'dbtype'} eq 'isolates' ) {
-		$self->{'system'}->{'view'}       ||= 'isolates';
+		$self->{'system'}->{'view'} ||= 'isolates';
+		$self->{'system'}->{'original_view'} = $self->{'system'}->{'view'};
 		$self->{'system'}->{'labelfield'} ||= 'isolate';
 	}
 	$self->set_system_overrides;
@@ -97,35 +98,59 @@ sub run_script {
 	$self->{'system'}->{'set_id'} = $params->{'set_id'};
 	$self->{'curate'} = 1 if $params->{'curate'};
 	$self->initiate_view( $job->{'username'} );
-	my $plugin = $self->{'pluginManager'}->get_plugin( $job->{'module'} );
 	$self->{'jobManager'}->update_job_status( $job_id, { status => 'started', start_time => 'now', pid => $$ } );
-	try {
-		$plugin->run_job( $job_id, $params );
-		$job = $self->{'jobManager'}->get_job($job_id);
-		my $status = $job->{'status'} // 'started';
-		$status = 'finished' if $status eq 'started';
-		$self->{'jobManager'}->update_job_status( $job_id,
-			{ status => $status, stage => undef, stop_time => 'now', percent_complete => 100, pid => undef } );
-	}
-	catch {
-		if ( $_->isa('BIGSdb::Exception::Plugin') ) {
-			$self->{'logger'}->debug($_);
-			$self->{'jobManager'}->update_job_status(
-				$job_id,
-				{
-					status           => 'failed',
-					stop_time        => 'now',
-					percent_complete => 100,
-					message_html     => qq(<p class="statusbad">$_</p>),
-					pid              => undef
-				}
-			);
+	my $attributes = $self->{'pluginManager'}->get_plugin_attributes( $job->{'module'} );
+
+	if ( ( $attributes->{'language'} // q() ) eq 'Python' ) {
+		if ( $self->_python_plugins_enabled ) {
+			my $appender     = Log::Log4perl->appender_by_name('A1');
+			my $log_filename = $appender->{'filename'} // '/var/log/bigsdb_jobs.log';
+			my $command =
+				"$self->{'config'}->{'python_plugin_runner_path'} --run_job $job_id "
+			  . "--database $job->{'dbase_config'} --module $job->{'module'} "
+			  . "--module_dir $self->{'config'}->{'python_plugin_dir'} --log_file $log_filename";
+			system($command);
 		} else {
-			$self->{'logger'}->logdie($_);
+			$self->{'logger'}->logdie('Python plugins are not enabled');
 		}
-	};
+	} else {
+		my $plugin = $self->{'pluginManager'}->get_plugin( $job->{'module'} );
+		try {
+			$plugin->run_job( $job_id, $params );
+		} catch {
+			if ( $_->isa('BIGSdb::Exception::Plugin') ) {
+				$self->{'logger'}->debug($_);
+				$self->{'jobManager'}->update_job_status(
+					$job_id,
+					{
+						status           => 'failed',
+						stop_time        => 'now',
+						percent_complete => 100,
+						message_html     => qq(<p class="statusbad">$_</p>),
+						pid              => undef
+					}
+				);
+			} else {
+				$self->{'logger'}->logdie($_);
+			}
+		};
+	}
+	$job = $self->{'jobManager'}->get_job($job_id);
+	my $status = $job->{'status'} // 'started';
+	$status = 'finished' if $status eq 'started';
+	$self->{'jobManager'}->update_job_status( $job_id,
+		{ status => $status, stage => undef, stop_time => 'now', percent_complete => 100, pid => undef } );
 	$self->_notify_user($job_id);
 	return;
+}
+
+sub _python_plugins_enabled {
+	my ($self) = @_;
+	my $python_config = "$self->{'config_dir'}/python_plugins.json";
+	return
+		 $self->{'config'}->{'python_plugin_runner_path'}
+	  && $self->{'config'}->{'python_plugin_dir'}
+	  && -e $python_config;
 }
 
 sub _notify_user {
@@ -136,7 +161,7 @@ sub _notify_user {
 	return if !$params->{'enable_notifications'};
 	my $address = Email::Valid->address( $params->{'email'} );
 	return if !$address;
-	my $domain = $self->{'config'}->{'domain'} // DEFAULT_DOMAIN;
+	my $domain  = $self->{'config'}->{'domain'} // DEFAULT_DOMAIN;
 	my $subject = qq(Job finished: $job_id);
 	$subject .= qq( - $params->{'title'}) if $params->{'title'};
 	my $message = qq(The following job has finished:\n\n);
@@ -145,7 +170,7 @@ sub _notify_user {
 	$message .= qq(     Module: $job->{'module'}\n);
 	my $time = substr( $job->{'submit_time'}, 0, 16 );
 	$message .= qq(Submit time: $time\n);
-	$message .= qq(      Title: $params->{'title'}\n) if $params->{'title'};
+	$message .= qq(      Title: $params->{'title'}\n)       if $params->{'title'};
 	$message .= qq(Description: $params->{'description'}\n) if $params->{'description'};
 	$message .= qq(        URL: $params->{'job_url'}\n\n);
 
@@ -156,7 +181,7 @@ sub _notify_user {
 		{ host => $self->{'config'}->{'smtp_server'} // 'localhost', port => $self->{'config'}->{'smtp_port'} // 25, }
 	);
 	my $sender_address = $self->{'config'}->{'automated_email_address'} // "no_reply\@$domain";
-	my $email = Email::MIME->create(
+	my $email          = Email::MIME->create(
 		attributes => {
 			encoding => 'quoted-printable',
 			charset  => 'UTF-8',

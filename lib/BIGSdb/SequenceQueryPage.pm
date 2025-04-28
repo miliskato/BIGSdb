@@ -25,7 +25,6 @@ use Log::Log4perl qw(get_logger);
 use List::MoreUtils qw(any uniq none);
 use BIGSdb::Constants qw(:interface);
 use BIGSdb::Offline::SequenceQuery;
-use Bio::DB::GenBank;
 use File::Type;
 use IO::Uncompress::Gunzip qw(gunzip $GunzipError);
 use IO::Uncompress::Unzip qw(unzip $UnzipError);
@@ -34,6 +33,7 @@ use Try::Tiny;
 my $logger = get_logger('BIGSdb.Page');
 use constant INF                => 9**99;
 use constant RUN_OFFLINE_LENGTH => 10_000;
+use constant DEFAULT_WORD_SIZE  => 20;
 
 sub get_title {
 	my ($self) = @_;
@@ -45,7 +45,12 @@ sub get_title {
 
 sub _get_text {
 	my ($self) = @_;
-	return $self->{'system'}->{'kiosk_text'} if $self->{'system'}->{'kiosk_text'};
+	if ( $self->{'system'}->{'kiosk_text'} ) {
+		my $text = $self->{'system'}->{'kiosk_text'};
+		$text =~ s/\*\*(.*?)\*\*/<strong>$1\<\/strong>/gx;
+		$text =~ s/\*(.*?)\*/<em>$1\<\/em>/gx;
+		return $text;
+	}
 	my $q    = $self->{'cgi'};
 	my $page = $q->param('page');
 	my $buffer =
@@ -58,7 +63,7 @@ sub _get_text {
 		  . q(they do not need to be trimmed. The nearest partial matches will be identified if an exact )
 		  . q(match is not found. You can query using either DNA or peptide sequences. );
 		$buffer .= $self->get_tooltip( q(Query sequence - Your query sequence is assumed to be DNA if it contains )
-			  . q(90% or more G,A,T,C or N characters.) );
+			  . q(80% or more G,A,T,C or N characters.) );
 	}
 	return $buffer;
 }
@@ -90,6 +95,11 @@ sub get_javascript {
 	}).multiselectfilter({
 		placeholder: 'Search'
 	});
+	\$("#options_trigger").click(function(){
+		\$("fieldset#options").css("display", \$("#options_off").is(":visible") ? "block" : "none");
+		\$("#options_off").toggle();
+		\$("#options_on").toggle();
+	});
 });
 
 function initiate() {
@@ -120,11 +130,28 @@ function initiate() {
 		value = value.replace(/^([^<h3>].+?) - /,"<h3>\$1</h3>");
 		\$(this).tooltip({content: value});
 	});
-	\$( "#and_others" ).click(function() {
-		\$( "div#other_matches" ).toggle( 'blind', {} , 500 );
+	\$( ".and_others" ).click(function() {
+		let scheme_id = this.id.replace('and_others_','');
+		\$( "div#other_matches_" + scheme_id ).toggle( 'blind', {} , 500 );
 		return false;
 	});
 	reloadTooltips();
+	\$( ".show_lincode" ).click(function() {
+		let scheme_id = this.id.replace('show_lcgroups_','');
+		\$("#show_lcgroups_" + scheme_id).css('display','none');
+		\$("#hide_lcgroups_" + scheme_id).css('display','inline');
+		\$("#lc_table_" + scheme_id).css('display','block');
+		\$(".lc_filtered_" + scheme_id).css('visibility','collapse');
+		\$(".lc_unfiltered_" + scheme_id).css('visibility','visible');
+	});	
+	\$( ".hide_lincode" ).click(function() {
+		let scheme_id = this.id.replace('hide_lcgroups_','');
+		\$("#show_lcgroups_" + scheme_id).css('display','inline');
+		\$("#hide_lcgroups_" + scheme_id).css('display','none');
+		\$("#lc_table_" + scheme_id).css('display','none');
+		\$(".lc_filtered_" + scheme_id).css('visibility','visible');
+		\$(".lc_unfiltered_" + scheme_id).css('visibility','collapse');
+	});	
 }
 
 function loadContent(url) {
@@ -154,42 +181,7 @@ sub _print_interface {
 	say q(<div class="scrollable">);
 
 	if ( !$q->param('simple') ) {
-		say q(<fieldset><legend>Please select locus/scheme</legend>);
-		my ( $display_loci, $cleaned ) =
-		  $self->{'datastore'}->get_locus_list( { set_id => $set_id, no_list_by_common_name => 1 } );
-		my $scheme_list = $self->get_scheme_data;
-		my %order;
-		my @schemes_and_groups;
-		foreach my $scheme ( reverse @$scheme_list ) {
-			my $value = "SCHEME_$scheme->{'id'}";
-			push @schemes_and_groups, $value;
-			$order{$value} = $scheme->{'display_order'} if $scheme->{'display_order'};
-			$cleaned->{$value} = $scheme->{'name'};
-		}
-		my $group_list = $self->{'datastore'}->get_group_list( { seq_query => 1 } );
-		foreach my $group ( reverse @$group_list ) {
-			my $group_schemes = $self->{'datastore'}->get_schemes_in_group( $group->{'id'}, { set_id => $set_id } );
-			if (@$group_schemes) {
-				my $value = "GROUP_$group->{'id'}";
-				push @schemes_and_groups, $value;
-				$order{$value} = $group->{'display_order'} if $group->{'display_order'};
-				$cleaned->{$value} = $group->{'name'};
-			}
-		}
-		@schemes_and_groups =
-		  sort { ( $order{$a} // INF ) <=> ( $order{$b} // INF ) || $cleaned->{$a} cmp $cleaned->{$b} }
-		  @schemes_and_groups;
-		unshift @$display_loci, @schemes_and_groups;
-		unshift @$display_loci, 0;
-		$cleaned->{0} = 'All loci';
-
-		#Following is eval'd because it may take a while to populate when a very large number of loci are defined.
-		#If the user closes the connection while the page is loading it would otherwise lead to a 500 error.
-		eval { say $q->popup_menu( -name => 'locus', -id => 'locus', -values => $display_loci, -labels => $cleaned ) };
-		say q(</fieldset>);
-		say q(<fieldset><legend>Order results by</legend>);
-		say $q->popup_menu( -name => 'order', -values => [ ( 'locus', 'best match' ) ] );
-		say q(</fieldset>);
+		$self->_print_scheme_loci_selector;
 	} else {
 		$q->param( order => 'locus' );
 		say $q->hidden($_) foreach qw(locus order simple debug);
@@ -218,13 +210,12 @@ sub _print_interface {
 		say q(</div>);
 		say q(</fieldset>);
 	}
-	if ( $page eq 'sequenceQuery' && !$self->{'config'}->{'intranet'} && !$q->param('no_genbank') ) {
-		say q(<fieldset style="float:left"><legend>or enter Genbank accession</legend>);
-		say $q->textfield( -name => 'accession' );
-		say q(</fieldset>);
-	}
 	my $action_args;
-	$action_args->{'simple'} = 1       if $q->param('simple');
+	if ( $q->param('simple') ) {
+		$action_args->{'simple'} = 1;
+	} else {
+		$self->_print_options_fieldset;
+	}
 	$action_args->{'set_id'} = $set_id if $set_id;
 	$self->print_action_fieldset($action_args);
 	say q(</div></div>);
@@ -234,10 +225,90 @@ sub _print_interface {
 	return;
 }
 
+sub _print_scheme_loci_selector {
+	my ($self) = @_;
+	my $set_id = $self->get_set_id;
+	my $q      = $self->{'cgi'};
+	say q(<fieldset><legend>Please select locus/scheme</legend>);
+	my ( $display_loci, $cleaned ) =
+	  $self->{'datastore'}->get_locus_list( { set_id => $set_id, no_list_by_common_name => 1 } );
+	my $qry;
+	if ($set_id) {
+		$qry =
+			'SELECT EXISTS(SELECT 1 FROM loci LEFT JOIN set_loci ON loci.id='
+		  . "set_loci.locus AND set_loci.set_id=$set_id WHERE (id IN (SELECT locus FROM scheme_members "
+		  . "WHERE scheme_id IN (SELECT scheme_id FROM set_schemes WHERE set_id=$set_id)) OR id IN "
+		  . "(SELECT locus FROM set_loci WHERE set_id=$set_id)) AND data_type=?)";
+	} else {
+		$qry = 'SELECT EXISTS(SELECT 1 FROM loci WHERE data_type=?)';
+	}
+	my $dna_loci     = $self->{'datastore'}->run_query( $qry, 'DNA' );
+	my $peptide_loci = $self->{'datastore'}->run_query( $qry, 'peptide' );
+	my $scheme_list  = $self->get_scheme_data;
+	my %order;
+	my @schemes_and_groups;
+	foreach my $scheme ( reverse @$scheme_list ) {
+		my $value = "SCHEME_$scheme->{'id'}";
+		push @schemes_and_groups, $value;
+		$order{$value} = $scheme->{'display_order'} if $scheme->{'display_order'};
+		$cleaned->{$value} = $scheme->{'name'};
+	}
+	my $group_list = $self->{'datastore'}->get_group_list( { seq_query => 1 } );
+	foreach my $group ( reverse @$group_list ) {
+		my $group_schemes = $self->{'datastore'}->get_schemes_in_group( $group->{'id'}, { set_id => $set_id } );
+		if (@$group_schemes) {
+			my $value = "GROUP_$group->{'id'}";
+			push @schemes_and_groups, $value;
+			$order{$value} = $group->{'display_order'} if $group->{'display_order'};
+			$cleaned->{$value} = $group->{'name'};
+		}
+	}
+	@schemes_and_groups =
+	  sort { ( $order{$a} // INF ) <=> ( $order{$b} // INF ) || $cleaned->{$a} cmp $cleaned->{$b} } @schemes_and_groups;
+	unshift @$display_loci, @schemes_and_groups;
+	unshift @$display_loci, 'ALL_LOCI';
+	$cleaned->{'ALL_LOCI'} = 'All loci';
+	if ( $dna_loci && $peptide_loci ) {
+		unshift @$display_loci, 'ALL_PEPTIDE';
+		$cleaned->{'ALL_PEPTIDE'} = 'All peptide loci';
+		unshift @$display_loci, 'ALL_DNA';
+		$cleaned->{'ALL_DNA'} = 'All DNA loci';
+	}
+
+	#Following is eval'd because it may take a while to populate when a very large number of loci are defined.
+	#If the user closes the connection while the page is loading it would otherwise lead to a 500 error.
+	eval { say $q->popup_menu( -name => 'locus', -id => 'locus', -values => $display_loci, -labels => $cleaned ) };
+	say q(</fieldset>);
+	say q(<fieldset><legend>Order results by</legend>);
+	say $q->popup_menu( -name => 'order', -values => [ ( 'locus', 'best match' ) ] );
+	say q(</fieldset>);
+	return;
+}
+
+sub _print_options_fieldset {
+	my ($self) = @_;
+	my $q = $self->{'cgi'};
+	say q(<fieldset id="options" style="float:left;display:none"><legend>Options</legend>);
+	say q(<ul><li>BLASTN word size: );
+	my $default =
+	  BIGSdb::Utils::is_int( scalar $q->param('word_size') ) ? scalar $q->param('word_size') : DEFAULT_WORD_SIZE;
+	say $self->textfield(
+		-ud    => 'word_size',
+		-name  => 'word_size',
+		-type  => 'number',
+		-min   => 11,
+		-max   => 50,
+		-value => $default
+	);
+	say q(</li></ul>);
+	say q(</fieldset>);
+	return;
+}
+
 sub _populate_kiosk_params {
 	my ($self) = @_;
 	my $q = $self->{'cgi'};
-	foreach my $param (qw(locus simple no_upload no_genbank)) {
+	foreach my $param (qw(locus simple no_upload)) {
 		$q->param( $param => $self->{'system'}->{"kiosk_$param"} eq 'yes' ? 1 : 0 )
 		  if $self->{'system'}->{"kiosk_$param"};
 	}
@@ -270,25 +341,6 @@ sub print_content {
 				$self->_run_query($seq_ref);
 				unlink $full_path;
 			}
-		} elsif ( $q->param('accession') ) {
-			try {
-				my $acc_seq = $self->_upload_accession;
-				if ($acc_seq) {
-					$self->_run_query( \$acc_seq );
-				}
-			} catch {
-				if ( $_->isa('BIGSdb::Exception::Data') ) {
-					$logger->debug($_);
-					if ( $_ =~ /INVALID_ACCESSION/x ) {
-						$self->print_bad_status( { message => q(Accession is invalid.) } );
-					} elsif ( $_ =~ /NO_DATA/x ) {
-						$self->print_bad_status(
-							{ message => q(The accession is valid but it contains no sequence data.) } );
-					}
-				} else {
-					$logger->logdie($_);
-				}
-			};
 		}
 	}
 	return;
@@ -320,26 +372,6 @@ sub _upload_fasta_file {
 	print $fh $buffer;
 	close $fh;
 	return "${temp}_upload.fas";
-}
-
-sub _upload_accession {
-	my ($self)    = @_;
-	my $accession = $self->{'cgi'}->param('accession');
-	my $seq_db    = Bio::DB::GenBank->new;
-	$seq_db->retrieval_type('tempfile');    #prevent forking resulting in duplicate error message on fail.
-	my $sequence;
-	try {
-		my $seq_obj = $seq_db->get_Seq_by_acc($accession);
-		$sequence = $seq_obj->seq;
-	} catch {
-		my $err = shift;
-		$logger->debug($err);
-		BIGSdb::Exception::Data->throw('INVALID_ACCESSION');
-	};
-	if ( !length($sequence) ) {
-		BIGSdb::Exception::Data->throw('NO_DATA');
-	}
-	return $sequence;
 }
 
 sub _run_query {
@@ -550,6 +582,15 @@ sub _run_blast {
 	my $batch_query   = $q->param('page') eq 'batchSequenceQuery' ? 1 : 0;
 	my $set_id        = $self->get_set_id;
 	local $" = q(,);
+	my $word_size =
+	  BIGSdb::Utils::is_int( scalar $q->param('word_size') )
+	  ? scalar $q->param('word_size')
+	  : DEFAULT_WORD_SIZE;
+	$word_size = 11 if $word_size < 11;
+
+	if ( $word_size =~ /(\d*)/x ) {
+		$word_size = $1;                   #untaint
+	}
 	my $seq_qry_obj = BIGSdb::Offline::SequenceQuery->new(
 		{
 			config_dir       => $self->{'config_dir'},
@@ -570,7 +611,9 @@ sub _run_blast {
 				select_id            => $self->{'select_id'},
 				set_id               => $set_id,
 				script_name          => $self->{'system'}->{'script_name'},
-				align_width          => $self->{'prefs'}->{'alignwidth'}
+				align_width          => $self->{'prefs'}->{'alignwidth'},
+				word_size            => $word_size,
+				data_type            => $self->{'data_type'}
 			},
 			instance => $self->{'instance'},
 			logger   => $logger
@@ -614,9 +657,19 @@ sub _get_selected_loci {
 	my $q         = $self->{'cgi'};
 	my $selection = $self->{'system'}->{'kiosk_locus'} // $q->param('locus');
 	my $set_id    = $self->get_set_id;
-	if ( $selection eq '0' ) {
+	if ( $selection eq 'ALL_LOCI' ) {
 		$self->{'select_type'} = 'all';
 		return $self->{'datastore'}->get_loci( { set_id => $set_id } );
+	}
+	if ( $selection eq 'ALL_DNA' ) {
+		$self->{'select_type'} = 'all';
+		$self->{'data_type'}   = 'DNA';
+		return $self->{'datastore'}->get_loci( { set_id => $set_id, data_type => 'DNA' } );
+	}
+	if ( $selection eq 'ALL_PEPTIDE' ) {
+		$self->{'select_type'} = 'all';
+		$self->{'data_type'}   = 'peptide';
+		return $self->{'datastore'}->get_loci( { set_id => $set_id, data_type => 'peptide' } );
 	}
 	if ( $selection =~ /^SCHEME_(\d+)$/x ) {
 		my $scheme_id = $1;
@@ -652,6 +705,15 @@ sub initiate {
 		$self->{'tooltips'} = 1;
 		$self->set_level1_breadcrumbs;
 	}
+	return;
+}
+
+sub print_panel_buttons {
+	my ($self) = @_;
+	say q(<span class="icon_button"><a class="trigger_button" id="options_trigger" title="Toggle options">)
+	  . q(<span id="options_off" class="fas fa-lg fa-toggle-off"></span>)
+	  . q(<span id="options_on" class="fas fa-lg fa-toggle-on" style="display:none"></span>)
+	  . q(<span class="icon_label">Options</span></a></span>);
 	return;
 }
 1;

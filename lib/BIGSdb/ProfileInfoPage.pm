@@ -1,5 +1,5 @@
 #Written by Keith Jolley
-#Copyright (c) 2010-2023, University of Oxford
+#Copyright (c) 2010-2024, University of Oxford
 #E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
@@ -80,6 +80,17 @@ sub print_content {
 		say q(<div class="box statusbad"><p>This profile does not exist!</p></div>);
 		return;
 	}
+	my $date_restriction = $self->{'datastore'}->get_date_restriction;
+	if ( $date_restriction && !$self->{'username'} ) {
+		my $date_entered =
+		  $self->{'datastore'}->run_query( 'SELECT date_entered FROM profiles WHERE (scheme_id,profile_id)=(?,?)',
+			[ $scheme_id, $profile_id ] );
+		if ( $date_entered gt $date_restriction ) {
+			say qq(<div class="box statusbad"><p>This profile was submitted after $date_restriction. )
+			  . q(Please log in to view.</p></div>);
+			return;
+		}
+	}
 	if ( $q->param('history') ) {
 		say q(<div class="box" id="resultstable">);
 		say q(<h2>Update history</h2>);
@@ -96,11 +107,10 @@ sub print_content {
 		say $self->get_show_common_names_button();
 		say q(</div>);
 		say q(<div class="scrollable">);
-				
-		
 		$self->_print_profile( $scheme_id, $profile_id );
 		say $self->_get_ref_links( $scheme_id, $profile_id );
 		$self->_print_client_db_links( $scheme_id, $profile_id );
+		$self->_print_lincode_matches( $scheme_id, $profile_id );
 		$self->_print_classification_groups( $scheme_id, $profile_id );
 		say q(</div>);
 	}
@@ -111,7 +121,7 @@ sub print_content {
 
 sub _print_plugin_buttons {
 	my ( $self, $scheme_id, $profile_id ) = @_;
-	my $q = $self->{'cgi'};
+	my $q                 = $self->{'cgi'};
 	my $plugin_categories = $self->{'pluginManager'}->get_plugin_categories( 'info', $self->{'system'}->{'dbtype'} );
 	return if !@$plugin_categories;
 	my $buffer;
@@ -125,8 +135,12 @@ sub _print_plugin_buttons {
 	my $set_id = $self->get_set_id;
 	foreach my $category (@$plugin_categories) {
 		my $cat_buffer;
-		my $plugin_names = $self->{'pluginManager'}
-		  ->get_appropriate_plugin_names( 'profile_info', $self->{'system'}->{'dbtype'}, $category || 'none' );
+		my $plugin_names = $self->{'pluginManager'}->get_appropriate_plugin_names(
+			'profile_info',
+			$self->{'system'}->{'dbtype'},
+			$category || 'none',
+			{ username => $self->{'username'} }
+		);
 		if (@$plugin_names) {
 			my $plugin_buffer;
 			$q->param( calling_page => scalar $q->param('page') );
@@ -146,7 +160,7 @@ sub _print_plugin_buttons {
 			if ($plugin_buffer) {
 				$category = 'Miscellaneous' if !$category;
 				$cat_buffer .=
-				    q(<div><span style="float:left;text-align:right;width:8em;)
+					q(<div><span style="float:left;text-align:right;width:8em;)
 				  . q(white-space:nowrap;margin-right:0.5em">)
 				  . qq(<span class="fa-fw fa-lg $icon{$category} info_plugin_icon" style="margin-right:0.2em">)
 				  . qq(</span>$category:</span>)
@@ -216,7 +230,7 @@ sub _print_client_db_links {
 			$buffer .= qq(<dd>$client_info->{'description'} );
 			if ( $client_info->{'url'} ) {
 				my $c_scheme_id = $client->{'client_scheme_id'} // $scheme_id;
-				my %params = (
+				my %params      = (
 					db                    => $client_info->{'dbase_config_name'},
 					page                  => 'query',
 					designation_field1    => "s_$c_scheme_id\_$primary_key",
@@ -264,6 +278,7 @@ sub _print_client_db_links {
 
 sub _print_classification_groups {
 	my ( $self, $scheme_id, $profile_id ) = @_;
+	return if ( $self->{'system'}->{'show_classification_schemes'} // q() ) eq 'no';
 	my $buffer = q();
 	my $cschemes =
 	  $self->{'datastore'}
@@ -282,6 +297,7 @@ sub _print_classification_groups {
 		  . 'classification_schemes cs ON cgf.cg_scheme_id=cs.id WHERE cs.scheme_id=?)',
 		$scheme_id
 	);
+
 	foreach my $cscheme (@$cschemes) {
 		my $cgroup = $self->{'datastore'}->run_query(
 			'SELECT group_id FROM classification_group_profiles WHERE (cg_scheme_id,profile_id)=(?,?)',
@@ -291,7 +307,7 @@ sub _print_classification_groups {
 		next if !defined $cgroup;
 		my $desc = $cscheme->{'description'};
 		my $tooltip =
-		    $desc
+			$desc
 		  ? $self->get_tooltip(qq($cscheme->{'name'} - $desc))
 		  : q();
 		my $profile_count =
@@ -302,7 +318,7 @@ sub _print_classification_groups {
 		my $url = qq($self->{'system'}->{'script_name'}?db=$self->{'instance'}&amp;page=query&amp;)
 		  . qq(scheme_id=$scheme_id&amp;s1=$cscheme->{'name'}&amp;y1==&amp;t1=$cgroup&amp;submit=1);
 		$buffer .=
-		    qq(<tr class="td$td"><td>$cscheme->{'name'}$tooltip</td><td>Single-linkage</td>)
+			qq(<tr class="td$td"><td>$cscheme->{'name'}$tooltip</td><td>Single-linkage</td>)
 		  . qq(<td>$cscheme->{'inclusion_threshold'}</td><td>$cscheme->{'status'}</td>)
 		  . qq(<td>$cgroup</td>);
 
@@ -316,7 +332,7 @@ sub _print_classification_groups {
 			my @client_links = ();
 			foreach my $client_db (@$client_dbs) {
 				next if $client_db->{'cscheme_id'} != $cscheme->{'id'};
-				my $client = $self->{'datastore'}->get_client_db( $client_db->{'id'} );
+				my $client         = $self->{'datastore'}->get_client_db( $client_db->{'id'} );
 				my $client_cscheme = $client_db->{'client_cscheme_id'} // $cscheme->{'id'};
 				try {
 					my $isolates =
@@ -324,13 +340,12 @@ sub _print_classification_groups {
 					my $client_db_url = $client_db->{'url'} // $self->{'system'}->{'script_name'};
 					if ($isolates) {
 						push @client_links,
-						    qq(<span class="source">$client_db->{'name'}</span> )
+							qq(<span class="source">$client_db->{'name'}</span> )
 						  . qq(<a href="$client_db_url?db=$client_db->{'dbase_config_name'}&amp;page=query&amp;)
 						  . qq(designation_field1=cg_${client_cscheme}_group&amp;designation_value1=$cgroup&amp;submit=1">)
 						  . qq($isolates</a>);
 					}
-				}
-				catch {
+				} catch {
 					if ( $_->isa('BIGSdb::Exception::Database::Configuration') ) {
 						$logger->error( "Client database for classification scheme $cscheme->{'name'} "
 							  . 'is not configured correctly.' );
@@ -364,6 +379,109 @@ sub _print_classification_groups {
 	return;
 }
 
+sub _print_lincode_matches {
+	my ( $self, $scheme_id, $profile_id ) = @_;
+	return if ( $self->{'system'}->{'show_lincode_matches'} // q() ) eq 'no';
+	return if !$self->{'datastore'}->are_lincodes_defined($scheme_id);
+	my $lincode =
+	  $self->{'datastore'}
+	  ->run_query( 'SELECT lincode FROM lincodes WHERE (scheme_id,profile_id)=(?,?)', [ $scheme_id, $profile_id ] )
+	  // [];
+	return if !@$lincode;
+	my $lincode_scheme =
+	  $self->{'datastore'}
+	  ->run_query( 'SELECT * FROM lincode_schemes WHERE scheme_id=?', $scheme_id, { fetch => 'row_hashref' } );
+	my @thresholds = split /\s*;\s*/x, $lincode_scheme->{'thresholds'};
+	my $i          = 0;
+	my $tdf        = 1;
+	my $tdu        = 1;
+	my $default_show =
+	  BIGSdb::Utils::is_int( $self->{'system'}->{'show_lincode_thresholds'} )
+	  ? $self->{'system'}->{'show_lincode_thresholds'}
+	  : 5;
+	$default_show = @thresholds if $default_show > @thresholds;
+	my @filtered;
+	my @unfiltered;
+	my $client_dbs = $self->{'datastore'}->run_query(
+		'SELECT * FROM client_dbase_schemes cds JOIN client_dbases cd ON cds.client_dbase_id=cd.id WHERE scheme_id=? '
+		  . 'ORDER BY cd.name',
+		$scheme_id,
+		{ fetch => 'all_arrayref', slice => {} }
+	);
+
+	foreach my $threshold (@thresholds) {
+		my @prefix = @$lincode[ 0 .. $i ];
+		my @lincode_query;
+		my $pos = 1;
+		foreach my $value (@prefix) {
+			push @lincode_query, "lincode[$pos]=$value";
+			$pos++;
+		}
+		local $" = q( AND );
+		my $profile_count = $self->{'datastore'}->run_query( "SELECT COUNT(*) FROM lincodes WHERE @lincode_query", );
+		local $" = q(_);
+		my $url =
+			"$self->{'system'}->{'script_name'}?db=$self->{'instance'}&amp;page=query&amp;scheme_id=$scheme_id&amp;s1="
+		  . "LINcode&amp;amp;y1=starts%20with&amp;t1=@prefix&submit=1";
+		my $client_buffer = q();
+		if (@$client_dbs) {
+			my @client_links = ();
+			foreach my $client_db (@$client_dbs) {
+				my $client           = $self->{'datastore'}->get_client_db( $client_db->{'id'} );
+				my $client_scheme_id = $client_db->{'client_scheme_id'} // $scheme_id;
+				my $isolate_count    = $client->count_isolates_with_lincode_prefix( $client_scheme_id, \@prefix );
+				my $client_db_url    = $client_db->{'url'} // $self->{'system'}->{'script_name'};
+				if ($isolate_count) {
+					local $" = q(_);
+					push @client_links,
+						qq(<span class="source">$client_db->{'name'}</span> )
+					  . qq(<a href="$client_db_url?db=$client_db->{'dbase_config_name'}&amp;page=query&amp;)
+					  . qq(designation_field1=lin_$client_scheme_id&amp;designation_operator1=starts%20with&amp;)
+					  . qq(designation_value1=@prefix&amp;submit=1">$isolate_count</a>);
+				}
+			}
+			local $" = q(<br />);
+			$client_buffer .= qq(<td style="text-align:left">@client_links</td>);
+		}
+		if ( @thresholds >= $default_show && $i >= ( @thresholds - $default_show ) ) {
+			push @filtered,
+				qq(<tr class="td$tdf lc_filtered_$scheme_id">)
+			  . qq(<td style="text-align:left">@prefix</td>)
+			  . qq(<td>$threshold</td><td><a href="$url">$profile_count</a></td>$client_buffer</tr>);
+			$tdf = $tdf == 1 ? 2 : 1;
+		}
+		push @unfiltered,
+			qq(<tr class="td$tdu lc_unfiltered_$scheme_id" style="visibility:collapse">)
+		  . qq(<td style="text-align:left">@prefix</td>)
+		  . qq(<td>$threshold</td><td><a href="$url">$profile_count</a></td>$client_buffer</tr>);
+		$tdu = $tdu == 1 ? 2 : 1;
+		$i++;
+	}
+	my $filtered_display = @filtered ? 'block' : 'none';
+	my $hide_table_class = @filtered ? ''      : "lc_table_$scheme_id";
+	local $" = q( );
+	my $buffer;
+	if ( @unfiltered > @filtered ) {
+		$buffer .=
+			qq(<p><a id="show_lcgroups_$scheme_id" class="show_lincode small_submit" )
+		  . q(style="display:inline"><span class="fa fas fa-eye"></span> Show all thresholds</a>)
+		  . qq(<a id="hide_lcgroups_$scheme_id" class="hide_lincode small_submit" style="display:none">)
+		  . q(<span class="fa fas fa-eye-slash"></span> Hide larger thresholds</a></p>);
+	}
+	$buffer .=
+		q(<div class="scrollable">)
+	  . q(<table class="resultstable $hide_table_class" style="display:$filtered_display">)
+	  . q(<tr><th>Prefix</th><th>Threshold</th>)
+	  . q(<th>Matching profiles</th>);
+	$buffer .= q(<th>Matching isolates</th>) if @$client_dbs;
+	$buffer .= qq(</tr>@filtered@unfiltered);
+	$buffer .= q(</table></div>);
+	say q(<div><span class="info_icon fas fa-2x fa-fw fa-sitemap fa-pull-left" )
+	  . q(style="margin-top:-0.2em"></span><h2>Similar profiles (determined by LIN codes)</h2>)
+	  . qq($buffer</div>);
+	return;
+}
+
 sub _print_profile {
 	my ( $self, $scheme_id, $profile_id ) = @_;
 	my $set_id      = $self->get_set_id;
@@ -373,11 +491,11 @@ sub _print_profile {
 	my $data =
 	  $self->{'datastore'}
 	  ->run_query( "SELECT * FROM mv_scheme_$scheme_id WHERE $primary_key=?", $profile_id, { fetch => 'row_hashref' } );
-	my $hide = @$loci > MAX_LOCI_SHOW;
+	my $hide  = @$loci > MAX_LOCI_SHOW;
 	my $class = $hide ? q(expandable_retracted) : q();
 	say qq(<div id="profile" style="overflow:hidden" class="$class">);
 	my $scheme_field_info = $self->{'datastore'}->get_scheme_field_info( $scheme_id, $primary_key );
-	my $tooltip = q();
+	my $tooltip           = q();
 
 	if ( $scheme_field_info->{'description'} ) {
 		$tooltip =
@@ -387,7 +505,7 @@ sub _print_profile {
 	my $scheme_fields = $self->{'datastore'}->get_scheme_fields($scheme_id);
 	my $indices       = $self->{'datastore'}->get_scheme_locus_indices( $scheme_info->{'id'} );
 	foreach my $locus (@$loci) {
-		my $cleaned = $self->clean_locus($locus, { common_name_class => 'locus_common_name' });
+		my $cleaned = $self->clean_locus( $locus, { common_name_class => 'locus_common_name' } );
 		my $value   = $data->{'profile'}->[ $indices->{$locus} ];
 		say qq(<dl class="profile"><dt class="locus">$cleaned</dt><dd><a href="$self->{'system'}->{'script_name'}?)
 		  . qq(db=$self->{'instance'}&amp;page=alleleInfo&amp;locus=$locus&amp;allele_id=$value">)
@@ -404,7 +522,7 @@ sub _print_profile {
 		}
 		say qq(<dl class="profile"><dt>$cleaned</dt>);
 		$data->{ lc($field) } //= q(&nbsp;);
-		$data->{ lc($field) } = q(&nbsp;) if $data->{ lc($field) }  eq q();
+		$data->{ lc($field) } = q(&nbsp;) if $data->{ lc($field) } eq q();
 		say qq(<dd>$data->{lc($field)}</dd></dl>);
 	}
 	say q(</div>);
@@ -414,7 +532,6 @@ sub _print_profile {
 	say q(<dl class="data">);
 	my $lincode_values = $self->_get_lincode_values( $scheme_id, $profile_id );
 	say qq(<dt>$_->{'label'}</dt><dd>$_->{'value'}</dd>) foreach @$lincode_values;
-		
 	foreach my $field (qw (sender curator date_entered datestamp)) {
 		my $cleaned = $field;
 		$cleaned =~ tr/_/ /;
@@ -482,14 +599,14 @@ sub _get_lincode_values {
 		  ->run_query( 'SELECT field FROM lincode_fields WHERE scheme_id=? ORDER BY display_order,field',
 			$scheme_id, { fetch => 'col_arrayref' } );
 		my $join_table =
-		    q[lincodes LEFT JOIN lincode_prefixes ON lincodes.scheme_id=lincode_prefixes.scheme_id AND (]
-		  . q[array_to_string(lincodes.lincode,'_') LIKE (REPLACE(lincode_prefixes.prefix,'_','\_') || E'\_' || '%') ]
+			q[lincodes LEFT JOIN lincode_prefixes ON lincodes.scheme_id=lincode_prefixes.scheme_id AND (]
+		  . q[array_to_string(lincodes.lincode,'_') LIKE (REPLACE(lincode_prefixes.prefix,'_','\_') || E'\\\_' || '%') ]
 		  . q[OR array_to_string(lincodes.lincode,'_') = lincode_prefixes.prefix)];
 		foreach my $field (@$lincode_fields) {
 			my $type =
 			  $self->{'datastore'}
 			  ->run_query( 'SELECT type FROM lincode_fields WHERE (scheme_id,field)=(?,?)', [ $scheme_id, $field ] );
-			my $order = $type eq 'integer' ? 'CAST(value AS integer)' : 'value';
+			my $order  = $type eq 'integer' ? 'CAST(value AS integer)' : 'value';
 			my $values = $self->{'datastore'}->run_query(
 				"SELECT value FROM $join_table WHERE (lincodes.scheme_id,lincode_prefixes.field,lincodes.lincode)="
 				  . "(?,?,?) ORDER BY $order",
@@ -512,7 +629,7 @@ sub _get_lincode_values {
 sub _get_history {
 	my ( $self, $scheme_id, $profile_id, $limit ) = @_;
 	my $limit_clause = $limit ? " LIMIT $limit" : '';
-	my $data = $self->{'datastore'}->run_query(
+	my $data         = $self->{'datastore'}->run_query(
 		'SELECT timestamp,action,curator FROM profile_history where '
 		  . "(scheme_id,profile_id)=(?,?) ORDER BY timestamp desc$limit_clause",
 		[ $scheme_id, $profile_id ],
@@ -592,6 +709,22 @@ sub get_javascript {
 	if (\$("span").hasClass('locus_common_name')){
 		\$("span#common_names_button").css('display', 'inline');
 	} 
+	\$( ".show_lincode" ).click(function() {
+		let scheme_id = this.id.replace('show_lcgroups_','');
+		\$("#show_lcgroups_" + scheme_id).css('display','none');
+		\$("#hide_lcgroups_" + scheme_id).css('display','inline');
+		\$("#lc_table_" + scheme_id).css('display','block');
+		\$(".lc_filtered_" + scheme_id).css('visibility','collapse');
+		\$(".lc_unfiltered_" + scheme_id).css('visibility','visible');
+	});	
+	\$( ".hide_lincode" ).click(function() {
+		let scheme_id = this.id.replace('hide_lcgroups_','');
+		\$("#show_lcgroups_" + scheme_id).css('display','inline');
+		\$("#hide_lcgroups_" + scheme_id).css('display','none');
+		\$("#lc_table_" + scheme_id).css('display','none');
+		\$(".lc_filtered_" + scheme_id).css('visibility','visible');
+		\$(".lc_unfiltered_" + scheme_id).css('visibility','collapse');
+	});	
 	set_profile_widths();
 });
 
@@ -638,7 +771,7 @@ sub get_link_button_to_ref {
 	my $count;
 	my $buffer;
 	my $qry =
-	    'SELECT COUNT(profile_refs.profile_id) FROM profile_refs RIGHT JOIN profiles on '
+		'SELECT COUNT(profile_refs.profile_id) FROM profile_refs RIGHT JOIN profiles on '
 	  . 'profile_refs.profile_id=profiles.profile_id AND profile_refs.scheme_id=profiles.scheme_id '
 	  . 'WHERE pubmed_id=?';
 	$count = $self->{'datastore'}->run_query( $qry, $ref );

@@ -1,6 +1,6 @@
 #Microreact.pm - Phylogenetic tree/data visualization plugin for BIGSdb
 #Written by Keith Jolley
-#Copyright (c) 2017-2024, University of Oxford
+#Copyright (c) 2017-2025, University of Oxford
 #E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
@@ -68,7 +68,7 @@ sub get_attributes {
 		buttontext => 'Microreact',
 		menutext   => 'Microreact',
 		module     => 'Microreact',
-		version    => '1.4.0',
+		version    => '1.5.1',
 		dbtype     => 'isolates',
 		section    => 'third_party,postquery',
 		input      => 'query',
@@ -129,6 +129,7 @@ sub run_job {
 
 	my $message_html = '<p>Job completed</p>';
 
+    $self->check_connection($job_id);
 	$self->_microreact_upload( $job_id, $params, $tree_file, \$message_html );
 	$self->{'jobManager'}->update_job_status( $job_id, { message_html => $message_html } ) if $message_html;
 	return;
@@ -160,7 +161,7 @@ sub _microreact_upload {
 	my $uploader    = LWP::UserAgent->new( cookie_jar => {}, agent => 'BIGSdb' );
 	my $tsv         = BIGSdb::Utils::slurp($tsv_file);
 	my $upload_data = {
-		name => $params->{'title'} || $job_id,
+		name        => $params->{'title'} || $job_id,
 		description => $params->{'description'},
 		website     => $params->{'website'},
 		data        => $$tsv
@@ -260,7 +261,7 @@ sub _microreact_upload {
 sub _create_tsv_file {
 	my ( $self, $job_id, $params ) = @_;
 	my $isolate_ids = $self->{'jobManager'}->get_job_isolates($job_id);
-	my $temp_table = $self->{'datastore'}->create_temp_list_table_from_array( 'int', $isolate_ids );
+	my $temp_table  = $self->{'datastore'}->create_temp_list_table_from_array( 'int', $isolate_ids );
 	my $data =
 	  $self->{'datastore'}
 	  ->run_query( "SELECT i.* FROM $self->{'system'}->{'view'} i JOIN $temp_table l ON i.id=l.value ORDER BY i.id",
@@ -273,7 +274,7 @@ sub _create_tsv_file {
 	my $country_field = $self->_get_country_field;
 	$include_fields{"f_$country_field"} = 1 if defined $country_field;
 	my $year_field = $self->_get_year_field;
-	$include_fields{"f_$year_field"} = 1 if defined $year_field;
+	$include_fields{"f_$year_field"}                       = 1 if defined $year_field;
 	$include_fields{"f_$self->{'system'}->{'labelfield'}"} = 1;
 	my $extended    = $self->get_extended_attributes;
 	my $prov_fields = $self->{'xmlHandler'}->get_field_list;
@@ -296,8 +297,11 @@ sub _create_tsv_file {
 	foreach my $field (@include_fields) {
 		if ( $field =~ /^s_(\d+)_(.+)$/x ) {
 			my $scheme_info = $self->{'datastore'}->get_scheme_info( $1, { set_id => $params->{'set_id'} } );
-			( my $field = "$2 ($scheme_info->{'name'})" ) =~ tr/_/ /;
-			push @header_fields, $field;
+			( my $field_name = "$2 ($scheme_info->{'name'})" ) =~ tr/_/ /;
+			push @header_fields, $field_name;
+		} elsif ( $field =~ /^eav_(.+)$/x ) {
+			( my $field_name = $1 ) =~ tr/_/ /;
+			push @header_fields, $field_name;
 		}
 	}
 	foreach my $field (@$eav_fields) {
@@ -354,6 +358,11 @@ sub _create_tsv_file {
 				my @display_values = sort keys %{ $field_values->{ lc($field) } };
 				local $" = q(; );
 				push @record_values, qq(@display_values) // q();
+			} elsif ( $field =~ /^eav_(.+)$/x ) {
+				my $field_name = $1;
+				my $value      = $self->{'datastore'}->get_eav_field_value( $record->{'id'}, $field_name );
+				$value //= q();
+				push @record_values, $value;
 			}
 		}
 
@@ -434,10 +443,10 @@ sub print_extra_form_elements {
 		{
 			description              => qq(Select additional fields to include. $tooltip),
 			isolate_fields           => 1,
+			eav_fields               => 1,
 			nosplit_geography_points => 1,
 			extended_attributes      => 1,
 			scheme_fields            => 1,
-			eav_fields				 => 1,
 			hide                     => "f_$self->{'system'}->{'labelfield'},f_country,f_year,html,eav_html,eav_consensus_sequence"
 		}
 	);

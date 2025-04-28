@@ -1,5 +1,5 @@
 #Written by Keith Jolley
-#Copyright (c) 2010-2024, University of Oxford
+#Copyright (c) 2010-2025, University of Oxford
 #E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
@@ -25,6 +25,8 @@ use BIGSdb::Exceptions;
 use Try::Tiny;
 use Log::Log4perl qw(get_logger);
 use List::MoreUtils qw(any uniq);
+use JSON;
+use Encode;
 use BIGSdb::Constants qw(LOCUS_PATTERN :interface);
 my $logger = get_logger('BIGSdb.Plugins');
 use constant SEQ_SOURCE => 'seqbin id + position';
@@ -41,10 +43,16 @@ sub run_job               { }              #used to run offline job
 sub get_javascript {
 	my ($self) = @_;
 	my $plugin_name = $self->{'cgi'}->param('name');
-	my ( $js, $tree_js );
+	my ( $js, $tree_js, $requires );
+	my $att = $self->{'pluginManager'}->get_plugin_attributes($plugin_name);
 	try {
-		$js = $self->{'pluginManager'}->get_plugin($plugin_name)->get_plugin_javascript;
-		my $requires = $self->{'pluginManager'}->get_plugin($plugin_name)->get_attributes->{'requires'};
+		if ( $att->{'language'} eq 'Python' ) {
+			$js       = $att->{'javascript'} // q();
+			$requires = $att->{'requires'}   // q();
+		} else {
+			$js       = $self->{'pluginManager'}->get_plugin($plugin_name)->get_plugin_javascript;
+			$requires = $self->{'pluginManager'}->get_plugin($plugin_name)->get_attributes->{'requires'};
+		}
 		if ($requires) {
 			$tree_js =
 				$requires =~ /js_tree/x || $self->{'jQuery.jstree'}
@@ -154,9 +162,7 @@ sub print_content {
 		$self->print_bad_status( { message => q(Invalid (or no) plugin called.), navbar => 1 } );
 		return;
 	}
-	my $plugin = $self->{'pluginManager'}->get_plugin($plugin_name);
-	my $att    = $plugin->get_attributes;
-	$plugin->{'username'} = $self->{'username'};
+	my $att    = $self->{'pluginManager'}->get_plugin_attributes($plugin_name);
 	my $dbtype = $self->{'system'}->{'dbtype'};
 	if ( $att->{'dbtype'} !~ /$dbtype/x ) {
 		say q(<h1>Incompatible plugin</h1>);
@@ -168,10 +174,72 @@ sub print_content {
 		);
 		return;
 	}
+	my $blocked_plugins = $self->{'pluginManager'}->get_restricted_plugins( $self->{'username'} );
+	if ( $blocked_plugins->{$plugin_name} ) {
+		say q(<h1>Restricted plugin</h1>);
+		$self->print_bad_status(
+			{
+				message => q(This plugin has restricted access. Make sure you are logged )
+				  . q(in with an account that has appropriate permissions to access this plugin.),
+				navbar => 1
+			}
+		);
+		return;
+	}
+	if ( $att->{'language'} eq 'Python' ) {
+		my $args      = { username => $self->{'username'} };
+		my $user_info = $self->{'datastore'}->get_user_info_from_username( $self->{'username'} );
+		$args->{'email'} = $user_info->{'email'} if defined $user_info->{'email'};
+		my $set_id = $self->get_set_id;
+		$args->{'set_id'}                      = $set_id           if defined $set_id;
+		$args->{'curate'}                      = $self->{'curate'} if $self->{'curate'};
+		$args->{'guid'}                        = $self->get_guid;
+		$args->{'cgi_params'}                  = { %{ $q->Vars } };    #Shallow copy
+		$args->{'cgi_params'}->{'remote_host'} = $q->remote_host;
+
+		foreach my $key ( keys %{ $args->{'cgi_params'} } ) {
+			if ( $args->{'cgi_params'}->{$key} =~ /\x{0000}/x ) {
+				my $value_string = $args->{'cgi_params'}->{$key};
+				$args->{'cgi_params'}->{$key} = [ split /\x{0000}/x, $value_string ];
+				foreach my $value ( @{ $args->{'cgi_params'}->{$key} } ) {
+					if ( BIGSdb::Utils::is_int($value) ) {
+						$value = int($value);
+					}
+				}
+			}
+		}
+		my $arg_file     = $self->_make_arg_file($args);
+		my $appender     = Log::Log4perl->appender_by_name('A1');
+		my $log_filename = $appender->{'filename'} // '/var/log/bigsdb.log';
+		my $command =
+			"$self->{'config'}->{'python_plugin_runner_path'} --database $self->{'instance'} "
+		  . "--module $plugin_name --module_dir $self->{'config'}->{'python_plugin_dir'} --arg_file $arg_file "
+		  . "--log_file $log_filename";
+		my $output = `$command`;
+		$output = Encode::decode( 'utf8', $output );
+		say $output;
+		return;
+	}
+	my $plugin = $self->{'pluginManager'}->get_plugin($plugin_name);
+	$plugin->{'username'} = $self->{'username'};
 	$plugin->initiate_prefs;
 	$plugin->initiate_view( $self->{'username'} );
 	$plugin->run;
 	return;
+}
+
+sub _make_arg_file {
+	my ( $self, $data ) = @_;
+	my ( $filename, $full_file_path );
+	do {
+		$filename       = BIGSdb::Utils::get_random();
+		$full_file_path = "$self->{'config'}->{'secure_tmp_dir'}/$filename";
+	} while ( -e $full_file_path );
+	my $json = encode_json($data);
+	open( my $fh, '>:encoding(utf8)', $full_file_path ) || $logger->error("Can't open $full_file_path for writing");
+	say $fh $json;
+	close $fh;
+	return $filename;
 }
 
 sub get_title {
@@ -284,15 +352,16 @@ sub print_eav_fields_fieldset {
 	} else {
 		$values = $self->{'datastore'}->get_eav_fieldnames;
 	}
-	my $legend = $self->{'system'}->{'eav_fields'} // 'Secondary metadata';
-	say qq(<fieldset style="float:left"><legend>$legend</legend>);
+	my $legend  = $self->{'system'}->{'eav_fields'} // 'Secondary metadata';
+	my $display = $options->{'hide'} ? 'none' : 'block';
+	say qq(<fieldset id="eav_fieldset" style="float:left;display:$display"><legend>$legend</legend>);
 	say $q->scrolling_list(
 		-name     => 'eav_fields',
 		-id       => 'eav_fields',
 		-values   => $values,
 		-labels   => $labels,
 		-multiple => 'true',
-		-size     => $options->{'size'} // 8,
+		-size     => $options->{'size'} // 8
 	);
 	if ( !$options->{'no_all_none'} ) {
 		say q(<div style="text-align:center"><input type="button" onclick='listbox_selectall("eav_fields",true)' )
@@ -301,33 +370,36 @@ sub print_eav_fields_fieldset {
 		  . q(class="small_submit" /></div>);
 	}
 	say q(</fieldset>);
+	$self->{'eav_fieldset'} = 1;
 	return;
 }
 
 sub print_composite_fields_fieldset {
-	my ($self) = @_;
+	my ( $self, $options ) = @_;
 	my $composites =
 	  $self->{'datastore'}
 	  ->run_query( 'SELECT id FROM composite_fields ORDER BY id', undef, { fetch => 'col_arrayref' } );
-	if (@$composites) {
-		my $labels = {};
-		foreach my $field (@$composites) {
-			( $labels->{$field} = $field ) =~ tr/_/ /;
-		}
-		say q(<fieldset style="float:left"><legend>Composite fields</legend>);
-		say $self->popup_menu(
-			-name     => 'composite_fields',
-			-id       => 'composite_fields',
-			-values   => $composites,
-			-labels   => $labels,
-			-multiple => 'true',
-			-class    => 'multiselect'
-		);
-		say $self->get_tooltip( q(Composite fields - These are constructed from combinations of )
-			  . q(other fields (some of which may come from external databases). Including composite fields )
-			  . q(will slow down the processing.) );
-		say q(</fieldset>);
+	return if !@$composites;
+	my $labels = {};
+	foreach my $field (@$composites) {
+		( $labels->{$field} = $field ) =~ tr/_/ /;
 	}
+	my $display = $options->{'hide'} ? 'none' : 'block';
+	say qq(<fieldset id="composite_fieldset" style="float:left;display:$display">)
+	  . q(<legend>Composite fields</legend>);
+	say $self->popup_menu(
+		-name     => 'composite_fields',
+		-id       => 'composite_fields',
+		-values   => $composites,
+		-labels   => $labels,
+		-multiple => 'true',
+		-class    => 'multiselect'
+	);
+	say $self->get_tooltip( q(Composite fields - These are constructed from combinations of )
+		  . q(other fields (some of which may come from external databases). Including composite fields )
+		  . q(will slow down the processing.) );
+	say q(</fieldset>);
+	$self->{'composite_fieldset'} = 1;
 	return;
 }
 
@@ -397,19 +469,40 @@ sub get_selected_fields {
 	push @$fields, qq(c_$_) foreach @composite;
 	my $set_id        = $self->get_set_id;
 	my $loci          = $self->{'datastore'}->get_loci( { set_id => $set_id } );
-	my $selected_loci = $self->get_selected_loci;
+	my $selected_loci = $self->get_selected_loci($options);
 	my ( $pasted_cleaned_loci, $invalid_loci ) = $self->get_loci_from_pasted_list( { dont_clear => 1 } );
 	push @$selected_loci, @$pasted_cleaned_loci;
 	my %selected_loci = map { $_ => 1 } @$selected_loci;
 	my %locus_seen;
+	my $locus_extended_attributes = {};
 
+	if ( $options->{'locus_extended_attributes'} ) {
+		foreach my $selected (@$selected_loci) {
+			if ( $selected =~ /^lex_(.+)\|\|/x ) {
+				push @{ $locus_extended_attributes->{$1} }, $selected;
+			}
+		}
+	}
 	foreach my $locus (@$loci) {
 		if ( $selected_loci{$locus} ) {
 			push @$fields, "l_$locus";
 			$locus_seen{$locus} = 1;
 		}
+		if ( $options->{'locus_extended_attributes'} && defined $locus_extended_attributes->{$locus} ) {
+			push @$fields, @{ $locus_extended_attributes->{$locus} };
+		}
 	}
-	my $schemes = $self->{'datastore'}->run_query( 'SELECT id FROM schemes', undef, { fetch => 'col_arrayref' } );
+	my $schemes =
+	  $self->{'datastore'}->run_query( 'SELECT id FROM schemes', undef, { fetch => 'col_arrayref' } );
+	my $lincode_prefixes = {};
+	if ( $q->param('lincode_prefixes') ) {
+		my @prefixes = $q->multi_param('lincode_prefixes');
+		foreach my $prefix (@prefixes) {
+			if ( $prefix =~ /^linp_(\d+)_/x ) {
+				push @{ $lincode_prefixes->{$1} }, $prefix;
+			}
+		}
+	}
 	foreach my $scheme_id (@$schemes) {
 		my $scheme_info    = $self->{'datastore'}->get_scheme_info( $scheme_id, { get_pk => 1 } );
 		my $scheme_members = $self->{'datastore'}->get_scheme_loci($scheme_id);
@@ -437,14 +530,33 @@ sub get_selected_fields {
 				}
 			}
 		}
+		push @$fields, @{ $lincode_prefixes->{$scheme_id} }
+		  if $options->{'lincode_prefixes'} && defined $lincode_prefixes->{$scheme_id};
 	}
+	$self->_process_selected_classification_schemes($fields);
+	$self->_process_selected_analysis_fields( $options, $fields );
+	return $fields;
+}
+
+sub _process_selected_classification_schemes {
+	my ( $self, $fields ) = @_;
+	my $q = $self->{'cgi'};
 	if ( $q->param('classification_schemes') ) {
 		my @cschemes = $q->multi_param('classification_schemes');
 		foreach my $cs (@cschemes) {
 			push @$fields, "cs_$cs";
 		}
 	}
-	return $fields;
+	return;
+}
+
+sub _process_selected_analysis_fields {
+	my ( $self, $options, $fields ) = @_;
+	return if !$options->{'analysis_fields'};
+	my $q               = $self->{'cgi'};
+	my @analysis_fields = $q->multi_param('analysis_fields');
+	push @$fields, @analysis_fields;
+	return;
 }
 
 sub check_id_list {
@@ -536,6 +648,9 @@ sub print_includes_fieldset {
 		if ( $field =~ /^(?:l|cn)_/x ) {
 			push @{ $group_members->{'Loci'} }, $field;
 		}
+		if ( $field =~ /^af_/x ) {
+			push @{ $group_members->{'Analysis fields'} }, $field;
+		}
 		if ( $field =~ /^(?:f|e|gp)_/x ) {
 			( my $stripped_field = $field ) =~ s/^[f|e]_//x;
 			next if $skip_fields{$stripped_field};
@@ -560,7 +675,8 @@ sub print_includes_fieldset {
 	}
 	my @group_list = split /,/x, ( $self->{'system'}->{'field_groups'} // q() );
 	my @eav_groups = split /,/x, ( $self->{'system'}->{'eav_groups'}   // q() );
-	push @group_list, @eav_groups if @eav_groups;
+	push @group_list, @eav_groups       if @eav_groups;
+	push @group_list, 'Analysis fields' if defined $group_members->{'Analysis fields'};
 	push @group_list, ( 'Loci', 'Schemes', 'LINcodes', 'Classification schemes' );
 	foreach my $group ( undef, @group_list ) {
 		my $name = $group // 'General';
@@ -694,7 +810,7 @@ sub filter_ids_by_project {
 }
 
 sub get_selected_loci {
-	my ($self) = @_;
+	my ( $self, $options ) = @_;
 	$self->escape_params;
 	my @loci = $self->{'cgi'}->multi_param('locus');
 	my @loci_selected;
@@ -703,6 +819,9 @@ sub get_selected_loci {
 		foreach my $locus (@loci) {
 			my $locus_name = $locus =~ /$pattern/x ? $1 : undef;
 			push @loci_selected, $locus_name if defined $locus_name;
+			if ( $options->{'locus_extended_attributes'} ) {
+				push @loci_selected, $locus if $locus =~ /^lex_/x;
+			}
 		}
 	} else {
 		@loci_selected = @loci;
@@ -1095,7 +1214,8 @@ sub print_user_genome_upload_fieldset {
 	my $q = $self->{'cgi'};
 	say q(<fieldset style="float:left;height:12em"><legend>User genomes</legend>);
 	say q(<p>Optionally include data not in the<br />database.</p>);
-	say q(<p>Upload assembly FASTA file<br />(or zip file containing multiple<br />FASTA files - one per genome):);
+	say
+q(<p>Upload assembly FASTA file<br />(or zip/tar.gz/tar file containing multiple<br />FASTA files - one per genome):);
 	my $upload_limit = BIGSdb::Utils::get_nice_size( $self->{'max_upload_size_mb'} // 0 );
 	say $self->get_tooltip( q(User data - The name of the file(s) containing genome data will be )
 		  . qq(used as the name of the isolate(s) in the output. Maximum upload size is $upload_limit.) );
@@ -1109,8 +1229,14 @@ sub print_user_genome_upload_fieldset {
 
 sub upload_file {
 	my ( $self, $param, $suffix ) = @_;
-	my $temp     = BIGSdb::Utils::get_random();
-	my $format   = $self->{'cgi'}->param($param) =~ /.+(\.\w+)$/x ? $1 : q();
+	my $temp = BIGSdb::Utils::get_random();
+	my $q    = $self->{'cgi'};
+	my $format;
+	if ( $q->param($param) =~ /.+\.tar\.gz$/x ) {
+		$format = '.tar.gz';
+	} else {
+		$format = $q->param($param) =~ /.+(\.\w+)$/x ? $1 : q();
+	}
 	my $filename = "$self->{'config'}->{'tmp_dir'}/${temp}_$suffix$format";
 	my $buffer;
 	open( my $fh, '>', $filename ) || $logger->error("Could not open $filename for writing.");
@@ -1168,32 +1294,45 @@ sub get_field_value {
 	return $field_value;
 }
 
-sub get_breadcrumbs {
-	my ($self)      = @_;
-	my $att         = $self->get_attributes;
-	my $breadcrumbs = [];
-	return $breadcrumbs if !$self->{'instance'};
-	if ( $self->{'system'}->{'webroot'} ) {
-		push @$breadcrumbs,
-		  {
-			label => $self->{'system'}->{'webroot_label'} // 'Organism',
-			href  => $self->{'system'}->{'webroot'}
-		  };
+sub print_panel_buttons {
+	my ($self) = @_;
+	if ( $self->{'modify_panel'} ) {
+		say q(<span class="icon_button">)
+		  . q(<a class="trigger_button" id="panel_trigger" style="display:none">)
+		  . q(<span class="fas fa-lg fa-wrench"></span><span class="icon_label">Modify form</span></a></span>);
 	}
-	push @$breadcrumbs,
-	  (
+	return;
+}
+
+sub check_connection {
+	my ( $self, $job_id ) = @_;
+	return if $self->{'db'}->ping;
+	$self->_reconnect;
+	my $job    = $self->{'jobManager'}->get_job($job_id);
+	my $params = $self->{'jobManager'}->get_job_params($job_id);
+	$self->{'datastore'}->initiate_view(
 		{
-			label => $self->{'system'}->{'formatted_description'} // $self->{'system'}->{'description'},
-			href  => "$self->{'system'}->{'script_name'}?db=$self->{'instance'}"
-		},
-		{
-			label => 'Plugins',
-			href  => "$self->{'system'}->{'script_name'}?db=$self->{'instance'}&amp;page=pluginSummary"
-		},
-		{
-			label => $att->{'menutext'}
+			username      => $job->{'username'},
+			curate        => $params->{'curate'},
+			original_view => $self->{'system'}->{'original_view'}
 		}
-	  );
-	return $breadcrumbs;
+	);
+	return;
+}
+
+sub _reconnect {
+	my ($self) = @_;
+	$self->{'dataConnector'}->initiate( $self->{'system'}, $self->{'config'} );
+	my $att = {
+		dbase_name => $self->{'system'}->{'db'},
+		host       => $self->{'system'}->{'host'},
+		port       => $self->{'system'}->{'port'},
+		user       => $self->{'system'}->{'user'},
+		password   => $self->{'system'}->{'password'}
+	};
+	$self->{'dataConnector'}->drop_connection($att);
+	$self->{'db'} = $self->{'dataConnector'}->get_connection($att);
+	$self->{'datastore'}->change_db( $self->{'db'} );
+	return;
 }
 1;

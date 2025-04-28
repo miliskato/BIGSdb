@@ -28,6 +28,7 @@ use BIGSdb::Constants qw(:interface);
 use Try::Tiny;
 use Storable qw(dclone);
 use Encode;
+use Text::CSV;
 use constant MAX_RESULTS_SHOW => 20;
 
 sub run {
@@ -35,6 +36,7 @@ sub run {
 	my $options = $self->{'options'};
 	my $loci    = $self->get_selected_loci;
 	$self->{'system'}->{'set_id'} //= $self->{'options'}->{'set_id'};
+	$self->{'system'}->{'script_name'} = $self->{'options'}->{'script_name'};
 	my $linked_data = {
 		linked_data         => $self->_data_linked_to_loci( 'client_dbase_loci_fields',  $loci ),
 		extended_attributes => $self->_data_linked_to_loci( 'locus_extended_attributes', $loci ),
@@ -58,7 +60,8 @@ sub _single_query {
 	my ( $self, $seq_ref, $data ) = @_;
 	my $q       = $self->{'cgi'};
 	my $options = $self->{'options'};
-	$self->blast($seq_ref);
+	my $loci    = $self->get_selected_loci;
+	$self->blast( $seq_ref, { num_results => ( @$loci == 1 ? 1000 : 1_000_000 ) } );
 	my $exact_matches = $self->get_exact_matches( { details => 1 } );
 	my ( $buffer, $displayed );
 	my $qry_type      = BIGSdb::Utils::sequence_type($seq_ref);
@@ -200,7 +203,7 @@ sub _batch_query {
 	my $loci  = $self->get_selected_loci;
   CONTIG: foreach my $name (@$contig_names) {
 		my $contig_seq = $contigs->{$name};
-		$self->blast( \$contig_seq );
+		$self->blast( \$contig_seq, { num_results => ( @$loci == 1 ? 1000 : 1_000_000 ) } );
 		my $exact_matches = $self->get_exact_matches( { details => 1 } );
 		my $contig_buffer;
 	  LOCUS: foreach my $locus (@$loci) {
@@ -209,7 +212,7 @@ sub _batch_query {
 				push @exact_alleles, $self->_get_allele_link( $locus, $match->{'allele'} );
 			}
 			local $" = q(, );
-			my $cleaned_locus = $self->clean_locus( $locus, { strip_links => 1 } );
+			my $cleaned_locus = $self->clean_locus( $locus, { no_common_name => 1, strip_links => 1 } );
 			if (@exact_alleles) {
 				$contig_buffer .= qq(<tr class="td$td"><td>$name</td>);
 				$contig_buffer .= qq(<td>exact</td><td>$cleaned_locus</td><td>@exact_alleles</td><td></td></tr>);
@@ -225,7 +228,7 @@ sub _batch_query {
 				my $locus_info = $self->{'datastore'}->get_locus_info( $match->{'locus'} );
 				my $qry_type   = BIGSdb::Utils::sequence_type($contig_seq);
 				$contig_buffer .= qq(<tr class="td$td"><td>$name</td>);
-				my $cleaned_locus = $self->clean_locus( $match->{'locus'}, { strip_links => 1 } );
+				my $cleaned_locus = $self->clean_locus( $match->{'locus'}, { no_common_name => 1, strip_links => 1 } );
 				my $allele_link   = $self->_get_allele_link( $match->{'locus'}, $match->{'allele'} );
 				$contig_buffer .= qq(<td>partial</td><td>$cleaned_locus</td><td>$allele_link</td>);
 				if ( $locus_info->{'data_type'} ne $qry_type ) {
@@ -328,7 +331,7 @@ sub _get_best_partial_match {
 	my ( $self, $seq_ref ) = @_;
 	my $best_match = $self->get_best_partial_match;
 	return {} if !keys %$best_match;
-	if ( ( $self->{'system'}->{'exemplars'} // q() ) ne 'yes' ) {    #Not using exemplars so this is best match
+	if ( !$self->{'options'}->{'exemplar'} ) {    #Not using exemplars so this is best match
 		return $best_match;
 	}
 	my $loci = $self->get_selected_loci;    #Get locus list so that we can restore object after BLASTing single locus
@@ -378,7 +381,7 @@ sub _get_scheme_exact_results {
 			$scheme_members = $self->{'datastore'}->get_scheme_loci($scheme_id);
 			next if none { $exact_matches->{$_} } @$scheme_members;
 		} else {
-			$scheme_members = $self->{'datastore'}->get_loci( { set_id => $set_id } );
+			$scheme_members = $self->{'datastore'}->get_loci( { set_id => $set_id, data_type => $options->{'data_type'} } );
 		}
 		foreach my $locus (@$scheme_members) {
 			$scheme_buffer .= $self->_get_locus_matches(
@@ -457,25 +460,20 @@ sub _get_locus_matches {
 	my $locus_info  = $self->{'datastore'}->get_locus_info($locus);
 	my $locus_count = 0;
 	foreach my $match ( @{ $exact_matches->{$locus} } ) {
-		my ( $field_values, $attributes, $allele_info, $flags );
+		my ( $field_values, $attributes, $flags );
 		$$match_count_ref++;
 		next if $locus_info->{'match_longest'} && $locus_count > 1;
 		$designations->{$locus} //= [];
 		my %existing_alleles = map { $_ => 1 } @{ $designations->{$locus} };
 		push @{ $designations->{$locus} }, $match->{'allele'} if !$existing_alleles{ $match->{'allele'} };
 		my $allele_link   = $self->_get_allele_link( $locus, $match->{'allele'} );
-		my $cleaned_locus = $self->clean_locus( $locus, { strip_links => 1 } );
+		my $cleaned_locus = $self->clean_locus( $locus, { no_common_name => 1, strip_links => 1 } );
 		$buffer .= qq(<tr class="td$$td_ref"><td>$cleaned_locus</td><td>$allele_link</td>);
 		$field_values =
 		  $self->{'datastore'}->get_client_data_linked_to_allele( $locus, $match->{'allele'}, { table_format => 1 } );
 		$self->{'linked_data'}->{$locus}->{ $match->{'allele'} } = $field_values->{'values'};
-		$attributes  = $self->{'datastore'}->get_allele_attributes( $locus, [ $match->{'allele'} ] );
-		$allele_info = $self->{'datastore'}->run_query(
-			'SELECT * FROM sequences WHERE (locus,allele_id)=(?,?)',
-			[ $locus, $match->{'allele'} ],
-			{ fetch => 'row_hashref' }
-		);
-		$flags = $self->{'datastore'}->get_allele_flags( $locus, $match->{'allele'} );
+		$attributes = $self->{'datastore'}->get_allele_attributes( $locus, [ $match->{'allele'} ] );
+		$flags      = $self->{'datastore'}->get_allele_flags( $locus, $match->{'allele'} );
 		$buffer .= qq(<td>$match->{'length'}</td><td>$match->{'query'}</td><td>$match->{'start'}</td>)
 		  . qq(<td>$match->{'end'}</td>);
 		$buffer .=
@@ -490,7 +488,12 @@ sub _get_locus_matches {
 			  @$flags ? qq(<td style="text-align:left"><a class="seqflag_tooltip">@$flags</a></td>) : q(<td></td>);
 		}
 		if ( ( $self->{'system'}->{'allele_comments'} // '' ) eq 'yes' ) {
-			$buffer .= $allele_info->{'comments'} ? qq(<td>$allele_info->{'comments'}</td>) : q(<td></td>);
+			my $comments = $self->{'datastore'}->run_query(
+				'SELECT comments FROM sequences WHERE (locus,allele_id)=(?,?)',
+				[ $locus, $match->{'allele'} ],
+				{ cache => 'SequenceQuery::_get_locus_matches::comments' }
+			);
+			$buffer .= $comments ? qq(<td>$comments</td>) : q(<td></td>);
 		}
 		$buffer .= qq(</tr>\n);
 		$$td_ref = $$td_ref == 1 ? 2 : 1;
@@ -531,7 +534,9 @@ sub _get_scheme_fields {
 			if ( any { defined $designations->{$_} } @$scheme_loci ) {
 				my $scheme_buffer = $self->_get_scheme_table( $scheme->{'id'}, $designations );
 				my $exact_match   = $scheme_buffer ? 1 : 0;
+				$scheme_buffer .= $self->_get_closest_match_output( $scheme->{'id'}, $designations, $exact_match );
 				$scheme_buffer .= $self->_get_classification_groups( $scheme->{'id'}, $designations, $exact_match );
+				$scheme_buffer .= $self->_get_lincode_classification( $scheme->{'id'}, $designations );
 				if ($scheme_buffer) {
 					my $scheme_info = $self->{'datastore'}->get_scheme_info( $scheme->{'id'} );
 					$buffer .= qq(<h2>$scheme_info->{'name'}</h2>);
@@ -545,7 +550,9 @@ sub _get_scheme_fields {
 		if ( @$scheme_fields && @$scheme_loci ) {
 			my $scheme_buffer = $self->_get_scheme_table( $scheme_id, $designations );
 			my $exact_match   = $scheme_buffer ? 1 : 0;
+			$scheme_buffer .= $self->_get_closest_match_output( $scheme_id, $designations, $exact_match );
 			$scheme_buffer .= $self->_get_classification_groups( $scheme_id, $designations, $exact_match );
+			$scheme_buffer .= $self->_get_lincode_classification( $scheme_id, $designations );
 			if ($scheme_buffer) {
 				my $scheme_info = $self->{'datastore'}->get_scheme_info($scheme_id);
 				$buffer .= qq(<h2>$scheme_info->{'name'}</h2>);
@@ -556,9 +563,74 @@ sub _get_scheme_fields {
 	return $buffer;
 }
 
+sub _get_closest_match_output {
+	my ( $self, $scheme_id, $designations, $exact_match ) = @_;
+	my $buffer = q();
+	return $buffer if !$self->is_page_allowed('profileInfo');
+	return $buffer if $exact_match;
+	my $scheme_loci  = $self->{'datastore'}->get_scheme_loci($scheme_id);
+	my $matched_loci = keys %$designations;
+	return $buffer if $matched_loci < int( 0.5 * @$scheme_loci );
+	my $ret_val = $self->_get_closest_matching_profile( $scheme_id, $designations );
+	return $buffer if !$ret_val;
+	my $scheme_info   = $self->{'datastore'}->get_scheme_info( $scheme_id, { get_pk => 1 } );
+	my @profiles      = @{ $ret_val->{'profiles'} };
+	my $first_profile = $profiles[0];
+	$buffer .= q(<span class="info_icon fas fa-2x fa-fw fa-fingerprint fa-pull-left" style="margin-top:-0.2em"></span>);
+	$buffer .= q(<h3>Matching profiles</h3>);
+	my $other_profiles_count = @profiles - 1;
+	my $plural               = $other_profiles_count == 1 ? q() : q(s);
+	my $and_others =
+	  $other_profiles_count
+	  ? qq( and <a id="and_others_$scheme_id" class="and_others" style="cursor:pointer">)
+	  . qq($other_profiles_count other$plural</a>)
+	  : q();
+	my $values = $self->_get_field_values( $scheme_id, $first_profile );
+	my $loci_count =
+	  $self->{'datastore'}->run_query( 'SELECT COUNT(*) FROM scheme_members WHERE scheme_id=?', $scheme_id );
+	my $loci_matched    = $loci_count - $ret_val->{'mismatches'};
+	my $percent_matched = BIGSdb::Utils::decimal_place( 100 * $loci_matched / $loci_count, 1 );
+	my $list            = [
+		{
+			title => 'Closest profile',
+			data  => qq(<a href="$self->{'system'}->{'script_name'}?db=$self->{'instance'}&amp;)
+			  . qq(page=profileInfo&scheme_id=$scheme_id&amp;profile_id=$first_profile">)
+			  . qq($scheme_info->{'primary_key'}-$first_profile</a>$and_others)
+		},
+	];
+	push @$list, { title => 'Fields', data => $values } if $values;
+	push @$list,
+	  (
+		{
+			title => 'Mismatches',
+			data  => $ret_val->{'mismatches'}
+		},
+		{ title => 'Loci matched', data => "$loci_matched/$loci_count ($percent_matched%)" }
+	  );
+	$buffer .= $self->get_list_block( $list, { width => 8 } );
+
+	if ($other_profiles_count) {
+		$plural = $ret_val->{'mismatches'} == 1 ? q() : q(es);
+		$buffer .= qq(<div id="other_matches_$scheme_id" class="infopanel" style="display:none">);
+		$buffer .= qq(<h3>Other profiles that have $ret_val->{'mismatches'} mismatch$plural</h3>);
+		$buffer .= q(<ul>);
+		foreach my $profile ( @profiles[ 1 .. $#profiles ] ) {
+			$values = $self->_get_field_values( $scheme_id, $profile );
+			$values = qq( - $values) if $values;
+			$buffer .=
+				qq(<li><a href="$self->{'system'}->{'script_name'}?db=$self->{'instance'}&amp;)
+			  . qq(page=profileInfo&scheme_id=$scheme_id&amp;profile_id=$profile">)
+			  . qq($scheme_info->{'primary_key'}-$profile</a>$values</li>\n);
+		}
+		$buffer .= q(</ul></div>);
+	}
+	return $buffer;
+}
+
 sub _get_classification_groups {
 	my ( $self, $scheme_id, $designations, $exact_match ) = @_;
 	my $buffer = q();
+	return $buffer if ( $self->{'system'}->{'show_classification_schemes'} // 'yes' ) eq 'no';
 	return $buffer if !$self->is_page_allowed('profileInfo');
 	my $matched_loci = keys %$designations;
 	return $buffer
@@ -569,58 +641,8 @@ sub _get_classification_groups {
 	my $ret_val = $self->_get_closest_matching_profile( $scheme_id, $designations );
 	return $buffer if !$ret_val;
 	my $scheme_info   = $self->{'datastore'}->get_scheme_info( $scheme_id, { get_pk => 1 } );
-	my $first_profile = shift @{ $ret_val->{'profiles'} };
-
-	if ( !$exact_match ) {
-		$buffer .=
-		  q(<span class="info_icon fas fa-2x fa-fw fa-fingerprint fa-pull-left" style="margin-top:-0.2em"></span>);
-		$buffer .= q(<h3>Matching profiles</h3>);
-		my $other_profiles_count = @{ $ret_val->{'profiles'} };
-		my $plural               = $other_profiles_count == 1 ? q() : q(s);
-		my $and_others =
-		  $other_profiles_count
-		  ? qq( and <a id="and_others" style="cursor:pointer">$other_profiles_count other$plural</a>)
-		  : q();
-		my $values = $self->_get_field_values( $scheme_id, $first_profile );
-		my $loci_count =
-		  $self->{'datastore'}->run_query( 'SELECT COUNT(*) FROM scheme_members WHERE scheme_id=?', $scheme_id );
-		my $loci_matched    = $loci_count - $ret_val->{'mismatches'};
-		my $percent_matched = BIGSdb::Utils::decimal_place( 100 * $loci_matched / $loci_count, 1 );
-		my $list            = [
-			{
-				title => 'Closest profile',
-				data  => qq(<a href="$self->{'system'}->{'script_name'}?db=$self->{'instance'}&amp;)
-				  . qq(page=profileInfo&scheme_id=$scheme_id&amp;profile_id=$first_profile">)
-				  . qq($scheme_info->{'primary_key'}-$first_profile</a>$and_others)
-			},
-		];
-		push @$list, { title => 'Fields', data => $values } if $values;
-		push @$list,
-		  (
-			{
-				title => 'Mismatches',
-				data  => $ret_val->{'mismatches'}
-			},
-			{ title => 'Loci matched', data => "$loci_matched/$loci_count ($percent_matched%)" }
-		  );
-		$buffer .= $self->get_list_block( $list, { width => 8 } );
-
-		if ($other_profiles_count) {
-			$plural = $ret_val->{'mismatches'} == 1 ? q() : q(es);
-			$buffer .= q(<div id="other_matches" class="infopanel" style="display:none">);
-			$buffer .= qq(<h3>Other profiles that have $ret_val->{'mismatches'} mismatch$plural</h3>);
-			$buffer .= q(<ul>);
-			foreach my $profile ( @{ $ret_val->{'profiles'} } ) {
-				$values = $self->_get_field_values( $scheme_id, $profile );
-				$values = qq( - $values) if $values;
-				$buffer .=
-					qq(<li><a href="$self->{'system'}->{'script_name'}?db=$self->{'instance'}&amp;)
-				  . qq(page=profileInfo&scheme_id=$scheme_id&amp;profile_id=$profile">)
-				  . qq($scheme_info->{'primary_key'}-$profile</a>$values</li>\n);
-			}
-			$buffer .= q(</ul></div>);
-		}
-	}
+	my @profiles      = @{ $ret_val->{'profiles'} };
+	my $first_profile = $profiles[0];
 	my $cschemes =
 	  $self->{'datastore'}
 	  ->run_query( 'SELECT * FROM classification_schemes WHERE scheme_id=? ORDER BY display_order,name',
@@ -639,6 +661,7 @@ sub _get_classification_groups {
 		  . 'classification_schemes cs ON cgf.cg_scheme_id=cs.id WHERE cs.scheme_id=?)',
 		$scheme_id
 	);
+
 	foreach my $cscheme (@$cschemes) {
 		my $cgroup = $self->{'datastore'}->run_query(
 			'SELECT group_id FROM classification_group_profiles WHERE (cg_scheme_id,profile_id)=(?,?)',
@@ -708,6 +731,7 @@ sub _get_classification_groups {
 		  . q(style="margin-top:-0.2em"></span>)
 		  . q(<h3>Similar profiles (determined by classification schemes)</h3>)
 		  . q(<p>Experimental schemes are subject to change and are not a stable part of the nomenclature.</p>)
+		  . qq(<p>$scheme_info->{'primary_key'}-$first_profile belongs to the following clusters:</p>)
 		  . q(<div class="scrollable">)
 		  . q(<div class="resultstable" style="float:left"><table class="resultstable"><tr>)
 		  . q(<th>Classification scheme</th><th>Clustering method</th>)
@@ -720,6 +744,231 @@ sub _get_classification_groups {
 		$buffer .= q(</table></div></div></div>);
 	}
 	return $buffer;
+}
+
+sub _get_lincodes_for_profiles {
+	my ( $self, $scheme_id, $profile_ids ) = @_;
+	my $lincodes = [];
+	foreach my $profile_id (@$profile_ids) {
+		my $lincode = $self->{'datastore'}->run_query(
+			'SELECT lincode FROM lincodes WHERE (scheme_id,profile_id)=(?,?)',
+			[ $scheme_id, $profile_id ],
+			{ cache => 'SequenceQuery::get_lincode' }
+		);
+		push @$lincodes, $lincode if defined $lincode;
+	}
+	return $lincodes;
+}
+
+sub _get_lincode_from_designations {
+	my ( $self, $scheme_id, $designations ) = @_;
+	return if ( $self->{'system'}->{'show_lincode_matches'} // 'yes' ) eq 'no';
+	return if !$self->is_page_allowed('profileInfo');
+	return
+	  if !$self->{'datastore'}
+	  ->run_query( 'SELECT EXISTS(SELECT * FROM lincode_schemes WHERE scheme_id=?)', $scheme_id );
+	my $scheme_loci  = $self->{'datastore'}->get_scheme_loci($scheme_id);
+	my $must_match   = int( 0.5 * @$scheme_loci );
+	my $matched_loci = keys %$designations;
+	return if $matched_loci < $must_match;
+	my $ret_val = $self->_get_closest_matching_profile( $scheme_id, $designations );
+	return if !$ret_val;
+	my $profiles = $ret_val->{'profiles'};
+	my $thresholds =
+	  $self->{'datastore'}->run_query( 'SELECT thresholds FROM lincode_schemes WHERE scheme_id=?', $scheme_id );
+	my @thresholds = split( ';', $thresholds );
+	my $lincodes   = $self->_get_lincodes_for_profiles( $scheme_id, $profiles );
+	return if !@$lincodes;
+	my @identical;
+  POS: foreach my $pos ( 0 .. @thresholds - 1 ) {
+		my $last;
+	  LINCODE: foreach my $lincode (@$lincodes) {
+			if ( defined $last && $lincode->[$pos] != $last ) {
+				last POS;
+			}
+			$last = $lincode->[$pos];
+		}
+		push @identical, $last;
+	}
+	my @this_lincode;
+	foreach my $pos ( 0 .. @identical - 1 ) {
+		if ( $ret_val->{'mismatches'} <= $thresholds[$pos] ) {
+			push @this_lincode, $identical[$pos];
+		} else {
+			last;
+		}
+	}
+	return if !@this_lincode;
+	return \@this_lincode;
+}
+
+sub _get_lincode_classification {
+	my ( $self, $scheme_id, $designations ) = @_;
+	my $buffer       = q();
+	my $this_lincode = $self->_get_lincode_from_designations( $scheme_id, $designations );
+	return $buffer if !$this_lincode;
+	my $thresholds =
+	  $self->{'datastore'}->run_query( 'SELECT thresholds FROM lincode_schemes WHERE scheme_id=?', $scheme_id );
+	my @thresholds = split( ';', $thresholds );
+	$buffer .=
+		q(<div><span class="info_icon fas fa-2x fa-fw fa-sitemap fa-pull-left" )
+	  . q(style="margin-top:-0.2em"></span>)
+	  . q(<h3>Similar profiles (determined by LIN codes)</h3>);
+	local $" = q(_);
+	my $lincode_fields = [];
+
+	if ( @$this_lincode == @thresholds ) {
+		push @$lincode_fields,
+		  {
+			title => 'Full LIN code',
+			data  => qq(@$this_lincode)
+		  };
+	} else {
+		push @$lincode_fields,
+		  {
+			title => 'Partial LIN code',
+			data  => qq(@$this_lincode)
+		  };
+	}
+	my $prefix_field_values = $self->_get_lincode_prefix_field_values( $scheme_id, $this_lincode );
+	push @$lincode_fields, @$prefix_field_values;
+	$buffer .= $self->get_list_block( $lincode_fields, { width => 8 } );
+	my $default_show =
+	  BIGSdb::Utils::is_int( $self->{'system'}->{'show_lincode_thresholds'} )
+	  ? $self->{'system'}->{'show_lincode_thresholds'}
+	  : 5;
+	$default_show = @$this_lincode if $default_show > @$this_lincode;
+	my $client_dbs = $self->{'datastore'}->run_query(
+		'SELECT * FROM client_dbase_schemes cds JOIN '
+		  . 'client_dbases cd ON cds.client_dbase_id=cd.id WHERE scheme_id=? ORDER BY cd.name',
+		$scheme_id,
+		{ fetch => 'all_arrayref', slice => {} }
+	);
+	my @filtered;
+	my @unfiltered;
+	my $i   = 0;
+	my $tdf = 1;
+	my $tdu = 1;
+	my @lincode_query;
+
+	foreach my $threshold ( @thresholds[ 0 .. @$this_lincode - 1 ] ) {
+		my $isolate_buffer = q();
+		my @prefix         = @$this_lincode[ 0 .. $i ];
+		my $pg_pos         = $i + 1;
+		push @lincode_query, "lincode[$pg_pos]=$prefix[$i]";
+		local $" = q( AND );
+		my $profile_count =
+		  $self->{'datastore'}
+		  ->run_query( "SELECT COUNT(DISTINCT profile_id) FROM lincodes WHERE scheme_id=? AND @lincode_query",
+			$scheme_id );
+		local $" = q(_);
+		my $profile_url = "$self->{'system'}->{'script_name'}?db=$self->{'instance'}&amp;page=query&amp;"
+		  . "scheme_id=$scheme_id&amp;s1=LINcode&amp;y1=starts%20with&amp;t1=@prefix&amp;submit=1";
+
+		if (@$client_dbs) {
+			my @client_links = ();
+			foreach my $client_db (@$client_dbs) {
+				my $client        = $self->{'datastore'}->get_client_db( $client_db->{'id'} );
+				my $client_scheme = $client_db->{'client_scheme_id'} // $scheme_id;
+				try {
+					my $isolates      = $client->count_isolates_with_lincode_prefix( $client_scheme, \@prefix );
+					my $client_db_url = $client_db->{'url'} // $self->{'system'}->{'script_name'};
+					if ($isolates) {
+						push @client_links,
+							qq(<span class="source">$client_db->{'name'}</span> )
+						  . qq(<a href="$client_db_url?db=$client_db->{'dbase_config_name'}&amp;page=query&amp;)
+						  . qq(designation_field1=lin_${client_scheme}&amp;designation_operator1=starts%20with&amp;)
+						  . qq(designation_value1=@prefix&amp;submit=1">$isolates</a>);
+					}
+				} catch {
+					if ( $_->isa('BIGSdb::Exception::Database::Configuration') ) {
+						$self->{'logger'}->error("Client database for scheme $scheme_id is not configured correctly.");
+					} else {
+						$self->{'logger'}->logdie($_);
+					}
+				};
+			}
+			local $" = q(<br />);
+			$isolate_buffer .= qq(<td style="text-align:left">@client_links</td>);
+		}
+		if ( @$this_lincode >= $default_show && $i >= ( @$this_lincode - $default_show ) ) {
+			my $row =
+				qq(<tr class="td$tdf lc_filtered_$scheme_id">)
+			  . qq(<td style="text-align:left">@prefix</td>)
+			  . qq(<td>$threshold</td><td><a href="$profile_url">$profile_count</a></td>);
+			$row .= $isolate_buffer if @$client_dbs;
+			$row .= q(</tr>);
+			push @filtered, $row;
+			$tdf = $tdf == 1 ? 2 : 1;
+		}
+		my $row =
+			qq(<tr class="td$tdu lc_unfiltered_$scheme_id" style="visibility:collapse">)
+		  . qq(<td style="text-align:left">@prefix</td>)
+		  . qq(<td>$threshold</td><td><a href="$profile_url">$profile_count</a></td>);
+		$row .= $isolate_buffer if @$client_dbs;
+		$row .= q(</tr>);
+		push @unfiltered, $row;
+		$tdu = $tdu == 1 ? 2 : 1;
+		$i++;
+	}
+	my $filtered_display = @filtered ? 'block' : 'none';
+	my $hide_table_class = @filtered ? ''      : "lc_table_$scheme_id";
+	local $" = q( );
+	if ( @unfiltered > @filtered ) {
+		$buffer .=
+			qq(<p><a id="show_lcgroups_$scheme_id" class="show_lincode small_submit" )
+		  . q(style="display:inline"><span class="fa fas fa-eye"></span> Show all thresholds</a>)
+		  . qq(<a id="hide_lcgroups_$scheme_id" class="hide_lincode small_submit" style="display:none">)
+		  . q(<span class="fa fas fa-eye-slash"></span> Hide larger thresholds</a></p>);
+	}
+	$buffer .=
+		q(<div class="scrollable">)
+	  . q(<table class="resultstable $hide_table_class" style="display:$filtered_display">)
+	  . q(<tr><th>Prefix</th><th>Threshold</th>)
+	  . q(<th>Matching profiles</th>);
+	$buffer .= q(<th>Isolates</th>) if @$client_dbs;
+	$buffer .= qq(</tr>@filtered@unfiltered);
+	$buffer .= q(</table></div>);
+	return $buffer;
+}
+
+sub _get_lincode_prefix_field_values {
+	my ( $self, $scheme_id, $lincode ) = @_;
+	my $data = $self->{'datastore'}->run_query( 'SELECT * FROM lincode_prefixes WHERE scheme_id=?',
+		$scheme_id, { fetch => 'all_arrayref', slice => {} } );
+	my $prefix_values = {};
+	foreach my $record (@$data) {
+		$prefix_values->{ $record->{'field'} }->{ $record->{'prefix'} } = $record->{'value'};
+	}
+	my $prefix_fields =
+	  $self->{'datastore'}
+	  ->run_query( 'SELECT field FROM lincode_fields WHERE scheme_id=? ORDER BY display_order,field',
+		$scheme_id, { fetch => 'col_arrayref' } );
+	local $" = q(_);
+	my $lincode_string = qq(@$lincode);
+	my $field_values   = [];
+	foreach my $field (@$prefix_fields) {
+		my %used;
+		my @prefixes = keys %{ $prefix_values->{$field} };
+		my @values;
+		foreach my $prefix (@prefixes) {
+			if (   $lincode_string eq $prefix
+				|| $lincode_string =~ /^${prefix}_/x && !$used{ $prefix_values->{$field}->{$prefix} } )
+			{
+				push @values, $prefix_values->{$field}->{$prefix};
+				$used{ $prefix_values->{$field}->{$prefix} } = 1;
+			}
+		}
+		@values = sort @values;
+		local $" = q(; );
+		next if !@values;
+		push @$field_values,
+		  {
+			title => $field,
+			data  => qq(@values)
+		  };
+	}
+	return $field_values;
 }
 
 sub _get_field_values {
@@ -744,54 +993,67 @@ sub _get_closest_matching_profile {
 	my $scheme_info = $self->{'datastore'}->get_scheme_info( $scheme_id, { get_pk => 1 } );
 	my $pk_field    = $scheme_info->{'primary_key'};
 	return if !$pk_field;
-	my $pk_info = $self->{'datastore'}->get_scheme_field_info( $scheme_id, $pk_field );
-	my $order   = $pk_info->{'type'} eq 'integer' ? "CAST($pk_field AS int)" : $pk_field;
-	my $loci    = $self->{'datastore'}->get_scheme_loci($scheme_id);
-	my $profile_sth =
-	  $self->{'db'}->prepare("SELECT $pk_field AS pk,profile FROM mv_scheme_$scheme_id ORDER BY $order");
-	eval { $profile_sth->execute };
-
-	if ($@) {
-		$self->{'logger'}->error($@);
-		return;
+	my $best_matches = [];
+	if ( defined $self->{'matching_scheme_fields'}->{$scheme_id} ) {
+		foreach my $match ( @{ $self->{'matching_scheme_fields'}->{$scheme_id} } ) {
+			push @$best_matches, $match->{ lc($pk_field) };
+		}
+		return { profiles => $best_matches, mismatches => 0 };
 	}
-
-	#TODO Extracting all cgMLST profiles from the database can take >5s for larger schemes.
-	#This is all due to moving data over the network as it can be a few hundred MB. It would
-	#be more efficient to write the following as an embedded plpgsql function within the
-	#database and pass the matching profile in.
+	if ( defined $self->{'closest_matching_profiles'}->{$scheme_id} ) {
+		return $self->{'closest_matching_profiles'}->{$scheme_id};
+	}
+	my $pk_info          = $self->{'datastore'}->get_scheme_field_info( $scheme_id, $pk_field );
+	my $order            = $pk_info->{'type'} eq 'integer' ? "CAST($pk_field AS int)" : $pk_field;
+	my $loci             = $self->{'datastore'}->get_scheme_loci($scheme_id);
 	my $least_mismatches = @$loci;
-	my $best_matches     = [];
 	my @locus_list       = sort @$loci;   #Profile array is always stored in alphabetical order, scheme order may not be
-	my $rowcache;
-  PROFILE:
-	while ( my $profile = shift(@$rowcache)
-		|| shift( @{ $rowcache = $profile_sth->fetchall_arrayref( undef, 10_000 ) || [] } ) )
-	{
+	my $scheme_warehouse = "mv_scheme_$scheme_id";
+	$self->{'db'}->do("COPY $scheme_warehouse($pk_field,profile) TO STDOUT");
+	my $row;
+	my $array_parser = Text::CSV->new( { binary => 1, sep_char => ',', quote_char => '"' } );
+
+	while ( $self->{'db'}->pg_getcopydata($row) >= 0 ) {
+		chomp $row;
+		my ( $pk, $profile_string ) = split /\t/x, $row;
+		$profile_string =~ s/^\{//x;    # Remove the curly braces
+		$profile_string =~ s/\}$//x;    #Using 2 separate substitutions is benchmarked to much quicker.
+		my @profile;
+		if ( index( $profile_string, '"' ) == -1 ) {    #No double quotes - can just split on comma.
+			@profile = split( ',', $profile_string );
+		} else {
+			$array_parser->parse($profile_string);
+			eval { @profile = $array_parser->fields; };
+			$self->{'logger'}->error($@) if $@;
+		}
 		my $mismatches = 0;
 		my $index      = -1;
 	  LOCUS: foreach my $locus (@locus_list) {
+			last LOCUS if $mismatches > $least_mismatches;    #Shortcut out
 			$index++;
-			next LOCUS if $profile->[1]->[$index] eq 'N';
+			next LOCUS if $profile[$index] eq 'N';
 			if ( !$designations->{$locus} ) {
 				$mismatches++;
 				next LOCUS;
 			}
 			my $alleles = $designations->{$locus};
 			foreach my $allele (@$alleles) {
-				next LOCUS if $profile->[1]->[$index] eq $allele;
+				next LOCUS if $profile[$index] eq $allele;
 			}
 			$mismatches++;
-			next PROFILE if $mismatches > $least_mismatches;    #Shortcut out
 		}
 		if ( $mismatches < $least_mismatches ) {
 			$least_mismatches = $mismatches;
-			$best_matches     = [ $profile->[0] ];
+			$best_matches     = [$pk];
 		} elsif ( $mismatches == $least_mismatches ) {
-			push @$best_matches, $profile->[0];
+			push @$best_matches, $pk;
 		}
 	}
 	return if !@$best_matches;
+	return if $least_mismatches == @$loci;
+	no warnings 'numeric';
+	@$best_matches = sort { $a <=> $b || $a cmp $b } @$best_matches;
+	$self->{'closest_matching_profiles'}->{$scheme_id} = { profiles => $best_matches, mismatches => $least_mismatches };
 	return { profiles => $best_matches, mismatches => $least_mismatches };
 }
 
@@ -844,6 +1106,7 @@ sub _get_scheme_table {
 		  $self->{'datastore'}->run_query( "SELECT @$scheme_fields FROM mv_scheme_$scheme_id WHERE ($temp_qry_string)",
 			undef, { fetch => 'all_arrayref', slice => {} } );
 		return q() if !@$all_values;
+		$self->{'matching_scheme_fields'}->{$scheme_id} = $all_values;
 		my $buffer;
 		$buffer .=
 		  q(<span class="info_icon fas fa-2x fa-fw fa-fingerprint fa-pull-left" style="margin-top:-0.2em"></span>);

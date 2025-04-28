@@ -1,5 +1,5 @@
 #Written by Keith Jolley
-#Copyright (c) 2014-2023, University of Oxford
+#Copyright (c) 2014-2025, University of Oxford
 #E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
@@ -106,6 +106,7 @@ sub _scan_loci_together {
 		}
 		my ( $exact_matches, $partial_matches ) =
 		  $self->blast_multiple_loci( $params, \@loci_to_scan, $isolate_id, $isolate_prefix, $locus_prefix );
+		$self->reconnect;
 	  LOCUS: foreach my $locus (@loci_to_check) {
 			my $locus_info = $self->{'datastore'}->get_locus_info($locus);
 			next if ref $exact_matches->{$locus} && @{ $exact_matches->{$locus} };
@@ -137,6 +138,7 @@ sub _scan_locus_by_locus {
 	my $first          = 1;
 	my $i              = 0;
   LOCUS: foreach my $locus (@$loci) {
+		$self->reconnect;
 		$i++;
 		my $complete = BIGSdb::Utils::decimal_place( ( $i * 100 / @$loci ), 1 );
 		$self->{'logger'}->info( "$self->{'options'}->{'d'}#pid$$:Checking $locus - $i/" . (@$loci) . "($complete%)" );
