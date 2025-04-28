@@ -11,7 +11,7 @@ import socket
 import sys
 import traceback
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Literal
 
 from pymongo.collection import Collection
 from pymongo.read_concern import ReadConcern
@@ -95,7 +95,7 @@ class SampleValidationToMongo:
                 outcome: str = query[0][2]
                 curator_mailadress: str = query[0][3]
                 quality: str = query[0][4]
-                resequencing: bool = query[0][5]
+                resequencing: Literal['yes', 'no'] = query[0][5]
                 results_type = self.__get_results_type(quality, resequencing)  # goodqc_validated, warningqc_validated or resequencing_validated
                 pseudo_id = self._mapping_collection.find_one({"_id": isolatename})['pseudo_id']
                 # GO into MongoDB so type in Mongo might be either warningqc or resequencing
@@ -115,7 +115,7 @@ class SampleValidationToMongo:
                     self.__remove_id_from_document_to_be_unique_again_if_bad(collection, pseudo_id, validation_dict)
 
     @staticmethod
-    def __get_results_type(quality: str, resequencing: bool) -> str:
+    def __get_results_type(quality: str, resequencing: Literal['yes', 'no']) -> str:
         """
         Gets the corresponding results_type in MongoDB with the given quality and whether it is a resequencing or not
         from BIGSdb.

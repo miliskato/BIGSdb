@@ -306,8 +306,8 @@ class MainMongo:
     def __new_resequencing_arrival(self, new_json_report: JsonReportDict, document_original: MongoRecordDict,
                                    collection_in: Collection) -> None:
         """
-        After an id is found in either isolates, isolates_warningqc or isolates_goodqc; this workflow will determine if it
-        really is a resequencing, and if so insert it into isolates_resequencing.
+        After an id is found in either isolates, isolates_warningqc or isolates_goodqc; this workflow will determine if
+        it really is a resequencing, and if so insert it into isolates_resequencing.
         :param new_json_report: results dictionary that is modified and inserted
         :param document_original: original document including the sample metadata and headers and results
         :param collection_in: the collection that the original sample was in
@@ -324,10 +324,10 @@ class MainMongo:
 
             if collection_in == self._isolates_warningqc_collection:
                 send_email(
-                    f"WARNING: a resequencing for sample {self._technical_id} was submitted to the isolates_resequencing while the sample is present in the isolates_warningqc collection and has not yet been validated, validate the bad qc in bigs before trying to reupload this resequencing.",
+                    f"WARNING: a resequencing for sample {self._technical_id} was submitted to the isolates_resequencing while the sample is present in the isolates_warningqc collection and has not yet been validated, validate the warning qc in bigs before trying to reupload this resequencing.",
                     dont_send_email=self._dont_send_email)
                 raise MongoResequencingNoIsolateError(
-                    f"WARNING: a resequencing for sample {self._technical_id} was submitted to the isolates_resequencing while the sample is present in the isolates_warningqc collection and has not yet been validated, validate the bad qc in bigs before trying to reupload this resequencing.")
+                    f"WARNING: a resequencing for sample {self._technical_id} was submitted to the isolates_resequencing while the sample is present in the isolates_warningqc collection and has not yet been validated, validate the warning qc in bigs before trying to reupload this resequencing.")
             if collection_in == self._isolates_goodqc_collection:
                 send_email(
                     f"WARNING: a resequencing for sample {self._technical_id} was submitted to the isolates_resequencing while the sample is present in the isolates_goodqc collection and has not yet been validated, validate the good qc in bigs before trying to reupload this resequencing.",

@@ -17,7 +17,7 @@ class TblSubmissions(DatabaseConnection):
         self._db_type = 'isolates'
         super().__init__(species, self._db_type)
 
-    def insert_submission(self, param: Tuple[Literal['warning', 'good'], str]) -> None:
+    def insert_submission(self, param: Tuple[Literal['warning', 'good'], Literal['yes', 'no']]) -> None:
         """
         Inserts a new submission for a given quality (good or warning) and if it is a resequencing or not.
         :param param: variables to feed to the PSQL query, which also sanitizes these variables,

@@ -412,7 +412,7 @@ class PsqlQueries:
     ISO_SEL_ID_TB_SUB_VAR_STATUS: Final[str] = """
         SELECT id FROM submissions WHERE outcome = 'good' AND status = 'closed' AND id LIKE 'BIGSdb_%';"""
     ISO_SEL_SUBID_TB_SUB_VAR_: Final[str] = """
-        SELECT id FROM submissions WHERE outcome = 'good' AND status = 'closed' AND quality = 'warning' and resequencing = 'no';"""
+        SELECT id FROM submissions WHERE outcome = 'good' AND status = 'closed' AND quality = 'warning' AND resequencing = 'no';"""
     ISO_UPD_STATUS_OUTCOME_TB_SUB_VAR_: Final[str] = """
         UPDATE submissions SET (status, outcome) = ('closed', 'good') WHERE ( quality = 'warning' AND resequencing = 'no' AND OUTCOME IS NULL);"""
     ISO_INSERT_GENERIC_LAB_METADATA_TEMPLATE: Final[str] = "UPDATE isolates SET {} WHERE isolate=%s;"

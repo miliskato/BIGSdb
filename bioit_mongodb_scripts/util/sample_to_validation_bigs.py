@@ -23,7 +23,7 @@ class SampleToValidationBigs:
     already done.
     """
 
-    def __init__(self, species: str, isolate_id: str, pseudo_id: str, quality: Literal['warning', 'good'], resequencing: str,  mongo_config_data: Dict[str, Any] = None) -> None:
+    def __init__(self, species: str, isolate_id: str, pseudo_id: str, quality: Literal['warning', 'good'], resequencing: Literal['yes', 'no'],  mongo_config_data: Dict[str, Any] = None) -> None:
         """
         Call methods to insert samples into BIGSdb submission table.
         :param species: commonly used bioit species name: either genus or specific like stec
