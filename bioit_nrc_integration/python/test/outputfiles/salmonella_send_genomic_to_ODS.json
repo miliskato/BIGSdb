@@ -1,7 +1,7 @@
 {
   "metadata": {
-    "version": "1.0.1-draft4",
-    "dataCollection": "HDBP0041_SLM_BIOIT"
+    "version": "v1.0.1",
+    "dataCollection": "HDBP0345_SLM_BIOIT"
   },
   "data": {
     "CD_HCO_NIHDI": "82860665",
