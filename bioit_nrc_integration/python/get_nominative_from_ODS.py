@@ -132,7 +132,9 @@ class MainNominativeDataParserFromOds(SFTPConnection):
             try:
                 with Path(f'{self._temp_json_dir}/{file}').open('r') as handle:
                     contents = json.load(handle)
-                    species = self._translation_codes['pathogens'][contents['metadata']['data_collection']]
+                    species = self._translation_codes['pathogens'].get(contents['metadata']['dataCollection'])
+                    if not species:
+                        continue
             except Exception as exceptionmessage:
                 logging.info(f"{exceptionmessage}\n{traceback.format_exc()}")
                 self._files_error.append(file)

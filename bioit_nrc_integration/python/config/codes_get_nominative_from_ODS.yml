@@ -1,8 +1,10 @@
 pathogens:
   HDBP0345_SLM_LAB: salmonella
   HDBP0345_SLM_CLIN: salmonella
-  todo: listeria # something like HDBP0335_LIS_CLIN, will only know after testfile is sent
-  todo2: listeria
+  HDBP0335_LIST_CLIN: listeria
+  HDBP0335_LIST_LAB: listeria
+  HDBP0333_INFL_CLIN: influenza
+  HDBP0333_INFL_LAB: influenza
 
 schema:
   LAB:
