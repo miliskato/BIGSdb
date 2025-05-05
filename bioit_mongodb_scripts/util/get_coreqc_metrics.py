@@ -102,8 +102,7 @@ class GetCoreQCMetrics:
         for metric_to_remove in metrics_to_remove:
             pathogen_metrics_thresholds.pop(metric_to_remove, None)
 
-    @staticmethod
-    def __set_global_ont_coverage_thresholds(sample_coreqc_metrics: dict[str, Any]) -> None:
+    def __set_global_ont_coverage_thresholds(self, sample_coreqc_metrics: dict[str, Any]) -> None:
         """
         For ONT, according to the latest discussion, the coverage warning threshold should be 50 and the failure
         threshold 30. It is cumbersome to implement it in the coreqc_config.yml in a clean way without too much
@@ -112,7 +111,7 @@ class GetCoreQCMetrics:
         :return: None
         """
         for key, metric_info in deepcopy(sample_coreqc_metrics).items():
-            if metric_info.get('global_ont_coverage'):
+            if metric_info.get('global_ont_coverage') and not self._species.startswith('enterococcus'):
                 metric_info['threshold_warn'] = 50.0
                 metric_info['threshold_fail'] = 30.0
 

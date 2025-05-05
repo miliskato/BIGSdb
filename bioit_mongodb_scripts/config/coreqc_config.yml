@@ -84,13 +84,6 @@ metrics:
     field: assembly_nb_contigs
     available_for_fasta_input: true
     parameter_name: Number of contigs
-  coverage_10x: # e.g. percentage_covered_10x: "87.5%"
-    threshold_direction: lower
-    category: custom_coverage
-    field: percentage_covered_10x
-    value_format_to_strip: "%"
-    available_for_fasta_input: false
-    parameter_name: Per-base coverage against the reference at 10x
   duplication_rate: # e.g. duplication_rate: "0.05"
     threshold_direction: higher
     category: trimming_inputtype
@@ -264,9 +257,12 @@ species:
     contamination:
       threshold_warn: 1.0
       threshold_fail: 5.0
+    typing_loci_detected:
+      threshold_warn: 95.0
+      threshold_fail: 90.0
     coverage_against_reference:  # ont thresholds are set in get_coreqc_metrics.py
-      threshold_warn: 50.0
-      threshold_fail: 30.0
+      threshold_warn: 30.0
+      threshold_fail: 20.0
     assembly_length_deviation:
       threshold_warn: 15.0
       threshold_fail: 30.0
@@ -276,9 +272,6 @@ species:
     average_gc_deviation_ont:
       threshold_warn: 3.0
       threshold_fail: 5.0
-    coverage_10x:
-      threshold_warn: 95.0
-      threshold_fail: 90.0
     duplication_rate:
       threshold_warn: 0.3
       threshold_fail: 0.5
@@ -286,9 +279,12 @@ species:
     contamination:
       threshold_warn: 1.0
       threshold_fail: 5.0
+    typing_loci_detected:
+      threshold_warn: 95.0
+      threshold_fail: 90.0
     coverage_against_reference:  # ont thresholds are set in get_coreqc_metrics.py
-      threshold_warn: 50.0
-      threshold_fail: 30.0
+      threshold_warn: 30.0
+      threshold_fail: 20.0
     assembly_length_deviation:
       threshold_warn: 15.0
       threshold_fail: 30.0
@@ -298,9 +294,6 @@ species:
     average_gc_deviation_ont:
       threshold_warn: 3.0
       threshold_fail: 5.0
-    coverage_10x:
-      threshold_warn: 95.0
-      threshold_fail: 90.0
     duplication_rate:
       threshold_warn: 0.3
       threshold_fail: 0.5
