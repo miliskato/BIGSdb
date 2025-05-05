@@ -15,6 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - MenDeVar
 - Azure service bus to handle the insertion of isolates in BIGSdb
 - Service "bigsdb-insertion.service" to replace the cron job mongo_to_bigs_hourly
+- check for presence of cgMLST scheme members and for presence of mv_scheme_x table in seqdef before trying a 
+  cache update of the scheme. 
+- Added Listeria & Influenza output DCD's to NRC integration
+- Added core QC page and core quality metrics checking for both Illumina & ONT
+- Enterococcus is supported
 
 ### Changed
 - All Jammy existing assays to bigsdb for neisseria listeria salmonella mycobacterium influenza.
@@ -22,33 +27,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Insertion of gene detection schemes
 - Insertion of sequence typing schemes
 - Validation of good quality isolates + exporting of JSON reports to /output_reports
-
-### Fixed:
-- Mykrobe scheme : typo in two AB names
-- issue if PubMLST add some extra blank lines at the end of the profiles.tsv files
-
-### Removed:
-- PointFinder, ResFinder, NCBI AMR, PlasmidFinder
-- Ability to support stec species
-- Ability to recompute gene_detection (removal, recalculation and reinsertion of alleles designations disabled)
-- cron job to target insertion from MongoDB Atlas to BIGSdb
-
-## [2.1.1 - support/2.1.0]
-### Changed:
-- remove mount of the local db catalog. Only keep the Azure one and named the mount ".bioit_database" instead of ".bioit_database_azure"
-  (this part is handle on the ANSIBLE side)
-- use the /db folder instead of the /.bioit_database path in the project (in order to use the symlinks and not the mount directly)
-
-### Added
-- check for presence of cgMLST scheme members and for presence of mv_scheme_x table in seqdef before trying a 
-  cache update of the scheme. 
-- Added Listeria & Influenza output DCD's to NRC integration
-- Added core quality metrics checking for both Illumina & ONT
-- Added Azure Service Bus implementation to Azure side
-- Enterococcus
-- Core QC page
-
-### Changed
 - All Jammy existing assays to bigsdb for neisseria listeria salmonella mycobacterium influenza.
 - Upgrade from python 3.9 to python 3.12
 - Rework integration SFTP flow 11 to send genomic indicators to ODS instead of DWH, remove mapping table flow to ODS
@@ -61,11 +39,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Influenza genomic 1.0.1-draft3
 - Modified pseudonymization slightly to be able to rename resequencing files in Azure so that they do not cause issues during the archival.
 - Simplification of html tagger and html update merger scripts (renamed to html replacer) + creation of general html report class
-- Update of reanalysis + reanalysis configs to account for the jammy changes
 - Update of tagger config to account for the jammy changes
+- Update of reanalysis and reanalysis configs to account for the jammy changes
 
-### Fixed
+
+
+### Fixed:
+- Mykrobe scheme : typo in two AB names
+- issue if PubMLST add some extra blank lines at the end of the profiles.tsv files
 - Bugfix reanalysis influenza
+
+### Removed:
+- PointFinder, ResFinder, NCBI AMR, PlasmidFinder
+- Ability to support stec species
+- Ability to recompute gene_detection (removal, recalculation and reinsertion of alleles designations disabled)
+- cron job to target insertion from MongoDB Atlas to BIGSdb
+
+## [2.1.1 - support/2.1.0]
+### Changed:
+- remove mount of the local db catalog. Only keep the Azure one and named the mount ".bioit_database" instead of ".bioit_database_azure"
+  (this part is handle on the ANSIBLE side)
+- use the /db folder instead of the /.bioit_database path in the project (in order to use the symlinks and not the mount directly)
 
 ## [2.1.0]
 ### Added
