@@ -130,9 +130,9 @@ class SampleValidationToMongo:
         elif quality == 'warning':
             results_type = 'warningqc_validated'
         else:
-            results_type = '?'  # in order to not have issue 'variable referenced before assignment' and in order to leave possibility open
+            raise Exception(
+                f"There is no corresponding results type for quality: {quality} and resequencing: {resequencing}")
         return results_type
-
 
     @staticmethod
     def __remove_id_from_document_to_be_unique_again_if_bad(collection_in: Collection,

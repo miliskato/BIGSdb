@@ -23,7 +23,8 @@ class SampleToValidationBigs:
     already done.
     """
 
-    def __init__(self, species: str, isolate_id: str, pseudo_id: str, quality: Literal['warning', 'good'], resequencing: Literal['yes', 'no'],  mongo_config_data: Dict[str, Any] = None) -> None:
+    def __init__(self, species: str, isolate_id: str, pseudo_id: str, quality: Literal['warning', 'good'],
+                 resequencing: Literal['yes', 'no'],  mongo_config_data: Dict[str, Any] = None) -> None:
         """
         Call methods to insert samples into BIGSdb submission table.
         :param species: commonly used bioit species name: either genus or specific like stec
@@ -41,7 +42,6 @@ class SampleToValidationBigs:
         self._quality = quality
         self._resequencing = resequencing
         self._collection, self._update_collection, self._validation_type = self._get_collections_and_validation_type()
-        self._submission_into_bigs()
 
     def _get_collections_and_validation_type(self) -> Tuple[Collection, Collection, str]:
         """
@@ -65,7 +65,7 @@ class SampleToValidationBigs:
             validation_type = 'warning_quality'
         return collection, update_collection, validation_type
 
-    def _submission_into_bigs(self) -> None:
+    def submission_into_bigs(self) -> None:
         """
         Select samples pending for submission from either the goodqc, warningqc or resequencing collection and launches
         their submission in BIGSdb.
@@ -73,7 +73,7 @@ class SampleToValidationBigs:
         """
         isolate_to_submit = MongoRecordDict(self._collection.find_one({"_id": self._pseudo_id}))
         current_date = datetime.datetime.now(datetime.timezone.utc)
-        self.__insert_submission_bigs(isolate_to_submit)
+        self._insert_submission_bigs(isolate_to_submit)
         self._collection.update_one({'_id': self._pseudo_id},
                                     {'$set': {'submission_status': 'submitted_in_bigsdb'}})
         if current_date:
@@ -81,7 +81,7 @@ class SampleToValidationBigs:
                 {'metadata': 'last_validation_to_bigs_update', 'host': socket.gethostname()},
                 {'$set': {'last_update_date': current_date}}, upsert=True)
 
-    def __insert_submission_bigs(self, sample_doc: MongoRecordDict) -> None:
+    def _insert_submission_bigs(self, sample_doc: MongoRecordDict) -> None:
         """
         Inserts a given isolate in the submission system of bigsdb
         :param sample_doc: mongo db document of the isolate
@@ -100,7 +100,7 @@ class SampleToValidationBigs:
             isolates_isosubiso_psql_tbl.insert_validation_metadata(('html_report', report_link))
             isolates_isosubiso_psql_tbl.insert_validation_metadata(('isolate_id', self._isolate_id))
             isolates_isosubiso_psql_tbl.insert_validation_metadata(('validation_type', self._validation_type))
-            isolates_isosubiso_psql_tbl.insert_validation_metadata(('quality', self._quality)) # Not sure if it is necessary to add these
+            isolates_isosubiso_psql_tbl.insert_validation_metadata(('quality', self._quality))
             isolates_isosubiso_psql_tbl.insert_validation_metadata(('resequencing', self._resequencing))
             # The indexes below are necessary, if they are not inserted the values above are not visible
             isolates_isosubfo_psql_tbl.insert_validation_indexes(('html_report', 1))
