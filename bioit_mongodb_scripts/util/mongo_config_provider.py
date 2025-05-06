@@ -79,12 +79,8 @@ class MongoConfigProvider:
     def get_temp_dir(self) -> str:
         return self._mongo_global_config['temp_dir']
 
-
-    def get_azure_reoirtsapi_ip(self):
+    def get_azure_reportsapi_ip(self):
         return self._mongo_global_config['azure_reportsapi_ip']
 
     def get_mongo_collections(self) -> List[str]:
         return self._mongo_global_config['collections']
-
-
-
