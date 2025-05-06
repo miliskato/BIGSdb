@@ -43,7 +43,7 @@ class NewClusteringInfoToBigs:
         self._naive_clustering_distance_matrix_file = naive_clustering_distance_matrix_file
 
         # Open collections
-        self._mongoinit = MongoInitialisation(self._species, mongo_config_provider.get_azure_connection_string(self._species),mongo_config_provider.dtap)
+        self._mongoinit = MongoInitialisation(self._species, mongo_config_provider.get_azure_connection_string(self._species), mongo_config_provider.dtap)
         self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, \
             self._isolates_resequencing_collection = self._mongoinit.initialise_collections()
         self._headers_collection = self._mongoinit.initialise_headers_collection()
