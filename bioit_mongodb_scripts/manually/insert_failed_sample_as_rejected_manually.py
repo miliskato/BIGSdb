@@ -3,7 +3,7 @@ import argparse
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import List, Literal, Union
+from typing import List, Literal, Union, Any
 
 # import dnspython
 # somehow this package is a requirement without actually needing to be imported, probably imported in pymongo
@@ -14,6 +14,8 @@ sys.path.append(str(PYTHONPATH))
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.mongo_insertion import insert_document_into_rejected_collection
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data
+from bioit_mongodb_scripts.util_azure.azure_service_bus import AzureServiceBus
+from bioit_mongodb_scripts.util_azure.azure_service_bus_message import AzureServiceBusMessage
 
 REJECTION_REASONS = {
     "1": "Insufficient reads remaining after human read scrubbing to generate an assembly or consensus sequence.",
@@ -40,13 +42,17 @@ def parse_arguments(species_list: List[str]) -> argparse.Namespace:
     return parser.parse_args()
 
 
-def insert_failed_sample_as_rejected_manually(technical_id: str, species: str, rejection_reason: Literal[REJECTION_REASONS.values()],
+def insert_failed_sample_as_rejected_manually(technical_id: str, species: str,
+                                              rejection_reason: Literal[REJECTION_REASONS.values()],
+                                              mongo_config_data: dict[str, Any],
                                               alternate_dtap: Union[str, None] = None) -> None:
     """
-    Insert an isolate into the rejected isolates MongoDB Azure collection with a given rejection reason.
+    Insert an isolate into the rejected isolates MongoDB Azure collection with a given rejection reason and sends
+    a message to the Azure Service Bus.
     :param technical_id: sample id/ isolates id
     :param species: commonly used bioit species name: either genus or specific like stec
     :param rejection_reason: The reason why the sample failed/has to be rejected.
+    :param mongo_config_data: The MongoDB configuration data
     :param alternate_dtap: alternative dtap than what is in the config file
     :return: None
     """
@@ -65,16 +71,20 @@ def insert_failed_sample_as_rejected_manually(technical_id: str, species: str, r
     insert_document_into_rejected_collection(isolates_rejected_coreqc_collection,
                                              document_to_be_inserted)
 
+    asb_instance = AzureServiceBus(mongo_config_data, species, alternate_dtap)
+    asb_instance.send_message_to_queue(AzureServiceBusMessage(technical_id, isolates_rejected_coreqc_collection.name))
+
 
 if __name__ == '__main__':
     # Parse config
-    mongo_config_data = get_mongodb_config_data()
+    mongo_config_data_dict = get_mongodb_config_data()
 
     # Parse arguments
-    args = parse_arguments(mongo_config_data['species'])
+    args = parse_arguments(mongo_config_data_dict['species'])
 
     # run main
     insert_failed_sample_as_rejected_manually(args.technical_id,
                                               args.species,
                                               REJECTION_REASONS[args.rejection_reason],
+                                              mongo_config_data_dict,
                                               args.alternate_dtap)
