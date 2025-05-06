@@ -4,7 +4,6 @@ import socket
 from typing import Any, Dict
 
 from bioit_mongodb_scripts.model.json_model import JsonReportDict
-from bioit_mongodb_scripts.util.python_utility_functions import is_viral
 from .json_superclass import JsonSuperClass
 from .psql import TblEavInt, TblEavText, TblEavTextHidden, TblHistory, TblIsolates
 from ..utils.url_helper import UrlHelper
@@ -16,20 +15,20 @@ class MainInserter(JsonSuperClass):
     """
 
     def __init__(self, isolatename: str, species: str, json_report_dict: JsonReportDict, config_data: Dict[str, Any],
-                 report_access: str, vcf_path: str, mongo_dtap: str) -> None:
+                 report_access: str, vcf_path: str, viral_species: bool) -> None:
         """
         :param isolatename: name of the isolate
         :param species: commonly used bioit species name: either genus or specific like stec
         :param json_report_dict: results of sample
         :param report_access: report_directory from MongoDB
         :param vcf_path: subdirectory containing the vcf file
-        :param mongo_dtap: dtap from mongo config
+        :param viral_species: True if species is viral, False if species is bacterial
         :return: None
         """
         super().__init__(isolatename, species, json_report_dict, config_data)
         self._report_access = report_access
         self._vcf_path = vcf_path
-        self._mongo_dtap = mongo_dtap
+        self._viral_species = viral_species
 
     def insert_new_isolate(self, uploader_mail_address: str, isolation_date: str) -> None:
         """
@@ -62,7 +61,7 @@ class MainInserter(JsonSuperClass):
         Inserts the main metadata into bigsdb for an isolate
         :return: None
         """
-        with TblEavText(self._species) as self._isolates_eavt_psql_tbl,\
+        with TblEavText(self._species) as self._isolates_eavt_psql_tbl, \
                 TblIsolates(self._species) as self.isolates_psql_tbl, TblEavInt(self._species) as self._isolates_eavi_psql_tbl:
 
             with TblIsolates(self._species) as isolates_psql_tbl:
@@ -71,7 +70,7 @@ class MainInserter(JsonSuperClass):
             report_link = f'<p><a href="{report_url}" target="_blank"> html report</a></p>'
             self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'html', report_link))
             isolate_id = self.isolates_psql_tbl.select_id_for_isolate((self._isolatename,))[0][0]
-            if is_viral(self._species):
+            if self._viral_species:
                 assemblylink = f'<p><a href="/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_{self._species}_isolates&page=plugin&name=Contigs&format=text&isolate_id={isolate_id}&match=1&pc_untagged=0&min_length=&header=1l" target="_blank">consensus sequence</a></p>'
                 self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'consensus_sequence', assemblylink))
             else:

@@ -34,7 +34,7 @@ from bioit_mongodb_scripts.util.mongo_custom_clustering import MongoCustomCluste
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.mongo_insertion import insert_document_into_rejected_collection
 from bioit_mongodb_scripts.util.mongo_querying import Mongoquerying
-from bioit_mongodb_scripts.util.python_utility_functions import access_value_in_dict_using_list_as_dictpath, convert_dmyhms_to_ymd, is_viral, send_email, load_config
+from bioit_mongodb_scripts.util.python_utility_functions import access_value_in_dict_using_list_as_dictpath, convert_dmyhms_to_ymd, send_email, load_config
 
 
 def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
@@ -471,7 +471,7 @@ class MainMongo:
         metadata.pop('name_pseudonymized', None)
         metadata.pop('species', None)
         if str(self._original_input_format) == 'fastq':
-            if not is_viral(self._species):
+            if not self._mongo_config_provider.is_viral(self._species):
                 tx_seq_fltr_meth, cd_seq_assy_meth, tx_seq_assy_meth_ver, ms_genome_cvge, cd_novo_assy, tx_ref_accn \
                     = self.____get_technical_metadata_bacterial_fasta(results)
             else:

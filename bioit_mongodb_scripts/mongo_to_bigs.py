@@ -25,7 +25,6 @@ from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.mongo_querying import Mongoquerying
 from bioit_mongodb_scripts.util.mongo_to_bigs_nominative import MongoToBigsNominative
-from bioit_mongodb_scripts.util.python_utility_functions import is_viral
 from bioit_mongodb_scripts.util.new_clustering_info_to_bigs import NewClusteringInfoToBigs
 from bioit_mongodb_scripts.util.new_temporary_alleles_to_bigs import NewTemporaryAllelesToBigs
 from bioit_mongodb_scripts.util.command.command import Command
@@ -85,7 +84,7 @@ class MongoToBigs:
         # Open Bigsdb isolates table
         self._isolates_psql_tbl = TblIsolates(self._species)
 
-        if not is_viral(self._species):
+        if not self._mongo_config_provider.is_viral(self._species):
             # Prepare cgmlst cache updater command
             with TblSchemes(self._species, 'isolates') as isolates_schemes_psql_tbl:
                 self._cgmlst_bigsdb_scheme_id = isolates_schemes_psql_tbl.select_scheme_id_cgmlst()[0][0]
@@ -131,7 +130,7 @@ class MongoToBigs:
         If the current host is a bigsdb host, syncs all samples (or a single one if provided) with the bigsdb database
         :return: None
         """
-        if is_viral(self._species):
+        if self._mongo_config_provider.is_viral(self._species):
             self.__mongo_to_bigs_viral()
         else:
             self.__mongo_to_bigs_bacterial()
@@ -189,7 +188,7 @@ class MongoToBigs:
         MainResultsInserter(isolate_id, self._uploader_mail_address, self._species, results_type,
                             vcf_path=document['vcf_path'], json_results=jsonfile,
                             report_access=document['report_directory'],
-                            mongo_dtap=self._mongo_config_provider.dtap,
+                            viral_species=self._mongo_config_provider.is_viral(self._species),
                             isolation_date=document['technical_metadata']['data']['IsolationDate'],
                             nominative_labtest_clinical_metadata_collection=self._nominative_labtest_clinical_metadata_collection)
         self.__insert_assembly_into_bigs(results_type, document, isolate_id)
@@ -203,7 +202,7 @@ class MongoToBigs:
         This method updates the clustering and the cache. It should be run after the insertion of new documents in BIGSdb
         :return: None
         """
-        if not is_viral(self._species):
+        if not self._mongo_config_provider.is_viral(self._species):
             # Run clustering and new cgST insertion before cache update
             NewClusteringInfoToBigs(self._species, self._naive_clustering_distance_matrix_file,
                                     self._cgmlst_bigsdb_scheme_id, self._mongo_config_provider)
@@ -386,7 +385,7 @@ class MongoToBigs:
         else:
             different_version = True
             # skip cgst check for virus
-            if is_viral(self._species):
+            if self._mongo_config_provider.is_viral(self._species):
                 return different_version, cgst_changed
             # check whether the cgST that is currently in the db for the isolate is the same as the
             # cgST of the new version in Mongo.
@@ -450,7 +449,7 @@ class MongoToBigs:
         (the cgst needs to come from the seqdef db).
         :return: None
         """
-        if is_viral(self._species):
+        if self._mongo_config_provider.is_viral(self._species):
             return
         self._cache_command_object.run(Path(os.getcwd()))
         if self._cache_command_object.returncode != 0:
