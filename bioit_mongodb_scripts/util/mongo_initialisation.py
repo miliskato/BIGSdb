@@ -24,7 +24,7 @@ MongoCollectionNames = Literal[
     "unprocessed_nominative_clinical_metadata",
     "isolates_rejected_coreqc"
 ]
-MongoCollectionName = Union[str, MongoCollectionNames]
+MongoCollectionName = Union[str, MongoCollectionNames]  # workaround to avoid pycharm warnings - coupled with validate_literal
 
 
 class MongoInitialisation:
