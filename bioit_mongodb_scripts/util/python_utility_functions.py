@@ -11,32 +11,13 @@ from typing import Any, Dict, List, Optional, Union
 
 import yaml
 
+from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
+
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
-from bioit_mongodb_scripts.config import MONGO_CONFIG
 from bioit_mongodb_scripts.model.json_model import MongoRecordDict
 
-
-def get_mongodb_config_data() -> Dict[str, Union[str, List[Any], Dict[str, Union[str, Dict[str, Any]]]]]:
-    """
-    Reads the global bigsdb config
-    :return:
-    """
-    with Path(MONGO_CONFIG).open('r') as handle:
-        mongo_config_data = yaml.safe_load(handle)
-    return mongo_config_data
-
-
-def is_viral(species: str) -> bool:
-    """
-    Check if the current species is viral
-    :param species: species to evaluate
-    :return: True if species is viral
-    """
-    mongo_config = get_mongodb_config_data()
-    return species in mongo_config['viral_species']
-  
 
 def load_config(config: Path) -> Dict[str, Union[str, List[Any], Dict[str, Union[str, Dict[str, Any]]]]]:
     """
@@ -50,7 +31,7 @@ def load_config(config: Path) -> Dict[str, Union[str, List[Any], Dict[str, Union
 
 
 def send_email(content: str, subject=None,
-               config: Dict[str, str] = get_mongodb_config_data().get('mail'), dont_send_email: bool = False) -> None:
+               config: Dict[str, str] = MongoConfigProvider().get_mail(), dont_send_email: bool = False) -> None:
     """
     Sends an email.
     :param subject: Mail subject

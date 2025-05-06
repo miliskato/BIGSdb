@@ -4,6 +4,8 @@ from typing import Any, Dict, List, Literal, Optional, Union
 
 import yaml
 
+from bioit_bigsdb_scripts.utils.literal_helper import validate_literal
+
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
@@ -20,12 +22,17 @@ def get_mongodb_config_data() -> Dict[str, Union[str, List[Any], Dict[str, Union
     return mongo_config_data
 
 
+DtapValues = Literal['dev', 'test', 'acc', 'prod']
+DtapValue = Union[str, DtapValues]  # workaround to avoid pycharm warnings
+
+
 class MongoConfigProvider:
     """
     Class to facilitate access to the different parts of the global mongodb config.
     """
 
-    def __init__(self, alternate_dtap: Optional[Literal['dev', 'test', 'acc', 'prod']] = None):
+    def __init__(self, alternate_dtap: Optional[DtapValue] = None):
+        validate_literal(alternate_dtap, DtapValues)
         self._mongo_global_config = get_mongodb_config_data()
         self.dtap = self._mongo_global_config['dtap'] if alternate_dtap is None else str(alternate_dtap)
         self.__password = self._mongo_global_config['MONGO_DB_PASSWORD']
@@ -55,13 +62,13 @@ class MongoConfigProvider:
         """
         return self._mongo_global_config['CONNECTION_STRING_ALTERNATE']
 
-    def is_viral(self) -> bool:
+    def is_viral(self, species: str) -> bool:
         """
         Check if the current species is viral
         :param species: species to evaluate
         :return: True if species is viral
         """
-        return self.species in self._mongo_global_config['viral_species']
+        return species in self._mongo_global_config['viral_species']
 
     def get_asb_connection_string(self) -> str:
         return self._mongo_global_config['CONNECTION_STRING_ASB']
@@ -84,3 +91,6 @@ class MongoConfigProvider:
 
     def get_mongo_collections(self) -> List[str]:
         return self._mongo_global_config['collections']
+
+    def get_mail(self):
+        return self._mongo_global_config['mail']
