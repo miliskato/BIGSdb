@@ -69,20 +69,19 @@ class MongoToBigs:
         # Parse Bigsdb config
         self._bigsdb_config_data = get_bigsdb_config_data()
         # Open collections
-        self.initialisation = MongoInitialisation(self._species, self._mongo_config_provider.get_azure_connection_string(self._species), self._mongo_config_provider.dtap)
-        self._mongoinit = self.initialisation
+        mongo_init = MongoInitialisation(self._species, self._mongo_config_provider.get_azure_connection_string(self._species), self._mongo_config_provider.dtap)
         self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, \
-            self._isolates_resequencing_collection = self._mongoinit.initialise_collections()
-        self._headers_collection = self._mongoinit.initialise_headers_collection()
-        self._hashed_ad_collection = self._mongoinit.initialise_hashing_collection()
-        self._update_metadata_collection = self._mongoinit.initialise_update_collection()
+            self._isolates_resequencing_collection = mongo_init.initialise_collections()
+        self._headers_collection = mongo_init.initialise_headers_collection()
+        self._hashed_ad_collection = mongo_init.initialise_hashing_collection()
+        self._update_metadata_collection = mongo_init.initialise_update_collection()
         self._st_collection, self._cluster_membership_collection, self._cluster_merging_collection = \
-            self._mongoinit.initialise_clustering_collections()
+            mongo_init.initialise_clustering_collections()
         self._mongoquerying = Mongoquerying()
         # Ope collections local MongoDB
-        self._mongoinit_local = MongoInitialisation(self._species, self._mongo_config_provider.get_local_connection_string(self._species), self._mongo_config_provider.dtap)
-        self._mappingtable_collection = self._mongoinit_local.initialise_mapping_table_collection()
-        self._nominative_labtest_clinical_metadata_collection = self._mongoinit_local.initialise_nominative_labtest_clinical_metadata_collection()
+        mongo_init_local = MongoInitialisation(self._species, self._mongo_config_provider.get_local_connection_string(self._species), self._mongo_config_provider.dtap)
+        self._mappingtable_collection = mongo_init_local.initialise_mapping_table_collection()
+        self._nominative_labtest_clinical_metadata_collection = mongo_init_local.initialise_nominative_labtest_clinical_metadata_collection()
         # Open Bigsdb isolates table
         self._isolates_psql_tbl = TblIsolates(self._species)
 
