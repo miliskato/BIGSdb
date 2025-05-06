@@ -79,11 +79,6 @@ def convert_dmyhms_to_dateobj(datetimestring: str) -> datetime.date:
     return datetime.strptime(datetimestring, '%d/%m/%Y - %X').date()
 
 
-def merge_mongo_dicts(target_dict: MongoRecordDict, merging_dict: MongoRecordDict) -> None:
-    """merge a MongoRecordDict into another MongoRecordDict"""
-    _merge_nested_dicts(target_dict, merging_dict)
-
-
 def _merge_nested_dicts(target_dict: Union[MongoRecordDict,Dict], merging_dict: [MongoRecordDict,Dict]) -> Dict:
     """
     Merges a nested dictionary into another target nested dictionary, seeing as this does not create a deepcopy,
