@@ -19,12 +19,6 @@ listeria:
 neisseria:
   AMRFinder (AMRFinder 3.11.26): amrfinder
   ResFinder (ResFinder 4.4.2): resfinder4
-stec:
-  AMRFinder (AMRFinder 3.11.26): amrfinder
-  ResFinder (ResFinder 4.4.2): resfinder4
-  VirulenceFinder - E. coli: virulencefinder_ecoli
-  VirulenceFinder - Shiga-toxin genes: virulencefinder_shiga-toxin_genes
-  PlasmidFinder - Enterobacteriales: plasmidfinder
 salmonella:
   abriTAMR (AbriTAMR run 1.0.19): abritamr
   ResFinder (ResFinder 4.4.2): resfinder4
