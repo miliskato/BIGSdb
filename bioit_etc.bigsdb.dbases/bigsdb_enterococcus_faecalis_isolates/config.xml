@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<db>
+<system
+ db="bigsdb_enterococcus_faecalis_isolates"
+ dbtype="isolates"
+ webroot="/enterococcus_faecalis.html"
+ indexpage=""
+ view="isolates"
+ maindisplay_aliases="yes"
+ description="Enterococcus faecalis isolates"
+ locus_superscript_prefix="yes"
+ authentication="builtin"
+ read_access="authenticated_users"
+ all_plugins="yes"
+ microreact_year_field="isolation_date"
+ tblastx_tagging="yes"
+ eav_groups="Gene detection|fas fa-search,rMLST identification|fas fa-bacteria,ResFinder4 mutations|fas fa-pills,ResFinder4|fas fa-pills,MOB-Suite|fas fa-circle-notch,LRE-Finder|fas fa-pills, BactMet|fa-solid fa-pump-medical,galaxy report|fas fa-file-medical-alt,Antibiotic resistance|fas fa-angle-right,AbritAMR|fas fa-pills,Serotyping|fas fa-bacteria,Mykrobe|fas fa-pills,SPIFinder|fas fa-angle-right"
+ field_groups="Curation history|fas fa-history,nominative metadata|fas fa-search"
+ user_projects="yes"
+ submissions="yes"
+ genome_submissions="no"
+ show_job_notification_form="no"
+>
+</system>
+<field type="int" required="yes" length="5" maindisplay="yes" comments="primary key">id</field>
+<field type="text" required="yes" length="40" maindisplay="yes" comments="isolate name">isolate</field>
+<field type="int" required="yes" length="4" maindisplay="no" group ="Curation history" comments="sender unique name, link to users">sender</field>
+<field type="int" required="yes" length="4" maindisplay="no" group ="Curation history" comments="curator who entered data,link to users">curator</field>
+<field type="date" required="no" length="10" maindisplay="no" group ="Curation history" comments="latest analysis date">latest_analysis_date</field>
+<field type="date" required="no" length="10" maindisplay="no" group ="Curation history" comments="date first entered">date_entered</field>
+<field type="date" required="no" length="10" maindisplay="no" group ="Curation history" comments="date last modified">datestamp</field>
+<field type="text" required="no" length="40" maindisplay="no" group ="Curation history" comments="uploader through Galaxy">uploader</field>
+<field type="text" required="no" length="20" maindisplay="no" group ="Curation history" comments="validation type">validation_type</field>
+<field type="text" required="no" length="40" maindisplay="no" group ="Curation history" comments="curator that validated this sample">validation_curator</field>
+<field type="date" required="no" length="10" maindisplay="no" group ="Curation history" comments="date of curation">validation_date</field>
+<field type="date" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="isolation date">isolation_date</field>
+<field type="text" required="no" length="60" maindisplay="no" group ="nominative metadata" comments="patient ID">author_group</field>
+<field type="text" required="no" length="60" maindisplay="no" group ="nominative metadata" comments="patient ID">author</field>
+<field type="text" required="no" length="60" maindisplay="no" group ="nominative metadata" comments="patient ID">coauthor</field>
+<field type="text" required="no" length="60" maindisplay="no" group ="nominative metadata" comments="PatientIdentificationNumber_Value">patient_id</field> # found
+<field type="text" required="no" length="60" maindisplay="no" group ="nominative metadata" comments="PatientIdentificationNumber_System">patient_id_system</field> # found
+<field type="date" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="patient birth date">patient_birth_date</field> # found
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" geography_point_lookup="yes" comments="Patient_AddressInformation_Postcode">patient_zip</field> # found
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="patient sex">patient_sex</field> # found
+<field type="text" required="no" length="5" maindisplay="no" group ="nominative metadata" comments="Patient_DeathIndicator">patient_death_indicator</field> # found
+<field type="text" required="no" length="100" maindisplay="no" group ="nominative metadata" comments="Patient_NameInformation_FirstNames">patient_first_names</field>
+<field type="text" required="no" length="100" maindisplay="no" group ="nominative metadata" comments="Patient_NameInformation_Initials">patient_initials</field>
+<field type="text" required="no" length="100" maindisplay="no" group ="nominative metadata" comments="Patient_NameInformation_LastName_LastName">patient_last_names</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="OriginalSampleIDStatus">original_sample_id_status</field>
+<field type="text" required="no" length="100" maindisplay="no" group ="nominative metadata" comments="OriginalSampleID">original_sample_id</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="LaboratoryTestResult_Requester_HealthProfessional_HealthProfessionalIdentificationNumber_System">requester_hp_identification_nb_system</field>
+<field type="text" required="no" length="100" maindisplay="no" group ="nominative metadata" comments="LaboratoryTestResult_Requester_HealthProfessional_HealthProfessionalIdentificationNumber_Value">requester_hp_identification_nb</field>
+<field type="text" required="no" length="100" maindisplay="no" group ="nominative metadata" comments="LaboratoryTestResult_Requester_HealthProfessional_Specialty">requester_hp_speciality</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="LaboratoryTestResult_Requester_HealthProfessional_HealthcareOrganization_HealthcareOrganizationIdentificationNumber_System">requester_ho_identification_nb_system</field>
+<field type="text" required="no" length="100" maindisplay="no" group ="nominative metadata" comments="LaboratoryTestResult_Requester_HealthProfessional_HealthcareOrganization_HealthcareOrganizationIdentificationNumber_Value">requester_ho_identification_nb</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="LaboratoryTestResult_Performer_HealthProfessional_HealthProfessionalIdentificationNumber_System">performer_hp_identification_nb_system</field>
+<field type="text" required="no" length="100" maindisplay="no" group ="nominative metadata" comments="LaboratoryTestResult_Performer_HealthProfessional_HealthProfessionalIdentificationNumber_Value">performer_hp_identification_nb</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="LaboratoryTestResult_Performer_HealthProfessional_HealthcareOrganization_HealthcareOrganizationIdentificationNumber_System">performer_ho_identification_nb_system</field>
+<field type="text" required="no" length="100" maindisplay="no" group ="nominative metadata" comments="LaboratoryTestResult_Specimen_SpecimenId_Value">specimen</field>
+<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="LaboratoryTestResult_Specimen_SpecimenMaterial">specimen_material</field>
+<field type="text" required="no" length="100" maindisplay="no" group ="nominative metadata" comments="LaboratoryTestResult_Specimen_Microorganism">specimen_microorganism</field>
+<field type="date" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="LaboratoryTestResult_Specimen_CollectionDateTime">specimen_collection_datetime</field>
+<field type="date" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="LaboratoryTestResult_Specimen_ReceivedDateTime">secimen_received_datetime</field>
+<field type="text" required="no" length="100" maindisplay="no" group ="nominative metadata" comments="LaboratoryTestResult_Requester_HealthProfessional_ContactInformation_Value">requester_HP_contact_information</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="hosp_fl">hosp_fl</field>
+<field type="text" required="no" length="100" maindisplay="no" group ="nominative metadata" comments="syndrome">syndrome</field>
+<field type="text" required="no" length="100" maindisplay="no" group ="nominative metadata" comments="department">department</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="evolution">evolution</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="AMP_RSI">amp_rsi</field>
+<field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="AMP_MIC">amp_mic</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="VAN_RSI">van_rsi</field>
+<field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="VAN_MIC">van_mic</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="TPL_RSI">tpl_rsi</field>
+<field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="TPL_MIC">tpl_mic</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="LIN_RSI">lin_rsi</field>
+<field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="LIN_MIC">lin_mic</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="TIG_RSI">tig_rsi</field>
+<field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="TIG_MIC">tig_mic</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="GENH_RSI">genh_rsi</field>
+<field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="GENH_MIC">genh_mic</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="STR_RSI">str_rsi</field>
+<field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="STR_MIC">str_mic</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="DAP_RSI">dap_rsi</field>
+<field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="DAP_MIC">dap_mic</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="ERA_RSI">era_rsi</field>
+<field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="ERA_MIC">era_mic</field>
+</db>

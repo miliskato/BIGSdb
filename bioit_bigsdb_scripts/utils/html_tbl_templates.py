@@ -130,7 +130,7 @@ class HtmlMobSuiteTableBuilder(HtmlTableBuilder):
         super().__init__(headers=['id', 'num. contigs', 'size', 'GC content', 'predicted mobility', 'rep type(s)', 'relaxase types'], width_px=800)
         self.add_report_row(report_url)
 
-    def add_plasmid(self, id:str, num_contigs: str, size: str, gc_content: str, predicted_mobility: str, rep_types: str, relaxase_types: str) -> None:
+    def add_plasmid(self, id: str, num_contigs: str, size: str, gc_content: str, predicted_mobility: str, rep_types: str, relaxase_types: str) -> None:
         """
         add characteristics of the plasmid detected by Mob-suite
         :param id: plasmid id
@@ -143,3 +143,48 @@ class HtmlMobSuiteTableBuilder(HtmlTableBuilder):
         :return: None
         """
         self.add_row([id, num_contigs, size, gc_content, predicted_mobility, rep_types, relaxase_types])
+
+
+class HtmlLreFinderGenesTableBuilder(HtmlTableBuilder):
+    """subclass used to create the html table following the LRE-Finder results for genes detected"""
+
+    def __init__(self, report_url: str) -> None:
+        """
+        :param report_url: url to call the api to get the html report
+        :return: None
+        """
+        super().__init__(headers=['Genes', '%Template identity', 'Depth'], width_px=500)
+        self.add_report_row(report_url)
+
+    def add_gene(self, gene_id: str, identity: str, depth: str) -> None:
+        """
+        add characteristics of the gene detected by LRE-Finder
+        :param gene_id: gene identifier
+        :param identity: % of identity with template
+        :param depth: sequencing depth
+        :return: None
+        """
+        self.add_row([gene_id, identity, depth])
+
+
+class HtmlLreFinderMutationsTableBuilder(HtmlTableBuilder):
+    """subclass used to create the html table following the LRE-Finder results for mutations detected"""
+
+    def __init__(self, report_url: str) -> None:
+        """
+        :param report_url: url to call the api to get the html report
+        :return: None
+        """
+        super().__init__(headers=['Position in reference', '%Wild type ratio', '%Mutant ratio', 'Predicted phenotype'], width_px=850)
+        self.add_report_row(report_url)
+
+    def add_mutation(self, mutation_position: str, wild_type_ratio: str, mutant_ratio: str, predicted_phenotype: str) -> None:
+        """
+        add characteristics of the gene detected by LRE-Finder
+        :param mutation_position: mutation position
+        :param wild_type_ratio: % of wild type
+        :param mutant_ratio: % of mutant
+        :param predicted_phenotype: predicted phenotype
+        :return: None
+        """
+        self.add_row([mutation_position, wild_type_ratio, mutant_ratio, predicted_phenotype])

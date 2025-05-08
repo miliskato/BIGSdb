@@ -6,6 +6,7 @@ from typing import Any, Dict
 from bioit_mongodb_scripts.model.json_model import JsonReportDict
 from .json_superclass import JsonSuperClass
 from .psql import TblEavInt, TblEavText, TblEavTextHidden, TblHistory, TblIsolates
+from ..utils.html_tbl_templates import HtmlLreFinderGenesTableBuilder, HtmlLreFinderMutationsTableBuilder
 from ..utils.url_helper import UrlHelper
 
 
@@ -54,7 +55,8 @@ class MainInserter(JsonSuperClass):
         :return: None
         """
         with TblIsolates(self._species) as isolates_psql_tbl:
-            isolates_psql_tbl.update_isolate_analysis_date((datetime.datetime.strptime(self._json_report_dict['analysis_date'], '%d/%m/%Y - %X').strftime('%Y-%m-%d'), self._isolatename))
+            isolates_psql_tbl.update_isolate_analysis_date(
+                (datetime.datetime.strptime(self._json_report_dict['analysis_date'], '%d/%m/%Y - %X').strftime('%Y-%m-%d'), self._isolatename))
 
     def insert_main_metadata(self) -> None:
         """
@@ -76,18 +78,20 @@ class MainInserter(JsonSuperClass):
             else:
                 assemblylink = f'<p><a href="/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_{self._species}_isolates&page=plugin&name=Contigs&format=text&isolate_id={isolate_id}&match=1&pc_untagged=0&min_length=&header=1l" target="_blank">assembly</a></p>'
                 self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'assembly', assemblylink))
-            self._insert_species_specific_metadata()
+            self._insert_species_specific_metadata(report_url)
             if 'changed_version' in self._json_report_dict:
                 with TblEavTextHidden(self._species) as isolates_eavth_psql_tbl:
                     isolates_eavth_psql_tbl.insert_hidden_isolate((self._isolatename, 'mongo_results_version', self._json_report_dict['changed_version']))
             if 'validation' in self._json_report_dict:
                 self.isolates_psql_tbl.add_validation((self._json_report_dict['validation']['type'], self._json_report_dict['validation']['curator'],
-                     datetime.datetime.strptime(self._json_report_dict['validation']['date'], '%d/%m/%Y - %X').strftime('%Y-%m-%d'), str(isolate_id)))
+                                                       datetime.datetime.strptime(self._json_report_dict['validation']['date'], '%d/%m/%Y - %X').strftime('%Y-%m-%d'),
+                                                       str(isolate_id)))
             logging.info('Metadata insertion successful')
 
-    def _insert_species_specific_metadata(self) -> None:
+    def _insert_species_specific_metadata(self, report_url_api: str) -> None:
         """
         Insert species specific metadata
+        :param report_url_api: url to get report for the isolate from the api
         :return: None
         """
         if self._species == 'mycobacterium':
@@ -130,5 +134,27 @@ class MainInserter(JsonSuperClass):
                 self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'Serogroup_capsule', self._json_report_dict['serogroup']['serogroup_capsule']))
         elif self._species == 'influenza':
             if 'nextclade' in self._json_report_dict:
-                self._isolates_eavt_psql_tbl.insert_eav_isolate_viral_species((self._isolatename, 'influenza_subtype', self._json_report_dict['nextclade'].get('nextclade_detected_subtype')))
+                self._isolates_eavt_psql_tbl.insert_eav_isolate_viral_species(
+                    (self._isolatename, 'influenza_subtype', self._json_report_dict['nextclade'].get('nextclade_detected_subtype')))
                 self._isolates_eavt_psql_tbl.insert_eav_isolate_viral_species((self._isolatename, 'nextclade_clade', self._json_report_dict['nextclade'].get('nextclade_clade')))
+        elif self._species == 'enterococcus_faecalis' or self._species == 'enterococcus_faecium':
+            if 'lrefinder' in self._json_report_dict:
+                lrefinder_results = self._json_report_dict['lrefinder']
+                self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'LRE-Finder_species', lrefinder_results.get('lrefinder_species')))
+                lre_detected_genes = lrefinder_results.get('lrefinder_genes')
+                lre_detected_mutations = lrefinder_results.get('lrefinder_mutations')
+                if isinstance(lre_detected_genes, list):
+                    lre_genes_table_builder = HtmlLreFinderGenesTableBuilder(report_url_api)
+                    for gene in lre_detected_genes:
+                        lre_genes_table_builder.add_gene(gene['Gene'], str(gene['Template identity']), str(gene['Depth']))
+                    html_gene = lre_genes_table_builder.build()
+                    self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'LRE-Finder_genes', html_gene))
+                if isinstance(lre_detected_mutations, list):
+                    lre_mutation_table_builder = HtmlLreFinderMutationsTableBuilder(report_url_api)
+                    for mutation in lre_detected_mutations:
+                        lre_mutation_table_builder.add_mutation(mutation['Position in reference'], str(mutation['Wild type ratio (%)']), str(mutation['Mutant type ratio (%)']),
+                                                                mutation['Predicted phenotype'])
+                    html_mutation = lre_mutation_table_builder.build()
+                    self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'LRE-Finder_mutations', html_mutation))
+            if 'bacmet' in self._json_report_dict and self._json_report_dict['bacmet']['bacmet_genes'] != '':
+                self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'BactMet_genes', self._json_report_dict['bacmet']['bacmet_gene']))
