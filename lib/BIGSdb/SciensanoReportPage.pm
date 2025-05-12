@@ -40,6 +40,7 @@ use constant MAX_DISPLAY         => 1000;
 use constant HIDE_PMIDS          => 4;
 use constant HIDE_PROJECT_LENGTH => 50;
 use File::Temp qw/ tempfile /;
+use Encode qw(decode encode);
 
 my $azure_reportsapi = to_be_replaced_by_ansible ;
 
@@ -287,7 +288,8 @@ sub print_content {
 
 			$content =~ s/$pseudo_id/$isolate_name/g;
 			$content =~ s/onclick="[^>]*get_jwt_subpart\('(?<file_path>[a-z0-9\/\.\_\-]+)'\)"/href="$get_file_url$1"/gi;
-			say $content;
+			my $html_content = decode('UTF-8', $content);
+			say $html_content;
 		}
 	} else {
 		my $mess = $report_response->message;
