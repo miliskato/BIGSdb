@@ -29,7 +29,7 @@ metrics:
     available_for_fasta_input: false
     parameter_name: Average quality score
   average_gc_deviation_illumina:  # e.g. qc_fqc_gc_fwd_value: '1.5%'
-    threshold_direction: lower
+    threshold_direction: higher
     category: quality_checks
     fields:
       - qc_fqc_gc_fwd_value
