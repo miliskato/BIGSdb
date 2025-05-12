@@ -60,29 +60,29 @@ def insert_json_labdata(species: str, jsonfilepath: Path) -> None:
 
     metadata_map_species = db_metadata_mappings[species]
 
-    # prepare query
-    species_update_query = TblIsolates.build_update_nomin_metadata_query(metadata_map_species)
+    with TblIsolates(species) as isolates_psql_tbl:
+        # prepare query
+        species_update_query = isolates_psql_tbl.build_update_nomin_metadata_query(metadata_map_species)
 
-    tbl_isolates = TblIsolates(species)
-    # update rows
-    df = df.reset_index()
-    fail = 0
+        # update rows
+        df = df.reset_index()
+        fail = 0
 
-    for index, row in df.iterrows():
-        try:
-            params = []
-            for key in metadata_map_species:
-                if pd.isnull(row[metadata_map_species[key]]) or row[metadata_map_species[key]] == ' ':
-                    params.append(None)
-                else:
-                    params.append(row[metadata_map_species[key]])
-            params.append(row['Sample ID'])
-            tbl_isolates.update_nomin_metadata(species_update_query, params)
-        except Exception as e:
-            fail += 1
-            print(f"Error on id {row['id']} (Skipping it): {e}")
+        for index, row in df.iterrows():
+            try:
+                params = []
+                for key in metadata_map_species:
+                    if pd.isnull(row[metadata_map_species[key]]) or row[metadata_map_species[key]] == ' ':
+                        params.append(None)
+                    else:
+                        params.append(row[metadata_map_species[key]])
+                params.append(row['Sample ID'])
+                isolates_psql_tbl.update_nomin_metadata(species_update_query, params)
+            except Exception as e:
+                fail += 1
+                print(f"Error on id {row['id']} (Skipping it): {e}")
 
-    print(f"Updated {df.shape[0]-fail} items, {fail} failures")
+        print(f"Updated {df.shape[0]-fail} items, {fail} failures")
 
 
 if __name__ == '__main__':

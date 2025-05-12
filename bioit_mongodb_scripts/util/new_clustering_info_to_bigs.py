@@ -52,8 +52,6 @@ class NewClusteringInfoToBigs:
             self._mongoinit.initialise_clustering_collections()
         self._update_metadata_collection = self._mongoinit.initialise_update_collection()
         self._hashed_ad_collection = self._mongoinit.initialise_hashing_collection()
-        # Open sequences psql table connection
-        self._seqdef_sequences_psql_tbl = TblSequences(self._species)
         # Prepare for main
         clustering_config = load_config(CLUSTERING_CONFIG)
         self._clustering_thresholds = clustering_config[f"clustering_thresholds_{self._species}"]
@@ -143,9 +141,10 @@ class NewClusteringInfoToBigs:
                         for locus, allele_id in zip(self._st_headers['headers'], alleles):
                             if str(allele_id) == '0':  # this will create a ForeignKeyViolation error so we prevent this
                                 # by inserting a null allele if not yet present
-                                nullpresent = self._seqdef_sequences_psql_tbl.count_sequence_null((locus,))
-                                if nullpresent[0][0] == 0:
-                                    self._seqdef_sequences_psql_tbl.insert_sequence((locus, '0', 'null allele'))
+                                with TblSequences(self._species) as seqdef_sequences_psql_tbl:
+                                    nullpresent = seqdef_sequences_psql_tbl.count_sequence_null((locus,))
+                                    if nullpresent[0][0] == 0:
+                                        seqdef_sequences_psql_tbl.insert_sequence((locus, '0', 'null allele'))
                             seqdef_profilemembers_psql_tbl.insert_profile_member(('cgMLST', locus, st_id, allele_id))
                         self._st_collection.update_one({'cgST': st_id},
                                                        {'$set': {'bigsdb_status': 'inserted',
@@ -349,10 +348,3 @@ class NewClusteringInfoToBigs:
         self._update_metadata_collection.with_options(write_concern=WriteConcern(w="majority")).update_one(
             {'metadata': 'last_update', 'host': socket.gethostname()},
             {"$set": {'last_update_date': self._new_temporary_alleles_update_date}}, upsert=True)
-
-    def __del__(self) -> None:
-        """
-        Closes the isolates psql table when the class is closed
-        :return: None
-        """
-        self._seqdef_sequences_psql_tbl.close()

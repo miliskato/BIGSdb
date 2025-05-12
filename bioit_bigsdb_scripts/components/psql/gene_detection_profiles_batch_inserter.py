@@ -42,10 +42,10 @@ class GeneDetectionProfilesBatchInserter:
         """
         try:
             self.insert_multiple_loci_seqdef(batch_data.loci_fields)
-            self.insert_multiple_scheme_members(self._seqdef_db_connection.cursor, batch_data.scheme_members_fields)
+            self.insert_multiple_scheme_members(self._seqdef_db_connection, batch_data.scheme_members_fields)
             self.insert_multiple_loci_client_db(batch_data.client_dbase_loci_fields)
             self.insert_multiple_loci_isolates(batch_data.isolates_loci_fields)
-            self.insert_multiple_scheme_members(self._isolates_db_connection.cursor, batch_data.scheme_members_fields)
+            self.insert_multiple_scheme_members(self._isolates_db_connection, batch_data.scheme_members_fields)
             self.insert_multiple_sequences(batch_data.sequences_fields)
 
             self._seqdef_db_connection.connection.commit()
@@ -54,65 +54,67 @@ class GeneDetectionProfilesBatchInserter:
             self._seqdef_db_connection.connection.rollback()
             self._isolates_db_connection.connection.rollback()
             send_email(
-                f'The followind error was raised during the insertion of gene detection scheme elements by batch: {e.args[0]}',
+                f'The following error was raised during the insertion of gene detection scheme elements by batch: {e.args[0]}',
                 f'GeneDetectionProfilesBatchInserter failed on {socket.gethostname()}')
             raise Exception
 
-    def insert_multiple_loci_seqdef(self, data: List) -> None:
+    def insert_multiple_loci_seqdef(self, data: list) -> None:
         """
-        to insert multiple loci in seqdef
+        To insert multiple loci in seqdef.
         :param data: list of values to fill the sql insert statements
         :return: None
         """
-        cur = self._seqdef_db_connection.cursor
-        args_str = ','.join(cur.mogrify('(%s,%s,%s,%s,%s,%s,%s,%s)', row).decode("utf-8") for row in data)
-        cur.execute(
-            "INSERT INTO {table} (id, data_type, allele_id_format, length_varies, coding_sequence, curator, date_entered, datestamp) VALUES ".format(table='loci') + args_str)
+        #cur = self._seqdef_db_connection.cursor
+        #args_str = ','.join(cur.mogrify('(%s,%s,%s,%s,%s,%s,%s,%s)', row).decode("utf-8") for row in data)
+        self._seqdef_db_connection.execute_many(
+            "INSERT INTO loci (id, data_type, allele_id_format, length_varies, coding_sequence, curator, date_entered, datestamp) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)", data)
 
     @staticmethod
-    def insert_multiple_scheme_members(cur: psycopg2.extensions.cursor, data: List) -> None:
+    def insert_multiple_scheme_members(connection: psycopg.connection, data: List) -> None:
         """
-        to insert multiple scheme_members
-        :param cur: psycopg2.extensions.cursor
+        To insert multiple scheme_members.
+        :param connection: psycopg connection
         :param data: list of values to fill the sql insert statements
         :return: None
         """
-        args_str = ','.join(cur.mogrify('(%s,%s,%s,%s)', row).decode("utf-8") for row in data)
-        cur.execute("INSERT INTO {table} (scheme_id, locus, curator, datestamp) VALUES ".format(table='scheme_members') + args_str)
+        #args_str = ','.join(cur.mogrify('(%s,%s,%s,%s)', row).decode("utf-8") for row in data)
+        connection.execute_many(
+            "INSERT INTO scheme_members (scheme_id, locus, curator, datestamp) VALUES (%s,%s,%s,%s)", data)
 
-    def insert_multiple_loci_client_db(self, data: List) -> None:
+    def insert_multiple_loci_client_db(self, data: list) -> None:
         """
         to insert multiple loci in client db
         :param data: list of values to fill the sql insert statements
         :return: None
         """
-        cur = self._seqdef_db_connection.cursor
-        args_str = ','.join(cur.mogrify('(%s,%s,%s,%s)', row).decode("utf-8") for row in data)
-        cur.execute("INSERT INTO {table} (client_dbase_id, locus, curator, datestamp) VALUES ".format(table='client_dbase_loci') + args_str)
+        #cur = self._seqdef_db_connection.cursor
+        #args_str = ','.join(cur.mogrify('(%s,%s,%s,%s)', row).decode("utf-8") for row in data)
+        self._seqdef_db_connection.execute_many(
+            "INSERT INTO client_dbase_loci (client_dbase_id, locus, curator, datestamp) VALUES (%s,%s,%s,%s)", data)
 
-    def insert_multiple_loci_isolates(self, data: List) -> None:
+    def insert_multiple_loci_isolates(self, data: list) -> None:
         """
         to insert multiple loci in isolates
         :param data: list of values to fill the sql insert statement
         :return: None
         """
-        cur = self._isolates_db_connection.cursor
-        args_str = ','.join(
-            cur.mogrify('(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)', row).decode("utf-8") for row in data)
-        cur.execute(
-            "INSERT INTO {table} (id, data_type, allele_id_format, length_varies, coding_sequence, dbase_name, dbase_id, url, isolate_display, main_display, query_field, "
-            "analysis, submission_template, curator, date_entered, datestamp) VALUES ".format(
-                table='loci') + args_str)
+        #cur = self._isolates_db_connection.cursor
+        #args_str = ','.join(
+        #    cur.mogrify('(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)', row).decode("utf-8") for row in data)
+        self._isolates_db_connection.execute_many(
+            "INSERT INTO loci (id, data_type, allele_id_format, length_varies, coding_sequence, dbase_name, dbase_id, url, isolate_display, main_display, query_field, "
+            "analysis, submission_template, curator, date_entered, datestamp) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)", data)
 
-    def insert_multiple_sequences(self, data: List) -> None:
+    def insert_multiple_sequences(self, data: list) -> None:
         """
         inserts multiple sequences for a given allele and locus
         :param data: list of values to fill the sql insert statement
         :return: None
         """
-        cur = self._seqdef_db_connection.cursor
-        args_str = ','.join(cur.mogrify('(%s, %s, %s, %s, %s, %s, %s, %s)', row).decode("utf-8") for row in data)
-        cur.execute("INSERT INTO {table} (locus, allele_id, sequence, status, sender,curator, date_entered, datestamp) VALUES ".format(table='sequences') + args_str)
+        #cur = self._seqdef_db_connection.cursor
+        #args_str = ','.join(cur.mogrify('(%s, %s, %s, %s, %s, %s, %s, %s)', row).decode("utf-8") for row in data)
+        self._seqdef_db_connection.execute_many(
+            "INSERT INTO sequences (locus, allele_id, sequence, status, sender,curator, date_entered, datestamp) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)", data)
 
     def __enter__(self):
         """
@@ -122,6 +124,9 @@ class GeneDetectionProfilesBatchInserter:
         return self
 
     def __exit__(self, exc_type: Type[BaseException], exc_val: BaseException, exc_tb: TracebackType) -> None:
-        """Close the db connections at the end of the run. __enter__/__exit__ are used to get the context manager to call the class in a "with" statement"""
-        self._isolates_db_connection.close()
-        self._seqdef_db_connection.close()
+        """
+        Closes the db connections at the end of the run.
+        __enter__/__exit__ are used to get the context manager to call the class in a "with" statement.
+        """
+        self._isolates_db_connection.connection.close()
+        self._seqdef_db_connection.connection.close()

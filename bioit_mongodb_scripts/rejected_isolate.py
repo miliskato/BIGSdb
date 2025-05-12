@@ -43,9 +43,6 @@ class RejectedIsolate:
         )
         self._mappingtable_collection = self._mongoinit_local.initialise_mapping_table_collection()
 
-        # Open BIGSdb rejected_isolates table
-        self._rejected_isolates_psql_tbl = TblRejectedIsolates(self._species)
-
         self._isolate = self._get_isolate_id()
         self._rejected_isolate_document = self._get_rejected_isolate_document()
 
@@ -70,17 +67,19 @@ class RejectedIsolate:
         Inserts the rejected isolate into the rejected isolates table in BIGSdb.
         :return: None
         """
-        isolate_exists = self._rejected_isolates_psql_tbl.exists_isolate((self._isolate,))
-        if isolate_exists[0][0]:
-            self._rejected_isolates_psql_tbl.delete_isolate((self._isolate,))
-        insertion_date, insertion_type, rejection_reasons, report_link = self._retrieve_fields()
-        self._rejected_isolates_psql_tbl.insert_isolate(
-            (self._isolate, insertion_date, rejection_reasons, insertion_type, report_link))
+        with TblRejectedIsolates(self._species) as rejected_isolates_psql_tbl:
+            isolate_exists = rejected_isolates_psql_tbl.exists_isolate((self._isolate,))
+            if isolate_exists[0][0]:
+                rejected_isolates_psql_tbl.delete_isolate((self._isolate,))
+            insertion_date, insertion_type, rejection_reasons, report_link = self._retrieve_fields(rejected_isolates_psql_tbl)
+            rejected_isolates_psql_tbl.insert_isolate(
+                (self._isolate, insertion_date, rejection_reasons, insertion_type, report_link))
         self._update_mongodb()
 
-    def _retrieve_fields(self) -> Tuple[str, str, str, str]:
+    def _retrieve_fields(self, rejected_isolates_psql_tbl: psycopg.connection) -> Tuple[str, str, str, str]:
         """
         Retrieves the necessary fields from the rejected isolate document to insert in BIGSdb.
+        :param rejected_isolates_psql_tbl: Connection to the rejected isolates psql table
         :return: insertion date, insertion type, rejection reasons and report link
         """
         insertion_date = str(self._rejected_isolate_document['creation_date'])
@@ -91,7 +90,7 @@ class RejectedIsolate:
         else:
             rejection_reasons = ', '.join(
                 qc_metric['reason'] for qc_metric in self._rejected_isolate_document['rejection_reasons'].values())
-            rejected_isolate_id = str(self._rejected_isolates_psql_tbl.select_last_rejected_isolate_id() + 1)
+            rejected_isolate_id = str(rejected_isolates_psql_tbl.select_last_rejected_isolate_id() + 1)
             report_url = UrlHelper.report_for_validation_rejected_isolate_id(
                 self._species, self._pseudo_id, rejected_isolate_id, insertion_date, 'rejected_isolate')
             report_link = f'<a href="{report_url}" target = "_blank"> report </a>'
