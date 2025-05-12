@@ -3,7 +3,7 @@ from collections import UserDict
 from pathlib import Path
 from typing import Dict, Any, Literal, Union
 
-ResultType = Literal['new_isolate', 'goodqc', 'badqc', 'resequencing', 'reanalysis']
+ResultType = Literal['new_isolate', 'goodqc', 'warningqc', 'resequencing', 'reanalysis']
 
 
 class BridgeDict(UserDict):
@@ -39,9 +39,9 @@ class JsonReportDict(BridgeDict):
         with path.open('r') as f:
             return JsonReportDict(json.load(f))
 
-    def to_json(self, path: Path) -> None:
+    def dump_to_json_file(self, path: Path) -> None:
         """
-        Loads the JsonReportDict into a json file.
+        Dumps the JsonReportDict into a json file.
         :param path: Path to the json file
         :return: None
         """

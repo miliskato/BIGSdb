@@ -17,17 +17,19 @@ class RejectedIsolate:
     Class to insert a rejected isolate in BIGSdb.
     """
 
-    def __init__(self, species: str, pseudo_id: str) -> None:
+    def __init__(self, species: str, isolate_id: str, pseudo_id: str) -> None:
         """
         Initializes this class.
         :param species: Commonly used bioit species name: either genus or specific like stec
-        :param pseudo_id: The pseudo id of a sample
+        :param isolate_id: Isolate ID
+        :param pseudo_id: Pseudo ID
         :return: None
         """
         # Configure stdout logging
         logging.basicConfig(level=logging.WARNING, stream=sys.stdout)
 
         self._species = species
+        self._isolate_id = isolate_id
         self._pseudo_id = pseudo_id
         self._mongo_config_data = get_mongodb_config_data()
 
@@ -45,21 +47,11 @@ class RejectedIsolate:
             mongo_config_data=self._mongo_config_data,
             selected_connection_string='CONNECTION_STRING_LOCAL'
         )
-        self._mappingtable_collection = self._mongoinit_local.initialise_mapping_table_collection()
 
         # Open BIGSdb rejected_isolates table
         self._rejected_isolates_psql_tbl = TblRejectedIsolates(self._species)
 
-        self._isolate = self._get_isolate_id()
         self._rejected_isolate_document = self._get_rejected_isolate_document()
-
-    def _get_isolate_id(self) -> str:
-        """
-        Returns the sample id of the rejected isolate.
-        :return: The sample id
-        """
-        sample_id = str(self._mappingtable_collection.find_one({'pseudo_id': self._pseudo_id})['_id'])
-        return sample_id
 
     def _get_rejected_isolate_document(self) -> dict:
         """
@@ -74,12 +66,12 @@ class RejectedIsolate:
         Inserts the rejected isolate into the rejected isolates table in BIGSdb.
         :return: None
         """
-        isolate_exists = self._rejected_isolates_psql_tbl.exists_isolate((self._isolate,))
+        isolate_exists = self._rejected_isolates_psql_tbl.exists_isolate((self._isolate_id,))
         if isolate_exists[0][0]:
-            self._rejected_isolates_psql_tbl.delete_isolate((self._isolate,))
+            self._rejected_isolates_psql_tbl.delete_isolate((self._isolate_id,))
         insertion_date, insertion_type, rejection_reasons, report_link = self._retrieve_fields()
         self._rejected_isolates_psql_tbl.insert_isolate(
-            (self._isolate, insertion_date, rejection_reasons, insertion_type, report_link))
+            (self._isolate_id, insertion_date, rejection_reasons, insertion_type, report_link))
         self._update_mongodb()
         if insertion_type != 'manual':
             self._export_json_report()
@@ -116,16 +108,15 @@ class RejectedIsolate:
         :return: None
         """
         json_path_remote = Path(self._rejected_isolate_document['report_directory']) / 'report.json'
-        with tempfile.NamedTemporaryFile(dir=self._mongo_config_data.get('temp_dir'), mode="w") as temp_json:
-            temp_json_path = Path(self._mongo_config_data.get('temp_dir')) / temp_json.name
-            scp_command = f"scp -o StrictHostKeyChecking=no -i /home/bigsdb/.ssh/.id_rsa_reportsapi bigsdb@{self._mongo_config_data.get('azure_reportsapi_ip')}:{json_path_remote} {str(temp_json_path)}"
+        with tempfile.NamedTemporaryFile(dir=self._mongo_config_data.get('temp_dir')) as temp_json:
+            scp_command = f"scp -o StrictHostKeyChecking=no -i /home/bigsdb/.ssh/.id_rsa_reportsapi bigsdb@{self._mongo_config_data.get('azure_reportsapi_ip')}:{json_path_remote} {temp_json.name}"
             scp_cmd = Command(scp_command)
             scp_cmd.run(Path(self._mongo_config_data.get('temp_dir')))
             if scp_cmd.returncode != 0:
                 raise Exception(
                     f"scp command to copy JSON report from Azure to onsite failed: {scp_cmd.stderr}\nscp command: {scp_command}")
-            json_file = JsonReportDict.from_json(temp_json_path)
-            json_file['sample'] = json_file['sample'].replace(self._pseudo_id, self._isolate)
-            json_file['input_files'] = json_file['input_files'].replace(self._pseudo_id, self._isolate)
-            path = Path(self._mongo_config_data.get('reports_dir')) / 'coreqc_rejected' / f'{self._isolate}.json'
-            json_file.to_json(path)
+            json_file = JsonReportDict.from_json(Path(temp_json.name))
+            json_file['sample'] = json_file['sample'].replace(self._pseudo_id, self._isolate_id)
+            json_file['input_files'] = json_file['input_files'].replace(self._pseudo_id, self._isolate_id)
+            path = Path(self._mongo_config_data.get('json_reports_dir')) / 'coreqc_rejected' / f'{self._isolate_id}.json'
+            json_file.dump_to_json_file(path)

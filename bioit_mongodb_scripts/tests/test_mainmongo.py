@@ -32,7 +32,7 @@ if __name__ == '__main__':
         # Open collections
         mongoinit = MongoInitialisation('listeria', selected_connection_string='CONNECTION_STRING_ALTERNATE',
                                         mongo_config_data=mongo_config_data)
-        isolates_collection, old_isolateresults_collection, isolates_badqc_collection, \
+        isolates_collection, old_isolateresults_collection, isolates_warningqc_collection, \
             isolates_resequencing_collection, isolates_goodqc_collection = mongoinit.initialise_collections()
 
         # as a security measure I would drop the db if query less than 5 results else raise exception

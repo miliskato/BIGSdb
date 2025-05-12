@@ -4,7 +4,7 @@ from typing import List, Self
 class HtmlTableBuilder:
     """General class to build the html table for gene detection results"""
 
-    def __init__(self, headers: List[str], width_px: int = None):
+    def __init__(self, headers: List[str], width_px: int = None) -> None:
         """initialize the general class HtmlTableBuilder
         :param headers: list of headers fields
         :param width_px: width of the table in pixels
@@ -78,9 +78,10 @@ class HtmlTableBuilder:
 class HtmlLocusTableBuilder(HtmlTableBuilder):
     """subclass used to create the html table following the format GeneCluster | Locus"""
 
-    def __init__(self, report_url: str):
+    def __init__(self, report_url: str) -> None:
         """
         :param report_url: url to call the api to get the html report
+        :return: None
         """
         super().__init__(headers=['GeneCluster', 'Locus'])
         self.add_report_row(report_url)
@@ -98,9 +99,10 @@ class HtmlLocusTableBuilder(HtmlTableBuilder):
 class HtmlAmrTableBuilder(HtmlTableBuilder):
     """subclass used to create the html table following the format for AMR resistances"""
 
-    def __init__(self, report_url: str):
+    def __init__(self, report_url: str) -> None:
         """
         :param report_url: url to call the api to get the html report
+        :return: None
         """
         super().__init__(headers=['AMR', 'Resistance gene', '%Identity', '%Coverage'], width_px=500)
         self.add_report_row(report_url)
@@ -120,9 +122,10 @@ class HtmlAmrTableBuilder(HtmlTableBuilder):
 class HtmlMobSuiteTableBuilder(HtmlTableBuilder):
     """subclass used to create the html table following the for Mob-suite results"""
 
-    def __init__(self, report_url: str):
+    def __init__(self, report_url: str) -> None:
         """
         :param report_url: url to call the api to get the html report
+        :return: None
         """
         super().__init__(headers=['id', 'num. contigs', 'size', 'GC content', 'predicted mobility', 'rep type(s)', 'relaxase types'], width_px=800)
         self.add_report_row(report_url)

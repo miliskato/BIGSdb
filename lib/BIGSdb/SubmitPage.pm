@@ -803,7 +803,7 @@ sub _get_isolate_submissions_for_curation {
 			qq(<tr class="td$td"><td><a href="$self->{'system'}->{'script_name'}?db=$self->{'instance'}&amp;)
 		  . qq(page=submit&amp;submission_id=$submission->{'id'}&amp;curate=1">$submission->{'id'}</a></td>)
 		  . qq(<td>$submission->{'date_submitted'}</td><td>$submission->{'datestamp'}</td><td>$submitter_string</td>)
-		  . qq(<td>$isolate_count</td><td>$submission->{'validation_type'}</td>);
+		  . qq(<td>$isolate_count</td><td>$submission->{'quality'}</td>);
 		if ( $self->{'system'}->{'dbtype'} eq 'isolates' && $embargo->{'embargo_enabled'} ) {
 			my $embargo_months = $submission->{'embargo'} // '-';
 			$buffer .= qq(<td>$embargo_months</td>);
@@ -827,7 +827,7 @@ sub _get_isolate_submissions_for_curation {
 			  if -e $isolate_curate_message;
 		}
 		$return_buffer .= q(<div class="scrollable"><table class="resultstable"><tr><th>Submission id</th>)
-		  . q(<th>Submitted</th><th>Updated</th><th>Submitter</th><th>Isolates</th><th>Validation type</th>);
+		  . q(<th>Submitted</th><th>Updated</th><th>Submitter</th><th>Isolates</th><th>Quality</th>);
 		$return_buffer .= q(<th>Embargo requested (months)</th>)
 		  if $self->{'system'}->{'dbtype'} eq 'isolates' && $embargo->{'embargo_enabled'};
 		$return_buffer .= q(<th>Outcome</th>) if $status eq 'closed';
@@ -3662,7 +3662,7 @@ sub _check_storage_report_dir {
     my ($self) = @_;
     my $usage_percentage = $self->_get_storage_report_dir;
     my $disk_full = 0;
-    if ($usage_percentage > 99) {
+    if ($usage_percentage >= 99) {
         say q(<p class="warning" style="padding: 10px 0 10px 10px;">More than 99% of the disk is used. Isolates can not be accepted/rejected anymore until some JSON reports are removed from the /output_reports directory.);
         $disk_full = 1;
     } elsif ($usage_percentage > 90) {

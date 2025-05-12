@@ -28,7 +28,7 @@ def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     mutually_exclusive_group.add_argument('--db', type=str)
     mutually_exclusive_group.add_argument('--species', type=str, choices=specieslist)
     argument_parser.add_argument('--technical_id', required=True, type=str)
-    argument_parser.add_argument('--validation_type', required=True, type=str, choices=['null', 'good_quality', 'bad_quality', 'resequencing', 'rejected_isolate'])
+    argument_parser.add_argument('--validation_type', required=True, type=str, choices=['null', 'good_quality', 'warning_quality', 'resequencing', 'rejected_isolate'])
     argument_parser.add_argument('--dtap', required=True, type=str, choices=['dev', 'test', 'acc', 'prod'])
     return argument_parser.parse_args()
 
@@ -38,7 +38,7 @@ class HtmlreportGeneration:
     Generates a html report for a given isolate at a given results version
     """
     def __init__(self, species: str, technical_id: str, dtap: Literal['dev', 'test', 'acc', 'prod'],
-                 validation_type: Literal['null', 'good_quality', 'bad_quality', 'resequencing', 'rejected_isolate']) -> None:
+                 validation_type: Literal['null', 'good_quality', 'warning_quality', 'resequencing', 'rejected_isolate']) -> None:
         """
         Initialises the class and runs the main function.
         See also argparse function for variables and their requiredness.
@@ -66,7 +66,7 @@ class HtmlreportGeneration:
             alternate_dtap=self._dtap,
             selected_connection_string='CONNECTION_STRING_AZURE'
         )
-        self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, \
+        self._isolates_collection, self._old_isolateresults_collection, self._isolates_warningqc_collection, \
             self._isolates_resequencing_collection, self._isolates_goodqc_collection = \
             self._mongoinit.initialise_collections()
         self._rejected_isolates_collection = self._mongoinit.initialise_isolates_rejected_coreqc_collection()
@@ -84,8 +84,8 @@ class HtmlreportGeneration:
         """
         if self._validation_type == 'good_quality':
             requested_document = self._isolates_goodqc_collection.find_one({'_id': self._technical_id})
-        elif self._validation_type == 'bad_quality':
-            requested_document = self._isolates_badqc_collection.find_one({'_id': self._technical_id})
+        elif self._validation_type == 'warning_quality':
+            requested_document = self._isolates_warningqc_collection.find_one({'_id': self._technical_id})
         elif self._validation_type == 'resequencing':
             requested_document = self._isolates_resequencing_collection.find_one({'_id': self._technical_id})
         elif self._validation_type == 'rejected_isolate':

@@ -90,16 +90,112 @@
     version: "{{ branch }}"
     force: true
 
-- name: keep track of the version deployed
-  copy:
-    content: "{{ species }} {{ mongo_dtap }} {{ branch }} {{ target }}\n"
-    dest: "{{ bioit_bigs_home }}/VERSION_{{ species }}_{{ mongo_dtap }}.LOG"
-    owner: bigsdb
+- name: tasks to track deployment changes
+  block:
+    - name: mark bigsdb as safe
+      ansible.builtin.shell:
+        cmd: git config --global --add safe.directory "{{ bioit_bigs_home }}"
+
+    - name: get commit hash used for deployment
+      ansible.builtin.shell:
+      args:
+        cmd: git rev-parse HEAD
+        chdir: "{{ bioit_bigs_home }}"
+      register: bigsdb_commit_sha_cmd
+
+    - name: get branch name used for deployment
+      ansible.builtin.shell:
+      args:
+        chdir: "{{ bioit_bigs_home }}"
+        cmd: git rev-parse --abbrev-ref HEAD
+      register: bigsdb_branch_cmd
+      ignore_errors: yes
+
+    - name: get detached branch name used for deployment
+      ansible.builtin.shell:
+      args:
+        chdir: "{{ bioit_bigs_home }}"
+        cmd: git reflog | awk 'NR==1{ print $8; exit }'
+      register: bigsdb_detached_branch_cmd
+      ignore_errors: yes
+
+    - name: get potential tag used for deployment
+      ansible.builtin.shell:
+      args:
+        chdir: "{{ bioit_bigs_home }}"
+        cmd: git describe --tags --exact-match
+      register: bigsdb_tag_cmd
+      ignore_errors: yes
+
+    - name: set variables 1
+      set_fact:
+        git_branch: "{{ bigsdb_branch_cmd.stdout if bigsdb_branch_cmd.rc == 0 else '' }}"
+        git_detached_branch: "{{ bigsdb_detached_branch_cmd.stdout if bigsdb_detached_branch_cmd.rc == 0 else '' }}"
+
+    - name: set variables 2
+      set_fact:
+        bigsdb_commit_sha: "{{ bigsdb_commit_sha_cmd.stdout if bigsdb_commit_sha_cmd.rc == 0 else '' }}"
+        bigsdb_branch: "{{ git_branch if git_branch != 'HEAD' else git_detached_branch }}"
+        bigsdb_tag: "{{ bigsdb_tag_cmd.stdout if bigsdb_tag_cmd.rc == 0 else '' }}"
+
+    - name: Check if folder /home/bigsdb/BIGSdb_Deployments already exists
+      stat:
+        path: "{{ bioit_deployments_home }}"
+      register: deployments_folder_stat
+
+    - name: Change bigs home owner where git needs to be cloned to root to not get dubious ownership error
+      file:
+        path: "{{ bioit_deployments_home }}"
+        owner: root
+      when: deployments_folder_stat.stat.exists and deployments_folder_stat.stat.isdir
+
+    - name: Get updated files from git repository
+      git:
+        repo: "https://{{bioit_git_ro_user}}:{{ secret_bioit_git_ro_password }}@{{bioit_git_server}}/bigsdb/bigsdb_deployments.git"
+        dest: "{{ bioit_deployments_home }}"
+        version: main
+        force: true
+
+    - name: mark bigsdb_deployments as safe
+      ansible.builtin.shell:
+      args:
+        chdir: "{{ bioit_deployments_home }}"
+        cmd: git config --global --add safe.directory "{{ bioit_deployments_home }}" && git config user.email bioit.beprepared@sciensano.be && git config user.name "Bigsdb Deployment"
+
+    - name: keep track of the version deployed
+      ansible.builtin.shell:
+        chdir: "{{ bioit_deployments_home }}"
+        cmd: "/bin/bash ./InsertDeployment.sh '{{ species }}' '{{ mongo_dtap }}' '{{ bigsdb_commit_sha }}' '{{ bigsdb_branch }}' '{{ bigsdb_tag }}' '{{ ansible_run_tags }}' '{{ ansible_skip_tags }}' '{{ lookup('env', 'USER') }}'"
+
+    - name: commit modification of deployments file
+      ansible.builtin.shell:
+        chdir: "{{ bioit_deployments_home }}"
+        cmd: git add "{{species}}.json" && git commit -m "Deployment info for {{ species }}@{{ mongo_dtap}}"
+
+    - name: decrypt git password to be able to use "urlencode" in the following task
+      set_fact:
+        git_password_for_bigsdb: "{{ secret_bioit_git_bigsdb_password }}"
+
+    - name: push to space
+      ansible.builtin.shell:
+      args:
+        chdir: "{{ bioit_deployments_home }}"
+        cmd: "git push https://{{ bioit_git_bigsdb_user }}:{{ git_password_for_bigsdb | urlencode }}@{{bioit_git_server}}/bigsdb/bigsdb_deployments.git"
+
+    - name: Go back to bigsdb home
+      ansible.builtin.shell:
+        cmd: cd "{{ bioit_bigs_home }}"
+  tags: track_deployments
 
 - name: Change git cloned repo owner to bigsdb for it to be able to write the distance matrix here
   file:
     path: "{{ bioit_bigs_home }}"
     owner: bigsdb
+    mode: "u=rwx,g=rx,o=rx"
+
+- name: Change parent repo permission
+  ansible.builtin.file:
+    path: /home/bigsdb
     mode: "u=rwx,g=rx,o=rx"
 
 - name: Change Mongo dtap version in config based on playbook argument
@@ -154,7 +250,7 @@
 
     - name: set path to the encrypted file for ssh key in acc/prod instances
       set_fact:
-        path_to_key_file: "{{ path_to_key_file_ac }}"
+        path_to_key_file: "{{ path_to_key_file_ap }}"
       when: mongo_dtap == "acc" or mongo_dtap == "prod"
 
     - name: Write secret private key to the file, replace literal linebreaks in secret by actual linebreaks
@@ -739,7 +835,16 @@
 
 - name: populate databases
   block:
-    - name: run a collection of insert into on clonfict do nothing for the dedicated specie
+    - name: Change file ownership for postgres scripts
+      ansible.builtin.file:
+        path: "{{ bioit_bigs_home }}/bioit_bigsdb_scripts/bigsdb_{{ item }}.sql"
+        mode: u=rwx,g=rx,o=rx
+      when: item != 'influenza_seqdef'
+      loop:
+        - "{{ species }}_seqdef"
+        - "{{ species }}_isolates"
+
+    - name: run a collection of "insert into/on conflict do nothing" for the dedicated species
       community.postgresql.postgresql_script:
         login_user: postgres
         db: "{{ item.db }}"
@@ -889,15 +994,10 @@
         path: /etc/cron.d/temporary_alerts_implementation
         state: absent
 
-    - name: add hourly cronjob for mongo to bigs
-      cron:
-        name: "mongo_to_bigs_hourly"
-        minute: '*/5'
-        hour: '*'  # every 5 minutes
-        weekday: '*'
-        job: "/usr/bin/flock -n /tmp/mongo_to_bigs_hourly.lockfile {{ bioit_bigs_home }}/3.12PythonVenv/bin/python3.12 {{ bioit_bigs_home }}/bioit_mongodb_scripts/mongo_to_bigs.py --species {{ species }} --uploader_mail_address bioit@sciensano.be"
-        user: 'bigsdb'
-        cron_file: mongo_to_bigs_hourly
+    - name: Remove the cronjob for mongo to bigs
+      ansible.builtin.file:
+        path: /etc/cron.d/mongo_to_bigs_hourly
+        state: absent
 
     - name: add hourly cronjob to check killed pid
       cron:
@@ -909,103 +1009,116 @@
         user: 'root'
         cron_file: check_jobs_killed
 
-    - name: add daily cronjob to capture missing badqc
-      cron:
-        name: "check_for_missing_badqc"
-        minute: '0'
-        hour: '1'  # every day at 1:00 am
-        weekday: '*'
-        job: "{{ bioit_bigs_home }}/3.12PythonVenv/bin/python3.12 {{ bioit_bigs_home }}/bioit_mongodb_scripts/tests/get_missing_bad_qc.py --species {{ species }}"
-        user: 'root'
-        cron_file: check_for_missing_badqc
+    - name: Remove the cronjob to capture missing badqc
+      ansible.builtin.file:
+        path: /etc/cron.d/check_for_missing_badqc
+        state: absent
 
   tags: cron_jobs
 
-- name: create galaxy user
+- name: create service for bigsdb_insertion
   block:
-    - name: Setup user without UID (You have to create key manually because format error)
-      user:
-        name: galaxy
-        state: "present"
-        append: no
-
-    - name: create galaxy mongo dir
-      ansible.builtin.file:
-        path: /home/galaxy/mongo
-        state: directory
-        owner: galaxy
-        mode: "u=rwx,g=rwx,o=rwx"
-
-    - name: generate SSH key galaxy user
-      user:
-        name: galaxy
-        generate_ssh_key: yes
-        ssh_key_type: rsa
-        ssh_key_bits: 4096
-        ssh_key_file: .ssh/id_rsa
-        group: galaxy
-        force: no
-
-    - name: copy ssh key to authenticated users
+    - name: add systemd service for automatic insertion
       ansible.builtin.copy:
-        src: /home/galaxy/.ssh/id_rsa.pub
-        dest: /home/galaxy/.ssh/authorized_keys
-        owner: galaxy
-        group: galaxy
-        mode: "u=rw,g=r"
-        remote_src: yes
-
-    - name: mkdir folder for jail
-      ansible.builtin.file:
-        path: /scratch/bigsupload
-        state: directory
+        src: "{{ bioit_bigs_home }}/bigsdb-insertion.service"
+        dest: '/etc/systemd/system/bigsdb-insertion.service'
         owner: root
-        mode: "u=rwx,g=rx,o=x"
-      tags: galaxy_jail
+        group: root
+        remote_src: yes
+        mode: "u=rwx,g=rwx,o=rx"
 
-    - name: creation of jail section for galaxy
+    - name: replace species in bigsdb-insertion service
+      ansible.builtin.replace:
+        path: '/etc/systemd/system/bigsdb-insertion.service'
+        regexp: 'to_be_replaced_by_ansible'
+        replace: "{{ species }}"
+
+    - name: set asb connection string for dev/test
+      set_fact:
+        asb_connection_str: "{{ asb_connection_str_dt }}"
+      when: mongo_dtap == "dev" or mongo_dtap == "test"
+
+    - name: set asb connection string for acc/prod
+      set_fact:
+        asb_connection_str: "{{ asb_connection_str_ap }}"
+      when: mongo_dtap == "acc" or mongo_dtap == "prod"
+
+    - name: Change connection str in mongo config based on playbook argument for dev-test
+      lineinfile:
+        path: "{{ bioit_bigs_home }}/bioit_mongodb_scripts/config/config.yml"
+        regexp: 'CONNECTION_STRING_ASB: to_be_replaced_by_ansible'
+        line: "CONNECTION_STRING_ASB: {{ asb_connection_str }}"
+
+    - name: Touch log file for bigsdb_insertion service
+      ansible.builtin.file:
+        path: /var/log/bigsdb_insertions.log
+        state: touch
+        mode: "u=rwx,g=rwx,o=rwx"
+        owner: bigsdb
+
+    - name: activate the service
+      ansible.builtin.systemd:
+        daemon-reload: true
+        state: started
+        enabled: true
+        name: bigsdb-insertion.service
+
+- name: create sftp users that can access the /output_reports
+  block:
+    - name: Create user group
+      group:
+        name: sftp
+        state: present
+
+    - name: select password for sftp user and DTAP
+      set_fact:
+        sftp_user_password: "{{ item.val }}"
+      loop: "{{ dtap_list|flatten(levels=1)  }}"
+      vars:
+        dtap_list:
+          - { val: "{{ sftp_user_pass_dev }}", dtap: dev }
+          - { val: "{{ sftp_user_pass_test }}", dtap: test }
+          - { val: "{{ sftp_user_pass_acc }}", dtap: acc }
+          - { val: "{{ sftp_user_pass_prod }}", dtap: prod }
+      when: mongo_dtap == item.dtap
+
+    - name: Create user
+      user:
+        name: "sftp_{{ species }}_{{ mongo_dtap }}"
+        group: "sftp"
+        shell: "/sbin/nologin"
+        home: "/home/sftp_{{ species }}_{{ mongo_dtap }}"
+        password: "{{ sftp_user_password }}"
+        state: present
+
+    - name: creation of jail section for output reports
       blockinfile:
         path: /etc/ssh/sshd_config
         block: |
-          Match User galaxy
-            ChrootDirectory /scratch/bigsupload
+          Match Group sftp
+            ChrootDirectory /output_reports
             PermitTunnel no
             X11Forwarding no
             AllowTcpForwarding no
             ForceCommand internal-sftp
-      tags: galaxy_jail
+      tags: output_reports_jail
 
-    - name: creation of mongo dir in jail
+    - name: restart sshd service
+      ansible.builtin.systemd:
+        state: restarted
+        daemon_reload: yes
+        name: sshd
+
+    - name: creation of the subdirectories in the /output_reports jail
       ansible.builtin.file:
-        path: /scratch/bigsupload/mongo
+        path: /output_reports/{{ item }}
         state: directory
-        owner: galaxy
-        mode: "u=rwx,g=rwx,o=rwx"
-      tags: galaxy_jail
-
-    - name: creation of not_json dir in jail
-      ansible.builtin.file:
-        path: /scratch/bigsupload/not_json
-        state: directory
-        owner: galaxy
-        mode: "u=rwx,g=rwx,o=rwx"
-      tags: galaxy_jail
-
-    - name: Touch list_of_isolates.txt
-      ansible.builtin.file:
-        path: /scratch/bigsupload/mongo/list_of_isolates.txt
-        state: touch
-        mode: "u=rw,g=r,o=r"
-        owner: bigsdb
-      tags: isolates_touch
-
-    - name: chmod scratch folder (currently too open)
-      ansible.builtin.file:
-        path: /scratch
         owner: root
-        group: root
-        mode: "u=rwx,g=rx,o=rx"
-
-    - debug: msg="TODO manually; copy the private key to the right galaxy host manually in /home/galaxy/.ssh, chmod 0600 it !"
-  tags: gal_user
+        mode: "u=rwx,g=rwx,o=rwx"
+      loop:
+        - accepted
+        - rejected
+        - coreqc_rejected
+      tags: output_reports_jail
+  tags: sftp_users
 ...
