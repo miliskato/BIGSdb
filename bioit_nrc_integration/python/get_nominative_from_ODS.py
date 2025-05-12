@@ -228,6 +228,11 @@ class MainNominativeDataParserFromOds(SFTPConnection):
         # loop over schema
         for hd_key, hd_key_property_dict in self._translation_codes['schema'][filetype].items():
             unprocessed_value = self.___get_value_by_capitalization_agnostic_key(data_unprocessed, hd_key)
+            if hd_key_property_dict.get('allowed') and species not in hd_key_property_dict['allowed']:
+                # Updating columns in postgresql that don't exist will raise an error. E.g. the DT_LAB_COLLCN field is
+                # present in all DCDs but only in the influenza columns, therefore it is only allowed to be
+                # parsed for influenza.
+                continue
             if unprocessed_value:
                 if hd_key_property_dict.get('code_list'):
                     value = self._translation_codes['code_lists'][hd_key_property_dict['code_list']][
@@ -306,14 +311,8 @@ class MainNominativeDataParserFromOds(SFTPConnection):
                 labtest_code_combinations = self._translation_codes['code_lists']['TX_TTL_LAB_TEST_combinations']
                 labtest_code_combination = next((
                     labtest_code_combination for labtest_code_combination in labtest_code_combinations if
-                    # CD_LAB_TEST_METH is mandatory I believe
-                    labtest_code_combination['CD_LAB_TEST_METH'] == self.___get_value_by_capitalization_agnostic_key(
-                        labtest_result_dict, 'CD_LAB_TEST_METH')
-                    # CD_LAB_TEST_CODE seems to be optional; if null in code list then .get results in False
-                    # e.g. for serotyping this field does not seem to be filled because there are no subtests
-                    and (not labtest_code_combination.get('CD_LAB_TEST_CODE') or labtest_code_combination.get(
-                        'CD_LAB_TEST_CODE') == self.___get_value_by_capitalization_agnostic_key(
-                        labtest_result_dict, 'CD_LAB_TEST_CODE'))))
+                    labtest_code_combination['CD_LAB_TEST_CODE'] == self.___get_value_by_capitalization_agnostic_key(
+                        labtest_result_dict, 'CD_LAB_TEST_CODE')))
 
                 if labtest_code_combination.get('code_list'):
                     # Even if the field's value supposedly needs to come from a code list, there can be exceptions

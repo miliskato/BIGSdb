@@ -1,6 +1,5 @@
 -- migrate:up
 ALTER TABLE isolates
-    ADD COLUMN identification text,
     ADD COLUMN case_type text,
     ADD COLUMN client_region text,
     ADD COLUMN client_code text,
@@ -34,11 +33,11 @@ ALTER TABLE isolates
     ADD COLUMN R_Zanamivir text,
     ADD COLUMN EC50_ZA float,
     ADD COLUMN GISAID_NGS text,
-    ADD COLUMN official_name text;
+    ADD COLUMN official_name text,
+    ADD COLUMN outcome text;
 
 -- migrate:down
 ALTER TABLE isolates
-    DROP COLUMN identification,
     DROP COLUMN case_type,
     DROP COLUMN client_region,
     DROP COLUMN client_code,
@@ -72,4 +71,5 @@ ALTER TABLE isolates
     DROP COLUMN R_Zanamivir,
     DROP COLUMN EC50_ZA,
     DROP COLUMN GISAID_NGS,
-    DROP COLUMN official_name ;
+    DROP COLUMN official_name,
+    DROP COLUMN outcome;
