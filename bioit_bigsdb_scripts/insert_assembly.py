@@ -15,6 +15,7 @@ from bioit_bigsdb_scripts.components.psql import TblIsolates, TblSequenceBin
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data, send_email
 from bioit_mongodb_scripts.model.json_model import ResultType
 
+
 def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     """
     Parses the command line arguments.
@@ -35,7 +36,8 @@ def insert_assembly(isolatename: str, species: str, fastafilepath: Path, results
     :param isolatename: name of the isolate in bigsdb
     :param species: commonly used bioit species name: either genus or specific like stec
     :param fastafilepath: path of the fasta file
-    :param results_type: string defining if we are handling a new isolates or a positively validated badqc / reseq.
+    :param results_type: string defining if we are handling a new isolate or a positively validated goodqc / warningqc
+    / reseq.
     :return: None
     """
     try:

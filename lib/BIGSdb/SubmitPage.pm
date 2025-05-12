@@ -803,7 +803,7 @@ sub _get_isolate_submissions_for_curation {
 			qq(<tr class="td$td"><td><a href="$self->{'system'}->{'script_name'}?db=$self->{'instance'}&amp;)
 		  . qq(page=submit&amp;submission_id=$submission->{'id'}&amp;curate=1">$submission->{'id'}</a></td>)
 		  . qq(<td>$submission->{'date_submitted'}</td><td>$submission->{'datestamp'}</td><td>$submitter_string</td>)
-		  . qq(<td>$isolate_count</td><td>$submission->{'validation_type'}</td>);
+		  . qq(<td>$isolate_count</td><td>$submission->{'quality'}</td>);
 		if ( $self->{'system'}->{'dbtype'} eq 'isolates' && $embargo->{'embargo_enabled'} ) {
 			my $embargo_months = $submission->{'embargo'} // '-';
 			$buffer .= qq(<td>$embargo_months</td>);
@@ -827,7 +827,7 @@ sub _get_isolate_submissions_for_curation {
 			  if -e $isolate_curate_message;
 		}
 		$return_buffer .= q(<div class="scrollable"><table class="resultstable"><tr><th>Submission id</th>)
-		  . q(<th>Submitted</th><th>Updated</th><th>Submitter</th><th>Isolates</th><th>Validation type</th>);
+		  . q(<th>Submitted</th><th>Updated</th><th>Submitter</th><th>Isolates</th><th>Quality</th>);
 		$return_buffer .= q(<th>Embargo requested (months)</th>)
 		  if $self->{'system'}->{'dbtype'} eq 'isolates' && $embargo->{'embargo_enabled'};
 		$return_buffer .= q(<th>Outcome</th>) if $status eq 'closed';
@@ -3398,6 +3398,7 @@ sub _curate_submission {    ## no critic (ProhibitUnusedPrivateSubroutines) #Cal
 		$self->print_bad_status( { message => q(This submission is closed and cannot now be modified.) } );
 		$curate = 0;
 	}
+	my $disk_full = $self->_check_storage_report_dir;
 	say q(<div class="box" id="resultstable">);
 	say qq(<h2 style="overflow-x:auto;overflow-y:hidden">Submission: $submission_id</h2>);
 	my %isolate_type = map { $_ => 1 } qw(isolates genomes assemblies);
@@ -3417,11 +3418,14 @@ sub _curate_submission {    ## no critic (ProhibitUnusedPrivateSubroutines) #Cal
 	$self->_print_message_fieldset($submission_id);
 	$self->_print_archive_fieldset($submission_id);
 
-	if ($curate) {
+	if ($curate && !$disk_full) {
 		$self->_print_close_submission_fieldset($submission_id);
-	} else {
-		$self->_print_reopen_submission_fieldset($submission_id);
+	} elsif ($curate && $disk_full) {
+	    $self->_print_disk_full_warning;
 	}
+	#else {
+		#$self->_print_reopen_submission_fieldset($submission_id);
+	#}
 	say q(<div style="clear:both"></div>);
 	my $page = $self->{'curate'} ? 'index' : 'submit';
 	say q(</div></div>);
@@ -3448,7 +3452,7 @@ sub _view_submission {    ## no critic (ProhibitUnusedPrivateSubroutines) #Calle
 	$self->_print_isolate_table_fieldset($submission_id);
 	$self->_print_message_fieldset( $submission_id, { no_add => $submission->{'status'} eq 'closed' ? 1 : 0 } );
 	$self->_print_archive_fieldset($submission_id);
-	$self->_print_cancel_fieldset($submission_id);
+	#$self->_print_cancel_fieldset($submission_id);
 
 	if ( $submission->{'status'} eq 'started' ) {
 		say $q->start_form;
@@ -3652,5 +3656,38 @@ sub print_panel_buttons {
 	my ($self) = @_;
 	$self->print_related_dbases_button;
 	return;
+}
+
+sub _check_storage_report_dir {
+    my ($self) = @_;
+    my $usage_percentage = $self->_get_storage_report_dir;
+    my $disk_full = 0;
+    if ($usage_percentage >= 99) {
+        say q(<p class="warning" style="padding: 10px 0 10px 10px;">More than 99% of the disk is used. Isolates can not be accepted/rejected anymore until some JSON reports are removed from the /output_reports directory.);
+        $disk_full = 1;
+    } elsif ($usage_percentage > 90) {
+        say q(<p class="warning" style="padding: 10px 0 10px 10px;">More than 90% of the disk is used. Remove JSON reports from the /output_reports directory before accepting/rejecting other isolates.);
+    } elsif ($usage_percentage > 80) {
+        say q(<p class="warning" style="padding: 10px 0 10px 10px;">More than 80% of the disk is used. Remove JSON reports from the /output_reports directory before accepting/rejecting other isolates.);
+    }
+    return $disk_full;
+}
+
+sub _get_storage_report_dir {
+    my ($self) = @_;
+    my $mount_point = '/output_reports';
+    my $df_output = `df --output=pcent $mount_point 2>/dev/null`;
+    chomp($df_output);
+    my @lines = grep { $_ !~ /^Use%/ } split(/\n/, $df_output);
+    my $usage_percentage = $lines[0];
+    $usage_percentage =~ s/%$//;
+    return $usage_percentage;
+}
+
+sub _print_disk_full_warning {
+    my ($self) = @_;
+    say q(<fieldset style="float:left;max-width:300px"><legend>Action</legend>);
+    say q(<p class="warning" style="padding: 10px 0 10px 10px;">Submissions cannot be closed until some disk space is freed up.);
+    say q(</fieldset>);
 }
 1;
