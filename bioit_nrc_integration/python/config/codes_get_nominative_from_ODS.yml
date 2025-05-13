@@ -54,7 +54,7 @@ schema:
     TX_BUSINESS_KEY:
       required: True
       translation: _id
-    CD_HOSPZ: # todo influenza ask
+    CD_HOSPZ:
       required:
         - salmonella
         - listeria
