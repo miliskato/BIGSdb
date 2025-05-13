@@ -1,15 +1,12 @@
 import json
 import logging
-import math
 import stat
 import sys
 import tempfile
 import traceback
-import yaml
-from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
 
+import yaml
 from pymongo.errors import DuplicateKeyError
 
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
@@ -18,6 +15,7 @@ sys.path.append(str(PYTHONPATH))
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email
 from bioit_nrc_integration.python.config import SFTP_CREDENTIALS_HD, CODES_NOMINATIVE_ODS
+from bioit_nrc_integration.python.util.get_clin_lab_json_parser import get_clin_lab_json_parser
 from bioit_nrc_integration.python.util.sftp_connection import SFTPConnection
 
 # Configure stdout logging
@@ -160,16 +158,18 @@ class MainNominativeDataParserFromOds(SFTPConnection):
             nominative_labtest_clinical_metadata_collection = mongoinit_local.initialise_nominative_labtest_clinical_metadata_collection()
             unprocessed_nominative_labtest_metadata_collection = mongoinit_local.initialise_unprocessed_nominative_labtest_metadata_collection()
             unprocessed_nominative_clinical_metadata_collection = mongoinit_local.initialise_unprocessed_nominative_clinical_metadata_collection()
+
+            selected_parser = get_clin_lab_json_parser(species)
             for filetype, files in filetypes_dict.items():
                 for file in files:
-                    # initialise translation dict
-                    data_translated = {}
                     try:
                         with Path(f'{self._temp_json_dir}/{file}').open('r') as handle:
                             contents = json.load(handle)
                         data_unprocessed = contents['data']
 
-                        self.__parse_input_json(data_unprocessed, data_translated, filetype, species)
+                        # Parse data_unprocessed
+                        parser_instance = selected_parser(data_unprocessed, filetype, species, self._translation_codes)
+                        data_translated = parser_instance.run()
 
                     except Exception as exceptionmessage:
                         logging.info(f"{exceptionmessage}\n{traceback.format_exc()}")
@@ -196,225 +196,6 @@ class MainNominativeDataParserFromOds(SFTPConnection):
                     except DuplicateKeyError:
                         pass
                     self._files_processed.append(file)
-
-    def __parse_input_json(self, data_unprocessed: Dict[str, Any], data_translated: Dict[str, Any], filetype: str, species: str) -> None:
-        """
-        Parses the input JSON file and translates the fields & values to usable values for the NRC platform.
-        :param data_unprocessed: original unprocessed data
-        :param data_translated: translated data to be inserted in MongoDB to be inserted in BIGSdb
-        :param filetype: CLIN or LAB
-        :param species: commonly used bioit species name: either genus or specific like stec
-        :return: None
-        """
-        if filetype == 'LAB':
-            self.___calculate_age_fields(data_unprocessed, data_translated)
-            self.___parse_complex_labtest_results(data_unprocessed, data_translated)
-            if species == 'salmonella':
-                self.___choose_serovar_final(data_translated)
-        if filetype == 'CLIN':
-            self.___parse_complex_country_field(data_unprocessed, data_translated)
-            if species == 'salmonella':
-                self.___parse_repeat_fields(data_unprocessed, data_translated, 'TX_TTL_SYMP_REPEAT', 'CD_PROB_NAM',
-                                            'CD_PROB_NAM_codes', 'symptom')
-            elif species == 'listeria':
-                self.___parse_repeat_fields(data_unprocessed, data_translated, 'TX_TTL_PERNAT_REPEAT', 'CD_PERNAT',
-                                            'CD_PERNAT_codes', 'perinatal')
-                self.___parse_repeat_fields(data_unprocessed, data_translated, 'TX_SUSPC_VEH_REPEAT', 'CD_SUSPC_VEH',
-                                            'CD_SUSPC_VEH_codes', 'suspected_vehicle')
-                self.___parse_repeat_fields(data_unprocessed, data_translated, 'TX_TTL_SYMP_ADLT_REPEAT', 'CD_PROB_NAM_ADLT',
-                                            'CD_PROB_NAM_codes', 'symptom_adult')  # todo do i need to catch other? do i need to be able to catch multiple 'other's?
-                self.___parse_repeat_fields(data_unprocessed, data_translated, 'TX_TTL_SYMP_CHLD_REPEAT', 'CD_PROB_NAM_CHLD',
-                                            'CD_PROB_NAM_codes', 'symptom_child')  # todo do i need to catch other? do i need to be able to catch multiple 'other's?
-        # loop over schema
-        for hd_key, hd_key_property_dict in self._translation_codes['schema'][filetype].items():
-            unprocessed_value = self.___get_value_by_capitalization_agnostic_key(data_unprocessed, hd_key)
-            if hd_key_property_dict.get('allowed') and species not in hd_key_property_dict['allowed']:
-                # Updating columns in postgresql that don't exist will raise an error. E.g. the DT_LAB_COLLCN field is
-                # present in all DCDs but only in the influenza columns, therefore it is only allowed to be
-                # parsed for influenza.
-                continue
-            if unprocessed_value:
-                if hd_key_property_dict.get('code_list'):
-                    value = self._translation_codes['code_lists'][hd_key_property_dict['code_list']][
-                        self.___cast_as_int_if_int(unprocessed_value)]
-                    if hd_key_property_dict.get('other') and value == 'Other':
-                        value = self.___get_value_by_capitalization_agnostic_key(data_unprocessed, hd_key_property_dict['other'])
-                else:
-                    value = unprocessed_value
-                data_translated[hd_key_property_dict['translation']] = value
-            else:
-                if hd_key_property_dict['required'] is False:
-                    if hd_key_property_dict.get('default'):
-                        data_translated[hd_key_property_dict['translation']] = hd_key_property_dict['default']
-                elif isinstance(hd_key_property_dict['required'], list) and species not in hd_key_property_dict['required']:
-                    pass
-                else:
-                    raise Exception(f"key {hd_key} is missing but is required in {filetype} file!!")
-        # add id to be able to find in MongoDB
-        data_unprocessed['_id'] = data_translated['_id']  # data_translated['_id'] == data_unprocessed['TX_BUSINESS_KEY']
-
-    @staticmethod
-    def ___calculate_age_fields(data_unprocessed: Dict[str, Any], data_translated: Dict[str, Any]) -> None:
-        """
-        Calculates the two age fields patient_age and patient_age_group from the DOB and the collection date.
-        :param data_unprocessed: original unprocessed data
-        :param data_translated: translated data to be inserted in MongoDB to be inserted in BIGSdb
-        :return: None
-        """
-        # DOB is not a mandatory field so it can be missing = None
-        dob = MainNominativeDataParserFromOds.___get_value_by_capitalization_agnostic_key(data_unprocessed, 'DT_PAT_DOB')
-        collection_date = MainNominativeDataParserFromOds.___get_value_by_capitalization_agnostic_key(data_unprocessed, 'DT_LAB_COLLCN')
-        if dob and dob != '1900-01-01' and collection_date:
-            # Calculate the number of years
-            # Average year length considering leap years = 365.25 days
-            patient_age = math.floor((datetime.strptime(collection_date, "%Y-%m-%dT%H:%M:%S") -
-                                      datetime.strptime(dob, "%Y-%m-%d")).days / 365.25)
-            if patient_age < -1:
-                # in Salmonella test unknowns for patient_age and patient_age_group are encoded as UNK
-                data_translated['patient_age'] = 'UNK'
-                data_translated['patient_age_group'] = 'UNK'
-                pass
-            data_translated['patient_age'] = patient_age
-            age_groups = [
-                ("Below 1", -1, 0),
-                ("Between 1 and 4", 1, 4),
-                ("Between 5 and 9", 5, 9),
-                ("Between 10 and 14", 10, 14),
-                ("Between 15 and 19", 15, 19),
-                ("Between 20 and 24", 20, 24),
-                ("Between 25 and 44", 25, 44),
-                ("Between 45 and 64", 45, 64),
-                ("65 and above", 65, 150)
-            ]
-            data_translated['patient_age_group'] = next(
-                (group for group, start, end in age_groups if start <= patient_age <= end))
-        else:
-            # in Salmonella test unknowns for patient_age and patient_age_group are encoded as UNK
-            data_translated['patient_age'] = 'UNK'
-            data_translated['patient_age_group'] = 'UNK'
-
-    def ___parse_complex_labtest_results(self, data_unprocessed: Dict[str, Any], data_translated: Dict[str, Any]) -> None:
-        """
-        Parses the labtest results from a complex list of dictionaries.
-        For quantitative results, it is apparently not important to also add the unit, these are therefore ignored.
-        e.g. "tx_ttl_lab_test": [{"dt_lab_test": "2024-03-25T12:00:00",  "tx_lab_rr_ll": "ref low",  "tx_lab_rr_ul": "ref up",  "cd_lab_pnl_batt": "385432009",  "cd_lab_rslt_sta": "corrected",  "cd_lab_reslt_tpe": "19851009",  "cd_lab_rslt_flag": "260405006",  "cd_lab_test_code": "468-9",  "cd_lab_test_meth": "14788002",  "ms_lab_rr_ll_val": 11.00000,  "ms_lab_rr_ul_val": 150.00000,  "cd_lab_rr_ll_unit": "385432009",  "cd_lab_rr_ul_unit": "385432009",  "cd_lab_intrpr_meth": "261665006",  "tx_lab_rslt_intrpr": "Test 3 interpretation",  "tx_lab_test_rslt_id": "Test Result 3",  "cd_lab_test_rslt_sta": "preliminary",  "tx_lab_cmnt_test_rslt": "Lab Test 3 comment",  "ms_lab_test_rslt_qn_val": 99.00000,  "cd_lab_test_rslt_qn_unit": "385432009"}, {"dt_lab_test": "2024-02-06T12:00:00",  "tx_lab_rr_ll": "lower limit",  "tx_lab_rr_ul": "Ref upper Range",  "cd_lab_pnl_batt": "385432009",  "cd_lab_rslt_sta": "registered",  "cd_lab_reslt_tpe": "252275004",  "cd_lab_rslt_flag": "281300000",  "cd_lab_test_code": "TC0031",  "cd_lab_test_meth": "363779003",  "ms_lab_rr_ll_val": 55.00000,  "ms_lab_rr_ul_val": 66.00000,  "cd_lab_rr_ll_unit": "385432009",  "cd_lab_rr_ul_unit": "385432009",  "cd_lab_intrpr_meth": "IM0001",  "tx_lab_rslt_intrpr": "Res Interpretation",  "cd_lab_test_rslt_ql": "83185005",  "tx_lab_test_rslt_id": "TestResID",  "cd_lab_test_rslt_sta": "preliminary",  "tx_lab_cmnt_test_rslt": "Lab Test comment"}]
-        :param data_unprocessed: original unprocessed data
-        :param data_translated: translated data to be inserted in MongoDB to be inserted in BIGSdb
-        :return: None
-        """
-        labtest_list_of_result_dicts = self.___get_value_by_capitalization_agnostic_key(data_unprocessed, 'TX_TTL_LAB_TEST')
-        # The mic_resistances field should be a string concatenation of all resistant antibiotics. All resistant ones will
-        # be stored in the mic_resistances_list, ordered alphabetically and concatenated with spaces in between.
-        mic_resistances_list: List[str] = []
-        if labtest_list_of_result_dicts:
-            for labtest_result_dict in labtest_list_of_result_dicts:
-                labtest_code_combinations = self._translation_codes['code_lists']['TX_TTL_LAB_TEST_combinations']
-                labtest_code_combination = next((
-                    labtest_code_combination for labtest_code_combination in labtest_code_combinations if
-                    labtest_code_combination['CD_LAB_TEST_CODE'] == self.___get_value_by_capitalization_agnostic_key(
-                        labtest_result_dict, 'CD_LAB_TEST_CODE')))
-
-                if labtest_code_combination.get('code_list'):
-                    # Even if the field's value supposedly needs to come from a code list, there can be exceptions
-                    # where it doesn't. E.g. it is impossible to list all serotype formulas, and new ones keep being
-                    # added. The following if else catches these exceptions.
-                    code_value = self.___cast_as_int_if_int(self.___get_value_by_capitalization_agnostic_key(
-                        labtest_result_dict, labtest_code_combination['value_field']))
-                    if code_value:
-                        data_translated[labtest_code_combination['translation']] = \
-                            self._translation_codes['code_lists'][labtest_code_combination['code_list']][code_value]
-                        if labtest_code_combination['translation'].startswith('mic_') and \
-                                labtest_code_combination['translation'].endswith('_I') and \
-                                data_translated[labtest_code_combination['translation']] == 'Resistant':
-                            mic_resistances_list.append((labtest_code_combination['translation'].split('_'))[1])
-                    else:
-                        data_translated[labtest_code_combination['translation']] = \
-                            self.___get_value_by_capitalization_agnostic_key(labtest_result_dict, 'TX_LAB_TEST_RSLT_TXT')
-                else:
-                    data_translated[labtest_code_combination['translation']] = \
-                        self.___get_value_by_capitalization_agnostic_key(
-                            labtest_result_dict, labtest_code_combination['value_field'])
-        if mic_resistances_list:
-            mic_resistances_list.sort()
-            data_translated['mic_resistances'] = ' '.join([resistance for resistance in mic_resistances_list])
-
-    @staticmethod
-    def ___choose_serovar_final(data_translated: Dict[str, Any]) -> None:
-        """
-        Picks the serovar_final based on logic that Florian sent through mail:
-        serovar_luminex > serovar_agglutination > malditof_identification
-        :param data_translated: translated data to be inserted in MongoDB to be inserted in BIGSdb
-        :return: None
-        """
-        if data_translated.get('serovar_luminex'):
-            data_translated['serovar_final'] = data_translated['serovar_luminex']
-        elif data_translated.get('serovar_agglutination'):
-            data_translated['serovar_final'] = data_translated['serovar_agglutination']
-        elif data_translated.get('malditof_identification'):
-            data_translated['serovar_final'] = data_translated['malditof_identification']
-
-    @staticmethod
-    def ___parse_complex_country_field(data_unprocessed: Dict[str, Any], data_translated: Dict[str, Any]) -> None:
-        """
-        Parses the optional infection country field list which didn't really fit in the main codes schema,
-        e.g. "cd_infct_cntry": [{"cd_infct_cntry": "FR"}, {"cd_infct_cntry": "US"}]
-        :param data_unprocessed: original unprocessed data
-        :param data_translated: translated data to be inserted in MongoDB to be inserted in BIGSdb
-        :return: None
-        """
-        country_dicts_list: List[Dict[str, str]] = MainNominativeDataParserFromOds.___get_value_by_capitalization_agnostic_key(data_unprocessed, 'CD_INFCT_CNRTY')
-        if country_dicts_list:
-            for index, country_dict in enumerate(country_dicts_list):
-                for key, value in country_dict.items():
-                    data_translated[f"country_{index + 1}"] = value
-
-    def ___parse_repeat_fields(self, data_unprocessed: Dict[str, Any], data_translated: Dict[str, Any],
-                                          repeat_field_name: str, field_name: str, code_list_name: str, bigsdb_prefix: str) -> None:
-        """
-        Parses the mandatory repeat field lists which didn't really fit in the main codes schema,
-        e.g. "tx_ttl_symp": [{"cd_prob_nam": "25374005"}, {"cd_prob_nam": "91302008"}]
-        :param data_unprocessed: original unprocessed data
-        :param data_translated: translated data to be inserted in MongoDB to be inserted in BIGSdb
-        :param repeat_field_name: the key name of the repeat field in the DCD
-        :param field_name: the key name of the value in the dictionary in the repeat field's list
-        :param code_list_name: the name of the code list in the config file
-        :bigsdb_prefix: the prefix used for the concatenation of the
-        :return: None
-        """
-        repeat_list_of_dicts: List[Dict[str, str]] = self.___get_value_by_capitalization_agnostic_key(
-            data_unprocessed, repeat_field_name)
-        for symptom_dict in repeat_list_of_dicts:
-            symptom_code = self.___get_value_by_capitalization_agnostic_key(symptom_dict, field_name)
-            symptom_code_translation = self._translation_codes['code_lists'][code_list_name][self.___cast_as_int_if_int(symptom_code)]
-            data_translated[f"{bigsdb_prefix}_{symptom_code_translation.replace(' ', '_').lower()}"] = "Yes"
-
-    @staticmethod
-    def ___get_value_by_capitalization_agnostic_key(search_dictionary: Dict[str, Any], target_key: str) -> Optional[Union[Dict[str, Any], List[Any], str]]:
-        """
-        Searches a key capitalization agnostically in a dictionary because the ODS could not confirm that they were
-        always going to send lower or uppercase keys.
-        :param search_dictionary: the dictionary that should contain the target_key
-        :param target_key: key that should capitalization agnostically be found in the search_dictionary
-        :return: The value for the key lookup, or None if it isn't found.
-        """
-        if search_dictionary.get(target_key.lower()):
-            return search_dictionary.get(target_key.lower())
-        else:
-            return search_dictionary.get(target_key.upper())
-
-    @staticmethod
-    def ___cast_as_int_if_int(possible_int: str) -> Union[int, str]:
-        """
-        In the code lists in yaml, keys are ints if they only consist of numbers.
-        In order to be able to access the int keys, strings need to be cast as ints if they are.
-        This function does exactly that.
-        :param possible_int: string value
-        :return: int if string contains only digits and str if not
-        """
-        if possible_int.isdigit():
-            return int(possible_int)
-        else:
-            return possible_int
 
     def _move_files_according_to_success(self) -> None:
         """
