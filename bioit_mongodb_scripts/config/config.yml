@@ -7,7 +7,7 @@ MONGO_DB_PASSWORD: to_be_replaced_by_ansible
 mail:
     from: MongoDB internal HERA
     to: Michael or Ann-Stephan
-    host: bioit-mailhog.sciensano.be:1025
+    host: bioit-mailhog.darwinproject.be:1025
 
 species:
     - enterococcus_faecalis
