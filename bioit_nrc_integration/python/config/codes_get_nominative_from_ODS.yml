@@ -41,12 +41,6 @@ schema:
       allowed:
         - influenza
       translation: reception_date
-    CD_LAB_PATHOGEN:
-      required: False
-      allowed:
-        - influenza
-      translation: Flu_type
-      code_list: MICROORGANISM_codes
   CLIN:
     TX_LAB_SAMPLE_VAL:  # needed for link with WGS meta
       required: True
@@ -280,39 +274,6 @@ code_lists:
     2: captive_wild_animals_in_zoo
     3: other_wild_animals
     261665006: 'Unknown'
-  MICROORGANISM_codes:
-    407480007: Influenza B virus
-    407479009: Influenza A virus
-    407482004: Influenza C virus
-    446396002: Influenza A virus subtype H1
-    449024000: Pandemic influenza A
-    446397006: Influenza A virus subtype H2
-    446645007: Influenza A virus subtype H3
-    446647004: Influenza A virus subtype H5
-    446648009: Influenza A virus subtype H7
-    446649001: Influenza A virus subtype H9
-    700349009: Influenza A virus subtype H10
-    448803002: Influenza A virus subtype N1
-    448835002: Influenza A virus subtype N2
-    6415009: Human respiratory syncytial virus
-    417771001: Human respiratory syncytial virus Group B
-    417770000: Human respiratory syncytial virus Group A
-    416730002: Human metapneumovirus
-    407498006: Human parainfluenza viruses
-    407489008: Human parainfluenza virus 1
-    407491000: Human parainfluenza virus 2
-    407493002: Human parainfluenza virus 3
-    89117003: Human parainfluenza virus 4
-    74871001: Human adenovirus
-    407370007: Human coronavirus 229E
-    417818007: Human coronavirus NL63
-    407371006: Human coronavirus OC43
-    450613001: Human parechovirus
-    12997006: Human enterovirus 68
-    446373002: Human bocavirus
-    840533007: Severe acute respiratory syndrome coronavirus 2
-    69239002: Human enterovirus
-    1838001: Human rhinovirus
   MEDICATION_FLU_codes:
     MD0020: Baloxavir
     MD0021: Oseltamivir

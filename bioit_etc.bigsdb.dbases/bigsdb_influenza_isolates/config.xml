@@ -39,6 +39,8 @@
 <field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="internal code for the client">client_code</field>
 <field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="Subtype A or B">Flu_type</field>
 <field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="Subtyping HA gene">FluA_subtypePCR</field>
+<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="Subtyping HA gene">FluA_subtypeHAPCR</field>
+<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="Subtyping HA gene">FluA_subtypeNAPCR</field>
 <field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="Subtyping B">FluB_lineagePCR</field>
 <field type="date" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="reception date">reception_date</field>
 <field type="date" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="isolation date">isolation_date</field>
@@ -83,7 +85,7 @@
 <field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="EC50 ZA value">EC50_ZA</field>
 <field type="text" required="no" length="60" maindisplay="no" group ="nominative metadata" comments="">GISAID_NGS</field>
 <field type="text" required="no" length="60" maindisplay="no" group ="nominative metadata" comments="case Type">case_type</field> # todo ask
-<field type="text" required="no" length="100" maindisplay="no" group ="nominative metadata" comments="case Type">official_name</field>
+<field type="text" required="no" length="100" maindisplay="no" group ="nominative metadata" comments="official name">official_name</field>
 <field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="outcome">outcome</field>
 <field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="country">country</field>
 </db>

@@ -9,10 +9,11 @@ class ParseClinLabJsonInfluenza(ParseClinLabJson):
     Influenza-specific class to parse a Json DCD file (CLIN or LAB)
     """
     TARGET_SPECIES = 'influenza'
-    HA_TESTS = { '49521-8': 'H1', '55465-9': 'H1', '57985-4': 'H2', '49524-2': 'H3', 'TC0004': 'H4', '38272-1': 'H5',
+    FLU_TESTS = {'34487-9': 'A', '40982-1': 'B'}
+    HA_TESTS = {'49521-8': 'H1', '55465-9': 'H1', '57985-4': 'H2', '49524-2': 'H3', 'TC0004': 'H4', '38272-1': 'H5',
                  '38271-3': 'H6', '38270-5': 'H7', 'TC0005': 'H8', '49528-3': 'H9', 'TC0006': 'H10', 'TC0007': 'H11',
                  'TC0008': 'H12', 'TC0009': 'H13', 'TC0010': 'H14', 'TC0011': 'H15', 'TC0012': 'H16', 'TC0013': 'H17',
-                 'TC0014': 'H18' }
+                 'TC0014': 'H18'}
     NA_TESTS = { '99623-1': 'N1', 'TC0015': 'N2', 'TC0016': 'N3', 'TC0017': 'N4', 'TC0018': 'N5', 'TC0019': 'N6',
                  'TC0020': 'N7', 'TC0021': 'N8', 'TC0022': 'N9', 'TC0023': 'N10', 'TC0024': 'N11' }
     B_TESTS = { '74785-7': 'VIC', '74786-5': 'YAM'}
@@ -38,7 +39,7 @@ class ParseClinLabJsonInfluenza(ParseClinLabJson):
             self.__extract_sari_hospi_ili()
             self.__decompose_date_fields()
         elif self._filetype == 'CLIN':
-            pass
+            self.__get_type_info()
 
     def __extract_sari_hospi_ili(self) -> None:
         """
@@ -73,21 +74,27 @@ class ParseClinLabJsonInfluenza(ParseClinLabJson):
                 if date_field == 'sampling_date':
                     self._data_translated[date_field.replace('date', 'week')] = date_object.isocalendar().week
 
-    def __set_subtype(self) -> None:
+    def __get_type_info(self) -> None:
         """
         The PCR subtype is spread over 30 different fields for influenza A and 2 for influenza B.
         There is no summary field. This function generates the summary.
         :return: None
         """
-        ha = self.___get_subtype_part(self.HA_TESTS)
-        na = self.___get_subtype_part(self.NA_TESTS)
-        b = self.___get_subtype_part(self.B_TESTS)
-        if ha or na:
+        self._data_translated['Flu_type'] = self.___get_type_part(self.FLU_TESTS)
+
+        ha = self.___get_type_part(self.HA_TESTS)
+        na = self.___get_type_part(self.NA_TESTS)
+        b = self.___get_type_part(self.B_TESTS)
+        if ha:
+            self._data_translated['FluA_SubtypeHAPCR'] = ha
+            self._data_translated['FluA_subtypePCR'] = ha + na
+        elif na:
+            self._data_translated['FluA_SubtypeNAPCR'] = na
             self._data_translated['FluA_subtypePCR'] = ha + na
         elif b:
             self._data_translated['FluB_lineagePCR'] = b
 
-    def ___get_subtype_part(self, code_list: dict[str, str]) -> str:
+    def ___get_type_part(self, code_list: dict[str, str]) -> str:
         """
         For a given code list, checks if any of the test codes are present and if their value is 'Detected'.
         Returns the first value it encounters. If none are encountered, an empty string is returned.
@@ -95,7 +102,7 @@ class ParseClinLabJsonInfluenza(ParseClinLabJson):
         :return: a single value from the code list or an empty string
         """
         labtest_list_of_result_dicts = self.___get_value_by_capitalization_agnostic_key(self._data_unprocessed,
-                                                                        'TX_TTL_LAB_TEST')
+                                                                                        'TX_TTL_LAB_TEST')
         if not labtest_list_of_result_dicts:
             return ''
         for code, value in code_list:
