@@ -446,8 +446,7 @@ sub print_extra_form_elements {
 			nosplit_geography_points => 1,
 			extended_attributes      => 1,
 			scheme_fields            => 1,
-			hide                     => "f_$self->{'system'}->{'labelfield'},f_country,f_year"
-			#,html,eav_html,eav_consensus_sequence"
+			hide                     => "f_$self->{'system'}->{'labelfield'},f_country,f_year,html,eav_html,eav_consensus_sequence"
 		}
 	);
 
