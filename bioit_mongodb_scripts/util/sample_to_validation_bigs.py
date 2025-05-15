@@ -2,9 +2,10 @@ import datetime
 import socket
 import sys
 from pathlib import Path
-from typing import Any, Dict, Literal
+from typing import Any, Dict, Literal, Tuple
 
 from pymongo.write_concern import WriteConcern
+from pymongo.collection import Collection
 
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
@@ -18,73 +19,92 @@ from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 
 class SampleToValidationBigs:
     """
-    Pushes isolates from MongoDB badqc/resequencing collections into BIGSdb's submission system if it's not already done
+    Pushes isolates from MongoDB goodqc/warningqc/resequencing collections into BIGSdb's submission system if it's not
+    already done.
     """
 
-    def __init__(self, species: str, isolate_id: str, mongo_config_data: Dict[str, Any] = None) -> None:
+    def __init__(self, species: str, isolate_id: str, pseudo_id: str, quality: Literal['warning', 'good'],
+                 resequencing: Literal['yes', 'no'],  mongo_config_data: Dict[str, Any] = None) -> None:
         """
-        Call methods to insert samples into BIGSdb submission table
+        Call methods to insert samples into BIGSdb submission table.
         :param species: commonly used bioit species name: either genus or specific like stec
         :param isolate_id: name of the isolate
+        :param pseudo_id: Pseudo ID
+        :param quality: str, either "warning" or "good"
+        :param resequencing: str, either yes or no
         :param mongo_config_data: mongo_config_data for MongoInitialisation
         :return: None
         """
-        self.mongo_config_data = mongo_config_data
-        self.species = species
-        self.isolate_id = isolate_id
+        self._mongo_config_data = mongo_config_data
+        self._species = species
+        self._isolate_id = isolate_id
+        self._pseudo_id = pseudo_id
+        self._quality = quality
+        self._resequencing = resequencing
+        self._collection, self._update_collection, self._validation_type = self._get_collections_and_validation_type()
 
-        self._submission_into_bigs('bad_quality')
-        # self._submission_into_bigs('resequencing')
-
-    def _submission_into_bigs(self, sample_type: Literal['bad_quality', 'resequencing']) -> None:
+    def _get_collections_and_validation_type(self) -> Tuple[Collection, Collection, str]:
         """
-        Select samples pending for submission from either badqc or resequencing collection and launches their submission in BIGSdb
-        :param: sample_type: str that should be either "bad_quality" or "resequencing"
-        :return: None
+        Returns the MongoDB collection, MongoDB update collection and the validation type.
+        :return: the MongoDB collection, MongoDB update collection and validation type
         """
-        mongoinit = MongoInitialisation(self.species, mongo_config_data=self.mongo_config_data,
+        mongoinit = MongoInitialisation(self._species, mongo_config_data=self._mongo_config_data,
                                         selected_connection_string='CONNECTION_STRING_AZURE')
-        _, _, isolates_badqc_collection, isolates_resequencing_collection = mongoinit.initialise_collections()
+        _, _, isolates_warningqc_collection, isolates_resequencing_collection, isolates_goodqc_collection = \
+            mongoinit.initialise_collections()
         update_collection = mongoinit.initialise_update_collection()
 
-        mongo_collection = isolates_badqc_collection if sample_type == 'bad_quality' else isolates_resequencing_collection
+        if self._resequencing == 'yes':
+            collection = isolates_resequencing_collection
+            validation_type = 'resequencing'
+        elif self._quality == 'good':
+            collection = isolates_goodqc_collection
+            validation_type = 'good_quality'
+        else:
+            collection = isolates_warningqc_collection
+            validation_type = 'warning_quality'
+        return collection, update_collection, validation_type
 
-        isolate_to_submit= MongoRecordDict(mongo_collection.find_one({"_id": self.isolate_id}))
+    def submission_into_bigs(self) -> None:
+        """
+        Select samples pending for submission from either the goodqc, warningqc or resequencing collection and launches
+        their submission in BIGSdb.
+        :return: None
+        """
+        isolate_to_submit = MongoRecordDict(self._collection.find_one({"_id": self._pseudo_id}))
         current_date = datetime.datetime.now(datetime.timezone.utc)
-        self.__insert_submission_bigs(isolate_to_submit, sample_type)
-        doc_id = isolate_to_submit.get_id()
-        mongo_collection.update_one({'_id': doc_id},
-                                        {'$set': {'submission_status': 'submitted_in_bigsdb'}})
+        self._insert_submission_bigs(isolate_to_submit)
+        self._collection.update_one({'_id': self._pseudo_id},
+                                    {'$set': {'submission_status': 'submitted_in_bigsdb'}})
         if current_date:
-            update_collection.with_options(write_concern=WriteConcern(w="majority")).update_one(
+            self._update_collection.with_options(write_concern=WriteConcern(w="majority")).update_one(
                 {'metadata': 'last_validation_to_bigs_update', 'host': socket.gethostname()},
                 {'$set': {'last_update_date': current_date}}, upsert=True)
 
-    def __insert_submission_bigs(self, sample_doc: MongoRecordDict, validation_type: str) -> None:
+    def _insert_submission_bigs(self, sample_doc: MongoRecordDict) -> None:
         """
         Inserts a given isolate in the submission system of bigsdb
         :param sample_doc: mongo db document of the isolate
-        :param validation_type: either bad_quality or resequencing
         :return: None
         """
-        mongoinit_local = MongoInitialisation(self.species, mongo_config_data=self.mongo_config_data,
-                                              selected_connection_string='CONNECTION_STRING_LOCAL')
-        mappingtable_collection = mongoinit_local.initialise_mapping_table_collection()
+        with TblSubmissions(self._species) as isolates_sub_psql_tbl, \
+                TblIsolateSubmissionIsolates(self._species) as isolates_isosubiso_psql_tbl, \
+                TblIsolateSubmissionFieldOrder(self._species) as isolates_isosubfo_psql_tbl:
 
-        with TblSubmissions(self.species) as isolates_sub_psql_tbl, \
-                TblIsolateSubmissionIsolates(self.species) as isolates_isosubiso_psql_tbl, \
-                TblIsolateSubmissionFieldOrder(self.species) as isolates_isosubfo_psql_tbl:
-
-            isolate_id = mappingtable_collection.find_one({'pseudo_id': sample_doc['_id']})['_id']
-            isolates_sub_psql_tbl.insert_submission((validation_type,))
-            report_url = UrlHelper.report_for_validation(self.species, sample_doc['_id'],
-                                                         sample_doc['latest_analysis_date'], validation_type)
-            report_link = f'<a href="{report_url}" target = "_blank" class="small_submit"> Get report preview </a>'
+            isolates_sub_psql_tbl.insert_submission((self._quality, self._resequencing))
+            report_url = UrlHelper.report_for_validation(self._species, sample_doc['_id'],
+                                                         sample_doc['latest_analysis_date'],
+                                                         self._validation_type)
+            report_link = f'<a href="{report_url}" target = "_blank"> report </a>'
 
             isolates_isosubiso_psql_tbl.insert_validation_metadata(('html_report', report_link))
-            isolates_isosubiso_psql_tbl.insert_validation_metadata(('isolate_id', isolate_id))
-            isolates_isosubiso_psql_tbl.insert_validation_metadata(('validation_type', validation_type))
+            isolates_isosubiso_psql_tbl.insert_validation_metadata(('isolate_id', self._isolate_id))
+            isolates_isosubiso_psql_tbl.insert_validation_metadata(('validation_type', self._validation_type))
+            isolates_isosubiso_psql_tbl.insert_validation_metadata(('quality', self._quality))
+            isolates_isosubiso_psql_tbl.insert_validation_metadata(('resequencing', self._resequencing))
             # The indexes below are necessary, if they are not inserted the values above are not visible
             isolates_isosubfo_psql_tbl.insert_validation_indexes(('html_report', 1))
             isolates_isosubfo_psql_tbl.insert_validation_indexes(('isolate_id', 2))
             isolates_isosubfo_psql_tbl.insert_validation_indexes(('validation_type', 3))
+            isolates_isosubfo_psql_tbl.insert_validation_indexes(('quality', 4))
+            isolates_isosubfo_psql_tbl.insert_validation_indexes(('resequencing', 5))

@@ -458,7 +458,7 @@
 
 - name: copy dbmate executable on host
   ansible.builtin.get_url:
-    url: "{{ linux_repo_tools }}/focal/dbmate/dbmate"
+    url: "{{ linux_repo_tools }}/jammy/dbmate/v2_26_0/dbmate"
     dest: /usr/local/bin/
     owner: root
     group: root
@@ -1009,15 +1009,10 @@
         user: 'root'
         cron_file: check_jobs_killed
 
-    - name: add daily cronjob to capture missing badqc
-      cron:
-        name: "check_for_missing_badqc"
-        minute: '0'
-        hour: '1'  # every day at 1:00 am
-        weekday: '*'
-        job: "{{ bioit_bigs_home }}/3.12PythonVenv/bin/python3.12 {{ bioit_bigs_home }}/bioit_mongodb_scripts/tests/get_missing_bad_qc.py --species {{ species }}"
-        user: 'root'
-        cron_file: check_for_missing_badqc
+    - name: Remove the cronjob to capture missing badqc
+      ansible.builtin.file:
+        path: /etc/cron.d/check_for_missing_badqc
+        state: absent
 
   tags: cron_jobs
 
@@ -1068,4 +1063,62 @@
         enabled: true
         name: bigsdb-insertion.service
 
+- name: create sftp users that can access the /output_reports
+  block:
+    - name: Create user group
+      group:
+        name: sftp
+        state: present
+
+    - name: select password for sftp user and DTAP
+      set_fact:
+        sftp_user_password: "{{ item.val }}"
+      loop: "{{ dtap_list|flatten(levels=1)  }}"
+      vars:
+        dtap_list:
+          - { val: "{{ sftp_user_pass_dev }}", dtap: dev }
+          - { val: "{{ sftp_user_pass_test }}", dtap: test }
+          - { val: "{{ sftp_user_pass_acc }}", dtap: acc }
+          - { val: "{{ sftp_user_pass_prod }}", dtap: prod }
+      when: mongo_dtap == item.dtap
+
+    - name: Create user
+      user:
+        name: "sftp_{{ species }}_{{ mongo_dtap }}"
+        group: "sftp"
+        shell: "/sbin/nologin"
+        home: "/home/sftp_{{ species }}_{{ mongo_dtap }}"
+        password: "{{ sftp_user_password }}"
+        state: present
+
+    - name: creation of jail section for output reports
+      blockinfile:
+        path: /etc/ssh/sshd_config
+        block: |
+          Match Group sftp
+            ChrootDirectory /output_reports
+            PermitTunnel no
+            X11Forwarding no
+            AllowTcpForwarding no
+            ForceCommand internal-sftp
+      tags: output_reports_jail
+
+    - name: restart sshd service
+      ansible.builtin.systemd:
+        state: restarted
+        daemon_reload: yes
+        name: sshd
+
+    - name: creation of the subdirectories in the /output_reports jail
+      ansible.builtin.file:
+        path: /output_reports/{{ item }}
+        state: directory
+        owner: root
+        mode: "u=rwx,g=rwx,o=rwx"
+      loop:
+        - accepted
+        - rejected
+        - coreqc_rejected
+      tags: output_reports_jail
+  tags: sftp_users
 ...

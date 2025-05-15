@@ -122,8 +122,9 @@ class ErrorCheckerForMainSenderToHD(SFTPConnection):
                 mongoinit_azure = MongoInitialisation(species, mongo_config_data=self._mongo_config_data,
                                                       selected_connection_string='CONNECTION_STRING_AZURE',
                                                       alternate_dtap=self._alternate_dtap)
-                isolates_collection, old_isolateresults_collection, isolates_badqc_collection, \
-                    isolates_resequencing_collection = mongoinit_azure.initialise_collections()
+                isolates_collection, old_isolateresults_collection, isolates_warningqc_collection, \
+                    isolates_resequencing_collection, isolates_goodqc_collection = \
+                    mongoinit_azure.initialise_collections()
                 isolates_collection.update_one({'_id': pseudo_id},
                                                {"$set": {f"accepted_by_ODS": True,
                                                          f"changes_accepted_by_ODS": True}})

@@ -1,4 +1,4 @@
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union, Literal
 
 from .databaseconnection import DatabaseConnection
 from .psql_queries import PsqlQueries
@@ -17,14 +17,14 @@ class TblSubmissions(DatabaseConnection):
         self._db_type = 'isolates'
         super().__init__(species, self._db_type)
 
-    def insert_submission(self, param: Tuple[str]) -> None:
+    def insert_submission(self, param: Tuple[Literal['warning', 'good'], Literal['yes', 'no']]) -> None:
         """
-        Inserts a new submission for a given validation type (badqc or resequencing)
+        Inserts a new submission for a given quality (good or warning) and if it is a resequencing or not.
         :param param: variables to feed to the PSQL query, which also sanitizes these variables,
         necessary parameters visible in the PSQL query name and query
         :return: None
         """
-        self.execute_query(PsqlQueries.ISO_INS__TB_SUB_VAR_VALTYPE, param)
+        self.execute_query(PsqlQueries.ISO_INS__TB_SUB_VAR_QUAL_RESEQ, param)
 
     def select_closed_submission(self, param: Tuple[str]) -> List[Optional[Tuple[Union[int, str]]]]:
         """
@@ -51,16 +51,16 @@ class TblSubmissions(DatabaseConnection):
         """
         return self.execute(PsqlQueries.ISO_SEL_ID_TB_SUB_VAR_STATUS)
 
-    def get_submission_ids_for_validated_badqcs(self) -> List[Tuple[str]]:
+    def get_submission_ids_for_validated_warningqcs(self) -> List[Tuple[str]]:
         """
-        Select submission ids for badqc where status is closed and outcome is good
+        Select submission ids for warningqc where status is closed and outcome is good
         :return: List of corresponding submissions ids
         """
         return self.execute(PsqlQueries.ISO_SEL_SUBID_TB_SUB_VAR_)
 
-    def validate_pending_badqcs(self):
+    def validate_pending_warningqcs(self):
         """
-        This function will set outcome of all submitted badqcs to "good" and turn status from "pending" to "closed"
+        This function will set outcome of all submitted warningqcs to "good" and turn status from "pending" to "closed"
         :return: None
         """
         return self.execute(PsqlQueries.ISO_UPD_STATUS_OUTCOME_TB_SUB_VAR_)

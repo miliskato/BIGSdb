@@ -11,6 +11,7 @@ from tenacity import RetryCallState, retry, wait_exponential
 
 from bioit_bigsdb_scripts.components.psql import TblFailedInsertions
 from bioit_mongodb_scripts.mongo_to_bigs import MongoToBigs
+from bioit_mongodb_scripts.rejected_isolate import RejectedIsolate
 from bioit_mongodb_scripts.update_bigsdb_seqdef import UpdateBIGSdbSeqDef
 from bioit_mongodb_scripts.util.error import BadCollectionError, IsolateNotFoundException
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
@@ -108,7 +109,7 @@ class MessageConsumerDataInserter(AzureServiceBus):
                             receiver.complete_message(msg)
 
                             isolate_id = self._get_isolate_id(self._species, pseudo_id)
-                            bigs_db_was_modified = self.__insert_known_isolate(collection_name, isolate_id)
+                            bigs_db_was_modified = self.__insert_known_isolate(collection_name, isolate_id, pseudo_id)
                             self.__rm_msg_from_postgres(msg)
                             if not should_update_cache:
                                 should_update_cache = bigs_db_was_modified
@@ -141,18 +142,28 @@ class MessageConsumerDataInserter(AzureServiceBus):
                             except Exception as e:
                                 raise e
 
-    def __insert_known_isolate(self, collection_name: str, isolate_id: str) -> bool:
+    def __insert_known_isolate(self, collection_name: str, isolate_id: str, pseudo_id: str) -> bool:
         """
-        inserts isolate for which an isolate_id is known
+        Inserts isolate for which an isolate_id is known.
         :param collection_name: MongoDB collection to which belongs the isolates
-        :isolate_id: Isolate ID
+        :param isolate_id: Isolate ID
+        :param pseudo_id: Pseudo ID
         :return: True if the insertion leads to some changes in BIGSdb else False
         """
-        if collection_name == 'isolates_badqc':
-            SampleToValidationBigs(self._species, isolate_id, mongo_config_data=self._mongo_config_data)
+        if collection_name == 'isolates_warningqc':
+            sample_to_validation_bigs = SampleToValidationBigs(self._species, isolate_id, pseudo_id, 'warning', 'no', mongo_config_data=self._mongo_config_data)
+            sample_to_validation_bigs.submission_into_bigs()
+            return False
+        elif collection_name == 'isolates_goodqc':
+            sample_to_validation_bigs = SampleToValidationBigs(self._species, isolate_id, pseudo_id, 'good', 'no', mongo_config_data=self._mongo_config_data)
+            sample_to_validation_bigs.submission_into_bigs()
             return False
         elif collection_name == 'isolates':
             return self.__mongo_to_bigs_insertion(isolate_id)
+        elif collection_name == 'isolates_rejected_coreqc':
+            rejected_isolate = RejectedIsolate(self._species, isolate_id, pseudo_id)
+            rejected_isolate.insert_in_rejected_isolates_table()
+            return False
         else:
             raise BadCollectionError()
 

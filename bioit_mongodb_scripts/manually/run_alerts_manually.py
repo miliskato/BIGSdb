@@ -45,7 +45,7 @@ if __name__ == '__main__':
     args = parse_arguments(mongo_config_data['species'])
     mongo_init = MongoInitialisation(args.species, mongo_config_data=mongo_config_data,
                                      selected_connection_string='CONNECTION_STRING_AZURE')
-    isolates_collection, _, _, _ = mongo_init.initialise_collections()
+    isolates_collection, _, _, _, _ = mongo_init.initialise_collections()
     naive_clustering_distance_matrix_file = Path(
         mongo_config_data['naive_clustering_distance_matrix_file'].replace('species', args.species).replace('dtap', mongo_config_data.get('dtap')))
 
