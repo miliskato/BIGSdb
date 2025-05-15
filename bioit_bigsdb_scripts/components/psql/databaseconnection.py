@@ -1,8 +1,6 @@
 import sys
-from builtins import BaseException
 from pathlib import Path
-from types import TracebackType
-from typing import Any, List, Optional, Tuple, Type, Union
+from typing import Any, List, Optional, Tuple, Union, Literal
 
 import psycopg
 
@@ -33,7 +31,7 @@ class DatabaseConnection:
 
         try:
             self.connection = psycopg.connect(
-                database=database,
+                dbname=database,
                 user="apache",
                 password=bigsdb_config_data.get('postgresql_apache_pass'),
                 host="127.0.0.1",
@@ -85,24 +83,24 @@ class DatabaseConnection:
         Returns a psycopg connection to the database.
         :return: psycopg connection
         """
-        return self.connection
+        return self
 
-    # def close(self) -> None:
-    #     """
-    #     Closes the cursor and database connection
-    #     :return: None
-    #     """
-    #     if not self.connection.autocommit:
-    #         self.connection.commit()
-    #     self.cursor.close()
-    #     self.connection.close()
+    def close(self) -> None:
+        """
+        Closes the cursor and database connection
+        :return: None
+        """
+        if not self.connection.autocommit:
+            self.connection.commit()
+        #self.cursor.close()
+        self.connection.close()
 
-    # def __exit__(self, exc_type: Type[BaseException], exc_val: BaseException, exc_tb: TracebackType) -> None:
-    #     """
-    #     Closes the cursor and connection automatically upon
-    #     :param exc_type:
-    #     :param exc_val:
-    #     :param exc_tb:
-    #     :return:
-    #     """
-    #     self.close()
+    def __exit__(self, exc_type: Type[BaseException], exc_val: BaseException, exc_tb: TracebackType) -> None:
+        """
+        Closes the cursor and connection automatically upon
+        :param exc_type:
+        :param exc_val:
+        :param exc_tb:
+        :return:
+        """
+        self.close()

@@ -4,6 +4,8 @@ import tempfile
 from pathlib import Path
 from typing import Tuple
 
+import psycopg
+
 from bioit_bigsdb_scripts.components.psql.psql_tbl_rejected_isolates import TblRejectedIsolates
 from bioit_bigsdb_scripts.utils.url_helper import UrlHelper
 from bioit_mongodb_scripts.model.json_model import JsonReportDict

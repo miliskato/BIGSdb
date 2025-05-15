@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from types import TracebackType
 from typing import List, Tuple, Type, Union
 
-import psycopg2
+import psycopg
 
 from bioit_mongodb_scripts.util.python_utility_functions import send_email
 from .databaseconnection import DatabaseConnection
@@ -128,5 +128,5 @@ class GeneDetectionProfilesBatchInserter:
         Closes the db connections at the end of the run.
         __enter__/__exit__ are used to get the context manager to call the class in a "with" statement.
         """
-        self._isolates_db_connection.connection.close()
-        self._seqdef_db_connection.connection.close()
+        self._isolates_db_connection.close()
+        self._seqdef_db_connection.close()
