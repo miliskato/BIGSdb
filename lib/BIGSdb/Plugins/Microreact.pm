@@ -278,7 +278,6 @@ sub _create_tsv_file {
 	$include_fields{"f_$self->{'system'}->{'labelfield'}"} = 1;
 	my $extended    = $self->get_extended_attributes;
 	my $prov_fields = $self->{'xmlHandler'}->get_field_list;
-	#my $eav_fields  = $self->{'datastore'}->get_eav_fieldnames;
 	my @header_fields;
 
 	foreach my $field (@$prov_fields) {
@@ -304,10 +303,6 @@ sub _create_tsv_file {
 			push @header_fields, $field_name;
 		}
 	}
-#	foreach my $field (@$eav_fields) {
-#			( my $cleaned_field = $field ) =~ tr/_/ /;
-#			push @header_fields, $cleaned_field if $include_fields{"eav_$field"};
-#	}
 	push @header_fields, 'iso3166' if defined $country_field;
 	my $geo_field = $self->_get_geo_field($params);
 	my $lookup_field;
@@ -365,14 +360,6 @@ sub _create_tsv_file {
 				push @record_values, $value;
 			}
 		}
-
-#		foreach my $field (@$eav_fields) {
-#			if ( $include_fields{"eav_$field"} ) {
-#				my $value = $self->{'datastore'}->get_eav_field_value( $record->{'id'}, $field ) // q();
-#				push @record_values, $value;
-#			}
-#		}
-
 		push @record_values, $iso2 if defined $country_field;
 		if ($geo_field) {
 			my $coordinate_values = $self->_process_geo_field( $iso2, $record, $geo_field, $lookup_field );
