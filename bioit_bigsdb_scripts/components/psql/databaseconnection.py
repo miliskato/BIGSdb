@@ -1,6 +1,7 @@
 import sys
 from pathlib import Path
-from typing import Any, List, Optional, Tuple, Union, Literal
+from types import TracebackType
+from typing import Any, List, Optional, Tuple, Union, Literal, Type
 
 import psycopg
 
