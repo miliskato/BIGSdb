@@ -37,9 +37,7 @@ class ParseClinLabJsonSalmonella(ParseClinLabJson):
         serovar_luminex > serovar_agglutination > malditof_identification
         :return: None
         """
-        if self._data_translated.get('serovar_luminex'):
-            self._data_translated['serovar_final'] = self._data_translated['serovar_luminex']
-        elif self._data_translated.get('serovar_agglutination'):
-            self._data_translated['serovar_final'] = self._data_translated['serovar_agglutination']
-        elif self._data_translated.get('malditof_identification'):
-            self._data_translated['serovar_final'] = self._data_translated['malditof_identification']
+        for serovar_type in ['serovar_luminex', 'serovar_agglutination', 'malditof_identification']:
+            if self._data_translated.get(serovar_type):
+                self._data_translated['serovar_final'] = self._data_translated[serovar_type]
+                break
