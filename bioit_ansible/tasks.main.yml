@@ -1006,15 +1006,10 @@
         user: 'root'
         cron_file: check_jobs_killed
 
-    - name: add daily cronjob to capture missing badqc
-      cron:
-        name: "check_for_missing_badqc"
-        minute: '0'
-        hour: '1'  # every day at 1:00 am
-        weekday: '*'
-        job: "{{ bioit_bigs_home }}/3.12PythonVenv/bin/python3.12 {{ bioit_bigs_home }}/bioit_mongodb_scripts/tests/get_missing_bad_qc.py --species {{ species }}"
-        user: 'root'
-        cron_file: check_for_missing_badqc
+    - name: Remove the cronjob to capture missing badqc
+      ansible.builtin.file:
+        path: /etc/cron.d/check_for_missing_badqc
+        state: absent
 
   tags: cron_jobs
 
