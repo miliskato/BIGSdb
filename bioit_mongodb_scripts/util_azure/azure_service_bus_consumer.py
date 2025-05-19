@@ -24,10 +24,6 @@ mail_sent = False
 # Configure stdout logging
 logger = logging.getLogger('bigsdb_insertion')
 logger.setLevel(logging.INFO)
-handler = handlers.TimedRotatingFileHandler('/var/log/bigsdb_insertions.log', when="D", interval=1, backupCount=14)
-formatter = logging.Formatter('%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
-handler.setFormatter(formatter)
-logger.addHandler(handler)
 
 
 def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
@@ -159,7 +155,7 @@ class MessageConsumerDataInserter(AzureServiceBus):
 
     def __keep_error_in_postgres(self, e: Exception, msg: ServiceBusReceivedMessage) -> None:
         """
-        keeps track of the exception in postgres db and also in the /var/log/bigsdb_insertion.log
+        keeps track of the exception in postgres db and also in the /var/log/bigsdb_insertion_{species}.log
         :param e: Exception
         :param msg: a ServiceBusReceivedMessage object
         :return: None
@@ -228,6 +224,18 @@ class MessageConsumerDataInserter(AzureServiceBus):
         return isolate_id
 
 
+def config_log_handlers(species: str) -> None:
+    """
+    configure handlers to get logs rotated once by day
+    :param species: the species used in ANSIBLE playbook
+    :return: None
+    """
+    handler = handlers.TimedRotatingFileHandler(f'/var/log/bigsdb_insertions_{species}.log', when="D", interval=1, backupCount=14)
+    formatter = logging.Formatter('%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+
+
 def handle_shutdown(signum: int, frame: Any) -> None:
     """
     Handler to act on cancel_token when the signal is received.
@@ -246,7 +254,7 @@ def handling_retry_outcome(retry_state: RetryCallState) -> None:
     """
     global mail_sent
     if not mail_sent:
-        send_email(f"{retry_state.outcome.exception()}\nLook at the logs on {socket.gethostname()} (/var/log/bigsdb_insertions.log)",
+        send_email(f"{retry_state.outcome.exception()}\nLook at the logs on {socket.gethostname()} (/var/log/bigsdb_insertions_[species].log)",
                    f'WARNING: azure_service_bus_consumer raised errors on {socket.gethostname()}')
         mail_sent = True
     logger.error("Tentative number %s failed. Message: %s", retry_state.attempt_number, retry_state.outcome.exception())
@@ -280,6 +288,8 @@ if __name__ == '__main__':
 
     # Parse arguments
     args = parse_arguments(mongo_config_provider.get_all_species())
+
+    config_log_handlers(args.species)
 
     try:
         run_application(cancel_token, args.species, mongo_config_provider, args.uploader_mail_address)
