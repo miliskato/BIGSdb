@@ -1028,8 +1028,8 @@
   block:
     - name: add systemd service for automatic insertion
       ansible.builtin.copy:
-        src: "{{ bioit_bigs_home }}/bigsdb-insertion.service"
-        dest: '/etc/systemd/system/bigsdb-insertion.service'
+        src: "{{ bioit_bigs_home }}/bigsdb-insertion-{{ species }}.service"
+        dest: '/etc/systemd/system/bigsdb-insertion-{{ species }}.service'
         owner: root
         group: root
         remote_src: yes
@@ -1037,7 +1037,7 @@
 
     - name: replace species in bigsdb-insertion service
       ansible.builtin.replace:
-        path: '/etc/systemd/system/bigsdb-insertion.service'
+        path: '/etc/systemd/system/bigsdb-insertion-{{ species }}.service'
         regexp: 'to_be_replaced_by_ansible'
         replace: "{{ species }}"
 
