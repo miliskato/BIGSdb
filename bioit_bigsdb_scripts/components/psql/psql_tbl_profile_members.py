@@ -33,6 +33,7 @@ class TblProfileMembers(DatabaseConnection):
         :param data: data to insert into the table (consisting of values used to fill in each row associated to this profile).
         :return: None
         """
-        cur = self.cursor
-        args_str = ','.join(cur.mogrify('(%s, %s, %s, %s, %s, %s)', row).decode("utf-8") for row in data)
-        cur.execute("INSERT INTO {table} VALUES".format(table='profile_members') + args_str)
+        #cur = self.cursor
+        #args_str = ','.join(cur.mogrify('(%s, %s, %s, %s, %s, %s)', row).decode("utf-8") for row in data)
+        #cur.execute("INSERT INTO {table} VALUES".format(table='profile_members') + args_str)
+        self.execute_many("INSERT INTO profile_members VALUES (%s, %s, %s, %s, %s, %s)", data)
