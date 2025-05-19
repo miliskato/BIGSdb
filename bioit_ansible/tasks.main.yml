@@ -1053,7 +1053,7 @@
 
     - name: Touch log file for bigsdb_insertion service
       ansible.builtin.file:
-        path: ""/var/log/bigsdb_insertions_{{ species }}.log"
+        path: "/var/log/bigsdb_insertions_{{ species }}.log"
         state: touch
         mode: "u=rwx,g=rwx,o=rwx"
         owner: bigsdb
