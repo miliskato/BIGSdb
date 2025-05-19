@@ -1,6 +1,4 @@
 CONNECTION_STRING_ALTERNATE: mongodb+srv://mikelchtermans:YMFOH4BLF1U79dDk@hera-bioit-trial.vajezh0.mongodb.net
-CONNECTION_STRING_AZURE: to_be_replaced_by_ansible
-CONNECTION_STRING_LOCAL: 'bioit-mongo-d01.sciensano.be:27017,bioit-mongo-d02.sciensano.be:27017,bioit-mongo-d03.sciensano.be:27017/?authSource='
 CONNECTION_STRING_ASB: to_be_replaced_by_ansible
 MONGO_DB_PASSWORD: to_be_replaced_by_ansible
 
