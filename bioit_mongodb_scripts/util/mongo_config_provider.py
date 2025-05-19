@@ -39,7 +39,7 @@ class MongoConfigProvider:
         self.upload_path = 'upload/' + f"{(alternate_dtap + '/') if alternate_dtap else ''}"
 
     def _get_user(self, species: str):
-        return f'User{species}_{self.dtap}'
+        return f'{species}User_{self.dtap}'
 
     def get_local_connection_string(self, species: str) -> str:
         """
