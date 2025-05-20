@@ -64,8 +64,6 @@ class GeneDetectionProfilesBatchInserter:
         :param data: list of values to fill the sql insert statements
         :return: None
         """
-        #cur = self._seqdef_db_connection.cursor
-        #args_str = ','.join(cur.mogrify('(%s,%s,%s,%s,%s,%s,%s,%s)', row).decode("utf-8") for row in data)
         self._seqdef_db_connection.execute_many(
             "INSERT INTO loci (id, data_type, allele_id_format, length_varies, coding_sequence, curator, date_entered, datestamp) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)", data)
 
@@ -77,7 +75,6 @@ class GeneDetectionProfilesBatchInserter:
         :param data: list of values to fill the sql insert statements
         :return: None
         """
-        #args_str = ','.join(cur.mogrify('(%s,%s,%s,%s)', row).decode("utf-8") for row in data)
         connection.execute_many(
             "INSERT INTO scheme_members (scheme_id, locus, curator, datestamp) VALUES (%s,%s,%s,%s)", data)
 
@@ -87,8 +84,6 @@ class GeneDetectionProfilesBatchInserter:
         :param data: list of values to fill the sql insert statements
         :return: None
         """
-        #cur = self._seqdef_db_connection.cursor
-        #args_str = ','.join(cur.mogrify('(%s,%s,%s,%s)', row).decode("utf-8") for row in data)
         self._seqdef_db_connection.execute_many(
             "INSERT INTO client_dbase_loci (client_dbase_id, locus, curator, datestamp) VALUES (%s,%s,%s,%s)", data)
 
@@ -98,9 +93,6 @@ class GeneDetectionProfilesBatchInserter:
         :param data: list of values to fill the sql insert statement
         :return: None
         """
-        #cur = self._isolates_db_connection.cursor
-        #args_str = ','.join(
-        #    cur.mogrify('(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)', row).decode("utf-8") for row in data)
         self._isolates_db_connection.execute_many(
             "INSERT INTO loci (id, data_type, allele_id_format, length_varies, coding_sequence, dbase_name, dbase_id, url, isolate_display, main_display, query_field, "
             "analysis, submission_template, curator, date_entered, datestamp) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)", data)
@@ -111,10 +103,8 @@ class GeneDetectionProfilesBatchInserter:
         :param data: list of values to fill the sql insert statement
         :return: None
         """
-        #cur = self._seqdef_db_connection.cursor
-        #args_str = ','.join(cur.mogrify('(%s, %s, %s, %s, %s, %s, %s, %s)', row).decode("utf-8") for row in data)
         self._seqdef_db_connection.execute_many(
-            "INSERT INTO sequences (locus, allele_id, sequence, status, sender,curator, date_entered, datestamp) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)", data)
+            "INSERT INTO sequences (locus, allele_id, sequence, status, sender, curator, date_entered, datestamp) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)", data)
 
     def __enter__(self):
         """
