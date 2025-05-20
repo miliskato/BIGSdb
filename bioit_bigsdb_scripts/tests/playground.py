@@ -23,10 +23,10 @@ from bioit_bigsdb_scripts.components.psql import TblSequences, TblProfiles, TblP
 #     print('###', isolates_schememembers_psql_tbl.select_loci_amr())
 #
 with TblIsolates('mycobacterium') as isolates_psql_tbl:
-    test = isolates_psql_tbl.select_isolates_by_cgsts_and_between_dates((2, 2, 2, ('1', '2'), '2018-05-06', '2024-06-08'))
+    test = isolates_psql_tbl.select_isolates_by_cgsts_and_between_dates((2, ['1', '2'], '2018-05-06', '2024-06-08'))
     print('###', test, len(test))
     print(test[0][2])
-    test2 = isolates_psql_tbl.select_isolates_by_cgsts_and_between_dates((2, 2, 2, ('1', '2'), '2024-05-06', '2024-06-08'))
+    test2 = isolates_psql_tbl.select_isolates_by_cgsts_and_between_dates((2, ['1', '2'], '2024-05-06', '2024-06-08'))
     print('###', test2, len(test2))
 
 # with TblClassificationSchemes('stec', 'seqdef') as seqdef_clsch_psql_tbl:

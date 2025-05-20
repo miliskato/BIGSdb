@@ -60,7 +60,7 @@ class DatabaseConnection:
 
     def execute(self, query: str) -> Optional[List[Optional[Tuple[Any]]]]:
         """
-        Executes a sql query using psycopg2 sanitization
+        Executes a sql query using psycopg sanitization
         :param query: sql query to be used
         :return: None or query results
         """
@@ -93,7 +93,6 @@ class DatabaseConnection:
         """
         if not self.connection.autocommit:
             self.connection.commit()
-        #self.cursor.close()
         self.connection.close()
 
     def __exit__(self, exc_type: Type[BaseException], exc_val: BaseException, exc_tb: TracebackType) -> None:

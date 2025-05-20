@@ -63,15 +63,6 @@ class TblIsolates(DatabaseConnection):
         """
         self.execute_query(PsqlQueries.ISO_UPD__TB_ISO_VAR_ISO_ISO_ISO_DATE, param)
 
-    def revert_newversion(self, param: Tuple[str]) -> None:
-        """
-        Reverts the new version pointer of the latest - 1 isolate version to the latest version
-        :param param: variables to feed to the PSQL query, which also sanitizes these variables,
-        necessary parameters visible in the PSQL query name and query
-        :return: None
-        """
-        self.execute_query(PsqlQueries.ISO_UPD_NEWV_TB_ISO_VAR_ISO, param)
-
     def select_current_cgst_of_isolate(self, param: Tuple[int, str]) -> List[Optional[Tuple[Any]]]:
         """
         Select the cgst found in BIGSdb for the current isolate and return it
@@ -80,7 +71,7 @@ class TblIsolates(DatabaseConnection):
         """
         return self.execute_query(PsqlQueries.ISO_SEL_CGST_TB_ISO_VAR_SCHID_ISO, param)
 
-    def select_isolates_by_cgsts_and_between_dates(self, param: Tuple[int, Tuple[str, ...], str, str]) -> \
+    def select_isolates_by_cgsts_and_between_dates(self, param: Tuple[int, list[str, ...], str, str]) -> \
             List[Optional[Tuple[Any]]]:
         """
         Selects all current versions of isolates that belong to a set of cgsts and were isolated between a
@@ -92,7 +83,7 @@ class TblIsolates(DatabaseConnection):
         return self.execute_query(PsqlQueries.ISO_SEL_ID_ISO_DATE_CGST_TB_ISO_VAR_SCHID_SCHID_SCHID_CGSTS_DATE1_DATE2,
                                   param_arranged_for_psql)
 
-    def select_isolates_by_cgsts(self, param: Tuple[int, Tuple[str, ...]]) -> List[Optional[Tuple[Any]]]:
+    def select_isolates_by_cgsts(self, param: Tuple[int, list[str, ...]]) -> List[Optional[Tuple[Any]]]:
         """
         Selects all current versions of isolates that belong to a set of cgsts
         :param param: cgmlst scheme id, cgsts
@@ -124,13 +115,6 @@ class TblIsolates(DatabaseConnection):
         return self.execute_query(
             PsqlQueries.ISO_SEL_ID_ISO_DATE_CGST_CLGR_TB_ISO_VAR_CSCHID_SCHID_SCHID_CSCHID_CSCHID_CSCHID_CSCHID_CGST, param_arranged_for_psql)
 
-    def select_isolates_with_isolation_date(self, param: Tuple[Tuple[str, ...]]) -> List[Optional[Tuple[Any]]]:
-        """
-        Selects all current versions of isolates that appear in input list and have an isolation date; needed for temporary alerts implementation.
-        :param param: isolates
-        :return: None or list of tuple of isolates.isolate, isolates.isolation_date (as datetime date)
-        """
-        return self.execute_query(PsqlQueries.ISO_SEL_ISO_DATE_TB_ISO_VAR_ISOS, param)
 
     def select_latestanalysisdate_for_isolate(self, param: Tuple[str]) -> List[Optional[Tuple[Any]]]:
         """
