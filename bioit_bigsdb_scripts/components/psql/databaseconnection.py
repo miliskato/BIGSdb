@@ -58,6 +58,20 @@ class DatabaseConnection:
             if query.strip().startswith('SELECT'):
                 return cur.fetchall()
 
+    def execute_query_client_cursor(self, query: str, params: Union[Tuple[Union[str, int, Tuple[str]]], List[Union[str, int]], Tuple[str, str, float]]) \
+            -> Optional[List[Optional[Tuple[Any]]]]:
+        """
+        Executes a sql query using the ClientCursor which merges the query on the client side and sends the query and
+        the parameters merged together to the server.
+        :param query: sql query to be used
+        :param params: parameters to be passed to sqlquery
+        :return: None or query results
+        """
+        with psycopg.ClientCursor(self.connection) as cur:
+            cur.execute(query, params)
+            if query.strip().startswith('SELECT'):
+                return cur.fetchall()
+
     def execute(self, query: str) -> Optional[List[Optional[Tuple[Any]]]]:
         """
         Executes a sql query using psycopg sanitization

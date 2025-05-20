@@ -69,7 +69,7 @@ class TblIsolates(DatabaseConnection):
         :param param: cgmlst scheme id, isolate name
         :return: list of None or list with one tuple containing the cgST
         """
-        return self.execute_query(PsqlQueries.ISO_SEL_CGST_TB_ISO_VAR_SCHID_ISO, param)
+        return self.execute_query_client_cursor(PsqlQueries.ISO_SEL_CGST_TB_ISO_VAR_SCHID_ISO, param)
 
     def select_isolates_by_cgsts_and_between_dates(self, param: Tuple[int, list[str, ...], str, str]) -> \
             List[Optional[Tuple[Any]]]:
@@ -80,7 +80,7 @@ class TblIsolates(DatabaseConnection):
         :return: None or list of tuple of isolates.id, isolates.isolate, isolates.isolation_date (as datetime date), cgst
         """
         param_arranged_for_psql = (param[0], param[0], param[0], param[1], param[2], param[3])
-        return self.execute_query(PsqlQueries.ISO_SEL_ID_ISO_DATE_CGST_TB_ISO_VAR_SCHID_SCHID_SCHID_CGSTS_DATE1_DATE2,
+        return self.execute_query_client_cursor(PsqlQueries.ISO_SEL_ID_ISO_DATE_CGST_TB_ISO_VAR_SCHID_SCHID_SCHID_CGSTS_DATE1_DATE2,
                                   param_arranged_for_psql)
 
     def select_isolates_by_cgsts(self, param: Tuple[int, list[str, ...]]) -> List[Optional[Tuple[Any]]]:
@@ -90,7 +90,7 @@ class TblIsolates(DatabaseConnection):
         :return: None or list of tuple of isolates.id, isolates.isolate, isolates.isolation_date (as datetime date), cgst
         """
         param_arranged_for_psql = (param[0], param[0], param[0], param[1])
-        return self.execute_query(PsqlQueries.ISO_SEL_ID_ISO_DATE_CGST_TB_ISO_VAR_SCHID_SCHID_SCHID_CGSTS, param_arranged_for_psql)
+        return self.execute_query_client_cursor(PsqlQueries.ISO_SEL_ID_ISO_DATE_CGST_TB_ISO_VAR_SCHID_SCHID_SCHID_CGSTS, param_arranged_for_psql)
 
     def select_isolates_by_cluster_group_and_between_dates(self, param: Tuple[int, int, str, str, str]) -> List[Optional[Tuple[Any]]]:
         """
@@ -102,7 +102,7 @@ class TblIsolates(DatabaseConnection):
         """
         param_arranged_for_psql = (param[0], param[1], param[1], param[0], param[0], param[0], param[0], param[2],
                                    param[3], param[4])
-        return self.execute_query(
+        return self.execute_query_client_cursor(
             PsqlQueries.ISO_SEL_ID_ISO_DATE_CGST_CLGR_TB_ISO_VAR_CSCHID_SCHID_SCHID_CSCHID_CSCHID_CSCHID_CSCHID_CGST_DATE1_DATE2, param_arranged_for_psql)
 
     def select_isolates_by_cluster_group(self, param: Tuple[int, int, str]) -> List[Optional[Tuple[Any]]]:
@@ -112,7 +112,7 @@ class TblIsolates(DatabaseConnection):
         :return: None or list of tuple of isolates.id, isolates.isolate, isolates.isolation_date (as datetime date), cgst
         """
         param_arranged_for_psql = (param[0], param[1], param[1], param[0], param[0], param[0], param[0], param[2])
-        return self.execute_query(
+        return self.execute_query_client_cursor(
             PsqlQueries.ISO_SEL_ID_ISO_DATE_CGST_CLGR_TB_ISO_VAR_CSCHID_SCHID_SCHID_CSCHID_CSCHID_CSCHID_CSCHID_CGST, param_arranged_for_psql)
 
 
