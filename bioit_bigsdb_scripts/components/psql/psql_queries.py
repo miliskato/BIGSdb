@@ -178,6 +178,14 @@ class PsqlQueries:
         SELECT value FROM eav_text_hidden WHERE field='mongo_results_version' AND 
         isolate_id=(SELECT id FROM isolates WHERE isolate=%s);"""
 
+    # TBL failed_insertions
+    ISO_INS__TB_FAILINS_VAR_MSGID_PSEUDOID: Final[str] = """
+        INSERT INTO failed_insertions(message_id, pseudo_id, timestamp, comment) VALUES(%s, %s, (SELECT NOW()::TIMESTAMP), 'Insertion started');"""
+    ISO_UPD_COM_TB_FAILINS_VAR_MSGID: Final[str] = """
+        UPDATE failed_insertions set comment = %s WHERE message_id = %s;"""
+    ISO_DEL__TB_FAILINS_VAR_MSGID: Final[str] = """
+        DELETE FROM failed_insertions WHERE message_id = %s;"""
+
     # TBL history
     ISO_INS__TB_HIST_VAR_ID_MESS: Final[str] = """
         INSERT INTO history(isolate_id, timestamp, action, curator) 
@@ -387,25 +395,25 @@ class PsqlQueries:
 
     # TBL submissions
     ISO_SEL_ID_VALUE_OUTCOME_EMAIL_TYPE_TB_SUB_VAR_SUBID: Final[str] = """
-        SELECT submissions.id, isolate_submission_isolates.value, submissions.outcome, users.email, submissions.validation_type
+        SELECT submissions.id, isolate_submission_isolates.value, submissions.outcome, users.email, submissions.quality, submissions.resequencing
         FROM submissions 
         LEFT JOIN users ON users.id = submissions.curator 
         LEFT JOIN isolate_submission_isolates ON isolate_submission_isolates.submission_id = submissions.id 
         WHERE submissions.status='closed' and isolate_submission_isolates.field='isolate_id' and submissions.id=%s;"""
     ISO_UPD_STATUS_TB_SUB_VAR_ID: Final[str] = """
         UPDATE submissions SET status='validation_sent_to_bioit_platform' WHERE id=%s;"""
-    ISO_INS__TB_SUB_VAR_VALTYPE: Final[str] = """
+    ISO_INS__TB_SUB_VAR_QUAL_RESEQ: Final[str] = """
         INSERT INTO submissions(id, 
-        type,submitter, date_submitted, 
-        datestamp, status, email, validation_type) 
+        type, submitter, date_submitted, 
+        datestamp, status, email, quality, resequencing) 
         VALUES ((SELECT CASE WHEN (SELECT MAX(id::int) FROM submissions WHERE id ~ '^[0-9]+$') IS NULL THEN 1 ELSE (SELECT(SELECT MAX(id::int) FROM submissions WHERE id ~ '^[0-9]+$')+1) END), 
         'isolates', 1, (SELECT CURRENT_DATE), 
-        (SELECT CURRENT_DATE), 'pending', true, %s);"""
+        (SELECT CURRENT_DATE), 'pending', true, %s, %s);"""
     ISO_SEL_ID_TB_SUB_VAR_STATUS: Final[str] = """
         SELECT id FROM submissions WHERE outcome = 'good' AND status = 'closed' AND id LIKE 'BIGSdb_%';"""
     ISO_SEL_SUBID_TB_SUB_VAR_: Final[str] = """
-        SELECT id FROM submissions WHERE outcome = 'good' AND status = 'closed' AND validation_type = 'bad_quality';"""
+        SELECT id FROM submissions WHERE outcome = 'good' AND status = 'closed' AND quality = 'warning' AND resequencing = 'no';"""
     ISO_UPD_STATUS_OUTCOME_TB_SUB_VAR_: Final[str] = """
-        UPDATE submissions SET (status, outcome) = ('closed', 'good') WHERE ( validation_type = 'bad_quality' AND OUTCOME IS NULL);"""
+        UPDATE submissions SET (status, outcome) = ('closed', 'good') WHERE ( quality = 'warning' AND resequencing = 'no' AND OUTCOME IS NULL);"""
     ISO_INSERT_GENERIC_LAB_METADATA_TEMPLATE: Final[str] = "UPDATE isolates SET {} WHERE isolate=%s;"
 
