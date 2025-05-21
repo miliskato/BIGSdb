@@ -2,10 +2,10 @@ import os
 from pathlib import Path
 from typing import Union
 
-from bioit_bigsdb_scripts.components.python_utility_functions import get_cgmlst_bigsdb_scheme_id
 from bioit_mongodb_scripts.util.alerts_to_bigs import AlertsToBigs
 from bioit_mongodb_scripts.util.new_clustering_info_to_bigs import NewClusteringInfoToBigs
-from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, execute_command
+from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, execute_command, \
+    get_cgmlst_bigsdb_scheme_id
 
 
 class UpdateBIGSdbClusteringCacheAlerts:

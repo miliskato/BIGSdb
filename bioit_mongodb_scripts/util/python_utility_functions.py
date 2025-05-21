@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Optional, Union
 
 import yaml
 
+from bioit_bigsdb_scripts.components.psql import TblSchemes
 from bioit_mongodb_scripts.util.command.command import Command
 
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
@@ -148,3 +149,14 @@ def execute_command(command_str: str, path: Path) -> None:
     command.run(path)
     if command.returncode != 0:
         raise Exception(f"Command {command_str} is not executed")
+
+
+def get_cgmlst_bigsdb_scheme_id(species: str) -> int:
+    """
+    Returns the cgMLST BIGSdb scheme id for a specific species:
+    :param species: commonly used bioit species name: either genus or specific like stec
+    :return: cgMLST BIGSdb scheme id
+    """
+    with TblSchemes(species, 'isolates') as isolates_schemes_psql_tbl:
+        cgmlst_bigsdb_scheme_id = isolates_schemes_psql_tbl.select_scheme_id_cgmlst()[0][0]
+    return cgmlst_bigsdb_scheme_id
