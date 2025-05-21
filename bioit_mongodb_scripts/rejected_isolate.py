@@ -69,7 +69,7 @@ class RejectedIsolate:
             isolate_exists = rejected_isolates_psql_tbl.exists_isolate((self._isolate_id,))
             if isolate_exists[0][0]:
                 rejected_isolates_psql_tbl.delete_isolate((self._isolate_id,))
-            insertion_date, insertion_type, rejection_reasons, report_link = self._retrieve_fields()
+            insertion_date, insertion_type, rejection_reasons, report_link = self._retrieve_fields(rejected_isolates_psql_tbl)
             rejected_isolates_psql_tbl.insert_isolate(
                 (self._isolate_id, insertion_date, rejection_reasons, insertion_type, report_link))
             self._update_mongodb()
