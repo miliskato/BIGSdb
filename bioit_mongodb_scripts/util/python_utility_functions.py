@@ -11,6 +11,8 @@ from typing import Any, Dict, List, Optional, Union
 
 import yaml
 
+from bioit_mongodb_scripts.util.command.command import Command
+
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
@@ -133,3 +135,16 @@ def access_value_in_dict_using_list_as_dictpath(dict_path: List, search_dict: Di
         if not current:
             break
     return current
+
+
+def execute_command(command_str: str, path: Path) -> None:
+    """
+    Executes a bash command.
+    :param command_str: Bash command
+    :param path: Path where it should be executed
+    :return: None
+    """
+    command = Command(command_str)
+    command.run(path)
+    if command.returncode != 0:
+        raise Exception(f"Command {command_str} is not executed")

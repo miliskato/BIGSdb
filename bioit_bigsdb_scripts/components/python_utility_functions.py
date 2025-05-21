@@ -9,6 +9,8 @@ from typing import Any, Dict, List, Union
 
 import yaml
 
+from bioit_bigsdb_scripts.components.psql import TblSchemes
+
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
@@ -45,3 +47,14 @@ def send_email(content: str, subject=None,
         with smtplib.SMTP(config['host']) as s:
             s.send_message(message)
     logging.debug(content)
+
+
+def get_cgmlst_bigsdb_scheme_id(species: str) -> int:
+    """
+    Returns the cgMLST BIGSdb scheme id for a specific species:
+    :param species: commonly used bioit species name: either genus or specific like stec
+    :return: cgMLST BIGSdb scheme id
+    """
+    with TblSchemes(species, 'isolates') as isolates_schemes_psql_tbl:
+        cgmlst_bigsdb_scheme_id = isolates_schemes_psql_tbl.select_scheme_id_cgmlst()[0][0]
+    return cgmlst_bigsdb_scheme_id
