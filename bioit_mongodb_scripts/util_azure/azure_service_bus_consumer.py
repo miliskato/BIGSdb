@@ -3,7 +3,7 @@ import logging
 import signal
 import socket
 from logging import handlers
-from typing import Any, List
+from typing import Any, List, Union
 
 from azure.servicebus import ServiceBusClient, ServiceBusReceivedMessage
 from pymongo.errors import ConnectionFailure, OperationFailure
@@ -95,7 +95,6 @@ class MessageConsumerDataInserter(AzureServiceBus):
                 with service_bus_client.get_queue_receiver(queue_name=self._queue_name) as receiver:
                     update_tool = UpdateBIGSdbSeqDef(self._species)
                     update_tool.update_bigsdb_psql_if_needed()
-                    #should_update_cache = False
                     list_of_new_isolates_for_alerts = []
                     list_of_new_versions_for_alerts = []
                     received_msgs = receiver.receive_messages(max_wait_time=5, max_message_count=1)
@@ -117,22 +116,17 @@ class MessageConsumerDataInserter(AzureServiceBus):
                             list_of_new_isolates_for_alerts.extend(new_isolates_for_alerts)
                             list_of_new_versions_for_alerts.extend(new_versions_for_alerts)
                             self.__rm_msg_from_postgres(msg)
-                            #if not should_update_cache:
-                            #   should_update_cache = bigs_db_was_modified
-                        except ConnectionFailure as e:
-                            raise e
-                        except OperationFailure as e:
-                            raise e
-                        except IsolateNotFoundException as e:
-                            self.__keep_error_in_postgres(e, msg)
-                            raise e
-                        except BadCollectionError as e:
-                            self.__keep_error_in_postgres(e, msg)
-                            raise e
                         except Exception as e:
-                            logger.error(e)
-                            self.__keep_error_in_postgres(e, msg)
-                            raise e
+                            self.__execute_clustering_cache_alerts_nominative(list_of_new_isolates_for_alerts, list_of_new_versions_for_alerts)
+                            if isinstance(e, (ConnectionFailure, OperationFailure)):
+                                raise e
+                            elif isinstance(e, (IsolateNotFoundException, BadCollectionError)):
+                                self.__keep_error_in_postgres(e, msg)
+                                raise e
+                            elif isinstance(e, Exception):
+                                logger.error(e)
+                                self.__keep_error_in_postgres(e, msg)
+                                raise e
 
                         if mail_sent:
                             mail_sent = False
@@ -143,10 +137,7 @@ class MessageConsumerDataInserter(AzureServiceBus):
 
                         if not received_msgs:
                             try:
-                                if not is_viral(self._species) and len(list_of_new_isolates_for_alerts + list_of_new_versions_for_alerts) > 0:
-                                    update_bigsdb_clustering_cache_alerts = UpdateBIGSdbClusteringCacheAlerts(self._species, list_of_new_isolates_for_alerts, list_of_new_versions_for_alerts)
-                                    update_bigsdb_clustering_cache_alerts.update_clustering_cache_alerts()
-                                MongoToBigsNominative(self._species, self._mongo_config_data, dont_send_email=True)
+                                self.__execute_clustering_cache_alerts_nominative(list_of_new_isolates_for_alerts, list_of_new_versions_for_alerts)
                             except Exception as e:
                                 raise e
 
@@ -224,6 +215,23 @@ class MessageConsumerDataInserter(AzureServiceBus):
         mongo_to_bigs_instance = MongoToBigs(self._species, self._uploader_mail_address, single_sample_id=isolate_id)
         list_of_new_isolates_for_alerts, list_of_new_versions_for_alerts = mongo_to_bigs_instance.run_mongo_to_bigs()
         return list_of_new_isolates_for_alerts, list_of_new_versions_for_alerts
+
+    def __execute_clustering_cache_alerts_nominative(self, list_of_new_isolates_for_alerts: list[dict[str, Union[str, int]]],
+                                                     list_of_new_versions_for_alerts:  list[dict[str, Union[str, int]]]) -> None:
+        """
+        Executes the clustering to bigs, the update of the cache, the alerts and mongo to bigs nominative.
+        :param list_of_new_isolates_for_alerts: List of dictionaries of relevant data concerning newly
+        sql-inserted isolates.
+        :param list_of_new_versions_for_alerts: List of dictionaries of relevant data concerning newly
+        sql-inserted versions of existing isolates with different cgSTs than the previous version.
+        :return: None
+        """
+        if not is_viral(self._species) and len(list_of_new_isolates_for_alerts + list_of_new_versions_for_alerts) > 0:
+            update_bigsdb_clustering_cache_alerts = UpdateBIGSdbClusteringCacheAlerts(self._species,
+                                                                                      list_of_new_isolates_for_alerts,
+                                                                                      list_of_new_versions_for_alerts)
+            update_bigsdb_clustering_cache_alerts.update_clustering_cache_alerts()
+        MongoToBigsNominative(self._species, self._mongo_config_data, dont_send_email=True)
 
     def _get_isolate_id(self, species: str, pseudo_id: str) -> str:
         """
