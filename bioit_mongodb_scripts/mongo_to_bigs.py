@@ -97,7 +97,6 @@ class MongoToBigs:
         self._list_of_new_isolates_for_alerts = []  # will remain empty for the viral pathogens
         self._list_of_new_versions_for_alerts = []
 
-
     def run_mongo_to_bigs(self) -> tuple[list, list]:
         """
         This runs the insertion of pending documents into bigsdb
@@ -109,6 +108,7 @@ class MongoToBigs:
             return self._list_of_new_isolates_for_alerts, self._list_of_new_versions_for_alerts
         except Exception as exceptionmessage1:
             self._isolates_psql_tbl.connection.rollback()
+            traceback1 = traceback.format_exc()
             raise Exception(
                 f"{Path(__file__).name} fail on host {socket.gethostname()}: {exceptionmessage1}\n{traceback1}")
         finally:
@@ -184,34 +184,6 @@ class MongoToBigs:
             with TblMappingTable(self._species) as isolates_mapping_psql_tbl:
                 isolates_mapping_psql_tbl.insert_mapping_for_isolate((isolate_id, document['_id'],))
         self.__delete_flagfile(isolate=isolate_id)
-
-    # def cache_and_clustering_update(self) -> None:
-    #     """
-    #     This method updates the clustering and the cache. It should be run after the insertion of new documents in BIGSdb
-    #     :return: None
-    #     """
-    #     if not is_viral(self._species):
-    #         # Run clustering and new cgST insertion before cache update
-    #         NewClusteringInfoToBigs(self._species, self._naive_clustering_distance_matrix_file,
-    #                                 self._cgmlst_bigsdb_scheme_id, mongo_config_data=self._mongo_config_data)
-    #
-    #         # Update cache again before alerts implementation because new isolates won't have cgST's but are needed for alerts implementation
-    #         self._cache_command_object.run(Path(os.getcwd()))
-    #         if self._cache_command_object.returncode != 0:
-    #             raise RuntimeError(f"update of the cache to display the cgsts of new isolates failed on host {socket.gethostname()}")
-    #
-    #         # Insert nominative and labtest metadata after having done everything else except the alerts in order to not break the alerts 'failsafe'
-    #         MongoToBigsNominative(self._species, self._mongo_config_data, dont_send_email=True)
-    #
-    #     # Run Alerts to bigs after updating the cache because it accesses a SQL table that is updated by the cache updater.
-    #     # also run it after having inserted all isolates into bigsdb
-    #     try:
-    #         if len(self._list_of_new_isolates_for_alerts + self._list_of_new_versions_for_alerts) > 0:
-    #             AlertsToBigs(self._list_of_new_isolates_for_alerts, self._list_of_new_versions_for_alerts, self._species,
-    #                          self._cgmlst_bigsdb_scheme_id, self._naive_clustering_distance_matrix_file)
-    #     except Exception:
-    #         self._exception_in_alerts = True
-    #         raise
 
     def __add_isolate_cgst_to_alert_lists(self, document: MongoRecordDict, isolate_id: str, results_type: ResultType,
                                           cgst_changed: bool) -> None:
@@ -414,34 +386,6 @@ class MongoToBigs:
                 #         insert_assembly(isolate_id, self._species, temp_fasta_path, results_type)
                 #     logging.info(f"Wrote new results version for {isolate_id} to bigsdb")
 
-    # def _run_alerts_to_bigs_upon_exception(self, exception_msg_1: Exception, traceback1: str) -> None:
-    #     """
-    #     If an insertion into BIGSdb fails, the alerts for the succeeded insertions need to be evaluated,
-    #     because else they would not be evaluated at all
-    #     for this purpose the cache first needs to be updated after having inserted new isolates/cgsts
-    #     (the cgst needs to come from the seqdef db).
-    #     :return: None
-    #     """
-    #     if is_viral(self._species):
-    #         return
-    #     self._cache_command_object.run(Path(os.getcwd()))
-    #     if self._cache_command_object.returncode != 0:
-    #         raise RuntimeError(
-    #             f"update of the cache to display the clustering failed on host {socket.gethostname()}")
-    #
-    #     # then run the alerts implementation for distance matrices
-    #     # ofcourse this can fail too, therefore we encapsulate it in another try except
-    #     if len(self._list_of_new_isolates_for_alerts + self._list_of_new_versions_for_alerts) > 0 and not \
-    #             self._exception_in_alerts:
-    #         try:
-    #             AlertsToBigs(self._list_of_new_isolates_for_alerts, self._list_of_new_versions_for_alerts,
-    #                          self._species, self._cgmlst_bigsdb_scheme_id, self._naive_clustering_distance_matrix_file)
-    #         except Exception as exceptionmessage2:
-    #             traceback2 = traceback.format_exc()
-    #             raise Exception(f"{Path(__file__).name} double fail on host {socket.gethostname()}: "
-    #                             f"Failure 1: {exception_msg_1}\n{traceback1}\n"
-    #                             f"Failure 2: {exceptionmessage2}\n{traceback2}")
-
     def ___make_flagfilepath(self, isolate: str) -> Path:
         """
         Returns the flag file path
@@ -512,4 +456,3 @@ if __name__ == '__main__':
                                          single_sample_id=(args.single_sample_id if args.single_sample_id else None),
                                          mongo_config_data=mongo_config_data)
     mongo_to_bigs_instance.run_mongo_to_bigs()
-    #mongo_to_bigs_instance.cache_and_clustering_update()
