@@ -118,7 +118,7 @@ species:
         dirdb: ''
       mycobacterium_ncbi16s:
         dirdb: ''
-    genedetection_schemes: None
+    genedetection_schemes: null
   neisseria:
     typing_schemes:
       neisseria_mlst:

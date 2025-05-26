@@ -65,7 +65,7 @@ class GeneDetectionIntoPsql:
         :param scheme_dict: bigsdb config for the scheme
         :return: None
         """
-        if scheme_dict == 'None' or scheme_dict is None:
+        if scheme_dict is None:
             return
 
         context_builder_factory = GeneDetectionContextBuilderFactory()
