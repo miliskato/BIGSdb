@@ -117,20 +117,20 @@ class MongoToBigs:
         """
         try:
             self._mongo_to_bigs()
+            self._isolates_psql_tbl.connection.commit()
             return self._changes_in_bigsdb
         except Exception as exceptionmessage1:
-            """
-            If an insertion into bigsdb fails, the alerts for the succeeded insertions need to be evaluated,
-            because else they would not be evaluated at all
-            for this purpose the cache first needs to be updated after having inserted new isolates/cgsts
-            (the cgst needs to come from the seqdef db).
-            """
+            # If an insertion into bigsdb fails, the alerts for the succeeded insertions need to be evaluated,
+            # because else they would not be evaluated at all
+            # for this purpose the cache first needs to be updated after having inserted new isolates/cgsts
+            # (the cgst needs to come from the seqdef db).
             traceback1 = traceback.format_exc()
-
             self._run_alerts_to_bigs_upon_exception(exceptionmessage1, traceback1)
-
+            self._isolates_psql_tbl.connection.rollback()
             raise Exception(
                 f"{Path(__file__).name} fail on host {socket.gethostname()}: {exceptionmessage1}\n{traceback1}")
+        finally:
+            self._isolates_psql_tbl.connection.close()
 
     def _mongo_to_bigs(self) -> None:
         """
@@ -441,13 +441,6 @@ class MongoToBigs:
                 #             isolates_seqbinstats_psql_tbl.revert_seqbinstats_newversion([isolate_id])
                 #         insert_assembly(isolate_id, self._species, temp_fasta_path, results_type)
                 #     logging.info(f"Wrote new results version for {isolate_id} to bigsdb")
-
-    def __del__(self) -> None:
-        """
-        Closes the isolates psql table when the class is closed
-        :return: None
-        """
-        self._isolates_psql_tbl.close()
 
     def _run_alerts_to_bigs_upon_exception(self, exception_msg_1: Exception, traceback1: str) -> None:
         """

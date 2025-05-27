@@ -225,11 +225,11 @@ class AlertsToBigs:
         indices_for_similar_cgsts = np.where(row_cgst <= distance_threshold)[0]
         return [str(x + 1) for x in indices_for_similar_cgsts]
 
-    def ___query_isolates_according_to_thresholds(self, cgsts_as_tuple_of_str: List[str], cgst_of_current_isolate: int, isolation_date: datetime.datetime,
+    def ___query_isolates_according_to_thresholds(self, cgsts_as_list_of_str: list[str], cgst_of_current_isolate: int, isolation_date: datetime.datetime,
                                                   investigation_method: str, threshold_key: str) -> List[Optional[Tuple[Any]]]:
         """
         Queries isolates according to the given input parameters.
-        :param cgsts_as_tuple_of_str: cgSTs belonging within given threshold key's threshold
+        :param cgsts_as_list_of_str: cgSTs belonging within given threshold key's threshold
         :param cgst_of_current_isolate: cgST of the current isolate
         :param isolation_date: isolation date of the current isolate
         :param investigation_method: 'distance matrix' or 'single linkage'
@@ -237,27 +237,27 @@ class AlertsToBigs:
         :return: List of tuples of queried isolates
         """
         if investigation_method == 'distance matrix':
-            queried_isolates = self.____get_queried_isolates_with_distance_matrix(tuple(cgsts_as_tuple_of_str), isolation_date)
+            queried_isolates = self.____get_queried_isolates_with_distance_matrix(cgsts_as_list_of_str, isolation_date)
         else:
             queried_isolates = self.____get_queried_isolates_with_single_linkage(cgst_of_current_isolate, isolation_date, threshold_key)
         return queried_isolates
 
-    def ____get_queried_isolates_with_distance_matrix(self, cgsts_as_tuple_of_str: tuple[str, ...], isolation_date: datetime.datetime) -> List[Optional[Tuple[Any]]]:
+    def ____get_queried_isolates_with_distance_matrix(self, cgsts_as_list_of_str: list[str, ...], isolation_date: datetime.datetime) -> List[Optional[Tuple[Any]]]:
         """
         Return isolates belonging to the alert according to the matrix method
-        :param cgsts_as_tuple_of_str: Tuple containing similar cgsts from the distance matrix based on a specific threshold
+        :param cgsts_as_list_of_str: List containing similar cgsts from the distance matrix based on a specific threshold
         :param isolation_date: isolation date of the isolate under evaluation for alerts
         :return: List of tuples of queried isolates
         """
         with TblIsolates(self._species) as isolates_psql_tbl:
             if self._timeframe_is_infinite:
                 queried_isolates = isolates_psql_tbl.select_isolates_by_cgsts(
-                    (self._cgmlst_bigsdb_scheme_id, cgsts_as_tuple_of_str))
+                    (self._cgmlst_bigsdb_scheme_id, cgsts_as_list_of_str))
             else:
                 start_date = (isolation_date - self._timedelta_timeframe).strftime('%Y-%m-%d')
                 end_date = (isolation_date + self._timedelta_timeframe).strftime('%Y-%m-%d')
                 queried_isolates = isolates_psql_tbl.select_isolates_by_cgsts_and_between_dates(
-                    (self._cgmlst_bigsdb_scheme_id, cgsts_as_tuple_of_str, start_date, end_date))
+                    (self._cgmlst_bigsdb_scheme_id, cgsts_as_list_of_str, start_date, end_date))
         return queried_isolates
 
     def ____get_queried_isolates_with_single_linkage(self, cgst_of_current_isolate: int, isolation_date: datetime.datetime, threshold_key: str) -> List[Optional[Tuple[Any]]]:

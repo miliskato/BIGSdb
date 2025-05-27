@@ -1,7 +1,7 @@
 mail:
   from: BIGSdb internal HERA
   to: Michael or Ann-Stephan
-  host: bioit-mailhog.sciensano.be:1025
+  host: bioit-mailhog.darwinproject.be:1025
 
 failsafe:
   flag_dir: /scratch/temp/flags
@@ -118,7 +118,7 @@ species:
         dirdb: ''
       mycobacterium_ncbi16s:
         dirdb: ''
-    genedetection_schemes: None
+    genedetection_schemes: null
   neisseria:
     typing_schemes:
       neisseria_mlst:

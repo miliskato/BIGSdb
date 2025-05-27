@@ -54,9 +54,6 @@ class MongoToBigsNominative:
         self._nominative_labtest_clinical_metadata_collection = self._mongoinit_local.initialise_nominative_labtest_clinical_metadata_collection()
         self._mappingtable_collection = self._mongoinit_local.initialise_mapping_table_collection()
 
-        # Open Bigsdb isolates table
-        self._isolates_psql_tbl = TblIsolates(self._species)
-
         try:
             self._mongo_to_bigs_nominative()
         except Exception as exceptionmessage:
@@ -78,13 +75,13 @@ class MongoToBigsNominative:
             mapping_table = self._mappingtable_collection.find_one({'_id': document['sample_id']})
             if not mapping_table:
                 continue
-            sample_presence = self._isolates_psql_tbl.count_isolate((mapping_table['_id'],))
-            dict_to_be_inserted = {}
-            if sample_presence[0][0] != 0:  # only add metadata if sample exists in bigsdb
-                for key, value in document.items():
-                    if key not in ['inserted_into_bigsdb', '_id'] and value is not None:
-                        dict_to_be_inserted[key] = value
-                with TblIsolates(self._species) as isolates_psql_tbl:
+            with TblIsolates(self._species) as isolates_psql_tbl:
+                sample_presence = isolates_psql_tbl.count_isolate((mapping_table['_id'],))
+                dict_to_be_inserted = {}
+                if sample_presence[0][0] != 0:  # only add metadata if sample exists in bigsdb
+                    for key, value in document.items():
+                        if key not in ['inserted_into_bigsdb', '_id'] and value is not None:
+                            dict_to_be_inserted[key] = value
                     isolate_update_query = isolates_psql_tbl.build_update_nomin_metadata_query(dict_to_be_inserted)
                     values_to_set_in_fields = [v for v in dict_to_be_inserted.values()]
                     values_to_set_in_fields.append(mapping_table['_id'])

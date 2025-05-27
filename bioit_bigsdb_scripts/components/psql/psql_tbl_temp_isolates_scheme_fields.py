@@ -26,4 +26,4 @@ class TblTempIsolatesSchemeFields(DatabaseConnection):
         :return: None
         """
         param_with_target_scheme=[self._scheme_id, param[0]]
-        self.execute_query(PsqlQueries.ISO_DEL__TB_TPISOSCHFIELD_VAR_SCHID_ISO, param_with_target_scheme)
+        self.execute_query_client_cursor(PsqlQueries.ISO_DEL__TB_TPISOSCHFIELD_VAR_SCHID_ISO, param_with_target_scheme)

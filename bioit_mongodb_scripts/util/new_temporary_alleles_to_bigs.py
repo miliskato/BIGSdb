@@ -38,8 +38,6 @@ class NewTemporaryAllelesToBigs:
                                               selected_connection_string='CONNECTION_STRING_AZURE')
         self._update_metadata_collection = self._mongoinit.initialise_update_collection()
         self._hashed_ad_collection = self._mongoinit.initialise_hashing_collection()
-        # Open sequences psql table connection
-        self._seqdef_sequences_psql_tbl = TblSequences(self._species)
         # Prepare for main
         self._current_update_date = datetime.datetime.now(datetime.timezone.utc)
         self._new_sequences = self._get_new_sequence()
@@ -78,14 +76,15 @@ class NewTemporaryAllelesToBigs:
         :return: None.
         """
         ordered_by_locus_dict = self.___order_sequences_by_locus()
-        for locus in ordered_by_locus_dict:
-            # fetch all alleles ids already in bigs
-            set_alleleid = set(item[0] for item in self._seqdef_sequences_psql_tbl.select_allele_from_locus((locus,)))
-            for new_allele in ordered_by_locus_dict[locus]:
-                if new_allele['temp_allele_name'] not in set_alleleid:
-                    self._seqdef_sequences_psql_tbl.insert_sequence((locus, new_allele['temp_allele_name'],
-                                                                     new_allele['allele_sequence']))
-                    logging.info(f"id {new_allele['temp_allele_name']} inserted into locus {locus}")
+        with TblSequences(self._species) as seqdef_sequences_psql_tbl:
+            for locus in ordered_by_locus_dict:
+                # fetch all alleles ids already in bigs
+                set_alleleid = set(item[0] for item in seqdef_sequences_psql_tbl.select_allele_from_locus((locus,)))
+                for new_allele in ordered_by_locus_dict[locus]:
+                    if new_allele['temp_allele_name'] not in set_alleleid:
+                        seqdef_sequences_psql_tbl.insert_sequence((locus, new_allele['temp_allele_name'],
+                                                                   new_allele['allele_sequence']))
+                        logging.info(f"id {new_allele['temp_allele_name']} inserted into locus {locus}")
 
     def __update_sequences_insertion_status_in_bigsdb(self) -> None:
         """
@@ -118,10 +117,3 @@ class NewTemporaryAllelesToBigs:
         self._update_metadata_collection.with_options(write_concern=WriteConcern(w="majority")).update_one(
             {'metadata': 'last_update_temporary_alleles', 'host': socket.gethostname()},
             {"$set": {'last_update_date': self._current_update_date}}, upsert=True)
-
-    def __exit__(self) -> None:
-        """
-        Closes the isolates psql table when the class is closed
-        :return: None
-        """
-        self._seqdef_sequences_psql_tbl.close()
