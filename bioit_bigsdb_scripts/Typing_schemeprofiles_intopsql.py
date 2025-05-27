@@ -113,6 +113,11 @@ class TypingSchemeProfilesIntoPsql:
                         nullpresent: List[Tuple[int]] = seqdef_sequences_psql_tbl.count_sequence_null((locus,))
                         if nullpresent[0][0] == 0:
                             seqdef_sequences_psql_tbl.insert_sequence((locus, '0', 'null allele'))
+                    elif locus_value == 'N':
+                        arbitrarypresent: list[tuple[int]] = seqdef_sequences_psql_tbl.count_sequence_allele((locus, 'N'))
+                        if arbitrarypresent[0][0] == 0:
+                            seqdef_sequences_psql_tbl.insert_sequence((locus, 'N', 'arbitrary allele'))
+
                     table_profile.append((scheme_id_psql, locus, profile_id, locus_value, 1, str(date.today())))
                 try:
                     seqdef_profilemembers_psql_tbl.insert_all_loci_of_profile(table_profile)
