@@ -92,6 +92,8 @@ class TypingSchemeProfilesIntoPsql:
             with TblProfileFields(species) as seqdef_profilefields_psql_table:
                 for field in schemedict[scheme]['scheme_fields']:
                     try:
+                        if pd.isnull(profile_line_df[field].values[0]):
+                            continue
                         field_value = profile_line_df[field].values[0]
                         seqdef_profilefields_psql_table.insert_profile_field(
                             (bigsdb_scheme_name, field, profile_id, field_value.replace('_', ' ')))
@@ -166,8 +168,7 @@ class TypingSchemeProfilesIntoPsql:
                         continue
                     set_to_be_inserted = set(profiles.iloc[:, 0].to_list())
 
-                    self.__insert_profiles(scheme, schemedict, profiles, set_to_be_inserted,
-                                               seqdef_profiles_psql_tbl, species)
+                    self.__insert_profiles(scheme, schemedict, profiles, set_to_be_inserted, seqdef_profiles_psql_tbl, species)
 
     @staticmethod
     def open_profiles_metadata_file(file_path: str, scheme: str, species: str) -> pd.DataFrame:
