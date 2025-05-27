@@ -3,7 +3,7 @@ import logging
 import signal
 import socket
 from logging import handlers
-from typing import Any, List
+from typing import Any, List, Union
 
 from azure.servicebus import ServiceBusClient, ServiceBusReceivedMessage
 from pymongo.errors import ConnectionFailure, OperationFailure
@@ -12,10 +12,12 @@ from tenacity import RetryCallState, retry, wait_exponential
 from bioit_bigsdb_scripts.components.psql import TblFailedInsertions
 from bioit_mongodb_scripts.mongo_to_bigs import MongoToBigs
 from bioit_mongodb_scripts.rejected_isolate import RejectedIsolate
+from bioit_mongodb_scripts.util.update_bigsdb_clustering_cache_alerts import UpdateBIGSdbClusteringCacheAlerts
 from bioit_mongodb_scripts.update_bigsdb_seqdef import UpdateBIGSdbSeqDef
 from bioit_mongodb_scripts.util.error import BadCollectionError, IsolateNotFoundException
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
-from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email
+from bioit_mongodb_scripts.util.mongo_to_bigs_nominative import MongoToBigsNominative
+from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email, is_viral
 from bioit_mongodb_scripts.util.sample_to_validation_bigs import SampleToValidationBigs
 from bioit_mongodb_scripts.util_azure.azure_service_bus import AzureServiceBus
 from bioit_mongodb_scripts.util_azure.azure_service_bus_message import AzureServiceBusMessage
@@ -93,7 +95,8 @@ class MessageConsumerDataInserter(AzureServiceBus):
                 with service_bus_client.get_queue_receiver(queue_name=self._queue_name) as receiver:
                     update_tool = UpdateBIGSdbSeqDef(self._species)
                     update_tool.update_bigsdb_psql_if_needed()
-                    should_update_cache = False
+                    list_of_new_isolates_for_alerts = []
+                    list_of_new_versions_for_alerts = []
                     received_msgs = receiver.receive_messages(max_wait_time=5, max_message_count=1)
 
                     while len(received_msgs) > 0:
@@ -109,24 +112,21 @@ class MessageConsumerDataInserter(AzureServiceBus):
                             receiver.complete_message(msg)
 
                             isolate_id = self._get_isolate_id(self._species, pseudo_id)
-                            bigs_db_was_modified = self.__insert_known_isolate(collection_name, isolate_id, pseudo_id)
+                            new_isolates_for_alerts, new_versions_for_alerts = self.__insert_known_isolate(collection_name, isolate_id, pseudo_id)
+                            list_of_new_isolates_for_alerts.extend(new_isolates_for_alerts)
+                            list_of_new_versions_for_alerts.extend(new_versions_for_alerts)
                             self.__rm_msg_from_postgres(msg)
-                            if not should_update_cache:
-                                should_update_cache = bigs_db_was_modified
-                        except ConnectionFailure as e:
-                            raise e
-                        except OperationFailure as e:
-                            raise e
-                        except IsolateNotFoundException as e:
-                            self.__keep_error_in_postgres(e, msg)
-                            raise e
-                        except BadCollectionError as e:
-                            self.__keep_error_in_postgres(e, msg)
-                            raise e
                         except Exception as e:
-                            logger.error(e)
-                            self.__keep_error_in_postgres(e, msg)
-                            raise e
+                            self.__execute_clustering_cache_alerts_nominative(list_of_new_isolates_for_alerts, list_of_new_versions_for_alerts)
+                            if isinstance(e, (ConnectionFailure, OperationFailure)):
+                                raise e
+                            elif isinstance(e, (IsolateNotFoundException, BadCollectionError)):
+                                self.__keep_error_in_postgres(e, msg)
+                                raise e
+                            elif isinstance(e, Exception):
+                                logger.error(e)
+                                self.__keep_error_in_postgres(e, msg)
+                                raise e
 
                         if mail_sent:
                             mail_sent = False
@@ -135,35 +135,34 @@ class MessageConsumerDataInserter(AzureServiceBus):
 
                         received_msgs = receiver.receive_messages(max_wait_time=20, max_message_count=1)
 
-                        if should_update_cache and not received_msgs:
+                        if not received_msgs:
                             try:
-                                mongo_to_bigs_instance = MongoToBigs(self._species, self._uploader_mail_address)
-                                mongo_to_bigs_instance.cache_and_clustering_update()
+                                self.__execute_clustering_cache_alerts_nominative(list_of_new_isolates_for_alerts, list_of_new_versions_for_alerts)
                             except Exception as e:
                                 raise e
 
-    def __insert_known_isolate(self, collection_name: str, isolate_id: str, pseudo_id: str) -> bool:
+    def __insert_known_isolate(self, collection_name: str, isolate_id: str, pseudo_id: str) -> tuple[list, list]:
         """
         Inserts isolate for which an isolate_id is known.
         :param collection_name: MongoDB collection to which belongs the isolates
         :param isolate_id: Isolate ID
         :param pseudo_id: Pseudo ID
-        :return: True if the insertion leads to some changes in BIGSdb else False
+        :return: list of new isolates for alerts and list of new versions for alerts
         """
         if collection_name == 'isolates_warningqc':
             sample_to_validation_bigs = SampleToValidationBigs(self._species, isolate_id, pseudo_id, 'warning', 'no', mongo_config_data=self._mongo_config_data)
             sample_to_validation_bigs.submission_into_bigs()
-            return False
+            return [], []
         elif collection_name == 'isolates_goodqc':
             sample_to_validation_bigs = SampleToValidationBigs(self._species, isolate_id, pseudo_id, 'good', 'no', mongo_config_data=self._mongo_config_data)
             sample_to_validation_bigs.submission_into_bigs()
-            return False
+            return [], []
         elif collection_name == 'isolates':
             return self.__mongo_to_bigs_insertion(isolate_id)
         elif collection_name == 'isolates_rejected_coreqc':
             rejected_isolate = RejectedIsolate(self._species, isolate_id, pseudo_id)
             rejected_isolate.insert_in_rejected_isolates_table()
-            return False
+            return [], []
         else:
             raise BadCollectionError()
 
@@ -207,15 +206,32 @@ class MessageConsumerDataInserter(AzureServiceBus):
         with TblFailedInsertions(self._species) as psql_tbl_failed_insertions:
             psql_tbl_failed_insertions.delete_message_id((msg.message_id,))
 
-    def __mongo_to_bigs_insertion(self, isolate_id: str) -> bool:
+    def __mongo_to_bigs_insertion(self, isolate_id: str) -> tuple[list, list]:
         """
         tries to insert the isolate coming from isolates collection in BIGSdb
         :param isolate_id: the isolate id of the isolate
         :return: True if the insertion modifies something in BIGSdb else False
         """
         mongo_to_bigs_instance = MongoToBigs(self._species, self._uploader_mail_address, single_sample_id=isolate_id)
-        changes_done_in_bigs = mongo_to_bigs_instance.run_mongo_to_bigs()
-        return changes_done_in_bigs
+        list_of_new_isolates_for_alerts, list_of_new_versions_for_alerts = mongo_to_bigs_instance.run_mongo_to_bigs()
+        return list_of_new_isolates_for_alerts, list_of_new_versions_for_alerts
+
+    def __execute_clustering_cache_alerts_nominative(self, list_of_new_isolates_for_alerts: list[dict[str, Union[str, int]]],
+                                                     list_of_new_versions_for_alerts:  list[dict[str, Union[str, int]]]) -> None:
+        """
+        Executes the clustering to bigs, the update of the cache, the alerts and mongo to bigs nominative.
+        :param list_of_new_isolates_for_alerts: List of dictionaries of relevant data concerning newly
+        sql-inserted isolates.
+        :param list_of_new_versions_for_alerts: List of dictionaries of relevant data concerning newly
+        sql-inserted versions of existing isolates with different cgSTs than the previous version.
+        :return: None
+        """
+        if not is_viral(self._species) and len(list_of_new_isolates_for_alerts + list_of_new_versions_for_alerts) > 0:
+            update_bigsdb_clustering_cache_alerts = UpdateBIGSdbClusteringCacheAlerts(self._species,
+                                                                                      list_of_new_isolates_for_alerts,
+                                                                                      list_of_new_versions_for_alerts)
+            update_bigsdb_clustering_cache_alerts.update_clustering_cache_alerts()
+        MongoToBigsNominative(self._species, self._mongo_config_data, dont_send_email=True)
 
     def _get_isolate_id(self, species: str, pseudo_id: str) -> str:
         """
