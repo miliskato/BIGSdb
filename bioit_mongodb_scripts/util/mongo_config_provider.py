@@ -46,6 +46,8 @@ class MongoConfigProvider:
         get local connection string to mongo
         :return: connection string
         """
+        if self.dtap in ['dev', 'test']:
+            return f'mongodb://{self._get_user(species)}:{self.__password}@bioit-mongo-d01.darwinproject.be:27017,bioit-mongo-d02.darwinproject.be:27017,bioit-mongo-d03.darwinproject.be:27017/?authSource={species}_{self.dtap}&replicaSet=bioit-HERA'
         return f'mongodb://{self._get_user(species)}:{self.__password}@bioit-mongo-d01.sciensano.be:27017,bioit-mongo-d02.sciensano.be:27017,bioit-mongo-d03.sciensano.be:27017/?authSource={species}_{self.dtap}&replicaSet=bioit-HERA'
 
     def get_azure_connection_string(self, species: str) -> str:
