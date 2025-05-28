@@ -62,7 +62,9 @@ class TempidReplacer:
                                               selected_connection_string=self._connection_string,
                                               alternate_dtap=self._alternate_dtap,
                                               mongo_config_data=self._mongo_config_data)
-        self._isolates_collection, self._old_isolateresults_collection, self._isolates_badqc_collection, self._isolates_resequencing_collection = self._mongoinit.initialise_collections()
+        self._isolates_collection, self._old_isolateresults_collection, self._isolates_warningqc_collection, \
+            self._isolates_resequencing_collection, self._isolates_goodqc_collection = \
+            self._mongoinit.initialise_collections()
         self._hashed_ad_collection = self._mongoinit.initialise_hashing_collection()
         self._st_collection, self._cluster_membership_collection, self._cluster_merging_collection = self._mongoinit.initialise_clustering_collections()
         self._headers_collection = self._mongoinit.initialise_headers_collection()
@@ -149,12 +151,8 @@ class TempidReplacer:
         :param locus: current locus name
         :return: fasta file pathlib Path instance
         """
-        if self._species == 'stec':
-            fasta_file = Path(
-                f"/db/sequence_typing/ecoli/{self._scheme.replace('-', '_')}/{locus}/{locus}.fasta")
-        else:
-            fasta_file = Path(
-                f"/db/sequence_typing/{self._species}/{self._scheme.replace('-', '_')}/{locus}/{locus}.fasta")
+        fasta_file = Path(
+            f"/db/sequence_typing/{self._species}/{self._scheme.replace('-', '_')}/{locus}/{locus}.fasta")
         if fasta_file.is_file():
             logging.info(f"opening fasta file: {fasta_file}")
         else:
@@ -185,13 +183,12 @@ class TempidReplacer:
         allele_index = hit_metadata[f"{self._scheme}_loci"].index('Allele')
         # Update collections
         logging.debug(f"replacing {temp_allele_name} by {new_allele_id} for locus {locus}")
-        self.___update_temp_allele_to_new(self._isolates_collection, locus, temp_allele_name, new_allele_id,
-                                          allele_index)
-        self.___update_temp_allele_to_new(self._isolates_badqc_collection, locus, temp_allele_name, new_allele_id)
-        self.___update_temp_allele_to_new(self._isolates_resequencing_collection, locus, temp_allele_name,
-                                          new_allele_id)
+        self.___update_temp_allele_to_new(self._isolates_collection, locus, temp_allele_name, new_allele_id, allele_index)
+        self.___update_temp_allele_to_new(self._isolates_warningqc_collection, locus, temp_allele_name, new_allele_id)
+        self.___update_temp_allele_to_new(self._isolates_resequencing_collection, locus, temp_allele_name, new_allele_id)
         self.___update_temp_allele_to_new(self._old_isolateresults_collection, locus, temp_allele_name, new_allele_id,
                                           allele_index, in_results=False)
+        self.___update_temp_allele_to_new(self._isolates_goodqc_collection, locus, temp_allele_name, new_allele_id, allele_index)
         # Update document but do not delete
         self._hashed_ad_collection.with_options(write_concern=WriteConcern(w="majority")).update_one(
             {"scheme": self._scheme, "resolved_AD": 0, "locus": locus, "temp_allele_name": temp_allele_name},

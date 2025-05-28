@@ -27,36 +27,36 @@ def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
 
 class BatchValidationToMongo:
     """
-    This class handles validation/insertion in mongoDB of badqcs already pushed in BIGSdb submissions table.
+    This class handles validation/insertion in mongoDB of warningqcs already pushed in BIGSdb submissions table.
     """
 
     def __init__(self, species: str, accept_all: bool) -> None:
         """
         Initialises the class and runs the main function
         :param species: commonly used bioit species name.
-        :param accept_all: yes/no: if "yes", all badqcs still pending for validation in BIGSdb will be accepted.
+        :param accept_all: yes/no: if "yes", all warningqcs still pending for validation in BIGSdb will be accepted.
         :return: None
         """
         self._species = species
         self._accept_all = accept_all
 
         try:
-            self._validate_pending_submission_for_badqc()
+            self._validate_pending_submission_for_warningqc()
         except Exception as exceptionmessage:
             send_email(f"{exceptionmessage}\n{traceback.format_exc()}",
                        f"{Path(__file__).name} fail on host {socket.gethostname()}")
             raise Exception(f"{exceptionmessage}\n{traceback.format_exc()}")
 
-    def _validate_pending_submission_for_badqc(self) -> None:
+    def _validate_pending_submission_for_warningqc(self) -> None:
         """
-        Method to validate either all the badqc pending for validation in BIGSdb submission table, or only those
-        with status and outcome already set to "good" and "closed" by another process.
+        Method to validate either all the isolates with a warning quality pending for validation in BIGSdb submission
+        table, or only those with status and outcome already set to "good" and "closed" by another process.
         :return: None
         """
         with TblSubmissions(species=self._species) as isolates_submissions_psql_tbl:
             if self._accept_all:
-                isolates_submissions_psql_tbl.validate_pending_badqcs()
-            submission_ids = list(isolates_submissions_psql_tbl.get_submission_ids_for_validated_badqcs())
+                isolates_submissions_psql_tbl.validate_pending_warningqcs()
+            submission_ids = list(isolates_submissions_psql_tbl.get_submission_ids_for_validated_warningqcs())
 
         for sub_id in submission_ids:
             SampleValidationToMongo(self._species, sub_id=int(sub_id[0]))

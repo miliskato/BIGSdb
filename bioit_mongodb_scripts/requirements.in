@@ -11,6 +11,7 @@ azure-batch
 azure-identity
 azure-keyvault
 azure-storage-blob
+azure-servicebus
 azure-monitor-ingestion
 beautifulsoup4
 lxml

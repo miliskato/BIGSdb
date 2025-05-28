@@ -1,0 +1,13 @@
+biopython
+fastcluster
+numpy
+openpyxl
+pandas
+psutil
+psycopg2
+pyyaml
+requests
+scipy
+tenacity
+azure.servicebus
+pymongo
