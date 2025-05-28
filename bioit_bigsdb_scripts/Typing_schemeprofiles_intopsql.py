@@ -93,9 +93,8 @@ class TypingSchemeProfilesIntoPsql:
                 for field in schemedict[scheme]['scheme_fields']:
                     try:
                         if pd.isnull(profile_line_df[field].values[0]):
-                            field_value = 'undefined'  # BIGSdb does not accept null values in mv_scheme_x table
-                        else:
-                            field_value = profile_line_df[field].values[0]
+                            continue # to avoid removing profile if CC is missing
+                        field_value = profile_line_df[field].values[0]
                         seqdef_profilefields_psql_table.insert_profile_field(
                             (bigsdb_scheme_name, field, profile_id, field_value.replace('_', ' ')))
                     except Exception:
