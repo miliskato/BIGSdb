@@ -196,9 +196,9 @@ influenza:
 #      - nextclade_detected_subtype
 code_lists:
   SRI:
-    Susceptible: 131196009
-    Resistant: 30714006
-    Intermediate: 11896004
+    Susceptible: 1306577009
+    Resistant: 1306583007
+    Intermediate: 1306581009
     Unknown: 261665006
     '-': 261665006
   influenza_species:

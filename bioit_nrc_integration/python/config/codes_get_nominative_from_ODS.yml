@@ -465,9 +465,9 @@ code_lists:
       value_field: 'TX_LAB_TEST_RSLT_TXT'
       translation: 'GISAID_NGS'
   labtest_codes:
-    83185005: Susceptible
-    11896004: Intermediate
-    30714006: Resistant
+    1306577009: Susceptible
+    1306581009: Intermediate
+    1306583007: Resistant
     QL0001: Unknown
     QL0002: Not interpretable
   labtest_codes_influenza:
