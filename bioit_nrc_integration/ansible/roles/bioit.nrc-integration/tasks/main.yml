@@ -15,8 +15,9 @@
 
 - name: remove cronjobs so that they do not interfere during deployment
   ansible.builtin.file:
-    path: "{{ file_paths }}"
+    path: "{{ item }}"
     state: absent
+  loop: "{{ file_paths }}"
   vars:
     file_paths:
       - /etc/cron.d/get_nominative_from_ODS
