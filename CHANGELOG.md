@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Adaptations done in 2.1.1 to avoid the usage of hard link to the mount were exported in this version.
 - Insertion of gene detection schemes
 - Insertion of sequence typing schemes
+- Upgraded psycopg2 to psycopg3
+- upgrade of BIGSdb to v1.51.1
 
 ### Fixed:
 - Mykrobe scheme : typo in two AB names

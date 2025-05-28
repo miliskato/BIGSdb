@@ -193,7 +193,5 @@ DROP FUNCTION refresh_analysis_cache;
 
 DROP TRIGGER update_analysis_cache;
 DROP TRIGGER delete_analysis_cache_value;
-DROP TRIGGER insert_cache_on_new_analysis_field;
-DROP TRIGGER update_cache_on_changed_analysis_field
 
 REVOKE USAGE, CREATE ON SCHEMA public from apache;
