@@ -11,7 +11,7 @@ class ParseClinLabJson(object, metaclass=abc.ABCMeta):
     def __init__(self, data_unprocessed: dict[str, Any], filetype: Literal['CLIN', 'LAB'], species: str,
                  translation_codes: dict[str, Any]) -> None:
         """
-        This class can parse and translate an incoming unprocces CLIN or LAB DCD file from the ODS using the
+        This class can parse and translate an incoming unprocessed CLIN or LAB DCD file from the ODS using the
         main 'run' function.
         :param data_unprocessed: original unprocessed data
         :param filetype: CLIN or LAB

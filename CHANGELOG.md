@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Listeria & Influenza output DCD's to NRC integration
 - Added core QC page and core quality metrics checking for both Illumina & ONT
 - Enterococcus is supported
+- Listeria CLIN LAB DCD integration
 
 ### Changed
 - All Jammy existing assays to bigsdb for neisseria listeria salmonella mycobacterium influenza.
