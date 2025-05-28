@@ -55,37 +55,81 @@
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="hospitalisation">hospitalisation</field>
 <field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="specimen">specimen</field>
 <field type="text" required="no" length="20" maindisplay="no" group ="nominative metadata" comments="case Type">case_type</field>
-<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="perinatal info">perinatal_info</field>
-<field type="text" required="no" length="100" maindisplay="no" group ="nominative metadata" comments="related disease">related_disease</field>
+<field type="text" required="no" length="100" maindisplay="no" group ="nominative metadata" comments="related disease">related_disease</field> # field not in DCD yet, no link in nrc integration
 <field type="text" required="no" length="20" maindisplay="no" group ="nominative metadata" comments="outcome">outcome</field>
 <field type="text" required="no" length="20" maindisplay="no" group ="nominative metadata" comments="mode of transmission">mode_of_transmission</field>
-<field type="text" required="no" length="40" maindisplay="no" group ="nominative metadata" comments="identification">identification</field>
-<field type="text" required="no" length="40" maindisplay="no" group ="nominative metadata" comments="serotype">serotype</field>
+<field type="text" required="no" length="40" maindisplay="no" group ="nominative metadata" comments="identification">identification_culture</field>
+<field type="text" required="no" length="40" maindisplay="no" group ="nominative metadata" comments="identification">identification_pcr</field>
+<field type="text" required="no" length="40" maindisplay="no" group ="nominative metadata" comments="identification">identification_malditof</field>
+<field type="text" required="no" length="40" maindisplay="no" group ="nominative metadata" comments="serotype">serotype_pheno</field>
 <field type="text" required="no" length="30" maindisplay="no" group ="nominative metadata" comments="serogroup">serogroup_pheno</field>
+<field type="text" required="no" length="30" maindisplay="no" group ="nominative metadata" comments="epidemiological link">epi_link</field>
 <field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Amo">mic_amo</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Amo I">mic_amo_i</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Amo I">mic_amo_I</field>
 <field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Amp">mic_amp</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Amp I">mic_amp_i</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Amp I">mic_amp_I</field>
 <field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Chl">mic_chl</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Chl I">mic_chl_i</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Chl I">mic_chl_I</field>
 <field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Cip">mic_cip</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Cip I">mic_cip_i</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Cip I">mic_cip_I</field>
 <field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Ery">mic_ery</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Ery I">mic_ery_i</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Ery I">mic_ery_I</field>
 <field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Gmn">mic_gmn</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Gmn I">mic_gmn_i</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Gmn I">mic_gmn_I</field>
 <field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Str">mic_str</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Str I">mic_str_i</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Str I">mic_str_I</field>
 <field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Tet">mic_tet</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Tet I">mic_tet_i</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Tet I">mic_tet_I</field>
 <field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC TmpSmx">mic_tmpsmx</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC TmpSmx I">mic_tmpsmx_i</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC TmpSmx I">mic_tmpsmx_I</field>
 <field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Van">mic_van</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Van I">mic_van_i</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Van I">mic_van_I</field>
 <field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="MIC resistances">mic_resistances</field>
 <field type="text" required="no" length="20" maindisplay="no" group ="nominative metadata" comments="indication for sequencing">indication_for_sequencing</field>
 <field type="text" required="no" length="20" maindisplay="no" group ="nominative metadata" comments="keep for clustering">keep_for_clustering</field>
 <field type="text" required="no" length="150" maindisplay="no" group ="nominative metadata" comments="comment">comment</field>
 <field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="isolate_label">isolate_label</field>
 <field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="country">country</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="symptom_adult_gastroenteritis">symptom_adult_gastroenteritis</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="symptom_adult_unknown">symptom_adult_unknown</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="symptom_adult_sepsis_due_to_listeria_monocytogenes">symptom_adult_sepsis_due_to_listeria_monocytogenes</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="symptom_adult_meningitis_and_meningoencephalitis">symptom_adult_meningitis_and_meningoencephalitis</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="symptom_adult_granulomatosis">symptom_adult_granulomatosis</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="symptom_adult_other">symptom_adult_other</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="symptom_child_gastroenteritis">symptom_child_gastroenteritis</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="symptom_child_unknown">symptom_child_unknown</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="symptom_child_sepsis_due_to_listeria_monocytogenes">symptom_child_sepsis_due_to_listeria_monocytogenes</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="symptom_child_meningitis_and_meningoencephalitis">symptom_child_meningitis_and_meningoencephalitis</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="symptom_child_granulomatosis">symptom_child_granulomatosis</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="symptom_child_other">symptom_child_other</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="perinatal_isolate_strain_mother">perinatal_isolate_strain_mother</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="perinatal_isolate_strain_fetus">perinatal_isolate_strain_fetus</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="perinatal_isolate_strain_newborn">perinatal_isolate_strain_newborn</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="perinatal_unknown_perinatal_info">perinatal_unknown_perinatal_info</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="perinatal_not_applicable">perinatal_not_applicable</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="pregnancy_symptom">pregnancy_symptom</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="pregnancy_outcome">pregnancy_outcome</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="suspected_vehicle_canned_food_products">suspected_vehicle_canned_food_products</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="suspected_vehicle_drinks">suspected_vehicle_drinks</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="suspected_vehicle_drinking_water">suspected_vehicle_drinking_water</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="suspected_vehicle_vegetable_and_products_thereof">suspected_vehicle_vegetable_and_products_thereof</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="suspected_vehicle_starchy_food">suspected_vehicle_starchy_food</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="suspected_vehicle_nuts_and_seeds">suspected_vehicle_nuts_and_seeds</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="suspected_vehicle_candy_chocolate_candy_and_sugar_candy">suspected_vehicle_candy_chocolate_candy_and_sugar_candy</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="suspected_vehicle_mammalian_milk_based_food">suspected_vehicle_mammalian_milk_based_food</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="suspected_vehicle_cheese">suspected_vehicle_cheese</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="suspected_vehicle_eggs_edible_and_products_thereof">suspected_vehicle_eggs_edible_and_products_thereof</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="suspected_vehicle_seafood_and_products_thereof">suspected_vehicle_seafood_and_products_thereof</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="suspected_vehicle_beef_and_products_thereof">suspected_vehicle_beef_and_products_thereof</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="suspected_vehicle_pork_and_products_thereof">suspected_vehicle_pork_and_products_thereof</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="suspected_vehicle_lamb_meat_and_products_thereof">suspected_vehicle_lamb_meat_and_products_thereof</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="suspected_vehicle_chicken_meat_and_products_thereof">suspected_vehicle_chicken_meat_and_products_thereof</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="suspected_vehicle_poultry_and_products_thereof">suspected_vehicle_poultry_and_products_thereof</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="suspected_vehicle_turkey_meat_and_products_thereof">suspected_vehicle_turkey_meat_and_products_thereof</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="suspected_vehicle_cats">suspected_vehicle_cats</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="suspected_vehicle_bats">suspected_vehicle_bats</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="suspected_vehicle_other_pets">suspected_vehicle_other_pets</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="suspected_vehicle_captive_wild_animals_in_zoo">suspected_vehicle_captive_wild_animals_in_zoo</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="suspected_vehicle_other_wild_animals">suspected_vehicle_other_wild_animals</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="suspected_vehicle_unknown">suspected_vehicle_unknown</field>
 </db>

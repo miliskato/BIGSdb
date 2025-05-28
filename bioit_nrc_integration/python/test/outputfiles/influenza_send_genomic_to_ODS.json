@@ -1,8 +1,7 @@
 {
   "metadata": {
-    "version": "1.0.1-draft3",
-    "data_collection": "HDBP0041",
-    "dcd_name": "BIOIT_INFL"
+    "version": "v1.0.1",
+    "dataCollection": "HDBP0333_INFL_BIOIT"
   },
   "data": {
     "TX_BIOIT_TECHNICAL_ID": "test_dummy_influenza_pseudonymized",

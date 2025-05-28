@@ -110,9 +110,9 @@ class ErrorCheckerForMainSenderToHD(SFTPConnection):
 
                 with Path(f'{temp_json_dir}/{file}').open('r') as handle:
                     contents = json.load(handle)
-                dcd_name = contents['metadata']['dcd_name']
-                # get species name based on dcd name which is a metadata value in both outgoing DCDs
-                species = next(pathogen for pathogen, details in self._translation_codes['pathogens'].items() if details['dcd_name'] == dcd_name)
+                    dcd_name = contents['metadata']['dataCollection']
+                    # get species name based on dcd name which is a metadata value in both outgoing DCDs
+                    species = next(pathogen for pathogen, details in self._translation_codes['pathogens'].items() if details['dataCollection'] == dcd_name)
                 # Open correct pathogen specific MongoDB database
                 mongoinit_local = MongoInitialisation(species, mongo_config_data=self._mongo_config_data,
                                                       selected_connection_string='CONNECTION_STRING_LOCAL',

@@ -633,6 +633,13 @@
   become_user: postgres
   tags: postGIS
 
+- name: Copy the species specific dbmate migration files to the main folder so that they are chronologically intertwined with the main migration files
+  ansible.builtin.copy:
+    src: "{{ bioit_bigs_home }}/sql/bigsdb_isolates_v/bigsdb_{{ species }}_isolates/db/migrations/"
+    dest: "{{ bioit_bigs_home }}/sql/bigsdb_isolates_v/db/migrations/"
+    remote_src: yes
+  tags: always
+
 - name: Create species (refseq and isolates) data db (if they don't already exist) and run any pending migrations
   ansible.builtin.shell:
     chdir: "{{ bioit_bigs_home }}/sql/{{ item.dbmate_repo }}_v"

@@ -1,22 +1,20 @@
 pathogens:
   salmonella:
-    dcd_name: BIOIT_SLM
-    dcd_code: HDBP0345
-    dcd_version: 1.0.1-draft4
+    dataCollection: HDBP0345_SLM_BIOIT
+    version: v1.0.1
   listeria:
-    dcd_name: BIOIT_LIST
-    dcd_code: HDBP0335
-    dcd_version: 1.0.1-draft3
+    dataCollection: HDBP0335_LIST_BIOIT
+    version: v1.0.1
   influenza:
-    dcd_name: BIOIT_INFL
-    dcd_code: HDBP0333
-    dcd_version: 1.0.1-draft3
+    dataCollection: HDBP0333_INFL_BIOIT
+    version: v1.0.1
 
 common:
   CD_HCO_NIHDI:
     dict_path:
       - technical_metadata
-      - CD_HCO_NIHDI  # this value is not converted in the HERA_Azure code and should not be
+      - data
+      - HealthcareOrganizationIdentificationNumber_Value  # this value is not converted in the HERA_Azure code and should not be
   TX_PIPELINE_NAM:
     dict_path:
       - results

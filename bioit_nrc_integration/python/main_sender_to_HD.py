@@ -64,8 +64,7 @@ class MainSenderToHD:
             mapping_table_collection, isolates_collection = self.__open_mapping_table_and_isolates_collection(species)
 
             # get documents that need to be sent
-            list_of_unsent_validated_documents = isolates_collection.find({'validation.outcome': 'good',
-                                                                           '$or': [
+            list_of_unsent_validated_documents = isolates_collection.find({'$or': [
                                                                                {'sent_to_ODS': {'$ne': True}},
                                                                                {'changed_since_sent_to_ODS': {'$ne': False}}
                                                                             ]})
@@ -105,8 +104,6 @@ class MainSenderToHD:
         mongoinit_local = MongoInitialisation(species, mongo_config_data=self._mongo_config_data,
                                               selected_connection_string='CONNECTION_STRING_LOCAL',
                                               alternate_dtap=self._alternate_dtap)
-        # Seeing as there is no validation for all samples in place yet, I'm going to assume here that the validation info can be found in the isolates collection
-        # todo
         mapping_table_collection = mongoinit_local.initialise_mapping_table_collection()
         return mapping_table_collection, isolates_collection
 

@@ -1,0 +1,43 @@
+-- migrate:up
+ALTER TABLE isolates
+    ADD COLUMN case_type text,
+    ADD COLUMN evolution text,
+    ADD COLUMN identification text,
+    ADD COLUMN mic_amo real,
+    ADD COLUMN mic_amo_I text,
+    ADD COLUMN mic_amp real,
+    ADD COLUMN mic_amp_I text,
+    ADD COLUMN mic_azm real,
+    ADD COLUMN mic_azm_I text,
+    ADD COLUMN mic_chl real,
+    ADD COLUMN mic_chl_I text,
+    ADD COLUMN mic_cip real,
+    ADD COLUMN mic_cip_I text,
+    ADD COLUMN mic_cox real,
+    ADD COLUMN mic_cox_I text,
+    ADD COLUMN mic_pen real,
+    ADD COLUMN mic_pen_I text,
+    ADD COLUMN mic_rif real,
+    ADD COLUMN mic_rif_I text;
+
+-- migrate:down
+ALTER TABLE isolates
+    DROP COLUMN case_type,
+    DROP COLUMN evolution,
+    DROP COLUMN identification,
+    DROP COLUMN mic_amo,
+    DROP COLUMN mic_amo_I,
+    DROP COLUMN mic_amp,
+    DROP COLUMN mic_amp_I,
+    DROP COLUMN mic_azm,
+    DROP COLUMN mic_azm_I,
+    DROP COLUMN mic_chl,
+    DROP COLUMN mic_chl_I,
+    DROP COLUMN mic_cip,
+    DROP COLUMN mic_cip_I,
+    DROP COLUMN mic_cox,
+    DROP COLUMN mic_cox_I,
+    DROP COLUMN mic_pen,
+    DROP COLUMN mic_pen_I,
+    DROP COLUMN mic_rif,
+    DROP COLUMN mic_rif_I;
