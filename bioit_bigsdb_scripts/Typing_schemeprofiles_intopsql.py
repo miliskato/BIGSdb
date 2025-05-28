@@ -56,8 +56,8 @@ class TypingSchemeProfilesIntoPsql:
         try:
             self._insert_all_profiles()
         except Exception as exceptionmessage:
-            send_email(f"{exceptionmessage}\n{traceback.format_exc()}", dont_send_email=self._dont_send_email)
-            raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}")
+            send_email(f"{exceptionmessage.args[0]}\n{traceback.format_exc()}", dont_send_email=self._dont_send_email)
+            raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}:\n{exceptionmessage.args[0]}")
 
     @staticmethod
     def __insert_profiles(scheme: str, schemedict: Dict[str, Dict[str, str]], profile_df: pd.DataFrame,
@@ -93,8 +93,9 @@ class TypingSchemeProfilesIntoPsql:
                 for field in schemedict[scheme]['scheme_fields']:
                     try:
                         if pd.isnull(profile_line_df[field].values[0]):
-                            continue
-                        field_value = profile_line_df[field].values[0]
+                            field_value = 'undefined'  # BIGSdb does not accept null values in mv_scheme_x table
+                        else:
+                            field_value = profile_line_df[field].values[0]
                         seqdef_profilefields_psql_table.insert_profile_field(
                             (bigsdb_scheme_name, field, profile_id, field_value.replace('_', ' ')))
                     except Exception:
