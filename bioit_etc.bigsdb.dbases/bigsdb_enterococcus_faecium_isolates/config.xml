@@ -60,7 +60,7 @@
 <field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="LaboratoryTestResult_Specimen_SpecimenMaterial">specimen_material</field>
 <field type="text" required="no" length="100" maindisplay="no" group ="nominative metadata" comments="LaboratoryTestResult_Specimen_Microorganism">specimen_microorganism</field>
 <field type="date" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="LaboratoryTestResult_Specimen_CollectionDateTime">specimen_collection_datetime</field>
-<field type="date" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="LaboratoryTestResult_Specimen_ReceivedDateTime">secimen_received_datetime</field>
+<field type="date" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="LaboratoryTestResult_Specimen_ReceivedDateTime">specimen_received_datetime</field>
 <field type="text" required="no" length="100" maindisplay="no" group ="nominative metadata" comments="LaboratoryTestResult_Requester_HealthProfessional_ContactInformation_Value">requester_HP_contact_information</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="hosp_fl">hosp_fl</field>
 <field type="text" required="no" length="100" maindisplay="no" group ="nominative metadata" comments="syndrome">syndrome</field>
