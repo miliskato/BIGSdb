@@ -16,6 +16,8 @@ sys.path.append(str(PYTHONPATH))
 
 from bioit_mongodb_scripts.config import MONGO_CONFIG
 from bioit_mongodb_scripts.model.json_model import MongoRecordDict
+from bioit_bigsdb_scripts.components.psql import TblSchemes
+from bioit_mongodb_scripts.util.command.command import Command
 
 
 def get_mongodb_config_data() -> Dict[str, Union[str, List[Any], Dict[str, Union[str, Dict[str, Any]]]]]:
@@ -133,3 +135,27 @@ def access_value_in_dict_using_list_as_dictpath(dict_path: List, search_dict: Di
         if not current:
             break
     return current
+
+
+def execute_command(command_str: str, path: Path) -> None:
+    """
+    Executes a bash command.
+    :param command_str: Bash command
+    :param path: Path where it should be executed
+    :return: None
+    """
+    command = Command(command_str)
+    command.run(path)
+    if command.returncode != 0:
+        raise Exception(f"Command {command_str} is not executed")
+
+
+def get_cgmlst_bigsdb_scheme_id(species: str) -> int:
+    """
+    Returns the cgMLST BIGSdb scheme id for a specific species:
+    :param species: commonly used bioit species name: either genus or specific like stec
+    :return: cgMLST BIGSdb scheme id
+    """
+    with TblSchemes(species, 'isolates') as isolates_schemes_psql_tbl:
+        cgmlst_bigsdb_scheme_id = isolates_schemes_psql_tbl.select_scheme_id_cgmlst()[0][0]
+    return cgmlst_bigsdb_scheme_id

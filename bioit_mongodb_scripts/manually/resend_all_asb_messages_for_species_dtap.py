@@ -41,9 +41,11 @@ if __name__ == '__main__':
     isolates_collection, old_isolateresults_collection, isolates_badqc_collection, \
         isolates_resequencing_collection, isolates_goodqc_collection = mongoinit.initialise_collections()
 
+    rejected_isolates_collection = mongoinit.initialise_isolates_rejected_coreqc_collection()
+
     asb_instance = AzureServiceBus(mongo_config_data, args.species, args.alternate_dtap)
     for collection in [isolates_collection, old_isolateresults_collection, isolates_badqc_collection,
-                       isolates_resequencing_collection, isolates_goodqc_collection]:
+                       isolates_resequencing_collection, isolates_goodqc_collection, rejected_isolates_collection]:
         sample_ids = [x['_id'] for x in collection.find({}, {'_id': 1}) if isinstance(x['_id'], str)]
         for sample_id in sample_ids:
             asb_instance.send_message_to_queue(AzureServiceBusMessage(sample_id, collection.name))

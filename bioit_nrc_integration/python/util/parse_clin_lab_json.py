@@ -11,7 +11,7 @@ class ParseClinLabJson(object, metaclass=abc.ABCMeta):
     def __init__(self, data_unprocessed: dict[str, Any], filetype: Literal['CLIN', 'LAB'], species: str,
                  translation_codes: dict[str, Any]) -> None:
         """
-        This class can parse and translate an incoming unprocces CLIN or LAB DCD file from the ODS using the
+        This class can parse and translate an incoming unprocessed CLIN or LAB DCD file from the ODS using the
         main 'run' function.
         :param data_unprocessed: original unprocessed data
         :param filetype: CLIN or LAB
@@ -132,12 +132,13 @@ class ParseClinLabJson(object, metaclass=abc.ABCMeta):
         # be stored in the mic_resistances_list, ordered alphabetically and concatenated with spaces in between.
         mic_resistances_list: list[str] = []
         if labtest_list_of_result_dicts:
+            labtest_code_combinations = self._translation_codes['code_lists']['TX_TTL_LAB_TEST_combinations']
             for labtest_result_dict in labtest_list_of_result_dicts:
-                labtest_code_combinations = self._translation_codes['code_lists']['TX_TTL_LAB_TEST_combinations']
                 labtest_code_combination = next((
                     labtest_code_combination for labtest_code_combination in labtest_code_combinations if
                     labtest_code_combination['CD_LAB_TEST_CODE'] == self.___get_value_by_capitalization_agnostic_key(
                         labtest_result_dict, 'CD_LAB_TEST_CODE')))
+                translation = labtest_code_combination['translation']
 
                 if labtest_code_combination.get('code_list'):
                     # Even if the field's value supposedly needs to come from a code list, there can be exceptions
@@ -146,22 +147,21 @@ class ParseClinLabJson(object, metaclass=abc.ABCMeta):
                     code_value = self.___cast_as_int_if_int(self.___get_value_by_capitalization_agnostic_key(
                         labtest_result_dict, labtest_code_combination['value_field']))
                     if code_value:
-                        self._data_translated[labtest_code_combination['translation']] = \
-                            self._translation_codes['code_lists'][labtest_code_combination['code_list']][code_value]
-                        if labtest_code_combination['translation'].startswith('mic_') and \
-                                labtest_code_combination['translation'].endswith('_I') and \
-                                self._data_translated[labtest_code_combination['translation']] == 'Resistant':
-                            mic_resistances_list.append((labtest_code_combination['translation'].split('_'))[1])
+                        self._data_translated[translation] = self._translation_codes['code_lists'][labtest_code_combination['code_list']][code_value]
+                        if translation.startswith('mic_') and \
+                                translation.endswith('_I') and \
+                                self._data_translated[translation] == 'Resistant':
+                            mic_resistances_list.append((translation.split('_'))[1])
                     else:
-                        self._data_translated[labtest_code_combination['translation']] = \
+                        self._data_translated[translation] = \
                             self.___get_value_by_capitalization_agnostic_key(labtest_result_dict, 'TX_LAB_TEST_RSLT_TXT')
                 else:
-                    self._data_translated[labtest_code_combination['translation']] = \
+                    self._data_translated[translation] = \
                         self.___get_value_by_capitalization_agnostic_key(
                             labtest_result_dict, labtest_code_combination['value_field'])
-        if mic_resistances_list:
-            mic_resistances_list.sort()
-            self._data_translated['mic_resistances'] = ' '.join([resistance for resistance in mic_resistances_list])
+            if mic_resistances_list:
+                mic_resistances_list.sort()
+                self._data_translated['mic_resistances'] = ' '.join([resistance for resistance in mic_resistances_list])
 
     def __parse_complex_country_field(self) -> None:
         """

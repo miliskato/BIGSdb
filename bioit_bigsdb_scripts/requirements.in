@@ -4,7 +4,7 @@ numpy
 openpyxl
 pandas
 psutil
-psycopg2
+psycopg[binary]
 pyyaml
 requests
 scipy
