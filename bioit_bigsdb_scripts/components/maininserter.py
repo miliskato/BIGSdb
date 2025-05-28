@@ -157,4 +157,4 @@ class MainInserter(JsonSuperClass):
                     html_mutation = lre_mutation_table_builder.build()
                     self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'LRE-Finder_mutations', html_mutation))
             if 'bacmet' in self._json_report_dict and self._json_report_dict['bacmet']['bacmet_genes'] != '':
-                self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'BactMet_genes', self._json_report_dict['bacmet']['bacmet_gene']))
+                self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'BactMet_genes', self._json_report_dict['bacmet']['bacmet_genes']))
