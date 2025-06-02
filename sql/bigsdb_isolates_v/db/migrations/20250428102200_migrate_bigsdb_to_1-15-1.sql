@@ -181,8 +181,11 @@ ALTER TABLE scheme_fields DROP COLUMN placeholder;
 ALTER TABLE lincode_schemes DROP COLUMN placeholder;
 ALTER TABLE lincode_fields DROP COLUMN placeholder;
 
-DROP TABLE analysis_fields;
 DROP TABLE analysis_results_cache;
+DROP TABLE analysis_fields;
+
+DROP TRIGGER update_analysis_cache ON analysis_results;
+DROP TRIGGER delete_analysis_cache_value ON analysis_results;
 
 DROP FUNCTION normalize_analysis_jsonb;
 DROP FUNCTION trigger_normalize_analysis_jsonb;
@@ -190,8 +193,5 @@ DROP FUNCTION delete_analysis_cache_value;
 DROP FUNCTION insert_cache_on_new_analysis_field;
 DROP FUNCTION update_cache_on_changed_analysis_field;
 DROP FUNCTION refresh_analysis_cache;
-
-DROP TRIGGER update_analysis_cache;
-DROP TRIGGER delete_analysis_cache_value;
 
 REVOKE USAGE, CREATE ON SCHEMA public from apache;

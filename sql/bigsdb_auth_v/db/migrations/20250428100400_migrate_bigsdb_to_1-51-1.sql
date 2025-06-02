@@ -13,15 +13,14 @@ ALTER TABLE clients
 GRANT INSERT,UPDATE,DELETE ON clients TO apache;
 
 -- migrate:down
-ALTER TABLE users DROP COLUMN update_profile boolean;
+ALTER TABLE users DROP COLUMN update_profile;
 
-ALTER TABLE sessions DROP COLUMN update_profile boolean;
+ALTER TABLE sessions DROP COLUMN update_profile;
 
 ALTER TABLE clients
     DROP COLUMN dbase,
     DROP COLUMN username,
-    DROP CONSTRAINT c_dbase_user,
-    DROP PRIMARY KEY(client_id),
+    DROP CONSTRAINT clients_pkey,
     ADD PRIMARY KEY(application,version);
 
 REVOKE INSERT,UPDATE,DELETE ON clients FROM apache;
