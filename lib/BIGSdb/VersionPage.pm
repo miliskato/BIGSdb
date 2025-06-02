@@ -1,5 +1,5 @@
 #Written by Keith Jolley
-#Copyright (c) 2010-2024, University of Oxford
+#Copyright (c) 2010-2025, University of Oxford
 #E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
@@ -132,7 +132,8 @@ sub _print_plugins {
 	my ( $enabled_buffer, $disabled_buffer, %disabled_reason );
 	my $etd = 1;
 	my $dtd = 1;
-	foreach my $plugin ( sort { $a cmp $b } keys %{$plugins} ) {
+	foreach my $plugin ( sort { lc $plugins->{$a}->{'name'} cmp lc $plugins->{$b}->{'name'} } keys %{$plugins} )
+	{
 		my $attr = $plugins->{$plugin};
 		$disabled_reason{$plugin} = $self->_reason_plugin_disabled($attr);
 		foreach my $att (qw(min max)) {
@@ -220,10 +221,8 @@ sub _reason_plugin_disabled {
 	  if (
 		   !( ( $self->{'system'}->{'all_plugins'} // '' ) eq 'yes' )
 		&& $attr->{'system_flag'}
-		&& (
-			  !$self->{'system'}->{ $attr->{'system_flag'} }
-			|| $self->{'system'}->{ $attr->{'system_flag'} } eq 'no'
-		)
+		&& (  !$self->{'system'}->{ $attr->{'system_flag'} }
+			|| $self->{'system'}->{ $attr->{'system_flag'} } eq 'no' )
 		|| ( $attr->{'explicit_enable'} && ( $self->{'system'}->{ $attr->{'system_flag'} } // q() ) ne 'yes' )
 	  );
 	return;
@@ -286,7 +285,7 @@ sub _get_muscle_version {
 	my $version_output = BIGSdb::Utils::slurp($version_file);
 	unlink $version_file;
 
-	if ( $$version_output =~ /MUSCLE\sv([\d\.]+)/x ) {
+	if ( $$version_output =~ /MUSCLE\sv([\d\.]+)/x || $$version_output =~ /muscle\s([\d\.]+)/x ) {
 		return $1;
 	}
 	$logger->error('Cannot determine MUSCLE version');

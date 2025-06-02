@@ -1,5 +1,5 @@
 #Written by Keith Jolley
-#Copyright (c) 2010-2024, University of Oxford
+#Copyright (c) 2010-2025, University of Oxford
 #E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
@@ -101,14 +101,13 @@ sub get_isolate_extended_field_attributes {
 sub get_user_info {
 	my ( $self, $id ) = @_;
 	my $user_info =
-	  $self->run_query( 'SELECT id,user_name,first_name,surname,affiliation,email,status,user_db FROM users WHERE id=?',
-		$id, { fetch => 'row_hashref', cache => 'get_user_info' } );
+	  $self->run_query( 'SELECT * FROM users WHERE id=?', $id, { fetch => 'row_hashref', cache => 'get_user_info' } );
 	if ( $user_info && $user_info->{'user_name'} ) {
 		if ( $user_info->{'user_db'} ) {
 			my $remote_user = $self->get_remote_user_info( $user_info->{'user_name'}, $user_info->{'user_db'} );
 			if ( $remote_user->{'user_name'} ) {
-				$user_info->{$_} = $remote_user->{$_}
-				  foreach qw(first_name surname email affiliation submission_digests submission_email_cc absent_until);
+				$user_info->{$_} = $remote_user->{$_} foreach qw(first_name surname email affiliation country sector
+				  submission_digests submission_email_cc absent_until);
 			}
 		} else {
 			$user_info->{'submission_email_cc'} = $self->{'config'}->{'submission_email_cc'};
@@ -137,22 +136,56 @@ sub get_user_string {
 	if ( $options->{'affiliation'} && $info->{'affiliation'} ) {
 		$info->{'affiliation'} =~ s/^\s*//x;
 		$user .= qq(, $info->{'affiliation'});
+		if (   $self->{'config'}->{'site_user_country'}
+			&& $info->{'country'} )
+		{
+			( my $stripped_user_country = $info->{'country'} ) =~ s/\s+\[.*?\]$//x;
+			if ( $info->{'affiliation'} !~ /$stripped_user_country$/ix ) {
+				$user .= qq(, $info->{'country'});
+			}
+		}
 	}
 	return $user;
 }
 
 sub get_remote_user_info {
-	my ( $self, $user_name, $user_db_id ) = @_;
-	my $user_db = $self->get_user_db($user_db_id);
-	my $user_data =
-	  $self->run_query( 'SELECT user_name,first_name,surname,email,affiliation FROM users WHERE user_name=?',
-		$user_name, { db => $user_db, fetch => 'row_hashref', cache => "get_remote_user_info:$user_db_id" } );
-	my $user_prefs = $self->run_query( 'SELECT * FROM curator_prefs WHERE user_name=?',
-		$user_name, { db => $user_db, fetch => 'row_hashref' } );
-	foreach my $key ( keys %$user_prefs ) {
-		$user_data->{$key} = $user_prefs->{$key};
+	my ( $self, $user_name, $user_db_id, $options ) = @_;
+	if ( $options->{'single_lookup'} ) {
+		my $user_db   = $self->get_user_db($user_db_id);
+		my $user_data = $self->run_query(
+			'SELECT user_name,first_name,surname,email,affiliation,country,sector FROM users WHERE user_name=?',
+			$user_name, { db => $user_db, fetch => 'row_hashref', cache => "get_remote_user_info:$user_db_id" } );
+		my $user_prefs = $self->run_query( 'SELECT * FROM curator_prefs WHERE user_name=?',
+			$user_name, { db => $user_db, fetch => 'row_hashref' } );
+		foreach my $key ( keys %$user_prefs ) {
+			$user_data->{$key} = $user_prefs->{$key};
+		}
+		return $user_data;
 	}
-	return $user_data;
+	if ( !$self->{'cache'}->{'remote_user_info'}->{$user_db_id} ) {
+		my $user_db = $self->get_user_db($user_db_id);
+		my $all_user_data =
+		  $self->run_query( 'SELECT user_name,first_name,surname,email,affiliation,country,sector FROM users',
+			undef, { db => $user_db, fetch => 'all_arrayref', slice => {} } );
+		my $all_user_prefs = $self->run_query( 'SELECT * FROM curator_prefs',
+			undef, { db => $user_db, fetch => 'all_arrayref', slice => {} } );
+		my $user_prefs = {};
+		foreach my $user_pref (@$all_user_prefs) {
+			$user_prefs->{ $user_pref->{'user_name'} } = $user_pref;
+		}
+		my $user_data = {};
+		foreach my $user (@$all_user_data) {
+			$user_data->{ $user->{'user_name'} } = $user;
+			if ( defined $user_prefs->{ $user->{'user_name'} } ) {
+				my $this_user_prefs = $user_prefs->{ $user->{'user_name'} };
+				foreach my $key ( keys %$this_user_prefs ) {
+					$user_data->{ $user->{'user_name'} }->{$key} = $this_user_prefs->{$key};
+				}
+			}
+		}
+		$self->{'cache'}->{'remote_user_info'}->{$user_db_id} = $user_data;
+	}
+	return $self->{'cache'}->{'remote_user_info'}->{$user_db_id}->{$user_name};
 }
 
 sub get_user_info_from_username {
@@ -162,10 +195,11 @@ sub get_user_info_from_username {
 		my $user_info = $self->run_query( 'SELECT * FROM users WHERE user_name=?',
 			$user_name, { fetch => 'row_hashref', cache => 'get_user_info_from_username' } );
 		if ( $user_info && $user_info->{'user_db'} ) {
-			my $remote_user = $self->get_remote_user_info( $user_name, $user_info->{'user_db'} );
+			my $remote_user =
+			  $self->get_remote_user_info( $user_name, $user_info->{'user_db'}, { single_lookup => 1 } );
 			if ( $remote_user->{'user_name'} ) {
-				$user_info->{$_} = $remote_user->{$_}
-				  foreach qw(first_name surname email affiliation submission_digests submission_email_cc absent_until);
+				$user_info->{$_} = $remote_user->{$_} foreach qw(first_name surname email affiliation country sector
+				  submission_digests submission_email_cc absent_until);
 			}
 		}
 		$self->{'cache'}->{'user_name'}->{$user_name} = $user_info;
@@ -346,7 +380,9 @@ sub get_profile_by_primary_key {
 			$logger->logdie($_);
 		}
 	};
-	return if !defined $loci_values;
+	if ( !defined $loci_values ) {
+		return $options->{'hashref'} ? {} : [];
+	}
 	if ( $options->{'hashref'} ) {
 		my $loci = $self->get_scheme_loci($scheme_id);
 		my %values;
@@ -431,6 +467,39 @@ sub _convert_designations_to_profile_names {
 
 sub get_scheme_field_values_by_isolate_id {
 	my ( $self, $isolate_id, $scheme_id, $options ) = @_;
+	if ( $options->{'use_cache'} ) {
+		my $table = "temp_isolates_scheme_fields_$scheme_id";
+		if ( !defined $self->{'cache'}->{'scheme_table_exists'}->{$scheme_id} ) {
+			$self->{'cache'}->{'scheme_table_exists'}->{$scheme_id} =
+			  $self->run_query( 'SELECT EXISTS(SELECT * FROM information_schema.tables WHERE table_name=?)', $table );
+		}
+		if ( $self->{'cache'}->{'scheme_table_exists'}->{$scheme_id} ) {
+			my $scheme_values = $self->run_query(
+				"SELECT * FROM $table WHERE id=?",
+				$isolate_id,
+				{
+					fetch => 'all_arrayref',
+					slice => {},
+					cache => 'Datastore::get_scheme_field_values_by_isolate_id::cache_table'
+				}
+			);
+			my $fields      = $self->get_scheme_fields($scheme_id);
+			my $return_data = {};
+			foreach my $value (@$scheme_values) {
+				foreach my $field (@$fields) {
+					if ( defined $value->{ lc($field) } ) {
+
+						#Currently no check if any of the alleles are provisional.
+						$return_data->{ lc($field) }->{ $value->{ lc($field) } } = 'confirmed';
+					}
+				}
+			}
+			return $return_data;
+		} else {
+			$logger->error("$self->{'instance'}: Cache table for scheme $scheme_id does not exist.");
+			return {};
+		}
+	}
 	my $designations = $self->get_scheme_allele_designations( $isolate_id, $scheme_id );
 	if ( $options->{'allow_presence'} ) {
 		my $present = $self->run_query(
@@ -936,7 +1005,7 @@ sub get_all_scheme_field_info {
 	if ( !$self->{'cache'}->{'all_scheme_field_info'} ) {
 		my @fields =
 		  $self->{'system'}->{'dbtype'} eq 'isolates'
-		  ? qw(main_display isolate_display query_field dropdown url)
+		  ? qw(placeholder main_display isolate_display query_field dropdown url)
 		  : 'dropdown';
 		local $" = ',';
 		my $data =
@@ -1908,6 +1977,7 @@ sub create_temp_cscheme_field_values_table {
 
 sub create_temp_scheme_table {
 	my ( $self, $id, $options ) = @_;
+	$self->_check_connection;
 	$options = {} if ref $options ne 'HASH';
 	my $scheme_info = $self->get_scheme_info($id);
 	my $scheme      = $self->get_scheme($id);
@@ -1996,6 +2066,7 @@ sub create_temp_scheme_table {
 		$self->{'db'}->rollback;
 		BIGSdb::Exception::Database::Connection->throw('Cannot put data into temp table');
 	}
+	$self->_check_connection;
 	foreach my $field (@$fields) {
 		my $field_info = $self->get_scheme_field_info( $id, $field );
 		if ( $field_info->{'type'} eq 'integer' ) {
@@ -2014,6 +2085,7 @@ sub create_temp_scheme_table {
 
 	#Create new temp table, then drop old and rename the new - this
 	#should minimize the time that the table is unavailable.
+	$self->_check_connection;
 	if ( $options->{'cache'} ) {
 		eval { $self->{'db'}->do("DROP TABLE IF EXISTS $rename_table; ALTER TABLE $table RENAME TO $rename_table") };
 		$logger->error("$self->{'system'}->{'db'}: dropping $rename_table $@") if $@;
@@ -2021,6 +2093,14 @@ sub create_temp_scheme_table {
 		$table = $rename_table;
 	}
 	return $table;
+}
+
+sub _check_connection {
+	my ($self) = @_;
+	return if $self->{'db'} && $self->{'db'}->ping;
+	my $db_attributes = $self->{'db_attributes'};
+	$self->{'db'} = $self->{'dataConnector'}->get_connection($db_attributes);
+	return;
 }
 
 #Create table containing isolate_id and count of distinct loci
@@ -2305,6 +2385,7 @@ sub get_classification_group_fields {
 }
 ##############LOCI#####################################################################
 #options passed as hashref:
+#data_type: only the loci of the specified data_type (DNA or peptide) will be returned
 #query_pref: only the loci for which the user has a query field preference selected will be returned
 #analysis_pref: only the loci for which the user has an analysis preference selected will be returned
 #seq_defined: only the loci for which a database or a reference sequence has been defined will be returned
@@ -2312,24 +2393,32 @@ sub get_classification_group_fields {
 #{ query_pref => 1, analysis_pref => 1, seq_defined => 1, do_not_order => 1 }
 sub get_loci {
 	my ( $self, $options ) = @_;
-	my $defined_clause =
-	  $options->{'seq_defined'} ? 'WHERE dbase_name IS NOT NULL OR reference_sequence IS NOT NULL' : '';
-	my $set_clause = '';
+	my @clauses;
+	if ( $options->{'seq_defined'} ) {
+		push @clauses, '(dbase_name IS NOT NULL OR reference_sequence IS NOT NULL)';
+	}
 	if ( $options->{'set_id'} ) {
-		$set_clause = $defined_clause ? 'AND' : 'WHERE';
-		$set_clause .=
-			' (id IN (SELECT locus FROM scheme_members WHERE scheme_id IN (SELECT scheme_id FROM set_schemes WHERE '
+		push @clauses,
+		  '(id IN (SELECT locus FROM scheme_members WHERE scheme_id IN (SELECT scheme_id FROM set_schemes WHERE '
 		  . "set_id=$options->{'set_id'})) OR id IN (SELECT locus FROM set_loci WHERE set_id=$options->{'set_id'}))";
+	}
+	if ( $options->{'data_type'} ) {
+		push @clauses, "(data_type='$options->{'data_type'}')";
+	}
+	my $clause_string = q();
+	if (@clauses) {
+		local $" = ' AND ';
+		$clause_string = " WHERE @clauses";
 	}
 	my $qry;
 	if ( any { $options->{$_} } qw (query_pref analysis_pref) ) {
-		$qry = 'SELECT id,scheme_id FROM loci LEFT JOIN scheme_members ON loci.id = scheme_members.locus '
-		  . "$defined_clause $set_clause";
+		$qry =
+		  'SELECT id,scheme_id FROM loci LEFT JOIN scheme_members ON loci.id = scheme_members.locus' . $clause_string;
 		if ( !$options->{'do_not_order'} ) {
 			$qry .= ' ORDER BY scheme_members.scheme_id,scheme_members.field_order,id';
 		}
 	} else {
-		$qry = "SELECT id FROM loci $defined_clause $set_clause";
+		$qry = "SELECT id FROM loci$clause_string";
 		if ( !$options->{'do_not_order'} ) {
 			$qry .= ' ORDER BY id';
 		}
@@ -2506,6 +2595,18 @@ sub finish_with_locus {
 	return;
 }
 
+sub finish_with_client_loci {
+	my ($self) = @_;
+	delete $self->{'locus'};
+	return;
+}
+
+sub finish_with_client_schemes {
+	my ($self) = @_;
+	delete $self->{'scheme'};
+	return;
+}
+
 sub is_locus {
 	my ( $self, $id, $options ) = @_;
 	return if !defined $id;
@@ -2614,6 +2715,18 @@ sub get_all_sequence_flags {
 
 sub get_allele_flags {
 	my ( $self, $locus, $allele_id ) = @_;
+	$self->{'allele_flag_count'}++;
+	if ( $self->{'allele_flag_count'} > 10 ) {
+		if ( !defined $self->{'cache'}->{'allele_flags'} ) {
+			my $flags = $self->run_query( 'SELECT locus,allele_id,flag FROM allele_flags ORDER BY flag',
+				undef, { fetch => 'all_arrayref', slice => {} } );
+			foreach my $flag (@$flags) {
+				push @{ $self->{'cache'}->{'allele_flags'}->{ $flag->{'locus'} }->{ $flag->{'allele_id'} } },
+				  $flag->{'flag'};
+			}
+		}
+		return $self->{'cache'}->{'allele_flags'}->{$locus}->{$allele_id} // [];
+	}
 	return $self->run_query(
 		'SELECT flag FROM allele_flags WHERE (locus,allele_id)=(?,?) ORDER BY flag',
 		[ $locus, $allele_id ],
@@ -2779,18 +2892,23 @@ sub get_next_allele_id {
 sub get_client_data_linked_to_allele {
 	my ( $self, $locus, $allele_id, $options ) = @_;
 	$options = {} if ref $options ne 'HASH';
-	my $client_field_data = $self->run_query(
-		'SELECT client_dbase_id,isolate_field FROM client_dbase_loci_fields WHERE allele_query '
-		  . 'AND locus=? ORDER BY client_dbase_id,isolate_field',
-		$locus,
-		{ fetch => 'all_arrayref' }
-	);
+	if ( !defined $self->{'cache'}->{'client_field_data'} ) {
+		my $data = $self->run_query(
+			'SELECT locus,client_dbase_id,isolate_field FROM client_dbase_loci_fields WHERE allele_query '
+			  . 'ORDER BY client_dbase_id,isolate_field',
+			undef,
+			{ fetch => 'all_arrayref' }
+		);
+		foreach my $record (@$data) {
+			push @{ $self->{'cache'}->{'client_field_data'}->{ $record->[0] } }, [ $record->[1], $record->[2] ];
+		}
+	}
+	my $client_field_data = $self->{'cache'}->{'client_field_data'}->{$locus} // [];
 	my $field_values;
 	my $detailed_values;
 	my $dl_buffer = q();
 	my $td_buffer = q();
 	my $i         = 0;
-
 	foreach my $client_field (@$client_field_data) {
 		my $field          = $client_field->[1];
 		my $client         = $self->get_client_db( $client_field->[0] );
@@ -2857,8 +2975,18 @@ sub _format_list_values {
 sub get_allele_attributes {
 	my ( $self, $locus, $allele_ids ) = @_;
 	return [] if ref $allele_ids ne 'ARRAY';
-	my $fields = $self->run_query( 'SELECT field FROM locus_extended_attributes WHERE locus=?',
-		$locus, { fetch => 'col_arrayref' } );
+	if ( !$self->{'cache'}->{'locus_attribute_fields'} ) {
+		my $locus_attributes = $self->run_query( 'SELECT locus,field FROM locus_extended_attributes',
+			undef, { fetch => 'all_arrayref', slice => {} } );
+		foreach my $att (@$locus_attributes) {
+			if ( !defined $self->{'cache'}->{'locus_attribute_fields'}->{ $att->{'locus'} } ) {
+				$self->{'cache'}->{'locus_attribute_fields'}->{ $att->{'locus'} } = [ $att->{'field'} ];
+			} else {
+				push @{ $self->{'cache'}->{'locus_attribute_fields'}->{ $att->{'locus'} } }, $att->{'field'};
+			}
+		}
+	}
+	my $fields = $self->{'cache'}->{'locus_attribute_fields'}->{$locus} // [];
 	my $values;
 	return if !@$fields;
 	foreach my $field (@$fields) {
@@ -3047,6 +3175,8 @@ sub get_citation_hash {
 			}
 		}
 	}
+	eval { $dbr->do("DROP TABLE $list_table"); };
+	$logger->error($@) if $@;
 	return $citation_ref;
 }
 
@@ -3224,7 +3354,7 @@ sub get_tables {
 		  isolates history sequence_attributes classification_schemes classification_group_fields
 		  retired_isolates user_dbases oauth_credentials eav_fields validation_rules validation_conditions
 		  validation_rule_conditions lincode_schemes lincode_fields codon_tables geography_point_lookup
-		  curator_configs query_interfaces query_interface_fields embargo_history);
+		  curator_configs query_interfaces query_interface_fields embargo_history analysis_fields);
 		push @tables, $self->{'system'}->{'view'}
 		  ? $self->{'system'}->{'view'}
 		  : 'isolates';
@@ -3347,6 +3477,21 @@ sub get_eav_field_value {
 	);
 }
 
+sub get_analysis_fields {
+	my ($self) = @_;
+	return $self->run_query( 'SELECT * FROM analysis_fields ORDER BY analysis_name,field_name',
+		undef, { fetch => 'all_arrayref', slice => {} } );
+}
+
+sub get_analysis_field {
+	my ( $self, $analysis, $field ) = @_;
+	return $self->run_query(
+		'SELECT * FROM analysis_fields WHERE (analysis_name,field_name)=(?,?)',
+		[ $analysis, $field ],
+		{ fetch => 'row_hashref', cache => 'get_analysis_field' }
+	);
+}
+
 sub get_login_requirement {
 	my ($self) = @_;
 	$self->{'system'}->{'dbtype'} //= q();
@@ -3406,12 +3551,18 @@ sub get_available_quota {
 	return $available;
 }
 
+sub get_username {
+	my ($self) = @_;
+	return $self->{'username'};
+}
+
 sub initiate_view {
 	my ( $self, $args ) = @_;
-	my ( $username, $curate, $set_id ) = @{$args}{qw(username curate set_id)};
+	my ( $username, $curate, $set_id, $original_view ) = @{$args}{qw(username curate set_id original_view)};
+	$self->{'username'} = $username;    #Store in datastore for delayed REST calls.
 	my $user_info = $self->get_user_info_from_username($username);
 	if ( ( $self->{'system'}->{'dbtype'} // '' ) eq 'sequences' ) {
-		if ( !$user_info ) {    #Not logged in.
+		if ( !$user_info ) {            #Not logged in.
 			my $restrict_date = $self->get_date_restriction;
 			if ( defined $restrict_date ) {
 				my $qry = 'CREATE TEMPORARY VIEW temp_sequences_view AS SELECT * FROM sequences WHERE date_entered<=?';
@@ -3423,7 +3574,8 @@ sub initiate_view {
 		$self->{'system'}->{'temp_sequences_view'} //= 'sequences';
 		return;
 	}
-	return if ( $self->{'system'}->{'dbtype'} // '' ) ne 'isolates';
+	return                                       if ( $self->{'system'}->{'dbtype'} // '' ) ne 'isolates';
+	$self->{'system'}->{'view'} = $original_view if defined $original_view;
 	if ( defined $self->{'system'}->{'view'} && $set_id ) {
 		if ( $self->{'system'}->{'views'} && BIGSdb::Utils::is_int($set_id) ) {
 			my $set_view = $self->run_query( 'SELECT view FROM set_view WHERE set_id=?', $set_id );
@@ -3526,7 +3678,7 @@ sub initiate_view {
 
 sub get_date_restriction {
 	my ($self) = @_;
-	my $date = $self->{'config'}->{'login_to_show_after_date'} // $self->{'system'}->{'login_to_show_after_date'};
+	my $date = $self->{'system'}->{'login_to_show_after_date'} // $self->{'config'}->{'login_to_show_after_date'};
 	return if !$date;
 	if ( !BIGSdb::Utils::is_date($date) ) {
 		$logger->error( 'Invalid login_to_show_after_date set. Date can be set in bigsdb.conf or in the database '

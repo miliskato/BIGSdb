@@ -53,6 +53,10 @@ Version 1.44: Change of seqdef and isolate database structures.
 Version 1.45: Change of seqdef and isolate database structures.
 Version 1.46: Change of isolate database structure.
 Version 1.47: Change of isolate database structure.
+Version 1.48: Change of isolate database structure.
+Version 1.49: Change of authentication database structure.
+Version 1.50: Change of isolate database structure.
+Version 1.51: Change of seqdef, isolate, auth, and users database structures.
 
 Details can be found below.
 
@@ -668,3 +672,33 @@ records. There is also an update to the method that counts the number of loci
 defined for a scheme so that it optionally will not count allele '0'.
 
 Please run the isolatedb_v1.47.sql script against isolate databases.
+
+Version 1.48
+------------
+There is are new fields to support adding placeholder text to form query boxes
+for scheme and LINcode fields.
+
+Please run the isolatedb_v1.48.sql script against isolate databases.
+
+Version 1.49
+------------
+There is a change to the  authentication database structure needed to support
+personal API keys.
+
+Please run auth_v1.49.sql against bigsdb_auth.
+
+Version 1.50
+------------
+There are new tables to support registering arbitrary analysis fields for data
+queries, export and analysis.
+
+Please run the isolatedb_v1.50.sql script against isolate databases.
+
+Version 1.51
+------------
+There are new fields in the isolate, seqdef, auth, and site users databases to 
+support collection of user country and sector information.
+
+Please run the isolatedb_v1.51.sql script against isolate databases,
+seqdefdb_v1.51.sql against seqdef databases, auth_v1.51.sql against the auth 
+database, and users_v1.51.sql against site-wide users databases.

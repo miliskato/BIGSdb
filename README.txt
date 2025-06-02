@@ -1,3 +1,54 @@
+v1.51.1: *Use OAuth authentication for rMLST species plugin and tools.
+v1.51.0: *Support for collecting user country and affiliation sector.
+v1.50.3: *Added support for Kleborate v3 to plugin.
+v1.50.2: *Fix for API profile downloads restricted by date.
+         *Fix for set_embargo permissions.
+v1.50.1: *Added support for Neighbour-joining trees in GrapeTree.
+         *Added a means to restrict use of particular plugins to users/groups.
+         *Option to override system attributes for specific user/usergroups to
+          enable different plugin behaviour/limits. 
+         *Added inclusion of registered analysis result fields in API isolate 
+          records
+v1.50.0: *Field values from arbitrary analyses, e.g. Kleborate and rMLST
+          species id, stored as JSON can now be registered and included in
+          isolate queries, export, and analysis.
+v1.49.1: *Fix for lincodes.pl for use with latest version of PDL module.
+         *Improved layout of site user registration and admin pages.
+         *Users can now upload their own genomes using .tar.gz or .tar files
+          (not just .zip files) in Genome Comparator and related plugins.
+         *New option to export LIN code prefixes of different lengths in Export
+          plugin.
+v1.49.0: *Automated generation of personal API keys.
+         *Use LINcodes to identify closest profiles and genomes on profile 
+          info page.
+         *Include sequencing method on isolate info page.
+         *Fix to verification of POST signatures in the API.
+v1.48.5: *Improved formatting for user registration page.
+         *Option to select only DNA or only peptide loci in sequence query.
+v1.48.4: *The scheme cache is now used for isolate query results if the scheme
+          has >100 loci and 'cache_schemes' is set.
+         *If there are multiple cgSTs for an isolate, these are now collapsed
+          with just the cgST with the fewest missing loci shown in the results
+          table (other matching cgSTs can be shown by clicking a link).
+v1.48.3: *Determine nearest matching genome using LIN codes in sequence query.
+         *Performance improvements to sequence query.
+v1.48.2: *Hotfix for API downloads crashing if selected scheme did not have
+          primary key.
+v1.48.1: *Fix for LIN code prefix field lookup on web/REST profile pages.
+         *Fix for LIN code assignment when scheme has field called profile_id.
+         *Performance improvement for API cgMLST profile download.
+v1.48.0: *Add support for placeholder text on isolate query forms. Placeholders
+          can be defined for provenance fields in config.xml or for scheme/LIN
+          code fields by adding a placeholder value in the appropriate table.
+         *Setting of GrapeTree path in bigsdb.conf is now consistent with other
+          Python scripts called by plugins (the old method of defining 
+          python3_path and grapetree_path separately still works).
+v1.47.3: *Potential fix for https://github.com/kjolley/BIGSdb/issues/970.
+v1.47.2: *Functionality added to support plugins written in Python using the
+          BIGSdb Python Toolkit (https://github.com/kjolley/BIGSdb_Python_Toolkit)
+v1.47.1: *Added option to hyperlink to a different URL depending on regex of
+          field value.
+         *More efficient batch sequence queries when exemplars used.        
 v1.47.0: *Added optional private data quotas to projects.
          *Added embargoing for isolate submissions.
 v1.46.2: *BingMaps has been removed as an option for mapping as Microsoft are

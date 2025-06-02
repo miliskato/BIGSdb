@@ -1,6 +1,6 @@
 #GrapeTree.pm - MST visualization plugin for BIGSdb
 #Written by Keith Jolley
-#Copyright (c) 2017-2023, University of Oxford
+#Copyright (c) 2017-2025, University of Oxford
 #E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
@@ -53,7 +53,7 @@ sub get_attributes {
 		buttontext          => 'GrapeTree',
 		menutext            => 'GrapeTree',
 		module              => 'GrapeTree',
-		version             => '1.5.5',
+		version             => '1.7.1',
 		dbtype              => 'isolates',
 		section             => 'third_party,postquery',
 		input               => 'query',
@@ -141,6 +141,7 @@ sub _print_interface {
 			classification_groups    => 1,
 			lincodes                 => 1,
 			lincode_fields           => 1,
+			analysis_fields          => 1,
 			size                     => 8
 		}
 	);
@@ -167,6 +168,15 @@ sub _print_parameters_fieldset {
 			q(Rescan undesignated - By default, if a genome has >= 50% of the selected loci designated, it will not )
 		  . q(be rescanned. Selecting this option will perform a BLAST query for each genome to attempt to fill in )
 		  . q(any missing annotations. Please note that this will take <b>much longer</b> to run.) );
+	say q(</li><li>);
+	say q(<li><label for="method">Method: </label>);
+	say $q->popup_menu( -id => 'method', -name => 'method', -values => [qw(MSTreeV2 MSTree NJ RapidNJ)] );
+	say $self->get_tooltip(
+		q(Method - <ul><li>MSTreeV2 (default)</li>)
+		  . q(<li>MSTree</li>)
+		  . q(<li>NJ - FastME V2 NJ tree</li>)
+		  . q(<li>RapidNJ - RapidNJ for very large datasets</li></ul>)
+	);
 	say q(</li></ul></fieldset>);
 	return;
 }
@@ -287,10 +297,12 @@ sub run_job {
 	$self->_generate_mstree(
 		{
 			job_id   => $job_id,
+			params   => $params,
 			profiles => $profile_file,
 			tree     => $tree_file
 		}
 	);
+	$self->check_connection($job_id);
 	$self->generate_metadata_file(
 		{
 			job_id   => $job_id,
@@ -379,16 +391,28 @@ sub generate_profile_file {
 
 sub _generate_mstree {
 	my ( $self, $args ) = @_;
-	my ( $job_id, $profiles_file, $tree_file ) = @{$args}{qw(job_id profiles tree)};
-	$self->{'jobManager'}->update_job_status( $job_id, { stage => 'Generating minimum spanning tree' } );
-	my $python     = $self->{'config'}->{'python3_path'};
+	my ( $job_id, $params, $profiles_file, $tree_file ) = @{$args}{qw(job_id params profiles tree)};
+	$self->{'jobManager'}->update_job_status( $job_id, { stage => 'Generating tree' } );
 	my $prefix     = BIGSdb::Utils::get_random();
 	my $error_file = "$self->{'config'}->{'secure_tmp_dir'}/${prefix}_grapetree";
-	my $cmd =
-	  "$python $self->{'config'}->{'grapetree_path'}/grapetree.py --profile $profiles_file 2>$error_file > $tree_file ";
-	eval { system($cmd); };
+	my $cmd;
+	my $method = $params->{'method'} // 'MSTreeV2';
+	if ( !defined $self->{'config'}->{'python3_path'} && $self->{'config'}->{'grapetree_path'} =~ /python/x ) {
 
+		#Path includes full command for running GrapeTree (recommended)
+		$cmd = "$self->{'config'}->{'grapetree_path'} --profile $profiles_file "
+		  . "--method $method 2>$error_file > $tree_file ";
+	} else {
+
+		#Separate variables for GrapeTree directory and Python path (legacy)
+		my $python = $self->{'config'}->{'python3_path'} // '/usr/bin/python3';
+		$cmd = "$python $self->{'config'}->{'grapetree_path'}/grapetree.py --profile "
+		  . "$profiles_file --method $method 2>$error_file > $tree_file ";
+	}
+	eval { system($cmd); };
 	if ($?) {
+		my $error_ref = BIGSdb::Utils::slurp($error_file);
+		$logger->error($$error_ref);
 		BIGSdb::Exception::Plugin->throw('Tree generation failed.');
 	}
 
@@ -428,6 +452,7 @@ sub generate_metadata_file {
 	my $extended               = $self->get_extended_attributes;
 	my $prov_fields            = $self->{'xmlHandler'}->get_field_list;
 	my $eav_fields             = $self->{'datastore'}->get_eav_fieldnames;
+	my $analysis_fields        = $self->{'datastore'}->get_analysis_fields;
 	my $classification_schemes = $self->_get_classification_schemes;
 	my @header_fields;
 
@@ -448,6 +473,11 @@ sub generate_metadata_file {
 	foreach my $field (@$eav_fields) {
 		( my $cleaned_field = $field ) =~ tr/_/ /;
 		push @header_fields, $cleaned_field if $include_fields{"eav_$field"};
+	}
+	foreach my $field (@$analysis_fields) {
+		my $analysis = $field->{'analysis_display_name'} // $field->{'analysis_name'};
+		push @header_fields, "$field->{'field_name'} ($analysis)"
+		  if $include_fields{"af_$field->{'analysis_name'}___$field->{'field_name'}"};
 	}
 	my ( $scheme_fields, $lincode_threshold_counts ) = $self->_get_scheme_fields_for_header($params);
 	push @header_fields, @$scheme_fields;
@@ -493,6 +523,20 @@ sub generate_metadata_file {
 			if ( $include_fields{"eav_$field"} ) {
 				my $value = $self->{'datastore'}->get_eav_field_value( $record->{'id'}, $field ) // q();
 				push @record_values, $value;
+			}
+		}
+		foreach my $field (@$analysis_fields) {
+			if ( $include_fields{"af_$field->{'analysis_name'}___$field->{'field_name'}"} ) {
+				my $value = $self->{'datastore'}->run_query(
+					'SELECT value FROM analysis_fields af JOIN analysis_results_cache arc '
+					  . 'ON (af.analysis_name,af.json_path)=(arc.analysis_name,arc.json_path) '
+					  . 'WHERE (af.analysis_name,af.field_name,arc.isolate_id)'
+					  . '=(?,?,?)',
+					[ $field->{'analysis_name'}, $field->{'field_name'}, $record->{'id'} ],
+					{ fetch => 'col_arrayref', cache => 'Grapetree::analysis_field' }
+				);
+				local $" = q(; );
+				push @record_values, qq(@$value) // q();
 			}
 		}
 		foreach my $field (@include_fields) {

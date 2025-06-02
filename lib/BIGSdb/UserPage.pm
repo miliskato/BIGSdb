@@ -1,5 +1,5 @@
 #Written by Keith Jolley
-#Copyright (c) 2016-2024, University of Oxford
+#Copyright (c) 2016-2025, University of Oxford
 #E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
@@ -31,7 +31,8 @@ use Time::Piece;
 use Time::Seconds;
 use BIGSdb::Parser;
 use BIGSdb::Login;
-use BIGSdb::Constants qw(:interface DEFAULT_DOMAIN);
+use BIGSdb::Utils;
+use BIGSdb::Constants qw(:interface DEFAULT_DOMAIN SECTORS COUNTRIES);
 use constant SUBMISSION_INTERVAL => {
 	60   => '1 hour',
 	120  => '2 hours',
@@ -42,10 +43,37 @@ use constant SUBMISSION_INTERVAL => {
 };
 my $logger = get_logger('BIGSdb.User');
 
+sub _ajax {
+	my ($self) = @_;
+	my $q = $self->{'cgi'};
+	if ( $q->param('ajax') eq 'admin_users' ) {
+		if ( $self->{'permissions'}->{'merge_users'} ) {
+			say $self->_show_merge_user_accounts;
+		}
+		if ( $self->{'permissions'}->{'modify_users'} ) {
+			say $self->_show_modify_users;
+		}
+	}
+	return;
+}
+
 sub print_content {
 	my ($self) = @_;
+	my $q = $self->{'cgi'};
+	if ( $q->param('ajax') ) {
+		$self->_ajax;
+		return;
+	}
 	if ( $self->{'config'}->{'site_user_dbs'} ) {
-		say qq(<h1>$self->{'system'}->{'description'} site-wide settings</h1>);
+		if ( $self->{'system'}->{'dbtype'} eq 'user' ) {
+			say qq(<h1>$self->{'system'}->{'description'} site-wide settings</h1>);
+		} else {
+			my $user_db_name =
+			  $self->{'datastore'}
+			  ->run_query( 'SELECT name FROM user_dbases ud JOIN users u ON ud.id=u.user_db WHERE user_name=?',
+				$self->{'username'} );
+			say qq(<h1>$user_db_name site-wide settings</h1>);
+		}
 		if ( $self->{'config'}->{'disable_updates'} ) {
 			$self->print_bad_status(
 				{
@@ -55,7 +83,6 @@ sub print_content {
 			);
 			return;
 		}
-		my $q = $self->{'cgi'};
 		if ( $self->{'curate'} && $q->param('user') ) {
 			if ( $q->param('merge_user') ) {
 				$self->_select_merge_users;
@@ -75,10 +102,13 @@ sub print_content {
 
 sub initiate {
 	my ($self) = @_;
-	$self->{$_} = 1 foreach qw(jQuery noCache);
+	$self->{$_} = 1 foreach qw(jQuery noCache jQuery.multiselect select2);
+	my $q = $self->{'cgi'};
+	if ( $q->param('ajax') ) {
+		$self->{'type'} = 'no_header';
+	}
 	return if !$self->{'config'}->{'site_user_dbs'};
 	$self->use_correct_user_database;
-	my $q = $self->{'cgi'};
 	$self->{'breadcrumbs'} = [
 		{
 			label => 'Home',
@@ -110,6 +140,8 @@ sub _site_account {
 		$self->_edit_user($user_name);
 		return;
 	}
+	say q(<div class="box queryform"><div id="accordion">);
+	$self->{'panel'} = 0;
 	$self->_show_registration_details;
 	$self->_show_submission_options;
 	if ( $self->{'curate'} ) {
@@ -117,14 +149,15 @@ sub _site_account {
 	} else {
 		$self->_show_user_roles;
 	}
+	say q(</div></div>);
 	return;
 }
 
 sub _show_registration_details {
 	my ($self) = @_;
-	say q(<div class="box resultspanel"><div class="scrollable">);
-	say q(<span class="main_icon far fa-address-card fa-3x fa-pull-left"></span>);
 	say q(<h2>User details</h2>);
+	say q(<div><div class="scrollable">);
+	say q(<span class="main_icon fas fa-address-card fa-3x fa-pull-left"></span>);
 	say q(<p>You are registered with the following details. Please ensure that these are correct and use )
 	  . q(appropriate capitalization etc. These details will be linked to any data you submit to the )
 	  . q(databases and will be visible to other users.</p>);
@@ -134,7 +167,15 @@ sub _show_registration_details {
 	  . qq(<dt>First name</dt><dd>$user_info->{'first_name'}</dd>)
 	  . qq(<dt>Last name</dt><dd>$user_info->{'surname'}</dd>)
 	  . qq(<dt>E-mail address</dt><dd>$user_info->{'email'}</dd>)
-	  . qq(<dt>Affiliation/institute</dt><dd>$user_info->{'affiliation'}</dd></dl>);
+	  . qq(<dt>Affiliation/institute</dt><dd>$user_info->{'affiliation'}</dd>);
+
+	if ( $self->{'config'}->{'site_user_country'} && $user_info->{'country'} ) {
+		say qq(<dt>Country</dt><dd>$user_info->{'country'}</dd>);
+	}
+	if ( $self->{'config'}->{'site_user_sector'} && $user_info->{'sector'} ) {
+		say qq(<dt>Sector</dt><dd>$user_info->{'sector'}</dd>);
+	}
+	say q(</dl>);
 	say qq(<div class="registration_buttons"><a href="$self->{'system'}->{'script_name'}?edit=1" class="small_submit">)
 	  . q(<span><span class="fas fa-pencil-alt"></span> Edit details</span></a>)
 	  . qq(<a class="small_reset" style="margin-left:1em" href="$self->{'system'}->{'script_name'}?page=logout"><span>)
@@ -146,22 +187,27 @@ sub _show_registration_details {
 sub _show_submission_options {
 	my ($self) = @_;
 	return if !$self->_is_curator( $self->{'username'} );
+	$self->{'panel'}++;
 	my $q = $self->{'cgi'};
-	$self->_update_submission_options;
 	my $prefs =
 	  $self->{'datastore'}
 	  ->run_query( 'SELECT * FROM curator_prefs WHERE user_name=?', $self->{'username'}, { fetch => 'row_hashref' } );
-	say q(<div class="box queryform"><div class="scrollable">);
-	say q(<span class="main_icon far fa-envelope fa-3x fa-pull-left"></span>);
 	say q(<h2>Submission notifications</h2>);
+	say q(<div><div class="scrollable">);
+	$self->_update_submission_options;
+
+	if ( $q->param('submission_options') ) {
+		say qq(<script>var active_panel=$self->{'panel'};</script>);
+	}
+	say q(<span class="main_icon fas fa-envelope fa-3x fa-pull-left"></span>);
 	say q(<p>You are a curator for at least one of the databases on the system. If you receive automated submission )
 	  . q(messages, you may wish to modify how you receive these or mark yourself absent for a period of time so that )
 	  . q(messages are suspended.</p>);
 	say $q->start_form;
 	say q(<div>);
-
 	if ( $self->{'config'}->{'submission_digests'} ) {
 		say q(<h3>How do you wish to receive notifications?</h3>);
+		my $submission_digest = $q->param('submission_digest');
 		say $q->radio_group(
 			-name   => 'submission_digest',
 			-id     => 'submission_digest',
@@ -170,26 +216,28 @@ sub _show_submission_options {
 				0 => 'immediate notification of every submission',
 				1 => 'periodic digest summarising submissions since last digest'
 			},
-			-default   => $prefs->{'submission_digests'},
+			-default   => $submission_digest // $prefs->{'submission_digests'},
 			-linebreak => 'true'
 		);
 		say q(<p style="margin-top:1em">Minimum digest interval: );
-		my $intervals = SUBMISSION_INTERVAL;
+		my $intervals       = SUBMISSION_INTERVAL;
+		my $digest_interval = $q->param('digest_interval');
 		say $self->popup_menu(
 			-id       => 'digest_interval',
 			-name     => 'digest_interval',
 			-values   => [ sort { $a <=> $b } keys %$intervals ],
 			-labels   => $intervals,
-			-default  => $prefs->{'digest_interval'} // 1440,
+			-default  => $digest_interval // $prefs->{'digest_interval'} // 1440,
 			-disabled => $prefs->{'submission_digests'} ? 'false' : 'true'
 		);
 		say q(</p>);
 	}
 	say q(<h3>Submission responses</h3>);
+	my $response_cc = $q->param('response_cc');
 	say $q->checkbox(
 		-name    => 'response_cc',
 		-label   => 'Receive copy of E-mail to submitter when closing submission',
-		-checked => $prefs->{'submission_email_cc'}
+		-checked => $response_cc // $prefs->{'submission_email_cc'}
 	);
 	say q(<h3>Suspend notifications</h3>);
 	say q(<p>If you are going to be away and unable to process submissions, you can suspend notifications for )
@@ -197,13 +245,14 @@ sub _show_submission_options {
 	  . q(notifications.</p>);
 	my $datestamp = BIGSdb::Utils::get_datestamp;
 	say q(<p>Resume on: );
-	my $max_date = $self->_max_suspend_date;
+	my $max_date     = $self->_max_suspend_date;
+	my $absent_until = $q->param('absent_until');
 	say $self->textfield(
 		name  => 'absent_until',
 		type  => 'date',
 		min   => $datestamp,
 		max   => $max_date,
-		value => $prefs->{'absent_until'}
+		value => $absent_until // $prefs->{'absent_until'}
 	);
 	say q(</p>);
 	say q(</div>);
@@ -250,6 +299,8 @@ sub _update_submission_options {
 		$self->{'db'}->rollback;
 	} else {
 		$self->{'db'}->commit;
+		print q(<div class="box statusgood_no_resize"><span class="statusgood">)
+		  . q(Notification options updated.</span></div>);
 	}
 	return;
 }
@@ -264,17 +315,40 @@ sub _edit_user {
 	if ( $q->param('update') ) {
 		$self->_update_user($username);
 	}
+
 	say q(<div class="box" id="queryform"><div class="scrollable">);
 	say q(<span class="config_icon fas fa-edit fa-3x fa-pull-left"></span>);
 	say q(<h2>User account details</h2>);
 	if ( $username eq $self->{'username'} ) {
+		if ( $self->{'system'}->{'profile_update_required'} ) {
+			say q(<p><strong>We need you to update your profile.</strong></p>);
+		}
 		say q(<p>Please ensure that your details are correct - if you submit data to the database these will be )
 		  . q(associated with your record. The E-mail address will be used to send you notifications about your )
 		  . q(submissions.</p>);
+		my $user_db = $self->_get_user_db;
+		if (
+			$self->{'datastore'}->run_query(
+				'SELECT EXISTS(SELECT * FROM registered_resources where auto_registration IS NOT TRUE)',
+				undef, { db => $user_db }
+			)
+		  )
+		{
+			say q(<p>Some database registrations require manual authorization by an administrator. )
+			  . q(Access to these may be subject to licence restrictions that depend on your affiliated organisation )
+			  . q(so please ensure you provide this in full. <strong>Please avoid acronyms if these are not )
+			  . q(universally recognized</strong>.</p>);
+		}
 	}
 	my $user_info = $self->{'datastore'}->get_user_info_from_username($username);
 	$q->param( $_ => $q->param($_) // BIGSdb::Utils::unescape_html( $user_info->{$_} ) )
-	  foreach qw(first_name surname email affiliation);
+	  foreach qw(first_name surname email affiliation sector country);
+	my %allowed_sectors = map { $_ => 1 } SECTORS;
+	my $sector          = $q->param('sector');
+	if ( $sector && !$allowed_sectors{$sector} && $sector ne 'other' ) {
+		$q->param( sector       => 'other' );
+		$q->param( other_sector => $sector );
+	}
 	say $q->start_form;
 	say q(<fieldset style="float:left"><legend>Edit details</legend>);
 	say q(<ul><li>);
@@ -289,6 +363,29 @@ sub _edit_user {
 	say q(</li><li>);
 	say q(<label for="affiliation" class="form">Affiliation/institute:</label>);
 	say $q->textarea( -name => 'affiliation', -id => 'affiliation', -required => 'required', -cols => 30 );
+
+	if ( $self->{'config'}->{'site_user_sector'} ) {
+		say q(</li><li>);
+		say q(<label for="sector" class="form">Sector:</label>);
+		my $values = [ '', SECTORS, 'other' ];
+		say $q->popup_menu( -name => 'sector', -id => 'sector', -values => $values, -required => 'required' );
+		say q(</li><li id="other" style="display:none">);
+		say q(<label for="other_sector" class="form">Other sector:</label>);
+		say $q->textfield(
+			-name        => 'other_sector',
+			-id          => 'other_sector',
+			-size        => 30,
+			-placeholder => 'Enter other sector...'
+		);
+	}
+	if ( $self->{'config'}->{'site_user_country'} ) {
+		say q(</li><li>);
+		say q(<label for="country" class="form">Country:</label>);
+		my $countries = COUNTRIES;
+		my $sorted    = BIGSdb::Utils::unicode_dictionary_sort( [ keys %$countries ] );
+		my $values    = [ '', @$sorted ];
+		say $q->popup_menu( -name => 'country', -id => 'country', -values => $values, -required => 'required' );
+	}
 	say q(</li></ul>);
 	say q(</fieldset>);
 	$self->print_action_fieldset( { no_reset => 1, submit_label => 'Update' } );
@@ -299,8 +396,20 @@ sub _edit_user {
 	return;
 }
 
+sub _get_user_db {
+	my ($self) = @_;
+	my $user_db;
+	if ( $self->{system}->{'dbtype'} ne 'user' ) {
+		my $user_info = $self->{'datastore'}->get_user_info_from_username( $self->{'username'} );
+		$user_db = $self->{'datastore'}->get_user_db( $user_info->{'user_db'} );
+	} else {
+		$user_db = $self->{'db'};
+	}
+	return $user_db;
+}
+
 sub _update_user {
-	my ( $self, $username ) = @_;
+	my ( $self, $username, $panel ) = @_;
 	my $q = $self->{'cgi'};
 	my @missing;
 	my $data;
@@ -318,36 +427,65 @@ sub _update_user {
 			$data->{$param} = BIGSdb::Utils::escape_html( $data->{$param} );
 		}
 	}
+	if ( $self->{'config'}->{'site_user_sector'} ) {
+		$data->{'sector'} = $q->param('sector');
+		if ( ( $data->{'sector'} // q() ) eq 'other' ) {
+			$data->{'sector'} = $q->param('other_sector');
+		}
+		$data->{'sector'} = $self->clean_value( $data->{'sector'}, { no_escape => 1 } );
+		$data->{'sector'} = BIGSdb::Utils::escape_html( $data->{'sector'} );
+		if ( !$data->{'sector'} || $data->{'sector'} eq q() ) {
+			push @missing, 'sector';
+		}
+	}
+	if ( $self->{'config'}->{'site_user_country'} ) {
+		$data->{'country'} = $q->param('country');
+		$data->{'country'} = $self->clean_value( $data->{'country'}, { no_escape => 1 } );
+		$data->{'country'} = BIGSdb::Utils::escape_html( $data->{'country'} );
+		if ( !$data->{'country'} || $data->{'country'} eq q() ) {
+			push @missing, 'country';
+		}
+	}
+
 	my $address = Email::Valid->address( scalar $q->param('email') );
 	my $error;
 	if (@missing) {
 		local $" = q(, );
 		$error = qq(Please enter the following parameters: @missing.);
 	} elsif ( !$address ) {
-		$error = q(Your E-mail address is not valid.);
+		$error = q(E-mail address is not valid.);
 	}
 	if ($error) {
 		$self->print_bad_status( { message => qq($error) } );
 		return;
 	}
+
 	my $user_info = $self->{'datastore'}->get_user_info_from_username($username);
 	my ( @changed_params, @new, %old );
-	foreach my $param (qw (first_name surname email affiliation)) {
-		if ( $data->{$param} ne $user_info->{$param} ) {
+	my @fields = qw (first_name surname email affiliation);
+	push @fields, 'country' if $self->{'config'}->{'site_user_country'};
+	push @fields, 'sector'  if $self->{'config'}->{'site_user_sector'};
+	foreach my $param (@fields) {
+		if ( $data->{$param} ne ( $user_info->{$param} // q() ) ) {
 			push @changed_params, $param;
 			push @new,            $data->{$param};
-			$old{$param} = $user_info->{$param};
+			$old{$param} = $user_info->{$param} // q();
 		}
 	}
+	if ( ( $data->{'sector'} // q() ) eq 'other' ) {
+		$data->{'sector'} = $q->param('other_sector') // q();
+	}
 	if (@changed_params) {
+
 		local $" = q(,);
 		my @placeholders = ('?') x @changed_params;
 		my $qry          = "UPDATE users SET (@changed_params,datestamp)=(@placeholders,?) WHERE user_name=?";
+
 		eval {
 			$self->{'db'}->do( $qry, undef, @new, 'now', $username );
 			foreach my $param (@changed_params) {
 				$self->{'db'}->do( 'INSERT INTO history (timestamp,user_name,field,old,new) VALUES (?,?,?,?,?)',
-					undef, 'now', $username, $param, $user_info->{$param}, $data->{$param} );
+					undef, 'now', $username, $param, $old{$param}, $data->{$param} );
 			}
 			$logger->info("$self->{'username'} updated user details for $username.");
 		};
@@ -358,7 +496,20 @@ sub _update_user {
 		} else {
 			$self->print_good_status( { message => q(Details successfully updated.) } );
 			$self->{'db'}->commit;
+			eval {
+				$self->{'auth_db'}->do( 'UPDATE users SET update_profile=FALSE WHERE (name,dbase)=(?,?)',
+					undef, $username, $self->{'system'}->{'db'} );
+				$self->{'auth_db'}->do( 'UPDATE sessions SET update_profile=FALSE WHERE (username,dbase)=(?,?)',
+					undef, $username, $self->{'system'}->{'db'} );
+			};
+			if ($@) {
+				$logger->error($@);
+				$self->{'auth_db'}->rollback;
+			} else {
+				$self->{'auth_db'}->commit;
+			}
 		}
+
 	} else {
 		$self->print_bad_status( { message => q(No changes made.) } );
 	}
@@ -369,50 +520,47 @@ sub _show_user_roles {
 	my ($self) = @_;
 	my $buffer;
 	$buffer .= $self->_registrations;
-	if ($buffer) {
-		say q(<div class="box" id="queryform">);
-		say $buffer;
-		say q(<div style="clear:both"></div></div>);
-	} else {
-		$self->print_about_bigsdb;
-	}
+	say $buffer if $buffer;
+	say $self->_api_keys;
 	return;
 }
 
 sub _registrations {
 	my ($self) = @_;
-	my $q = $self->{'cgi'};
-	$self->_register if $q->param('register');
-	$self->_request  if $q->param('request');
+	my $q      = $self->{'cgi'};
 	my $buffer = q();
 	my $configs =
 	  $self->{'datastore'}->run_query( 'SELECT dbase_config FROM registered_resources ORDER BY dbase_config',
 		undef, { fetch => 'col_arrayref' } );
 	return $buffer if !@$configs;
-	$buffer .= q(<span class="main_icon far fa-list-alt fa-3x fa-pull-left"></span>);
-	$buffer .= q(<h2>Registrations</h2>);
+	$self->{'panel'}++;
+	$buffer .= q(<h2>Database registrations</h2>);
+	$buffer .= q(<div>);
+	$buffer .= q(<span class="main_icon fas fa-list-alt fa-3x fa-pull-left"></span>);
 	$buffer .=
 		q(<p>Use this page to register your account with specific databases. )
 	  . q(<strong><em>You need to do this if you want to submit data to a specific database, )
 	  . q(access a password-protected resource, create a user project, or run jobs.</em>)
 	  . q(</strong></p>);
+	$buffer .= $self->_register if $q->param('register');
+	$buffer .= $self->_request  if $q->param('request');
 	my $registered_configs =
 	  $self->{'datastore'}->run_query( 'SELECT dbase_config FROM registered_users WHERE user_name=?',
 		$self->{'username'}, { fetch => 'col_arrayref' } );
 	my $labels = $self->_get_config_labels;
 	@$registered_configs = sort { $labels->{$a} cmp $labels->{$b} } @$registered_configs;
-	$buffer .= q(<div class="scrollable">);
 	$buffer .= q(<fieldset style="float:left"><legend>Registered</legend>);
 	$buffer .= q(<p>Your account is registered for:</p>);
 
 	if (@$registered_configs) {
+		$buffer .= q(<div class="scrollable">);
 		$buffer .= q(<div class="registered_configs">);
-		$buffer .= q(<ul>);
+		$buffer .= q(<ul style="list-style:disc inside none">);
 		foreach my $config (@$registered_configs) {
 			$buffer .= qq(<li>$labels->{$config}</li>);
 		}
 		$buffer .= q(</ul>);
-		$buffer .= q(</div>);
+		$buffer .= q(</div></div>);
 	} else {
 		$buffer .= q(<p>Nothing</p>);
 	}
@@ -453,9 +601,13 @@ sub _registrations {
 	if (@$request_reg) {
 		@$request_reg = sort { $labels->{$a} cmp $labels->{$b} } @$request_reg;
 		$buffer .= q(<fieldset style="float:left"><legend>Admin authorization</legend>);
-		$buffer .= q(<p>Access to the listed resources can be requested but requires authorization.<br />);
+		$buffer .= q(<p>Access to the listed resources can be requested but requires manual<br />authorization. );
 		$buffer .=
-		  q(<strong><em>Check respective web sites for licencing ) . q(and access conditions.</em></strong><br />);
+			q(<strong><em>Check respective web sites for licencing and access<br />)
+		  . q(conditions. Please ensure that you are registered with your real<br />)
+		  . q(name and full affiliation or authorization is likely to be rejected.<br />)
+		  . q(Affiliations should not use abbreviations unless these are<br />)
+		  . q(internationally recognized.</em></strong><br />);
 		$buffer .= q(Select from list and click 'Request' button.</p>);
 		$buffer .= $q->start_form;
 		$buffer .= q(<div style="float:left">);
@@ -481,15 +633,14 @@ sub _registrations {
 		$buffer .= q(<fieldset style="float:left"><legend>Pending</legend>);
 		$buffer .= q(<p>You have requested access to the following:<br />);
 		$buffer .= q(You will be E-mailed confirmation of registration.</p>);
-		$buffer .= $q->scrolling_list(
-			-name     => 'pending',
-			-id       => 'pending',
-			-values   => $pending,
-			-multiple => 'true',
-			-disabled => 'disabled',
-			-style    => 'min-width:10em; min-height:8em',
-			-labels   => $labels
-		);
+		$buffer .= q(<div class="scrollable">);
+		$buffer .= q(<div class="registered_configs">);
+		$buffer .= q(<ul style="list-style:disc inside none">);
+		foreach my $config (@$pending) {
+			$buffer .= qq(<li>$labels->{$config}</li>);
+		}
+		$buffer .= q(</ul>);
+		$buffer .= q(</div></div>);
 		$buffer .= q(</fieldset>);
 	}
 	if ( !@$auto_reg && !@$request_reg && !@$pending ) {
@@ -497,7 +648,132 @@ sub _registrations {
 		$buffer .= q(<p>There are no other resources available to register for.</p>);
 		$buffer .= q(</fieldset>);
 	}
-	$buffer .= q(</div>);
+	if ( $q->param('register') || $q->param('request') ) {
+		$buffer .= qq(<script>var active_panel=$self->{'panel'};</script>);
+	}
+	$buffer .= q(<div style="clear:both"></div></div>);
+	return $buffer;
+}
+
+sub _api_keys {
+	my ($self) = @_;
+	return q() if !( $self->{'config'}->{'automated_api_keys'} && $self->{'config'}->{'site_user_dbs'} );
+	$self->{'panel'}++;
+	my $q = $self->{'cgi'};
+	my $buffer =
+		q(<h2>API keys</h2>)
+	  . q(<div><span class="main_icon fas fa-key fa-3x fa-pull-left"></span>)
+	  . q(<p>Here you can create keys that enable you to delegate your account access to scripts or third-party )
+	  . q(applications using the API without the need to share credentials. More details can be found at )
+	  . q(<a href="https://bigsdb.readthedocs.io/en/latest/rest.html" target="_blank">)
+	  . q(https://bigsdb.readthedocs.io/en/latest/rest.html</a>.</p>);
+	my $email = $self->{'config'}->{'site_admin_email'};
+	my $admins =
+	  $email
+	  ? qq(<a href="mailto:$email">site administrators</a>)
+	  : q(site administrators);
+	$buffer .= q(<p>Note that these are personal keys - if you want to obtain a key for a platform or organisation, )
+	  . qq(beyond for testing purposes, then please contact the $admins.</p>);
+
+	if ( $q->param('new_key') ) {
+		$buffer .= qq(<script>var active_panel=$self->{'panel'};</script>);
+		my $key_exists = $self->{'datastore'}->run_query(
+			'SELECT EXISTS(SELECT * FROM clients WHERE (dbase,username,application)=(?,?,?))',
+			[ $self->{'system'}->{'db'}, $self->{'username'}, scalar $q->param('key_name') ],
+			{ db => $self->{'auth_db'} }
+		);
+		if ($key_exists) {
+			$buffer .= q(<div class="box statusbad"><span class="statusbad">You already have )
+			  . q(a key with that name. Use a different name.</span></div>);
+		} else {
+			my $client_id     = BIGSdb::Utils::random_string(24);
+			my $client_secret = BIGSdb::Utils::random_string(42);
+			my $key_name      = $q->param('key_name');
+			eval {
+				$self->{'auth_db'}->do(
+					'INSERT INTO clients (application,version,client_id,client_secret,'
+					  . 'default_permission,datestamp,default_submission,default_curation,dbase,username) VALUES '
+					  . '(?,?,?,?,?,?,?,?,?,?)',
+					undef,
+					$key_name,
+					'',
+					$client_id,
+					$client_secret,
+					'allow',
+					'now',
+					'true',
+					'false',
+					$self->{'system'}->{'db'},
+					$self->{'username'}
+				);
+			};
+			if ($@) {
+				$logger->error($@);
+				$buffer .=
+				  q(<div class="box statusbad_no_resize"><span class="statusbad">Error creating new key.</span></div>);
+				$self->{'auth_db'}->rollback;
+			} else {
+				$logger->info("User $self->{'username'} created a new API key - $key_name.");
+				$buffer .=
+				  q(<div class="box statusgood_no_resize"><span class="statusgood">New API key created.</span></div>);
+				$self->{'auth_db'}->commit;
+			}
+		}
+	}
+	if ( $q->param('revoke') ) {
+		$buffer .= qq(<script>var active_panel=$self->{'panel'};</script>);
+		my $client_id = $q->param('revoke');
+		eval {
+			$self->{'auth_db'}
+			  ->do( 'DELETE FROM clients WHERE (client_id,username)=(?,?)', undef, $client_id, $self->{'username'} );
+		};
+		if ($@) {
+			$logger->error($@);
+			$self->{'auth_db'}->rollback;
+		} else {
+			$logger->info("User $self->{'username'} deleted API key.");
+			$self->{'auth_db'}->commit;
+		}
+	}
+	my $keys = $self->{'datastore'}->run_query(
+		'SELECT * FROM clients WHERE (dbase,username)=(?,?) ORDER BY application',
+		[ $self->{'system'}->{'db'}, $self->{'username'} ],
+		{ db => $self->{'auth_db'}, fetch => 'all_arrayref', slice => {} }
+	);
+	if (@$keys) {
+		$buffer .= q(<div class="scrollable"><table class="resultstable">);
+		$buffer .=
+		  q(<tr><th>Revoke</th><th>Key name</th><th>Client id</th><th>Client secret</th><th>Datestamp</th></tr>);
+		my $td = 1;
+		foreach my $key (@$keys) {
+			my $revoke = DELETE;
+			$buffer .=
+				qq(<tr class="td$td"><td><a href="$self->{'system'}->{'script_name'}?revoke=$key->{'client_id'}" )
+			  . qq(class="action">$revoke</a></td><td>$key->{'application'}</td>)
+			  . qq(<td style="font-family:monospace">$key->{'client_id'}</td>)
+			  . qq(<td style="font-family:monospace">$key->{'client_secret'}</td>)
+			  . qq(<td>$key->{'datestamp'}</tr>);
+			$td = $td == 1 ? 2 : 1;
+		}
+		$buffer .= q(</table></div>);
+	}
+	$buffer .= $q->start_form;
+	my $user_info = $self->{'datastore'}->get_user_info_from_username( $self->{'username'} );
+	$buffer .= q(<fieldset style="float:left"><legend>Create new API key</legend>);
+	$buffer .= q(<ul><li>);
+	$buffer .= q(<label for="key_name">Key name: </label>);
+	$buffer .= $q->textfield(
+		-name      => 'key_name',
+		-id        => 'key_name',
+		-size      => 30,
+		-maxlength => 50,
+		-default   => "$user_info->{'first_name'} $user_info->{'surname'} - Personal key",
+	);
+	$buffer .= q(</li></ul>);
+	$buffer .= q(</fieldset>);
+	$buffer .= $self->print_action_fieldset( { no_reset => 1, get_only => 1, submit_name => 'new_key' } );
+	$buffer .= $q->end_form;
+	$buffer .= q(<div style="clear:both"></div></div>);
 	return $buffer;
 }
 
@@ -507,27 +783,35 @@ sub _register {
 	my @configs = $q->multi_param('auto_reg');
 	return if !@configs;
 	my $current_config;
-	eval {
-		foreach my $config (@configs) {
-			$current_config = $config;
-			my $auto_reg =
-			  $self->{'datastore'}
-			  ->run_query( 'SELECT auto_registration FROM registered_resources WHERE dbase_config=?',
-				$config, { cache => 'UserPage::register::check_auto_reg' } );
-			next if !$auto_reg;
-			my $already_registered_in_user_db = $self->{'datastore'}->run_query(
-				'SELECT EXISTS(SELECT * FROM registered_users WHERE (dbase_config,user_name)=(?,?))',
-				[ $config, $self->{'username'} ],
-				{ cache => 'UserPage::register::check_already_reg' }
-			);
+	my @fail;
+	my %reason;
+	foreach my $config (@configs) {
+		$current_config = $config;
+		my $auto_reg =
+		  $self->{'datastore'}->run_query( 'SELECT auto_registration FROM registered_resources WHERE dbase_config=?',
+			$config, { cache => 'UserPage::register::check_auto_reg' } );
+		next if !$auto_reg;
+		my $already_registered_in_user_db = $self->{'datastore'}->run_query(
+			'SELECT EXISTS(SELECT * FROM registered_users WHERE (dbase_config,user_name)=(?,?))',
+			[ $config, $self->{'username'} ],
+			{ cache => 'UserPage::register::check_already_reg' }
+		);
 
-			#Prevents refreshing page trying to register twice
-			next if $already_registered_in_user_db;
-			my $system  = $self->_read_config_xml($config);
-			my $db      = $self->_get_db($system);
-			my $id      = $self->_get_next_id($db);
-			my $user_db = $self->_get_user_db($db);
-			next if !$user_db;
+		#Prevents refreshing page trying to register twice
+		next if $already_registered_in_user_db;
+		my $system = $self->_read_config_xml($config);
+		my $db;
+		eval { $db = $self->_get_db($system); };
+		if ($@) {
+			$self->{'db'}->rollback;
+			push @fail, $config;
+			$reason{$config} = q( - cannot connect to database.);
+		}
+		next if !$db;
+		my $id      = $self->_get_next_id($db);
+		my $user_db = $self->_get_user_db_id($db);
+		next if !$user_db;
+		eval {
 			$self->{'db'}->do( 'INSERT INTO registered_users (dbase_config,user_name,datestamp) VALUES (?,?,?)',
 				undef, $config, $self->{'username'}, 'now' );
 			$db->do(
@@ -537,24 +821,28 @@ sub _register {
 			$db->commit;
 			$self->_drop_connection($system);
 			$logger->info("User $self->{'username'} registered for $config.");
-		}
-	};
-	if ($@) {
-		$self->{'db'}->rollback;
-		my $msg = q();
-		if ( $@ =~ /users_user_name_key/x ) {
-			$msg = qq( A user with the same username is already registered in the $current_config database.);
-			if ( $self->{'config'}->{'site_admin_email'} ) {
-				$msg .= qq( Please contact the <a href="mailto:$self->{'config'}->{'site_admin_email'}">)
-				  . q(site admin</a> for advice.);
+		};
+		if ($@) {
+			$self->{'db'}->rollback;
+			push @fail, $config;
+			if ( $@ =~ /users_user_name_key/x ) {
+				$reason{$config} = q( - username already registered.);
 			}
-		} else {
-			$logger->error($@);
 		}
-		$self->print_bad_status( { message => q(User registration failed.), detail => $msg } );
+	}
+	if (@fail) {
+		my $msg = q(Registration failed for:<ul>);
+		foreach my $config (@fail) {
+			$msg .= qq(<li>$config);
+			$msg .= $reason{$config} if $reason{$config};
+			$msg .= q(</li>);
+		}
+		$msg .= q(</ul>);
+		return qq(<div class="box statusbad_no_resize"><span class="statusbad">$msg</span></div>);
 	} else {
 		$self->{'db'}->commit;
-		$self->print_good_status( { message => q(User registration succeeded.) } );
+		return q(<div class="box statusgood_no_resize"><span class="statusgood">)
+		  . q(User registration succeeded.</span></div>);
 	}
 	return;
 }
@@ -584,10 +872,11 @@ sub _request {
 	if ($@) {
 		$logger->error($@);
 		$self->{'db'}->rollback;
-		$self->print_bad_status( { message => q(User request failed.) } );
+		return q(<div class="box statusbad_no_resize"><span class="statusbad">User request failed.</span></div>);
 	} else {
 		$self->{'db'}->commit;
-		$self->print_good_status( { message => q(User request is now pending.) } );
+		return q(<div class="box statusgood_no_resize"><span class="statusgood">)
+		  . q(User request is now pending.</span></div>);
 	}
 	return;
 }
@@ -608,14 +897,10 @@ sub _show_admin_roles {
 	my ($self) = @_;
 	my $buffer;
 	$buffer .= $self->_import_dbase_config;
-	$buffer .= $self->_show_merge_user_accounts;
-	$buffer .= $self->_show_modify_users;
 	if ($buffer) {
-		say q(<div class="box" id="restricted">);
-		say q(<span class="config_icon fas fa-wrench fa-3x fa-pull-left"></span>);
 		say $buffer;
-		say q(</div>);
 	} else {
+		say q(<h2>Administrator functions</h2>);
 		say q(<div class="box" id="statusbad" style="min-height:5em">);
 		say q(<span class="config_icon far fa-thumbs-down fa-5x fa-pull-left"></span>);
 		say q(<p>Your account has no administrator privileges for this site.</p>);
@@ -645,8 +930,11 @@ sub _get_autoreg_status {
 sub _import_dbase_config {
 	my ($self) = @_;
 	return q() if !$self->{'permissions'}->{'import_dbase_configs'};
+	$self->{'panel'}++;
 	my $q = $self->{'cgi'};
+	my $set_panel;
 	if ( $q->param('add') ) {
+		$set_panel = 1;
 		foreach my $config ( $q->multi_param('available') ) {
 			next if $self->_is_config_registered($config);
 			my $reg = $self->_get_autoreg_status($config);
@@ -662,6 +950,7 @@ sub _import_dbase_config {
 			}
 		}
 	} elsif ( $q->param('remove') ) {
+		$set_panel = 1;
 		foreach my $config ( $q->multi_param('registered') ) {
 			eval { $self->{'db'}->do( 'DELETE FROM registered_resources WHERE dbase_config=?', undef, $config ) };
 			if ($@) {
@@ -684,7 +973,8 @@ sub _import_dbase_config {
 	foreach my $config (@$dbase_configs) {
 		push @$available_configs, $config if !$registered{$config};
 	}
-	$buffer .= q(<h2>Database configurations</h2>);
+	$buffer .= q(<h2>Enable database configurations for user registration</h2><div>);
+	$buffer .= q(<span class="config_icon fas fa-wrench fa-3x fa-pull-left"></span>);
 	if ( !@$registered_configs && !@$available_configs ) {
 		$buffer .=
 			q(<p>There are no configurations available or registered. Please run the sync_user_dbase_users.pl )
@@ -693,6 +983,7 @@ sub _import_dbase_config {
 	}
 	$buffer .= q(<p>Register configurations by selecting those available and moving to registered. Note that )
 	  . q(user accounts are linked to specific databases rather than the configuration itself.</p>);
+	$buffer .= qq(<script>var active_panel=$self->{'panel'};</script>) if $set_panel;
 	$buffer .= q(<div class="scrollable">);
 	$buffer .= $q->start_form;
 	$buffer .= qq(<table><tr><th>Available</th><td></td><th>Registered</th></tr>\n<tr><td>);
@@ -728,23 +1019,27 @@ sub _import_dbase_config {
 	  . q(style="margin-top:1em" class="small_submit" />);
 	$buffer .= q(</td></tr></table>);
 	$buffer .= $q->end_form;
-	$buffer .= q(</div>);
+	$buffer .= q(</div></div>);
 	return $buffer;
 }
 
 sub _get_users {
 	my ($self) = @_;
-	my $users =
-	  $self->{'datastore'}->run_query(
-		'SELECT user_name,first_name,surname FROM users WHERE status=? ORDER BY surname, first_name, user_name',
-		'validated', { fetch => 'all_arrayref', slice => {} } );
-	my $usernames = [''];
-	my $labels    = { '' => 'Select user...' };
-	foreach my $user (@$users) {
-		push @$usernames, $user->{'user_name'};
-		$labels->{ $user->{'user_name'} } = "$user->{'surname'}, $user->{'first_name'} ($user->{'user_name'})";
+	if ( !$self->{'cache'}->{'users'} ) {
+		my $users =
+		  $self->{'datastore'}->run_query(
+			'SELECT user_name,first_name,surname FROM users WHERE status=? ORDER BY surname, first_name, user_name',
+			'validated', { fetch => 'all_arrayref', slice => {} } );
+		my $usernames = [''];
+		my $labels    = { '' => 'Select user...' };
+		foreach my $user (@$users) {
+			push @$usernames, $user->{'user_name'};
+			$labels->{ $user->{'user_name'} } = "$user->{'surname'}, $user->{'first_name'} ($user->{'user_name'})";
+		}
+		$self->{'cache'}->{'users'}->{'usernames'} = $usernames;
+		$self->{'cache'}->{'users'}->{'labels'}    = $labels;
 	}
-	return ( $usernames, $labels );
+	return ( $self->{'cache'}->{'users'}->{'usernames'}, $self->{'cache'}->{'users'}->{'labels'} );
 }
 
 sub _show_merge_user_accounts {
@@ -752,16 +1047,18 @@ sub _show_merge_user_accounts {
 	return q() if !$self->{'permissions'}->{'merge_users'};
 	my ( $usernames, $labels ) = $self->_get_users;
 	return q() if !@$usernames;
-	my $buffer = q(<h2>Merge user accounts</h2>);
-	my $q      = $self->{'cgi'};
+	$self->{'panel'}++;
+	my $buffer = q(<h2>Merge user accounts</h2><div>);
+	$buffer .= q(<span class="config_icon fas fa-wrench fa-3x fa-pull-left"></span>);
+	my $q = $self->{'cgi'};
 	$buffer .= $q->start_form;
 	$buffer .= q(<fieldset style="float:left"><legend>Select site account</legend>);
-	$buffer .= $self->popup_menu( -name => 'user', -id => 'user', -values => $usernames, -labels => $labels );
+	$buffer .= $self->popup_menu( -name => 'user', -id => 'merge_user', -values => $usernames, -labels => $labels );
 	$buffer .= $q->submit( -label => 'Select user', -class => 'small_submit' );
 	$buffer .= q(</fieldset>);
 	$buffer .= $q->hidden( merge_user => 1 );
-	$buffer .= q(<div style="clear:both"></div>);
 	$buffer .= $q->end_form;
+	$buffer .= q(</div>);
 	return $buffer;
 }
 
@@ -769,15 +1066,20 @@ sub _show_modify_users {
 	my ($self) = @_;
 	return q() if !$self->{'permissions'}->{'modify_users'};
 	my ( $usernames, $labels ) = $self->_get_users;
-	my $buffer = q(<h2>Update user details</h2>);
-	my $q      = $self->{'cgi'};
+	return q() if !@$usernames;
+	$self->{'panel'}++;
+	my $buffer = q(<h2>Update user details</h2><div>);
+	$buffer .= q(<span class="config_icon fas fa-wrench fa-3x fa-pull-left"></span>);
+	my $q = $self->{'cgi'};
 	$buffer .= $q->start_form;
 	$buffer .= q(<fieldset><legend>Select site account</legend>);
-	$buffer .= $self->popup_menu( -name => 'user', -id => 'user', -values => $usernames, -labels => $labels );
+	$buffer .= $self->popup_menu( -name => 'user', -id => 'modify_user', -values => $usernames, -labels => $labels );
 	$buffer .= $q->submit( -label => 'Update user', -class => 'small_submit' );
 	$buffer .= q(</fieldset>);
-	$buffer .= $q->hidden( update_user => 1 );
+	$buffer .= $q->hidden( update_user  => 1 );
+	$buffer .= $q->hidden( modify_other => 1 );
 	$buffer .= $q->end_form;
+	$buffer .= q(</div>);
 	return $buffer;
 }
 
@@ -802,6 +1104,7 @@ sub _select_merge_users {
 		}
 		$self->_merge( scalar $q->param('user'), $account );
 	}
+	$self->{'panel'}++;
 	say q(<div class="box" id="queryform">);
 	say q(<h2>Merge user accounts</h2>);
 	say
@@ -1031,8 +1334,15 @@ sub _notify_db_admin {
 	  . qq(Username: $self->{'username'}\n)
 	  . qq(First name: $sender->{'first_name'}\n)
 	  . qq(Surname: $sender->{'surname'}\n)
-	  . qq(Affiliation: $sender->{'affiliation'}\n)
-	  . qq(E-mail: $sender->{'email'}\n\n);
+	  . qq(Affiliation: $sender->{'affiliation'}\n);
+	if ( $self->{'config'}->{'site_user_country'} && $sender->{'country'} ) {
+		$message .= qq(Country: $sender->{'country'}\n);
+	}
+	if ( $self->{'config'}->{'site_user_sector'} && $sender->{'sector'} ) {
+		$message .= qq(Sector: $sender->{'sector'}\n);
+	}
+	$message .= qq(E-mail: $sender->{'email'}\n\n);
+
 	$message .=
 	  qq(Please log in to the $system->{'description'} database curation system to accept or reject this user.);
 	my $domain         = $self->{'config'}->{'domain'}                  // DEFAULT_DOMAIN;
@@ -1069,8 +1379,28 @@ sub _notify_db_admin {
 
 sub get_javascript {
 	my ($self) = @_;
+	my $admin_js = q();
+	if ( $self->{'curate'} ) {
+		if ( $self->{'permissions'}->{'merge_users'} || $self->{'permissions'}->{'modify_users'} ) {
+			my $url = "$self->{'system'}->{'script_name'}?ajax=admin_users";
+			$admin_js .= <<"JS";
+			\$.ajax({
+				url: "$url",
+				type: "GET",
+				success: function(content){
+					\$("#accordion").append(content);
+					\$("#accordion").accordion("refresh");
+					\$("#merge_user,#modify_user").select2({
+						width: '300px'
+					});
+				}
+			});
+JS
+		}
+	}
 	my $buffer = << "END";
 \$(function () {
+	render_selects();
 	\$('input[type=radio][id=submission_digest]').change(function() {
 	    if (this.value == '1') {
 	        \$("#digest_interval").prop("disabled", false);
@@ -1078,10 +1408,72 @@ sub get_javascript {
 	    	\$("#digest_interval").prop("disabled", true);
 	    }
 	});
+	if (typeof active_panel !== 'undefined'){
+ 		\$("#accordion").accordion({
+ 			heightStyle: "content",
+ 			active: active_panel
+ 		});
+ 	} else {
+ 		\$("#accordion").accordion({
+	 		heightStyle: "content",
+	 	});
+ 	}
+ 	$admin_js
+ 	\$('li#other').css('display',\$('select#sector').val() == 'other' ? 'block' : 'none');
+ 	\$('select#sector').change(function() {
+ 		console.log(this.value);
+ 		\$('li#other').css('display',this.value == 'other' ? 'block' : 'none');
+ 	});
+ 	\$("#country").multiselect({
+		noneSelectedText: "Please select...",
+		selectedList: 1,
+		menuHeight: 250,
+		menuWidth: 300,
+		classes: 'filter',
+	}).multiselectfilter({
+		placeholder: 'Search'
+	});
+ 	
+ 	\$("#sector").multiselect({
+		selectedList: 1,
+		menuHeight: 250,
+		menuWidth: 300,
+		classes: 'filter',
+	});
+	
+	\$(window).resize(function() {
+    	delay(function(){
+    		\$("#auto_reg,#request_reg").multiselectfilter('destroy')
+    		\$("#auto_reg,#request_reg").multiselect('destroy')
+     		render_selects();
+      		\$("#accordion").accordion("refresh");
+    	}, 1000);
+ 	});
 });
+
+function render_selects(){
+	\$("#auto_reg,#request_reg").multiselect({
+		noneSelectedText: "Please select...",
+		listbox:true,
+		menuHeight: 250,
+		menuWidth: 'auto',
+		classes: 'filter',
+	}).multiselectfilter({
+		placeholder: 'Search'
+	});
+}
+
 function listbox_selectall(listID, isSelect) {
 	\$("#" + listID + " option").prop("selected",isSelect);
 }
+
+var delay = (function(){
+  var timer = 0;
+  return function(callback, ms){
+    clearTimeout (timer);
+    timer = setTimeout(callback, ms);
+  };
+})();
 END
 	return $buffer;
 }
@@ -1151,7 +1543,7 @@ sub _get_next_id {
 	return $next;
 }
 
-sub _get_user_db {
+sub _get_user_db_id {
 	my ( $self, $db ) = @_;
 	return $self->{'datastore'}
 	  ->run_query( 'SELECT id FROM user_dbases WHERE dbase_name=?', $self->{'system'}->{'db'}, { db => $db } );

@@ -1,6 +1,6 @@
 #GenomeComparator.pm - Genome comparison plugin for BIGSdb
 #Written by Keith Jolley
-#Copyright (c) 2010-2024, University of Oxford
+#Copyright (c) 2010-2025, University of Oxford
 #E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
@@ -32,6 +32,8 @@ use Bio::DB::GenBank;
 use Bio::Seq;
 use Bio::SeqIO;
 use IO::Uncompress::Unzip qw(unzip $UnzipError);
+use IO::Uncompress::Gunzip qw(gunzip $GunzipError);
+use Archive::Tar;
 use IO::String;
 use Excel::Writer::XLSX;
 use JSON;
@@ -67,7 +69,7 @@ sub get_attributes {
 		buttontext  => 'Genome Comparator',
 		menutext    => 'Genome comparator',
 		module      => 'GenomeComparator',
-		version     => '2.8.5',
+		version     => '2.8.6',
 		dbtype      => 'isolates',
 		section     => 'analysis,postquery',
 		url         => "$self->{'config'}->{'doclink'}/data_analysis/genome_comparator.html",
@@ -649,10 +651,45 @@ sub process_uploaded_genomes {
 			last if $status < 0;
 		}
 		BIGSdb::Exception::Plugin->throw("Error processing $filename: $!") if $status < 0;
+	} elsif ( $filename =~ /\.(tar\.gz)$/x || $filename =~ /\.(tar)$/x ) {
+		my $format = $1;
+		my $tar    = Archive::Tar->new;
+		eval { $tar->read($filename); };
+		if ($@) {
+			BIGSdb::Exception::Plugin->throw("Cannot read tar file: $@");
+		}
+		foreach my $file ( $tar->get_files ) {
+			my $fasta_file = $file->name;
+			my $genome_name;
+			( $genome_name = $fasta_file ) =~ s/\.(?:fa|fas|fasta|fna)$//x;
+			my $fasta       = $file->get_content;
+			my $stringfh_in = IO::String->new($fasta);
+			try {
+				my $seqin = Bio::SeqIO->new( -fh => $stringfh_in, -format => 'fasta' );
+				while ( my $seq_object = $seqin->next_seq ) {
+					my $seq = $seq_object->seq // '';
+					$seq =~ s/[\-\.\s]//gx;
+					push @{ $user_genomes->{$genome_name} }, { id => $seq_object->id, seq => $seq };
+					$self->{'user_genomes'}->{$genome_name} = $seq_object->id;
+				}
+			} catch {
+				BIGSdb::Exception::Plugin->throw("File $fasta_file in uploaded $format is not valid FASTA format.");
+			};
+		}
 	} else {
 		try {
-			( my $genome_name = $params->{'user_genome_filename'} ) =~ s/\.(?:fa|fas|fasta|fna)$//x;
-			my $seqin = Bio::SeqIO->new( -file => $filename, -format => 'fasta' );
+			( my $genome_name = $params->{'user_genome_filename'} ) =~
+			  s/\.(?:fa|fas|fasta|fna|fa\.gz|fas\.gz|fasta\.gz|fna\.gz)$//x;
+			my $seqin;
+			if ( $filename =~ /\.gz$/x ) {
+				my $uncompressed;
+				gunzip $filename => \$uncompressed or BIGSdb::Exception::Plugin->throw("gunzip failed: $GunzipError.");
+				open my $fh, '<', \$uncompressed
+				  or BIGSdb::Exception::Plugin->throw("Cannot open uncompressed data: $!");
+				$seqin = Bio::SeqIO->new( -fh => $fh, -format => 'fasta' );
+			} else {
+				$seqin = Bio::SeqIO->new( -file => $filename, -format => 'fasta' );
+			}
 			while ( my $seq_object = $seqin->next_seq ) {
 				my $seq = $seq_object->seq // '';
 				$seq =~ s/[\-\.\s]//gx;
@@ -1248,6 +1285,7 @@ sub _generate_splits {
 		exclude_paralogous_all => $self->{'params'}->{'exclude_paralogous_all'},
 		by_reference           => $data->{'by_ref'}
 	};
+	$self->check_connection($job_id);
 	my $nexus_file = $self->_make_nexus_file( $job_id, $dismat, $options );
 	$self->{'jobManager'}->update_job_output(
 		$job_id,
@@ -1456,7 +1494,8 @@ sub align {
 	my $params = $self->{'params'};
 	return if !$params->{'align'};
 	my $isolate_names = $self->_get_isolate_names($ids);
-	my $clean_loci = $self->_get_clean_loci( $params->{'align_all'} ? $scan_data->{'loci'} : $scan_data->{'variable'} );
+	my $clean_loci =
+	  $self->_get_clean_loci( $params->{'align_all'} ? $scan_data->{'loci'} : $scan_data->{'variable'} );
 	$self->{'dataConnector'}->set_forks(1);
 	my $aligner = BIGSdb::Plugins::Helpers::GCAligner->new(
 		{

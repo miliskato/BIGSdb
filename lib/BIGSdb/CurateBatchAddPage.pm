@@ -209,7 +209,7 @@ sub _is_private_record {
 	if ($private_project) {
 		my $project_info = $self->{'datastore'}
 		  ->run_query( 'SELECT * FROM projects WHERE id=?', $private_project, { fetch => 'row_hashref' } );
-		return 1 if $project_info->{'no_quota'};
+		return 1 if $project_info->{'no_quota'} || $project_info->{'quota'};
 	}
 	return 1 if $limit;
 	return;
@@ -325,6 +325,7 @@ sub print_interface_sender_field {
 	$user_names->{-1} = 'Override with sender field';
 	say $q->popup_menu(
 		-name     => 'sender',
+		-id       => 'sender',
 		-values   => [ '', -1, @$users ],
 		-labels   => $user_names,
 		-required => 'required'
@@ -676,7 +677,7 @@ sub _is_over_quota {
 				my $up_plural = $record_count == 1            ? q() : q(s);
 				$self->print_bad_status(
 					{
-						message => q(The available quota for private data for this project is )
+							message => q(The available quota for private data for this project is )
 						  . qq($project_quota_available record$av_plural. )
 						  . qq(You are attempting to upload $record_count record$up_plural.)
 					}
@@ -2130,12 +2131,28 @@ sub _set_submission_params {
 
 sub initiate {
 	my ($self) = @_;
-	$self->{$_} = 1 foreach qw (jQuery noCache allowExpand);
+	$self->{$_} = 1 foreach qw (jQuery noCache allowExpand jQuery.multiselect);
 	my $q = $self->{'cgi'};
 	if ( $q->param('query') || $q->param('data') || $q->param('checked_buffer') ) {
 		$self->{'processing'} = 1;
 	}
 	$self->set_level1_breadcrumbs;
 	return;
+}
+
+sub get_javascript {
+	my ($self) = @_;
+	my $buffer = << "END";
+\$(function () {
+   \$('#sender').multiselect({
+  	classes: 'filter',
+ 	menuHeight: 250,
+ 	menuWidth: 400,
+ 	noneSelectedText: '',
+ 	selectedList: 1,
+  }).multiselectfilter();
+});
+END
+	return $buffer;
 }
 1;

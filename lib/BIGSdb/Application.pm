@@ -1,5 +1,5 @@
 #Written by Keith Jolley
-#(c) 2010-2024, University of Oxford
+#(c) 2010-2025, University of Oxford
 #E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
@@ -20,7 +20,7 @@ package BIGSdb::Application;
 use strict;
 use warnings;
 use 5.010;
-use version; our $VERSION = version->declare('v1.47.0');
+use version; our $VERSION = version->declare('v1.51.1');
 use Apache2::Connection;
 use parent qw(BIGSdb::BaseApplication);
 use BIGSdb::AjaxAnalysis;
@@ -132,7 +132,7 @@ sub new {
 	$self->{'pages_needing_authentication'} = { map { $_ => 1 } PAGES_NEEDING_AUTHENTICATION };
 	$self->{'pages_needing_authentication'}->{'user'} = 1 if $self->{'config'}->{'site_user_dbs'};
 
-	foreach my $page (qw(downloadAlleles downloadProfiles)) {
+	foreach my $page (qw(downloadAlleles downloadProfiles downloadSeqbin embl)) {
 		$self->{'pages_needing_authentication'}->{$page} = 1 if $self->_download_requires_authentication($page);
 	}
 	my $q = $self->{'cgi'};
@@ -558,6 +558,11 @@ sub print_page {
 		{
 			( $continue, $auth_cookies_ref ) = $self->authenticate( \%page_attributes );
 			return if !$continue;
+			my %no_plugins = map { $_ => 1 } PAGES_NOT_NEEDING_PLUGINS;
+
+			#Read system.overrides file again to set any user specific values.
+			$self->set_system_overrides( { user => 1 } );
+			$self->{'pluginManager'}->initiate if !$no_plugins{ $self->{'page'} };
 		}
 	}
 	if ( $self->{'page'} eq 'options'
@@ -708,15 +713,19 @@ sub _plugin_requires_authentication {
 sub _download_requires_authentication {
 	my ( $self, $page ) = @_;
 	my $q              = $self->{'cgi'};
-	my %download_pages = map { $_ => 1 } qw(downloadAlleles downloadProfiles);
+	my %download_pages = map { $_ => 1 } qw(downloadAlleles downloadProfiles downloadSeqbin embl);
 	return if !$download_pages{$page};
 	my $attributes = {
 		downloadAlleles  => 'allele_downloads_require_login',
-		downloadProfiles => 'profile_downloads_require_login'
+		downloadProfiles => 'profile_downloads_require_login',
+		downloadSeqbin   => 'seqbin_downloads_require_login',
+		embl             => 'seqbin_downloads_require_login'
 	};
 	my $additional_param = {
 		downloadAlleles  => 'locus',
-		downloadProfiles => 'scheme_id'
+		downloadProfiles => 'scheme_id',
+		downloadSeqbin   => 'isolate_id',
+		embl             => 'isolate_id'
 	};
 	return if !$q->param( $additional_param->{$page} );
 	return if ( $self->{'system'}->{ $attributes->{$page} } // q() ) eq 'no';
@@ -730,6 +739,7 @@ sub authenticate {
 	my ( $self, $page_attributes ) = @_;
 	my $auth_cookies_ref;
 	my $reset_password;
+	my $update_profile;
 	my $authenticated = 1;
 	my $q             = $self->{'cgi'};
 	$self->{'system'}->{'authentication'} //= 'builtin';
@@ -767,7 +777,19 @@ sub authenticate {
 			try {
 				BIGSdb::Exception::Authentication->throw('logging out') if $logging_out;
 				$page_attributes->{'username'} = $page->login_from_cookie;
-				$self->{'page'}                = 'changePassword' if $self->{'system'}->{'password_update_required'};
+				if ( $self->{'system'}->{'password_update_required'} ) {
+					$self->{'page'} = 'changePassword';
+				} elsif ( $self->{'system'}->{'profile_update_required'} ) {
+					my $user_info = $self->{'datastore'}->get_user_info_from_username( $page_attributes->{'username'} );
+
+					#Users can only update profile if we are using site-wide users database.
+					if ( defined $user_info->{'user_db'} ) {
+						$self->{'page'} = 'user';
+						$q->param( edit => 1 );
+					}
+
+				}
+
 			} catch {
 				if ( $_->isa('BIGSdb::Exception::Authentication') ) {
 					$logger->debug('No cookie set - asking for log in');
@@ -784,8 +806,8 @@ sub authenticate {
 							my $args = {};
 							$args->{'dbase_name'} = $q->param('db') if $q->param('page') eq 'user';
 							try {
-								( $page_attributes->{'username'}, $auth_cookies_ref, $reset_password ) =
-								  $page->secure_login($args);
+								( $page_attributes->{'username'}, $auth_cookies_ref, $reset_password, $update_profile )
+								  = $page->secure_login($args);
 							} catch {    #failed again
 								$authenticated = 0;
 							};
@@ -802,8 +824,11 @@ sub authenticate {
 	}
 	if ($reset_password) {
 		$self->{'system'}->{'password_update_required'} = 1;
-		$q->{'page'}                                    = 'changePassword';
-		$self->{'page'}                                 = 'changePassword';
+		$self->{'page'} = 'changePassword';
+	} elsif ($update_profile) {
+		$self->{'system'}->{'profile_update_required'} = 1;
+		$self->{'page'} = 'user';
+		$q->param( edit => 1 );
 	}
 	if ( $authenticated && $page_attributes->{'username'} ) {
 		my $config_access = $self->is_user_allowed_access( $page_attributes->{'username'} );

@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 #Perform/update species id check and store results in isolate database.
 #Written by Keith Jolley
-#Copyright (c) 2021-2024, University of Oxford
+#Copyright (c) 2021-2025, University of Oxford
 #E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
@@ -19,7 +19,7 @@
 #You should have received a copy of the GNU General Public License
 #along with BIGSdb.  If not, see <http://www.gnu.org/licenses/>.
 #
-#Version: 20240320
+#Version: 20250408
 use strict;
 use warnings;
 use 5.010;
@@ -36,6 +36,8 @@ use BIGSdb::Offline::Script;
 use BIGSdb::Constants qw(LOG_TO_SCREEN :limits);
 use BIGSdb::Plugins::Helpers::SpeciesID;
 use BIGSdb::Utils;
+use BIGSdb::OAuth;
+use BIGSdb::Exceptions;
 use File::Type;
 use Term::Cap;
 use POSIX;
@@ -54,7 +56,8 @@ GetOptions(
 	'help'       => \$opts{'help'},
 	'quiet'      => \$opts{'quiet'},
 );
-use constant URL => 'https://rest.pubmlst.org/db/pubmlst_rmlst_seqdef_kiosk/schemes/1/sequence';
+use constant BASE_URI => 'https://rest.pubmlst.org/db/pubmlst_rmlst_seqdef';
+use constant REST_URI => 'https://rest.pubmlst.org/db/pubmlst_rmlst_seqdef/schemes/1/sequence';
 
 #Direct all library logging calls to screen
 my $log_conf = LOG_TO_SCREEN;
@@ -92,6 +95,51 @@ sub main {
 	return;
 }
 
+sub check_oauth_params {
+	my ($self) = @_;
+	my @required = qw(rmlst_client_key rmlst_client_secret rmlst_access_token rmlst_access_secret);
+	my @missing;
+	foreach my $param (@required) {
+		push @missing, $param if !defined $self->{'config'}->{$param};
+	}
+	if (@missing) {
+		local $" = q(, );
+		$logger->fatal("rMLST OAuth parameters missing in bigsdb.conf: @missing.");
+		exit 1;
+	}
+	state $checked_oauth_works;
+	return if $checked_oauth_works;
+
+	my $error;
+	my $oauth;
+	try {
+		$oauth = BIGSdb::OAuth->new(
+			base_uri      => BASE_URI,
+			db            => $self->{'db'},
+			datastore     => $self->{'datastore'},
+			client_id     => $self->{'config'}->{'rmlst_client_key'},
+			client_secret => $self->{'config'}->{'rmlst_client_secret'},
+			access_token  => $self->{'config'}->{'rmlst_access_token'},
+			access_secret => $self->{'config'}->{'rmlst_access_secret'},
+			logger        => $logger
+		);
+	} catch {
+		if ( $_->isa('BIGSdb::Exception::Authentication') ) {
+			$logger->error("OAuth exception: $_");
+		} else {
+			$logger->error($_);
+		}
+		$error = 1;
+	};
+	$checked_oauth_works = 1;
+	exit 1 if $error;
+	if ( $oauth->test_authentication ) {
+		$logger->error('OAuth authentication failed for rMLST species id.');
+		exit 1;
+	}
+
+}
+
 sub get_dbs {
 	opendir( DIR, DBASE_CONFIG_DIR ) or die "Unable to open dbase config directory! $!\n";
 	my $config_dir  = DBASE_CONFIG_DIR;
@@ -112,7 +160,7 @@ sub get_dbs {
 				options          => {}
 			}
 		);
-		next if ( $script->{'system'}->{'dbtype'} // q() ) ne 'isolates';
+		next if ( $script->{'system'}->{'dbtype'}       // q() ) ne 'isolates';
 		next if ( $script->{'system'}->{'rMLSTSpecies'} // q() ) eq 'no';
 		if ( !$script->{'db'} ) {
 			$logger->error("Skipping $dir ... database does not exist.");
@@ -142,9 +190,9 @@ sub check_db {
 		$logger->error("$config is not an isolate database.");
 		return;
 	}
-	my $min_genome_size =
-	  $script->{'system'}->{'min_genome_size'} // $script->{'config'}->{'min_genome_size'} // MIN_GENOME_SIZE;
-	my $agent = LWP::UserAgent->new( agent => 'BIGSdb' );
+	my $min_genome_size = $script->{'system'}->{'min_genome_size'} // $script->{'config'}->{'min_genome_size'}
+	  // MIN_GENOME_SIZE;
+	my $agent               = LWP::UserAgent->new( agent => 'BIGSdb' );
 	my $pending_submissions = $script->{'datastore'}->run_query(
 		'SELECT id FROM submissions WHERE type IN (?,?) AND status=?',
 		[ 'genomes', 'assemblies', 'pending' ],
@@ -173,8 +221,9 @@ sub check_db {
 		push @submission_ids, $submission_id;
 	}
 	my $plural = @submission_ids == 1 ? q() : q(s);
-	my $count = @submission_ids;
+	my $count  = @submission_ids;
 	return if !$count;
+	check_oauth_params($script);
 	my $job_id = $script->add_job( 'RMLSTSubmission', { temp_init => 1 } );
 	say qq(\n$config: $count submission$plural to analyse) if !$opts{'quiet'};
 	my $id_obj = BIGSdb::Plugins::Helpers::SpeciesID->new(
@@ -228,7 +277,10 @@ sub check_db {
 				next RECORD;
 			}
 			my $fasta_ref = get_fasta( $script, $submission_id, $index );
-			next if !ref $fasta_ref;
+			if ( !ref $fasta_ref ) {
+				say 'no FASTA.' if !$opts{'quiet'};
+				next;
+			}
 			my $payload = encode_json(
 				{
 					base64   => JSON::true(),
@@ -236,7 +288,7 @@ sub check_db {
 					sequence => encode_base64($$fasta_ref)
 				}
 			);
-			my $result = $id_obj->make_rest_call( $index, URL, \$payload );
+			my $result = $id_obj->make_rest_call( $index, REST_URI, \$payload );
 			if ( $result->{'data'}->{'taxon_prediction'} ) {
 				my @predictions = @{ $result->{'data'}->{'taxon_prediction'} };
 				my @taxa;
@@ -293,8 +345,7 @@ sub get_fasta {
 		} else {
 			$return_value = $fasta;
 		}
-	}
-	catch {
+	} catch {
 		$logger->error($_);
 	};
 	return $return_value;
@@ -349,7 +400,7 @@ sub get_lock_file {
 		$logger->fatal( 'Unable to read or parse bigsdb.conf file. Reason: ' . Config::Tiny->errstr );
 		$config = Config::Tiny->new();
 	}
-	my $lock_dir = $config->{_}->{'lock_dir'} // LOCK_DIR;
+	my $lock_dir  = $config->{_}->{'lock_dir'} // LOCK_DIR;
 	my $lock_file = "$lock_dir/rmlst_genome_submissions";
 	return $lock_file;
 }
@@ -396,7 +447,7 @@ sub show_help {
 	my $termios = POSIX::Termios->new;
 	$termios->getattr;
 	my $ospeed = $termios->getospeed;
-	my $t = Tgetent Term::Cap { TERM => undef, OSPEED => $ospeed };
+	my $t      = Tgetent Term::Cap { TERM => undef, OSPEED => $ospeed };
 	my ( $norm, $bold, $under ) = map { $t->Tputs( $_, 1 ) } qw/me md us/;
 	say << "HELP";
 ${bold}NAME$norm
