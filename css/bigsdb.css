@@ -38,6 +38,14 @@ div {
 	padding-top: 0
 }
 
+span.alert_indicator {
+    color: #d44
+}
+
+span.warning_indicator {
+    color: #d60
+}
+
 select {
 	margin: 0;
 	font-size: 1em;
