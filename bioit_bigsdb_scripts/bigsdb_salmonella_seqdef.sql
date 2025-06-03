@@ -130,7 +130,7 @@ INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence
 INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('MYKROBE_AMPICILLIN','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
 INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('MYKROBE_CEFTRIAXONE','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
 INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('MYKROBE_CHLORAMPHENICOL','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
-INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('MYKROBE_CIPROFLAXACIN','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('MYKROBE_CIPROFLOXACIN','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
 INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('MYKROBE_P0111','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
 INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('MYKROBE_CARBAPENEM','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
 INSERT INTO loci(id, data_type, allele_id_format, length_varies, coding_sequence, no_submissions, curator, date_entered, datestamp) VALUES('MYKROBE_INCX1','DNA','text','t', 't','t', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
@@ -154,7 +154,7 @@ INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT 
 INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Mykrobe'), 'MYKROBE_AMPICILLIN', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
 INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Mykrobe'), 'MYKROBE_CEFTRIAXONE', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
 INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Mykrobe'), 'MYKROBE_CHLORAMPHENICOL', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
-INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Mykrobe'), 'MYKROBE_CIPROFLAXACIN', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
+INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Mykrobe'), 'MYKROBE_CIPROFLOXACIN', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
 INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Mykrobe'), 'MYKROBE_P0111', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
 INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Mykrobe'), 'MYKROBE_CARBAPENEM', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
 INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='Mykrobe'), 'MYKROBE_INCX1', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
@@ -178,7 +178,7 @@ INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) VALUES
 INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) VALUES(1, 'MYKROBE_AMPICILLIN', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
 INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) VALUES(1, 'MYKROBE_CEFTRIAXONE', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
 INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) VALUES(1, 'MYKROBE_CHLORAMPHENICOL', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
-INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) VALUES(1, 'MYKROBE_CIPROFLAXACIN', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
+INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) VALUES(1, 'MYKROBE_CIPROFLOXACIN', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
 INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) VALUES(1, 'MYKROBE_P0111', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
 INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) VALUES(1, 'MYKROBE_CARBAPENEM', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
 INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) VALUES(1, 'MYKROBE_INCX1', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
