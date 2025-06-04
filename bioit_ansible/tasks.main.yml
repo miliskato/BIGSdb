@@ -432,9 +432,15 @@
   block:
     - name: Choose value for microreact token and host
       set_fact:
-        microreact_token: "{{ microreact_token_dta }}"
-        microreact_host: "{{ microreact_common_host_dta }}"
-      when: mongo_dtap == "dev" or mongo_dtap == "test" or mongo_dtap == "acc"
+        microreact_token: "{{ microreact_token_dt }}"
+        microreact_host: "{{ microreact_common_host_dt }}"
+      when: mongo_dtap == "dev" or mongo_dtap == "test"
+
+    - name: Choose value for microreact token and host when acc
+      set_fact:
+        microreact_token: "{{ microreact_token_acc }}"
+        microreact_host: "{{ unique_host_acc }}"
+      when: mongo_dtap == "acc"
 
     - name: Choose value for microreact token and host when prod
       set_fact:

@@ -44,6 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update of reanalysis and reanalysis configs to account for the jammy changes
 - Upgrade from psycopg2 to psycopg3
 - Upgrade of BIGSdb to v1.51.1
+- Unique mreact acc host and token that needs to be defined in the host_vars
 
 ### Fixed:
 - Mykrobe scheme : typo in two AB names
