@@ -1058,6 +1058,6 @@
         daemon-reload: true
         state: started
         enabled: true
-        name: bigsdb-insertion.service
+        name: "bigsdb-insertion-{{ species }}.service"
 
 ...
