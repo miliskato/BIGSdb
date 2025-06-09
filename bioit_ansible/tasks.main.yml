@@ -461,7 +461,7 @@
 
 - name: copy dbmate executable on host
   ansible.builtin.get_url:
-    url: "{{ linux_repo_tools }}/focal/dbmate/dbmate"
+    url: "{{ linux_repo_tools }}/jammy/dbmate/v2_26_0/dbmate"
     dest: /usr/local/bin/
     owner: root
     group: root
