@@ -186,7 +186,8 @@ class TypingSchemeProfilesIntoPsql:
         """
         profiles = pd.read_csv(file_path, delimiter='\t', dtype=str)
         if scheme == f"{species}_rmlst":
-            mask = profiles['genus'].str.contains(species, na=False, case=False)
+            genus_in_config = species.split("_")[0]
+            mask = profiles['genus'].str.contains(genus_in_config, na=False, case=False)
             profiles = profiles[mask]
         profiles.rename(columns={"'rplF": "rplF"})
 
