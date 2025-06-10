@@ -161,7 +161,7 @@ sub print_content {
 
 	my $data;
 
-	if (( !$has_isolate_id && !$has_pseudo_id ) || ( !$has_rejected_isolate_id && !$has_pseudo_id ))  {
+	if ( !$has_isolate_id && !$has_pseudo_id && !$has_rejected_isolate_id )  {
 		say q(<h1>Isolate information</h1>);
 	 	say q(<div class="box statusbad"><p>No isolate id provided.</p></div>);
 	 	return;
@@ -259,6 +259,7 @@ sub print_content {
 		$get_zip = 'no';
 	}
 
+	$species =~ s/\s/_/g;
 	# Call azure to fetch report
 	my $report_url = "http://".$azure_reportsapi.":9090/get_html_report?isolate_id=".$pseudo_id."&date=".$res_time."&species=".$species."&get_zip=".$get_zip."&dtap=".$dtap."&validation_type=".$validation_type;
 
