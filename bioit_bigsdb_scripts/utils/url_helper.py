@@ -30,7 +30,7 @@ class UrlHelper:
         :param anchor: anchor url to target subsection of the report
         :return: the url used to get the report
         """
-        query = {'id': isolate_id, 'getzip': 'no'}
+        query = {'id': isolate_id, 'get_zip': 'no'}
         return UrlHelper._create(UrlHelper.SCIENSANO_PAGE, species, query, anchor)
 
     @staticmethod
@@ -48,7 +48,7 @@ class UrlHelper:
             'pseudo_id': pseudo_id,
             'submit_date': submit_date,
             'validation_type': validation_type,
-            'getzip': 'yes' if getzip else 'no'
+            'get_zip': 'yes' if getzip else 'no'
         }
         return UrlHelper._create(UrlHelper.SCIENSANO_PAGE, species, query)
 
