@@ -31,6 +31,16 @@ alerts:
     threshold_alert: 5
     timeframe_in_months: 2
     number_of_cases: 5
+  enterococcus_faecalis:
+    threshold_warning: 20
+    threshold_alert: 15
+    timeframe_in_months: 24
+    number_of_cases: 2
+  enterococcus_faecium:
+    threshold_warning: 20
+    threshold_alert: 15
+    timeframe_in_months: 24
+    number_of_cases: 2
 
 species:
   enterococcus_faecalis:
@@ -72,6 +82,10 @@ species:
       amrfinder:
         metadatafile: /db/amrfinder/latest/AMRProt
         schemename_bigsdb: AMRFinder
+        schemename_html: amr
+      lrefinder:
+        metadatafile: /db/pipelines/enterococcus/LRE-Finder/20200812/elmDB/elm.fsa
+        schemename_bigsdb: LRE-Finder
         schemename_html: amr
   enterococcus_faecium:
     typing_schemes:
@@ -119,6 +133,10 @@ species:
       amrfinder:
         metadatafile: /db/amrfinder/latest/AMRProt
         schemename_bigsdb: AMRFinder
+        schemename_html: amr
+      lrefinder:
+        metadatafile: /db/pipelines/enterococcus/LRE-Finder/20200812/elmDB/elm.fsa
+        schemename_bigsdb: LRE-Finder
         schemename_html: amr
   listeria:
     typing_schemes:
@@ -333,6 +351,10 @@ species_json:
         metadatafile: /db/amrfinder/latest/AMRProt
         schemename_bigsdb: AMRFinder
         schemename_html: amr
+      lrefinder:
+        metadatafile: /db/pipelines/enterococcus/LRE-Finder/20200812/elmDB/elm.fsa
+        schemename_bigsdb: LRE-Finder
+        schemename_html: amr
   enterococcus_faecium:
     typing_schemes:
       mlst:
@@ -369,7 +391,9 @@ species_json:
         schemename_bigsdb: AMRFinder
         schemename_html: amr
       lrefinder:
-        metadatafile:
+        metadatafile: /db/pipelines/enterococcus/LRE-Finder/20200812/elmDB/elm.fsa
+        schemename_bigsdb: LRE-Finder
+        schemename_html: amr
   listeria:
     typing_schemes:
       mlst:

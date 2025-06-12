@@ -67,7 +67,7 @@ class TypingSchemeProfilesIntoPsql:
         :param scheme: the currently iterating scheme
         :param schemedict: dict of scheme profiles
         :param profile_df: pandas dataframe containing profiles from tsv files
-        :param set_to_be_inserted: list of main numeric profile fields (often ST) to be inserted
+        :param set_to_be_inserted: list of main profile fields (often ST) to be inserted
         :param seqdef_profiles_psql_tbl: seqdef profiles table/ connection instance for a given species
         :param species: commonly used bioit species name: either genus or specific like stec
         :return: None

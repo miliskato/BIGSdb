@@ -137,24 +137,8 @@ class MainInserter(JsonSuperClass):
                 self._isolates_eavt_psql_tbl.insert_eav_isolate_viral_species(
                     (self._isolatename, 'influenza_subtype', self._json_report_dict['nextclade'].get('nextclade_detected_subtype')))
                 self._isolates_eavt_psql_tbl.insert_eav_isolate_viral_species((self._isolatename, 'nextclade_clade', self._json_report_dict['nextclade'].get('nextclade_clade')))
-        elif self._species == 'enterococcus_faecalis' or self._species == 'enterococcus_faecium':
+        elif self._species.startswith('enterococcus'):
             if 'lrefinder' in self._json_report_dict:
-                lrefinder_results = self._json_report_dict['lrefinder']
-                self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'LRE-Finder_species', lrefinder_results.get('lrefinder_species')))
-                lre_detected_genes = lrefinder_results.get('lrefinder_genes')
-                lre_detected_mutations = lrefinder_results.get('lrefinder_mutations')
-                if isinstance(lre_detected_genes, list):
-                    lre_genes_table_builder = HtmlLreFinderGenesTableBuilder(report_url_api)
-                    for gene in lre_detected_genes:
-                        lre_genes_table_builder.add_gene(gene['Gene'], str(gene['Template identity']), str(gene['Depth']))
-                    html_gene = lre_genes_table_builder.build()
-                    self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'LRE-Finder_genes', html_gene))
-                if isinstance(lre_detected_mutations, list):
-                    lre_mutation_table_builder = HtmlLreFinderMutationsTableBuilder(report_url_api)
-                    for mutation in lre_detected_mutations:
-                        lre_mutation_table_builder.add_mutation(mutation['Position in reference'], str(mutation['Wild type ratio (%)']), str(mutation['Mutant type ratio (%)']),
-                                                                mutation['Predicted phenotype'])
-                    html_mutation = lre_mutation_table_builder.build()
-                    self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'LRE-Finder_mutations', html_mutation))
+                self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'LRE-Finder_species', self._json_report_dict['lrefinder'].get('lrefinder_species')))
             if 'bacmet' in self._json_report_dict and self._json_report_dict['bacmet']['bacmet_genes'] != '':
                 self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'BactMet_genes', self._json_report_dict['bacmet']['bacmet_genes']))
