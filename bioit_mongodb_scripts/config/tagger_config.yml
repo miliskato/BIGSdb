@@ -4,12 +4,14 @@ enterococcus_faecalis:
   Virulence Factor DB - Core: vfdb-core
   VirulenceFinder - Enterococcus: virulencefinder
   PlasmidFinder - Gram positive: plasmidfinder
+  LRE-Finder (LRE-Finder 20200812): lre-finder
 enterococcus_faecium:
   AMRFinder (AMRFinder 3.11.26): amrfinder
   ResFinder (ResFinder 4.4.2): resfinder4
   Virulence Factor DB - Core: vfdb-core
   VirulenceFinder - Enterococcus: virulencefinder
   PlasmidFinder - Gram positive: plasmidfinder
+  LRE-Finder (LRE-Finder 20200812): lre-finder
 listeria:
   AMRFinder (AMRFinder 3.11.26): amrfinder
   ResFinder (ResFinder 4.4.2): resfinder4
