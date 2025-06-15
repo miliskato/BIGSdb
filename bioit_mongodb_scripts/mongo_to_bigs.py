@@ -28,14 +28,13 @@ from bioit_mongodb_scripts.util.new_temporary_alleles_to_bigs import NewTemporar
 from bioit_mongodb_scripts.util.command.command import Command
 
 
-def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
+def parse_arguments() -> argparse.Namespace:
     """
     Parses the command line arguments.
-    :param specieslist: list of all the species choices
     :return: Parsed arguments
     """
     argument_parser = argparse.ArgumentParser()
-    argument_parser.add_argument('--species', required=True, type=str, choices=specieslist)
+    argument_parser.add_argument('--species', required=True, type=str, choices=MongoConfigProvider.get_all_species())
     argument_parser.add_argument('--uploader_mail_address', required=True, type=str)
     argument_parser.add_argument('--single_sample_id', type=str, help=argparse.SUPPRESS)
     return argument_parser.parse_args()
@@ -439,11 +438,8 @@ if __name__ == '__main__':
     # Configure stdout logging
     logging.basicConfig(level=logging.WARNING, stream=sys.stdout)
 
-    # Parse Mongo config
-    mongo_config_provider = MongoConfigProvider()
-
     # Parse arguments
-    args = parse_arguments(mongo_config_provider.get_all_species())
+    args = parse_arguments()
 
     # run main
     mongo_to_bigs_instance = MongoToBigs(args.species, args.uploader_mail_address,

@@ -13,14 +13,13 @@ from bioit_mongodb_scripts.util.htmlreport import HtmlReport
 from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 
 
-def parse_arguments(specieslist: list[str]) -> argparse.Namespace:
+def parse_arguments() -> argparse.Namespace:
     """
     Parses the command line arguments.
-    :param specieslist: list of all the species choices
     :return: Parsed arguments
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("--species", required=True, type=str, choices=specieslist)
+    parser.add_argument("--species", required=True, type=str, choices=MongoConfigProvider.get_all_species())
     parser.add_argument("--base-html", required=True, type=Path)
     parser.add_argument("--updated-html", required=True, type=Path)
     parser.add_argument("--analysis-arguments", required=True, nargs='+', type=str)
@@ -104,11 +103,7 @@ class HtmlReplacer:
 
 
 if __name__ == '__main__':
-    # Parse config
-    mongo_config_provider = MongoConfigProvider()
-
-    # Parse arguments
-    args = parse_arguments(mongo_config_provider.get_all_species())
+    args = parse_arguments()
 
     # Run main
     html_replacer = HtmlReplacer(

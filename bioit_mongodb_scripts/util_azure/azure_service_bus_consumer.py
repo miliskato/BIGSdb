@@ -15,13 +15,13 @@ from bioit_mongodb_scripts.rejected_isolate import RejectedIsolate
 from bioit_mongodb_scripts.util.update_bigsdb_clustering_cache_alerts import UpdateBIGSdbClusteringCacheAlerts
 from bioit_mongodb_scripts.update_bigsdb_seqdef import UpdateBIGSdbSeqDef
 from bioit_mongodb_scripts.util.error import BadCollectionError, IsolateNotFoundException
-from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.mongo_to_bigs_nominative import MongoToBigsNominative
 from bioit_mongodb_scripts.util.python_utility_functions import send_email
 from bioit_mongodb_scripts.util.sample_to_validation_bigs import SampleToValidationBigs
 from bioit_mongodb_scripts.util_azure.azure_service_bus import AzureServiceBus
 from bioit_mongodb_scripts.util_azure.azure_service_bus_message import AzureServiceBusMessage
+from bioit_nrc_integration.python.test.test_all_sftp import MongoConfigProvider
 
 mail_sent = False
 # Configure stdout logging
@@ -29,14 +29,13 @@ logger = logging.getLogger('bigsdb_insertion')
 logger.setLevel(logging.INFO)
 
 
-def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
+def parse_arguments() -> argparse.Namespace:
     """
     Parses the command line arguments.
-    :param specieslist: list of all the species choices
     :return: Parsed arguments
     """
     argument_parser = argparse.ArgumentParser()
-    argument_parser.add_argument('--species', required=True, type=str, choices=specieslist)
+    argument_parser.add_argument('--species', required=True, type=str, choices=MongoConfigProvider.get_all_species())
     argument_parser.add_argument('--uploader_mail_address', required=True, type=str)
     return argument_parser.parse_args()
 
@@ -310,13 +309,9 @@ if __name__ == '__main__':
     signal.signal(signal.SIGINT, handle_shutdown)
     signal.signal(signal.SIGTERM, handle_shutdown)
 
-    # Parse Mongo config
-    mongo_config_provider = MongoConfigProvider()
-
-    # Parse arguments
-    args = parse_arguments(mongo_config_provider.get_all_species())
-
+    args = parse_arguments()
     config_log_handlers(args.species)
+    mongo_config_provider = MongoConfigProvider()
 
     try:
         run_application(cancel_token, args.species, mongo_config_provider, args.uploader_mail_address)

@@ -3,28 +3,24 @@ import argparse
 import logging
 import sys
 from pathlib import Path
-from typing import List
-
-from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
-
 
 from bioit_bigsdb_scripts.components.psql import TblIsolates, TblMappingTable
 from bioit_mongodb_scripts.model.json_model import MongoRecordDict
 from bioit_mongodb_scripts.util.alerts_to_bigs import AlertsToBigs
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
+from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 
 
-def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
+def parse_arguments() -> argparse.Namespace:
     """
     Parses the command line arguments.
-    :param specieslist: list of all the species choices
     :return: Parsed arguments
     """
     argument_parser = argparse.ArgumentParser()
-    argument_parser.add_argument('--species', required=True, type=str, choices=specieslist)
+    argument_parser.add_argument('--species', required=True, type=str, choices=MongoConfigProvider.get_all_species())
     return argument_parser.parse_args()
 
 
@@ -41,13 +37,12 @@ if __name__ == '__main__':
 
     # Configure stdout logging
     logging.basicConfig(level=logging.WARNING, stream=sys.stdout)
-    mongo_config_provider = MongoConfigProvider()
 
-    args = parse_arguments(mongo_config_provider.get_all_species())
+    args = parse_arguments()
+    mongo_config_provider = MongoConfigProvider()
     mongo_init = MongoInitialisation(args.species, mongo_config_provider.get_azure_connection_string(args.species), mongo_config_provider.dtap)
     isolates_collection, _, _, _, _ = mongo_init.initialise_collections()
-    naive_clustering_distance_matrix_file = Path(
-        mongo_config_data['naive_clustering_distance_matrix_file'].replace('species', args.species).replace('dtap', mongo_config_data.get('dtap')))
+    naive_clustering_distance_matrix_file = Path(mongo_config_provider.get_naive_clustering_distance_matrix_file(args.species))
 
     new_version_isolates = []
     new_isolates = []

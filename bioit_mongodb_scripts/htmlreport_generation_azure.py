@@ -17,16 +17,15 @@ from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 
 
-def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
+def parse_arguments() -> argparse.Namespace:
     """
     Parses the command line arguments.
-    :param specieslist: list of all the species choices
     :return: Parsed arguments
     """
     argument_parser = argparse.ArgumentParser()
     mutually_exclusive_group = argument_parser.add_mutually_exclusive_group(required=True)
     mutually_exclusive_group.add_argument('--db', type=str)
-    mutually_exclusive_group.add_argument('--species', type=str, choices=specieslist)
+    mutually_exclusive_group.add_argument('--species', type=str, choices=MongoConfigProvider.get_all_species())
     argument_parser.add_argument('--technical_id', required=True, type=str)
     argument_parser.add_argument('--validation_type', required=True, type=str, choices=['null', 'good_quality', 'warning_quality', 'resequencing', 'rejected_isolate'])
     argument_parser.add_argument('--dtap', required=True, type=str, choices=['dev', 'test', 'acc', 'prod'])
@@ -100,10 +99,9 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
     # Parse config
-    mongo_config_provider = MongoConfigProvider()
 
     # Parse arguments
-    args = parse_arguments(mongo_config_provider.get_all_species())
+    args = parse_arguments()
     species = re.sub('bigsdb_|_isolates', '', args.db) if args.db else args.species
 
     # run main

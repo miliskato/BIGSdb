@@ -16,14 +16,13 @@ from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.python_utility_functions import send_email
 
 
-def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
+def parse_arguments() -> argparse.Namespace:
     """
     Parses the command line arguments.
-    :param specieslist: list of all the species choices
     :return: Parsed arguments
     """
     argument_parser = argparse.ArgumentParser()
-    argument_parser.add_argument('--species', required=True, type=str, choices=specieslist)
+    argument_parser.add_argument('--species', required=True, type=str, choices=MongoConfigProvider.get_all_species())
     return argument_parser.parse_args()
 
 
@@ -92,11 +91,8 @@ if __name__ == '__main__':
     # Configure stdout logging
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
-    # Parse Mongo config
+    args = parse_arguments()
     mongo_config_provider = MongoConfigProvider()
-
-    # Parse arguments
-    args = parse_arguments(mongo_config_provider.get_all_species())
 
     # run main
     MongoToBigsNominative(args.species, mongo_config_provider)

@@ -24,6 +24,24 @@ viral_species:
 
 dtap: to_be_replaced_by_ansible
 
+collections:
+    - isolates
+    - old_isolate_results
+    - isolates_warningqc
+    - isolates_goodqc
+    - sequence_types
+    - new_allele_hashes
+    - cluster_membership
+    - cluster_merging
+    - update_metadata
+    - isolates_resequencing
+    - headers
+    - mapping_table
+    - nominative_labtest_clinical_metadata
+    - unprocessed_nominative_labtest_metadata
+    - unprocessed_nominative_clinical_metadata
+    - isolates_rejected_coreqc
+
 schemes_sequence_typing:
     - mlst
     - cgmlst

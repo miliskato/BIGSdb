@@ -24,15 +24,14 @@ from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.python_utility_functions import send_email
 
 
-def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
+def parse_arguments() -> argparse.Namespace:
     """
     Parses the command line arguments.
-    :param specieslist: list of all the species choices
     :return: Parsed arguments
     """
     parser = argparse.ArgumentParser()
     parser.add_argument("--scheme", required=True, type=str, help='lower case scheme as in json reports/mongodb documents')
-    parser.add_argument("--species", required=True, type=str, choices=specieslist)
+    parser.add_argument("--species", required=True, type=str, choices=MongoConfigProvider.get_all_species())
     parser.add_argument("--connection_string", required=True, type=str, help='connection string variable from the config file')
 
     return parser.parse_args()
@@ -241,12 +240,9 @@ class TempidReplacer:
 
 
 if __name__ == '__main__':
-    # Parse config
-    # Parse config
-    mongo_config_provider = MongoConfigProvider()
-
     # Parse arguments
-    args = parse_arguments(mongo_config_provider.get_all_species())
+    args = parse_arguments()
+    mongo_config_provider = MongoConfigProvider()
 
     connection_string = mongo_config_provider.get_azure_connection_string(args.species)
     if args.connection_string == 'CONNECTION_STRING_ALTERNATE':

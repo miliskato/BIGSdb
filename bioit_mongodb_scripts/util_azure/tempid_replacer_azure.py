@@ -23,14 +23,13 @@ from bioit_mongodb_scripts.util_azure.connect_azure import ConnectAzure
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 
 
-def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
+def parse_arguments() -> argparse.Namespace:
     """
     Parses the command line arguments.
-    :param specieslist: list of all the species choices
     :return: Parsed arguments
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("--species", required=True, type=str, choices=specieslist, default=specieslist, nargs='+')
+    parser.add_argument("--species", required=True, type=str, choices=MongoConfigProvider.get_all_species(), default=MongoConfigProvider.get_all_species(), nargs='+')
     parser.add_argument('--dtap', required=False, type=str, choices=['dev', 'test', 'acc', 'prod'],
                         default=['prod'], nargs='+')
     # this does allow for the same dtap multiple times but doesn't really matter, they're uniquely filtered using set()
@@ -268,11 +267,7 @@ class TempidReplacerAzure:
 
 
 if __name__ == '__main__':
-    # Parse config
-    mongo_config_provider = MongoConfigProvider()
-
-    # Parse arguments
-    args = parse_arguments(mongo_config_provider.get_all_species())
+    args = parse_arguments()
 
     # run main
     wrapper_loop_dtap_and_species_and_schemes(args.species, args.dtap)

@@ -75,24 +75,44 @@ class MongoConfigProvider:
     def get_asb_connection_string(self) -> str:
         return self._mongo_global_config['CONNECTION_STRING_ASB']
 
-    def get_all_species(self) -> List[str]:
-        return self._mongo_global_config['species']
+    @staticmethod
+    def get_all_species() -> List[str]:
+        return ["enterococcus_faecalis",
+                "enterococcus_faecium",
+                "listeria",
+                "mycobacterium",
+                "neisseria",
+                "stec",
+                "salmonella",
+                "influenza",
+                "sars_cov_2"]
 
     def get_schemes_sequence_typing(self) -> List[str]:
+        """
+        get sequence typing schemes from the mongo db config
+        """
         return self._mongo_global_config['schemes_sequence_typing']
 
     def get_naive_clustering_distance_matrix_file(self, species: str) -> str:
+        """
+        method to get naive clustering distance matrix file path
+        :param species: species
+        :return: a string referring to the distance matrix path
+        """
         naive_clustering_distance_matrix_path = self._mongo_global_config['naive_clustering_distance_matrix_file'].replace('species', species).replace('dtap', self.dtap)
         return naive_clustering_distance_matrix_path
 
     def get_temp_dir(self) -> str:
+        """
+        get temp dir based on mongo config
+        """
         return self._mongo_global_config['temp_dir']
 
     def get_azure_reportsapi_ip(self):
+        """
+        get azure reportsapi ip based on mongo config
+        """
         return self._mongo_global_config['azure_reportsapi_ip']
-
-    def get_mongo_collections(self) -> List[str]:
-        return self._mongo_global_config['collections']
 
     def get_mail(self):
         return self._mongo_global_config['mail']
