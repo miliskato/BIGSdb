@@ -4,9 +4,9 @@ import socket
 from typing import Any, Dict
 
 from bioit_mongodb_scripts.model.json_model import JsonReportDict
-from bioit_mongodb_scripts.util.python_utility_functions import is_viral
 from .json_superclass import JsonSuperClass
 from .psql import TblEavInt, TblEavText, TblEavTextHidden, TblHistory, TblIsolates
+from ..utils.html_tbl_templates import HtmlLreFinderGenesTableBuilder, HtmlLreFinderMutationsTableBuilder
 from ..utils.url_helper import UrlHelper
 
 
@@ -16,20 +16,20 @@ class MainInserter(JsonSuperClass):
     """
 
     def __init__(self, isolatename: str, species: str, json_report_dict: JsonReportDict, config_data: Dict[str, Any],
-                 report_access: str, vcf_path: str, mongo_dtap: str) -> None:
+                 report_access: str, vcf_path: str, viral_species: bool) -> None:
         """
         :param isolatename: name of the isolate
         :param species: commonly used bioit species name: either genus or specific like stec
         :param json_report_dict: results of sample
         :param report_access: report_directory from MongoDB
         :param vcf_path: subdirectory containing the vcf file
-        :param mongo_dtap: dtap from mongo config
+        :param viral_species: True if species is viral, False if species is bacterial
         :return: None
         """
         super().__init__(isolatename, species, json_report_dict, config_data)
         self._report_access = report_access
         self._vcf_path = vcf_path
-        self._mongo_dtap = mongo_dtap
+        self._viral_species = viral_species
 
     def insert_new_isolate(self, uploader_mail_address: str, isolation_date: str) -> None:
         """
@@ -55,14 +55,15 @@ class MainInserter(JsonSuperClass):
         :return: None
         """
         with TblIsolates(self._species) as isolates_psql_tbl:
-            isolates_psql_tbl.update_isolate_analysis_date((datetime.datetime.strptime(self._json_report_dict['analysis_date'], '%d/%m/%Y - %X').strftime('%Y-%m-%d'), self._isolatename))
+            isolates_psql_tbl.update_isolate_analysis_date(
+                (datetime.datetime.strptime(self._json_report_dict['analysis_date'], '%d/%m/%Y - %X').strftime('%Y-%m-%d'), self._isolatename))
 
     def insert_main_metadata(self) -> None:
         """
         Inserts the main metadata into bigsdb for an isolate
         :return: None
         """
-        with TblEavText(self._species) as self._isolates_eavt_psql_tbl,\
+        with TblEavText(self._species) as self._isolates_eavt_psql_tbl, \
                 TblIsolates(self._species) as self.isolates_psql_tbl, TblEavInt(self._species) as self._isolates_eavi_psql_tbl:
 
             with TblIsolates(self._species) as isolates_psql_tbl:
@@ -71,24 +72,26 @@ class MainInserter(JsonSuperClass):
             report_link = f'<p><a href="{report_url}" target="_blank"> html report</a></p>'
             self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'html', report_link))
             isolate_id = self.isolates_psql_tbl.select_id_for_isolate((self._isolatename,))[0][0]
-            if is_viral(self._species):
+            if self._viral_species:
                 assemblylink = f'<p><a href="/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_{self._species}_isolates&page=plugin&name=Contigs&format=text&isolate_id={isolate_id}&match=1&pc_untagged=0&min_length=&header=1l" target="_blank">consensus sequence</a></p>'
                 self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'consensus_sequence', assemblylink))
             else:
                 assemblylink = f'<p><a href="/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_{self._species}_isolates&page=plugin&name=Contigs&format=text&isolate_id={isolate_id}&match=1&pc_untagged=0&min_length=&header=1l" target="_blank">assembly</a></p>'
                 self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'assembly', assemblylink))
-            self._insert_species_specific_metadata()
+            self._insert_species_specific_metadata(report_url)
             if 'changed_version' in self._json_report_dict:
                 with TblEavTextHidden(self._species) as isolates_eavth_psql_tbl:
                     isolates_eavth_psql_tbl.insert_hidden_isolate((self._isolatename, 'mongo_results_version', self._json_report_dict['changed_version']))
             if 'validation' in self._json_report_dict:
                 self.isolates_psql_tbl.add_validation((self._json_report_dict['validation']['type'], self._json_report_dict['validation']['curator'],
-                     datetime.datetime.strptime(self._json_report_dict['validation']['date'], '%d/%m/%Y - %X').strftime('%Y-%m-%d'), str(isolate_id)))
+                                                       datetime.datetime.strptime(self._json_report_dict['validation']['date'], '%d/%m/%Y - %X').strftime('%Y-%m-%d'),
+                                                       str(isolate_id)))
             logging.info('Metadata insertion successful')
 
-    def _insert_species_specific_metadata(self) -> None:
+    def _insert_species_specific_metadata(self, report_url_api: str) -> None:
         """
         Insert species specific metadata
+        :param report_url_api: url to get report for the isolate from the api
         :return: None
         """
         if self._species == 'mycobacterium':
@@ -131,5 +134,11 @@ class MainInserter(JsonSuperClass):
                 self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'Serogroup_capsule', self._json_report_dict['serogroup']['serogroup_capsule']))
         elif self._species == 'influenza':
             if 'nextclade' in self._json_report_dict:
-                self._isolates_eavt_psql_tbl.insert_eav_isolate_viral_species((self._isolatename, 'influenza_subtype', self._json_report_dict['nextclade'].get('nextclade_detected_subtype')))
+                self._isolates_eavt_psql_tbl.insert_eav_isolate_viral_species(
+                    (self._isolatename, 'influenza_subtype', self._json_report_dict['nextclade'].get('nextclade_detected_subtype')))
                 self._isolates_eavt_psql_tbl.insert_eav_isolate_viral_species((self._isolatename, 'nextclade_clade', self._json_report_dict['nextclade'].get('nextclade_clade')))
+        elif self._species.startswith('enterococcus'):
+            if 'lrefinder' in self._json_report_dict:
+                self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'LRE-Finder_species', self._json_report_dict['lrefinder'].get('lrefinder_species')))
+            if 'bacmet' in self._json_report_dict and self._json_report_dict['bacmet']['bacmet_genes'] != '':
+                self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'BactMet_genes', self._json_report_dict['bacmet']['bacmet_genes']))

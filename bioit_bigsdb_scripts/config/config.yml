@@ -33,8 +33,113 @@ alerts:
     threshold_alert: 5
     timeframe_in_months: 2
     number_of_cases: 5
+  enterococcus_faecalis:
+    threshold_warning: 20
+    threshold_alert: 15
+    timeframe_in_months: 24
+    number_of_cases: 2
+  enterococcus_faecium:
+    threshold_warning: 20
+    threshold_alert: 15
+    timeframe_in_months: 24
+    number_of_cases: 2
 
 species:
+  enterococcus_faecalis:
+    typing_schemes:
+      enterococcus_faecalis_mlst:
+        dirdb: /db/sequence_typing/enterococcus_faecalis/mlst
+        scheme_fields: # the first element in the fields list should be an integer/primary_key
+          - ST
+          - clonal_complex
+        schemename_bigsdb: MLST
+      enterococcus_faecalis_cgmlst:
+        dirdb: /db/sequence_typing/enterococcus_faecalis/cgmlst
+        schemename_bigsdb: cgMLST
+      enterococcus_faecalis_rmlst:
+        dirdb: /db/sequence_typing/various/rmlst
+        schemename_bigsdb: rMLST
+        scheme_fields:
+          - rST
+      mob_suite_detection:
+        dirdb: ''
+        schemename_bigsdb: ''
+    genedetection_schemes:
+      resfinder4:
+        metadatafile: /db/resfinder4/resfinder/phenotypes.txt
+        schemename_bigsdb: ResFinder4
+        schemename_html: resfinder4
+      enterococcus_faecalis_virulencefinder:
+        metadatafile: /db/gene_detection/VirulenceFinder-Enterococcus/mapping_full.json
+        schemename_bigsdb: VirulenceFinder_Enterococcus
+        schemename_html: virulencefinder
+      enterococcus_faecalis_vfdbcore:
+        metadatafile: /db/gene_detection/VFDB_core/mapping_full.json
+        schemename_bigsdb: VFDB_core
+        schemename_html: vfdb-core
+      enterococcus_faecalis_plasmidfinder:
+        metadatafile: /db/gene_detection/PlasmidFinder-gram_positive/mapping_full.json
+        schemename_bigsdb: PlasmidFinder_grampositive
+        schemename_html: plasmidfinder
+      amrfinder:
+        metadatafile: /db/amrfinder/latest/AMRProt
+        schemename_bigsdb: AMRFinder
+        schemename_html: amrfinder
+      lrefinder:
+        metadatafile: /db/pipelines/enterococcus/LRE-Finder/20200812/elmDB/elm.fsa
+        schemename_bigsdb: LRE-Finder
+        schemename_html: lre-finder
+  enterococcus_faecium:
+    typing_schemes:
+      enterococcus_faecium_mlst:
+        dirdb: /db/sequence_typing/enterococcus_faecium/mlst
+        scheme_fields: # the first element in the fields list should be an integer/primary_key
+          - ST
+          - clonal_complex
+          - species
+        schemename_bigsdb: MLST
+      enterococcus_faecium_mlst_bezdicek:
+        dirdb: /db/sequence_typing/enterococcus_faecium/mlst_bezdicek
+        scheme_fields:
+          - ST
+          - clonal_complex
+        schemename_bigsdb: MLST_Bezdicek
+      enterococcus_faecium_cgmlst:
+        dirdb: /db/sequence_typing/enterococcus_faecium/cgmlst
+        schemename_bigsdb: cgMLST
+      enterococcus_faecium_rmlst:
+        dirdb: /db/sequence_typing/various/rmlst
+        schemename_bigsdb: rMLST
+        scheme_fields:
+          - rST
+      mob_suite_detection:
+        dirdb: ''
+        schemename_bigsdb: ''
+    genedetection_schemes:
+      resfinder4:
+        metadatafile: /db/resfinder4/resfinder/phenotypes.txt
+        schemename_bigsdb: ResFinder4
+        schemename_html: resfinder4
+      enterococcus_faecium_virulencefinder:
+        metadatafile: /db/gene_detection/VirulenceFinder-Enterococcus/mapping_full.json
+        schemename_bigsdb: VirulenceFinder_Enterococcus
+        schemename_html: virulencefinder
+      enterococcus_faecium_vfdbcore:
+        metadatafile: /db/gene_detection/VFDB_core/mapping_full.json
+        schemename_bigsdb: VFDB_core
+        schemename_html: vfdb-core
+      enterococcus_faecium_plasmidfinder:
+        metadatafile: /db/gene_detection/PlasmidFinder-gram_positive/mapping_full.json
+        schemename_bigsdb: PlasmidFinder_grampositive
+        schemename_html: plasmidfinder
+      amrfinder:
+        metadatafile: /db/amrfinder/latest/AMRProt
+        schemename_bigsdb: AMRFinder
+        schemename_html: amrfinder
+      lrefinder:
+        metadatafile: /db/pipelines/enterococcus/LRE-Finder/20200812/elmDB/elm.fsa
+        schemename_bigsdb: LRE-Finder
+        schemename_html: lre-finder
   listeria:
     typing_schemes:
       listeria_mlst:
@@ -74,23 +179,23 @@ species:
       resfinder4:
         metadatafile: /db/resfinder4/resfinder/phenotypes.txt
         schemename_bigsdb: ResFinder4
-        schemename_html: amr
+        schemename_html: resfinder4
       listeria_virulencefinder:
         metadatafile: /db/gene_detection/VirulenceFinder-Listeria/mapping_full.json
         schemename_bigsdb: VirulenceFinder_Listeria
-        schemename_html: VirulenceFinder - <i>Listeria</i>
+        schemename_html: virulencefinder
       listeria_vfdbcore:
         metadatafile: /db/gene_detection/VFDB_core/mapping_full.json
         schemename_bigsdb: VFDB_core
-        schemename_html: Virulence Factor DB - Core
+        schemename_html: vfdb-core
       listeria_plasmidfinder:
         metadatafile: /db/gene_detection/PlasmidFinder-gram_positive/mapping_full.json
         schemename_bigsdb: PlasmidFinder_grampositive
-        schemename_html: PlasmidFinder - Gram positive
+        schemename_html: plasmidfinder
       amrfinder:
         metadatafile: /db/amrfinder/latest/AMRProt
         schemename_bigsdb: AMRFinder
-        schemename_html: amr
+        schemename_html: amrfinder
   mycobacterium:
     typing_schemes:
       mycobacterium_mlst:
@@ -176,7 +281,7 @@ species:
       resfinder4:
         metadatafile: /db/resfinder4/resfinder/phenotypes.txt
         schemename_bigsdb: ResFinder4
-        schemename_html: amr
+        schemename_html: resfinder4
   salmonella:
     typing_schemes:
       salmonella_mlst:
@@ -205,16 +310,92 @@ species:
       resfinder4:
         metadatafile: /db/resfinder4/resfinder/phenotypes.txt
         schemename_bigsdb: ResFinder4
-        schemename_html: amr
+        schemename_html: resfinder4
       salmonella_vfdbcore:
         metadatafile: /db/gene_detection/VFDB_core/mapping_full.json
         schemename_bigsdb: VFDB_core
-        schemename_html: Virulence Factor DB - Core
+        schemename_html: vfdb-core
   influenza:
     typing_schemes: null
     genedetection_schemes: null
 
 species_json:
+  enterococcus_faecalis:
+    typing_schemes:
+      mlst:
+        type: regular
+      cgmlst:
+        type: regular
+      rmlst:
+        type: regular
+      mob_suite_detection:
+        type: irregular
+      rmlst_identification:
+        type: irregular
+    genedetection_schemes:
+      resfinder4:
+        metadatafile: /db/resfinder4/resfinder/phenotypes.txt
+        schemename_bigsdb: ResFinder4
+        schemename_html: resfinder4
+      virulencefinder:
+        metadatafile: /db/gene_detection/VirulenceFinder-Enterococcus/mapping_full.json
+        schemename_bigsdb: VirulenceFinder_Enterococcus
+        schemename_html: virulencefinder
+      vfdb_core:
+        metadatafile: /db/gene_detection/VFDB_core/mapping_full.json
+        schemename_bigsdb: VFDB_core
+        schemename_html: vfdb-core
+      plasmidfinder:
+        metadatafile: /db/gene_detection/PlasmidFinder-gram_positive/mapping_full.json
+        schemename_bigsdb: PlasmidFinder_grampositive
+        schemename_html: plasmidfinder
+      amrfinder:
+        metadatafile: /db/amrfinder/latest/AMRProt
+        schemename_bigsdb: AMRFinder
+        schemename_html: amrfinder
+      lrefinder:
+        metadatafile: /db/pipelines/enterococcus/LRE-Finder/20200812/elmDB/elm.fsa
+        schemename_bigsdb: LRE-Finder
+        schemename_html: lre-finder
+  enterococcus_faecium:
+    typing_schemes:
+      mlst:
+        type: regular
+      mlst_bezdicek:
+        type: regular
+      cgmlst:
+        type: regular
+      rmlst:
+        type: regular
+      mob_suite_detection:
+        type: irregular
+      rmlst_identification:
+        type: irregular
+    genedetection_schemes:
+      resfinder4:
+        metadatafile: /db/resfinder4/resfinder/phenotypes.txt
+        schemename_bigsdb: ResFinder4
+        schemename_html: resfinder4
+      virulencefinder:
+        metadatafile: /db/gene_detection/VirulenceFinder-Enterococcus/mapping_full.json
+        schemename_bigsdb: VirulenceFinder_Enterococcus
+        schemename_html: virulencefinder
+      vfdb_core:
+        metadatafile: /db/gene_detection/VFDB_core/mapping_full.json
+        schemename_bigsdb: VFDB_core
+        schemename_html: vfdb-core
+      plasmidfinder:
+        metadatafile: /db/gene_detection/PlasmidFinder-gram_positive/mapping_full.json
+        schemename_bigsdb: PlasmidFinder_grampositive
+        schemename_html: plasmidfinder
+      amrfinder:
+        metadatafile: /db/amrfinder/latest/AMRProt
+        schemename_bigsdb: AMRFinder
+        schemename_html: amrfinder
+      lrefinder:
+        metadatafile: /db/pipelines/enterococcus/LRE-Finder/20200812/elmDB/elm.fsa
+        schemename_bigsdb: LRE-Finder
+        schemename_html: lre-finder
   listeria:
     typing_schemes:
       mlst:
@@ -239,23 +420,23 @@ species_json:
       resfinder4:
         metadatafile: /db/resfinder4/resfinder/phenotypes.txt
         schemename_bigsdb: ResFinder4
-        schemename_html: amr
+        schemename_html: resfinder4
       virulencefinder:
         metadatafile: /db/gene_detection/VirulenceFinder-Listeria/mapping_full.json
         schemename_bigsdb: VirulenceFinder_Listeria
-        schemename_html: VirulenceFinder - <i>Listeria</i>
+        schemename_html: virulencefinder
       vfdb_core:
         metadatafile: /db/gene_detection/VFDB_core/mapping_full.json
         schemename_bigsdb: VFDB_core
-        schemename_html: Virulence Factor DB - Core
+        schemename_html: vfdb-core
       plasmidfinder:
         metadatafile: /db/gene_detection/PlasmidFinder-gram_positive/mapping_full.json
         schemename_bigsdb: PlasmidFinder_grampositive
-        schemename_html: PlasmidFinder - Gram positive
+        schemename_html: plasmidfinder
       amrfinder:
         metadatafile: /db/amrfinder/latest/AMRProt
         schemename_bigsdb: AMRFinder
-        schemename_html: amr
+        schemename_html: amrfinder
   mycobacterium:
     typing_schemes:
       mlst:
@@ -318,7 +499,7 @@ species_json:
       resfinder4:
         metadatafile: /db/resfinder4/resfinder/phenotypes.txt
         schemename_bigsdb: ResFinder4
-        schemename_html: amr
+        schemename_html: resfinder4
   salmonella:
     typing_schemes:
       mlst:
@@ -347,11 +528,11 @@ species_json:
       resfinder4:
         metadatafile: /db/resfinder4/resfinder/phenotypes.txt
         schemename_bigsdb: ResFinder4
-        schemename_html: amr
+        schemename_html: resfinder4
       vfdb_core:
         metadatafile: /db/gene_detection/VFDB_core/mapping_full.json
         schemename_bigsdb: VFDB_core
-        schemename_html: Virulence Factor DB - Core
+        schemename_html: vfdb-core
   influenza:
     typing_schemes: ''
     genedetection_schemes: ''

@@ -12,8 +12,9 @@ from pymongo.collection import Collection
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
+from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
-from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email
+from bioit_mongodb_scripts.util.python_utility_functions import send_email
 from bioit_nrc_integration.python.config import CODES_GENOMIC_ODS
 from bioit_nrc_integration.python.send_genomic_to_ODS import SendGenomicToODS
 
@@ -38,7 +39,7 @@ class MainSenderToHD:
         self._alternate_dtap = alternate_dtap
 
         # get mongodb config data
-        self._mongo_config_data = get_mongodb_config_data()
+        self._mongo_config_provider = MongoConfigProvider(alternate_dtap)
 
         with CODES_GENOMIC_ODS.open('r') as handle:
             self._translation_codes_genomic = yaml.safe_load(handle)
@@ -56,7 +57,7 @@ class MainSenderToHD:
         dispatches them to their respective senders to be sent. Creates an aggregated error log to avoid mailspam.
         :return: None
         """
-        for species in self._mongo_config_data['species']:
+        for species in self._mongo_config_provider.get_all_species():
             # Only process pathogens which have been defined in the genomic code translation config file
             if not self._translation_codes_genomic.get(species):
                 continue
@@ -95,15 +96,10 @@ class MainSenderToHD:
         :param species: commonly used bioit species name: either genus or specific like stec
         :return: mapping table collection + isolates collection
         """
-        mongoinit_azure = MongoInitialisation(species, mongo_config_data=self._mongo_config_data,
-                                              selected_connection_string='CONNECTION_STRING_AZURE',
-                                              alternate_dtap=self._alternate_dtap)
-        isolates_collection, old_isolateresults_collection, isolates_warningqc_collection, \
-            isolates_resequencing_collection, isolates_goodqc_collection = mongoinit_azure.initialise_collections()
+        mongoinit_azure = MongoInitialisation(species, self._mongo_config_provider.get_azure_connection_string(species), self._mongo_config_provider.dtap)
+        isolates_collection, old_isolateresults_collection, isolates_warningqc_collection, isolates_resequencing_collection, isolates_goodqc_collection = mongoinit_azure.initialise_collections()
 
-        mongoinit_local = MongoInitialisation(species, mongo_config_data=self._mongo_config_data,
-                                              selected_connection_string='CONNECTION_STRING_LOCAL',
-                                              alternate_dtap=self._alternate_dtap)
+        mongoinit_local = MongoInitialisation(species, self._mongo_config_provider.get_local_connection_string(species), self._mongo_config_provider.dtap)
         mapping_table_collection = mongoinit_local.initialise_mapping_table_collection()
         return mapping_table_collection, isolates_collection
 
@@ -124,7 +120,7 @@ class MainSenderToHD:
             document_genomic['_id'] = document_mapping_table['_id']
             document_genomic['pseudo_id'] = document_mapping_table['pseudo_id']
             document_genomic['TX_BUSINESS_KEY'] = document_mapping_table['TX_BUSINESS_KEY']
-            SendGenomicToODS(document_genomic, self._mongo_config_data, species, alternate_dtap=self._alternate_dtap)
+            SendGenomicToODS(document_genomic, species, self._mongo_config_provider.upload_path)
 
             isolates_collection.update_one({'_id': document_genomic['_id']},
                                            {"$set": {"sent_to_ODS": True, "changed_since_sent_to_ODS": False}})

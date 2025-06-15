@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="ISO-8859-1" ?>
 <db>
 <system
- db="bigsdb_stec_seqdef"
+ db="bigsdb_enterococcus_faecium_seqdef"
  dbtype="sequences"
- webroot="/stec.html"
+ webroot="/enterococcus_faecium.html"
  indexpage=""
  script_path_includes="/bigsdb/"
  curate_path_includes="/bigsdb/"
- description="STEC Seqdef"
+ description="Enterococcus faecium Seqdef"
  locus_superscript_prefix="yes"
  authentication="builtin"
  read_access="authenticated_users"

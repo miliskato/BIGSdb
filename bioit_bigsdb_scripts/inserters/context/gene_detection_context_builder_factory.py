@@ -4,6 +4,7 @@ from bioit_bigsdb_scripts.inserters.context.gene_detection_context import GeneDe
 from bioit_bigsdb_scripts.inserters.context.amrfinder_gene_detection_context_builder import AmrFinderGeneDetectionContextBuilder
 from bioit_bigsdb_scripts.inserters.context.gene_detection_context_builder import GeneDetectionContextBuilder
 from bioit_bigsdb_scripts.inserters.context.generic_gene_detection_context_builder import GenericGeneDetectionContextBuilder
+from bioit_bigsdb_scripts.inserters.context.lrefinder_gene_detection_context_builder import LreFinderGeneDetectionContextBuilder
 from bioit_bigsdb_scripts.inserters.context.resfinder4_gene_detection_context_builder import Resfinder4GeneDetectionContextBuilder
 
 
@@ -18,6 +19,7 @@ class GeneDetectionContextBuilderFactory:
         self.gene_detection_context_builders: List[GeneDetectionContextBuilder] = [
             Resfinder4GeneDetectionContextBuilder(),
             AmrFinderGeneDetectionContextBuilder(),
+            LreFinderGeneDetectionContextBuilder(),
             GenericGeneDetectionContextBuilder()
         ]
 

@@ -8,12 +8,14 @@ from typing import Any, Dict, List
 
 from pymongo.write_concern import WriteConcern
 
+
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
 from bioit_bigsdb_scripts.components.psql import TblSequences
+from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
-from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email
+from bioit_mongodb_scripts.util.python_utility_functions import send_email
 
 
 class NewTemporaryAllelesToBigs:
@@ -22,20 +24,17 @@ class NewTemporaryAllelesToBigs:
     in the update metadata collection. This date is updated at the successful end of this script.
     """
 
-    def __init__(self, species: str, mongo_config_data: Dict[str, Any] = None) -> None:
+    def __init__(self, species: str, mongo_config_provider: MongoConfigProvider) -> None:
         """
         Intialises this class and executes the main function
-        :param species: commonly used bioit species name: either genus or specific like stec
-        :param mongo_config_data: Use provided mongo_config_data, else get mongo_config_data from file
+        :param species: commonly used bioit species name: either genus or specific like enterococcus_faecalis
+        :param mongo_config_provider: the mongodb configuration provider
         :return: None
         """
         self._species = species
 
-        self._mongo_config_data = mongo_config_data if mongo_config_data else get_mongodb_config_data()
-
         # Open collections
-        self._mongoinit = MongoInitialisation(self._species, mongo_config_data=self._mongo_config_data,
-                                              selected_connection_string='CONNECTION_STRING_AZURE')
+        self._mongoinit = MongoInitialisation(self._species, mongo_config_provider.get_azure_connection_string(species), mongo_config_provider.dtap)
         self._update_metadata_collection = self._mongoinit.initialise_update_collection()
         self._hashed_ad_collection = self._mongoinit.initialise_hashing_collection()
         # Prepare for main

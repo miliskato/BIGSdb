@@ -14,8 +14,9 @@ import paramiko
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
+from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
-from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email
+from bioit_mongodb_scripts.util.python_utility_functions import send_email
 from bioit_nrc_integration.python.config import SFTP_CREDENTIALS_HD, CODES_GENOMIC_ODS
 from bioit_nrc_integration.python.util.sftp_connection import SFTPConnection
 
@@ -41,8 +42,7 @@ class ErrorCheckerForMainSenderToHD(SFTPConnection):
 
         self._test_dummy = test_dummy
         self._alternate_dtap = alternate_dtap
-
-        self._mongo_config_data = get_mongodb_config_data()
+        self._mongo_config_provider = MongoConfigProvider(alternate_dtap)
         # get sftp credentials
         with SFTP_CREDENTIALS_HD.open('r') as handle:
             self._sftp_credentials_hd = yaml.safe_load(handle)
@@ -114,14 +114,10 @@ class ErrorCheckerForMainSenderToHD(SFTPConnection):
                     # get species name based on dcd name which is a metadata value in both outgoing DCDs
                     species = next(pathogen for pathogen, details in self._translation_codes['pathogens'].items() if details['dataCollection'] == dcd_name)
                 # Open correct pathogen specific MongoDB database
-                mongoinit_local = MongoInitialisation(species, mongo_config_data=self._mongo_config_data,
-                                                      selected_connection_string='CONNECTION_STRING_LOCAL',
-                                                      alternate_dtap=self._alternate_dtap)
+                mongoinit_local = MongoInitialisation(species, self._mongo_config_provider.get_local_connection_string(species), self._mongo_config_provider.dtap)
                 mapping_collection = mongoinit_local.initialise_mapping_table_collection()
                 pseudo_id = mapping_collection.find_one({'_id': contents['data']['TX_LAB_SAMPLE_VAL']})['pseudo_id']
-                mongoinit_azure = MongoInitialisation(species, mongo_config_data=self._mongo_config_data,
-                                                      selected_connection_string='CONNECTION_STRING_AZURE',
-                                                      alternate_dtap=self._alternate_dtap)
+                mongoinit_azure = MongoInitialisation(species, self._mongo_config_provider.get_azure_connection_string(species), self._mongo_config_provider.dtap)
                 isolates_collection, old_isolateresults_collection, isolates_warningqc_collection, \
                     isolates_resequencing_collection, isolates_goodqc_collection = \
                     mongoinit_azure.initialise_collections()

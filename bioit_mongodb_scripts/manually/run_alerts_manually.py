@@ -5,6 +5,8 @@ import sys
 from pathlib import Path
 from typing import List
 
+from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
+
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
@@ -13,7 +15,6 @@ from bioit_bigsdb_scripts.components.psql import TblIsolates, TblMappingTable
 from bioit_mongodb_scripts.model.json_model import MongoRecordDict
 from bioit_mongodb_scripts.util.alerts_to_bigs import AlertsToBigs
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
-from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data
 
 
 def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
@@ -40,11 +41,10 @@ if __name__ == '__main__':
 
     # Configure stdout logging
     logging.basicConfig(level=logging.WARNING, stream=sys.stdout)
-    mongo_config_data = get_mongodb_config_data()
+    mongo_config_provider = MongoConfigProvider()
 
-    args = parse_arguments(mongo_config_data['species'])
-    mongo_init = MongoInitialisation(args.species, mongo_config_data=mongo_config_data,
-                                     selected_connection_string='CONNECTION_STRING_AZURE')
+    args = parse_arguments(mongo_config_provider.get_all_species())
+    mongo_init = MongoInitialisation(args.species, mongo_config_provider.get_azure_connection_string(args.species), mongo_config_provider.dtap)
     isolates_collection, _, _, _, _ = mongo_init.initialise_collections()
     naive_clustering_distance_matrix_file = Path(
         mongo_config_data['naive_clustering_distance_matrix_file'].replace('species', args.species).replace('dtap', mongo_config_data.get('dtap')))

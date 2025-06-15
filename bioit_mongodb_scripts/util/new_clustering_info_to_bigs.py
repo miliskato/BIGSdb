@@ -9,6 +9,8 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import numpy as np
 from pymongo.write_concern import WriteConcern
 
+from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
+
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
@@ -17,7 +19,7 @@ from bioit_bigsdb_scripts.components.psql import TblSequences, TblProfiles, TblP
     TblClassificationSchemes, TblEavText, TblEavFields, TblMappingTable
 from bioit_mongodb_scripts.config import CLUSTERING_CONFIG
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
-from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, load_config, send_email
+from bioit_mongodb_scripts.util.python_utility_functions import load_config, send_email
 
 
 class NewClusteringInfoToBigs:
@@ -27,24 +29,21 @@ class NewClusteringInfoToBigs:
     """
 
     def __init__(self, species: str, naive_clustering_distance_matrix_file: Path, cgmlst_bigsdb_scheme_id: int,
-                 mongo_config_data: Dict[str, Any] = None) -> None:
+                 mongo_config_provider: MongoConfigProvider) -> None:
         """
         Initialises this class and executes the main function
         :param species: commonly used bioit species name: either genus or specific like stec
         :param naive_clustering_distance_matrix_file: The path to the naive clustering cgmlst distance matrix file
         :param cgmlst_bigsdb_scheme_id: The bigsdb SQL id of the cgMLST scheme
-        :param mongo_config_data: Use provided mongo_config_data, else get mongo_config_data from file
+        :param mongo_config_provider: the mongodb configuration provider
         :return: None
         """
         self._species = species
         self._cgmlst_bigsdb_scheme_id = cgmlst_bigsdb_scheme_id
         self._naive_clustering_distance_matrix_file = naive_clustering_distance_matrix_file
 
-        self._mongo_config_data = mongo_config_data if mongo_config_data else get_mongodb_config_data()
-
         # Open collections
-        self._mongoinit = MongoInitialisation(self._species, mongo_config_data=self._mongo_config_data,
-                                              selected_connection_string='CONNECTION_STRING_AZURE')
+        self._mongoinit = MongoInitialisation(self._species, mongo_config_provider.get_azure_connection_string(self._species), mongo_config_provider.dtap)
         self._isolates_collection, _, _, _, _ = self._mongoinit.initialise_collections()
         self._headers_collection = self._mongoinit.initialise_headers_collection()
         self._st_collection, self._cluster_membership_collection, self._cluster_merging_collection = \

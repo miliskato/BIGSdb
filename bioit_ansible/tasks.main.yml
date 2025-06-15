@@ -36,6 +36,8 @@
       - stec
       - salmonella
       - influenza
+      - enterococcus_faecalis
+      - enterococcus_faecium
   fail:
     msg: "unsupported species requested, choose from {{ specieslist }}"
   when: species not in specieslist
@@ -138,7 +140,7 @@
         bigsdb_branch: "{{ git_branch if git_branch != 'HEAD' else git_detached_branch }}"
         bigsdb_tag: "{{ bigsdb_tag_cmd.stdout if bigsdb_tag_cmd.rc == 0 else '' }}"
 
-    - name: Check if folder /home/bigsdb/BIGSdb_Deployments already exists
+    - name: Check if folder /home/bigsdb/BIGSdb_deployments already exists
       stat:
         path: "{{ bioit_deployments_home }}"
       register: deployments_folder_stat
@@ -382,6 +384,7 @@
 - name: Install bio perl package
   community.general.cpanm:
     executable: /usr/bin/cpanm
+    mirror: https://www.cpan.org
     name: BioPerl
 
 - name: create dirs
@@ -834,17 +837,11 @@
         roles: readWrite
       delegate_to: "{{ primary }}"
 
-    - name: replace string connection in config file
+    - name: replace string for mongo user pass in config
       lineinfile:
         path: "{{ bioit_bigs_home }}/bioit_mongodb_scripts/config/config.yml"
-        regexp: 'CONNECTION_STRING_LOCAL: to_be_replaced_by_ansible'
-        line: "CONNECTION_STRING_LOCAL: mongodb://{{ species }}User_{{ mongo_dtap }}:{{ mongo_user_password }}@{{ mongo_host.split(',')[0] }}:27017,{{ mongo_host.split(',')[1] }}:27017,{{ mongo_host.split(',')[2] }}:27017/?authSource={{ species }}_{{ mongo_dtap }}&replicaSet=bioit-HERA"
-
-    - name: replace azure connection string in config file
-      lineinfile:
-        path: "{{ bioit_bigs_home }}/bioit_mongodb_scripts/config/config.yml"
-        regexp: 'CONNECTION_STRING_AZURE: to_be_replaced_by_ansible'
-        line: "CONNECTION_STRING_AZURE: mongodb+srv://{{ species }}User_{{ mongo_dtap }}:{{ mongo_user_password }}@{{ mongo_azure_private_endpoint }}.mongodb.net/?retryWrites=true&w=majority"
+        regexp: 'MONGO_DB_PASSWORD: to_be_replaced_by_ansible'
+        line: "MONGO_DB_PASSWORD: {{ mongo_user_password }}"
 
   tags: mongo_setup
 
@@ -1036,7 +1033,7 @@
     - name: add systemd service for automatic insertion
       ansible.builtin.copy:
         src: "{{ bioit_bigs_home }}/bigsdb-insertion.service"
-        dest: '/etc/systemd/system/bigsdb-insertion.service'
+        dest: '/etc/systemd/system/bigsdb-insertion-{{ species }}.service'
         owner: root
         group: root
         remote_src: yes
@@ -1044,7 +1041,7 @@
 
     - name: replace species in bigsdb-insertion service
       ansible.builtin.replace:
-        path: '/etc/systemd/system/bigsdb-insertion.service'
+        path: '/etc/systemd/system/bigsdb-insertion-{{ species }}.service'
         regexp: 'to_be_replaced_by_ansible'
         replace: "{{ species }}"
 
@@ -1066,7 +1063,7 @@
 
     - name: Touch log file for bigsdb_insertion service
       ansible.builtin.file:
-        path: /var/log/bigsdb_insertions.log
+        path: "/var/log/bigsdb_insertions_{{ species }}.log"
         state: touch
         mode: "u=rwx,g=rwx,o=rwx"
         owner: bigsdb
@@ -1076,7 +1073,7 @@
         daemon-reload: true
         state: started
         enabled: true
-        name: bigsdb-insertion.service
+        name: "bigsdb-insertion-{{ species }}.service"
 
 - name: create sftp users that can access the /output_reports
   block:

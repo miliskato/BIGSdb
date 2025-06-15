@@ -15,9 +15,10 @@ from bioit_mongodb_scripts.rejected_isolate import RejectedIsolate
 from bioit_mongodb_scripts.util.update_bigsdb_clustering_cache_alerts import UpdateBIGSdbClusteringCacheAlerts
 from bioit_mongodb_scripts.update_bigsdb_seqdef import UpdateBIGSdbSeqDef
 from bioit_mongodb_scripts.util.error import BadCollectionError, IsolateNotFoundException
+from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.mongo_to_bigs_nominative import MongoToBigsNominative
-from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email, is_viral
+from bioit_mongodb_scripts.util.python_utility_functions import send_email
 from bioit_mongodb_scripts.util.sample_to_validation_bigs import SampleToValidationBigs
 from bioit_mongodb_scripts.util_azure.azure_service_bus import AzureServiceBus
 from bioit_mongodb_scripts.util_azure.azure_service_bus_message import AzureServiceBusMessage
@@ -26,10 +27,6 @@ mail_sent = False
 # Configure stdout logging
 logger = logging.getLogger('bigsdb_insertion')
 logger.setLevel(logging.INFO)
-handler = handlers.TimedRotatingFileHandler('/var/log/bigsdb_insertions.log', when="D", interval=1, backupCount=14)
-formatter = logging.Formatter('%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
-handler.setFormatter(formatter)
-logger.addHandler(handler)
 
 
 def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
@@ -68,18 +65,18 @@ class MessageConsumerDataInserter(AzureServiceBus):
     Checks for messages in Azure service bus and inserts pending isolates in BIGSdb
     """
 
-    def __init__(self, ct: Cancellation, species: str, mongo_config_data_arg: dict[str, Any],
+    def __init__(self, ct: Cancellation, species: str, mongo_config_provider: MongoConfigProvider,
                  uploader_mail_address: str) -> None:
         """
         Method to initialize the class
         :param ct: Cancellation status: need to exit gracefully if something happens on the VM
         :param species: Species name
-        :param mongo_config_data_arg: Mongo configuration data
+        :param mongo_config_provider: the mongodb configuration provider
         :param uploader_mail_address: email address of the uploader
         :return: None
         """
 
-        super().__init__(mongo_config_data_arg, species)
+        super().__init__(mongo_config_provider, species)
         self._ct = ct
         self._uploader_mail_address = uploader_mail_address
 
@@ -168,7 +165,7 @@ class MessageConsumerDataInserter(AzureServiceBus):
 
     def __keep_error_in_postgres(self, e: Exception, msg: ServiceBusReceivedMessage) -> None:
         """
-        keeps track of the exception in postgres db and also in the /var/log/bigsdb_insertion.log
+        keeps track of the exception in postgres db and also in the /var/log/bigsdb_insertion_{species}.log
         :param e: Exception
         :param msg: a ServiceBusReceivedMessage object
         :return: None
@@ -226,7 +223,7 @@ class MessageConsumerDataInserter(AzureServiceBus):
         sql-inserted versions of existing isolates with different cgSTs than the previous version.
         :return: None
         """
-        if not is_viral(self._species) and len(list_of_new_isolates_for_alerts + list_of_new_versions_for_alerts) > 0:
+        if not self._mongo_config_provider.is_viral(self._species) and len(list_of_new_isolates_for_alerts + list_of_new_versions_for_alerts) > 0:
             update_bigsdb_clustering_cache_alerts = UpdateBIGSdbClusteringCacheAlerts(self._species,
                                                                                       list_of_new_isolates_for_alerts,
                                                                                       list_of_new_versions_for_alerts)
@@ -239,8 +236,7 @@ class MessageConsumerDataInserter(AzureServiceBus):
         :param species: the species name
 
         """
-        mongo_init_local = MongoInitialisation(species, mongo_config_data=self._mongo_config_data,
-                                               selected_connection_string='CONNECTION_STRING_LOCAL')
+        mongo_init_local = MongoInitialisation(species, self._mongo_config_provider.get_local_connection_string(species), self._mongo_config_provider.dtap)
         try:
             mongo_init_local.client.admin.command('ping')
         except ConnectionFailure:
@@ -253,6 +249,18 @@ class MessageConsumerDataInserter(AzureServiceBus):
         except AttributeError:
             raise IsolateNotFoundException(pseudo_id)
         return isolate_id
+
+
+def config_log_handlers(species: str) -> None:
+    """
+    configure handlers to get logs rotated once by day
+    :param species: the species used in ANSIBLE playbook
+    :return: None
+    """
+    handler = handlers.TimedRotatingFileHandler(f'/var/log/bigsdb_insertions_{species}.log', when="D", interval=1, backupCount=14)
+    formatter = logging.Formatter('%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
 
 
 def handle_shutdown(signum: int, frame: Any) -> None:
@@ -273,24 +281,24 @@ def handling_retry_outcome(retry_state: RetryCallState) -> None:
     """
     global mail_sent
     if not mail_sent:
-        send_email(f"{retry_state.outcome.exception()}\nLook at the logs on {socket.gethostname()} (/var/log/bigsdb_insertions.log)",
+        send_email(f"{retry_state.outcome.exception()}\nLook at the logs on {socket.gethostname()} (/var/log/bigsdb_insertions_[species].log)",
                    f'WARNING: azure_service_bus_consumer raised errors on {socket.gethostname()}')
         mail_sent = True
     logger.error("Tentative number %s failed. Message: %s", retry_state.attempt_number, retry_state.outcome.exception())
 
 
 @retry(wait=wait_exponential(multiplier=1, min=2, max=600), after=handling_retry_outcome)
-def run_application(ct: Cancellation, species: str, mongo_config_data_arg: dict[str, Any], uploader_mail_address: str) -> None:
+def run_application(ct: Cancellation, species: str, mongo_config_provider: MongoConfigProvider, uploader_mail_address: str) -> None:
     """
     a decorator function to try again on Exception before stopping execution, retry after 2,2,4,8... seconds with max of 10 minutes between two attempts.
     There is no condition to stop running the service
     :param ct: a Cancellation object
     :param species: the species name
-    :param mongo_config_data_arg: the mongo_config_data
+    :param mongo_config_provider: the mongo config provider
     :param uploader_mail_address: the mail address
     :return: None
     """
-    data_inserter = MessageConsumerDataInserter(ct, species, mongo_config_data_arg, uploader_mail_address)
+    data_inserter = MessageConsumerDataInserter(ct, species, mongo_config_provider, uploader_mail_address)
     data_inserter.execute()
 
 
@@ -303,12 +311,14 @@ if __name__ == '__main__':
     signal.signal(signal.SIGTERM, handle_shutdown)
 
     # Parse Mongo config
-    mongo_config_data = get_mongodb_config_data()
+    mongo_config_provider = MongoConfigProvider()
 
     # Parse arguments
-    args = parse_arguments(mongo_config_data['species'])
+    args = parse_arguments(mongo_config_provider.get_all_species())
+
+    config_log_handlers(args.species)
 
     try:
-        run_application(cancel_token, args.species, mongo_config_data, args.uploader_mail_address)
+        run_application(cancel_token, args.species, mongo_config_provider, args.uploader_mail_address)
     except (SystemExit, KeyboardInterrupt):
         pass

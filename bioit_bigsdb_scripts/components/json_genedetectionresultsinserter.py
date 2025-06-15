@@ -7,7 +7,7 @@ from bioit_mongodb_scripts.model.json_model import JsonReportDict
 from .json_superclass import JsonSuperClass
 from .psql import TblAlleleDesignations, TblEavText, TblEavTextHidden, TblHistory, TblIsolates
 from ..inserters.context.gene_detection_context_builder_factory import GeneDetectionContextBuilderFactory
-from ..utils.html_tbl_templates import HtmlAmrTableBuilder, HtmlLocusTableBuilder
+from ..utils.html_tbl_templates import HtmlAmrTableBuilder, HtmlLocusTableBuilder, HtmlReportBuilder, LreFinderGenesTableBuilder, LreFinderMutationsTableBuilder
 from ..utils.url_helper import UrlHelper
 
 
@@ -59,6 +59,10 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                 listofhits: List = self._json_report_dict[scheme]['resfinder4_genes_hits']
             elif scheme == 'amrfinder':
                 listofhits: List = self._json_report_dict[scheme]['amr_genes_hits']
+            elif scheme == 'lrefinder':
+                if isinstance(self._json_report_dict[scheme]['lrefinder_genes'], str):
+                    return
+                listofhits: List = self._json_report_dict['lrefinder']['lrefinder_genes']
             else:
                 listofhits: List = self._json_report_dict[scheme]['loci']
 
@@ -66,7 +70,7 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                 # Storing snapshot Clusters in eav_text_hidden to be used in periodical GeneCluster recalculation
                 for index, hit in enumerate(listofhits):
                     for k, v in hit.items():
-                        v = v.replace("'", "") if scheme not in ['resfinder4', 'amrfinder'] else v
+                        v = v.replace("'", "") if scheme not in ['resfinder4', 'amrfinder', 'lrefinder'] else v
                         listofhits[index][k] = v
                 with TblEavTextHidden(self._species) as isolates_eavth_psql_tbl:
                     isolates_eavth_psql_tbl.insert_hidden_isolate((self._isolatename, schemename_bigsdb, json.dumps(listofhits)))
@@ -85,6 +89,7 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                         coverage = f'{round(float(hit["Coverage"]), 2)}'
                         resfinder4_table_builder.add_hit(hit['Phenotype'], hit['Resistance gene'], identity, coverage)
                     html = resfinder4_table_builder.build()
+
                 elif scheme == 'amrfinder':
                     amrfinder_table_builder = HtmlAmrTableBuilder(report_url)
                     for hit in self._json_report_dict[scheme]['amr_genes_hits']:
@@ -92,6 +97,27 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                         coverage = f'{round(float(hit["% Coverage of reference sequence"]), 2)}'
                         amrfinder_table_builder.add_hit(hit['Subclass'], hit['Gene symbol'], identity, coverage)
                     html = amrfinder_table_builder.build()
+
+                elif scheme == 'lrefinder':
+                    lrefinder_table_builder_genes = LreFinderGenesTableBuilder(report_url)
+                    lrefinder_table_builder_mutations = LreFinderMutationsTableBuilder(report_url)
+                    for hit in self._json_report_dict[scheme]['lrefinder_genes']:
+                        identity = str(hit.get('Template identity'))
+                        depth = str(hit.get('Depth'))
+                        lrefinder_table_builder_genes.add_hit(hit.get('Gene'), identity, depth)
+                    for hit in self._json_report_dict[scheme]['lrefinder_mutations']:
+                        position = hit.get('Position in reference')
+                        wt_ratio = str(hit.get('Wild type ratio (%)'))
+                        mt_ratio = str(hit.get('Mutant type ratio (%)'))
+                        predicted_phenotype = hit.get('Predicted phenotype')
+                        lrefinder_table_builder_mutations.add_hit(position, wt_ratio, mt_ratio, predicted_phenotype)
+                    report_builder = HtmlReportBuilder()
+                    report_builder.add_title("Detected genes")
+                    report_builder.add_table(lrefinder_table_builder_genes)
+                    report_builder.add_title("Detected mutations")
+                    report_builder.add_table(lrefinder_table_builder_mutations)
+                    html = report_builder.build()
+
                 elif not scheme.endswith('vfdb_core') and not scheme.endswith('virulencefinder'):
                     locus_table_builder = HtmlLocusTableBuilder(report_url)
                     clusterhitset = set()  # in case loci that were in different clusters at some point get in the same cluster
@@ -113,7 +139,7 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                                     (clusterhit, self._isolatename, '1'))
 
                             clusterhitset.add(clusterhit)
-                            locus_table_builder.add_locus(hit, clusterhit)
+                            locus_table_builder.add_locus(hit_name, clusterhit)
 
                     html = locus_table_builder.build()
 

@@ -25,19 +25,19 @@ class MainResultsInserter:
     """
 
     def __init__(self, isolatename: str, uploader_mail_address: str, species: str, results_type: ResultType,
-                 report_access: str, vcf_path: str, mongo_dtap: str,
+                 report_access: str, vcf_path: str, viral_species: bool,
                  json_results: JsonReportDict, isolation_date: str,
                  nominative_labtest_clinical_metadata_collection: Collection) -> None:
         """
         Initialises the class and runs the main function.
         See also argparse function for variables and their requiredness.
-        :param isolatename: name of the isolate
+
         :param uploader_mail_address: mailadress of the uploader
         :param species: commonly used bioit species name: either genus or specific like stec
         :param results_type: either 'new_isolate', 'goodqc', 'warningqc', 'resequencing', 'reanalysis'
         :param report_access: report_directory from MongoDB
         :param vcf_path: subdirectory containing the vcf file
-        :param mongo_dtap: dtap from mongo config
+        :param viral_species: True if species is viral, False if species is bacterial
         :param json_results: results for the isolate
         :param isolation_date: isolation date as str as DD/MM/YYYY
         :return: None
@@ -49,7 +49,7 @@ class MainResultsInserter:
         self._results_type = results_type
         self._report_access = report_access
         self._vcf_path = vcf_path
-        self._mongo_dtap = mongo_dtap
+        self._viral_species = viral_species
         self._json_report = json_results
         self._isolation_date = isolation_date
         self._nominative_labtest_clinical_metadata_collection = nominative_labtest_clinical_metadata_collection
@@ -74,7 +74,7 @@ class MainResultsInserter:
         # fail safe mechanism uses a flagfile to lock the isolate insertion and checks whether the previous insertion of the isolate succeeded.
 
         maininserter = MainInserter(self._isolatename, self._species, self._json_report, self._bigsdb_config_data,
-                                    self._report_access, self._vcf_path, self._mongo_dtap)
+                                    self._report_access, self._vcf_path, self._viral_species)
         if self._results_type == 'new_isolate' or self._results_type == 'warningqc' or self._results_type == 'goodqc':
             maininserter.insert_new_isolate(self._uploader_mail_address, self._isolation_date)
         elif self._results_type == 'reanalysis' or self._results_type == 'resequencing':

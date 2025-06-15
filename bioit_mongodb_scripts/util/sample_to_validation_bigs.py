@@ -2,7 +2,7 @@ import datetime
 import socket
 import sys
 from pathlib import Path
-from typing import Any, Dict, Literal, Tuple
+from typing import Literal, Tuple
 
 from pymongo.write_concern import WriteConcern
 from pymongo.collection import Collection
@@ -14,6 +14,7 @@ from bioit_bigsdb_scripts.components.psql import TblSubmissions, TblIsolateSubmi
     TblIsolateSubmissionFieldOrder
 from bioit_bigsdb_scripts.utils.url_helper import UrlHelper
 from bioit_mongodb_scripts.model.json_model import MongoRecordDict
+from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 
 
@@ -24,7 +25,7 @@ class SampleToValidationBigs:
     """
 
     def __init__(self, species: str, isolate_id: str, pseudo_id: str, quality: Literal['warning', 'good'],
-                 resequencing: Literal['yes', 'no'],  mongo_config_data: Dict[str, Any] = None) -> None:
+                 resequencing: Literal['yes', 'no'],  mongo_config_provider: MongoConfigProvider) -> None:
         """
         Call methods to insert samples into BIGSdb submission table.
         :param species: commonly used bioit species name: either genus or specific like stec
@@ -33,9 +34,10 @@ class SampleToValidationBigs:
         :param quality: str, either "warning" or "good"
         :param resequencing: str, either yes or no
         :param mongo_config_data: mongo_config_data for MongoInitialisation
+        :param mongo_config_provider: the mongodb configuration provider
         :return: None
         """
-        self._mongo_config_data = mongo_config_data
+        self._mongo_config_provider = mongo_config_provider
         self._species = species
         self._isolate_id = isolate_id
         self._pseudo_id = pseudo_id
@@ -48,8 +50,7 @@ class SampleToValidationBigs:
         Returns the MongoDB collection, MongoDB update collection and the validation type.
         :return: the MongoDB collection, MongoDB update collection and validation type
         """
-        mongoinit = MongoInitialisation(self._species, mongo_config_data=self._mongo_config_data,
-                                        selected_connection_string='CONNECTION_STRING_AZURE')
+        mongoinit = MongoInitialisation(self._species, self._mongo_config_provider.get_azure_connection_string(self.species), self.mongo_config_provider.dtap)
         _, _, isolates_warningqc_collection, isolates_resequencing_collection, isolates_goodqc_collection = \
             mongoinit.initialise_collections()
         update_collection = mongoinit.initialise_update_collection()

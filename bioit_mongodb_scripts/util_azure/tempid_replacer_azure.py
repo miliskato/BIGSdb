@@ -14,13 +14,13 @@ from pymongo.collection import Collection
 from pymongo.read_concern import ReadConcern
 from pymongo.write_concern import WriteConcern
 
+from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
 from bioit_mongodb_scripts.util_azure.connect_azure import ConnectAzure
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
-from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data
 
 
 def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
@@ -63,14 +63,13 @@ class TempidReplacerAzure:
         """
         self._species = species
         self._dtap = dtap
+        self._mongo_config_provider = MongoConfigProvider()
 
         # Connect to keyvault
         self._connection_azure = ConnectAzure(self._dtap)
 
         # Open collections
-        self._mongoinit = MongoInitialisation(self._species,
-                                              selected_connection_string='CONNECTION_STRING_AZURE',
-                                              alternate_dtap=self._dtap)
+        self._mongoinit = MongoInitialisation(self._species, self._mongo_config_provider.get_azure_connection_string(self._species), self._dtap)
         self._isolates_collection, self._old_isolateresults_collection, self._isolates_warningqc_collection, \
             self._isolates_resequencing_collection, self._isolates_goodqc_collection = \
             self._mongoinit.initialise_collections()
@@ -79,11 +78,9 @@ class TempidReplacerAzure:
         self._headers_collection = self._mongoinit.initialise_headers_collection()
         self._update_metadata_collection = self._mongoinit.initialise_update_collection()
 
-        self._mongo_config_data = get_mongodb_config_data()
-
         # Execute main
         try:
-            for scheme in self._mongo_config_data['schemes_sequence_typing']:
+            for scheme in self._mongo_config_provider.get_schemes_sequence_typing():
                 self._scheme = scheme
                 # Query all unresolved hashes from hash collection for this particular scheme
                 documents_list = self.__query_hashes_of_scheme()
@@ -272,10 +269,10 @@ class TempidReplacerAzure:
 
 if __name__ == '__main__':
     # Parse config
-    mongo_config_data = get_mongodb_config_data()
+    mongo_config_provider = MongoConfigProvider()
 
     # Parse arguments
-    args = parse_arguments(mongo_config_data['species'])
+    args = parse_arguments(mongo_config_provider.get_all_species())
 
     # run main
     wrapper_loop_dtap_and_species_and_schemes(args.species, args.dtap)

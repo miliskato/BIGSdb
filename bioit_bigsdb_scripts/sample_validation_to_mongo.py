@@ -23,6 +23,7 @@ sys.path.append(str(PYTHONPATH))
 from bioit_bigsdb_scripts.components.psql import TblSubmissions
 from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data, send_email
 from bioit_mongodb_scripts.mainmongo import MainMongo
+from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.model.json_model import MongoRecordDict
 
@@ -56,14 +57,15 @@ class SampleValidationToMongo:
         # Input parameters
         self._sub_id = sub_id
         self._species = species
+        self._mongo_config_provider = MongoConfigProvider()
 
         # Open collections
-        self._mongoinit = MongoInitialisation(self._species, selected_connection_string='CONNECTION_STRING_AZURE')
+        self._mongoinit = MongoInitialisation(self._species, self._mongo_config_provider.get_azure_connection_string(self._species), self._mongo_config_provider.dtap)
         self._isolates_collection, _, self._isolates_warningqc_collection, self._isolates_resequencing_collection, \
             self._isolates_goodqc_collection = self._mongoinit.initialise_collections()
 
-        # open local mongo instance to get the mapping
-        self._mongoinit_local = MongoInitialisation(self._species, selected_connection_string='CONNECTION_STRING_LOCAL')
+        #open local mongo instance to get the mapping
+        self._mongoinit_local = MongoInitialisation(self._species, self._mongo_config_provider.get_local_connection_string(self._species), self._mongo_config_provider.dtap)
         self._mapping_collection = self._mongoinit_local.initialise_mapping_table_collection()
 
         # Run main
@@ -106,7 +108,7 @@ class SampleValidationToMongo:
                     'date': datetime.datetime.now(datetime.timezone.utc).strftime('%d/%m/%Y - %X')
                 }
                 if outcome == 'good' and (results_type == 'goodqc_validated' or results_type == 'warningqc_validated' or results_type == 'resequencing_validated'):
-                    MainMongo(pseudo_id, self._species, results_type, subvaldict=validation_dict, connection_string='CONNECTION_STRING_AZURE')
+                    MainMongo(pseudo_id, self._species, results_type, subvaldict=validation_dict, connection_string = self._mongo_config_provider.get_azure_connection_string(self._species))
                     self.__export_json_results(self._isolates_collection, isolatename, pseudo_id, 'accepted')
                 else:
                     collection = self._isolates_resequencing_collection if resequencing == 'yes' else \

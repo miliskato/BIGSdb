@@ -7,7 +7,7 @@ import sys
 import tempfile
 import traceback
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import List, Tuple
 
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
@@ -20,10 +20,10 @@ from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_
 from bioit_bigsdb_scripts.insert_assembly import insert_assembly
 from bioit_bigsdb_scripts.main_results_inserter import MainResultsInserter
 from bioit_mongodb_scripts.model.json_model import MongoRecordDict, ResultType
+from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.mongo_querying import Mongoquerying
-from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, is_viral, execute_command, \
-    get_cgmlst_bigsdb_scheme_id
+from bioit_mongodb_scripts.util.python_utility_functions import execute_command, get_cgmlst_bigsdb_scheme_id
 from bioit_mongodb_scripts.util.new_temporary_alleles_to_bigs import NewTemporaryAllelesToBigs
 from bioit_mongodb_scripts.util.command.command import Command
 
@@ -47,13 +47,11 @@ class MongoToBigs:
     If the current host is a bigsdb host, syncs all samples (or a single one if provided) with the bigsdb database
     """
 
-    def __init__(self, species: str, uploader_mail_address: str, single_sample_id: str = None,
-                 mongo_config_data: Dict[str, Any] = None) -> None:
+    def __init__(self, species: str, uploader_mail_address: str, single_sample_id: str = None) -> None:
         """
         Initializes this class and executes the main function
         :param species: commonly used bioit species name: either genus or specific like stec
         :param single_sample_id: name of a single sample if only this sample should be synced
-        :param mongo_config_data: Use provided mongo_config_data, else get mongo_config_data from file
         :return: None
         """
         # Configure stdout logging
@@ -63,34 +61,29 @@ class MongoToBigs:
         self._single_sample_id = single_sample_id
         self._uploader_mail_address = uploader_mail_address
         # Parse MongoDB config
-        self._mongo_config_data = mongo_config_data if mongo_config_data else get_mongodb_config_data()
-        self._naive_clustering_distance_matrix_file = Path(
-            self._mongo_config_data['naive_clustering_distance_matrix_file'].replace('species', self._species).replace(
-                'dtap', self._mongo_config_data.get('dtap')))
+        self._mongo_config_provider = MongoConfigProvider()
+        self._naive_clustering_distance_matrix_file = Path(self._mongo_config_provider.get_naive_clustering_distance_matrix_file(self._species))
         # Parse Bigsdb config
         self._bigsdb_config_data = get_bigsdb_config_data()
         # Open collections
-        self.initialisation = MongoInitialisation(self._species, mongo_config_data=self._mongo_config_data,
-                                                  selected_connection_string='CONNECTION_STRING_AZURE')
-        self._mongoinit = self.initialisation
+        mongo_init = MongoInitialisation(self._species, self._mongo_config_provider.get_azure_connection_string(self._species), self._mongo_config_provider.dtap)
         self._isolates_collection, self._old_isolateresults_collection, self._isolates_warningqc_collection, \
             self._isolates_resequencing_collection, self._isolates_goodqc_collection = \
-            self._mongoinit.initialise_collections()
-        self._headers_collection = self._mongoinit.initialise_headers_collection()
-        self._hashed_ad_collection = self._mongoinit.initialise_hashing_collection()
-        self._update_metadata_collection = self._mongoinit.initialise_update_collection()
+            mongo_init.initialise_collections()
+        self._headers_collection = mongo_init.initialise_headers_collection()
+        self._hashed_ad_collection = mongo_init.initialise_hashing_collection()
+        self._update_metadata_collection = mongo_init.initialise_update_collection()
         self._st_collection, self._cluster_membership_collection, self._cluster_merging_collection = \
-            self._mongoinit.initialise_clustering_collections()
+            mongo_init.initialise_clustering_collections()
         self._mongoquerying = Mongoquerying()
         # Ope collections local MongoDB
-        self._mongoinit_local = MongoInitialisation(self._species, mongo_config_data=self._mongo_config_data,
-                                                    selected_connection_string='CONNECTION_STRING_LOCAL')
-        self._mappingtable_collection = self._mongoinit_local.initialise_mapping_table_collection()
-        self._nominative_labtest_clinical_metadata_collection = self._mongoinit_local.initialise_nominative_labtest_clinical_metadata_collection()
+        mongo_init_local = MongoInitialisation(self._species, self._mongo_config_provider.get_local_connection_string(self._species), self._mongo_config_provider.dtap)
+        self._mappingtable_collection = mongo_init_local.initialise_mapping_table_collection()
+        self._nominative_labtest_clinical_metadata_collection = mongo_init_local.initialise_nominative_labtest_clinical_metadata_collection()
         # Open Bigsdb isolates table
         self._isolates_psql_tbl = TblIsolates(self._species)
 
-        if not is_viral(self._species):
+        if not self._mongo_config_provider.is_viral(self._species):
             # Prepare cgmlst cache updater command
             self._cgmlst_bigsdb_scheme_id = get_cgmlst_bigsdb_scheme_id(self._species)
 
@@ -120,7 +113,7 @@ class MongoToBigs:
         If the current host is a bigsdb host, syncs all samples (or a single one if provided) with the bigsdb database
         :return: None
         """
-        if is_viral(self._species):
+        if self._mongo_config_provider.is_viral(self._species):
             self.__mongo_to_bigs_viral()
         else:
             self.__mongo_to_bigs_bacterial()
@@ -140,7 +133,7 @@ class MongoToBigs:
         self._cluster_membership_collection.update_many({}, {'$set': {'select_for_bigsdb_insertion': True}})
         self._st_collection.update_many({}, {'$set': {'select_for_bigsdb_insertion': True}})
 
-        NewTemporaryAllelesToBigs(self._species, mongo_config_data=self._mongo_config_data)
+        NewTemporaryAllelesToBigs(self._species, self._mongo_config_provider)
 
         # The cache command needs to be run using method 'full' once before being able to use it with method
         # incremental, check it and execute full if it hadn't been executed yet and if no irregularities are found for this scheme
@@ -176,7 +169,7 @@ class MongoToBigs:
         MainResultsInserter(isolate_id, self._uploader_mail_address, self._species, results_type,
                             vcf_path=document['vcf_path'], json_results=jsonfile,
                             report_access=document['report_directory'],
-                            mongo_dtap=self._mongo_config_data.get('dtap'),
+                            viral_species=self._mongo_config_provider.is_viral(self._species),
                             isolation_date=document['technical_metadata']['data']['IsolationDate'],
                             nominative_labtest_clinical_metadata_collection=self._nominative_labtest_clinical_metadata_collection)
         self.__insert_assembly_into_bigs(results_type, document, isolate_id)
@@ -338,7 +331,7 @@ class MongoToBigs:
         else:
             different_version = True
             # skip cgst check for virus
-            if is_viral(self._species):
+            if self._mongo_config_provider.is_viral(self._species):
                 return different_version, cgst_changed
             # check whether the cgST that is currently in the db for the isolate is the same as the
             # cgST of the new version in Mongo.
@@ -360,11 +353,12 @@ class MongoToBigs:
         # isolates and we do not want to scp the assembly from Azure
         if not results_type == 'reanalysis':
             fasta_path_remote = document['fasta_path']
-            with tempfile.NamedTemporaryFile(dir=self._mongo_config_data.get('temp_dir'), mode="w") as temp_fasta:
-                temp_fasta_path = Path(self._mongo_config_data.get('temp_dir')) / temp_fasta.name
-                scp_command = f"scp -o StrictHostKeyChecking=no -i /home/bigsdb/.ssh/.id_rsa_reportsapi bigsdb@{self._mongo_config_data.get('azure_reportsapi_ip')}:{fasta_path_remote} {str(temp_fasta_path)}"
+            temp_dir = self._mongo_config_provider.get_temp_dir()
+            with tempfile.NamedTemporaryFile(dir=temp_dir, mode="w") as temp_fasta:
+                temp_fasta_path = Path(temp_dir) / temp_fasta.name
+                scp_command = f"scp -o StrictHostKeyChecking=no -i /home/bigsdb/.ssh/.id_rsa_reportsapi bigsdb@{self._mongo_config_provider.get_azure_reportsapi_ip()}:{fasta_path_remote} {str(temp_fasta_path)}"
                 scp_cmd = Command(scp_command)
-                scp_cmd.run(Path(self._mongo_config_data.get('temp_dir')))
+                scp_cmd.run(Path(temp_dir))
                 if scp_cmd.returncode != 0:
                     raise Exception(
                         f"scp command to copy fasta from Azure to onsite failed: {scp_cmd.stderr}\nscp command: {scp_command}")
@@ -446,13 +440,12 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.WARNING, stream=sys.stdout)
 
     # Parse Mongo config
-    mongo_config_data = get_mongodb_config_data()
+    mongo_config_provider = MongoConfigProvider()
 
     # Parse arguments
-    args = parse_arguments(mongo_config_data['species'])
+    args = parse_arguments(mongo_config_provider.get_all_species())
 
     # run main
     mongo_to_bigs_instance = MongoToBigs(args.species, args.uploader_mail_address,
-                                         single_sample_id=(args.single_sample_id if args.single_sample_id else None),
-                                         mongo_config_data=mongo_config_data)
+                                         single_sample_id=(args.single_sample_id if args.single_sample_id else None))
     mongo_to_bigs_instance.run_mongo_to_bigs()
