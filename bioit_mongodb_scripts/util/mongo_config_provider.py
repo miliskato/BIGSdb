@@ -1,3 +1,4 @@
+import socket
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional, Union
@@ -41,23 +42,35 @@ class MongoConfigProvider:
     def _get_user(self, species: str):
         return f'{species}User_{self.dtap}'
 
+    def _get_dtap_extension(self) -> str:
+        if self.dtap in ['dev', 'test']:
+            return 'devtest'
+        return 'accprod'
+
+    def _get_domain_for_dtap(self) -> str:
+        if self.dtap in ['dev', 'test']:
+            return 'darwinproject.be'
+        return 'sciensano.be'
+
     def get_local_connection_string(self, species: str) -> str:
         """
         get local connection string to mongo
         :return: connection string
         """
-        if self.dtap in ['dev', 'test']:
-            return f'mongodb://{self._get_user(species)}:{self.__password}@bioit-mongo-d01.darwinproject.be:27017,bioit-mongo-d02.darwinproject.be:27017,bioit-mongo-d03.darwinproject.be:27017/?authSource={species}_{self.dtap}&replicaSet=bioit-HERA'
-        return f'mongodb://{self._get_user(species)}:{self.__password}@bioit-mongo-d01.sciensano.be:27017,bioit-mongo-d02.sciensano.be:27017,bioit-mongo-d03.sciensano.be:27017/?authSource={species}_{self.dtap}&replicaSet=bioit-HERA'
+        dtap_domain = self._get_domain_for_dtap()
+        if self.host_is_an_nrc_platform(species):
+            return f'mongodb://{self._get_user(species)}:{self.__password}@bioit-mongo-d01.{dtap_domain}:27017,bioit-mongo-d02.{dtap_domain}:27017,bioit-mongo-d03.{dtap_domain}:27017/?authSource={species}_{self.dtap}&replicaSet=bioit-HERA'
+        return f'mongodb://admin:{self.__password}@bioit-mongo-d01.{dtap_domain}:27017,bioit-mongo-d02.{dtap_domain}:27017,bioit-mongo-d03.{dtap_domain}:27017/?replicaSet=bioit-HERA&authSource=admin'
 
     def get_azure_connection_string(self, species: str) -> str:
         """
         get azure connection string to mongo
         :return: connection string
         """
-        if self.dtap in ['dev', 'test']:
-            return f'mongodb+srv://{self._get_user(species)}:{self.__password}@mongodb-atlas-devtest-pl-0.fgpmn.mongodb.net/?retryWrites=true&w=majority'
-        return f'mongodb+srv://{self._get_user(species)}:{self.__password}@mongodb-atlas-accprod-pl-0.fgpmn.mongodb.net/?retryWrites=true&w=majority'
+        dtap_extension = self._get_dtap_extension()
+        if self.host_is_an_nrc_platform(species):
+            return f'mongodb+srv://{self._get_user(species)}:{self.__password}@mongodb-atlas-{dtap_extension}-pl-0.fgpmn.mongodb.net/?retryWrites=true&w=majority'
+        return f'mongodb+srv://admin:{self.__password}@mongodb-atlas-{dtap_extension}-pl-0.fgpmn.mongodb.net/?retryWrites=true&w=majority'
 
     def get_alternate_connection_string(self) -> str:
         """
@@ -118,3 +131,10 @@ class MongoConfigProvider:
 
     def get_mail(self):
         return self._mongo_global_config['mail']
+
+    @staticmethod
+    def host_is_an_nrc_platform(species: str) -> bool:
+        platform_naming = f'bioit-nrc{species}'
+        if platform_naming in f'{socket.gethostname()}':
+            return True
+        return False
