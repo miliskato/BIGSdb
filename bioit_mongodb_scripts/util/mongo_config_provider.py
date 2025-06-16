@@ -55,7 +55,9 @@ class MongoConfigProvider:
         get azure connection string to mongo
         :return: connection string
         """
-        return f'mongodb+srv://{self._get_user(species)}:{self.__password}@mongodb-atlas-devtest-pl-0.fgpmn.mongodb.net/?retryWrites=true&w=majority'
+        if self.dtap in ['dev', 'test']:
+            return f'mongodb+srv://{self._get_user(species)}:{self.__password}@mongodb-atlas-devtest-pl-0.fgpmn.mongodb.net/?retryWrites=true&w=majority'
+        return f'mongodb+srv://{self._get_user(species)}:{self.__password}@mongodb-atlas-accprod-pl-0.fgpmn.mongodb.net/?retryWrites=true&w=majority'
 
     def get_alternate_connection_string(self) -> str:
         """
