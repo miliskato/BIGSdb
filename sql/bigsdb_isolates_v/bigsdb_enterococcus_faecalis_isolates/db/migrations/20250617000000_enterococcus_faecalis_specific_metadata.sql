@@ -9,7 +9,12 @@ CREATE TYPE vangenes_type AS ENUM ('VANA', 'VANB', 'VANC', 'VAND', 'VANE', 'VANG
 CREATE TYPE specimen_type AS ENUM ('BLOOD', 'CSF', 'BRONCHTRACH', 'ABDO', 'PERITONEAL', 'WOUND', 'TISSUE', 'THROAT', 'SKIN',
     'EAR', 'NONSTERILE', 'OTHERSTERILE', 'SCREENING', 'SALIVA', 'URINE', 'UNK', 'NA');
 
-ALTER TABLE isolates ALTER COLUMN specimen SET DATA TYPE specimen_type;
+ALTER TABLE isolates ADD COLUMN specimen_enum specimen_type;
+UPDATE isolates SET specimen_enum = specimen::specimen_type WHERE specimen IN ('BLOOD', 'CSF', 'BRONCHTRACH', 'ABDO', 'PERITONEAL', 'WOUND', 'TISSUE', 'THROAT', 'SKIN',
+    'EAR', 'NONSTERILE', 'OTHERSTERILE', 'SCREENING', 'SALIVA', 'URINE', 'UNK', 'NA');
+ALTER TABLE isolates DROP COLUMN specimen;
+ALTER TABLE isolates RENAME COLUMN specimen_enum TO specimen;
+
 
 ALTER TABLE isolates
     ADD COLUMN symptom_otitis boolean,
@@ -69,14 +74,6 @@ ALTER TABLE isolates
 
 ALTER TABLE isolates ALTER COLUMN specimen SET DATA TYPE text;
 
-DROP TYPE hospital_unit_type;
-DROP TYPE lin_gen_type;
-DROP TYPE pathogen_defined_type;
-DROP TYPE patient_type_type;
-DROP TYPE mic_sign_type;
-DROP TYPE vangenes_type;
-DROP TYPE specimen_type;
-
 ALTER TABLE isolates
     DROP COLUMN symptom_otitis,
     DROP COLUMN symptom_pharyngitis,
@@ -130,3 +127,11 @@ ALTER TABLE isolates
     DROP COLUMN mic_van_I,
     DROP COLUMN subject,
     DROP COLUMN vangenes;
+
+DROP TYPE hospital_unit_type;
+DROP TYPE lin_gen_type;
+DROP TYPE pathogen_defined_type;
+DROP TYPE patient_type_type;
+DROP TYPE mic_sign_type;
+DROP TYPE vangenes_type;
+DROP TYPE specimen_type;
