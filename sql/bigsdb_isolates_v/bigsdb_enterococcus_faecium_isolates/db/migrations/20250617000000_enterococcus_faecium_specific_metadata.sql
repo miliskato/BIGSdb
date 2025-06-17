@@ -5,7 +5,7 @@ CREATE TYPE lin_gen_type AS ENUM ('CFR', 'CFRB', 'OPTRA', 'POXTA', 'POXTA-EF', '
 CREATE TYPE pathogen_defined_type AS ENUM ('ENCFAE', 'ENCFAI', 'ENCGALL', 'ENCCASS', 'ENCDUR', 'ENCRAFF', 'ENC', 'O', 'NA', 'UNK', 'ENCAVI');
 CREATE TYPE patient_type_type AS ENUM ('INPAT','O','OUTPAT', 'UNK');
 CREATE TYPE mic_sign_type AS ENUM ('<', '<=', '=', '>=', '>');
-CREATE TYPE vangenes_type AS ENUM ('VANA', 'VANB', 'VANC', 'VAND', 'VANE', 'VANG', 'VANAC', 'VANBC', 'O', 'UNK', 'NA', 'VANAB')
+CREATE TYPE vangenes_type AS ENUM ('VANA', 'VANB', 'VANC', 'VAND', 'VANE', 'VANG', 'VANAC', 'VANBC', 'O', 'UNK', 'NA', 'VANAB');
 CREATE TYPE specimen_type AS ENUM ('BLOOD', 'CSF', 'BRONCHTRACH', 'ABDO', 'PERITONEAL', 'WOUND', 'TISSUE', 'THROAT', 'SKIN',
     'EAR', 'NONSTERILE', 'OTHERSTERILE', 'SCREENING', 'SALIVA', 'URINE', 'UNK', 'NA');
 
