@@ -1,7 +1,7 @@
 -- migrate:up
 CREATE TYPE hospital_unit_type AS ENUM ('PEDSICU', 'ICU', 'INFECT', 'INTMED', 'O', 'OBGYN', 'ED',
     'PEDS', 'GERIATRIE', 'SURG', 'UNK', 'URO', 'EXTMUROS', 'PNEUMO', 'DIALNEF', 'REVA', 'ONCOL');
-CREATE TYPE lin_gen_type AS ENUM ('CFR', 'CFRB', 'OPTRA', 'POXTA', 'POXTA-ef', '23S1', '23S2',, 'O', 'UNK', 'NA');
+CREATE TYPE lin_gen_type AS ENUM ('CFR', 'CFRB', 'OPTRA', 'POXTA', 'POXTA-EF', '23S1', '23S2', 'O', 'UNK', 'NA');
 CREATE TYPE pathogen_defined_type AS ENUM ('ENCFAE', 'ENCFAI', 'ENCGALL', 'ENCCASS', 'ENCDUR', 'ENCRAFF', 'ENC', 'O', 'NA', 'UNK', 'ENCAVI');
 CREATE TYPE patient_type_type AS ENUM ('INPAT','O','OUTPAT', 'UNK');
 CREATE TYPE mic_sign_type AS ENUM ('<', '<=', '=', '>=', '>');
