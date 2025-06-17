@@ -644,7 +644,7 @@
   become_user: postgres
   tags: postGIS
 
-- name: Copy the species specific dbmate migration files to the main folder so that they are chronologically intertwined with the main migration files
+- name: Copy the species specific dbmate migrations files to the main folder so that they are chronologically intertwined with the main migrations files
   ansible.builtin.copy:
     src: "{{ bioit_bigs_home }}/sql/bigsdb_isolates_v/bigsdb_{{ species }}_isolates/db/migrations/"
     dest: "{{ bioit_bigs_home }}/sql/bigsdb_isolates_v/db/migrations/"
