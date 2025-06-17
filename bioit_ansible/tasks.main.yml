@@ -644,22 +644,22 @@
   become_user: postgres
   tags: postGIS
 
-- name: Copy the species specific dbmate migrations files to the main folder so that they are chronologically intertwined with the main migrations files
+- name: Copy dbmate migrations files common to all species in the migration folder specific of the current species
   ansible.builtin.copy:
-    src: "{{ bioit_bigs_home }}/sql/bigsdb_isolates_v/bigsdb_{{ species }}_isolates/db/migrations/"
-    dest: "{{ bioit_bigs_home }}/sql/bigsdb_isolates_v/db/migrations/"
+    src: "{{ bioit_bigs_home }}/sql/bigsdb_isolates_v/common/db/migrations/"
+    dest: "{{ bioit_bigs_home }}/sql/bigsdb_isolates_v/bigsdb_{{ species }}_isolates/db/migrations/"
     remote_src: yes
   tags: always
 
 - name: Create species (refseq and isolates) data db (if they don't already exist) and run any pending migrations
   ansible.builtin.shell:
-    chdir: "{{ bioit_bigs_home }}/sql/{{ item.dbmate_repo }}_v"
+    chdir: "{{ bioit_bigs_home }}/sql/{{ item.dbmate_repo }}"
     cmd: DATABASE_URL=postgres://postgres:{{ postgresql_postgres_user_password }}@127.0.0.1:5432/{{ item.db_name }}?sslmode=disable dbmate up
   loop: "{{ db_info|flatten(levels=1) }}"
   vars:
     db_info:
-      - { dbmate_repo: "bigsdb_seqdef", db_name: "bigsdb_{{ species }}_seqdef" }
-      - { dbmate_repo: "bigsdb_isolates", db_name: "bigsdb_{{ species }}_isolates" }
+      - { dbmate_repo: "bigsdb_seqdef_v", db_name: "bigsdb_{{ species }}_seqdef" }
+      - { dbmate_repo: "bigsdb_isolates_v/bigsdb_{{ species }}_isolates", db_name: "bigsdb_{{ species }}_isolates" }
   tags: always
 
 - name: create global user database
