@@ -98,7 +98,7 @@ class MongoInitialisation:
         Initialises database and collections for interaction
         :return: opened sequence_type, cluster membership, and cluster merging history collections for a given species
         """
-        st_collection = self._open_mongo_collection(self.opened_mongo_database, "sequence_type")
+        st_collection = self._open_mongo_collection(self.opened_mongo_database, "sequence_types")
         cluster_membership_collection = self._open_mongo_collection(self.opened_mongo_database, "cluster_membership")
         cluster_merging_collection = self._open_mongo_collection(self.opened_mongo_database, "cluster_merging")
         return st_collection, cluster_membership_collection, cluster_merging_collection
