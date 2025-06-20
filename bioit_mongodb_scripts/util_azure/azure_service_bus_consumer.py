@@ -3,7 +3,7 @@ import logging
 import signal
 import socket
 from logging import handlers
-from typing import Any, List, Union
+from typing import Any, Union
 
 from azure.servicebus import ServiceBusClient, ServiceBusReceivedMessage
 from pymongo.errors import ConnectionFailure, OperationFailure
@@ -12,6 +12,7 @@ from tenacity import RetryCallState, retry, wait_exponential
 from bioit_bigsdb_scripts.components.psql import TblFailedInsertions
 from bioit_mongodb_scripts.mongo_to_bigs import MongoToBigs
 from bioit_mongodb_scripts.rejected_isolate import RejectedIsolate
+from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 from bioit_mongodb_scripts.util.update_bigsdb_clustering_cache_alerts import UpdateBIGSdbClusteringCacheAlerts
 from bioit_mongodb_scripts.update_bigsdb_seqdef import UpdateBIGSdbSeqDef
 from bioit_mongodb_scripts.util.error import BadCollectionError, IsolateNotFoundException
@@ -21,7 +22,6 @@ from bioit_mongodb_scripts.util.python_utility_functions import send_email
 from bioit_mongodb_scripts.util.sample_to_validation_bigs import SampleToValidationBigs
 from bioit_mongodb_scripts.util_azure.azure_service_bus import AzureServiceBus
 from bioit_mongodb_scripts.util_azure.azure_service_bus_message import AzureServiceBusMessage
-from bioit_nrc_integration.python.test.test_all_sftp import MongoConfigProvider
 
 mail_sent = False
 # Configure stdout logging
@@ -146,17 +146,17 @@ class MessageConsumerDataInserter(AzureServiceBus):
         :return: list of new isolates for alerts and list of new versions for alerts
         """
         if collection_name == 'isolates_warningqc':
-            sample_to_validation_bigs = SampleToValidationBigs(self._species, isolate_id, pseudo_id, 'warning', 'no', mongo_config_data=self._mongo_config_data)
+            sample_to_validation_bigs = SampleToValidationBigs(self._species, isolate_id, pseudo_id, 'warning', 'no', self._mongo_config_provider)
             sample_to_validation_bigs.submission_into_bigs()
             return [], []
         elif collection_name == 'isolates_goodqc':
-            sample_to_validation_bigs = SampleToValidationBigs(self._species, isolate_id, pseudo_id, 'good', 'no', mongo_config_data=self._mongo_config_data)
+            sample_to_validation_bigs = SampleToValidationBigs(self._species, isolate_id, pseudo_id, 'good', 'no', self._mongo_config_provider)
             sample_to_validation_bigs.submission_into_bigs()
             return [], []
         elif collection_name == 'isolates':
             return self.__mongo_to_bigs_insertion(isolate_id)
         elif collection_name == 'isolates_rejected_coreqc':
-            rejected_isolate = RejectedIsolate(self._species, isolate_id, pseudo_id)
+            rejected_isolate = RejectedIsolate(self._species, isolate_id, pseudo_id, self._mongo_config_provider)
             rejected_isolate.insert_in_rejected_isolates_table()
             return [], []
         else:
@@ -227,7 +227,7 @@ class MessageConsumerDataInserter(AzureServiceBus):
                                                                                       list_of_new_isolates_for_alerts,
                                                                                       list_of_new_versions_for_alerts)
             update_bigsdb_clustering_cache_alerts.update_clustering_cache_alerts()
-        MongoToBigsNominative(self._species, self._mongo_config_data, dont_send_email=True)
+        MongoToBigsNominative(self._species, self._mongo_config_provider, dont_send_email=True)
 
     def _get_isolate_id(self, species: str, pseudo_id: str) -> str:
         """
@@ -293,7 +293,7 @@ def run_application(ct: Cancellation, species: str, mongo_config_provider: Mongo
     There is no condition to stop running the service
     :param ct: a Cancellation object
     :param species: the species name
-    :param mongo_config_provider: the mongo config provider
+    :param mongo_config_provider: the mongo db configuration provider
     :param uploader_mail_address: the mail address
     :return: None
     """

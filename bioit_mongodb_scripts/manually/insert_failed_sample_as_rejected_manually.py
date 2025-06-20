@@ -41,7 +41,6 @@ def parse_arguments() -> argparse.Namespace:
 
 def insert_failed_sample_as_rejected_manually(technical_id: str, species: str,
                                               rejection_reason: Literal[REJECTION_REASONS.values()],
-                                              mongo_config_data: dict[str, Any],
                                               alternate_dtap: Union[str, None] = None) -> None:
     """
     Insert an isolate into the rejected isolates MongoDB Azure collection with a given rejection reason and sends
@@ -49,7 +48,6 @@ def insert_failed_sample_as_rejected_manually(technical_id: str, species: str,
     :param technical_id: sample id/ isolates id
     :param species: commonly used bioit species name: either genus or specific like stec
     :param rejection_reason: The reason why the sample failed/has to be rejected.
-    :param mongo_config_data: The MongoDB configuration data
     :param alternate_dtap: alternative dtap than what is in the config file
     :return: None
     """
@@ -65,7 +63,7 @@ def insert_failed_sample_as_rejected_manually(technical_id: str, species: str,
 
     insert_document_into_rejected_collection(isolates_rejected_coreqc_collection, document_to_be_inserted)
 
-    asb_instance = AzureServiceBus(mongo_config_data, species, alternate_dtap)
+    asb_instance = AzureServiceBus(mongo_config_provider, species)
     asb_instance.send_message_to_queue(AzureServiceBusMessage(technical_id, isolates_rejected_coreqc_collection.name))
 
 

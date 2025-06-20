@@ -36,7 +36,7 @@ class MongoToBigsNominative:
         """
         Initializes this class and executes the main function
         :param species: commonly used bioit species name: either genus or specific like stec
-        :param mongo_config_provider: the mongodb provider.
+        :param mongo_config_provider: the mongodb configuration provider.
         :param dont_send_email: do not send emails, only log
         :return: None
         """

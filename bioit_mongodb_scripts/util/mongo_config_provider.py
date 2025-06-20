@@ -132,9 +132,12 @@ class MongoConfigProvider:
     def get_mail(self):
         return self._mongo_global_config['mail']
 
+    def get_json_reports_dir(self):
+        return self._mongo_global_config['json_reports_dir']
+
     @staticmethod
     def host_is_an_nrc_platform(species: str) -> bool:
-        platform_naming = f'bioit-nrc{species}'
+        platform_naming = f'bioit-nrc{species[:3]}'
         if platform_naming in f'{socket.gethostname()}':
             return True
         return False

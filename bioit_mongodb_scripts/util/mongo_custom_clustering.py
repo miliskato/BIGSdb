@@ -29,7 +29,7 @@ class MongoCustomClustering:
         :param data: the list of the alleles of the cgmlst profile of the isolate to process.
         :param species: commonly used bioit species name: either genus or specific like stec
         :param naive_clustering_distance_matrix_file: The path to the naive clustering cgmlst distance matrix file
-        :param mongo_config_provider: Mongo configuration provider
+        :param mongo_config_provider: the mongodb configuration provider
         :return: None
         """
         self._cgmlst_profile = cgMLSTProfile(data, headers)

@@ -33,7 +33,6 @@ class SampleToValidationBigs:
         :param pseudo_id: Pseudo ID
         :param quality: str, either "warning" or "good"
         :param resequencing: str, either yes or no
-        :param mongo_config_data: mongo_config_data for MongoInitialisation
         :param mongo_config_provider: the mongodb configuration provider
         :return: None
         """
@@ -50,7 +49,7 @@ class SampleToValidationBigs:
         Returns the MongoDB collection, MongoDB update collection and the validation type.
         :return: the MongoDB collection, MongoDB update collection and validation type
         """
-        mongoinit = MongoInitialisation(self._species, self._mongo_config_provider.get_azure_connection_string(self.species), self.mongo_config_provider.dtap)
+        mongoinit = MongoInitialisation(self._species, self._mongo_config_provider.get_azure_connection_string(self._species), self._mongo_config_provider.dtap)
         _, _, isolates_warningqc_collection, isolates_resequencing_collection, isolates_goodqc_collection = \
             mongoinit.initialise_collections()
         update_collection = mongoinit.initialise_update_collection()

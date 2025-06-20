@@ -25,7 +25,7 @@ class DistanceAndClusterComputer:
         """
         Initializes the class.
         :param species: commonly used bioit species name: either genus or specific like stec
-        :param mongo_config_provider: the mongodb configuration provider provided mongo_config_data, else get mongo_config_data from file
+        :param mongo_config_provider: the mongodb configuration provider
         :param st_to_use: sequence types list to be used for clustering
         :return: None
         """

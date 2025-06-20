@@ -21,7 +21,7 @@ class UpdateBIGSdbSeqDef:
         """
         self._mongo_config_provider = MongoConfigProvider()
         self._species = species
-        mongoinit_azure = MongoInitialisation(self._species, self._mongo_config_provider.get_azure_connection_string(species), self._mongo_config_provider.dtap)
+        mongoinit_azure = MongoInitialisation(self._species, self._mongo_config_provider.get_azure_connection_string(self._species), self._mongo_config_provider.dtap)
         self._update_metadata_collection = mongoinit_azure.initialise_update_collection()
         self._hashed_ad_collection = mongoinit_azure.initialise_hashing_collection()
 

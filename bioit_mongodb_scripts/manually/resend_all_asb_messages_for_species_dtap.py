@@ -26,14 +26,14 @@ def parse_arguments() -> argparse.Namespace:
 if __name__ == '__main__':
 
     args = parse_arguments()
-    mongo_config_data = MongoConfigProvider(args.alternate_dtap)
-    mongoinit = MongoInitialisation(args.species, mongo_config_data.get_azure_connection_string(args.species), mongo_config_data.dtap)
+    mongo_config_provider = MongoConfigProvider(args.alternate_dtap)
+    mongoinit = MongoInitialisation(args.species, mongo_config_provider.get_azure_connection_string(args.species), mongo_config_provider.dtap)
     isolates_collection, old_isolateresults_collection, isolates_badqc_collection, \
         isolates_resequencing_collection, isolates_goodqc_collection = mongoinit.initialise_collections()
 
     rejected_isolates_collection = mongoinit.initialise_isolates_rejected_coreqc_collection()
 
-    asb_instance = AzureServiceBus(mongo_config_data, args.species)
+    asb_instance = AzureServiceBus(mongo_config_provider, args.species)
     for collection in [isolates_collection, old_isolateresults_collection, isolates_badqc_collection,
                        isolates_resequencing_collection, isolates_goodqc_collection, rejected_isolates_collection]:
         sample_ids = [x['_id'] for x in collection.find({}, {'_id': 1}) if isinstance(x['_id'], str)]

@@ -24,10 +24,10 @@ class UpdateBIGSdbClusteringCacheAlerts:
         sql-inserted versions of existing isolates with different cgSTs than the previous version.
         :return: None
         """
-        self._mongo_config_data = MongoConfigProvider()
+        self._mongo_config_provider = MongoConfigProvider()
         self._species = species
         self._cgmlst_bigsdb_scheme_id = get_cgmlst_bigsdb_scheme_id(self._species)
-        self._distance_matrix = Path(self._mongo_config_data.get_naive_clustering_distance_matrix_file(self._species))
+        self._distance_matrix = Path(self._mongo_config_provider.get_naive_clustering_distance_matrix_file(self._species))
         self._list_of_new_isolates_for_alerts = list_of_new_isolates_for_alerts
         self._list_of_new_versions_for_alerts = list_of_new_versions_for_alerts
 
@@ -36,7 +36,7 @@ class UpdateBIGSdbClusteringCacheAlerts:
         Executes the new clustering info to bigs, updates the cache and runs the alerts to bigs.
         :return: None
         """
-        NewClusteringInfoToBigs(self._species, self._distance_matrix, self._cgmlst_bigsdb_scheme_id, self._mongo_config_data)
+        NewClusteringInfoToBigs(self._species, self._distance_matrix, self._cgmlst_bigsdb_scheme_id, self._mongo_config_provider)
         self._update_cache('incremental')
         AlertsToBigs(self._list_of_new_isolates_for_alerts, self._list_of_new_versions_for_alerts, self._species, self._cgmlst_bigsdb_scheme_id, self._distance_matrix)
 
