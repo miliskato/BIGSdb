@@ -10,7 +10,6 @@ from bioit_bigsdb_scripts.utils.literal_helper import validate_literal
 MongoCollectionNames = Literal[
     "isolates",
     "old_isolate_results",
-    "isolates_badqc",
     "sequence_types",
     "new_allele_hashes",
     "cluster_membership",
@@ -22,7 +21,9 @@ MongoCollectionNames = Literal[
     "nominative_labtest_clinical_metadata",
     "unprocessed_nominative_labtest_metadata",
     "unprocessed_nominative_clinical_metadata",
-    "isolates_rejected_coreqc"
+    "isolates_rejected_coreqc",
+    "isolates_warningqc",
+    "isolates_goodqc"
 ]
 MongoCollectionName = Union[str, MongoCollectionNames]  # workaround to avoid pycharm warnings - coupled with validate_literal
 
@@ -97,7 +98,7 @@ class MongoInitialisation:
         Initialises database and collections for interaction
         :return: opened sequence_type, cluster membership, and cluster merging history collections for a given species
         """
-        st_collection = self._open_mongo_collection(self.opened_mongo_database, "sequence_types")
+        st_collection = self._open_mongo_collection(self.opened_mongo_database, "sequence_type")
         cluster_membership_collection = self._open_mongo_collection(self.opened_mongo_database, "cluster_membership")
         cluster_merging_collection = self._open_mongo_collection(self.opened_mongo_database, "cluster_merging")
         return st_collection, cluster_membership_collection, cluster_merging_collection

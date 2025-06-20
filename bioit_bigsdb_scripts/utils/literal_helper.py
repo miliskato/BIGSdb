@@ -1,7 +1,11 @@
 from typing import Literal, get_args, get_origin
 
+from scipy.constants import litre
+
 
 def validate_literal(value, literal_type):
-    if get_origin(literal_type) is Literal:
-        return value in get_args(literal_type)
-    raise TypeError(f"{literal_type} is not a Literal type")
+    if not get_origin(literal_type) is Literal:
+        raise TypeError(f"{literal_type} is not a Literal type")
+    if value in get_args(literal_type):
+        return
+    raise NameError(f"{value} is not a valid for literal type: {literal_type}")

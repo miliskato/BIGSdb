@@ -33,7 +33,8 @@ class MongoConfigProvider:
     """
 
     def __init__(self, alternate_dtap: Optional[DtapValue] = None):
-        validate_literal(alternate_dtap, DtapValues)
+        if alternate_dtap:
+            validate_literal(alternate_dtap, DtapValues)
         self._mongo_global_config = get_mongodb_config_data()
         self.dtap = self._mongo_global_config['dtap'] if alternate_dtap is None else str(alternate_dtap)
         self.__password = self._mongo_global_config['MONGO_DB_PASSWORD']
