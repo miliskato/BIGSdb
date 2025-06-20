@@ -12,6 +12,7 @@ INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no
 INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no_submissions, disable, curator, date_entered, datestamp) VALUES(12,'seqsero2_kmerread', 'SeqSero2 kmerread serotyping', 't', 14, 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
 INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no_submissions, disable, curator, date_entered, datestamp) VALUES(13, 'ResFinder4_mutations', 'ResFinder4 - PointFinder database', 't', 5, 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
 INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no_submissions, disable, curator, date_entered, datestamp) VALUES(14, 'rMLST', 'rMLST scheme downloaded from pubMLST.', 't', 3, 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
+INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no_submissions, disable, curator, date_entered, datestamp) VALUES(15, 'AMRFinder', 'AMRFinder', 't', 15, 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
 
 ---fields for typing schemes
 INSERT INTO scheme_fields(scheme_id, field, type, description, field_order, dropdown, primary_key, curator, datestamp) VALUES(1, 'ST', 'integer', 'Sequence Type', 1, 'f', 't', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
