@@ -253,7 +253,7 @@ class MainMongo:
         good_sample_quality = True
         if self._results_type == 'new_isolate':
             sample_coreqc_metrics = GetCoreQCMetrics(self._species, self._original_input_format,
-                                                     mongo_records['technical_metadata'].get('NanoporeFlowcell', 'illumina')).\
+                                                     mongo_records['technical_metadata']['data'].get('NanoporeFlowcell', 'illumina')).\
                 get_sample_coreqc_metrics()
             check_coreqc_metrics = CheckCoreQCMetrics(self._technical_id, json_report, self._species,
                                                       self._reportdirectorypath, sample_coreqc_metrics,
