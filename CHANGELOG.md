@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added AMRFinder for Neisseria
 - Added AMRFinder for Salmonella
 
+### Fixed:
+- Added mic_resistances fields again in both sql and db xml. They were accidentally removed from sql previously. Also added serogroup_pheno field 
+  in neisseria again which was also accidentally removed during splitting up of all sql columns in isolates database by pathogen.
+
 ## [3.0.0] 
 ### Added:
 - rMLST scheme

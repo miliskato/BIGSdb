@@ -56,6 +56,7 @@
 <field type="text" required="no" length="20" maindisplay="no" group ="nominative metadata" comments="case Type">case_type</field>
 <field type="text" required="no" length="40" maindisplay="no" group ="nominative metadata" comments="evolution">evolution</field>
 <field type="text" required="no" length="40" maindisplay="no" group ="nominative metadata" comments="identification">identification</field>
+<field type="text" required="no" length="30" maindisplay="no" group ="nominative metadata" comments="serogroup">serogroup_pheno</field>
 <field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Amo">mic_amo</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Amo I">mic_amo_I</field>
 <field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Amp">mic_amp</field>
@@ -71,6 +72,7 @@
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Pen I">mic_pen_I</field>
 <field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Rif">mic_rif</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Rif I">mic_rif_I</field>
+<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="MIC resistances">mic_resistances</field>
 <field type="text" required="no" length="20" maindisplay="no" group ="nominative metadata" comments="indication for sequencing">indication_for_sequencing</field>
 <field type="text" required="no" length="20" maindisplay="no" group ="nominative metadata" comments="keep for clustering">keep_for_clustering</field>
 <field type="text" required="no" length="150" maindisplay="no" group ="nominative metadata" comments="comment">comment</field>
