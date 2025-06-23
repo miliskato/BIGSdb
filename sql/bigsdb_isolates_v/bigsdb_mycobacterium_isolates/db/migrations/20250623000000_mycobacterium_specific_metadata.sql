@@ -13,7 +13,7 @@ ALTER TABLE isolates
     ADD COLUMN ethambutol_5ug text,
     ADD COLUMN pyrazinamid_100ug text;
 
--- migrate: down
+-- migrate:down
 ALTER TABLE isolates
     DROP COLUMN patient_first_name,
     DROP COLUMN patient_last_name,
