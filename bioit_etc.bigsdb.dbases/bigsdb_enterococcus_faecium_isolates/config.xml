@@ -60,7 +60,20 @@
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="unit of hospitalisation">hospital_unit</field>
 <field type="text" required="no" length="100" maindisplay="no" group ="nominative metadata" comments="">institution</field>
 <field type="text" required="no" length="60" maindisplay="no" group ="nominative metadata" comments="">lab_name_code</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">lin_gen</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="" optlist="yes">lin_gen
+    <optlist>
+      <option>CRF</option>
+      <option>CRFB</option>
+      <option>OPTRA</option>
+      <option>POXTA</option>
+      <option>POXTA-EF</option>
+      <option>23S1</option>
+      <option>23S2</option>
+      <option>O</option>
+      <option>UNK</option>
+      <option>NA</option>
+    </optlist>
+</field>
 <field type="text" required="no" length="5" maindisplay="no" group ="nominative metadata" comments="case linked to outbreak investigation">outbreak</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="Pathogen defined by NRC">pathogen</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="patient hospitalised or not">patient_type</field>
