@@ -272,5 +272,5 @@
 "tx_perfmr_hco_cont_cmnt": "for the HCO Perf"}]},
 "metadata": {
   "version": "V1.0.5",
-  "data_collection": "HDBP0345_SLM_LAB"},
+  "dataCollection": "HDBP0345_SLM_LAB"},
   "technical_id": 22}

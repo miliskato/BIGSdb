@@ -98,12 +98,7 @@
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="symptom_sepsis">symptom_sepsis</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="symptom_urinary_tract_infection">symptom_urinary_tract_infection</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="symptom_unknown">symptom_unknown</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="link_human_to_human_transmission">link_human_to_human_transmission</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="link_isolated_case">link_isolated_case</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="link_foodborne_transmission">link_foodborne_transmission</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="link_not_applicable">link_not_applicable</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="link_other">link_other</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="link_unknown">link_unknown</field>
+<field type="text" required="no" length="30" maindisplay="no" group ="nominative metadata" comments="epidemiological link">epi_link</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="serovar_luminex">serovar_luminex</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="serovar_agglutination">serovar_agglutination</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="serovar_agglutination_formula">serovar_agglutination_formula</field>

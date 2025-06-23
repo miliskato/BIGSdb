@@ -211,11 +211,11 @@ class PsqlQueries:
     ISO_SEL_ID_ISO_DATE_CGST_TB_ISO_VAR_SCHID_SCHID_SCHID_CGSTS_DATE1_DATE2: Final[str] = """
         SELECT isolates.id, isolates.isolate, isolates.isolation_date, cgst FROM isolates LEFT JOIN 
         temp_isolates_scheme_fields_%s ON isolates.id = temp_isolates_scheme_fields_%s.id 
-        WHERE temp_isolates_scheme_fields_%s.cgst IN %s AND isolates.isolation_date>%s AND isolates.isolation_date<=%s;"""
+        WHERE temp_isolates_scheme_fields_%s.cgst = ANY(%s) AND isolates.isolation_date>%s AND isolates.isolation_date<=%s;"""
     ISO_SEL_ID_ISO_DATE_CGST_TB_ISO_VAR_SCHID_SCHID_SCHID_CGSTS: Final[str] = """
         SELECT isolates.id, isolates.isolate, isolates.isolation_date, cgst FROM isolates LEFT JOIN 
         temp_isolates_scheme_fields_%s ON isolates.id = temp_isolates_scheme_fields_%s.id 
-        WHERE temp_isolates_scheme_fields_%s.cgst IN %s;"""
+        WHERE temp_isolates_scheme_fields_%s.cgst = ANY(%s);"""
     ISO_SEL_ID_ISO_DATE_CGST_CLGR_TB_ISO_VAR_CSCHID_SCHID_SCHID_CSCHID_CSCHID_CSCHID_CSCHID_CGST_DATE1_DATE2: Final[str] = """
         SELECT isolates.id, isolates.isolate, isolates.isolation_date, cgst, temp_cscheme_%s.group_id FROM isolates LEFT JOIN 
         temp_isolates_scheme_fields_%s ON isolates.id = temp_isolates_scheme_fields_%s.id 
@@ -231,15 +231,9 @@ class PsqlQueries:
         SELECT cgst FROM isolates LEFT JOIN 
         temp_isolates_scheme_fields_%s USING (id)
         WHERE isolates.isolate = %s;"""
-    ISO_SEL_ISO_DATE_TB_ISO_VAR_ISOS: Final[str] = """
-        SELECT isolate, isolation_date FROM isolates WHERE
-        isolate IN %s AND isolation_date IS NOT NULL;"""
     ISO_SEL_ID_TB_ISO_VAR_ISO: Final[str] = """SELECT id FROM isolates WHERE isolate=%s;"""
     ISO_SEL_VALDATES_TB_ISO_VAR_ISO: Final[str] = """
         SELECT validation_date FROM isolates WHERE isolate=%s ORDER BY id DESC LIMIT 2;"""
-    ISO_UPD_NEWV_TB_ISO_VAR_ISO: Final[str] = """
-        UPDATE isolates SET new_version=NULL WHERE 
-        id=(SELECT MIN(id) FROM isolates WHERE id IN (SELECT id FROM isolates WHERE isolate=%s ORDER BY id DESC LIMIT 2));"""
     ISO_UPD_VALTYPE_VALCUR_VALDATE_TB_ISO_VAR_ID: Final[str] = """
         UPDATE isolates SET 
         validation_type = %s, 
@@ -387,11 +381,6 @@ class PsqlQueries:
         SELECT COUNT(*) FROM sequence_bin WHERE isolate_id=(SELECT id FROM isolates WHERE isolate=%s);"""
     ISO_UPD_REVERSE_TB_SEQBIN_VAR_ISO_ISO: Final[str] = """
         UPDATE sequence_bin SET isolate_id=(SELECT id FROM isolates WHERE isolate=%s);"""
-
-    # TBL seq bin stats
-    ISO_UPD_REVERSE_TB_SEQBINSTATS_VAR_ISO_ISO: Final[str] = """
-        UPDATE seqbin_stats SET isolate_id=(SELECT MIN(id) FROM isolates WHERE id in (SELECT id FROM isolates WHERE isolate=%s ORDER BY id DESC LIMIT 2)) 
-        WHERE isolate_id=(SELECT MAX(id) FROM isolates WHERE isolate=%s);"""
 
     # TBL submissions
     ISO_SEL_ID_VALUE_OUTCOME_EMAIL_TYPE_TB_SUB_VAR_SUBID: Final[str] = """
