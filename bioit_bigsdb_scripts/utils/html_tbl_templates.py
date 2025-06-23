@@ -22,7 +22,7 @@ class HtmlTableBuilder:
         :return: None
         """
         style = '' if width_px is None else f' style="width: {width_px}px;"'
-        self._table += '<style>table.nice { text-align: center; border-spacing:0 }table.nice tr:nth-child(n+3) {background: #E4EFF3}table.nice tr:nth-child(2n+3) {background: #C1E6F3}</style>'
+        self._table += '<style>table.nice { text-align: center; border-collapse: separate }table.nice td:first-child { max-width: 50ch; overflow-wrap: anywhere }table.nice tr:nth-child(n+3) {background: #E4EFF3}table.nice tr:nth-child(2n+3) {background: #C1E6F3}</style>'
         self._table += f'<table class="data nice"{style}>'
 
     def _add_header(self, headers: List[str]) -> None:
@@ -104,7 +104,7 @@ class HtmlLocusTableBuilder(HtmlTableBuilder):
         :param report_url: url to call the api to get the html report
         :return: None
         """
-        super().__init__(headers=['GeneCluster', 'Locus'])
+        super().__init__(headers=['GeneCluster', 'Locus'], width_px=500)
         self.add_report_row(report_url)
 
     def add_locus(self, gene_cluster: str, locus: str) -> None:

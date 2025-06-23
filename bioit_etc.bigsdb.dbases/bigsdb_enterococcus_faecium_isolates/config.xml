@@ -35,9 +35,9 @@
 <field type="date" required="no" length="10" maindisplay="no" group ="Curation history" comments="date of curation">validation_date</field>
 <field type="date" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="isolation date">isolation_date</field>
 <field type="text" required="no" length="60" maindisplay="no" group ="nominative metadata" comments="PatientIdentificationNumber_Value">patient_id</field>
-<field type="date" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="patient birth date">patient_birth_date</field> # found
+<field type="date" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="patient birth date">patient_birth_date</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" geography_point_lookup="yes" comments="Patient_AddressInformation_Postcode">patient_zip</field> # found
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="patient sex">patient_sex</field> # found
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="patient sex">patient_sex</field>
 <field type="text" required="no" length="60" maindisplay="no" group ="nominative metadata" comments="">symptom_otitis</field>
 <field type="text" required="no" length="60" maindisplay="no" group ="nominative metadata" comments="">symptom_pharyngitis</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">symptom_septicemia</field>
