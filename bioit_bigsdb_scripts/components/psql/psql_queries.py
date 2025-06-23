@@ -122,7 +122,10 @@ class PsqlQueries:
         VALUES(%s, 'boolean', 'NCBI 16S', '', 't', 't', (SELECT CURRENT_DATE), 1);"""
     ISO_INS__TB_EAVF_VAR_FIELD_CAT: Final[str] = """
         INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) 
-        VALUES(%s, 'text', %s, 't', 't', 't', (SELECT CURRENT_DATE), 1);"""
+        VALUES(%s, 'boolean', %s, '', 't', 't', (SELECT CURRENT_DATE), 1);"""
+
+    ISO_INS__TB_EAVF_VAR_BOOL_FIELD_VAL: Final[str]= """
+    """
     ISO_SEL_COUNT_TB_EAVF_VAR_FIELD: Final[str] = """
         SELECT COUNT(*) FROM eav_fields WHERE category='NCBI 16S' AND field=%s;"""
     ISO_SEL_FIELD_TB_EAVF_VAR_: Final[str] = """SELECT field FROM eav_fields WHERE category='AMR detection';"""

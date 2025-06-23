@@ -211,13 +211,15 @@ class JsonTypingResultsInserter(JsonSuperClass):
                             variantsset.add(variantreformatted)
         elif self._scheme == 'hsp65':
             if len(self._json_report_dict[self._scheme]['loci']) != 0:
-                speciesset = set()
-                with TblEavBoolean(self._species) as isolates_eavb_psql_tbl:
+                species_set = set()
+                with TblEavFields(self._species) as isolates_eavf_psql_tbl, TblEavBoolean(self._species) as isolates_eavb_psql_tbl:
                     for locus in self._json_report_dict[self._scheme]['loci']:
                         hit = '_'.join(['hsp65', locus['Species'].strip('"').replace(' ', '_').replace('.', '')])
-                        if hit not in speciesset:
+                        if hit not in species_set:
+                            if not (isolates_eavf_psql_tbl.exists_in_eav_field((hit, 'hsp65'))):
+                                isolates_eavf_psql_tbl.insert_boolean_field((hit,'hsp65'))
                             isolates_eavb_psql_tbl.insert_eav_isolate((self._isolatename, hit, 't'))
-                            speciesset.add(hit)
+                            species_set.add(hit)
         elif self._scheme == 'ncbi_16s':
             # ncbi 16s contains duplicate species
             """

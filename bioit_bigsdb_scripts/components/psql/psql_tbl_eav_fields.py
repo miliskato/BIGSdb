@@ -28,11 +28,19 @@ class TblEavFields(DatabaseConnection):
 
     def insert_text_field(self, param: Tuple[str, str]) -> None:
         """
-        Inserts a metadata field in a given category
+        Inserts a text metadata field in a given category
         :param param: field to insert, its category
         :return: None
         """
         self.execute_query(PsqlQueries.ISO_INS__TB_EAVF_VAR_FIELD_CAT, param)
+
+    def insert_boolean_field(self, param: Tuple[str, str]) -> None:
+        """
+        Inserts a boolean metadata field in a given category
+        :param param: field to insert, its category
+        :return: None
+        """
+        self.exists_in_eav_field(PsqlQueries.ISO_INS__TB_EAVF_VAR_BOOL_FIELD_VAL, param)
 
     def select_fields_amr(self) -> List[Optional[Tuple[str]]]:
         """
