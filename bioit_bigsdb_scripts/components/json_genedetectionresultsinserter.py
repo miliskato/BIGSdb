@@ -88,8 +88,8 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                 elif scheme == 'amrfinder':
                     amrfinder_table_builder = HtmlAmrTableBuilder(report_url)
                     for hit in self._json_report_dict[scheme]['amr_genes_hits']:
-                        identity = f'{round(float(hit["% Identity to reference sequence"]), 2)}'
-                        coverage = f'{round(float(hit["% Coverage of reference sequence"]), 2)}'
+                        identity = f'{round(float(hit["% Identity to reference"]), 2)}'
+                        coverage = f'{round(float(hit["% Coverage of reference"]), 2)}'
                         amrfinder_table_builder.add_hit(hit['Subclass'], hit['Gene symbol'], identity, coverage)
                     html = amrfinder_table_builder.build()
                 elif not scheme.endswith('vfdb_core') and not scheme.endswith('virulencefinder'):

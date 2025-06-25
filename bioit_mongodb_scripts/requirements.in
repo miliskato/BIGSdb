@@ -15,3 +15,4 @@ azure-servicebus
 azure-monitor-ingestion
 beautifulsoup4
 lxml
+psycopg # needed for function in python_utility_functions.py
