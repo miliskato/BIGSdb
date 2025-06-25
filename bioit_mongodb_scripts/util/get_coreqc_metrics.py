@@ -40,6 +40,7 @@ class GetCoreQCMetrics:
         pathogen_metrics_thresholds = self._coreqc_config['species'][self._species]
         if self._original_input_format != 'fasta':
             self.__choose_average_quality_score_metric(pathogen_metrics_thresholds)
+            self.__choose_average_gc_deviation_metric(pathogen_metrics_thresholds)
 
         # Merge thresholds stored in 'species' and fields info stored in 'metrics'
         for key, values in pathogen_metrics_thresholds.items():
@@ -69,17 +70,39 @@ class GetCoreQCMetrics:
             'R9': 'average_quality_score_ont_R9',
             'R10': 'average_quality_score_ont_R10'
         }
+        self.___choose_metric(average_quality_score_metrics, pathogen_metrics_thresholds)
+
+    def __choose_average_gc_deviation_metric(self, pathogen_metrics_thresholds: dict[str, dict[str, float]]) -> None:
+        """
+        Chooses the correct average gc deviation metric based on the read_input_type and removes the others in place.
+        :param pathogen_metrics_thresholds: core quality metrics and thresholds for current pathogen, to be modified in
+        place.
+        :return: None
+        """
+        average_gc_deviation_metrics = {
+            'illumina': 'average_gc_deviation_illumina',
+            'R9': 'average_gc_deviation_ont',
+            'R10': 'average_gc_deviation_ont'
+        }
+        self.___choose_metric(average_gc_deviation_metrics, pathogen_metrics_thresholds)
+
+    def ___choose_metric(self, metrics_dict: dict[str, str], pathogen_metrics_thresholds: dict[str, dict[str, float]]
+                         ) -> None:
+        """
+        Chooses the correct metric based on the read_input_type and removes the others in place.
+        :param metrics_dict: Dictionary mapping read input types to metric names.
+        :param pathogen_metrics_thresholds: Core quality metrics and thresholds for the current pathogen, to be modified
+        in place.
+        :return: None
+        """
         # if self._reads_input_type is None, then no metrics are kept
-        metric_to_keep = average_quality_score_metrics.get(self._reads_input_type)
+        metric_to_keep = metrics_dict.get(self._reads_input_type)
+        metrics_to_remove = [metric for metric in metrics_dict.values() if metric != metric_to_keep]
 
-        average_quality_score_metrics_to_remove = [metric for metric in average_quality_score_metrics.values() if
-                                                   metric != metric_to_keep]
-
-        for metric_to_remove in average_quality_score_metrics_to_remove:
+        for metric_to_remove in metrics_to_remove:
             pathogen_metrics_thresholds.pop(metric_to_remove, None)
 
-    @staticmethod
-    def __set_global_ont_coverage_thresholds(sample_coreqc_metrics: dict[str, Any]) -> None:
+    def __set_global_ont_coverage_thresholds(self, sample_coreqc_metrics: dict[str, Any]) -> None:
         """
         For ONT, according to the latest discussion, the coverage warning threshold should be 50 and the failure
         threshold 30. It is cumbersome to implement it in the coreqc_config.yml in a clean way without too much
@@ -88,7 +111,7 @@ class GetCoreQCMetrics:
         :return: None
         """
         for key, metric_info in deepcopy(sample_coreqc_metrics).items():
-            if metric_info.get('global_ont_coverage'):
+            if metric_info.get('global_ont_coverage') and not self._species.startswith('enterococcus'):
                 metric_info['threshold_warn'] = 50.0
                 metric_info['threshold_fail'] = 30.0
 

@@ -87,6 +87,7 @@
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Tgc I">mic_tgc_I</field>
 <field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Tmp">mic_tmp</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Tmp I">mic_tmp_I</field>
+<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="MIC resistances">mic_resistances</field>
 <field type="text" required="no" length="20" maindisplay="no" group ="nominative metadata" comments="indication for sequencing">indication_for_sequencing</field>  # not found in DCD, added by Jolein
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="keep for clustering">keep_for_clustering</field>
 <field type="text" required="no" length="150" maindisplay="no" group ="nominative metadata" comments="comment">comment</field>
