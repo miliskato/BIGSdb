@@ -84,6 +84,7 @@
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC TmpSmx I">mic_tmpsmx_I</field>
 <field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Van">mic_van</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Van I">mic_van_I</field>
+<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="MIC resistances">mic_resistances</field>
 <field type="text" required="no" length="20" maindisplay="no" group ="nominative metadata" comments="indication for sequencing">indication_for_sequencing</field>
 <field type="text" required="no" length="20" maindisplay="no" group ="nominative metadata" comments="keep for clustering">keep_for_clustering</field>
 <field type="text" required="no" length="150" maindisplay="no" group ="nominative metadata" comments="comment">comment</field>
