@@ -1,5 +1,5 @@
 #Written by Keith Jolley
-#Copyright (c) 2015-2024, University of Oxford
+#Copyright (c) 2015-2025, University of Oxford
 #E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
@@ -275,7 +275,8 @@ use constant LOCUS_TYPES => (
 	'promoter region',
 	'pseudogene',
 	'complete protein',
-	'partial protein'
+	'partial protein',
+	'RNA gene'
 );
 use constant DIPLOID            => qw(A C G T R Y W S M K);
 use constant HAPLOID            => qw(A C G T);
@@ -341,8 +342,9 @@ $EXPORT_TAGS{'login_requirements'} = [qw(NOT_ALLOWED OPTIONAL REQUIRED)];
 #Account management
 use constant NEW_ACCOUNT_VALIDATION_TIMEOUT_MINS => 60;
 use constant INACTIVE_ACCOUNT_REMOVAL_DAYS       => 180;
-push @EXPORT_OK, qw (NEW_ACCOUNT_VALIDATION_TIMEOUT_MINS INACTIVE_ACCOUNT_REMOVAL_DAYS);
-$EXPORT_TAGS{'accounts'} = [qw(NEW_ACCOUNT_VALIDATION_TIMEOUT_MINS INACTIVE_ACCOUNT_REMOVAL_DAYS)];
+use constant SECTORS => ( 'academic/non-profit', 'commercial', 'healthcare', 'public health' );
+push @EXPORT_OK, qw (NEW_ACCOUNT_VALIDATION_TIMEOUT_MINS INACTIVE_ACCOUNT_REMOVAL_DAYS SECTORS);
+$EXPORT_TAGS{'accounts'} = [qw(NEW_ACCOUNT_VALIDATION_TIMEOUT_MINS INACTIVE_ACCOUNT_REMOVAL_DAYS SECTORS)];
 
 #ISO 3166-1 country codes
 use constant COUNTRIES => {

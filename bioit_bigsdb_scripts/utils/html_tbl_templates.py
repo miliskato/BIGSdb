@@ -104,7 +104,7 @@ class HtmlAmrTableBuilder(HtmlTableBuilder):
         :param report_url: url to call the api to get the html report
         :return: None
         """
-        super().__init__(headers=['AMR', 'Resistance gene', '%Identity', '%Coverage'], width_px=500)
+        super().__init__(headers=['AMR', 'Resistance gene', '%Identity', '%Coverage'], width_px=700)
         self.add_report_row(report_url)
 
     def add_hit(self, amr: str, resistance_gene: str, identity: str, coverage: str) -> None:

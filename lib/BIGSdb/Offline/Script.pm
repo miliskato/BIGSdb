@@ -1,5 +1,5 @@
 #Written by Keith Jolley
-#Copyright (c) 2011-2024, University of Oxford
+#Copyright (c) 2011-2025, University of Oxford
 #E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
@@ -120,8 +120,22 @@ sub initiate {
 }
 
 sub reconnect {
-	my ($self) = @_;
+	my ( $self, $options ) = @_;
+	if ( $options->{'drop_all'} ) {
+		$self->{'dataConnector'}->drop_all_connections;
+		$self->{'datastore'}->finish_with_client_loci;
+		$self->{'datastore'}->finish_with_client_schemes;
+	}
+	return if $self->{'db'}->ping;
 	$self->{'dataConnector'}->initiate( $self->{'system'}, $self->{'config'} );
+	my $att = {
+		dbase_name => $self->{'system'}->{'db'},
+		host       => $self->{'system'}->{'host'},
+		port       => $self->{'system'}->{'port'},
+		user       => $self->{'system'}->{'user'},
+		password   => $self->{'system'}->{'password'}
+	};
+	$self->{'dataConnector'}->drop_connection($att);
 	$self->db_connect;
 	$self->{'datastore'}->change_db( $self->{'db'} );
 	return;
@@ -333,7 +347,8 @@ sub _get_isolates_not_passed_assembly_checks {
 	return $self->{'datastore'}->run_query(
 		'SELECT isolate_id FROM seqbin_stats WHERE isolate_id NOT IN (SELECT isolate_id FROM last_run WHERE name=?) '
 		  . 'OR isolate_id IN (SELECT isolate_id FROM assembly_checks WHERE status=?)',
-		[ 'AssemblyChecks', 'fail' ], { fetch => 'col_arrayref' }
+		[ 'AssemblyChecks', 'fail' ],
+		{ fetch => 'col_arrayref' }
 	);
 }
 
@@ -532,11 +547,12 @@ sub set_last_run_time {
 }
 
 sub make_assembly_file {
-	my ( $self, $job_id, $isolate_id ) = @_;
+	my ( $self, $job_id, $isolate_id, $options ) = @_;
+	my $extension = $options->{'extension'} // 'fas';
 	if ( !defined $self->{'contigManager'} ) {
 		$self->{'logger'}->fatal('Contig manager is not set up.');
 	}
-	my $filename   = "$self->{'config'}->{'secure_tmp_dir'}/${job_id}_$isolate_id.fas";
+	my $filename   = "$self->{'config'}->{'secure_tmp_dir'}/${job_id}_$isolate_id.$extension";
 	my $seqbin_ids = $self->{'datastore'}->run_query( 'SELECT id FROM sequence_bin WHERE isolate_id=?',
 		$isolate_id, { fetch => 'col_arrayref', cache => 'make_assembly_file::get_seqbin_list' } );
 	my $contigs = $self->{'contigManager'}->get_contigs_by_list($seqbin_ids);

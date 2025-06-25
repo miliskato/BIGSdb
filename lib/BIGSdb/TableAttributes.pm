@@ -1,5 +1,5 @@
 #Written by Keith Jolley
-#Copyright (c) 2010-2024, University of Oxford
+#Copyright (c) 2010-2025, University of Oxford
 #E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
@@ -20,7 +20,8 @@ package BIGSdb::TableAttributes;
 use strict;
 use warnings;
 use List::MoreUtils qw(any uniq);
-use BIGSdb::Constants qw(SEQ_METHODS SEQ_STATUS SEQ_FLAGS LOCUS_TYPES DATABANKS IDENTITY_THRESHOLD OPERATORS COUNTRIES);
+use BIGSdb::Constants qw(SEQ_METHODS SEQ_STATUS SEQ_FLAGS LOCUS_TYPES DATABANKS IDENTITY_THRESHOLD OPERATORS
+  COUNTRIES SECTORS);
 
 #Attributes
 #hide => 1: Do not display in results table and do not return field values in query
@@ -52,16 +53,46 @@ sub get_users_table_attributes {
 			dropdown_query => 1,
 			no_user_update => 1
 		},
-		{ name => 'surname',      type => 'text', required     => 1, length  => 40, dropdown_query => 1 },
-		{ name => 'first_name',   type => 'text', required     => 1, length  => 40, dropdown_query => 1 },
-		{ name => 'email',        type => 'text', required     => 1, length  => 50 },
-		{ name => 'affiliation',  type => 'text', required     => 1, length  => 255 },
+		{ name => 'surname',     type => 'text', required => 1, length => 40, dropdown_query => 1 },
+		{ name => 'first_name',  type => 'text', required => 1, length => 40, dropdown_query => 1 },
+		{ name => 'email',       type => 'text', required => 1, length => 50 },
+		{ name => 'affiliation', type => 'text', required => 1, length => 255 }
+	];
+	if ( $self->{'config'}->{'site_user_country'} ) {
+		my $countries = COUNTRIES;
+		my $optlist   = BIGSdb::Utils::unicode_dictionary_sort( [ keys %$countries ] );
+		local $" = q(;);
+		push @$attributes,
+		  {
+			name           => 'country',
+			type           => 'text',
+			required       => 0,
+			length         => 40,
+			dropdown_query => 1,
+			optlist        => qq(@$optlist)
+		  };
+	}
+	if ( $self->{'config'}->{'site_user_sector'} ) {
+		my @optlist = SECTORS;
+		local $" = q(;);
+		push @$attributes, {
+			name           => 'sector',
+			type           => 'text',
+			required       => 0,
+			length         => 40,
+			dropdown_query => 1,
+			optlist        => qq(@optlist),
+			allow_other    => 1
+		};
+	}
+	push @$attributes,
+	  (
 		{ name => 'status',       type => 'text', required     => 1, optlist => $status, default => 'user' },
 		{ name => 'date_entered', type => 'date', required     => 1 },
 		{ name => 'datestamp',    type => 'date', required     => 1 },
 		{ name => 'curator',      type => 'int',  required     => 1, dropdown_query => 1 },
 		{ name => 'user_db',      type => 'int',  hide_in_form => 1 }
-	];
+	  );
 	if ( ( $self->{'system'}->{'submissions'} // '' ) eq 'yes' && $self->{'config'}->{'submission_dir'} ) {
 		push @$attributes,
 		  {
@@ -212,7 +243,7 @@ sub get_permissions_table_attributes {
 	  ? qw ( query_users modify_users modify_isolates modify_projects modify_sequences tag_sequences designate_alleles
 	  modify_usergroups set_user_passwords modify_loci modify_schemes modify_composites modify_field_attributes
 	  modify_value_attributes modify_sparse_fields modify_probes delete_all
-	  import_site_users modify_site_users modify_geopoints refresh_scheme_caches query_interfaces set_embargo 
+	  import_site_users modify_site_users modify_geopoints refresh_scheme_caches query_interfaces set_embargo
 	  only_private disable_access)
 	  : qw( query_users modify_users modify_usergroups set_user_passwords modify_loci modify_locus_descriptions
 	  modify_schemes delete_all import_site_users modify_site_users disable_access );
@@ -1491,6 +1522,12 @@ sub get_scheme_fields_table_attributes {
 	if ( $self->{'system'}->{'dbtype'} eq 'isolates' ) {
 		push @$attributes,
 		  (
+			{
+				name    => 'placeholder',
+				type    => 'text',
+				length  => 30,
+				tooltip => 'placeholder - Placeholder text that will appear within the search box when empty.'
+			},
 			{ name => 'url', type => 'text', required => 0, length => 120, hide_public => 1 },
 			{
 				name     => 'isolate_display',
@@ -2011,10 +2048,16 @@ sub get_isolate_field_extended_attributes_table_attributes {
 			tooltip => 'url - The URL used to hyperlink values in the isolate information page.  '
 			  . 'Instances of [?] within the URL will be substituted with the value.'
 		},
-		{ name => 'length',      type => 'integer' },
-		{ name => 'field_order', type => 'int',  length   => 4 },
-		{ name => 'curator',     type => 'int',  required => 1, dropdown_query => 1 },
-		{ name => 'datestamp',   type => 'date', required => 1 }
+		{ name => 'length', type => 'integer' },
+		{ name => 'field_order', type => 'int', length => 4 },
+		{
+			name    => 'placeholder',
+			type    => 'text',
+			length  => 30,
+			tooltip => 'placeholder - Placeholder text that will appear within the search box when empty.'
+		},
+		{ name => 'curator',   type => 'int',  required => 1, dropdown_query => 1 },
+		{ name => 'datestamp', type => 'date', required => 1 }
 	];
 	return $attributes;
 }
@@ -2463,6 +2506,12 @@ sub get_eav_fields_table_attributes {
 		{ name => 'max_value',   type => 'int', tooltip => 'max_value - Valid for number fields only' },
 		{ name => 'field_order', type => 'int' },
 		{
+			name    => 'placeholder',
+			type    => 'text',
+			length  => 30,
+			tooltip => 'placeholder - Placeholder text that will appear within the search box when empty.'
+		},
+		{
 			name     => 'no_curate',
 			type     => 'bool',
 			required => 1,
@@ -2592,6 +2641,7 @@ sub get_lincode_schemes_table_attributes {
 			type     => 'text',
 			required => 1,
 			regex    => '^\d+(\s*;\s*\d+)*$',
+			length   => 100,
 			comments => q(Semi-colon separated list of thresholds)
 		}
 	];
@@ -2613,6 +2663,12 @@ sub get_lincode_schemes_table_attributes {
 			comments => q(Show in main results table.),
 			tooltip  => q(Maindisplay - Note that setting maindisplay to false for )
 			  . q(the scheme will override this setting.)
+		  },
+		  {
+			name    => 'placeholder',
+			type    => 'text',
+			length  => 30,
+			tooltip => 'placeholder - Placeholder text that will appear within the search box when empty.'
 		  };
 	}
 	push @$attributes,
@@ -2660,6 +2716,12 @@ sub get_lincode_fields_table_attributes {
 			comments => q(Show in main results table.),
 			tooltip  => q(Maindisplay - Note that setting maindisplay to false for )
 			  . q(the scheme will override this setting.)
+		  },
+		  {
+			name    => 'placeholder',
+			type    => 'text',
+			length  => 30,
+			tooltip => 'placeholder - Placeholder text that will appear within the search box when empty.'
 		  };
 	}
 	push @$attributes,
@@ -2966,6 +3028,56 @@ sub get_query_interface_fields_table_attributes {
 		{ name => 'display_order', type => 'int' },
 		{ name => 'datestamp',     type => 'date', required => 1 },
 		{ name => 'curator',       type => 'int',  required => 1, dropdown_query => 1 }
+	];
+	return $attributes;
+}
+
+sub get_analysis_fields_table_attributes {
+	my ($self) = @_;
+	my $attributes = [
+		{
+			name        => 'analysis_name',
+			type        => 'text',
+			required    => 1,
+			primary_key => 1,
+			length      => 30,
+			comments    => 'Name analysis is stored under in analysis results table'
+		},
+		{
+			name        => 'field_name',
+			type        => 'text',
+			required    => 1,
+			primary_key => 1,
+			length      => 30
+		},
+		{
+			name     => 'analysis_display_name',
+			type     => 'text',
+			length   => 30,
+			comments => 'Name of analysis used in interface - set if different from analysis_name'
+		},
+		{
+			name   => 'field_description',
+			type   => 'text',
+			length => 100
+		},
+		{
+			name     => 'json_path',
+			type     => 'text',
+			required => 1,
+			length   => 100,
+			tooltip  => 'This is a value in the format $.fields.species. '
+			  . 'See https://en.wikipedia.org/wiki/JSONPath for more details.',
+			regex => '^\$((\.[a-zA-Z_][a-zA-Z0-9_]*)|(\[\d+\])|(\[\*\])|(\[\?\(.*?\)\]))*$'
+		},
+		{
+			name     => 'data_type',
+			type     => 'text',
+			required => 1,
+			optlist  => 'integer;text;float;date',
+		},
+		{ name => 'datestamp', type => 'date', required => 1 },
+		{ name => 'curator',   type => 'int',  required => 1, dropdown_query => 1 }
 	];
 	return $attributes;
 }

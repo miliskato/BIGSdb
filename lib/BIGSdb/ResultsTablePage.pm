@@ -1,5 +1,5 @@
 #Written by Keith Jolley
-#Copyright (c) 2010-2024, University of Oxford
+#Copyright (c) 2010-2025, University of Oxford
 #E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
@@ -24,8 +24,13 @@ use parent qw(BIGSdb::Page);
 use Try::Tiny;
 use List::MoreUtils qw(any uniq);
 use JSON;
-use BIGSdb::Constants qw(:interface DATABANKS);
+use Email::Valid;
+use Email::Sender::Transport::SMTP;
+use Email::Sender::Simple qw(try_to_sendmail);
+use Email::MIME;
+use BIGSdb::Constants qw(:interface DEFAULT_DOMAIN DATABANKS);
 use Log::Log4perl qw(get_logger);
+use constant LOCUS_LIMIT_TO_USE_CACHE => 100;
 my $logger = get_logger('BIGSdb.Page');
 
 sub _calculate_totals {
@@ -294,8 +299,9 @@ sub _print_curate_headerbar_functions {
 		$q->param( page => $page );    #Reset - The above function modify page param.
 		my $embargo_att = $self->{'datastore'}->get_embargo_attributes;
 		$self->_print_embargo_function
-		  if $embargo_att->{'embargo_enabled'} && ( $self->{'permissions'}->{'embargo'} || $self->is_admin );
+		  if $embargo_att->{'embargo_enabled'} && ( $self->{'permissions'}->{'set_embargo'} || $self->is_admin );
 	}
+	$q->param( page => $page );
 	return;
 }
 
@@ -571,7 +577,7 @@ sub _print_embargo_function {
 	say $q->start_form;
 	say q(<button type="submit" name="embargo" value="embargo" class="small_submit">)
 	  . q(<span class="fas fa-user-secret"></span> Set/update embargo </button>);
-	say $q->hidden($_) foreach qw (db query_file temp_table_file datatype table page);
+	say $q->hidden($_) foreach qw (db query_file temp_table_file table page);
 	say $q->hidden($_) foreach @$hidden_attributes;
 	say $q->end_form;
 	say q(</fieldset>);
@@ -1210,7 +1216,8 @@ sub _print_isolate_table_scheme {
 		$self->_print_locus_value( $isolate_id, $allele_designations, $locus );
 	}
 	if ( !defined $self->{'scheme_info'}->{$scheme_id} && $scheme_id ) {
-		$self->{'scheme_info'}->{$scheme_id} = $self->{'datastore'}->get_scheme_info($scheme_id);
+		$self->{'scheme_info'}->{$scheme_id} =
+		  $self->{'datastore'}->get_scheme_info( $scheme_id, { primary_key => 1 } );
 	}
 	return
 		 if !$scheme_id
@@ -1218,12 +1225,22 @@ sub _print_isolate_table_scheme {
 	  || !$self->{'prefs'}->{'main_display_schemes'}->{$scheme_id};
 	my $scheme_fields = $self->{'scheme_fields'}->{$scheme_id};
 	my $scheme_field_values;
+	if ( !defined $self->{'use_scheme_cache'}->{$scheme_id} ) {
+		my $scheme_loci = $self->{'datastore'}->get_scheme_loci($scheme_id);
+		$self->{'use_scheme_cache'}->{$scheme_id} = ( $self->{'system'}->{'cache_schemes'} // q() ) eq 'yes'
+		  && @$scheme_loci > LOCUS_LIMIT_TO_USE_CACHE;
+	}
 	foreach my $field (@$scheme_fields) {
 		next if !$self->{'prefs'}->{'main_display_scheme_fields'}->{$scheme_id}->{$field};
 		if ( !defined $scheme_field_values ) {
-			$scheme_field_values =
-			  $self->{'datastore'}->get_scheme_field_values_by_isolate_id( $isolate_id, $scheme_id,
-				{ allow_presence => $self->{'scheme_info'}->{$scheme_id}->{'allow_presence'} } );
+			$scheme_field_values = $self->{'datastore'}->get_scheme_field_values_by_isolate_id(
+				$isolate_id,
+				$scheme_id,
+				{
+					allow_presence => $self->{'scheme_info'}->{$scheme_id}->{'allow_presence'},
+					use_cache      => $self->{'use_scheme_cache'}->{$scheme_id}
+				}
+			);
 		}
 		my @values;
 		my $field_values = $self->_sort_scheme_field_values( $scheme_field_values, $field );
@@ -1246,8 +1263,12 @@ sub _print_isolate_table_scheme {
 			$formatted_value .= q(</span>) if $provisional;
 			push @values, $formatted_value;
 		}
-		local $" = ',';
-		print qq(<td>@values</td>);
+		local $" = q(, );
+		if ( $att->{'primary_key'} && @values > 1 ) {
+			$self->_print_multi_pk_value( $isolate_id, $scheme_id, \@values );
+		} else {
+			print qq(<td>@values</td>);
+		}
 	}
 	if ( $self->{'lincodes'}->{$scheme_id} ) {
 		my $lincode = $self->_get_lincode_value( $scheme_id, $isolate_id );
@@ -1256,6 +1277,42 @@ sub _print_isolate_table_scheme {
 	foreach my $lincode_field ( @{ $self->{'lincode_fields'}->{$scheme_id} } ) {
 		$self->_print_lincode_field_value( $scheme_id, $lincode_field, $isolate_id );
 	}
+	return;
+}
+
+sub _print_multi_pk_value {
+	my ( $self, $isolate_id, $scheme_id, $profile_ids ) = @_;
+	my $min_missing;
+	my %missing_count;
+	foreach my $profile_id (@$profile_ids) {
+		my $profile = $self->{'datastore'}->get_profile_by_primary_key( $scheme_id, $profile_id );
+		$min_missing //= @$profile;
+		my $missing = grep { $_ eq 'N' } @$profile;
+		if ( $missing < $min_missing ) {
+			$min_missing = $missing;
+		}
+		$missing_count{$profile_id} = $missing;
+	}
+	my @fewest_missing_loci;
+	my @others;
+	foreach my $profile_id (@$profile_ids) {
+		if ( $missing_count{$profile_id} == $min_missing ) {
+			push @fewest_missing_loci, $profile_id;
+		} else {
+			push @others, $profile_id;
+		}
+	}
+	my $text = qq(@fewest_missing_loci );
+	if (@others) {
+		$text .=
+			qq([+<a id="id_${isolate_id}_scheme_${scheme_id}" class="pk_trigger" )
+		  . q(style="cursor:pointer">)
+		  . scalar @others
+		  . q(&nbsp;more</a>])
+		  . qq(<br /><span id="id_${isolate_id}_${scheme_id}_pk" class="comment" )
+		  . qq(style="display:none">@others);
+	}
+	print qq(<td>$text</td>);
 	return;
 }
 
@@ -1509,7 +1566,7 @@ sub _print_plugin_buttons {
 			'postquery',
 			$self->{'system'}->{'dbtype'},
 			$category || 'none',
-			{ set_id => $set_id, seqdb_type => $seqdb_type }
+			{ set_id => $set_id, seqdb_type => $seqdb_type, username => $self->{'username'} }
 		);
 		if (@$plugin_names) {
 			my $plugin_buffer;
@@ -2118,6 +2175,14 @@ sub get_javascript {
 	\$("button#project_trigger").on('click', function(){	
 		\$("div#project_section").toggle(200);	
 	});
+	\$(".pk_trigger").on('click', function(){
+		let field = this.id;
+		let matches = field.match(/id_(\\d+)_scheme_(\\d+)/);
+		if (matches[2]){
+			\$("#id_" + matches[1] + "_" + matches[2] + "_pk").toggle();
+		}
+
+	});
 });
 
 END
@@ -2363,6 +2428,10 @@ sub add_bookmark {
 	delete $params->{$_} foreach (qw(add_bookmark records currentpage lastpage table query_file bookmark db page));
 	foreach my $param ( keys %$params ) {
 		delete $params->{$param} if $params->{$param} eq q();
+		if ( $params->{$param} =~ /\0/x ) {    #Pg doesn't allow null characters
+			my @values = split( /\0/x, $params->{$param} );
+			$params->{$param} = \@values;
+		}
 	}
 	my $set_id = $self->get_set_id;
 	if ( ( $self->{'system'}->{'sets'} // q() ) eq 'yes' ) {
@@ -2576,7 +2645,7 @@ sub confirm_embargo {
 	say q(</fieldset>);
 	$self->print_action_fieldset( { submit_label => 'Set/update embargo date', no_reset => 1 } );
 	say $q->hidden( confirm_embargo => 1 );
-	say $q->hidden($_) foreach qw(db page query_file temp_table_file list_file datatype);
+	say $q->hidden($_) foreach qw(db page query_file temp_table_file list_file attribute datatype);
 	say $q->end_form;
 	say q(<div style="clear:both"></div>);
 	say q(</div>);
@@ -2734,6 +2803,7 @@ sub publish {
 				q(UPDATE private_isolates SET request_publish=TRUE,datestamp='now')
 			  . qq(WHERE isolate_id IN (SELECT value FROM $temp_table));
 			$message = "Publication requested for $count record$plural.";
+			$self->_notify_curators_publication_request( $self->{'username'}, $count );
 		} else {
 			my $curator_id = $self->get_curator_id;
 			$qry =
@@ -2752,6 +2822,62 @@ sub publish {
 		}
 	} else {
 		$q->delete('publish');
+	}
+	return;
+}
+
+sub _notify_curators_publication_request {
+	my ( $self, $user_name, $count ) = @_;
+	my $user_info   = $self->{'datastore'}->get_user_info_from_username($user_name);
+	my $user_string = $self->{'datastore'}->get_user_string( $user_info->{'id'}, { affiliation => 1 } );
+	my $transport   = Email::Sender::Transport::SMTP->new(
+		{ host => $self->{'config'}->{'smtp_server'} // 'localhost', port => $self->{'config'}->{'smtp_port'} // 25, }
+	);
+	my $curators =
+	  $self->{'datastore'}
+	  ->run_query( q[SELECT id,user_name FROM users WHERE status IN ('curator','admin') AND submission_emails],
+		undef, { fetch => 'all_arrayref', slice => {} } );
+  CURATOR: foreach my $curator (@$curators) {
+		my $user_db = $self->{'datastore'}->get_user_db( $user_info->{'user_db'} );
+		if ($user_db) {
+			next CURATOR
+			  if $self->{'datastore'}->run_query(
+				'SELECT EXISTS(SELECT * FROM curator_prefs WHERE user_name=? AND absent_until > now())',
+				$user_info->{'user_name'},
+				{ db => $user_db }
+			  );
+		}
+		my $curator_info = $self->{'datastore'}->get_user_info_from_username( $curator->{'user_name'} );
+		my $address      = Email::Valid->address( $curator_info->{'email'} );
+		if ( !$address ) {
+			$logger->error("Invalid E-mail address for curator $curator->{'user_name'} - $curator->{'email'}");
+			next CURATOR;
+		}
+		my $domain         = $self->{'config'}->{'domain'}                  // DEFAULT_DOMAIN;
+		my $sender_address = $self->{'config'}->{'automated_email_address'} // "no_reply\@$domain";
+		my $subject        = "$self->{'system'}->{'description'} - Request to publish private data";
+		my $header_params  = [
+			To      => $curator_info->{'email'},
+			From    => $sender_address,
+			Subject => $subject
+		];
+		my $plural        = $count == 1 ? q()     : q(s);
+		my $demonstrative = $count == 1 ? q(this) : q(these);
+		my $email         = Email::MIME->create(
+			attributes => {
+				encoding => 'quoted-printable',
+				charset  => 'UTF-8',
+			},
+			header_str => $header_params,
+			body_str   => "$user_string, has requested publication of $count private isolate$plural. "
+			  . "Please log in to the curator interface to process $demonstrative."
+		);
+		eval {
+			try_to_sendmail( $email, { transport => $transport } )
+			  || $logger->error("Cannot send E-mail to $curator_info->{'email'}");
+			$logger->info("Email to $curator_info->{'email'}: $subject");
+		};
+		$logger->error($@) if $@;
 	}
 	return;
 }

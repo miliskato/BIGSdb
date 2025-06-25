@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 #Perform/update Kleborate analyses and store results in isolate database.
 #Written by Keith Jolley
-#Copyright (c) 2023-2024, University of Oxford
+#Copyright (c) 2023-2025, University of Oxford
 #E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
@@ -19,7 +19,7 @@
 #You should have received a copy of the GNU General Public License
 #along with BIGSdb.  If not, see <http://www.gnu.org/licenses/>.
 #
-#Version: 20240306
+#Version: 20250310
 use strict;
 use warnings;
 use 5.010;
@@ -37,6 +37,7 @@ use BIGSdb::Constants qw(LOG_TO_SCREEN :limits);
 use JSON;
 use Term::Cap;
 use POSIX;
+use File::Path qw(rmtree);
 use constant MODULE_NAME => 'Kleborate';
 use Getopt::Long qw(:config no_ignore_case);
 my %opts;
@@ -45,9 +46,12 @@ GetOptions(
 	'exclude=s'       => \$opts{'exclude'},
 	'help'            => \$opts{'help'},
 	'last_run_days=i' => \$opts{'last_run_days'},
+	'preset=s'        => \$opts{'preset'},
 	'quiet'           => \$opts{'quiet'},
-	'refresh_days=i'  => \$opts{'refresh_days'}
+	'refresh_days=i'  => \$opts{'refresh_days'},
+	'v|view=s'        => \$opts{'v'}
 );
+$opts{'preset'} //= 'kpsc';
 
 #Direct all library logging calls to screen
 my $log_conf = LOG_TO_SCREEN;
@@ -64,6 +68,11 @@ local @SIG{qw (INT TERM HUP)} = ( sub { $EXIT = 1 } ) x 3;    #Capture kill sign
 main();
 remove_lock_file();
 local $| = 1;
+my %allowed_presets = map { $_ => 1 } qw(kpsc kosc escherichia);
+
+if ( !$allowed_presets{ $opts{'preset'} } ) {
+	die "Invalid --preset option - use either kpsc, kosc, or escherichia.\n";
+}
 
 sub main {
 	if ( $opts{'d'} ) {
@@ -143,6 +152,9 @@ sub check_db {
 	if ( $opts{'last_run_days'} ) {
 		$qry .= qq(AND (lr.timestamp IS NULL OR lr.timestamp < now()-interval '$opts{'last_run_days'} days') );
 	}
+	if ( $opts{'v'} ) {
+		$qry .= qq( AND ss.isolate_id IN (SELECT id FROM $opts{'v'}));
+	}
 	$qry .= q(ORDER BY ss.isolate_id);
 	my $agent = LWP::UserAgent->new( agent => 'BIGSdb', timeout => 600 );
 	my $ids =
@@ -153,7 +165,8 @@ sub check_db {
 	return if !$count;
 	my $job_id = $script->add_job( 'Kleborate (offline)', { temp_init => 1 } ) // BIGSdb::Utils::get_random();
 	say qq(\n$config: $count genome$plural to analyse) if !$opts{'quiet'};
-	my $i = 0;
+	my $i             = 0;
+	my $major_version = get_kleborate_major_version($script);
 
 	foreach my $isolate_id (@$ids) {
 		my $progress = int( $i * 100 / @$ids );
@@ -165,11 +178,28 @@ sub check_db {
 			}
 		);
 		print qq(Processing -id-$isolate_id ...) if !$opts{'quiet'};
-		my $assembly_file = $script->make_assembly_file( $job_id, $isolate_id );
-		my $out_file      = "$script->{'config'}->{'secure_tmp_dir'}/${job_id}_kleborate.txt";
-		system("$script->{'config'}->{'kleborate_path'} --all -o $out_file -a $assembly_file > /dev/null");
+		my $assembly_file = $script->make_assembly_file( $job_id, $isolate_id, { extension => 'fasta' } );
+		my $out_file;
+
+		if ( $major_version == 2 ) {
+			$out_file = "$script->{'config'}->{'secure_tmp_dir'}/${job_id}_kleborate.txt";
+			my $cmd = "$script->{'config'}->{'kleborate_path'} -all -o $out_file -a $assembly_file > /dev/null";
+			system($cmd);
+		} else {
+
+			my $dir = "$script->{'config'}->{'secure_tmp_dir'}/$job_id";
+			mkdir $dir;
+			my $cmd = "$script->{'config'}->{'kleborate_path'} -o $dir -a $assembly_file "
+			  . "-p $opts{'preset'} --trim_headers > /dev/null";
+			$out_file = "$dir/klebsiella_pneumo_complex_output.txt";
+			system($cmd);
+		}
+
 		store_results( $script, $isolate_id, $out_file );
 		$script->set_last_run_time( MODULE_NAME, $isolate_id );
+		if ( $major_version > 2 ) {
+			rmtree "$script->{'config'}->{'secure_tmp_dir'}/$job_id";
+		}
 		unlink $assembly_file;
 		unlink $out_file;
 		say q(done.) if !$opts{'quiet'};
@@ -205,7 +235,11 @@ sub store_results {
 	  qw(strain contig_count N50 largest_contig total_size ambiguous_bases ST Chr_ST gapA infB mdh pgi phoE rpoB tonB);
 	for my $i ( 0 .. @$headers - 1 ) {
 		next if $ignore{ $headers->[$i] };
-		next if !defined $results->[$i] || $results->[$i] eq '-' || $results->[$i] eq '';
+		next
+		  if !defined $results->[$i]
+		  || $results->[$i] eq '-'
+		  || $results->[$i] eq ''
+		  || $results->[$i] eq 'Not Tested';
 		push @$cleaned_results,
 		  { $headers->[$i] => BIGSdb::Utils::is_int( $results->[$i] ) ? int( $results->[$i] ) : $results->[$i] };
 	}
@@ -230,6 +264,19 @@ sub store_results {
 		$script->{'db'}->commit;
 	}
 	return;
+}
+
+sub get_kleborate_major_version {
+	my ($script) = @_;
+	my $version = get_kleborate_version($script);
+	my $major_version;
+	if ( $version =~ /^Kleborate\s+v(\d+)\./x ) {
+		$major_version = $1;
+	} else {
+		$logger->error('Unknown Kleborate version');
+		$major_version = 2;
+	}
+	return $major_version;
 }
 
 sub get_kleborate_version {
@@ -312,12 +359,23 @@ ${bold}--last_run_days$norm ${under}DAYS$norm
     Only run for a particular isolate when the analysis was last performed
     at least the specified number of days ago.
     
+${bold}--preset$norm ${under}PRESET$norm
+    Preset list of modules to run (only for Kleborate v3). Available options
+    are:
+      kpsc [for Klebsiella pneumoniae species complex - default],
+      kosc [for Klebsiella oxytoca species complex],
+      escherichia [for Escherichia coli]
+    
 ${bold}--quiet$norm
     Only show errors.
     
 ${bold}--refresh_days$norm ${under}DAYS$norm
     Refresh records last analysed longer that the number of days set. By 
-    default, only records that have not been analysed will be checked.      
+    default, only records that have not been analysed will be checked. 
+    
+${bold}--view, -v$norm ${under}VIEW$norm
+    Isolate database view (overrides value set in config.xml).
+     
 HELP
 	return;
 }

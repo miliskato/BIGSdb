@@ -1,5 +1,5 @@
 #Written by Keith Jolley
-#Copyright (c) 2010-2024, University of Oxford
+#Copyright (c) 2010-2025, University of Oxford
 #E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
@@ -384,6 +384,7 @@ sub _get_admin_links {
 	if ( $self->{'system'}->{'dbtype'} eq 'isolates' ) {
 		$buffer .= $self->_get_genome_filtering;
 		$buffer .= $self->_get_sequence_attributes;
+		$buffer .= $self->_get_analysis_fields;
 	} elsif ( $self->{'system'}->{'dbtype'} eq 'sequences' ) {
 		$buffer .= $self->_get_locus_extended_attributes;
 		$buffer .= $self->_get_mutation_fields;
@@ -1497,6 +1498,29 @@ sub _get_eav_fields {
 	return $buffer;
 }
 
+sub _get_analysis_fields {
+	my ($self) = @_;
+	my $buffer = q();
+	return $buffer if !$self->can_modify_table('analysis_fields');
+	$buffer .= q(<div class="curategroup curategroup_isolates grid-item field_admin" )
+	  . qq(style="display:$self->{'optional_field_admin_display'}"><h2>Analysis fields</h2>);
+	$buffer .= $self->_get_icon_group(
+		'analysis_fields',
+		'chart-line',
+		{
+			add       => 1,
+			batch_add => 1,
+			query     => 1,
+			info      => 'Analysis fields - Define fields that can appear in the output of arbitray '
+			  . 'analysis run by external tools, e.g. Kleborate, rMLST species id. These save analysis '
+			  . 'results as a JSON string within the analysis_results table. By registering particular '
+			  . 'fields you can allow BIGSdb to use these results for queries or further analysis.'
+		}
+	);
+	$buffer .= qq(</div>\n);
+	return $buffer;
+}
+
 sub _get_composite_fields {
 	my ($self) = @_;
 	my $buffer = q();
@@ -2264,8 +2288,8 @@ sub _print_submission_section {
 		say q(<h2>Submissions</h2>);
 		say q(<p>No pending submissions.</p>);
 	}
-	say $self->_get_publication_requests;
-	say $self->_get_closed_submission_section;
+	say $publish_buffer;
+	say $closed_buffer;
 	say q(</div></div>);
 	return;
 }
@@ -2455,10 +2479,12 @@ sub _print_account_requests_section {
 		my $configs =
 		  $self->{'datastore'}->get_configs_using_same_database( $user_db->{'db'}, $self->{'system'}->{'db'} );
 		foreach my $config (@$configs) {
-			my $users =
-			  $self->{'datastore'}
-			  ->run_query( 'SELECT user_name,datestamp FROM pending_requests WHERE dbase_config=? ORDER BY datestamp',
-				$config, { db => $user_db->{'db'}, fetch => 'all_arrayref', slice => {} } );
+			my $users = $self->{'datastore'}->run_query(
+				'SELECT user_name,datestamp FROM pending_requests WHERE dbase_config=? '
+				  . 'ORDER BY datestamp,user_name',
+				$config,
+				{ db => $user_db->{'db'}, fetch => 'all_arrayref', slice => {} }
+			);
 			foreach my $user (@$users) {
 				my $user_info = $self->{'datastore'}->run_query( 'SELECT * FROM users WHERE user_name=?',
 					$user->{'user_name'}, { db => $user_db->{'db'}, fetch => 'row_hashref' } );
@@ -2469,6 +2495,13 @@ sub _print_account_requests_section {
 		}
 	}
 	return if !@user_details;
+	my $extra_headings = q();
+	if ( $self->{'config'}->{'site_user_country'} ) {
+		$extra_headings .= q(<th>Country</th>);
+	}
+	if ( $self->{'config'}->{'site_user_sector'} ) {
+		$extra_headings .= q(<th>Sector</th>);
+	}
 	say q(<div class="box" id="account_requests">);
 	say q(<span class="main_icon fas fa-user fa-3x fa-pull-left"></span>);
 	say q(<h2>Account requests</h2>);
@@ -2476,16 +2509,25 @@ sub _print_account_requests_section {
 	say q(<div class="scrollable">);
 	say q(<table class="resultstable">);
 	say q(<tr><th>Reject</th><th>First name</th><th>Surname</th>)
-	  . q(<th>Affiliation</th><th>E-mail</th><th>Date requested</th><th>Accept</th></tr>);
+	  . qq(<th>Affiliation</th>$extra_headings<th>E-mail</th><th>Date requested</th><th>Accept</th></tr>);
 	my $td = 1;
 	my ( $good, $bad ) = ( GOOD, BAD );
 
 	foreach my $user (@user_details) {
+		my $extra_cols = q();
+		if ( $self->{'config'}->{'site_user_country'} ) {
+			$user->{'country'} //= q();
+			$extra_cols .= qq(<td>$user->{'country'}</td>);
+		}
+		if ( $self->{'config'}->{'site_user_sector'} ) {
+			$user->{'sector'} //= q();
+			$extra_cols .= qq(<td>$user->{'sector'}</td>);
+		}
 		say qq(<tr class="td$td">)
 		  . qq(<td><a href="$self->{'system'}->{'script_name'}?db=$self->{'instance'}&amp;)
 		  . qq(reject=$user->{'user_name'}&amp;user_db=$user->{'user_db'}" class="action">$bad</a></td>)
-		  . qq(<td>$user->{'first_name'}</td><td>$user->{'surname'}</td>)
-		  . qq(<td>$user->{'affiliation'}</td><td><a href="mailto:$user->{'email'}">$user->{'email'}</a></td>)
+		  . qq(<td>$user->{'first_name'}</td><td>$user->{'surname'}</td><td>$user->{'affiliation'}</td>)
+		  . qq($extra_cols<td><a href="mailto:$user->{'email'}">$user->{'email'}</a></td>)
 		  . qq(<td>$user->{'request_date'}</td>)
 		  . qq(<td><a href="$self->{'system'}->{'script_name'}?db=$self->{'instance'}&amp;)
 		  . qq(import=$user->{'user_name'}&amp;user_db=$user->{'user_db'}" class="action">$good</a></td></tr>);

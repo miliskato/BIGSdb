@@ -13,6 +13,7 @@ INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no
 INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no_submissions, disable, curator, date_entered, datestamp) VALUES(13, 'ResFinder4', 'ResFinder4 database', 't', 13, 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
 INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no_submissions, disable, curator, date_entered, datestamp) VALUES(14, 'ResFinder4_mutations', 'ResFinder4 - PointFinder database', 't', 14, 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
 INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no_submissions, disable, curator, date_entered, datestamp) VALUES(15, 'serogroup_capsule', 'Neisseria capsule database', 't', 15, 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
+INSERT INTO schemes(id, name, description, allow_missing_loci, display_order, no_submissions, disable, curator, date_entered, datestamp) VALUES(16, 'AMRFinder', 'AMRFinder', 't', 16, 't', 'f', 1, (SELECT CURRENT_DATE), (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
 
 
 INSERT INTO scheme_fields(scheme_id, field, type, description, field_order, dropdown, primary_key, curator, datestamp) VALUES(1, 'ST', 'integer', 'Sequence Type', 1, 'f', 't', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;

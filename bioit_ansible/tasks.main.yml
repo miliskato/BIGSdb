@@ -432,9 +432,15 @@
   block:
     - name: Choose value for microreact token and host
       set_fact:
-        microreact_token: "{{ microreact_token_dta }}"
-        microreact_host: "{{ microreact_common_host_dta }}"
-      when: mongo_dtap == "dev" or mongo_dtap == "test" or mongo_dtap == "acc"
+        microreact_token: "{{ microreact_token_dt }}"
+        microreact_host: "{{ microreact_common_host_dt }}"
+      when: mongo_dtap == "dev" or mongo_dtap == "test"
+
+    - name: Choose value for microreact token and host when acc
+      set_fact:
+        microreact_token: "{{ microreact_token_acc }}"
+        microreact_host: "{{ unique_host_acc }}"
+      when: mongo_dtap == "acc"
 
     - name: Choose value for microreact token and host when prod
       set_fact:
@@ -468,10 +474,12 @@
 - name: setup core db's 1
   block:
     - name: create apache user
-      postgresql_user:
+      community.postgresql.postgresql_user:
         login_user: postgres
         name: apache
         password: "{{ secret_bioit_bigs_postgresql_apache_password }}"
+      vars:
+        ansible_remote_tmp: /tmp
       become_user: postgres
       # check documentation if pass clear text or hash <- doesnt needa to hashed https://docs.w3cub.com/ansible~2.9/modules/postgresql_user_module
 

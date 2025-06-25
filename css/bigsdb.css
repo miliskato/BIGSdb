@@ -1,4 +1,4 @@
-/*Version: 20240625*/
+/*Version: 20250318*/
 @font-face {
 	font-family: 'tinosregular';
 	src: url('/webfonts/tinos-regular-webfont.woff2') format('woff2'),
@@ -36,6 +36,14 @@ div {
 	margin-bottom: 0;
 	padding-bottom: 0;
 	padding-top: 0
+}
+
+span.alert_indicator {
+    color: #d44
+}
+
+span.warning_indicator {
+    color: #d60
 }
 
 select {
@@ -643,7 +651,7 @@ input.updatebutton:hover {
 	border: 1px solid #669
 }
 
-div.fasta_upload {
+div.fasta_upload, div.file_upload {
 	position: relative;
 	margin-top: 0.5em;
 }
@@ -653,6 +661,7 @@ div.fakefile {
 	top: 0px;
 	left: 0px;
 	z-index: 1;
+	
 }
 
 div.fakefile input {
@@ -663,7 +672,7 @@ div.fakefile input {
 	border-radius: 10px;
 }
 
-input#fasta_upload {
+input#fasta_upload, input#file_upload {
 	height: 3em;
 	position: relative;
 	text-align: right;
@@ -672,7 +681,8 @@ input#fasta_upload {
 	opacity: 0;
 	z-index: 2;
 	height: 3em;
-	cursor: pointer
+	cursor: pointer;
+	max-width: 17em;
 }
 
 .launchbutton {
@@ -817,13 +827,13 @@ div.registration_box {
 div.registered_configs {
 	background: #f6f6f6;
 	display: inline-block;
-	max-height: 15em;
+	max-height: 17em;
 	overflow-y: auto;
 	overflow-x: hidden
 }
 
-div.registered_configs li {
-	white-space: nowrap
+div.registered_configs ul {
+	list-style: disc inside none
 }
 
 div.flex_container {
@@ -1179,6 +1189,10 @@ a#related_db_trigger {
 }
 
 a#panel_trigger {
+	background: #8093f1;
+}
+
+a#options_trigger {
 	background: #8093f1;
 }
 
@@ -2046,6 +2060,21 @@ div#pluginbanner {
 	color: #006
 }
 
+div#onboarding {
+	display: none;
+	position: fixed;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	padding: 20px;
+	color: #ffffff;
+	background-color: #7879bf;
+	border: 2px solid #ccc;
+	border-radius: 15px;
+	box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+	z-index:10
+}
+
 div#message {
 	background: #e0d5d5
 }
@@ -2326,6 +2355,37 @@ fieldset li {
 	padding-bottom: 0.2em
 }
 
+fieldset label.aligned {
+	float: left;
+	margin-right: 0.5em;
+	text-align: right;
+}
+
+fieldset label.width12 {
+	width: 12em;
+}
+fieldset label.width11 {
+	width: 11em;
+}
+fieldset label.width10 {
+	width: 10em;
+}
+fieldset label.width9 {
+	width: 9em;
+}
+fieldset label.width8 {
+	width: 8em;
+}
+fieldset label.width7 {
+	width: 7em;
+}
+fieldset label.width6 {
+	width: 6em;
+}
+fieldset label.width5 {
+	width: 5em;
+}
+
 fieldset label.filter {
 	float: left;
 	width: 12em;
@@ -2415,14 +2475,16 @@ div.scheme_tree {
 	word-break: break-word
 }
 
-dl.profile,dl.locus_combinations {
+dl.profile,
+dl.locus_combinations {
 	margin: 0;
 	display: inline-block;
 	border: 1px solid #ccc;
 	text-align: center;
 }
 
-.profile dt,.locus_combinations dt {
+.profile dt,
+.locus_combinations dt {
 	margin: 0;
 	padding: 0 0.5em;
 	height: 1.2em;
@@ -2440,7 +2502,8 @@ dl.profile,dl.locus_combinations {
 	text-decoration: none
 }
 
-.profile dd,.locus_combinations dd {
+.profile dd,
+.locus_combinations dd {
 	min-height: 1.7em;
 	padding: 0;
 	margin: 0;
@@ -2720,7 +2783,8 @@ span.export_archive {
 	text-shadow: 3px 3px 3px #999
 }
 
-span.export_image,span.export_html {
+span.export_image,
+span.export_html {
 	color: #47f;
 	text-shadow: 3px 3px 3px #999
 }
@@ -2730,7 +2794,8 @@ span.export_align {
 	text-shadow: 3px 3px 3px #999
 }
 
-span.export_code,span.export_pdf {
+span.export_code,
+span.export_pdf {
 	color: #903;
 	text-shadow: 3px 3px 3px #999
 }

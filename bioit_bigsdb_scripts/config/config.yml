@@ -177,6 +177,10 @@ species:
         metadatafile: /db/resfinder4/resfinder/phenotypes.txt
         schemename_bigsdb: ResFinder4
         schemename_html: amr
+      amrfinder:
+        metadatafile: /db/amrfinder/latest/AMRProt
+        schemename_bigsdb: AMRFinder
+        schemename_html: amr
   salmonella:
     typing_schemes:
       salmonella_mlst:
@@ -210,6 +214,10 @@ species:
         metadatafile: /db/gene_detection/VFDB_core/mapping_full.json
         schemename_bigsdb: VFDB_core
         schemename_html: Virulence Factor DB - Core
+      amrfinder:
+        metadatafile: /db/amrfinder/latest/AMRProt
+        schemename_bigsdb: AMRFinder
+        schemename_html: amr
   influenza:
     typing_schemes: null
     genedetection_schemes: null
@@ -319,6 +327,10 @@ species_json:
         metadatafile: /db/resfinder4/resfinder/phenotypes.txt
         schemename_bigsdb: ResFinder4
         schemename_html: amr
+      amrfinder:
+        metadatafile: /db/amrfinder/latest/AMRProt
+        schemename_bigsdb: AMRFinder
+        schemename_html: amr
   salmonella:
     typing_schemes:
       mlst:
@@ -352,6 +364,10 @@ species_json:
         metadatafile: /db/gene_detection/VFDB_core/mapping_full.json
         schemename_bigsdb: VFDB_core
         schemename_html: Virulence Factor DB - Core
+      amrfinder:
+        metadatafile: /db/amrfinder/latest/AMRProt
+        schemename_bigsdb: AMRFinder
+        schemename_html: amr
   influenza:
     typing_schemes: ''
     genedetection_schemes: ''

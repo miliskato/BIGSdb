@@ -29,6 +29,7 @@ use Bio::SeqIO;
 use Bio::SeqFeature::Generic;
 use Excel::Writer::XLSX;
 use List::MoreUtils qw(uniq);
+use Unicode::Collate;
 use autouse 'Time::Local' => qw(timelocal);
 use constant MAX_4BYTE_INT => 2147483647;
 use Log::Log4perl qw(get_logger);
@@ -103,8 +104,8 @@ sub is_complete_cds {
 sub sequence_type {
 	my ($sequence) = @_;
 	my $seq = ref $sequence ? $$sequence : $sequence;
-	$seq =~ s/>.*?\n//gx;    #Remove any FASTA header lines
-	$seq =~ s/\s//gx;
+	$seq =~ s/^>.*?\n//gx;    #Remove any FASTA header lines
+	$seq =~ tr/ //;
 	return 'DNA' if !$seq;
 	my $AGTC_count = $seq =~ tr/[G|A|T|C|U|g|a|t|c|u|N|n]//;
 	return ( $AGTC_count / length $seq ) >= 0.8 ? 'DNA' : 'peptide';
@@ -131,7 +132,10 @@ sub chop_seq {
 		$orf -= 3;
 		$seq = reverse_complement($seq);
 	}
-	$returnseq = substr( $seq, $orf - 1 );
+	if ( ( $orf - 1 ) < length $seq ) {
+		$returnseq = substr( $seq, $orf - 1 );
+	}
+	return '' if !defined $returnseq;
 
 	#make sure sequence length is a multiple of 3
 	while ( ( length $returnseq ) % 3 != 0 ) {
@@ -521,7 +525,7 @@ sub get_excel_col_letter {
 }
 
 sub fasta2genbank {
-	my ($fasta_file, $max_locus_length) = @_;
+	my ( $fasta_file, $max_locus_length ) = @_;
 	( my $genbank_file = $fasta_file ) =~ s/\.(fa|fas|fasta|fna)$/.gb/x;
 	my $in         = Bio::SeqIO->new( -file => $fasta_file,      -format => 'fasta' );
 	my $out        = Bio::SeqIO->new( -file => ">$genbank_file", -format => 'genbank' );
@@ -977,7 +981,7 @@ sub get_datestamp {
 }
 
 sub get_future_date {
-	my ( $months_to_add ) = @_;
+	my ($months_to_add) = @_;
 	my $datestamp = BIGSdb::Utils::get_datestamp();
 	my ( $year, $month, $day ) = split( '-', $datestamp );
 	$month += $months_to_add;
@@ -1015,6 +1019,17 @@ sub dictionary_sort {
 		[ $_, $d ]
 	  } uniq @$values;
 	return \@ret_values;
+}
+
+sub unicode_dictionary_sort {
+	my ( $values ) = @_;
+	my $collator = Unicode::Collate->new( variable => 'non-ignorable' );
+	my $sort_key = {};
+	for my $value (@$values) {
+		$sort_key->{$value} = $collator->getSortKey($value);
+	}
+	my @sorted = sort { $sort_key->{$a} cmp $sort_key->{$b} } @$values;
+	return \@sorted;
 }
 
 sub get_nice_duration {

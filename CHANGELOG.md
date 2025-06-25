@@ -5,7 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] 
+## [3.1.0]
+### Changed:
+- Added AMRFinder for Neisseria
+- Added AMRFinder for Salmonella
+
+## [3.0.0] 
 ### Added:
 - rMLST scheme
 - ResFinder4
@@ -42,8 +47,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Simplification of html tagger and html update merger scripts (renamed to html replacer) + creation of general html report class
 - Update of tagger config to account for the jammy changes
 - Update of reanalysis and reanalysis configs to account for the jammy changes
-
-
+- Upgrade from psycopg2 to psycopg3
+- Upgrade of BIGSdb to v1.51.1
+- Unique mreact acc host and token that needs to be defined in the host_vars
 
 ### Fixed:
 - Mykrobe scheme : typo in two AB names
