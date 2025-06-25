@@ -57,26 +57,88 @@
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">symptom_other</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">symptom_unknown</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">symptom_screening</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="unit of hospitalisation">hospital_unit</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="unit of hospitalisation" optlist="yes">hospital_unit
+  <optlist>
+    <option>PEDSICU</option>
+    <option>ICU</option>
+    <option>INFECT</option>
+    <option>INTMED</option>
+    <option>O</option>
+    <option>OBGYN</option>
+    <option>ED</option>
+    <option>PEDS</option>
+    <option>GERIATRIE</option>
+    <option>SURG</option>
+    <option>UNK</option>
+    <option>URO</option>
+    <option>EXTMUROS</option>
+    <option>PNEUMO</option>
+    <option>DIALNEF</option>
+    <option>REVA</option>
+    <option>ONCOL</option>
+  </optlist>
+</field>
 <field type="text" required="no" length="100" maindisplay="no" group ="nominative metadata" comments="">institution</field>
 <field type="text" required="no" length="60" maindisplay="no" group ="nominative metadata" comments="">lab_name_code</field>
+<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="specimen" optlist="yes">specimen
+  <optlist>
+    <option>BLOOD</option>
+    <option>CSF</option>
+    <option>BRONCHTRACH</option>
+    <option>ABDO</option>
+    <option>PERITONEAL</option>
+    <option>WOUND</option>
+    <option>TISSUE</option>
+    <option>THROAT</option>
+    <option>SKIN</option>
+    <option>EAR</option>
+    <option>NONSTERILE</option>
+    <option>OTHERSTERILE</option>
+    <option>SCREENING</option>
+    <option>SALIVA</option>
+    <option>URINE</option>
+    <option>UNK</option>
+    <option>NA</option>
+  </optlist>
+</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="" optlist="yes">lin_gen
-    <optlist>
-      <option>CRF</option>
-      <option>CRFB</option>
-      <option>OPTRA</option>
-      <option>POXTA</option>
-      <option>POXTA-EF</option>
-      <option>23S1</option>
-      <option>23S2</option>
-      <option>O</option>
-      <option>UNK</option>
-      <option>NA</option>
-    </optlist>
+  <optlist>
+    <option>CRF</option>
+    <option>CRFB</option>
+    <option>OPTRA</option>
+    <option>POXTA</option>
+    <option>POXTA-EF</option>
+    <option>23S1</option>
+    <option>23S2</option>
+    <option>O</option>
+    <option>UNK</option>
+    <option>NA</option>
+  </optlist>
 </field>
 <field type="text" required="no" length="5" maindisplay="no" group ="nominative metadata" comments="case linked to outbreak investigation">outbreak</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="Pathogen defined by NRC">pathogen</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="patient hospitalised or not">patient_type</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="Pathogen defined by NRC" optlist="yes">pathogen
+  <optlist>
+    <option>ENCFAE</option>
+    <option>ENCFAI</option>
+    <option>ENCGALL</option>
+    <option>ENCCASS</option>
+    <option>ENCDUR</option>
+    <option>ENCRAFF</option>
+    <option>ENC</option>
+    <option>O</option>
+    <option>NA</option>
+    <option>UNK</option>
+    <option>ENCAVI</option>
+  </optlist>
+</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="patient hospitalised or not" optlist="yes">patient_type
+  <optlist>
+    <option>INPAT</option>
+    <option>O</option>
+    <option>OUTPAT</option>
+    <option>UNK</option>
+  </optlist>
+</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">mic_amo_sign</field>
 <field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">mic_amo</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">mic_amo_I</field>
@@ -102,5 +164,20 @@
 <field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">mic_van</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">mic_van_I</field>
 <field type="text" required="no" length="100" maindisplay="no" group ="nominative metadata" comments="Disease to report">subject</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">vangenes</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="" optlist="yes">vangenes
+  <optlist>
+    <option>VANA</option>
+    <option>VANB</option>
+    <option>VANC</option>
+    <option>VAND</option>
+    <option>VANE</option>
+    <option>VANG</option>
+    <option>VANAC</option>
+    <option>VANBC</option>
+    <option>O</option>
+    <option>UNK</option>
+    <option>NA</option>
+    <option>VANAB</option>
+  </optlist>
+</field>
 </db>
