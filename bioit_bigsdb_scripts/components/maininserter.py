@@ -118,12 +118,6 @@ class MainInserter(JsonSuperClass):
                 lineage_keys = list({e for e in lineage_dict if lineage_dict[e]})
                 for k in lineage_keys:
                     self._isolates_eavi_psql_tbl.insert_eav_int_isolate((self._isolatename, lineage_dict[k]['lineage']['id_'], lineage_dict[k]['count']))
-        elif self._species == 'stec':
-            if 'serotype' in self._json_report_dict:
-                # json input
-                if 'serotype' in self._json_report_dict['serotype']:
-                    self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'Serotype', self._json_report_dict['serotype']['serotype']))
-
         elif self._species == 'neisseria':
             # json input
             if 'serogroup' in self._json_report_dict:
