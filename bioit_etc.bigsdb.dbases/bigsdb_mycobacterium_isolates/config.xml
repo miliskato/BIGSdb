@@ -37,7 +37,7 @@
 <field type="text" required="no" length="100" maindisplay="no" group ="nominative metadata" comments="Health Professional LastName">physician_name</field>
 <field type="text" required="no" length="60" maindisplay="no" group ="nominative metadata" comments="patient firstname">patient_first_name</field>
 <field type="text" required="no" length="60" maindisplay="no" group ="nominative metadata" comments="patient last_name">patient_last_name</field>
-<field type="date" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="patient birthdate">patient_birthdate</field>
+<field type="date" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="patient birthdate">patient_birth_date</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="patient zip code">patient_zip</field>
 <field type="date" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="isolation date">isolation_date</field>
 <field type="date" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="sampling date">sampling_date</field>
@@ -49,4 +49,5 @@
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="Antibiogram BK - Rifampicin [1 µg/ml]">rifampicin_1ug</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="Antibiogram BK - Ethambutol [5 µg/ml]">ethambutol_5ug</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="Antibiogram BK - Pyrazinamid [100µg/ml]">pyrazinamid_100ug</field>
+<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="country">country</field>
 </db>
