@@ -46,7 +46,7 @@ class ParseClinLabJsonInfluenza(ParseClinLabJson):
         Exctracts whether the sample is HOSPI, ILI, or SARI from the internal reference sample id if it is present.
         :return: None
         """
-        internal_reference_sample_id = self.___get_value_by_capitalization_agnostic_key(self._data_unprocessed, 'TX_INT_ID')
+        internal_reference_sample_id = self._get_value_by_capitalization_agnostic_key(self._data_unprocessed, 'TX_INT_ID')
         case_type = 'Unknown'
         if internal_reference_sample_id:
             if 'IH' in internal_reference_sample_id:
@@ -101,16 +101,16 @@ class ParseClinLabJsonInfluenza(ParseClinLabJson):
         :param code_list: list of codes to check and the translated values
         :return: a single value from the code list or an empty string
         """
-        labtest_list_of_result_dicts = self.___get_value_by_capitalization_agnostic_key(self._data_unprocessed,
+        labtest_list_of_result_dicts = self._get_value_by_capitalization_agnostic_key(self._data_unprocessed,
                                                                                         'TX_TTL_LAB_TEST')
         if not labtest_list_of_result_dicts:
             return ''
         for code, value in code_list:
             result_dict = next((
                 result_dict for result_dict in labtest_list_of_result_dicts if
-                code == self.___get_value_by_capitalization_agnostic_key(
+                code == self._get_value_by_capitalization_agnostic_key(
                     result_dict, 'CD_LAB_TEST_CODE')))
-            if self.___cast_as_int_if_int(self.___get_value_by_capitalization_agnostic_key(result_dict, 'CD_LAB_TEST_RSLT_QL')) == 260373001:
+            if self._cast_as_int_if_int(self._get_value_by_capitalization_agnostic_key(result_dict, 'CD_LAB_TEST_RSLT_QL')) == 260373001:
                 # if detected
                 return value
         return ''

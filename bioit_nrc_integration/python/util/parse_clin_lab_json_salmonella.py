@@ -29,7 +29,7 @@ class ParseClinLabJsonSalmonella(ParseClinLabJson):
         if self._filetype == 'LAB':
             self.__choose_serovar_final()
         elif self._filetype == 'CLIN':
-            self.___parse_repeat_fields('TX_TTL_SYMP_REPEAT', 'CD_PROB_NAM', 'CD_PROB_NAM_codes', 'symptom')
+            self._parse_repeat_fields('TX_TTL_SYMP_REPEAT', 'CD_PROB_NAM', 'CD_PROB_NAM_codes', 'symptom')
 
     def __choose_serovar_final(self) -> None:
         """

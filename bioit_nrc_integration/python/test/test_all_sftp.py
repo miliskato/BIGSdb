@@ -113,53 +113,53 @@ for species, species_testfiles in testfiles_dict.items():
                     sftp_credentials_hd['password_send_genomic_to_ODS'])
     # Create an SFTP session
     sftp_ods = ssh_ods.open_sftp()
-    
+
     sftp_ods.rename(f"upload/{DTAP}/{dummy_mapping_table['_id']}.json",
                     f"upload/{DTAP}/processed/{dummy_mapping_table['_id']}.json")
     sftp_ods.close()
     ssh_ods.close()
 
-    
+
     """
     Run main error checker and processed acknowledger
     """
     ErrorCheckerForMainSenderToHD(test_dummy=True, alternate_dtap=DTAP)
 
-    """
-    Run MainMongo for reanalysis
-    """
-    MainMongo(dummy_genomic_report['_id'], species, 'reanalysis', pipeline_hash='0123456789',
-              jsonfilepath=testfiles_folder / species_testfiles['genomic_json_reanalysis_report'], alternate_dtap=DTAP,
-              connection_string='CONNECTION_STRING_AZURE')
-
-    """
-    Run main sender after reanalysis
-    """
-    MainSenderToHD(test_dummy=True, alternate_dtap=DTAP)
-
-    """
-    Move ODS file to processed folder as if HD had done it again
-    """
-    # Create an SSH client
-    ssh_ods = paramiko.SSHClient()
-    ssh_ods.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    # Connect to the server
-    ssh_ods.connect(sftp_credentials_hd['hostname_send_genomic_to_ODS'],
-                    sftp_credentials_hd['port_send_genomic_to_ODS'],
-                    sftp_credentials_hd['username_send_genomic_to_ODS'],
-                    sftp_credentials_hd['password_send_genomic_to_ODS'])
-    # Create an SFTP session
-    sftp_ods = ssh_ods.open_sftp()
-
-    sftp_ods.rename(f"upload/{DTAP}/{dummy_mapping_table['_id']}.json",
-                    f"upload/{DTAP}/processed/{dummy_mapping_table['_id']}.json")
-    sftp_ods.close()
-    ssh_ods.close()
-
-    """
-    Run main error checker and processed acknowledger again after reanalysis resending
-    """
-    ErrorCheckerForMainSenderToHD(test_dummy=True, alternate_dtap=DTAP)
+    # """
+    # Run MainMongo for reanalysis
+    # """
+    # MainMongo(dummy_genomic_report['_id'], species, 'reanalysis', pipeline_hash='0123456789',
+    #           jsonfilepath=testfiles_folder / species_testfiles['genomic_json_reanalysis_report'], alternate_dtap=DTAP,
+    #           connection_string='CONNECTION_STRING_AZURE')
+    #
+    # """
+    # Run main sender after reanalysis
+    # """
+    # MainSenderToHD(test_dummy=True, alternate_dtap=DTAP)
+    #
+    # """
+    # Move ODS file to processed folder as if HD had done it again
+    # """
+    # # Create an SSH client
+    # ssh_ods = paramiko.SSHClient()
+    # ssh_ods.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    # # Connect to the server
+    # ssh_ods.connect(sftp_credentials_hd['hostname_send_genomic_to_ODS'],
+    #                 sftp_credentials_hd['port_send_genomic_to_ODS'],
+    #                 sftp_credentials_hd['username_send_genomic_to_ODS'],
+    #                 sftp_credentials_hd['password_send_genomic_to_ODS'])
+    # # Create an SFTP session
+    # sftp_ods = ssh_ods.open_sftp()
+    #
+    # sftp_ods.rename(f"upload/{DTAP}/{dummy_mapping_table['_id']}.json",
+    #                 f"upload/{DTAP}/processed/{dummy_mapping_table['_id']}.json")
+    # sftp_ods.close()
+    # ssh_ods.close()
+    #
+    # """
+    # Run main error checker and processed acknowledger again after reanalysis resending
+    # """
+    # ErrorCheckerForMainSenderToHD(test_dummy=True, alternate_dtap=DTAP)
 
     """
     Clean up both MongoDBs

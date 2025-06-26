@@ -54,13 +54,13 @@ class ParseClinLabJson(object, metaclass=abc.ABCMeta):
                 # present in all DCDs but only in the influenza columns, therefore it is only allowed to be
                 # parsed for influenza.
                 continue
-            unprocessed_value = self.___get_value_by_capitalization_agnostic_key(self._data_unprocessed, hd_key)
+            unprocessed_value = self._get_value_by_capitalization_agnostic_key(self._data_unprocessed, hd_key)
             if unprocessed_value:
                 if hd_key_property_dict.get('code_list'):
                     value = self._translation_codes['code_lists'][hd_key_property_dict['code_list']][
-                        self.___cast_as_int_if_int(unprocessed_value)]
+                        self._cast_as_int_if_int(unprocessed_value)]
                     if hd_key_property_dict.get('other') and value == 'Other':
-                        value = self.___get_value_by_capitalization_agnostic_key(self._data_unprocessed, hd_key_property_dict['other'])
+                        value = self._get_value_by_capitalization_agnostic_key(self._data_unprocessed, hd_key_property_dict['other'])
                 else:
                     value = unprocessed_value
                 self._data_translated[hd_key_property_dict['translation']] = value
@@ -89,8 +89,8 @@ class ParseClinLabJson(object, metaclass=abc.ABCMeta):
         :return: None
         """
         # DOB is not a mandatory field so it can be missing = None
-        dob = self.___get_value_by_capitalization_agnostic_key(self._data_unprocessed, 'DT_PAT_DOB')
-        collection_date = self.___get_value_by_capitalization_agnostic_key(self._data_unprocessed, 'DT_LAB_COLLCN')
+        dob = self._get_value_by_capitalization_agnostic_key(self._data_unprocessed, 'DT_PAT_DOB')
+        collection_date = self._get_value_by_capitalization_agnostic_key(self._data_unprocessed, 'DT_LAB_COLLCN')
         if dob and dob != '1900-01-01' and collection_date:
             # Calculate the number of years
             # Average year length considering leap years = 365.25 days
@@ -127,7 +127,7 @@ class ParseClinLabJson(object, metaclass=abc.ABCMeta):
         e.g. "tx_ttl_lab_test": [{"dt_lab_test": "2024-03-25T12:00:00",  "tx_lab_rr_ll": "ref low",  "tx_lab_rr_ul": "ref up",  "cd_lab_pnl_batt": "385432009",  "cd_lab_rslt_sta": "corrected",  "cd_lab_reslt_tpe": "19851009",  "cd_lab_rslt_flag": "260405006",  "cd_lab_test_code": "468-9",  "cd_lab_test_meth": "14788002",  "ms_lab_rr_ll_val": 11.00000,  "ms_lab_rr_ul_val": 150.00000,  "cd_lab_rr_ll_unit": "385432009",  "cd_lab_rr_ul_unit": "385432009",  "cd_lab_intrpr_meth": "261665006",  "tx_lab_rslt_intrpr": "Test 3 interpretation",  "tx_lab_test_rslt_id": "Test Result 3",  "cd_lab_test_rslt_sta": "preliminary",  "tx_lab_cmnt_test_rslt": "Lab Test 3 comment",  "ms_lab_test_rslt_qn_val": 99.00000,  "cd_lab_test_rslt_qn_unit": "385432009"}, {"dt_lab_test": "2024-02-06T12:00:00",  "tx_lab_rr_ll": "lower limit",  "tx_lab_rr_ul": "Ref upper Range",  "cd_lab_pnl_batt": "385432009",  "cd_lab_rslt_sta": "registered",  "cd_lab_reslt_tpe": "252275004",  "cd_lab_rslt_flag": "281300000",  "cd_lab_test_code": "TC0031",  "cd_lab_test_meth": "363779003",  "ms_lab_rr_ll_val": 55.00000,  "ms_lab_rr_ul_val": 66.00000,  "cd_lab_rr_ll_unit": "385432009",  "cd_lab_rr_ul_unit": "385432009",  "cd_lab_intrpr_meth": "IM0001",  "tx_lab_rslt_intrpr": "Res Interpretation",  "cd_lab_test_rslt_ql": "83185005",  "tx_lab_test_rslt_id": "TestResID",  "cd_lab_test_rslt_sta": "preliminary",  "tx_lab_cmnt_test_rslt": "Lab Test comment"}]
         :return: None
         """
-        labtest_list_of_result_dicts = self.___get_value_by_capitalization_agnostic_key(self._data_unprocessed, 'TX_TTL_LAB_TEST')
+        labtest_list_of_result_dicts = self._get_value_by_capitalization_agnostic_key(self._data_unprocessed, 'TX_TTL_LAB_TEST')
         # The mic_resistances field should be a string concatenation of all resistant antibiotics. All resistant ones will
         # be stored in the mic_resistances_list, ordered alphabetically and concatenated with spaces in between.
         mic_resistances_list: list[str] = []
@@ -136,7 +136,7 @@ class ParseClinLabJson(object, metaclass=abc.ABCMeta):
             for labtest_result_dict in labtest_list_of_result_dicts:
                 labtest_code_combination = next((
                     labtest_code_combination for labtest_code_combination in labtest_code_combinations if
-                    labtest_code_combination['CD_LAB_TEST_CODE'] == self.___get_value_by_capitalization_agnostic_key(
+                    labtest_code_combination['CD_LAB_TEST_CODE'] == self._get_value_by_capitalization_agnostic_key(
                         labtest_result_dict, 'CD_LAB_TEST_CODE')))
                 translation = labtest_code_combination['translation']
 
@@ -144,7 +144,7 @@ class ParseClinLabJson(object, metaclass=abc.ABCMeta):
                     # Even if the field's value supposedly needs to come from a code list, there can be exceptions
                     # where it doesn't. E.g. it is impossible to list all serotype formulas, and new ones keep being
                     # added. The following if else catches these exceptions.
-                    code_value = self.___cast_as_int_if_int(self.___get_value_by_capitalization_agnostic_key(
+                    code_value = self._cast_as_int_if_int(self._get_value_by_capitalization_agnostic_key(
                         labtest_result_dict, labtest_code_combination['value_field']))
                     if code_value:
                         self._data_translated[translation] = self._translation_codes['code_lists'][labtest_code_combination['code_list']][code_value]
@@ -154,10 +154,10 @@ class ParseClinLabJson(object, metaclass=abc.ABCMeta):
                             mic_resistances_list.append((translation.split('_'))[1])
                     else:
                         self._data_translated[translation] = \
-                            self.___get_value_by_capitalization_agnostic_key(labtest_result_dict, 'TX_LAB_TEST_RSLT_TXT')
+                            self._get_value_by_capitalization_agnostic_key(labtest_result_dict, 'TX_LAB_TEST_RSLT_TXT')
                 else:
                     self._data_translated[translation] = \
-                        self.___get_value_by_capitalization_agnostic_key(
+                        self._get_value_by_capitalization_agnostic_key(
                             labtest_result_dict, labtest_code_combination['value_field'])
             if mic_resistances_list:
                 mic_resistances_list.sort()
@@ -169,14 +169,14 @@ class ParseClinLabJson(object, metaclass=abc.ABCMeta):
         e.g. "cd_infct_cntry": [{"cd_infct_cntry": "FR"}, {"cd_infct_cntry": "US"}]
         :return: None
         """
-        country_dicts_list: list[dict[str, str]] = self.___get_value_by_capitalization_agnostic_key(
+        country_dicts_list: list[dict[str, str]] = self._get_value_by_capitalization_agnostic_key(
             self._data_unprocessed, 'CD_INFCT_CNRTY')
         if country_dicts_list:
             for index, country_dict in enumerate(country_dicts_list):
                 for key, value in country_dict.items():
                     self._data_translated[f"country_{index + 1}"] = value
 
-    def ___parse_repeat_fields(self, repeat_field_name: str, field_name: str, code_list_name: str, bigsdb_prefix: str,
+    def _parse_repeat_fields(self, repeat_field_name: str, field_name: str, code_list_name: str, bigsdb_prefix: str,
                                other: str = None) -> None:
         """
         Parses the mandatory repeat field lists which didn't really fit in the main codes schema,
@@ -191,18 +191,18 @@ class ParseClinLabJson(object, metaclass=abc.ABCMeta):
         the code would take the last occurrence.
         :return: None
         """
-        repeat_list_of_dicts: list[dict[str, str]] = self.___get_value_by_capitalization_agnostic_key(
+        repeat_list_of_dicts: list[dict[str, str]] = self._get_value_by_capitalization_agnostic_key(
             self._data_unprocessed, repeat_field_name)
         for symptom_dict in repeat_list_of_dicts:
-            symptom_code = self.___get_value_by_capitalization_agnostic_key(symptom_dict, field_name)
-            symptom_code_translation = self._translation_codes['code_lists'][code_list_name][self.___cast_as_int_if_int(symptom_code)]
+            symptom_code = self._get_value_by_capitalization_agnostic_key(symptom_dict, field_name)
+            symptom_code_translation = self._translation_codes['code_lists'][code_list_name][self._cast_as_int_if_int(symptom_code)]
             self._data_translated[f"{bigsdb_prefix}_{symptom_code_translation.replace(' ', '_').lower()}"] = "Yes"
             if other and symptom_code_translation == 'Other':
-                other_value = self.___get_value_by_capitalization_agnostic_key(symptom_dict, other)
+                other_value = self._get_value_by_capitalization_agnostic_key(symptom_dict, other)
                 self._data_translated[f"{bigsdb_prefix}_{symptom_code_translation.replace(' ', '_').lower()}"] = other_value
 
     @staticmethod
-    def ___get_value_by_capitalization_agnostic_key(search_dictionary: dict[str, Any], target_key: str) -> Optional[Union[dict[str, Any], list[Any], str]]:
+    def _get_value_by_capitalization_agnostic_key(search_dictionary: dict[str, Any], target_key: str) -> Optional[Union[dict[str, Any], list[Any], str]]:
         """
         Searches a key capitalization agnostically in a dictionary because the ODS could not confirm that they were
         always going to send lower or uppercase keys.
@@ -216,7 +216,7 @@ class ParseClinLabJson(object, metaclass=abc.ABCMeta):
             return search_dictionary.get(target_key.upper())
 
     @staticmethod
-    def ___cast_as_int_if_int(possible_int: str) -> Union[int, str]:
+    def _cast_as_int_if_int(possible_int: str) -> Union[int, str]:
         """
         In the code lists in yaml, keys are ints if they only consist of numbers.
         In order to be able to access the int keys, strings need to be cast as ints if they are.
