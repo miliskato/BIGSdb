@@ -62,6 +62,7 @@ def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     parser.add_argument('--connection_string', required=False, type=str)  # will replace connection string, only for small testing purposes
     parser.add_argument('--alternate_dtap', choices=['dev', 'test', 'acc', 'prod'], help=argparse.SUPPRESS)  # will replace connection string, only for small testing purposes
     parser.add_argument('--dont_send_email', action='store_true', help=argparse.SUPPRESS)  # will not send emails, mainly used for blocking the reanalysis spam
+    parser.add_argument('--disable_asb_and_clustering_for_testing', action='store_true', help=argparse.SUPPRESS)
     return parser.parse_args()
 
 
@@ -73,7 +74,7 @@ class MainMongo:
                  subvaldict: Dict[str, str] = None, technical_metadata_path: Path = None, reportdirectorypath: Path = None, fastafilepath: Path = None,
                  vcffilepath: Path = None, vcffilepath_unfiltered: Path = None, original_input_format: Optional[Literal['fastq', 'fasta']] = None,
                  connection_string: str = None, alternate_dtap: Union[str, None] = None, dont_send_email: bool = False,
-                 mongo_config_data: Dict[str, Any] = None) -> None:
+                 mongo_config_data: Dict[str, Any] = None, disable_asb_and_clustering_for_testing: bool = False) -> None:
         """
         Initialises this class and executes the main function which will insert/update the sample in a mongodb collection containing isolates
         !! If parameters/arguments are added here, also add them to the argparse function!!
@@ -92,6 +93,9 @@ class MainMongo:
         :param connection_string: connection string variable from the config file
         :param alternate_dtap: alternative dtap than what is in the config file
         :param mongo_config_data: Pass provided mongo_config_data to MongoInitialisation, else get mongo_config_data from file
+        :param disable_asb_and_clustering_for_testing: In order to test the reanalysis in the NRC integration, the asb
+        and clustering need to be disabled to not interfere with other samples and to not interact with NRC VM. This can
+        also be used to test MongoDB insertion in Azure for environments that are already accessible by end-users.
         :return: None
         """
         # Input parameters
@@ -111,6 +115,7 @@ class MainMongo:
         self._alternate_dtap = alternate_dtap
         self._dont_send_email = dont_send_email
         self._mongo_config_data = mongo_config_data if mongo_config_data else get_mongodb_config_data()
+        self._disable_asb_and_clustering_for_testing = disable_asb_and_clustering_for_testing
 
         self._naive_clustering_distance_matrix_file = Path(
             self._mongo_config_data['naive_clustering_distance_matrix_file'].replace('species', self._species).replace(
@@ -132,7 +137,8 @@ class MainMongo:
         self._mongoquerying = Mongoquerying()
 
         # Create AzureServiceBus instance
-        self._asb_instance = AzureServiceBus(self._mongo_config_data, self._species, self._alternate_dtap)
+        if not self._disable_asb_and_clustering_for_testing:
+            self._asb_instance = AzureServiceBus(self._mongo_config_data, self._species, self._alternate_dtap)
 
         # Parameter compatibility checks
         self._parameter_compatibility_checks()
@@ -263,7 +269,8 @@ class MainMongo:
                 isolates_rejected_coreqc_collection = self._mongoinit.initialise_isolates_rejected_coreqc_collection()
 
                 insert_document_into_rejected_collection(isolates_rejected_coreqc_collection, rejected_document)
-                self._asb_instance.send_message_to_queue(AzureServiceBusMessage(self._technical_id, isolates_rejected_coreqc_collection.name))
+                if not self._disable_asb_and_clustering_for_testing:
+                    self._asb_instance.send_message_to_queue(AzureServiceBusMessage(self._technical_id, isolates_rejected_coreqc_collection.name))
                 logging.info(f"Sample {self._technical_id} failed one or more core QC checks. It was added to the "
                              f"isolates_rejected_coreqc collection.")
                 # exit gracefully
@@ -281,10 +288,11 @@ class MainMongo:
         """
         if self._results_type not in ('warningqc_validated', 'goodqc_validated'):  # badqc and goodqc documents have already had their typinghitdictionaries converted to lists and their cgsts/clustering computed
             json_report = mongo_records.get_json_results()
-            self.___find_hashes_in_results_and_add_to_collection(json_report, 'new_isolate')
+            if not self._disable_asb_and_clustering_for_testing:
+                self.___find_hashes_in_results_and_add_to_collection(json_report, 'new_isolate')
             self.___convert_typinghitdictionaries_to_lists(json_report)
             self.___reformat_mykrobe_results(json_report)
-            if 'cgmlst' in json_report:
+            if 'cgmlst' in json_report and not self._disable_asb_and_clustering_for_testing:
                 self.__define_cgst_and_run_clustering(json_report)
         if good_sample_quality:
             if self._results_type == 'goodqc_validated' or self._results_type == 'warningqc_validated':
@@ -352,10 +360,11 @@ class MainMongo:
 
                 # compute cgST and clustering on the Azure side independent of if quality is good or bad.
                 # (there is a missing data filet in the clustering though)
-                self.___find_hashes_in_results_and_add_to_collection(new_json_report, 'reanalysis')
+                if not self._disable_asb_and_clustering_for_testing:
+                    self.___find_hashes_in_results_and_add_to_collection(new_json_report, 'reanalysis')
                 self.___convert_typinghitdictionaries_to_lists(new_json_report)
                 self.___reformat_mykrobe_results(new_json_report)
-                if 'cgmlst' in new_json_report:
+                if 'cgmlst' in new_json_report and not self._disable_asb_and_clustering_for_testing:
                     self.__define_cgst_and_run_clustering(new_json_report)
                 new_isolate['submission_status'] = 'pending_for_submission'
                 self.___write_document(self._isolates_resequencing_collection, new_isolate)
@@ -374,7 +383,8 @@ class MainMongo:
         :return: None
         """
         if not new_json_report.get('cgST'):  # != resequencing_validated, == reanalysis
-            self.___find_hashes_in_results_and_add_to_collection(new_json_report, 'reanalysis')
+            if not self._disable_asb_and_clustering_for_testing:
+                self.___find_hashes_in_results_and_add_to_collection(new_json_report, 'reanalysis')
             self.___convert_typinghitdictionaries_to_lists(new_json_report)
             self.___reformat_mykrobe_results(new_json_report)
 
@@ -390,7 +400,7 @@ class MainMongo:
                 f"{Path(__file__).name} fail on host {socket.gethostname()}: These ({self._technical_id}) results seem to be older than the current results")
         any_result_changed_new_old, unchanged_results_new_old, changed_results_new_old = self.___check_if_results_changed(current_results, new_json_report)
         # Update new results if really a reanalysis/resequencing where at least one field changed
-        if 'cgmlst' in changed_results_new_old and not new_json_report.get('cgST'):
+        if 'cgmlst' in changed_results_new_old and not new_json_report.get('cgST') and not self._disable_asb_and_clustering_for_testing:
             self.__define_cgst_and_run_clustering(new_json_report)
         deltas_new_old = self.___nested_dict_delta(current_results, new_json_report, path_to_report)
         new_results = self.___prepend_string_dot_to_dict_keys(new_json_report, 'results')
@@ -416,7 +426,8 @@ class MainMongo:
                          "latest_analysis_date": convert_dmyhms_to_ymd(new_results["results.analysis_date"]),
                          "previous_latest_results_document": self.___write_document(self._old_isolateresults_collection,
                                                                                     MongoRecordDict(dict(deltas_new_old)))}})
-        self._asb_instance.send_message_to_queue(AzureServiceBusMessage(self._technical_id, self._isolates_collection.name))
+        if not self._disable_asb_and_clustering_for_testing:
+            self._asb_instance.send_message_to_queue(AzureServiceBusMessage(self._technical_id, self._isolates_collection.name))
         # after having updated the isolates collection, check for changes for HD ODS to respect the order of execution.
         self.___check_if_any_results_for_hd_ods_changed(dict(deltas_new_old))
         logging.info(f"Wrote new results and linked to isolate {self._technical_id} in {self._species}")
@@ -463,7 +474,7 @@ class MainMongo:
             json_input)
 
         # Send message to Azure Service Bus
-        if 'isolates' in opened_collection.name:
+        if 'isolates' in opened_collection.name and not self._disable_asb_and_clustering_for_testing:
             self._asb_instance.send_message_to_queue(AzureServiceBusMessage(
                 collection_write.inserted_id, opened_collection.name))
         logging.debug(f"Writing {collection_write.inserted_id} in collection {opened_collection}")
