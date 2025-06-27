@@ -1,5 +1,6 @@
 # Script should be run hourly in order to limit the nr of mails
 
+import argparse
 import logging
 import sys
 import traceback
@@ -19,6 +20,17 @@ from bioit_nrc_integration.python.send_genomic_to_ODS import SendGenomicToODS
 
 # Configure stdout logging
 logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
+
+
+def parse_arguments() -> argparse.Namespace:
+    """
+    Parses the command line arguments.
+    :return: Parsed arguments
+    """
+    argument_parser = argparse.ArgumentParser()
+    argument_parser.add_argument('--alternate_dtap', type=str, choices=['dev', 'acc'], default=None,
+                                 help=argparse.SUPPRESS)
+    return argument_parser.parse_args()
 
 
 class MainSenderToHD:
@@ -126,7 +138,7 @@ class MainSenderToHD:
             document_genomic['TX_BUSINESS_KEY'] = document_mapping_table['TX_BUSINESS_KEY']
             SendGenomicToODS(document_genomic, self._mongo_config_data, species, alternate_dtap=self._alternate_dtap)
 
-            isolates_collection.update_one({'_id': document_genomic['_id']},
+            isolates_collection.update_one({'_id': document_genomic['pseudo_id']},
                                            {"$set": {"sent_to_ODS": True, "changed_since_sent_to_ODS": False}})
 
     def __send_email_if_failures(self) -> None:
@@ -146,4 +158,5 @@ class MainSenderToHD:
 
 
 if __name__ == '__main__':
-    MainSenderToHD()
+    args = parse_arguments()
+    MainSenderToHD(alternate_dtap=args.alternate_dtap)

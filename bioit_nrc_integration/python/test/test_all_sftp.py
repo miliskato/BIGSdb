@@ -30,7 +30,12 @@ with SFTP_CREDENTIALS_HD.open('r') as handle:
 # get mongodb config data
 mongo_config_data = get_mongodb_config_data()
 
-DTAP = 'dev'  # should only be dev or acc
+if mongo_config_data['dtap'] == 'test':
+    DTAP = 'dev'
+elif mongo_config_data['dtap'] == 'prod':
+    DTAP = 'acc'
+else:
+    raise ValueError("Unsupported dtap value")
 
 for species, species_testfiles in testfiles_dict.items():
     mongoinit_azure = MongoInitialisation(species, mongo_config_data=mongo_config_data,
