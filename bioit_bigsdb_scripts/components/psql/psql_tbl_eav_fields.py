@@ -40,7 +40,7 @@ class TblEavFields(DatabaseConnection):
         :param param: field to insert, its category
         :return: None
         """
-        self.exists_in_eav_field(PsqlQueries.ISO_INS__TB_EAVF_VAR_BOOL_FIELD_VAL, param)
+        self.execute_query(PsqlQueries.ISO_INS__TB_EAVF_VAR_BOOL_FIELD_VAL, param)
 
     def select_fields_amr(self) -> List[Optional[Tuple[str]]]:
         """

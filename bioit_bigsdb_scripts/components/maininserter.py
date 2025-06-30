@@ -98,10 +98,10 @@ class MainInserter(JsonSuperClass):
                 self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'Genetic_group', self._json_report_dict['51SNP-genetic_group']))
                 self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'SCG', self._json_report_dict['51SNP-scg']))
             # json input (only this way in json output)
-            elif '51SNP' in self._json_report_dict:
-                self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'gyrB_group', self._json_report_dict['51SNP']['51SNP-gyrB_group']))
-                self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'Genetic_group', self._json_report_dict['51SNP']['51SNP-genetic_group']))
-                self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'SCG', self._json_report_dict['51SNP']['51SNP-scg']))
+            elif '51_snp' in self._json_report_dict:
+                self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'gyrB_group', self._json_report_dict['51_snp']['51SNP-gyrB_group']))
+                self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'Genetic_group', self._json_report_dict['51_snp']['51SNP-genetic_group']))
+                self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'SCG', self._json_report_dict['51_snp']['51SNP-scg']))
             # tsv input
             if 'snpit_species' in self._json_report_dict:
                 self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'snpit_species', self._json_report_dict['snpit_species']))
