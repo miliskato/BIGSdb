@@ -266,8 +266,8 @@ class BatchPipelinesReanalysis:
             f"Submitting reanalysis for samples older than {maximal_analysis_date} and younger than {minimal_analysis_date} with arguments: {date_args_dict[maximal_analysis_date]} for {self._species}_{self._dtap}")
         # Retrieve isolates that need to be re-analyzed
         mongoinit = MongoInitialisation(self._species,
-                                        selected_connection_string='CONNECTION_STRING_AZURE',
-                                        alternate_dtap=self._dtap)
+                                        connection_string=self._mongo_config_provider.get_azure_connection_string(self._species),
+                                        dtap=self._dtap)
         isolates_collection, _, _, _, _ = mongoinit.initialise_collections()
         # query all the documents as a projection
         documents_list = [doc for doc in
