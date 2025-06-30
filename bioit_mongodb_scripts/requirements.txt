@@ -102,6 +102,8 @@ oauthlib==3.2.2
     # via requests-oauthlib
 portalocker==2.10.1
     # via msal-extensions
+psycopg[binary]==3.2.9
+    # via -r requirements.in
 pycparser==2.22
     # via cffi
 pyjwt[crypto]==2.10.1
