@@ -33,6 +33,10 @@ class MongoConfigProvider:
     """
 
     def __init__(self, alternate_dtap: Optional[DtapValue] = None):
+        """
+        :param alternate_dtap: optional dtap if need to overwrite the config
+        :return: None
+        """
         if alternate_dtap:
             validate_literal(alternate_dtap, DtapValues)
         self._mongo_global_config = get_mongodb_config_data()
@@ -40,22 +44,35 @@ class MongoConfigProvider:
         self.__password = self._mongo_global_config['MONGO_DB_PASSWORD']
         self.upload_path = 'upload/' + f"{(alternate_dtap + '/') if alternate_dtap else ''}"
 
-    def _get_user(self, species: str):
+    def _get_user(self, species: str) -> str:
+        """
+        Return the MongoDB user string for this particular species and dtap
+        :param species: the current species name
+        :return: a string corresponding to the MongoDB user
+        """
         return f'{species}User_{self.dtap}'
 
     def _get_dtap_extension(self) -> str:
+        """
+        Return the dtap that will be used as extension for diverse string. Either the one from the config or the one passed in arguments
+        :return: a string corresponding to the dtap
+        """
         if self.dtap in ['dev', 'test']:
             return 'devtest'
         return 'accprod'
 
     def _get_domain_for_dtap(self) -> str:
+        """
+        Return the domain according to the current dtap
+        :return: a string corresponding to the domain name
+        """
         if self.dtap in ['dev', 'test']:
             return 'darwinproject.be'
         return 'sciensano.be'
 
     def get_local_connection_string(self, species: str) -> str:
         """
-        get local connection string to mongo
+        Get connection string to the local cluster of MongoDB
         :return: connection string
         """
         dtap_domain = self._get_domain_for_dtap()
@@ -65,7 +82,7 @@ class MongoConfigProvider:
 
     def get_azure_connection_string(self, species: str) -> str:
         """
-        get azure connection string to mongo
+        Get connection string to MongoDB Atlas cluster
         :return: connection string
         """
         dtap_extension = self._get_dtap_extension()
@@ -75,7 +92,7 @@ class MongoConfigProvider:
 
     def get_alternate_connection_string(self) -> str:
         """
-        get alternate connection string to mongo
+        Get alternate connection string contains in the config file for MongoDB
         :return: connection string
         """
         return self._mongo_global_config['CONNECTION_STRING_ALTERNATE']
@@ -89,16 +106,23 @@ class MongoConfigProvider:
         return species in self._mongo_global_config['viral_species']
 
     def get_asb_connection_string(self) -> str:
+        """
+        Get the connection string for Azure Service Bus
+        :return: connection string to Azure Service Bus
+        """
         return self._mongo_global_config['CONNECTION_STRING_ASB']
 
     @staticmethod
     def get_all_species() -> List[str]:
+        """
+        Get the list of all currently used species
+        :return: a list of all currently used species
+        """
         return ["enterococcus_faecalis",
                 "enterococcus_faecium",
                 "listeria",
                 "mycobacterium",
                 "neisseria",
-                "stec",
                 "salmonella",
                 "influenza",
                 "sars_cov_2"]
@@ -106,6 +130,7 @@ class MongoConfigProvider:
     def get_schemes_sequence_typing(self) -> List[str]:
         """
         get sequence typing schemes from the mongo db config
+        :return: a list of sequence typing schemes
         """
         return self._mongo_global_config['schemes_sequence_typing']
 
@@ -121,23 +146,38 @@ class MongoConfigProvider:
     def get_temp_dir(self) -> str:
         """
         get temp dir based on mongo config
+        :return: a string referring to the temp dir
         """
         return self._mongo_global_config['temp_dir']
 
-    def get_azure_reportsapi_ip(self):
+    def get_azure_reportsapi_ip(self) -> str:
         """
-        get azure reportsapi ip based on mongo config
+        get azure reportsapi ip address based on mongo config
+        :return: a string referring to the azure reportsapi ip address
         """
         return self._mongo_global_config['azure_reportsapi_ip']
 
-    def get_mail(self):
+    def get_mail(self) -> str:
+        """
+        get email address to send the log
+        :return: a string referring to the email address
+        """
         return self._mongo_global_config['mail']
 
-    def get_json_reports_dir(self):
+    def get_json_reports_dir(self) -> str:
+        """
+        get json reports dir based on mongo config
+        :return: a string referring to the json reports dir
+        """
         return self._mongo_global_config['json_reports_dir']
 
     @staticmethod
     def host_is_an_nrc_platform(species: str) -> bool:
+        """
+        Check if the current host is a VM used for the deployment of NRC platform
+        :param species: species
+        :return: True if current host is a VM used for the deployment of NRC platform
+        """
         platform_naming = f'bioit-nrc{species[:3]}'
         if platform_naming in f'{socket.gethostname()}':
             return True
