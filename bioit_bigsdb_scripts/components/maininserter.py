@@ -55,14 +55,15 @@ class MainInserter(JsonSuperClass):
         :return: None
         """
         with TblIsolates(self._species) as isolates_psql_tbl:
-            isolates_psql_tbl.update_isolate_analysis_date((datetime.datetime.strptime(self._json_report_dict['analysis_date'], '%d/%m/%Y - %X').strftime('%Y-%m-%d'), self._isolatename))
+            isolates_psql_tbl.update_isolate_analysis_date(
+                (datetime.datetime.strptime(self._json_report_dict['analysis_date'], '%d/%m/%Y - %X').strftime('%Y-%m-%d'), self._isolatename))
 
     def insert_main_metadata(self) -> None:
         """
         Inserts the main metadata into bigsdb for an isolate
         :return: None
         """
-        with TblEavText(self._species) as self._isolates_eavt_psql_tbl,\
+        with TblEavText(self._species) as self._isolates_eavt_psql_tbl, \
                 TblIsolates(self._species) as self.isolates_psql_tbl, TblEavInt(self._species) as self._isolates_eavi_psql_tbl:
 
             with TblIsolates(self._species) as isolates_psql_tbl:
@@ -83,7 +84,8 @@ class MainInserter(JsonSuperClass):
                     isolates_eavth_psql_tbl.insert_hidden_isolate((self._isolatename, 'mongo_results_version', self._json_report_dict['changed_version']))
             if 'validation' in self._json_report_dict:
                 self.isolates_psql_tbl.add_validation((self._json_report_dict['validation']['type'], self._json_report_dict['validation']['curator'],
-                     datetime.datetime.strptime(self._json_report_dict['validation']['date'], '%d/%m/%Y - %X').strftime('%Y-%m-%d'), str(isolate_id)))
+                                                       datetime.datetime.strptime(self._json_report_dict['validation']['date'], '%d/%m/%Y - %X').strftime('%Y-%m-%d'),
+                                                       str(isolate_id)))
             logging.info('Metadata insertion successful')
 
     def _insert_species_specific_metadata(self) -> None:
@@ -125,5 +127,6 @@ class MainInserter(JsonSuperClass):
                 self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'Serogroup_capsule', self._json_report_dict['serogroup']['serogroup_capsule']))
         elif self._species == 'influenza':
             if 'nextclade' in self._json_report_dict:
-                self._isolates_eavt_psql_tbl.insert_eav_isolate_viral_species((self._isolatename, 'influenza_subtype', self._json_report_dict['nextclade'].get('nextclade_detected_subtype')))
+                self._isolates_eavt_psql_tbl.insert_eav_isolate_viral_species(
+                    (self._isolatename, 'influenza_subtype', self._json_report_dict['nextclade'].get('nextclade_detected_subtype')))
                 self._isolates_eavt_psql_tbl.insert_eav_isolate_viral_species((self._isolatename, 'nextclade_clade', self._json_report_dict['nextclade'].get('nextclade_clade')))
