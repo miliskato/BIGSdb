@@ -4,7 +4,6 @@ CREATE TYPE hospital_unit_type AS ENUM ('PEDSICU', 'ICU', 'INFECT', 'INTMED', 'O
 CREATE TYPE lin_gen_type AS ENUM ('CFR', 'CFRB', 'OPTRA', 'POXTA', 'POXTA-EF', '23S1', '23S2', 'O', 'UNK', 'NA');
 CREATE TYPE pathogen_defined_type AS ENUM ('ENCFAE', 'ENCFAI', 'ENCGALL', 'ENCCASS', 'ENCDUR', 'ENCRAFF', 'ENC', 'O', 'NA', 'UNK', 'ENCAVI');
 CREATE TYPE patient_type_type AS ENUM ('INPAT','O','OUTPAT', 'UNK');
-CREATE TYPE mic_sign_type AS ENUM ('<', '<=', '=', '>=', '>');
 CREATE TYPE vangenes_type AS ENUM ('VANA', 'VANB', 'VANC', 'VAND', 'VANE', 'VANG', 'VANAC', 'VANBC', 'O', 'UNK', 'NA', 'VANAB');
 CREATE TYPE specimen_type AS ENUM ('BLOOD', 'CSF', 'BRONCHTRACH', 'ABDO', 'PERITONEAL', 'WOUND', 'TISSUE', 'THROAT', 'SKIN',
     'EAR', 'NONSTERILE', 'OTHERSTERILE', 'SCREENING', 'SALIVA', 'URINE', 'UNK', 'NA');
@@ -43,28 +42,28 @@ ALTER TABLE isolates
     ADD COLUMN outbreak boolean,
     ADD COLUMN pathogen pathogen_defined_type,
     ADD COLUMN patient_type patient_type_type,
-    ADD COLUMN mic_amo_sign mic_sign_type,
+    ADD COLUMN mic_amo_sign text,
     ADD COLUMN mic_amo real,
     ADD COLUMN mic_amo_I text,
-    ADD COLUMN mic_dap_sign mic_sign_type,
+    ADD COLUMN mic_dap_sign text,
     ADD COLUMN mic_dap real,
     ADD COLUMN mic_dap_I text,
-    ADD COLUMN mic_era_sign mic_sign_type,
+    ADD COLUMN mic_era_sign text,
     ADD COLUMN mic_era real,
     ADD COLUMN mic_era_I text,
-    ADD COLUMN mic_gen_sign mic_sign_type,
+    ADD COLUMN mic_gen_sign text,
     ADD COLUMN mic_gen real,
     ADD COLUMN mic_gen_I text,
-    ADD COLUMN mic_lin_sign mic_sign_type,
+    ADD COLUMN mic_lin_sign text,
     ADD COLUMN mic_lin real,
     ADD COLUMN mic_lin_I text,
-    ADD COLUMN mic_tec_sign mic_sign_type,
+    ADD COLUMN mic_tec_sign text,
     ADD COLUMN mic_tec real,
     ADD COLUMN mic_tec_I text,
-    ADD COLUMN mic_tig_sign mic_sign_type,
+    ADD COLUMN mic_tig_sign text,
     ADD COLUMN mic_tig real,
     ADD COLUMN mic_tig_I text,
-    ADD COLUMN mic_van_sign mic_sign_type,
+    ADD COLUMN mic_van_sign text,
     ADD COLUMN mic_van real,
     ADD COLUMN mic_van_I text,
     ADD COLUMN subject text,
@@ -132,6 +131,5 @@ DROP TYPE hospital_unit_type;
 DROP TYPE lin_gen_type;
 DROP TYPE pathogen_defined_type;
 DROP TYPE patient_type_type;
-DROP TYPE mic_sign_type;
 DROP TYPE vangenes_type;
 DROP TYPE specimen_type;

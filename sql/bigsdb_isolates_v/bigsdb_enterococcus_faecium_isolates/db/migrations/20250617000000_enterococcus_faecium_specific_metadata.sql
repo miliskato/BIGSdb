@@ -131,6 +131,5 @@ DROP TYPE hospital_unit_type;
 DROP TYPE lin_gen_type;
 DROP TYPE pathogen_defined_type;
 DROP TYPE patient_type_type;
-DROP TYPE mic_sign_type;
 DROP TYPE vangenes_type;
 DROP TYPE specimen_type;
