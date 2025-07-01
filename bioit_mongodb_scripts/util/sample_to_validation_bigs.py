@@ -2,10 +2,12 @@ import datetime
 import socket
 import sys
 from pathlib import Path
-from typing import Literal, Tuple
+from typing import Literal, Tuple, Union
 
 from pymongo.write_concern import WriteConcern
 from pymongo.collection import Collection
+
+from bioit_bigsdb_scripts.utils.literal_helper import validate_literal
 
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
@@ -17,6 +19,12 @@ from bioit_mongodb_scripts.model.json_model import MongoRecordDict
 from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 
+QualityLiteral = Literal['warning', 'good']
+QualityValues = Union[QualityLiteral, str]
+
+ResequencingLiteral = Literal['yes', 'no']
+ResequencingValues = Union[ResequencingLiteral, str]
+
 
 class SampleToValidationBigs:
     """
@@ -24,8 +32,8 @@ class SampleToValidationBigs:
     already done.
     """
 
-    def __init__(self, species: str, isolate_id: str, pseudo_id: str, quality: Literal['warning', 'good'],
-                 resequencing: Literal['yes', 'no'],  mongo_config_provider: MongoConfigProvider) -> None:
+    def __init__(self, species: str, isolate_id: str, pseudo_id: str, quality: QualityValues,
+                 resequencing: ResequencingValues, mongo_config_provider: MongoConfigProvider) -> None:
         """
         Call methods to insert samples into BIGSdb submission table.
         :param species: commonly used bioit species name: either genus or specific like stec
@@ -43,6 +51,8 @@ class SampleToValidationBigs:
         self._quality = quality
         self._resequencing = resequencing
         self._collection, self._update_collection, self._validation_type = self._get_collections_and_validation_type()
+        validate_literal(quality, QualityLiteral)
+        validate_literal(resequencing, ResequencingLiteral)
 
     def _get_collections_and_validation_type(self) -> Tuple[Collection, Collection, str]:
         """
@@ -90,7 +100,6 @@ class SampleToValidationBigs:
         with TblSubmissions(self._species) as isolates_sub_psql_tbl, \
                 TblIsolateSubmissionIsolates(self._species) as isolates_isosubiso_psql_tbl, \
                 TblIsolateSubmissionFieldOrder(self._species) as isolates_isosubfo_psql_tbl:
-
             isolates_sub_psql_tbl.insert_submission((self._quality, self._resequencing))
             report_url = UrlHelper.report_for_validation(self._species, sample_doc['_id'],
                                                          sample_doc['latest_analysis_date'],

@@ -1,13 +1,17 @@
 import logging
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional, Tuple
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
 from bioit_mongodb_scripts.model.json_model import JsonReportDict
 from .json_superclass import JsonSuperClass
 from .psql import TblAlleleDesignations, TblEavBoolean, TblEavFields, TblEavFloat, TblEavText, TblHistory, TblIsolates, TblSchemeMembers
 from ..utils.html_tbl_templates import HtmlMobSuiteTableBuilder
+from ..utils.literal_helper import validate_literal
 from ..utils.url_helper import UrlHelper
+
+ModeLiteral = Literal['kmer', 'kmerread', 'allele']
+ModeValue = Union[ModeLiteral, str]
 
 
 class JsonTypingResultsInserter(JsonSuperClass):
@@ -353,13 +357,14 @@ class JsonTypingResultsInserter(JsonSuperClass):
                     self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, item[0], amr_detection))
 
     def ___salmonella_insert_antigens_into_db(self, raw_formula: str,
-                                              mode: Optional[Literal['kmer', 'kmerread', 'allele']] = None) -> None:
+                                              mode: Optional[ModeValue] = None) -> None:
         """
         Inserts antigens separately from the formula
         :param raw_formula: serotype formula O:H1:H2
         :param mode: Seqsero2 specific parameter to differentiate between the three different modes that it is run in.
         :return: None
         """
+        validate_literal(mode, ModeLiteral)
         raw_formula_splitted: List = raw_formula.split(':')
         antigensdict = {"O_antigen": raw_formula_splitted[0].split(','),
                         "H1_antigen": raw_formula_splitted[1].split(','),

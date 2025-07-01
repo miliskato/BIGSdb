@@ -1,7 +1,5 @@
 from typing import Literal, get_args, get_origin
 
-from scipy.constants import litre
-
 
 def validate_literal(value, literal_type):
     if not get_origin(literal_type) is Literal:
