@@ -250,5 +250,4 @@ if __name__ == '__main__':
     elif args.connection_string == 'CONNECTION_STRING_LOCAL':
         connection_string = mongo_config_provider.get_local_connection_string(args.species)
 
-    #run main
     TempidReplacer(args.scheme, args.species, connection_string=args.connection_string)

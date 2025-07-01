@@ -1,4 +1,4 @@
-from typing import Any, Dict, Tuple
+from typing import Any, Dict
 import pandas as pd
 
 from bioit_bigsdb_scripts.inserters.context.gene_detection_context import GeneDetectionContext

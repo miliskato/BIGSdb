@@ -3,7 +3,7 @@ import argparse
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import List, Literal, Union, Any
+from typing import Literal, Union
 
 # import dnspython
 # somehow this package is a requirement without actually needing to be imported, probably imported in pymongo
@@ -52,7 +52,7 @@ def insert_failed_sample_as_rejected_manually(technical_id: str, species: str,
     :return: None
     """
     mongo_config_provider = MongoConfigProvider(alternate_dtap=alternate_dtap)
-    mongoinit = MongoInitialisation(species,mongo_config_provider.get_azure_connection_string(species), mongo_config_provider.dtap)
+    mongoinit = MongoInitialisation(species, mongo_config_provider.get_azure_connection_string(species), mongo_config_provider.dtap)
 
     isolates_rejected_coreqc_collection = mongoinit.initialise_isolates_rejected_coreqc_collection()
 

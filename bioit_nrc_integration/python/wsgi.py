@@ -27,7 +27,7 @@ def handle_message(environ: Dict[str, Any], start_response: Callable) -> Iterabl
     mapping_table_dict = load_request_body_as_json(request_body, start_response)
     # if the parsing failed, the mapping table dict is a bytes iterable and not a dict.
     # The bytes iterable needs to be returned.
-    if not type(mapping_table_dict) == dict:
+    if not isinstance(mapping_table_dict, dict):
         return mapping_table_dict
 
     # Insert mapping table into mongodb

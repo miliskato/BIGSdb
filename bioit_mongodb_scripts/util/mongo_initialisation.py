@@ -59,7 +59,8 @@ class MongoInitialisation:
             raise NameError(f"replace dtap value in bioit_mongodb_scripts/config/config.yml or use alternate_dtap")
         return self.client['_'.join([species, self._dtap])]  # e.g. listeria_dev
 
-    def _open_mongo_collection(self, opened_database: pymongo.database.Database, collection: MongoCollectionName) -> Collection:
+    @staticmethod
+    def _open_mongo_collection(opened_database: pymongo.database.Database, collection: MongoCollectionName) -> Collection:
         """
         Opens a mongo collection in an opened database
         :param opened_database: mongo opened database

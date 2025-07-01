@@ -6,7 +6,6 @@ from pathlib import Path
 import paramiko
 import yaml
 
-
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
@@ -111,13 +110,12 @@ for species, species_testfiles in testfiles_dict.items():
                     sftp_credentials_hd['password_send_genomic_to_ODS'])
     # Create an SFTP session
     sftp_ods = ssh_ods.open_sftp()
-    
+
     sftp_ods.rename(f"upload/{DTAP}/{dummy_mapping_table['_id']}.json",
                     f"upload/{DTAP}/processed/{dummy_mapping_table['_id']}.json")
     sftp_ods.close()
     ssh_ods.close()
 
-    
     """
     Run main error checker and processed acknowledger
     """

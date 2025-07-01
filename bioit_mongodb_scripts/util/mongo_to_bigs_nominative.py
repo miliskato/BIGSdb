@@ -4,7 +4,6 @@ import socket
 import sys
 import traceback
 from pathlib import Path
-from typing import List
 
 from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 
