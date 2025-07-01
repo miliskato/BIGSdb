@@ -164,7 +164,7 @@ class MessageConsumerDataInserter(AzureServiceBus):
 
     def __keep_error_in_postgres(self, e: Exception, msg: ServiceBusReceivedMessage) -> None:
         """
-        keeps track of the exception in postgres db and also in the /var/log/bigsdb_insertion_{species}.log
+        keeps track of the exception in postgres db and also in the /var/log/bigsdb_insertion_log/bigsdb_insertion_{species}.log
         :param e: Exception
         :param msg: a ServiceBusReceivedMessage object
         :return: None
@@ -256,7 +256,7 @@ def config_log_handlers(species: str) -> None:
     :param species: the species used in ANSIBLE playbook
     :return: None
     """
-    handler = handlers.TimedRotatingFileHandler(f'/var/log/bigsdb_insertions_{species}.log', when="D", interval=1, backupCount=14)
+    handler = handlers.TimedRotatingFileHandler(f'/var/log/bigsdb_insertions_service/bigsdb_insertions_{species}.log', when="D", interval=1, backupCount=14)
     formatter = logging.Formatter('%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
     handler.setFormatter(formatter)
     logger.addHandler(handler)
@@ -280,7 +280,7 @@ def handling_retry_outcome(retry_state: RetryCallState) -> None:
     """
     global mail_sent
     if not mail_sent:
-        send_email(f"{retry_state.outcome.exception()}\nLook at the logs on {socket.gethostname()} (/var/log/bigsdb_insertions_[species].log)",
+        send_email(f"{retry_state.outcome.exception()}\nLook at the logs on {socket.gethostname()} (/var/log/bigsdb_insertions_service/bigsdb_insertions_[species].log)",
                    f'WARNING: azure_service_bus_consumer raised errors on {socket.gethostname()}')
         mail_sent = True
     logger.error("Tentative number %s failed. Message: %s", retry_state.attempt_number, retry_state.outcome.exception())
