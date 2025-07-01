@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+### Added:
+- Ability to support deployment for multiple species databases on the same VM
+- Enterococcus faecalis and Enterococcus faecium related assays ('MLST_Bezdicek', 'LRE-Finder')
+- Method to validate Literal object and value passed to this one
+
+### Changed
+- Method to get relevant info from the mongoDB config file
+- Content of the mongoDB config file (bioit_mongodb_scripts/config/config.yml)
+- Migration files for the "isolates" DB are now moved to a extra subfolder (bigsdb_isolates_v/bigsdb_{{ species }}_isolates) to avoid overlap of the migrations files after the first deployment (one deployment/species)
+- log files for the bigsdb-insertion-{species}.service are moved to /var/log/bigsdb_insertions_service/ folder 
+
+## Fixed
+- Issue with rotation of the logs for bigsdb-insertion-{species}.service
+- Literal accepting silently wrong values
+
+### Removed:
+- some batch of unused files + stec related functions
+
 ## [3.0.0] 
 ### Added:
 - rMLST scheme
