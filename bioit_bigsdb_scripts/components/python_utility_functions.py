@@ -1,9 +1,4 @@
-import inspect
-import logging
-import smtplib
-import socket
 import sys
-from email.message import EmailMessage
 from pathlib import Path
 from typing import Any, Dict, List, Union
 
