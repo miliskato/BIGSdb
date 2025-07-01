@@ -7,11 +7,13 @@ import traceback
 from pathlib import Path
 from typing import Dict, List
 
+
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
 from bioit_bigsdb_scripts.components.psql import TblLoci, TblSchemeMembers, TblClientDbaseLoci
-from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data, send_email
+from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data
+from bioit_mongodb_scripts.util.python_utility_functions import send_email
 
 
 def _parse_arguments(specieslist: List[str]) -> argparse.Namespace:

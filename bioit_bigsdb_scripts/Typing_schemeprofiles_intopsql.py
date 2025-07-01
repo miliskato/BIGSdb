@@ -10,6 +10,7 @@ from typing import Dict, Final, List, Tuple
 
 import pandas as pd
 
+
 pd.set_option('future.no_silent_downcasting', True)
 
 PYTHONPATH = Path(__file__).resolve().parent.parent
@@ -17,7 +18,8 @@ sys.path.append(str(PYTHONPATH))
 
 from bioit_bigsdb_scripts.components.psql import TblProfiles, TblProfileFields, TblProfileMembers, TblSchemes, \
     TblSequences
-from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data, send_email
+from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data
+from bioit_mongodb_scripts.util.python_utility_functions import send_email
 
 # For this script I am assuming that profiles do not retire.
 
@@ -93,7 +95,7 @@ class TypingSchemeProfilesIntoPsql:
                 for field in schemedict[scheme]['scheme_fields']:
                     try:
                         if pd.isnull(profile_line_df[field].values[0]):
-                            continue # to avoid removing profile if CC is missing
+                            continue  # to avoid removing profile if CC is missing
                         field_value = profile_line_df[field].values[0]
                         seqdef_profilefields_psql_table.insert_profile_field(
                             (bigsdb_scheme_name, field, profile_id, field_value.replace('_', ' ')))
