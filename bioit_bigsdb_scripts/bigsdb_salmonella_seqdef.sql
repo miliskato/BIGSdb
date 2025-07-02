@@ -268,3 +268,6 @@ INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) VALUES
 INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) VALUES(1, 'SPIFINDER_FASTA_C63PI', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
 INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) VALUES(1, 'SPIFINDER_FASTA_CS54_ISLAND', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
 INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) VALUES(1, 'SPIFINDER_FASTA_NOT_NAMED', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
+
+INSERT INTO classification_schemes(id, scheme_id, name, description, inclusion_threshold, use_relative_threshold, display_order, status, curator, datestamp) VALUES(1, (SELECT id FROM schemes WHERE name = 'cgMLST'), 'cgMLST_5_diffs_clustering', 'cgMLST profiles clustering at the threshold of 5 allelic differences', 5, false, 1, 'experimental', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
+INSERT INTO classification_schemes(id, scheme_id, name, description, inclusion_threshold, use_relative_threshold, display_order, status, curator, datestamp) VALUES(2, (SELECT id FROM schemes WHERE name = 'cgMLST'), 'cgMLST_10_diffs_clustering', 'cgMLST profiles clustering at the threshold of 10 allelic differences', 10, false, 2, 'experimental', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
