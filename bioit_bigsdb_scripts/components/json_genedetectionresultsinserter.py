@@ -113,7 +113,7 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                                     (clusterhit, self._isolatename, '1'))
 
                             clusterhitset.add(clusterhit)
-                            locus_table_builder.add_locus(hit, clusterhit)
+                            locus_table_builder.add_locus(hit_name, clusterhit)
 
                     html = locus_table_builder.build()
 
