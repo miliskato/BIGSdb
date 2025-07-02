@@ -90,7 +90,7 @@ species:
       amrfinder:
         metadatafile: /db/amrfinder/v4/latest/AMRProt.fa
         schemename_bigsdb: AMRFinder
-        schemename_html: amr #TODO replace this value by amrfinder when the bug will be fixed in the image VM
+        schemename_html: amrfinder
   mycobacterium:
     typing_schemes:
       mycobacterium_mlst:
