@@ -135,7 +135,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
         plasmid_list = self._json_report_dict['mob_suite'].get('mob_suite_overview')
         if not plasmid_list:
             return
-        report_url = UrlHelper.report_for_isolate(self._species, self._isolatename)
+        report_url = UrlHelper.report_for_isolate(self._species, self.__get_isolate_id())
         mob_suite_table_builder = HtmlMobSuiteTableBuilder(report_url)
         for item in plasmid_list:
             mob_suite_table_builder.add_plasmid(item['id'], item['num_contigs'], item['size'], item['gc'], item['predicted_mobility'], item['rep_type(s)'], item['relaxase_type(s)'])
@@ -144,7 +144,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
         with TblEavText(self._species) as isolates_eavt_psql_tbl:
             isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'MOB-Suite', html))
 
-    def ___get_isolate_id(self) -> str:
+    def __get_isolate_id(self) -> str:
         """
         return BIGSdb id of the isolate
         :return: BIGSdb id of the isolate
