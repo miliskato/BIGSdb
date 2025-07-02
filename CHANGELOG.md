@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed:
 - The html that are used in the bigsdb config are now corresponding to those used in the report (in the tagger_config) except for AMRFinder, we stick to #amr as the anchor #amrfinder was not present in the report
 - The url link to the report which was used in Mob-Suite html table is now working
+- Insertion of cgMLST diffs clustering into classification schemes table of salmonella isolates database
 
 ## [4.0.0]
 ### Changed:
