@@ -7,7 +7,7 @@ from bioit_bigsdb_scripts.inserters.context.gene_detection_context_builder impor
 
 class LreFinderGeneDetectionContextBuilder(GeneDetectionContextBuilder):
     """
-    Builder of context specific to the ResFinder4 gene detection scheme.
+    Builder of context specific to the LRE-Finder gene detection scheme.
     """
     SCHEME_NAME = 'lrefinder'
 
