@@ -130,7 +130,7 @@ class HtmlMobSuiteTableBuilder(HtmlTableBuilder):
         super().__init__(headers=['id', 'num. contigs', 'size', 'GC content', 'predicted mobility', 'rep type(s)', 'relaxase types'], width_px=800)
         self.add_report_row(report_url)
 
-    def add_plasmid(self, id:str, num_contigs: str, size: str, gc_content: str, predicted_mobility: str, rep_types: str, relaxase_types: str) -> None:
+    def add_plasmid(self, id: str, num_contigs: str, size: str, gc_content: str, predicted_mobility: str, rep_types: str, relaxase_types: str) -> None:
         """
         add characteristics of the plasmid detected by Mob-suite
         :param id: plasmid id
