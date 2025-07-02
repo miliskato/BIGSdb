@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+### Changed:
+- version of AMRFinder int the tagger_config.yml file (for Neisseria, Listeria and Enterococcus spp.)
+
+### Fixed:
+- The html that are used in the bigsdb config are now corresponding to those used in the report (in the tagger_config) except for AMRFinder, we stick to #amr as the anchor #amrfinder was not present in the report
+- The url link to the report which was used in Mob-Suite html table is now working
+
 ## [4.0.0]
 ### Changed:
 - AMRFinder tool and database version
