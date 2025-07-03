@@ -11,15 +11,14 @@ from typing import Any, Dict, List, Optional, Union
 
 import yaml
 
-from bioit_bigsdb_scripts.config import BIGSDB_CONFIG
-from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
-
+from bioit_bigsdb_scripts.config import BIGSDB_CONFIG
 from bioit_mongodb_scripts.model.json_model import MongoRecordDict
 from bioit_bigsdb_scripts.components.psql import TblSchemes
 from bioit_mongodb_scripts.util.command.command import Command
+from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 
 
 def load_config(config: Path) -> Dict[str, Union[str, List[Any], Dict[str, Union[str, Dict[str, Any]]]]]:
