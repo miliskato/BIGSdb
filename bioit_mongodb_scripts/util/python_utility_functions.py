@@ -16,7 +16,6 @@ PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 from bioit_bigsdb_scripts.config import BIGSDB_CONFIG
 from bioit_mongodb_scripts.model.json_model import MongoRecordDict
-from bioit_bigsdb_scripts.components.psql import TblSchemes
 from bioit_mongodb_scripts.util.command.command import Command
 from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 
@@ -132,6 +131,7 @@ def get_cgmlst_bigsdb_scheme_id(species: str) -> int:
     :param species: commonly used bioit species name: either genus or specific like stec
     :return: cgMLST BIGSdb scheme id
     """
+    from bioit_bigsdb_scripts.components.psql import TblSchemes
     with TblSchemes(species, 'isolates') as isolates_schemes_psql_tbl:
         cgmlst_bigsdb_scheme_id = isolates_schemes_psql_tbl.select_scheme_id_cgmlst()[0][0]
     return cgmlst_bigsdb_scheme_id
