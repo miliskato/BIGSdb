@@ -18,8 +18,7 @@ sys.path.append(str(PYTHONPATH))
 
 from bioit_bigsdb_scripts.components.psql import TblProfiles, TblProfileFields, TblProfileMembers, TblSchemes, \
     TblSequences
-from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data
-from bioit_mongodb_scripts.util.python_utility_functions import send_email
+from bioit_mongodb_scripts.util.python_utility_functions import get_bigsdb_config_data, send_email
 
 # For this script I am assuming that profiles do not retire.
 

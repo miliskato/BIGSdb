@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Optional, Union
 
 import yaml
 
+from bioit_bigsdb_scripts.config import BIGSDB_CONFIG
 from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
@@ -135,3 +136,13 @@ def get_cgmlst_bigsdb_scheme_id(species: str) -> int:
     with TblSchemes(species, 'isolates') as isolates_schemes_psql_tbl:
         cgmlst_bigsdb_scheme_id = isolates_schemes_psql_tbl.select_scheme_id_cgmlst()[0][0]
     return cgmlst_bigsdb_scheme_id
+
+
+def get_bigsdb_config_data() -> Dict[str, Union[str, List[Any], Dict[str, Union[str, Dict[str, Any]]]]]:
+    """
+    Reads the global bigsdb config
+    :return:
+    """
+    with open(BIGSDB_CONFIG, encoding='utf-8') as handle:
+        bigsdb_config_data = yaml.safe_load(handle)
+    return bigsdb_config_data

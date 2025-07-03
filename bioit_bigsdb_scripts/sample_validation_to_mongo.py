@@ -22,12 +22,11 @@ PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
 from bioit_bigsdb_scripts.components.psql import TblSubmissions
-from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data
 from bioit_mongodb_scripts.mainmongo import MainMongo
 from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.model.json_model import MongoRecordDict
-from bioit_mongodb_scripts.util.python_utility_functions import send_email
+from bioit_mongodb_scripts.util.python_utility_functions import get_bigsdb_config_data, send_email
 
 
 def parse_arguments(specieslist: List[str]) -> argparse.Namespace:

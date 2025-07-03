@@ -10,8 +10,7 @@ PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
 from bioit_bigsdb_scripts.components.psql import TblIsolates, TblSubmissions, TblIsolateSubmissionIsolates
-from psql.databaseconnection import get_bigsdb_config_data
-from bioit_mongodb_scripts.util.python_utility_functions import send_email
+from bioit_mongodb_scripts.util.python_utility_functions import get_bigsdb_config_data, send_email
 
 
 def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
