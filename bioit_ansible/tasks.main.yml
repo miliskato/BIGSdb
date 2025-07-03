@@ -1078,7 +1078,7 @@
     - name: activate the service
       ansible.builtin.systemd:
         daemon-reload: true
-        state: started
+        state: restarted
         enabled: true
         name: "bigsdb-insertion-{{ species }}.service"
 
