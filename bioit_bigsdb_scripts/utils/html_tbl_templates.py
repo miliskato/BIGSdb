@@ -143,3 +143,24 @@ class HtmlMobSuiteTableBuilder(HtmlTableBuilder):
         :return: None
         """
         self.add_row([id, num_contigs, size, gc_content, predicted_mobility, rep_types, relaxase_types])
+
+
+class HtmlAntiviralMutationsTableBuilder(HtmlTableBuilder):
+    """subclass used to create the html table following the format for Antiviral mutations"""
+    def __init__(self, report_url: str) -> None:
+        """
+        :param report_url: url to call the api to get the html report
+        :return: None
+        """
+        super().__init__(headers=['Category', 'Key', 'Antiviral', 'Resistance'], width_px=700)
+        self.add_report_row(report_url)
+
+    def add_mutation(self, category: str, key: str, antiviral: str, resistance: str) -> None:
+        """
+        :param category: category of the mutation
+        :param key: key mutation
+        :param antiviral: antiviral for which the resistance might exist
+        :param resistance: type of resistance among normal inhibition (NI), reduced inhibition (RI), highly reduced inhibition (HRI)
+        :return: None
+        """
+        self.add_row([category, key, antiviral, resistance])
