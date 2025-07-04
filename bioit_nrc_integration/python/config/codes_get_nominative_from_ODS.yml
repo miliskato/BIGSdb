@@ -189,6 +189,7 @@ code_lists:
     66261008: Product containing tetracycline
     418631002: Product containing tigecycline
     32792001: Product containing trimethoprim
+    74964007: Other
     261665006: 'Unknown'
   CD_EPILINK_codes:
     409699001: Human to human transmission
