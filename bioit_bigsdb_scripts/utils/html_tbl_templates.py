@@ -160,7 +160,7 @@ class HtmlAntiviralMutationsTableBuilder(HtmlTableBuilder):
         :param category: category of the mutation
         :param key: key mutation
         :param antiviral: antiviral for which the resistance might exist
-        :param resistance: type of resistance among normal inhibition (NI), reduced inhibition (RI), highly reduced inhibition (HRI)
+        :param resistance: type of resistance from normal inhibition to highly reduced inhibition (HRI)
         :return: None
         """
         self.add_row([category, key, antiviral, resistance])

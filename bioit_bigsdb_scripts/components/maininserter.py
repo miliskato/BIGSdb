@@ -7,6 +7,7 @@ from bioit_mongodb_scripts.model.json_model import JsonReportDict
 from bioit_mongodb_scripts.util.python_utility_functions import is_viral
 from .json_superclass import JsonSuperClass
 from .psql import TblEavInt, TblEavText, TblEavTextHidden, TblHistory, TblIsolates
+from ..utils.html_tbl_templates import HtmlAntiviralMutationsTableBuilder
 from ..utils.url_helper import UrlHelper
 
 
@@ -30,6 +31,9 @@ class MainInserter(JsonSuperClass):
         self._report_access = report_access
         self._vcf_path = vcf_path
         self._mongo_dtap = mongo_dtap
+        with TblIsolates(self._species) as isolates_psql_tbl:
+            self._isolate_id = isolates_psql_tbl.select_id_for_isolate((self._isolatename,))[0][0]
+        self._report_url = UrlHelper.report_for_isolate(self._species, str(self._isolate_id))
 
     def insert_new_isolate(self, uploader_mail_address: str, isolation_date: str) -> None:
         """
@@ -66,17 +70,13 @@ class MainInserter(JsonSuperClass):
         with TblEavText(self._species) as self._isolates_eavt_psql_tbl, \
                 TblIsolates(self._species) as self.isolates_psql_tbl, TblEavInt(self._species) as self._isolates_eavi_psql_tbl:
 
-            with TblIsolates(self._species) as isolates_psql_tbl:
-                isolate_id = isolates_psql_tbl.select_id_for_isolate((self._isolatename,))
-            report_url = UrlHelper.report_for_isolate(self._species, str(isolate_id[0][0]))
-            report_link = f'<p><a href="{report_url}" target="_blank"> html report</a></p>'
+            report_link = f'<p><a href="{self._report_url}" target="_blank"> html report</a></p>'
             self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'html', report_link))
-            isolate_id = self.isolates_psql_tbl.select_id_for_isolate((self._isolatename,))[0][0]
             if is_viral(self._species):
-                assemblylink = f'<p><a href="/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_{self._species}_isolates&page=plugin&name=Contigs&format=text&isolate_id={isolate_id}&match=1&pc_untagged=0&min_length=&header=1l" target="_blank">consensus sequence</a></p>'
+                assemblylink = f'<p><a href="/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_{self._species}_isolates&page=plugin&name=Contigs&format=text&isolate_id={self._isolate_id}&match=1&pc_untagged=0&min_length=&header=1l" target="_blank">consensus sequence</a></p>'
                 self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'consensus_sequence', assemblylink))
             else:
-                assemblylink = f'<p><a href="/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_{self._species}_isolates&page=plugin&name=Contigs&format=text&isolate_id={isolate_id}&match=1&pc_untagged=0&min_length=&header=1l" target="_blank">assembly</a></p>'
+                assemblylink = f'<p><a href="/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_{self._species}_isolates&page=plugin&name=Contigs&format=text&isolate_id={self._isolate_id}&match=1&pc_untagged=0&min_length=&header=1l" target="_blank">assembly</a></p>'
                 self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'assembly', assemblylink))
             self._insert_species_specific_metadata()
             if 'changed_version' in self._json_report_dict:
@@ -85,7 +85,7 @@ class MainInserter(JsonSuperClass):
             if 'validation' in self._json_report_dict:
                 self.isolates_psql_tbl.add_validation((self._json_report_dict['validation']['type'], self._json_report_dict['validation']['curator'],
                                                        datetime.datetime.strptime(self._json_report_dict['validation']['date'], '%d/%m/%Y - %X').strftime('%Y-%m-%d'),
-                                                       str(isolate_id)))
+                                                       str(self._isolate_id)))
             logging.info('Metadata insertion successful')
 
     def _insert_species_specific_metadata(self) -> None:
@@ -130,3 +130,12 @@ class MainInserter(JsonSuperClass):
                 self._isolates_eavt_psql_tbl.insert_eav_isolate_viral_species(
                     (self._isolatename, 'influenza_subtype', self._json_report_dict['nextclade'].get('nextclade_detected_subtype')))
                 self._isolates_eavt_psql_tbl.insert_eav_isolate_viral_species((self._isolatename, 'nextclade_clade', self._json_report_dict['nextclade'].get('nextclade_clade')))
+            if 'antivirals' in self._json_report_dict:
+                if isinstance(self._json_report_dict['antivirals'].get('antivirals_mutations'), list):
+                    antiviral_associations = self._json_report_dict['antivirals'].get('antivirals_associations')
+                    antiviral_assay_table_builder = HtmlAntiviralMutationsTableBuilder(self._report_url)
+                    for item in antiviral_associations:
+                        antiviral_assay_table_builder.add_mutation(item['key'], item['antiviral'], item['resistance'], item['category'])
+                    html = antiviral_assay_table_builder.build()
+                    self._isolates_eavt_psql_tbl.insert_eav_isolate_viral_species((self._isolatename, 'antivirals_associations', html))
+
