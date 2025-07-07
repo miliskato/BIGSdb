@@ -152,8 +152,10 @@ class TypingSchemeProfilesIntoPsql:
         Main function to insert all profiles for the given species
         :return: None
         """
-        for species in set(self._species_list):
+        for species in set(self._species_list): #TODO ask if this loop is still relevant for some applications
             schemedict: Dict[str, Dict[str, str]] = self._bigsdb_config_data['species'][species]['typing_schemes']
+            if schemedict is None:
+                continue
             with TblProfiles(species) as seqdef_profiles_psql_tbl:
                 for scheme in schemedict:
                     if schemedict[scheme].get('scheme_fields') is None:
