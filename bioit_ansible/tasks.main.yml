@@ -1065,9 +1065,16 @@
         regexp: 'CONNECTION_STRING_ASB: to_be_replaced_by_ansible'
         line: "CONNECTION_STRING_ASB: {{ asb_connection_str }}"
 
+    - name: Create subfolder in /var/log where bigsdb user is allowed to write
+      ansible.builtin.file:
+        path: /var/log/bigsdb_insertions_service
+        state: directory
+        mode: "u=rwx,g=rwx,o=rwx"
+        owner: bigsdb
+
     - name: Touch log file for bigsdb_insertion service
       ansible.builtin.file:
-        path: /var/log/bigsdb_insertions.log
+        path: "/var/log/bigsdb_insertions_service/bigsdb_insertions.log"
         state: touch
         mode: "u=rwx,g=rwx,o=rwx"
         owner: bigsdb
