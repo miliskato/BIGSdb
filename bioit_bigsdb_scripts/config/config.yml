@@ -219,8 +219,8 @@ species:
         schemename_bigsdb: AMRFinder
         schemename_html: amr #TODO replace this value by amrfinder when the bug will be fixed in the image VM
   influenza:
-    typing_schemes: null
-    genedetection_schemes: null
+    typing_schemes: ''
+    genedetection_schemes: ''
 
 species_json:
   listeria:
