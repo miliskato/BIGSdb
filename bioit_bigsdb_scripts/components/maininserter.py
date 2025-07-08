@@ -1,3 +1,4 @@
+import dataclasses
 import datetime
 import logging
 import socket
@@ -11,11 +12,20 @@ from ..utils.html_tbl_templates import HtmlAntiviralMutationsTableBuilder
 from ..utils.url_helper import UrlHelper
 
 
+@dataclasses.dataclass
+class MainInserterContext:
+    """
+    Class used to keep the value of the isolate_id and the report url which are defined in the context of the main class.
+    Called when these values are already defined to replace the inheritance, which is not possible for variables defined by a method of the class.
+    """
+    isolate_id: str
+    report_url: str
+
+
 class MainInserter(JsonSuperClass):
     """
     Class containing defintions used to insert metadata results for both json and tsv input
     """
-
     def __init__(self, isolatename: str, species: str, json_report_dict: JsonReportDict, config_data: Dict[str, Any],
                  report_access: str, vcf_path: str, mongo_dtap: str) -> None:
         """
@@ -31,9 +41,6 @@ class MainInserter(JsonSuperClass):
         self._report_access = report_access
         self._vcf_path = vcf_path
         self._mongo_dtap = mongo_dtap
-        with TblIsolates(self._species) as isolates_psql_tbl:
-            self._isolate_id = isolates_psql_tbl.select_id_for_isolate((self._isolatename,))[0][0]
-        self._report_url = UrlHelper.report_for_isolate(self._species, str(self._isolate_id))
 
     def insert_new_isolate(self, uploader_mail_address: str, isolation_date: str) -> None:
         """
@@ -53,6 +60,8 @@ class MainInserter(JsonSuperClass):
             else:
                 raise RuntimeError(f"isolatename {self._isolatename} of {self._species} already exists on host {socket.gethostname()}")
 
+        self.__insert_main_metadata()
+
     def update_isolate_analysis_date(self) -> None:
         """
         Insert a new isolate version for an existing isolate
@@ -61,34 +70,47 @@ class MainInserter(JsonSuperClass):
         with TblIsolates(self._species) as isolates_psql_tbl:
             isolates_psql_tbl.update_isolate_analysis_date(
                 (datetime.datetime.strptime(self._json_report_dict['analysis_date'], '%d/%m/%Y - %X').strftime('%Y-%m-%d'), self._isolatename))
+        self.__insert_main_metadata()
 
-    def insert_main_metadata(self) -> None:
+    def __create_context(self) -> MainInserterContext:
+        """
+        Method which is used to return the MainInserterContext object. By essence, private, as this one cannot be used outside the context of the class.
+        """
+        with TblIsolates(self._species) as isolates_psql_tbl:
+            isolate_tuple = isolates_psql_tbl.select_id_for_isolate((self._isolatename,))
+            isolate_id = str(isolate_tuple[0][0])
+            return MainInserterContext(isolate_id, UrlHelper.report_for_isolate(self._species, isolate_id))
+
+    def __insert_main_metadata(self) -> None:
         """
         Inserts the main metadata into bigsdb for an isolate
         :return: None
         """
+
+        context = self.__create_context()
+
         with TblEavText(self._species) as self._isolates_eavt_psql_tbl, \
                 TblIsolates(self._species) as self.isolates_psql_tbl, TblEavInt(self._species) as self._isolates_eavi_psql_tbl:
 
-            report_link = f'<p><a href="{self._report_url}" target="_blank"> html report</a></p>'
+            report_link = f'<p><a href="{context.report_url}" target="_blank"> html report</a></p>'
             self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'html', report_link))
             if is_viral(self._species):
-                assemblylink = f'<p><a href="/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_{self._species}_isolates&page=plugin&name=Contigs&format=text&isolate_id={self._isolate_id}&match=1&pc_untagged=0&min_length=&header=1l" target="_blank">consensus sequence</a></p>'
+                assemblylink = f'<p><a href="/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_{self._species}_isolates&page=plugin&name=Contigs&format=text&isolate_id={context.isolate_id}&match=1&pc_untagged=0&min_length=&header=1l" target="_blank">consensus sequence</a></p>'
                 self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'consensus_sequence', assemblylink))
             else:
-                assemblylink = f'<p><a href="/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_{self._species}_isolates&page=plugin&name=Contigs&format=text&isolate_id={self._isolate_id}&match=1&pc_untagged=0&min_length=&header=1l" target="_blank">assembly</a></p>'
+                assemblylink = f'<p><a href="/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_{self._species}_isolates&page=plugin&name=Contigs&format=text&isolate_id={context.isolate_id}&match=1&pc_untagged=0&min_length=&header=1l" target="_blank">assembly</a></p>'
                 self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'assembly', assemblylink))
-            self._insert_species_specific_metadata()
+            self.__insert_species_specific_metadata(context)
             if 'changed_version' in self._json_report_dict:
                 with TblEavTextHidden(self._species) as isolates_eavth_psql_tbl:
                     isolates_eavth_psql_tbl.insert_hidden_isolate((self._isolatename, 'mongo_results_version', self._json_report_dict['changed_version']))
             if 'validation' in self._json_report_dict:
                 self.isolates_psql_tbl.add_validation((self._json_report_dict['validation']['type'], self._json_report_dict['validation']['curator'],
                                                        datetime.datetime.strptime(self._json_report_dict['validation']['date'], '%d/%m/%Y - %X').strftime('%Y-%m-%d'),
-                                                       str(self._isolate_id)))
+                                                       str(context.isolate_id)))
             logging.info('Metadata insertion successful')
 
-    def _insert_species_specific_metadata(self) -> None:
+    def __insert_species_specific_metadata(self, context: MainInserterContext) -> None:
         """
         Insert species specific metadata
         :return: None
@@ -133,9 +155,8 @@ class MainInserter(JsonSuperClass):
             if 'antivirals' in self._json_report_dict:
                 if isinstance(self._json_report_dict['antivirals'].get('antivirals_mutations'), list):
                     antiviral_associations = self._json_report_dict['antivirals'].get('antivirals_associations')
-                    antiviral_assay_table_builder = HtmlAntiviralMutationsTableBuilder(self._report_url)
+                    antiviral_assay_table_builder = HtmlAntiviralMutationsTableBuilder(context.report_url)
                     for item in antiviral_associations:
                         antiviral_assay_table_builder.add_mutation(item['key'], item['antiviral'], item['resistance'], item['category'])
                     html = antiviral_assay_table_builder.build()
                     self._isolates_eavt_psql_tbl.insert_eav_isolate_viral_species((self._isolatename, 'antivirals_associations', html))
-
