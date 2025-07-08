@@ -26,7 +26,7 @@ mail_sent = False
 # Configure stdout logging
 logger = logging.getLogger('bigsdb_insertion')
 logger.setLevel(logging.INFO)
-handler = handlers.TimedRotatingFileHandler('/var/log/bigsdb_insertions.log', when="D", interval=1, backupCount=14)
+handler = handlers.TimedRotatingFileHandler('/var/log/bigsdb_insertions_service/bigsdb_insertions.log', when="D", interval=1, backupCount=14)
 formatter = logging.Formatter('%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
