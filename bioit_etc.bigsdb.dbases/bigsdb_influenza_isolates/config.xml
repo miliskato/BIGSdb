@@ -83,6 +83,5 @@
 <field type="text" required="no" length="60" maindisplay="no" group ="nominative metadata" comments="">GISAID_NGS</field>
 <field type="text" required="no" length="60" maindisplay="no" group ="nominative metadata" comments="case Type">case_type</field>
 <field type="text" required="no" length="100" maindisplay="no" group ="nominative metadata" comments="case Type">official_name</field>
-<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="outcome">outcome</field>
 <field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="country">country</field>
 </db>
