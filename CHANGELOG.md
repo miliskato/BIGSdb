@@ -12,9 +12,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Remove spoligotyping from query results in BIGSdb
 - Only store in BIGSdb hsp65 lineage found in the collection
 
-### fixed:
+### Fixed:
 - hsp65 fields was not inserted as boolean which makes the search on this field not possible
 - failure to insert the 51SNP scheme results
+
+### Removed:
+- cron job to insert reports from galaxy in the local mongoDB
 
 ## [4.0.1]
 ### Changed:
