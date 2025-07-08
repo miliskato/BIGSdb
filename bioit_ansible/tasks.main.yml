@@ -216,23 +216,11 @@
     regexp: 'azure_reportsapi_ip: to_be_replaced_by_ansible'
     line: "azure_reportsapi_ip: {{ azure_reportsapi_ip }}"
 
-- name: add azure reportsapi ip to galaxy cron tool
-  lineinfile:
-    path: "{{ bioit_bigs_home }}/bioit_bigsdb_scripts/cron_startinsertion_mongo_implementation.sh"
-    regexp: 'AZURE_REPORTSAPI_IP=to_be_replaced_by_ansible'
-    line: "AZURE_REPORTSAPI_IP={{ azure_reportsapi_ip }}"
-
 - name: add azure reportsapi ip to SciensanoReportPage
   lineinfile:
     path: "{{ bioit_bigs_home }}/lib/BIGSdb/SciensanoReportPage.pm"
     regexp: "my [$]azure_reportsapi = to_be_replaced_by_ansible ;"
     line: "my $azure_reportsapi = '{{ azure_reportsapi_ip }}' ;"
-
-- name: Change Mongo dtap version in config based on playbook argument
-  lineinfile:
-    path: "{{ bioit_bigs_home }}/bioit_bigsdb_scripts/cron_startinsertion_mongo_implementation.sh"
-    regexp: 'DTAP=to_be_replaced_by_ansible'
-    line: "DTAP={{ mongo_dtap }}"
 
 - name: setting up ssh connection to azure reportsapi
   block:
@@ -924,17 +912,6 @@
         user: 'bigsdb'
         cron_file: bigsdb_jobs
 
-    - name: Add cron.d entry for galaxy tool output into mongoDB
-      cron:
-        name: "cron_startinsertion_mongo_implementation.sh"
-        minute: '*/10'         # every 10 minutes
-        hour: '*'
-        weekday: '*'
-        job: 'bash /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/cron_startinsertion_mongo_implementation.sh'
-        user: 'root'
-        cron_file: mongo_galaxy
-      tags: cron_mongo
-
     - name: Add cron.d entry for bigsdb upload tool
       cron:
         name: "cron_startinsertion_lab_metadata.sh"
@@ -1013,6 +990,11 @@
     - name: Remove the cronjob for mongo to bigs
       ansible.builtin.file:
         path: /etc/cron.d/mongo_to_bigs_hourly
+        state: absent
+
+    - name: Remove the cronjob for insertion of report from galaxy into mongodb
+      ansible.builtin.file:
+        path: /etc/cron.d/mongo_galaxy
         state: absent
 
     - name: add hourly cronjob to check killed pid
