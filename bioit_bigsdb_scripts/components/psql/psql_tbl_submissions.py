@@ -58,9 +58,25 @@ class TblSubmissions(DatabaseConnection):
         """
         return self.execute(PsqlQueries.ISO_SEL_SUBID_TB_SUB_VAR_)
 
+    def get_submission_ids_for_specific_status_and_quality(self, param: Tuple[str, str]) -> List[Tuple[str]]:
+        """
+        Select submission ids from rows where status and quality correspond to params provided to the method
+        :param param: status and quality values
+        :return: List of corresponding submissions ids
+        """
+        return self.execute_query(PsqlQueries.ISO_SEL_ID_TB_SUB_VAR_STATUS_QUALITY, param)
+
     def validate_pending_warningqcs(self):
         """
         This function will set outcome of all submitted warningqcs to "good" and turn status from "pending" to "closed"
         :return: None
         """
         return self.execute(PsqlQueries.ISO_UPD_STATUS_OUTCOME_TB_SUB_VAR_)
+
+    def validate_submission(self, param: Tuple[str]) -> None:
+        """
+        This function will set outcome of all submitted warningqcs to "good" and turn status from "pending" to "closed"
+        :param param: submission id for which we want to validate the submission
+        :return: None
+        """
+        return self.execute_query(PsqlQueries.ISO_UPD_STATUS_OUTCOME_TB_SUB_VAR_SUBID, param)
