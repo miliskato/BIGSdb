@@ -4,11 +4,41 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [Unreleased]
+### Added:
+- nominative fields for MTB
+
+### Changed:
+- Remove spoligotyping from query results in BIGSdb
+- Only store in BIGSdb hsp65 lineage found in the collection
+
+### fixed:
+- hsp65 fields was not inserted as boolean which makes the search on this field not possible
+- failure to insert the 51SNP scheme results
+
+## [4.0.1]
+### Changed:
+- version of AMRFinder int the tagger_config.yml file (for Neisseria, Listeria and Enterococcus spp.)
+
+### Fixed:
+- The html that are used in the bigsdb config are now corresponding to those used in the report (in the tagger_config) except for AMRFinder, we stick to #amr as the anchor #amrfinder was not present in the report
+- The url link to the report which was used in Mob-Suite html table is now working
+- Insertion of cgMLST diffs clustering into classification schemes table of salmonella isolates database
+- Bad layout of the html tables for genedetection schemes handled by the genedetection generic builder
+
+## [4.0.0]
+### Changed:
+- AMRFinder tool and database version
+- Insertion of viral technical metadata
 
 ## [3.1.0]
 ### Changed:
 - Added AMRFinder for Neisseria
 - Added AMRFinder for Salmonella
+
+### Fixed:
+- Added mic_resistances fields again in both sql and db xml. They were accidentally removed from sql previously. Also added serogroup_pheno field 
+  in neisseria again which was also accidentally removed during splitting up of all sql columns in isolates database by pathogen.
 
 ## [3.0.0] 
 ### Added:

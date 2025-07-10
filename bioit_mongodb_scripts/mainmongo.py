@@ -259,7 +259,7 @@ class MainMongo:
         good_sample_quality = True
         if self._results_type == 'new_isolate':
             sample_coreqc_metrics = GetCoreQCMetrics(self._species, self._original_input_format,
-                                                     mongo_records['technical_metadata'].get('NanoporeFlowcell', 'illumina')).\
+                                                     mongo_records['technical_metadata']['data'].get('NanoporeFlowcell', 'illumina')).\
                 get_sample_coreqc_metrics()
             check_coreqc_metrics = CheckCoreQCMetrics(self._technical_id, json_report, self._species,
                                                       self._reportdirectorypath, sample_coreqc_metrics,
@@ -552,6 +552,7 @@ class MainMongo:
     def ____get_technical_metadata_viral_fasta(self, results: JsonReportDict) -> Tuple[str, str, str, str, str, str]:
         """
         Returns the FASTA technical metadata fields if the species is viral.
+        Since June 2025, the coverage for viral pathogens is not calculated anymore; this was therefore replaced by 'UNK'.
         :params results: results dictionary
         :return: tuple containing the different technical metadata fields
         """
@@ -563,12 +564,11 @@ class MainMongo:
                                       ])
         cd_seq_assy_meth = 'Other'
         tx_seq_assy_meth_ver = ', '.join([x for x in results['iterative_mapping']['tool_versions']])
-        ms_genome_cvge = results[f'downsampling_{appendix}']['downsampling_coverage_estimated']
         cd_novo_assy = 'No'
         tx_ref_accn = ', '.join(results['ref_selection'][x]['ref_id'] for x in results['ref_selection']) \
             if self._species != 'sars_cov_2' else 'NC_045512.2'
 
-        return tx_seq_fltr_meth, cd_seq_assy_meth, tx_seq_assy_meth_ver, ms_genome_cvge, cd_novo_assy, tx_ref_accn
+        return tx_seq_fltr_meth, cd_seq_assy_meth, tx_seq_assy_meth_ver, 'UNK', cd_novo_assy, tx_ref_accn
 
     @staticmethod
     def ___prepend_string_dot_to_dict_keys(input_dictionary: JsonReportDict, prepending: str = 'results') -> Dict[str, Union[str, object]]:

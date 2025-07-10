@@ -74,21 +74,21 @@ species:
       resfinder4:
         metadatafile: /db/resfinder4/resfinder/phenotypes.txt
         schemename_bigsdb: ResFinder4
-        schemename_html: amr
+        schemename_html: resfinder4
       listeria_virulencefinder:
         metadatafile: /db/gene_detection/VirulenceFinder-Listeria/mapping_full.json
         schemename_bigsdb: VirulenceFinder_Listeria
-        schemename_html: VirulenceFinder - <i>Listeria</i>
+        schemename_html: virulencefinder
       listeria_vfdbcore:
         metadatafile: /db/gene_detection/VFDB_core/mapping_full.json
         schemename_bigsdb: VFDB_core
-        schemename_html: Virulence Factor DB - Core
+        schemename_html: vfdb-core
       listeria_plasmidfinder:
         metadatafile: /db/gene_detection/PlasmidFinder-gram_positive/mapping_full.json
         schemename_bigsdb: PlasmidFinder_grampositive
-        schemename_html: PlasmidFinder - Gram positive
+        schemename_html: plasmidfinder
       amrfinder:
-        metadatafile: /db/amrfinder/latest/AMRProt
+        metadatafile: /db/amrfinder/v4/latest/AMRProt.fa
         schemename_bigsdb: AMRFinder
         schemename_html: amr
   mycobacterium:
@@ -176,11 +176,11 @@ species:
       resfinder4:
         metadatafile: /db/resfinder4/resfinder/phenotypes.txt
         schemename_bigsdb: ResFinder4
-        schemename_html: amr
+        schemename_html: resfinder4
       amrfinder:
-        metadatafile: /db/amrfinder/latest/AMRProt
+        metadatafile: /db/amrfinder/v4/latest/AMRProt.fa
         schemename_bigsdb: AMRFinder
-        schemename_html: amr
+        schemename_html: amrfinder
   salmonella:
     typing_schemes:
       salmonella_mlst:
@@ -209,15 +209,15 @@ species:
       resfinder4:
         metadatafile: /db/resfinder4/resfinder/phenotypes.txt
         schemename_bigsdb: ResFinder4
-        schemename_html: amr
+        schemename_html: resfinder4
       salmonella_vfdbcore:
         metadatafile: /db/gene_detection/VFDB_core/mapping_full.json
         schemename_bigsdb: VFDB_core
-        schemename_html: Virulence Factor DB - Core
+        schemename_html: virulencefinder
       amrfinder:
-        metadatafile: /db/amrfinder/latest/AMRProt
+        metadatafile: /db/amrfinder/v4/latest/AMRProt.fa
         schemename_bigsdb: AMRFinder
-        schemename_html: amr
+        schemename_html: amr #TODO replace this value by amrfinder when the bug will be fixed in the image VM
   influenza:
     typing_schemes: null
     genedetection_schemes: null
@@ -247,21 +247,21 @@ species_json:
       resfinder4:
         metadatafile: /db/resfinder4/resfinder/phenotypes.txt
         schemename_bigsdb: ResFinder4
-        schemename_html: amr
+        schemename_html: resfinder4
       virulencefinder:
         metadatafile: /db/gene_detection/VirulenceFinder-Listeria/mapping_full.json
         schemename_bigsdb: VirulenceFinder_Listeria
-        schemename_html: VirulenceFinder - <i>Listeria</i>
+        schemename_html: virulencefinder
       vfdb_core:
         metadatafile: /db/gene_detection/VFDB_core/mapping_full.json
         schemename_bigsdb: VFDB_core
-        schemename_html: Virulence Factor DB - Core
+        schemename_html: vfdb-core
       plasmidfinder:
         metadatafile: /db/gene_detection/PlasmidFinder-gram_positive/mapping_full.json
         schemename_bigsdb: PlasmidFinder_grampositive
-        schemename_html: PlasmidFinder - Gram positive
+        schemename_html: plasmidfinder
       amrfinder:
-        metadatafile: /db/amrfinder/latest/AMRProt
+        metadatafile: /db/amrfinder/v4/latest/AMRProt.fa
         schemename_bigsdb: AMRFinder
         schemename_html: amr
   mycobacterium:
@@ -326,11 +326,11 @@ species_json:
       resfinder4:
         metadatafile: /db/resfinder4/resfinder/phenotypes.txt
         schemename_bigsdb: ResFinder4
-        schemename_html: amr
+        schemename_html: resfinder4
       amrfinder:
-        metadatafile: /db/amrfinder/latest/AMRProt
+        metadatafile: /db/amrfinder/v4/latest/AMRProt.fa
         schemename_bigsdb: AMRFinder
-        schemename_html: amr
+        schemename_html: amrfinder
   salmonella:
     typing_schemes:
       mlst:
@@ -359,15 +359,15 @@ species_json:
       resfinder4:
         metadatafile: /db/resfinder4/resfinder/phenotypes.txt
         schemename_bigsdb: ResFinder4
-        schemename_html: amr
+        schemename_html: resfinder4
       vfdb_core:
         metadatafile: /db/gene_detection/VFDB_core/mapping_full.json
         schemename_bigsdb: VFDB_core
-        schemename_html: Virulence Factor DB - Core
+        schemename_html: vfdb-core
       amrfinder:
-        metadatafile: /db/amrfinder/latest/AMRProt
+        metadatafile: /db/amrfinder/v4/latest/AMRProt.fa
         schemename_bigsdb: AMRFinder
-        schemename_html: amr
+        schemename_html: amr #TODO replace this value by amrfinder when the bug will be fixed in the image VM
   influenza:
     typing_schemes: ''
     genedetection_schemes: ''

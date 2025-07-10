@@ -382,6 +382,7 @@
 - name: Install bio perl package
   community.general.cpanm:
     executable: /usr/bin/cpanm
+    mirror: https://www.cpan.org
     name: BioPerl
 
 - name: create dirs
@@ -1074,7 +1075,7 @@
     - name: activate the service
       ansible.builtin.systemd:
         daemon-reload: true
-        state: started
+        state: restarted
         enabled: true
         name: bigsdb-insertion.service
 

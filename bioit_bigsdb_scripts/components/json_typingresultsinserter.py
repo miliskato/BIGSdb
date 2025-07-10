@@ -135,7 +135,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
         plasmid_list = self._json_report_dict['mob_suite'].get('mob_suite_overview')
         if not plasmid_list:
             return
-        report_url = UrlHelper.report_for_isolate(self._species, self._isolatename)
+        report_url = UrlHelper.report_for_isolate(self._species, self.__get_isolate_id())
         mob_suite_table_builder = HtmlMobSuiteTableBuilder(report_url)
         for item in plasmid_list:
             mob_suite_table_builder.add_plasmid(item['id'], item['num_contigs'], item['size'], item['gc'], item['predicted_mobility'], item['rep_type(s)'], item['relaxase_type(s)'])
@@ -144,7 +144,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
         with TblEavText(self._species) as isolates_eavt_psql_tbl:
             isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'MOB-Suite', html))
 
-    def ___get_isolate_id(self) -> str:
+    def __get_isolate_id(self) -> str:
         """
         return BIGSdb id of the isolate
         :return: BIGSdb id of the isolate
@@ -211,13 +211,15 @@ class JsonTypingResultsInserter(JsonSuperClass):
                             variantsset.add(variantreformatted)
         elif self._scheme == 'hsp65':
             if len(self._json_report_dict[self._scheme]['loci']) != 0:
-                speciesset = set()
-                with TblEavBoolean(self._species) as isolates_eavb_psql_tbl:
+                species_set = set()
+                with TblEavFields(self._species) as isolates_eavf_psql_tbl, TblEavBoolean(self._species) as isolates_eavb_psql_tbl:
                     for locus in self._json_report_dict[self._scheme]['loci']:
                         hit = '_'.join(['hsp65', locus['Species'].strip('"').replace(' ', '_').replace('.', '')])
-                        if hit not in speciesset:
+                        if hit not in species_set:
+                            if not (isolates_eavf_psql_tbl.exists_in_eav_field((hit, 'hsp65'))):
+                                isolates_eavf_psql_tbl.insert_boolean_field((hit,'hsp65'))
                             isolates_eavb_psql_tbl.insert_eav_isolate((self._isolatename, hit, 't'))
-                            speciesset.add(hit)
+                            species_set.add(hit)
         elif self._scheme == 'ncbi_16s':
             # ncbi 16s contains duplicate species
             """

@@ -28,6 +28,22 @@ metrics:
     field: qc_nanoplot_qual_value
     available_for_fasta_input: false
     parameter_name: Average quality score
+  average_gc_deviation_illumina:  # e.g. qc_fqc_gc_fwd_value: '1.5%'
+    threshold_direction: higher
+    category: quality_checks
+    fields:
+      - qc_fqc_gc_fwd_value
+      - qc_fqc_gc_rev_value
+    value_format_to_strip: "%"
+    available_for_fasta_input: false
+    parameter_name: Average GC deviation
+  average_gc_deviation_ont:  # e.g. qc_fqc_gc_fwd_value: '1.5%'
+    threshold_direction: higher
+    category: quality_checks
+    field: qc_seqkit_gc_value
+    value_format_to_strip: "%"
+    available_for_fasta_input: false
+    parameter_name: Average GC deviation
   typing_loci_detected: # e.g. qc_typing_loci_value: '99.0%'
     threshold_direction: lower
     category: quality_checks
@@ -68,6 +84,14 @@ metrics:
     field: assembly_nb_contigs
     available_for_fasta_input: true
     parameter_name: Number of contigs
+  duplication_rate: # e.g. duplication_rate: "0.05"
+    threshold_direction: higher
+    category: trimming_inputtype
+    category_to_replace:
+      inputtype: input_type
+    field: duplication_rate
+    available_for_fasta_input: false
+    parameter_name: Duplication rate post trimming
   median_depth_HA_NA: # e.g. preprocess_HA_covered_rate_post: '250'
     threshold_direction: lower
     category: preprocess
@@ -233,49 +257,44 @@ species:
     contamination:
       threshold_warn: 1.0
       threshold_fail: 5.0
-    average_quality_score_illumina:
-      threshold_warn: 30.0
-      threshold_fail: 25.0
-    average_quality_score_ont_R9:
-      threshold_warn: 10.0
-      threshold_fail: 7.0
-    average_quality_score_ont_R10:
-      threshold_warn: 16.0
-      threshold_fail: 14.0
     typing_loci_detected:
       threshold_warn: 95.0
       threshold_fail: 90.0
-    coverage_against_assembly:  # ont thresholds are set in get_coreqc_metrics.py
-      threshold_warn: 25.0
+    coverage_against_reference:  # ont thresholds are set in get_coreqc_metrics.py
+      threshold_warn: 30.0
       threshold_fail: 20.0
     assembly_length_deviation:
-      threshold_warn: 10.0
-      threshold_fail: 20.0
-    number_of_contigs:
-      threshold_warn: 250.0
-      threshold_fail: 300.0
+      threshold_warn: 15.0
+      threshold_fail: 30.0
+    average_gc_deviation_illumina:
+      threshold_warn: 3.0
+      threshold_fail: 5.0
+    average_gc_deviation_ont:
+      threshold_warn: 3.0
+      threshold_fail: 5.0
+    duplication_rate:
+      threshold_warn: 0.3
+      threshold_fail: 0.5
   enterococcus_faecium:
     contamination:
       threshold_warn: 1.0
       threshold_fail: 5.0
-    average_quality_score_illumina:
-      threshold_warn: 30.0
-      threshold_fail: 25.0
-    average_quality_score_ont_R9:
-      threshold_warn: 10.0
-      threshold_fail: 7.0
-    average_quality_score_ont_R10:
-      threshold_warn: 16.0
-      threshold_fail: 14.0
     typing_loci_detected:
       threshold_warn: 95.0
       threshold_fail: 90.0
-    coverage_against_assembly:  # ont thresholds are set in get_coreqc_metrics.py
-      threshold_warn: 25.0
+    coverage_against_reference:  # ont thresholds are set in get_coreqc_metrics.py
+      threshold_warn: 30.0
       threshold_fail: 20.0
     assembly_length_deviation:
-      threshold_warn: 10.0
-      threshold_fail: 20.0
-    number_of_contigs:
-      threshold_warn: 250.0
-      threshold_fail: 300.0
+      threshold_warn: 15.0
+      threshold_fail: 30.0
+    average_gc_deviation_illumina:
+      threshold_warn: 3.0
+      threshold_fail: 5.0
+    average_gc_deviation_ont:
+      threshold_warn: 3.0
+      threshold_fail: 5.0
+    duplication_rate:
+      threshold_warn: 0.3
+      threshold_fail: 0.5
+  enterococcus_spp: {}
