@@ -14,7 +14,7 @@ sys.path.append(str(PYTHONPATH))
 
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email
-from bioit_nrc_integration.python.config import SFTP_CREDENTIALS_HD, CODES_NOMINATIVE_ODS
+from bioit_nrc_integration.python.config import CODES_NOMINATIVE_ODS
 from bioit_nrc_integration.python.util.get_clin_lab_json_parser import get_clin_lab_json_parser
 from bioit_nrc_integration.python.util.sftp_connection import SFTPConnection
 
@@ -60,32 +60,21 @@ class MainNominativeDataParserFromOds(SFTPConnection):
         # get HD ODS dictionaries to be able to translate to usable text
         with CODES_NOMINATIVE_ODS.open('r') as handle:
             self._translation_codes = yaml.safe_load(handle)
-        # get sftp credentials
-        with SFTP_CREDENTIALS_HD.open('r') as handle:
-            self._sftp_credentials_hd = yaml.safe_load(handle)
 
         try:
             # initialize ssh & sftp
-            self._ssh, self._sftp = self._open_sftp_connection(
-                self._sftp_credentials_hd['hostname_get_nominative_from_ODS'],
-                self._sftp_credentials_hd['port_get_nominative_from_ODS'],
-                self._sftp_credentials_hd['username_get_nominative_from_ODS'],
-                self._sftp_credentials_hd['password_get_nominative_from_ODS'])
+            self._ssh, self._sftp = self.open_sftp_connection_get_nominative_from_ods()
 
             with tempfile.TemporaryDirectory(dir='/tmp') as self._temp_json_dir:
                 self._download_json_files()
                 # close after downloading the json files to not risk reaching the inactivity time limit
-                self._close_sftp_connection(self._ssh, self._sftp)
+                self.close_sftp_connection(self._ssh, self._sftp)
 
                 self._group_files_by_pathogen_and_type()
                 self._process_json_files()
 
                 # reinitialize ssh & sftp
-                self._ssh, self._sftp = self._open_sftp_connection(
-                    self._sftp_credentials_hd['hostname_get_nominative_from_ODS'],
-                    self._sftp_credentials_hd['port_get_nominative_from_ODS'],
-                    self._sftp_credentials_hd['username_get_nominative_from_ODS'],
-                    self._sftp_credentials_hd['password_get_nominative_from_ODS'])
+                self._ssh, self._sftp = self.open_sftp_connection_get_nominative_from_ods()
 
                 # In SFTP moving is done by renaming; move files to right folder according to success
                 self._move_files_according_to_success()
@@ -219,7 +208,7 @@ class MainNominativeDataParserFromOds(SFTPConnection):
         Closes the SSH and SFTP clients upon exit.
         :return: None
         """
-        self._close_sftp_connection(self._ssh, self._sftp)
+        self.close_sftp_connection(self._ssh, self._sftp)
 
 
 if __name__ == '__main__':

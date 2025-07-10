@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [unreleased]
+### Added:
+- Influenza CLIN LAB DCD integration
+
 ## [4.1.0]
 ### Added:
 - nominative fields for MTB
@@ -58,7 +62,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Listeria & Influenza output DCD's to NRC integration
 - Added core QC page and core quality metrics checking for both Illumina & ONT
 - Enterococcus is supported
-- Listeria & Influenza CLIN LAB DCD integration
+- Listeria CLIN LAB DCD integration
 
 ### Changed
 - All Jammy existing assays to bigsdb for neisseria listeria salmonella mycobacterium influenza.

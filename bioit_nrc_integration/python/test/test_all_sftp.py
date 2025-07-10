@@ -17,6 +17,7 @@ from bioit_nrc_integration.python.error_checker_for_main_sender_to_HD import Err
 from bioit_nrc_integration.python.get_nominative_from_ODS import MainNominativeDataParserFromOds
 from bioit_nrc_integration.python.main_sender_to_HD import MainSenderToHD
 from bioit_nrc_integration.python.test.testfiles import testfiles_folder, TESTFILES
+from bioit_nrc_integration.python.util.sftp_connection import SFTPConnection
 
 # Configure stdout logging
 logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
@@ -53,16 +54,8 @@ for species, species_testfiles in testfiles_dict.items():
         """
         Upload CLIN and LAB files to ODS sftp. 
         """
-        # Create an SSH client
-        ssh = paramiko.SSHClient()
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        # Connect to the server
-        ssh.connect(sftp_credentials_hd['hostname_get_nominative_from_ODS'],
-                    sftp_credentials_hd['port_get_nominative_from_ODS'],
-                    sftp_credentials_hd['username_get_nominative_from_ODS'],
-                    sftp_credentials_hd['password_get_nominative_from_ODS'])
-        # Create an SFTP session
-        sftp = ssh.open_sftp()
+        sftpconnection_instance = SFTPConnection()
+        ssh, sftp = sftpconnection_instance.open_sftp_connection_get_nominative_from_ods()
         sftp.put(str(testfiles_folder / species_testfiles['get_nominative_from_ODS_CLIN']),
                  f"upload/{DTAP}/test_dummy_{species}_CLIN_.json")
         sftp.put(str(testfiles_folder / species_testfiles['get_nominative_from_ODS_LAB']),
@@ -81,8 +74,7 @@ for species, species_testfiles in testfiles_dict.items():
         """
         sftp.remove(f"upload/{DTAP}/processed/test_dummy_{species}_CLIN_.json")
         sftp.remove(f"upload/{DTAP}/processed/test_dummy_{species}_LAB_.json")
-        sftp.close()
-        ssh.close()
+        sftpconnection_instance.close_sftp_connection(ssh, sftp)
 
     """
     Insert dummy genomic report JSON into remote isolates collection, skip MainMongo. 
@@ -108,22 +100,12 @@ for species, species_testfiles in testfiles_dict.items():
     """
     Move ODS file to processed folder as if HD had done it
     """
-    # Create an SSH client
-    ssh_ods = paramiko.SSHClient()
-    ssh_ods.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    # Connect to the server
-    ssh_ods.connect(sftp_credentials_hd['hostname_send_genomic_to_ODS'],
-                    sftp_credentials_hd['port_send_genomic_to_ODS'],
-                    sftp_credentials_hd['username_send_genomic_to_ODS'],
-                    sftp_credentials_hd['password_send_genomic_to_ODS'])
-    # Create an SFTP session
-    sftp_ods = ssh_ods.open_sftp()
+    sftpconnection_instance = SFTPConnection()
+    ssh, sftp = sftpconnection_instance.open_sftp_connection_send_genomic_to_ods()
 
-    sftp_ods.rename(f"upload/{DTAP}/{dummy_mapping_table['_id']}.json",
-                    f"upload/{DTAP}/processed/{dummy_mapping_table['_id']}.json")
-    sftp_ods.close()
-    ssh_ods.close()
-
+    sftp.rename(f"upload/{DTAP}/{dummy_mapping_table['_id']}.json",
+                f"upload/{DTAP}/processed/{dummy_mapping_table['_id']}.json")
+    sftpconnection_instance.close_sftp_connection(ssh, sftp)
 
     """
     Run main error checker and processed acknowledger
@@ -145,21 +127,12 @@ for species, species_testfiles in testfiles_dict.items():
     """
     Move ODS file to processed folder as if HD had done it again
     """
-    # Create an SSH client
-    ssh_ods = paramiko.SSHClient()
-    ssh_ods.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    # Connect to the server
-    ssh_ods.connect(sftp_credentials_hd['hostname_send_genomic_to_ODS'],
-                    sftp_credentials_hd['port_send_genomic_to_ODS'],
-                    sftp_credentials_hd['username_send_genomic_to_ODS'],
-                    sftp_credentials_hd['password_send_genomic_to_ODS'])
-    # Create an SFTP session
-    sftp_ods = ssh_ods.open_sftp()
+    sftpconnection_instance = SFTPConnection()
+    ssh, sftp = sftpconnection_instance.open_sftp_connection_send_genomic_to_ods()
 
-    sftp_ods.rename(f"upload/{DTAP}/{dummy_mapping_table['_id']}.json",
-                    f"upload/{DTAP}/processed/{dummy_mapping_table['_id']}.json")
-    sftp_ods.close()
-    ssh_ods.close()
+    sftp.rename(f"upload/{DTAP}/{dummy_mapping_table['_id']}.json",
+                f"upload/{DTAP}/processed/{dummy_mapping_table['_id']}.json")
+    sftpconnection_instance.close_sftp_connection(ssh, sftp)
 
     """
     Run main error checker and processed acknowledger again after reanalysis resending

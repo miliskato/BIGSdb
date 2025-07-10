@@ -7,7 +7,7 @@ from copy import deepcopy
 from datetime import datetime
 from email.message import EmailMessage
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 
 import yaml
 
@@ -20,7 +20,7 @@ from bioit_bigsdb_scripts.components.psql import TblSchemes
 from bioit_mongodb_scripts.util.command.command import Command
 
 
-def get_mongodb_config_data() -> Dict[str, Union[str, List[Any], Dict[str, Union[str, Dict[str, Any]]]]]:
+def get_mongodb_config_data() -> dict[str, Union[str, list[Any], dict[str, Union[str, dict[str, Any]]]]]:
     """
     Reads the global bigsdb config
     :return:
@@ -40,7 +40,7 @@ def is_viral(species: str) -> bool:
     return species in mongo_config['viral_species']
   
 
-def load_config(config: Path) -> Dict[str, Union[str, List[Any], Dict[str, Union[str, Dict[str, Any]]]]]:
+def load_config(config: Path) -> dict[str, Union[str, list[Any], dict[str, Union[str, dict[str, Any]]]]]:
     """
     Loads a config file.
     :param config: path to the config file
@@ -52,7 +52,7 @@ def load_config(config: Path) -> Dict[str, Union[str, List[Any], Dict[str, Union
 
 
 def send_email(content: str, subject=None,
-               config: Dict[str, str] = get_mongodb_config_data().get('mail'), dont_send_email: bool = False) -> None:
+               config: dict[str, str] = get_mongodb_config_data().get('mail'), dont_send_email: bool = False) -> None:
     """
     Sends an email.
     :param subject: Mail subject
@@ -105,7 +105,7 @@ def merge_mongo_dicts(target_dict: MongoRecordDict, merging_dict: MongoRecordDic
     _merge_nested_dicts(target_dict, merging_dict)
 
 
-def _merge_nested_dicts(target_dict: Union[MongoRecordDict,Dict], merging_dict: [MongoRecordDict,Dict]) -> Dict:
+def _merge_nested_dicts(target_dict: Union[MongoRecordDict, dict], merging_dict: [MongoRecordDict, dict]) -> dict:
     """
     Merges a nested dictionary into another target nested dictionary, seeing as this does not create a deepcopy,
     changes are applied regardless of if the output is captured
@@ -121,7 +121,8 @@ def _merge_nested_dicts(target_dict: Union[MongoRecordDict,Dict], merging_dict: 
     return target_dict
 
 
-def access_value_in_dict_using_list_as_dictpath(dict_path: List, search_dict: Dict[str, Any]) -> Optional[str]:
+def access_value_in_dict_using_list_as_dictpath(dict_path: list,
+                                                search_dict: Union[dict[str, Any], MongoRecordDict]) -> Optional[str]:
     """
     Given a dictionary path as a list of ordered subkeys, gets the value of this dictionary path from the given search
     dictionary.

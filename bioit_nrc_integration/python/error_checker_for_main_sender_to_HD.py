@@ -16,7 +16,7 @@ sys.path.append(str(PYTHONPATH))
 
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email
-from bioit_nrc_integration.python.config import SFTP_CREDENTIALS_HD, CODES_GENOMIC_ODS
+from bioit_nrc_integration.python.config import CODES_GENOMIC_ODS
 from bioit_nrc_integration.python.util.sftp_connection import SFTPConnection
 
 # Configure stdout logging
@@ -43,9 +43,6 @@ class ErrorCheckerForMainSenderToHD(SFTPConnection):
         self._alternate_dtap = alternate_dtap
 
         self._mongo_config_data = get_mongodb_config_data()
-        # get sftp credentials
-        with SFTP_CREDENTIALS_HD.open('r') as handle:
-            self._sftp_credentials_hd = yaml.safe_load(handle)
         # get HD ODS dictionaries to be able to translate to usable text
         with CODES_GENOMIC_ODS.open('r') as handle:
             self._translation_codes = yaml.safe_load(handle)
@@ -70,7 +67,7 @@ class ErrorCheckerForMainSenderToHD(SFTPConnection):
         files_and_dirs = sftp.listdir_attr(folder_path)
 
         # close SFTP after having received necessary info
-        self._close_sftp_connection(ssh, sftp)
+        self.close_sftp_connection(ssh, sftp)
 
         # Filter out directories, only list files
         error_files_count = len([entry.filename for entry in files_and_dirs if not stat.S_ISDIR(entry.st_mode)])
@@ -138,7 +135,7 @@ class ErrorCheckerForMainSenderToHD(SFTPConnection):
                 sftp.remove(f'{folder_path}/{file}')
 
             # close SFTP after having executed the function
-            self._close_sftp_connection(ssh, sftp)
+            self.close_sftp_connection(ssh, sftp)
 
     def __open_sftp_and_set_folder_path(self, folder: str) -> (paramiko.SSHClient, paramiko.SFTPClient, str):
         """
@@ -146,11 +143,7 @@ class ErrorCheckerForMainSenderToHD(SFTPConnection):
         :param folder: desired folder in sftp location, error or processed
         :return: ssh, sftp, folder_path as str
         """
-        ssh, sftp = self._open_sftp_connection(
-            self._sftp_credentials_hd['hostname_send_genomic_to_ODS'],
-            self._sftp_credentials_hd['port_send_genomic_to_ODS'],
-            self._sftp_credentials_hd['username_send_genomic_to_ODS'],
-            self._sftp_credentials_hd['password_send_genomic_to_ODS'])
+        ssh, sftp = self.open_sftp_connection_send_genomic_to_ods()
         folder_path = 'upload/' + \
                       f"{(self._alternate_dtap + '/') if self._alternate_dtap else ''}" + \
                       folder

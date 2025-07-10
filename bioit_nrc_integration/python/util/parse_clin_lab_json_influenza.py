@@ -11,12 +11,12 @@ class ParseClinLabJsonInfluenza(ParseClinLabJson):
     TARGET_SPECIES = 'influenza'
     FLU_TESTS = {'34487-9': 'A', '40982-1': 'B'}
     HA_TESTS = {'49521-8': 'H1', '55465-9': 'H1', '57985-4': 'H2', '49524-2': 'H3', 'TC0004': 'H4', '38272-1': 'H5',
-                 '38271-3': 'H6', '38270-5': 'H7', 'TC0005': 'H8', '49528-3': 'H9', 'TC0006': 'H10', 'TC0007': 'H11',
-                 'TC0008': 'H12', 'TC0009': 'H13', 'TC0010': 'H14', 'TC0011': 'H15', 'TC0012': 'H16', 'TC0013': 'H17',
-                 'TC0014': 'H18'}
-    NA_TESTS = { '99623-1': 'N1', 'TC0015': 'N2', 'TC0016': 'N3', 'TC0017': 'N4', 'TC0018': 'N5', 'TC0019': 'N6',
-                 'TC0020': 'N7', 'TC0021': 'N8', 'TC0022': 'N9', 'TC0023': 'N10', 'TC0024': 'N11' }
-    B_TESTS = { '74785-7': 'VIC', '74786-5': 'YAM'}
+                '38271-3': 'H6', '38270-5': 'H7', 'TC0005': 'H8', '49528-3': 'H9', 'TC0006': 'H10', 'TC0007': 'H11',
+                'TC0008': 'H12', 'TC0009': 'H13', 'TC0010': 'H14', 'TC0011': 'H15', 'TC0012': 'H16', 'TC0013': 'H17',
+                'TC0014': 'H18'}
+    NA_TESTS = {'99623-1': 'N1', 'TC0015': 'N2', 'TC0016': 'N3', 'TC0017': 'N4', 'TC0018': 'N5', 'TC0019': 'N6',
+                'TC0020': 'N7', 'TC0021': 'N8', 'TC0022': 'N9', 'TC0023': 'N10', 'TC0024': 'N11'}
+    B_TESTS = {'74785-7': 'VIC', '74786-5': 'YAM'}
 
     def __init__(self, data_unprocessed: dict[str, Any], filetype: Literal['CLIN', 'LAB'], species: str,
                  translation_codes: dict[str, Any]) -> None:
@@ -46,7 +46,8 @@ class ParseClinLabJsonInfluenza(ParseClinLabJson):
         Exctracts whether the sample is HOSPI, ILI, or SARI from the internal reference sample id if it is present.
         :return: None
         """
-        internal_reference_sample_id = self._get_value_by_capitalization_agnostic_key(self._data_unprocessed, 'TX_INT_ID')
+        internal_reference_sample_id = self._get_value_by_capitalization_agnostic_key(self._data_unprocessed,
+                                                                                      'TX_INT_ID')
         case_type = 'Unknown'
         if internal_reference_sample_id:
             if 'IH' in internal_reference_sample_id:
@@ -80,11 +81,11 @@ class ParseClinLabJsonInfluenza(ParseClinLabJson):
         There is no summary field. This function generates the summary.
         :return: None
         """
-        self._data_translated['Flu_type'] = self.___get_type_part(self.FLU_TESTS)
+        self._data_translated['Flu_type'] = self.__get_type_part(self.FLU_TESTS)
 
-        ha = self.___get_type_part(self.HA_TESTS)
-        na = self.___get_type_part(self.NA_TESTS)
-        b = self.___get_type_part(self.B_TESTS)
+        ha = self.__get_type_part(self.HA_TESTS)
+        na = self.__get_type_part(self.NA_TESTS)
+        b = self.__get_type_part(self.B_TESTS)
         if ha:
             self._data_translated['FluA_SubtypeHAPCR'] = ha
             self._data_translated['FluA_subtypePCR'] = ha + na
@@ -94,7 +95,7 @@ class ParseClinLabJsonInfluenza(ParseClinLabJson):
         elif b:
             self._data_translated['FluB_lineagePCR'] = b
 
-    def ___get_type_part(self, code_list: dict[str, str]) -> str:
+    def __get_type_part(self, code_list: dict[str, str]) -> str:
         """
         For a given code list, checks if any of the test codes are present and if their value is 'Detected'.
         Returns the first value it encounters. If none are encountered, an empty string is returned.
@@ -102,7 +103,7 @@ class ParseClinLabJsonInfluenza(ParseClinLabJson):
         :return: a single value from the code list or an empty string
         """
         labtest_list_of_result_dicts = self._get_value_by_capitalization_agnostic_key(self._data_unprocessed,
-                                                                                        'TX_TTL_LAB_TEST')
+                                                                                      'TX_TTL_LAB_TEST')
         if not labtest_list_of_result_dicts:
             return ''
         for code, value in code_list:
@@ -110,7 +111,8 @@ class ParseClinLabJsonInfluenza(ParseClinLabJson):
                 result_dict for result_dict in labtest_list_of_result_dicts if
                 code == self._get_value_by_capitalization_agnostic_key(
                     result_dict, 'CD_LAB_TEST_CODE')))
-            if self._cast_as_int_if_int(self._get_value_by_capitalization_agnostic_key(result_dict, 'CD_LAB_TEST_RSLT_QL')) == 260373001:
+            if self._cast_as_int_if_int(self._get_value_by_capitalization_agnostic_key(
+                    result_dict, 'CD_LAB_TEST_RSLT_QL')) == 260373001:
                 # if detected
                 return value
         return ''

@@ -6,13 +6,13 @@ import sys
 import traceback
 import yaml
 from pathlib import Path
-from typing import Any, Dict
 
 from pymongo.collection import Collection
 
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
+from bioit_mongodb_scripts.model.json_model import MongoRecordDict
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email
 from bioit_nrc_integration.python.config import CODES_GENOMIC_ODS
@@ -119,7 +119,7 @@ class MainSenderToHD:
         mapping_table_collection = mongoinit_local.initialise_mapping_table_collection()
         return mapping_table_collection, isolates_collection
 
-    def __trigger_sending_to_ods(self, document_genomic: Dict[str, Any], species: str,
+    def __trigger_sending_to_ods(self, document_genomic: MongoRecordDict, species: str,
                                  mapping_table_collection: Collection,
                                  isolates_collection: Collection) -> None:
         """
@@ -130,7 +130,7 @@ class MainSenderToHD:
         :param isolates_collection: remote MongoDB collection storing the genomic indicators
         :return: None
         """
-        document_mapping_table = mapping_table_collection.find_one({'pseudo_id': document_genomic['_id']})
+        document_mapping_table = mapping_table_collection.find_one({'pseudo_id': document_genomic.get_id()})
         if not document_genomic.get('sent_to_ODS') or document_genomic.get('changed_since_sent_to_ODS'):
             # Get the genomic document and transform it into a non-pseudonymized one
             document_genomic['_id'] = document_mapping_table['_id']

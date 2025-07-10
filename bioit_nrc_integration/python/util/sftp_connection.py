@@ -1,6 +1,9 @@
 from typing import Union
 
 import paramiko
+import yaml
+
+from ..config import SFTP_CREDENTIALS_HD
 
 
 class SFTPConnection:
@@ -12,10 +15,12 @@ class SFTPConnection:
         Initializes this class.
         :return: None
         """
-        pass
+        with SFTP_CREDENTIALS_HD.open('r') as handle:
+            self._sftp_credentials_hd = yaml.safe_load(handle)
 
     @staticmethod
-    def _open_sftp_connection(hostname: str, port: Union[str, int], username: str, password: str) -> (paramiko.SSHClient, paramiko.SFTPClient):
+    def _open_sftp_connection(hostname: str, port: Union[str, int], username: str, password: str) -> \
+            (paramiko.SSHClient, paramiko.SFTPClient):
         """
         Opens an SSH and SFTP connection using variables defined in the sftp credentials configuration file.
         :param hostname: sftp hostname
@@ -36,10 +41,32 @@ class SFTPConnection:
         return ssh, sftp
 
     @staticmethod
-    def _close_sftp_connection(ssh: paramiko.SSHClient, sftp: paramiko.SFTPClient) -> None:
+    def close_sftp_connection(ssh: paramiko.SSHClient, sftp: paramiko.SFTPClient) -> None:
         """
         Closes the SSH and SFTP clients created by open_sftp_connection.
         :return: None
         """
         sftp.close()
         ssh.close()
+
+    def open_sftp_connection_get_nominative_from_ods(self) -> (paramiko.SSHClient, paramiko.SFTPClient):
+        """
+        Public function to open an SFTP connection to the location where nominative files are deposited by the ODS.
+        :return: an ssh and sftp client for further use
+        """
+        return self._open_sftp_connection(
+            self._sftp_credentials_hd['hostname_get_nominative_from_ODS'],
+            self._sftp_credentials_hd['port_get_nominative_from_ODS'],
+            self._sftp_credentials_hd['username_get_nominative_from_ODS'],
+            self._sftp_credentials_hd['password_get_nominative_from_ODS'])
+
+    def open_sftp_connection_send_genomic_to_ods(self) -> (paramiko.SSHClient, paramiko.SFTPClient):
+        """
+        Public function to open an SFTP connection to the location where genomic files need to be deposited by bioit.
+        :return: an ssh and sftp client for further use
+        """
+        return self._open_sftp_connection(
+            self._sftp_credentials_hd['hostname_send_genomic_to_ODS'],
+            self._sftp_credentials_hd['port_send_genomic_to_ODS'],
+            self._sftp_credentials_hd['username_send_genomic_to_ODS'],
+            self._sftp_credentials_hd['password_send_genomic_to_ODS'])

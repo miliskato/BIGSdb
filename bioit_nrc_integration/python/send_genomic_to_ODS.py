@@ -10,8 +10,9 @@ import yaml
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
+from bioit_mongodb_scripts.model.json_model import MongoRecordDict
 from bioit_mongodb_scripts.util.python_utility_functions import access_value_in_dict_using_list_as_dictpath
-from bioit_nrc_integration.python.config import SFTP_CREDENTIALS_HD, CODES_GENOMIC_ODS
+from bioit_nrc_integration.python.config import CODES_GENOMIC_ODS
 from bioit_nrc_integration.python.util.python_utility_functions import send_dictionary_to_ods
 from bioit_nrc_integration.python.util.sftp_connection import SFTPConnection
 
@@ -24,7 +25,7 @@ class SendGenomicToODS(SFTPConnection):
     Class to get all required values for a pathogen from a MongoDB document and
     to send these values as a JSON file to the ODS over SFTP.
     """
-    def __init__(self, document: dict[str, Any], mongo_config_data: dict[str, Any], species: str,
+    def __init__(self, document: MongoRecordDict, mongo_config_data: dict[str, Any], species: str,
                  alternate_dtap: str = None) -> None:
         """
         Initialises this class and executes the main function.
@@ -45,22 +46,15 @@ class SendGenomicToODS(SFTPConnection):
         # get HD ODS dictionaries to be able to translate to useable text
         with CODES_GENOMIC_ODS.open('r') as handle:
             self._translation_codes = yaml.safe_load(handle)
-        # get sftp credentials
-        with SFTP_CREDENTIALS_HD.open('r') as handle:
-            self._sftp_credentials_hd = yaml.safe_load(handle)
 
         # initialize ssh & sftp
-        self._ssh, self._sftp = self._open_sftp_connection(
-            self._sftp_credentials_hd['hostname_send_genomic_to_ODS'],
-            self._sftp_credentials_hd['port_send_genomic_to_ODS'],
-            self._sftp_credentials_hd['username_send_genomic_to_ODS'],
-            self._sftp_credentials_hd['password_send_genomic_to_ODS'])
+        self._ssh, self._sftp = self.open_sftp_connection_send_genomic_to_ods()
 
         self._output_json_dict = self._create_output_json_dict()
         
         send_dictionary_to_ods(self._output_json_dict, self._sftp, alternate_dtap=self._alternate_dtap)
 
-        self._close_sftp_connection(self._ssh, self._sftp)
+        self.close_sftp_connection(self._ssh, self._sftp)
 
     def _create_output_json_dict(self) -> dict[str, Any]:
         """
@@ -107,4 +101,4 @@ class SendGenomicToODS(SFTPConnection):
         Closes the SSH and SFTP clients upon exit.
         :return: None
         """
-        self._close_sftp_connection(self._ssh, self._sftp)
+        self.close_sftp_connection(self._ssh, self._sftp)
