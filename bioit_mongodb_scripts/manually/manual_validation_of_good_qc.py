@@ -43,7 +43,8 @@ class ManualValidationOfGoodQc:
         :return: list of submission_id
         """
         with TblSubmissions(self._species) as isolates_submissions_psql_tbl:
-            return list(isolates_submissions_psql_tbl.get_submission_ids_for_specific_status_and_quality(('pending', 'good')))
+            list_tuple_sub_id = (isolates_submissions_psql_tbl.get_submission_ids_for_specific_status_and_quality(('pending', 'good')))
+            return list(map(lambda x: x[0], list_tuple_sub_id))
 
     def run(self) -> None:
         """
@@ -55,7 +56,7 @@ class ManualValidationOfGoodQc:
             for sub_id in submission_id_to_validate:
                 isolates_submissions_psql_tbl.validate_submission((sub_id,))
                 SampleValidationToMongo(self._species, sub_id)
-            logger.info(f'process submission id {sub_id}')
+                logger.info(f'process submission id {sub_id}')
 
 
 if __name__ == '__main__':
@@ -67,4 +68,4 @@ if __name__ == '__main__':
     args = parse_arguments(list(bigsdb_config_data['species_json']))
 
     # run main
-    ManualValidationOfGoodQc(args.species)
+    ManualValidationOfGoodQc(args.species).run()

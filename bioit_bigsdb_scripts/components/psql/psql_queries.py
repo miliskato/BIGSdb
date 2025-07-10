@@ -410,6 +410,6 @@ class PsqlQueries:
     ISO_UPD_STATUS_OUTCOME_TB_SUB_VAR_: Final[str] = """
         UPDATE submissions SET (status, outcome) = ('closed', 'good') WHERE ( quality = 'warning' AND resequencing = 'no' AND OUTCOME IS NULL);"""
     ISO_UPD_STATUS_OUTCOME_TB_SUB_VAR_SUBID: Final[str] = """
-        UPDATE submissions SET (status, outcome) = ('closed', 'good') WHERE id = %s;"""
+        UPDATE submissions SET (status, outcome, curator) = ('closed', 'good', 1) WHERE id = %s;"""
     ISO_INSERT_GENERIC_LAB_METADATA_TEMPLATE: Final[str] = "UPDATE isolates SET {} WHERE isolate=%s;"
 
