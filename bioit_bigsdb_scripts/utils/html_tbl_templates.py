@@ -76,6 +76,9 @@ class HtmlTableBuilder:
 
 
 class HtmlReportBuilder:
+    """
+    Class to build an html layout composed of multiple html tables
+    """
     def __init__(self) -> None:
         """initialize the general class HtmlReportBuilder to link multiple html tables in a convenient layout
         :return: None
@@ -83,14 +86,23 @@ class HtmlReportBuilder:
         self._html = ''
 
     def add_title(self, title: str) -> None:
+        """
+        add title to the html table from this report
+        :return: None
+        """
         self._html += f'<h3>{title}</h3>'
 
     def add_table(self, table_builder: HtmlTableBuilder) -> None:
+        """
+        add the html table to the report
+        :return: None
+        """
         self._html += table_builder.build()
         self._html += f'<br />'
 
     def build(self) -> str:
         """
+        build the html layout combining the html tables
         :return: The html report
         """
         return self._html
