@@ -454,7 +454,7 @@ class BatchPipelinesReanalysis:
             "--pipeline_hash $pipeline_hash",
             f"--jsonfilepath {results_dir}/report.json",
             "--dont_send_email",
-            f"--alternate_dtap {self._mongo_config_provider}",
+            f"--alternate_dtap {self._mongo_config_provider.dtap}",
             f"--connection_string 'CONNECTION_STRING_AZURE'"
         ])
         task_command = (f'/bin/bash -c "{pre_command}; {trap_command}; {base_command}; {unload_command}; '
