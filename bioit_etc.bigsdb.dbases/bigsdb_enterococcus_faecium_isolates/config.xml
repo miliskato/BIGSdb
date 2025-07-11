@@ -54,7 +54,7 @@
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">symptom_peritonitis</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">symptom_endocarditis</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">symptom_fasciitis</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">symptom_other</field>
+<field type="text" required="no" length="100" maindisplay="no" group ="nominative metadata" comments="">symptom_other</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">symptom_unknown</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">symptom_screening</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="unit of hospitalisation" optlist="yes">hospital_unit
