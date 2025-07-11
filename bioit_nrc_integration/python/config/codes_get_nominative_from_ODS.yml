@@ -90,6 +90,9 @@ schema:
         - listeria
       translation: outcome
       code_list: CD_OUTCM_codes
+    CD_OUTC:
+      translation: evolution
+      code_list: CD_OUTCM_codes
     CD_TRANSM_ZOONSS:
       required:
         - listeria
@@ -233,12 +236,17 @@ code_lists:
     255409004: Pregnant woman
     133933007: Newborn
     74964007: Other
+    415684004: Suspected
+    10179008: Invasive
+    22762002: Non-invasive
+    261665006: 'Unknown'
   CD_OUTCM_codes:
     371001000: Patient cured
     170968001: Prognosis favorable
     170969009: Prognosis poor
     419099009: Died
     261665006: 'Unknown'
+  CD_OUTC_codes
   CD_TRANSM_ZOONSS_codes:
     416086007: Food-borne transmission
     226034001: Injecting drug users
@@ -423,6 +431,20 @@ code_lists:
       value_field: 'CD_LAB_TEST_RSLT_QL'
       code_list: 'labtest_codes'
       translation: 'mic_mem_I'
+    - CD_LAB_TEST_CODE: '6932-8'
+      value_field: 'MS_LAB_TEST_RSLT_QN_VAL'
+      translation: 'mic_pen'
+    - CD_LAB_TEST_CODE: '18964-7'
+      value_field: 'CD_LAB_TEST_RSLT_QL'
+      code_list: 'labtest_codes'
+      translation: 'mic_pen_I'
+    - CD_LAB_TEST_CODE: '428-3'
+      value_field: 'MS_LAB_TEST_RSLT_QN_VAL'
+      translation: 'mic_rif'
+    - CD_LAB_TEST_CODE: '18974-6'
+      value_field: 'CD_LAB_TEST_RSLT_QL'
+      code_list: 'labtest_codes'
+      translation: 'mic_rif_I'
     - CD_LAB_TEST_CODE: '468-9'
       value_field: 'MS_LAB_TEST_RSLT_QN_VAL'
       translation: 'mic_smx'
