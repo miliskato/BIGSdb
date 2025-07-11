@@ -30,9 +30,6 @@ class LreFinderGeneDetectionContextBuilder(GeneDetectionContextBuilder):
         context = GeneDetectionContext(scheme, scheme_config)
         file_path = scheme_config['metadatafile']
         mutations = pd.read_csv(file_path, delimiter="_", header=None)
-        mask = mutations[0].str.contains('>', na=False, case=False)
-        mutations = mutations[mask]
-        genes = mutations[0].str.replace('>', '')
         mutation_nb = mutations[1].to_list()
         accession_ids = mutations[2].to_list()
         bigsdb_scheme_name = scheme_config['schemename_bigsdb']

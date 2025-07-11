@@ -86,7 +86,7 @@ species:
         schemename_bigsdb: AMRFinder
         schemename_html: amrfinder
       lrefinder:
-        metadatafile: /db/pipelines/enterococcus/LRE-Finder/20200812/elmDB/elm.fsa
+        metadatafile: /db/pipelines/enterococcus/LRE-Finder/20200812/elmDB/elm.name
         schemename_bigsdb: LRE-Finder
         schemename_html: lre-finder
   enterococcus_faecium:
@@ -137,7 +137,7 @@ species:
         schemename_bigsdb: AMRFinder
         schemename_html: amrfinder
       lrefinder:
-        metadatafile: /db/pipelines/enterococcus/LRE-Finder/20200812/elmDB/elm.fsa
+        metadatafile: /db/pipelines/enterococcus/LRE-Finder/20200812/elmDB/elm.name
         schemename_bigsdb: LRE-Finder
         schemename_html: lre-finder
   listeria:
@@ -354,7 +354,7 @@ species_json:
         schemename_bigsdb: AMRFinder
         schemename_html: amrfinder
       lrefinder:
-        metadatafile: /db/pipelines/enterococcus/LRE-Finder/20200812/elmDB/elm.fsa
+        metadatafile: /db/pipelines/enterococcus/LRE-Finder/20200812/elmDB/elm.name
         schemename_bigsdb: LRE-Finder
         schemename_html: lre-finder
   enterococcus_faecium:
@@ -393,7 +393,7 @@ species_json:
         schemename_bigsdb: AMRFinder
         schemename_html: amrfinder
       lrefinder:
-        metadatafile: /db/pipelines/enterococcus/LRE-Finder/20200812/elmDB/elm.fsa
+        metadatafile: /db/pipelines/enterococcus/LRE-Finder/20200812/elmDB/elm.name
         schemename_bigsdb: LRE-Finder
         schemename_html: lre-finder
   listeria:

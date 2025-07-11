@@ -87,10 +87,9 @@ class MainInserter(JsonSuperClass):
                                                        str(isolate_id)))
             logging.info('Metadata insertion successful')
 
-    def _insert_species_specific_metadata(self, report_url_api: str) -> None:
+    def _insert_species_specific_metadata(self) -> None:
         """
         Insert species specific metadata
-        :param report_url_api: url to get report for the isolate from the api
         :return: None
         """
         if self._species == 'mycobacterium':
