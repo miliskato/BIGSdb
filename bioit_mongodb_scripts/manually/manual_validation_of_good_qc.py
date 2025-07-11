@@ -18,6 +18,7 @@ logger.setLevel(logging.INFO)
 def parse_arguments(specieslist: list[str]) -> argparse.Namespace:
     """
     Parses the command line arguments.
+    :specieslist: a list of currently accepted species names.
     :return: Parsed arguments
     """
     argument_parser = argparse.ArgumentParser()
