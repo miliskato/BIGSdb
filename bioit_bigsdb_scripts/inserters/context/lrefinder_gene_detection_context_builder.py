@@ -21,7 +21,7 @@ class LreFinderGeneDetectionContextBuilder(GeneDetectionContextBuilder):
 
     def build(self, scheme: str, scheme_config: Dict[str, Any]) -> GeneDetectionContext:
         """
-        Based on "/db/amrfinder/latest/AMRProt" file from AMRFinder db, creates dictionaries used to insert loci in seqdef
+        Based on "/db/pipelines/enterococcus/LRE-Finder/20200812/elmDB/elm.name" file from LRE-Finder, creates dictionaries used to insert loci in seqdef
         :param scheme: name of the scheme
         :param scheme_config: bigsdb config for this scheme
         :return: GeneDetectionContext object
