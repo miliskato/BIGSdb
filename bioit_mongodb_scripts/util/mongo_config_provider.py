@@ -54,8 +54,8 @@ class MongoConfigProvider:
 
     def _get_dtap_extension(self) -> str:
         """
-        Return the dtap that will be used as extension for diverse string. Either the one from the config or the one passed in arguments
-        :return: a string corresponding to the dtap
+        Evaluates the current dtap and return the corresponding extension that will be used to construct the azure connection string.
+        :return: a string corresponding to the extension need for the dtap
         """
         if self.dtap in ['dev', 'test']:
             return 'devtest'
