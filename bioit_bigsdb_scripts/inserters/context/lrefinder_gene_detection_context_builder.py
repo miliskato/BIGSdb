@@ -28,15 +28,18 @@ class LreFinderGeneDetectionContextBuilder(GeneDetectionContextBuilder):
         """
 
         context = GeneDetectionContext(scheme, scheme_config)
+        bigsdb_scheme_name = scheme_config['schemename_bigsdb']
         file_path = scheme_config['metadatafile']
         mutations = pd.read_csv(file_path, delimiter="_", header=None)
-        mutation_nb = mutations[1].to_list()
+        mutations["sequence_id"] = mutations[[0, 1, 2]].agg('_'.join, axis=1)
+        mutations["bigsdb_genecluster_name"] = bigsdb_scheme_name + "_" + mutations[0] + "_" + mutations[2]
         accession_ids = mutations[2].to_list()
-        bigsdb_scheme_name = scheme_config['schemename_bigsdb']
+        sequence_ids = mutations["sequence_id"].to_list()
+        bigsdb_genecluster_names = mutations["bigsdb_genecluster_name"].to_list()
 
-        for index, gene in enumerate(genes):
-            bigsdb_genecluster_name = f"{bigsdb_scheme_name}_{gene}_{accession_ids[index]}"
-            sequence_id = "_".join([gene, mutation_nb[index], accession_ids[index]])
+        for index, accession_id in enumerate(accession_ids):
+            bigsdb_genecluster_name = bigsdb_genecluster_names[index]
+            sequence_id = sequence_ids[index]
             context.set_sequence_genecluster_name(sequence_id, bigsdb_genecluster_name)
-            context.add_description(bigsdb_genecluster_name, accession_ids[index])
+            context.add_description(bigsdb_genecluster_name, accession_id)
         return context
