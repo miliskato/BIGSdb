@@ -30,16 +30,11 @@ class LreFinderGeneDetectionContextBuilder(GeneDetectionContextBuilder):
         context = GeneDetectionContext(scheme, scheme_config)
         bigsdb_scheme_name = scheme_config['schemename_bigsdb']
         file_path = scheme_config['metadatafile']
-        mutations = pd.read_csv(file_path, delimiter="_", header=None)
-        mutations["sequence_id"] = mutations[[0, 1, 2]].agg('_'.join, axis=1)
-        mutations["bigsdb_genecluster_name"] = bigsdb_scheme_name + "_" + mutations[0] + "_" + mutations[2]
-        accession_ids = mutations[2].to_list()
-        sequence_ids = mutations["sequence_id"].to_list()
-        bigsdb_genecluster_names = mutations["bigsdb_genecluster_name"].to_list()
+        mutations = pd.read_csv(file_path, delimiter="_", header=None, names=["gene", "mutation_nb", "accession_id"])
+        mutations["sequence_id"] = mutations[["gene", "mutation_nb", "accession_id"]].agg('_'.join, axis=1)
+        mutations["bigsdb_genecluster_name"] = bigsdb_scheme_name + "_" + mutations["gene"] + "_" + mutations["accession_id"]
 
-        for index, accession_id in enumerate(accession_ids):
-            bigsdb_genecluster_name = bigsdb_genecluster_names[index]
-            sequence_id = sequence_ids[index]
-            context.set_sequence_genecluster_name(sequence_id, bigsdb_genecluster_name)
-            context.add_description(bigsdb_genecluster_name, accession_id)
+        for row in mutations.itertuples(index=False):
+            context.set_sequence_genecluster_name(row.sequence_id, row.bigsdb_genecluster_name)
+            context.add_description(row.bigsdb_genecluster_name, row.accession_id)
         return context
