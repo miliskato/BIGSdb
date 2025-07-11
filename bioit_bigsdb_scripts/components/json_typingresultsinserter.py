@@ -364,7 +364,8 @@ class JsonTypingResultsInserter(JsonSuperClass):
         :param mode: Seqsero2 specific parameter to differentiate between the three different modes that it is run in.
         :return: None
         """
-        validate_literal(mode, ModeLiteral)
+        if mode is not None:
+            validate_literal(mode, ModeLiteral)
         raw_formula_splitted: List = raw_formula.split(':')
         antigensdict = {"O_antigen": raw_formula_splitted[0].split(','),
                         "H1_antigen": raw_formula_splitted[1].split(','),
