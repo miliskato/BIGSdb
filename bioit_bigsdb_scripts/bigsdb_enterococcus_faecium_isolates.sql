@@ -30,7 +30,7 @@ INSERT INTO eav_fields(field, value_format, category, description, no_curate, no
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('MOB-Suite', 'text', 'MOB-Suite', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('LRE-Finder_species', 'text', 'LRE-Finder', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('LRE-Finder', 'text', 'LRE-Finder', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
-INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('BactMet_genes', 'text', 'BactMet', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
+INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('BacMet_genes', 'text', 'BacMet', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
 
 --insert eav_fields_hidden
 INSERT INTO eav_fields_hidden(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('mongo_results_version', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;

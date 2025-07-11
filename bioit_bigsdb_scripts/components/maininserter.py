@@ -140,4 +140,4 @@ class MainInserter(JsonSuperClass):
             if 'lrefinder' in self._json_report_dict:
                 self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'LRE-Finder_species', self._json_report_dict['lrefinder'].get('lrefinder_species')))
             if 'bacmet' in self._json_report_dict and self._json_report_dict['bacmet']['bacmet_genes'] != '':
-                self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'BactMet_genes', self._json_report_dict['bacmet']['bacmet_genes']))
+                self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'BacMet_genes', self._json_report_dict['bacmet']['bacmet_genes']))
