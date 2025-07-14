@@ -1,7 +1,7 @@
 import socket
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Any, Literal, Optional, Union
 
 import yaml
 
@@ -13,7 +13,7 @@ sys.path.append(str(PYTHONPATH))
 from bioit_mongodb_scripts.config import MONGO_CONFIG
 
 
-def get_mongodb_config_data() -> Dict[str, Union[str, List[Any], Dict[str, Union[str, Dict[str, Any]]]]]:
+def get_mongodb_config_data() -> dict[str, Union[str, list[Any], dict[str, Union[str, dict[str, Any]]]]]:
     """
     Reads the global bigsdb config
     :return:
@@ -100,7 +100,7 @@ class MongoConfigProvider:
         return self._mongo_global_config['CONNECTION_STRING_ASB']
 
     @staticmethod
-    def get_all_species() -> List[str]:
+    def get_all_species() -> list[str]:
         """
         Get the list of all currently used species
         :return: a list of all currently used species
@@ -115,7 +115,7 @@ class MongoConfigProvider:
                 "sars_cov_2"]
 
     @property
-    def sequence_typing_schemes(self) -> List[str]:
+    def sequence_typing_schemes(self) -> list[str]:
         """
         get sequence typing schemes from the mongo db config
         :return: a list of sequence typing schemes
