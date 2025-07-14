@@ -66,6 +66,7 @@ ALTER TABLE isolates
     ADD COLUMN mic_van_sign text,
     ADD COLUMN mic_van real,
     ADD COLUMN mic_van_I text,
+    ADD COLUMN mic_resistances text,
     ADD COLUMN subject text,
     ADD COLUMN vangenes vangenes_type;
 
@@ -124,6 +125,7 @@ ALTER TABLE isolates
     DROP COLUMN mic_van_sign,
     DROP COLUMN mic_van,
     DROP COLUMN mic_van_I,
+    DROP COLUMN mic_resistances,
     DROP COLUMN subject,
     DROP COLUMN vangenes;
 

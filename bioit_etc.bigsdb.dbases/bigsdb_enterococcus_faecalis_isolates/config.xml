@@ -163,6 +163,7 @@
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">mic_van_sign</field>
 <field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">mic_van</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">mic_van_I</field>
+<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="MIC resistances">mic_resistances</field>
 <field type="text" required="no" length="100" maindisplay="no" group ="nominative metadata" comments="Disease to report">subject</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="" optlist="yes">vangenes
   <optlist>
