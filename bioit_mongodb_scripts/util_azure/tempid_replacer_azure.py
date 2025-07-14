@@ -79,7 +79,7 @@ class TempidReplacerAzure:
 
         # Execute main
         try:
-            for scheme in self._mongo_config_provider.get_schemes_sequence_typing():
+            for scheme in self._mongo_config_provider.sequence_typing_schemes:
                 self._scheme = scheme
                 # Query all unresolved hashes from hash collection for this particular scheme
                 documents_list = self.__query_hashes_of_scheme()

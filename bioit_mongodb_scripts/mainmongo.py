@@ -593,7 +593,7 @@ class MainMongo:
         :return: results
         """
         hashed_ad_collection = self._mongoinit.initialise_hashing_collection()
-        for typing_scheme in self._mongo_config_provider.get_schemes_sequence_typing():
+        for typing_scheme in self._mongo_config_provider.sequence_typing_schemes:
             if typing_scheme in json_report:
                 for locus_index, allele_info in enumerate(json_report[typing_scheme]['loci']):
                     # check if allele designation is md5 hash (32 char combination of letters andor numbers)
@@ -812,7 +812,7 @@ if __name__ == '__main__':
 
     connection_string = mongo_config_provider.get_azure_connection_string(args.species)
     if args.connection_string == 'CONNECTION_STRING_ALTERNATE':
-        connection_string = mongo_config_provider.get_alternate_connection_string()
+        connection_string = mongo_config_provider.alternate_connection_string
     elif args.connection_string == 'CONNECTION_STRING_LOCAL':
         connection_string = mongo_config_provider.get_local_connection_string(args.species)
 

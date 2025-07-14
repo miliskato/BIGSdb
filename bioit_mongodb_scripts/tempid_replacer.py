@@ -246,7 +246,7 @@ if __name__ == '__main__':
 
     connection_string = mongo_config_provider.get_azure_connection_string(args.species)
     if args.connection_string == 'CONNECTION_STRING_ALTERNATE':
-        connection_string = mongo_config_provider.get_alternate_connection_string()
+        connection_string = mongo_config_provider.alternate_connection_string
     elif args.connection_string == 'CONNECTION_STRING_LOCAL':
         connection_string = mongo_config_provider.get_local_connection_string(args.species)
 

@@ -89,7 +89,7 @@ class HtmlreportGeneration:
             requested_document = self._isolates_collection.find_one({'_id': self._technical_id})
 
         # Set the output dir
-        dir_out = Path(self._mongo_config_provider.get_temp_dir()) / self._mongo_config_provider.dtap / self._species / self._technical_id
+        dir_out = Path(self._mongo_config_provider.temp_dir) / self._mongo_config_provider.dtap / self._species / self._technical_id
         dir_out.rmdir()
         shutil.copytree(requested_document['report_directory'], str(dir_out))
 

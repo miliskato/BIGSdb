@@ -53,7 +53,7 @@ class UpdateBIGSdbSeqDef:
         :return: None
         """
         documents_list = [document for document in self._hashed_ad_collection.find(
-            {'scheme': {'$in': self._mongo_config_provider.get_schemes_sequence_typing()},
+            {'scheme': {'$in': self._mongo_config_provider.sequence_typing_schemes},
              'resolved_AD': {'$ne': 0}, 'replaced_in_bigs_date': {'$exists': False}})]
 
         with TblAlleleDesignations(self._species) as isolates_ad_psql_tbl:

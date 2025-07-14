@@ -351,10 +351,10 @@ class MongoToBigs:
         # isolates and we do not want to scp the assembly from Azure
         if not results_type == 'reanalysis':
             fasta_path_remote = document['fasta_path']
-            temp_dir = self._mongo_config_provider.get_temp_dir()
+            temp_dir = self._mongo_config_provider.temp_dir
             with tempfile.NamedTemporaryFile(dir=temp_dir, mode="w") as temp_fasta:
                 temp_fasta_path = Path(temp_dir) / temp_fasta.name
-                scp_command = f"scp -o StrictHostKeyChecking=no -i /home/bigsdb/.ssh/.id_rsa_reportsapi bigsdb@{self._mongo_config_provider.get_azure_reportsapi_ip()}:{fasta_path_remote} {str(temp_fasta_path)}"
+                scp_command = f"scp -o StrictHostKeyChecking=no -i /home/bigsdb/.ssh/.id_rsa_reportsapi bigsdb@{self._mongo_config_provider.azure_reportsapi_ip}:{fasta_path_remote} {str(temp_fasta_path)}"
                 scp_cmd = Command(scp_command)
                 scp_cmd.run(Path(temp_dir))
                 if scp_cmd.returncode != 0:

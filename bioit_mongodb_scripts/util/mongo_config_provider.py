@@ -52,45 +52,31 @@ class MongoConfigProvider:
         """
         return f'{species}User_{self.dtap}'
 
-    def _get_dtap_extension(self) -> str:
-        """
-        Evaluates the current dtap and return the corresponding extension that will be used to construct the azure connection string.
-        :return: a string corresponding to the extension need for the dtap
-        """
-        if self.dtap in ['dev', 'test']:
-            return 'devtest'
-        return 'accprod'
-
-    def _get_domain_for_dtap(self) -> str:
-        """
-        Return the domain according to the current dtap
-        :return: a string corresponding to the domain name
-        """
-        if self.dtap in ['dev', 'test']:
-            return 'darwinproject.be'
-        return 'sciensano.be'
-
     def get_local_connection_string(self, species: str) -> str:
         """
         Get connection string to the local cluster of MongoDB
         :return: connection string
         """
-        dtap_domain = self._get_domain_for_dtap()
+        domain = 'darwinproject.be' if self.dtap in ['dev', 'test'] else 'sciensano.be'
+        ext = 'd' if self.dtap in ['dev', 'test'] else 'p'
         if self.host_is_an_nrc_platform(species):
-            return f'mongodb://{self._get_user(species)}:{self.__password}@bioit-mongo-d01.{dtap_domain}:27017,bioit-mongo-d02.{dtap_domain}:27017,bioit-mongo-d03.{dtap_domain}:27017/?authSource={species}_{self.dtap}&replicaSet=bioit-HERA'
-        return f'mongodb://admin:{self.__password}@bioit-mongo-d01.{dtap_domain}:27017,bioit-mongo-d02.{dtap_domain}:27017,bioit-mongo-d03.{dtap_domain}:27017/?replicaSet=bioit-HERA&authSource=admin'
+            return f'mongodb://{self._get_user(species)}:{self.__password}@bioit-mongo-{ext}01.{domain}:27017,bioit-mongo-{ext}02.{domain}:27017,bioit-mongo-{ext}03.{domain}:27017/?authSource={species}_{self.dtap}&replicaSet=bioit-HERA'
+
+        return f'mongodb://admin:{self.__password}@bioit-mongo-{ext}01.{domain}:27017,bioit-mongo-{ext}02.{domain}:27017,bioit-mongo-{ext}03.{domain}:27017/?replicaSet=bioit-HERA&authSource=admin'
 
     def get_azure_connection_string(self, species: str) -> str:
         """
         Get connection string to MongoDB Atlas cluster
         :return: connection string
         """
-        dtap_extension = self._get_dtap_extension()
+        dtap_extension = 'devtest' if self.dtap in ['dev', 'test'] else 'accprod'
+        domain = 'fgpmn' if self.dtap in ['dev', 'test'] else 'lw3rk'
         if self.host_is_an_nrc_platform(species):
-            return f'mongodb+srv://{self._get_user(species)}:{self.__password}@mongodb-atlas-{dtap_extension}-pl-0.fgpmn.mongodb.net/?retryWrites=true&w=majority'
-        return f'mongodb+srv://admin:{self.__password}@mongodb-atlas-{dtap_extension}-pl-0.fgpmn.mongodb.net/?retryWrites=true&w=majority'
+            return f'mongodb+srv://{self._get_user(species)}:{self.__password}@mongodb-atlas-{dtap_extension}-pl-0.{domain}.mongodb.net/?retryWrites=true&w=majority'
+        return f'mongodb+srv://admin:{self.__password}@mongodb-atlas-{dtap_extension}-pl-0.{domain}.mongodb.net/?retryWrites=true&w=majority'
 
-    def get_alternate_connection_string(self) -> str:
+    @property
+    def alternate_connection_string(self) -> str:
         """
         Get alternate connection string contains in the config file for MongoDB
         :return: connection string
@@ -105,7 +91,8 @@ class MongoConfigProvider:
         """
         return species in self._mongo_global_config['viral_species']
 
-    def get_asb_connection_string(self) -> str:
+    @property
+    def asb_connection_string(self) -> str:
         """
         Get the connection string for Azure Service Bus
         :return: connection string to Azure Service Bus
@@ -127,7 +114,8 @@ class MongoConfigProvider:
                 "influenza",
                 "sars_cov_2"]
 
-    def get_schemes_sequence_typing(self) -> List[str]:
+    @property
+    def sequence_typing_schemes(self) -> List[str]:
         """
         get sequence typing schemes from the mongo db config
         :return: a list of sequence typing schemes
@@ -143,28 +131,32 @@ class MongoConfigProvider:
         naive_clustering_distance_matrix_path = self._mongo_global_config['naive_clustering_distance_matrix_file'].replace('species', species).replace('dtap', self.dtap)
         return naive_clustering_distance_matrix_path
 
-    def get_temp_dir(self) -> str:
+    @property
+    def temp_dir(self) -> str:
         """
         get temp dir based on mongo config
         :return: a string referring to the temp dir
         """
         return self._mongo_global_config['temp_dir']
 
-    def get_azure_reportsapi_ip(self) -> str:
+    @property
+    def azure_reportsapi_ip(self) -> str:
         """
         get azure reportsapi ip address based on mongo config
         :return: a string referring to the azure reportsapi ip address
         """
         return self._mongo_global_config['azure_reportsapi_ip']
 
-    def get_mail(self) -> str:
+    @property
+    def mail_info(self) -> str:
         """
         get email address to send the log
         :return: a string referring to the email address
         """
         return self._mongo_global_config['mail']
 
-    def get_json_reports_dir(self) -> str:
+    @property
+    def json_reports_dir(self) -> str:
         """
         get json reports dir based on mongo config
         :return: a string referring to the json reports dir

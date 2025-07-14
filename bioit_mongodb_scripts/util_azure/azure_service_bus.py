@@ -16,7 +16,7 @@ class AzureServiceBus:
         :return: None
         """
         self._species = species
-        self._connection_string_asb = mongo_config_provider.get_asb_connection_string()
+        self._connection_string_asb = mongo_config_provider.asb_connection_string
         self._dtap = mongo_config_provider.dtap
         self._queue_name = f"{species}_{self._dtap}"
         self._mongo_config_provider = mongo_config_provider

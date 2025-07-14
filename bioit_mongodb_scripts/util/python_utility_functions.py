@@ -32,7 +32,7 @@ def load_config(config: Path) -> Dict[str, Union[str, List[Any], Dict[str, Union
 
 
 def send_email(content: str, subject=None,
-               config: Dict[str, str] = MongoConfigProvider().get_mail(), dont_send_email: bool = False) -> None:
+               config: Dict[str, str] = MongoConfigProvider().mail_info, dont_send_email: bool = False) -> None:
     """
     Sends an email.
     :param subject: Mail subject
