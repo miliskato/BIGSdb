@@ -1,7 +1,7 @@
 import socket
 import sys
 from pathlib import Path
-from typing import Any, Literal, Optional, Union
+from typing import Any, Literal
 
 import yaml
 
@@ -13,18 +13,8 @@ sys.path.append(str(PYTHONPATH))
 from bioit_mongodb_scripts.config import MONGO_CONFIG
 
 
-def get_mongodb_config_data() -> dict[str, Union[str, list[Any], dict[str, Union[str, dict[str, Any]]]]]:
-    """
-    Reads the global bigsdb config
-    :return:
-    """
-    with Path(MONGO_CONFIG).open('r') as handle:
-        mongo_config_data = yaml.safe_load(handle)
-    return mongo_config_data
-
-
 DtapValues = Literal['dev', 'test', 'acc', 'prod']
-DtapValue = Union[str, DtapValues]  # workaround to avoid pycharm warnings
+DtapValue = str | DtapValues  # workaround to avoid pycharm warnings
 
 
 class MongoConfigProvider:
@@ -32,17 +22,27 @@ class MongoConfigProvider:
     Class to facilitate access to the different parts of the global mongodb config.
     """
 
-    def __init__(self, alternate_dtap: Optional[DtapValue] = None):
+    def __init__(self, alternate_dtap: DtapValue | None):
         """
         :param alternate_dtap: optional dtap if need to overwrite the config
         :return: None
         """
         if alternate_dtap:
             validate_literal(alternate_dtap, DtapValues)
-        self._mongo_global_config = get_mongodb_config_data()
+        self._mongo_global_config = self._get_mongodb_config_data()
         self.dtap = self._mongo_global_config['dtap'] if alternate_dtap is None else str(alternate_dtap)
         self.__password = self._mongo_global_config['MONGO_DB_PASSWORD']
         self.upload_path = 'upload/' + f"{(alternate_dtap + '/') if alternate_dtap else ''}"
+
+    @staticmethod
+    def _get_mongodb_config_data() -> dict[str, str | list[Any] | dict[str, str | dict[str, Any]]]:
+        """
+        Reads the mongo db config file
+        :return: dict containing the config items
+        """
+        with Path(MONGO_CONFIG).open('r') as handle:
+            mongo_config_data = yaml.safe_load(handle)
+        return mongo_config_data
 
     def _get_user(self, species: str) -> str:
         """
