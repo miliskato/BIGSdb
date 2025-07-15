@@ -79,4 +79,4 @@ class TblSubmissions(DatabaseConnection):
         :param param: submission id for which we want to validate the submission
         :return: None
         """
-        return self.execute_query(PsqlQueries.ISO_UPD_STATUS_OUTCOME_TB_SUB_VAR_SUBID, param)
+        self.execute_query(PsqlQueries.ISO_UPD_STATUS_OUTCOME_TB_SUB_VAR_SUBID, param)
