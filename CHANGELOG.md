@@ -7,11 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added:
 - Antivirals assays for Influenza
-- manual validation of goodqc results pending for submission in BIGSdb
 
 ### Fixed:
 - missing field in nominative metadata for Influenza
 
+
+## [4.1.1]
+### Added
+- "manual_validation_of_good_qc.py" to validate the good qc isolates submitted into BIGSdb (historical collection)
 
 ## [4.1.0]
 ### Added:
