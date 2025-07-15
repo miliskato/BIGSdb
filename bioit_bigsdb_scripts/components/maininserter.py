@@ -77,7 +77,7 @@ class MainInserter(JsonSuperClass):
             else:
                 assemblylink = f'<p><a href="/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_{self._species}_isolates&page=plugin&name=Contigs&format=text&isolate_id={isolate_id}&match=1&pc_untagged=0&min_length=&header=1l" target="_blank">assembly</a></p>'
                 self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'assembly', assemblylink))
-            self._insert_species_specific_metadata(report_url)
+            self._insert_species_specific_metadata()
             if 'changed_version' in self._json_report_dict:
                 with TblEavTextHidden(self._species) as isolates_eavth_psql_tbl:
                     isolates_eavth_psql_tbl.insert_hidden_isolate((self._isolatename, 'mongo_results_version', self._json_report_dict['changed_version']))

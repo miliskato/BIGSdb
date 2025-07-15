@@ -22,7 +22,7 @@ class MongoConfigProvider:
     Class to facilitate access to the different parts of the global mongodb config.
     """
 
-    def __init__(self, alternate_dtap: DtapValue | None):
+    def __init__(self, alternate_dtap: DtapValue | None = None):
         """
         :param alternate_dtap: optional dtap if need to overwrite the config
         :return: None
