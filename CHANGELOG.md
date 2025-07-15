@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Ability to support deployment for multiple species databases on the same VM
 - Enterococcus faecalis and Enterococcus faecium related assays ('MLST_Bezdicek', 'LRE-Finder')
 - Method to validate Literal object and value passed to this one
+- "manual_validation_of_good_qc.py" to validate the good qc isolates submitted into BIGSdb (historical collection)  
 
 ### Changed
 - Method to get relevant info from the mongoDB config file
