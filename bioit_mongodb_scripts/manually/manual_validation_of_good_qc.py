@@ -57,7 +57,7 @@ class ManualValidationOfGoodQc:
             for sub_id in submission_id_to_validate:
                 isolates_submissions_psql_tbl.validate_submission((sub_id,))
                 SampleValidationToMongo(self._species, sub_id)
-                logger.info(f'process submission id {sub_id}')
+                logger.info(f'processed submission id {sub_id}')
 
 
 if __name__ == '__main__':
