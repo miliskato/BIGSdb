@@ -12,7 +12,6 @@ sys.path.append(str(PYTHONPATH))
 
 from bioit_mongodb_scripts.config import MONGO_CONFIG
 
-
 DtapValues = Literal['dev', 'test', 'acc', 'prod']
 DtapValue = str | DtapValues  # workaround to avoid pycharm warnings
 
@@ -21,6 +20,15 @@ class MongoConfigProvider:
     """
     Class to facilitate access to the different parts of the global mongodb config.
     """
+    __CURRENTLY_SUPPORTED_SPECIES = ["enterococcus_faecalis",
+                                     "enterococcus_faecium",
+                                     "listeria",
+                                     "mycobacterium",
+                                     "neisseria",
+                                     "salmonella",
+                                     "influenza",
+                                     "sars_cov_2"]
+    __CURRENTLY_SUPPORTED_VIRAL_SPECIES = ["influenza", "sars_cov_2"]
 
     def __init__(self, alternate_dtap: DtapValue | None = None):
         """
@@ -83,13 +91,14 @@ class MongoConfigProvider:
         """
         return self._mongo_global_config['CONNECTION_STRING_ALTERNATE']
 
-    def is_viral(self, species: str) -> bool:
+    @staticmethod
+    def is_viral(species: str) -> bool:
         """
         Check if the current species is viral
         :param species: species to evaluate
         :return: True if species is viral
         """
-        return species in self.get_current_viral_species()
+        return species in MongoConfigProvider.__CURRENTLY_SUPPORTED_VIRAL_SPECIES
 
     @property
     def asb_connection_string(self) -> str:
@@ -105,22 +114,7 @@ class MongoConfigProvider:
         Get the list of all currently supported species
         :return: a list of all currently used species
         """
-        return ["enterococcus_faecalis",
-                "enterococcus_faecium",
-                "listeria",
-                "mycobacterium",
-                "neisseria",
-                "salmonella",
-                "influenza",
-                "sars_cov_2"]
-
-    @staticmethod
-    def get_current_viral_species() -> list[str]:
-        """
-        Get the list of all currently supported viral species
-        :return: a list of all currently supported viral species
-        """
-        return ["influenza", "sars_cov_2"]
+        return MongoConfigProvider.__CURRENTLY_SUPPORTED_SPECIES
 
     @property
     def sequence_typing_schemes(self) -> list[str]:
