@@ -7,21 +7,6 @@ mail:
     to: Michael or Ann-Stephan
     host: bioit-mailhog.darwinproject.be:1025
 
-species:
-    - enterococcus_faecalis
-    - enterococcus_faecium
-    - listeria
-    - mycobacterium
-    - neisseria
-    - stec
-    - salmonella
-    - influenza
-    - sars_cov_2
-
-viral_species:
-    - influenza
-    - sars_cov_2
-
 dtap: to_be_replaced_by_ansible
 
 collections:
