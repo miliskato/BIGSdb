@@ -18,7 +18,7 @@ def parse_arguments() -> argparse.Namespace:
     :return: Parsed arguments
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("--species", required=True, type=str,  choices=MongoConfigProvider.get_all_species())
+    parser.add_argument("--species", required=True, type=str, choices=MongoConfigProvider.get_currently_supported_species())
     parser.add_argument('--alternate_dtap', choices=['dev', 'test', 'acc', 'prod'])
     return parser.parse_args()
 

@@ -89,7 +89,7 @@ class MongoConfigProvider:
         :param species: species to evaluate
         :return: True if species is viral
         """
-        return species in self._mongo_global_config['viral_species']
+        return species in self.get_current_viral_species()
 
     @property
     def asb_connection_string(self) -> str:
@@ -100,9 +100,9 @@ class MongoConfigProvider:
         return self._mongo_global_config['CONNECTION_STRING_ASB']
 
     @staticmethod
-    def get_all_species() -> list[str]:
+    def get_currently_supported_species() -> list[str]:
         """
-        Get the list of all currently used species
+        Get the list of all currently supported species
         :return: a list of all currently used species
         """
         return ["enterococcus_faecalis",
@@ -113,6 +113,14 @@ class MongoConfigProvider:
                 "salmonella",
                 "influenza",
                 "sars_cov_2"]
+
+    @staticmethod
+    def get_current_viral_species() -> list[str]:
+        """
+        Get the list of all currently supported viral species
+        :return: a list of all currently supported viral species
+        """
+        return ["influenza", "sars_cov_2"]
 
     @property
     def sequence_typing_schemes(self) -> list[str]:

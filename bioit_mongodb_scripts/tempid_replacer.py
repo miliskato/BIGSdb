@@ -31,7 +31,7 @@ def parse_arguments() -> argparse.Namespace:
     """
     parser = argparse.ArgumentParser()
     parser.add_argument("--scheme", required=True, type=str, help='lower case scheme as in json reports/mongodb documents')
-    parser.add_argument("--species", required=True, type=str, choices=MongoConfigProvider.get_all_species())
+    parser.add_argument("--species", required=True, type=str, choices=MongoConfigProvider.get_currently_supported_species())
     parser.add_argument("--connection_string", required=True, type=str, help='connection string variable from the config file')
 
     return parser.parse_args()

@@ -21,7 +21,7 @@ def parse_arguments() -> argparse.Namespace:
     :return: Parsed arguments
     """
     argument_parser = argparse.ArgumentParser()
-    argument_parser.add_argument('--species', required=True, type=str, choices=MongoConfigProvider.get_all_species())
+    argument_parser.add_argument('--species', required=True, type=str, choices=MongoConfigProvider.get_currently_supported_species())
     return argument_parser.parse_args()
 
 

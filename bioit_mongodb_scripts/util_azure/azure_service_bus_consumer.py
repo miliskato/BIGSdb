@@ -35,7 +35,7 @@ def parse_arguments() -> argparse.Namespace:
     :return: Parsed arguments
     """
     argument_parser = argparse.ArgumentParser()
-    argument_parser.add_argument('--species', required=True, type=str, choices=MongoConfigProvider.get_all_species())
+    argument_parser.add_argument('--species', required=True, type=str, choices=MongoConfigProvider.get_currently_supported_species())
     argument_parser.add_argument('--uploader_mail_address', required=True, type=str)
     return argument_parser.parse_args()
 

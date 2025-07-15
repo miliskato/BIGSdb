@@ -19,7 +19,7 @@ def parse_arguments() -> argparse.Namespace:
     :return: Parsed arguments
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("--species", required=True, type=str, choices=MongoConfigProvider.get_all_species())
+    parser.add_argument("--species", required=True, type=str, choices=MongoConfigProvider.get_currently_supported_species())
     parser.add_argument("--base-html", required=True, type=Path)
     parser.add_argument("--updated-html", required=True, type=Path)
     parser.add_argument("--analysis-arguments", required=True, nargs='+', type=str)

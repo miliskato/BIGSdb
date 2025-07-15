@@ -46,7 +46,7 @@ def parse_arguments() -> argparse.Namespace:
     mutually_exclusive_group = parser.add_mutually_exclusive_group(required=True)
     mutually_exclusive_group.add_argument('--subvaldict', type=json.loads)
     mutually_exclusive_group.add_argument('--jsonfilepath', type=Path)
-    parser.add_argument("--species", required=True, type=str, choices=MongoConfigProvider.get_all_species())
+    parser.add_argument("--species", required=True, type=str, choices=MongoConfigProvider.get_currently_supported_species())
     parser.add_argument("--results_type", required=True, type=str, choices=['new_isolate', 'reanalysis', 'goodqc_validated', 'warningqc_validated', 'resequencing_validated'])
     parser.add_argument("--reportdirectorypath", required=False, type=str)  # not mandatory because of reanalysis
     parser.add_argument("--fastafilepath", required=False, type=str)  # not mandatory because of reanalysis

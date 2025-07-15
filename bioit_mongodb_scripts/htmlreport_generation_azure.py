@@ -25,7 +25,7 @@ def parse_arguments() -> argparse.Namespace:
     argument_parser = argparse.ArgumentParser()
     mutually_exclusive_group = argument_parser.add_mutually_exclusive_group(required=True)
     mutually_exclusive_group.add_argument('--db', type=str)
-    mutually_exclusive_group.add_argument('--species', type=str, choices=MongoConfigProvider.get_all_species())
+    mutually_exclusive_group.add_argument('--species', type=str, choices=MongoConfigProvider.get_currently_supported_species())
     argument_parser.add_argument('--technical_id', required=True, type=str)
     argument_parser.add_argument('--validation_type', required=True, type=str, choices=['null', 'good_quality', 'warning_quality', 'resequencing', 'rejected_isolate'])
     argument_parser.add_argument('--dtap', required=True, type=str, choices=['dev', 'test', 'acc', 'prod'])

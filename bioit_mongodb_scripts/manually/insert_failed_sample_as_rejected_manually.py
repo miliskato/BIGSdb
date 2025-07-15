@@ -32,7 +32,7 @@ def parse_arguments() -> argparse.Namespace:
     :return: Parsed arguments
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("--species", required=True, type=str, choices=MongoConfigProvider.get_all_species())
+    parser.add_argument("--species", required=True, type=str, choices=MongoConfigProvider.get_currently_supported_species())
     parser.add_argument("--technical_id", required=True, type=str)
     parser.add_argument("--rejection_reason", required=True, type=str, choices=REJECTION_REASONS.keys(), help="\t".join([f"{k}: {v}" for k, v in REJECTION_REASONS.items()]))
     parser.add_argument('--alternate_dtap', choices=['dev', 'test', 'acc', 'prod'])

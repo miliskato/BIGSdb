@@ -29,7 +29,7 @@ def parse_arguments() -> argparse.Namespace:
     :return: Parsed arguments
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("--species", required=True, type=str, choices=MongoConfigProvider.get_all_species(), default=MongoConfigProvider.get_all_species(), nargs='+')
+    parser.add_argument("--species", required=True, type=str, choices=MongoConfigProvider.get_currently_supported_species(), default=MongoConfigProvider.get_currently_supported_species(), nargs='+')
     parser.add_argument('--dtap', required=False, type=str, choices=['dev', 'test', 'acc', 'prod'],
                         default=['prod'], nargs='+')
     # this does allow for the same dtap multiple times but doesn't really matter, they're uniquely filtered using set()

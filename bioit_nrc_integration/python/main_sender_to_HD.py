@@ -57,7 +57,7 @@ class MainSenderToHD:
         dispatches them to their respective senders to be sent. Creates an aggregated error log to avoid mailspam.
         :return: None
         """
-        for species in MongoConfigProvider.get_all_species():
+        for species in MongoConfigProvider.get_currently_supported_species():
             # Only process pathogens which have been defined in the genomic code translation config file
             if not self._translation_codes_genomic.get(species):
                 continue
