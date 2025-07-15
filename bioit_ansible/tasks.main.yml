@@ -639,7 +639,7 @@
 - name: Adds postgis extension to the isolate database in the schema public
   postgresql_ext:
     name: postgis
-    db: "bigsdb_{{ species }}_isolates"
+    login_db: "bigsdb_{{ species }}_isolates"
     login_user: postgres
   become_user: postgres
   tags: postGIS
@@ -672,7 +672,7 @@
 
     - name: create bioit user
       postgresql_query:
-        db: global_bigsdb_users
+        login_db: global_bigsdb_users
         login_user: postgres
         query: INSERT INTO users (user_name,surname,first_name,email,affiliation,date_entered,datestamp,status) VALUES ('bioit','Sciensano','Bioit', 'bioit@sciensano.be','Sciensano','now','now', 'validated') ON CONFLICT DO NOTHING
       become_user: postgres
@@ -682,14 +682,14 @@
 
     - name: permissions
       postgresql_query:
-        db: global_bigsdb_users
+        login_db: global_bigsdb_users
         login_user: postgres
         query: INSERT INTO permissions (user_name,permission,curator,datestamp) VALUES ('bioit','import_dbase_configs','bioit','now'), ('bioit','set_site_user_passwords','bioit','now'), ('bioit','merge_users','bioit','now'), ('bioit','modify_users','bioit','now') ON CONFLICT DO NOTHING
       become_user: postgres
 
     - name: add bioit user to all species db
       postgresql_query:
-        db: "{{ item }}"
+        login_db: "{{ item }}"
         login_user: postgres
         query: INSERT INTO users (id, user_name, surname, first_name, email, affiliation, status, date_entered, datestamp, curator) VALUES (1,'bioit','Sciensano','Bioit', 'bioit@sciensano.be','Sciensano','admin','now','now', 1) ON CONFLICT DO NOTHING
       loop:
@@ -699,7 +699,7 @@
 
     - name: add user db to species db
       postgresql_query:
-        db: "{{ item }}"
+        login_db: "{{ item }}"
         login_user: postgres
         query: INSERT INTO user_dbases (id, name, dbase_name, curator, datestamp) VALUES (1, '', 'global_bigsdb_users', 1, 'now') ON CONFLICT DO NOTHING;
       loop:
@@ -710,7 +710,7 @@
 
     - name: update users to be from user_db, this order is required because else fails due to keys
       postgresql_query:
-        db: "{{ item }}"
+        login_db: "{{ item }}"
         login_user: postgres
         query: UPDATE users SET user_db=1 WHERE user_name='bioit'
       loop:
@@ -760,7 +760,7 @@
 
     - name: insert db to be shown in rest
       postgresql_query:
-        db: bigsdb_rest
+        login_db: bigsdb_rest
         login_user: postgres
         query: "{{ item }}"
       loop:
@@ -859,7 +859,7 @@
     - name: run a collection of "insert into/on conflict do nothing" for the dedicated species
       community.postgresql.postgresql_script:
         login_user: postgres
-        db: "{{ item.db }}"
+        login_db: "{{ item.db }}"
         path: "{{ item.script }}"
         search_path:
           - public
