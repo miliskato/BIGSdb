@@ -9,8 +9,8 @@ PYTHONPATH = Path(__file__).resolve().parent.parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
 from bioit_mongodb_scripts.mainmongo import MainMongo
+from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
-from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data
 from bioit_nrc_integration.python.config import SFTP_CREDENTIALS_HD
 from bioit_nrc_integration.python.error_checker_for_main_sender_to_HD import ErrorCheckerForMainSenderToHD
 from bioit_nrc_integration.python.get_nominative_from_ODS import MainNominativeDataParserFromOds
@@ -28,7 +28,7 @@ with SFTP_CREDENTIALS_HD.open('r') as handle:
     sftp_credentials_hd = yaml.safe_load(handle)
 
 # get mongodb config data
-mongo_config_data = get_mongodb_config_data()
+mongo_config_provider = MongoConfigProvider()
 
 if mongo_config_data['dtap'] == 'test':
     DTAP = 'dev'
@@ -38,15 +38,12 @@ else:
     raise ValueError("Unsupported dtap value")
 
 for species, species_testfiles in testfiles_dict.items():
-    mongoinit_azure = MongoInitialisation(species, mongo_config_data=mongo_config_data,
-                                          selected_connection_string='CONNECTION_STRING_AZURE',
-                                          alternate_dtap=DTAP)
+    azure_connection_string = mongo_config_provider.get_azure_connection_string(species)
+    mongoinit_azure = MongoInitialisation(species, azure_connection_string, mongo_config_provider.dtap)
     isolates_collection, old_isolateresults_collection, isolates_warningqc_collection, \
         isolates_resequencing_collection, isolates_goodqc_collection = mongoinit_azure.initialise_collections()
 
-    mongoinit_local = MongoInitialisation(species, mongo_config_data=mongo_config_data,
-                                          selected_connection_string='CONNECTION_STRING_LOCAL',
-                                          alternate_dtap=DTAP)
+    mongoinit_local = MongoInitialisation(species, mongo_config_provider.get_local_connection_string(species), mongo_config_provider.dtap)
     mapping_table_collection = mongoinit_local.initialise_mapping_table_collection()
 
     if species_testfiles.get('get_nominative_from_ODS_CLIN'):
@@ -112,7 +109,7 @@ for species, species_testfiles in testfiles_dict.items():
     """
     MainMongo(dummy_genomic_report['_id'], species, 'reanalysis', pipeline_hash='0123456789',
               jsonfilepath=testfiles_folder / species_testfiles['genomic_json_reanalysis_report'], alternate_dtap=DTAP,
-              connection_string='CONNECTION_STRING_AZURE', disable_asb_and_clustering_for_testing=True)
+              connection_string=azure_connection_string, disable_asb_and_clustering_for_testing=True)
 
     """
     Run main sender after reanalysis

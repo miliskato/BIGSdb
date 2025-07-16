@@ -10,6 +10,7 @@ from typing import Dict, Final, List, Tuple
 
 import pandas as pd
 
+
 pd.set_option('future.no_silent_downcasting', True)
 
 PYTHONPATH = Path(__file__).resolve().parent.parent
@@ -17,7 +18,7 @@ sys.path.append(str(PYTHONPATH))
 
 from bioit_bigsdb_scripts.components.psql import TblProfiles, TblProfileFields, TblProfileMembers, TblSchemes, \
     TblSequences
-from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data, send_email
+from bioit_mongodb_scripts.util.python_utility_functions import get_bigsdb_config_data, send_email
 
 # For this script I am assuming that profiles do not retire.
 
@@ -56,8 +57,8 @@ class TypingSchemeProfilesIntoPsql:
         try:
             self._insert_all_profiles()
         except Exception as exceptionmessage:
-            send_email(f"{exceptionmessage}\n{traceback.format_exc()}", dont_send_email=self._dont_send_email)
-            raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}")
+            send_email(f"{exceptionmessage.args[0]}\n{traceback.format_exc()}", dont_send_email=self._dont_send_email)
+            raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}:\n{exceptionmessage.args[0]}")
 
     @staticmethod
     def __insert_profiles(scheme: str, schemedict: Dict[str, Dict[str, str]], profile_df: pd.DataFrame,
@@ -67,7 +68,7 @@ class TypingSchemeProfilesIntoPsql:
         :param scheme: the currently iterating scheme
         :param schemedict: dict of scheme profiles
         :param profile_df: pandas dataframe containing profiles from tsv files
-        :param set_to_be_inserted: list of main numeric profile fields (often ST) to be inserted
+        :param set_to_be_inserted: list of main profile fields (often ST) to be inserted
         :param seqdef_profiles_psql_tbl: seqdef profiles table/ connection instance for a given species
         :param species: commonly used bioit species name: either genus or specific like stec
         :return: None
@@ -92,6 +93,8 @@ class TypingSchemeProfilesIntoPsql:
             with TblProfileFields(species) as seqdef_profilefields_psql_table:
                 for field in schemedict[scheme]['scheme_fields']:
                     try:
+                        if pd.isnull(profile_line_df[field].values[0]):
+                            continue  # to avoid removing profile if CC is missing
                         field_value = profile_line_df[field].values[0]
                         seqdef_profilefields_psql_table.insert_profile_field(
                             (bigsdb_scheme_name, field, profile_id, field_value.replace('_', ' ')))
@@ -171,8 +174,7 @@ class TypingSchemeProfilesIntoPsql:
                         continue
                     set_to_be_inserted = set(profiles.iloc[:, 0].to_list())
 
-                    self.__insert_profiles(scheme, schemedict, profiles, set_to_be_inserted,
-                                               seqdef_profiles_psql_tbl, species)
+                    self.__insert_profiles(scheme, schemedict, profiles, set_to_be_inserted, seqdef_profiles_psql_tbl, species)
 
     @staticmethod
     def open_profiles_metadata_file(file_path: str, scheme: str, species: str) -> pd.DataFrame:
@@ -185,7 +187,8 @@ class TypingSchemeProfilesIntoPsql:
         """
         profiles = pd.read_csv(file_path, delimiter='\t', dtype=str)
         if scheme == f"{species}_rmlst":
-            mask = profiles['genus'].str.contains(species, na=False, case=False)
+            genus_in_config = species.split("_")[0]
+            mask = profiles['genus'].str.contains(genus_in_config, na=False, case=False)
             profiles = profiles[mask]
         profiles.rename(columns={"'rplF": "rplF"})
 

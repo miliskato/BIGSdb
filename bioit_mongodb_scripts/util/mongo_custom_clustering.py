@@ -2,7 +2,7 @@ import logging
 import sys
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import List, Optional, Union
 
 import numpy as np
 from pymongo.collection import Collection
@@ -14,31 +14,31 @@ sys.path.append(str(PYTHONPATH))
 from bioit_mongodb_scripts.config import CLUSTERING_CONFIG
 from bioit_mongodb_scripts.util.cgmlst_profile import cgMLSTProfile
 from bioit_mongodb_scripts.util.distance_and_cluster_computer import DistanceAndClusterComputer
+from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
-from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, load_config
+from bioit_mongodb_scripts.util.python_utility_functions import load_config
 
 
 class MongoCustomClustering:
     def __init__(self, headers: List[str], data: List[Union[str, int]], species: str,
                  naive_clustering_distance_matrix_file: Path,
-                 mongo_config_data: Dict[str, Any] = None) -> None:
+                 mongo_config_provider: MongoConfigProvider) -> None:
         """
         Initializes the class
         :param headers: The headers stored in the sequence type collection of the species.
         :param data: the list of the alleles of the cgmlst profile of the isolate to process.
         :param species: commonly used bioit species name: either genus or specific like stec
         :param naive_clustering_distance_matrix_file: The path to the naive clustering cgmlst distance matrix file
-        :param mongo_config_data: Use provided mongo_config_data, else get mongo_config_data from file
+        :param mongo_config_provider: the mongodb configuration provider
         :return: None
         """
         self._cgmlst_profile = cgMLSTProfile(data, headers)
         self._species = species
         self._naive_clustering_distance_matrix_file = naive_clustering_distance_matrix_file
-        self._mongo_config_data = mongo_config_data if mongo_config_data else get_mongodb_config_data()
         self._initialize_cluster_index = False
+        self._mongo_config_provider = mongo_config_provider
         # Open collections
-        self._mongoinit = MongoInitialisation(self._species, mongo_config_data=self._mongo_config_data,
-                                              selected_connection_string='CONNECTION_STRING_AZURE')
+        self._mongoinit = MongoInitialisation(self._species, self._mongo_config_provider.get_azure_connection_string(self._species), self._mongo_config_provider.dtap)
         self._headers_collection = self._mongoinit.initialise_headers_collection()
         self._st_collection, self._cluster_membership_collection, self._cluster_merging_collection = \
             self._mongoinit.initialise_clustering_collections()
@@ -143,7 +143,7 @@ class MongoCustomClustering:
         clustering membership.
         :return: None
         """
-        distance_cluster = DistanceAndClusterComputer(self._species, self._mongo_config_data)
+        distance_cluster = DistanceAndClusterComputer(self._species, self._mongo_config_provider)
         cluster_thresholds_not_in_db = []
         cluster_thresholds_deepcopy = deepcopy(cluster_thresholds)
         for cluster_threshold in cluster_thresholds:

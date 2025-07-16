@@ -12,8 +12,9 @@ from pymongo.errors import DuplicateKeyError
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
+from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
-from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email
+from bioit_mongodb_scripts.util.python_utility_functions import send_email
 from bioit_nrc_integration.python.config import CODES_NOMINATIVE_ODS
 from bioit_nrc_integration.python.util.get_clin_lab_json_parser import get_clin_lab_json_parser
 from bioit_nrc_integration.python.util.sftp_connection import SFTPConnectionODS
@@ -37,7 +38,6 @@ class MainNominativeDataParserFromOds:
         we want to test dev or acc
         :return: None
         """
-
         self._test_dummy = test_dummy
         self._alternate_dtap = alternate_dtap
         
@@ -54,7 +54,7 @@ class MainNominativeDataParserFromOds:
         self._files_by_filetype_by_species = {}
 
         # get mongodb config data
-        self._mongo_config_data = get_mongodb_config_data()
+        self._mongo_config_provider = MongoConfigProvider(alternate_dtap)
 
         # get HD ODS dictionaries to be able to translate to usable text
         with CODES_NOMINATIVE_ODS.open('r') as handle:
@@ -66,7 +66,7 @@ class MainNominativeDataParserFromOds:
                 with SFTPConnectionODS('get') as self._sftp_connection_ods:
                     self._download_json_files()
                     # close after downloading the json files to not risk reaching the inactivity time limit
-                
+
                 # Execute local code that doesn't need SFTP connection
                 self._group_files_by_pathogen_and_type()
                 self._process_json_files()
@@ -137,9 +137,7 @@ class MainNominativeDataParserFromOds:
         :return: None
         """
         for species, filetypes_dict in self._files_by_filetype_by_species.items():
-            mongoinit_local = MongoInitialisation(species, mongo_config_data=self._mongo_config_data,
-                                                  selected_connection_string='CONNECTION_STRING_LOCAL',
-                                                  alternate_dtap=self._alternate_dtap)
+            mongoinit_local = MongoInitialisation(species, self._mongo_config_provider.get_local_connection_string(species), self._mongo_config_provider.dtap)
             nominative_labtest_clinical_metadata_collection = mongoinit_local.initialise_nominative_labtest_clinical_metadata_collection()
             unprocessed_nominative_labtest_metadata_collection = mongoinit_local.initialise_unprocessed_nominative_labtest_metadata_collection()
             unprocessed_nominative_clinical_metadata_collection = mongoinit_local.initialise_unprocessed_nominative_clinical_metadata_collection()

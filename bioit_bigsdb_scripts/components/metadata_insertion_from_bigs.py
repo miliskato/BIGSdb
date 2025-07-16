@@ -3,14 +3,14 @@ import logging
 import socket
 import sys
 from pathlib import Path
-from typing import Dict, List, Tuple, Any
+from typing import Dict, List, Tuple
+
 
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
-from bioit_bigsdb_scripts.components.python_utility_functions import send_email
 from bioit_bigsdb_scripts.components.psql import TblIsolates, TblSubmissions, TblIsolateSubmissionIsolates
-from psql.databaseconnection import get_bigsdb_config_data
+from bioit_mongodb_scripts.util.python_utility_functions import get_bigsdb_config_data, send_email
 
 
 def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
@@ -90,9 +90,9 @@ def insert_lab_metadata_through_bigs(species: str) -> None:
 
             isolates_sub_psql_tbl.update_submission(submitted_id)
 
-            if (len(failed_isolates)>0):
+            if len(failed_isolates) > 0:
                 send_email(f"For submission {submitted_id}: The following isolates were not found in bigsDB\n{failed_isolates}",
-                           subject=f"Metadata insertion failure on host {socket.gethostname()}")
+                                    subject=f"Metadata insertion failure on host {socket.gethostname()}")
 
 
 if __name__ == '__main__':

@@ -25,22 +25,16 @@ class SendGenomicToODS:
     Class to get all required values for a pathogen from a MongoDB document and
     to send these values as a JSON file to the ODS over SFTP.
     """
-    def __init__(self, document: MongoRecordDict, mongo_config_data: dict[str, Any], species: str,
-                 alternate_dtap: str = None) -> None:
+    def __init__(self, document: MongoRecordDict, species: str, upload_path: str) -> None:
         """
         Initialises this class and executes the main function.
         :param document: MongoDB document for a single sample.
-        :param mongo_config_data: the MongoDB configuration file.
         :param species: commonly used bioit species name: either genus or specific like stec.
-        :param alternate_dtap: alternative dtap (should take test or prod from mongo config) in case we want to test dev
-        or acc
+        :param upload_path: The upload path
         :return: None
         """
-
         self._document = document
-        self._mongo_config_data = mongo_config_data
         self._species = species
-        self._alternate_dtap = alternate_dtap
 
         # get HD ODS dictionaries to be able to translate to useable text
         with CODES_GENOMIC_ODS.open('r') as handle:
@@ -50,7 +44,7 @@ class SendGenomicToODS:
 
             self._output_json_dict = self._create_output_json_dict()
 
-            send_dictionary_to_ods(self._output_json_dict, self._sftp_connection_ods.sftp, alternate_dtap=self._alternate_dtap)
+            send_dictionary_to_ods(self._output_json_dict, self._sftp_connection_ods.sftp, upload_path)
 
     def _create_output_json_dict(self) -> dict[str, Any]:
         """

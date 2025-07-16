@@ -7,40 +7,20 @@ from copy import deepcopy
 from datetime import datetime
 from email.message import EmailMessage
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import yaml
 
+
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
-
-from bioit_mongodb_scripts.config import MONGO_CONFIG
+from bioit_bigsdb_scripts.config import BIGSDB_CONFIG
 from bioit_mongodb_scripts.model.json_model import MongoRecordDict
-from bioit_bigsdb_scripts.components.psql import TblSchemes
 from bioit_mongodb_scripts.util.command.command import Command
+from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 
 
-def get_mongodb_config_data() -> dict[str, Union[str, list[Any], dict[str, Union[str, dict[str, Any]]]]]:
-    """
-    Reads the global bigsdb config
-    :return:
-    """
-    with Path(MONGO_CONFIG).open('r') as handle:
-        mongo_config_data = yaml.safe_load(handle)
-    return mongo_config_data
-
-
-def is_viral(species: str) -> bool:
-    """
-    Check if the current species is viral
-    :param species: species to evaluate
-    :return: True if species is viral
-    """
-    mongo_config = get_mongodb_config_data()
-    return species in mongo_config['viral_species']
-  
-
-def load_config(config: Path) -> dict[str, Union[str, list[Any], dict[str, Union[str, dict[str, Any]]]]]:
+def load_config(config: Path) -> Dict[str, Union[str, List[Any], Dict[str, Union[str, Dict[str, Any]]]]]:
     """
     Loads a config file.
     :param config: path to the config file
@@ -52,7 +32,7 @@ def load_config(config: Path) -> dict[str, Union[str, list[Any], dict[str, Union
 
 
 def send_email(content: str, subject=None,
-               config: dict[str, str] = get_mongodb_config_data().get('mail'), dont_send_email: bool = False) -> None:
+               config: Dict[str, str] = MongoConfigProvider().mail_info, dont_send_email: bool = False) -> None:
     """
     Sends an email.
     :param subject: Mail subject
@@ -100,12 +80,7 @@ def convert_dmyhms_to_dateobj(datetimestring: str) -> datetime.date:
     return datetime.strptime(datetimestring, '%d/%m/%Y - %X').date()
 
 
-def merge_mongo_dicts(target_dict: MongoRecordDict, merging_dict: MongoRecordDict) -> None:
-    """merge a MongoRecordDict into another MongoRecordDict"""
-    _merge_nested_dicts(target_dict, merging_dict)
-
-
-def _merge_nested_dicts(target_dict: Union[MongoRecordDict, dict], merging_dict: [MongoRecordDict, dict]) -> dict:
+def _merge_nested_dicts(target_dict: Union[MongoRecordDict, Dict], merging_dict: [MongoRecordDict, Dict]) -> Dict:
     """
     Merges a nested dictionary into another target nested dictionary, seeing as this does not create a deepcopy,
     changes are applied regardless of if the output is captured
@@ -121,8 +96,7 @@ def _merge_nested_dicts(target_dict: Union[MongoRecordDict, dict], merging_dict:
     return target_dict
 
 
-def access_value_in_dict_using_list_as_dictpath(dict_path: list,
-                                                search_dict: Union[dict[str, Any], MongoRecordDict]) -> Optional[str]:
+def access_value_in_dict_using_list_as_dictpath(dict_path: List, search_dict: Dict[str, Any]) -> Optional[str]:
     """
     Given a dictionary path as a list of ordered subkeys, gets the value of this dictionary path from the given search
     dictionary.
@@ -157,6 +131,17 @@ def get_cgmlst_bigsdb_scheme_id(species: str) -> int:
     :param species: commonly used bioit species name: either genus or specific like stec
     :return: cgMLST BIGSdb scheme id
     """
+    from bioit_bigsdb_scripts.components.psql import TblSchemes
     with TblSchemes(species, 'isolates') as isolates_schemes_psql_tbl:
         cgmlst_bigsdb_scheme_id = isolates_schemes_psql_tbl.select_scheme_id_cgmlst()[0][0]
     return cgmlst_bigsdb_scheme_id
+
+
+def get_bigsdb_config_data() -> Dict[str, Union[str, List[Any], Dict[str, Union[str, Dict[str, Any]]]]]:
+    """
+    Reads the global bigsdb config
+    :return:
+    """
+    with open(BIGSDB_CONFIG, encoding='utf-8') as handle:
+        bigsdb_config_data = yaml.safe_load(handle)
+    return bigsdb_config_data

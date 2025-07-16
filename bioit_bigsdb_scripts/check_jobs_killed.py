@@ -3,11 +3,12 @@ import psutil
 import sys
 from pathlib import Path
 
+
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
-from bioit_bigsdb_scripts.components.python_utility_functions import send_email
 from bioit_bigsdb_scripts.components.psql import TblJobs
+from bioit_mongodb_scripts.util.python_utility_functions import send_email
 
 with TblJobs() as jobs_jobs_psql_tbl:
 

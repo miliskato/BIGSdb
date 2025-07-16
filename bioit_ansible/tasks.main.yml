@@ -36,6 +36,8 @@
       - stec
       - salmonella
       - influenza
+      - enterococcus_faecalis
+      - enterococcus_faecium
   fail:
     msg: "unsupported species requested, choose from {{ specieslist }}"
   when: species not in specieslist
@@ -138,7 +140,7 @@
         bigsdb_branch: "{{ git_branch if git_branch != 'HEAD' else git_detached_branch }}"
         bigsdb_tag: "{{ bigsdb_tag_cmd.stdout if bigsdb_tag_cmd.rc == 0 else '' }}"
 
-    - name: Check if folder /home/bigsdb/BIGSdb_Deployments already exists
+    - name: Check if folder /home/bigsdb/BIGSdb_deployments already exists
       stat:
         path: "{{ bioit_deployments_home }}"
       register: deployments_folder_stat
@@ -625,27 +627,27 @@
 - name: Adds postgis extension to the isolate database in the schema public
   postgresql_ext:
     name: postgis
-    db: "bigsdb_{{ species }}_isolates"
+    login_db: "bigsdb_{{ species }}_isolates"
     login_user: postgres
   become_user: postgres
   tags: postGIS
 
-- name: Copy the species specific dbmate migration files to the main folder so that they are chronologically intertwined with the main migration files
+- name: Copy dbmate migrations files common to all species in the migration folder specific of the current species
   ansible.builtin.copy:
-    src: "{{ bioit_bigs_home }}/sql/bigsdb_isolates_v/bigsdb_{{ species }}_isolates/db/migrations/"
-    dest: "{{ bioit_bigs_home }}/sql/bigsdb_isolates_v/db/migrations/"
+    src: "{{ bioit_bigs_home }}/sql/bigsdb_isolates_v/common/db/migrations/"
+    dest: "{{ bioit_bigs_home }}/sql/bigsdb_isolates_v/bigsdb_{{ species }}_isolates/db/migrations/"
     remote_src: yes
   tags: always
 
 - name: Create species (refseq and isolates) data db (if they don't already exist) and run any pending migrations
   ansible.builtin.shell:
-    chdir: "{{ bioit_bigs_home }}/sql/{{ item.dbmate_repo }}_v"
+    chdir: "{{ bioit_bigs_home }}/sql/{{ item.dbmate_repo }}"
     cmd: DATABASE_URL=postgres://postgres:{{ postgresql_postgres_user_password }}@127.0.0.1:5432/{{ item.db_name }}?sslmode=disable dbmate up
   loop: "{{ db_info|flatten(levels=1) }}"
   vars:
     db_info:
-      - { dbmate_repo: "bigsdb_seqdef", db_name: "bigsdb_{{ species }}_seqdef" }
-      - { dbmate_repo: "bigsdb_isolates", db_name: "bigsdb_{{ species }}_isolates" }
+      - { dbmate_repo: "bigsdb_seqdef_v", db_name: "bigsdb_{{ species }}_seqdef" }
+      - { dbmate_repo: "bigsdb_isolates_v/bigsdb_{{ species }}_isolates", db_name: "bigsdb_{{ species }}_isolates" }
   tags: always
 
 - name: create global user database
@@ -658,7 +660,7 @@
 
     - name: create bioit user
       postgresql_query:
-        db: global_bigsdb_users
+        login_db: global_bigsdb_users
         login_user: postgres
         query: INSERT INTO users (user_name,surname,first_name,email,affiliation,date_entered,datestamp,status) VALUES ('bioit','Sciensano','Bioit', 'bioit@sciensano.be','Sciensano','now','now', 'validated') ON CONFLICT DO NOTHING
       become_user: postgres
@@ -668,14 +670,14 @@
 
     - name: permissions
       postgresql_query:
-        db: global_bigsdb_users
+        login_db: global_bigsdb_users
         login_user: postgres
         query: INSERT INTO permissions (user_name,permission,curator,datestamp) VALUES ('bioit','import_dbase_configs','bioit','now'), ('bioit','set_site_user_passwords','bioit','now'), ('bioit','merge_users','bioit','now'), ('bioit','modify_users','bioit','now') ON CONFLICT DO NOTHING
       become_user: postgres
 
     - name: add bioit user to all species db
       postgresql_query:
-        db: "{{ item }}"
+        login_db: "{{ item }}"
         login_user: postgres
         query: INSERT INTO users (id, user_name, surname, first_name, email, affiliation, status, date_entered, datestamp, curator) VALUES (1,'bioit','Sciensano','Bioit', 'bioit@sciensano.be','Sciensano','admin','now','now', 1) ON CONFLICT DO NOTHING
       loop:
@@ -685,7 +687,7 @@
 
     - name: add user db to species db
       postgresql_query:
-        db: "{{ item }}"
+        login_db: "{{ item }}"
         login_user: postgres
         query: INSERT INTO user_dbases (id, name, dbase_name, curator, datestamp) VALUES (1, '', 'global_bigsdb_users', 1, 'now') ON CONFLICT DO NOTHING;
       loop:
@@ -696,7 +698,7 @@
 
     - name: update users to be from user_db, this order is required because else fails due to keys
       postgresql_query:
-        db: "{{ item }}"
+        login_db: "{{ item }}"
         login_user: postgres
         query: UPDATE users SET user_db=1 WHERE user_name='bioit'
       loop:
@@ -746,7 +748,7 @@
 
     - name: insert db to be shown in rest
       postgresql_query:
-        db: bigsdb_rest
+        login_db: bigsdb_rest
         login_user: postgres
         query: "{{ item }}"
       loop:
@@ -823,17 +825,11 @@
         roles: readWrite
       delegate_to: "{{ primary }}"
 
-    - name: replace string connection in config file
+    - name: replace string for mongo user pass in config
       lineinfile:
         path: "{{ bioit_bigs_home }}/bioit_mongodb_scripts/config/config.yml"
-        regexp: 'CONNECTION_STRING_LOCAL: to_be_replaced_by_ansible'
-        line: "CONNECTION_STRING_LOCAL: mongodb://{{ species }}User_{{ mongo_dtap }}:{{ mongo_user_password }}@{{ mongo_host.split(',')[0] }}:27017,{{ mongo_host.split(',')[1] }}:27017,{{ mongo_host.split(',')[2] }}:27017/?authSource={{ species }}_{{ mongo_dtap }}&replicaSet=bioit-HERA"
-
-    - name: replace azure connection string in config file
-      lineinfile:
-        path: "{{ bioit_bigs_home }}/bioit_mongodb_scripts/config/config.yml"
-        regexp: 'CONNECTION_STRING_AZURE: to_be_replaced_by_ansible'
-        line: "CONNECTION_STRING_AZURE: mongodb+srv://{{ species }}User_{{ mongo_dtap }}:{{ mongo_user_password }}@{{ mongo_azure_private_endpoint }}.mongodb.net/?retryWrites=true&w=majority"
+        regexp: 'MONGO_DB_PASSWORD: to_be_replaced_by_ansible'
+        line: "MONGO_DB_PASSWORD: {{ mongo_user_password }}"
 
   tags: mongo_setup
 
@@ -851,7 +847,7 @@
     - name: run a collection of "insert into/on conflict do nothing" for the dedicated species
       community.postgresql.postgresql_script:
         login_user: postgres
-        db: "{{ item.db }}"
+        login_db: "{{ item.db }}"
         path: "{{ item.script }}"
         search_path:
           - public
@@ -1019,7 +1015,7 @@
     - name: add systemd service for automatic insertion
       ansible.builtin.copy:
         src: "{{ bioit_bigs_home }}/bigsdb-insertion.service"
-        dest: '/etc/systemd/system/bigsdb-insertion.service'
+        dest: '/etc/systemd/system/bigsdb-insertion-{{ species }}.service'
         owner: root
         group: root
         remote_src: yes
@@ -1027,7 +1023,7 @@
 
     - name: replace species in bigsdb-insertion service
       ansible.builtin.replace:
-        path: '/etc/systemd/system/bigsdb-insertion.service'
+        path: '/etc/systemd/system/bigsdb-insertion-{{ species }}.service'
         regexp: 'to_be_replaced_by_ansible'
         replace: "{{ species }}"
 
@@ -1047,9 +1043,16 @@
         regexp: 'CONNECTION_STRING_ASB: to_be_replaced_by_ansible'
         line: "CONNECTION_STRING_ASB: {{ asb_connection_str }}"
 
+    - name: Create subfolder in /var/log where bigsdb user is allowed to write
+      ansible.builtin.file:
+        path: /var/log/bigsdb_insertions_service
+        state: directory
+        mode: "u=rwx,g=rwx,o=rwx"
+        owner: bigsdb
+
     - name: Touch log file for bigsdb_insertion service
       ansible.builtin.file:
-        path: /var/log/bigsdb_insertions.log
+        path: "/var/log/bigsdb_insertions_service/bigsdb_insertions_{{ species }}.log"
         state: touch
         mode: "u=rwx,g=rwx,o=rwx"
         owner: bigsdb
@@ -1059,7 +1062,7 @@
         daemon-reload: true
         state: restarted
         enabled: true
-        name: bigsdb-insertion.service
+        name: "bigsdb-insertion-{{ species }}.service"
 
 - name: create sftp users that can access the /output_reports
   block:

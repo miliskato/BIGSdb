@@ -22,7 +22,7 @@ class HtmlTableBuilder:
         :return: None
         """
         style = '' if width_px is None else f' style="width: {width_px}px;"'
-        self._table += '<style>table.nice { text-align: center; border-spacing:0 }table.nice tr:nth-child(n+3) {background: #E4EFF3}table.nice tr:nth-child(2n+3) {background: #C1E6F3}</style>'
+        self._table += '<style>table.nice { text-align: center; border-collapse: separate }table.nice td:first-child { max-width: 50ch; overflow-wrap: anywhere }table.nice tr:nth-child(n+3) {background: #E4EFF3}table.nice tr:nth-child(2n+3) {background: #C1E6F3}</style>'
         self._table += f'<table class="data nice"{style}>'
 
     def _add_header(self, headers: List[str]) -> None:
@@ -75,6 +75,39 @@ class HtmlTableBuilder:
         return self._table
 
 
+class HtmlReportBuilder:
+    """
+    Class to build an html layout composed of multiple html tables
+    """
+    def __init__(self) -> None:
+        """initialize the general class HtmlReportBuilder to link multiple html tables in a convenient layout
+        :return: None
+        """
+        self._html = ''
+
+    def add_title(self, title: str) -> None:
+        """
+        add title to the html table from this report
+        :return: None
+        """
+        self._html += f'<h3>{title}</h3>'
+
+    def add_table(self, table_builder: HtmlTableBuilder) -> None:
+        """
+        add the html table to the report
+        :return: None
+        """
+        self._html += table_builder.build()
+        self._html += f'<br />'
+
+    def build(self) -> str:
+        """
+        build the html layout combining the html tables
+        :return: The html report
+        """
+        return self._html
+
+
 class HtmlLocusTableBuilder(HtmlTableBuilder):
     """subclass used to create the html table following the format GeneCluster | Locus"""
 
@@ -83,7 +116,7 @@ class HtmlLocusTableBuilder(HtmlTableBuilder):
         :param report_url: url to call the api to get the html report
         :return: None
         """
-        super().__init__(headers=['GeneCluster', 'Locus'])
+        super().__init__(headers=['GeneCluster', 'Locus'], width_px=500)
         self.add_report_row(report_url)
 
     def add_locus(self, gene_cluster: str, locus: str) -> None:
@@ -117,6 +150,51 @@ class HtmlAmrTableBuilder(HtmlTableBuilder):
         :return: None
         """
         self.add_row([amr, resistance_gene, identity, coverage])
+
+
+class LreFinderGenesTableBuilder(HtmlTableBuilder):
+    """subclass used to create the html table following the format for LRE-Finder"""
+
+    def __init__(self, report_url: str) -> None:
+        """
+        :param report_url: url to call the api to get the html report
+        :return: None
+        """
+        super().__init__(headers=['AMR', 'Gene', 'Template Identity', 'Depth'], width_px=700)
+        self.add_report_row(report_url)
+
+    def add_hit(self, resistance_gene: str, identity: str, depth: str) -> None:
+        """
+        add hit to the html table
+        :param resistance_gene: resistance gene
+        :param identity: template identity
+        :param depth: depth
+        :return: None
+        """
+        self.add_row(['Linezolid', resistance_gene, identity, depth])
+
+
+class LreFinderMutationsTableBuilder(HtmlTableBuilder):
+    """subclass used to create the html table following the format for LRE-Finder"""
+
+    def __init__(self, report_url: str) -> None:
+        """
+        :param report_url: url to call the api to get the html report
+        :return: None
+        """
+        super().__init__(headers=['Position in reference', 'Wild type ratio (%)', 'Mutant type ratio (%)', 'Predicted phenotype'], width_px=700)
+        self.add_report_row(report_url)
+
+    def add_hit(self, mutation_position: str, wt_ratio: str, mt_ratio: str, phenotype: str) -> None:
+        """
+        add hit to the html table
+        :param mutation_position: position of the mutation in reference gene
+        :param wt_ratio: ratio of wild type
+        :param mt_ratio: ratio of mutant type
+        :param phenotype: phenotype (resistant/sensitive) predicted based on the genomic results
+        :return: None
+        """
+        self.add_row([mutation_position, wt_ratio, mt_ratio, phenotype])
 
 
 class HtmlMobSuiteTableBuilder(HtmlTableBuilder):

@@ -54,6 +54,7 @@ bioit_filedb_databases:
   - { name: 'pipeline', version: 'salmonella', latest_symlink: no }
   - { name: 'pipeline', version: 'saureus', latest_symlink: no }
   - { name: 'pipeline', version: 'viral_consensus', latest_symlink: no }
+  - { name: 'pipeline', version: 'enterococcus', latest_symlink: no }
   - { name: 'refgenomes', version: 'ecoli', latest_symlink: no }
   - { name: 'refgenomes', version: 'listeria' }
   - { name: 'refgenomes', version: 'mycobacterium' }
