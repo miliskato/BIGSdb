@@ -82,7 +82,7 @@ class SFTPConnectionODS:
         """
         return self
 
-    def __exit__(self) -> None:
+    def __exit__(self, *args, **kwargs) -> None:
         """
         Closes the db connections at the end of the run.
         __enter__/__exit__ are used to get the context manager to call the class in a "with" statement.

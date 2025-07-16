@@ -90,7 +90,7 @@ class MainSenderToHD:
             
             for document in list_of_unsent_validated_documents:
                 try:
-                    self.__trigger_sending_to_ods(document, species, mapping_table_collection, isolates_collection)
+                    self.__trigger_sending_to_ods(MongoRecordDict(document), species, mapping_table_collection, isolates_collection)
                 except Exception as exceptionmessage:
                     self._fail_log_dict[species]['fail_counter'] += 1
                     self._fail_log_dict[species]['fail_ids'].append(document['_id'])
