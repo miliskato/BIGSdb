@@ -13,37 +13,34 @@ from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_nrc_integration.python.config import SFTP_CREDENTIALS_HD
 from bioit_nrc_integration.python.error_checker_for_main_sender_to_HD import ErrorCheckerForMainSenderToHD
-from bioit_nrc_integration.python.get_nominative_from_ODS import MainNominativeDataParserFromOds
+from bioit_nrc_integration.python.get_nominative_from_ODS import GetNominativeFromOds
 from bioit_nrc_integration.python.main_sender_to_HD import MainSenderToHD
 from bioit_nrc_integration.python.test.testfiles import testfiles_folder, TESTFILES
-from bioit_nrc_integration.python.util.sftp_connection import SFTPConnectionODS
+from bioit_nrc_integration.python.util.sftp_connection_ods import SFTPConnectionODS
 
 # Configure stdout logging
 logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
 with TESTFILES.open('r') as handle:
     testfiles_dict = yaml.safe_load(handle)
-# get sftp credentials
-with SFTP_CREDENTIALS_HD.open('r') as handle:
-    sftp_credentials_hd = yaml.safe_load(handle)
 
 # get mongodb config data
 mongo_config_provider = MongoConfigProvider()
 
-if mongo_config_data['dtap'] == 'test':
+if mongo_config_provider.dtap == 'test':
     DTAP = 'dev'
-elif mongo_config_data['dtap'] == 'prod':
+elif mongo_config_provider.dtap == 'prod':
     DTAP = 'acc'
 else:
     raise ValueError("Unsupported dtap value")
 
 for species, species_testfiles in testfiles_dict.items():
     azure_connection_string = mongo_config_provider.get_azure_connection_string(species)
-    mongoinit_azure = MongoInitialisation(species, azure_connection_string, mongo_config_provider.dtap)
+    mongoinit_azure = MongoInitialisation(species, azure_connection_string, DTAP)
     isolates_collection, old_isolateresults_collection, isolates_warningqc_collection, \
         isolates_resequencing_collection, isolates_goodqc_collection = mongoinit_azure.initialise_collections()
 
-    mongoinit_local = MongoInitialisation(species, mongo_config_provider.get_local_connection_string(species), mongo_config_provider.dtap)
+    mongoinit_local = MongoInitialisation(species, mongo_config_provider.get_local_connection_string(species), DTAP)
     mapping_table_collection = mongoinit_local.initialise_mapping_table_collection()
 
     if species_testfiles.get('get_nominative_from_ODS_CLIN'):
@@ -62,7 +59,7 @@ for species, species_testfiles in testfiles_dict.items():
         """
         Run Nominative data parser on CLIN and LAB files uploaded to ODS
         """
-        MainNominativeDataParserFromOds(test_dummy=True, alternate_dtap=DTAP)
+        GetNominativeFromOds(test_dummy=True, alternate_dtap=DTAP)
 
         """
         After successful parsing the file is moved to the processed folder, remove it from there to clean up.

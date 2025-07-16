@@ -14,7 +14,7 @@ from bioit_mongodb_scripts.model.json_model import MongoRecordDict
 from bioit_mongodb_scripts.util.python_utility_functions import access_value_in_dict_using_list_as_dictpath
 from bioit_nrc_integration.python.config import CODES_GENOMIC_ODS
 from bioit_nrc_integration.python.util.python_utility_functions import send_dictionary_to_ods
-from bioit_nrc_integration.python.util.sftp_connection import SFTPConnectionODS
+from bioit_nrc_integration.python.util.sftp_connection_ods import SFTPConnectionODS
 
 # Configure stdout logging
 logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)

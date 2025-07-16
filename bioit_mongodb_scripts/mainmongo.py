@@ -70,7 +70,8 @@ class MainMongo:
     def __init__(self, technical_id: str, species: str, results_type: str, pipeline_hash: str = None, jsonfilepath: Path = None,
                  subvaldict: Dict[str, str] = None, technical_metadata_path: Path = None, reportdirectorypath: Path = None, fastafilepath: Path = None,
                  vcffilepath: Path = None, vcffilepath_unfiltered: Path = None, original_input_format: Optional[Literal['fastq', 'fasta']] = None,
-                 connection_string: str = None, alternate_dtap: Union[str, None] = None, dont_send_email: bool = False, disable_asb_and_clustering_for_testing: bool = False) -> None:
+                 connection_string: str = None, alternate_dtap: Union[str, None] = None, dont_send_email: bool = False,
+                 disable_asb_and_clustering_for_testing: bool = False) -> None:
         """
         Initialises this class and executes the main function which will insert/update the sample in a mongodb collection containing isolates
         !! If parameters/arguments are added here, also add them to the argparse function!!

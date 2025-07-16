@@ -17,13 +17,13 @@ from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.python_utility_functions import send_email
 from bioit_nrc_integration.python.config import CODES_NOMINATIVE_ODS
 from bioit_nrc_integration.python.util.get_clin_lab_json_parser import get_clin_lab_json_parser
-from bioit_nrc_integration.python.util.sftp_connection import SFTPConnectionODS
+from bioit_nrc_integration.python.util.sftp_connection_ods import SFTPConnectionODS
 
 # Configure stdout logging
 logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
 
-class MainNominativeDataParserFromOds:
+class GetNominativeFromOds:
     """
     Class that downloads all nominative metadata JSONs from the ODS SFTP, parses them,
     inserts the contents in MongoDB if valid,
@@ -200,4 +200,4 @@ class MainNominativeDataParserFromOds:
 
 if __name__ == '__main__':
     # run main
-    MainNominativeDataParserFromOds()
+    GetNominativeFromOds()

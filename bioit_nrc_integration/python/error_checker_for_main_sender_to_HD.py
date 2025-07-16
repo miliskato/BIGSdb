@@ -16,7 +16,7 @@ from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.python_utility_functions import send_email
 from bioit_nrc_integration.python.config import CODES_GENOMIC_ODS
-from bioit_nrc_integration.python.util.sftp_connection import SFTPConnectionODS
+from bioit_nrc_integration.python.util.sftp_connection_ods import SFTPConnectionODS
 
 # Configure stdout logging
 logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
@@ -36,7 +36,6 @@ class ErrorCheckerForMainSenderToHD:
         dev or acc.
         :return: None
         """
-
         self._test_dummy = test_dummy
         self._alternate_dtap = alternate_dtap
         self._mongo_config_provider = MongoConfigProvider(alternate_dtap)
@@ -58,11 +57,9 @@ class ErrorCheckerForMainSenderToHD:
         Should not raise errors by itself, but if it does, they are caught in the main try except.
         :return: None
         """
-        folder_path = self.__set_folder_path('error')
-
         # List all files in the remote directory
         with SFTPConnectionODS('send') as sftp_connection_ods:
-            files_and_dirs = sftp_connection_ods.sftp.listdir_attr(folder_path)
+            files_and_dirs = sftp_connection_ods.sftp.listdir_attr(self._mongo_config_provider.upload_path + 'error')
 
         # Filter out directories, only list files
         error_files_count = len([entry.filename for entry in files_and_dirs if not stat.S_ISDIR(entry.st_mode)])
@@ -83,7 +80,7 @@ class ErrorCheckerForMainSenderToHD:
         there is something seriously wrong (like no access to sftp) and it will be caught in the main try except.
         :return: None
         """
-        folder_path = self.__set_folder_path('processed')
+        folder_path = self._mongo_config_provider.upload_path + 'processed'
 
         # List all files in the remote directory
         with SFTPConnectionODS('send') as sftp_connection_ods:
@@ -123,19 +120,8 @@ class ErrorCheckerForMainSenderToHD:
                     # fields are set to True and False respectively.
                     # At this point in the script they would be False and True respectively again which is the end-state.
 
-                        # Remove sftp file in processed folder once acknowledged and inserted into MongoDB local
-                        sftp_connection_ods.sftp.remove(f'{folder_path}/{file}')
-
-    def __set_folder_path(self, folder: str) -> str:
-        """
-        opens sftp and sets folder path for a given healthdata receiver
-        :param folder: desired folder in sftp location, error or processed
-        :return: folder_path as str
-        """
-        folder_path = 'upload/' + \
-                      f"{(self._alternate_dtap + '/') if self._alternate_dtap else ''}" + \
-                      folder
-        return folder_path
+                    # Remove sftp file in processed folder once acknowledged and inserted into MongoDB local
+                    sftp_connection_ods.sftp.remove(f'{folder_path}/{file}')
 
 
 if __name__ == '__main__':
