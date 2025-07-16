@@ -825,11 +825,17 @@
         roles: readWrite
       delegate_to: "{{ primary }}"
 
-    - name: replace string for mongo user pass in config
+    - name: replace string for mongo user pass in config for the MongoDB Atlas cluster
       lineinfile:
         path: "{{ bioit_bigs_home }}/bioit_mongodb_scripts/config/config.yml"
-        regexp: 'MONGO_DB_PASSWORD: to_be_replaced_by_ansible'
-        line: "MONGO_DB_PASSWORD: {{ mongo_user_password }}"
+        regexp: 'MONGO_DB_PASSWORD_AZURE: to_be_replaced_by_ansible'
+        line: "MONGO_DB_PASSWORD_AZURE: {{ mongo_user_password }}"
+
+    - name: replace string for mongo user pass in config for the local MongoDB cluster
+      lineinfile:
+        path: "{{ bioit_bigs_home }}/bioit_mongodb_scripts/config/config.yml"
+        regexp: 'MONGO_DB_PASSWORD_LOCAL: to_be_replaced_by_ansible'
+        line: "MONGO_DB_PASSWORD_LOCAL: {{ mongo_user_password }}"
 
   tags: mongo_setup
 

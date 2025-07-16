@@ -39,7 +39,8 @@ class MongoConfigProvider:
             validate_literal(alternate_dtap, DtapValues)
         self._mongo_global_config = self._get_mongodb_config_data()
         self.dtap = self._mongo_global_config['dtap'] if alternate_dtap is None else str(alternate_dtap)
-        self.__password = self._mongo_global_config['MONGO_DB_PASSWORD']
+        self._password_azure = self._mongo_global_config['MONGO_DB_PASSWORD_AZURE']
+        self._password_local = self._mongo_global_config['MONGO_DB_PASSWORD_LOCAL']
         self.upload_path = 'upload/' + f"{(alternate_dtap + '/') if alternate_dtap else ''}"
 
     @staticmethod
@@ -68,9 +69,9 @@ class MongoConfigProvider:
         domain = 'darwinproject.be' if self.dtap in ['dev', 'test'] else 'sciensano.be'
         ext = 'd' if self.dtap in ['dev', 'test'] else 'p'
         if self.host_is_an_nrc_platform(species):
-            return f'mongodb://{self._get_user(species)}:{self.__password}@bioit-mongo-{ext}01.{domain}:27017,bioit-mongo-{ext}02.{domain}:27017,bioit-mongo-{ext}03.{domain}:27017/?authSource={species}_{self.dtap}&replicaSet=bioit-HERA'
+            return f'mongodb://{self._get_user(species)}:{self._password_local}@bioit-mongo-{ext}01.{domain}:27017,bioit-mongo-{ext}02.{domain}:27017,bioit-mongo-{ext}03.{domain}:27017/?authSource={species}_{self.dtap}&replicaSet=bioit-HERA'
 
-        return f'mongodb://admin:{self.__password}@bioit-mongo-{ext}01.{domain}:27017,bioit-mongo-{ext}02.{domain}:27017,bioit-mongo-{ext}03.{domain}:27017/?replicaSet=bioit-HERA&authSource=admin'
+        return f'mongodb://admin:{self._password_local}@bioit-mongo-{ext}01.{domain}:27017,bioit-mongo-{ext}02.{domain}:27017,bioit-mongo-{ext}03.{domain}:27017/?replicaSet=bioit-HERA&authSource=admin'
 
     def get_azure_connection_string(self, species: str) -> str:
         """
@@ -80,8 +81,8 @@ class MongoConfigProvider:
         dtap_extension = 'devtest' if self.dtap in ['dev', 'test'] else 'accprod'
         domain = 'fgpmn' if self.dtap in ['dev', 'test'] else 'lw3rk'
         if self.host_is_an_nrc_platform(species):
-            return f'mongodb+srv://{self._get_user(species)}:{self.__password}@mongodb-atlas-{dtap_extension}-pl-0.{domain}.mongodb.net/?retryWrites=true&w=majority'
-        return f'mongodb+srv://admin:{self.__password}@mongodb-atlas-{dtap_extension}-pl-0.{domain}.mongodb.net/?retryWrites=true&w=majority'
+            return f'mongodb+srv://{self._get_user(species)}:{self._password_azure}@mongodb-atlas-{dtap_extension}-pl-0.{domain}.mongodb.net/?retryWrites=true&w=majority'
+        return f'mongodb+srv://admin:{self._password_azure}@mongodb-atlas-{dtap_extension}-pl-0.{domain}.mongodb.net/?retryWrites=true&w=majority'
 
     @property
     def alternate_connection_string(self) -> str:
