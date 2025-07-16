@@ -132,12 +132,14 @@
     path: "{{ bioit_bigs_home }}/bioit_mongodb_scripts/config/config.yml"
     regexp: 'MONGO_DB_PASSWORD_AZURE: to_be_replaced_by_ansible'
     line: "MONGO_DB_PASSWORD_AZURE: {{ mongodb_admin_password_azure }}"
+  become: yes
 
 - name: replace mongodb admin password for the local MongoDB cluster
   lineinfile:
     path: "{{ bioit_bigs_home }}/bioit_mongodb_scripts/config/config.yml"
     regexp: 'MONGO_DB_PASSWORD_LOCAL: to_be_replaced_by_ansible'
     line: "MONGO_DB_PASSWORD_LOCAL: {{ mongodb_admin_password_local }}"
+  become: yes
 
 - name: Change Mongo dtap version in config based on playbook argument, HD only has 2 environments; test and prod. Files sent by HD are consumable and can only go in one of these two mongo databases. Files sent to HD can only be sent from one of these two DB to avoid duplications and confusion.
   lineinfile:
