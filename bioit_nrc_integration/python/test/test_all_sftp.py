@@ -3,7 +3,6 @@ import logging
 import sys
 from pathlib import Path
 
-import paramiko
 import yaml
 
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent.parent

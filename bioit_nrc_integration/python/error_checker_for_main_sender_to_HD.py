@@ -9,8 +9,6 @@ import traceback
 import yaml
 from pathlib import Path
 
-import paramiko
-
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
