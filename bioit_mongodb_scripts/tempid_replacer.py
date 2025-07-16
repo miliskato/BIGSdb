@@ -14,12 +14,11 @@ from pymongo.collection import Collection
 from pymongo.read_concern import ReadConcern
 from pymongo.write_concern import WriteConcern
 
-from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
-
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
 from bioit_bigsdb_scripts.components.psql import TblAlleleDesignations
+from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.python_utility_functions import send_email
 

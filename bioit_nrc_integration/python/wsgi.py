@@ -4,11 +4,10 @@ import uuid
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, Union
 
-from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
-
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
+from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.python_utility_functions import send_email
 

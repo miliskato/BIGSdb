@@ -14,12 +14,11 @@ from pymongo.collection import Collection
 from pymongo.read_concern import ReadConcern
 from pymongo.write_concern import WriteConcern
 
-from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
-
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
 from bioit_mongodb_scripts.util_azure.connect_azure import ConnectAzure
+from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 
 

@@ -3,11 +3,10 @@ import logging
 import sys
 from pathlib import Path
 
-from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
-
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
+from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 from bioit_mongodb_scripts.util.distance_and_cluster_computer import DistanceAndClusterComputer
 
 if __name__ == '__main__':

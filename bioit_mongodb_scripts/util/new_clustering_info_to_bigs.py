@@ -9,8 +9,6 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import numpy as np
 from pymongo.write_concern import WriteConcern
 
-from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
-
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
@@ -18,6 +16,7 @@ from bioit_bigsdb_scripts.components.psql import TblSequences, TblProfiles, TblP
     TblClassificationGroups, TblClassificationGroupProfiles, TblClassificationGroupProfileHistory, \
     TblClassificationSchemes, TblEavText, TblEavFields, TblMappingTable
 from bioit_mongodb_scripts.config import CLUSTERING_CONFIG
+from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.python_utility_functions import load_config, send_email
 
