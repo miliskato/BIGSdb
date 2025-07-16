@@ -17,7 +17,7 @@ from bioit_nrc_integration.python.error_checker_for_main_sender_to_HD import Err
 from bioit_nrc_integration.python.get_nominative_from_ODS import MainNominativeDataParserFromOds
 from bioit_nrc_integration.python.main_sender_to_HD import MainSenderToHD
 from bioit_nrc_integration.python.test.testfiles import testfiles_folder, TESTFILES
-from bioit_nrc_integration.python.util.sftp_connection import SFTPConnection
+from bioit_nrc_integration.python.util.sftp_connection import SFTPConnectionODS
 
 # Configure stdout logging
 logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
@@ -54,12 +54,11 @@ for species, species_testfiles in testfiles_dict.items():
         """
         Upload CLIN and LAB files to ODS sftp. 
         """
-        sftpconnection_instance = SFTPConnection()
-        ssh, sftp = sftpconnection_instance.open_sftp_connection_get_nominative_from_ods()
-        sftp.put(str(testfiles_folder / species_testfiles['get_nominative_from_ODS_CLIN']),
-                 f"upload/{DTAP}/test_dummy_{species}_CLIN_.json")
-        sftp.put(str(testfiles_folder / species_testfiles['get_nominative_from_ODS_LAB']),
-                 f"upload/{DTAP}/test_dummy_{species}_LAB_.json")
+        with SFTPConnectionODS('get') as sftp_connection_ods:
+            sftp_connection_ods.sftp.put(str(testfiles_folder / species_testfiles['get_nominative_from_ODS_CLIN']),
+                                         f"upload/{DTAP}/test_dummy_{species}_CLIN_.json")
+            sftp_connection_ods.sftp.put(str(testfiles_folder / species_testfiles['get_nominative_from_ODS_LAB']),
+                                         f"upload/{DTAP}/test_dummy_{species}_LAB_.json")
         with (testfiles_folder / species_testfiles['get_nominative_from_ODS_CLIN']).open('r') as handle:
             content = json.load(handle)['data']
             business_key_ods_different_from_wgsmeta = content.get('tx_business_key') if content.get('tx_business_key') else content['TX_BUSINESS_KEY']
@@ -72,9 +71,9 @@ for species, species_testfiles in testfiles_dict.items():
         """
         After successful parsing the file is moved to the processed folder, remove it from there to clean up.
         """
-        sftp.remove(f"upload/{DTAP}/processed/test_dummy_{species}_CLIN_.json")
-        sftp.remove(f"upload/{DTAP}/processed/test_dummy_{species}_LAB_.json")
-        sftpconnection_instance.close_sftp_connection(ssh, sftp)
+        with SFTPConnectionODS('get') as sftp_connection_ods:
+            sftp_connection_ods.sftp.remove(f"upload/{DTAP}/processed/test_dummy_{species}_CLIN_.json")
+            sftp_connection_ods.sftp.remove(f"upload/{DTAP}/processed/test_dummy_{species}_LAB_.json")
 
     """
     Insert dummy genomic report JSON into remote isolates collection, skip MainMongo. 
@@ -100,12 +99,9 @@ for species, species_testfiles in testfiles_dict.items():
     """
     Move ODS file to processed folder as if HD had done it
     """
-    sftpconnection_instance = SFTPConnection()
-    ssh, sftp = sftpconnection_instance.open_sftp_connection_send_genomic_to_ods()
-
-    sftp.rename(f"upload/{DTAP}/{dummy_mapping_table['_id']}.json",
-                f"upload/{DTAP}/processed/{dummy_mapping_table['_id']}.json")
-    sftpconnection_instance.close_sftp_connection(ssh, sftp)
+    with SFTPConnectionODS('send') as sftp_connection_ods:
+        sftp_connection_ods.sftp.rename(f"upload/{DTAP}/{dummy_mapping_table['_id']}.json",
+                                        f"upload/{DTAP}/processed/{dummy_mapping_table['_id']}.json")
 
     """
     Run main error checker and processed acknowledger
@@ -127,12 +123,9 @@ for species, species_testfiles in testfiles_dict.items():
     """
     Move ODS file to processed folder as if HD had done it again
     """
-    sftpconnection_instance = SFTPConnection()
-    ssh, sftp = sftpconnection_instance.open_sftp_connection_send_genomic_to_ods()
-
-    sftp.rename(f"upload/{DTAP}/{dummy_mapping_table['_id']}.json",
-                f"upload/{DTAP}/processed/{dummy_mapping_table['_id']}.json")
-    sftpconnection_instance.close_sftp_connection(ssh, sftp)
+    with SFTPConnectionODS('send') as sftp_connection_ods:
+        sftp_connection_ods.sftp.rename(f"upload/{DTAP}/{dummy_mapping_table['_id']}.json",
+                                        f"upload/{DTAP}/processed/{dummy_mapping_table['_id']}.json")
 
     """
     Run main error checker and processed acknowledger again after reanalysis resending

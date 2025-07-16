@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Literal
 
 import paramiko
 import yaml
@@ -6,20 +6,25 @@ import yaml
 from ..config import SFTP_CREDENTIALS_HD
 
 
-class SFTPConnection:
+class SFTPConnectionODS:
     """
     Base Class containing functions to handle an SFTP connection.
     """
-    def __init__(self) -> None:
+    def __init__(self, get_or_send: Literal['get', 'send']) -> None:
         """
-        Initializes this class.
+        Initializes this class and opens an SFTP connection a chosen location.
+        :param get_or_send: open a connection to either the getting or the sending SFTP location
         :return: None
         """
         with SFTP_CREDENTIALS_HD.open('r') as handle:
             self._sftp_credentials_hd = yaml.safe_load(handle)
+        if get_or_send == 'get':
+            self._ssh, self.sftp = self._open_sftp_connection_get_nominative_from_ods()
+        else:  # if get_or_send == 'send':
+            self._ssh, self.sftp = self._open_sftp_connection_send_genomic_to_ods()
 
     @staticmethod
-    def _open_sftp_connection(hostname: str, port: Union[str, int], username: str, password: str) -> \
+    def __open_sftp_connection(hostname: str, port: str | int, username: str, password: str) -> \
             (paramiko.SSHClient, paramiko.SFTPClient):
         """
         Opens an SSH and SFTP connection using variables defined in the sftp credentials configuration file.
@@ -40,33 +45,46 @@ class SFTPConnection:
         sftp = ssh.open_sftp()
         return ssh, sftp
 
-    @staticmethod
-    def close_sftp_connection(ssh: paramiko.SSHClient, sftp: paramiko.SFTPClient) -> None:
+    def close_sftp_connection(self) -> None:
         """
         Closes the SSH and SFTP clients created by open_sftp_connection.
         :return: None
         """
-        sftp.close()
-        ssh.close()
+        self.sftp.close()
+        self._ssh.close()
 
-    def open_sftp_connection_get_nominative_from_ods(self) -> (paramiko.SSHClient, paramiko.SFTPClient):
+    def _open_sftp_connection_get_nominative_from_ods(self) -> (paramiko.SSHClient, paramiko.SFTPClient):
         """
         Public function to open an SFTP connection to the location where nominative files are deposited by the ODS.
         :return: an ssh and sftp client for further use
         """
-        return self._open_sftp_connection(
+        return self.__open_sftp_connection(
             self._sftp_credentials_hd['hostname_get_nominative_from_ODS'],
             self._sftp_credentials_hd['port_get_nominative_from_ODS'],
             self._sftp_credentials_hd['username_get_nominative_from_ODS'],
             self._sftp_credentials_hd['password_get_nominative_from_ODS'])
 
-    def open_sftp_connection_send_genomic_to_ods(self) -> (paramiko.SSHClient, paramiko.SFTPClient):
+    def _open_sftp_connection_send_genomic_to_ods(self) -> (paramiko.SSHClient, paramiko.SFTPClient):
         """
         Public function to open an SFTP connection to the location where genomic files need to be deposited by bioit.
         :return: an ssh and sftp client for further use
         """
-        return self._open_sftp_connection(
+        return self.__open_sftp_connection(
             self._sftp_credentials_hd['hostname_send_genomic_to_ODS'],
             self._sftp_credentials_hd['port_send_genomic_to_ODS'],
             self._sftp_credentials_hd['username_send_genomic_to_ODS'],
             self._sftp_credentials_hd['password_send_genomic_to_ODS'])
+
+    def __enter__(self):
+        """
+        Enter the runtime context related to the class (interest: connections).
+        __enter__/__exit__ methods are used to get the context manager to call the class in a "with" statement
+        """
+        return self
+
+    def __exit__(self) -> None:
+        """
+        Closes the db connections at the end of the run.
+        __enter__/__exit__ are used to get the context manager to call the class in a "with" statement.
+        """
+        self.close_sftp_connection()

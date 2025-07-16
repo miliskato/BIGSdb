@@ -16,13 +16,13 @@ from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email
 from bioit_nrc_integration.python.config import CODES_NOMINATIVE_ODS
 from bioit_nrc_integration.python.util.get_clin_lab_json_parser import get_clin_lab_json_parser
-from bioit_nrc_integration.python.util.sftp_connection import SFTPConnection
+from bioit_nrc_integration.python.util.sftp_connection import SFTPConnectionODS
 
 # Configure stdout logging
 logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
 
-class MainNominativeDataParserFromOds(SFTPConnection):
+class MainNominativeDataParserFromOds:
     """
     Class that downloads all nominative metadata JSONs from the ODS SFTP, parses them,
     inserts the contents in MongoDB if valid,
@@ -37,7 +37,6 @@ class MainNominativeDataParserFromOds(SFTPConnection):
         we want to test dev or acc
         :return: None
         """
-        super().__init__()
 
         self._test_dummy = test_dummy
         self._alternate_dtap = alternate_dtap
@@ -63,21 +62,18 @@ class MainNominativeDataParserFromOds(SFTPConnection):
 
         try:
             # initialize ssh & sftp
-            self._ssh, self._sftp = self.open_sftp_connection_get_nominative_from_ods()
-
             with tempfile.TemporaryDirectory(dir='/tmp') as self._temp_json_dir:
-                self._download_json_files()
-                # close after downloading the json files to not risk reaching the inactivity time limit
-                self.close_sftp_connection(self._ssh, self._sftp)
-
+                with SFTPConnectionODS('get') as self._sftp_connection_ods:
+                    self._download_json_files()
+                    # close after downloading the json files to not risk reaching the inactivity time limit
+                
+                # Execute local code that doesn't need SFTP connection
                 self._group_files_by_pathogen_and_type()
                 self._process_json_files()
 
-                # reinitialize ssh & sftp
-                self._ssh, self._sftp = self.open_sftp_connection_get_nominative_from_ods()
-
-                # In SFTP moving is done by renaming; move files to right folder according to success
-                self._move_files_according_to_success()
+                with SFTPConnectionODS('get') as self._sftp_connection_ods:
+                    # In SFTP moving is done by renaming; move files to right folder according to success
+                    self._move_files_according_to_success()
 
         except Exception as exceptionmessage:
             send_email(f"{exceptionmessage}\n{traceback.format_exc()}")
@@ -89,7 +85,7 @@ class MainNominativeDataParserFromOds(SFTPConnection):
         :return: None
         """
         # List all files in the remote directory non-recursively
-        files_and_dirs = self._sftp.listdir_attr(self._base_sftp_dir)
+        files_and_dirs = self._sftp_connection_ods.sftp.listdir_attr(self._base_sftp_dir)
 
         # Filter out directories, only list files
         self._files_remote = [entry.filename for entry in files_and_dirs if not stat.S_ISDIR(entry.st_mode)]
@@ -99,7 +95,7 @@ class MainNominativeDataParserFromOds(SFTPConnection):
 
         # Download each file
         for file in self._files_remote:
-            self._sftp.get(f'{self._base_sftp_dir}{file}', f'{self._temp_json_dir}/{file}')
+            self._sftp_connection_ods.sftp.get(f'{self._base_sftp_dir}{file}', f'{self._temp_json_dir}/{file}')
             logging.info(f'Downloaded: {file}')
 
     def _group_files_by_pathogen_and_type(self) -> None:
@@ -193,22 +189,15 @@ class MainNominativeDataParserFromOds(SFTPConnection):
         :return: None
         """
         for file in self._files_processed:
-            self._sftp.rename(f'{self._base_sftp_dir}{file}', f'{self._base_sftp_dir}processed/{file}')
+            self._sftp_connection_ods.sftp.rename(f'{self._base_sftp_dir}{file}', f'{self._base_sftp_dir}processed/{file}')
         for file in self._files_error:
-            self._sftp.rename(f'{self._base_sftp_dir}{file}', f'{self._base_sftp_dir}error/{file}')
+            self._sftp_connection_ods.sftp.rename(f'{self._base_sftp_dir}{file}', f'{self._base_sftp_dir}error/{file}')
         for filename, contents in self._files_error_logs.items():
             error_log_filename = '.'.join(filename.split('.')[:-1]) + '.log'
             error_log_file = Path(self._temp_json_dir) / error_log_filename
             with error_log_file.open('w') as handle:
                 handle.write(contents)
-            self._sftp.put(str(error_log_file), f'{self._base_sftp_dir}error/{error_log_filename}')
-
-    def __del__(self) -> None:
-        """
-        Closes the SSH and SFTP clients upon exit.
-        :return: None
-        """
-        self.close_sftp_connection(self._ssh, self._sftp)
+            self._sftp_connection_ods.sftp.put(str(error_log_file), f'{self._base_sftp_dir}error/{error_log_filename}')
 
 
 if __name__ == '__main__':
