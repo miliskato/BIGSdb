@@ -1,21 +1,30 @@
+import sys
+from pathlib import Path
 from typing import Literal
 
 import paramiko
 import yaml
 
-from ..config import SFTP_CREDENTIALS_HD
+PYTHONPATH = Path(__file__).resolve().parent.parent.parent.parent
+sys.path.append(str(PYTHONPATH))
 
+from bioit_bigsdb_scripts.utils.literal_helper import validate_literal
+from bioit_nrc_integration.python.config import SFTP_CREDENTIALS_HD
+
+SFTPValues = Literal['get', 'send']
+SFTPValue = str | SFTPValues  # workaround to avoid pycharm warnings
 
 class SFTPConnectionODS:
     """
     Base Class containing functions to handle an SFTP connection.
     """
-    def __init__(self, get_or_send: Literal['get', 'send']) -> None:
+    def __init__(self, get_or_send: SFTPValue) -> None:
         """
         Initializes this class and opens an SFTP connection a chosen location.
         :param get_or_send: open a connection to either the getting or the sending SFTP location
         :return: None
         """
+        validate_literal(get_or_send, SFTPValues)
         with SFTP_CREDENTIALS_HD.open('r') as handle:
             self._sftp_credentials_hd = yaml.safe_load(handle)
         if get_or_send == 'get':
