@@ -47,6 +47,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added mic_resistances fields again in both sql and db xml. They were accidentally removed from sql previously. Also added serogroup_pheno field 
   in neisseria again which was also accidentally removed during splitting up of all sql columns in isolates database by pathogen.
 
+## [Unreleased]
+### Added:
+- Ability to support deployment for multiple species databases on the same VM
+- Enterococcus faecalis and Enterococcus faecium related assays ('MLST_Bezdicek', 'LRE-Finder')
+- Method to validate Literal object and value passed to this one
+- "manual_validation_of_good_qc.py" to validate the good qc isolates submitted into BIGSdb (historical collection)  
+
+### Changed
+- Method to get relevant info from the mongoDB config file
+- Content of the mongoDB config file (bioit_mongodb_scripts/config/config.yml)
+- Migration files for the "isolates" DB are now moved to a extra subfolder (bigsdb_isolates_v/bigsdb_{{ species }}_isolates) to avoid overlap of the migrations files after the first deployment (one deployment/species)
+- log files for the bigsdb-insertion-{species}.service are moved to /var/log/bigsdb_insertions_service/ folder 
+
+## Fixed
+- Issue with rotation of the logs for bigsdb-insertion-{species}.service
+- Literal accepting silently wrong values
+
+### Removed:
+- some batch of unused files + stec related functions
+
 ## [3.0.0] 
 ### Added:
 - rMLST scheme

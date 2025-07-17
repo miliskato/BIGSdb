@@ -3,63 +3,55 @@ import logging
 import sys
 from pathlib import Path
 
-import paramiko
 import yaml
 
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
 from bioit_mongodb_scripts.mainmongo import MainMongo
+from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
-from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data
 from bioit_nrc_integration.python.config import SFTP_CREDENTIALS_HD
 from bioit_nrc_integration.python.error_checker_for_main_sender_to_HD import ErrorCheckerForMainSenderToHD
-from bioit_nrc_integration.python.get_nominative_from_ODS import MainNominativeDataParserFromOds
+from bioit_nrc_integration.python.get_nominative_from_ODS import GetNominativeFromOds
 from bioit_nrc_integration.python.main_sender_to_HD import MainSenderToHD
 from bioit_nrc_integration.python.test.testfiles import testfiles_folder, TESTFILES
-from bioit_nrc_integration.python.util.sftp_connection import SFTPConnection
+from bioit_nrc_integration.python.util.sftp_connection_ods import SFTPConnectionODS
 
 # Configure stdout logging
 logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
 with TESTFILES.open('r') as handle:
     testfiles_dict = yaml.safe_load(handle)
-# get sftp credentials
-with SFTP_CREDENTIALS_HD.open('r') as handle:
-    sftp_credentials_hd = yaml.safe_load(handle)
 
 # get mongodb config data
-mongo_config_data = get_mongodb_config_data()
+mongo_config_provider = MongoConfigProvider()
 
-if mongo_config_data['dtap'] == 'test':
+if mongo_config_provider.dtap == 'test':
     DTAP = 'dev'
-elif mongo_config_data['dtap'] == 'prod':
+elif mongo_config_provider.dtap == 'prod':
     DTAP = 'acc'
 else:
     raise ValueError("Unsupported dtap value")
 
 for species, species_testfiles in testfiles_dict.items():
-    mongoinit_azure = MongoInitialisation(species, mongo_config_data=mongo_config_data,
-                                          selected_connection_string='CONNECTION_STRING_AZURE',
-                                          alternate_dtap=DTAP)
+    azure_connection_string = mongo_config_provider.get_azure_connection_string(species)
+    mongoinit_azure = MongoInitialisation(species, azure_connection_string, DTAP)
     isolates_collection, old_isolateresults_collection, isolates_warningqc_collection, \
         isolates_resequencing_collection, isolates_goodqc_collection = mongoinit_azure.initialise_collections()
 
-    mongoinit_local = MongoInitialisation(species, mongo_config_data=mongo_config_data,
-                                          selected_connection_string='CONNECTION_STRING_LOCAL',
-                                          alternate_dtap=DTAP)
+    mongoinit_local = MongoInitialisation(species, mongo_config_provider.get_local_connection_string(species), DTAP)
     mapping_table_collection = mongoinit_local.initialise_mapping_table_collection()
 
     if species_testfiles.get('get_nominative_from_ODS_CLIN'):
         """
         Upload CLIN and LAB files to ODS sftp. 
         """
-        sftpconnection_instance = SFTPConnection()
-        ssh, sftp = sftpconnection_instance.open_sftp_connection_get_nominative_from_ods()
-        sftp.put(str(testfiles_folder / species_testfiles['get_nominative_from_ODS_CLIN']),
-                 f"upload/{DTAP}/test_dummy_{species}_CLIN_.json")
-        sftp.put(str(testfiles_folder / species_testfiles['get_nominative_from_ODS_LAB']),
-                 f"upload/{DTAP}/test_dummy_{species}_LAB_.json")
+        with SFTPConnectionODS('get') as sftp_connection_ods:
+            sftp_connection_ods.sftp.put(str(testfiles_folder / species_testfiles['get_nominative_from_ODS_CLIN']),
+                                         f"upload/{DTAP}/test_dummy_{species}_CLIN_.json")
+            sftp_connection_ods.sftp.put(str(testfiles_folder / species_testfiles['get_nominative_from_ODS_LAB']),
+                                         f"upload/{DTAP}/test_dummy_{species}_LAB_.json")
         with (testfiles_folder / species_testfiles['get_nominative_from_ODS_CLIN']).open('r') as handle:
             content = json.load(handle)['data']
             business_key_ods_different_from_wgsmeta = content.get('tx_business_key') if content.get('tx_business_key') else content['TX_BUSINESS_KEY']
@@ -67,14 +59,14 @@ for species, species_testfiles in testfiles_dict.items():
         """
         Run Nominative data parser on CLIN and LAB files uploaded to ODS
         """
-        MainNominativeDataParserFromOds(test_dummy=True, alternate_dtap=DTAP)
+        GetNominativeFromOds(test_dummy=True, alternate_dtap=DTAP)
 
         """
         After successful parsing the file is moved to the processed folder, remove it from there to clean up.
         """
-        sftp.remove(f"upload/{DTAP}/processed/test_dummy_{species}_CLIN_.json")
-        sftp.remove(f"upload/{DTAP}/processed/test_dummy_{species}_LAB_.json")
-        sftpconnection_instance.close_sftp_connection(ssh, sftp)
+        with SFTPConnectionODS('get') as sftp_connection_ods:
+            sftp_connection_ods.sftp.remove(f"upload/{DTAP}/processed/test_dummy_{species}_CLIN_.json")
+            sftp_connection_ods.sftp.remove(f"upload/{DTAP}/processed/test_dummy_{species}_LAB_.json")
 
     """
     Insert dummy genomic report JSON into remote isolates collection, skip MainMongo. 
@@ -100,12 +92,9 @@ for species, species_testfiles in testfiles_dict.items():
     """
     Move ODS file to processed folder as if HD had done it
     """
-    sftpconnection_instance = SFTPConnection()
-    ssh, sftp = sftpconnection_instance.open_sftp_connection_send_genomic_to_ods()
-
-    sftp.rename(f"upload/{DTAP}/{dummy_mapping_table['_id']}.json",
-                f"upload/{DTAP}/processed/{dummy_mapping_table['_id']}.json")
-    sftpconnection_instance.close_sftp_connection(ssh, sftp)
+    with SFTPConnectionODS('send') as sftp_connection_ods:
+        sftp_connection_ods.sftp.rename(f"upload/{DTAP}/{dummy_mapping_table['_id']}.json",
+                                        f"upload/{DTAP}/processed/{dummy_mapping_table['_id']}.json")
 
     """
     Run main error checker and processed acknowledger
@@ -117,7 +106,7 @@ for species, species_testfiles in testfiles_dict.items():
     """
     MainMongo(dummy_genomic_report['_id'], species, 'reanalysis', pipeline_hash='0123456789',
               jsonfilepath=testfiles_folder / species_testfiles['genomic_json_reanalysis_report'], alternate_dtap=DTAP,
-              connection_string='CONNECTION_STRING_AZURE', disable_asb_and_clustering_for_testing=True)
+              connection_string=azure_connection_string, disable_asb_and_clustering_for_testing=True)
 
     """
     Run main sender after reanalysis
@@ -127,12 +116,9 @@ for species, species_testfiles in testfiles_dict.items():
     """
     Move ODS file to processed folder as if HD had done it again
     """
-    sftpconnection_instance = SFTPConnection()
-    ssh, sftp = sftpconnection_instance.open_sftp_connection_send_genomic_to_ods()
-
-    sftp.rename(f"upload/{DTAP}/{dummy_mapping_table['_id']}.json",
-                f"upload/{DTAP}/processed/{dummy_mapping_table['_id']}.json")
-    sftpconnection_instance.close_sftp_connection(ssh, sftp)
+    with SFTPConnectionODS('send') as sftp_connection_ods:
+        sftp_connection_ods.sftp.rename(f"upload/{DTAP}/{dummy_mapping_table['_id']}.json",
+                                        f"upload/{DTAP}/processed/{dummy_mapping_table['_id']}.json")
 
     """
     Run main error checker and processed acknowledger again after reanalysis resending

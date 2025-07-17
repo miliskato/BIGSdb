@@ -1,36 +1,48 @@
 import logging
-from typing import Any, Dict, Union
+from typing import Literal, Union
 
 import pymongo
 from pymongo import MongoClient, database
 from pymongo.collection import Collection
 
-from .python_utility_functions import get_mongodb_config_data
+from bioit_bigsdb_scripts.utils.literal_helper import validate_literal
+
+MongoCollectionNames = Literal[
+    "isolates",
+    "old_isolate_results",
+    "sequence_types",
+    "new_allele_hashes",
+    "cluster_membership",
+    "cluster_merging",
+    "update_metadata",
+    "isolates_resequencing",
+    "headers",
+    "mapping_table",
+    "nominative_labtest_clinical_metadata",
+    "unprocessed_nominative_labtest_metadata",
+    "unprocessed_nominative_clinical_metadata",
+    "isolates_rejected_coreqc",
+    "isolates_warningqc",
+    "isolates_goodqc"
+]
+MongoCollectionName = Union[str, MongoCollectionNames]  # workaround to avoid pycharm warnings - coupled with validate_literal
 
 
 class MongoInitialisation:
     """
     Class containing all queries for Mongo
     """
-    def __init__(self, species: str, selected_connection_string: str, alternate_dtap: Union[str, None] = None,
-                 mongo_config_data: Dict[str, Any] = None):
+
+    def __init__(self, species: str, connection_string: str, dtap: str):
         """
         Initialises this class and opens the species/dtap specific mongo database
         :param species: commonly used bioit species name: either genus or specific like stec
-        :param selected_connection_string: to select the connection string from the config file that should be used to
+        :param connection_string: to select the connection string from the config file that should be used to
         initialise the connection
-        :param alternate_dtap: alternative dtap than what is in the config file
-        :param mongo_config_data: Use provided mongo_config_data, else get mongo_config_data from file
+        :param dtap: dtap value need to be contained in dev, test, acc, or prod. If not, an error is raised.
         """
-        self._mongo_config_data = mongo_config_data if mongo_config_data else get_mongodb_config_data()
-
-        if selected_connection_string not in ['CONNECTION_STRING_ALTERNATE', 'CONNECTION_STRING_AZURE',
-                                              'CONNECTION_STRING_LOCAL']:
-            raise NameError(f"Use of undefined connection_string variable in _open_mongo_database")
-        else:
-            self.connection_string = self._mongo_config_data[selected_connection_string]
-        if alternate_dtap:
-            self._mongo_config_data['dtap'] = alternate_dtap
+        self.connection_string = connection_string
+        self._dtap = dtap
         self.opened_mongo_database = self._open_mongo_database(species)
 
     def _open_mongo_database(self, species: str) -> pymongo.database.Database:
@@ -43,11 +55,12 @@ class MongoInitialisation:
             self.client = MongoClient(self.connection_string)
         except Exception:
             raise RuntimeError(f"Could not connect to {self.connection_string}")
-        if self._mongo_config_data["dtap"] not in ['dev', 'test', 'acc', 'prod']:
+        if self._dtap not in ['dev', 'test', 'acc', 'prod']:
             raise NameError(f"replace dtap value in bioit_mongodb_scripts/config/config.yml or use alternate_dtap")
-        return self.client['_'.join([species, self._mongo_config_data["dtap"]])]  # e.g. listeria_dev
+        return self.client['_'.join([species, self._dtap])]  # e.g. listeria_dev
 
-    def _open_mongo_collection(self, opened_database: pymongo.database.Database, collection: str) -> Collection:
+    @staticmethod
+    def _open_mongo_collection(opened_database: pymongo.database.Database, collection: MongoCollectionName) -> Collection:
         """
         Opens a mongo collection in an opened database
         :param opened_database: mongo opened database
@@ -56,12 +69,11 @@ class MongoInitialisation:
         """
         # MongoDB creates collections on the fly while inserting any Documents, we do not want to allow
         # unwanted collections to be created, therefore this check:
-        if collection in self._mongo_config_data['collections']:
-            opened_collection = opened_database[collection]
-            logging.debug(f"opened collection {collection}")
-            return opened_collection
-        else:
-            raise RuntimeError(f"Collection '{collection}' not in supported collections")
+
+        validate_literal(collection, MongoCollectionNames)
+        opened_collection = opened_database[str(collection)]
+        logging.debug(f"opened collection {collection}")
+        return opened_collection
 
     def initialise_collections(self) -> (Collection, Collection, Collection, Collection, Collection):
         """
@@ -90,7 +102,7 @@ class MongoInitialisation:
         st_collection = self._open_mongo_collection(self.opened_mongo_database, "sequence_types")
         cluster_membership_collection = self._open_mongo_collection(self.opened_mongo_database, "cluster_membership")
         cluster_merging_collection = self._open_mongo_collection(self.opened_mongo_database, "cluster_merging")
-        return st_collection,  cluster_membership_collection, cluster_merging_collection
+        return st_collection, cluster_membership_collection, cluster_merging_collection
 
     def initialise_hashing_collection(self) -> Collection:
         """

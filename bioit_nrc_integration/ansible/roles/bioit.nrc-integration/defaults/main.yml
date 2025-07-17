@@ -1,9 +1,6 @@
 ---
 bioit_bigs_home: '/home/bigsdb/BIGSdb'
 nrcint_venv: "{{ bioit_bigs_home }}/nrcint_venv"
-mongo_host: ''
-mongo_host_devtest: 'bioit-mongo-d01.sciensano.be,bioit-mongo-d02.sciensano.be,bioit-mongo-d03.sciensano.be'
-mongo_host_accprod: 'bioit-mongo-p01.sciensano.be,bioit-mongo-p02.sciensano.be,bioit-mongo-p03.sciensano.be'
 mongodb_admin_password_local_devtest: !vault |
           $ANSIBLE_VAULT;1.1;AES256
           64313931373563366335356639366632643666343561613234306164623965643066363936313833
@@ -32,8 +29,6 @@ mongodb_admin_password_azure_accprod: !vault |
           32386263356134653334313262653832646265636365356139313731356437633232316364633831
           3239633965323166370a623831636332663230333461326165613434326631373836363039616631
           31353961386465336662623639643461383933323135386430636339386562336633
-mongo_azure_private_endpoint_devtest: "mongodb-atlas-devtest-pl-0.fgpmn"
-mongo_azure_private_endpoint_accprod: "mongodb-atlas-accprod-pl-0.lw3rk"
 custom_listening_port: '7777'
 uwsgi_user_name: www-data
 uwsgi_group: www-data

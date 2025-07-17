@@ -2,7 +2,13 @@ from typing import List, Optional, Tuple, Union, Literal
 
 from .databaseconnection import DatabaseConnection
 from .psql_queries import PsqlQueries
+from ...utils.literal_helper import validate_literal
 
+QualityLiteral = Literal['warning', 'good']
+QualityValues = Union[QualityLiteral, str]
+
+ResequencingLiteral = Literal['yes', 'no']
+ResequencingValues = Union[ResequencingLiteral, str]
 
 class TblSubmissions(DatabaseConnection):
     """
@@ -17,13 +23,15 @@ class TblSubmissions(DatabaseConnection):
         self._db_type = 'isolates'
         super().__init__(species, self._db_type)
 
-    def insert_submission(self, param: Tuple[Literal['warning', 'good'], Literal['yes', 'no']]) -> None:
+    def insert_submission(self, param: Tuple[QualityValues, ResequencingValues]) -> None:
         """
         Inserts a new submission for a given quality (good or warning) and if it is a resequencing or not.
         :param param: variables to feed to the PSQL query, which also sanitizes these variables,
         necessary parameters visible in the PSQL query name and query
         :return: None
         """
+        validate_literal(param[0], QualityLiteral)
+        validate_literal(param[1], ResequencingLiteral)
         self.execute_query(PsqlQueries.ISO_INS__TB_SUB_VAR_QUAL_RESEQ, param)
 
     def select_closed_submission(self, param: Tuple[str]) -> List[Optional[Tuple[Union[int, str]]]]:

@@ -2,7 +2,7 @@ import datetime
 import logging
 import sys
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import List
 
 import numpy as np
 from pymongo.collection import Collection
@@ -12,8 +12,8 @@ PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
 from bioit_mongodb_scripts.util.hamming_distance import get_distance
+from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
-from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data
 
 
 class DistanceAndClusterComputer:
@@ -21,19 +21,18 @@ class DistanceAndClusterComputer:
     Class to compute hamming distances and determine the cluster membership to store in mongoDB.
     """
 
-    def __init__(self, species: str, mongo_config_data: Dict[str, Any] = None, st_to_use: List[int] = None) -> None:
+    def __init__(self, species: str, mongo_config_provider: MongoConfigProvider, st_to_use: List[int] = None) -> None:
         """
         Initializes the class.
         :param species: commonly used bioit species name: either genus or specific like stec
-        :param mongo_config_data: Use provided mongo_config_data, else get mongo_config_data from file
+        :param mongo_config_provider: the mongodb configuration provider
         :param st_to_use: sequence types list to be used for clustering
         :return: None
         """
         self._species = species
-        self._mongo_config_data = mongo_config_data if mongo_config_data else get_mongodb_config_data()
         self._st_to_use = st_to_use
         # Open collections
-        self._mongoinit = MongoInitialisation(self._species, mongo_config_data=self._mongo_config_data, selected_connection_string='CONNECTION_STRING_AZURE')
+        self._mongoinit = MongoInitialisation(self._species, mongo_config_provider.get_azure_connection_string(self._species), mongo_config_provider.dtap)
         self._headers_collection = self._mongoinit.initialise_headers_collection()
         self._st_collection, self._cluster_membership_collection, self._cluster_merging_collection = \
             self._mongoinit.initialise_clustering_collections()

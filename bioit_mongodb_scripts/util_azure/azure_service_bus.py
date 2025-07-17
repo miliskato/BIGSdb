@@ -1,27 +1,25 @@
-from typing import Any, Optional
-
 from azure.servicebus import ServiceBusClient, ServiceBusMessage
 
 from .azure_service_bus_message import AzureServiceBusMessage
+from ..util.mongo_config_provider import MongoConfigProvider
 
 
 class AzureServiceBus:
     """
     This class contains methods pertaining to Azure service bus.
     """
-    def __init__(self, mongo_config_data: dict[str, Any], species: str, alternate_dtap: Optional[str] = None) -> None:
+    def __init__(self, mongo_config_provider: MongoConfigProvider, species: str) -> None:
         """
-        This function initialises the class.
-        :param mongo_config_data: The mongodb configuration data
+        This function initializes the class.
+        :param mongo_config_provider: the mongodb configuration provider
         :param species: commonly used bioit species name: either genus or specific like stec
-        :param alternate_dtap: alternative dtap than what is in the config file
         :return: None
         """
         self._species = species
-        self._mongo_config_data = mongo_config_data
-        self._connection_string_asb = mongo_config_data['CONNECTION_STRING_ASB']
-        self._dtap = alternate_dtap if alternate_dtap else self._mongo_config_data['dtap']
+        self._connection_string_asb = mongo_config_provider.asb_connection_string
+        self._dtap = mongo_config_provider.dtap
         self._queue_name = f"{species}_{self._dtap}"
+        self._mongo_config_provider = mongo_config_provider
 
     def send_message_to_queue(self, message: AzureServiceBusMessage) -> None:
         """"

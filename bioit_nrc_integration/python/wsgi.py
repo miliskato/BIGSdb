@@ -7,8 +7,9 @@ from typing import Any, Callable, Dict, Iterable, Union
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
+from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
-from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data, send_email
+from bioit_mongodb_scripts.util.python_utility_functions import send_email
 
 
 def handle_message(environ: Dict[str, Any], start_response: Callable) -> Iterable[bytes]:
@@ -25,7 +26,7 @@ def handle_message(environ: Dict[str, Any], start_response: Callable) -> Iterabl
     mapping_table_dict = load_request_body_as_json(request_body, start_response)
     # if the parsing failed, the mapping table dict is a bytes iterable and not a dict.
     # The bytes iterable needs to be returned.
-    if not type(mapping_table_dict) == dict:
+    if not isinstance(mapping_table_dict, dict):
         return mapping_table_dict
 
     # Insert mapping table into mongodb
@@ -66,11 +67,9 @@ def insert_into_mongodb(mapping_table_dict: Dict[str, str], start_response: Call
     :return: a success or failure response
     """
     try:
-        mongo_config_data = get_mongodb_config_data()
-        mongoinit = MongoInitialisation(species=mapping_table_dict['species'],
-                                        selected_connection_string='CONNECTION_STRING_LOCAL',
-                                        mongo_config_data=mongo_config_data,
-                                        alternate_dtap=mapping_table_dict['dtap'])
+        mongo_config_provider = MongoConfigProvider()
+        species = mapping_table_dict['species']
+        mongoinit = MongoInitialisation(species, mongo_config_provider.get_local_connection_string(species), mongo_config_provider.dtap)
         mapping_table_collection = mongoinit.initialise_mapping_table_collection()
         already_present = mapping_table_collection.find_one({'_id': mapping_table_dict['id']})
         count = 1
@@ -115,3 +114,4 @@ def application(environ: Dict[str, Any], start_response: Callable) -> Iterable[b
     # Get the request body
     if environ['REQUEST_METHOD'] == 'POST':
         return handle_message(environ, start_response)
+    raise NotImplementedError()

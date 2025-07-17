@@ -1,27 +1,12 @@
 CONNECTION_STRING_ALTERNATE: mongodb+srv://mikelchtermans:YMFOH4BLF1U79dDk@hera-bioit-trial.vajezh0.mongodb.net
-CONNECTION_STRING_AZURE: to_be_replaced_by_ansible
-CONNECTION_STRING_LOCAL: to_be_replaced_by_ansible
 CONNECTION_STRING_ASB: to_be_replaced_by_ansible
+MONGO_DB_PASSWORD_AZURE: to_be_replaced_by_ansible
+MONGO_DB_PASSWORD_LOCAL: to_be_replaced_by_ansible
 
 mail:
     from: MongoDB internal HERA
     to: Michael or Ann-Stephan
     host: bioit-mailhog.darwinproject.be:1025
-
-species:
-    - enterococcus_faecalis
-    - enterococcus_faecium
-    - listeria
-    - mycobacterium
-    - neisseria
-    - stec
-    - salmonella
-    - influenza
-    - sars_cov_2
-
-viral_species:
-    - influenza
-    - sars_cov_2
 
 dtap: to_be_replaced_by_ansible
 

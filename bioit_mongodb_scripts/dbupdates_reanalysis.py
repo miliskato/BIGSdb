@@ -12,7 +12,6 @@ from azure.monitor.ingestion import LogsIngestionClient
 from bioit_mongodb_scripts.reanalysis import MONGO_REANALYSIS_CONFIG
 from bioit_mongodb_scripts.reanalysis.reanalysis_submitter_azure import BatchPipelinesReanalysis
 from bioit_mongodb_scripts.util.command.command import Command
-from bioit_mongodb_scripts.util.python_utility_functions import get_mongodb_config_data
 from bioit_mongodb_scripts.util_azure.connect_azure import ConnectAzure
 from bioit_mongodb_scripts.util_azure.tempid_replacer_azure import TempidReplacerAzure
 

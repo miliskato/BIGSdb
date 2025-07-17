@@ -29,27 +29,24 @@ from bioit_mongodb_scripts.util_azure.azure_service_bus import AzureServiceBus
 from bioit_mongodb_scripts.util.error import *
 from bioit_mongodb_scripts.util.check_coreqc_metrics import CheckCoreQCMetrics
 from bioit_mongodb_scripts.util.get_coreqc_metrics import GetCoreQCMetrics
+from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 from bioit_mongodb_scripts.util.mongo_custom_clustering import MongoCustomClustering
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.mongo_insertion import insert_document_into_rejected_collection
 from bioit_mongodb_scripts.util.mongo_querying import Mongoquerying
-from bioit_mongodb_scripts.util.python_utility_functions import access_value_in_dict_using_list_as_dictpath, \
-    convert_dmyhms_to_ymd, get_mongodb_config_data, is_viral, send_email, load_config
+from bioit_mongodb_scripts.util.python_utility_functions import access_value_in_dict_using_list_as_dictpath, convert_dmyhms_to_ymd, send_email, load_config
 
 
-def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
+def parse_arguments() -> argparse.Namespace:
     """
     Parses the command line arguments.
-    !! If new arguments are added, Also add arguments/variables to main function/class!!
-    :param specieslist: list of all the species choices
     :return: Parsed arguments
     """
     parser = argparse.ArgumentParser()
     mutually_exclusive_group = parser.add_mutually_exclusive_group(required=True)
     mutually_exclusive_group.add_argument('--subvaldict', type=json.loads)
     mutually_exclusive_group.add_argument('--jsonfilepath', type=Path)
-    parser.add_argument("--species", required=True, type=str,
-                        choices=specieslist)
+    parser.add_argument("--species", required=True, type=str, choices=MongoConfigProvider.get_currently_supported_species())
     parser.add_argument("--results_type", required=True, type=str, choices=['new_isolate', 'reanalysis', 'goodqc_validated', 'warningqc_validated', 'resequencing_validated'])
     parser.add_argument("--reportdirectorypath", required=False, type=str)  # not mandatory because of reanalysis
     parser.add_argument("--fastafilepath", required=False, type=str)  # not mandatory because of reanalysis
@@ -74,7 +71,7 @@ class MainMongo:
                  subvaldict: Dict[str, str] = None, technical_metadata_path: Path = None, reportdirectorypath: Path = None, fastafilepath: Path = None,
                  vcffilepath: Path = None, vcffilepath_unfiltered: Path = None, original_input_format: Optional[Literal['fastq', 'fasta']] = None,
                  connection_string: str = None, alternate_dtap: Union[str, None] = None, dont_send_email: bool = False,
-                 mongo_config_data: Dict[str, Any] = None, disable_asb_and_clustering_for_testing: bool = False) -> None:
+                 disable_asb_and_clustering_for_testing: bool = False) -> None:
         """
         Initialises this class and executes the main function which will insert/update the sample in a mongodb collection containing isolates
         !! If parameters/arguments are added here, also add them to the argparse function!!
@@ -92,7 +89,6 @@ class MainMongo:
         :param original_input_format: original input that was given to run the first analysis
         :param connection_string: connection string variable from the config file
         :param alternate_dtap: alternative dtap than what is in the config file
-        :param mongo_config_data: Pass provided mongo_config_data to MongoInitialisation, else get mongo_config_data from file
         :param disable_asb_and_clustering_for_testing: In order to test the reanalysis in the NRC integration, the asb
         and clustering need to be disabled to not interfere with other samples and to not interact with NRC VM. This can
         also be used to test MongoDB insertion in Azure for environments that are already accessible by end-users.
@@ -114,18 +110,13 @@ class MainMongo:
         self._connection_string = connection_string
         self._alternate_dtap = alternate_dtap
         self._dont_send_email = dont_send_email
-        self._mongo_config_data = mongo_config_data if mongo_config_data else get_mongodb_config_data()
+        self._mongo_config_provider = MongoConfigProvider(alternate_dtap)
         self._disable_asb_and_clustering_for_testing = disable_asb_and_clustering_for_testing
 
-        self._naive_clustering_distance_matrix_file = Path(
-            self._mongo_config_data['naive_clustering_distance_matrix_file'].replace('species', self._species).replace(
-                'dtap', self._alternate_dtap if self._alternate_dtap else self._mongo_config_data.get('dtap')))
+        self._naive_clustering_distance_matrix_file = Path(self._mongo_config_provider.get_naive_clustering_distance_matrix_file(self._species))
 
         # Open collections
-        self._mongoinit = MongoInitialisation(self._species,
-                                              selected_connection_string=self._connection_string,
-                                              alternate_dtap=self._alternate_dtap,
-                                              mongo_config_data=self._mongo_config_data)
+        self._mongoinit = MongoInitialisation(self._species, self._connection_string, self._mongo_config_provider.dtap)
         self._isolates_collection, self._old_isolateresults_collection, self._isolates_warningqc_collection, \
             self._isolates_resequencing_collection, self._isolates_goodqc_collection \
             = self._mongoinit.initialise_collections()
@@ -138,7 +129,7 @@ class MainMongo:
 
         # Create AzureServiceBus instance
         if not self._disable_asb_and_clustering_for_testing:
-            self._asb_instance = AzureServiceBus(self._mongo_config_data, self._species, self._alternate_dtap)
+            self._asb_instance = AzureServiceBus(self._mongo_config_provider, self._species)
 
         # Parameter compatibility checks
         self._parameter_compatibility_checks()
@@ -261,9 +252,7 @@ class MainMongo:
             sample_coreqc_metrics = GetCoreQCMetrics(self._species, self._original_input_format,
                                                      mongo_records['technical_metadata']['data'].get('NanoporeFlowcell', 'illumina')).\
                 get_sample_coreqc_metrics()
-            check_coreqc_metrics = CheckCoreQCMetrics(self._technical_id, json_report, self._species,
-                                                      self._reportdirectorypath, sample_coreqc_metrics,
-                                                      self._mongo_config_data)
+            check_coreqc_metrics = CheckCoreQCMetrics(self._technical_id, json_report, self._species, self._reportdirectorypath, sample_coreqc_metrics)
             good_sample_quality, rejected_document = check_coreqc_metrics.check_coreqc_metrics()
             if rejected_document:
                 isolates_rejected_coreqc_collection = self._mongoinit.initialise_isolates_rejected_coreqc_collection()
@@ -514,7 +503,7 @@ class MainMongo:
         metadata.pop('name_pseudonymized', None)
         metadata.pop('species', None)
         if str(self._original_input_format) == 'fastq':
-            if not is_viral(self._species):
+            if not self._mongo_config_provider.is_viral(self._species):
                 tx_seq_fltr_meth, cd_seq_assy_meth, tx_seq_assy_meth_ver, ms_genome_cvge, cd_novo_assy, tx_ref_accn \
                     = self.____get_technical_metadata_bacterial_fasta(results)
             else:
@@ -616,7 +605,7 @@ class MainMongo:
         :return: results
         """
         hashed_ad_collection = self._mongoinit.initialise_hashing_collection()
-        for typing_scheme in self._mongo_config_data['schemes_sequence_typing']:
+        for typing_scheme in self._mongo_config_provider.sequence_typing_schemes:
             if typing_scheme in json_report:
                 for locus_index, allele_info in enumerate(json_report[typing_scheme]['loci']):
                     # check if allele designation is md5 hash (32 char combination of letters andor numbers)
@@ -791,7 +780,7 @@ class MainMongo:
                                                                                                    self._headers_collection)
         custom_clustering = MongoCustomClustering(clustering_input[0], clustering_input[1],
                                                   self._species, self._naive_clustering_distance_matrix_file,
-                                                  self._mongo_config_data)
+                                                  self._mongo_config_provider)
         logging.info(f"Running the clustering for the isolate {self._technical_id}")
         sp_thresholds = f"clustering_thresholds_{self._species}"
         clustering_config = load_config(CLUSTERING_CONFIG)
@@ -812,6 +801,7 @@ class MainMongo:
             return 'fastq_pe'
         elif input_type == 'ont':
             return 'fastq_se'
+        raise NotImplementedError()
 
     @staticmethod
     def ___reformat_mykrobe_results(json_report: JsonReportDict) -> None:
@@ -829,12 +819,14 @@ class MainMongo:
 
 
 if __name__ == '__main__':
+    args = parse_arguments()
+    mongo_config_provider = MongoConfigProvider()
 
-    # Parse config
-    mongo_config_data = get_mongodb_config_data()
-
-    # Parse arguments
-    args = parse_arguments(mongo_config_data['species'])
+    connection_string = mongo_config_provider.get_azure_connection_string(args.species)
+    if args.connection_string == 'CONNECTION_STRING_ALTERNATE':
+        connection_string = mongo_config_provider.alternate_connection_string
+    elif args.connection_string == 'CONNECTION_STRING_LOCAL':
+        connection_string = mongo_config_provider.get_local_connection_string(args.species)
 
     # run main
     MainMongo(args.technical_id,
@@ -849,7 +841,6 @@ if __name__ == '__main__':
               vcffilepath=(args.vcffilepath if args.vcffilepath else None),
               vcffilepath_unfiltered=(args.vcffilepath_unfiltered if args.vcffilepath_unfiltered else None),
               original_input_format=(args.original_input_format if args.original_input_format else None),
-              connection_string=(args.connection_string if args.connection_string else 'CONNECTION_STRING_AZURE'),
+              connection_string=connection_string,
               alternate_dtap=args.alternate_dtap,
-              dont_send_email=(True if args.dont_send_email else False),
-              mongo_config_data=mongo_config_data)
+              dont_send_email=(True if args.dont_send_email else False))
