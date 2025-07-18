@@ -27,6 +27,22 @@ class ParseClinLabJsonNeisseria(ParseClinLabJson):
         :return: None
         """
         if self._filetype == 'LAB':
-            pass
+            self.__choose_serogroup_pheno()
         elif self._filetype == 'CLIN':
-            pass
+            self._parse_repeat_fields('TX_TTL_PROB_NAM_REPEAT', 'CD_PROB_NAM', 'CD_PROB_NAM_codes', 'symptom')
+
+    def __choose_serogroup_pheno(self) -> None:
+        """
+        Picks the serogroup_pheno based on logic that Florian sent through mail:
+        serogroup_agglutination > serogroup_pcr
+        The information below was not discussed with Florian but implemented as such because it seems logical:
+        In the neisseria codes multiple culture-related fields are present; 'no growth', 'autoagglutinable', ..
+        In order to not save these as the final serogroup_pheno, a check is performed that 'meni' is present in the value.
+        Then again there is a value 'Neisseria meningitidis non-groupable', if the serogroup_agglutination reports this,
+        and the serogroup_pcr reports an actual serogroup, then the serogroup_agglutination will take precedency anyway.
+        :return: None
+        """
+        for serovar_type in ['serogroup_agglutination', 'serogroup_pcr']:
+            if self._data_translated.get(serovar_type) and 'meni' in self._data_translated[serovar_type]:
+                self._data_translated['serogroup_pheno'] = self._data_translated[serovar_type]
+                break

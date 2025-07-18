@@ -48,4 +48,8 @@
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="Antibiogram BK - Ethambutol [5 µg/ml]">ethambutol_5ug</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="Antibiogram BK - Pyrazinamid [100µg/ml]">pyrazinamid_100ug</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="hospitalisation">hospitalisation</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="under_treatment">under_treatment</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="tuberculosis_antecedents">tuberculosis_antecedents</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="tuberculosis_site">tuberculosis_site</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="tuberculosis_suspicion">tuberculosis_suspicion</field>
 </db>

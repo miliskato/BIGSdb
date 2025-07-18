@@ -5,6 +5,10 @@ pathogens:
   HDBP0335_LIST_LAB: listeria
   HDBP0333_INFL_CLIN: influenza
   HDBP0333_INFL_LAB: influenza
+  HDBP0337_???_CLIN: mycobacterium
+  HDBP0337_???_LAB: mycobacterium
+  HDBP0339_???_CLIN: neisseria
+  HDBP0339_???_LAB: neisseria
 
 schema:
   LAB:
@@ -69,7 +73,7 @@ schema:
       required: False
       translation: antibiotic
       code_list: CD_ANTBIO_SPECIF_codes
-      other: CD_ANTBIO_SPECIF_OTH
+      other: TX_ANTBIO_SPECIF_OTH
 #    CD_PROB_NAM:  # this is a list with 5 options, in mail discussions with Florian we decided that these should be 5 separate fields in bigsdb instead of the single clinical_info field because multiple options are possible and else it would be hard to query and do e.g. two field breakdown in bigsdb. Therefore this was implemented in a separate function
 #      required: True
 #      translation: clinical_info
@@ -171,9 +175,51 @@ schema:
       allowed:
         - mycobacterium
       translation: physician_name
+    CD_VACCN_MEN:
+      required: False
+      translation: meningococcal_vaccination
+      code_list: YNU_codes
+    CD_VACCN_MEN_PROD:
+      required: False
+      translation: meningococcal_vaccine
+      code_list: CD_VACCN_MEN_PROD_codes
+      other: TX_VACCN_MEN_PROD_OTH
+    NR_VACCN_MEN_Y:
+      required: False
+      translation: meningococcal_vaccination_year
+    CD_VACCN_STREPTO:
+      required: False
+      translation: streptococcal_vaccination
+      code_list: YNU_codes
+    CD_VACCN_STREPTO_PROD:
+      required: False
+      translation: streptococcal_vaccine
+      code_list: CD_VACCN_STREPTO_PROD_codes
+      other: TX_VACCN_STREPTO_PROD_OTH
+    NR_VACCN_STREPTO_Y:
+      required: False
+      translation: meningococcal_vaccination_year
+    CD_TBC_TREAT:
+      required: False
+      translation: under_treatment
+      code_list: YNU_codes
+    CD_TBC_PREV:
+      required: False
+      translation: tuberculosis_antecedents
+      code_list: YNU_codes
+    CD_TBC_SITE:
+      required: False
+      translation: tuberculosis_site
+      code_list: CD_TBC_SITE_codes
+      other: TX_TBC_SITE_OTH
+    CD_TBC_SUSP:
+      required: False
+      translation: tuberculosis_suspicion
+      code_list: YNU_codes
 code_lists:
   YNU_codes:
     373066001: 'Yes'
+    772170009: 'Yes' # from MTB CLIN TB_SUSPICION
     373067005: 'No'
     261665006: 'Unknown'
   CD_PAT_SEX_codes:
@@ -217,11 +263,14 @@ code_lists:
     EL0001: Isolated case
     416086007: Foodborne transmission
     385432009: Not applicable
-    74964007: Other
+    74964007: 'Other'
     261665006: 'Unknown'
-    1: Exposure to a common source
+    1: Exposure to a common source/grouped case
     230102009: Contaminated food intake
     102430008: Exposure to polluted drinking water
+    2: Imported case
+    3: Special resistance
+    4: Treatment
   CD_PROB_NAM_codes:
     84387000: Asymptomatic
     25374005: Gastroenteritis
@@ -232,6 +281,8 @@ code_lists:
     PN0001: Meningitis and meningoencephalitis
     443138004: Granulomatosis
     74964007: Other
+    7180009: Meningitis
+    10001005: Bacterial septicemia
   CD_TPE_codes:
     255409004: Pregnant woman
     133933007: Newborn
@@ -246,7 +297,6 @@ code_lists:
     170969009: Prognosis poor
     419099009: Died
     261665006: 'Unknown'
-  CD_OUTC_codes
   CD_TRANSM_ZOONSS_codes:
     416086007: Food-borne transmission
     226034001: Injecting drug users
@@ -304,6 +354,36 @@ code_lists:
   MEDICATION_FLU_codes:
     MD0020: Baloxavir
     MD0021: Oseltamivir
+  CD_VACCN_MEN_PROD_codes:
+    1: Menveo
+    2: Nimenrix
+    3: NeisVac-C
+    4: Bexsero
+    5: Trumenba
+    74964007: 'Other'
+  CD_VACCN_STREPTO_PROD_codes:
+    1052330009: PCV10-vaccine
+    51451000087105: PCV13-vaccine
+    1252708008: PCV15-vaccine
+    1252709000: PCV20-vaccine
+    1119220001: PCV23-vaccine
+    74964007: 'Other'
+  CD_TBC_SITE_codes:
+    39607008: Lung
+    59441001: Lymph node
+    3120008: Pleura
+    272673000: Bone structure
+    39352004: Joint
+    21483005: Central nervous system
+    64033007: Kidney
+    89837001: Bladder
+    245500007: Structure of anatomical reproductive system
+    113276009: Intestines
+    10200004: Liver
+    78961009: Spleen
+    15425007: Peritoneum
+    87612001: Blood
+    74964007: Other
   TX_TTL_LAB_TEST_combinations:  # CD_LAB_TEST_CODE, value_field, code_list, translation  # for the quantitative ones, they have been encoded in bigsdb as floats -> no need for units
     - CD_LAB_TEST_CODE: 'TC0036'
       value_field: 'CD_LAB_TEST_RSLT_QL'
@@ -525,11 +605,23 @@ code_lists:
     - CD_LAB_TEST_CODE: '25229-6'
       value_field: 'MS_LAB_TEST_RSLT_QN_VAL'
       translation: 'pyrazinamid_100ug'
+    - CD_LAB_TEST_CODE: 'TC0042'
+      value_field: 'CD_LAB_TEST_RSLT_QL'
+      code_list: 'neisseria_codes'
+      translation: 'identification'
+    - CD_LAB_TEST_CODE: 'TC0041'
+      value_field: 'CD_LAB_TEST_RSLT_QL'
+      code_list: 'neisseria_codes'
+      translation: 'serogroup_agglutination'
+    - CD_LAB_TEST_CODE: 'TC0040'
+      value_field: 'CD_LAB_TEST_RSLT_QL'
+      code_list: 'neisseria_codes'
+      translation: 'serogroup_pcr'
   labtest_codes:
     1306577009: Susceptible
     1306581009: Intermediate
     1306583007: Resistant
-    QL0001: Unknown
+    QL0001: 'Unknown'
     QL0002: Not interpretable
   labtest_codes_influenza:
     83185005: Sensitive
@@ -541,6 +633,31 @@ code_lists:
     260373001: Detected
     260415000: Not detected
     373068000: Undetermined
+  neisseria_codes:
+    264868006: No growth
+    10828004: Positive
+    260385009: Negative
+    17872004: Neisseria meningitidis
+    1: No Neisseria meningitidis
+    9861002: Streptococcus pneumoniae
+    2: No Streptococcus pneumoniae
+    103479006: Neisseria meningitidis serogroup A
+    103480009: Neisseria meningitidis serogroup B
+    103481008: Neisseria meningitidis serogroup C
+    125041003: Neisseria meningitidis serogroup X
+    103482001: Neisseria meningitidis serogroup Y
+    125042005: Neisseria meningitidis serogroup Z
+    103483006: Neisseria meningitidis serogroup W
+    698162001: Neisseria meningitidis serogroup 29E
+    3: Neisseria meningitidis serogroup H
+    4: Neisseria meningitidis serogroup I
+    5: Neisseria meningitidis serogroup K
+    6: Neisseria meningitidis serogroup L
+    7: Neisseria meningitidis serogroup O
+    8: Neisseria meningitidis serogroup Z/29E
+    414810006: Neisseria meningitidis non-groupable
+    QL0028: Autoagglutinable
+    261665006: 'Unknown'
   mycobacterium_codes:
     261665006: 'Unknown'
     373068000: 'Undetermined'

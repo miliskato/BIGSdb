@@ -29,4 +29,16 @@ class ParseClinLabJsonMycobacterium(ParseClinLabJson):
         if self._filetype == 'LAB':
             pass
         elif self._filetype == 'CLIN':
-            pass
+            self.__get_physician_name()
+
+    def __get_physician_name(self) -> None:
+        """
+        Gets the physician name if it is present in the DCD based on logic discussed with Florian.
+        :return: None
+        """
+        last_name = self._get_value_by_capitalization_agnostic_key(self._data_unprocessed, 'TX_HP_LAST_NAME')
+        if last_name:
+            self._data_translated['physician_name'] = last_name
+            first_name = self._get_value_by_capitalization_agnostic_key(self._data_unprocessed, 'TX_HP_FIRST_NAM')
+            if first_name:
+                self._data_translated['physician_name'] += f' {first_name}'
