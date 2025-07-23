@@ -5,10 +5,10 @@ pathogens:
   HDBP0335_LIST_LAB: listeria
   HDBP0333_INFL_CLIN: influenza
   HDBP0333_INFL_LAB: influenza
-  HDBP0337_???_CLIN: mycobacterium
-  HDBP0337_???_LAB: mycobacterium
-  HDBP0339_???_CLIN: neisseria
-  HDBP0339_???_LAB: neisseria
+  HDBP0337_???_CLIN: mycobacterium # todo
+  HDBP0337_???_LAB: mycobacterium # todo
+  HDBP0339_???_CLIN: neisseria # todo
+  HDBP0339_???_LAB: neisseria # todo
 
 schema:
   LAB:

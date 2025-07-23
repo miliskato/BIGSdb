@@ -78,6 +78,7 @@
 <field type="text" required="no" length="20" maindisplay="no" group ="nominative metadata" comments="indication for sequencing">indication_for_sequencing</field>
 <field type="text" required="no" length="20" maindisplay="no" group ="nominative metadata" comments="keep for clustering">keep_for_clustering</field>
 <field type="text" required="no" length="150" maindisplay="no" group ="nominative metadata" comments="comment">comment</field>
+<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="country">country</field>
 <field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="isolate_label">isolate_label</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="symptom_unknown">symptom_unknown</field>
 <field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="symptom_other">symptom_other</field>
