@@ -223,8 +223,8 @@ class HtmlMobSuiteTableBuilder(HtmlTableBuilder):
         self.add_row([id, num_contigs, size, gc_content, predicted_mobility, rep_types, relaxase_types])
 
 
-class HtmlAntiviralMutationsTableBuilder(HtmlTableBuilder):
-    """subclass used to create the html table following the format for Antiviral mutations"""
+class HtmlAntiviralAssociationsTableBuilder(HtmlTableBuilder):
+    """subclass used to create the html table following the format for Antiviral associations"""
     def __init__(self, report_url: str) -> None:
         """
         :param report_url: url to call the api to get the html report
@@ -233,7 +233,7 @@ class HtmlAntiviralMutationsTableBuilder(HtmlTableBuilder):
         super().__init__(headers=['Category', 'Key', 'Antiviral', 'Resistance'], width_px=700)
         self.add_report_row(report_url)
 
-    def add_mutation(self, category: str, key: str, antiviral: str, resistance: str) -> None:
+    def add_association(self, category: str, key: str, antiviral: str, resistance: str) -> None:
         """
         :param category: category of the mutation
         :param key: key mutation
@@ -242,3 +242,24 @@ class HtmlAntiviralMutationsTableBuilder(HtmlTableBuilder):
         :return: None
         """
         self.add_row([category, key, antiviral, resistance])
+
+
+class HtmlAntiviralMutationsTableBuilder(HtmlTableBuilder):
+    """subclass used to create the html table following the format for Antiviral mutations"""
+    def __init__(self, report_url: str) -> None:
+        """
+        :param report_url: url to call the api to get the html report
+        :return: None
+        """
+        super().__init__(headers=['Subtype', 'Segment', 'Category', 'Mutation'], width_px=700)
+        self.add_report_row(report_url)
+
+    def add_mutation(self, subtype: str, segment: str, category: str, mutation: str) -> None:
+        """
+        :param subtype: Influenza subtype
+        :param segment: viral segment on which the mutation is found
+        :param category: type of mutation (substitution, insertion, deletion)
+        :param mutation: the name of the mutation
+        :return: None
+        """
+        self.add_row([subtype, segment, category, mutation])

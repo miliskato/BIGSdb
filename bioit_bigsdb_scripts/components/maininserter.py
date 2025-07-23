@@ -7,7 +7,7 @@ from typing import Any, Dict
 from bioit_mongodb_scripts.model.json_model import JsonReportDict
 from .json_superclass import JsonSuperClass
 from .psql import TblEavInt, TblEavText, TblEavTextHidden, TblHistory, TblIsolates
-from ..utils.html_tbl_templates import HtmlAntiviralMutationsTableBuilder
+from ..utils.html_tbl_templates import HtmlAntiviralAssociationsTableBuilder, HtmlAntiviralMutationsTableBuilder, HtmlReportBuilder
 from ..utils.url_helper import UrlHelper
 
 
@@ -153,11 +153,20 @@ class MainInserter(JsonSuperClass):
                 self._isolates_eavt_psql_tbl.insert_eav_isolate_viral_species((self._isolatename, 'nextclade_clade', self._json_report_dict['nextclade'].get('nextclade_clade')))
             if 'antivirals' in self._json_report_dict:
                 if isinstance(self._json_report_dict['antivirals'].get('antivirals_mutations'), list):
+                    antiviral_mutations = self._json_report_dict['antivirals'].get('antivirals_mutations')
                     antiviral_associations = self._json_report_dict['antivirals'].get('antivirals_associations')
-                    antiviral_assay_table_builder = HtmlAntiviralMutationsTableBuilder(context.report_url)
+                    antiviral_mutations_table_builder = HtmlAntiviralMutationsTableBuilder(context.report_url)
+                    antiviral_associations_table_builder = HtmlAntiviralAssociationsTableBuilder(context.report_url)
+                    for item in antiviral_mutations:
+                        antiviral_mutations_table_builder.add_mutation(item['subtype'], item['segment'], item['type'], item['mutation'])
                     for item in antiviral_associations:
-                        antiviral_assay_table_builder.add_mutation(item['key'], item['antiviral'], item['resistance'], item['category'])
-                    html = antiviral_assay_table_builder.build()
+                        antiviral_associations_table_builder.add_association(item['category'], item['key'], item['antiviral'], item['resistance'])
+                    report_builder = HtmlReportBuilder()
+                    report_builder.add_title("Detected mutations")
+                    report_builder.add_table(antiviral_mutations_table_builder)
+                    report_builder.add_title("Subsequent associations")
+                    report_builder.add_table(antiviral_associations_table_builder)
+                    html = report_builder.build()
                     self._isolates_eavt_psql_tbl.insert_eav_isolate_viral_species((self._isolatename, 'antivirals_associations', html))
         elif self._species.startswith('enterococcus'):
             if 'lrefinder' in self._json_report_dict:
