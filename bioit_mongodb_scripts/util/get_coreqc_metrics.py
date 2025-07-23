@@ -129,12 +129,10 @@ class GetCoreQCMetrics:
             if iterations:
                 # pop iterate from metric_info to clean dictionary a bit
                 metric_info.pop('iterate')
-                # store field & parameter_name in order to keep their original values for all iterations
-                field = metric_info['field']
-                parameter_name = metric_info['parameter_name']
                 for iteration in iterations:
-                    metric_info['field'] = field.replace('iterate', iteration)
-                    metric_info['parameter_name'] = parameter_name.replace('iterate', iteration)
+                    metric_info_dc = deepcopy(metric_info)
+                    metric_info_dc['field'] = metric_info['field'].replace('iterate', iteration)
+                    metric_info_dc['parameter_name'] = metric_info['parameter_name'].replace('iterate', iteration)
                     # add separated iteration to sample_coreqc_metrics dictionary
-                    sample_coreqc_metrics[f"{key}_{iteration}"] = metric_info
+                    sample_coreqc_metrics[f"{key}_{iteration}"] = metric_info_dc
                 sample_coreqc_metrics.pop(key)

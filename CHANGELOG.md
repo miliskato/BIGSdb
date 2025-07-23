@@ -27,6 +27,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed:
 - some batch of unused files + stec related functions
 
+## [4.1.1]
+### Added
+- "manual_validation_of_good_qc.py" to validate the good qc isolates submitted into BIGSdb (historical collection)
+
+### Fixed
+- bug in coreqc for influenza: duplication due to not deepcopying
+
 ## [4.1.0]
 ### Added:
 - nominative fields for MTB
