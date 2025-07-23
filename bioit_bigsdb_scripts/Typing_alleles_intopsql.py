@@ -55,9 +55,11 @@ class TypingAllelesIntoPsql:
         Main function to insert all alleles for the given species
         :return: None
         """
-        for species in set(self._species_list):
+        for species in set(self._species_list): #TODO ask if this loop is still relevant for some applications
             with TblAlleleDesignations(species) as isolates_ad_psql_tbl, TblSequences(species) as seqdef_sequences_psql_tbl:
                 schemedict: Dict[str, Dict[str, str]] = self._bigsdb_config_data['species'][species]['typing_schemes']
+                if schemedict is None:
+                    continue
                 for scheme in schemedict:
                     if schemedict[scheme].get('dirdb'):
                         dirs: List[Path] = [x for x in Path(schemedict[scheme]['dirdb']).iterdir() if x.is_dir() and not x.name.startswith('.')]

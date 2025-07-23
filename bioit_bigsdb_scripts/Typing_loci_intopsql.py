@@ -56,13 +56,15 @@ class TypingLociIntoPsql:
         Main function to insert all loci for the given species
         :return: None
         """
-        for species in set(self._species_list):
+        for species in set(self._species_list): #TODO ask if this loop is still relevant for some applications
             with TblLoci(species, 'isolates') as isolates_loci_psql_tbl, \
                     TblLoci(species, 'seqdef') as seqdef_loci_psql_tbl, \
                     TblSchemeMembers(species, 'isolates') as isolates_schememembers_psql_tbl, \
                     TblSchemeMembers(species, 'seqdef') as seqdef_schememembers_psql_tbl, \
                     TblClientDbaseLoci(species) as seqdef_clientdbaseloci_psql_tbl:
                 schemedict: Dict[str, Dict[str, str]] = self._bigsdb_config_data['species'][species]['typing_schemes']
+                if schemedict is None:
+                    continue
                 for scheme in schemedict:
                     if schemedict[scheme].get('dirdb') and schemedict[scheme]['dirdb'] != '':
                         bigsdb_scheme_name = schemedict[scheme]['schemename_bigsdb']
