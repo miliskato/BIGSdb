@@ -567,7 +567,7 @@ class MainMongo:
         """
         returns the list of reference ids from reference selection assay (viral pipeline)
         :param ref_selection_dict: reference selection dictionary from MongoDB results
-        :return: list of ref id defined as best match by the reference selection assay
+        :return: list of ref ids defined as best match by the reference selection assay
         """
         ref_ids_list = [x['ref_id'] for x in ref_selection_dict.values() if isinstance(x, dict)]
         return ref_ids_list
