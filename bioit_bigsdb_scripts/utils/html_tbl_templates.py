@@ -263,3 +263,25 @@ class HtmlAntiviralMutationsTableBuilder(HtmlTableBuilder):
         :return: None
         """
         self.add_row([subtype, segment, category, mutation])
+
+
+class HtmlRefSelectionTableBuilder(HtmlTableBuilder):
+    """subclass used to create the html table following the format for Reference selection"""
+    def __init__(self, report_url: str) -> None:
+        """
+        :param report_url: url to call the api to get the html report
+        :return: None
+        """
+        super().__init__(headers=['Segment', 'Ref. genome', 'Esimated cov.', 'Matching hashes', 'strain', 'type'])
+        self.add_report_row(report_url)
+
+    def add_segment(self, segment: str, ref_genome: str, coverage: str, matching: str, strain: str, influenza_type: str) -> None:
+        """
+        :param segment: viral segment
+        :param ref_genome: reference genome found as best match
+        :param coverage: coverage
+        :param matching: matching hashes
+        :param strain: strain deducted from the DB
+        :param influenza_type: influenza type A or B
+        """
+        self.add_row([segment, ref_genome, coverage, matching, strain, influenza_type])

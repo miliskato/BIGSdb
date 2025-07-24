@@ -4,12 +4,10 @@ import logging
 import socket
 from typing import Any, Dict
 
-from Bio.SearchIO._model import hit
-
 from bioit_mongodb_scripts.model.json_model import JsonReportDict
 from .json_superclass import JsonSuperClass
 from .psql import TblEavBoolean, TblEavFields, TblEavInt, TblEavText, TblEavTextHidden, TblHistory, TblIsolates
-from ..utils.html_tbl_templates import HtmlAntiviralAssociationsTableBuilder, HtmlAntiviralMutationsTableBuilder, HtmlReportBuilder
+from ..utils.html_tbl_templates import HtmlAntiviralAssociationsTableBuilder, HtmlAntiviralMutationsTableBuilder, HtmlRefSelectionTableBuilder, HtmlReportBuilder
 from ..utils.url_helper import UrlHelper
 
 
@@ -27,6 +25,7 @@ class MainInserter(JsonSuperClass):
     """
     Class containing defintions used to insert metadata results for both json and tsv input
     """
+
     def __init__(self, isolatename: str, species: str, json_report_dict: JsonReportDict, config_data: Dict[str, Any],
                  report_access: str, vcf_path: str, viral_species: bool) -> None:
         """
@@ -95,7 +94,7 @@ class MainInserter(JsonSuperClass):
 
             report_link = f'<p><a href="{context.report_url}" target="_blank"> html report</a></p>'
             self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'html', report_link))
-            if is_viral(self._species):
+            if self._viral_species:
                 assemblylink = f'<p><a href="/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_{self._species}_isolates&page=plugin&name=Contigs&format=text&isolate_id={context.isolate_id}&match=1&pc_untagged=0&min_length=&header=1l" target="_blank">consensus sequence</a></p>'
                 self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'consensus_sequence', assemblylink))
             else:
@@ -161,11 +160,9 @@ class MainInserter(JsonSuperClass):
                     antiviral_associations_table_builder = HtmlAntiviralAssociationsTableBuilder(context.report_url)
                     for item in antiviral_mutations:
                         antiviral_mutations_table_builder.add_mutation(item['subtype'], item['segment'], item['type'], item['mutation'])
-                    with TblEavFields as isolates_eavf_psql_tbl, TblEavBoolean as isolates_eavbool_psql_tbl:
+                    with TblEavBoolean as isolates_eavbool_psql_tbl:
                         for item in antiviral_associations:
                             antiviral_associations_table_builder.add_association(item['category'], item['key'], item['antiviral'], item['resistance'])
-                            if not (isolates_eavf_psql_tbl.exists_in_eav_field((item['antiviral'], 'antiviral_drug'))):
-                                isolates_eavf_psql_tbl.insert_boolean_field((item['resistance'], 'resistance_level'))
                             isolates_eavbool_psql_tbl.insert_eav_isolate((self._isolatename, item['antiviral'], 't'))
                             isolates_eavbool_psql_tbl.insert_eav_isolate((self._isolatename, item['resistance'], 't'))
                     report_builder = HtmlReportBuilder()
@@ -175,6 +172,14 @@ class MainInserter(JsonSuperClass):
                     report_builder.add_table(antiviral_associations_table_builder)
                     html = report_builder.build()
                     self._isolates_eavt_psql_tbl.insert_eav_isolate_viral_species((self._isolatename, 'Antiviral_resistances', html))
+            if 'ref_selection' in self._json_report_dict:
+                ref_selection_table_builder = HtmlRefSelectionTableBuilder(context.report_url)
+                for key, value in self._json_report_dict['ref_selection'].items():
+                    if isinstance(value, str):
+                        continue
+                    segment = key.split('-')[-1]
+                    metadata = value['metadata']
+                    ref_selection_table_builder.add_segment(segment, value['ref_id_fmt'], value['median_mult'], value['hashes'], metadata['Strain'], metadata['Type'])
 
         elif self._species.startswith('enterococcus'):
             if 'lrefinder' in self._json_report_dict:
