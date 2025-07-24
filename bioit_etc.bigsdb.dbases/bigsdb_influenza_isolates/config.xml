@@ -84,7 +84,7 @@
 <field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="EC50 ZA value">EC50_ZA</field>
 <field type="text" required="no" length="60" maindisplay="no" group ="nominative metadata" comments="">GISAID_NGS</field>
 <field type="text" required="no" length="60" maindisplay="no" group ="nominative metadata" comments="case Type">case_type</field>
-<field type="text" required="no" length="100" maindisplay="no" group ="nominative metadata" comments="official name">official_name</field>
+<field type="text" required="no" length="100" maindisplay="no" group ="nominative metadata" comments="name from GISAID submission">official_name</field>
 <field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="outcome">outcome</field>
 <field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="country">country</field>
 </db>
