@@ -67,7 +67,7 @@ def insert_into_mongodb(mapping_table_dict: Dict[str, str], start_response: Call
     :return: a success or failure response
     """
     try:
-        mongo_config_provider = MongoConfigProvider()
+        mongo_config_provider = MongoConfigProvider(alternate_dtap=mapping_table_dict['dtap'])
         species = mapping_table_dict['species']
         mongoinit = MongoInitialisation(species, mongo_config_provider.get_local_connection_string(species), mongo_config_provider.dtap)
         mapping_table_collection = mongoinit.initialise_mapping_table_collection()
