@@ -93,13 +93,13 @@ class MainInserter(JsonSuperClass):
                 TblIsolates(self._species) as self.isolates_psql_tbl, TblEavInt(self._species) as self._isolates_eavi_psql_tbl:
 
             report_link = f'<p><a href="{context.report_url}" target="_blank"> html report</a></p>'
-            self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'html', report_link))
+            self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'html', report_link))
             if self._viral_species:
                 assemblylink = f'<p><a href="/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_{self._species}_isolates&page=plugin&name=Contigs&format=text&isolate_id={context.isolate_id}&match=1&pc_untagged=0&min_length=&header=1l" target="_blank">consensus sequence</a></p>'
-                self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'consensus_sequence', assemblylink))
+                self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'consensus_sequence', assemblylink))
             else:
                 assemblylink = f'<p><a href="/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_{self._species}_isolates&page=plugin&name=Contigs&format=text&isolate_id={context.isolate_id}&match=1&pc_untagged=0&min_length=&header=1l" target="_blank">assembly</a></p>'
-                self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'assembly', assemblylink))
+                self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'assembly', assemblylink))
             self.__insert_species_specific_metadata(context)
             if 'changed_version' in self._json_report_dict:
                 with TblEavTextHidden(self._species) as isolates_eavth_psql_tbl:
@@ -115,29 +115,28 @@ class MainInserter(JsonSuperClass):
         Insert species specific metadata
         :return: None
         """
-        # TODO use insert_eav_id and use the context.isolate_id to avoid unnecessary postgres query
         if self._species == 'mycobacterium':
             # tsv input (only this way in tsv output)
             if '51SNP-gyrB_group' in self._json_report_dict:
-                self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'gyrB_group', self._json_report_dict['51SNP-gyrB_group']))
-                self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'Genetic_group', self._json_report_dict['51SNP-genetic_group']))
-                self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'SCG', self._json_report_dict['51SNP-scg']))
+                self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'gyrB_group', self._json_report_dict['51SNP-gyrB_group']))
+                self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'Genetic_group', self._json_report_dict['51SNP-genetic_group']))
+                self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'SCG', self._json_report_dict['51SNP-scg']))
             # json input (only this way in json output)
             elif '51_snp' in self._json_report_dict:
-                self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'gyrB_group', self._json_report_dict['51_snp']['51SNP-gyrB_group']))
-                self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'Genetic_group', self._json_report_dict['51_snp']['51SNP-genetic_group']))
-                self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'SCG', self._json_report_dict['51_snp']['51SNP-scg']))
+                self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'gyrB_group', self._json_report_dict['51_snp']['51SNP-gyrB_group']))
+                self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'Genetic_group', self._json_report_dict['51_snp']['51SNP-genetic_group']))
+                self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'SCG', self._json_report_dict['51_snp']['51SNP-scg']))
             # tsv input
             if 'snpit_species' in self._json_report_dict:
-                self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'snpit_species', self._json_report_dict['snpit_species']))
-                self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'snpit_lineage', self._json_report_dict['snpit_lineage']))
-                self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'snpit_sublineage', self._json_report_dict['snpit_sublineage']))
+                self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'snpit_species', self._json_report_dict['snpit_species']))
+                self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'snpit_lineage', self._json_report_dict['snpit_lineage']))
+                self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'snpit_sublineage', self._json_report_dict['snpit_sublineage']))
             # json input
             elif 'snpit' in self._json_report_dict:
-                self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'snpit_species', self._json_report_dict['snpit']['snpit_species']))
-                self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'snpit_lineage', self._json_report_dict['snpit']['snpit_lineage']))
-                self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'snpit_sublineage', self._json_report_dict['snpit']['snpit_sublineage']))
-                self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'snpit_percent_matched', self._json_report_dict['snpit']['snpit_percent_matched']))
+                self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'snpit_species', self._json_report_dict['snpit']['snpit_species']))
+                self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'snpit_lineage', self._json_report_dict['snpit']['snpit_lineage']))
+                self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'snpit_sublineage', self._json_report_dict['snpit']['snpit_sublineage']))
+                self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'snpit_percent_matched', self._json_report_dict['snpit']['snpit_percent_matched']))
             if 'snp_lineage' in self._json_report_dict:
                 lineage_dict = self._json_report_dict['snp_lineage']['detected_lineage_by_level']
                 lineage_keys = list({e for e in lineage_dict if lineage_dict[e]})
@@ -146,13 +145,12 @@ class MainInserter(JsonSuperClass):
         elif self._species == 'neisseria':
             # json input
             if 'serogroup' in self._json_report_dict:
-                self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'Serogroup_legacy', self._json_report_dict['serogroup']['serogroup_legacy']))
-                self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'Serogroup_capsule', self._json_report_dict['serogroup']['serogroup_capsule']))
+                self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'Serogroup_legacy', self._json_report_dict['serogroup']['serogroup_legacy']))
+                self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'Serogroup_capsule', self._json_report_dict['serogroup']['serogroup_capsule']))
         elif self._species == 'influenza':
             if 'nextclade' in self._json_report_dict:
-                self._isolates_eavt_psql_tbl.insert_eav_isolate_viral_species(
-                    (self._isolatename, 'influenza_subtype', self._json_report_dict['nextclade'].get('nextclade_detected_subtype')))
-                self._isolates_eavt_psql_tbl.insert_eav_isolate_viral_species((self._isolatename, 'nextclade_clade', self._json_report_dict['nextclade'].get('nextclade_clade')))
+                self._isolates_eavt_psql_tbl.insert_eav_id_viral_species((context.isolate_id, 'influenza_subtype', self._json_report_dict['nextclade'].get('nextclade_detected_subtype')))
+                self._isolates_eavt_psql_tbl.insert_eav_id_viral_species((context.isolate_id, 'nextclade_clade', self._json_report_dict['nextclade'].get('nextclade_clade')))
             if 'antivirals' in self._json_report_dict:
                 antiviral_mutations = self._json_report_dict['antivirals'].get('antivirals_mutations')
                 if antiviral_mutations:
@@ -167,14 +165,14 @@ class MainInserter(JsonSuperClass):
                             antiviral_key_search = f'{item['antiviral']}_{item['resistance']}'
                             if not isolates_eavf_psql_tbl.exists_in_eav_field((antiviral_key_search, 'bool')):
                                 isolates_eavf_psql_tbl.insert_boolean_field((antiviral_key_search, 'antiviral_for_query'))
-                            isolates_eavb_psql_tbl.insert_eav_isolate((self._isolatename, antiviral_key_search, 't'))
+                            isolates_eavb_psql_tbl.insert_eav_id((context.isolate_id, antiviral_key_search, 't'))
                     report_builder = HtmlReportBuilder()
                     report_builder.add_title("Detected mutations")
                     report_builder.add_table(antiviral_mutations_table_builder)
                     report_builder.add_title("Subsequent associations")
                     report_builder.add_table(antiviral_associations_table_builder)
                     html = report_builder.build()
-                    self._isolates_eavt_psql_tbl.insert_eav_isolate_viral_species((self._isolatename, 'Antiviral_resistances', html))
+                    self._isolates_eavt_psql_tbl.insert_eav_id_viral_species((context.isolate_id, 'Antiviral_resistances', html))
             if 'ref_selection' in self._json_report_dict:
                 ref_selection_table_builder = HtmlRefSelectionTableBuilder(context.report_url)
                 for key, value in self._json_report_dict['ref_selection'].items():
@@ -184,10 +182,10 @@ class MainInserter(JsonSuperClass):
                     metadata = value['metadata']
                     ref_selection_table_builder.add_segment(segment, value['ref_id_fmt'], value['median_mult'], value['hashes'], metadata['Strain'], metadata['Type'])
                 html = ref_selection_table_builder.build()
-                self._isolates_eavt_psql_tbl.insert_eav_isolate_viral_species((self._isolatename, 'reference_selection', html))
+                self._isolates_eavt_psql_tbl.insert_eav_id_viral_species((context.isolate_id, 'reference_selection', html))
 
         elif self._species.startswith('enterococcus'):
             if 'lrefinder' in self._json_report_dict:
-                self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'LRE-Finder_species', self._json_report_dict['lrefinder'].get('lrefinder_species')))
+                self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'LRE-Finder_species', self._json_report_dict['lrefinder'].get('lrefinder_species')))
             if 'bacmet' in self._json_report_dict and self._json_report_dict['bacmet']['bacmet_genes'] != '':
-                self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'BacMet_genes', self._json_report_dict['bacmet']['bacmet_genes']))
+                self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'BacMet_genes', self._json_report_dict['bacmet']['bacmet_genes']))
