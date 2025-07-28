@@ -23,7 +23,7 @@ class MainInserterContext:
 
 class MainInserter(JsonSuperClass):
     """
-    Class containing defintions used to insert metadata results for both json and tsv input
+    Class containing definitions used to insert metadata results for both json and tsv input
     """
 
     def __init__(self, isolatename: str, species: str, json_report_dict: JsonReportDict, config_data: Dict[str, Any],
@@ -115,6 +115,7 @@ class MainInserter(JsonSuperClass):
         Insert species specific metadata
         :return: None
         """
+        # TODO use insert_eav_id and use the context.isolate_id to avoid unnecessary postgres query
         if self._species == 'mycobacterium':
             # tsv input (only this way in tsv output)
             if '51SNP-gyrB_group' in self._json_report_dict:
@@ -153,18 +154,20 @@ class MainInserter(JsonSuperClass):
                     (self._isolatename, 'influenza_subtype', self._json_report_dict['nextclade'].get('nextclade_detected_subtype')))
                 self._isolates_eavt_psql_tbl.insert_eav_isolate_viral_species((self._isolatename, 'nextclade_clade', self._json_report_dict['nextclade'].get('nextclade_clade')))
             if 'antivirals' in self._json_report_dict:
-                if isinstance(self._json_report_dict['antivirals'].get('antivirals_mutations'), list):
-                    antiviral_mutations = self._json_report_dict['antivirals'].get('antivirals_mutations')
+                antiviral_mutations = self._json_report_dict['antivirals'].get('antivirals_mutations')
+                if antiviral_mutations:
                     antiviral_associations = self._json_report_dict['antivirals'].get('antivirals_associations')
                     antiviral_mutations_table_builder = HtmlAntiviralMutationsTableBuilder(context.report_url)
                     antiviral_associations_table_builder = HtmlAntiviralAssociationsTableBuilder(context.report_url)
                     for item in antiviral_mutations:
                         antiviral_mutations_table_builder.add_mutation(item['subtype'], item['segment'], item['type'], item['mutation'])
-                    with TblEavBoolean as isolates_eavbool_psql_tbl:
+                    with TblEavFields(self._species) as isolates_eavf_psql_tbl, TblEavBoolean(self._species) as isolates_eavb_psql_tbl:
                         for item in antiviral_associations:
                             antiviral_associations_table_builder.add_association(item['category'], item['key'], item['antiviral'], item['resistance'])
-                            isolates_eavbool_psql_tbl.insert_eav_isolate((self._isolatename, item['antiviral'], 't'))
-                            isolates_eavbool_psql_tbl.insert_eav_isolate((self._isolatename, item['resistance'], 't'))
+                            antiviral_key_search = f'{item['antiviral']}_{item['resistance']}'
+                            if not isolates_eavf_psql_tbl.exists_in_eav_field((antiviral_key_search, 'bool')):
+                                isolates_eavf_psql_tbl.insert_boolean_field((antiviral_key_search, 'antiviral_for_query'))
+                            isolates_eavb_psql_tbl.insert_eav_isolate((self._isolatename, antiviral_key_search, 't'))
                     report_builder = HtmlReportBuilder()
                     report_builder.add_title("Detected mutations")
                     report_builder.add_table(antiviral_mutations_table_builder)
@@ -180,6 +183,8 @@ class MainInserter(JsonSuperClass):
                     segment = key.split('-')[-1]
                     metadata = value['metadata']
                     ref_selection_table_builder.add_segment(segment, value['ref_id_fmt'], value['median_mult'], value['hashes'], metadata['Strain'], metadata['Type'])
+                html = ref_selection_table_builder.build()
+                self._isolates_eavt_psql_tbl.insert_eav_isolate_viral_species((self._isolatename, 'reference_selection', html))
 
         elif self._species.startswith('enterococcus'):
             if 'lrefinder' in self._json_report_dict:

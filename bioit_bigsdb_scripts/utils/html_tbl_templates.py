@@ -272,7 +272,7 @@ class HtmlRefSelectionTableBuilder(HtmlTableBuilder):
         :param report_url: url to call the api to get the html report
         :return: None
         """
-        super().__init__(headers=['Segment', 'Ref. genome', 'Esimated cov.', 'Matching hashes', 'strain', 'type'])
+        super().__init__(headers=['Segment', 'Ref. genome', 'Esimated cov.', 'Matching hashes', 'strain', 'type'], width_px=800)
         self.add_report_row(report_url)
 
     def add_segment(self, segment: str, ref_genome: str, coverage: str, matching: str, strain: str, influenza_type: str) -> None:
