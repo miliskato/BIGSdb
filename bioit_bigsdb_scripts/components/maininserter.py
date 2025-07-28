@@ -116,23 +116,13 @@ class MainInserter(JsonSuperClass):
         :return: None
         """
         if self._species == 'mycobacterium':
-            # tsv input (only this way in tsv output)
-            if '51SNP-gyrB_group' in self._json_report_dict:
-                self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'gyrB_group', self._json_report_dict['51SNP-gyrB_group']))
-                self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'Genetic_group', self._json_report_dict['51SNP-genetic_group']))
-                self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'SCG', self._json_report_dict['51SNP-scg']))
             # json input (only this way in json output)
-            elif '51_snp' in self._json_report_dict:
+            if '51_snp' in self._json_report_dict:
                 self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'gyrB_group', self._json_report_dict['51_snp']['51SNP-gyrB_group']))
                 self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'Genetic_group', self._json_report_dict['51_snp']['51SNP-genetic_group']))
                 self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'SCG', self._json_report_dict['51_snp']['51SNP-scg']))
-            # tsv input
-            if 'snpit_species' in self._json_report_dict:
-                self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'snpit_species', self._json_report_dict['snpit_species']))
-                self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'snpit_lineage', self._json_report_dict['snpit_lineage']))
-                self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'snpit_sublineage', self._json_report_dict['snpit_sublineage']))
             # json input
-            elif 'snpit' in self._json_report_dict:
+            if 'snpit' in self._json_report_dict:
                 self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'snpit_species', self._json_report_dict['snpit']['snpit_species']))
                 self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'snpit_lineage', self._json_report_dict['snpit']['snpit_lineage']))
                 self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'snpit_sublineage', self._json_report_dict['snpit']['snpit_sublineage']))
