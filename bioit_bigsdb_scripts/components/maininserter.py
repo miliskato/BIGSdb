@@ -131,7 +131,7 @@ class MainInserter(JsonSuperClass):
                 lineage_dict = self._json_report_dict['snp_lineage']['detected_lineage_by_level']
                 lineage_keys = list({e for e in lineage_dict if lineage_dict[e]})
                 for k in lineage_keys:
-                    self._isolates_eavi_psql_tbl.insert_eav_int_isolate((self._isolatename, lineage_dict[k]['lineage']['id_'], lineage_dict[k]['count']))
+                    self._isolates_eavi_psql_tbl.insert_eav_int_id((context.isolate_id, lineage_dict[k]['lineage']['id_'], lineage_dict[k]['count']))
         elif self._species == 'neisseria':
             # json input
             if 'serogroup' in self._json_report_dict:
@@ -153,8 +153,8 @@ class MainInserter(JsonSuperClass):
                         for item in antiviral_associations:
                             antiviral_associations_table_builder.add_association(item['category'], item['key'], item['antiviral'], item['resistance'])
                             antiviral_key_search = f'{item['antiviral']}_{item['resistance']}'
-                            if not isolates_eavf_psql_tbl.exists_in_eav_field((antiviral_key_search, 'bool')):
-                                isolates_eavf_psql_tbl.insert_boolean_field((antiviral_key_search, 'antiviral_for_query'))
+                            if not isolates_eavf_psql_tbl.exists_in_eav_field((antiviral_key_search, 'Antiviral resistances')):
+                                isolates_eavf_psql_tbl.insert_boolean_field((antiviral_key_search, 'Antiviral resistances'))
                             isolates_eavb_psql_tbl.insert_eav_id((context.isolate_id, antiviral_key_search, 't'))
                     report_builder = HtmlReportBuilder()
                     report_builder.add_title("Detected mutations")
@@ -162,7 +162,7 @@ class MainInserter(JsonSuperClass):
                     report_builder.add_title("Subsequent associations")
                     report_builder.add_table(antiviral_associations_table_builder)
                     html = report_builder.build()
-                    self._isolates_eavt_psql_tbl.insert_eav_id_viral_species((context.isolate_id, 'Antiviral_resistances', html))
+                    self._isolates_eavt_psql_tbl.insert_eav_id_viral_species((context.isolate_id, 'antiviral_resistances', html))
             if 'ref_selection' in self._json_report_dict:
                 ref_selection_table_builder = HtmlRefSelectionTableBuilder(context.report_url)
                 for key, value in self._json_report_dict['ref_selection'].items():
