@@ -165,7 +165,7 @@ class MainInserter(JsonSuperClass):
                     html = report_builder.build()
                     self._isolates_eavt_psql_tbl.insert_eav_id_viral_species((context.isolate_id, 'antiviral_resistances', html))
             if 'ref_selection' in self._json_report_dict:
-                url_with_anchor = f'{context.report_url}#nextclade'
+                url_with_anchor = f'{context.report_url}#ref_selection'
                 ref_selection_table_builder = HtmlRefSelectionTableBuilder(url_with_anchor)
                 for key, value in self._json_report_dict['ref_selection'].items():
                     if isinstance(value, str):
