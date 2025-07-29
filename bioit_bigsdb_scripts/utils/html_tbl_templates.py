@@ -79,6 +79,7 @@ class HtmlReportBuilder:
     """
     Class to build an html layout composed of multiple html tables
     """
+
     def __init__(self) -> None:
         """initialize the general class HtmlReportBuilder to link multiple html tables in a convenient layout
         :return: None
@@ -225,6 +226,7 @@ class HtmlMobSuiteTableBuilder(HtmlTableBuilder):
 
 class HtmlAntiviralAssociationsTableBuilder(HtmlTableBuilder):
     """subclass used to create the html table following the format for Antiviral associations"""
+
     def __init__(self, report_url: str) -> None:
         """
         :param report_url: url to call the api to get the html report
@@ -246,6 +248,7 @@ class HtmlAntiviralAssociationsTableBuilder(HtmlTableBuilder):
 
 class HtmlAntiviralMutationsTableBuilder(HtmlTableBuilder):
     """subclass used to create the html table following the format for Antiviral mutations"""
+
     def __init__(self, report_url: str) -> None:
         """
         :param report_url: url to call the api to get the html report
@@ -267,6 +270,7 @@ class HtmlAntiviralMutationsTableBuilder(HtmlTableBuilder):
 
 class HtmlRefSelectionTableBuilder(HtmlTableBuilder):
     """subclass used to create the html table following the format for Reference selection"""
+
     def __init__(self, report_url: str) -> None:
         """
         :param report_url: url to call the api to get the html report

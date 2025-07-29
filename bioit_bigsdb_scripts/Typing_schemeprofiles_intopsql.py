@@ -155,7 +155,7 @@ class TypingSchemeProfilesIntoPsql:
         Main function to insert all profiles for the given species
         :return: None
         """
-        for species in set(self._species_list): #TODO ask if this loop is still relevant for some applications
+        for species in set(self._species_list):  # TODO ask if this loop is still relevant for some applications
             schemedict: Dict[str, Dict[str, str]] = self._bigsdb_config_data['species'][species]['typing_schemes']
             if schemedict is None:
                 continue

@@ -36,10 +36,10 @@
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="client zip">client_zip</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="client region">client_region</field>
 <field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="internal code for the client">client_code</field>
-<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="Type A or B">Flu_type</field>
-<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="Subtyping HA gene">FluA_subtypeHAPCR</field>
-<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="Subtyping HA gene">FluA_subtypeNAPCR</field>
-<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="Subtyping or lineage PCR">Flu_subtype_or_lineagePCR</field>
+<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="Type A or B">flu_type</field>
+<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="Subtyping HA gene">fluA_subtypeHAPCR</field>
+<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="Subtyping HA gene">fluA_subtypeNAPCR</field>
+<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="Subtyping or lineage PCR">flu_subtype_or_lineagePCR</field>
 <field type="date" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="reception date">reception_date</field>
 <field type="date" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="isolation date">isolation_date</field>
 <field type="text" required="no" length="20" maindisplay="no" group ="nominative metadata" comments="origine">origine</field>

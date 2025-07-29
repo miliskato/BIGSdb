@@ -27,7 +27,7 @@ class TblEavInt(DatabaseConnection):
 
     def insert_eav_int_id(self, param: Tuple[str, str, int]) -> None:
         """
-        Inserts a metadata field in the NCBI 16S category
+        Inserts a metadata row in the eav_int table
         :param param: variables to feed to the PSQL query, which also sanitizes these variables,
         necessary parameters visible in the PSQL query name and query - isolate_id, field, value
         :return: None
