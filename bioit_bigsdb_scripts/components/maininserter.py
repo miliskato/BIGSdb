@@ -145,8 +145,9 @@ class MainInserter(JsonSuperClass):
                 antiviral_mutations = self._json_report_dict['antivirals'].get('antivirals_mutations')
                 if antiviral_mutations:
                     antiviral_associations = self._json_report_dict['antivirals'].get('antivirals_associations')
-                    antiviral_mutations_table_builder = HtmlAntiviralMutationsTableBuilder(context.report_url)
-                    antiviral_associations_table_builder = HtmlAntiviralAssociationsTableBuilder(context.report_url)
+                    url_with_anchor = f'{context.report_url}#antiviral'
+                    antiviral_mutations_table_builder = HtmlAntiviralMutationsTableBuilder(url_with_anchor)
+                    antiviral_associations_table_builder = HtmlAntiviralAssociationsTableBuilder(url_with_anchor)
                     for item in antiviral_mutations:
                         antiviral_mutations_table_builder.add_mutation(item['subtype'], item['segment'], item['type'], item['mutation'])
                     with TblEavFields(self._species) as isolates_eavf_psql_tbl, TblEavBoolean(self._species) as isolates_eavb_psql_tbl:
@@ -164,7 +165,8 @@ class MainInserter(JsonSuperClass):
                     html = report_builder.build()
                     self._isolates_eavt_psql_tbl.insert_eav_id_viral_species((context.isolate_id, 'antiviral_resistances', html))
             if 'ref_selection' in self._json_report_dict:
-                ref_selection_table_builder = HtmlRefSelectionTableBuilder(context.report_url)
+                url_with_anchor = f'{context.report_url}#nextclade'
+                ref_selection_table_builder = HtmlRefSelectionTableBuilder(url_with_anchor)
                 for key, value in self._json_report_dict['ref_selection'].items():
                     if isinstance(value, str):
                         continue
