@@ -143,3 +143,26 @@ class HtmlMobSuiteTableBuilder(HtmlTableBuilder):
         :return: None
         """
         self.add_row([id, num_contigs, size, gc_content, predicted_mobility, rep_types, relaxase_types])
+
+
+class HtmlSnpLineageTableBuilder(HtmlTableBuilder):
+    """subclass used to create the html table following the format for SNP lineage"""
+
+    def __init__(self, report_url: str) -> None:
+        """
+        :param report_url: url to call the api to get the html report
+        :return: None
+        """
+        super().__init__(headers=['Predicted lineage', 'Full name', 'RDS', 'supporting SNPs'], width_px=700)
+        self.add_report_row(report_url)
+
+    def add_lineage(self, predicted_lineage: str, full_name: str, rds: str, nbr_snps: int) -> None:
+        """
+        add lineage to the html table
+        :param predicted_lineage: predicted lineage
+        :param full_name: full name
+        :param rds: rds
+        :nbr_snps: nbr snps supporting the lineage
+        :return: None
+        """
+        self.add_row([predicted_lineage, full_name, rds, nbr_snps])

@@ -269,6 +269,10 @@ INSERT INTO eav_fields(field, value_format, category, description, no_curate, no
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('assembly', 'text', 'galaxy report', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) VALUES('html', 'text', 'galaxy report', 'galaxy html report', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
 
+--snplineage
+INSERT INTO eav_fields(field, value_format, category, description, field_order, no_curate, no_submissions, datestamp, curator) VALUES('snp_lineage', 'text', 'SNP lineage', 'final SNP lineage', 1 ,'t', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
+INSERT INTO eav_fields(field, value_format, category, description, field_order, no_curate, no_submissions, datestamp, curator) VALUES('detected_lineage', 'text', 'SNP lineage', 'final SNP lineage', 2, 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
+
 --AMR detection
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator, field_order) VALUES('amr_type', 'text', 'AMR detection', '', 't', 't', (SELECT CURRENT_DATE), 1,'1') ON CONFLICT DO NOTHING;
 INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator, field_order) VALUES('amr_first_line_resistant', 'text', 'AMR detection', '', 't', 't', (SELECT CURRENT_DATE), 1,'2') ON CONFLICT DO NOTHING;
