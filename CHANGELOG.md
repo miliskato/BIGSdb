@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed:
 - missing field in nominative metadata for Influenza
 
+## [4.1.2]
+### Added:
+- Field 'detected_lineage' in eav_text to filter query based on snp lineage
+
+### Fixed:
+- missing snp_lineage results due to changes in the "mongo key" of the assay after updating to pipeline 1.3
 
 ## [4.1.1]
 ### Added
