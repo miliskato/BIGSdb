@@ -416,7 +416,7 @@ class BatchPipelinesReanalysis:
             ' '.join([f"--{x}" for x in analysis_arguments]),
             '--threads 2',
             f'--sample-name {isolate_id}',
-            f'--species {self._species_mongodb}' if self._species_mongodb in ['enterococcus_faecalis', 'enterococcus_faecium'] else '',
+            f'--species {self._species_mongodb.split("_")[-1]}' if self._species_mongodb in ['enterococcus_faecalis', 'enterococcus_faecium'] else '',
         ])
         if self._species == 'mycobacterium' and mongodb_document['original_input_format'] != 'fasta':
             base_command += f' --vcf-unfiltered {mongodb_document["vcf_path_unfiltered"]}' if mongodb_document.get(
