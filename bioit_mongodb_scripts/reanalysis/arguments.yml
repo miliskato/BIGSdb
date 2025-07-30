@@ -3,7 +3,7 @@ enterococcus_faecalis:
   cgmlst: cgMLST
   rmlst: rMLST taxonomic identification
   lrefinder: LRE-Finder (LRE-Finder 20200812)
-  amrfinder: AMRFinder (AMRFinder 3.11.26)
+  amrfinder: AMRFinder (AMRFinder 4.0.19)
   resfinder4: ResFinder (ResFinder 4.4.2)
   vfdb-core: Virulence Factor DB - Core
   virulencefinder: VirulenceFinder - Enterococcus
@@ -21,7 +21,7 @@ enterococcus_faecium:
   cgmlst: cgMLST
   rmlst: rMLST taxonomic identification
   lrefinder: LRE-Finder (LRE-Finder 20200812)
-  amrfinder: AMRFinder (AMRFinder 3.11.26)
+  amrfinder: AMRFinder (AMRFinder 4.0.19)
   resfinder4: ResFinder (ResFinder 4.4.2)
   vfdb-core: Virulence Factor DB - Core
   virulencefinder: VirulenceFinder - Enterococcus
@@ -40,7 +40,7 @@ listeria:
   typing-virulence: Virulence
   typing-amr: Antibiotic resistance
   species-confirmation: Species confirmation
-  amrfinder: AMRFinder (AMRFinder 3.11.26)
+  amrfinder: AMRFinder (AMRFinder 4.0.19)
   resfinder4: ResFinder (ResFinder 4.4.2)
   virulencefinder: VirulenceFinder - Listeria
   vfdb-core: Virulence Factor DB - Core
@@ -72,7 +72,7 @@ neisseria:
   resistance-genes: Antibiotic resistance
   vaccine-targets: Vaccine targets
   fhbp: Factor-H binding protein (fHbp)
-  amrfinder: AMRFinder (AMRFinder 3.11.26)
+  amrfinder: AMRFinder (AMRFinder 4.0.19)
   resfinder4: ResFinder (ResFinder 4.4.2)
   serogroup:
     - Capsule characterization (characterize_neisseria_capsule a75a009)
@@ -88,28 +88,10 @@ salmonella:
     - SISTR (SISTR 1.1.1)
     - SeqSero2 (SeqSero2 1.2.1)
   abritamr: abriTAMR (AbriTAMR run 1.0.19)
+  amrfinder: AMRFinder (AMRFinder 4.0.19)
   resfinder4: ResFinder (ResFinder 4.4.2)
   vfdb-core: Virulence Factor DB - Core
   mykrobe: Mykrobe (mykrobe 0.13.0)
-  mob-suite:
-    - MOB-recon (MOB-recon 3.1.8)
-    - Genomic context
-stec:
-  mlst-warwick: Classic MLST (Warwick)
-  mlst-pasteur: Classic MLST (Pasteur)
-  cgmlst: cgMLST
-  rmlst: rMLST taxonomic identification
-  serotype:
-    - SerotypeFinder - H-type
-    - SerotypeFinder - O-type
-    - Detected serotype
-  amrfinder: AMRFinder (AMRFinder 3.11.26)
-  resfinder4: ResFinder (ResFinder 4.4.2)
-  plasmidfinder: PlasmidFinder - Enterobacteriales
-  virulencefinder:
-    - VirulenceFinder - E. coli
-    - VirulenceFinder - Shiga-toxin genes
-  ncbi-stress: NCBI stress response genes
   mob-suite:
     - MOB-recon (MOB-recon 3.1.8)
     - Genomic context
@@ -117,7 +99,9 @@ sars_cov_2:
   sars_cov_2:
     - Nextclade (Nextclade 3.1.1)
     - Subtype determination (mash screen 2.3)
+    - Antiviral resistance
 influenza:
   influenza:
     - Nextclade (Nextclade 3.1.1)
     - Subtype determination (mash screen 2.3)
+    - Antiviral resistance

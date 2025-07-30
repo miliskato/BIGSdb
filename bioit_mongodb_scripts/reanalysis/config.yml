@@ -1,37 +1,37 @@
 species:
     enterococcus_faecalis:
-        lmod: camel_hera/0.1
+        lmod: camel_hera/0.2
         main_script: mainenterococcuspipeline.py
     enterococcus_faecium:
-        lmod: camel_hera/0.1
+        lmod: camel_hera/0.2
         main_script: mainenterococcuspipeline.py
     listeria:
-        lmod: camel_hera/0.1
+        lmod: camel_hera/0.2
         main_script: mainlisteriapipeline.py
     mycobacterium:
-        lmod: camel_hera/0.1
+        lmod: camel_hera/0.2
         main_script: mainmycobacteriumpipeline.py
     neisseria:
-        lmod: camel_hera/0.1
+        lmod: camel_hera/0.2
         main_script: mainneisseriapipeline.py
     stec:
-        lmod: camel_hera/0.1
+        lmod: camel_hera/0.2
         main_script: mainstecpipeline.py
     salmonella:
-        lmod: camel_hera/0.1
+        lmod: camel_hera/0.2
         main_script: mainsalmonellapipeline.py
     influenza_a:
-        lmod: camel_hera/0.1
+        lmod: camel_hera/0.2
         main_script: mainviralconsensuspipeline.py
-        options: [ '--species influenza_a', '--ref-genome-db /db/pipelines/viral_consensus/ref_mash_dbs/influenza_a-gisaid' ]
+        options: [ '--species influenza_a', '--ref-genome-db /db/pipelines/viral_consensus/version_1.1/ref_mash_dbs/influenza_a-gisaid' ]
     influenza_b:
-        lmod: camel_hera/0.1
+        lmod: camel_hera/0.2
         main_script: mainviralconsensuspipeline.py
-        options: [ '--species influenza_b', '--ref-genome-db /db/pipelines/viral_consensus/ref_mash_dbs/influenza_b-gisaid' ]
+        options: [ '--species influenza_b', '--ref-genome-db /db/pipelines/viral_consensus/version_1.1/ref_mash_dbs/influenza_b-gisaid' ]
     sars_cov_2:
-        lmod: camel_hera/0.1
+        lmod: camel_hera/0.2
         main_script: mainviralconsensuspipeline.py
-        options: [ '--species sars_cov_2', '--fasta-ref /db/pipelines/viral_consensus/ref_genomes/sars_cov_2-Wuhan-Hu-1.fasta' ]
+        options: [ '--species sars_cov_2', '--fasta-ref /db/pipelines/viral_consensus/version_1.1/ref_genomes/sars_cov_2-Wuhan-Hu-1.fasta' ]
 
 mongodb:
     lmod: bioit_mongodb/0.1
