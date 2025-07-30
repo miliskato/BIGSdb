@@ -220,7 +220,7 @@ code_lists:
   YNU_codes:
     373066001: 'Yes'
     772170009: 'Yes' # from MTB CLIN TB_SUSPICION
-    473165003: 'YES' # from NEI CLIN YNU_VACCINE_STREPTO
+    473165003: 'Yes' # from NEI CLIN YNU_VACCINE_STREPTO
     373067005: 'No'
     261665006: 'Unknown'
   CD_PAT_SEX_codes:
