@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Method to validate Literal object and value passed to this one
 - "manual_validation_of_good_qc.py" to validate the good qc isolates submitted into BIGSdb (historical collection)
 - Influenza CLIN LAB DCD integration
+- Field 'detected_lineage' in eav_text to filter query based on snp lineage
 
 ### Changed
 - Method to get relevant info from the mongoDB config file
@@ -19,10 +20,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Migration files for the "isolates" DB are now moved to a extra subfolder (bigsdb_isolates_v/bigsdb_{{ species }}_isolates) to avoid overlap of the migrations files after the first deployment (one deployment/species)
 - log files for the bigsdb-insertion-{species}.service are moved to /var/log/bigsdb_insertions_service/ folder 
 - Reworked SFTPConnection class to be able to be used in with statements for cleaner exiting
+- snp lineage is now stored as eav_text data with two fields (one for the html table and the other to help filtering queries)
 
 ## Fixed
 - Issue with rotation of the logs for bigsdb-insertion-{species}.service
 - Literal accepting silently wrong values
+- missing snp_lineage results due to changes in the "mongo key" of the assay after updating to pipeline 1.3
+
 
 ### Removed:
 - some batch of unused files + stec related functions
