@@ -136,7 +136,7 @@ class MainInserter(JsonSuperClass):
                 for v in lineage_clean.values():
                     lineage_html_builder.add_lineage(v['lineage']['id_'], v['lineage']['name'], v['lineage']['main_spoligo'], v['count'])
                 html = lineage_html_builder.build()
-                self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'snp_lineage', html))
+                self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'snp_lineage_table', html))
 
         elif self._species == 'neisseria':
             # json input
