@@ -220,6 +220,7 @@ code_lists:
   YNU_codes:
     373066001: 'Yes'
     772170009: 'Yes' # from MTB CLIN TB_SUSPICION
+    473165003: 'YES' # from NEI CLIN YNU_VACCINE_STREPTO
     373067005: 'No'
     261665006: 'Unknown'
   CD_PAT_SEX_codes:
@@ -263,7 +264,7 @@ code_lists:
     EL0001: Isolated case
     416086007: Foodborne transmission
     385432009: Not applicable
-    74964007: 'Other'
+    74964007: Other
     261665006: 'Unknown'
     1: Exposure to a common source/grouped case
     230102009: Contaminated food intake
@@ -360,14 +361,14 @@ code_lists:
     3: NeisVac-C
     4: Bexsero
     5: Trumenba
-    74964007: 'Other'
+    74964007: Other
   CD_VACCN_STREPTO_PROD_codes:
     1052330009: PCV10-vaccine
     51451000087105: PCV13-vaccine
     1252708008: PCV15-vaccine
     1252709000: PCV20-vaccine
     1119220001: PCV23-vaccine
-    74964007: 'Other'
+    74964007: Other
   CD_TBC_SITE_codes:
     39607008: Lung
     59441001: Lymph node
@@ -383,7 +384,7 @@ code_lists:
     78961009: Spleen
     15425007: Peritoneum
     87612001: Blood
-    74964007: 'Other'
+    74964007: Other
   TX_TTL_LAB_TEST_combinations:  # CD_LAB_TEST_CODE, value_field, code_list, translation  # for the quantitative ones, they have been encoded in bigsdb as floats -> no need for units
     - CD_LAB_TEST_CODE: 'TC0036'
       value_field: 'CD_LAB_TEST_RSLT_QL'
@@ -695,7 +696,7 @@ code_lists:
     115143001: 'Genus Gordonia'
     414328004: 'Genus Kocuria'
     38395008: 'Genus Methylobacterium'
-    59674005: 'Genus Nocardia '
+    59674005: 'Genus Nocardia'
     431381002: 'Genus Prauserella'
     115148005: 'Genus Pseudonocardia'
     34534002: 'Genus Rhodococcus'

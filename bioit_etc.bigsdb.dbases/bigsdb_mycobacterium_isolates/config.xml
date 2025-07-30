@@ -39,6 +39,7 @@
 <field type="date" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="patient birthdate">patient_birth_date</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="patient zip code">patient_zip</field>
 <field type="date" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="isolation date">isolation_date</field>
+<field type="date" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="sampling date">sampling_date</field>
 <field type="date" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="received date">reception_date</field>
 <field type="text" required="no" length="100" maindisplay="no" group ="nominative metadata" comments="species detected">identification_BK</field>
 <field type="text" required="no" length="100" maindisplay="no" group ="nominative metadata" comments="species detected">identification_NTM</field>
