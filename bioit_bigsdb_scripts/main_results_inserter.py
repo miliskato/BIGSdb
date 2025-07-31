@@ -79,7 +79,6 @@ class MainResultsInserter:
         elif self._results_type == 'reanalysis' or self._results_type == 'resequencing':
             self._handle_reanalysis_and_reseq()
             maininserter.update_isolate_analysis_date()
-        maininserter.insert_main_metadata()
 
         JsonTypingResultsInserter(self._isolatename, self._species, self._json_report, self._bigsdb_config_data,
                                   self._report_access).insert_typing_results()

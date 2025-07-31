@@ -14,15 +14,15 @@ species:
 #    lrefinder:
 #      cmd_argument: lrefinder
 #    Not updated automatically + no git repo
-    amrfinder:
-      dirdb: /db/amrfinder/v4/latest
-      cmd_argument: amrfinder
+#    amrfinder:
+#      dirdb: /db/amrfinder/by_version/latest
+#      cmd_argument: amrfinder
     resfinder4:
       dirdb: /db/resfinder4/resfinder
       cmd_argument: resfinder4
     pointfinder4:
       dirdb: /db/resfinder4/pointfinder
-      cmd_argument: resfinder4
+      cmd_argument: pointfinder
     vfdb-core:
       dirdb: /db/gene_detection/VFDB_core
       cmd_argument: vfdb-core
@@ -57,15 +57,15 @@ species:
 #    lrefinder:
 #      cmd_argument: lrefinder
 #    Not updated automatically + no git repo
-    amrfinder:
-      dirdb: /db/amrfinder/v4/latest
-      cmd_argument: amrfinder
+#    amrfinder:
+#      dirdb: /db/amrfinder/by_version/latest
+#      cmd_argument: amrfinder
     resfinder4:
       dirdb: /db/resfinder4/resfinder
       cmd_argument: resfinder4
     pointfinder4:
       dirdb: /db/resfinder4/pointfinder
-      cmd_argument: resfinder4
+      cmd_argument: pointfinder
     vfdb-core:
       dirdb: /db/gene_detection/VFDB_core
       cmd_argument: vfdb-core
@@ -105,9 +105,10 @@ species:
     species_confirmation:
       dirdb: /db/sequence_typing/listeria/species_confirmation
       cmd_argument: species-confirmation
-    amrfinder:
-      dirdb: /db/amrfinder/v4/latest
-      cmd_argument: amrfinder
+#    Not updated automatically + no git repo
+#    amrfinder:
+#      dirdb: /db/amrfinder/by_version/latest
+#      cmd_argument: amrfinder
     resfinder4:
       dirdb: /db/resfinder4/resfinder
       cmd_argument: resfinder4
@@ -141,24 +142,15 @@ species:
 #    All not updated automatically and no git repo
 #    also distinction with vcf and without vcf...
 #    51SNP:  # doesn't make sense to do 51snp since it is a static db of 51 snps
-#      dirdb: /db/pipelines/mycobacterium/51snp
 #      cmd_argument: 51snp
 #    amr:
-#      dirdb: /db/pipelines/mycobacterium/amr/who_2023.6
 #      cmd_argument: amr
 #    hsp65:
-#      dirdb: /db/pipelines/mycobacterium/hsp65
 #      cmd_argument: hsp65
-#    csb_rd:
-#      dirdb: /db/pipelines/mycobacterium/csb_rd
-#      cmd_argument: csb_rd
-#    spoligotyping:
-#      cmd_argument: spoligotyping
     ncbi_16s:
       dirdb: /db/gene_detection/NCBI_16S
       cmd_argument: ncbi-16s
 #    snp_lineage:
-#      dirdb: /db/pipelines/mycobacterium/snp_lineage
 #      cmd_argument: snp-lineage
 #    snpit
 #      cmd_argument: snpit
@@ -197,9 +189,6 @@ species:
     fhbp:
       dirdb: /db/sequence_typing/neisseria/fhbp
       cmd_argument: fhbp
-    amrfinder:
-      dirdb: /db/amrfinder/v4/latest
-      cmd_argument: amrfinder
     resfinder4:
       dirdb: /db/resfinder4/resfinder
       cmd_argument: resfinder4
@@ -244,6 +233,46 @@ species:
 #    mendevar:
 #      dirdb: /db/pipelines/neisseria/mendevar_DB.txt
 #      cmd_argument: mendevar
+  stec:
+    mlst_warwick:
+      dirdb: /db/sequence_typing/ecoli/mlst_warwick
+      cmd_argument: mlst-warwick
+    mlst_pasteur:
+      dirdb: /db/sequence_typing/ecoli/mlst_pasteur
+      cmd_argument: mlst-pasteur
+    cgmlst:
+      dirdb: /db/sequence_typing/ecoli/cgmlst
+      cmd_argument: cgmlst
+## having the same argparse argument twice does not seem to affect anything
+    serotype_o:
+      dirdb: /db/gene_detection/SerotypeFinder-O_type
+      cmd_argument: serotype
+    serotype_h:
+      dirdb: /db/gene_detection/SerotypeFinder-H_type
+      cmd_argument: serotype
+#    Not updated automatically + no git repo
+#    amrfinder:
+#      dirdb: /db/amrfinder/by_version/latest
+#      cmd_argument: amrfinder
+    resfinder4:
+      dirdb: /db/resfinder4/resfinder
+      cmd_argument: resfinder4
+    pointfinder4:
+      dirdb: /db/resfinder4/pointfinder
+      cmd_argument: resfinder4
+    plasmidfinder:
+      dirdb: /db/gene_detection/PlasmidFinder-entero
+      cmd_argument: plasmidfinder
+    ncbi_stress:
+      dirdb: /db/gene_detection/NCBI_STRESS
+      cmd_argument: ncbi-stress
+## having the same argparse argument twice does not seem to affect anything
+    virulencefinder:
+      dirdb: /db/gene_detection/VirulenceFinder-Ecoli
+      cmd_argument: virulencefinder
+    virulencefinder_shiga:
+      dirdb: /db/gene_detection/VirulenceFinder-Shiga
+      cmd_argument: virulencefinder
   salmonella:
     mlst:
       dirdb: /db/sequence_typing/salmonella/mlst
@@ -266,11 +295,12 @@ species:
       dirdb: /db/pipelines/salmonella/seqsero2/1.2.1/seqsero2_db
       cmd_argument: serotype
     abritamr:
-      dirdb: /db/abritamr/amrfinderplus_data
+      dirdb: /db/abritamr_2/amrfinderplus_data
       cmd_argument: abritamr
-    amrfinder:
-      dirdb: /db/amrfinder/v4/latest
-      cmd_argument: amrfinder
+#    Not updated automatically + no git repo
+#    amrfinder:
+#      dirdb: /db/amrfinder/by_version/latest
+#      cmd_argument: amrfinder
     resfinder4:
       dirdb: /db/resfinder4/resfinder
       cmd_argument: resfinder4
@@ -309,10 +339,8 @@ viral:
       - /db/nextclade3/flu_h3n2/pa
       - /db/nextclade3/flu_h3n2/pb1
       - /db/nextclade3/flu_h3n2/pb2
-      # - /db/pipelines/viral_consensus/version_1.1/antivirals
   influenza_b:
     dirsdb:
       - /db/nextclade3/flu_vic/ha
       - /db/nextclade3/flu_vic/na
       - /db/nextclade3/flu_yam/ha
-      # - /db/pipelines/viral_consensus/version_1.1/antivirals
