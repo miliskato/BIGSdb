@@ -23,7 +23,7 @@ neisseria:
   ResFinder (ResFinder 4.4.2): resfinder4
 salmonella:
   abriTAMR (AbriTAMR run 1.0.19): abritamr
-  AMRFinder (AMRFinder 4.0.19): amrfinder
   ResFinder (ResFinder 4.4.2): resfinder4
   SPIFinder (SPIFinder 0.1): spifinder
   Virulence Factor DB - Core: vfdb-core
+  AMRFinder (AMRFinder 4.0.19): amrfinder
