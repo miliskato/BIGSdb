@@ -1018,6 +1018,13 @@
 
 - name: create service for bigsdb_insertion
   block:
+    - name: deactivate the deprecated service
+      ansible.builtin.systemd:
+        daemon-reload: true
+        state: stopped
+        enabled: false
+        name: "bigsdb-insertion.service"
+
     - name: add systemd service for automatic insertion
       ansible.builtin.copy:
         src: "{{ bioit_bigs_home }}/bigsdb-insertion.service"
