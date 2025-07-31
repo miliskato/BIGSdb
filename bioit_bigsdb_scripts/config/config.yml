@@ -538,8 +538,8 @@ species_json:
         schemename_bigsdb: VFDB_core
         schemename_html: vfdb-core
   influenza:
-    typing_schemes: ''
-    genedetection_schemes: ''
+    typing_schemes: null
+    genedetection_schemes: null
 
 lab_metadata:
   neisseria:
