@@ -465,7 +465,7 @@ species_json:
         type: irregular
       rmlst_identification:
         type: irregular
-    genedetection_schemes: None
+    genedetection_schemes: null
   neisseria:
     typing_schemes:
       mlst:
