@@ -83,11 +83,14 @@ class HtmlReplacer:
         :param header_text: header text with which the section should be found
         :return: None
         """
-        section_to_replace = self._base_html.find_report_section_by_header(header_text)
-        new_section = self._updated_html.find_report_section_by_header(header_text)
-        # Replace this section
-        if section_to_replace and new_section:
-            section_to_replace.replace_with(new_section)
+        sections_to_replace = self._base_html.find_report_sections_by_header(header_text)
+        new_sections = self._updated_html.find_report_sections_by_header(header_text)
+        # Replace the sections
+        if len(sections_to_replace) == len(new_sections):
+            for old_section, new_section in zip(sections_to_replace, new_sections):
+                old_section.replace_with(new_section)
+        else:
+            raise Exception("The number of sections to replace does not match the number of new sections.")
 
     def _replace_analysis_date(self) -> None:
         """
