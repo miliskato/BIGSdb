@@ -61,7 +61,7 @@ class TempidReplacerAzure:
         """
         self._species = species
         self._dtap = dtap
-        self._mongo_config_provider = MongoConfigProvider()
+        self._mongo_config_provider = MongoConfigProvider(alternate_dtap=self._dtap)
 
         # Connect to keyvault
         self._connection_azure = ConnectAzure(self._dtap)
