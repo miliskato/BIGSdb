@@ -430,7 +430,7 @@ class BatchPipelinesReanalysis:
             f"--base-html {results_dir}/report.html",
             f"--updated-html {report_dir}/report.html",
             f"--species {self._species_mongodb}",
-            f"--analysis-arguments {' '.join(analysis_arguments)}"
+            f"--analysis-arguments {' '.join(set(analysis_arguments))}"
         ])
         tagger_command = ' '.join([
             f"{config_mongodb['tagger_script']}",

@@ -820,7 +820,7 @@ class MainMongo:
 
 if __name__ == '__main__':
     args = parse_arguments()
-    mongo_config_provider = MongoConfigProvider()
+    mongo_config_provider = MongoConfigProvider(args.alternate_dtap)
 
     connection_string = mongo_config_provider.get_azure_connection_string(args.species)
     if args.connection_string == 'CONNECTION_STRING_ALTERNATE':
