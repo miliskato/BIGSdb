@@ -3,7 +3,9 @@ enterococcus_faecalis:
   cgmlst: cgMLST
   rmlst: rMLST taxonomic identification
   lrefinder: LRE-Finder (LRE-Finder 20200812)
-  amrfinder: AMRFinder (AMRFinder 4.0.19)
+  amrfinder:
+    - AMRFinder (AMRFinder 3.11.26)
+    - AMRFinder (AMRFinder 4.0.19)
   resfinder4: ResFinder (ResFinder 4.4.2)
   vfdb-core: Virulence Factor DB - Core
   virulencefinder: VirulenceFinder - Enterococcus
@@ -21,7 +23,9 @@ enterococcus_faecium:
   cgmlst: cgMLST
   rmlst: rMLST taxonomic identification
   lrefinder: LRE-Finder (LRE-Finder 20200812)
-  amrfinder: AMRFinder (AMRFinder 4.0.19)
+  amrfinder:
+    - AMRFinder (AMRFinder 3.11.26)
+    - AMRFinder (AMRFinder 4.0.19)
   resfinder4: ResFinder (ResFinder 4.4.2)
   vfdb-core: Virulence Factor DB - Core
   virulencefinder: VirulenceFinder - Enterococcus
@@ -40,7 +44,9 @@ listeria:
   typing-virulence: Virulence
   typing-amr: Antibiotic resistance
   species-confirmation: Species confirmation
-  amrfinder: AMRFinder (AMRFinder 4.0.19)
+  amrfinder:
+    - AMRFinder (AMRFinder 3.11.26)
+    - AMRFinder (AMRFinder 4.0.19)
   resfinder4: ResFinder (ResFinder 4.4.2)
   virulencefinder: VirulenceFinder - Listeria
   vfdb-core: Virulence Factor DB - Core
@@ -72,7 +78,9 @@ neisseria:
   resistance-genes: Antibiotic resistance
   vaccine-targets: Vaccine targets
   fhbp: Factor-H binding protein (fHbp)
-  amrfinder: AMRFinder (AMRFinder 4.0.19)
+  amrfinder:
+    - AMRFinder (AMRFinder 3.11.26)
+    - AMRFinder (AMRFinder 4.0.19)
   resfinder4: ResFinder (ResFinder 4.4.2)
   serogroup:
     - Capsule characterization (characterize_neisseria_capsule a75a009)
@@ -88,7 +96,9 @@ salmonella:
     - SISTR (SISTR 1.1.1)
     - SeqSero2 (SeqSero2 1.2.1)
   abritamr: abriTAMR (AbriTAMR run 1.0.19)
-  amrfinder: AMRFinder (AMRFinder 4.0.19)
+  amrfinder:
+    - AMRFinder (AMRFinder 3.11.26)
+    - AMRFinder (AMRFinder 4.0.19)
   resfinder4: ResFinder (ResFinder 4.4.2)
   vfdb-core: Virulence Factor DB - Core
   mykrobe: Mykrobe (mykrobe 0.13.0)
