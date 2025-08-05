@@ -668,27 +668,37 @@ class MainMongo:
         any_result_changed = False
         unchanged_results = set()
         changed_results = set()
-        for mainkey in new_results:  # mainkey is assay or metadata
+
+        for mainkey, new_value in new_results.items():
             if mainkey == 'quality_checks':
                 continue
-            if isinstance(new_results[mainkey], dict):
-                if mainkey not in current_results:
-                    logging.info(f"{mainkey} not in current results")
-                    any_result_changed = True
-                    changed_results.add(mainkey)
-                    continue
-                mainkey_deepcopy = deepcopy(new_results[mainkey])
-                for subkey in new_results[mainkey]:
-                    if isinstance(subkey, str) and 'db_version' in subkey or 'tool_version' in subkey:
-                        mainkey_deepcopy.pop(subkey)
-                        if current_results[mainkey].get(subkey):
-                            current_results[mainkey].pop(subkey)
-                if mainkey_deepcopy != current_results[mainkey]:
-                    logging.info(f"{mainkey} different or not in old")
-                    any_result_changed = True
-                    changed_results.add(mainkey)
-                if mainkey not in changed_results:
-                    unchanged_results.add(mainkey)
+
+            if not isinstance(new_value, dict):
+                continue
+
+            if mainkey not in current_results:
+                print(f"{mainkey} not in current results")
+                any_result_changed = True
+                changed_results.add(mainkey)
+                continue
+
+            # Create a deep copy of the new results and remove version-related subkeys
+            mainkey_deepcopy = deepcopy(new_value)
+            current_value = current_results[mainkey]
+
+            for subkey in list(mainkey_deepcopy.keys()):
+                if isinstance(subkey, str) and ('db_version' in subkey or 'tool_version' in subkey):
+                    mainkey_deepcopy.pop(subkey, None)
+                    current_value.pop(subkey, None)
+
+            # Compare the modified dictionaries
+            if mainkey_deepcopy != current_value:
+                print(f"{mainkey} different or not in old")
+                any_result_changed = True
+                changed_results.add(mainkey)
+            else:
+                unchanged_results.add(mainkey)
+
         return any_result_changed, unchanged_results, changed_results
 
     def ___nested_dict_delta(self, current_results: JsonReportDict, new_results: JsonReportDict, current_report_path: str) -> JsonReportDict:
@@ -720,7 +730,7 @@ class MainMongo:
             delta_new_old['isolates_id'] = current_results['isolates_id']
             delta_new_old['results_version'] = current_results['results_version']
             delta_new_old['changed_version'] = current_results['changed_version']
-        delta_new_old['report_directory'] = current_report_path
+            delta_new_old['report_directory'] = current_report_path
         return delta_new_old
 
     def ___convert_typinghitdictionaries_to_lists(self, json_report: JsonReportDict) -> None:
