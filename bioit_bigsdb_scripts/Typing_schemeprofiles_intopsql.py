@@ -10,6 +10,7 @@ from typing import Dict, Final, List, Tuple
 
 import pandas as pd
 
+from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 
 pd.set_option('future.no_silent_downcasting', True)
 
@@ -25,16 +26,13 @@ from bioit_mongodb_scripts.util.python_utility_functions import get_bigsdb_confi
 PROFILE_FILE: Final[str] = 'profiles.tsv'
 
 
-def _parse_arguments(specieslist: List[str]) -> argparse.Namespace:
+def _parse_arguments() -> argparse.Namespace:
     """
     Parses the command line arguments.
-    :param specieslist: list of all the species choices
     :return: Parsed arguments
     """
     argument_parser = argparse.ArgumentParser()
-    argument_parser.add_argument('--species', required=False, type=str,
-                                 choices=specieslist, default=specieslist,
-                                 nargs='+')  # this does allow for the same species multiple times but doesnt really matter, theyre uniquely filtered using set()
+    argument_parser.add_argument('--species', required=True, type=str, choices=MongoConfigProvider.get_currently_supported_species())  # this does allow for the same species multiple times but doesnt really matter, theyre uniquely filtered using set()
     return argument_parser.parse_args()
 
 
@@ -43,14 +41,14 @@ class TypingSchemeProfilesIntoPsql:
     Class containing function to insert typing scheme profiles.
     """
 
-    def __init__(self, species_list: List[str], dont_send_email: bool = False) -> None:
+    def __init__(self, species: str, dont_send_email: bool = False) -> None:
         """
         Initialises this class and executes the main function: _insert_alleles
-        :param species_list: list of commonly used bioit species name: either genus or specific like stec.
+        :param species: commonly used bioit species name: either genus or specific like stec.
         :param dont_send_email: do not send emails, only log
         :return: None
         """
-        self._species_list = species_list
+        self._species = species
         self._dont_send_email = dont_send_email
         self._bigsdb_config_data = get_bigsdb_config_data()
 
@@ -155,28 +153,27 @@ class TypingSchemeProfilesIntoPsql:
         Main function to insert all profiles for the given species
         :return: None
         """
-        for species in set(self._species_list):  # TODO ask if this loop is still relevant for some applications
-            schemedict: Dict[str, Dict[str, str]] = self._bigsdb_config_data['species'][species]['typing_schemes']
-            if schemedict is None:
-                continue
-            with TblProfiles(species) as seqdef_profiles_psql_tbl:
-                for scheme in schemedict:
-                    if schemedict[scheme].get('scheme_fields') is None:
-                        continue
+        schemedict: Dict[str, Dict[str, str]] = self._bigsdb_config_data['species'][self._species]['typing_schemes']
+        if schemedict is None:
+            return
+        with TblProfiles(self._species) as seqdef_profiles_psql_tbl:
+            for scheme in schemedict:
+                if schemedict[scheme].get('scheme_fields') is None:
+                    continue
 
-                    path_to_profiles = '/'.join([schemedict[scheme]['dirdb'], PROFILE_FILE])
-                    profiles = self.open_profiles_metadata_file(path_to_profiles, scheme, species)
+                path_to_profiles = '/'.join([schemedict[scheme]['dirdb'], PROFILE_FILE])
+                profiles = self.open_profiles_metadata_file(path_to_profiles, scheme, self._species)
 
-                    list_of_profile_ids: List[Tuple[int]] = \
-                        seqdef_profiles_psql_tbl.select_profile((schemedict[scheme]['schemename_bigsdb'],))
+                list_of_profile_ids: List[Tuple[int]] = \
+                    seqdef_profiles_psql_tbl.select_profile((schemedict[scheme]['schemename_bigsdb'],))
 
-                    primary_fields = [str(x[0]) for x in list_of_profile_ids]
-                    profiles = profiles[~profiles[profiles.columns[0]].isin(primary_fields)]
-                    if profiles.empty:
-                        continue
-                    set_to_be_inserted = set(profiles.iloc[:, 0].to_list())
+                primary_fields = [str(x[0]) for x in list_of_profile_ids]
+                profiles = profiles[~profiles[profiles.columns[0]].isin(primary_fields)]
+                if profiles.empty:
+                    continue
+                set_to_be_inserted = set(profiles.iloc[:, 0].to_list())
 
-                    self.__insert_profiles(scheme, schemedict, profiles, set_to_be_inserted, seqdef_profiles_psql_tbl, species)
+                self.__insert_profiles(scheme, schemedict, profiles, set_to_be_inserted, seqdef_profiles_psql_tbl, self._species)
 
     @staticmethod
     def open_profiles_metadata_file(file_path: str, scheme: str, species: str) -> pd.DataFrame:
@@ -206,6 +203,6 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
     # Parse arguments
-    args = _parse_arguments(list(bigsdb_config_data['species']))
+    args = _parse_arguments()
 
     TypingSchemeProfilesIntoPsql(args.species)
