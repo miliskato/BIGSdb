@@ -153,7 +153,7 @@ class MainInserter(JsonSuperClass):
                     with TblEavFields(self._species) as isolates_eavf_psql_tbl, TblEavBoolean(self._species) as isolates_eavb_psql_tbl:
                         for item in antiviral_associations:
                             antiviral_associations_table_builder.add_association(item['category'], item['key'], item['antiviral'], item['resistance'])
-                            antiviral_key_search = f'{item['antiviral']}_{item['resistance']}'
+                            antiviral_key_search = f'{item["antiviral"]}_{item["resistance"]}'
                             if not isolates_eavf_psql_tbl.exists_in_eav_field((antiviral_key_search, 'Antiviral resistances')):
                                 isolates_eavf_psql_tbl.insert_boolean_field((antiviral_key_search, 'Antiviral resistances'))
                             isolates_eavb_psql_tbl.insert_eav_id((context.isolate_id, antiviral_key_search, 't'))

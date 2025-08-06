@@ -2,8 +2,7 @@
 ALTER TABLE isolates
     ADD COLUMN fluA_SubtypeHAPCR text,
     ADD COLUMN fluA_SubtypeNAPCR text,
-    ADD COLUMN flu_subtype_or_lineagePCR text;
-ALTER TABLE isolates
+    ADD COLUMN flu_subtype_or_lineagePCR text,
     DROP COLUMN fluA_subtypePCR,
     DROP COLUMN fluB_lineagePCR;
 
@@ -12,7 +11,6 @@ ALTER TABLE isolates
 ALTER TABLE isolates
     DROP COLUMN fluA_SubtypeHAPCR,
     DROP COLUMN fluA_SubtypeNAPCR,
-    DROP COLUMN flu_subtype_or_lineagePCR;
-ALTER TABLE isolates
+    DROP COLUMN flu_subtype_or_lineagePCR,
     ADD COLUMN fluA_subtypePCR text,
     ADD COLUMN fluB_lineagePCR text;

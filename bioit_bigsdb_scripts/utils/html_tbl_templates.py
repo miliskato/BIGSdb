@@ -237,6 +237,7 @@ class HtmlAntiviralAssociationsTableBuilder(HtmlTableBuilder):
 
     def add_association(self, category: str, key: str, antiviral: str, resistance: str) -> None:
         """
+        Add one line to the html table of Antiviral associations
         :param category: category of the mutation
         :param key: key mutation
         :param antiviral: antiviral for which the resistance might exist
@@ -259,6 +260,7 @@ class HtmlAntiviralMutationsTableBuilder(HtmlTableBuilder):
 
     def add_mutation(self, subtype: str, segment: str, category: str, mutation: str) -> None:
         """
+        Add one line to the html table of Antiviral mutations
         :param subtype: Influenza subtype
         :param segment: viral segment on which the mutation is found
         :param category: type of mutation (substitution, insertion, deletion)
@@ -281,6 +283,7 @@ class HtmlRefSelectionTableBuilder(HtmlTableBuilder):
 
     def add_segment(self, segment: str, ref_genome: str, coverage: str, matching: str, strain: str, influenza_type: str) -> None:
         """
+        Add one line to the html table for Reference selection
         :param segment: viral segment
         :param ref_genome: reference genome found as best match
         :param coverage: coverage
