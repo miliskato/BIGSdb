@@ -102,7 +102,7 @@ class RejectedIsolate:
         :return: None
         """
         json_path_remote = Path(self._rejected_isolate_document['report_directory']) / 'report.json'
-        with tempfile.NamedTemporaryFile(self._mongo_config_provider.temp_dir) as temp_json:
+        with tempfile.NamedTemporaryFile(dir=self._mongo_config_provider.temp_dir) as temp_json:
             scp_command = f"scp -o StrictHostKeyChecking=no -i /home/bigsdb/.ssh/.id_rsa_reportsapi bigsdb@{self._mongo_config_provider.azure_reportsapi_ip}:{json_path_remote} {temp_json.name}"
             scp_cmd = Command(scp_command)
             scp_cmd.run(Path(self._mongo_config_provider.temp_dir))
