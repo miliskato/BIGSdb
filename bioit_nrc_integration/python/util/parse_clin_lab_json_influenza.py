@@ -88,12 +88,12 @@ class ParseClinLabJsonInfluenza(ParseClinLabJson):
         b = self.__get_type_part(self.B_TESTS)
         if ha:
             self._data_translated['FluA_SubtypeHAPCR'] = ha
-            self._data_translated['FluA_subtypePCR'] = ha + na
+            self._data_translated['Flu_subtype_or_lineagePCR'] = ha + na
         elif na:
             self._data_translated['FluA_SubtypeNAPCR'] = na
-            self._data_translated['FluA_subtypePCR'] = ha + na
+            self._data_translated['Flu_subtype_or_lineagePCR'] = ha + na
         elif b:
-            self._data_translated['FluB_lineagePCR'] = b
+            self._data_translated['Flu_subtype_or_lineagePCR'] = b
 
     def __get_type_part(self, code_list: dict[str, str]) -> str:
         """

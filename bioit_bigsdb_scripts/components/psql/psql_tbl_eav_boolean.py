@@ -26,6 +26,14 @@ class TblEavBoolean(DatabaseConnection):
         """
         self.execute_query(PsqlQueries.ISO_INS__TB_EAVB_VAR_ISO_FIELD_VAL, param)
 
+    def insert_eav_id(self, param: Tuple[str, str, str]) -> None:
+        """
+        Inserts a boolean metadata value for a specific isolate and a specific metadata field
+        :param param: variables to feed to the PSQL query: isolate id, field, value
+        :return: None
+        """
+        self.execute_query(PsqlQueries.ISO_INS__TB_EAVB_VAR_ID_FIELD_VAL, param)
+
     def delete_eavbool_for_isolate(self, param: Tuple[str]) -> None:
         """
         Delete all boolean metadata value for a specific isolate

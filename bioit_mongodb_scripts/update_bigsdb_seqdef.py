@@ -37,9 +37,9 @@ class UpdateBIGSdbSeqDef:
             self._replace_tempids()
 
             # Insert new typing loci, alleles, typing profiles & gene detection alleles into psql
-            TypingLociIntoPsql([self._species], dont_send_email=True)
-            TypingAllelesIntoPsql([self._species], dont_send_email=True)
-            TypingSchemeProfilesIntoPsql([self._species], dont_send_email=True)
+            TypingLociIntoPsql(self._species, dont_send_email=True)
+            TypingAllelesIntoPsql(self._species, dont_send_email=True)
+            TypingSchemeProfilesIntoPsql(self._species, dont_send_email=True)
             GeneDetectionIntoPsql(self._species, dont_send_email=True).insert_schemes()
             # update last insertion date
             self._update_metadata_collection.update_one({'metadata': 'last_dbupdate_insertion_date'},

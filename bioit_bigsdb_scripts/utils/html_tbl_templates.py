@@ -79,6 +79,7 @@ class HtmlReportBuilder:
     """
     Class to build an html layout composed of multiple html tables
     """
+
     def __init__(self) -> None:
         """initialize the general class HtmlReportBuilder to link multiple html tables in a convenient layout
         :return: None
@@ -221,6 +222,76 @@ class HtmlMobSuiteTableBuilder(HtmlTableBuilder):
         :return: None
         """
         self.add_row([id, num_contigs, size, gc_content, predicted_mobility, rep_types, relaxase_types])
+
+
+class HtmlAntiviralAssociationsTableBuilder(HtmlTableBuilder):
+    """subclass used to create the html table following the format for Antiviral associations"""
+
+    def __init__(self, report_url: str) -> None:
+        """
+        :param report_url: url to call the api to get the html report
+        :return: None
+        """
+        super().__init__(headers=['Category', 'Key', 'Antiviral', 'Resistance'], width_px=700)
+        self.add_report_row(report_url)
+
+    def add_association(self, category: str, key: str, antiviral: str, resistance: str) -> None:
+        """
+        Add one line to the html table of Antiviral associations
+        :param category: category of the mutation
+        :param key: key mutation
+        :param antiviral: antiviral for which the resistance might exist
+        :param resistance: type of resistance from normal inhibition to highly reduced inhibition (HRI)
+        :return: None
+        """
+        self.add_row([category, key, antiviral, resistance])
+
+
+class HtmlAntiviralMutationsTableBuilder(HtmlTableBuilder):
+    """subclass used to create the html table following the format for Antiviral mutations"""
+
+    def __init__(self, report_url: str) -> None:
+        """
+        :param report_url: url to call the api to get the html report
+        :return: None
+        """
+        super().__init__(headers=['Subtype', 'Segment', 'Category', 'Mutation'], width_px=700)
+        self.add_report_row(report_url)
+
+    def add_mutation(self, subtype: str, segment: str, category: str, mutation: str) -> None:
+        """
+        Add one line to the html table of Antiviral mutations
+        :param subtype: Influenza subtype
+        :param segment: viral segment on which the mutation is found
+        :param category: type of mutation (substitution, insertion, deletion)
+        :param mutation: the name of the mutation
+        :return: None
+        """
+        self.add_row([subtype, segment, category, mutation])
+
+
+class HtmlRefSelectionTableBuilder(HtmlTableBuilder):
+    """subclass used to create the html table following the format for Reference selection"""
+
+    def __init__(self, report_url: str) -> None:
+        """
+        :param report_url: url to call the api to get the html report
+        :return: None
+        """
+        super().__init__(headers=['Segment', 'Ref. genome', 'Esimated cov.', 'Matching hashes', 'strain', 'type'], width_px=800)
+        self.add_report_row(report_url)
+
+    def add_segment(self, segment: str, ref_genome: str, coverage: str, matching: str, strain: str, influenza_type: str) -> None:
+        """
+        Add one line to the html table for Reference selection
+        :param segment: viral segment
+        :param ref_genome: reference genome found as best match
+        :param coverage: coverage
+        :param matching: matching hashes
+        :param strain: strain deducted from the DB
+        :param influenza_type: influenza type A or B
+        """
+        self.add_row([segment, ref_genome, coverage, matching, strain, influenza_type])
 
 
 class HtmlSnpLineageTableBuilder(HtmlTableBuilder):

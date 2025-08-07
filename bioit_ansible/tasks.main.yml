@@ -1024,6 +1024,10 @@
         state: stopped
         enabled: false
         name: "bigsdb-insertion.service"
+      register: stop_service
+      failed_when:
+        - stop_service.failed == true
+        - '"Could not find the requested service" not in stop_service.msg'
 
     - name: add systemd service for automatic insertion
       ansible.builtin.copy:
