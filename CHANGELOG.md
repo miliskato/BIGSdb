@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.0]
+### Added:
+- Added task in ANSIBLE to remove the first version of the bigsdb-insertion.service (if present on the VM)
+- HtmlAntiviralMutationsTableBuilder and HtmlAntiviralMutationsTableBuilder classes 
+- Integration in BIGSdb of two assays for Influenza: the "Antiviral resistances" and the "Reference selection"
+
+### Changed
+- for Influenza, html tags are used but using the section tags of the original report
+- Changes in the naming of pcr related fields for Influenza
+
 ## [4.2.0]
 ### Added:
 - Ability to support deployment for multiple species databases on the same VM
