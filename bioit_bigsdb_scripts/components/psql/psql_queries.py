@@ -136,6 +136,8 @@ class PsqlQueries:
     # TBL extended attribute values bool
     ISO_DEL__TB_EAVB_VAR_ISO: Final[str] = """
         DELETE FROM eav_boolean where isolate_id=(SELECT id FROM isolates WHERE isolate=%s);"""
+    ISO_INS__TB_EAVB_VAR_ID_FIELD_VAL: Final[str] = """
+        INSERT INTO eav_boolean(isolate_id, field, value) VALUES(%s, %s, %s);"""
     ISO_INS__TB_EAVB_VAR_ISO_FIELD_VAL: Final[str] = """
         INSERT INTO eav_boolean(isolate_id, field, value) 
         VALUES((SELECT id FROM isolates WHERE isolate=%s), %s, %s);"""
@@ -150,9 +152,8 @@ class PsqlQueries:
     # TBL extended attribute values int
     ISO_DEL__TB_EAVI_VAR_ISO: Final[str] = """
         DELETE FROM eav_int where isolate_id=(SELECT id FROM isolates WHERE isolate=%s);"""
-    ISO_INS__TB_EAVI_VAR_ISO_FIELD_VAL: Final[str] = """
-        INSERT INTO eav_int(isolate_id, field, value) 
-        VALUES((SELECT id FROM isolates WHERE isolate=%s), %s, %s);"""
+    ISO_INS__TB_EAVI_VAR_ID_FIELD_VAL: Final[str] = """
+        INSERT INTO eav_int(isolate_id, field, value) VALUES(%s, %s, %s);"""
     # TBL extended attribute values text
     ISO_DEL__TB_EAVT_VAR_ISO: Final[str] = """DELETE FROM eav_text WHERE isolate_id=(SELECT id FROM isolates WHERE isolate=%s);"""
     ISO_DEL__TB_EAVT_VAR_ID_FIELD: Final[str] = """DELETE FROM eav_text WHERE isolate_id=%s AND field=%s;"""

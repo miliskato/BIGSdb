@@ -6,8 +6,8 @@ from typing import Any, Dict
 
 from bioit_mongodb_scripts.model.json_model import JsonReportDict
 from .json_superclass import JsonSuperClass
-from .psql import TblEavInt, TblEavText, TblEavTextHidden, TblHistory, TblIsolates
-from ..utils.html_tbl_templates import HtmlSnpLineageTableBuilder
+from .psql import TblEavBoolean, TblEavFields, TblEavInt, TblEavText, TblEavTextHidden, TblHistory, TblIsolates
+from ..utils.html_tbl_templates import HtmlAntiviralAssociationsTableBuilder, HtmlAntiviralMutationsTableBuilder, HtmlRefSelectionTableBuilder, HtmlReportBuilder, HtmlSnpLineageTableBuilder
 from ..utils.url_helper import UrlHelper
 
 
@@ -23,7 +23,7 @@ class MainInserterContext:
 
 class MainInserter(JsonSuperClass):
     """
-    Class containing defintions used to insert metadata results for both json and tsv input
+    Class containing definitions used to insert metadata results for both json and tsv input
     """
 
     def __init__(self, isolatename: str, species: str, json_report_dict: JsonReportDict, config_data: Dict[str, Any],
@@ -145,11 +145,45 @@ class MainInserter(JsonSuperClass):
                 self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'Serogroup_capsule', self._json_report_dict['serogroup']['serogroup_capsule']))
         elif self._species == 'influenza':
             if 'nextclade' in self._json_report_dict:
-                self._isolates_eavt_psql_tbl.insert_eav_isolate_viral_species(
-                    (self._isolatename, 'influenza_subtype', self._json_report_dict['nextclade'].get('nextclade_detected_subtype')))
-                self._isolates_eavt_psql_tbl.insert_eav_isolate_viral_species((self._isolatename, 'nextclade_clade', self._json_report_dict['nextclade'].get('nextclade_clade')))
+                self._isolates_eavt_psql_tbl.insert_eav_id_viral_species((context.isolate_id, 'influenza_subtype', self._json_report_dict['nextclade'].get('nextclade_detected_subtype')))
+                self._isolates_eavt_psql_tbl.insert_eav_id_viral_species((context.isolate_id, 'nextclade_clade', self._json_report_dict['nextclade'].get('nextclade_clade')))
+            if 'antivirals' in self._json_report_dict:
+                antiviral_mutations = self._json_report_dict['antivirals'].get('antivirals_mutations')
+                if antiviral_mutations:
+                    antiviral_associations = self._json_report_dict['antivirals'].get('antivirals_associations')
+                    url_with_anchor = f'{context.report_url}#antiviral'
+                    antiviral_mutations_table_builder = HtmlAntiviralMutationsTableBuilder(url_with_anchor)
+                    antiviral_associations_table_builder = HtmlAntiviralAssociationsTableBuilder(url_with_anchor)
+                    for item in antiviral_mutations:
+                        antiviral_mutations_table_builder.add_mutation(item['subtype'], item['segment'], item['type'], item['mutation'])
+                    with TblEavFields(self._species) as isolates_eavf_psql_tbl, TblEavBoolean(self._species) as isolates_eavb_psql_tbl:
+                        for item in antiviral_associations:
+                            antiviral_associations_table_builder.add_association(item['category'], item['key'], item['antiviral'], item['resistance'])
+                            antiviral_key_search = f'{item["antiviral"]}_{item["resistance"]}'
+                            if not isolates_eavf_psql_tbl.exists_in_eav_field((antiviral_key_search, 'Antiviral resistances')):
+                                isolates_eavf_psql_tbl.insert_boolean_field((antiviral_key_search, 'Antiviral resistances'))
+                            isolates_eavb_psql_tbl.insert_eav_id((context.isolate_id, antiviral_key_search, 't'))
+                    report_builder = HtmlReportBuilder()
+                    report_builder.add_title("Detected mutations")
+                    report_builder.add_table(antiviral_mutations_table_builder)
+                    report_builder.add_title("Subsequent associations")
+                    report_builder.add_table(antiviral_associations_table_builder)
+                    html = report_builder.build()
+                    self._isolates_eavt_psql_tbl.insert_eav_id_viral_species((context.isolate_id, 'antiviral_resistances', html))
+            if 'ref_selection' in self._json_report_dict:
+                url_with_anchor = f'{context.report_url}#ref_selection'
+                ref_selection_table_builder = HtmlRefSelectionTableBuilder(url_with_anchor)
+                for key, value in self._json_report_dict['ref_selection'].items():
+                    if isinstance(value, str):
+                        continue
+                    segment = key.split('-')[-1]
+                    metadata = value['metadata']
+                    ref_selection_table_builder.add_segment(segment, value['ref_id_fmt'], value['median_mult'], value['hashes'], metadata['Strain'], metadata['Type'])
+                html = ref_selection_table_builder.build()
+                self._isolates_eavt_psql_tbl.insert_eav_id_viral_species((context.isolate_id, 'reference_selection', html))
+
         elif self._species.startswith('enterococcus'):
             if 'lrefinder' in self._json_report_dict:
-                self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'LRE-Finder_species', self._json_report_dict['lrefinder'].get('lrefinder_species')))
+                self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'LRE-Finder_species', self._json_report_dict['lrefinder'].get('lrefinder_species')))
             if 'bacmet' in self._json_report_dict and self._json_report_dict['bacmet']['bacmet_genes'] != '':
-                self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'BacMet_genes', self._json_report_dict['bacmet']['bacmet_genes']))
+                self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'BacMet_genes', self._json_report_dict['bacmet']['bacmet_genes']))

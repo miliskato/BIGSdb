@@ -6,8 +6,8 @@ from pathlib import Path
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
+from bioit_mongodb_scripts.util.python_utility_functions import get_bigsdb_config_data
 from bioit_bigsdb_scripts.components.psql import TblSubmissions
-from bioit_bigsdb_scripts.components.python_utility_functions import get_bigsdb_config_data
 from bioit_bigsdb_scripts.sample_validation_to_mongo import SampleValidationToMongo
 
 # Configure stdout logging

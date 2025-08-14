@@ -14,7 +14,7 @@
  all_plugins="yes"
  microreact_year_field="sampling_date"
  tblastx_tagging="yes"
- eav_groups="Gene detection|fas fa-search,galaxy report|fas fa-file-medical-alt,Nextclade|fas fa-light fa-viruses"
+ eav_groups="Gene detection|fas fa-search,galaxy report|fas fa-file-medical-alt,Nextclade|fas fa-light fa-viruses,Antiviral resistances|fas fa-pills,Reference selection |fas fa-dna"
  field_groups="Curation history|fas fa-history,nominative metadata|fas fa-search"
  user_projects="yes"
  submissions="yes"
@@ -36,11 +36,10 @@
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="client zip">client_zip</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="client region">client_region</field>
 <field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="internal code for the client">client_code</field>
-<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="Subtype A or B">Flu_type</field>
-<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="Subtyping HA gene">FluA_subtypePCR</field>
-<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="Subtyping HA gene">FluA_subtypeHAPCR</field>
-<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="Subtyping HA gene">FluA_subtypeNAPCR</field>
-<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="Subtyping B">FluB_lineagePCR</field>
+<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="Type A or B">flu_type</field>
+<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="Subtyping HA gene">fluA_subtypeHAPCR</field>
+<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="Subtyping HA gene">fluA_subtypeNAPCR</field>
+<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="Subtyping or lineage PCR">flu_subtype_or_lineagePCR</field>
 <field type="date" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="reception date">reception_date</field>
 <field type="date" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="isolation date">isolation_date</field>
 <field type="text" required="no" length="20" maindisplay="no" group ="nominative metadata" comments="origine">origine</field>
@@ -84,7 +83,7 @@
 <field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="EC50 ZA value">EC50_ZA</field>
 <field type="text" required="no" length="60" maindisplay="no" group ="nominative metadata" comments="">GISAID_NGS</field>
 <field type="text" required="no" length="60" maindisplay="no" group ="nominative metadata" comments="case Type">case_type</field>
-<field type="text" required="no" length="100" maindisplay="no" group ="nominative metadata" comments="official name">official_name</field>
+<field type="text" required="no" length="100" maindisplay="no" group ="nominative metadata" comments="name from GISAID submission">official_name</field>
 <field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="outcome">outcome</field>
 <field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="country">country</field>
 </db>

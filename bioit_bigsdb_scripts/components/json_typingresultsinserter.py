@@ -43,6 +43,8 @@ class JsonTypingResultsInserter(JsonSuperClass):
         """
         with TblAlleleDesignations(self._species) as self._isolates_ad_psql_tbl, TblEavText(
                 self._species) as self._isolates_eavt_psql_tbl:
+            if self._schemedict is None:
+                return
             for scheme in self._schemedict:
                 self._scheme = scheme
                 if self._scheme in self._json_report_dict:
