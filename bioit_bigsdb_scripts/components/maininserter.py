@@ -132,7 +132,7 @@ class MainInserter(JsonSuperClass):
                 lineage_clean = {k: v for k, v in lineage_dict.items() if v is not None}
                 deeper_sublineage = list(lineage_clean.values())[-1]
                 self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'detected_lineage', deeper_sublineage['lineage']['id_']))
-                lineage_html_builder = HtmlSnpLineageTableBuilder(context.report_url)
+                lineage_html_builder = HtmlSnpLineageTableBuilder(f'{context.report_url}#snp-lineage')
                 for v in lineage_clean.values():
                     lineage_html_builder.add_lineage(v['lineage']['id_'], v['lineage']['name'], v['lineage']['main_spoligo'], v['count'])
                 html = lineage_html_builder.build()

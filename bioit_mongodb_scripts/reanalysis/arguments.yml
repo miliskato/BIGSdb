@@ -60,7 +60,9 @@ mycobacterium:
   rmlst: rMLST taxonomic identification
   ncbi-16s: NCBI-16S
   51snp: 51 SNP-based
-  amr: AMR detection
+  amr:
+    - AMR detection
+    - CDS completeness
   hsp65: hsp65-based differentiation
   snp-lineage: SNP lineage
   snpit: Snpit
@@ -111,7 +113,11 @@ sars_cov_2:
     - Subtype determination (mash screen 2.3)
     - Antiviral resistance
 influenza:
-  influenza:
+  influenza_a:
+    - Nextclade (Nextclade 3.1.1)
+    - Subtype determination (mash screen 2.3)
+    - Antiviral resistance
+  influenza_b:
     - Nextclade (Nextclade 3.1.1)
     - Subtype determination (mash screen 2.3)
     - Antiviral resistance

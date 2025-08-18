@@ -21,6 +21,8 @@ listeria:
   Virulence Factor DB - Core: vfdb-core
   VirulenceFinder - Listeria: virulencefinder
   PlasmidFinder - Gram positive: plasmidfinder
+mycobacterium:
+  SNP lineage: snp-lineage
 neisseria:
   AMRFinder (AMRFinder 3.11.26): amrfinder
   AMRFinder (AMRFinder 4.0.19): amrfinder
