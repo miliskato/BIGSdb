@@ -36,6 +36,7 @@ class CheckCoreQCMetrics:
         # Add class variables
         self._coreqc_config = load_config(COREQC_CONFIG)
         self._rejection_reasons = {}
+        self._warning_reasons = {}
         self._rejected_document = None
         self._good_sample_quality = True
 
@@ -59,7 +60,7 @@ class CheckCoreQCMetrics:
         if len(self._rejection_reasons) > 0:
             self._rejected_document = self._generate_rejected_document()
 
-        return self._good_sample_quality, self._rejected_document
+        return self._good_sample_quality, self._rejected_document, self._warning_reasons
 
     def _replace_category_if_necessary(self) -> None:
         """
@@ -130,7 +131,14 @@ class CheckCoreQCMetrics:
             }
             self._good_sample_quality = False
         elif self.___evaluate_threshold_exceedance(metric_info, qc_value, 'threshold_warn'):
+            qc_value_formatted, threshold_formatted = self.___format_values(metric_info, qc_value, 'threshold_warn')
             self._good_sample_quality = False
+            self._warning_reasons[core_qc_metric] = {
+                'value': qc_value,
+                'reason': f"{metric_info['parameter_name']} (={qc_value_formatted}) "
+                          f"{metric_info['threshold_direction']} than allowed warning limit (={threshold_formatted})."
+
+            }
 
     @staticmethod
     def ___evaluate_threshold_exceedance(metric_info: dict[str, Any], qc_value: float,
@@ -182,5 +190,5 @@ class CheckCoreQCMetrics:
         quality_sections = set(metric_info['category'] for metric_info in self._sample_coreqc_metrics.values() if not metric_info.get('category_to_replace'))
         for quality_section in quality_sections:
             document_to_be_inserted[quality_section] = self._json_report[quality_section]
-
+        document_to_be_inserted['contamination_check'] = self._json_report['contamination_check']
         return document_to_be_inserted

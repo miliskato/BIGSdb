@@ -249,12 +249,13 @@ class MainMongo:
         mongo_records = self.__initialize_mongo_record(json_report)
 
         good_sample_quality = True
+        warning_reasons = None
         if self._results_type == 'new_isolate':
             sample_coreqc_metrics = GetCoreQCMetrics(self._species, self._original_input_format,
                                                      mongo_records['technical_metadata']['data'].get('NanoporeFlowcell', 'illumina')). \
                 get_sample_coreqc_metrics()
             check_coreqc_metrics = CheckCoreQCMetrics(self._technical_id, json_report, self._species, self._reportdirectorypath, sample_coreqc_metrics)
-            good_sample_quality, rejected_document = check_coreqc_metrics.check_coreqc_metrics()
+            good_sample_quality, rejected_document, warning_reasons = check_coreqc_metrics.check_coreqc_metrics()
             if rejected_document:
                 isolates_rejected_coreqc_collection = self._mongoinit.initialise_isolates_rejected_coreqc_collection()
 
@@ -266,10 +267,11 @@ class MainMongo:
                 # exit gracefully
                 sys.exit()
 
-        self.__process_mongo_record(mongo_records, good_sample_quality)
+        self.__process_mongo_record(mongo_records, warning_reasons, good_sample_quality)
         return mongo_records
 
-    def __process_mongo_record(self, mongo_records: MongoRecordDict, good_sample_quality: bool = True) -> None:
+    def __process_mongo_record(self, mongo_records: MongoRecordDict, warning_reasons: Optional[dict[str, Any]] = None,
+                               good_sample_quality: bool = True) -> None:
         """
         Handles and inserts new isolates, whether that be actual new isolates or validated bad samples
         :param mongo_records: results dictionary coming from mongo
@@ -299,6 +301,7 @@ class MainMongo:
                     f"New isolate {self._technical_id} succeeded quality control. It's results were written to the 'isolates_goodqc' collection in the {self._species} database")
         else:
             mongo_records['submission_status'] = 'pending_for_submission'
+            mongo_records['warning_reasons'] = warning_reasons
             self.__write_document(self._isolates_warningqc_collection, mongo_records)
             logging.info(
                 f"New isolate {self._technical_id} failed quality control for one or more checks. It's results were written to the 'isolates_warningqc' collection in the {self._species} database")
