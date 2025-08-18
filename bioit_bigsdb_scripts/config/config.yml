@@ -358,7 +358,7 @@ species_json:
         schemename_bigsdb: PlasmidFinder_grampositive
         schemename_html: plasmidfinder
       amrfinder:
-        metadatafile: /db/amrfinder/v4/latest/AMRProt
+        metadatafile: /db/amrfinder/v4/latest/AMRProt.fa
         schemename_bigsdb: AMRFinder
         schemename_html: amrfinder
       lrefinder:
@@ -397,7 +397,7 @@ species_json:
         schemename_bigsdb: PlasmidFinder_grampositive
         schemename_html: plasmidfinder
       amrfinder:
-        metadatafile: /db/amrfinder/v4/latest/AMRProt
+        metadatafile: /db/amrfinder/v4/latest/AMRProt.fa
         schemename_bigsdb: AMRFinder
         schemename_html: amrfinder
       lrefinder:
@@ -442,7 +442,7 @@ species_json:
         schemename_bigsdb: PlasmidFinder_grampositive
         schemename_html: plasmidfinder
       amrfinder:
-        metadatafile: /db/amrfinder/v4/latest/AMRProt
+        metadatafile: /db/amrfinder/v4/latest/AMRProt.fa
         schemename_bigsdb: AMRFinder
         schemename_html: amrfinder
   mycobacterium:
