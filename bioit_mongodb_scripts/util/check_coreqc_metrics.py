@@ -182,6 +182,7 @@ class CheckCoreQCMetrics:
         document_to_be_inserted = {
             "_id": self._technical_id,
             "report_directory": str(self._report_directory_path),
+            "input_type": self._json_report['input_type'],
             "rejection_reasons": self._rejection_reasons,
             "creation_date": datetime.now(timezone.utc),
             "insertion_type": 'automatic'}
