@@ -95,11 +95,15 @@ class CheckCoreQCMetrics:
             if metric_info.get('field_to_replace'):
                 for key, value in metric_info['field_to_replace'].items():
                     field = field.replace(key, self._json_report[value])
+            qc_value_unformatted = self._json_report[metric_info['category']].get(field)
+            if not qc_value_unformatted:
+                # initially implemented for missing influenza reference sequences.
+                # Default values can be implemented for all parameters that can be absent with this
+                qc_value_unformatted = metric_info['default']
             if not metric_info.get('value_format_to_strip'):
-                qc_value = float(self._json_report[metric_info['category']][field])
+                qc_value = float(qc_value_unformatted)
             else:
-                qc_value = float(
-                    self._json_report[metric_info['category']][field].rstrip(metric_info['value_format_to_strip']))
+                qc_value = float(qc_value_unformatted.rstrip(metric_info['value_format_to_strip']))
         else:  # metric_info.get('fields'):
             if not metric_info.get('value_format_to_strip'):
                 qc_value = sum(
