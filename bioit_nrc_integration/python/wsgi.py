@@ -79,9 +79,11 @@ def insert_into_mongodb(mapping_table_dict: Dict[str, str], start_response: Call
                                                  'pseudo_id': pseudo_id,
                                                  'TX_BUSINESS_KEY': mapping_table_dict['TX_BUSINESS_KEY'],
                                                  'count': count})
-        else:
             pseudo_id = already_present['pseudo_id']
             count = already_present.get('count', count) + 1
+        else:
+            pseudo_id = already_present['pseudo_id']
+            count = already_present.get('count', count) + (1 if not mapping_table_dict.get('decrease_count') else -1)
             mapping_table_collection.update_one({'_id': mapping_table_dict['id']},
                                                 {'$set': {'count': count}})
 
