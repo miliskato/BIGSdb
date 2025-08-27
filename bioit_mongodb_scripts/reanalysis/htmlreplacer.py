@@ -85,6 +85,7 @@ class HtmlReplacer:
         sections_to_replace = self._base_html.find_report_sections_by_header(header_texts)
         new_sections = self._updated_html.find_report_sections_by_header(header_texts)
         # Replace the sections
+        # TODO won't work for new assays -> has to be taken into account when reanalysing with a new pipeline version
         if len(sections_to_replace) == len(new_sections):
             for old_section, new_section in zip(sections_to_replace, new_sections):
                 old_section.replace_with(new_section)

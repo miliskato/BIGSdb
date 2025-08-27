@@ -278,8 +278,7 @@ class MainMongo:
         :param good_sample_quality: boolean indicating whether the sample quality is good or bad
         :return: None
         """
-        if self._results_type not in ('warningqc_validated',
-                                      'goodqc_validated'):  # badqc and goodqc documents have already had their typinghitdictionaries converted to lists and their cgsts/clustering computed
+        if self._results_type not in ('warningqc_validated', 'goodqc_validated'):  # badqc and goodqc documents have already had their typinghitdictionaries converted to lists and their cgsts/clustering computed
             json_report = mongo_records.get_json_results()
             if not self._disable_asb_and_clustering_for_testing:
                 self.__find_hashes_in_results_and_add_to_collection(json_report, 'new_isolate')
@@ -709,7 +708,7 @@ class MainMongo:
 
             # Compare the modified dictionaries
             if mainkey_deepcopy != current_value:
-                print(f"{mainkey} different or not in old")
+                print(f"{mainkey} different")
                 any_result_changed = True
                 changed_results.add(mainkey)
             else:

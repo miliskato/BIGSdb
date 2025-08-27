@@ -86,7 +86,7 @@ class BatchPipelinesReanalysis:
         :return: None
         """
         self._species = species
-        self._species_mongodb = self._species if self._species not in ['influenza_a', 'influenza_b'] else 'influenza'
+        self._species_mongodb = self._get_mongodb_species()
 
         # Parse MongoDB config
         validate_literal(dtap, DtapLiteral)
@@ -462,6 +462,15 @@ class BatchPipelinesReanalysis:
                         f'{report_command}; {tagger_command}; {post_command}; {cleanup_command}; '
                         f'{mongodb_command}"')
         return task_command
+
+    def _get_mongodb_species(self) -> str:
+        """
+        Return the species that is used in MongoDB.
+        :return: str, MongoDB species
+        """
+        if self._species in ['influenza_a', 'influenza_b']:
+            return 'influenza'
+        return self._species
 
     def ____get_input_type(self, mongodb_document: dict[str, Any]) -> str:
         """
