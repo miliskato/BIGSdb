@@ -1,29 +1,40 @@
 enterococcus_faecalis:
+  AMRFinder (AMRFinder 3.11.26): amrfinder
   AMRFinder (AMRFinder 4.0.19): amrfinder
   ResFinder (ResFinder 4.4.2): resfinder4
   Virulence Factor DB - Core: vfdb-core
   VirulenceFinder - Enterococcus: virulencefinder
   PlasmidFinder - Gram positive: plasmidfinder
   LRE-Finder (LRE-Finder 20200812): lre-finder
+  MOB-recon (MOB-recon 3.1.8): mob-suite
 enterococcus_faecium:
+  AMRFinder (AMRFinder 3.11.26): amrfinder
   AMRFinder (AMRFinder 4.0.19): amrfinder
   ResFinder (ResFinder 4.4.2): resfinder4
   Virulence Factor DB - Core: vfdb-core
   VirulenceFinder - Enterococcus: virulencefinder
   PlasmidFinder - Gram positive: plasmidfinder
   LRE-Finder (LRE-Finder 20200812): lre-finder
+  MOB-recon (MOB-recon 3.1.8): mob-suite
 listeria:
+  AMRFinder (AMRFinder 3.11.26): amrfinder
   AMRFinder (AMRFinder 4.0.19): amrfinder
   ResFinder (ResFinder 4.4.2): resfinder4
   Virulence Factor DB - Core: vfdb-core
   VirulenceFinder - Listeria: virulencefinder
   PlasmidFinder - Gram positive: plasmidfinder
+  MOB-recon (MOB-recon 3.1.8): mob-suite
+mycobacterium:
+  SNP lineage: snp-lineage
 neisseria:
+  AMRFinder (AMRFinder 3.11.26): amrfinder
   AMRFinder (AMRFinder 4.0.19): amrfinder
   ResFinder (ResFinder 4.4.2): resfinder4
 salmonella:
   abriTAMR (AbriTAMR run 1.0.19): abritamr
+  AMRFinder (AMRFinder 3.11.26): amrfinder
+  AMRFinder (AMRFinder 4.0.19): amrfinder
   ResFinder (ResFinder 4.4.2): resfinder4
   SPIFinder (SPIFinder 0.1): spifinder
   Virulence Factor DB - Core: vfdb-core
-  AMRFinder (AMRFinder 4.0.19): amrfinder
+  MOB-recon (MOB-recon 3.1.8): mob-suite

@@ -101,6 +101,7 @@ metrics:
       - NA
     available_for_fasta_input: false
     parameter_name: Coverage depth on iterate segment (vertical)
+    default: 0.0
 
 species:
   listeria:

@@ -249,12 +249,13 @@ class MainMongo:
         mongo_records = self.__initialize_mongo_record(json_report)
 
         good_sample_quality = True
+        warning_reasons = None
         if self._results_type == 'new_isolate':
             sample_coreqc_metrics = GetCoreQCMetrics(self._species, self._original_input_format,
                                                      mongo_records['technical_metadata']['data'].get('NanoporeFlowcell', 'illumina')). \
                 get_sample_coreqc_metrics()
             check_coreqc_metrics = CheckCoreQCMetrics(self._technical_id, json_report, self._species, self._reportdirectorypath, sample_coreqc_metrics)
-            good_sample_quality, rejected_document = check_coreqc_metrics.check_coreqc_metrics()
+            good_sample_quality, rejected_document, warning_reasons = check_coreqc_metrics.check_coreqc_metrics()
             if rejected_document:
                 isolates_rejected_coreqc_collection = self._mongoinit.initialise_isolates_rejected_coreqc_collection()
 
@@ -266,18 +267,18 @@ class MainMongo:
                 # exit gracefully
                 sys.exit()
 
-        self.__process_mongo_record(mongo_records, good_sample_quality)
+        self.__process_mongo_record(mongo_records, warning_reasons, good_sample_quality)
         return mongo_records
 
-    def __process_mongo_record(self, mongo_records: MongoRecordDict, good_sample_quality: bool = True) -> None:
+    def __process_mongo_record(self, mongo_records: MongoRecordDict, warning_reasons: Optional[dict[str, Any]] = None,
+                               good_sample_quality: bool = True) -> None:
         """
         Handles and inserts new isolates, whether that be actual new isolates or validated bad samples
         :param mongo_records: results dictionary coming from mongo
         :param good_sample_quality: boolean indicating whether the sample quality is good or bad
         :return: None
         """
-        if self._results_type not in ('warningqc_validated',
-                                      'goodqc_validated'):  # badqc and goodqc documents have already had their typinghitdictionaries converted to lists and their cgsts/clustering computed
+        if self._results_type not in ('warningqc_validated', 'goodqc_validated'):  # badqc and goodqc documents have already had their typinghitdictionaries converted to lists and their cgsts/clustering computed
             json_report = mongo_records.get_json_results()
             if not self._disable_asb_and_clustering_for_testing:
                 self.__find_hashes_in_results_and_add_to_collection(json_report, 'new_isolate')
@@ -299,6 +300,7 @@ class MainMongo:
                     f"New isolate {self._technical_id} succeeded quality control. It's results were written to the 'isolates_goodqc' collection in the {self._species} database")
         else:
             mongo_records['submission_status'] = 'pending_for_submission'
+            mongo_records['warning_reasons'] = warning_reasons
             self.__write_document(self._isolates_warningqc_collection, mongo_records)
             logging.info(
                 f"New isolate {self._technical_id} failed quality control for one or more checks. It's results were written to the 'isolates_warningqc' collection in the {self._species} database")
@@ -681,27 +683,37 @@ class MainMongo:
         any_result_changed = False
         unchanged_results = set()
         changed_results = set()
-        for mainkey in new_results:  # mainkey is assay or metadata
+
+        for mainkey, new_value in new_results.items():
             if mainkey == 'quality_checks':
                 continue
-            if isinstance(new_results[mainkey], dict):
-                if mainkey not in current_results:
-                    logging.info(f"{mainkey} not in current results")
-                    any_result_changed = True
-                    changed_results.add(mainkey)
-                    continue
-                mainkey_deepcopy = deepcopy(new_results[mainkey])
-                for subkey in new_results[mainkey]:
-                    if isinstance(subkey, str) and 'db_version' in subkey or 'tool_version' in subkey:
-                        mainkey_deepcopy.pop(subkey)
-                        if current_results[mainkey].get(subkey):
-                            current_results[mainkey].pop(subkey)
-                if mainkey_deepcopy != current_results[mainkey]:
-                    logging.info(f"{mainkey} different or not in old")
-                    any_result_changed = True
-                    changed_results.add(mainkey)
-                if mainkey not in changed_results:
-                    unchanged_results.add(mainkey)
+
+            if not isinstance(new_value, dict):
+                continue
+
+            if mainkey not in current_results:
+                print(f"{mainkey} not in current results")
+                any_result_changed = True
+                changed_results.add(mainkey)
+                continue
+
+            # Create a deep copy of the new results and remove version-related subkeys
+            mainkey_deepcopy = deepcopy(new_value)
+            current_value = current_results[mainkey]
+
+            for subkey in list(mainkey_deepcopy.keys()):
+                if isinstance(subkey, str) and ('db_version' in subkey or 'tool_version' in subkey):
+                    mainkey_deepcopy.pop(subkey, None)
+                    current_value.pop(subkey, None)
+
+            # Compare the modified dictionaries
+            if mainkey_deepcopy != current_value:
+                print(f"{mainkey} different")
+                any_result_changed = True
+                changed_results.add(mainkey)
+            else:
+                unchanged_results.add(mainkey)
+
         return any_result_changed, unchanged_results, changed_results
 
     def __nested_dict_delta(self, current_results: JsonReportDict, new_results: JsonReportDict, current_report_path: str) -> JsonReportDict:
@@ -733,7 +745,7 @@ class MainMongo:
             delta_new_old['isolates_id'] = current_results['isolates_id']
             delta_new_old['results_version'] = current_results['results_version']
             delta_new_old['changed_version'] = current_results['changed_version']
-        delta_new_old['report_directory'] = current_report_path
+            delta_new_old['report_directory'] = current_report_path
         return delta_new_old
 
     def __convert_typinghitdictionaries_to_lists(self, json_report: JsonReportDict) -> None:
@@ -833,7 +845,7 @@ class MainMongo:
 
 if __name__ == '__main__':
     args = parse_arguments()
-    mongo_config_provider = MongoConfigProvider()
+    mongo_config_provider = MongoConfigProvider(args.alternate_dtap)
 
     connection_string = mongo_config_provider.get_azure_connection_string(args.species)
     if args.connection_string == 'CONNECTION_STRING_ALTERNATE':

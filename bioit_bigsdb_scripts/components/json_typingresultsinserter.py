@@ -141,7 +141,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
         plasmid_list = self._json_report_dict['mob_suite'].get('mob_suite_overview')
         if not plasmid_list:
             return
-        report_url = UrlHelper.report_for_isolate(self._species, self.__get_isolate_id())
+        report_url = UrlHelper.report_for_isolate(self._species, self.__get_isolate_id(), anchor='mob-suite')
         mob_suite_table_builder = HtmlMobSuiteTableBuilder(report_url)
         for item in plasmid_list:
             mob_suite_table_builder.add_plasmid(item['id'], item['num_contigs'], item['size'], item['gc'], item['predicted_mobility'], item['rep_type(s)'], item['relaxase_type(s)'])

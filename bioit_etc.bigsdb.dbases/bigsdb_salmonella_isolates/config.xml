@@ -91,7 +91,7 @@
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="keep for clustering">keep_for_clustering</field>
 <field type="text" required="no" length="150" maindisplay="no" group ="nominative metadata" comments="comment">comment</field>
 <field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="isolate_label">isolate_label</field> # not found in DCD
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="country">country</field>
+<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="country">country</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="symptom_asymptomatic">symptom_asymptomatic</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="symptom_gastroenteritis">symptom_gastroenteritis</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="symptom_sepsis">symptom_sepsis</field>

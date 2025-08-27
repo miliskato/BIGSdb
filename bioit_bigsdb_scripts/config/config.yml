@@ -82,7 +82,7 @@ species:
         schemename_bigsdb: PlasmidFinder_grampositive
         schemename_html: plasmidfinder
       amrfinder:
-        metadatafile: /db/amrfinder/latest/AMRProt
+        metadatafile: /db/amrfinder/v4/latest/AMRProt.fa
         schemename_bigsdb: AMRFinder
         schemename_html: amrfinder
       lrefinder:
@@ -133,7 +133,7 @@ species:
         schemename_bigsdb: PlasmidFinder_grampositive
         schemename_html: plasmidfinder
       amrfinder:
-        metadatafile: /db/amrfinder/latest/AMRProt
+        metadatafile: /db/amrfinder/v4/latest/AMRProt.fa
         schemename_bigsdb: AMRFinder
         schemename_html: amrfinder
       lrefinder:
@@ -193,7 +193,7 @@ species:
         schemename_bigsdb: PlasmidFinder_grampositive
         schemename_html: plasmidfinder
       amrfinder:
-        metadatafile: /db/amrfinder/latest/AMRProt
+        metadatafile: /db/amrfinder/v4/latest/AMRProt.fa
         schemename_bigsdb: AMRFinder
         schemename_html: amrfinder
   mycobacterium:
@@ -282,6 +282,10 @@ species:
         metadatafile: /db/resfinder4/resfinder/phenotypes.txt
         schemename_bigsdb: ResFinder4
         schemename_html: resfinder4
+      amrfinder:
+        metadatafile: /db/amrfinder/v4/latest/AMRProt.fa
+        schemename_bigsdb: AMRFinder
+        schemename_html: amrfinder
   salmonella:
     typing_schemes:
       salmonella_mlst:
@@ -318,7 +322,7 @@ species:
       amrfinder:
         metadatafile: /db/amrfinder/v4/latest/AMRProt.fa
         schemename_bigsdb: AMRFinder
-        schemename_html: amr #TODO replace this value by amrfinder when the bug will be fixed in the image VM
+        schemename_html: amrfinder
   influenza:
     typing_schemes: null
     genedetection_schemes: null
@@ -354,7 +358,7 @@ species_json:
         schemename_bigsdb: PlasmidFinder_grampositive
         schemename_html: plasmidfinder
       amrfinder:
-        metadatafile: /db/amrfinder/latest/AMRProt
+        metadatafile: /db/amrfinder/v4/latest/AMRProt.fa
         schemename_bigsdb: AMRFinder
         schemename_html: amrfinder
       lrefinder:
@@ -393,7 +397,7 @@ species_json:
         schemename_bigsdb: PlasmidFinder_grampositive
         schemename_html: plasmidfinder
       amrfinder:
-        metadatafile: /db/amrfinder/latest/AMRProt
+        metadatafile: /db/amrfinder/v4/latest/AMRProt.fa
         schemename_bigsdb: AMRFinder
         schemename_html: amrfinder
       lrefinder:
@@ -438,7 +442,7 @@ species_json:
         schemename_bigsdb: PlasmidFinder_grampositive
         schemename_html: plasmidfinder
       amrfinder:
-        metadatafile: /db/amrfinder/latest/AMRProt
+        metadatafile: /db/amrfinder/v4/latest/AMRProt.fa
         schemename_bigsdb: AMRFinder
         schemename_html: amrfinder
   mycobacterium:
@@ -504,6 +508,10 @@ species_json:
         metadatafile: /db/resfinder4/resfinder/phenotypes.txt
         schemename_bigsdb: ResFinder4
         schemename_html: resfinder4
+      amrfinder:
+        metadatafile: /db/amrfinder/v4/latest/AMRProt.fa
+        schemename_bigsdb: AMRFinder
+        schemename_html: amrfinder
   salmonella:
     typing_schemes:
       mlst:
@@ -537,6 +545,10 @@ species_json:
         metadatafile: /db/gene_detection/VFDB_core/mapping_full.json
         schemename_bigsdb: VFDB_core
         schemename_html: vfdb-core
+      amrfinder:
+        metadatafile: /db/amrfinder/v4/latest/AMRProt.fa
+        schemename_bigsdb: AMRFinder
+        schemename_html: amrfinder
   influenza:
     typing_schemes: null
     genedetection_schemes: null
