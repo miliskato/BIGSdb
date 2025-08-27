@@ -76,7 +76,7 @@ class MongoToBigsNominative:
                 dict_to_be_inserted = {}
                 if sample_presence[0][0] != 0:  # only add metadata if sample exists in bigsdb
                     for key, value in document.items():
-                        if key not in ['inserted_into_bigsdb', '_id'] and value is not None:
+                        if key not in ['inserted_into_bigsdb', '_id', 'sample_id', 'LAB_received', 'CLIN_received'] and value is not None:
                             dict_to_be_inserted[key] = value
                     isolate_update_query = isolates_psql_tbl.build_update_nomin_metadata_query(dict_to_be_inserted)
                     values_to_set_in_fields = [v for v in dict_to_be_inserted.values()]

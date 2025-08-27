@@ -55,12 +55,15 @@
 <field type="text" required="no" length="20" maindisplay="no" group ="nominative metadata" comments="case Type">case_type</field>
 <field type="text" required="no" length="40" maindisplay="no" group ="nominative metadata" comments="evolution">evolution</field>
 <field type="text" required="no" length="40" maindisplay="no" group ="nominative metadata" comments="identification">identification</field>
+<field type="text" required="no" length="30" maindisplay="no" group ="nominative metadata" comments="serogroup by slide agglutination">serogroup_agglutination</field>
+<field type="text" required="no" length="30" maindisplay="no" group ="nominative metadata" comments="serogroup PCR">serogroup_pcr</field>
 <field type="text" required="no" length="30" maindisplay="no" group ="nominative metadata" comments="serogroup">serogroup_pheno</field>
 <field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Amo">mic_amo</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Amo I">mic_amo_I</field>
 <field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Amp">mic_amp</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Amp I">mic_amp_I</field>
 <field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Azm">mic_azm</field>
+<field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Azm I">mic_azm_I</field>
 <field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Cox">mic_cox</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Cox I">mic_cox_I</field>
 <field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="MIC Chl">mic_chl</field>
@@ -75,6 +78,16 @@
 <field type="text" required="no" length="20" maindisplay="no" group ="nominative metadata" comments="indication for sequencing">indication_for_sequencing</field>
 <field type="text" required="no" length="20" maindisplay="no" group ="nominative metadata" comments="keep for clustering">keep_for_clustering</field>
 <field type="text" required="no" length="150" maindisplay="no" group ="nominative metadata" comments="comment">comment</field>
-<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="isolate_label">isolate_label</field>
 <field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="country">country</field>
+<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="isolate_label">isolate_label</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="symptom_unknown">symptom_unknown</field>
+<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="symptom_other">symptom_other</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="symptom_meningitis">symptom_meningitis</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="symptom_bacterial_septicemia">symptom_bacterial_septicemia</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="meningococcal_vaccination">meningococcal_vaccination</field>
+<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="meningococcal_vaccine">meningococcal_vaccine</field>
+<field type="int" required="no" length="4" maindisplay="no" group ="nominative metadata" comments="meningococcal_vaccination_year">meningococcal_vaccination_year</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="streptococcal_vaccination">streptococcal_vaccination</field>
+<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="streptococcal_vaccine">streptococcal_vaccine</field>
+<field type="int" required="no" length="4" maindisplay="no" group ="nominative metadata" comments="streptococcal_vaccination_year">streptococcal_vaccination_year</field>
 </db>

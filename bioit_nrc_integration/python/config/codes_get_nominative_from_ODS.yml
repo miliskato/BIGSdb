@@ -5,6 +5,10 @@ pathogens:
   HDBP0335_LIST_LAB: listeria
   HDBP0333_INFL_CLIN: influenza
   HDBP0333_INFL_LAB: influenza
+  HDBP0337_???_CLIN: mycobacterium # todo
+  HDBP0337_???_LAB: mycobacterium # todo
+  HDBP0339_???_CLIN: neisseria # todo
+  HDBP0339_???_LAB: neisseria # todo
 
 schema:
   LAB:
@@ -40,6 +44,7 @@ schema:
       required: False
       allowed:
         - influenza
+        - mycobacterium
       translation: reception_date
   CLIN:
     TX_LAB_SAMPLE_VAL:  # needed for link with WGS meta
@@ -68,7 +73,7 @@ schema:
       required: False
       translation: antibiotic
       code_list: CD_ANTBIO_SPECIF_codes
-      other: CD_ANTBIO_SPECIF_OTH
+      other: TX_ANTBIO_SPECIF_OTH
 #    CD_PROB_NAM:  # this is a list with 5 options, in mail discussions with Florian we decided that these should be 5 separate fields in bigsdb instead of the single clinical_info field because multiple options are possible and else it would be hard to query and do e.g. two field breakdown in bigsdb. Therefore this was implemented in a separate function
 #      required: True
 #      translation: clinical_info
@@ -88,6 +93,9 @@ schema:
       required:
         - listeria
       translation: outcome
+      code_list: CD_OUTCM_codes
+    CD_OUTC:
+      translation: evolution
       code_list: CD_OUTCM_codes
     CD_TRANSM_ZOONSS:
       required:
@@ -146,13 +154,73 @@ schema:
       required: False
       allowed:
         - influenza
+        - mycobacterium
       translation: sampling_date
     DT_SYMP_ONSET:
       required: False
       translation: symptoms_start_date
+    TX_PAT_LAST_NAM:
+      required: False
+      allowed:
+        - mycobacterium
+      translation: patient_last_name
+    TX_PAT_FIRST_NAM:
+      required: False
+      allowed:
+        - mycobacterium
+      translation: patient_first_name
+    CD_HPIN_VAL: # HPIN is a remote code list and can not be converted to an actual name without great effort, therefore the number is simply store here. https://docs.healthdata.be/documentation/hd4dp2-code-lists/hpin
+      required:
+        - mycobacterium
+      allowed:
+        - mycobacterium
+      translation: physician_name
+    CD_VACCN_MEN:
+      required: False
+      translation: meningococcal_vaccination
+      code_list: YNU_codes
+    CD_VACCN_MEN_PROD:
+      required: False
+      translation: meningococcal_vaccine
+      code_list: CD_VACCN_MEN_PROD_codes
+      other: TX_VACCN_MEN_PROD_OTH
+    NR_VACCN_MEN_Y:
+      required: False
+      translation: meningococcal_vaccination_year
+    CD_VACCN_STREPTO:
+      required: False
+      translation: streptococcal_vaccination
+      code_list: YNU_codes
+    CD_VACCN_STREPTO_PROD:
+      required: False
+      translation: streptococcal_vaccine
+      code_list: CD_VACCN_STREPTO_PROD_codes
+      other: TX_VACCN_STREPTO_PROD_OTH
+    NR_VACCN_STREPTO_Y:
+      required: False
+      translation: meningococcal_vaccination_year
+    CD_TBC_TREAT:
+      required: False
+      translation: under_treatment
+      code_list: YNU_codes
+    CD_TBC_PREV:
+      required: False
+      translation: tuberculosis_antecedents
+      code_list: YNU_codes
+    CD_TBC_SITE:
+      required: False
+      translation: tuberculosis_site
+      code_list: CD_TBC_SITE_codes
+      other: TX_TBC_SITE_OTH
+    CD_TBC_SUSP:
+      required: False
+      translation: tuberculosis_suspicion
+      code_list: YNU_codes
 code_lists:
   YNU_codes:
     373066001: 'Yes'
+    772170009: 'Yes' # from MTB CLIN TB_SUSPICION
+    473165003: 'Yes' # from NEI CLIN YNU_VACCINE_STREPTO
     373067005: 'No'
     261665006: 'Unknown'
   CD_PAT_SEX_codes:
@@ -198,9 +266,12 @@ code_lists:
     385432009: Not applicable
     74964007: Other
     261665006: 'Unknown'
-    1: Exposure to a common source
+    1: Exposure to a common source/grouped case
     230102009: Contaminated food intake
     102430008: Exposure to polluted drinking water
+    2: Imported case
+    3: Special resistance
+    4: Treatment
   CD_PROB_NAM_codes:
     84387000: Asymptomatic
     25374005: Gastroenteritis
@@ -211,10 +282,16 @@ code_lists:
     PN0001: Meningitis and meningoencephalitis
     443138004: Granulomatosis
     74964007: Other
+    7180009: Meningitis
+    10001005: Bacterial septicemia
   CD_TPE_codes:
     255409004: Pregnant woman
     133933007: Newborn
     74964007: Other
+    415684004: Suspected
+    10179008: Invasive
+    22762002: Non-invasive
+    261665006: 'Unknown'
   CD_OUTCM_codes:
     371001000: Patient cured
     170968001: Prognosis favorable
@@ -278,6 +355,36 @@ code_lists:
   MEDICATION_FLU_codes:
     MD0020: Baloxavir
     MD0021: Oseltamivir
+  CD_VACCN_MEN_PROD_codes:
+    1: Menveo
+    2: Nimenrix
+    3: NeisVac-C
+    4: Bexsero
+    5: Trumenba
+    74964007: Other
+  CD_VACCN_STREPTO_PROD_codes:
+    1052330009: PCV10-vaccine
+    51451000087105: PCV13-vaccine
+    1252708008: PCV15-vaccine
+    1252709000: PCV20-vaccine
+    1119220001: PCV23-vaccine
+    74964007: Other
+  CD_TBC_SITE_codes:
+    39607008: Lung
+    59441001: Lymph node
+    3120008: Pleura
+    272673000: Bone structure
+    39352004: Joint
+    21483005: Central nervous system
+    64033007: Kidney
+    89837001: Bladder
+    245500007: Structure of anatomical reproductive system
+    113276009: Intestines
+    10200004: Liver
+    78961009: Spleen
+    15425007: Peritoneum
+    87612001: Blood
+    74964007: Other
   TX_TTL_LAB_TEST_combinations:  # CD_LAB_TEST_CODE, value_field, code_list, translation  # for the quantitative ones, they have been encoded in bigsdb as floats -> no need for units
     - CD_LAB_TEST_CODE: 'TC0036'
       value_field: 'CD_LAB_TEST_RSLT_QL'
@@ -405,6 +512,20 @@ code_lists:
       value_field: 'CD_LAB_TEST_RSLT_QL'
       code_list: 'labtest_codes'
       translation: 'mic_mem_I'
+    - CD_LAB_TEST_CODE: '6932-8'
+      value_field: 'MS_LAB_TEST_RSLT_QN_VAL'
+      translation: 'mic_pen'
+    - CD_LAB_TEST_CODE: '18964-7'
+      value_field: 'CD_LAB_TEST_RSLT_QL'
+      code_list: 'labtest_codes'
+      translation: 'mic_pen_I'
+    - CD_LAB_TEST_CODE: '428-3'
+      value_field: 'MS_LAB_TEST_RSLT_QN_VAL'
+      translation: 'mic_rif'
+    - CD_LAB_TEST_CODE: '18974-6'
+      value_field: 'CD_LAB_TEST_RSLT_QL'
+      code_list: 'labtest_codes'
+      translation: 'mic_rif_I'
     - CD_LAB_TEST_CODE: '468-9'
       value_field: 'MS_LAB_TEST_RSLT_QN_VAL'
       translation: 'mic_smx'
@@ -465,11 +586,43 @@ code_lists:
     - CD_LAB_TEST_CODE: '96766-1'
       value_field: 'TX_LAB_TEST_RSLT_TXT'
       translation: 'GISAID_NGS'
+    - CD_LAB_TEST_CODE: 'TC0043'
+      value_field: 'CD_LAB_TEST_RSLT_QL'
+      code_list: 'mycobacterium_codes'
+      translation: 'identification_BK'
+    - CD_LAB_TEST_CODE: '9825-1'
+      value_field: 'CD_LAB_TEST_RSLT_QL'
+      code_list: 'mycobacterium_codes'
+      translation: 'identification_NTM'
+    - CD_LAB_TEST_CODE: '25217-1'
+      value_field: 'MS_LAB_TEST_RSLT_QN_VAL'
+      translation: 'isoniazid_0_1ug'
+    - CD_LAB_TEST_CODE: '25202-3'
+      value_field: 'MS_LAB_TEST_RSLT_QN_VAL'
+      translation: 'rifampicin_1ug'
+    - CD_LAB_TEST_CODE: '25194-2'
+      value_field: 'MS_LAB_TEST_RSLT_QN_VAL'
+      translation: 'ethambutol_5ug'
+    - CD_LAB_TEST_CODE: '25229-6'
+      value_field: 'MS_LAB_TEST_RSLT_QN_VAL'
+      translation: 'pyrazinamid_100ug'
+    - CD_LAB_TEST_CODE: 'TC0042'
+      value_field: 'CD_LAB_TEST_RSLT_QL'
+      code_list: 'neisseria_codes'
+      translation: 'identification'
+    - CD_LAB_TEST_CODE: 'TC0041'
+      value_field: 'CD_LAB_TEST_RSLT_QL'
+      code_list: 'neisseria_codes'
+      translation: 'serogroup_agglutination'
+    - CD_LAB_TEST_CODE: 'TC0040'
+      value_field: 'CD_LAB_TEST_RSLT_QL'
+      code_list: 'neisseria_codes'
+      translation: 'serogroup_pcr'
   labtest_codes:
     1306577009: Susceptible
     1306581009: Intermediate
     1306583007: Resistant
-    QL0001: Unknown
+    QL0001: 'Unknown'
     QL0002: Not interpretable
   labtest_codes_influenza:
     83185005: Sensitive
@@ -481,6 +634,263 @@ code_lists:
     260373001: Detected
     260415000: Not detected
     373068000: Undetermined
+  neisseria_codes:
+    264868006: No growth
+    10828004: Positive
+    260385009: Negative
+    17872004: Neisseria meningitidis
+    1: No Neisseria meningitidis
+    9861002: Streptococcus pneumoniae
+    2: No Streptococcus pneumoniae
+    103479006: Neisseria meningitidis serogroup A
+    103480009: Neisseria meningitidis serogroup B
+    103481008: Neisseria meningitidis serogroup C
+    125041003: Neisseria meningitidis serogroup X
+    103482001: Neisseria meningitidis serogroup Y
+    125042005: Neisseria meningitidis serogroup Z
+    103483006: Neisseria meningitidis serogroup W
+    698162001: Neisseria meningitidis serogroup 29E
+    3: Neisseria meningitidis serogroup H
+    4: Neisseria meningitidis serogroup I
+    5: Neisseria meningitidis serogroup K
+    6: Neisseria meningitidis serogroup L
+    7: Neisseria meningitidis serogroup O
+    8: Neisseria meningitidis serogroup Z/29E
+    414810006: Neisseria meningitidis non-groupable
+    QL0028: Autoagglutinable
+    261665006: 'Unknown'
+  mycobacterium_codes:
+    261665006: 'Unknown'
+    373068000: 'Undetermined'
+    QL0002: 'Not interpretable'
+    260415000: 'Not detected'
+    51320008: 'Mycobacterium africanum'
+    27142009: 'Mycobacterium bovis'
+    33610009: 'BCG variant of Mycobacterium bovis'
+    1: 'Mycobacterium bovis subspecies bovis/BCG variant of Mycobacterium bovis'
+    832924651000087107: 'Mycobacterium bovis subspecies bovis'
+    430579009: 'Mycobacterium caprae'
+    70801007: 'Mycobacterium microti'
+    113861009: 'Mycobacterium tuberculosis'
+    113858008: 'Mycobacterium tuberculosis complex'
+    2: 'Mycobacterium tuberculosis/africanum'
+    8940004: 'Actinomyces naeslundii'
+    447175005: 'Actinomyces oris'
+    9: 'Amycolatopsis taiwanensis'
+    10: 'Anthracenicum'
+    113611002: 'Corynebacterium amycolatum'
+    417499006: 'Corynebacterium argentoratense'
+    413926004: 'Corynebacterium durum'
+    116389005: 'Corynebacterium falsenii'
+    416914001: 'Corynebacterium freneyi'
+    432808003: 'Corynebacterium glaucum'
+    63410006: 'Corynebacterium jeikeium'
+    363777001: 'Corynebacterium kroppenstedtii'
+    113612009: 'Corynebacterium propinquum'
+    12050008: 'Corynebacterium pseudodiphtheriticum'
+    243264002: 'Corynebacterium pseudogenitalium'
+    131241009: 'Corynebacterium riegelii'
+    63815007: 'Corynebacterium striatum'
+    432339006: 'Dietzia natronolimnaea'
+    77086004: 'Genus Corynebacterium'
+    115143001: 'Genus Gordonia'
+    414328004: 'Genus Kocuria'
+    38395008: 'Genus Methylobacterium'
+    59674005: 'Genus Nocardia'
+    431381002: 'Genus Prauserella'
+    115148005: 'Genus Pseudonocardia'
+    34534002: 'Genus Rhodococcus'
+    103501008: 'Genus Saccharomonospora'
+    115144007: 'Genus Saccharopolyspora'
+    47304000: 'Genus Streptomyces'
+    416711002: 'Gordonia aichiensis'
+    113646005: 'Gordonia bronchialis'
+    432179008: 'Gordonia paraffinivorans'
+    113648006: 'Gordonia sputi'
+    113649003: 'Gordonia terrae'
+    26: 'Mychobacterium gordonae AND chelonae/abscessus'
+    113838007: 'Mycobacterium abscessus'
+    704995002: 'Mycobacterium abscessus subspecies abscessus'
+    3: 'Mycobacterium abscessus subspecies abscessus AND abscessus subspecies massiliense'
+    4: 'Mycobacterium abscessus subspecies abscessus AND avium'
+    5: 'Mycobacterium abscessus subspecies abscessus AND intracellulare'
+    6: 'Mycobacterium abscessus subspecies massiliense AND avium'
+    7: 'Mycobacterium abscessus subspecies massiliense AND intracellulare'
+    29111009: 'Mycobacterium agri'
+    8: 'Mycobacterium agri/manitobense'
+    840692009: 'Mycobacterium alsense'
+    113839004: 'Mycobacterium alvei'
+    5371000146101: 'Mycobacterium arosiense'
+    432820006: 'Mycobacterium arupense'
+    11: 'Mycobacterium arupense/heraklionense'
+    44760001: 'Mycobacterium asiaticum'
+    716339009: 'Mycobacterium aubagnense'
+    48134004: 'Mycobacterium aurum'
+    83723009: 'Mycobacterium avium'
+    12: 'Mycobacterium avium AND abscessus complex'
+    14: 'Mycobacterium avium AND chelonae'
+    15: 'Mycobacterium avium AND chimaera'
+    16: 'Mycobacterium avium AND fortuitum complex'
+    17: 'Mycobacterium avium AND intracellulare'
+    18: 'Mycobacterium avium AND kansasii'
+    13: 'Mycobacterium avium AND chelonae/abscessus complex'
+    19: 'Mycobacterium avium AND mageritense'
+    20: 'Mycobacterium avium AND thermoresistibile'
+    58503001: 'Mycobacterium avium/intracellulare complex'
+    430996002: 'Mycobacterium bohemicum'
+    430997006: 'Mycobacterium botniense'
+    113843000: 'Mycobacterium branderi'
+    430998001: 'Mycobacterium brisbanense'
+    113844006: 'Mycobacterium brumae'
+    103475000: 'Mycobacterium celatum'
+    243377008: 'Mycobacterium chelonae'
+    21: 'Mycobacterium chelonae AND chimaera'
+    22: 'Mycobacterium chelonae AND fortuitum'
+    23: 'Mycobacterium chelonae AND intracellulare'
+    24: 'Mycobacterium chelonae AND intracellulare complex'
+    25: 'Mycobacterium chimaera AND chelonae/abscessus'
+    89896008: 'Mycobacterium chitae'
+    5381000146104: 'Mycobacterium colombiense'
+    113845007: 'Mycobacterium confluentis'
+    113846008: 'Mycobacterium conspicuum'
+    113847004: 'Mycobacterium cookii'
+    430580007: 'Mycobacterium cosmeticum'
+    27: 'Mycobacterium cosmeticum/aquaticum'
+    430581006: 'Mycobacterium doricum'
+    66838002: 'Mycobacterium duvalii'
+    385509008: 'Mycobacterium elephantis'
+    28: 'Mycobacterium elephantis/madagascariense/pulveris/moriokaense'
+    716342003: 'Mycobacterium engbaekii'
+    712913003: 'Mycobacterium europaeum'
+    29: 'Mycobacterium europaeum/parascrofulaceum'
+    5885000: 'Mycobacterium flavescens'
+    708346003: 'Mycobacterium florentinum'
+    734247004: 'Mycobacterium fluoranthenivorans'
+    30: 'Mycobacterium fluoranthenivorans/hackensackense'
+    243378003: 'Mycobacterium fortuitum'
+    35: 'Mycobacterium fortuitum AND intracellulare'
+    103474001: 'Mycobacterium fortuitum complex'
+    31: 'Mycobacterium fortuitum/peregrinum/septicum complex'
+    32: 'Mycobacterium fortuitum/porcinum/septicum/neworleansense/boenickei complex'
+    33: 'Mycobacterium fortuitum/senegalense/conceptionense/farcinogenes complex'
+    34: 'Mycobacterium fortuitum/septicum complex'
+    429917008: 'Mycobacterium frederiksbergense'
+    36: 'Mycobacterium fuerth'
+    74917007: 'Mycobacterium gadium'
+    70463000: 'Mycobacterium gastri'
+    103476004: 'Mycobacterium genavense'
+    24618002: 'Mycobacterium gilvum'
+    37: 'Mycobacterium gilvum AND iranicum'
+    127522008: 'Mycobacterium goodii'
+    24871004: 'Mycobacterium gordonae'
+    38: 'Mycobacterium gordonae AND avium'
+    39: 'Mycobacterium gordonae AND chelonae'
+    40: 'Mycobacterium gordonae AND chimaera'
+    41: 'Mycobacterium gordonae AND intracellulare'
+    42: 'Mycobacterium gordonae AND xenopi'
+    43: 'Mycobacterium gordonae AND xenopi AND fortuitum'
+    21996001: 'Mycobacterium haemophilum'
+    113848009: 'Mycobacterium hassiacum'
+    429919006: 'Mycobacterium heckeshornense'
+    429920000: 'Mycobacterium heidelbergense'
+    712912008: 'Mycobacterium heraklionense'
+    113849001: 'Mycobacterium hiberniae'
+    429946001: 'Mycobacterium holsaticum'
+    428319005: 'Mycobacterium immunogenum'
+    113851002: 'Mycobacterium interjectum'
+    113852009: 'Mycobacterium intermedium'
+    83841006: 'Mycobacterium intracellulare'
+    44: 'Mycobacterium intracellulare complex'
+    45: 'Mycobacterium intracellulare complex AND tuberculosis complex'
+    46: 'Mycobacterium intracellulare complex AND xenopi'
+    431504009: 'Mycobacterium intracellulare subspecies chimaera'
+    47: 'Mycobacterium intracellulare/scrofulaceum complex'
+    709682006: 'Mycobacterium iranicum'
+    1507005: 'Mycobacterium kansasii'
+    48: 'Mycobacterium kansasii AND chelonae'
+    49: 'Mycobacterium kansasii AND gordonae'
+    50: 'Mycobacterium kansasii complex'
+    36249008: 'Mycobacterium komossence'
+    51: 'Mycobacterium komossence/parafortuitum'
+    427768005: 'Mycobacterium kubicae'
+    698220002: 'Mycobacterium kumamotonense'
+    113853004: 'Mycobacterium lentiflavum'
+    52: 'Mycobacterium lentiflavum AND non-tuberculosis mycobacterium'
+    58242002: 'Mycobacterium leprae'
+    708341008: 'Mycobacterium llatzerense'
+    385507005: 'Mycobacterium mageritense'
+    73576007: 'Mycobacterium malmoense'
+    430738006: 'Mycobacterium manitobense'
+    708336000: 'Mycobacterium mantenii'
+    58869008: 'Mycobacterium marinum'
+    434966321000087109: 'Mycobacterium marseillense'
+    450472005: 'Mycobacterium monacense'
+    430740001: 'Mycobacterium montefiorense'
+    9679001: 'Mycobacterium moriokaense'
+    113856007: 'Mycobacterium mucogenicum'
+    468121000124108: 'Mycobacterium mucogenicum group'
+    54: 'Mycobacterium mucogenicum/phocaicum complex'
+    53: 'Mycobacterium mucogenicum/phocaicum/ratisbonense complex'
+    55: 'Mycobacterium mucogenicum/ratisbonense/terrae complex'
+    422214005: 'Mycobacterium nebraskense'
+    51459000: 'Mycobacterium neoaurum'
+    21433000: 'Mycobacterium nonchromogenicum'
+    46101000146107: 'Mycobacterium noviomagense'
+    113857003: 'Mycobacterium novocastrense'
+    41304005: 'Mycobacterium obuense'
+    430912004: 'Mycobacterium palustre'
+    772046008: 'Mycobacterium paraense'
+    700310006: 'Mycobacterium paraffinicum'
+    708333008: 'Mycobacterium paragordonae'
+    428856007: 'Mycobacterium parascrofulaceum'
+    707328006: 'Mycobacterium paraterrae'
+    74028009: 'Mycobacterium paratuberculosis'
+    430913009: 'Mycobacterium parmense'
+    113859000: 'Mycobacterium peregrinum'
+    56: 'Mycobacterium peregrinum/septicum complex'
+    78112006: 'Mycobacterium phlei'
+    432888001: 'Mycobacterium phocaicum'
+    57: 'Mycobacterium porcinum/septicum complex'
+    62644004: 'Mycobacterium pulveris'
+    429903004: 'Mycobacterium ratisbonense'
+    72130005: 'Mycobacterium rhodesiae'
+    450469003: 'Mycobacterium salmoniphilum'
+    429414009: 'Mycobacterium saskatchewanense'
+    20141004: 'Mycobacterium scrofulaceum'
+    74212009: 'Mycobacterium senegalense'
+    708329001: 'Mycobacterium senuense'
+    700308009: 'Mycobacterium seoulense'
+    385508000: 'Mycobacterium septicum'
+    429904005: 'Mycobacterium sherrisii'
+    1080201000112106: 'Mycobacterium shigaense'
+    79817008: 'Mycobacterium shimoidei'
+    84180005: 'Mycobacterium simiae'
+    58: 'Mycobacterium simiae AND abscessus'
+    59: 'Mycobacterium simiae AND interjectum'
+    53114006: 'Mycobacterium smegmatis'
+    243368001: 'Mycobacterium species'
+    78444002: 'Mycobacterium sphagni'
+    717660000: 'Mycobacterium stomatepiae'
+    65613000: 'Mycobacterium szulgai'
+    60: 'Mycobacterium szulgai AND simiae'
+    45662006: 'Mycobacterium terrae'
+    428765006: 'Mycobacterium terrae complex'
+    20973006: 'Mycobacterium thermoresistibile'
+    61: 'Mycobacterium tilburgii'
+    708319008: 'Mycobacterium timonense'
+    113860005: 'Mycobacterium triplex'
+    40333002: 'Mycobacterium triviale'
+    62: 'Mycobacterium tuberculosis AND non-tuberculosis Mycobacterium'
+    40713003: 'Mycobacterium ulcerans'
+    54925005: 'Mycobacterium vaccae'
+    63: 'Mycobacterium vaccae/vanbaalenii'
+    430490001: 'Mycobacterium vanbaalenii'
+    127523003: 'Mycobacterium wolinskyi'
+    64: 'Mycobacterium wolinskyi/jacuzzii'
+    58663006: 'Mycobacterium xenopi'
+    110379001: 'Mycobacterium, non-tuberculosis'
+    705094007: 'Mycobacteroides abscessus subspecies bolletii'
+    785848005: 'Mycobacteroides abscessus subspecies massiliense'
   serovar_codes:
     QL0001: 'Unknown/Undetermined'
     QL0002: 'Not interpretable'

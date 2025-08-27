@@ -14,6 +14,7 @@ from bioit_nrc_integration.python.config import SFTP_CREDENTIALS_HD
 SFTPValues = Literal['get', 'send']
 SFTPValue = str | SFTPValues  # workaround to avoid pycharm warnings
 
+
 class SFTPConnectionODS:
     """
     Base Class containing functions to handle an SFTP connection.
