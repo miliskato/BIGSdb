@@ -86,7 +86,7 @@ class BatchPipelinesReanalysis:
         :return: None
         """
         self._species = species
-        self._species_mongodb = self._species if self._species not in ['influenza_a', 'influenza_b'] else 'influenza'
+        self._species_mongodb = self._get_mongodb_species()
 
         # Parse MongoDB config
         validate_literal(dtap, DtapLiteral)
@@ -413,10 +413,11 @@ class BatchPipelinesReanalysis:
             f'--output-dir {report_dir}',
             f"--output-html {report_dir}/report.html",
             f'--output-tsv {report_dir}/report.tsv',
+            f'--output-json {report_dir}/report.json',
             ' '.join([f"--{x}" for x in analysis_arguments]),
             '--threads 2',
             f'--sample-name {isolate_id}',
-            f'--species {self._species_mongodb}' if self._species_mongodb in ['enterococcus_faecalis', 'enterococcus_faecium'] else '',
+            f'--species {self._species_mongodb.split("_")[-1]}' if self._species_mongodb in ['enterococcus_faecalis', 'enterococcus_faecium'] else '',
         ])
         if self._species == 'mycobacterium' and mongodb_document['original_input_format'] != 'fasta':
             base_command += f' --vcf-unfiltered {mongodb_document["vcf_path_unfiltered"]}' if mongodb_document.get(
@@ -429,7 +430,7 @@ class BatchPipelinesReanalysis:
             f"--base-html {results_dir}/report.html",
             f"--updated-html {report_dir}/report.html",
             f"--species {self._species_mongodb}",
-            f"--analysis-arguments {' '.join(analysis_arguments)}"
+            f"--analysis-arguments {' '.join(set(analysis_arguments))}"
         ])
         tagger_command = ' '.join([
             f"{config_mongodb['tagger_script']}",
@@ -461,6 +462,15 @@ class BatchPipelinesReanalysis:
                         f'{report_command}; {tagger_command}; {post_command}; {cleanup_command}; '
                         f'{mongodb_command}"')
         return task_command
+
+    def _get_mongodb_species(self) -> str:
+        """
+        Return the species that is used in MongoDB.
+        :return: str, MongoDB species
+        """
+        if self._species in ['influenza_a', 'influenza_b']:
+            return 'influenza'
+        return self._species
 
     def ____get_input_type(self, mongodb_document: dict[str, Any]) -> str:
         """

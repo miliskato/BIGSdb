@@ -56,6 +56,8 @@ class HtmlReplacer:
         """
         new_arguments = self._convert_arguments_to_headers()
         for analysis_argument in new_arguments:
+            if not isinstance(analysis_argument, list):
+                analysis_argument = [analysis_argument]
             self._replace_section(analysis_argument)
         self._replace_analysis_date()
         self._base_html.save_file(self._new_file)
@@ -71,23 +73,24 @@ class HtmlReplacer:
             for analysis_argument in self._analysis_arguments:
                 if analysis_argument in codes_dict[self._species]:
                     value = codes_dict[self._species][analysis_argument]
-                    if isinstance(value, list):
-                        new_arguments.extend(value)
-                    else:
-                        new_arguments.append(value)
+                    new_arguments.append(value)
         return new_arguments
 
-    def _replace_section(self, header_text: str) -> None:
+    def _replace_section(self, header_texts: list[str]) -> None:
         """
         Replaces a section of the first BeautifulSoup object by a section of the second BeautifulSoup object.
-        :param header_text: header text with which the section should be found
+        :param header_texts: possible header texts with which the section should be found
         :return: None
         """
-        section_to_replace = self._base_html.find_report_section_by_header(header_text)
-        new_section = self._updated_html.find_report_section_by_header(header_text)
-        # Replace this section
-        if section_to_replace and new_section:
-            section_to_replace.replace_with(new_section)
+        sections_to_replace = self._base_html.find_report_sections_by_header(header_texts)
+        new_sections = self._updated_html.find_report_sections_by_header(header_texts)
+        # Replace the sections
+        # TODO won't work for new assays -> has to be taken into account when reanalysing with a new pipeline version
+        if len(sections_to_replace) == len(new_sections):
+            for old_section, new_section in zip(sections_to_replace, new_sections):
+                old_section.replace_with(new_section)
+        else:
+            raise Exception("The number of sections to replace does not match the number of new sections.")
 
     def _replace_analysis_date(self) -> None:
         """

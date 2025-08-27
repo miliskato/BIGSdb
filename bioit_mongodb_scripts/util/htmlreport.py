@@ -27,18 +27,28 @@ class HtmlReport:
             soup = BeautifulSoup(handle, 'lxml')
         return soup
 
-    def find_report_section_by_header(self, header_text: str) -> Optional[Tag]:
+    def find_report_sections_by_header(self, header_texts: list[str]) -> list[Optional[Tag]]:
         """
         Finds a section of the report by using the header text.
-        :param header_text: header text that has to be found
-        :return: either a Tag object (if a matching section is found) or None (if no matching section is found)
+        :param header_texts: list of the header texts that have to be found
+        :return: either a  list of (a) Tag object(s) (if a matching section is found) or an empty list (if no matching
+        section is found)
         """
         target_sections = self.soup.find_all('div', {"class": "report_section"})
+        matching_sections = []
+
         for section in target_sections:
-            if (section.h2 and header_text == section.h2.text) or (section.h3 and header_text == section.h3.text):
-                return section
-            if section.p and section.p.text.startswith(header_text):
-                return section
+            # Check h2 and h3 for exact matches
+            h2_match = section.h2 and section.h2.text in header_texts
+            h3_match = section.h3 and section.h3.text in header_texts
+
+            # Check p tags for text that starts with any of the header texts
+            p_match = any(section.p and section.p.text.startswith(header) for header in header_texts)
+
+            if h2_match or h3_match or p_match:
+                matching_sections.append(section)
+
+        return matching_sections
 
     def find_analysis_date(self) -> str:
         """
