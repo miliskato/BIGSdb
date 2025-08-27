@@ -15,9 +15,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - For Influenza, html tags are used but using the section tags of the original report
 - Changes in the naming of pcr related fields for Influenza
 - Adapt import for get_bigsdb_config_data
+- Adapt core QC thresholds influenza
+- Include warning reasons in MongoDB document to be inserted
+- Include contamination check and input type in rejected document (MongoDB)
 
 ### Fixed
 - Creation of temp file in "rejected_isolates.py"
+- Reanalysis (reanalysis submission + html report + html replacer + html tagger)
 
 ## [4.2.0]
 ### Added:

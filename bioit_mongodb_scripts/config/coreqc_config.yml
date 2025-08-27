@@ -101,34 +101,6 @@ metrics:
       - NA
     available_for_fasta_input: false
     parameter_name: Coverage depth on iterate segment (vertical)
-  median_depth_other_segments: # e.g. preprocess_MP_depth_median_post: '250'
-    threshold_direction: lower
-    category: preprocess
-    field: preprocess_iterate_depth_median_post
-    iterate:
-      - MP
-      - NP
-      - NS
-      - PA
-      - PB1
-      - PB2
-    available_for_fasta_input: false
-    parameter_name: Coverage depth on iterate segment (vertical)
-  coverage_all_segments: # e.g. preprocess_MP_covered_rate_post: '1.0'
-    threshold_direction: lower
-    category: preprocess
-    field: preprocess_iterate_covered_rate_post
-    iterate:
-      - HA
-      - NA
-      - MP
-      - NP
-      - NS
-      - PA
-      - PB1
-      - PB2
-    available_for_fasta_input: false
-    parameter_name: Coverage of iterate segment (horizontal)
 
 species:
   listeria:
