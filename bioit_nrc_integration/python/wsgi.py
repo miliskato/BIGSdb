@@ -71,17 +71,17 @@ def insert_into_mongodb(mapping_table_dict: Dict[str, str], start_response: Call
         species = mapping_table_dict['species']
         mongoinit = MongoInitialisation(species, mongo_config_provider.get_local_connection_string(species), mongo_config_provider.dtap)
         mapping_table_collection = mongoinit.initialise_mapping_table_collection()
-        already_present = mapping_table_collection.find_one({'_id': mapping_table_dict['id']})
+        existing_mapping_table = mapping_table_collection.find_one({'_id': mapping_table_dict['id']})
         count = 1
-        if not already_present:
+        if not existing_mapping_table:
             pseudo_id = str(uuid.uuid4())
             mapping_table_collection.insert_one({'_id': mapping_table_dict['id'],
                                                  'pseudo_id': pseudo_id,
                                                  'TX_BUSINESS_KEY': mapping_table_dict['TX_BUSINESS_KEY'],
                                                  'count': count})
         else:
-            pseudo_id = already_present['pseudo_id']
-            count = already_present.get('count', count) + 1
+            pseudo_id = existing_mapping_table['pseudo_id']
+            count = existing_mapping_table.get('count', count) + (1 if not mapping_table_dict.get('decrease_count') else -1)
             mapping_table_collection.update_one({'_id': mapping_table_dict['id']},
                                                 {'$set': {'count': count}})
 
