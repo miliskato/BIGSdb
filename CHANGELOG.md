@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Creation of temp file in "rejected_isolates.py"
 - Reanalysis (reanalysis submission + html report + html replacer + html tagger)
+- influenza missing reference segment info in core qc checks
+- Correct count of pseudonymisation in nrc integration
 
 ## [4.2.0]
 ### Added:
