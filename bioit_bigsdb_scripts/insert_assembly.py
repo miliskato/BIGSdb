@@ -75,6 +75,7 @@ def _process_viral_consensus(fastafilepath: Path, isolatename: str, isolates_seq
     :param fastafilepath: path of the fasta file for consensus sequence
     :param isolatename: name of the isolate in bigsdb
     :param isolates_seqbin_psql_tbl: psql table seqbin from the bigsdb_xxx_isolates DB
+    :return: None
     """
     modified_records = []
     for record in SeqIO.parse(fastafilepath, "fasta"):
