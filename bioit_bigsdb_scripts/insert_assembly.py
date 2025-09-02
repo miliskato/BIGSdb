@@ -70,7 +70,7 @@ def insert_assembly(isolatename: str, species: str, fastafilepath: Path, results
 
 def _process_viral_consensus(fastafilepath: Path, isolatename: str, isolates_seqbin_psql_tbl: TblSequenceBin) -> None:
     """
-    Replace pseudo_id by isolate name in the fasta file for consensus sequence.
+    Inserts (viral) contigs into bigsdb while replacing pseudo_id by isolatename in the contig names.
     :param fastafilepath: path of the fasta file for consensus sequence
     :param isolatename: name of the isolate in bigsdb
     :param isolates_seqbin_psql_tbl: psql table seqbin from the bigsdb_xxx_isolates DB
