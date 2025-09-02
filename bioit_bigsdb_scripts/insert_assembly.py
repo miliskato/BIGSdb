@@ -78,9 +78,8 @@ def _process_viral_consensus(fastafilepath: Path, isolatename: str, isolates_seq
     :param species: species name
     :return: None
     """
-    modified_records = []
+    pseudo_id = get_pseudo_id(species, isolatename)
     for record in SeqIO.parse(fastafilepath, "fasta"):
-        pseudo_id = get_pseudo_id(species, isolatename)
         new_id = record.id.replace(pseudo_id, isolatename)
         if record.seq:
             isolates_seqbin_psql_tbl.insert_sequencebin((isolatename, str(record.seq), new_id))
