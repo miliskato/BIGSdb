@@ -8,14 +8,13 @@ from typing import List
 
 from Bio import SeqIO
 
-from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
-
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
 from bioit_bigsdb_scripts.components.psql import TblIsolates, TblSequenceBin
 from bioit_mongodb_scripts.model.json_model import ResultType
 from bioit_mongodb_scripts.util.python_utility_functions import get_bigsdb_config_data, send_email
+from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 
 
 def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
