@@ -5,9 +5,9 @@ from .mongo_initialisation import MongoInitialisation
 
 def get_pseudo_id(species: str, isolate_name: str) -> str:
     """
-    Return the corresponding pseudo-id from mongo mapping collection
+    Return pseudo-id for a given original isolate id, based on the Mongo mapping collection
     :param species: species name
-    :param isolate_name: isolate name
+    :param isolate_name: isolate id
     :return: pseudo-id
     """
     mongo_config_provider = MongoConfigProvider()
