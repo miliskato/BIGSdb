@@ -8,6 +8,7 @@ from typing import List
 
 from Bio import SeqIO
 
+from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
@@ -54,15 +55,39 @@ def insert_assembly(isolatename: str, species: str, fastafilepath: Path, results
             presentcontigs = isolates_seqbin_psql_tbl.count_sequencebin((isolatename,))
             if presentcontigs[0][0] != 0 and results_type == 'resequencing':
                 isolates_seqbin_psql_tbl.delete_sequencebin((isolatename,))
-            for record in SeqIO.parse(fastafilepath, "fasta"):
-                # add the record to the dictionary with the ID as the key and the sequence as the value
-                isolates_seqbin_psql_tbl.insert_sequencebin((isolatename, str(record.seq), record.id))
+
+            if MongoConfigProvider.is_viral(species):
+                _process_viral_consensus(fastafilepath, isolatename, isolates_seqbin_psql_tbl)
+            else:
+                for record in SeqIO.parse(fastafilepath, "fasta"):
+                    isolates_seqbin_psql_tbl.insert_sequencebin((isolatename, str(record.seq), record.id))
 
     except Exception as exceptionmessage:
         send_email(f"{exceptionmessage}\n{traceback.format_exc()}",
                    f'{Path(__file__).name}: Error inserting assembly of {species} pipeline to bigsdb for '
                    f'sample {isolatename} on host {socket.gethostname()}.')
         sys.exit()
+
+
+def _process_viral_consensus(fastafilepath: Path, isolatename: str, isolates_seqbin_psql_tbl: TblSequenceBin) -> None:
+    """
+    Replace pseudo_id by isolate name in the fasta file for consensus sequence.
+    :param fastafilepath: path of the fasta file for consensus sequence
+    :param isolatename: name of the isolate in bigsdb
+    :param isolates_seqbin_psql_tbl: psql table seqbin from the bigsdb_xxx_isolates DB
+    """
+    modified_records = []
+    for record in SeqIO.parse(fastafilepath, "fasta"):
+        id_parts = record.id.split('-')
+        new_id = f'{isolatename}-{id_parts[-1]}'
+        record.id = new_id
+        record.name = new_id
+        record.description = new_id
+        modified_records.append(record)
+        if record.seq:
+            isolates_seqbin_psql_tbl.insert_sequencebin((isolatename, str(record.seq), record.id))
+    with open(fastafilepath, "w") as output_handle:
+        SeqIO.write(modified_records, output_handle, "fasta")
 
 
 if __name__ == '__main__':
