@@ -25,6 +25,7 @@ from bioit_mongodb_scripts.util.mongo_querying import Mongoquerying
 from bioit_mongodb_scripts.util.python_utility_functions import execute_command, get_bigsdb_config_data, get_cgmlst_bigsdb_scheme_id
 from bioit_mongodb_scripts.util.new_temporary_alleles_to_bigs import NewTemporaryAllelesToBigs
 from bioit_mongodb_scripts.util.command.command import Command
+from bioit_mongodb_scripts.util.mongo_quickdraw import get_pseudo_id
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -258,7 +259,7 @@ class MongoToBigs:
         :return: list of documents (dictionaries)
         """
         if self._single_sample_id:
-            pseudo_id = str(self._mappingtable_collection.find_one({'_id': self._single_sample_id})['pseudo_id'])
+            pseudo_id = get_pseudo_id(self._species, self._single_sample_id)
             query_single = MongoRecordDict(self._isolates_collection.find_one({'_id': pseudo_id}))
             if not query_single:
                 raise Exception(f"Can not find document with _id '{self._single_sample_id}'")

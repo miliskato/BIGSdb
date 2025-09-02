@@ -27,6 +27,7 @@ from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.model.json_model import MongoRecordDict
 from bioit_mongodb_scripts.util.python_utility_functions import get_bigsdb_config_data, send_email
+from bioit_mongodb_scripts.util.mongo_quickdraw import get_pseudo_id
 
 
 def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
@@ -65,10 +66,6 @@ class SampleValidationToMongo:
         self._isolates_collection, _, self._isolates_warningqc_collection, self._isolates_resequencing_collection, \
             self._isolates_goodqc_collection = self._mongoinit.initialise_collections()
 
-        # open local mongo instance to get the mapping
-        self._mongoinit_local = MongoInitialisation(self._species, self._mongo_config_provider.get_local_connection_string(self._species), self._mongo_config_provider.dtap)
-        self._mapping_collection = self._mongoinit_local.initialise_mapping_table_collection()
-
         # Run main
         try:
             self._sample_validation_to_mongo()
@@ -100,7 +97,7 @@ class SampleValidationToMongo:
                 quality: str = query[0][4]
                 resequencing: Literal['yes', 'no'] = query[0][5]
                 results_type = self.__get_results_type(quality, resequencing)  # goodqc_validated, warningqc_validated or resequencing_validated
-                pseudo_id = self._mapping_collection.find_one({"_id": isolatename})['pseudo_id']
+                pseudo_id = get_pseudo_id(self._species, isolatename)
                 # GO into MongoDB so type in Mongo might be either warningqc or resequencing
                 validation_dict = {
                     'outcome': outcome,
