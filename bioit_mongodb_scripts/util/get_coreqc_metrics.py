@@ -53,6 +53,7 @@ class GetCoreQCMetrics:
                     sample_coreqc_metrics.pop(key)
         elif self._reads_input_type != 'illumina':
             self.__set_global_ont_coverage_thresholds(sample_coreqc_metrics)
+            self.__set_ont_contamination_failure_threshold(sample_coreqc_metrics)
 
         self.__convert_iterations_to_separate_keys(sample_coreqc_metrics)
 
@@ -110,10 +111,21 @@ class GetCoreQCMetrics:
         :param sample_coreqc_metrics: core quality metrics and thresholds for current sample, to be modified in place.
         :return: None
         """
-        for key, metric_info in deepcopy(sample_coreqc_metrics).items():
+        for key, metric_info in sample_coreqc_metrics.items():
             if metric_info.get('global_ont_coverage') and not self._species.startswith('enterococcus'):
                 metric_info['threshold_warn'] = 50.0
                 metric_info['threshold_fail'] = 30.0
+
+    def __set_ont_contamination_failure_threshold(self, sample_coreqc_metrics: dict[str, Any]) -> None:
+        """
+        For Salmonella (later probably also additional species), the ont contamination failure threshold is 10% instead
+        of 5%.
+        :param sample_coreqc_metrics: core quality metrics and thresholds for current sample, to be modified in place.
+        :return: None
+        """
+        for key, metric_info in sample_coreqc_metrics.items():
+            if metric_info.get('ont_contamination') and self._species == 'salmonella':
+                metric_info['threshold_fail'] = 10.0
 
     @staticmethod
     def __convert_iterations_to_separate_keys(sample_coreqc_metrics: dict[str, Any]) -> None:

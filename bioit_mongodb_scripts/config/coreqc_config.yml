@@ -8,6 +8,7 @@ metrics:
     value_format_to_strip: "%"
     available_for_fasta_input: true
     parameter_name: "% contamination (Kraken)"
+    ont_contamination: true
   average_quality_score_illumina:  # e.g. qc_fqc_avg_qual_fwd_value: '250'
     threshold_direction: lower
     category: quality_checks
