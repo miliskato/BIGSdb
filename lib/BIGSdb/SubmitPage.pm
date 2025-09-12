@@ -799,11 +799,13 @@ sub _get_isolate_submissions_for_curation {
 		my $submitter_string =
 		  $self->{'datastore'}->get_user_string( $submission->{'submitter'}, { email => 1 } );
 		my $isolate_count = $self->{'submissionHandler'}->get_isolate_submission_count( $submission->{'id'} );
+		my @warning_reasons = split /,/, $submission->{'warning_reasons'};
+        my $warning_buffer = join '<br>', @warning_reasons;
 		$buffer .=
 			qq(<tr class="td$td"><td><a href="$self->{'system'}->{'script_name'}?db=$self->{'instance'}&amp;)
 		  . qq(page=submit&amp;submission_id=$submission->{'id'}&amp;curate=1">$submission->{'id'}</a></td>)
 		  . qq(<td>$submission->{'date_submitted'}</td><td>$submission->{'datestamp'}</td><td>$submitter_string</td>)
-		  . qq(<td>$isolate_count</td><td>$submission->{'quality'}</td>);
+		  . qq(<td>$isolate_count</td><td>$submission->{'quality'}</td><td>$warning_buffer</td>);
 		if ( $self->{'system'}->{'dbtype'} eq 'isolates' && $embargo->{'embargo_enabled'} ) {
 			my $embargo_months = $submission->{'embargo'} // '-';
 			$buffer .= qq(<td>$embargo_months</td>);
@@ -827,7 +829,8 @@ sub _get_isolate_submissions_for_curation {
 			  if -e $isolate_curate_message;
 		}
 		$return_buffer .= q(<div class="scrollable"><table class="resultstable"><tr><th>Submission id</th>)
-		  . q(<th>Submitted</th><th>Updated</th><th>Submitter</th><th>Isolates</th><th>Quality</th>);
+		  . q(<th>Submitted</th><th>Updated</th><th>Submitter</th><th>Isolates</th><th>Quality</th>)
+		  . q(<th>Warning reasons</th>);
 		$return_buffer .= q(<th>Embargo requested (months)</th>)
 		  if $self->{'system'}->{'dbtype'} eq 'isolates' && $embargo->{'embargo_enabled'};
 		$return_buffer .= q(<th>Outcome</th>) if $status eq 'closed';
