@@ -130,6 +130,6 @@ class SampleToValidationBigs:
         """
         warning_reasons = 'NA'
         if sample_doc.get('warning_reasons'):
-            warning_reasons = ', '.join(
+            warning_reasons = '<br>'.join(
                 qc_metric['reason'] for qc_metric in sample_doc['warning_reasons'].values())
         return warning_reasons
