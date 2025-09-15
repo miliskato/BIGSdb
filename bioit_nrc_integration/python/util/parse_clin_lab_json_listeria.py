@@ -30,7 +30,6 @@ class ParseClinLabJsonListeria(ParseClinLabJson):
             pass
         elif self._filetype == 'CLIN':
             self._parse_repeat_fields('TX_TTL_PERNAT_REPEAT', 'CD_PERNAT', 'CD_PERNAT_codes', 'perinatal')
-            self._parse_repeat_fields('TX_SUSPC_VEH_REPEAT', 'CD_SUSPC_VEH', 'CD_SUSPC_VEH_codes', 'suspected_vehicle')
             self._parse_repeat_fields('TX_TTL_SYMP_ADLT_REPEAT', 'CD_PROB_NAM_ADLT', 'CD_PROB_NAM_codes',
                                         'symptom_adult', other='TX_PROB_NAM_ADLT_OTH')
             self._parse_repeat_fields('TX_TTL_SYMP_CHLD_REPEAT', 'CD_PROB_NAM_CHLD', 'CD_PROB_NAM_codes',

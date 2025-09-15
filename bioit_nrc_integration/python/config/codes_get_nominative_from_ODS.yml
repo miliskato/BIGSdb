@@ -328,30 +328,6 @@ code_lists:
     399166001: Fatal
     261665006: 'Unknown'
     385432009: Not applicable
-  CD_SUSPC_VEH_codes:
-    227989005: canned_food_products
-    226465004: drinks
-    890302005: drinking_water
-    22836000: vegetable_and_products_thereof
-    226529007: starchy_food
-    230034002: nuts_and_seeds
-    227607007: candy_chocolate_candy_and_sugar_candy
-    1003736004: mammalian_milk_based_food
-    102264005: cheese
-    102263004: eggs_edible_and_products_thereof
-    44027008: seafood_and_products_thereof
-    226916002: beef_and_products_thereof
-    226934003: pork_and_products_thereof
-    226942002: lamb_meat_and_products_thereof
-    226955001: chicken_meat_and_products_thereof
-    28230009: poultry_and_products_thereof
-    226967004: turkey_meat_and_products_thereof
-    388618001: cats
-    388074005: bats
-    1: other_pets
-    2: captive_wild_animals_in_zoo
-    3: other_wild_animals
-    261665006: 'Unknown'
   MEDICATION_FLU_codes:
     MD0020: Baloxavir
     MD0021: Oseltamivir
