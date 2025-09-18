@@ -33,3 +33,4 @@ from .psql_tbl_sequence_bin import TblSequenceBin
 from .psql_tbl_sequences import TblSequences
 from .psql_tbl_submissions import TblSubmissions
 from .psql_tbl_temp_isolates_scheme_fields import TblTempIsolatesSchemeFields
+from .psql_tbl_analysis_results import TblAnalysisResults

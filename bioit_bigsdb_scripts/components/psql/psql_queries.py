@@ -414,3 +414,8 @@ class PsqlQueries:
         UPDATE submissions SET (status, outcome, curator) = ('closed', 'good', 1) WHERE id = %s;"""
     ISO_INSERT_GENERIC_LAB_METADATA_TEMPLATE: Final[str] = "UPDATE isolates SET {} WHERE isolate=%s;"
 
+    # TBL analysis results
+    ISO_INS__TB_ANA_RES_VAR_NAM_ISO_RES: Final[str] = """
+    INSERT INTO analysis_results(name, isolate_id, datestamp, results) VALUES (%s, (SELECT id FROM isolates WHERE isolate=%s), (SELECT CURRENT_DATE), %s);"""
+    ISO_DEL__TB_ANA_RES_VAR_ISO: Final[str] = """
+    DELETE FROM analysis_results WHERE isolate_id=(SELECT id FROM isolates WHERE isolate=%s);"""

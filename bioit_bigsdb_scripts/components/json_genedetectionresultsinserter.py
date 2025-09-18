@@ -4,8 +4,9 @@ from pathlib import Path
 from typing import Any, Dict, List, Union
 
 from bioit_mongodb_scripts.model.json_model import JsonReportDict
+from bioit_mongodb_scripts.util.python_utility_functions import normalize_keys
 from .json_superclass import JsonSuperClass
-from .psql import TblAlleleDesignations, TblEavText, TblEavTextHidden, TblHistory, TblIsolates
+from .psql import TblAlleleDesignations, TblEavText, TblEavTextHidden, TblHistory, TblIsolates, TblAnalysisResults
 from ..inserters.context.gene_detection_context_builder_factory import GeneDetectionContextBuilderFactory
 from ..utils.html_tbl_templates import HtmlAmrTableBuilder, HtmlLocusTableBuilder, HtmlReportBuilder, LreFinderGenesTableBuilder, LreFinderMutationsTableBuilder
 from ..utils.url_helper import UrlHelper
@@ -91,12 +92,18 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                     html = resfinder4_table_builder.build()
 
                 elif scheme == 'amrfinder':
-                    amrfinder_table_builder = HtmlAmrTableBuilder(report_url)
-                    for hit in self._json_report_dict[scheme]['amr_genes_hits']:
-                        identity = f'{round(float(hit["% Identity to reference"]), 2)}'
-                        coverage = f'{round(float(hit["% Coverage of reference"]), 2)}'
-                        amrfinder_table_builder.add_hit(hit['Subclass'], hit['Element symbol'], identity, coverage)
-                    html = amrfinder_table_builder.build()
+                    amrfinder_json = self._json_report_dict.get('amrfinder')
+                    amrfinder_json_normalized = normalize_keys(amrfinder_json)
+                    with TblAnalysisResults(self._species) as isolates_ana_res_psql_tbl:
+                        isolates_ana_res_psql_tbl.insert_analysis_results_isolate_name((
+                            'AMRFinder', self._isolatename, amrfinder_json_normalized))
+
+                #     amrfinder_table_builder = HtmlAmrTableBuilder(report_url)
+                #     for hit in self._json_report_dict[scheme]['amr_genes_hits']:
+                #         identity = f'{round(float(hit["% Identity to reference"]), 2)}'
+                #         coverage = f'{round(float(hit["% Coverage of reference"]), 2)}'
+                #         amrfinder_table_builder.add_hit(hit['Subclass'], hit['Element symbol'], identity, coverage)
+                #     html = amrfinder_table_builder.build()
 
                 elif scheme == 'lrefinder':
                     lrefinder_table_builder_genes = LreFinderGenesTableBuilder(report_url)

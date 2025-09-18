@@ -145,3 +145,23 @@ def get_bigsdb_config_data() -> Dict[str, Union[str, List[Any], Dict[str, Union[
     with open(BIGSDB_CONFIG, encoding='utf-8') as handle:
         bigsdb_config_data = yaml.safe_load(handle)
     return bigsdb_config_data
+
+
+def normalize_keys(data: dict) -> Union[dict, list]:
+    """
+    Normalizes the keys of a dictionary that the keys don't contain spaces or the % symbol.
+    :param data: dictionary
+    :return: the normalized dictionary
+    """
+    if isinstance(data, dict):
+        new_dict = {}
+        for key, value in data.items():
+            # Normalize the key
+            new_key = key.replace(" ", "_").replace("%", "percent")
+            # Recurse on the value
+            new_dict[new_key] = normalize_keys(value)
+        return new_dict
+    elif isinstance(data, list):
+        return [normalize_keys(item) for item in data]
+    else:
+        return data
