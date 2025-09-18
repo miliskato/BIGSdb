@@ -1,0 +1,25 @@
+[% # Template file for outputting formatted AMRFinder analysis in the isolate information page. %]
+[% IF amrfinder %]
+<h3>AMRFinder</h3>
+
+<div class="scrollable">
+<table class="resultstable">
+    <tr>
+        <th>AMR</th>
+        <th>Resistance gene</th>
+        <th>%Identity</th>
+        <th>%Coverage</th>
+    </tr>
+
+    [% FOREACH hit IN amrfinder.results.amrfinder.amr_genes_hits %]
+
+    <tr>
+        <td>[% hit.Subclass %]</td>
+        <td>[% hit.Element_symbol %]</td>
+        <td>[% hit.percent_Identity_to_reference %]</td>
+        <td>[% hit.percent_Coverage_of_reference %]</td>
+     </tr>
+    [% END %]
+</table>
+</div>
+[% END %]
