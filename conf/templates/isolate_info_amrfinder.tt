@@ -1,5 +1,5 @@
 [% # Template file for outputting formatted AMRFinder analysis in the isolate information page. %]
-[% IF amrfinder %]
+[% IF AMRFinder %]
 <h3>AMRFinder</h3>
 
 <div class="scrollable">
@@ -11,7 +11,7 @@
         <th>%Coverage</th>
     </tr>
 
-    [% FOREACH hit IN amrfinder.results.amr_genes_hits %]
+    [% FOREACH hit IN AMRFinder.results.amr_genes_hits %]
 
     <tr>
         <td>[% hit.Subclass %]</td>

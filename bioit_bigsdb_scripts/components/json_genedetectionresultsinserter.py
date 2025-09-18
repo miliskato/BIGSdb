@@ -93,11 +93,12 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                     html = resfinder4_table_builder.build()
 
                 elif scheme == 'amrfinder':
-                    amrfinder_json = self._json_report_dict.get('amrfinder')
-                    amrfinder_json_normalized = normalize_keys(amrfinder_json)
+                    amrfinder_dict = self._json_report_dict.get('amrfinder')
+                    amrfinder_dict_normalized = normalize_keys(amrfinder_dict)
+                    amrfinder_json = Json(amrfinder_dict_normalized)
                     with TblAnalysisResults(self._species) as isolates_ana_res_psql_tbl:
                         isolates_ana_res_psql_tbl.insert_analysis_results_isolate_name((
-                            'AMRFinder', self._isolatename, Json(amrfinder_json_normalized)))
+                            'AMRFinder', self._isolatename, amrfinder_json))
 
                 #     amrfinder_table_builder = HtmlAmrTableBuilder(report_url)
                 #     for hit in self._json_report_dict[scheme]['amr_genes_hits']:
