@@ -1,5 +1,7 @@
 from typing import Tuple
 
+from psycopg.types.json import Json
+
 from bioit_bigsdb_scripts.components.psql.databaseconnection import DatabaseConnection
 from bioit_bigsdb_scripts.components.psql.psql_queries import PsqlQueries
 
@@ -16,7 +18,7 @@ class TblAnalysisResults(DatabaseConnection):
         """
         super().__init__(species, 'isolates')
 
-    def insert_analysis_results_isolate_name(self, param: Tuple[str, str, str]) -> None:
+    def insert_analysis_results_isolate_name(self, param: Tuple[str, str, Json]) -> None:
         """
         Add the analysis results of a specific assay for a specific isolate ID.
         :param param: variables to feed to the PSQL query, which also sanitizes these variables,

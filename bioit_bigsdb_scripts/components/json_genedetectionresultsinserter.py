@@ -1,6 +1,7 @@
 import json
 import logging
 from pathlib import Path
+from psycopg.types.json import Json
 from typing import Any, Dict, List, Union
 
 from bioit_mongodb_scripts.model.json_model import JsonReportDict
@@ -96,7 +97,7 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                     amrfinder_json_normalized = normalize_keys(amrfinder_json)
                     with TblAnalysisResults(self._species) as isolates_ana_res_psql_tbl:
                         isolates_ana_res_psql_tbl.insert_analysis_results_isolate_name((
-                            'AMRFinder', self._isolatename, amrfinder_json_normalized))
+                            'AMRFinder', self._isolatename, Json(amrfinder_json_normalized)))
 
                 #     amrfinder_table_builder = HtmlAmrTableBuilder(report_url)
                 #     for hit in self._json_report_dict[scheme]['amr_genes_hits']:

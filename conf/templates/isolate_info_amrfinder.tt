@@ -11,7 +11,7 @@
         <th>%Coverage</th>
     </tr>
 
-    [% FOREACH hit IN amrfinder.results.amrfinder.amr_genes_hits %]
+    [% FOREACH hit IN amrfinder.results.amr_genes_hits %]
 
     <tr>
         <td>[% hit.Subclass %]</td>
