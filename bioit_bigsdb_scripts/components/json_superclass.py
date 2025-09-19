@@ -1,7 +1,11 @@
 from typing import Any, Dict
 
+from psycopg.types.json import Json
+
 from bioit_mongodb_scripts.model.json_model import JsonReportDict
-from .psql import TblAlleleDesignations, TblClientDbaseLoci, TblLoci, TblSchemeMembers, TblSequences
+from bioit_mongodb_scripts.util.python_utility_functions import normalize_keys
+from .psql import TblAlleleDesignations, TblClientDbaseLoci, TblLoci, TblSchemeMembers, TblSequences, TblAnalysisResults
+from ..utils.url_helper import UrlHelper
 
 
 class JsonSuperClass:
@@ -92,3 +96,19 @@ class JsonSuperClass:
                     (scheme, locus))
                 isolates_schememembers_psql_tbl.insert_scheme_member(
                     (scheme, locus))
+
+    def _insert_analysis_results(self, isolate_id: str, scheme, scheme_config: dict[str]) -> None:
+        """
+        Insert the analysis results of a specific assay into the analysis_results table.
+        :param isolate_id: isolate id
+        :param scheme: scheme for which the results should be inserted
+        :param scheme_config: dictionary containing the config of the scheme
+        :return: None
+        """
+        report_url = UrlHelper.report_for_isolate(self._species, isolate_id, anchor=scheme_config['schemename_html'])
+        analysis_dict = self._json_report_dict.get(scheme)
+        analysis_dict_normalized = normalize_keys(analysis_dict)
+        analysis_dict_normalized['report_link'] = report_url
+        with TblAnalysisResults(self._species) as isolates_ana_res_psql_tbl:
+            isolates_ana_res_psql_tbl.insert_analysis_results_isolate_name((
+                scheme_config['schemename_bigsdb'], self._isolatename, Json(analysis_dict_normalized)))

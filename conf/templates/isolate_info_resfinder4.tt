@@ -1,6 +1,6 @@
-[% # Template file for outputting formatted AMRFinder analysis in the isolate information page. %]
-[% IF AMRFinder %]
-<h3>AMRFinder</h3>
+[% # Template file for outputting formatted ResFinder4 analysis in the isolate information page. %]
+[% IF ResFinder4 %]
+<h3>ResFinder4</h3>
 
 <div class="scrollable">
 <style>
@@ -32,15 +32,15 @@
     </tr>
 
     <tr>
-        <td colspan="4"><a href="[% AMRFinder.results.report_link %]" target="_blank">Full report</a></td>
+        <td colspan="4"><a href="[% ResFinder4.results.report_link %]" target="_blank">Full report</a></td>
     </tr>
 
-    [% FOREACH hit IN AMRFinder.results.amr_genes_hits %]
+    [% FOREACH hit IN ResFinder4.results.resfinder4_genes_hits %]
     <tr>
-        <td>[% hit.Subclass %]</td>
-        <td>[% hit.Element_symbol %]</td>
-        <td>[% hit.percent_Identity_to_reference %]</td>
-        <td>[% hit.percent_Coverage_of_reference %]</td>
+        <td>[% hit.Phenotype %]</td>
+        <td>[% hit.Resistance_gene %]</td>
+        <td>[% hit.Identity %]</td>
+        <td>[% hit.Coverage %]</td>
      </tr>
     [% END %]
 </table>
