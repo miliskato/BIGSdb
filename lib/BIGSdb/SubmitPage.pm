@@ -273,6 +273,8 @@ sub print_content {
 		say q(<div class="box resultstable">);
 		$self->_print_pending_submissions;
 		$self->print_submissions_for_curation;
+        my $validation_page_url = '/cgi-bin/bigsdb/bigsdb.pl?page=validation&db='.$q->param('db');
+        say '<a href = "'.$validation_page_url.'" class="small_submit"> Batch validation </a>&nbsp;';
 		$self->_print_closed_submissions;
 		$self->print_navigation_bar( { closed_submissions => $closed_buffer ? 1 : 0 } );
 		say q(</div>);

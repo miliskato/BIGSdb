@@ -177,6 +177,7 @@ sub _get_javascript_paths {
 		push @$js, { src => "$relative_js_path/jquery-ui.min.js", defer   => 1, version => '1.12.1' };
 		push @$js, { src => "$relative_js_path/bigsdb.min.js",    defer   => 1, version => '20231205' };
 		push @$js, { src => "$relative_js_path/hera_dynamic_query.js"};
+		push @$js, { src => "$relative_js_path/hera_utils.js"};
 		push @$js, { src => "$relative_js_path/jszip.js"};
 		if ( !$self->{'config'}->{'no_cookie_consent'} && !$self->{'curate'} && $self->{'instance'} ) {
 			push @$js, { src => "$relative_js_path/cookieconsent.min.js", defer => 1 };
