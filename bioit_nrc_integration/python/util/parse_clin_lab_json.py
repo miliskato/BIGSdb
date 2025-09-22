@@ -92,10 +92,16 @@ class ParseClinLabJson(object, metaclass=abc.ABCMeta):
         dob = self._get_value_by_capitalization_agnostic_key(self._data_unprocessed, 'DT_PAT_DOB')
         collection_date = self._get_value_by_capitalization_agnostic_key(self._data_unprocessed, 'DT_LAB_COLLCN')
         if dob and dob != '1900-01-01' and collection_date:
+            # Check whether patient has died prior to collection date
+            collection_date_parsed = datetime.strptime(collection_date, "%Y-%m-%dT%H:%M:%S")
+            dod = self._get_value_by_capitalization_agnostic_key(self._data_unprocessed, 'DT_PAT_DOD')
+            if dod:
+                last_known_alive_date = min(datetime.strptime(dod, "%Y-%m-%d"), collection_date_parsed)
+            else:
+                last_known_alive_date = collection_date_parsed
             # Calculate the number of years
             # Average year length considering leap years = 365.25 days
-            patient_age = math.floor((datetime.strptime(collection_date, "%Y-%m-%dT%H:%M:%S") -
-                                      datetime.strptime(dob, "%Y-%m-%d")).days / 365.25)
+            patient_age = math.floor((last_known_alive_date - datetime.strptime(dob, "%Y-%m-%d")).days / 365.25)
             if patient_age < -1:
                 # in Salmonella test unknowns for patient_age and patient_age_group are encoded as UNK
                 self._data_translated['patient_age'] = 'UNK'
@@ -177,9 +183,9 @@ class ParseClinLabJson(object, metaclass=abc.ABCMeta):
                     self._data_translated[f"country_{index + 1}"] = value
 
     def _parse_repeat_fields(self, repeat_field_name: str, field_name: str, code_list_name: str, bigsdb_prefix: str,
-                               other: str = None) -> None:
+                               other: str = None, mandatory: bool = True) -> None:
         """
-        Parses the mandatory repeat field lists which didn't really fit in the main codes schema,
+        Parses the repeat field lists which didn't really fit in the main codes schema,
         e.g. "tx_ttl_symp": [{"cd_prob_nam": "25374005"}, {"cd_prob_nam": "91302008"}]
         :param repeat_field_name: the key name of the repeat field in the DCD
         :param field_name: the key name of the value in the dictionary in the repeat field's list
@@ -189,10 +195,13 @@ class ParseClinLabJson(object, metaclass=abc.ABCMeta):
         Implemented originally for the CD_PROB_NAM_CHLD & CD_PROB_NAM_ADLT fields in Listeria. These are repeat fields,
         but the value should only be filled once according to Florian. If it were to be filled more than once after all,
         the code would take the last occurrence.
+        :param mandatory: Whether the field list is mandatory
         :return: None
         """
         repeat_list_of_dicts: list[dict[str, str]] = self._get_value_by_capitalization_agnostic_key(
             self._data_unprocessed, repeat_field_name)
+        if not repeat_list_of_dicts and not mandatory:
+            return
         for symptom_dict in repeat_list_of_dicts:
             symptom_code = self._get_value_by_capitalization_agnostic_key(symptom_dict, field_name)
             symptom_code_translation = self._translation_codes['code_lists'][code_list_name][self._cast_as_int_if_int(symptom_code)]
