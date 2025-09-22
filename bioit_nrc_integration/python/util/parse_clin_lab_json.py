@@ -9,7 +9,7 @@ class ParseClinLabJson(object, metaclass=abc.ABCMeta):
     MetaClass to parse a Json DCD file (CLIN or LAB)
     """
     def __init__(self, data_unprocessed: dict[str, Any], filetype: Literal['CLIN', 'LAB'], species: str,
-                 translation_codes: dict[str, Any]) -> None:
+                 translation_codes: dict[str, Any], dtap: Literal['dev', 'test', 'acc', 'prod']) -> None:
         """
         This class can parse and translate an incoming unprocessed CLIN or LAB DCD file from the ODS using the
         main 'run' function.
@@ -17,12 +17,14 @@ class ParseClinLabJson(object, metaclass=abc.ABCMeta):
         :param filetype: CLIN or LAB
         :param species: commonly used bioit species name: either genus or specific like stec
         :param translation_codes: translation codes from the nominative ODS configuration file
+        :param dtap: current DTAP environment
         :return: None
         """
         self._data_unprocessed = data_unprocessed
         self._filetype = filetype
         self._species = species
         self._translation_codes = translation_codes
+        self._dtap = dtap
 
         self._data_translated = {}
 
@@ -119,6 +121,9 @@ class ParseClinLabJson(object, metaclass=abc.ABCMeta):
                 ("Between 45 and 64", 45, 64),
                 ("65 and above", 65, 150)
             ]
+            if patient_age < -1 and self._dtap in ['dev', 'test']:
+                # Exception for dev & test because HD randomly generates 'shitty' data
+                return
             self._data_translated['patient_age_group'] = next(
                 (group for group, start, end in age_groups if start <= patient_age <= end))
         else:
