@@ -96,7 +96,7 @@ schema:
     CD_OUTC:
       required: False
       allowed:
-        -neisseria
+        - neisseria
       translation: evolution
       code_list: CD_OUTCM_codes
     CD_TRANSM_ZOONSS:
