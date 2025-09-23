@@ -5,7 +5,7 @@ MONGO_DB_PASSWORD_LOCAL: to_be_replaced_by_ansible
 
 mail:
     from: MongoDB internal HERA
-    to: Michael or Ann-Stephan
+    to: Kato or Ann-Stephan
     host: bioit-mailhog.darwinproject.be:1025
 
 dtap: to_be_replaced_by_ansible
