@@ -22,7 +22,8 @@ from bioit_mongodb_scripts.model.json_model import MongoRecordDict, ResultType
 from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.mongo_querying import Mongoquerying
-from bioit_mongodb_scripts.util.python_utility_functions import execute_command, get_bigsdb_config_data, get_cgmlst_bigsdb_scheme_id
+from bioit_mongodb_scripts.util.python_utility_functions import execute_command, get_bigsdb_config_data, \
+    get_cgmlst_bigsdb_scheme_id, send_email
 from bioit_mongodb_scripts.util.new_temporary_alleles_to_bigs import NewTemporaryAllelesToBigs
 from bioit_mongodb_scripts.util.command.command import Command
 from bioit_mongodb_scripts.util.mongo_quickdraw import get_pseudo_id
@@ -80,7 +81,7 @@ class MongoToBigs:
         self._mappingtable_collection = mongo_init_local.initialise_mapping_table_collection()
         self._nominative_labtest_clinical_metadata_collection = mongo_init_local.initialise_nominative_labtest_clinical_metadata_collection()
         # Open Bigsdb isolates table
-        self._isolates_psql_tbl = TblIsolates(self._species)
+        #self._isolates_psql_tbl = TblIsolates(self._species)
 
         if not self._mongo_config_provider.is_viral(self._species):
             # Prepare cgmlst cache updater command
@@ -96,15 +97,13 @@ class MongoToBigs:
         """
         try:
             self._mongo_to_bigs()
-            self._isolates_psql_tbl.connection.commit()
             return self._list_of_new_isolates_for_alerts, self._list_of_new_versions_for_alerts
         except Exception as exceptionmessage1:
-            self._isolates_psql_tbl.connection.rollback()
             traceback1 = traceback.format_exc()
+            send_email(f"{exceptionmessage1}\n{traceback.format_exc()}",
+                       f'{Path(__file__).name}: Error inserting isolate of {self._species} pipeline to bigsdb for sample {self._single_sample_id} on host {socket.gethostname()}.')
             raise Exception(
                 f"{Path(__file__).name} fail on host {socket.gethostname()}: {exceptionmessage1}\n{traceback1}")
-        finally:
-            self._isolates_psql_tbl.connection.close()
 
     def _mongo_to_bigs(self) -> None:
         """
@@ -164,7 +163,7 @@ class MongoToBigs:
         :return: None
         """
         jsonfile = document.get_json_results()
-        self.__fail_safe_mechanism(self._isolates_psql_tbl, isolate=isolate_id, results_type=results_type)
+        self.__fail_safe_mechanism(isolate=isolate_id, results_type=results_type)
         MainResultsInserter(isolate_id, self._uploader_mail_address, self._species, results_type,
                             vcf_path=document['vcf_path'], json_results=jsonfile,
                             report_access=document['report_directory'],
@@ -283,7 +282,8 @@ class MongoToBigs:
         :return: results_type and whether for loop should continue to next sample (True) or proceed (False) and
         boolean whether the cgST changed; always True if results_type is not reanalysis or resequencing
         """
-        sample_presence = self._isolates_psql_tbl.count_isolate((isolate_id,))
+        with TblIsolates(self._species) as isolates_psql_tbl:
+            sample_presence = isolates_psql_tbl.count_isolate((isolate_id,))
         # is_sample_failed: isolate into bigsdb was started but failed during insertion.
         # if argument "new_isolate" is passed to main_results_inserter and it finds the flag,
         # it will remove the isolate and the flag, and then recreate the flag and start insertion again.
@@ -334,7 +334,8 @@ class MongoToBigs:
                 return different_version, cgst_changed
             # check whether the cgST that is currently in the db for the isolate is the same as the
             # cgST of the new version in Mongo.
-            cgst_query_result = self._isolates_psql_tbl.select_current_cgst_of_isolate((self._cgmlst_bigsdb_scheme_id, isolate_id))
+            with TblIsolates(self._species) as isolates_psql_tbl:
+                cgst_query_result = isolates_psql_tbl.select_current_cgst_of_isolate((self._cgmlst_bigsdb_scheme_id, isolate_id))
             if (cgst_query_result[0][0] is None and new_results.get('cgST') is not None) or (
                     cgst_query_result[0][0] is not None and int(cgst_query_result[0][0]) != new_results.get('cgST')):
                 cgst_changed = True
@@ -388,12 +389,11 @@ class MongoToBigs:
         return Path(self._bigsdb_config_data['failsafe']['flag_dir']) / '.'.join(
             [isolate, self._bigsdb_config_data['failsafe']['flag_append']])
 
-    def __fail_safe_mechanism(self, isolates_psql_tbl: TblIsolates, isolate: str, results_type: ResultType) -> None:
+    def __fail_safe_mechanism(self, isolate: str, results_type: ResultType) -> None:
         """
         Creates a flagfile if insertion is started and no flagfile is present.
         else insertion is started and flag file is present: remove highest version of sample and
         reinsert if multiple versions, if only one version, sample is reinserted in the main workflow below
-        :param isolates_psql_tbl: isolates db isolates table/ connection instance for a given species
         :param isolate: BIGSdb isolate name
         :param results_type: one of the following string: 'new_isolate', 'goodqc', 'warningqc','resequencing',
         'reanalysis'
@@ -408,7 +408,8 @@ class MongoToBigs:
                     results_type in ['reanalysis', 'resequencing']):
                 logging.warning(
                     f"fail safe mechanism detects that the bigsdb insertion for sample {isolate} was started but did not finish. Removing {isolate} from Bigsdb to be able to restart inserting.")
-                isolates_psql_tbl.delete_isolate([isolate])
+                with TblIsolates(self._species) as isolates_psql_tbl:
+                    isolates_psql_tbl.delete_isolate([isolate])
                 self._nominative_labtest_clinical_metadata_collection.update_one({'_id': isolate},
                                                                                  {'$set': {
                                                                                      'inserted_into_bigsdb': False}})

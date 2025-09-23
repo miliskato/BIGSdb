@@ -2,8 +2,8 @@ from typing import Tuple
 
 from psycopg.types.json import Json
 
-from bioit_bigsdb_scripts.components.psql.databaseconnection import DatabaseConnection
-from bioit_bigsdb_scripts.components.psql.psql_queries import PsqlQueries
+from .databaseconnection import DatabaseConnection
+from .psql_queries import PsqlQueries
 
 
 class TblAnalysisResults(DatabaseConnection):
@@ -16,7 +16,8 @@ class TblAnalysisResults(DatabaseConnection):
         Initialises this class by opening a database connection.
         :param species: commonly used bioit species name: either genus or specific like stec
         """
-        super().__init__(species, 'isolates')
+        self._db_type = 'isolates'
+        super().__init__(species, self._db_type)
 
     def insert_analysis_results_isolate_name(self, param: Tuple[str, str, Json]) -> None:
         """
