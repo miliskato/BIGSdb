@@ -1,0 +1,125 @@
+[% # Template file for outputting formatted AMRFinder analysis in the isolate information page. %]
+[% IF AbritAMR %]
+<h3>AbritAMR</h3>
+
+<div class="scrollable">
+<style>
+    table.nice {
+        text-align: center;
+        border-collapse: separate;
+    }
+    table.nice th, table.nice td {
+        padding: 2px 6px; /* Adds padding inside cells (top/bottom, left/right) */
+    }
+    table.nice td:first-child {
+        max-width: 50ch;
+        overflow-wrap: anywhere;
+    }
+    table.nice tr:nth-child(n+3) {
+        background: #E4EFF3;
+    }
+    table.nice tr:nth-child(2n+3) {
+        background: #C1E6F3;
+    }
+</style>
+
+<table class="data nice">
+    <tr>
+        <th>Antibiotic</th>
+        <th>Resistance mechanisms detected</th>
+        <th>Interpretation</th>
+    </tr>
+
+    <tr>
+        <td colspan="4"><a href="[% AbritAMR.results.report_link %]" target="_blank">Full report</a></td>
+    </tr>
+
+    <tr>
+        <td>Ampicillin</td>
+        <td>[% AbritAMR.results.abritamr_Ampicillin_ResMech %]</td>
+        <td>[% AbritAMR.results.abritamr_Ampicillin_Interpretation %]</td>
+    </tr>
+    <tr>
+        <td>Cefotaxime (ESBL)</td>
+        <td>[% AbritAMR.results.abritamr_Cefotaxime_(ESBL)_ResMech %]</td>
+        <td>[% AbritAMR.results.abritamr_Cefotaxime_(ESBL)_Interpretation %]</td>
+    </tr>
+    <tr>
+        <td>Cefotaxime (AmpC)</td>
+        <td>[% AbritAMR.results.abritamr_Cefotaxime_(AmpC)_ResMech %]</td>
+        <td>[% AbritAMR.results.abritamr_Cefotaxime_(AmpC)_Interpretation %]</td>
+    </tr>
+    <tr>
+        <td>Tetracycline</td>
+        <td>[% AbritAMR.results.abritamr_Tetracycline_ResMech %]</td>
+        <td>[% AbritAMR.results.abritamr_Tetracycline_Interpretation %]</td>
+    </tr>
+    <tr>
+        <td>Gentamicin</td>
+        <td>[% AbritAMR.results.abritamr_Gentamicin_ResMech %]</td>
+        <td>[% AbritAMR.results.abritamr_Gentamicin_Interpretation %]</td>
+    </tr>
+    <tr>
+        <td>Kanamycin</td>
+        <td>[% AbritAMR.results.Kanamycin_ResMech %]</td>
+        <td>[% AbritAMR.results.abritamr_Kanamycin_Interpretation %]</td>
+    </tr>
+    <tr>
+        <td>Streptomycin</td>
+        <td>[% AbritAMR.results.abritamr_Streptomycin_ResMech %]</td>
+        <td>[% AbritAMR.results.abritamr_Streptomycin_Interpretation %]</td>
+    </tr>
+    <tr>
+        <td>Sulfathiazole</td>
+        <td>[% AbritAMR.results.abritamr_Sulfathiazole_ResMech %]</td>
+        <td>[% AbritAMR.results.abritamr_Sulfathiazole_Interpretation %]</td>
+    </tr>
+    <tr>
+        <td>Trimethoprim</td>
+        <td>[% abritamr_Trimethoprim_ResMech %]</td>
+        <td>[% AbritAMR.results.abritamr_Trimethoprim_Interpretation %]</td>
+    </tr>
+    <tr>
+        <td>Trim-Sulpha</td>
+        <td>[% AbritAMR.results.abritamr_Trim-Sulpha_ResMech %]</td>
+        <td>[% AbritAMR.results.abritamr_Trim-Sulpha_Interpretation %]</td>
+    </tr>
+    <tr>
+        <td>Chloramphenicol</td>
+        <td>[% AbritAMR.results.abritamr_Chloramphenicol_ResMech %]</td>
+        <td>[% AbritAMR.results.abritamr_Chloramphenicol_Interpretation %]</td>
+    </tr>
+    <tr>
+        <td>Ciprofloxacin</td>
+        <td>[% AbritAMR.results.abritamr_Ciprofloxacin_ResMech %]</td>
+        <td>[% AbritAMR.results.abritamr_Ciprofloxacin_Interpretation %]</td>
+    </tr>
+    <tr>
+        <td>Meropenem</td>
+        <td>[% AbritAMR.results.abritamr_Meropenem_ResMech %]</td>
+        <td>[% AbritAMR.results.abritamr_Meropenem_Interpretation %]</td>
+    </tr>
+    <tr>
+        <td>Azithromycin</td>
+        <td>[% AbritAMR.results.abritamr_Azithromycin_ResMech %]</td>
+        <td>[% AbritAMR.results.abritamr_Azithromycin_Interpretation %]</td>
+    </tr>
+    <tr>
+        <td>Aminoglycosides (RMT)</td>
+        <td>[% AbritAMR.results.abritamr_Aminoglycosides_(RMT)_ResMech %]</td>
+        <td>[% AbritAMR.results.abritamr_Aminoglycosides_(RMT)_Interpretation %]</td>
+    </tr>
+    <tr>
+        <td>Colistin</td>
+        <td>[% AbritAMR.results.abritamr_Colistin_ResMech %]</td>
+        <td>[% AbritAMR.results.abritamr_Colistin_ResMech %]</td>
+    </tr>
+    <tr>
+        <td>Other</td>
+        <td>[% AbritAMR.results.abritamr_Other_ResMech %]</td>
+        <td>[% AbritAMR.results.abritamr_Other_Interpretation %]</td>
+    </tr>
+    [% END %]
+</table>
+</div>
+[% END %]

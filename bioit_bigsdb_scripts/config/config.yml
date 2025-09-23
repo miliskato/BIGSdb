@@ -338,6 +338,8 @@ species_json:
         type: regular
       mob_suite_detection:
         type: irregular
+        schemename_bigsdb: MOB-suite
+        schemename_html: mob-suite
       rmlst_identification:
         type: irregular
     genedetection_schemes:
@@ -377,6 +379,8 @@ species_json:
         type: regular
       mob_suite_detection:
         type: irregular
+        schemename_bigsdb: MOB-suite
+        schemename_html: mob-suite
       rmlst_identification:
         type: irregular
     genedetection_schemes:
@@ -422,6 +426,8 @@ species_json:
         type: regular
       mob_suite_detection:
         type: irregular
+        schemename_bigsdb: MOB-suite
+        schemename_html: mob-suite
       rmlst_identification:
         type: irregular
     genedetection_schemes:
@@ -530,10 +536,14 @@ species_json:
         type: irregular
       abritamr:
         type: irregular
+        schemename_bigsdb: AbritAMR
+        schemename_html: abritamr
       resfinder4_mutations:
         type: irregular
       mob_suite_detection:
         type: irregular
+        schemename_bigsdb: MOB-suite
+        schemename_html: mob-suite
       rmlst_identification:
         type: irregular
     genedetection_schemes:

@@ -135,20 +135,13 @@ class JsonTypingResultsInserter(JsonSuperClass):
 
     def _process_mob_suite(self) -> None:
         """
-        Inserts MOB-Suite results into bigsdb eav_text table
+        Insert MOB-Suite results into the analysis_results table of BIGSdb.
         :return: None
         """
         plasmid_list = self._json_report_dict['mob_suite'].get('mob_suite_overview')
         if not plasmid_list:
             return
-        report_url = UrlHelper.report_for_isolate(self._species, self.__get_isolate_id(), anchor='mob-suite')
-        mob_suite_table_builder = HtmlMobSuiteTableBuilder(report_url)
-        for item in plasmid_list:
-            mob_suite_table_builder.add_plasmid(item['id'], item['num_contigs'], item['size'], item['gc'], item['predicted_mobility'], item['rep_type(s)'], item['relaxase_type(s)'])
-        html = mob_suite_table_builder.build()
-
-        with TblEavText(self._species) as isolates_eavt_psql_tbl:
-            isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'MOB-Suite', html))
+        self._insert_analysis_results(self.__get_isolate_id(), 'mob_suite', self._schemedict[self._scheme])
 
     def __get_isolate_id(self) -> str:
         """
@@ -348,17 +341,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
                                 (spifinder_field, self._isolatename, spifinder_entry))
                             inserted_alleledesignations_list.add(spifinder_entry)
         elif self._scheme == 'abritamr':
-            with TblEavFields(self._species) as isolates_eavf_psql_tbl:
-                fields_abritamr: List[Tuple[str]] = isolates_eavf_psql_tbl.select_fields_of_a_category(('AbritAMR',))
-
-            for item in fields_abritamr:
-                item_like_mongo = 'abritamr_' + item[0]
-                if item_like_mongo in self._json_report_dict[self._scheme] and \
-                        self._json_report_dict[self._scheme][item_like_mongo] is not None:
-                    amr_detection: str = self._json_report_dict[self._scheme][item_like_mongo]
-                    if amr_detection == '-':
-                        amr_detection = 'NA'
-                    self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, item[0], amr_detection))
+            self._insert_analysis_results(self.__get_isolate_id(), self._scheme, self._schemedict[self._scheme])
 
     def ___salmonella_insert_antigens_into_db(self, raw_formula: str,
                                               mode: Optional[ModeValue] = None) -> None:

@@ -5,3 +5,5 @@
 [% INCLUDE isolate_info_kleborate.tt %]
 [% INCLUDE isolate_info_amrfinder.tt %]
 [% INCLUDE isolate_info_resfinder4.tt %]
+[% INCLUDE isolate_info_mobsuite.tt %]
+[% INCLUDE isolate_info_abritamr.tt %]
