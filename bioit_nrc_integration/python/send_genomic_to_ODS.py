@@ -96,7 +96,7 @@ class SendGenomicToODS:
         :param data_dict: the data dictionary to send to the ODS, to be modified in place.
         :return: None
         """
-        if variable_info['custom'] == 'resfinder':
+        if variable_info['custom'] == 'resfinder4':
             self.__parse_custom_results_resfinder4(variable_info, data_dict)
         else:
             raise NotImplementedError(f"Custom parsing method {variable_info['custom']} not implemented.")
@@ -118,7 +118,7 @@ class SendGenomicToODS:
         antibiotics = []
         for phenotype in phenotypes:
             antibiotics.extend(phenotype.split(','))
-        antibiotics_reformatted = set([antibiotic.lower().replace(' ') for antibiotic in antibiotics])
+        antibiotics_reformatted = set([antibiotic.lower().replace(' ', '') for antibiotic in antibiotics])
         for antibiotic in antibiotics_reformatted:
             antibiotic_code = self._translation_codes['custom']['resfinder4'].get(antibiotic)
             # Ignore potential new antibiotics that are not in DCD
