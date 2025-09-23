@@ -1,0 +1,155 @@
+{
+  "data": {
+    "cd_sex": "261665006",
+    "cd_tpe": "74964007",
+    "tx_dcd": "100",
+    "idc_pat": "19010924RARAF",
+    "tx_lang": "en",
+    "tx_prog": "24",
+    "tx_proj": "35",
+    "cd_cntry": "KH",
+    "cd_hospz": "373067005",
+    "cd_hp_pc": "3128",
+    "cd_outcm": "371001000",
+    "cd_splty": "394581000",
+    "cd_imprtd": "373066001",
+    "cd_pat_pc": "6224",
+    "tx_author": "test.qa@sciensano.be",
+    "tx_hp_hnr": "RandomText_193",
+    "tx_hp_ttl": "RandomText_569",
+    "cd_epilink": "EL0002",
+    "cd_hp_role": "PRF",
+    "cd_pat_sex": "248152002",
+    "dt_pat_dob": "1901-09-24",
+    "dt_pat_dod": "1901-03-18",
+    "tx_hp_init": "RandomText_602",
+    "tx_pat_hnr": "RandomText_970",
+    "tx_pat_ttl": "RandomText_371",
+    "tx_reg_nam": "LIST_CLIN",
+    "cd_data_src": "CSV",
+    "cd_hp_cntry": "KZ",
+    "cd_hpin_sys": "nihdi",
+    "cd_hpin_val": "11520729003",
+    "tx_coauthor": "test.qa@sciensano.be",
+    "tx_hp_prefx": "RandomText_452",
+    "tx_pat_init": "RandomText_791",
+    "cd_hp_hco_pc": "8958",
+    "cd_hp_municp": "1350",
+    "tx_hp_street": "RandomText_67",
+    "tx_pat_prefx": "RandomText_51",
+    "cd_hp_adr_tpe": "both",
+    "cd_hp_adr_use": "home",
+    "cd_hp_hco_sys": "nihdi",
+    "cd_hp_hco_tpe": "HO0027",
+    "cd_hp_hco_val": "71010235",
+    "cd_pat_municp": "2870",
+    "cd_status_rec": "status_submitted",
+    "tx_hp_hco_hnr": "RandomText_149",
+    "tx_hp_hco_nam": "RandomText_789",
+    "tx_hp_hnr_add": "RandomText_506",
+    "tx_hp_hnr_ltr": "RandomText_290",
+    "tx_pat_street": "RandomText_176",
+    "cd_hp_nam_usge": "NL2",
+    "cd_idc_pat_sys": "generated",
+    "cd_pat_adr_tpe": "both",
+    "cd_pat_adr_use": "billing",
+    "cd_pregy_outcm": "385432009",
+    "tx_hp_givn_nam": "RandomText_476",
+    "tx_pat_hnr_add": "RandomText_809",
+    "tx_pat_hnr_ltr": "RandomText_981",
+    "cd_hp_hco_cntry": "AD",
+    "cd_hp_hco_splty": "309923008",
+    "cd_hp_plc_resdc": "6142",
+    "cd_pat_nam_usge": "NL3",
+    "tx_business_key": "19010924RARAFRandomText_970",
+    "tx_hp_first_nam": "RandomText_814",
+    "tx_hp_last_name": "RandomText_452",
+    "tx_hp_pnr_prefx": "RandomText_617",
+    "tx_pat_add_info": "RandomText_570",
+    "tx_pat_givn_nam": "RandomText_777",
+    "tx_pat_last_nam": "RandomText_261",
+    "cd_hp_hco_loc_nr": "2560",
+    "cd_hp_hco_municp": "4360",
+    "cd_pat_plc_resdc": "3850",
+    "cd_transm_zoonss": "417564009",
+    "tx_hp_hco_street": "RandomText_918",
+    "tx_pat_first_nam": "RandomText_478",
+    "tx_pat_pnr_prefx": "RandomText_618",
+    "cd_hp_hco_adr_tpe": "postal",
+    "cd_hp_hco_adr_use": "home",
+    "cd_hp_hco_dept_nr": "902-UNKNOWN",
+    "cd_pat_mult_birth": "45384004",
+    "cd_prob_nam_pregy": "237364002",
+    "tx_hp_hco_hnr_add": "RandomText_936",
+    "tx_hp_hco_hnr_ltr": "RandomText_982",
+    "tx_hp_hco_loc_nam": "RandomText_501",
+    "tx_lab_sample_val": "RandomText_970",
+    "cd_hp_hnr_indicatn": "HI0001",
+    "tx_hp_adr_add_info": "RandomText_410",
+    "tx_hp_pnr_last_nam": "RandomText_935",
+    "cd_hp_hco_plc_resdc": "6142",
+    "cd_pat_hnr_indicatn": "HI0002",
+    "tx_pat_pnr_last_nam": "RandomText_822",
+    "tx_suspc_veh_repeat": [
+      {
+        "cd_suspc_veh": "261665006"
+      }
+    ],
+    "cd_pat_death_indicat": "419099009",
+    "tx_ttl_pernat_repeat": [
+      {
+        "cd_pernat": "IS0003"
+      }
+    ],
+    "ms_pat_mult_birth_ord": 5,
+    "tx_infct_cntry_repeat": [
+      {
+        "cd_infct_cntry": "BF"
+      }
+    ],
+    "tx_ttl_hp_cont_repeat": [
+      {
+        "cd_hp_cont_tpe": "phone",
+        "cd_hp_cont_use": "home",
+        "tx_hp_cont_val": "RandomText_530",
+        "tx_hp_cont_cmnt": "RandomText_706"
+      }
+    ],
+    "cd_hp_hco_hnr_indicatn": "HI0002",
+    "tx_hp_hco_adr_add_info": "RandomText_695",
+    "tx_ttl_pat_cont_repeat": [
+      {
+        "cd_pat_cont_tpe": "other",
+        "cd_pat_cont_use": "old",
+        "tx_pat_cont_val": "RandomText_866",
+        "tx_pat_cont_cmnt": "RandomText_562"
+      }
+    ],
+    "tx_ttl_symp_adlt_repeat": [
+      {
+        "cd_prob_nam_adlt": "74964007",
+        "tx_prob_nam_adlt_oth": "RandomText_549"
+      }
+    ],
+    "tx_ttl_symp_chld_repeat": [
+      {
+        "cd_prob_nam_chld": "74964007",
+        "tx_prob_nam_chld_oth": "RandomText_623"
+      }
+    ],
+    "id_te_hdbp0335_list_clin": 995,
+    "tx_ttl_hp_hco_cont_repeat": [
+      {
+        "cd_hp_hco_cont_tpe": "pager",
+        "cd_hp_hco_cont_use": "old",
+        "tx_hp_hco_cont_val": "RandomText_313",
+        "tx_hp_hco_cont_cmnt": "RandomText_432"
+      }
+    ]
+  },
+  "metadata": {
+    "version": "v1.0.1-draft1",
+    "dataCollection": "HDBP0335_LIST_CLIN"
+  },
+  "technical_id": 995
+}

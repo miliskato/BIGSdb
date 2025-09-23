@@ -5483,7 +5483,7 @@ code_lists:
     4321000146101: 'Zygotorulaspora florentina'
     # below fields of listeria dcd
     #36094007: Listeria monocytogenes
-    QL0037: No Listeria monocytogenes  # in salmonella this is 'not interpretable'
+    QL0037: No Listeria monocytogenes
     260385009: Negative
     419984006: Inconclusive
     QL0038: Listeria monocytogenes serogroup IIa
