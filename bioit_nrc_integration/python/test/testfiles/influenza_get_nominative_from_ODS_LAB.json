@@ -51,7 +51,7 @@
     "cd_reqe_hco_tpe": "HO0197",
     "cd_reqe_hco_val": "99999999",
     "cd_reqe_hp_role": "768832004",
-    "tx_business_key": "20030201SILIFRandomText_505",
+    "tx_business_key": "random_business_key_different_from_wgsmeta",
     "tx_pat_add_info": "RandomText_255",
     "tx_pat_givn_nam": "RandomText_130",
     "tx_pat_last_nam": "Simpson",

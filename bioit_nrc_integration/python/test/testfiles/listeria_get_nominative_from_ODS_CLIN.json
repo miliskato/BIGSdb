@@ -61,7 +61,7 @@
     "cd_hp_hco_splty": "309923008",
     "cd_hp_plc_resdc": "6142",
     "cd_pat_nam_usge": "NL3",
-    "tx_business_key": "19010924RARAFRandomText_970",
+    "tx_business_key": "random_business_key_different_from_wgsmeta",
     "tx_hp_first_nam": "RandomText_814",
     "tx_hp_last_name": "RandomText_452",
     "tx_hp_pnr_prefx": "RandomText_617",

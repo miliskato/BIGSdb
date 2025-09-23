@@ -120,7 +120,7 @@
     "cd_symp_rhonchi": "261665006",
     "cd_symp_sorthro": "373067005",
     "cd_symp_sudfall": "373066001",
-    "tx_business_key": "20000101RARAFRandomText_428",
+    "tx_business_key": "random_business_key_different_from_wgsmeta",
     "tx_hp_first_nam": "RandomText_587",
     "tx_hp_last_name": "RandomText_319",
     "tx_hp_pnr_prefx": "RandomText_19",

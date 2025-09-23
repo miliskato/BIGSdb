@@ -49,7 +49,7 @@
     "cd_reqe_hco_tpe": "HO0155",
     "cd_reqe_hco_val": "99999999",
     "cd_reqe_hp_role": "CON",
-    "tx_business_key": "19000717RARAFRandomText_870",
+    "tx_business_key": "random_business_key_different_from_wgsmeta",
     "tx_pat_add_info": "RandomText_821",
     "tx_pat_givn_nam": "RandomText_619",
     "tx_pat_last_nam": "RandomText_767",
