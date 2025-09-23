@@ -157,7 +157,7 @@ def normalize_keys(data: dict) -> Union[dict, list]:
         new_dict = {}
         for key, value in data.items():
             # Normalize the key
-            new_key = key.replace(" ", "_").replace("%", "percent")
+            new_key = key.replace(" ", "_").replace("%", "percent").replace("(", "").replace(")", "")
             # Recurse on the value
             new_dict[new_key] = normalize_keys(value)
         return new_dict

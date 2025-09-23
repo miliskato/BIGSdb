@@ -41,13 +41,13 @@
     </tr>
     <tr>
         <td>Cefotaxime (ESBL)</td>
-        <td>[% AbritAMR.results.abritamr_Cefotaxime_(ESBL)_ResMech %]</td>
-        <td>[% AbritAMR.results.abritamr_Cefotaxime_(ESBL)_Interpretation %]</td>
+        <td>[% AbritAMR.results.abritamr_Cefotaxime_ESBL_ResMech %]</td>
+        <td>[% AbritAMR.results.abritamr_Cefotaxime_ESBL_Interpretation %]</td>
     </tr>
     <tr>
         <td>Cefotaxime (AmpC)</td>
-        <td>[% AbritAMR.results.abritamr_Cefotaxime_(AmpC)_ResMech %]</td>
-        <td>[% AbritAMR.results.abritamr_Cefotaxime_(AmpC)_Interpretation %]</td>
+        <td>[% AbritAMR.results.abritamr_Cefotaxime_AmpC_ResMech %]</td>
+        <td>[% AbritAMR.results.abritamr_Cefotaxime_AmpC_Interpretation %]</td>
     </tr>
     <tr>
         <td>Tetracycline</td>
@@ -106,8 +106,8 @@
     </tr>
     <tr>
         <td>Aminoglycosides (RMT)</td>
-        <td>[% AbritAMR.results.abritamr_Aminoglycosides_(RMT)_ResMech %]</td>
-        <td>[% AbritAMR.results.abritamr_Aminoglycosides_(RMT)_Interpretation %]</td>
+        <td>[% AbritAMR.results.abritamr_Aminoglycosides_RMT_ResMech %]</td>
+        <td>[% AbritAMR.results.abritamr_Aminoglycosides_RMT_Interpretation %]</td>
     </tr>
     <tr>
         <td>Colistin</td>
@@ -119,7 +119,6 @@
         <td>[% AbritAMR.results.abritamr_Other_ResMech %]</td>
         <td>[% AbritAMR.results.abritamr_Other_Interpretation %]</td>
     </tr>
-    [% END %]
 </table>
 </div>
 [% END %]

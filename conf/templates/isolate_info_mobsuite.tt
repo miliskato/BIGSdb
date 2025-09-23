@@ -1,6 +1,6 @@
 [% # Template file for outputting formatted AMRFinder analysis in the isolate information page. %]
-[% IF AMRFinder %]
-<h3>AMRFinder</h3>
+[% IF MOB_suite %]
+<h3>MOB-suite</h3>
 
 <div class="scrollable">
 <style>
@@ -35,10 +35,10 @@
     </tr>
 
     <tr>
-        <td colspan="4"><a href="[% MOB-suite.results.report_link %]" target="_blank">Full report</a></td>
+        <td colspan="4"><a href="[% MOB_suite.results.report_link %]" target="_blank">Full report</a></td>
     </tr>
 
-    [% FOREACH item IN MOB-suite.results.mob_suite_overview %]
+    [% FOREACH item IN MOB_suite.results.mob_suite_overview %]
     <tr>
         <td>[% item.id %]</td>
         <td>[% item.num_contigs %]</td>

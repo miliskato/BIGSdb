@@ -338,7 +338,7 @@ species_json:
         type: regular
       mob_suite_detection:
         type: irregular
-        schemename_bigsdb: MOB-suite
+        schemename_bigsdb: MOB_suite
         schemename_html: mob-suite
       rmlst_identification:
         type: irregular
@@ -379,7 +379,7 @@ species_json:
         type: regular
       mob_suite_detection:
         type: irregular
-        schemename_bigsdb: MOB-suite
+        schemename_bigsdb: MOB_suite
         schemename_html: mob-suite
       rmlst_identification:
         type: irregular
@@ -426,7 +426,7 @@ species_json:
         type: regular
       mob_suite_detection:
         type: irregular
-        schemename_bigsdb: MOB-suite
+        schemename_bigsdb: MOB_suite
         schemename_html: mob-suite
       rmlst_identification:
         type: irregular
@@ -542,7 +542,7 @@ species_json:
         type: irregular
       mob_suite_detection:
         type: irregular
-        schemename_bigsdb: MOB-suite
+        schemename_bigsdb: MOB_suite
         schemename_html: mob-suite
       rmlst_identification:
         type: irregular
