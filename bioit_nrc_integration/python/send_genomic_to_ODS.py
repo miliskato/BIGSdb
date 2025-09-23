@@ -101,8 +101,6 @@ class SendGenomicToODS:
         else:
             raise NotImplementedError(f"Custom parsing method {variable_info['custom']} not implemented.")
 
-        pass
-
     def __parse_custom_results_resfinder4(self, variable_info, data_dict: dict[str, Any]) -> None:
         """
         Parses the results of ResFinder4 in a custom manner. The antibiotic phenotypes are stored in a 'Phenotype' field
@@ -113,7 +111,8 @@ class SendGenomicToODS:
         :param data_dict: the data dictionary to send to the ODS, to be modified in place.
         :return: None
         """
-        hits: list[dict[str, Any]] = access_value_in_dict_using_list_as_dictpath(variable_info['dict_path'], dict(self._document))
+        hits: list[dict[str, Any]] = access_value_in_dict_using_list_as_dictpath(variable_info['dict_path'],
+                                                                                 dict(self._document))
         phenotypes = set([hit['Phenotype'] for hit in hits])
         antibiotics = []
         for phenotype in phenotypes:
