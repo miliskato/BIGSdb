@@ -31,7 +31,7 @@
     </tr>
 
     <tr>
-        <td colspan="4"><a href="[% AbritAMR.results.report_link %]" target="_blank">Full report</a></td>
+        <td colspan="3"><a href="[% AbritAMR.results.report_link %]" target="_blank">Full report</a></td>
     </tr>
 
     <tr>
@@ -61,7 +61,7 @@
     </tr>
     <tr>
         <td>Kanamycin</td>
-        <td>[% AbritAMR.results.Kanamycin_ResMech %]</td>
+        <td>[% AbritAMR.results.abritamr_Kanamycin_ResMech %]</td>
         <td>[% AbritAMR.results.abritamr_Kanamycin_Interpretation %]</td>
     </tr>
     <tr>
@@ -76,13 +76,13 @@
     </tr>
     <tr>
         <td>Trimethoprim</td>
-        <td>[% abritamr_Trimethoprim_ResMech %]</td>
+        <td>[% AbritAMR.results.abritamr_Trimethoprim_ResMech %]</td>
         <td>[% AbritAMR.results.abritamr_Trimethoprim_Interpretation %]</td>
     </tr>
     <tr>
         <td>Trim-Sulpha</td>
-        <td>[% AbritAMR.results.abritamr_Trim-Sulpha_ResMech %]</td>
-        <td>[% AbritAMR.results.abritamr_Trim-Sulpha_Interpretation %]</td>
+        <td>[% AbritAMR.results.abritamr_Trim_Sulpha_ResMech %]</td>
+        <td>[% AbritAMR.results.abritamr_Trim_Sulpha_Interpretation %]</td>
     </tr>
     <tr>
         <td>Chloramphenicol</td>
@@ -112,7 +112,7 @@
     <tr>
         <td>Colistin</td>
         <td>[% AbritAMR.results.abritamr_Colistin_ResMech %]</td>
-        <td>[% AbritAMR.results.abritamr_Colistin_Interpreation %]</td>
+        <td>[% AbritAMR.results.abritamr_Colistin_Interpretation %]</td>
     </tr>
     <tr>
         <td>Other</td>

@@ -35,7 +35,7 @@
     </tr>
 
     <tr>
-        <td colspan="4"><a href="[% MOB_suite.results.report_link %]" target="_blank">Full report</a></td>
+        <td colspan="7"><a href="[% MOB_suite.results.report_link %]" target="_blank">Full report</a></td>
     </tr>
 
     [% FOREACH item IN MOB_suite.results.mob_suite_overview %]
@@ -45,8 +45,8 @@
         <td>[% item.size %]</td>
         <td>[% item.gc %]</td>
         <td>[% item.predicted_mobility %]</td>
-        <td>[% item.rep_type(s) %]</td>
-        <td>[% item.relaxase_type(s) %]</td>
+        <td>[% item.rep_types %]</td>
+        <td>[% item.relaxase_types %]</td>
      </tr>
     [% END %]
 </table>
