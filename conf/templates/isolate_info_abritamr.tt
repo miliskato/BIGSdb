@@ -112,7 +112,7 @@
     <tr>
         <td>Colistin</td>
         <td>[% AbritAMR.results.abritamr_Colistin_ResMech %]</td>
-        <td>[% AbritAMR.results.abritamr_Colistin_ResMech %]</td>
+        <td>[% AbritAMR.results.abritamr_Colistin_Interpreation %]</td>
     </tr>
     <tr>
         <td>Other</td>
