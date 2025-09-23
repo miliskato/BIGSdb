@@ -64,12 +64,12 @@ class SendGenomicToODS:
             for variable, variable_info in self._translation_codes[self._species].items():
                 if variable_info.get('custom'):
                     self.__parse_custom_results(variable_info, data_dict)
-                    continue
-                data_dict[variable] = access_value_in_dict_using_list_as_dictpath(variable_info['dict_path'],
-                                                                                  dict(self._document))
-                if variable_info.get('code_list'):
-                    data_dict[variable] = self._translation_codes['code_lists'][
-                        variable_info['code_list']][data_dict[variable]]
+                else:
+                    data_dict[variable] = access_value_in_dict_using_list_as_dictpath(variable_info['dict_path'],
+                                                                                      dict(self._document))
+                    if variable_info.get('code_list'):
+                        data_dict[variable] = self._translation_codes['code_lists'][
+                            variable_info['code_list']][data_dict[variable]]
             if self._species == 'influenza':
                 self.__add_influenza_a_ha_na_info(data_dict)
         return {'metadata': {key: value for key, value in self._translation_codes['pathogens'][self._species].items()},
