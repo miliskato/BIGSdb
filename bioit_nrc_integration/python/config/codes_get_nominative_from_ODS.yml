@@ -7,8 +7,8 @@ pathogens:
   HDBP0333_INFL_LAB: influenza
   HDBP0337_???_CLIN: mycobacterium # todo
   HDBP0337_???_LAB: mycobacterium # todo
-  HDBP0339_???_CLIN: neisseria # todo
-  HDBP0339_???_LAB: neisseria # todo
+  HDBP0339_MENI_CLIN: neisseria
+  HDBP0339_MENI_LAB: neisseria
 
 schema:
   LAB:
