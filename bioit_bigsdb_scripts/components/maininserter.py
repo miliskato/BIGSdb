@@ -55,11 +55,10 @@ class MainInserter(JsonSuperClass):
                 isolates_psql_tbl.insert_isolate((self._isolatename, uploader_mail_address,  # todo should uploader mail address not removed?
                                                   datetime.datetime.strptime(self._json_report_dict['analysis_date'], '%d/%m/%Y - %X').strftime('%Y-%m-%d'),
                                                   datetime.datetime.strptime(isolation_date, '%d/%m/%Y').strftime('%Y-%m-%d')))
-                with TblHistory(self._species) as isolates_history_psql_tbl:
-                    isolates_history_psql_tbl.insert_history_isolate((self._isolatename, 'Isolate record added'))
             else:
                 raise RuntimeError(f"isolatename {self._isolatename} of {self._species} already exists on host {socket.gethostname()}")
-
+        with TblHistory(self._species) as isolates_history_psql_tbl:
+            isolates_history_psql_tbl.insert_history_isolate((self._isolatename, 'Isolate record added'))
         self.__insert_main_metadata()
 
     def update_isolate_analysis_date(self) -> None:
@@ -79,7 +78,7 @@ class MainInserter(JsonSuperClass):
         with TblIsolates(self._species) as isolates_psql_tbl:
             isolate_tuple = isolates_psql_tbl.select_id_for_isolate((self._isolatename,))
             isolate_id = str(isolate_tuple[0][0])
-            return MainInserterContext(isolate_id, UrlHelper.report_for_isolate(self._species, isolate_id))
+        return MainInserterContext(isolate_id, UrlHelper.report_for_isolate(self._species, isolate_id))
 
     def __insert_main_metadata(self) -> None:
         """
