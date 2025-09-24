@@ -10,7 +10,7 @@ pathogens:
     version: v1.0.1
   neisseria:
     dataCollection: HDBP0339_MENI_BIOIT
-    version: v1
+    version: v1.0.0
 
 common:
   CD_HCO_NIHDI:
