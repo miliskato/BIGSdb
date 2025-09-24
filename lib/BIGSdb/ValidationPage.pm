@@ -32,6 +32,7 @@ use JSON;
 use constant LIMIT       => 500;
 use constant INF         => 9**99;
 use constant MIN_EMBARGO => 3;
+use BIGSdb::UI::IsolateSubmissionsTable;
 
 sub get_help_url {
 	my ($self) = @_;
@@ -52,6 +53,7 @@ sub get_submission_days {
 }
 
 sub get_javascript {
+    $logger->error('use get_javascript');
 	my ($self)      = @_;
 	my $q           = $self->{'cgi'};
 	my $max         = $self->{'config'}->{'max_upload_size'} / ( 1024 * 1024 );
@@ -175,23 +177,28 @@ END
 sub initiate {
 	my ($self)        = @_;
 	my $q             = $self->{'cgi'};
-
+    $logger->error(Dumper($q));
 	$self->{$_} = 1 foreach qw (jQuery jQuery.jstree noCache tooltips dropzone allowExpand jQuery.multiselect);
 
+    $logger->error('😵😵');
+
     if ( $q->param('bulk_status')) {
+        ## TODO 🍟🍟 Duplicate stuffs
+        $logger->error('hey ho ouille aieaieaie 🙋‍♂️');
+        $logger->error(Dumper($q));
         # Processing batch update
         my @selected_submissions = $q->param('selected_submissions[]');
         my %outcome = ( accepted => 'good', rejected => 'bad' );
 
         foreach my $submission_id (@selected_submissions) {
-            next if none { $_ eq $q->param('record_status') } keys %outcome;
-            $self->{'submissionHandler'}->update_submission_outcome( $submission_id, $outcome{ $q->param('record_status') } );
+            next if none { $_ eq $q->param('bulk_status') } keys %outcome;
+            $self->{'submissionHandler'}->update_submission_outcome( $submission_id, $outcome{ $q->param('bulk_status') } );
         }
     }
 
 	if ( $q->param('curate') ) {
 		$self->set_level2_breadcrumbs('Curate submission');
-	} elsif ( $q->param('alleles') || $q->param('profiles') || $q->param('isolate') || $q->param('genomes') ) {
+	} elsif ($q->param('isolate')) {
 		$self->set_level2_breadcrumbs('New submission');
 	} else {
 		$self->{'processing'} = 1 if defined $q->param('submission_id');
@@ -220,6 +227,8 @@ sub print_content {
 
 	# Handle bulk status update
 	if ($q->param('bulk_status')) {
+        ## TODO 🍟🍟 Duplicate stuffs
+        $logger->error('I got a bulk_status !✅✅✅');
 		$self->_update_bulk_submission_status();
 	}
 
@@ -252,6 +261,7 @@ sub print_content {
 		if ( !$submissions_to_show ) {
 			$self->print_navigation_bar( { closed_submissions => $closed_buffer ? 1 : 0 } );
 		}
+        #ca passe ici
 		say q(</div>);
 		$self->print_related_database_panel;
 		say q(</div>);
@@ -422,6 +432,20 @@ sub _get_submissions_by_status {
 	return $submissions;
 }
 
+sub _get_submissions {
+	my ( $self, $submission_ids ) = @_;
+	return [] if !$submission_ids || ref $submission_ids ne 'ARRAY' || !@$submission_ids;
+
+	my $placeholders = join( ',', ('?') x @$submission_ids );
+	my $qry = "SELECT * FROM submissions WHERE id IN ($placeholders) AND (dataset IS NULL OR dataset = ?) ORDER BY id";
+	my @args = ( @$submission_ids, $self->{'instance'} );
+
+	my $submissions =
+	  $self->{'datastore'}->run_query( $qry, \@args,
+		{ fetch => 'all_arrayref', slice => {}, cache => "SubmitPage::get_submissions_by_ids" } );
+	return $submissions;
+}
+
 sub _print_started_submissions {
 	my ($self) = @_;
 	my $incomplete = $self->_get_submissions_by_status('started');
@@ -484,6 +508,7 @@ sub _get_own_submissions {
 			if ( $details_method{ $submission->{'type'} } ) {
 				my $method = $details_method{ $submission->{'type'} };
 				$details = $self->$method($submission);
+                $logger->error($details);
 			}
 			my $url = qq($self->{'system'}->{'script_name'}?db=$self->{'instance'}&amp;page=submit&amp;)
 			  . qq(submission_id=$submission->{'id'}&amp;view=1);
@@ -569,6 +594,7 @@ sub _get_assembly_submission_details {    ## no critic (ProhibitUnusedPrivateSub
 }
 
 sub _print_pending_submissions {
+    $logger->error('use _print_pending_submissions');
 	my ($self) = @_;
 	my $buffer = $self->_get_own_submissions('pending');
 	if ($buffer) {
@@ -589,6 +615,7 @@ sub print_submissions_for_curation {
 	my $user_info = $self->{'datastore'}->get_user_info_from_username( $self->{'username'} );
 	return if !$user_info || ( $user_info->{'status'} ne 'admin' && $user_info->{'status'} ne 'curator' );
 	my $buffer;
+    $logger->error('use print_submissions_for_curation');
     $buffer .= $self->_get_isolate_submissions_for_curation($options);
 	return $buffer if $options->{'get_only'};
 	say $buffer    if $buffer;
@@ -596,78 +623,76 @@ sub print_submissions_for_curation {
 }
 
 sub _get_isolate_submissions_for_curation {
+    $logger->error('use _get_isolate_submissions_for_curation');
 	my ( $self, $options ) = @_;
 	my $status = $options->{'status'} // 'pending';
 	# return q() if !$self->can_modify_table('isolates'); # disable this so that all curators, regardless of their rights can validate new isolates, mk 23/10/18
 	my $submissions = $self->_get_submissions_by_status( $status, { get_all => 1 } );
-	my $buffer;
-	my $td      = 1;
+    $logger->error("$submissions");
 	my $embargo = $self->{'datastore'}->get_embargo_attributes;
-	foreach my $submission (@$submissions) {
-		next if $submission->{'type'} ne 'isolates' && $submission->{'type'} ne 'genomes';
-		next if $submission->{'type'} eq 'genomes'  && !$self->can_modify_table('sequence_bin');
-        my $submitter_string =
-		  $self->{'datastore'}->get_user_string( $submission->{'submitter'}, { email => 1 } );
-		my $isolate_count = $self->{'submissionHandler'}->get_isolate_submission_count( $submission->{'id'} );
-		$buffer .=
-			qq(<tr class="td$td"><td><input type="checkbox" name="selected_submissions[]" value="$submission->{'id'}" /><a href="$self->{'system'}->{'script_name'}?db=$self->{'instance'}&amp;)
-		  . qq(page=submit&amp;submission_id=$submission->{'id'}&amp;curate=1">$submission->{'id'}</a></td>)
-		  . qq(<td>$submission->{'date_submitted'}</td><td>$submission->{'datestamp'}</td><td>$submitter_string</td>)
-		  . qq(<td>$isolate_count</td><td>$submission->{'quality'}</td>);
-		if ( $self->{'system'}->{'dbtype'} eq 'isolates' && $embargo->{'embargo_enabled'} ) {
-			my $embargo_months = $submission->{'embargo'} // '-';
-			$buffer .= qq(<td>$embargo_months</td>);
-		}
-		if ( $status eq 'closed' ) {
-			my %style = FACE_STYLE;
-			$buffer .= qq(<td><span $style{$submission->{'outcome'}}></span></td>);
-		}
-		$buffer .= qq(</tr>\n);
-		$td = $td == 1 ? 2 : 1;
+
+	# Get isolate curate message if it exists
+	my $isolate_curate_message = "$self->{'dbase_config_dir'}/$self->{'instance'}/isolate_curate.html";
+	my $curate_message_content = q();
+	if (-e $isolate_curate_message) {
+		$curate_message_content = $self->print_file( $isolate_curate_message, { get_only => 1 } );
 	}
-	my $return_buffer = q();
-	if ($buffer) {
-		if ( $status eq 'closed' ) {
-			$return_buffer .= q(<h3>Isolate submissions</h3>);
-		} else {
-			$return_buffer .= qq(<h2>New isolate submissions waiting for curation</h2>\n);
-			$return_buffer .= qq(<p>Your account is authorized to handle the following submissions:<p>\n);
-			my $isolate_curate_message = "$self->{'dbase_config_dir'}/$self->{'instance'}/isolate_curate.html";
-			$return_buffer .= $self->print_file( $isolate_curate_message, { get_only => 1 } )
-			  if -e $isolate_curate_message;
-		}
-		$return_buffer .= q(<div class="scrollable">);
-		$return_buffer .= q(<form method="post" action="?page=validation&db=bigsdb_neisseria_isolates" id="isolateSubmissionsForm">);
-		$return_buffer .= q(<button type="button" id="isolateSubmissionsForm_checkAll" onclick="toggleCheckboxes('isolateSubmissionsForm')" data-checked="false">Check All</button> );
-		$return_buffer .= q(<button type="button" id="isolateSubmissionsForm_checkGood" onclick="toggleCheckboxesByQuality('isolateSubmissionsForm', 'good')" data-checked="false">Check Good Quality</button> );
-		$return_buffer .= q(<button type="button" id="isolateSubmissionsForm_checkWarning" onclick="toggleCheckboxesByQuality('isolateSubmissionsForm', 'warning')" data-checked="false">Check Warning Quality</button> );
-        $return_buffer .= q(<table class="resultstable"><tr><th>Submission id</th>);
-		$return_buffer .= q(<th>Submitted</th><th>Updated</th><th>Submitter</th><th>Isolates</th><th>Quality</th>);
-		$return_buffer .= q(<th>Embargo requested (months)</th>)
-		  if $self->{'system'}->{'dbtype'} eq 'isolates' && $embargo->{'embargo_enabled'};
-		$return_buffer .= q(<th>Outcome</th>) if $status eq 'closed';
-		$return_buffer .= qq(</tr>\n);
-		$return_buffer .= $buffer;
-		$return_buffer .= q(</table>);
-		$return_buffer .= q(<div style="margin-top: 10px;">);
-		$return_buffer .= qq(<select id="statusDropdown" name="bulk_status" style="margin-right: 10px;">);
-		$return_buffer .= q(<option value="">Select Status...</option>);
-		$return_buffer .= q(<option value="pending">Pending</option>);
-		$return_buffer .= q(<option value="accepted">Accepted</option>);
-		$return_buffer .= q(<option value="rejected">Rejected</option>);
-		$return_buffer .= q(</select>);
-		$return_buffer .= q(<input type="submit" value="Update" onclick="return validateAndSubmit()">);
-		$return_buffer .= q(</div>);
-        #$return_buffer .= q(<input type="submit" name="batch_curate" value="Curate selected submissions" /> );
-		$return_buffer .= q(</form>);
-        $return_buffer .= qq(</div>\n);
-	}
+
+	# Create table renderer instance
+	my $table_renderer = BIGSdb::UI::IsolateSubmissionsTable->new();
+
+	# Use the renderer to generate the complete form with table
+	my $return_buffer = $table_renderer->render_complete_form(
+        submissions             => $submissions,
+        status                  => $status,
+        system                  => $self->{'system'},
+        instance                => $self->{'instance'},
+        datastore               => $self->{'datastore'},
+        submissionHandler       => $self->{'submissionHandler'},
+        embargo                 => $embargo,
+        can_modify_sequence_bin => $self->can_modify_table('sequence_bin'),
+        isolate_curate_message  => $curate_message_content,
+        show_outcome            => 0
+	);
+    $logger->error(Dumper($options));
+
 	return $return_buffer;
 }
 
 sub _get_isolate_for_curation_review {
-    my @selected_submissions = $q->param('selected_submissions[]');
+    my ( $self ) = @_;
+    my $q     = $self->{'cgi'};
+    $logger->error('use _get_️isolate_for_curation_review');
 
+    my @selected_submissions = $q->param('selected_submissions[]');
+    my $submissions = $self->_get_submissions( @selected_submissions );
+	my $embargo = $self->{'datastore'}->get_embargo_attributes;
+
+	# Get isolate curate message if it exists
+	my $isolate_curate_message = "$self->{'dbase_config_dir'}/$self->{'instance'}/isolate_curate.html";
+	my $curate_message_content = q();
+	if (-e $isolate_curate_message) {
+		$curate_message_content = $self->print_file( $isolate_curate_message, { get_only => 1 } );
+	}
+
+	# Create table renderer instance
+	my $table_renderer = BIGSdb::UI::IsolateSubmissionsTable->new();
+
+	# Use the renderer to generate the complete form with table
+	my $return_buffer = $table_renderer->render_complete_form(
+        submissions             => $submissions,
+        status                  => 'pending', # TODO 🌈🌈🌈🌈
+        system                  => $self->{'system'},
+        instance                => $self->{'instance'},
+        datastore               => $self->{'datastore'},
+        submissionHandler       => $self->{'submissionHandler'},
+        embargo                 => $embargo,
+        can_modify_sequence_bin => $self->can_modify_table('sequence_bin'),
+        isolate_curate_message  => $curate_message_content,
+        show_outcome           => 1
+	);
+
+	return $return_buffer;
 }
 
 sub _print_closed_submissions {
@@ -896,7 +921,7 @@ sub _submit_profiles {
 		my $scheme_id = $q->param('scheme_id');
 		my $set_id    = $self->get_set_id;
 		my $data      = $q->param('data');
-		$ret = $self->{'submissionHandler'}->check_new_profiles( $scheme_id, $set_id, \$data );
+        $ret = $self->{'submissionHandler'}->check_new_profiles( $scheme_id, $set_id, \$data );
 		if ( $ret->{'err'} ) {
 			my $err = $ret->{'err'};
 			local $" = '<br />';
