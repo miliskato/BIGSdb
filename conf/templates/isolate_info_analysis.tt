@@ -8,3 +8,4 @@
 [% INCLUDE isolate_info_mobsuite.tt %]
 [% INCLUDE isolate_info_abritamr.tt %]
 [% INCLUDE isolate_info_serotyping_salmonella.tt %]
+[% INCLUDE isolate_info_rmlst_identification.tt %]
