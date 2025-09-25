@@ -182,13 +182,14 @@ sub initiate {
 
     $logger->error('😵😵');
 
+    #bulk status defined if the form for bulk update has been submitted by the user (values in pending, accepted, rejected)
     if ( $q->param('bulk_status')) {
         ## TODO 🍟🍟 Duplicate stuffs
         $logger->error('hey ho ouille aieaieaie 🙋‍♂️');
         $logger->error(Dumper($q));
         # Processing batch update
         my @selected_submissions = $q->param('selected_submissions[]');
-        my %outcome = ( accepted => 'good', rejected => 'bad' );
+        my %outcome = (accepted => 'good', rejected => 'bad', pending => '' );
 
         foreach my $submission_id (@selected_submissions) {
             next if none { $_ eq $q->param('bulk_status') } keys %outcome;
@@ -196,7 +197,9 @@ sub initiate {
         }
     }
 
+    #curate defined if the user has clicked on a submission id to curate it
 	if ( $q->param('curate') ) {
+        $logger->error('I am here with curate param='.$q->param('curate'));
 		$self->set_level2_breadcrumbs('Curate submission');
 	} elsif ($q->param('isolate')) {
 		$self->set_level2_breadcrumbs('New submission');
@@ -229,7 +232,7 @@ sub print_content {
 	if ($q->param('bulk_status')) {
         ## TODO 🍟🍟 Duplicate stuffs
         $logger->error('I got a bulk_status !✅✅✅');
-		$self->_update_bulk_submission_status();
+		#$self->_update_bulk_submission_status();
 	}
 
 	$self->choose_set;
@@ -254,18 +257,19 @@ sub print_content {
 	my $submissions_to_show = $self->_any_pending_submissions_to_show;
 	$self->_delete_old_submissions;
 	my $closed_buffer =
-	  $self->print_submissions_for_curation( { status => 'closed', show_outcome => 1, get_only => 1 } );
-	if ( !$self->_print_started_submissions ) {    #Returns true if submissions in process
-		say q(<div class="box" id="resultspanel"><div class="scrollable">);
-#		$self->_print_new_submission_links;
-		if ( !$submissions_to_show ) {
-			$self->print_navigation_bar( { closed_submissions => $closed_buffer ? 1 : 0 } );
-		}
+        $self->print_submissions_for_curation( { status => 'closed', show_outcome => 1, get_only => 1 } );
+    # ASG: can be removed as not using the "started" status in this page and method not used for isolates
+	#if ( !$self->_print_started_submissions ) {    #Returns true if submissions in process
+	#	say q(<div class="box" id="resultspanel"><div class="scrollable">);
+#	#	$self->_print_new_submission_links;
+	#	if ( !$submissions_to_show ) {
+	#		$self->print_navigation_bar( { closed_submissions => $closed_buffer ? 1 : 0 } );
+	#	}
         #ca passe ici
-		say q(</div>);
-		$self->print_related_database_panel;
-		say q(</div>);
-	}
+	#	say q(</div>);
+	#	$self->print_related_database_panel;
+	#	say q(</div>);
+	#}
 	if ($submissions_to_show) {
 		say q(<div class="box resultstable">);
 		$self->_print_pending_submissions;
@@ -578,19 +582,10 @@ sub _get_profile_submission_details {    ## no critic (ProhibitUnusedPrivateSubr
 sub _get_isolate_submission_details {    ## no critic (ProhibitUnusedPrivateSubroutines) #Called by dispatch table
 	my ( $self, $submission ) = @_;
     $logger->error('hey ho ouille aieaieaie 🙋‍♂️');
-    $logger->error(Dumper $submission);
 	my $isolate_submission = $self->{'submissionHandler'}->get_isolate_submission( $submission->{'id'} );
     my $isolate_count      = @{ $isolate_submission->{'isolates'} };
 	my $plural             = $isolate_count == 1 ? '' : 's';
 	return "$isolate_count isolate$plural";
-}
-
-sub _get_assembly_submission_details {    ## no critic (ProhibitUnusedPrivateSubroutines) #Called by dispatch table
-	my ( $self, $submission ) = @_;
-	my $isolate_submission = $self->{'submissionHandler'}->get_assembly_submission( $submission->{'id'} );
-	my $assembly_count     = @$isolate_submission;
-	my $plural             = $assembly_count == 1 ? 'y' : 'ies';
-	return "$assembly_count assembl$plural";
 }
 
 sub _print_pending_submissions {
@@ -623,12 +618,11 @@ sub print_submissions_for_curation {
 }
 
 sub _get_isolate_submissions_for_curation {
-    $logger->error('use _get_isolate_submissions_for_curation');
+    $logger->error('use _get_isolate_submissions_for_curation 😵😵😵😵😵😵😵🪄');
 	my ( $self, $options ) = @_;
 	my $status = $options->{'status'} // 'pending';
 	# return q() if !$self->can_modify_table('isolates'); # disable this so that all curators, regardless of their rights can validate new isolates, mk 23/10/18
 	my $submissions = $self->_get_submissions_by_status( $status, { get_all => 1 } );
-    $logger->error("$submissions");
 	my $embargo = $self->{'datastore'}->get_embargo_attributes;
 
 	# Get isolate curate message if it exists
@@ -1545,17 +1539,20 @@ sub _validate_submission {
 sub _update_bulk_submission_status {
     my ($self) = @_;
     my $q = $self->{'cgi'};
-
     my $status = $q->param('bulk_status');
     return if !$status;
 
     my @submission_ids = $q->param('submission_ids[]');
     return if !@submission_ids;
 
+    $logger->error('YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEAAAAAAAAAAAAAAAAAAAAHHHHHHHHHHHHH');
+
     my $curator_id = $self->get_curator_id;
     my $outcome;
+    $logger->error('inside _update_bulk_submission_status - HELµLOOOOOOOOOOOOOOO');
+    $logger->error('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA');
 
-    if ($status eq 'Accepted') {
+    if ($status eq 'accepted') {
         $outcome = 'good';
     } elsif ($status eq 'rejected') {
         $outcome = 'bad';
