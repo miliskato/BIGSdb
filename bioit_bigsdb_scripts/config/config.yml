@@ -530,16 +530,18 @@ species_json:
         type: irregular
       sistr:
         type: irregular
+        schemename_bigsdb: SISTR
+        schemename_html: sistr
       seqsero2:
         type: irregular
+        schemename_bigsdb: SeqSero2
+        schemename_html: seqsero2
       spifinder:
         type: irregular
       abritamr:
         type: irregular
         schemename_bigsdb: AbritAMR
         schemename_html: abritamr
-      resfinder4_mutations:
-        type: irregular
       mob_suite_detection:
         type: irregular
         schemename_bigsdb: MOB_suite

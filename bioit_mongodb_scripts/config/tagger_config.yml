@@ -35,6 +35,8 @@ salmonella:
   AMRFinder (AMRFinder 3.11.26): amrfinder
   AMRFinder (AMRFinder 4.0.19): amrfinder
   ResFinder (ResFinder 4.4.2): resfinder4
+  SISTR (SISTR 1.1.1): sistr
+  SeqSero2 (SeqSero2 1.2.1): seqsero2
   SPIFinder (SPIFinder 0.1): spifinder
   Virulence Factor DB - Core: vfdb-core
   MOB-recon (MOB-recon 3.1.8): mob-suite

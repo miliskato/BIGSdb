@@ -1,0 +1,76 @@
+[% # Template file for outputting formatted serotyping analysis results in the Salmonella isolate information page. %]
+<style>
+    table.nice {
+        text-align: center;
+        border-collapse: separate;
+    }
+    table.nice th, table.nice td {
+        padding: 2px 6px;
+    }
+    table.nice td:first-child {
+        max-width: 50ch;
+        overflow-wrap: anywhere;
+    }
+    table.nice tr:nth-child(n+3) {
+        background: #E4EFF3;
+    }
+    table.nice tr:nth-child(2n+3) {
+        background: #C1E6F3;
+    }
+</style>
+
+[% IF SISTR %]
+<h3>SISTR</h3>
+<div class="scrollable">
+<table class="data nice">
+    <tr>
+        <th>Antigenic formula</th>
+        <th>Serotype</th>
+    </tr>
+    <tr>
+        <td colspan="2"><a href="[% SISTR.results.report_link %]" target="_blank">Full report</a></td>
+    </tr>
+    <tr>
+        <td>[% SISTR.results.sistr_serotype_antigenic_formula %]</td>
+        <td>[% SISTR.results.sistr_serotype_consensus %]</td>
+    </tr>
+</table>
+</div>
+[% END %]
+
+[% IF SeqSero2 %]
+<h3>SeqSero2</h3>
+<div class="scrollable">
+<table class="data nice">
+    <tr>
+        <th>Method</th>
+        <th>Antigenic Profile</th>
+        <th>Predicted Serotype</th>
+    </tr>
+    <tr>
+        <td colspan="3"><a href="[% SeqSero2.results.report_link %]" target="_blank">Full report</a></td>
+    </tr>
+    [% IF SeqSero2.results.seqsero2_kmer_Predicted_antigenic_profile %]
+    <tr>
+        <td>assembly kmer</td>
+        <td>[% SeqSero2.results.seqsero2_kmer_Predicted_antigenic_profile %]</td>
+        <td>[% SeqSero2.results.seqsero2_kmer_Predicted_serotype %]</td>
+    </tr>
+    [% END %]
+    [% IF SeqSero2.results.seqsero2_allele_Predicted_antigenic_profile %]
+    <tr>
+        <td>raw read allele</td>
+        <td>[% SeqSero2.results.seqsero2_allele_Predicted_antigenic_profile %]</td>
+        <td>[% SeqSero2.results.seqsero2_allele_Predicted_serotype %]</td>
+    </tr>
+    [% END %]
+    [% IF SeqSero2.results.seqsero2_kmerread_Predicted_antigenic_profile %]
+    <tr>
+        <td>raw read kmer</td>
+        <td>[% SeqSero2.results.seqsero2_kmerread_Predicted_antigenic_profile %]</td>
+        <td>[% SeqSero2.results.seqsero2_kmerread_Predicted_serotype %]</td>
+    </tr>
+    [% END %]
+</table>
+</div>
+[% END %]

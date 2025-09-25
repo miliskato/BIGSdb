@@ -1,8 +1,4 @@
 [% # Template file for outputting formatted ResFinder4 analysis in the isolate information page. %]
-[% IF ResFinder4 %]
-<h3>ResFinder4</h3>
-
-<div class="scrollable">
 <style>
     table.nice {
         text-align: center;
@@ -23,6 +19,9 @@
     }
 </style>
 
+[% IF ResFinder4 %]
+<h3>ResFinder4</h3>
+<div class="scrollable">
 <table class="data nice">
     <tr>
         <th>AMR</th>
@@ -42,6 +41,24 @@
         <td>[% hit.Identity %]</td>
         <td>[% hit.Coverage %]</td>
      </tr>
+    [% END %]
+</table>
+</div>
+[% END %]
+
+[% IF ResFinder4.results.resfinder4_mutations AND ResFinder4.results.resfinder4_mutations != '-' %]
+<h3>ResFinder4 mutations</h3>
+<div class="scrollable">
+<table class="data nice">
+    <tr>
+        <th>Mutation</th>
+        <th>Resistance</th>
+    </tr>
+    [% FOREACH mutation IN ResFinder4.results.resfinder4_mutations.keys %]
+    <tr>
+        <td>[% mutation %]</td>
+        <td>[% ResFinder4.results.resfinder4_mutations.$mutation.join(', ') %]</td>
+    </tr>
     [% END %]
 </table>
 </div>

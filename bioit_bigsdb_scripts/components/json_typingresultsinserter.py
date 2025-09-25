@@ -54,8 +54,6 @@ class JsonTypingResultsInserter(JsonSuperClass):
                         self._process_irregular_typing_scheme()
                 elif self._scheme == 'rmlst_identification':
                     self._process_rmlst_identification()
-                elif self._scheme == 'resfinder4_mutations':
-                    self._process_resfinder4_mutations()
                 elif self._scheme == 'mob_suite_detection':
                     self._process_mob_suite()
                 else:
@@ -117,21 +115,6 @@ class JsonTypingResultsInserter(JsonSuperClass):
                     with TblEavFloat(self._species) as self._isolates_eavfl_psql_tbl:
                         self._isolates_eavfl_psql_tbl.insert_eav_float_isolate(
                             (self._isolatename, 'rmlst-%_detected', float(rmlst_dict[k])))
-
-    def _process_resfinder4_mutations(self) -> None:
-        """
-        Inserts ResFinder 4 mutations results into bigsdb eav_text table
-        :return: None
-        """
-        mutations_found = self._json_report_dict['resfinder4']['resfinder4_mutations']
-        if mutations_found == '-':
-            return
-        with TblEavText(self._species) as isolates_eavt_psql_tbl, TblEavFields(self._species) as isolates_eavf_psql_tbl:
-            for key, value in mutations_found.items():
-                resistance = ', '.join(value)
-                if not isolates_eavf_psql_tbl.exists_in_eav_field((key, 'ResFinder4 mutations')):
-                    isolates_eavf_psql_tbl.insert_text_field((key, 'ResFinder4 mutations'))
-                isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, str(key), f"Resistance to {resistance}"))
 
     def _process_mob_suite(self) -> None:
         """
@@ -306,25 +289,14 @@ class JsonTypingResultsInserter(JsonSuperClass):
             serotyping_insert = self._json_report_dict[self._scheme]['sistr_serotype_antigenic_formula']
             if serotyping_insert != '-':
                 self.___salmonella_insert_antigens_into_db(serotyping_insert)
-                self._isolates_eavt_psql_tbl.insert_eav_isolate(
-                    (self._isolatename, f'{self._scheme}_formula', serotyping_insert))
-            serotyping_insert = self._json_report_dict[self._scheme]['sistr_serotype_consensus']
-            if serotyping_insert != '-':
-                self._isolates_eavt_psql_tbl.insert_eav_isolate(
-                    (self._isolatename, f'{self._scheme}_serotype', serotyping_insert))
+            self._insert_analysis_results(self.__get_isolate_id(), self._scheme, self._schemedict[self._scheme])
         elif self._scheme == 'seqsero2':
             for mode in ['kmer', 'kmerread', 'allele']:
                 serotyping_insert = self._json_report_dict['seqsero2'].get(
                     f'{self._scheme}_{mode}_Predicted_antigenic_profile')
                 if serotyping_insert:
                     self.___salmonella_insert_antigens_into_db(serotyping_insert, mode)
-                    if serotyping_insert != '-:-:-':
-                        self._isolates_eavt_psql_tbl.insert_eav_isolate(
-                            (self._isolatename, f'{self._scheme}_{mode}_formula', serotyping_insert))
-                    serotyping_insert = self._json_report_dict['seqsero2'][f'{self._scheme}_{mode}_Predicted_serotype']
-                    if serotyping_insert != '-_-:-:-':
-                        self._isolates_eavt_psql_tbl.insert_eav_isolate(
-                            (self._isolatename, f'{self._scheme}_{mode}_serotype', serotyping_insert))
+            self._insert_analysis_results(self.__get_isolate_id(), self._scheme, self._schemedict[self._scheme])
         elif self._scheme == 'spifinder':
             for mode in ['fastq', 'fasta']:
                 hits: List = self._json_report_dict['spifinder'].get(f'{self._scheme}_{mode}')
