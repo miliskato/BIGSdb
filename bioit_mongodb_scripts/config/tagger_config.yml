@@ -7,6 +7,7 @@ enterococcus_faecalis:
   PlasmidFinder - Gram positive: plasmidfinder
   LRE-Finder (LRE-Finder 20200812): lre-finder
   MOB-recon (MOB-recon 3.1.8): mob-suite
+  rMLST taxonomic identification: rmlst
 enterococcus_faecium:
   AMRFinder (AMRFinder 3.11.26): amrfinder
   AMRFinder (AMRFinder 4.0.19): amrfinder
@@ -16,6 +17,7 @@ enterococcus_faecium:
   PlasmidFinder - Gram positive: plasmidfinder
   LRE-Finder (LRE-Finder 20200812): lre-finder
   MOB-recon (MOB-recon 3.1.8): mob-suite
+  rMLST taxonomic identification: rmlst
 listeria:
   AMRFinder (AMRFinder 3.11.26): amrfinder
   AMRFinder (AMRFinder 4.0.19): amrfinder
@@ -24,12 +26,15 @@ listeria:
   VirulenceFinder - Listeria: virulencefinder
   PlasmidFinder - Gram positive: plasmidfinder
   MOB-recon (MOB-recon 3.1.8): mob-suite
+  rMLST taxonomic identification: rmlst
 mycobacterium:
   SNP lineage: snp-lineage
+  rMLST taxonomic identification: rmlst
 neisseria:
   AMRFinder (AMRFinder 3.11.26): amrfinder
   AMRFinder (AMRFinder 4.0.19): amrfinder
   ResFinder (ResFinder 4.4.2): resfinder4
+  rMLST taxonomic identification: rmlst
 salmonella:
   abriTAMR (AbriTAMR run 1.0.19): abritamr
   AMRFinder (AMRFinder 3.11.26): amrfinder
@@ -40,3 +45,4 @@ salmonella:
   SPIFinder (SPIFinder 0.1): spifinder
   Virulence Factor DB - Core: vfdb-core
   MOB-recon (MOB-recon 3.1.8): mob-suite
+  rMLST taxonomic identification: rmlst

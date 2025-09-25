@@ -102,19 +102,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
         :return: None
         """
         if 'rmlst' in self._json_report_dict:
-            rmlst_dict = self._json_report_dict['rmlst']
-            identification_keys = {e for e in rmlst_dict if rmlst_dict[e]}
-            unused_keys = {'db_version', 'loci', 'rmlst-rST', 'tool_version'}
-            identification_keys = {item for item in identification_keys if item not in unused_keys}
-
-            for k in identification_keys:
-                if k != 'rmlst-percent_detected':
-                    with TblEavText(self._species) as self._isolates_eavt_psql_tbl:
-                        self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, k, rmlst_dict[k]))
-                else:
-                    with TblEavFloat(self._species) as self._isolates_eavfl_psql_tbl:
-                        self._isolates_eavfl_psql_tbl.insert_eav_float_isolate(
-                            (self._isolatename, 'rmlst-%_detected', float(rmlst_dict[k])))
+            self._insert_analysis_results(self.__get_isolate_id(), 'rmlst', self._schemedict[self._scheme])
 
     def _process_mob_suite(self) -> None:
         """

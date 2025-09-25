@@ -43,9 +43,9 @@
 <div class="scrollable">
 <table class="data nice">
     <tr>
-        <th>Method</th>
-        <th>Antigenic Profile</th>
-        <th>Predicted Serotype</th>
+        <th>Mode</th>
+        <th>Antigenic formula</th>
+        <th>Serotype</th>
     </tr>
     <tr>
         <td colspan="3"><a href="[% SeqSero2.results.report_link %]" target="_blank">Full report</a></td>
