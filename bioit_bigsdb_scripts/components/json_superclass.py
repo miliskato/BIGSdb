@@ -97,7 +97,7 @@ class JsonSuperClass:
                 isolates_schememembers_psql_tbl.insert_scheme_member(
                     (scheme, locus))
 
-    def _insert_analysis_results(self, isolate_id: str, scheme, scheme_config: dict[str]) -> None:
+    def _insert_analysis_results(self, isolate_id: str, scheme, scheme_config: dict[str, str]) -> None:
         """
         Insert the analysis results of a specific assay into the analysis_results table.
         :param isolate_id: isolate id

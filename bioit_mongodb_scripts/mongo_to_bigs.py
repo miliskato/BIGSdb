@@ -4,7 +4,6 @@ import logging
 import os
 import socket
 import sys
-import tempfile
 import traceback
 from pathlib import Path
 from typing import List, Tuple
@@ -16,7 +15,6 @@ from bioit_bigsdb_scripts.components.psql.databaseconnection import DatabaseConn
 from bioit_bigsdb_scripts.components.psql import TblIsolates, TblEavTextHidden, TblMappingTable, \
     TblSchemeMembers, TblTempIsolatesSchemeFields
 from bioit_bigsdb_scripts.components.psql.psql_queries import PsqlQueries
-from bioit_bigsdb_scripts.insert_assembly import insert_assembly
 from bioit_bigsdb_scripts.main_results_inserter import MainResultsInserter
 from bioit_mongodb_scripts.model.json_model import MongoRecordDict, ResultType
 from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
@@ -25,7 +23,6 @@ from bioit_mongodb_scripts.util.mongo_querying import Mongoquerying
 from bioit_mongodb_scripts.util.python_utility_functions import execute_command, get_bigsdb_config_data, \
     get_cgmlst_bigsdb_scheme_id, send_email
 from bioit_mongodb_scripts.util.new_temporary_alleles_to_bigs import NewTemporaryAllelesToBigs
-from bioit_mongodb_scripts.util.command.command import Command
 from bioit_mongodb_scripts.util.mongo_quickdraw import get_pseudo_id
 
 
@@ -165,12 +162,11 @@ class MongoToBigs:
         jsonfile = document.get_json_results()
         self.__fail_safe_mechanism(isolate=isolate_id, results_type=results_type)
         MainResultsInserter(isolate_id, self._uploader_mail_address, self._species, results_type,
-                            vcf_path=document['vcf_path'], json_results=jsonfile,
+                            vcf_path=document['vcf_path'], fasta_path=document['fasta_path'], json_results=jsonfile,
                             report_access=document['report_directory'],
                             viral_species=self._mongo_config_provider.is_viral(self._species),
                             isolation_date=document['technical_metadata']['data']['IsolationDate'],
                             nominative_labtest_clinical_metadata_collection=self._nominative_labtest_clinical_metadata_collection)
-        self.__insert_assembly_into_bigs(results_type, document, isolate_id)
         if results_type not in ["reanalysis", "resequencing"]:
             with TblMappingTable(self._species) as isolates_mapping_psql_tbl:
                 isolates_mapping_psql_tbl.insert_mapping_for_isolate((isolate_id, document['_id'],))
@@ -341,44 +337,6 @@ class MongoToBigs:
                 cgst_changed = True
         return different_version, cgst_changed
 
-    def __insert_assembly_into_bigs(self, results_type: ResultType, document: MongoRecordDict, isolate_id: str) -> None:
-        """
-        Fetches the assembly from Azure and inserts into bigsdb when applicable
-        :param results_type: new_isolate or reanalysis
-        :param document: dictionary of the results of the current isolate
-        :param isolate_id: the id of the isolate
-        :return: None
-        """
-        # In case of an actual reanalysis, the MainResultsInserter handles the assembly transfer between
-        # isolates and we do not want to scp the assembly from Azure
-        if not results_type == 'reanalysis':
-            fasta_path_remote = document['fasta_path']
-            temp_dir = self._mongo_config_provider.temp_dir
-            with tempfile.NamedTemporaryFile(dir=temp_dir, mode="w") as temp_fasta:
-                temp_fasta_path = Path(temp_dir) / temp_fasta.name
-                scp_command = f"scp -o StrictHostKeyChecking=no -i /home/bigsdb/.ssh/.id_rsa_reportsapi bigsdb@{self._mongo_config_provider.azure_reportsapi_ip}:{fasta_path_remote} {str(temp_fasta_path)}"
-                scp_cmd = Command(scp_command)
-                scp_cmd.run(Path(temp_dir))
-                if scp_cmd.returncode != 0:
-                    raise Exception(
-                        f"scp command to copy fasta from Azure to onsite failed: {scp_cmd.stderr}\nscp command: {scp_command}")
-
-                insert_assembly(isolate_id, self._species, temp_fasta_path, results_type)
-                logging.info(f"Inserted assembly for isolate {isolate_id} into bigsdb")
-
-                # The resequencing is for now disable as also commented in sample_to_validation_bigs.py
-                # if document.get_validation_type() == 'resequencing': #is it the place to check that isolation date are different, I don't think so
-                #     last_two_validation_dates = self._isolates_psql_tbl.select_validationdate_for_isolate(
-                #         (isolate_id,))
-                #     # select to check that the previous version's validation date is different from the current
-                #     if last_two_validation_dates[0][0] != last_two_validation_dates[1][0]:
-                #         # revert the changes done in maininserter that move the assembly to the newest version
-                #         with TblSequenceBin(self._species) as isolates_seqbin_psql_tbl:
-                #             isolates_seqbin_psql_tbl.revert_sequencebin_newversion([isolate_id])
-                #         with TblSeqBinStats(self._species) as isolates_seqbinstats_psql_tbl:
-                #             isolates_seqbinstats_psql_tbl.revert_seqbinstats_newversion([isolate_id])
-                #         insert_assembly(isolate_id, self._species, temp_fasta_path, results_type)
-                #     logging.info(f"Wrote new results version for {isolate_id} to bigsdb")
 
     def ___make_flagfilepath(self, isolate: str) -> Path:
         """
