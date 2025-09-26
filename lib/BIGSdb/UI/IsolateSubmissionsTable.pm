@@ -104,6 +104,7 @@ sub render_complete_form {
 
     $return_buffer .= q(<input type="hidden" name="db" value="bigsdb_neisseria_isolates">);
     $return_buffer .= q(<input type="hidden" name="page" value="validation">);
+    $return_buffer .= q(<input type="hidden" name="validate_submission" value="1">);  # Add this to trigger _validate_submission
 
     # Add hidden inputs for all submission IDs for batch submit
     foreach my $submission (@filtered_submissions) {
@@ -139,23 +140,6 @@ sub render_complete_form {
     $return_buffer .= q(</div>);
     $return_buffer .= q(</form>);
     $return_buffer .= qq(</div>\n);
-
-    # Add JavaScript function for batch submit
-    $return_buffer .= qq(
-    <script type="text/javascript">
-    function prepareBatchSubmit() {
-        // Get all submission IDs from hidden inputs
-        var hiddenInputs = document.getElementsByClassName('batch_submission_id');
-        var checkboxes = document.getElementsByName('selected_submissions[]');
-
-        // Check all checkboxes
-        for(var i = 0; i < checkboxes.length; i++) {
-            checkboxes[i].checked = true;
-        }
-
-        return true;
-    }
-    </script>);
 
     return $return_buffer;
 }

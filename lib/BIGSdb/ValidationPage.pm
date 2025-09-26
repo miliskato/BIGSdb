@@ -631,18 +631,53 @@ sub print_submissions_for_curation {
 	return if !$self->{'config'}->{'submission_dir'};
 	my $user_info = $self->{'datastore'}->get_user_info_from_username( $self->{'username'} );
 	return if !$user_info || ( $user_info->{'status'} ne 'admin' && $user_info->{'status'} ne 'curator' );
-	my $buffer;
+	my $buffer = '';
     $logger->error('use print_submissions_for_curation');
 
     if ( defined($q->param('bulk_status')) ) {
         $buffer .= $self->_get_isolate_for_curation_review($options);
+        if (defined($q->param('validate_submission'))) {
+            $self->_validate_submission();
+        }
     } else {
         $buffer .= $self->_get_isolate_submissions_for_curation($options);
     }
 
     return $buffer if $options->{'get_only'};
     say $buffer if $buffer;
-	return;
+    return;
+}
+
+sub _validate_submission {
+    my ($self) = @_;
+    my $q = $self->{'cgi'};
+    $logger->error('Processing submission validation');
+
+    my @submission_ids = $q->multi_param('selected_submissions[]');
+    my $curator_id = $self->get_curator_id;
+
+    eval {
+        foreach my $submission_id (@submission_ids) {
+            # Update submission status
+            $self->{'db'}->do(
+                'UPDATE submissions SET (status,datestamp,curator)=(?,?,?) WHERE id=?',
+                undef, 'closed', 'now', $curator_id, $submission_id
+            );
+
+            # Run MongoDB integration script
+            my $dbname = $self->{'datastore'}->run_query('select current_database()');
+            open(BASH, "|-", "bash");
+            print BASH "/home/bigsdb/BIGSdb/3.12PythonVenv/bin/python3.12 /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/sample_validation_to_mongo.py --db $dbname --sub_id $submission_id \n";
+            close(BASH);
+        }
+    };
+    if ($@) {
+        $logger->error("Validation failed: $@");
+        $self->{'db'}->rollback;
+    } else {
+        $self->{'db'}->commit;
+    }
+    return;
 }
 
 sub _get_isolate_submissions_for_curation {
@@ -1507,37 +1542,6 @@ sub _get_storage_report_dir {
     my $usage_percentage = $lines[0];
     $usage_percentage =~ s/%$//;
     return $usage_percentage;
-}
-
-sub _validate_submission {
-    my ( $self ) = @_;
-    my $q = $self->{'cgi'};
-    $logger->error('I am in the new section YOIUHOUUUUU');
-    $logger->error(Dumper($q->param('selected_submissions[]')));
-
-    my @selected_submissions = $q->param('selected_submissions[]');
-    # Update the submission status to closed for selected submissions
-    eval {
-        foreach my $submission_id (@selected_submissions) {
-            if ( BIGSdb::Utils::is_int($submission_id) ) {
-                $self->{'db'}->do("UPDATE submissions SET (status, datestamp) = ('closed', 'now') WHERE id = ?",
-                    undef, $submission_id);
-            } else {
-                $logger->error("Invalid submission ID: $submission_id");
-                die "Invalid submission ID: $submission_id";
-            }
-        }
-    };
-    if ($@) {
-        $logger->error("Validation failed: $@");
-        $self->{'db'}->rollback;
-        $q->param('error', 'Validation failed.');
-    }
-    else {
-        $self->{'db'}->commit;
-        $q->param('message', 'Submission validated and closed.');
-    }
-    return;
 }
 
 sub _print_disk_full_warning {
