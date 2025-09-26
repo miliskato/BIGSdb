@@ -4,4 +4,4 @@ ALTER TABLE isolates
 
 -- migrate:down
 ALTER TABLE isolates
-    DROP COLUMN assembly,
+    DROP COLUMN assembly
