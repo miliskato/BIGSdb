@@ -206,9 +206,9 @@ class PsqlQueries:
         ((SELECT CURRENT_DATE),(SELECT CURRENT_DATE), %s) WHERE isolate=%s;"""
     ISO_INS__TB_ISO_VAR_ISO_UPL_DATE_ISODATE: Final[str] = """
         INSERT INTO isolates(id, 
-        isolate, sender, curator, date_entered, datestamp, uploader, latest_analysis_date, isolation_date, html, assembly, pipeline)
+        isolate, sender, curator, date_entered, datestamp, uploader, latest_analysis_date, isolation_date)
         VALUES((SELECT CASE WHEN (SELECT MAX(id) FROM isolates) IS NULL THEN 1 ELSE (SELECT(SELECT MAX(id) FROM isolates)+1) END), 
-        %s, 1, 1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE), %s, %s, %s, %s, %s, %s);"""
+        %s, 1, 1, (SELECT CURRENT_DATE),(SELECT CURRENT_DATE), %s, %s, %s);"""
     ISO_SEL_COUNT_TB_ISO_VAR_ISO: Final[str] = """SELECT COUNT(*) FROM isolates WHERE isolate=%s;"""
     ISO_SEL_ANADATE_TB_ISO_VAR_ISO: Final[str] = """
         SELECT latest_analysis_date FROM isolates WHERE id=(SELECT id FROM isolates WHERE isolate=%s);"""
@@ -246,6 +246,8 @@ class PsqlQueries:
         WHERE id=%s;"""
     ISO_SEL_ISOLATE_ID: Final[str] = """
         SELECT isolate FROM isolates;"""
+    ISO_UPD_TB_ISO_VAR_HTML_ASSEM_PIPE: Final[str] = """
+        UPDATE isolates SET (html, assembly, pipeline) = (%s, %s, %s) WHERE isolate = %s;"""
 
     # TBL isolate submission field order
     ISO_INS__TB_ISOSUBFO_VAR_FIELD_INDEX: Final[str] = """

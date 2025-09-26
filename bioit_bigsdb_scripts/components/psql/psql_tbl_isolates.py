@@ -44,12 +44,12 @@ class TblIsolates(DatabaseConnection):
         """
         self.execute_query(PsqlQueries.ISO_DEL__TB_ISO_VAR_ISO_ISO, param)
 
-    def insert_isolate(self, param: Tuple[str, str, str, str, str, str, str]) -> None:
+    def insert_isolate(self, param: Tuple[str, str, str, str]) -> None:
         """
         Inserts a new isolate
         :param param: variables to feed to the PSQL query, which also sanitizes these variables,
         necessary parameters visible in the PSQL query name and query; isolate name, curator,
-        latest_analysis_date, isolation_date, html link, assembly link and pipeline info
+        latest_analysis_date, isolation_date
         :return: None
         """
         self.execute_query(PsqlQueries.ISO_INS__TB_ISO_VAR_ISO_UPL_DATE_ISODATE, param)
@@ -176,3 +176,10 @@ class TblIsolates(DatabaseConnection):
         :return: None
         """
         self.execute_query(query, param)
+
+    def update_isolate_html_assembly_pipeline(self, param: tuple[str, str, str, str]) -> None:
+        """
+        Update the html, assembly and pipeline fields in the isolates table
+        :param param: variables to feed to the PSQL query, html link, assembly link, pipeline info and the isolate name
+        """
+        self.execute_query(PsqlQueries.ISO_UPD_TB_ISO_VAR_HTML_ASSEM_PIPE, param)

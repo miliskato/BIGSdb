@@ -1,0 +1,26 @@
+[% # Template file for outputting formatted VirulenceFinder and VFDB-Core results %]
+[% IF VirulenceFinder OR VFDB_core %]
+<h3>Virulence detection</h3>
+
+[% IF VirulenceFinder %]
+<div class="scrollable">
+    <dl class="data">
+        <dt>VirulenceFinder:</dt>
+        <dd>
+            <a href="[% VirulenceFinder.results.report_link %]" target="_blank">Full report</a>
+        </dd>
+    </dl>
+</div>
+[% END %]
+
+[% IF VFDB_core %]
+<div class="scrollable">
+    <dl class="data">
+        <dt>Virulence Factor DB - Core:</dt>
+        <dd>
+            <a href="[% VFDB_core.results.report_link %]" target="_blank">Full report</a>
+        </dd>
+    </dl>
+</div>
+[% END %]
+[% END %]
