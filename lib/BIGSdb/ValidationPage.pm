@@ -439,7 +439,6 @@ sub _get_submissions_by_status {
 sub _get_submissions {
 	my ( $self, $submission_ids ) = @_;
 	return [] if !$submission_ids || ref $submission_ids ne 'ARRAY' || !@$submission_ids;
-
 	my $placeholders = join( ',', ('?') x @$submission_ids );
 	my $qry = "SELECT * FROM submissions WHERE id IN ($placeholders) AND (dataset IS NULL OR dataset = ?) ORDER BY id";
 	my @args = ( @$submission_ids, $self->{'instance'} );
@@ -581,7 +580,7 @@ sub _get_profile_submission_details {    ## no critic (ProhibitUnusedPrivateSubr
 
 sub _get_isolate_submission_details {    ## no critic (ProhibitUnusedPrivateSubroutines) #Called by dispatch table
 	my ( $self, $submission ) = @_;
-    $logger->error('hey ho ouille aieaieaie 🙋‍♂️');
+    $logger->error('hey ho ouille aieaieaie bklablablabalbla 🙋‍♂️');
 	my $isolate_submission = $self->{'submissionHandler'}->get_isolate_submission( $submission->{'id'} );
     my $isolate_count      = @{ $isolate_submission->{'isolates'} };
 	my $plural             = $isolate_count == 1 ? '' : 's';
@@ -604,6 +603,7 @@ sub _print_pending_submissions {
 
 sub print_submissions_for_curation {
 	my ( $self, $options ) = @_;
+    my $q = $self->{'cgi'};
 	$options = {} if ref $options ne 'HASH';
 	return if ( $self->{'system'}->{'submissions'} // '' ) ne 'yes';
 	return if !$self->{'config'}->{'submission_dir'};
@@ -611,16 +611,21 @@ sub print_submissions_for_curation {
 	return if !$user_info || ( $user_info->{'status'} ne 'admin' && $user_info->{'status'} ne 'curator' );
 	my $buffer;
     $logger->error('use print_submissions_for_curation');
-    $buffer .= $self->_get_isolate_submissions_for_curation($options);
+    if( ! defined ($q->param('bulk_status')) ) {
+        $buffer .= $self->_get_isolate_submissions_for_curation($options);
+    }else{
+        $buffer .= $self->_get_isolate_for_curation_review($options);
+    }
 	return $buffer if $options->{'get_only'};
-	say $buffer    if $buffer;
+	say $buffer if $buffer;
 	return;
 }
 
 sub _get_isolate_submissions_for_curation {
     $logger->error('use _get_isolate_submissions_for_curation 😵😵😵😵😵😵😵🪄');
 	my ( $self, $options ) = @_;
-	my $status = $options->{'status'} // 'pending';
+    my $q = $self->{'cgi'};
+    my $status = $options->{'status'} // 'pending';
 	# return q() if !$self->can_modify_table('isolates'); # disable this so that all curators, regardless of their rights can validate new isolates, mk 23/10/18
 	my $submissions = $self->_get_submissions_by_status( $status, { get_all => 1 } );
 	my $embargo = $self->{'datastore'}->get_embargo_attributes;
@@ -648,6 +653,7 @@ sub _get_isolate_submissions_for_curation {
         isolate_curate_message  => $curate_message_content,
         show_outcome            => 0
 	);
+    $logger->error('SHOW ME ALL OPTIONS PASSED TO _get_isolate_submissions_for_curation');
     $logger->error(Dumper($options));
 
 	return $return_buffer;
@@ -656,10 +662,11 @@ sub _get_isolate_submissions_for_curation {
 sub _get_isolate_for_curation_review {
     my ( $self ) = @_;
     my $q     = $self->{'cgi'};
-    $logger->error('use _get_️isolate_for_curation_review');
+    $logger->error('I am in the new section YOIUHOUUUUU');
+    $logger->error(Dumper($q->param('selected_submissions[]')));
 
     my @selected_submissions = $q->param('selected_submissions[]');
-    my $submissions = $self->_get_submissions( @selected_submissions );
+    my $submissions = $self->_get_submissions(\@selected_submissions );
 	my $embargo = $self->{'datastore'}->get_embargo_attributes;
 
 	# Get isolate curate message if it exists
@@ -671,7 +678,6 @@ sub _get_isolate_for_curation_review {
 
 	# Create table renderer instance
 	my $table_renderer = BIGSdb::UI::IsolateSubmissionsTable->new();
-
 	# Use the renderer to generate the complete form with table
 	my $return_buffer = $table_renderer->render_complete_form(
         submissions             => $submissions,
@@ -682,7 +688,7 @@ sub _get_isolate_for_curation_review {
         submissionHandler       => $self->{'submissionHandler'},
         embargo                 => $embargo,
         can_modify_sequence_bin => $self->can_modify_table('sequence_bin'),
-        isolate_curate_message  => $curate_message_content,
+        isolate_curate_message  => $curate_message_content, # Pass the CGI object here
         show_outcome           => 1
 	);
 
@@ -699,9 +705,8 @@ sub _print_closed_submissions {
 =begin
 		  . q(you have recorded the results.  Alternatively they will be removed automatically after )
 		  . qq($days days.</p>);
-=cut
-		say $buffer;
-	}
+=cut		say $buffer;
+    }
 	return;
 }
 
@@ -1070,30 +1075,6 @@ sub _check_invalid_embargo {
 	return;
 }
 
-sub _get_assembly_wrong_sender {
-	my ( $self, $submission_id ) = @_;
-	my $invalid_ids  = [];
-	my $wrong_sender = [];
-	my $cleaned_list = $self->{'datastore'}->run_query(
-		'SELECT isolate_id AS id,isolate,filename FROM assembly_submissions WHERE '
-		  . 'submission_id=? ORDER BY isolate_id',
-		$submission_id,
-		{ fetch => 'all_arrayref', slice => {} }
-	);
-	my $submission = $self->{'submissionHandler'}->get_submission($submission_id);
-	foreach my $record (@$cleaned_list) {
-		my $sender = $self->{'datastore'}
-		  ->run_query( "SELECT sender FROM $self->{'system'}->{'view'} WHERE id=?", $record->{'id'} );
-		if ( !$sender ) {
-			push @$invalid_ids, $record->{'id'};
-		} elsif ( $sender != $submission->{'submitter'} ) {
-			push @$wrong_sender, $record->{'id'};
-		}
-	}
-	return { wrong_sender => $wrong_sender, invalid_ids => $invalid_ids };
-}
-
-
 sub _print_file_fieldset {
 	my ( $self, $submission_id ) = @_;
 	my $file_table = $self->_print_submission_file_table( $submission_id, { get_only => 1 } );
@@ -1336,15 +1317,6 @@ sub _close_submission {    ## no critic (ProhibitUnusedPrivateSubroutines) #Call
 	}
 	return;
 }
-
-=begin
-sub _remove_submission {    ## no critic (ProhibitUnusedPrivateSubroutines) #Called by dispatch table
-	my ( $self, $submission_id ) = @_;
-	return if !$self->_is_submission_valid( $submission_id, { no_message => 1, user_owns => 1 } );
-	$self->{'submissionHandler'}->delete_submission($submission_id);
-	return;
-}
-=cut
 
 sub _cancel_submission {    ## no critic (ProhibitUnusedPrivateSubroutines) #Called by dispatch table
 	my ( $self, $submission_id ) = @_;
