@@ -105,6 +105,11 @@ sub render_complete_form {
     $return_buffer .= q(<input type="hidden" name="db" value="bigsdb_neisseria_isolates">);
     $return_buffer .= q(<input type="hidden" name="page" value="validation">);
 
+    # Add hidden inputs for all submission IDs for batch submit
+    foreach my $submission (@filtered_submissions) {
+        $return_buffer .= qq(<input type="hidden" class="batch_submission_id" name="all_submission_ids[]" value="$submission->{'id'}" />);
+    }
+
     # Add control buttons
     $return_buffer .= q(<button type="button" id="isolateSubmissionsForm_checkAll" onclick="toggleCheckboxes('isolateSubmissionsForm')" data-checked="false">Check All</button> );
     $return_buffer .= q(<button type="button" id="isolateSubmissionsForm_checkGood" onclick="toggleCheckboxesByQuality('isolateSubmissionsForm', 'good')" data-checked="false">Check Good Quality</button> );
@@ -130,10 +135,27 @@ sub render_complete_form {
     $return_buffer .= q(<option value="rejected">Rejected</option>);
     $return_buffer .= q(</select>);
     $return_buffer .= q(<input type="submit" value="Update" onclick="return validateAndSubmit()">);
-    $return_buffer .= q(<button type="submit" value="Batch Submit" onclick="_validate_submission">) if $show_outcome;
+    $return_buffer .= q(<button type="submit" name="batch_submit" value="1" onclick="return prepareBatchSubmit()">Batch Submit</button>) if $show_outcome;
     $return_buffer .= q(</div>);
     $return_buffer .= q(</form>);
     $return_buffer .= qq(</div>\n);
+
+    # Add JavaScript function for batch submit
+    $return_buffer .= qq(
+    <script type="text/javascript">
+    function prepareBatchSubmit() {
+        // Get all submission IDs from hidden inputs
+        var hiddenInputs = document.getElementsByClassName('batch_submission_id');
+        var checkboxes = document.getElementsByName('selected_submissions[]');
+
+        // Check all checkboxes
+        for(var i = 0; i < checkboxes.length; i++) {
+            checkboxes[i].checked = true;
+        }
+
+        return true;
+    }
+    </script>);
 
     return $return_buffer;
 }
