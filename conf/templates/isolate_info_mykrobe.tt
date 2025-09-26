@@ -1,0 +1,44 @@
+[% # Template file for outputting formatted Mykrobe results in the isolate information page. %]
+[% IF Mykrobe %]
+<h3>Mykrobe</h3>
+
+<div class="scrollable">
+<style>
+    table.nice {
+        text-align: center;
+        border-collapse: separate;
+    }
+    table.nice th, table.nice td {
+        padding: 2px 6px; /* Adds padding inside cells (top/bottom, left/right) */
+    }
+    table.nice td:first-child {
+        max-width: 50ch;
+        overflow-wrap: anywhere;
+    }
+    table.nice tr:nth-child(n+3) {
+        background: #E4EFF3;
+    }
+    table.nice tr:nth-child(2n+3) {
+        background: #C1E6F3;
+    }
+</style>
+
+<table class="data nice">
+    <tr>
+        <th>Phylogenetic group</th>
+        <th>Species</th>
+        <th>Lineage</th>
+    </tr>
+
+    <tr>
+        <td colspan="3"><a href="[% Mykrobe.results.report_link %]" target="_blank">Full report</a></td>
+    </tr>
+
+    <tr>
+        <td>[% Mykrobe.results.mykrobe_phylo_group %]</td>
+        <td>[% Mykrobe.results.mykrobe_species %]</td>
+        <td>[% Mykrobe.results.mykrobe_lineage %]</td>
+    </tr>
+</table>
+</div>
+[% END %]

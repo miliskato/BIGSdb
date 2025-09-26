@@ -26,13 +26,13 @@
 <table class="data nice">
     <tr>
         <th>% matched</th>
-        <th>genus</th>
-        <th>species</th>
-        <th>subspecies</th>
-        <th>lineage</th>
-        <th>sublineage</th>
-        <th>other_designation</th>
-        <th>notes</th>
+        <th>Genus</th>
+        <th>Species</th>
+        <th>Subspecies</th>
+        <th>Lineage</th>
+        <th>Sublineage</th>
+        <th>Other designation</th>
+        <th>Notes</th>
     </tr>
 
     <tr>

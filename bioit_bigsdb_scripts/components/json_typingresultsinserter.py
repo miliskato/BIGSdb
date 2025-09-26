@@ -251,33 +251,14 @@ class JsonTypingResultsInserter(JsonSuperClass):
         :return: None
         """
         if self._scheme == 'mykrobe':
-            with TblEavFields(self._species) as isolates_eavf_psql_tbl:
-                fields_mykrobe: List[Tuple[str]] = isolates_eavf_psql_tbl.select_fields_of_a_category(('Mykrobe',))
-            for item in fields_mykrobe:
-                item_in_mongo = item[0].replace('_susceptibility', '')
-                if item_in_mongo in self._json_report_dict[self._scheme]['mykrobe_drug_susceptibility']:
-                    susceptibility: str = self._json_report_dict[self._scheme]['mykrobe_drug_susceptibility'][item_in_mongo]['susceptibility']
-                    self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, item[0], susceptibility))
-                    # insert new alleles
-                    # example of structure in output dict:
-                    # "mykrobe": {"mykrobe_drug_susceptibility": {"IncFIAHI1": {"drug": "IncFIAHI1",
-                    #                                                           "susceptibility": "S",
-                    #                                                           "variants": "-",
-                    #                                                           "genes": "-"}}}
-                    mykrobe_field = 'MYKROBE_' + item_in_mongo.upper()
-                    # get the genes and variants
-                    future_alleles = self._json_report_dict[self._scheme]['mykrobe_drug_susceptibility'][item_in_mongo]['variants'].split(';') + \
-                        self._json_report_dict[self._scheme]['mykrobe_drug_susceptibility'][item_in_mongo]['genes'].split(';')
-                    for value in future_alleles:
-                        if value != '-':
-                            self._insert_dummy_sequence_if_needed(mykrobe_field, value)
-                            self._isolates_ad_psql_tbl.insert_designation_by_isolatename(
-                                (mykrobe_field, self._isolatename, value))
+            self._insert_analysis_results(self.__get_isolate_id(), self._scheme, self._schemedict[self._scheme])
+
         elif self._scheme == 'sistr':
             serotyping_insert = self._json_report_dict[self._scheme]['sistr_serotype_antigenic_formula']
             if serotyping_insert != '-':
                 self.___salmonella_insert_antigens_into_db(serotyping_insert)
             self._insert_analysis_results(self.__get_isolate_id(), self._scheme, self._schemedict[self._scheme])
+
         elif self._scheme == 'seqsero2':
             for mode in ['kmer', 'kmerread', 'allele']:
                 serotyping_insert = self._json_report_dict['seqsero2'].get(
@@ -285,6 +266,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
                 if serotyping_insert:
                     self.___salmonella_insert_antigens_into_db(serotyping_insert, mode)
             self._insert_analysis_results(self.__get_isolate_id(), self._scheme, self._schemedict[self._scheme])
+
         elif self._scheme == 'spifinder':
             for mode in ['fastq', 'fasta']:
                 hits: List = self._json_report_dict['spifinder'].get(f'{self._scheme}_{mode}')
@@ -300,6 +282,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
                             self._isolates_ad_psql_tbl.insert_designation_by_isolatename(
                                 (spifinder_field, self._isolatename, spifinder_entry))
                             inserted_alleledesignations_list.add(spifinder_entry)
+
         elif self._scheme == 'abritamr':
             self._insert_analysis_results(self.__get_isolate_id(), self._scheme, self._schemedict[self._scheme])
 

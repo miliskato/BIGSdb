@@ -538,6 +538,8 @@ species_json:
         type: regular
       mykrobe:
         type: irregular
+        schemename_bigsdb: Mykrobe
+        schemename_html: mykrobe
       sistr:
         type: irregular
         schemename_bigsdb: SISTR

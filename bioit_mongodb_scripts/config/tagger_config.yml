@@ -46,3 +46,4 @@ salmonella:
   Virulence Factor DB - Core: vfdb-core
   MOB-recon (MOB-recon 3.1.8): mob-suite
   rMLST taxonomic identification: rmlst
+  Mykrobe (mykrobe 0.13.0): mykrobe
