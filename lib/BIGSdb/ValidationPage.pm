@@ -645,11 +645,9 @@ sub _get_isolate_submissions_for_curation {
         submissions             => $submissions,
         status                  => $status,
         system                  => $self->{'system'},
-        instance                => $self->{'instance'},
         datastore               => $self->{'datastore'},
         submissionHandler       => $self->{'submissionHandler'},
         embargo                 => $embargo,
-        can_modify_sequence_bin => $self->can_modify_table('sequence_bin'),
         isolate_curate_message  => $curate_message_content,
         show_outcome            => 0
 	);
@@ -681,15 +679,14 @@ sub _get_isolate_for_curation_review {
 	# Use the renderer to generate the complete form with table
 	my $return_buffer = $table_renderer->render_complete_form(
         submissions             => $submissions,
-        status                  => 'pending', # TODO 🌈🌈🌈🌈
+        status                  => 'pending', # TODO 🌈🌈🌈
         system                  => $self->{'system'},
-        instance                => $self->{'instance'},
+        outcome                 => $q->{'bulk_status'},
         datastore               => $self->{'datastore'},
         submissionHandler       => $self->{'submissionHandler'},
         embargo                 => $embargo,
-        can_modify_sequence_bin => $self->can_modify_table('sequence_bin'),
         isolate_curate_message  => $curate_message_content, # Pass the CGI object here
-        show_outcome           => 1
+        show_outcome            => 1
 	);
 
 	return $return_buffer;
@@ -1489,12 +1486,22 @@ sub _get_storage_report_dir {
 }
 
 sub _validate_submission {
-    my ($self, $submission_id) = @_;
-    my $q = $self->{'cgi'};
-    # Update the submission outcome to "good" and status to "closed"
+    my ( $self ) = @_;
+    my $q     = $self->{'cgi'};
+    $logger->error('I am in the new section YOIUHOUUUUU');
+    $logger->error(Dumper($q->param('selected_submissions[]')));
+
+    my @selected_submissions = $q->param('selected_submissions[]');
+    # Update the submission status to closed for selected submissions
     eval {
-        $self->{'db'}->do("UPDATE submissions SET (outcome, status, datestamp) = ('good', 'closed', 'now') WHERE id = ?",
-            undef, $submission_id);
+        foreach my $submission_id (@selected_submissions) {
+            if ( BIGSdb::Utils::is_int($submission_id) ) {
+                $self->{'db'}->do("UPDATE submissions SET (status, datestamp) = ('closed', 'now') WHERE id = ?",
+                    undef, $submission_id);
+            } else {
+                $logger->error("Invalid submission ID: $submission_id");
+                die "Invalid submission ID: $submission_id";
+            }
     };
     if ($@) {
         $logger->error("Validation failed: $@");
@@ -1504,53 +1511,6 @@ sub _validate_submission {
     else {
         $self->{'db'}->commit;
         $q->param('message', 'Submission validated and closed.');
-    }
-    return;
-}
-
-sub _update_bulk_submission_status {
-    my ($self) = @_;
-    my $q = $self->{'cgi'};
-    my $status = $q->param('bulk_status');
-    return if !$status;
-
-    my @submission_ids = $q->param('submission_ids[]');
-    return if !@submission_ids;
-
-    $logger->error('YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEAAAAAAAAAAAAAAAAAAAAHHHHHHHHHHHHH');
-
-    my $curator_id = $self->get_curator_id;
-    my $outcome;
-    $logger->error('inside _update_bulk_submission_status - HELµLOOOOOOOOOOOOOOO');
-    $logger->error('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA');
-
-    if ($status eq 'accepted') {
-        $outcome = 'good';
-    } elsif ($status eq 'rejected') {
-        $outcome = 'bad';
-    }
-
-    eval {
-        foreach my $submission_id (@submission_ids) {
-            if (defined $outcome) {
-                # accepted or rejected: set outcome and update datestamp/curator
-                $self->{'db'}->do(
-                    'UPDATE submissions SET datestamp = ?, curator = ?, outcome = ? WHERE id = ?',
-                    undef, 'now', $curator_id, $outcome, $submission_id
-                );
-            } elsif ($status eq 'pending') {
-                # pending: clear outcome, update datestamp/curator
-                $self->{'db'}->do(
-                    'UPDATE submissions SET datestamp = ?, curator = ?, outcome = NULL WHERE id = ?',
-                    undef, 'now', $curator_id, $submission_id
-                );
-            }
-        }
-    };
-    if ($@) {
-        $self->{'db'}->rollback;
-    } else {
-        $self->{'db'}->commit;
     }
     return;
 }

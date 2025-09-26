@@ -69,10 +69,10 @@ sub render_complete_form {
     my $submissions = $args{submissions} // [];
     my $status = $args{status} // 'pending';
     my $system = $args{system};
-    my $instance = $args{instance};
+    my $outcome = $args{outcome} // '';
     my $embargo = $args{embargo} // {};
     my $show_outcome = $args{show_outcome} // 0;
-    $logger->error('I am in render_complete_form with show_outcome ='."$show_outcome");
+    $logger->error("$outcome");
     $logger->error('And before the filtering my submissions are:');
     $logger->error(Dumper(@$submissions));
 
@@ -130,6 +130,7 @@ sub render_complete_form {
     $return_buffer .= q(<option value="rejected">Rejected</option>);
     $return_buffer .= q(</select>);
     $return_buffer .= q(<input type="submit" value="Update" onclick="return validateAndSubmit()">);
+    $return_buffer .= q(<button type="submit" value="Batch Submit" onclick="_validate_submission">) if $show_outcome;
     $return_buffer .= q(</div>);
     $return_buffer .= q(</form>);
     $return_buffer .= qq(</div>\n);
