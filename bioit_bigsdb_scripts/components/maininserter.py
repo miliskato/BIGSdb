@@ -52,9 +52,12 @@ class MainInserter(JsonSuperClass):
         with TblIsolates(self._species) as isolates_psql_tbl:
             sample_presence = isolates_psql_tbl.count_isolate((self._isolatename,))
             if sample_presence[0][0] == 0:
+                report_link, assembly_link = self.__create_report_assembly_links()
+                pipeline = f'{self._json_report_dict.get("pipeline_name")} {self._json_report_dict.get("pipeline_version")} - {self._json_report_dict.get("input_type")}'
                 isolates_psql_tbl.insert_isolate((self._isolatename, uploader_mail_address,  # todo should uploader mail address not removed?
                                                   datetime.datetime.strptime(self._json_report_dict['analysis_date'], '%d/%m/%Y - %X').strftime('%Y-%m-%d'),
-                                                  datetime.datetime.strptime(isolation_date, '%d/%m/%Y').strftime('%Y-%m-%d')))
+                                                  datetime.datetime.strptime(isolation_date, '%d/%m/%Y').strftime('%Y-%m-%d'),
+                                                  report_link, assembly_link, pipeline))
             else:
                 raise RuntimeError(f"isolatename {self._isolatename} of {self._species} already exists on host {socket.gethostname()}")
         with TblHistory(self._species) as isolates_history_psql_tbl:
@@ -69,6 +72,7 @@ class MainInserter(JsonSuperClass):
         with TblIsolates(self._species) as isolates_psql_tbl:
             isolates_psql_tbl.update_isolate_analysis_date(
                 (datetime.datetime.strptime(self._json_report_dict['analysis_date'], '%d/%m/%Y - %X').strftime('%Y-%m-%d'), self._isolatename))
+            # TODO pipeline updaten
         self.__insert_main_metadata()
 
     def __create_context(self) -> MainInserterContext:
@@ -79,6 +83,19 @@ class MainInserter(JsonSuperClass):
             isolate_tuple = isolates_psql_tbl.select_id_for_isolate((self._isolatename,))
             isolate_id = str(isolate_tuple[0][0])
         return MainInserterContext(isolate_id, UrlHelper.report_for_isolate(self._species, isolate_id))
+
+    def __create_report_assembly_links(self) -> tuple[str, str]:
+        """
+        Creates the report and assembly link for the isolate.
+        :return: Report link and assembly link
+        """
+        context = self.__create_context()
+        report_link = f'<p><a href="{context.report_url}" target="_blank"> html report</a></p>'
+        if self._viral_species:
+            assembly_link = f'<p><a href="/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_{self._species}_isolates&page=plugin&name=Contigs&format=text&isolate_id={context.isolate_id}&match=1&pc_untagged=0&min_length=&header=1l" target="_blank">consensus sequence</a></p>'
+        else:
+            assembly_link = f'<p><a href="/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_{self._species}_isolates&page=plugin&name=Contigs&format=text&isolate_id={context.isolate_id}&match=1&pc_untagged=0&min_length=&header=1l" target="_blank">assembly</a></p>'
+        return report_link, assembly_link
 
     def __insert_main_metadata(self) -> None:
         """
@@ -91,15 +108,15 @@ class MainInserter(JsonSuperClass):
         with TblEavText(self._species) as self._isolates_eavt_psql_tbl, \
                 TblIsolates(self._species) as self.isolates_psql_tbl, TblEavInt(self._species) as self._isolates_eavi_psql_tbl:
 
-            report_link = f'<p><a href="{context.report_url}" target="_blank"> html report</a></p>'
-            self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'html', report_link))
-            if self._viral_species:
-                assemblylink = f'<p><a href="/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_{self._species}_isolates&page=plugin&name=Contigs&format=text&isolate_id={context.isolate_id}&match=1&pc_untagged=0&min_length=&header=1l" target="_blank">consensus sequence</a></p>'
-                self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'consensus_sequence', assemblylink))
-            else:
-                assemblylink = f'<p><a href="/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_{self._species}_isolates&page=plugin&name=Contigs&format=text&isolate_id={context.isolate_id}&match=1&pc_untagged=0&min_length=&header=1l" target="_blank">assembly</a></p>'
-                self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'assembly', assemblylink))
-            self.__insert_species_specific_metadata(context)
+            #report_link = f'<p><a href="{context.report_url}" target="_blank"> html report</a></p>'
+            #self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'html', report_link))
+            #if self._viral_species:
+            #    assemblylink = f'<p><a href="/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_{self._species}_isolates&page=plugin&name=Contigs&format=text&isolate_id={context.isolate_id}&match=1&pc_untagged=0&min_length=&header=1l" target="_blank">consensus sequence</a></p>'
+            #    self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'consensus_sequence', assemblylink))
+            #else:
+            #    assemblylink = f'<p><a href="/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_{self._species}_isolates&page=plugin&name=Contigs&format=text&isolate_id={context.isolate_id}&match=1&pc_untagged=0&min_length=&header=1l" target="_blank">assembly</a></p>'
+            #    self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'assembly', assemblylink))
+            # self.__insert_species_specific_metadata(context)
             if 'changed_version' in self._json_report_dict:
                 with TblEavTextHidden(self._species) as isolates_eavth_psql_tbl:
                     isolates_eavth_psql_tbl.insert_hidden_isolate((self._isolatename, 'mongo_results_version', self._json_report_dict['changed_version']))
