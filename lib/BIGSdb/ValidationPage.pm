@@ -183,19 +183,19 @@ sub initiate {
     $logger->error('😵😵');
 
     #bulk status defined if the form for bulk update has been submitted by the user (values in pending, accepted, rejected)
-    if ( $q->param('bulk_status')) {
-        ## TODO 🍟🍟 Duplicate stuffs
-        $logger->error('hey ho ouille aieaieaie 🙋‍♂️');
-        $logger->error(Dumper($q));
-        # Processing batch update
-        my @selected_submissions = $q->param('selected_submissions[]');
-        my %outcome = (accepted => 'good', rejected => 'bad', pending => '' );
-
-        foreach my $submission_id (@selected_submissions) {
-            next if none { $_ eq $q->param('bulk_status') } keys %outcome;
-            $self->{'submissionHandler'}->update_submission_outcome( $submission_id, $outcome{ $q->param('bulk_status') } );
-        }
-    }
+    # if ( $q->param('bulk_status')) {
+    #     ## TODO 🍟🍟 Duplicate stuffs
+    #     $logger->error('hey ho ouille aieaieaie 🙋‍♂️');
+    #     $logger->error(Dumper($q));
+    #     # Processing batch update
+    #     my @selected_submissions = $q->param('selected_submissions[]');
+    #     my %outcome = (accepted => 'good', rejected => 'bad', pending => '' );
+    #
+    #     foreach my $submission_id (@selected_submissions) {
+    #         next if none { $_ eq $q->param('bulk_status') } keys %outcome;
+    #         $self->{'submissionHandler'}->update_submission_outcome( $submission_id, $outcome{ $q->param('bulk_status') } );
+    #     }
+    # }
 
     #curate defined if the user has clicked on a submission id to curate it
 	if ( $q->param('curate') ) {
@@ -677,6 +677,7 @@ sub _validate_submission {
     } else {
         $self->{'db'}->commit;
     }
+    $q->delete('batch_submit');
     return;
 }
 
