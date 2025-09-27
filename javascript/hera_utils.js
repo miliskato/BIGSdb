@@ -98,41 +98,4 @@ function validateAndSubmit() {
     return true;
 }
 
-function prepareBatchSubmit() {
-    var form = document.getElementById('isolateSubmissionsForm');
-    if (!form) return false;
 
-    // Add validation flag
-    var validateInput = document.createElement('input');
-    validateInput.type = 'hidden';
-    validateInput.name = 'validate_submission';
-    validateInput.value = '1';
-    form.appendChild(validateInput);
-
-    // Set status to 'closed' for validation
-    var statusInput = document.createElement('input');
-    statusInput.type = 'hidden';
-    statusInput.name = 'status';
-    statusInput.value = 'closed';
-    form.appendChild(statusInput);
-
-    // Get all submission IDs from hidden inputs
-    var hiddenInputs = document.getElementsByClassName('batch_submission_id');
-
-    // Create submission_ids inputs for validation
-    Array.from(hiddenInputs).forEach(function(input) {
-        var submissionInput = document.createElement('input');
-        submissionInput.type = 'hidden';
-        submissionInput.name = 'submission_ids[]';
-        submissionInput.value = input.value;
-        form.appendChild(submissionInput);
-    });
-
-    // Check all checkboxes for UI feedback
-    var checkboxes = document.getElementsByName('selected_submissions[]');
-    for(var i = 0; i < checkboxes.length; i++) {
-        checkboxes[i].checked = true;
-    }
-
-    return true;
-}
