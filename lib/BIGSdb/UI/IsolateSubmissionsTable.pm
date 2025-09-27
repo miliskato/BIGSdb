@@ -104,12 +104,6 @@ sub render_complete_form {
 
     $return_buffer .= q(<input type="hidden" name="db" value="bigsdb_neisseria_isolates">);
     $return_buffer .= q(<input type="hidden" name="page" value="validation">);
-    $return_buffer .= q(<input type="hidden" name="validate_submission" value="1">);  # Add this to trigger _validate_submission
-
-    # Add hidden inputs for all submission IDs for batch submit
-    foreach my $submission (@filtered_submissions) {
-        $return_buffer .= qq(<input type="hidden" class="batch_submission_id" name="all_submission_ids[]" value="$submission->{'id'}" />);
-    }
 
     # Add control buttons
     $return_buffer .= q(<button type="button" id="isolateSubmissionsForm_checkAll" onclick="toggleCheckboxes('isolateSubmissionsForm')" data-checked="false">Check All</button> );
