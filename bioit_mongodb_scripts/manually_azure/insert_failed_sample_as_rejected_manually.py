@@ -7,8 +7,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Literal, Union
 
-# import dnspython
-# somehow this package is a requirement without actually needing to be imported, probably imported in pymongo
+from azure.batch.models import CloudTask
+
 
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
@@ -76,12 +76,33 @@ def insert_failed_sample_as_rejected_manually(technical_id: str, species: str,
     if disable_archival:
         return
     else:
-        _execute_archival(mongo_config_provider.dtap, species, technical_id)
+        execute_archival(mongo_config_provider.dtap, species, technical_id)
 
 
-def _execute_archival(dtap: str, species: str, technical_id: str) -> None:
+def execute_archival(dtap: str, species: str, technical_id: str) -> None:
     """
     Executes the original archival copy command from the most recent task of the given technical_id if it can find it.
+    :param dtap: current dtap
+    :param species: current species
+    :param technical_id: current technical_id
+    :return: None
+    """
+    latest_task = get_latest_task(dtap, species, technical_id)
+
+    # Extract archival command
+    _, _, archival_copy_cmd = latest_task.command_line.partition("module load azcopy")
+    if not archival_copy_cmd:
+        raise RuntimeError(f"No 'module load azcopy' found in command for task {latest_task.id}")
+
+    archival_command = "module load azcopy" + archival_copy_cmd.rstrip('"')
+
+    # Execute archival command
+    execute_command(archival_command)
+
+
+def get_latest_task(dtap: str, species: str, technical_id: str) -> CloudTask:
+    """
+    Tries to find the latest task for the given technical_id.
     :param dtap: current dtap
     :param species: current species
     :param technical_id: current technical_id
@@ -100,19 +121,10 @@ def _execute_archival(dtap: str, species: str, technical_id: str) -> None:
         for task in batch_client.task.list(job.id):
             if task.id.startswith(technical_id):
                 matching_tasks.append(task)
-
+    if len(matching_tasks) == 0:
+        raise Exception('Latest task not found; can not execute archival')
     # Get most recent task by ID
-    latest_task = max(matching_tasks, key=lambda t: t.id)
-
-    # Extract archival command
-    _, _, archival_copy_cmd = latest_task.command_line.partition("module load azcopy")
-    if not archival_copy_cmd:
-        raise RuntimeError(f"No 'module load azcopy' found in command for task {latest_task.id}")
-
-    archival_command = "module load azcopy" + archival_copy_cmd.rstrip('"')
-
-    # Execute archival command
-    execute_command(archival_command)
+    return max(matching_tasks, key=lambda t: t.id)
 
 
 if __name__ == '__main__':
