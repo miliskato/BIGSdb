@@ -5482,6 +5482,7 @@ code_lists:
     4341000146107: 'Zygosaccharomyces rouxii'
     4321000146101: 'Zygotorulaspora florentina'
     # below fields of listeria dcd
+    QL0035: Not defined
     #36094007: Listeria monocytogenes
     QL0037: No Listeria monocytogenes
     260385009: Negative

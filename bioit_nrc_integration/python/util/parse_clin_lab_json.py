@@ -1,7 +1,15 @@
 import abc
 import math
+import sys
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Literal, Optional, Union
+
+PYTHONPATH = Path(__file__).resolve().parent.parent.parent.parent
+sys.path.append(str(PYTHONPATH))
+
+from bioit_bigsdb_scripts.utils.literal_helper import validate_literal
+from bioit_mongodb_scripts.util.mongo_config_provider import DtapValues, DtapValue
 
 
 class ParseClinLabJson(object, metaclass=abc.ABCMeta):
@@ -9,7 +17,7 @@ class ParseClinLabJson(object, metaclass=abc.ABCMeta):
     MetaClass to parse a Json DCD file (CLIN or LAB)
     """
     def __init__(self, data_unprocessed: dict[str, Any], filetype: Literal['CLIN', 'LAB'], species: str,
-                 translation_codes: dict[str, Any], dtap: Literal['dev', 'test', 'acc', 'prod']) -> None:
+                 translation_codes: dict[str, Any], dtap: DtapValue) -> None:
         """
         This class can parse and translate an incoming unprocessed CLIN or LAB DCD file from the ODS using the
         main 'run' function.
@@ -20,6 +28,8 @@ class ParseClinLabJson(object, metaclass=abc.ABCMeta):
         :param dtap: current DTAP environment
         :return: None
         """
+        validate_literal(dtap, DtapValues)
+
         self._data_unprocessed = data_unprocessed
         self._filetype = filetype
         self._species = species
@@ -205,8 +215,11 @@ class ParseClinLabJson(object, metaclass=abc.ABCMeta):
         """
         repeat_list_of_dicts: list[dict[str, str]] = self._get_value_by_capitalization_agnostic_key(
             self._data_unprocessed, repeat_field_name)
-        if not repeat_list_of_dicts and not mandatory:
-            return
+        if repeat_list_of_dicts is None:
+            if mandatory:
+                raise KeyError(f"{repeat_field_name} is missing from DCD but mandatory.")
+            else:
+                return
         for symptom_dict in repeat_list_of_dicts:
             symptom_code = self._get_value_by_capitalization_agnostic_key(symptom_dict, field_name)
             symptom_code_translation = self._translation_codes['code_lists'][code_list_name][self._cast_as_int_if_int(symptom_code)]
