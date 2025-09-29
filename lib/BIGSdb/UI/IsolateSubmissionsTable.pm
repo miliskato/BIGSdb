@@ -74,9 +74,6 @@ sub render_complete_form {
     my $outcome = $args{outcome} // '';
     my $embargo = $args{embargo} // {};
     my $show_outcome = $args{show_outcome} // 0;
-    $logger->error("$outcome");
-    $logger->error('And before the filtering my submissions are:');
-    $logger->error(Dumper(@$submissions));
 
     # Filter submissions for isolates/genomes
     my @filtered_submissions = grep {
@@ -84,8 +81,6 @@ sub render_complete_form {
         ($_->{'type'} eq 'genomes' && $args{can_modify_sequence_bin})
     } @$submissions;
 
-    $logger->error('And my submissions are:');
-    $logger->error(Dumper(@filtered_submissions));
     return q() if !@filtered_submissions;
 
     my $return_buffer = q();

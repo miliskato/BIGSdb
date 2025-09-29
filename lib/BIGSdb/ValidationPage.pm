@@ -177,25 +177,8 @@ END
 sub initiate {
 	my ($self)        = @_;
 	my $q             = $self->{'cgi'};
-    $logger->error(Dumper($q));
 	$self->{$_} = 1 foreach qw (jQuery jQuery.jstree noCache tooltips dropzone allowExpand jQuery.multiselect);
 
-    $logger->error('😵😵');
-
-    #bulk status defined if the form for bulk update has been submitted by the user (values in pending, accepted, rejected)
-    # if ( $q->param('bulk_status')) {
-    #     ## TODO 🍟🍟 Duplicate stuffs
-    #     $logger->error('hey ho ouille aieaieaie 🙋‍♂️');
-    #     $logger->error(Dumper($q));
-    #     # Processing batch update
-    #     my @selected_submissions = $q->param('selected_submissions[]');
-    #     my %outcome = (accepted => 'good', rejected => 'bad', pending => '' );
-    #
-    #     foreach my $submission_id (@selected_submissions) {
-    #         next if none { $_ eq $q->param('bulk_status') } keys %outcome;
-    #         $self->{'submissionHandler'}->update_submission_outcome( $submission_id, $outcome{ $q->param('bulk_status') } );
-    #     }
-    # }
 
     #curate defined if the user has clicked on a submission id to curate it
 	if ( $q->param('curate') ) {
@@ -227,35 +210,6 @@ sub print_content {
 		return;
 	}
 	my $q = $self->{'cgi'};
-
-	# Handle batch submit
-	# if ($q->param('batch_submit')) {
-    #     $logger->error('Processing batch submission closure');
-    #     my @selected_submissions = $q->multi_param('selected_submissions[]');
-    #     my $curator_id = $self->get_curator_id;
-    #
-    #     eval {
-    #         foreach my $submission_id (@selected_submissions) {
-    #             # Update submission status
-    #             $self->{'db'}->do(
-    #                 'UPDATE submissions SET (status,datestamp,curator)=(?,?,?) WHERE id=?',
-    #                 undef, 'closed', 'now', $curator_id, $submission_id
-    #             );
-    #
-    #             # Run MongoDB integration script
-    #             my $dbname = $self->{'datastore'}->run_query('select current_database()');
-    #             #open(BASH, "|-", "bash");
-    #             #print BASH "/home/bigsdb/BIGSdb/3.12PythonVenv/bin/python3.12 /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/sample_validation_to_mongo.py --db $dbname --sub_id $submission_id \n";
-    #             #close(BASH);
-    #         }
-    #     };
-    #     if ($@) {
-    #         $logger->error("Batch closure failed: $@");
-    #         $self->{'db'}->rollback;
-    #     } else {
-    #         $self->{'db'}->commit;
-    #     }
-    # }
 
 	$self->choose_set;
 
@@ -361,38 +315,6 @@ sub _user_over_quota {
 	return;
 }
 
-sub _handle_alleles {    ## no critic (ProhibitUnusedPrivateSubroutines) #Called by dispatch table
-	my ($self) = @_;
-	my $q = $self->{'cgi'};
-	if ( $self->{'system'}->{'dbtype'} ne 'sequences' ) {
-		$self->print_bad_status(
-			{
-				message => q(You cannot submit new allele sequences for definition in an isolate database.)
-			}
-		);
-		return;
-	}
-	if ( $q->param('submit') ) {
-		$self->_update_allele_prefs;
-	}
-	$self->_submit_alleles;
-	return;
-}
-
-sub _handle_profiles {    ## no critic (ProhibitUnusedPrivateSubroutines) #Called by dispatch table
-	my ($self) = @_;
-	my $q = $self->{'cgi'};
-	if ( $self->{'system'}->{'dbtype'} ne 'sequences' ) {
-		$self->print_bad_status(
-			{
-				message => q(You cannot submit new profiles for definition in an isolate database.)
-			}
-		);
-		return;
-	}
-	$self->_submit_profiles;
-	return;
-}
 
 sub _handle_isolates {    ## no critic (ProhibitUnusedPrivateSubroutines) #Called by dispatch table
 	my ($self) = @_;
@@ -409,20 +331,6 @@ sub _handle_isolates {    ## no critic (ProhibitUnusedPrivateSubroutines) #Calle
 	return;
 }
 
-sub _handle_genomes {    ## no critic (ProhibitUnusedPrivateSubroutines) #Called by dispatch table
-	my ($self) = @_;
-	my $q = $self->{'cgi'};
-	if ( $self->{'system'}->{'dbtype'} ne 'isolates' ) {
-		$self->print_bad_status(
-			{
-				message => q(You cannot submit new genomes to a sequence definition database.)
-			}
-		);
-		return;
-	}
-	$self->_submit_isolates( { genomes => 1 } );
-	return;
-}
 
 sub _delete_old_submissions {
 	my ($self) = @_;
@@ -638,9 +546,6 @@ sub print_submissions_for_curation {
         $buffer .= $self->_get_isolate_for_curation_review($options);
     } elsif ( defined($q->param('validate_submission')) ) {
         my @submission_ids = $q->param('selected_submissions[]');
-        $logger->error('submission after multi_param');
-        $logger->error(Dumper(\@submission_ids));
-
         my $bulk_status = $q->param('outcome');
         my %outcome = (accepted => 'good', rejected => 'bad', pending => '' );
         my $bulk_outcome = $outcome{ $bulk_status };
@@ -649,7 +554,7 @@ sub print_submissions_for_curation {
         $self->_validate_submission($bulk_outcome, @submission_ids);
 
         my $submission_count = scalar @submission_ids;
-        $buffer .= qq('✅ $submission_count submission(s) have been successfully validated with outcome "$bulk_status".');
+        $buffer .= qq('✅ $submission_count submission(s) have been successfully "$bulk_status".');
     } else {
         $buffer .= $self->_get_isolate_submissions_for_curation($options);
     }
@@ -661,13 +566,6 @@ sub print_submissions_for_curation {
 
 sub _validate_submission {
     my ($self, $outcome, @submission_ids) = @_;
-    my $q = $self->{'cgi'};
-    #my $outcome = $args{outcome};
-    #my @submission_ids = $args{submission_ids} ;
-
-    $logger->error('Processing submission validation');
-    $logger->error(Dumper(@submission_ids));
-    $logger->error("outcome is $outcome");
     my $curator_id = $self->get_curator_id;
 
     eval {
@@ -677,8 +575,6 @@ sub _validate_submission {
                 'UPDATE submissions SET (status,datestamp,curator,outcome)=(?,?,?,?) WHERE id=?',
                 undef, 'closed', 'now', $curator_id, $outcome, $submission_id
             );
-            $logger->error("Submission $submission_id updated to closed with outcome $outcome");
-
 
             #open(BASH, "|-", "bash");
             #print BASH "/home/bigsdb/BIGSdb/3.12PythonVenv/bin/python3.12 /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/sample_validation_to_mongo.py --db $dbname --sub_id $submission_id \n";
@@ -691,14 +587,11 @@ sub _validate_submission {
     } else {
         $self->{'db'}->commit;
     }
-    $q->delete('batch_submit');
     return;
 }
 
 sub _get_isolate_submissions_for_curation {
-    $logger->error('use _get_isolate_submissions_for_curation 😵😵😵😵😵😵😵🪄');
 	my ( $self, $options ) = @_;
-    my $q = $self->{'cgi'};
     my $status = $options->{'status'} // 'pending';
 	# return q() if !$self->can_modify_table('isolates'); # disable this so that all curators, regardless of their rights can validate new isolates, mk 23/10/18
 	my $submissions = $self->_get_submissions_by_status( $status, { get_all => 1 } );
@@ -719,14 +612,12 @@ sub _get_isolate_submissions_for_curation {
         submissions             => $submissions,
         status                  => $status,
         system                  => $self->{'system'},
-        datastore               => $self->{'datastore'},
-        submissionHandler       => $self->{'submissionHandler'},
         embargo                 => $embargo,
         isolate_curate_message  => $curate_message_content,
-        show_outcome            => 0
+        show_outcome            => 0,
+        datastore               => $self->{'datastore'},
+        submissionHandler       => $self->{'submissionHandler'}
 	);
-    $logger->error('SHOW ME ALL OPTIONS PASSED TO _get_isolate_submissions_for_curation');
-    $logger->error(Dumper($options));
 
 	return $return_buffer;
 }
@@ -734,17 +625,15 @@ sub _get_isolate_submissions_for_curation {
 sub _get_isolate_for_curation_review {
     my ( $self ) = @_;
     my $q     = $self->{'cgi'};
-    $logger->error('I am in the new section YOIUHOUUUUU');
 
     my @selected_submissions = $q->param('selected_submissions[]');
-    $logger->error('HERE ARE SELECTED SUBMISSIONS');
-    $logger->error(Dumper(\@selected_submissions));
     my $submissions = $self->_get_submissions(\@selected_submissions );
 	my $embargo = $self->{'datastore'}->get_embargo_attributes;
 
 	# Get isolate curate message if it exists
 	my $isolate_curate_message = "$self->{'dbase_config_dir'}/$self->{'instance'}/isolate_curate.html";
 	my $curate_message_content = q();
+    $logger->error('isolate_curate_message='.$isolate_curate_message);
 	if (-e $isolate_curate_message) {
 		$curate_message_content = $self->print_file( $isolate_curate_message, { get_only => 1 } );
 	}
@@ -756,10 +645,10 @@ sub _get_isolate_for_curation_review {
         submissions             => $submissions,
         system                  => $self->{'system'},
         outcome                 => $q->param('bulk_status'),
-        datastore               => $self->{'datastore'},
-        submissionHandler       => $self->{'submissionHandler'},
         embargo                 => $embargo,
-        isolate_curate_message  => $curate_message_content, # Pass the CGI object here
+        isolate_curate_message  => $curate_message_content,
+        datastore               => $self->{'datastore'},
+        submissionHandler       => $self->{'submissionHandler'}
 	);
 
 	return $return_buffer;
