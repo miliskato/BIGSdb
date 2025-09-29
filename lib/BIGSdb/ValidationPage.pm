@@ -232,7 +232,6 @@ sub print_content {
 		say q(<div class="box resultstable">);
 		$self->_print_pending_submissions;
 		$self->print_submissions_for_curation;
-		$self->print_navigation_bar( { closed_submissions => $closed_buffer ? 1 : 0 } );
 		say q(</div>);
 	}
 	if ($closed_buffer) {
