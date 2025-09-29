@@ -17,12 +17,12 @@ sub new {
 sub render_table {
     my ($self, %args) = @_;
     my $submissions = $args{submissions} // [];
-    my $status = $args{status} // 'pending';
     my $system = $args{system};
     my $instance = $args{instance};
     my $datastore = $args{datastore};
     my $submissionHandler = $args{submissionHandler};
     my $embargo = $args{embargo} // {};
+    my $outcome = $args{outcome} // 0;
     my $show_outcome = $args{show_outcome} // 0;
 
     return q() if !@$submissions;
@@ -39,7 +39,9 @@ sub render_table {
         my $isolate_count = $submissionHandler->get_isolate_submission_count($submission->{'id'});
 
         $buffer .= qq(<tr class="td$td"><td>);
-        $buffer .= qq(<input type="checkbox" name="selected_submissions[]" value="$submission->{'id'}" />);
+
+        my $input_type = $show_outcome == 1 ? 'hidden' :  'checkbox';
+        $buffer .= qq(<input type="$input_type" name="selected_submissions[]" value="$submission->{'id'}" />);
         $buffer .= qq(<a href="$system->{'script_name'}?db=$instance&amp;page=submit&amp;submission_id=$submission->{'id'}&amp;curate=1">$submission->{'id'}</a>);
         $buffer .= qq(</td>);
         $buffer .= qq(<td>$submission->{'date_submitted'}</td>);
@@ -54,7 +56,7 @@ sub render_table {
         }
 
         if ($show_outcome) {
-            $buffer .= qq(<td>$submission->{'outcome'}</td>);
+            $buffer .= qq(<td>$outcome</td>);
         }
 
         $buffer .= qq(</tr>\n);
@@ -114,11 +116,10 @@ sub render_complete_form {
     $return_buffer .= q(<table class="resultstable"><tr><th>Submission id</th>);
     $return_buffer .= q(<th>Submitted</th><th>Updated</th><th>Submitter</th><th>Isolates</th><th>Quality</th>);
     $return_buffer .= q(<th>Embargo requested (months)</th>) if $system->{'dbtype'} eq 'isolates' && $embargo->{'embargo_enabled'};
-    $return_buffer .= q(<th>Outcome</th>) if $show_outcome;
     $return_buffer .= qq(</tr>\n);
 
     # Add table rows
-    $return_buffer .= $self->render_table(%args, submissions => \@filtered_submissions, show_outcome => $show_outcome);
+    $return_buffer .= $self->render_table(%args, submissions => \@filtered_submissions, show_outcome => 0);
 
     # Close table and add controls
     $return_buffer .= q(</table>);
@@ -131,6 +132,56 @@ sub render_complete_form {
     $return_buffer .= q(</select>);
     $return_buffer .= q(<input type="submit" value="Update" onclick="return validateAndSubmit()">);
     $return_buffer .= q(<button type="submit" name="batch_submit" value="1" onclick="return prepareBatchSubmit()">Batch Submit</button>) if $show_outcome;
+    $return_buffer .= q(</div>);
+    $return_buffer .= q(</form>);
+    $return_buffer .= qq(</div>\n);
+
+    return $return_buffer;
+}
+
+sub render_review_form {
+    my ($self, %args) = @_;
+    my $submissions = $args{submissions} // [];
+    my $system = $args{system};
+    my $outcome = $args{outcome} // '';
+    my $embargo = $args{embargo} // {};
+
+    # Filter submissions for isolates/genomes
+    my @filtered_submissions = grep {
+        ($_->{'type'} eq 'isolates')
+    } @$submissions;
+    return q() if !@filtered_submissions;
+
+    my $return_buffer = q();
+
+    # Add headers based on status
+    $return_buffer .= q(<h3>Review isolate submissions</h3>);
+
+    $return_buffer .= q(<div class="scrollable">);
+    $return_buffer .= q(<form method="post" action="/cgi-bin/bigsdb/bigsdb.pl?page=validation" id="isolateSubmissionsForm" enctype="multipart/form-data">);
+
+    $return_buffer .= q(<input type="hidden" name="db" value="bigsdb_neisseria_isolates">);
+    $return_buffer .= q(<input type="hidden" name="page" value="validation">);
+    $return_buffer .= q(<input type="hidden" name="validate_submission" value="1">);
+    $return_buffer .= qq(<input type="hidden" name="outcome" value="$outcome">);
+
+    # Start table
+    $return_buffer .= q(<table class="resultstable"><tr><th>Submission id</th>);
+    $return_buffer .= q(<th>Submitted</th><th>Updated</th><th>Submitter</th><th>Isolates</th><th>Quality</th>);
+    $return_buffer .= q(<th>Embargo requested (months)</th>) if $system->{'dbtype'} eq 'isolates' && $embargo->{'embargo_enabled'};
+    $return_buffer .= q(<th>Outcome</th>);
+    $return_buffer .= qq(</tr>\n);
+
+    # Add table rows
+    $return_buffer .= $self->render_table(%args, submissions => \@filtered_submissions, outcome => $outcome, show_outcome => 1);
+
+    # Close table and add controls
+    $return_buffer .= q(</table>);
+    $return_buffer .= q(<div style="margin-top: 10px;">);
+
+    $return_buffer .= q(<button name="batch_submit">Cancel</button>);
+    $return_buffer .= q(<input type="submit" value="Confirm">);
+
     $return_buffer .= q(</div>);
     $return_buffer .= q(</form>);
     $return_buffer .= qq(</div>\n);

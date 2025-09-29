@@ -636,9 +636,17 @@ sub print_submissions_for_curation {
 
     if ( defined($q->param('bulk_status')) ) {
         $buffer .= $self->_get_isolate_for_curation_review($options);
-        if (defined($q->param('validate_submission'))) {
-            $self->_validate_submission();
-        }
+    } elsif ( defined($q->param('validate_submission')) ) {
+        my @submission_ids = $q->multi_param('selected_submissions[]');
+        my $bulk_status = $q->param('bulk_status');
+
+        my %outcome = (accepted => 'good', rejected => 'bad', pending => '' );
+        my $bulk_outcome = $outcome{ $bulk_status };
+
+        $self->_validate_submission(submission_ids => @submission_ids, outcome => $bulk_outcome);
+
+        my $submission_count = scalar @submission_ids;
+        $buffer .= qq('✅ $submission_count submission(s) have been successfully validated with outcome "$bulk_status".');
     } else {
         $buffer .= $self->_get_isolate_submissions_for_curation($options);
     }
@@ -649,26 +657,28 @@ sub print_submissions_for_curation {
 }
 
 sub _validate_submission {
-    my ($self) = @_;
+    my ($self, %args) = @_;
     my $q = $self->{'cgi'};
+    my $outcome = $args{outcome};
+    my @submission_ids = $args{submission_ids};
+
     $logger->error('Processing submission validation');
 
-    my @submission_ids = $q->multi_param('selected_submissions[]');
     my $curator_id = $self->get_curator_id;
 
     eval {
         foreach my $submission_id (@submission_ids) {
             # Update submission status
             $self->{'db'}->do(
-                'UPDATE submissions SET (status,datestamp,curator)=(?,?,?) WHERE id=?',
-                undef, 'closed', 'now', $curator_id, $submission_id
+                'UPDATE submissions SET (outcome,status,datestamp,curator)=(?,?,?,?) WHERE id=?',
+                undef, $outcome, 'closed', 'now', $curator_id, $submission_id
             );
 
             # Run MongoDB integration script
             my $dbname = $self->{'datastore'}->run_query('select current_database()');
-            open(BASH, "|-", "bash");
-            print BASH "/home/bigsdb/BIGSdb/3.12PythonVenv/bin/python3.12 /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/sample_validation_to_mongo.py --db $dbname --sub_id $submission_id \n";
-            close(BASH);
+            #open(BASH, "|-", "bash");
+            #print BASH "/home/bigsdb/BIGSdb/3.12PythonVenv/bin/python3.12 /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/sample_validation_to_mongo.py --db $dbname --sub_id $submission_id \n";
+            #close(BASH);
         }
     };
     if ($@) {
@@ -737,16 +747,14 @@ sub _get_isolate_for_curation_review {
 	# Create table renderer instance
 	my $table_renderer = BIGSdb::UI::IsolateSubmissionsTable->new();
 	# Use the renderer to generate the complete form with table
-	my $return_buffer = $table_renderer->render_complete_form(
+	my $return_buffer = $table_renderer->render_review_form(
         submissions             => $submissions,
-        status                  => 'pending', # TODO 🌈🌈🌈
         system                  => $self->{'system'},
-        outcome                 => $q->{'bulk_status'},
+        outcome                 => $q->param('bulk_status'),
         datastore               => $self->{'datastore'},
         submissionHandler       => $self->{'submissionHandler'},
         embargo                 => $embargo,
         isolate_curate_message  => $curate_message_content, # Pass the CGI object here
-        show_outcome            => 1
 	);
 
 	return $return_buffer;
