@@ -229,33 +229,33 @@ sub print_content {
 	my $q = $self->{'cgi'};
 
 	# Handle batch submit
-	if ($q->param('batch_submit')) {
-        $logger->error('Processing batch submission closure');
-        my @selected_submissions = $q->multi_param('selected_submissions[]');
-        my $curator_id = $self->get_curator_id;
-
-        eval {
-            foreach my $submission_id (@selected_submissions) {
-                # Update submission status
-                $self->{'db'}->do(
-                    'UPDATE submissions SET (status,datestamp,curator)=(?,?,?) WHERE id=?',
-                    undef, 'closed', 'now', $curator_id, $submission_id
-                );
-
-                # Run MongoDB integration script
-                my $dbname = $self->{'datastore'}->run_query('select current_database()');
-                open(BASH, "|-", "bash");
-                print BASH "/home/bigsdb/BIGSdb/3.12PythonVenv/bin/python3.12 /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/sample_validation_to_mongo.py --db $dbname --sub_id $submission_id \n";
-                close(BASH);
-            }
-        };
-        if ($@) {
-            $logger->error("Batch closure failed: $@");
-            $self->{'db'}->rollback;
-        } else {
-            $self->{'db'}->commit;
-        }
-    }
+	# if ($q->param('batch_submit')) {
+    #     $logger->error('Processing batch submission closure');
+    #     my @selected_submissions = $q->multi_param('selected_submissions[]');
+    #     my $curator_id = $self->get_curator_id;
+    #
+    #     eval {
+    #         foreach my $submission_id (@selected_submissions) {
+    #             # Update submission status
+    #             $self->{'db'}->do(
+    #                 'UPDATE submissions SET (status,datestamp,curator)=(?,?,?) WHERE id=?',
+    #                 undef, 'closed', 'now', $curator_id, $submission_id
+    #             );
+    #
+    #             # Run MongoDB integration script
+    #             my $dbname = $self->{'datastore'}->run_query('select current_database()');
+    #             #open(BASH, "|-", "bash");
+    #             #print BASH "/home/bigsdb/BIGSdb/3.12PythonVenv/bin/python3.12 /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/sample_validation_to_mongo.py --db $dbname --sub_id $submission_id \n";
+    #             #close(BASH);
+    #         }
+    #     };
+    #     if ($@) {
+    #         $logger->error("Batch closure failed: $@");
+    #         $self->{'db'}->rollback;
+    #     } else {
+    #         $self->{'db'}->commit;
+    #     }
+    # }
 
 	$self->choose_set;
 
@@ -637,13 +637,16 @@ sub print_submissions_for_curation {
     if ( defined($q->param('bulk_status')) ) {
         $buffer .= $self->_get_isolate_for_curation_review($options);
     } elsif ( defined($q->param('validate_submission')) ) {
-        my @submission_ids = $q->multi_param('selected_submissions[]');
-        my $bulk_status = $q->param('bulk_status');
+        my @submission_ids = $q->param('selected_submissions[]');
+        $logger->error('submission after multi_param');
+        $logger->error(Dumper(\@submission_ids));
 
+        my $bulk_status = $q->param('outcome');
         my %outcome = (accepted => 'good', rejected => 'bad', pending => '' );
         my $bulk_outcome = $outcome{ $bulk_status };
+        $logger->error("bulk outcome is $bulk_outcome");
 
-        $self->_validate_submission(submission_ids => @submission_ids, outcome => $bulk_outcome);
+        $self->_validate_submission($bulk_outcome, @submission_ids);
 
         my $submission_count = scalar @submission_ids;
         $buffer .= qq('✅ $submission_count submission(s) have been successfully validated with outcome "$bulk_status".');
@@ -657,25 +660,26 @@ sub print_submissions_for_curation {
 }
 
 sub _validate_submission {
-    my ($self, %args) = @_;
+    my ($self, $outcome, @submission_ids) = @_;
     my $q = $self->{'cgi'};
-    my $outcome = $args{outcome};
-    my @submission_ids = $args{submission_ids};
+    #my $outcome = $args{outcome};
+    #my @submission_ids = $args{submission_ids} ;
 
     $logger->error('Processing submission validation');
-
+    $logger->error(Dumper(@submission_ids));
+    $logger->error("outcome is $outcome");
     my $curator_id = $self->get_curator_id;
 
     eval {
-        foreach my $submission_id (@submission_ids) {
+        for my $submission_id (@submission_ids) {
             # Update submission status
             $self->{'db'}->do(
-                'UPDATE submissions SET (outcome,status,datestamp,curator)=(?,?,?,?) WHERE id=?',
-                undef, $outcome, 'closed', 'now', $curator_id, $submission_id
+                'UPDATE submissions SET (status,datestamp,curator,outcome)=(?,?,?,?) WHERE id=?',
+                undef, 'closed', 'now', $curator_id, $outcome, $submission_id
             );
+            $logger->error("Submission $submission_id updated to closed with outcome $outcome");
 
-            # Run MongoDB integration script
-            my $dbname = $self->{'datastore'}->run_query('select current_database()');
+
             #open(BASH, "|-", "bash");
             #print BASH "/home/bigsdb/BIGSdb/3.12PythonVenv/bin/python3.12 /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/sample_validation_to_mongo.py --db $dbname --sub_id $submission_id \n";
             #close(BASH);
@@ -731,9 +735,10 @@ sub _get_isolate_for_curation_review {
     my ( $self ) = @_;
     my $q     = $self->{'cgi'};
     $logger->error('I am in the new section YOIUHOUUUUU');
-    $logger->error(Dumper($q->param('selected_submissions[]')));
 
     my @selected_submissions = $q->param('selected_submissions[]');
+    $logger->error('HERE ARE SELECTED SUBMISSIONS');
+    $logger->error(Dumper(\@selected_submissions));
     my $submissions = $self->_get_submissions(\@selected_submissions );
 	my $embargo = $self->{'datastore'}->get_embargo_attributes;
 
