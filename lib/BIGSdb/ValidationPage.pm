@@ -484,7 +484,8 @@ sub print_submissions_for_curation {
         $self->_validate_submission($bulk_outcome, @submission_ids);
 
         my $submission_count = scalar @submission_ids;
-        $buffer .= qq($submission_count submission(s) have been successfully $bulk_status.);
+        $buffer .= qq(<div class="submission-result"> $submission_count submission(s) have been successfully $bulk_status.</div>);
+        $buffer .= qq(<div><button type="button" onclick="window.location.href='$self->{'system'}->{'script_name'}?db=$self->{'instance'}&amp;page=submit'">Go back to submissions page</button></div>);
     } else {
         $buffer .= $self->_get_isolate_submissions_for_curation($options);
     }
