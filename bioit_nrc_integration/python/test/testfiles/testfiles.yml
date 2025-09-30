@@ -16,3 +16,9 @@ influenza:
   mapping_table: influenza_mapping_table.json
   genomic_json_report: influenza_report.json
   genomic_json_reanalysis_report: influenza_report_reanalysis.json
+neisseria:
+  # get_nominative_from_ODS_CLIN: neisseria_get_nominative_from_ODS_CLIN.json
+  # get_nominative_from_ODS_LAB: neisseria_get_nominative_from_ODS_LAB.json
+  mapping_table: neisseria_mapping_table.json
+  genomic_json_report: neisseria_report.json
+  genomic_json_reanalysis_report: neisseria_report_reanalysis.json

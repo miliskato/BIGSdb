@@ -1,13 +1,16 @@
 pathogens:
   salmonella:
     dataCollection: HDBP0345_SLM_BIOIT
-    version: v1.0.1
+    version: v1.0.2
   listeria:
     dataCollection: HDBP0335_LIST_BIOIT
     version: v1.0.1
   influenza:
     dataCollection: HDBP0333_INFL_BIOIT
     version: v1.0.1
+  neisseria:
+    dataCollection: HDBP0339_MENI_BIOIT
+    version: v1.0.0
 
 common:
   CD_HCO_NIHDI:
@@ -166,7 +169,6 @@ listeria:
       - results
       - pcr_serogroup
       - pcr_serogroup-serogroup
-
 influenza:
   TX_GENTPE_TOOL_VER:
     dict_path:
@@ -194,13 +196,136 @@ influenza:
 #      - results
 #      - nextclade
 #      - nextclade_detected_subtype
+neisseria:
+  TX_MLST_ST:
+    dict_path:
+      - results
+      - mlst
+      - mlst-ST
+  CD_SEROGR:
+    dict_path:
+      - results
+      - serogroup
+      - serogroup_legacy
+    code_list: meni_serogroup
+  resfinder4:
+    custom: resfinder4  # This assay needs to be checked in mainmongo, but the fields that they request are too complicated and don't fit  all the previous fields because the resfinder results are a list of genes which are not grouped by antibiotic
+    dict_path:
+      - results
+      - resfinder4
+      - resfinder4_genes_hits
 code_lists:
   SRI:
     Susceptible: 1306577009
-    Resistant: 1306583007
-    Intermediate: 1306581009
+    Intermediate: 1306583007
+    Resistant: 1306581009
     Unknown: 261665006
     '-': 261665006
   influenza_species:
     Influenza A virus (organism): A
     Influenza B virus (organism): B
+  meni_serogroup:
+    A: 103479006
+    B: 103480009
+    C: 103481008
+    X: 125041003
+    Y: 103482001
+    Z: 125042005
+    W: 103483006
+    H: 1
+    L: 2
+    NA: 414810006
+    E: 698162001
+custom:
+  resfinder4:
+    spectinomycin: CD_SPECTMC_SUSC
+    amikacin: CD_AMIKCN_SUSC
+    apramycin: CD_APRAMC_SUSC
+    arbekacin: CD_ARBC_SUSC
+    astromicin: CD_ASTROMC_SUSC
+    butiromycin: CD_BUTIRMC_SUSC
+    butirosin: CD_BUTIRS_SUSC
+    dibekacin: CD_DIBEC_SUSC
+    fortimicin: CD_FORTIMC_SUSC
+    gentamicin: CD_GENTMC_SUSC
+    hygromycin: CD_HYGROMC_SUSC
+    isepamicin: CD_ISEPMC_SUSC
+    kanamycin: CD_KANMC_SUSC
+    kasugamycin: CD_KASUMC_SUSC
+    lividomycin: CD_LIVIDMC_SUSC
+    neomycin: CD_NEOMC_SUSC
+    netilmicin: CD_NETILMC_SUSC
+    paromomycin: CD_PAROMC_SUSC
+    ribostamycin: CD_RIBOSMC_SUSC
+    sisomicin: CD_SISMC_SUSC
+    streptomycin: CD_STREPMC_SUSC
+    tobramycin: CD_TOBI_SUSC
+    unknownaminoglycoside: CD_AMNGLY_UNK_SUSC
+    chloramphenicol: CD_CHLORP_SUSC
+    florfenicol: CD_FLORFCL_SUSC
+    amoxicillin: CD_AMOXCL_SUSC
+    amoxicillin+clavulanicacid: CD_AMOXCL_CLAVACD_SUSC
+    ampicillin: CD_AMPCL_SUSC
+    ampicillin+clavulanicacid: CD_AMPCL_CLAVACD_SUSC
+    aztreonam: CD_AZTRNM_SUSC
+    cefepime: CD_CEFEPM_SUSC
+    cefixime: CD_CEFIXM_SUSC
+    cefotaxime: CD_CEF_SUSC
+    cefotaxime+clavulanicacid: CD_CEF_CLAVACD_SUSC
+    cefoxitin: CD_CEFOXTN_SUSC
+    ceftazidime: CD_CAZ_SUSC
+    ceftazidime+avibactam: CD_CAZ_AVIBCTM_SUSC
+    ceftriaxone: CD_CRI_SUSC
+    cephalothin: CD_CEPHLTH_SUSC
+    ertapenem: CD_ERTPNM_SUSC
+    imipenem: CD_IMI_SUSC
+    meropenem: CD_MER_SUSC
+    penicillin: CD_PENI_SUSC
+    piperacillin: CD_PIP_SUSC
+    piperacillin+clavulanicacid: CD_PIP_CLAVACD_SUSC
+    piperacillin+tazobactam: CD_PIP_TAZOBCT_SUSC
+    temocillin: CD_TEMOCL_SUSC
+    ticarcillin: CD_TICACL_SUSC
+    ticarcillin+clavulanicacid: CD_TICACL_CLAVACD_SUSC
+    unknownbeta-lactam: CD_BETLAC_UNK_SUSC
+    sulfamethoxazole: CD_SULFAM_SUSC
+    trimethoprim: CD_TRIMETH_SUSC
+    fosfomycin: CD_FOSFOMC_SUSC
+    bleomycin: CD_BLEOMC_SUSC
+    teicoplanin: CD_TEI_SUSC
+    vancomycin: CD_VAN_SUSC
+    maduramicin: CD_MADUMC_SUSC
+    narasin: CD_NARSN_SUSC
+    salinomycin: CD_SALIMC_SUSC
+    clindamycin: CD_CLINDMC_SUSC
+    lincomycin: CD_LINCMC_SUSC
+    azithromycin: CD_AZI_SUSC
+    carbomycin: CD_CARBOMC_SUSC
+    erythromycin: CD_ERYTHMC_SUSC
+    oleandomycin: CD_OLEAMC_SUSC
+    spiramycin: CD_SPIRAMC_SUSC
+    telithromycin: CD_TELITMC_SUSC
+    tylosin: CD_TYLSN_SUSC
+    metronidazole: CD_METRODZL_SUSC
+    linezolid: CD_LINEZLD_SUSC
+    tiamulin: CD_TIAMLN_SUSC
+    colistin: CD_COL_SUSC
+    mupirocin: CD_MUPIC_SUSC
+    ciprofloxacin: CD_CIPR_SUSC
+    fluoroquinolone: CD_FLUOQN_SUSC
+    nalidixicacid: CD_NALIDXAC_SUSC
+    unknownquinolone: CD_QUINOL_UNK_SUSC
+    rifampicin: CD_RIFAMCN_SUSC
+    fusidicacid: CD_FUSAC_SUSC
+    dalfopristin: CD_DALFPSTN_SUSC
+    pristinamyciniia: CD_PRISTMC_IIA_SUSC
+    quinupristin+dalfopristin: CD_QUINPRST_DALFPSTN_SUSC
+    virginiamycinm: CD_VIRGMC_M_SUSC
+    pristinamycinia: CD_PRISTMC_IA_SUSC
+    quinupristin: CD_QUINPRST_SUSC
+    virginiamycins: CD_VIRGMC_S_SUSC
+    doxycycline: CD_DOXY_SUSC
+    minocycline: CD_MINOC_SUSC
+    tetracycline: CD_TETRACY_SUSC
+    tigecycline: CD_TIGEC_SUSC
+    ceftiofur: CD_CEFTOF_SUSC
