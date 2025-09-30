@@ -519,7 +519,7 @@ sub print_submissions_for_curation {
         $self->_validate_submission($bulk_outcome, @submission_ids);
 
         my $submission_count = scalar @submission_ids;
-        $buffer .= qq('✅ $submission_count submission(s) have been successfully "$bulk_status".');
+        $buffer .= qq('$submission_count submission(s) have been successfully "$bulk_status".');
     } else {
         $buffer .= $self->_get_isolate_submissions_for_curation($options);
     }
@@ -561,7 +561,8 @@ sub _get_isolate_submissions_for_curation {
 	# return q() if !$self->can_modify_table('isolates'); # disable this so that all curators, regardless of their rights can validate new isolates, mk 23/10/18
 	my $submissions = $self->_get_submissions_by_status( $status, { get_all => 1 } );
 	my $embargo = $self->{'datastore'}->get_embargo_attributes;
-
+    $logger->error("self keys: " . join(', ', sort keys %{$self}));
+    $logger->error($self->{'instance'});
 	# Get isolate curate message if it exists
 	my $isolate_curate_message = "$self->{'dbase_config_dir'}/$self->{'instance'}/isolate_curate.html";
 	my $curate_message_content = q();
@@ -577,6 +578,7 @@ sub _get_isolate_submissions_for_curation {
         submissions             => $submissions,
         status                  => $status,
         system                  => $self->{'system'},
+        db                      => $self->{'instance'},
         embargo                 => $embargo,
         isolate_curate_message  => $curate_message_content,
         show_outcome            => 0,
@@ -609,6 +611,7 @@ sub _get_isolate_for_curation_review {
 	my $return_buffer = $table_renderer->render_review_form(
         submissions             => $submissions,
         system                  => $self->{'system'},
+        db                      => $q->param('db'),
         outcome                 => $q->param('bulk_status'),
         embargo                 => $embargo,
         isolate_curate_message  => $curate_message_content,
@@ -639,16 +642,7 @@ sub _check_invalid_embargo {
 	return;
 }
 
-sub _print_file_fieldset {
-	my ( $self, $submission_id ) = @_;
-	my $file_table = $self->_print_submission_file_table( $submission_id, { get_only => 1 } );
-	if ($file_table) {
-		say q(<fieldset style="float:left"><legend>Supporting files</legend>);
-		say $file_table;
-		say q(</fieldset>);
-	}
-	return;
-}
+
 
 sub _print_summary {
 	my ( $self, $submission_id ) = @_;

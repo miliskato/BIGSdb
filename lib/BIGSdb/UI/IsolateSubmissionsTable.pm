@@ -71,7 +71,7 @@ sub render_complete_form {
     my $submissions = $args{submissions} // [];
     my $status = $args{status} // 'pending';
     my $system = $args{system};
-    my $outcome = $args{outcome} // '';
+    my $db = $args{db};
     my $embargo = $args{embargo} // {};
     my $show_outcome = $args{show_outcome} // 0;
 
@@ -114,7 +114,7 @@ sub render_complete_form {
     $return_buffer .= qq(</tr>\n);
 
     # Add table rows
-    $return_buffer .= $self->render_table(%args, submissions => \@filtered_submissions, show_outcome => 0);
+    $return_buffer .= $self->render_table(%args, instance => $db,  submissions => \@filtered_submissions, show_outcome => 0);
 
     # Close table and add controls
     $return_buffer .= q(</table>);
@@ -138,6 +138,7 @@ sub render_review_form {
     my ($self, %args) = @_;
     my $submissions = $args{submissions} // [];
     my $system = $args{system};
+    my $db = $args{db} ;
     my $outcome = $args{outcome} // '';
     my $embargo = $args{embargo} // {};
 
@@ -168,7 +169,7 @@ sub render_review_form {
     $return_buffer .= qq(</tr>\n);
 
     # Add table rows
-    $return_buffer .= $self->render_table(%args, submissions => \@filtered_submissions, outcome => $outcome, show_outcome => 1);
+    $return_buffer .= $self->render_table(%args, instance => $db, submissions => \@filtered_submissions, outcome => $outcome, show_outcome => 1);
 
     # Close table and add controls
     $return_buffer .= q(</table>);
