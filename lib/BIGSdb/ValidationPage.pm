@@ -180,23 +180,15 @@ sub initiate {
 
     $logger->error('Showing param stored in line 181: Dumper($q->Vars)='.Dumper($q->Vars));
     #curate defined if the user has clicked on a submission id to curate it
-	if ( $q->param('curate') ) {
-        $logger->error('I am in line 185');
-		$self->set_level2_breadcrumbs('Curate submission');
-	} elsif ($q->param('isolate')) {
-		$self->set_level2_breadcrumbs('New submission');
-        $logger->error('I am in line 188');
-	} else {
-		$self->{'processing'} = 1 if defined $q->param('submission_id');
-		foreach my $method (qw(abort finalize close remove cancel)) {
-			if ( $q->param($method) ) {
-                $logger->error('I am in line 193');
-				$self->{'processing'} = 0;
-				last;
-			}
-		}
-        $logger->error('I am in line 197');
-		$self->set_level1_breadcrumbs;
+    $self->set_level2_breadcrumbs('Confirm validation');
+    $self->{'processing'} = 0;
+	if ( $q->param('bulk_status') ) {
+        $self->{'processing'} = 1;
+        $logger->error('Already there: line 188');
+	} elsif ($q->param('validate_submission')){
+		$self->set_level2_breadcrumbs('Submission result');
+        $self->{'processing'} = 1;
+        $logger->error('Already there: line 192');
 	}
 	return;
 }
@@ -492,7 +484,7 @@ sub print_submissions_for_curation {
         $self->_validate_submission($bulk_outcome, @submission_ids);
 
         my $submission_count = scalar @submission_ids;
-        $buffer .= qq('$submission_count submission(s) have been successfully "$bulk_status".');
+        $buffer .= qq($submission_count submission(s) have been successfully $bulk_status.);
     } else {
         $buffer .= $self->_get_isolate_submissions_for_curation($options);
     }
@@ -627,8 +619,8 @@ sub set_level2_breadcrumbs {
 			href  => "$self->{'system'}->{'script_name'}?db=$self->{'instance'}"
 		},
 		{
-			label => 'Submissions',
-			href  => "$self->{'system'}->{'script_name'}?db=$self->{'instance'}&amp;page=submit"
+			label => 'Validations',
+			href  => "$self->{'system'}->{'script_name'}?db=$self->{'instance'}&amp;page=validation"
 		},
 		{
 			label => $page
