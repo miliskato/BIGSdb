@@ -16,7 +16,7 @@
 #
 #You should have received a copy of the GNU General Public License
 #along with BIGSdb.  If not, see <http://www.gnu.org/licenses/>.
-package BIGSdb::ValidationPage;
+package BIGSdb::BatchValidationPage;
 use strict;
 use warnings;
 use 5.010;
@@ -180,7 +180,7 @@ sub initiate {
 
     $logger->error('Showing param stored in line 181: Dumper($q->Vars)='.Dumper($q->Vars));
     #curate defined if the user has clicked on a submission id to curate it
-    $self->set_level2_breadcrumbs('Confirm validation');
+    $self->set_level2_breadcrumbs('Confirm batch validation');
     $self->{'processing'} = 0;
 	if ( $q->param('bulk_status') ) {
         $self->{'processing'} = 1;
@@ -507,13 +507,13 @@ sub _validate_submission {
                 undef, 'closed', 'now', $curator_id, $outcome, $submission_id
             );
 
-            #open(BASH, "|-", "bash");
-            #print BASH "/home/bigsdb/BIGSdb/3.12PythonVenv/bin/python3.12 /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/sample_validation_to_mongo.py --db $dbname --sub_id $submission_id \n";
-            #close(BASH);
+           # open(BASH, "|-", "bash");
+           # print BASH "/home/bigsdb/BIGSdb/3.12PythonVenv/bin/python3.12 /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/sample_validation_to_mongo.py --db $dbname --sub_id $submission_id \n";
+           # close(BASH);
         }
     };
     if ($@) {
-        $logger->error("Validation failed: $@");
+        $logger->error("Batch validation failed: $@");
         $self->{'db'}->rollback;
     } else {
         $self->{'db'}->commit;
@@ -620,8 +620,8 @@ sub set_level2_breadcrumbs {
 			href  => "$self->{'system'}->{'script_name'}?db=$self->{'instance'}"
 		},
 		{
-			label => 'Validations',
-			href  => "$self->{'system'}->{'script_name'}?db=$self->{'instance'}&amp;page=validation"
+			label => 'Batch validation',
+			href  => "$self->{'system'}->{'script_name'}?db=$self->{'instance'}&amp;page=batchValidation"
 		},
 		{
 			label => $page

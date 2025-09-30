@@ -33,6 +33,7 @@ use BIGSdb::AlleleQueryPage;
 use BIGSdb::AlleleSequencePage;
 use BIGSdb::AuthorizeClientPage;
 use BIGSdb::BatchProfileQueryPage;
+use BIGSdb::BatchValidationPage;
 use BIGSdb::BookmarksPage;
 use BIGSdb::ChangePasswordPage;
 use BIGSdb::CGI::as_utf8;
@@ -82,7 +83,6 @@ use BIGSdb::TableQueryPage;
 use BIGSdb::UserPage;
 use BIGSdb::UserProjectsPage;
 use BIGSdb::UserRegistrationPage;
-use BIGSdb::ValidationPage;
 use BIGSdb::VersionPage;
 use BIGSdb::Offline::Blast;
 use Log::Log4perl qw(get_logger);
@@ -91,10 +91,10 @@ use List::MoreUtils qw(any);
 use Config::Tiny;
 use Try::Tiny;
 use constant PAGES_NEEDING_AUTHENTICATION => qw(authorizeClient changePassword userProjects bookmarks
-  submit alert rejected login logout validation);
+  submit alert rejected login logout batchValidation);
 use constant PAGES_NEEDING_JOB_MANAGER => qw(plugin job jobs index dashboard project login logout options ajaxJobs);
 use constant PAGES_NEEDING_SUBMISSION_HANDLER => qw(submit alert rejected batchAddFasta profileAdd profileBatchAdd batchAdd
-  batchAddSequences batchIsolateUpdate batchAddSeqbin isolateAdd isolateUpdate index logout validation);
+  batchAddSequences batchIsolateUpdate batchAddSeqbin isolateAdd isolateUpdate index logout batchValidation);
 use constant PAGES_NOT_NEEDING_PLUGINS => qw(ajaxJobs jobMonitor ajaxRest restMonitor);
 
 sub new {
@@ -508,7 +508,7 @@ sub print_page {
 		user               => 'UserPage',
 		userProjects       => 'UserProjectsPage',
 		usernameRemind     => 'UserRegistrationPage',
-        validation         => 'ValidationPage',
+        batchValidation    => 'BatchValidationPage',
 		version            => 'VersionPage'
 	);
 	my $page;

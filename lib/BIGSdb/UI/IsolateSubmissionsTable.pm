@@ -97,10 +97,10 @@ sub render_complete_form {
     }
 
     $return_buffer .= q(<div class="scrollable">);
-    $return_buffer .= q(<form method="post" action="/cgi-bin/bigsdb/bigsdb.pl?page=validation" id="isolateSubmissionsForm" enctype="multipart/form-data">);
+    $return_buffer .= q(<form method="post" action="/cgi-bin/bigsdb/bigsdb.pl?page=batchValidation" id="isolateSubmissionsForm" enctype="multipart/form-data">);
 
     $return_buffer .= q(<input type="hidden" name="db" value="bigsdb_neisseria_isolates">);
-    $return_buffer .= q(<input type="hidden" name="page" value="validation">);
+    $return_buffer .= q(<input type="hidden" name="page" value="batchValidation">);
 
     # Add control buttons
     $return_buffer .= q(<button type="button" id="isolateSubmissionsForm_checkAll" onclick="toggleCheckboxes('isolateSubmissionsForm')" data-checked="false">Check All</button> );
@@ -153,10 +153,10 @@ sub render_review_form {
     $return_buffer .= q(<h3>Review isolate submissions</h3>);
 
     $return_buffer .= q(<div class="scrollable">);
-    $return_buffer .= q(<form method="post" action="/cgi-bin/bigsdb/bigsdb.pl?page=validation" id="isolateSubmissionsForm" enctype="multipart/form-data">);
+    $return_buffer .= q(<form method="post" action="/cgi-bin/bigsdb/bigsdb.pl?page=batchValidation" id="isolateSubmissionsForm" enctype="multipart/form-data">);
 
     $return_buffer .= q(<input type="hidden" name="db" value="bigsdb_neisseria_isolates">);
-    $return_buffer .= q(<input type="hidden" name="page" value="validation">);
+    $return_buffer .= q(<input type="hidden" name="page" value="batchValidation">);
     $return_buffer .= q(<input type="hidden" name="validate_submission" value="1">);
     $return_buffer .= qq(<input type="hidden" name="outcome" value="$outcome">);
 
@@ -176,7 +176,7 @@ sub render_review_form {
 
     my $warning_message = 'By clicking &quot;Confirm&quot;, you validate/cancel the insertion of the isolate(s) listed in the table. Please note that this action cannot be undone. ';
     $return_buffer .= qq(<div class="submission-warning" style="margin:12px 0;padding:8px 10px;border:1px solid #c77;background:#ffe9e7;color:#600;font-weight:bold;">$warning_message</div>);
-    $return_buffer .= qq(<button type="button" onclick="window.location.href='$system->{script_name}?db=$db&amp;page=validation'">Cancel</button>);
+    $return_buffer .= qq(<button type="button" onclick="window.location.href='$system->{script_name}?db=$db&amp;page=batchValidation'">Cancel</button>);
     $return_buffer .= q(<button type="submit" class="action-btn confirm-btn">Confirm</button>);
 
     $return_buffer .= q(</div>);
