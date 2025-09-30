@@ -224,32 +224,20 @@ sub print_content {
 
 	my $submissions_to_show = $self->_any_pending_submissions_to_show;
 	$self->_delete_old_submissions;
-	my $closed_buffer =
-        $self->print_submissions_for_curation( { status => 'closed', show_outcome => 1, get_only => 1 } );
 
 	if ($submissions_to_show) {
 		say q(<div class="box resultstable">);
-		$self->_print_pending_submissions;
+		#$self->_print_pending_submissions;
 		$self->print_submissions_for_curation;
 		say q(</div>);
-	}
-	if ($closed_buffer) {
-		say q(<div class="box resultstable" id="closed" style="display:none"><div class="scrollable">);
-		say q(<h2>Closed submissions for which you had curator rights</h2>);
-		my $days = $self->get_submission_days;
-		say q(<p>The following submissions are now closed);
-		#  . qq(for $days days.);
-		say $closed_buffer;
-		say q(</div></div>);
 	}
 	return;
 }
 
 sub _any_pending_submissions_to_show {
 	my ($self) = @_;
-	return 1 if $self->_get_own_submissions('pending');
+	#return 1 if $self->_get_own_submissions('pending');
 	return 1 if $self->print_submissions_for_curation( { get_only => 1 } );
-	#return 1 if $self->_get_own_submissions('closed');
 	return;
 }
 
