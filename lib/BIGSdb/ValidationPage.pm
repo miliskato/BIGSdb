@@ -53,7 +53,6 @@ sub get_submission_days {
 }
 
 sub get_javascript {
-    $logger->error('use get_javascript');
 	my ($self)      = @_;
 	my $q           = $self->{'cgi'};
 	my $max         = $self->{'config'}->{'max_upload_size'} / ( 1024 * 1024 );
@@ -182,7 +181,7 @@ sub initiate {
 
     #curate defined if the user has clicked on a submission id to curate it
 	if ( $q->param('curate') ) {
-        $logger->error('I am here with curate param='.$q->param('curate'));
+        $logger->error('I am in line 185');
 		$self->set_level2_breadcrumbs('Curate submission');
 	} elsif ($q->param('isolate')) {
 		$self->set_level2_breadcrumbs('New submission');
@@ -250,7 +249,7 @@ sub _any_pending_submissions_to_show {
 	my ($self) = @_;
 	return 1 if $self->_get_own_submissions('pending');
 	return 1 if $self->print_submissions_for_curation( { get_only => 1 } );
-	return 1 if $self->_get_own_submissions('closed');
+	#return 1 if $self->_get_own_submissions('closed');
 	return;
 }
 
@@ -392,7 +391,7 @@ sub _get_own_submissions {
 	my $embargo = $self->{'datastore'}->get_embargo_attributes;
 	if (@$submissions) {
 		my $td     = 1;
-		my $set_id = $self->get_set_id;
+		#my $set_id = $self->get_set_id;
 		my $table_buffer;
 		foreach my $submission (@$submissions) {
 			my $details        = q();
@@ -475,7 +474,6 @@ sub _get_profile_submission_details {    ## no critic (ProhibitUnusedPrivateSubr
 
 sub _get_isolate_submission_details {    ## no critic (ProhibitUnusedPrivateSubroutines) #Called by dispatch table
 	my ( $self, $submission ) = @_;
-    $logger->error('hey ho ouille aieaieaie bklablablabalbla 🙋‍♂️');
 	my $isolate_submission = $self->{'submissionHandler'}->get_isolate_submission( $submission->{'id'} );
     my $isolate_count      = @{ $isolate_submission->{'isolates'} };
 	my $plural             = $isolate_count == 1 ? '' : 's';
@@ -483,7 +481,6 @@ sub _get_isolate_submission_details {    ## no critic (ProhibitUnusedPrivateSubr
 }
 
 sub _print_pending_submissions {
-    $logger->error('use _print_pending_submissions');
 	my ($self) = @_;
 	my $buffer = $self->_get_own_submissions('pending');
 	if ($buffer) {
@@ -505,7 +502,6 @@ sub print_submissions_for_curation {
 	my $user_info = $self->{'datastore'}->get_user_info_from_username( $self->{'username'} );
 	return if !$user_info || ( $user_info->{'status'} ne 'admin' && $user_info->{'status'} ne 'curator' );
 	my $buffer = '';
-    $logger->error('use print_submissions_for_curation');
 
     if ( defined($q->param('bulk_status')) ) {
         $buffer .= $self->_get_isolate_for_curation_review($options);
@@ -514,7 +510,6 @@ sub print_submissions_for_curation {
         my $bulk_status = $q->param('outcome');
         my %outcome = (accepted => 'good', rejected => 'bad', pending => '' );
         my $bulk_outcome = $outcome{ $bulk_status };
-        $logger->error("bulk outcome is $bulk_outcome");
 
         $self->_validate_submission($bulk_outcome, @submission_ids);
 
@@ -561,8 +556,6 @@ sub _get_isolate_submissions_for_curation {
 	# return q() if !$self->can_modify_table('isolates'); # disable this so that all curators, regardless of their rights can validate new isolates, mk 23/10/18
 	my $submissions = $self->_get_submissions_by_status( $status, { get_all => 1 } );
 	my $embargo = $self->{'datastore'}->get_embargo_attributes;
-    $logger->error("self keys: " . join(', ', sort keys %{$self}));
-    $logger->error($self->{'instance'});
 	# Get isolate curate message if it exists
 	my $isolate_curate_message = "$self->{'dbase_config_dir'}/$self->{'instance'}/isolate_curate.html";
 	my $curate_message_content = q();
@@ -643,99 +636,6 @@ sub _check_invalid_embargo {
 }
 
 
-
-sub _print_summary {
-	my ( $self, $submission_id ) = @_;
-	my $submission = $self->{'submissionHandler'}->get_submission($submission_id);
-	say q(<fieldset style="float:left"><legend>Summary</legend>);
-	say qq(<dl class="data"><dt>type</dt><dd>$submission->{'type'}</dd>);
-	my $user_string =
-	  $self->{'datastore'}->get_user_string( $submission->{'submitter'}, { email => 1, affiliation => 1 } );
-	say qq(<dt>submitter</dt><dd>$user_string</dd>);
-	say qq(<dt>datestamp</dt><dd>$submission->{'datestamp'}</dd>);
-	say qq(<dt>status</dt><dd>$submission->{'status'}</dd>);
-	my %outcome = (
-		good  => 'accepted - data uploaded',
-		bad   => 'rejected - data not uploaded',
-		mixed => 'mixed - submission partially accepted'
-	);
-	say qq(<dt>outcome</dt><dd>$outcome{$submission->{'outcome'}}</dd>) if $submission->{'outcome'};
-
-	if ( defined $submission->{'curator'} ) {
-		my $curator_string =
-		  $self->{'datastore'}->get_user_string( $submission->{'curator'}, { email => 1, affiliation => 1 } );
-		say qq(<dt>curator</dt><dd>$curator_string</dd>);
-	}
-	if ( $submission->{'type'} eq 'alleles' ) {
-		my $allele_submission = $self->{'submissionHandler'}->get_allele_submission($submission_id);
-		my $locus             = $self->clean_locus( $allele_submission->{'locus'} ) // $allele_submission->{'locus'};
-		say qq(<dt>locus</dt><dd>$locus</dd>);
-		my $allele_count   = @{ $allele_submission->{'seqs'} };
-		my $fasta_icon     = $self->get_file_icon('FAS');
-		my $submission_dir = $self->{'submissionHandler'}->get_submission_dir($submission_id);
-		if ( !-e "$submission_dir/sequences.fas" ) {
-			$self->{'submissionHandler'}->write_submission_allele_FASTA($submission_id);
-			$logger->error("No submission FASTA file for allele submission $submission_id.");
-		}
-		say q(<dt>sequences</dt>)
-		  . qq(<dd><a href="/submissions/$submission_id/sequences.fas">$allele_count$fasta_icon</a></dd>);
-		say qq(<dt>technology</dt><dd>$allele_submission->{'technology'}</dd>);
-		say qq(<dt>read length</dt><dd>$allele_submission->{'read_length'}</dd>)
-		  if $allele_submission->{'read_length'};
-		say qq(<dt>coverage</dt><dd>$allele_submission->{'coverage'}</dd>) if $allele_submission->{'coverage'};
-		say qq(<dt>assembly</dt><dd>$allele_submission->{'assembly'}</dd>) if $allele_submission->{'assembly'};
-		say qq(<dt>assembly software</dt><dd>$allele_submission->{'software'}</dd>)
-		  if $allele_submission->{'software'};
-	}
-	say q(</dl></fieldset>);
-	return;
-}
-
-#Check submission exists and curator has appropriate permissions.
-sub _is_submission_valid {
-	my ( $self, $submission_id, $options ) = @_;
-	$options = {} if ref $options ne 'HASH';
-	if ( !$submission_id ) {
-		$self->print_bad_status( { message => q(No submission id passed.) } ) if !$options->{'no_message'};
-		return;
-	}
-	my $submission = $self->{'submissionHandler'}->get_submission($submission_id);
-	if ( !$submission ) {
-		$self->print_bad_status( { message => qq(Submission '$submission_id' does not exist.) } )
-		  if !$options->{'no_message'};
-		return;
-	}
-	my $user_info = $self->{'datastore'}->get_user_info_from_username( $self->{'username'} );
-	if ( $options->{'curate'} ) {
-		if ( !$user_info || ( $user_info->{'status'} ne 'admin' && $user_info->{'status'} ne 'curator' ) ) {
-			$self->print_bad_status(
-				{
-					message => q(Your account does not have the required permissions to curate this submission.)
-				}
-			) if !$options->{'no_message'};
-			return;
-		}
-		if ( $submission->{'type'} eq 'alleles' ) {
-			my $allele_submission = $self->{'submissionHandler'}->get_allele_submission( $submission->{'id'} );
-			my $curator_allowed =
-			  $self->{'datastore'}
-			  ->is_allowed_to_modify_locus_sequences( $allele_submission->{'locus'}, $user_info->{'id'} );
-			if ( !( $self->is_admin || $curator_allowed ) ) {
-				$self->print_bad_status(
-					{
-						message => q(Your account does not have the required )
-						  . qq(permissions to curate new $allele_submission->{'locus'} sequences.)
-					}
-				) if !$options->{'no_message'};
-				return;
-			}
-		}
-	}
-	if ( $options->{'user_owns'} ) {
-		return if $submission->{'submitter'} != $user_info->{'id'};
-	}
-	return 1;
-}
 
 sub set_level2_breadcrumbs {
 	my ( $self, $page ) = @_;
