@@ -178,21 +178,24 @@ sub initiate {
 	my $q             = $self->{'cgi'};
 	$self->{$_} = 1 foreach qw (jQuery jQuery.jstree noCache tooltips dropzone allowExpand jQuery.multiselect);
 
-
+    $logger->error('Showing param stored in line 181: Dumper($q->Vars)='.Dumper($q->Vars));
     #curate defined if the user has clicked on a submission id to curate it
 	if ( $q->param('curate') ) {
         $logger->error('I am in line 185');
 		$self->set_level2_breadcrumbs('Curate submission');
 	} elsif ($q->param('isolate')) {
 		$self->set_level2_breadcrumbs('New submission');
+        $logger->error('I am in line 188');
 	} else {
 		$self->{'processing'} = 1 if defined $q->param('submission_id');
 		foreach my $method (qw(abort finalize close remove cancel)) {
 			if ( $q->param($method) ) {
+                $logger->error('I am in line 193');
 				$self->{'processing'} = 0;
 				last;
 			}
 		}
+        $logger->error('I am in line 197');
 		$self->set_level1_breadcrumbs;
 	}
 	return;
@@ -227,7 +230,6 @@ sub print_content {
 
 	if ($submissions_to_show) {
 		say q(<div class="box resultstable">);
-		#$self->_print_pending_submissions;
 		$self->print_submissions_for_curation;
 		say q(</div>);
 	}
@@ -468,18 +470,6 @@ sub _get_isolate_submission_details {    ## no critic (ProhibitUnusedPrivateSubr
 	return "$isolate_count isolate$plural";
 }
 
-sub _print_pending_submissions {
-	my ($self) = @_;
-	my $buffer = $self->_get_own_submissions('pending');
-	if ($buffer) {
-		say q(<h2>Pending submissions</h2>);
-		say q(<p>You have submitted the following submissions that are pending curation:</p>);
-		say q(<div class="scrollable">);
-		say $buffer;
-		say q(</div>);
-	}
-	return;
-}
 
 sub print_submissions_for_curation {
 	my ( $self, $options ) = @_;
