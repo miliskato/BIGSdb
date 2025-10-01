@@ -484,7 +484,7 @@ sub print_submissions_for_curation {
         $self->_validate_submission($bulk_outcome, @submission_ids);
 
         my $submission_count = scalar @submission_ids;
-        $buffer .= qq(<div class="submission-result"> $submission_count submission(s) have been successfully $bulk_status.</div>);
+        $buffer .= qq(<div class="hera_success"><h2>Success!</h2>$submission_count submission(s) have been successfully $bulk_status.</div>);
         $buffer .= qq(<div><button type="button" onclick="window.location.href='$self->{'system'}->{'script_name'}?db=$self->{'instance'}&amp;page=submit'">Go back to submissions page</button></div>);
     } else {
         $buffer .= $self->_get_isolate_submissions_for_curation($options);
@@ -507,9 +507,9 @@ sub _validate_submission {
                 undef, 'closed', 'now', $curator_id, $outcome, $submission_id
             );
 
-           # open(BASH, "|-", "bash");
-           # print BASH "/home/bigsdb/BIGSdb/3.12PythonVenv/bin/python3.12 /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/sample_validation_to_mongo.py --db $dbname --sub_id $submission_id \n";
-           # close(BASH);
+            open(BASH, "|-", "bash");
+            print BASH "/home/bigsdb/BIGSdb/3.12PythonVenv/bin/python3.12 /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/sample_validation_to_mongo.py --db $self->{'db'} --sub_id $submission_id \n";
+            close(BASH);
         }
     };
     if ($@) {

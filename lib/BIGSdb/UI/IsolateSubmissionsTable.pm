@@ -174,10 +174,9 @@ sub render_review_form {
     $return_buffer .= q(</table>);
     $return_buffer .= q(<div style="margin-top: 10px;">);
 
-    my $warning_message = 'By clicking &quot;Confirm&quot;, you validate/cancel the insertion of the isolate(s) listed in the table. Please note that this action cannot be undone. ';
-    $return_buffer .= qq(<div class="submission-warning" style="margin:12px 0;padding:8px 10px;border:1px solid #c77;background:#ffe9e7;color:#600;font-weight:bold;">$warning_message</div>);
-    $return_buffer .= qq(<button type="button" onclick="window.location.href='$system->{script_name}?db=$db&amp;page=batchValidation'">Cancel</button>);
-    $return_buffer .= q(<button type="submit" class="action-btn confirm-btn">Confirm</button>);
+    $return_buffer .= qq(<div class="hera_error" >By clicking <strong>Confirm</strong>, you validate/cancel the insertion of the isolate(s) listed in the table. Please note that this action cannot be undone.</div>);
+    $return_buffer .= qq(<button type="button" class="hera" onclick="window.location.href='$system->{script_name}?db=$db&amp;page=batchValidation'">Cancel</button>);
+    $return_buffer .= q(<button type="submit">Confirm</button>);
 
     $return_buffer .= q(</div>);
     $return_buffer .= q(</form>);
