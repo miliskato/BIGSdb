@@ -1,0 +1,23 @@
+.hera_error {
+    margin:12px 0;
+    padding:8px 10px;
+    border:1px solid #c77;
+    background:#ffe9e7;
+    color:#600;
+}
+
+.hera_success {
+    font-size: 1.2em;
+    margin-bottom: 10px;
+    background-color: #ddffdd;
+    border: 1px solid #ccc !important;
+    padding: 16px;
+}
+
+.hera_success h2 {
+    margin-top: 5px;
+}
+
+button.hera {
+    margin-right: 10px;
+}
