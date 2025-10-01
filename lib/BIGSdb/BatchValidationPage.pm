@@ -506,9 +506,8 @@ sub _validate_submission {
                 'UPDATE submissions SET (status,datestamp,curator,outcome)=(?,?,?,?) WHERE id=?',
                 undef, 'closed', 'now', $curator_id, $outcome, $submission_id
             );
-
             open(BASH, "|-", "bash");
-            print BASH "/home/bigsdb/BIGSdb/3.12PythonVenv/bin/python3.12 /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/sample_validation_to_mongo.py --db $self->{'db'} --sub_id $submission_id \n";
+            print BASH "/home/bigsdb/BIGSdb/3.12PythonVenv/bin/python3.12 /home/bigsdb/BIGSdb/bioit_bigsdb_scripts/sample_validation_to_mongo.py --db $self->{'instance'} --sub_id $submission_id \n";
             close(BASH);
         }
     };
