@@ -15,7 +15,7 @@
  microreact_year_field="isolation_date"
  tblastx_tagging="yes"
  eav_groups=""
- field_groups="Curation history|fas fa-history,Nominative metadata|fas fa-search, Galaxy report|fas fa-file-medical-alt,"
+ field_groups="Curation history|fas fa-history,Nominative metadata|fas fa-search,Galaxy report|fas fa-file-medical-alt"
  user_projects="yes"
  submissions="yes"
  genome_submissions="no"
@@ -32,10 +32,10 @@
 <field type="text" required="no" length="20" maindisplay="no" group ="Curation history" comments="validation type">validation_type</field>
 <field type="text" required="no" length="40" maindisplay="no" group ="Curation history" comments="curator that validated this sample">validation_curator</field>
 <field type="date" required="no" length="10" maindisplay="no" group ="Curation history" comments="date of curation">validation_date</field>
-<field type="text" required="no" length="100" maindisplay="no" group ="nominative metadata" comments="client name">client_name</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="client zip">client_zip</field>
-<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="sample client reference">sample_client_reference</field>
-<field type="date" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="isolation date">isolation_date</field>
+<field type="text" required="no" length="100" maindisplay="no" group ="Nominative metadata" comments="client name">client_name</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="client zip">client_zip</field>
+<field type="text" required="no" length="50" maindisplay="no" group ="Nominative metadata" comments="sample client reference">sample_client_reference</field>
+<field type="date" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="isolation date">isolation_date</field>
 <field type="int" required="no" length="2" maindisplay="no" group ="Nominative metadata" comments="isolation day">day_of_isolation</field>
 <field type="int" required="no" length="2" maindisplay="no" group ="Nominative metadata" comments="isolation month">month_of_isolation</field>
 <field type="int" required="no" length="4" maindisplay="no" group ="Nominative metadata" comments="isolation year">year_of_isolation</field>
@@ -102,7 +102,7 @@
 <field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="serovar_agglutination">serovar_agglutination</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="serovar_agglutination_formula">serovar_agglutination_formula</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="malditof_identification">malditof_identification</field>
-<field type="text" required="no" length="200" maindisplay="no" group="Galaxy report" query="no" no_submissions="yes" comment="galaxy_html_report">html</field>
-<field type="text" required="no" length="200" maindisplay="no" group="Galaxy report" query="no" no_submissions="yes" comment="assembly">assembly</field>
-<field type="text" required="no" length="30" maindisplay="no" group="Galaxy report" query="no" no_submissions="yes" comment="pipeline">pipeline</field>
+<field type="text" required="no" length="200" maindisplay="no" group="Galaxy report" query="no" no_submissions="yes" comments="galaxy_html_report">html</field>
+<field type="text" required="no" length="200" maindisplay="no" group="Galaxy report" query="no" no_submissions="yes" comments="assembly">assembly</field>
+<field type="text" required="no" length="30" maindisplay="no" group="Galaxy report" query="no" no_submissions="yes" comments="pipeline">pipeline</field>
 </db>
