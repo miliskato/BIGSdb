@@ -180,7 +180,7 @@ class TblIsolates(DatabaseConnection):
     def update_isolate_html_assembly_pipeline(self, param: tuple[str, str, str, str]) -> None:
         """
         Update the html, assembly and pipeline fields in the isolates table
-        :param param: variables to feed to the PSQL query, html link, assembly link, pipeline info and the isolate name
+        :param param: variables to feed to the PSQL query, html value, assembly value, pipeline info and the isolate name
         """
         self.execute_query(PsqlQueries.ISO_UPD_TB_ISO_VAR_HTML_ASSEM_PIPE, param)
 
