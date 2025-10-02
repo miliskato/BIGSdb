@@ -311,8 +311,8 @@ class MongoToBigs:
         :param isolate_id: name of the isolate
         :return: boolean whether version is different or not and boolean whether the cgst changed
         """
-        with TblEavTextHidden(self._species) as isolates_eavth_psql_tbl:
-            mongo_results_changed_version_bigs_query = isolates_eavth_psql_tbl.select_mongo_resultsversion((isolate_id,))
+        with TblIsolates(self._species) as isolates_psql_tbl:
+            mongo_results_changed_version_bigs_query = isolates_psql_tbl.select_mongo_resultsversion((isolate_id,))
         # as of 2022/12/22 mongo_results_version in bigs is changed version
         mongo_results_changed_version_bigs = int(mongo_results_changed_version_bigs_query[0][0])
 

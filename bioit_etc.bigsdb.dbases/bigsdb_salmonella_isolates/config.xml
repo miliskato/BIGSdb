@@ -102,7 +102,7 @@
 <field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="serovar_agglutination">serovar_agglutination</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="serovar_agglutination_formula">serovar_agglutination_formula</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="malditof_identification">malditof_identification</field>
-<field type="text" required="no" length="200" maindisplay="no" group="Galaxy report" query="no" no_submissions="yes" comments="galaxy_html_report">html</field>
-<field type="text" required="no" length="200" maindisplay="no" group="Galaxy report" query="no" no_submissions="yes" comments="assembly">assembly</field>
+<field type="text" required="no" length="200" maindisplay="no" group="Galaxy report" query="no" no_submissions="yes" web="http://bioit-nrcsal-dev.darwinproject.be/cgi-bin/bigsdb/bigsdb.pl?id=[?];page=sciensanoReport;db=bigsdb_salmonella_isolates;get_zip=no" comments="galaxy_html_report">html</field>
+<field type="text" required="no" length="200" maindisplay="no" group="Galaxy report" query="no" no_submissions="yes" web="http://bioit-nrcsal-dev.darwinproject.be/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_salmonella_isolates;page=plugin;name=Contigs;format=text;isolate_id=[?];match=1;pc_untagged=0;min_length=;header=1l" comments="assembly">assembly</field>
 <field type="text" required="no" length="30" maindisplay="no" group="Galaxy report" query="no" no_submissions="yes" comments="pipeline">pipeline</field>
 </db>

@@ -183,3 +183,18 @@ class TblIsolates(DatabaseConnection):
         :param param: variables to feed to the PSQL query, html link, assembly link, pipeline info and the isolate name
         """
         self.execute_query(PsqlQueries.ISO_UPD_TB_ISO_VAR_HTML_ASSEM_PIPE, param)
+
+    def update_mongo_results_version(self, param: Tuple[str, str]) -> None:
+        """
+        Updates the mongo results version of an isolate.
+        :param param: Variables to feed to the PSQL query, mongo results version and isolate id
+        :return: None
+        """
+        self.execute_query(PsqlQueries.ISO_UPD_TB_ISO_VAR_MONGO_ID, param)
+
+    def select_mongo_results_version(self, param: Tuple[str]) -> list[Optional[tuple[str]]]:
+        """
+        Selects the mongo results version of an isolate.
+        :param param: Variables to feed to the PSQL query, isolate id
+        """
+        self.execute_query(PsqlQueries.ISO_SEL_MONGO_TB_ISO_VAR_ID, param)

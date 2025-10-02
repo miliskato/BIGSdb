@@ -109,8 +109,7 @@ class MainInserter(JsonSuperClass):
             self.isolates_psql_tbl.update_isolate_html_assembly_pipeline((report_link, assembly_link, pipeline, self._isolatename))
             # self.__insert_species_specific_metadata(context)
             if 'changed_version' in self._json_report_dict:
-                with TblEavTextHidden(self._species) as isolates_eavth_psql_tbl:
-                    isolates_eavth_psql_tbl.insert_hidden_isolate((self._isolatename, 'mongo_results_version', self._json_report_dict['changed_version']))
+                self.isolates_psql_tbl.update_mongo_results_version((self._json_report_dict['changed_version'], str(context.isolate_id)))
             if 'validation' in self._json_report_dict:
                 self.isolates_psql_tbl.add_validation((self._json_report_dict['validation']['type'], self._json_report_dict['validation']['curator'],
                                                        datetime.datetime.strptime(self._json_report_dict['validation']['date'], '%d/%m/%Y - %X').strftime('%Y-%m-%d'),

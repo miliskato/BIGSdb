@@ -244,10 +244,14 @@ class PsqlQueries:
         validation_curator = %s, 
         validation_date = %s
         WHERE id=%s;"""
+    ISO_UPD_TB_ISO_VAR_MONGO_ID: Final[str] = """
+        UPDATE isolates SET mongo_results_version = %s WHERE id=%s;"""
     ISO_SEL_ISOLATE_ID: Final[str] = """
         SELECT isolate FROM isolates;"""
     ISO_UPD_TB_ISO_VAR_HTML_ASSEM_PIPE: Final[str] = """
         UPDATE isolates SET (html, assembly, pipeline) = (%s, %s, %s) WHERE isolate = %s;"""
+    ISO_SEL_MONGO_TB_ISO_VAR_ID: Final[str] = """
+        SELECT mongo_results_version FROM isolates WHERE id=%s;"""
 
     # TBL isolate submission field order
     ISO_INS__TB_ISOSUBFO_VAR_FIELD_INDEX: Final[str] = """

@@ -110,8 +110,6 @@ class MainResultsInserter:
                 isolates_eavi_psql_tbl.delete_eav_int_for_isolate((self._isolatename,))
                 isolates_eavfl_psql_tbl.delete_eav_float_for_isolate((self._isolatename,))
                 isolates_ana_res_psql_tbl.delete_analysis_results_isolate_name((self._isolatename,))
-            with TblEavTextHidden(self._species) as isolates_eavt_hidden_psql_tbl:
-                isolates_eavt_hidden_psql_tbl.delete_eavt_hidden((self._isolatename,))
             self._nominative_labtest_clinical_metadata_collection.update_one({'_id': self._isolatename},
                                                                              {'$set': {'inserted_into_bigsdb': False}})
 

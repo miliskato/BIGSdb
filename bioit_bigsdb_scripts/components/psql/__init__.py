@@ -13,7 +13,6 @@ from .psql_tbl_eav_float import TblEavFloat
 from .psql_tbl_eav_int import TblEavInt
 from .psql_tbl_eav_fields import TblEavFields
 from .psql_tbl_eav_text import TblEavText
-from .psql_tbl_eav_text_hidden import TblEavTextHidden
 from .psql_tbl_failed_insertions import TblFailedInsertions
 from .psql_tbl_history import TblHistory
 from .psql_tbl_isolate_submission_field_order import TblIsolateSubmissionFieldOrder
