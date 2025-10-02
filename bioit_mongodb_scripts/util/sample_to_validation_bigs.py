@@ -100,7 +100,7 @@ class SampleToValidationBigs:
         with TblSubmissions(self._species) as isolates_sub_psql_tbl, \
                 TblIsolateSubmissionIsolates(self._species) as isolates_isosubiso_psql_tbl, \
                 TblIsolateSubmissionFieldOrder(self._species) as isolates_isosubfo_psql_tbl:
-            warning_reasons = self.__get_warning_reasons(sample_doc)
+            warning_reasons = self._get_warning_reasons(sample_doc)
             isolates_sub_psql_tbl.insert_submission((self._quality, self._resequencing, warning_reasons))
             report_url = UrlHelper.report_for_validation(self._species, sample_doc['_id'],
                                                          sample_doc['latest_analysis_date'],
@@ -122,7 +122,7 @@ class SampleToValidationBigs:
             isolates_isosubfo_psql_tbl.insert_validation_indexes(('warning_reasons', 6))
 
     @staticmethod
-    def __get_warning_reasons(sample_doc: MongoRecordDict) -> str:
+    def _get_warning_reasons(sample_doc: MongoRecordDict) -> str:
         """
         Returns the warning reasons of a sample.
         :param sample_doc: mongo db document of the isolate
