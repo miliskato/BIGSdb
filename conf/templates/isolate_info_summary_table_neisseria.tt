@@ -1,0 +1,50 @@
+[%# File: conf/templates/isolate_info_summary_table_neisseria.tt %]
+[% IF summary %]
+[% sg = key_results.sg_results IF key_results.sg_results %]
+
+<h3>Sequence typing & species identification</h3>
+<div class="scrollable">
+<style>
+table.nice { text-align:center; border-collapse:separate; margin-bottom:0.75em }
+table.nice th { background:#2f4f6f; color:#fff; padding:4px 6px; font-weight:600 }
+table.nice td { padding:4px 6px }
+table.nice tr:nth-child(n+3){ background:#E4EFF3 }
+table.nice tr:nth-child(2n+3){ background:#C1E6F3 }
+table.nice td:first-child { max-width:50ch; overflow-wrap:anywhere }
+</style>
+
+<table class="data nice", width="700px;">
+    <tr align="center">
+        <th>cgST</th>
+        <th>ST</th>
+        <th>rST</th>
+        <th>porA_VR1</th>
+        <th>porA_VR2</th>
+        <th>porB</th>
+    </tr>
+    <tr>
+    </tr>
+    <tr align="center">
+        <td>[% summary.results.st_results.cgst %]</td>
+        <td>[% summary.results.st_results.st %]</td>
+        <td>[% summary.results.st_results.rst %]</td>
+        <td>[% summary.results.st_results.pora_vr1 %]</td>
+        <td>[% summary.results.st_results.pora_vr2 %]</td>
+        <td>[% summary.results.st_results.porb %]</td>
+    </tr>
+</table>
+
+<table class="data nice" style="width: 300px;">
+    <tr align="center">
+        <th>serogroup legacy</th>
+        <th>capsule serogroup</th>
+    </tr>
+    <tr>
+    </tr>
+    <tr align="center">
+        <td>[% summary.results.sg_results.serogroup %]</td>
+        <td>[% summary.results.sg_results.capsule_serogroup %]</td>
+    </tr>
+</table>
+
+[% END %]

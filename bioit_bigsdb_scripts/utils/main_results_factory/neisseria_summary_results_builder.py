@@ -34,9 +34,10 @@ class NeisseriaSummaryResultsBuilder(SummaryResultsBuilder):
         rst = results['rmlst'].get('rmlst-rST')
         st_data = SequenceTypingData(cgst, st, rst)
 
-        pora = results['pora']['loci']
-        porb = results['porb']['loci']
-        neisseria_st_add_data = NeisseriaSequenceTypingData(pora['PorA_VR1'][1], pora['PorA_VR2'][1], porb['porB'][1])
+        pora_vr1 = results['pora']['loci'][0]
+        pora_vr2 = results['pora']['loci'][1]
+        porb = results['porb']['loci'][0]
+        neisseria_st_add_data = NeisseriaSequenceTypingData(pora_vr1.get('Allele'), pora_vr2.get('Allele'), porb.get('Allele'))
 
         sg_results = results.get('serogroup')
         sg_data = SerotypingData(sg_results['serogroup_legacy'])

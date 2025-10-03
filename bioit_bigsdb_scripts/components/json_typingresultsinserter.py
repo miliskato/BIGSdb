@@ -61,6 +61,9 @@ class JsonTypingResultsInserter(JsonSuperClass):
             with TblHistory(self._species) as isolates_history_psql_tbl:
                 isolates_history_psql_tbl.insert_history_isolate((self._isolatename, 'Typing results inserted'))
             logging.info('Typing results insertion succesful')
+            self._insert_summary_results_in_analysis()
+            logging.info('Typing summary results insertion succesful')
+
 
     def _process_regular_typing_scheme(self) -> None:
         """

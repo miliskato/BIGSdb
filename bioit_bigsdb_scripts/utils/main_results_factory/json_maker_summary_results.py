@@ -52,9 +52,7 @@ class JsonMakerSummaryResults:
         st_results = self.get_json_for_sequence_typing(additional_sequencing_data)
         sg_results = self.get_json_for_serotyping(additional_serotyping_data)
         result_dict = {
-            "key_results": {
                 "st_results": st_results,
                 **({"sg_results": sg_results} if sg_results is not None else {})
-            }
         }
         return Jsonb(result_dict)

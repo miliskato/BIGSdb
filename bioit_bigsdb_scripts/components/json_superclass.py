@@ -113,7 +113,14 @@ class JsonSuperClass:
         with TblAnalysisResults(self._species) as isolates_ana_res_psql_tbl:
             isolates_ana_res_psql_tbl.insert_analysis_results_isolate_name((
                 scheme_config['schemename_bigsdb'], self._isolatename, Json(analysis_dict_normalized)))
-            summary = SummaryResultsBuilderFactory()
-            json_summary = summary.build_json_report(self._species, self._json_report_dict)
-            if json_summary:
+
+    def _insert_summary_results_in_analysis(self) -> None:
+        """
+        Insert the summary results into the analysis_results table.
+        :return: None
+        """
+        summary = SummaryResultsBuilderFactory()
+        json_summary = summary.build_json_report(self._species, self._json_report_dict)
+        if json_summary:
+            with TblAnalysisResults(self._species) as isolates_ana_res_psql_tbl:
                 isolates_ana_res_psql_tbl.insert_analysis_results_isolate_name(('summary', self._isolatename, json_summary))

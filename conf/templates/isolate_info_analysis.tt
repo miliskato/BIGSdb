@@ -11,3 +11,4 @@
 [% INCLUDE isolate_info_rmlst_identification.tt %]
 [% INCLUDE isolate_info_mykrobe.tt %]
 [% INCLUDE isolate_info_virulence_detection.tt %]
+[% INCLUDE isolate_info_summary_table_neisseria.tt %]
