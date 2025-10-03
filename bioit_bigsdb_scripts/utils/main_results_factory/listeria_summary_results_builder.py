@@ -2,7 +2,7 @@ from typing import Optional
 
 from psycopg.types.json import Jsonb
 
-from bioit_bigsdb_scripts.utils.main_results_factory.json_maker_sequence_typing import JsonMakerSummaryResults
+from bioit_bigsdb_scripts.utils.main_results_factory.json_maker_summary_results import JsonMakerSummaryResults
 from bioit_bigsdb_scripts.utils.main_results_factory.summary_results_builder import SummaryResultsBuilder
 from bioit_bigsdb_scripts.utils.sequence_typing_results import NeisseriaSequenceTypingData, SequenceTypingData
 from bioit_bigsdb_scripts.utils.serotyping_results import NeisseriaSerotypingData, SerotypingData
