@@ -4,8 +4,8 @@ from psycopg.types.json import Jsonb
 
 from bioit_bigsdb_scripts.utils.main_results_factory.json_maker_summary_results import JsonMakerSummaryResults
 from bioit_bigsdb_scripts.utils.main_results_factory.summary_results_builder import SummaryResultsBuilder
-from bioit_bigsdb_scripts.utils.sequence_typing_results import NeisseriaSequenceTypingData, SequenceTypingData
-from bioit_bigsdb_scripts.utils.serotyping_results import NeisseriaSerotypingData, SerotypingData
+from bioit_bigsdb_scripts.utils.sequence_typing_results import ListeriaSequenceTypingData, SequenceTypingData
+from bioit_bigsdb_scripts.utils.serotyping_results import SerotypingData
 from bioit_mongodb_scripts.model.json_model import JsonReportDict
 
 
@@ -37,6 +37,7 @@ class ListeriaSummaryResultsBuilder(SummaryResultsBuilder):
         listeria_st_data = ListeriaSequenceTypingData(st['mlst-CC'], st['lineage'])
 
         sg_results = results.get('serogroup')
+        sg_data = SerotypingData(sg_results['serogroup'])
 
         json_maker = JsonMakerSummaryResults(st_data, sg_data)
 
