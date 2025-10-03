@@ -117,27 +117,6 @@ class MainInserter(JsonSuperClass):
                                                        datetime.datetime.strptime(self._json_report_dict['validation']['date'], '%d/%m/%Y - %X').strftime('%Y-%m-%d'),
                                                        str(context.isolate_id)))
             logging.info('Metadata insertion successful')
-    def __produce_json_summary_st_sg(self) -> None:
-        """
-        create the html table that summarizes the sequence typing results according to the species currently processed
-        :return: None
-        """
-        results = self._json_report_dict
-        cgst = results.get('cgST')
-        st = results['mlst'].get('mlst-ST')
-        rst = results['rmlst'].get('rmlst-rST')
-        data_st = SequenceTypingData(cgst, st, rst)
-
-        if self._species == 'neisseria':
-            pora = results['pora']['loci']
-            porb = results['porb']['loci']
-            neisseria_st_data = NeisseriaSequenceTypingData(pora['PorA_VR1'][1], pora['PorA_VR2'][1], porb['porB'][1])
-            NeisseriaSerotypingData.capsule_serogroup = self._json_report_dict['serogroup']['serogroup_capsule']
-        elif self._species == 'listeria':
-            listeria_data = ListeriaSequenceTypingData(st['mlst-CC'], st['lineage'])
-
-        if 'serogroup' in self._json_report_dict:
-            SerotypingData.serogroup = self._json_report_dict['serogroup']['serogroup_legacy']
 
 
 

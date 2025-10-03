@@ -1,6 +1,6 @@
 from typing import Tuple
 
-from psycopg.types.json import Json
+from psycopg.types.json import Json, Jsonb
 
 from .databaseconnection import DatabaseConnection
 from .psql_queries import PsqlQueries
@@ -19,7 +19,7 @@ class TblAnalysisResults(DatabaseConnection):
         self._db_type = 'isolates'
         super().__init__(species, self._db_type)
 
-    def insert_analysis_results_isolate_name(self, param: Tuple[str, str, Json]) -> None:
+    def insert_analysis_results_isolate_name(self, param: Tuple[str, str, Json | Jsonb]) -> None:
         """
         Add the analysis results of a specific assay for a specific isolate ID.
         :param param: variables to feed to the PSQL query, which also sanitizes these variables,

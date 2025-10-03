@@ -1,9 +1,11 @@
 from abc import ABC, abstractmethod
+from typing import Optional
 
 from psycopg.types.json import Jsonb
+from bioit_mongodb_scripts.model.json_model import JsonReportDict
 
 
-class MainResultsBuilder(ABC):
+class SummaryResultsBuilder(ABC):
     """
     Abstract class that sets the contract for MainResultsBuilder
     """
@@ -18,10 +20,11 @@ class MainResultsBuilder(ABC):
         pass
 
     @abstractmethod
-    def build(self, species: str) -> Jsonb:
+    def build_json(self, json_report: JsonReportDict) -> Optional[Jsonb]:
         """
         Based on the species, builds the json to be inserted in the analysis_results table
-        :param species: name of the species
+        :param json_report: JsonReportDict object containing the results from the WGS analysis
         :return: Jsonb object to be inserted in the analysis_results table
         """
         pass
+
