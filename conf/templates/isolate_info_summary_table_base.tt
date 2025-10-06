@@ -1,0 +1,62 @@
+[% IF summary %]
+
+<link rel="stylesheet" type="text/css" href="/css/hera_style.css">
+<h3>Sequence typing & species identification</h3>
+<div class="scrollable">
+
+[%
+# Define the display order and mapping for the first three keys
+first_keys = [ 'st', 'cgst', 'rst' ];
+display_names = { 'st' => 'ST', 'cgst' => 'cgST', 'rst' => 'rST' };
+
+# Get all keys from st_results
+all_keys = summary.results.st_results.keys;
+
+# Find remaining keys not in the first three
+remaining_keys = [];
+FOREACH k IN all_keys;
+    IF NOT first_keys.grep('^' _ k _ '$').size;
+        remaining_keys.push(k);
+    END;
+END;
+remaining_keys = remaining_keys.sort;
+
+# Final ordered list of keys
+ordered_keys = first_keys.merge(remaining_keys);
+%]
+
+<style>
+table.main_results { text-align:center; border-collapse:separate; margin-bottom:0.75em }
+table.main_results th { background:#2f4f6f; color:#fff; padding:4px 6px; font-weight:600 }
+table.main_results td { padding:4px 6px; background:#C1E6F3; }
+</style>
+
+<table class="table main_results" style="width: 50%;">
+    <tr>
+        [% FOREACH key = ordered_keys %]
+            <th>[% display_names.$key || key %]</th>
+        [% END %]
+    </tr>
+    <tr>
+        [% FOREACH key = ordered_keys %]
+            <td>[% summary.results.st_results.$key.defined ? summary.results.st_results.$key : 'N/A' %]</td>
+        [% END %]
+    </tr>
+</table>
+
+
+[% IF summary.results.sg_results %]
+<table class="main_results" style="width: 20%;">
+    <tr align="center">
+        [% FOREACH sg_key = summary.results.sg_results.keys.sort %]
+            <th>[% sg_key %]</th>
+        [% END %]
+    </tr>
+    <tr align="center">
+        [% FOREACH sg_key = summary.results.sg_results.keys.sort %]
+            <td>[% summary.results.sg_results.$sg_key.defined ? summary.results.sg_results.$sg_key : 'N/A' %]</td>
+        [% END %]
+    </tr>
+</table>
+[% END %]
+[% END %]

@@ -1,0 +1,65 @@
+.hera_error {
+    margin:12px 0;
+    padding:8px 10px;
+    border:1px solid #c77;
+    background:#ffe9e7;
+    color:#600;
+}
+
+.hera_success {
+    font-size: 1.2em;
+    margin-bottom: 10px;
+    background-color: #ddffdd;
+    border: 1px solid #ccc !important;
+    padding: 16px;
+}
+
+.hera_success h2 {
+    margin-top: 5px;
+}
+
+button.hera {
+    margin-right: 10px;
+}
+
+
+.hera_html_table_nice table.nice {
+    text-align: center;
+    border-collapse: separate;
+    margin-bottom: 0.75em;
+}
+.hera_html_table_nice table.nice th {
+    background: #2f4f6f;
+    color: #fff;
+    padding: 4px 6px;
+    font-weight: 600;
+}
+.hera_html_table_nice table.nice td {
+    padding: 4px 6px;
+}
+.hera_html_table_nice table.nice tr:nth-child(n+3) {
+    background: #E4EFF3;
+}
+.hera_html_table_nice table.nice tr:nth-child(2n+3) {
+    background: #C1E6F3;
+}
+.hera_html_table_nice table.nice td:first-child {
+    max-width: 50ch;
+    overflow-wrap: anywhere;
+}
+
+.summary_table table.main_results {
+    text-align: center;
+    border-collapse: separate;
+    margin-bottom: 0.75em;
+}
+.summary_table table.main_results th {
+    background: #2f4f6f;
+    color: #fff;
+    padding: 4px 6px;
+    font-weight: 600;
+}
+.summary_table table.main_results td {
+    padding: 4px 6px;
+    background: #C1E6F3;
+}
