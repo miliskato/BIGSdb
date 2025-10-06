@@ -15,7 +15,7 @@
  microreact_year_field="isolation_date"
  tblastx_tagging="yes"
  eav_groups=""
- field_groups="Curation history|fas fa-history,Nominative metadata|fas fa-search,Galaxy report|fas fa-file-medical-alt"
+ field_groups="Curation history|fas fa-history,Nominative metadata|fas fa-search,Galaxy report|fas fa-file-medical-alt,Coverage|fas fa-dna"
  user_projects="yes"
  submissions="yes"
  genome_submissions="no"
@@ -105,4 +105,8 @@
 <field type="text" required="no" length="200" maindisplay="no" group="Galaxy report" query="no" no_submissions="yes" web="http://bioit-nrcsal-dev.darwinproject.be/cgi-bin/bigsdb/bigsdb.pl?id=[?];page=sciensanoReport;db=bigsdb_salmonella_isolates;get_zip=no" comments="galaxy_html_report">html</field>
 <field type="text" required="no" length="200" maindisplay="no" group="Galaxy report" query="no" no_submissions="yes" web="http://bioit-nrcsal-dev.darwinproject.be/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_salmonella_isolates;page=plugin;name=Contigs;format=text;isolate_id=[?];match=1;pc_untagged=0;min_length=;header=1l" comments="assembly">assembly</field>
 <field type="text" required="no" length="30" maindisplay="no" group="Galaxy report" query="no" no_submissions="yes" comments="pipeline">pipeline</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Coverage" no_submissions="yes" comments="average coverage depth on assembly">coverage_assembly</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Coverage" no_submissions="yes" comments="average coverage depth on reference">coverage_reference</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Coverage" no_submissions="yes" comments="positions covered >1x assembly ">positions_covered_1x_assembly</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Coverage" no_submissions="yes" comments="positions covered >1x reference">positions_covered_1x_assembly</field>
 </db>

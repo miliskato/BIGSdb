@@ -92,7 +92,13 @@ class MainInserter(JsonSuperClass):
                 TblIsolates(self._species) as self.isolates_psql_tbl, TblEavInt(self._species) as self._isolates_eavi_psql_tbl:
 
             pipeline = f'{self._json_report_dict.get("pipeline_name")} {self._json_report_dict.get("pipeline_version")} - {self._json_report_dict.get("input_type")}'
-            self.isolates_psql_tbl.update_isolate_html_assembly_pipeline((str(context.isolate_id), str(context.isolate_id), pipeline, self._isolatename))
+            if not self._viral_species:
+                self.isolates_psql_tbl.update_isolate_html_assembly_pipeline(
+                    (str(context.isolate_id), str(context.isolate_id), pipeline, self._isolatename))
+                self.__update_coverage_info()
+            else:
+                # TODO create method to insert html, consensus sequence and pipeline info for viral species
+                print("todo")
             # self.__insert_species_specific_metadata(context)
             if 'changed_version' in self._json_report_dict:
                 self.isolates_psql_tbl.update_mongo_results_version((self._json_report_dict['changed_version'], str(context.isolate_id)))
@@ -101,6 +107,20 @@ class MainInserter(JsonSuperClass):
                                                        datetime.datetime.strptime(self._json_report_dict['validation']['date'], '%d/%m/%Y - %X').strftime('%Y-%m-%d'),
                                                        str(context.isolate_id)))
             logging.info('Metadata insertion successful')
+
+    def __update_coverage_info(self) -> None:
+        """
+        Updates the coverage info for an isolate.
+        :return: None
+        """
+        if self._json_report_dict['input_type'] != 'fasta':
+            coverage_assembly = self._json_report_dict['quast']['assembly_avg_coverage"']
+            coverage_reference = self._json_report_dict['quast']['assembly_avg_coverage_ref"']
+            positions_covered_1x_assembly = self._json_report_dict['quast']['assembly_positions_covered_1x']
+            positions_covered_1x_reference = self._json_report_dict['quast']['assembly_positions_covered_1x_ref']
+            self.isolates_psql_tbl.update_coverage_info((coverage_assembly, coverage_reference,
+                                                         positions_covered_1x_assembly, positions_covered_1x_reference,
+                                                         self._isolatename))
 
     def __insert_species_specific_metadata(self, context: MainInserterContext) -> None:
         """
