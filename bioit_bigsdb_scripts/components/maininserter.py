@@ -114,10 +114,10 @@ class MainInserter(JsonSuperClass):
         :return: None
         """
         if self._json_report_dict['input_type'] != 'fasta':
-            coverage_assembly = self._json_report_dict['quast']['assembly_avg_coverage"']
-            coverage_reference = self._json_report_dict['quast']['assembly_avg_coverage_ref"']
-            positions_covered_1x_assembly = self._json_report_dict['quast']['assembly_positions_covered_1x']
-            positions_covered_1x_reference = self._json_report_dict['quast']['assembly_positions_covered_1x_ref']
+            coverage_assembly = self._json_report_dict['quast'].get('assembly_avg_coverage', '-')
+            coverage_reference = self._json_report_dict['quast'].get('assembly_avg_coverage_ref', '-')
+            positions_covered_1x_assembly = self._json_report_dict['quast'].get('assembly_positions_covered_1x', '-')
+            positions_covered_1x_reference = self._json_report_dict['quast'].get('assembly_positions_covered_1x_ref', '-')
             self.isolates_psql_tbl.update_coverage_info((coverage_assembly, coverage_reference,
                                                          positions_covered_1x_assembly, positions_covered_1x_reference,
                                                          self._isolatename))
