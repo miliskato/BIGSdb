@@ -1,9 +1,9 @@
 import dataclasses
 from typing import Optional
 
-from bioit_bigsdb_scripts.utils.sequence_typing_results import ListeriaSequenceTypingData, NeisseriaSequenceTypingData, SequenceTypingData
+from factories.main_results_factory import ListeriaSequenceTypingData, NeisseriaSequenceTypingData, SequenceTypingData
+from factories.main_results_factory import NeisseriaSerotypingData, SerotypingData
 from psycopg.types.json import Jsonb
-from bioit_bigsdb_scripts.utils.serotyping_results import NeisseriaSerotypingData, SerotypingData
 
 
 class JsonMakerSummaryResults:

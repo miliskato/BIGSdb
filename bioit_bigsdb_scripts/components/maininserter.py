@@ -3,12 +3,10 @@ import datetime
 import logging
 import socket
 from typing import Any, Dict
-from bioit_bigsdb_scripts.utils.sequence_typing_results import ListeriaSequenceTypingData, NeisseriaSequenceTypingData, SequenceTypingData
 from bioit_mongodb_scripts.model.json_model import JsonReportDict
 from .json_superclass import JsonSuperClass
 from .psql import TblEavBoolean, TblEavFields, TblEavInt, TblEavText, TblEavTextHidden, TblHistory, TblIsolates
 from ..utils.html_tbl_templates import HtmlAntiviralAssociationsTableBuilder, HtmlAntiviralMutationsTableBuilder, HtmlRefSelectionTableBuilder, HtmlReportBuilder, HtmlSnpLineageTableBuilder
-from ..utils.serotyping_results import SerotypingData
 from ..utils.url_helper import UrlHelper
 
 

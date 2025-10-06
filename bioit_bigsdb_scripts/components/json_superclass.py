@@ -5,7 +5,7 @@ from psycopg.types.json import Json
 from bioit_mongodb_scripts.model.json_model import JsonReportDict
 from bioit_mongodb_scripts.util.python_utility_functions import normalize_keys
 from .psql import TblAlleleDesignations, TblClientDbaseLoci, TblLoci, TblSchemeMembers, TblSequences, TblAnalysisResults
-from ..utils.main_results_factory.summary_results_builder_factory import SummaryResultsBuilderFactory
+from factories.main_results_factory import SummaryResultsBuilderFactory
 from ..utils.url_helper import UrlHelper
 
 

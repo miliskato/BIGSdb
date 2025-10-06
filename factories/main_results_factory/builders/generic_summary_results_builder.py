@@ -1,15 +1,12 @@
-from typing import Optional
-
 from psycopg.types.json import Jsonb
 
-from bioit_bigsdb_scripts.utils.main_results_factory.json_maker_summary_results import JsonMakerSummaryResults
-from bioit_bigsdb_scripts.utils.main_results_factory.summary_results_builder import SummaryResultsBuilder
-from bioit_bigsdb_scripts.utils.sequence_typing_results import SequenceTypingData
+from factories.main_results_factory import JsonMakerSummaryResults, SummaryResultsBuilder
+from factories.main_results_factory import SequenceTypingData
 from bioit_mongodb_scripts.model.json_model import JsonReportDict
+from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 
 
 class GenericSummaryResultsBuilder(SummaryResultsBuilder):
-
 
     def accept(self, species: str) -> bool:
         """
@@ -17,8 +14,7 @@ class GenericSummaryResultsBuilder(SummaryResultsBuilder):
         :param species: name of the species
         :return: True if accepted, False otherwise
         """
-        if not is_viral(species):
-            return True
+        return MongoConfigProvider.is_viral(species) is False
 
     def build_json(self, json_report: JsonReportDict) -> Jsonb:
         """
@@ -33,7 +29,7 @@ class GenericSummaryResultsBuilder(SummaryResultsBuilder):
         rst = results['rmlst'].get('rmlst-rST')
         st_data = SequenceTypingData(cgst, st, rst)
 
-        sg_results = results.get('serogroup')
+        sg_data = results.get('serogroup')
 
         json_maker = JsonMakerSummaryResults(st_data, sg_data)
 

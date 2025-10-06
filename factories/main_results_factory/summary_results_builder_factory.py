@@ -2,10 +2,10 @@ from typing import Optional
 
 from psycopg.types.json import Jsonb
 
-from bioit_bigsdb_scripts.utils.main_results_factory.generic_summary_results_builder import GenericSummaryResultsBuilder
-from bioit_bigsdb_scripts.utils.main_results_factory.listeria_summary_results_builder import ListeriaSummaryResultsBuilder
-from bioit_bigsdb_scripts.utils.main_results_factory.neisseria_summary_results_builder import NeisseriaSummaryResultsBuilder
-from bioit_bigsdb_scripts.utils.main_results_factory.summary_results_builder import SummaryResultsBuilder
+from factories.main_results_factory import GenericSummaryResultsBuilder
+from factories.main_results_factory import ListeriaSummaryResultsBuilder
+from factories.main_results_factory import NeisseriaSummaryResultsBuilder
+from factories.main_results_factory import SummaryResultsBuilder
 from bioit_mongodb_scripts.model.json_model import JsonReportDict
 from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 
@@ -28,6 +28,7 @@ class SummaryResultsBuilderFactory:
         """
         This method calls the right summary results builder among those specified in the constructor.
         :param species: The species for which a json results summary is needed
+        :param json_report: JsonReportDict object containing the results from the WGS analysis
         :return: A Jsonb object to be inserted in the analysis_results table
         """
         for results_builder in self.summary_results_builders:

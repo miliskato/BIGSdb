@@ -2,10 +2,10 @@ from typing import Optional
 
 from psycopg.types.json import Jsonb
 
-from bioit_bigsdb_scripts.utils.main_results_factory.json_maker_summary_results import JsonMakerSummaryResults
-from bioit_bigsdb_scripts.utils.main_results_factory.summary_results_builder import SummaryResultsBuilder
-from bioit_bigsdb_scripts.utils.sequence_typing_results import ListeriaSequenceTypingData, SequenceTypingData
-from bioit_bigsdb_scripts.utils.serotyping_results import SerotypingData
+from factories.main_results_factory import JsonMakerSummaryResults
+from factories.main_results_factory import SummaryResultsBuilder
+from factories.main_results_factory import ListeriaSequenceTypingData, SequenceTypingData
+from factories.main_results_factory import SerotypingData
 from bioit_mongodb_scripts.model.json_model import JsonReportDict
 
 
