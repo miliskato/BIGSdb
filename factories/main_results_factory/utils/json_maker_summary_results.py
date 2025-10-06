@@ -17,8 +17,7 @@ class JsonMakerSummaryResults:
         :param serotyping_data: optional SerotypingData object containing serotyping related fields
         """
         self.sequence_typing_data = sequence_typing_data
-        if serotyping_data:
-            self.serotyping_data = serotyping_data
+        self.serotyping_data = serotyping_data
 
     def get_json_for_sequence_typing(self, additional_data: ListeriaSequenceTypingData | NeisseriaSequenceTypingData | None = None) -> dict:
         """
@@ -35,7 +34,7 @@ class JsonMakerSummaryResults:
         serotype_data: dictionary containing serotyping results
         :return: dict containing the serotyping results
         """
-        if not self.serotyping_data:
+        if self.serotyping_data is None:
             return None
         json_dict = dataclasses.asdict(self.serotyping_data)
         if additional_data:
