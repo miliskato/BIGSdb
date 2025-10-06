@@ -196,5 +196,6 @@ class TblIsolates(DatabaseConnection):
         """
         Selects the mongo results version of an isolate.
         :param param: Variables to feed to the PSQL query, isolate id
+        :return: mongo results version
         """
-        self.execute_query(PsqlQueries.ISO_SEL_MONGO_TB_ISO_VAR_ID, param)
+        return self.execute_query(PsqlQueries.ISO_SEL_MONGO_TB_ISO_VAR_ID, param)
