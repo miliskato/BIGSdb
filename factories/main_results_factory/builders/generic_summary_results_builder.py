@@ -1,12 +1,14 @@
 from psycopg.types.json import Jsonb
 
-from factories.main_results_factory import JsonMakerSummaryResults, SummaryResultsBuilder
-from factories.main_results_factory import SequenceTypingData
+from factories.main_results_factory.utils.json_maker_summary_results import JsonMakerSummaryResults
+from factories.main_results_factory.builders.summary_results_builder import SummaryResultsBuilder
+from factories.main_results_factory.data_typing.sequence_typing_results import SequenceTypingData
 from bioit_mongodb_scripts.model.json_model import JsonReportDict
 from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 
 
 class GenericSummaryResultsBuilder(SummaryResultsBuilder):
+
 
     def accept(self, species: str) -> bool:
         """

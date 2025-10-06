@@ -2,10 +2,10 @@ from typing import Optional
 
 from psycopg.types.json import Jsonb
 
-from factories.main_results_factory import JsonMakerSummaryResults
-from factories.main_results_factory import SummaryResultsBuilder
-from factories.main_results_factory import ListeriaSequenceTypingData, SequenceTypingData
-from factories.main_results_factory import SerotypingData
+from factories.main_results_factory.utils.json_maker_summary_results import JsonMakerSummaryResults
+from factories.main_results_factory.builders.summary_results_builder import SummaryResultsBuilder
+from factories.main_results_factory.data_typing.sequence_typing_results import ListeriaSequenceTypingData, SequenceTypingData
+from factories.main_results_factory.data_typing.serotyping_results import SerotypingData
 from bioit_mongodb_scripts.model.json_model import JsonReportDict
 
 
@@ -30,14 +30,15 @@ class ListeriaSummaryResultsBuilder(SummaryResultsBuilder):
 
         results = json_report
         cgst = results.get('cgST')
-        st = results['mlst'].get('mlst-ST')
+        mlst_results = results.get('mlst')
+        st = mlst_results.get('mlst-ST')
         rst = results['rmlst'].get('rmlst-rST')
         st_data = SequenceTypingData(cgst, st, rst)
 
-        listeria_st_data = ListeriaSequenceTypingData(st['mlst-CC'], st['lineage'])
+        listeria_st_data = ListeriaSequenceTypingData(mlst_results.get('mlst-CC'), mlst_results.get('lineage'))
 
-        sg_results = results.get('serogroup')
-        sg_data = SerotypingData(sg_results['serogroup'])
+        sg_results = results.get('pcr_serogroup')
+        sg_data = SerotypingData(sg_results.get('pcr_serogroup-serogroup'))
 
         json_maker = JsonMakerSummaryResults(st_data, sg_data)
 

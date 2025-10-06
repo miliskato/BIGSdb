@@ -2,10 +2,10 @@ from typing import Optional
 
 from psycopg.types.json import Jsonb
 
-from factories.main_results_factory import JsonMakerSummaryResults
-from factories.main_results_factory import SummaryResultsBuilder
-from factories.main_results_factory import NeisseriaSequenceTypingData, SequenceTypingData
-from factories.main_results_factory import NeisseriaSerotypingData, SerotypingData
+from factories.main_results_factory.utils.json_maker_summary_results import JsonMakerSummaryResults
+from factories.main_results_factory.builders.summary_results_builder import SummaryResultsBuilder
+from factories.main_results_factory.data_typing.sequence_typing_results import NeisseriaSequenceTypingData, SequenceTypingData
+from factories.main_results_factory.data_typing.serotyping_results import NeisseriaSerotypingData, SerotypingData
 from bioit_mongodb_scripts.model.json_model import JsonReportDict
 
 

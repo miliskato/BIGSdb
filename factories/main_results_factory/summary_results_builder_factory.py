@@ -2,10 +2,10 @@ from typing import Optional
 
 from psycopg.types.json import Jsonb
 
-from factories.main_results_factory import GenericSummaryResultsBuilder
-from factories.main_results_factory import ListeriaSummaryResultsBuilder
-from factories.main_results_factory import NeisseriaSummaryResultsBuilder
-from factories.main_results_factory import SummaryResultsBuilder
+from factories.main_results_factory.builders.generic_summary_results_builder import GenericSummaryResultsBuilder
+from factories.main_results_factory.builders.listeria_summary_results_builder import ListeriaSummaryResultsBuilder
+from factories.main_results_factory.builders.neisseria_summary_results_builder import NeisseriaSummaryResultsBuilder
+from factories.main_results_factory.builders.summary_results_builder import SummaryResultsBuilder
 from bioit_mongodb_scripts.model.json_model import JsonReportDict
 from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 

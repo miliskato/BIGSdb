@@ -1,2 +1,1 @@
-from factories.main_results_factory.data_typing.sequence_typing_results import SequenceTypingData, NeisseriaSequenceTypingData, ListeriaSequenceTypingData
-from factories.main_results_factory.data_typing.serotyping_results import SerotypingData, NeisseriaSerotypingData
+
