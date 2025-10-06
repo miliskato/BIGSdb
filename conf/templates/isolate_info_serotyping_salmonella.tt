@@ -1,23 +1,4 @@
 [% # Template file for outputting formatted serotyping analysis results in the Salmonella isolate information page. %]
-<style>
-    table.nice {
-        text-align: center;
-        border-collapse: separate;
-    }
-    table.nice th, table.nice td {
-        padding: 2px 6px;
-    }
-    table.nice td:first-child {
-        max-width: 50ch;
-        overflow-wrap: anywhere;
-    }
-    table.nice tr:nth-child(n+3) {
-        background: #E4EFF3;
-    }
-    table.nice tr:nth-child(2n+3) {
-        background: #C1E6F3;
-    }
-</style>
 
 [% IF SISTR %]
 <h3>SISTR</h3>
