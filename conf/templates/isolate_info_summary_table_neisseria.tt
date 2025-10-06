@@ -4,16 +4,9 @@
 
 <h3>Sequence typing & species identification</h3>
 <div class="scrollable">
-<style>
-table.nice { text-align:center; border-collapse:separate; margin-bottom:0.75em }
-table.nice th { background:#2f4f6f; color:#fff; padding:4px 6px; font-weight:600 }
-table.nice td { padding:4px 6px }
-table.nice tr:nth-child(n+3){ background:#E4EFF3 }
-table.nice tr:nth-child(2n+3){ background:#C1E6F3 }
-table.nice td:first-child { max-width:50ch; overflow-wrap:anywhere }
-</style>
 
-<table class="data nice", width="700px;">
+
+<table class="data nice" style="width: 70%;">
     <tr align="center">
         <th>cgST</th>
         <th>ST</th>
