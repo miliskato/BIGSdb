@@ -7,12 +7,13 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
+from psycopg.types.json import Jsonb
 from pymongo.write_concern import WriteConcern
 
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
-from bioit_bigsdb_scripts.components.psql import TblSequences, TblProfiles, TblProfileFields, TblProfileMembers, \
+from bioit_bigsdb_scripts.components.psql import TblAnalysisResults, TblSequences, TblProfiles, TblProfileFields, TblProfileMembers, \
     TblClassificationGroups, TblClassificationGroupProfiles, TblClassificationGroupProfileHistory, \
     TblClassificationSchemes, TblEavText, TblEavFields, TblMappingTable
 from bioit_mongodb_scripts.config import CLUSTERING_CONFIG
@@ -286,7 +287,7 @@ class NewClusteringInfoToBigs:
         :param is_field_new: Whether any value is already present for the current cgMLST difference field
         :return: None
         """
-        with TblEavText(self._species) as isolates_eavt_psql_tbl, TblMappingTable(self._species) as \
+        with TblAnalysisResults(self._species) as isolates_ana_res_psql_tbl, TblMappingTable(self._species) as \
                 isolates_mapping_psql_tbl:
             # extract row
             row_cgst = distance_matrix[cgst - 1]
@@ -299,21 +300,22 @@ class NewClusteringInfoToBigs:
                     indices = np.append(indices, cgst - 1)
                 html = self.generate_htmlelement_cgstquery([x + 1 for x in indices],
                                                            self._cgmlst_bigsdb_scheme_id, field[0], self._species)
+                html_json = Jsonb({field[0]: html})
                 for pseudo_id in [_dict['_id'] for _dict in cgsts_per_isolate
                                   if _dict['results'].get('cgST') == cgst]:
                     bigsdb_id_isolate = isolates_mapping_psql_tbl.select_isolate_id_for_pseudo_id((pseudo_id,))
+                    isolate_id = str(bigsdb_id_isolate[0][0]) if len(bigsdb_id_isolate) > 0 else None
                     # it is possible that new isolates have not been added to bigsdb yet with old cgSTs
-                    if len(bigsdb_id_isolate) > 0:
-                        if not is_field_new and isolates_eavt_psql_tbl.select_count_eav_id(
-                                (str(bigsdb_id_isolate[0][0]), field[0]))[0][0] > 0:
-                            isolates_eavt_psql_tbl.update_eav_id((html, str(bigsdb_id_isolate[0][0]),
-                                                                  field[0]))
+                    if isolate_id is not None:
+                        field_already_in_db = isolates_ana_res_psql_tbl.is_analysis_results_already_present((field[0],isolate_id))[0][0]
+                        if not is_field_new and field_already_in_db:
+                            isolates_ana_res_psql_tbl.update_analysis_results_isolate_id((html_json, isolate_id, field[0]))
                             # it is also possible that the isolates in question do not have the fields
                             # yet because no cgST's were close up until now -> execute else
                             # Or since 2024/10/14 new cgST's also follow this route
                         else:
                             # For new fields and for affected isolates that did not have the field yet
-                            isolates_eavt_psql_tbl.insert_eav_id((str(bigsdb_id_isolate[0][0]), field[0], html))
+                            isolates_ana_res_psql_tbl.insert_analysis_results_isolate_name((field[0], isolate_id, html_json))
 
     @staticmethod
     def generate_htmlelement_cgstquery(cgsts: List[int], cgmlst_bigsdb_scheme_id: int,
