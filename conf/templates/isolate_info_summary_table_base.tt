@@ -1,6 +1,5 @@
 [% IF summary %]
 
-#<link rel="stylesheet" type="text/css" href="/css/hera_style.css">
 <h3>Sequence typing & species identification</h3>
 <div class="scrollable">
 
