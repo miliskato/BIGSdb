@@ -35,7 +35,7 @@ class ListeriaSummaryResultsBuilder(SummaryResultsBuilder):
         rst = results['rmlst'].get('rmlst-rST')
         st_data = SequenceTypingData(cgst, st, rst)
 
-        listeria_st_data = ListeriaSequenceTypingData(mlst_results.get('mlst-CC'), mlst_results.get('lineage'))
+        listeria_st_data = ListeriaSequenceTypingData(mlst_results.get('mlst-CC'), mlst_results.get('mlst-Lineage'))
 
         sg_results = results.get('pcr_serogroup')
         sg_data = SerotypingData(sg_results.get('pcr_serogroup-serogroup'))
