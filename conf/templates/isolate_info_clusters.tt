@@ -1,0 +1,3 @@
+[% FOREACH item IN results %]
+    [% item.jsonb_field.link_html | none %]  <!-- The "none" filter prevents escaping -->
+[% END %]
