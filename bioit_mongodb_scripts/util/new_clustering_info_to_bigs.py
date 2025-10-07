@@ -228,7 +228,7 @@ class NewClusteringInfoToBigs:
             cgmlst_diff_fields = isolates_eavf_psql_tbl.select_fields_cgmlstdifferences()
 
         # read distance matrix
-        distance_matrix: np.array = np.load(str(self._naive_clustering_distance_matrix_file))
+        distance_matrix: np.ndarray = np.load(str(self._naive_clustering_distance_matrix_file))
 
         # parse cgmlst distance thresholds from cgmlst_diff_fields
         for field in cgmlst_diff_fields:
@@ -272,7 +272,7 @@ class NewClusteringInfoToBigs:
                             is_field_new=False)
 
     def ___update_naive_clustering_implementation_for_one_cgst(
-            self, cgst: int, distance_matrix: np.array, interval_start: int, interval_stop: int,
+            self, cgst: int, distance_matrix: np.ndarray, interval_start: int, interval_stop: int,
             cgsts_per_isolate: List[Dict[str, Union[str, Dict[str, Optional[int]]]]], field,
             is_field_new: bool = True) -> None:
         """
