@@ -10,16 +10,17 @@ import numpy as np
 from psycopg.types.json import Jsonb
 from pymongo.write_concern import WriteConcern
 
+from bioit_mongodb_scripts.util.mongo_clustering_config_provider import MongoClusteringConfigProvider
+
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
 from bioit_bigsdb_scripts.components.psql import TblAnalysisResults, TblSequences, TblProfiles, TblProfileFields, TblProfileMembers, \
     TblClassificationGroups, TblClassificationGroupProfiles, TblClassificationGroupProfileHistory, \
     TblClassificationSchemes, TblEavText, TblEavFields, TblMappingTable
-from bioit_mongodb_scripts.config import CLUSTERING_CONFIG
 from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
-from bioit_mongodb_scripts.util.python_utility_functions import load_config, send_email
+from bioit_mongodb_scripts.util.python_utility_functions import send_email
 
 
 class NewClusteringInfoToBigs:
@@ -51,8 +52,8 @@ class NewClusteringInfoToBigs:
         self._update_metadata_collection = self._mongoinit.initialise_update_collection()
         self._hashed_ad_collection = self._mongoinit.initialise_hashing_collection()
         # Prepare for main
-        clustering_config = load_config(CLUSTERING_CONFIG)
-        self._clustering_thresholds = clustering_config[f"clustering_thresholds_{self._species}"]
+        self._clustering_config_provider = MongoClusteringConfigProvider(self._species)
+        self._clustering_thresholds = self._clustering_config_provider.get_clustering_thresholds()
         self._new_temporary_alleles_update_date = self._get_temporary_alleles_update_date()
         self._new_st = self._get_new_st()
         self._st_headers = self._get_st_headers()
@@ -223,18 +224,15 @@ class NewClusteringInfoToBigs:
         Reads the distance matrix, and inserts/updates the corresponding naive clustering fields in bigsdb
         :return: None
         """
-        # get cgmlst_diff_fields
-        with TblEavFields(self._species) as isolates_eavf_psql_tbl:
-            cgmlst_diff_fields = isolates_eavf_psql_tbl.select_fields_cgmlstdifferences()
 
         # read distance matrix
         distance_matrix: np.ndarray = np.load(str(self._naive_clustering_distance_matrix_file))
 
         # parse cgmlst distance thresholds from cgmlst_diff_fields
-        for field in cgmlst_diff_fields:
-            interval = field[0].split('_')[-1]
-            interval_start = int(interval.split('-')[0])
-            interval_stop = int(interval.split('-')[-1])
+        for threshold in self._clustering_thresholds:
+            interval_start = 0
+            interval_stop = threshold
+            assay_name = f'cgMLST_differences_{interval_start}_{interval_stop}'
             # get all cgsts in mongodb:
             cgsts_per_isolate: List[Dict[str, Union[str, Dict[str, Optional[int]]]]] = \
                 list(self._isolates_collection.find({}, {"results.cgST": 1, "_id": 1}))
@@ -242,14 +240,14 @@ class NewClusteringInfoToBigs:
             # this feature is needed because fields can be added at different points in time and
             # would otherwise be skipped for isolates/cgsts already in the database
             with TblAnalysisResults(self._species) as isolates_ana_res_psql_tbl:
-                assay_already_in_db = isolates_ana_res_psql_tbl.is_field_already_present((field[0],))[0][0]
+                assay_already_in_db = isolates_ana_res_psql_tbl.is_field_already_present((assay_name,))[0][0]
             if not assay_already_in_db:
                 logging.info(f"Inserting cgMLST difference html fields for isolates present in Bigsdb")
                 cgsts = set(x['results'].get('cgST') for x in cgsts_per_isolate)
                 cgsts.discard(None)
                 for cgst in cgsts:
                     self.___update_naive_clustering_implementation_for_one_cgst(
-                        cgst, distance_matrix, interval_start, interval_stop, cgsts_per_isolate, field,
+                        cgst, distance_matrix, interval_start, interval_stop, cgsts_per_isolate, assay_name,
                         is_field_new=False)
             else:
                 if len(self._new_st) > 0:
@@ -267,7 +265,7 @@ class NewClusteringInfoToBigs:
 
                     for cgst in affected_and_new_cgsts:
                         self.___update_naive_clustering_implementation_for_one_cgst(
-                            cgst, distance_matrix, interval_start, interval_stop, cgsts_per_isolate, field,
+                            cgst, distance_matrix, interval_start, interval_stop, cgsts_per_isolate, assay_name,
                             is_field_new=False)
 
     def ___update_naive_clustering_implementation_for_one_cgst(
@@ -291,30 +289,30 @@ class NewClusteringInfoToBigs:
             # extract row
             row_cgst = distance_matrix[cgst - 1]
             # get all cgSTs within distance
-            indices = np.where((row_cgst >= interval_start) & (row_cgst <= interval_stop))[0]
-            if len(indices) > 0:
+            indices_of_cgst_to_cluster = np.where((row_cgst >= interval_start) & (row_cgst <= interval_stop))[0]
+            if len(indices_of_cgst_to_cluster) > 0:
                 if interval_start != 0:
                     # if interval_start != 0, then add the current cgST because it has not been picked up
                     # by the indices query, and it should be present itself (in practice up until now start is always 0)
-                    indices = np.append(indices, cgst - 1)
-                html = self.generate_htmlelement_cgstquery([x + 1 for x in indices],
-                                                           self._cgmlst_bigsdb_scheme_id, field[0], self._species)
-                html_json = Jsonb({field[0]: html})
+                    indices_of_cgst_to_cluster = np.append(indices_of_cgst_to_cluster, cgst - 1)
+                html = self.generate_htmlelement_cgstquery([x + 1 for x in indices_of_cgst_to_cluster],
+                                                           self._cgmlst_bigsdb_scheme_id, field, self._species)
+                html_json = Jsonb({field: html})
                 for pseudo_id in [_dict['_id'] for _dict in cgsts_per_isolate
                                   if _dict['results'].get('cgST') == cgst]:
                     bigsdb_id_isolate = isolates_mapping_psql_tbl.select_isolate_id_for_pseudo_id((pseudo_id,))
                     isolate_id = str(bigsdb_id_isolate[0][0]) if len(bigsdb_id_isolate) > 0 else None
                     # it is possible that new isolates have not been added to bigsdb yet with old cgSTs
                     if isolate_id is not None:
-                        field_already_in_db = isolates_ana_res_psql_tbl.is_field_already_set_for_this_isolate((field[0], isolate_id))[0][0]
+                        field_already_in_db = isolates_ana_res_psql_tbl.is_field_already_set_for_this_isolate((field, isolate_id))[0][0]
                         if not is_field_new and field_already_in_db:
-                            isolates_ana_res_psql_tbl.update_analysis_results_isolate_id((html_json, isolate_id, field[0]))
+                            isolates_ana_res_psql_tbl.update_analysis_results_isolate_id((html_json, isolate_id, field))
                             # it is also possible that the isolates in question do not have the fields
                             # yet because no cgST's were close up until now -> execute else
                             # Or since 2024/10/14 new cgST's also follow this route
                         else:
                             # For new fields and for affected isolates that did not have the field yet
-                            isolates_ana_res_psql_tbl.insert_analysis_results_isolate_id((field[0], isolate_id, html_json))
+                            isolates_ana_res_psql_tbl.insert_analysis_results_isolate_id((field, isolate_id, html_json))
 
     @staticmethod
     def generate_htmlelement_cgstquery(cgsts: List[int], cgmlst_bigsdb_scheme_id: int,
