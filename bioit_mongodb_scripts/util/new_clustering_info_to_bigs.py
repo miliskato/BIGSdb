@@ -241,9 +241,8 @@ class NewClusteringInfoToBigs:
             # check if field is possibly new by checking if there are any values for the field yet,
             # this feature is needed because fields can be added at different points in time and
             # would otherwise be skipped for isolates/cgsts already in the database
-            with TblEavText(self._species) as isolates_eavt_psql_tbl:
-                is_field_possibly_new = True if isolates_eavt_psql_tbl.select_count_eav_field((field[0],))[0][0] == 0 \
-                    else False
+            with TblAnalysisResults(self._species) as isolates_ana_res_psql_tbl:
+                is_field_possibly_new = isolates_ana_res_psql_tbl.is_field_already_present((field[0],))[0][0]
             if is_field_possibly_new:
                 logging.info(f"Inserting cgMLST difference html fields for isolates present in Bigsdb")
                 cgsts = set(x['results'].get('cgST') for x in cgsts_per_isolate)
@@ -307,7 +306,7 @@ class NewClusteringInfoToBigs:
                     isolate_id = str(bigsdb_id_isolate[0][0]) if len(bigsdb_id_isolate) > 0 else None
                     # it is possible that new isolates have not been added to bigsdb yet with old cgSTs
                     if isolate_id is not None:
-                        field_already_in_db = isolates_ana_res_psql_tbl.is_analysis_results_already_present((field[0],isolate_id))[0][0]
+                        field_already_in_db = isolates_ana_res_psql_tbl.is_field_already_set_for_this_isolate((field[0], isolate_id))[0][0]
                         if not is_field_new and field_already_in_db:
                             isolates_ana_res_psql_tbl.update_analysis_results_isolate_id((html_json, isolate_id, field[0]))
                             # it is also possible that the isolates in question do not have the fields
