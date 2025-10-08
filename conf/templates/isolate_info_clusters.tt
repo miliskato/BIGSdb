@@ -1,3 +1,6 @@
-[% FOREACH item IN results %]
-    [% item.jsonb_field.link_html | none %]  <!-- The "none" filter prevents escaping -->
+[% # Template file for outputting formatted clustering differences in the isolate information page. %]
+[% SET cgMLST_differences_0_4 = ${"cgMLST_differences_0_4"} %]
+[% IF cgMLST_differences_0_4 %]
+<h3>cgMLST_differences_0_4</h3>
+[% cgMLST_differences_0_4.results.cgMLST_differences_0_4 %]
 [% END %]
