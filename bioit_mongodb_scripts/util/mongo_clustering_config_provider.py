@@ -19,7 +19,7 @@ class MongoClusteringConfigProvider:
                                      "influenza",
                                      "sars_cov_2"]
 
-    def __init__(self, species: string):
+    def __init__(self, species: str):
         """
         :param alternate_dtap: optional dtap if need to overwrite the config
         :return: None
