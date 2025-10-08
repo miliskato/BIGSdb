@@ -315,7 +315,7 @@ class NewClusteringInfoToBigs:
                             # Or since 2024/10/14 new cgST's also follow this route
                         else:
                             # For new fields and for affected isolates that did not have the field yet
-                            isolates_ana_res_psql_tbl.insert_analysis_results_isolate_name((field[0], isolate_id, html_json))
+                            isolates_ana_res_psql_tbl.insert_analysis_results_isolate_id((field[0], isolate_id, html_json))
 
     @staticmethod
     def generate_htmlelement_cgstquery(cgsts: List[int], cgmlst_bigsdb_scheme_id: int,
