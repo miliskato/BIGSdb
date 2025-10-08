@@ -232,7 +232,7 @@ class NewClusteringInfoToBigs:
         for threshold in self._clustering_thresholds:
             interval_start = 0
             interval_stop = threshold
-            assay_name = f'cgMLST_differences_{interval_start}_{interval_stop}'
+            assay_name = f'cgMLST_with_max_{interval_stop}_allelic_diff'
             # get all cgsts in mongodb:
             cgsts_per_isolate: List[Dict[str, Union[str, Dict[str, Optional[int]]]]] = \
                 list(self._isolates_collection.find({}, {"results.cgST": 1, "_id": 1}))
