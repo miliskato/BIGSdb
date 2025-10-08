@@ -242,8 +242,8 @@ class NewClusteringInfoToBigs:
             # this feature is needed because fields can be added at different points in time and
             # would otherwise be skipped for isolates/cgsts already in the database
             with TblAnalysisResults(self._species) as isolates_ana_res_psql_tbl:
-                is_assay_already_in_db = isolates_ana_res_psql_tbl.is_field_already_present((field[0],))[0][0]
-            if not is_assay_already_in_db:
+                assay_already_in_db = isolates_ana_res_psql_tbl.is_field_already_present((field[0],))[0][0]
+            if not assay_already_in_db:
                 logging.info(f"Inserting cgMLST difference html fields for isolates present in Bigsdb")
                 cgsts = set(x['results'].get('cgST') for x in cgsts_per_isolate)
                 cgsts.discard(None)
