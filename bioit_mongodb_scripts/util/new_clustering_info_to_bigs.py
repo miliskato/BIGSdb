@@ -230,7 +230,6 @@ class NewClusteringInfoToBigs:
 
         # parse cgmlst distance thresholds from cgmlst_diff_fields
         for threshold in self._clustering_thresholds:
-            interval_start = 0
             interval_stop = threshold
             assay_name = f'cgMLST_with_max_{interval_stop}_allelic_diff'
             # get all cgsts in mongodb:
@@ -246,7 +245,7 @@ class NewClusteringInfoToBigs:
                 cgsts = set(x['results'].get('cgST') for x in cgsts_per_isolate)
                 cgsts.discard(None)
                 for cgst in cgsts:
-                    self.___update_naive_clustering_implementation_for_one_cgst(
+                    self.___update_naive_clustering_values_for_one_cgst(
                         cgst, distance_matrix, interval_start, interval_stop, cgsts_per_isolate, assay_name,
                         is_field_new=False)
             else:
@@ -264,19 +263,18 @@ class NewClusteringInfoToBigs:
                             affected_and_new_cgsts.update(index + 1 for index in indices)
 
                     for cgst in affected_and_new_cgsts:
-                        self.___update_naive_clustering_implementation_for_one_cgst(
-                            cgst, distance_matrix, interval_start, interval_stop, cgsts_per_isolate, assay_name,
+                        self.___update_naive_clustering_values_for_one_cgst(
+                            cgst, distance_matrix, interval_stop, cgsts_per_isolate, assay_name,
                             is_field_new=False)
 
-    def ___update_naive_clustering_implementation_for_one_cgst(
-            self, cgst: int, distance_matrix: np.ndarray, interval_start: int, interval_stop: int,
+    def ___update_naive_clustering_values_for_one_cgst(
+            self, cgst: int, distance_matrix: np.ndarray, interval_stop: int,
             cgsts_per_isolate: List[Dict[str, Union[str, Dict[str, Optional[int]]]]], field,
             is_field_new: bool = True) -> None:
         """
         Modularization function which updates the naive clustering in implementation in bigsdb for one specific cgST.
         :param cgst: cgST for which to update
         :param distance_matrix: cgST distance matrix
-        :param interval_start: current cgMLST difference field's interval start
         :param interval_stop: current cgMLST difference field's interval stop
         :param cgsts_per_isolate: List of dictionaries extracted from MongoDB containing all pseudo_ids and their
         corresponding cgST
@@ -289,12 +287,8 @@ class NewClusteringInfoToBigs:
             # extract row
             row_cgst = distance_matrix[cgst - 1]
             # get all cgSTs within distance
-            indices_of_cgst_to_cluster = np.where((row_cgst >= interval_start) & (row_cgst <= interval_stop))[0]
+            indices_of_cgst_to_cluster = np.where(row_cgst <= interval_stop)[0]
             if len(indices_of_cgst_to_cluster) > 0:
-                if interval_start != 0:
-                    # if interval_start != 0, then add the current cgST because it has not been picked up
-                    # by the indices query, and it should be present itself (in practice up until now start is always 0)
-                    indices_of_cgst_to_cluster = np.append(indices_of_cgst_to_cluster, cgst - 1)
                 html = self.generate_htmlelement_cgstquery([x + 1 for x in indices_of_cgst_to_cluster],
                                                            self._cgmlst_bigsdb_scheme_id, field, self._species)
                 html_json = Jsonb({field: html})
