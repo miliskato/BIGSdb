@@ -5,7 +5,7 @@
 [% IF VirulenceFinder %]
 <div class="scrollable">
     <dl class="data">
-        <dt>VirulenceFinder:</dt>
+        <dt>VirulenceFinder</dt>
         <dd>
             <a href="[% VirulenceFinder.results.report_link %]" target="_blank">Full report</a>
         </dd>
@@ -16,7 +16,7 @@
 [% IF VFDB_core %]
 <div class="scrollable">
     <dl class="data">
-        <dt>Virulence Factor DB - Core:</dt>
+        <dt>Virulence Factor DB - Core</dt>
         <dd>
             <a href="[% VFDB_core.results.report_link %]" target="_blank">Full report</a>
         </dd>
