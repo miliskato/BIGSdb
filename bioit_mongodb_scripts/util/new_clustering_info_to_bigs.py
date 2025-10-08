@@ -246,7 +246,7 @@ class NewClusteringInfoToBigs:
                 cgsts.discard(None)
                 for cgst in cgsts:
                     self.___update_naive_clustering_values_for_one_cgst(
-                        cgst, distance_matrix, interval_start, interval_stop, cgsts_per_isolate, assay_name,
+                        cgst, distance_matrix, interval_stop, cgsts_per_isolate, assay_name,
                         is_field_new=False)
             else:
                 if len(self._new_st) > 0:
@@ -258,7 +258,7 @@ class NewClusteringInfoToBigs:
                         # extract row
                         row_cgst = distance_matrix[cgst - 1]
                         # get all cgSTs within distance
-                        indices = np.where((row_cgst >= interval_start) & (row_cgst <= interval_stop))[0]
+                        indices = np.where(row_cgst <= interval_stop)[0]
                         if len(indices) > 0:
                             affected_and_new_cgsts.update(index + 1 for index in indices)
 
