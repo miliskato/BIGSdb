@@ -8,6 +8,7 @@ class TblMappingTable(DatabaseConnection):
     """
     mapping table in the isolates database
     """
+
     def __init__(self, species: str) -> None:
         """
         Initialises this class by opening a database connection.
@@ -33,7 +34,6 @@ class TblMappingTable(DatabaseConnection):
         """
         result = self.execute_query(PsqlQueries.ISO_SEL_ID_TB_MT_VAR_PSEUDOID, param)
         return str(result[0][0]) if len(result) > 0 else None
-
 
     def insert_mapping_for_isolate(self, param: Tuple[str, str]) -> None:
         """
