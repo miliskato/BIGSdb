@@ -40,7 +40,7 @@
     </tr>
 
     <tr>
-        <td>[% rMLST.results.rmlst_percent_detected %]</td>
+        <td>[% rMLST.results.rmlst_percent_detected | format('%0.2f') %]</td>
         <td>[% rMLST.results.rmlst_genus %]</td>
         <td>[% rMLST.results.rmlst_species %]</td>
         <td>[% rMLST.results.rmlst_subspecies %]</td>

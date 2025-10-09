@@ -39,8 +39,8 @@
     <tr>
         <td>[% hit.Subclass %]</td>
         <td>[% hit.Element_symbol %]</td>
-        <td>[% hit.percent_Identity_to_reference %]</td>
-        <td>[% hit.percent_Coverage_of_reference %]</td>
+        <td>[% hit.percent_Identity_to_reference | format('%0.2f') %]</td>
+        <td>[% hit.percent_Coverage_of_reference | format('%0.2f') %]</td>
      </tr>
     [% END %]
 </table>

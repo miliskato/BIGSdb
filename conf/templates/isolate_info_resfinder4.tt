@@ -38,8 +38,8 @@
     <tr>
         <td>[% hit.Phenotype %]</td>
         <td>[% hit.Resistance_gene %]</td>
-        <td>[% hit.Identity %]</td>
-        <td>[% hit.Coverage %]</td>
+        <td>[% hit.Identity | format('%0.2f') %]</td>
+        <td>[% hit.Coverage | format('%0.2f') %]</td>
      </tr>
     [% END %]
 </table>
