@@ -17,7 +17,7 @@ sys.path.append(str(PYTHONPATH))
 
 from bioit_bigsdb_scripts.components.psql import TblAnalysisResults, TblSequences, TblProfiles, TblProfileFields, TblProfileMembers, \
     TblClassificationGroups, TblClassificationGroupProfiles, TblClassificationGroupProfileHistory, \
-    TblClassificationSchemes, TblEavText, TblEavFields, TblMappingTable
+    TblClassificationSchemes, TblMappingTable
 from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.python_utility_functions import send_email
@@ -229,10 +229,10 @@ class NewClusteringInfoToBigs:
 
         # read distance matrix
         distance_matrix: np.ndarray = np.load(str(self._naive_clustering_distance_matrix_file))
-        # parse cgmlst distance thresholds from cgmlst_diff_fields
+        # parse cgmlst distance thresholds
         for threshold in self._clustering_thresholds:
             max_allelic_distance = threshold
-            assay_name = f'cgMLST_with_max_{max_allelic_distance}_allelic_dist'
+            assay_name = f'cgST_with_max_{max_allelic_distance}_allelic_dist'
 
             # get all cgsts in mongodb:
             cgsts_per_isolate: List[Dict[str, Union[str, Dict[str, Optional[int]]]]] = \
@@ -247,7 +247,7 @@ class NewClusteringInfoToBigs:
                 cgsts = set(x['results'].get('cgST') for x in cgsts_per_isolate)
                 cgsts.discard(None)
                 for cgst in cgsts:
-                    self.___update_naive_clustering_values_for_one_cgst(
+                    self.__update_naive_clustering_values_for_one_cgst(
                         cgst, distance_matrix, max_allelic_distance, cgsts_per_isolate, assay_name)
             else:
                 if len(self._new_st) > 0:
@@ -265,10 +265,11 @@ class NewClusteringInfoToBigs:
                             affected_and_new_cgsts.update(cgst_in_this_cluster)
 
                     for cgst in affected_and_new_cgsts:
-                        self.___update_naive_clustering_values_for_one_cgst(
+                        self.__update_naive_clustering_values_for_one_cgst(
                             cgst, distance_matrix, max_allelic_distance, cgsts_per_isolate, assay_name)
+        self.__insert_cgst_cluster_link_in_analysis_table(self._results_dict)
 
-    def ___update_naive_clustering_values_for_one_cgst(
+    def __update_naive_clustering_values_for_one_cgst(
             self, cgst: int, distance_matrix: np.ndarray, max_allelic_distance: int,
             cgsts_per_isolate: List[Dict[str, Union[str, Dict[str, Optional[int]]]]], assay_name: str) -> None:
         """
@@ -277,7 +278,7 @@ class NewClusteringInfoToBigs:
         :param distance_matrix: cgST distance matrix
         :param max_allelic_distance: current cgMLST difference field's interval stop
         :param cgsts_per_isolate: List of dictionaries extracted from MongoDB containing all pseudo_ids and their corresponding cgST
-        :param assay_name: name used to refer to the current criteria used to cluster the cgSTs (e.g. cgMLST_with_max_4_allelic_dist)
+        :param assay_name: name used to refer to the current criteria used to cluster the cgSTs (e.g. cgST_with_max_4_allelic_dist)
         :return: None
         """
         with TblMappingTable(self._species) as isolates_mapping_psql_tbl:
@@ -295,22 +296,27 @@ class NewClusteringInfoToBigs:
                     if isolate_id:
                         self._results_dict[max_allelic_distance].append({isolate_id: html_javascript_link})
 
-    def insert_cgmlst_cluster_link_in_analysis_table(self, is_field_new: bool, isolate_id: str, results_dict_filled_in: dict[str, Any]) -> None:
+    def __insert_cgst_cluster_link_in_analysis_table(self, results_dict_filled_in: dict[int, list[dict[str, str]]]) -> None:
+        """
+        Use the results dict filled in during the naive clustering update to insert the html links in the analysis_results table of BIGsdb
+        :param results_dict_filled_in: dict containing the results to insert into bigsdb
+        :return: None
+        """
         results_dict_ordered = self.__convert_results_dict(results_dict_filled_in)
         with TblAnalysisResults(self._species) as isolates_ana_res_psql_tbl:
             for isolate_id, results in results_dict_ordered.items():
                 json_layout = {}
                 for item in results:
                     json_layout.update(item)
-            value_already_found_in_postgres = isolates_ana_res_psql_tbl.is_field_already_set_for_this_isolate(('cgMLST_clustering_on_allelic_dist', isolate_id))[0][0]
-            if not is_field_new and value_already_found_in_postgres:
-                isolates_ana_res_psql_tbl.update_analysis_results_isolate_id((Jsonb(json_layout), isolate_id, 'cgMLST_clustering_on_allelic_dist'))
-            else:
-                # For new fields and for affected isolates that did not have the field yet
-                isolates_ana_res_psql_tbl.insert_analysis_results_isolate_id(('cgMLST_clustering_on_allelic_dist', isolate_id, Jsonb(json_layout)))
+                value_already_found_in_postgres = isolates_ana_res_psql_tbl.is_field_already_set_for_this_isolate(('cgST_clustering_on_allelic_dist', isolate_id))[0][0]
+                if value_already_found_in_postgres:
+                    isolates_ana_res_psql_tbl.update_analysis_results_isolate_id((Jsonb(json_layout), isolate_id, 'cgST_clustering_on_allelic_dist'))
+                else:
+                    # For new fields and for affected isolates that did not have the field yet
+                    isolates_ana_res_psql_tbl.insert_analysis_results_isolate_id(('cgST_clustering_on_allelic_dist', isolate_id, Jsonb(json_layout)))
 
     @staticmethod
-    def __convert_results_dict(dict_to_convert: dict[str, Any]) -> Dict[str, List[Dict[str, str]]]:
+    def __convert_results_dict(dict_to_convert: dict[int, list[dict[str, str]]]) -> Dict[str, List[Dict[str, str]]]:
         """
         Converts a dict of the form:
         {'thresholdA': [{id_1: valA1}, {id_2: valA2}], 'thresholdB': [{id_1: valB1}, {id_2: valB2}]}
@@ -331,7 +337,7 @@ class NewClusteringInfoToBigs:
         Generates the html element containing the javascript function to query the cgST's clustered together in BIGSdb interface
         :param cgsts: the cgST's that should be included in the html query
         :param cgmlst_bigsdb_scheme_id: the scheme id of the cgMLST scheme in bigsdb (usually 2, after 1 mlst)
-        :param assay_name: name used to refer to the current criteria used to cluster the cgSTs (e.g. cgMLST_with_max_4_allelic_dist)
+        :param assay_name: name used to refer to the current criteria used to cluster the cgSTs (e.g. cgST_with_max_4_allelic_dist)
         :param species: commonly used bioit species name
         :return: html element containing the javascript function used in bigsdb
         """
