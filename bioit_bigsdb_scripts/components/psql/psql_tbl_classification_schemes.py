@@ -14,7 +14,7 @@ class TblClassificationSchemes(DatabaseConnection):
         if self._db_type != 'seqdef' and self._db_type != 'isolates':
             raise ValueError('no such database type')
 
-    def insert_cgscheme_isolates(self, param: Tuple[str, str, str, str, str, str, str]) -> None:
+    def insert_cgscheme_isolates(self, param: Tuple[str, str, str, str, int, str, str]) -> None:
         """
         Inserts a new group in a specific clustering group scheme in the isolates db
         :param param: cluster group scheme id, scheme id, cluster scheme name, cluster scheme description,

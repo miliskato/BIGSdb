@@ -59,7 +59,7 @@ class TblAnalysisResults(DatabaseConnection):
         """
         self.execute_query(PsqlQueries.ISO_UPDATE_TB_ANA_RES_VAR_RES_NAME_ISO_ID, param)
 
-    def is_field_already_present(self, param: Tuple[str]) -> list[Tuple[bool]]:
+    def is_field_already_present_in_postgres(self, param: Tuple[str]) -> list[Tuple[bool]]:
         """
         Check if a specific assay was already introduce in the analysis_results table.
         :param param: name of the assay
