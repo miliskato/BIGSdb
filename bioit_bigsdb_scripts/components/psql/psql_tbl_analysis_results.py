@@ -66,3 +66,14 @@ class TblAnalysisResults(DatabaseConnection):
         :return: True if the assay is already present, False otherwise
         """
         return self.execute_query(PsqlQueries.ISO_SEL_EXISTS_TB_ANA_RES_VAR_NAME, param)
+
+    def extract_results_filtered_on_name(self, param: Tuple[str]) -> list[Tuple[str]]:
+        """
+        Extract the cgST(s) from the clustering JS url link which is stored in the analysis_results table for a specific isolate.
+        :param param: searched cgST
+        :return: list of tuples with cgST strings
+        """
+        cgst_value = param[0]
+        regex_used = r'\[\s*"{}"\s*\]|\[\s*"[^"]*"\s*,\s*"{}"\s*(,\s*"[^"]*"\s*)*\]'.format(cgst_value, cgst_value)
+
+        return self.execute_query(PsqlQueries.ISO_SEL_RES_TB_ANA_RES_VAR_RES, (regex_used,))
