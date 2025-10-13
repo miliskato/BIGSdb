@@ -273,6 +273,8 @@ sub print_content {
 		say q(<div class="box resultstable">);
 		$self->_print_pending_submissions;
 		$self->print_submissions_for_curation;
+        my $validation_page_url = '/cgi-bin/bigsdb/bigsdb.pl?page=batchValidation&db='.$q->param('db');
+        say qq(<div><a href = '$validation_page_url' class="small_submit"> Batch validation </a></div>);
 		$self->_print_closed_submissions;
 		$self->print_navigation_bar( { closed_submissions => $closed_buffer ? 1 : 0 } );
 		say q(</div>);
@@ -483,12 +485,11 @@ sub _get_submissions_by_status {
 	my $user_info = $self->{'datastore'}->get_user_info_from_username( $self->{'username'} );
 	my ( $qry, $get_all, @args );
 	if ( $options->{'get_all'} ) {
-		$qry     = 'SELECT * FROM submissions WHERE status=? AND (dataset IS NULL OR dataset = ?) ORDER BY id';
-		$get_all = 1;
+        $qry = q{SELECT * FROM submissions WHERE status=? AND (dataset IS NULL OR dataset = ?) ORDER BY CASE WHEN id ~ '^\d+$' THEN 0 ELSE 1 END, CASE WHEN id ~ '^\d+$' THEN id::integer ELSE NULL END, id};
+        $get_all = 1;
 		push @args, ( $status, $self->{'instance'} );
 	} else {
-		$qry =
-		  'SELECT * FROM submissions WHERE (submitter,status)=(?,?) AND (dataset IS NULL OR dataset = ?) ORDER BY id';
+		$qry = q{SELECT * FROM submissions WHERE (submitter,status)=(?,?) AND (dataset IS NULL OR dataset = ?) ORDER BY CASE WHEN id ~ '^\d+$' THEN 0 ELSE 1 END, CASE WHEN id ~ '^\d+$' THEN id::integer ELSE NULL END, id};
 		$get_all = 0;
 		push @args, ( $user_info->{'id'}, $status, $self->{'instance'} );
 	}

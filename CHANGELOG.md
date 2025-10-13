@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.3.1]
+### Added:
+- Batch validation of the submitted isolates in BIGSdb (good and warnings)
+- Integration of the genomic output DCD for Neisseria
+
+### Changed:
+- "Unknown" value is now accepted as a valid value for the submission of clinical/laboratory metadata
+- Sorting of the submissions by their id now follow the logical order for integers
+- Adapt the insertion of the metadata from ODS for Listeria to the new format of the DCD (v1.0.1-draft1)
+
 ## [4.3.0]
 ### Added:
 - Added task in ANSIBLE to remove the first version of the bigsdb-insertion.service (if present on the VM)
