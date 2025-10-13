@@ -430,8 +430,4 @@ class PsqlQueries:
     ISO_UPDATE_TB_ANA_RES_VAR_RES_NAME_ISO_ID: Final[str] = """
     UPDATE analysis_results SET results=%s, datestamp=(SELECT CURRENT_DATE) WHERE name=%s AND isolate_id=%s;"""
     ISO_SEL_RES_TB_ANA_RES_VAR_RES: Final[str] = """
-    SELECT results FROM analysis_results
-    WHERE EXISTS (
-        SELECT 1
-        FROM jsonb_each_text(results) AS kv
-        WHERE kv.value ~ %s);"""
+    SELECT results FROM analysis_results WHERE EXISTS (SELECT 1 FROM jsonb_each_text(results) AS kv WHERE kv.value ~ %s);"""
