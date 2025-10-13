@@ -69,7 +69,7 @@ class TblAnalysisResults(DatabaseConnection):
 
     def extract_results_filtered_on_name(self, param: Tuple[str]) -> list[Tuple[str]]:
         """
-        Extract the cgST(s) from the clustering JS url link which is stored in the analysis_results table for a specific isolate.
+        Extract the cgST(s) from the clustering javascript link which is stored in the analysis_results table for a specific isolate.
         :param param: searched cgST
         :return: list of tuples with cgST strings
         """
