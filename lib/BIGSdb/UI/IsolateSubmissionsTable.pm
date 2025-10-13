@@ -99,7 +99,7 @@ sub render_complete_form {
     $return_buffer .= q(<div class="scrollable">);
     $return_buffer .= q(<form method="post" action="/cgi-bin/bigsdb/bigsdb.pl?page=batchValidation" id="isolateSubmissionsForm" enctype="multipart/form-data">);
 
-    $return_buffer .= q(<input type="hidden" name="db" value="bigsdb_neisseria_isolates">);
+    $return_buffer .= qq(<input type="hidden" name="db" value=$db>);
     $return_buffer .= q(<input type="hidden" name="page" value="batchValidation">);
 
     # Add control buttons
@@ -155,7 +155,7 @@ sub render_review_form {
     $return_buffer .= q(<div class="scrollable">);
     $return_buffer .= q(<form method="post" action="/cgi-bin/bigsdb/bigsdb.pl?page=batchValidation" id="isolateSubmissionsForm" enctype="multipart/form-data">);
 
-    $return_buffer .= q(<input type="hidden" name="db" value="bigsdb_neisseria_isolates">);
+    $return_buffer .= qq(<input type="hidden" name="db" value=$db>);
     $return_buffer .= q(<input type="hidden" name="page" value="batchValidation">);
     $return_buffer .= q(<input type="hidden" name="validate_submission" value="1">);
     $return_buffer .= qq(<input type="hidden" name="outcome" value="$outcome">);
