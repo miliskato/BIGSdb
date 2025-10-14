@@ -1,5 +1,6 @@
 [% # Template file for outputting formatted AMRFinder analysis in the isolate information page. %]
 [% IF AMRFinder %]
+<div class="indented-hera">
 <h3>AMRFinder</h3>
 
 <div class="scrollable">
@@ -25,5 +26,6 @@
      </tr>
     [% END %]
 </table>
+</div>
 </div>
 [% END %]

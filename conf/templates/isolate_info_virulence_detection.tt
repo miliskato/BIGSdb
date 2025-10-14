@@ -1,5 +1,6 @@
 [% # Template file for outputting formatted VirulenceFinder and VFDB-Core results %]
 [% IF VirulenceFinder OR VFDB_core %]
+<div class="indented-hera">
 <h3>Virulence detection</h3>
 
 [% IF VirulenceFinder %]
@@ -21,6 +22,7 @@
             <a href="[% VFDB_core.results.report_link %]" target="_blank">Full report</a>
         </dd>
     </dl>
+</div>
 </div>
 [% END %]
 [% END %]

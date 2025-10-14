@@ -1,6 +1,7 @@
 [% # Template file for outputting formatted serotyping analysis results in the Salmonella isolate information page. %]
 
 [% IF SISTR %]
+<div class="indented-hera">
 <h3>SISTR</h3>
 <div class="scrollable">
 <table class="data nice">
@@ -53,5 +54,6 @@
     </tr>
     [% END %]
 </table>
+</div>
 </div>
 [% END %]

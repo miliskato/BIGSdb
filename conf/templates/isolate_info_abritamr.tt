@@ -2,6 +2,7 @@
 [% IF AbritAMR %]
 <h3>AbritAMR</h3>
 
+<div class="indented-hera">
 <div class="scrollable">
 
 <table class="data nice">
@@ -101,5 +102,6 @@
         <td>[% AbritAMR.results.abritamr_Other_Interpretation %]</td>
     </tr>
 </table>
+</div>
 </div>
 [% END %]

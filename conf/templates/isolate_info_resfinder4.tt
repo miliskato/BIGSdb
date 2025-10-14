@@ -1,8 +1,10 @@
 [% # Template file for outputting formatted ResFinder4 analysis in the isolate information page. %]
 
 [% IF ResFinder4 %]
+<br>
+<div class="indented-hera">
 <h3>ResFinder4</h3>
-<h4>Overview</h4>
+<h4>ResFinder4 - Overview</h4>
 <div class="scrollable">
 <table class="data nice">
     <tr>
@@ -29,7 +31,7 @@
 [% END %]
 
 [% IF ResFinder4.results.resfinder4_mutations AND ResFinder4.results.resfinder4_mutations != '-' %]
-<h4>Mutations</h4>
+<h4>ResFinder4 - Mutations</h4>
 <div class="scrollable">
 <table class="data nice">
     <tr>
@@ -44,4 +46,6 @@
     [% END %]
 </table>
 </div>
+</div>
+<br>
 [% END %]

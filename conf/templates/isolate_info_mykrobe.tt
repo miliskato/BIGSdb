@@ -1,5 +1,6 @@
 [% # Template file for outputting formatted Mykrobe results in the isolate information page. %]
 [% IF Mykrobe %]
+<div class="indented-hera">
 <h3>Mykrobe</h3>
 
 <div class="scrollable">
@@ -21,5 +22,6 @@
         <td>[% Mykrobe.results.mykrobe_lineage %]</td>
     </tr>
 </table>
+</div>
 </div>
 [% END %]
