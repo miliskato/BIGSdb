@@ -3,7 +3,7 @@
 [% IF PlasmidFinder_grampositive %]
 <h3>PlasmidFinder gram positive</h3>
 <div>
-<table class="data nice">
+<table class="data nice" style="width: 40%;">
     <tr>
         <th>Locus</th>
         <th>Accession</th>

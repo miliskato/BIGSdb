@@ -1,0 +1,59 @@
+[% # Template file for outputting formatted LRE-Finder analysis in the isolate information page. %]
+
+[% IF LRE_Finder %]
+<br>
+<h2>LRE-Finder Analysis Results</h2>
+<p>This section summarizes detected genes and mutations for the isolate.</p>
+
+<h3>Detected genes</h3>
+<div>
+<table class="data nice" style="width: 35%;">
+    <tr>
+        <th>Gene</th>
+        <th>Depth</th>
+        <th>Template Identity</th>
+    </tr>
+
+    <tr>
+        <td colspan="4"><a href="[% LRE_Finder.results.report_link %]" target="_blank">Full report</a></td>
+    </tr>
+
+    [% FOREACH hit IN LRE_Finder.results.lrefinder_genes %]
+    <tr>
+        <td>[% hit.Gene %]</td>
+        <td>[% hit.Depth %]</td>
+        <td>[% hit.Template_identity %]</td>
+     </tr>
+    [% END %]
+</table>
+</div>
+[% END %]
+
+[% IF LRE_Finder.results.lrefinder_mutations %]
+<h3>Detected mutations</h3>
+<div>
+<table class="data nice" style="width: 35%;">
+    <tr>
+        <th>Predicted phenotype</th>
+        <th>Position in reference</th>
+        <th>Wild type ratio (%)</th>
+        <th>Mutant type ratio (%)</th>
+    </tr>
+    [% FOREACH mutation IN LRE_Finder.results.lrefinder_mutations %]
+    <tr>
+        <td>[% mutation.Predicted_phenotype %]</td>
+        <td>[% mutation.Position_in_reference %]</td>
+        <td>[% mutation.Wild_type_ratio_percent %]</td>
+        <td>[% mutation.Mutant_type_ratio_percent %]</td>
+    </tr>
+    [% END %]
+</table>
+</div>
+[% END %]
+
+[% IF LRE_Finder.results.lrefinder_species %]
+<div style="margin-top: 1em;">
+  <strong style="color: #404080;">LRE-Finder species:</strong> [% LRE_Finder.results.lrefinder_species %]
+</div>
+<br>
+[% END %]
