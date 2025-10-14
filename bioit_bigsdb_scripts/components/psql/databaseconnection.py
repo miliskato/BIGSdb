@@ -4,6 +4,7 @@ from types import TracebackType
 from typing import Any, List, Optional, Tuple, Union, Literal, Type
 
 import psycopg
+from psycopg.types.json import Json, Jsonb
 
 from bioit_bigsdb_scripts.utils.literal_helper import validate_literal
 
@@ -49,7 +50,7 @@ class DatabaseConnection:
         except Exception:
             raise RuntimeError(f"Could not connect to {species}'s databases")
 
-    def execute_query(self, query: str, params: Union[Tuple[Union[str, int, Tuple[str]]], List[Union[str, int]], Tuple[str, str, float], Tuple[str, str, str], Tuple[str, str]]) \
+    def execute_query(self, query: str, params: Union[Tuple[Union[str, int, Tuple[str]]], List[Union[str, int]], Tuple[str, str, float], Tuple[str, str, str], Tuple[str, str], tuple[str, str, Json | Jsonb]]) \
             -> Optional[List[Optional[Tuple[Any]]]]:
         """
         Executes a sql query using psycopg sanitization

@@ -192,7 +192,5 @@ class MainInserter(JsonSuperClass):
                 self._isolates_eavt_psql_tbl.insert_eav_id_viral_species((context.isolate_id, 'reference_selection', html))
 
         elif self._species.startswith('enterococcus'):
-            if 'lrefinder' in self._json_report_dict:
-                self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'LRE-Finder_species', self._json_report_dict['lrefinder'].get('lrefinder_species')))
             if 'bacmet' in self._json_report_dict and self._json_report_dict['bacmet']['bacmet_genes'] != '':
                 self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'BacMet_genes', self._json_report_dict['bacmet']['bacmet_genes']))
