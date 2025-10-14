@@ -6,7 +6,6 @@ from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 from bioit_mongodb_scripts.model.json_model import JsonReportDict
 from .json_superclass import JsonSuperClass
 from .psql import TblAlleleDesignations, TblEavBoolean, TblEavFields, TblEavFloat, TblEavText, TblHistory, TblIsolates, TblSchemeMembers
-from ..utils.html_tbl_templates import HtmlMobSuiteTableBuilder
 from ..utils.literal_helper import validate_literal
 from ..utils.url_helper import UrlHelper
 
@@ -56,6 +55,8 @@ class JsonTypingResultsInserter(JsonSuperClass):
                     self._process_rmlst_identification()
                 elif self._scheme == 'mob_suite_detection':
                     self._process_mob_suite()
+                elif self._scheme == 'bacmet_results':
+                    self._process_bacmet()
                 else:
                     logging.warning(f"scheme {self._scheme} not present in json file")
             with TblHistory(self._species) as isolates_history_psql_tbl:
@@ -116,6 +117,14 @@ class JsonTypingResultsInserter(JsonSuperClass):
         if not plasmid_list:
             return
         self._insert_analysis_results(self.__get_isolate_id(), 'mob_suite', self._schemedict[self._scheme])
+
+    def _process_bacmet(self) -> None:
+        """
+        Insert MOB-Suite results into the analysis_results table of BIGSdb.
+        :return: None
+        """
+        if 'bacmet' in self._json_report_dict and self._json_report_dict['bacmet']['bacmet_genes'] != '':
+            self._insert_analysis_results(self.__get_isolate_id(), 'bacmet', self._schemedict[self._scheme])
 
     def __get_isolate_id(self) -> str:
         """

@@ -344,6 +344,10 @@ species_json:
         type: irregular
         schemename_bigsdb: rMLST
         schemename_html: rmlst
+      bacmet_results:
+        type: irregular
+        schemename_bigsdb: BacMet
+        schemename_html: bacmet
     genedetection_schemes:
       resfinder4:
         metadatafile: /db/resfinder4/resfinder/phenotypes.txt
@@ -387,6 +391,10 @@ species_json:
         type: irregular
         schemename_bigsdb: rMLST
         schemename_html: rmlst
+      bacmet_results:
+        type: irregular
+        schemename_bigsdb: BacMet
+        schemename_html: bacmet
     genedetection_schemes:
       resfinder4:
         metadatafile: /db/resfinder4/resfinder/phenotypes.txt
