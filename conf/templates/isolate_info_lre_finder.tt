@@ -2,10 +2,9 @@
 
 [% IF LRE_Finder %]
 <br>
-<h2>LRE-Finder Analysis Results</h2>
-<p>This section summarizes detected genes and mutations for the isolate.</p>
+<h3>LRE-Finder</h3>
 
-<h3>Detected genes</h3>
+<h4>Detected genes</h4>
 <div>
 <table class="data nice" style="width: 35%;">
     <tr>
@@ -30,7 +29,7 @@
 [% END %]
 
 [% IF LRE_Finder.results.lrefinder_mutations %]
-<h3>Detected mutations</h3>
+<h4>Detected mutations</h4>
 <div>
 <table class="data nice" style="width: 35%;">
     <tr>
