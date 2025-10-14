@@ -1,6 +1,8 @@
 [% # Template file for outputting formatted ResFinder4 analysis in the isolate information page. %]
 
 [% IF PlasmidFinder_grampositive %]
+<br>
+<div class="indented-hera">
 <h3>PlasmidFinder gram positive</h3>
 <div>
 <table class="data nice" style="width: 40%;">
@@ -25,4 +27,6 @@
     [% END %]
 </table>
 </div>
+</div>
+<br>
 [% END %]

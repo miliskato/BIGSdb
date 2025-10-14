@@ -2,6 +2,7 @@
 
 [% IF LRE_Finder %]
 <br>
+<div class="indented-hera">
 <h3>LRE-Finder</h3>
 
 <h4>Detected genes</h4>
@@ -51,7 +52,7 @@
 [% END %]
 
 [% IF LRE_Finder.results.lrefinder_species %]
-<div style="margin-top: 1em;">
+<div>
   <strong style="color: #404080;">LRE-Finder species:</strong> [% LRE_Finder.results.lrefinder_species %]
 </div>
 <br>
