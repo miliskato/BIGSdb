@@ -1,0 +1,28 @@
+[% # Template file for outputting formatted ResFinder4 analysis in the isolate information page. %]
+
+[% IF PlasmidFinder_grampositive %]
+<h3>PlasmidFinder gram positive</h3>
+<div>
+<table class="data nice">
+    <tr>
+        <th>Locus</th>
+        <th>Accession</th>
+        <th>%Identity</th>
+        <th>Coverage</th>
+    </tr>
+
+    <tr>
+        <td colspan="4"><a href="[% PlasmidFinder_grampositive.results.report_link %]" target="_blank">Full report</a></td>
+    </tr>
+
+    [% FOREACH hit IN PlasmidFinder_grampositive.results.loci %]
+    <tr>
+        <td>[% hit.Locus %]</td>
+        <td>[% hit.Accession %]</td>
+        <td>[% hit.percent_Identity %]</td>
+        <td>[% hit.item('HSP/Locus_length') %]</td>
+     </tr>
+    [% END %]
+</table>
+</div>
+[% END %]
