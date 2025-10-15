@@ -308,12 +308,12 @@ class NewClusteringInfoToBigs:
                 json_layout = {}
                 for item in results:
                     json_layout.update(item)
-                value_already_found_in_postgres = isolates_ana_res_psql_tbl.is_field_already_set_for_this_isolate(('cgST_clustering_on_allelic_dist', isolate_id))[0][0]
+                value_already_found_in_postgres = isolates_ana_res_psql_tbl.is_field_already_set_for_this_isolate(('cgST_clustering_on_allelic_dist', int(isolate_id)))[0][0]
                 if value_already_found_in_postgres:
-                    isolates_ana_res_psql_tbl.update_analysis_results_isolate_id((Jsonb(json_layout), isolate_id, 'cgST_clustering_on_allelic_dist'))
+                    isolates_ana_res_psql_tbl.update_analysis_results_isolate_id((Jsonb(json_layout), int(isolate_id), 'cgST_clustering_on_allelic_dist'))
                 else:
                     # For new fields and for affected isolates that did not have the field yet
-                    isolates_ana_res_psql_tbl.insert_analysis_results_isolate_id(('cgST_clustering_on_allelic_dist', isolate_id, Jsonb(json_layout)))
+                    isolates_ana_res_psql_tbl.insert_analysis_results_isolate_id(('cgST_clustering_on_allelic_dist', int(isolate_id), Jsonb(json_layout)))
 
     @staticmethod
     def __convert_results_dict(dict_to_convert: dict[int, list[dict[str, str]]]) -> Dict[str, List[Dict[str, str]]]:
