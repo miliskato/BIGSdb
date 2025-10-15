@@ -25,7 +25,7 @@ class TblAnalysisResults(DatabaseConnection):
         """
         self.execute_query(PsqlQueries.ISO_INS__TB_ANA_RES_VAR_NAM_ISO_RES, param)
 
-    def insert_analysis_results_isolate_id(self, param: tuple[str, str, Json | Jsonb]) -> None:
+    def insert_analysis_results_isolate_id(self, param: tuple[str, int, Json | Jsonb]) -> None:
         """
         Add the analysis results of a specific assay for a specific isolate ID.
         :param param: name of the assay, isolate id, results as Jsonb
@@ -41,7 +41,7 @@ class TblAnalysisResults(DatabaseConnection):
         """
         self.execute_query(PsqlQueries.ISO_DEL__TB_ANA_RES_VAR_ISO, param)
 
-    def is_field_already_set_for_this_isolate(self, param: tuple[str, str]) -> list[tuple[bool]]:
+    def is_field_already_set_for_this_isolate(self, param: tuple[str, int]) -> list[tuple[bool]]:
         """
         Check if analysis results for a specific assay and for a given isolate ID is already present in the table.
         :param param: name of the assay and isolate id
@@ -49,10 +49,10 @@ class TblAnalysisResults(DatabaseConnection):
         """
         return self.execute_query(PsqlQueries.ISO_SEL_EXISTS_TB_ANA_RES_VAR_NAME_ISO, param)
 
-    def update_analysis_results_isolate_id(self, param: tuple[Jsonb, str, str]) -> None:
+    def update_analysis_results_isolate_id(self, param: tuple[Jsonb, str, int]) -> None:
         """
         Update analysis results for a specific assay and for a specific isolate ID.
-        :param param: new results as Jsonb, isolate id, name of the assay
+        :param param: new results as Jsonb, name of the assay, isolate id
         :return: None
         """
         self.execute_query(PsqlQueries.ISO_UPDATE_TB_ANA_RES_VAR_RES_NAME_ISO_ID, param)
