@@ -28,9 +28,11 @@
     [% END %]
 </table>
 </div>
+</div>
 [% END %]
 
 [% IF ResFinder4.results.resfinder4_mutations AND ResFinder4.results.resfinder4_mutations != '-' %]
+<div class="indented-hera">
 <h4>ResFinder4 - Mutations</h4>
 <div class="scrollable">
 <table class="data nice">
