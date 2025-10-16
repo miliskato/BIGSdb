@@ -12,9 +12,11 @@
         </dd>
     </dl>
 </div>
+</div>
 [% END %]
 
 [% IF VFDB_core %]
+<div class="indented-hera">
 <div class="scrollable">
     <dl class="data">
         <dt>Virulence Factor DB - Core</dt>

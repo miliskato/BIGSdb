@@ -27,9 +27,11 @@
     [% END %]
 </table>
 </div>
+</div>
 [% END %]
 
 [% IF LRE_Finder.results.lrefinder_mutations %]
+<div class="indented-hera">
 <h4>Detected mutations</h4>
 <div>
 <table class="data nice" style="width: 35%;">
@@ -49,11 +51,14 @@
     [% END %]
 </table>
 </div>
+</div>
 [% END %]
 
 [% IF LRE_Finder.results.lrefinder_species %]
+<div class="indented-hera">
 <div>
   <strong style="color: #404080;">LRE-Finder species:</strong> [% LRE_Finder.results.lrefinder_species %]
+</div>
 </div>
 <br>
 [% END %]
