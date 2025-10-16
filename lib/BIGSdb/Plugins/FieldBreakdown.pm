@@ -1,6 +1,6 @@
 #FieldBreakdown.pm - FieldBreakdown plugin for BIGSdb
 #Written by Keith Jolley
-#Copyright (c) 2018-2024, University of Oxford
+#Copyright (c) 2018-2025, University of Oxford
 #E-mail: keith.jolley@biology.ox.ac.uk
 #
 #This file is part of Bacterial Isolate Genome Sequence Database (BIGSdb).
@@ -48,7 +48,7 @@ sub get_attributes {
 		buttontext => 'Fields',
 		menutext   => 'Field breakdown',
 		module     => 'FieldBreakdown',
-		version    => '2.8.0',
+		version    => '2.9.0',
 		dbtype     => 'isolates',
 		section    => 'breakdown,postquery',
 		url        => "$self->{'config'}->{'doclink'}/data_analysis/field_breakdown.html",
@@ -139,7 +139,7 @@ sub _get_field_type {
 	if ( $self->{'datastore'}->is_locus($field) ) {
 		return 'locus';
 	}
-	if ( $field =~ /^af_([^_]+)___([^_]+)/ ) {
+	if ( $field =~ /^af_.+___.+$/x ) {
 		return 'analysis_field';
 	}
 	return;
@@ -188,7 +188,7 @@ sub _get_field_values {
 			}
 		},
 		analysis_field => sub {
-			if ( $field =~ /^af_([^_]+)___([^_]+)/ ) {
+			if ( $field =~ /^af_(.+)___(.+)/x ) {
 				my ( $field_name, $analysis_name ) = ( $1, $2 );
                 my $att = $self->{'datastore'}->get_analysis_field( $analysis_name, $field_name );
 				$freqs = $self->_get_analysis_field_freqs( $analysis_name, $field_name,
@@ -227,7 +227,7 @@ sub _get_display_field {
 		}
 	}
 	if ( $field_type eq 'analysis_field') {
-        my ($field_name, $analysis_name) = $field =~ /^af_([^_]+)___([^_]+)/;
+        my ($field_name, $analysis_name) = $field =~ /^af_(.+)___(.+)/x;
         $display_field = "$field_name ($analysis_name)";
     }
 	return $display_field;
@@ -506,7 +506,7 @@ sub _print_geography_controls {
 	  . q(<span id="marker_orange" style="color:#fa5502" class="marker_colour fas fa-square"></span>)
 	  . q(<span id="marker_yellow" style="color:#fccf03" class="marker_colour fas fa-square"></span>)
 	  . q(<span id="marker_grey" style="color:#303030" class="marker_colour fas fa-square"></span>);
-	say q(<li><li><label for="segments">Marker size:</label>);
+	say q(</li><li><label for="segments">Marker size:</label>);
 	say q(<div id="marker_size" style="display:inline-block;width:8em;margin-left:0.5em"></div>);
 	say q(</li></ul></fieldset>);
 	return;
@@ -732,6 +732,7 @@ sub get_plugin_javascript {
 	my $schemes_js      = $self->_get_schemes_js;
 	my $mapping_options = $self->get_mapping_options;
 	my $maptiler_key    = $mapping_options->{'maptiler_key'} // q();
+	my $js_dir = $self->{'config'}->{'relative_js_dir'} // '/javascript';
 	my $buffer          = <<"JS";
 var height = 400;
 var segments = 20;
@@ -743,6 +744,7 @@ var url = "$url";
 var prefs_ajax_url = "$plugin_prefs_ajax_url";
 var mapping_option = $mapping_options->{'option'};
 var maptiler_key = "$maptiler_key";
+var js_dir = "$js_dir";
 
 $types_js	
 $loci_js
@@ -906,17 +908,14 @@ sub _get_scheme_field_freqs {
 sub _get_analysis_field_freqs {
     my ( $self, $analysis_name, $field_name, $options ) = @_;
     my $qry =
-       "WITH matching_values AS "
-      . "(SELECT arc.isolate_id, arc.value "
-      . "FROM analysis_results_cache arc "
-      . "JOIN analysis_fields af ON (af.analysis_name,af.json_path) = (arc.analysis_name,arc.json_path) "
-      . "WHERE (af.analysis_name,af.field_name) = (?,?)), "
-      . "isolates_values AS "
-      . "(SELECT i.value AS isolates_id, array_agg(mv.value) AS label "
-      . "FROM id_list i "
-      . "LEFT JOIN matching_values mv ON i.value=mv.isolate_id "
-      . "GROUP BY i.value) "
-      . "SELECT label, COUNT(*) AS value FROM isolates_values GROUP BY label";
+       'WITH matching_values AS '
+      . '(SELECT arc.isolate_id, arc.value FROM analysis_results_cache arc '
+      . 'JOIN analysis_fields af ON (af.analysis_name,af.json_path) = (arc.analysis_name,arc.json_path) '
+      . 'WHERE (af.analysis_name,af.field_name) = (?,?)),isolates_values AS '
+      . '(SELECT i.value AS isolates_id, array_agg(mv.value) AS label FROM id_list i '
+      . 'LEFT JOIN matching_values mv ON i.value=mv.isolate_id '
+      . 'GROUP BY i.value) '
+      . 'SELECT label, COUNT(*) AS value FROM isolates_values GROUP BY label';
     my $order = $options->{'order'} ? $options->{'order'} : 'value DESC';
 	$qry .= " ORDER BY $order";
     my $values =
