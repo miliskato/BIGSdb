@@ -180,6 +180,16 @@ class TblIsolates(DatabaseConnection):
     def update_isolate_html_assembly_pipeline(self, param: tuple[str, str, str, str]) -> None:
         """
         Update the html, assembly and pipeline fields in the isolates table
-        :param param: variables to feed to the PSQL query, html link, assembly link, pipeline info and the isolate name
+        :param param: Variables to feed to the PSQL query, html value, assembly value, pipeline info and the isolate name
+        :return: None
         """
-        self.execute_query(PsqlQueries.ISO_UPD_TB_ISO_VAR_HTML_ASSEM_PIPE, param)
+        self.execute_query(PsqlQueries.ISO_UPD_TB_ISO_VAR_HTML_ASSEM_PIPE_ISO, param)
+
+    def update_coverage_info(self, param: tuple[str, str, str, str, str]) -> None:
+        """
+        Updates the coverage on the assembly, reference and the positions covered > 1x for assembly and reference.
+        :param param: Variables to feed to the PSQL query, coverage on assembly, coverage on reference,
+        positions covered > 1x for assembly and reference and the isolate name.
+        :return: None
+        """
+        self.execute_query(PsqlQueries.ISO_UPD_TB_ISO_VAR_COVASSEM_COVREF_POSASSEM_POSREF_ISO, param)

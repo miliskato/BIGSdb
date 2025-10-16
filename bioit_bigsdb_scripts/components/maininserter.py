@@ -79,19 +79,6 @@ class MainInserter(JsonSuperClass):
             isolate_id = str(isolate_tuple[0][0])
         return MainInserterContext(isolate_id, UrlHelper.report_for_isolate(self._species, isolate_id))
 
-    def __create_report_assembly_links(self) -> tuple[str, str]:
-        """
-        Creates the report and assembly link for the isolate.
-        :return: Report link and assembly link
-        """
-        context = self.__create_context()
-        report_link = f'<p><a href="{context.report_url}" target="_blank"> html report</a></p>'
-        if self._viral_species:
-            assembly_link = f'<p><a href="/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_{self._species}_isolates&page=plugin&name=Contigs&format=text&isolate_id={context.isolate_id}&match=1&pc_untagged=0&min_length=&header=1l" target="_blank">consensus sequence</a></p>'
-        else:
-            assembly_link = f'<p><a href="/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_{self._species}_isolates&page=plugin&name=Contigs&format=text&isolate_id={context.isolate_id}&match=1&pc_untagged=0&min_length=&header=1l" target="_blank">assembly</a></p>'
-        return report_link, assembly_link
-
     def __insert_main_metadata(self) -> None:
         """
         Inserts the main metadata into bigsdb for an isolate
@@ -103,9 +90,14 @@ class MainInserter(JsonSuperClass):
         with TblEavText(self._species) as self._isolates_eavt_psql_tbl, \
                 TblIsolates(self._species) as self.isolates_psql_tbl, TblEavInt(self._species) as self._isolates_eavi_psql_tbl:
 
-            report_link, assembly_link = self.__create_report_assembly_links()
             pipeline = f'{self._json_report_dict.get("pipeline_name")} {self._json_report_dict.get("pipeline_version")} - {self._json_report_dict.get("input_type")}'
-            self.isolates_psql_tbl.update_isolate_html_assembly_pipeline((report_link, assembly_link, pipeline, self._isolatename))
+            if not self._viral_species:
+                self.isolates_psql_tbl.update_isolate_html_assembly_pipeline(
+                    (str(context.isolate_id), str(context.isolate_id), pipeline, self._isolatename))
+                self.__update_coverage_info()
+            else:
+                # TODO create method to insert html, consensus sequence and pipeline info for viral species
+                print("todo")
             # self.__insert_species_specific_metadata(context)
             if 'changed_version' in self._json_report_dict:
                 with TblEavTextHidden(self._species) as isolates_eavth_psql_tbl:
@@ -116,8 +108,19 @@ class MainInserter(JsonSuperClass):
                                                        str(context.isolate_id)))
             logging.info('Metadata insertion successful')
 
-
-
+    def __update_coverage_info(self) -> None:
+        """
+        Updates the coverage info for an isolate.
+        :return: None
+        """
+        if self._json_report_dict['input_type'] != 'fasta':
+            coverage_assembly = self._json_report_dict['quast'].get('assembly_avg_coverage', '-')
+            coverage_reference = self._json_report_dict['quast'].get('assembly_avg_coverage_ref', '-')
+            positions_covered_1x_assembly = self._json_report_dict['quast'].get('assembly_positions_covered_1x', '-')
+            positions_covered_1x_reference = self._json_report_dict['quast'].get('assembly_positions_covered_1x_ref', '-')
+            self.isolates_psql_tbl.update_coverage_info((coverage_assembly, coverage_reference,
+                                                         positions_covered_1x_assembly, positions_covered_1x_reference,
+                                                         self._isolatename))
 
     def __insert_species_specific_metadata(self, context: MainInserterContext) -> None:
         """
@@ -191,6 +194,3 @@ class MainInserter(JsonSuperClass):
                 html = ref_selection_table_builder.build()
                 self._isolates_eavt_psql_tbl.insert_eav_id_viral_species((context.isolate_id, 'reference_selection', html))
 
-        elif self._species.startswith('enterococcus'):
-            if 'bacmet' in self._json_report_dict and self._json_report_dict['bacmet']['bacmet_genes'] != '':
-                self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'BacMet_genes', self._json_report_dict['bacmet']['bacmet_genes']))

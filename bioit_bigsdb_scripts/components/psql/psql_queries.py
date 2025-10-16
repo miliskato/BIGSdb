@@ -246,9 +246,12 @@ class PsqlQueries:
         WHERE id=%s;"""
     ISO_SEL_ISOLATE_ID: Final[str] = """
         SELECT isolate FROM isolates;"""
-    ISO_UPD_TB_ISO_VAR_HTML_ASSEM_PIPE: Final[str] = """
+    ISO_UPD_TB_ISO_VAR_HTML_ASSEM_PIPE_ISO: Final[str] = """
         UPDATE isolates SET (html, assembly, pipeline) = (%s, %s, %s) WHERE isolate = %s;"""
-
+    ISO_UPD_TB_ISO_VAR_COVASSEM_COVREF_POSASSEM_POSREF_ISO: Final[str] = """
+        UPDATE isolates SET 
+        (coverage_assembly, coverage_reference, positions_covered_1x_assembly, positions_covered_1x_reference) = 
+        (%s, %s, %s, %s) WHERE isolate=%s; """
     # TBL isolate submission field order
     ISO_INS__TB_ISOSUBFO_VAR_FIELD_INDEX: Final[str] = """
         INSERT INTO isolate_submission_field_order(submission_id, field, index) 
