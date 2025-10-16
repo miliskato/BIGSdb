@@ -923,18 +923,19 @@ sub _get_value_frequency_hashes {
 					my $scheme_info = $self->{'datastore'}->get_scheme_info($scheme_id);
 					$print{$field} .= " ($scheme_info->{'name'})";
 				}
-			} elsif ( $field =~ /^af_(.+)___(.+)/x ) {
-				my $analysis_name = $1;
-				my $field_name    = $2;
-				if ( $self->{'datastore'}->is_analysis_field( $analysis_name, $field_name ) ) {
-					$clean{$field}         = $field_name;
-					$print{$field}         = "$field_name ($analysis_name)";
-					$field_type{$field}    = 'analysis_field';
-					$analysis_name{$field} = $analysis_name;
-					$field_type{$field}    = 'analysis_field';
-					$analysis_name{$field} = $analysis_name;
-				}
 			}
+			elsif ( $field =~ /^af_(.+)___(.+)/x ) {
+                my $analysis_name = $1;
+                my $field_name    = $2;
+                if ( $self->{'datastore'}->is_analysis_field( $analysis_name, $field_name ) ) {
+                    $clean{$field}      = $field_name;
+                    $print{$field}      = "$field_name ($analysis_name)";
+                    $field_type{$field} = 'analysis_field';
+                    $analysis_name{$field}  = $analysis_name;
+                    $field_type{$field} = 'analysis_field';
+                    $analysis_name{$field}  = $analysis_name;
+                }
+		    }
 		}
 	}
 	foreach my $id ( uniq @$id_list ) {
