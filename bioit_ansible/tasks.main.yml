@@ -255,6 +255,18 @@
         dest: /home/bigsdb/.ssh/.id_rsa_reportsapi
         line: ''
 
+- name: Add website to config.xml for the web option of the html report
+  ansible.builtin.replace:
+    path: "{{ bioit_bigs_home }}/bioit_etc.bigsdb.dbases/bigsdb_{{ species }}_isolates/config.xml"
+    regexp: 'web="html_to_be_replaced_by_ansible"'
+    replace: 'web="http://{{ inventory_hostname }}.{{ host_domain }}/cgi-bin/bigsdb/bigsdb.pl?id=[?];page=sciensanoReport;db=bigsdb_{{ species }}_isolates;get_zip=no"'
+
+- name: Add website to config.xml for the web option of the assembly
+  ansible.builtin.replace:
+    path: "{{ bioit_bigs_home }}/bioit_etc.bigsdb.dbases/bigsdb_{{ species }}_isolates/config.xml"
+    regexp: 'web="assembly_to_be_replaced_by_ansible"'
+    replace: 'web="http://{{ inventory_hostname }}.{{ host_domain }}/cgi-bin/bigsdb/bigsdb.pl?db=bigsdb_{{ species }}_isolates;page=plugin;name=Contigs;format=text;isolate_id=[?];match=1;pc_untagged=0;header=1l"'
+
 ## perl 5 is installed on Ubuntu by default.
 - name: Install packages
   apt:
