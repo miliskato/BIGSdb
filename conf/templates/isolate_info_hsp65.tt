@@ -1,0 +1,46 @@
+[% # Template file for outputting formatted hsp65 analysis results in the isolate information page. %]
+[% IF hsp65 %]
+<h3>hsp65</h3>
+
+<div class="scrollable">
+<style>
+    table.nice {
+        text-align: center;
+        border-collapse: separate;
+    }
+    table.nice th, table.nice td {
+        padding: 2px 6px; /* Adds padding inside cells (top/bottom, left/right) */
+    }
+    table.nice td:first-child {
+        max-width: 50ch;
+        overflow-wrap: anywhere;
+    }
+    table.nice tr:nth-child(n+3) {
+        background: #E4EFF3;
+    }
+    table.nice tr:nth-child(2n+3) {
+        background: #C1E6F3;
+    }
+</style>
+
+<table class="data nice">
+    <tr>
+        <th>Species</th>
+        <th>%Identity</th>
+        <th>HSP/Locus length</th>
+    </tr>
+
+    <tr>
+        <td colspan="3"><a href="[% hsp65.results.report_link %]" target="_blank">Full report</a></td>
+    </tr>
+
+    [% FOREACH hit IN hsp65.results.loci %]
+    <tr>
+        <td>[% hit.Species %]</td>
+        <td>[% hit.percent_Identity %]</td>
+        <td>[% hit.item('HSP/Locus_length') %]</td>
+     </tr>
+    [% END %]
+</table>
+</div>
+[% END %]

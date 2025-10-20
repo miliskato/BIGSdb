@@ -467,22 +467,38 @@ species_json:
         type: regular
       spoligotyping:
         type: irregular
-      51SNP:
+        schemename_bigsdb: Spoligotype
+        schemename_html: spoligotype
+      51_snp:
         type: irregular
+        schemename_bigsdb: 51SNP
+        schemename_html: 51snp
       csb_rd:
         type: irregular
       amr_detection:
         type: irregular
+        schemename_bigsdb: AMR_detection
+        schemename_html: amr-detection
       hsp65:
         type: irregular
-      snp_lineage:
+        schemename_bigsdb: hsp65
+        schemename_html: hsp65
+      snplineage:
         type: irregular
+        schemename_bigsdb: SNP_lineage
+        schemename_html: snp-lineage
       ncbi_16s:
         type: irregular
+        schemename_bigsdb: NCBI_16S
+        schemename_html: ncbi-16s
       rmlst_identification:
         type: irregular
         schemename_bigsdb: rMLST
         schemename_html: rmlst
+      snpit:
+        type: irregular
+        schemename_bigsdb: snpit
+        schemename_html: snpit
     genedetection_schemes: null
   neisseria:
     typing_schemes:
