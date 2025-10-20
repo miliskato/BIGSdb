@@ -108,22 +108,22 @@ INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT 
 INSERT INTO scheme_members(scheme_id, locus, curator, datestamp) VALUES((SELECT id FROM schemes WHERE name='csb_RD'), 'RD9', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
 
 --51SNP
-INSERT INTO analysis_fields(analysis_name, field_name, analysis_display_name, field_description, json_path, data_type, curator, datestamp) VALUES ('51SNP', 'genetic group', '', 'Genetic group from the 51SNP assay', '$.genetic_group', 'text', 1, (SELECT CURRENT_DATE));
-INSERT INTO analysis_fields(analysis_name, field_name, analysis_display_name, field_description, json_path, data_type, curator, datestamp) VALUES ('51SNP', 'gyrB group', '', 'gyrB species differentiation from the 51SNP assay', '$.gyrB_group', 'text', 1, (SELECT CURRENT_DATE));
-INSERT INTO analysis_fields(analysis_name, field_name, analysis_display_name, field_description, json_path, data_type, curator, datestamp) VALUES ('51SNP', 'gyrB species', '', 'gyrB species differentiation from the 51SNP assay', '$.gyrB_species', 'text', 1, (SELECT CURRENT_DATE));
-INSERT INTO analysis_fields(analysis_name, field_name, analysis_display_name, field_description, json_path, data_type, curator, datestamp) VALUES ('51SNP', 'SCG', '', 'SNP Cluster Group from the 51SNP assay', '$.scg', 'text', 1, (SELECT CURRENT_DATE));
-INSERT INTO analysis_fields(analysis_name, field_name, analysis_display_name, field_description, json_path, data_type, curator, datestamp) VALUES ('51SNP', 'ST', '', 'ST associated with the SNP Cluster Group from the 51SNP assay', '$.st', 'text', 1, (SELECT CURRENT_DATE));
+INSERT INTO analysis_fields(analysis_name, field_name, analysis_display_name, field_description, json_path, data_type, curator, datestamp) VALUES ('51SNP', 'genetic group', '51SNP', 'Genetic group from the 51SNP assay', '$.genetic_group', 'text', 1, (SELECT CURRENT_DATE));
+INSERT INTO analysis_fields(analysis_name, field_name, analysis_display_name, field_description, json_path, data_type, curator, datestamp) VALUES ('51SNP', 'gyrB group', '51SNP', 'gyrB species differentiation from the 51SNP assay', '$.gyrB_group', 'text', 1, (SELECT CURRENT_DATE));
+INSERT INTO analysis_fields(analysis_name, field_name, analysis_display_name, field_description, json_path, data_type, curator, datestamp) VALUES ('51SNP', 'gyrB species', '51SNP', 'gyrB species differentiation from the 51SNP assay', '$.gyrB_species', 'text', 1, (SELECT CURRENT_DATE));
+INSERT INTO analysis_fields(analysis_name, field_name, analysis_display_name, field_description, json_path, data_type, curator, datestamp) VALUES ('51SNP', 'SCG', '51SNP', 'SNP Cluster Group from the 51SNP assay', '$.scg', 'text', 1, (SELECT CURRENT_DATE));
+INSERT INTO analysis_fields(analysis_name, field_name, analysis_display_name, field_description, json_path, data_type, curator, datestamp) VALUES ('51SNP', 'ST', '51SNP', 'ST associated with the SNP Cluster Group from the 51SNP assay', '$.st', 'text', 1, (SELECT CURRENT_DATE));
 
 --snplineage
 INSERT INTO analysis_fields(analysis_name, field_name, analysis_display_name, field_description, json_path, data_type, curator, datestamp) VALUES ('SNP_lineage', 'detected lineage', 'SNP lineage', 'Detected lineage from the SNP lineage assay', '$.detected_lineage', 'text', 1, (SELECT CURRENT_DATE));
 
 --snpit
-INSERT INTO analysis_fields(analysis_name, field_name, analysis_display_name, field_description, json_path, data_type, curator, datestamp) VALUES ('snpit', 'species', '', 'Species detected by the snpit assay', '$.snpit_species', 'text', 1, (SELECT CURRENT_DATE));
-INSERT INTO analysis_fields(analysis_name, field_name, analysis_display_name, field_description, json_path, data_type, curator, datestamp) VALUES ('snpit', 'lineage', '', 'Lineage detected by the snpit assay', '$.snpit_lineage', 'text', 1, (SELECT CURRENT_DATE));
-INSERT INTO analysis_fields(analysis_name, field_name, analysis_display_name, field_description, json_path, data_type, curator, datestamp) VALUES ('snpit', 'sublineage', '', 'Sublineage detected by the snpit assay', '$.snpit_sublineage', 'text', 1, (SELECT CURRENT_DATE));
+INSERT INTO analysis_fields(analysis_name, field_name, analysis_display_name, field_description, json_path, data_type, curator, datestamp) VALUES ('snpit', 'species', 'snpit', 'Species detected by the snpit assay', '$.snpit_species', 'text', 1, (SELECT CURRENT_DATE));
+INSERT INTO analysis_fields(analysis_name, field_name, analysis_display_name, field_description, json_path, data_type, curator, datestamp) VALUES ('snpit', 'lineage', 'snpit', 'Lineage detected by the snpit assay', '$.snpit_lineage', 'text', 1, (SELECT CURRENT_DATE));
+INSERT INTO analysis_fields(analysis_name, field_name, analysis_display_name, field_description, json_path, data_type, curator, datestamp) VALUES ('snpit', 'sublineage', 'snpit', 'Sublineage detected by the snpit assay', '$.snpit_sublineage', 'text', 1, (SELECT CURRENT_DATE));
 
 --hsp65
-INSERT INTO analysis_fields(analysis_name, field_name, analysis_display_name, field_description, json_path, data_type, curator, datestamp) VALUES ('hsp65', 'species', '', 'Species detected by the hsp65 assay', '$.loci[*].Species', 'text', 1, (SELECT CURRENT_DATE));
+INSERT INTO analysis_fields(analysis_name, field_name, analysis_display_name, field_description, json_path, data_type, curator, datestamp) VALUES ('hsp65', 'species', 'hsp65', 'Species detected by the hsp65 assay', '$.loci[*].Species', 'text', 1, (SELECT CURRENT_DATE));
 
 --NCBI 16S
 INSERT INTO analysis_fields(analysis_name, field_name, analysis_display_name, field_description, json_path, data_type, curator, datestamp) VALUES ('NCBI_16S', 'species', 'NCBI 16S', 'Species detected by the NCBI 16S assay', '$.loci[*].Species', 'text', 1, (SELECT CURRENT_DATE));
@@ -153,6 +153,13 @@ INSERT INTO analysis_fields(analysis_name, field_name, analysis_display_name, fi
 INSERT INTO analysis_fields(analysis_name, field_name, analysis_display_name, field_description, json_path, data_type, curator, datestamp) VALUES ('AMR_detection', 'Phenotype Para-aminosalicylic acid', 'AMR detection', 'R, R (int.), S, S (int.)', '$.amr_pheno_PAS', 'text', 1, (SELECT CURRENT_DATE));
 INSERT INTO analysis_fields(analysis_name, field_name, analysis_display_name, field_description, json_path, data_type, curator, datestamp) VALUES ('AMR_detection', 'Phenotype Pretomanid', 'AMR detection', 'R, R (int.), S, S (int.)', '$.amr_pheno_PRT', 'text', 1, (SELECT CURRENT_DATE));
 INSERT INTO analysis_fields(analysis_name, field_name, analysis_display_name, field_description, json_path, data_type, curator, datestamp) VALUES ('AMR_detection', 'Phenotype Rifabutin', 'AMR detection', 'R, R (int.), S, S (int.)', '$.amr_pheno_RBT', 'text', 1, (SELECT CURRENT_DATE));
+
+--rMLST identification
+INSERT INTO analysis_fields(analysis_name, field_name, analysis_display_name, field_description, json_path, data_type, curator, datestamp) VALUES ('rMLST', 'genus', 'rMLST', 'Genus according to rMLST', '$.rmlst_genus', 'text', 1, (SELECT CURRENT_DATE));
+INSERT INTO analysis_fields(analysis_name, field_name, analysis_display_name, field_description, json_path, data_type, curator, datestamp) VALUES ('rMLST', 'species', 'rMLST', 'Species according to rMLST', '$.rmlst_species', 'text', 1, (SELECT CURRENT_DATE));
+INSERT INTO analysis_fields(analysis_name, field_name, analysis_display_name, field_description, json_path, data_type, curator, datestamp) VALUES ('rMLST', 'subspecies', 'rMLST', 'Subspecies according to rMLST', '$.rmlst_subspecies', 'text', 1, (SELECT CURRENT_DATE));
+INSERT INTO analysis_fields(analysis_name, field_name, analysis_display_name, field_description, json_path, data_type, curator, datestamp) VALUES ('rMLST', 'lineage', 'rMLST', 'Lineage according to rMLST', '$.rmlst_lineage', 'text', 1, (SELECT CURRENT_DATE));
+INSERT INTO analysis_fields(analysis_name, field_name, analysis_display_name, field_description, json_path, data_type, curator, datestamp) VALUES ('rMLST', 'sublineage', 'rMLST', 'Sublineage according to rMLST', '$.rmlst_sublineage', 'text', 1, (SELECT CURRENT_DATE));
 
 --clustering
 INSERT INTO eav_fields(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('cgMLST_differences_0-5', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
