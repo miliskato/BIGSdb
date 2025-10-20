@@ -593,6 +593,12 @@ sub print_page {
 		}
 		$page_attributes{'setOptions'} = $set_options;
 		$self->_rewrite_page;
+
+		# Mark query pages as no-cache so dashboard panels reflect latest DB changes
+		# (moved here so any page rewrites are taken into account)
+		if ( defined $classes{ $self->{'page'} } && $classes{ $self->{'page'} } eq $query_page ) {
+			$page_attributes{'noCache'} = 1;
+		}
 		$page = "BIGSdb::$classes{$self->{'page'}}"->new(%page_attributes);
 	} else {
 		$page_attributes{'error'} = 'unknown';
