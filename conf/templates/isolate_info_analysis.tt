@@ -1,6 +1,20 @@
 [% # Default analysis output template file for isolate information page. %]
 [% # Override this by putting a new template in /etc/bigsdb/dbases/<instance>/templates. %]
 
+<style>
+
+table.nice { text-align:center; border-collapse:separate; margin-bottom:0.75em }
+table.nice th { background:#2f4f6f; color:#fff; padding:4px 6px; font-weight:600 }
+table.nice td { padding:4px 6px }
+table.nice tr:nth-child(n+3){ background:#E4EFF3 }
+table.nice tr:nth-child(2n+3){ background:#C1E6F3 }
+table.nice td:first-child { max-width:50ch; overflow-wrap:anywhere }
+
+.indented-hera h3 { margin-left: 3em; }
+.indented-hera h4 { margin-left: 3.5em; }
+.indented-hera div{ margin-left: 4em; }
+</style>
+
 [% INCLUDE isolate_info_rmlst_species.tt %]
 [% INCLUDE isolate_info_kleborate.tt %]
 [% INCLUDE isolate_info_amrfinder.tt %]
@@ -11,3 +25,10 @@
 [% INCLUDE isolate_info_rmlst_identification.tt %]
 [% INCLUDE isolate_info_mykrobe.tt %]
 [% INCLUDE isolate_info_virulence_detection.tt %]
+[% INCLUDE isolate_info_ncbi16s.tt %]
+[% INCLUDE isolate_info_snpit.tt %]
+[% INCLUDE isolate_info_hsp65.tt %]
+[% INCLUDE isolate_info_51snp.tt %]
+[% INCLUDE isolate_info_spoligotyping.tt %]
+[% INCLUDE isolate_info_snplineage.tt %]
+[% INCLUDE isolate_info_amr_detection.tt %]

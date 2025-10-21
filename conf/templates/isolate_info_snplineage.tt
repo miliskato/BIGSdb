@@ -1,0 +1,41 @@
+[% # Template file for outputting formatted SNP lineage analysis results in the isolate information page. %]
+[% IF SNP_lineage %]
+
+<div class="indented-hera">
+<h3>SNP lineage</h3>
+
+<div class="scrollable">
+
+<table class="data nice">
+    <tr>
+        <th>Predicted lineage</th>
+        <th>Full name</th>
+        <th>RDS</th>
+        <th>supporting SNPs</th>
+    </tr>
+
+    <tr>
+        <td colspan="4"><a href="[% SNP_lineage.results.report_link %]" target="_blank">Full report</a></td>
+    </tr>
+
+    [% FOREACH key IN SNP_lineage.results.detected_lineage_by_level.keys.sort %]
+        [% hit = SNP_lineage.results.detected_lineage_by_level.$key %]
+        [% IF hit %]
+            <tr>
+                <td>[% hit.lineage.id_ %]</td>
+                <td>[% hit.lineage.name %]</td>
+                <td>[% hit.lineage.main_spoligo %]</td>
+                <td>[% hit.count %]</td>
+            </tr>
+        [% END %]
+    [% END %]
+
+</table>
+</div>
+
+<br>
+<div class="scrollable">
+  <strong style="color: #404080;">Detected lineage:</strong> [% SNP_lineage.results.detected_lineage %]
+</div>
+</div>
+[% END %]

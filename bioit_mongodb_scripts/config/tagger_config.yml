@@ -30,6 +30,12 @@ listeria:
 mycobacterium:
   SNP lineage: snp-lineage
   rMLST taxonomic identification: rmlst
+  51 SNP-based: 51snp
+  Snpit: snpit
+  NCBI-16S: ncbi-16s
+  hsp65-based differentiation: hsp65
+  Spoligotyping (SpoTyping 2.1): spoligotyping
+  AMR detection: amr-detection
 neisseria:
   AMRFinder (AMRFinder 3.11.26): amrfinder
   AMRFinder (AMRFinder 4.0.19): amrfinder

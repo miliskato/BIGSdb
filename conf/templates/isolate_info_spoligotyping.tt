@@ -1,0 +1,29 @@
+[% # Template file for outputting formatted snpit analysis results in the isolate information page. %]
+[% IF Spoligotyping %]
+
+<div class="indented-hera">
+<h3>Spoligotyping</h3>
+
+<div class="scrollable">
+
+<table class="data nice">
+    <tr>
+        <th>Binary</th>
+        <th>Octal</th>
+        <th>SIT number</th>
+        <th>Label</th>
+    </tr>
+
+    <tr>
+        <td colspan="4"><a href="[% Spoligotyping.results.report_link %]" target="_blank">Full report</a></td>
+    </tr>
+    <tr>
+        <td>[% Spoligotyping.results.spoligotype_binary %]</td>
+        <td>[% Spoligotyping.results.spoligotype_octal %]</td>
+        <td>[% Spoligotyping.results.sit_number %]</td>
+        <td>[% Spoligotyping.results.spoligotype_label %]</td>
+     </tr>
+</table>
+</div>
+</div>
+[% END %]

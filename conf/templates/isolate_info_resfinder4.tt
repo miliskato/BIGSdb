@@ -1,26 +1,10 @@
 [% # Template file for outputting formatted ResFinder4 analysis in the isolate information page. %]
-<style>
-    table.nice {
-        text-align: center;
-        border-collapse: separate;
-    }
-    table.nice th, table.nice td {
-        padding: 2px 6px; /* Adds padding inside cells (top/bottom, left/right) */
-    }
-    table.nice td:first-child {
-        max-width: 50ch;
-        overflow-wrap: anywhere;
-    }
-    table.nice tr:nth-child(n+3) {
-        background: #E4EFF3;
-    }
-    table.nice tr:nth-child(2n+3) {
-        background: #C1E6F3;
-    }
-</style>
 
 [% IF ResFinder4 %]
+<br>
+<div class="indented-hera">
 <h3>ResFinder4</h3>
+<h4>ResFinder4 - Overview</h4>
 <div class="scrollable">
 <table class="data nice">
     <tr>
@@ -44,10 +28,12 @@
     [% END %]
 </table>
 </div>
+</div>
 [% END %]
 
 [% IF ResFinder4.results.resfinder4_mutations AND ResFinder4.results.resfinder4_mutations != '-' %]
-<h3>ResFinder4 mutations</h3>
+<div class="indented-hera">
+<h4>ResFinder4 - Mutations</h4>
 <div class="scrollable">
 <table class="data nice">
     <tr>
@@ -62,4 +48,6 @@
     [% END %]
 </table>
 </div>
+</div>
+<br>
 [% END %]

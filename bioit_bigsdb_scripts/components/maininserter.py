@@ -127,30 +127,7 @@ class MainInserter(JsonSuperClass):
         Insert species specific metadata
         :return: None
         """
-        if self._species == 'mycobacterium':
-            # json input (only this way in json output)
-            if '51_snp' in self._json_report_dict:
-                self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'gyrB_group', self._json_report_dict['51_snp']['51SNP-gyrB_group']))
-                self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'Genetic_group', self._json_report_dict['51_snp']['51SNP-genetic_group']))
-                self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'SCG', self._json_report_dict['51_snp']['51SNP-scg']))
-            # json input
-            if 'snpit' in self._json_report_dict:
-                self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'snpit_species', self._json_report_dict['snpit']['snpit_species']))
-                self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'snpit_lineage', self._json_report_dict['snpit']['snpit_lineage']))
-                self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'snpit_sublineage', self._json_report_dict['snpit']['snpit_sublineage']))
-                self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'snpit_percent_matched', self._json_report_dict['snpit']['snpit_percent_matched']))
-            if 'snplineage' in self._json_report_dict:
-                lineage_dict = self._json_report_dict['snplineage']['detected_lineage_by_level']
-                lineage_clean = {k: v for k, v in lineage_dict.items() if v is not None}
-                deeper_sublineage = list(lineage_clean.values())[-1]
-                self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'detected_lineage', deeper_sublineage['lineage']['id_']))
-                lineage_html_builder = HtmlSnpLineageTableBuilder(f'{context.report_url}#snp-lineage')
-                for v in lineage_clean.values():
-                    lineage_html_builder.add_lineage(v['lineage']['id_'], v['lineage']['name'], v['lineage']['main_spoligo'], v['count'])
-                html = lineage_html_builder.build()
-                self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'snp_lineage_table', html))
-
-        elif self._species == 'neisseria':
+        if self._species == 'neisseria':
             # json input
             if 'serogroup' in self._json_report_dict:
                 self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'Serogroup_legacy', self._json_report_dict['serogroup']['serogroup_legacy']))

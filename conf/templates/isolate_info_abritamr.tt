@@ -2,26 +2,8 @@
 [% IF AbritAMR %]
 <h3>AbritAMR</h3>
 
+<div class="indented-hera">
 <div class="scrollable">
-<style>
-    table.nice {
-        text-align: center;
-        border-collapse: separate;
-    }
-    table.nice th, table.nice td {
-        padding: 2px 6px; /* Adds padding inside cells (top/bottom, left/right) */
-    }
-    table.nice td:first-child {
-        max-width: 50ch;
-        overflow-wrap: anywhere;
-    }
-    table.nice tr:nth-child(n+3) {
-        background: #E4EFF3;
-    }
-    table.nice tr:nth-child(2n+3) {
-        background: #C1E6F3;
-    }
-</style>
 
 <table class="data nice">
     <tr>
@@ -120,5 +102,6 @@
         <td>[% AbritAMR.results.abritamr_Other_Interpretation %]</td>
     </tr>
 </table>
+</div>
 </div>
 [% END %]

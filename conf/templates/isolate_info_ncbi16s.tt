@@ -1,0 +1,30 @@
+[% # Template file for outputting formatted NCBI-16S analysis results in the isolate information page. %]
+[% IF NCBI_16S %]
+
+<div class="indented-hera">
+<h3>NCBI-16S</h3>
+
+<div class="scrollable">
+
+<table class="data nice">
+    <tr>
+        <th>Species</th>
+        <th>%Identity</th>
+        <th>HSP/Locus length</th>
+    </tr>
+
+    <tr>
+        <td colspan="3"><a href="[% NCBI_16S.results.report_link %]" target="_blank">Full report</a></td>
+    </tr>
+
+    [% FOREACH hit IN NCBI_16S.results.loci %]
+    <tr>
+        <td>[% hit.Species.split(',').0 %]</td>
+        <td>[% hit.percent_Identity %]</td>
+        <td>[% hit.item('HSP/Locus_length') %]</td>
+     </tr>
+    [% END %]
+</table>
+</div>
+</div>
+[% END %]

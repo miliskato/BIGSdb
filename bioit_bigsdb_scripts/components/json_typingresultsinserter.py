@@ -1,14 +1,11 @@
 import logging
-import re
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional, Tuple, Union
+from typing import Any, Dict, List, Literal, Optional, Union
 
 from bioit_mongodb_scripts.model.json_model import JsonReportDict
 from .json_superclass import JsonSuperClass
-from .psql import TblAlleleDesignations, TblEavBoolean, TblEavFields, TblEavFloat, TblEavText, TblHistory, TblIsolates, TblSchemeMembers
-from ..utils.html_tbl_templates import HtmlMobSuiteTableBuilder
+from .psql import TblAlleleDesignations, TblEavText, TblHistory, TblIsolates
 from ..utils.literal_helper import validate_literal
-from ..utils.url_helper import UrlHelper
 
 ModeLiteral = Literal['kmer', 'kmerread', 'allele']
 ModeValue = Union[ModeLiteral, str]
@@ -106,7 +103,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
 
     def _process_mob_suite(self) -> None:
         """
-        Insert MOB-Suite results into the analysis_results table of BIGSdb.
+        Inserts MOB-Suite results into the analysis_results table of BIGSdb.
         :return: None
         """
         plasmid_list = self._json_report_dict['mob_suite'].get('mob_suite_overview')
@@ -132,94 +129,29 @@ class JsonTypingResultsInserter(JsonSuperClass):
             for index, allele_id in enumerate(self._json_report_dict[self._scheme]['spoligotype_binary'], 1):
                 locus = ''.join(['Spacer', str(index).zfill(2)])
                 self._isolates_ad_psql_tbl.insert_designation_by_isolatename((locus, self._isolatename, str(allele_id)))
-            self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'spoligotype_binary',
-                                                             self._json_report_dict[self._scheme][
-                                                                 'spoligotype_binary']))
-            self._isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, 'spoligotype_octal',
-                                                             self._json_report_dict[self._scheme][
-                                                                 'spoligotype_octal']))
+            self._insert_analysis_results(self.__get_isolate_id(), self._scheme, self._schemedict[self._scheme])
         elif self._scheme == 'csb_rd':
             for record in ['csb_detected', 'RD1_detected', 'RD9_detected']:
                 locus = record.rstrip(
                     '_detected')  # need to be careful with rstrip and strip but in this case no issue
                 allele_id = '1' if self._json_report_dict[self._scheme][record] else '0'
                 self._isolates_ad_psql_tbl.insert_designation_by_isolatename((locus, self._isolatename, allele_id))
-        elif self._scheme == 'amr_detection':
-            # make a dict with field and tsv names to be able to insert
-            with TblEavFields(self._species) as isolates_eavf_psql_tbl:
-                fields = isolates_eavf_psql_tbl.select_fields_amr()
-            amr_metadata_fields = {}
-            for field in fields:
-                if field[0].startswith('amr'):
-                    amr_metadata_fields[field[0]] = field[0]
-                else:
-                    amr_metadata_fields[field[0]] = ''.join(['amr_pheno_', field[0].split('_')[-1]])
-            for bigsdbname, jsonname in amr_metadata_fields.items():
-                print(self._json_report_dict[self._scheme])
-                self._isolates_eavt_psql_tbl.insert_eav_isolate(
-                    (self._isolatename, bigsdbname, self._json_report_dict[self._scheme][jsonname]))
-            # AMR results
-            with TblSchemeMembers(self._species, 'isolates') as isolates_schememembers_psql_tbl:
-                amr_loci = isolates_schememembers_psql_tbl.select_loci_amr()
-            for locus in amr_loci:
-                jsonname = '_'.join(['amr_mutations', str(locus[0]).replace('_int', '_(int.)')])
-                if self._json_report_dict[self._scheme][jsonname] != '-':
-                    variantsset = set()
-                    for variant in self._json_report_dict[self._scheme][jsonname].split(', '):
-                        variantreformatted = re.sub('[(]|[)]', '_', variant)
-                        # Bert explained that if the change is found in promotor, then it can change signs
-                        # And also honestly the db is really discrepant, e.g. how likely is this:
-                        # Rv1979c AA G_107_A Rv1979c_AA_G_107_A Uncertain significance CFZ CFZ_Uncertain_significance
-                        # Rv1979c PROM g_-107_a Rv1979c_PROM_g_-107_a Uncertain significance CFZ CFZ_Uncertain_significance
-                        # + there are really just duplicates in the db so I limit to 1, then it's always the same.
-                        # Sometimes not only the sign changes when it's in a promotor, but also the location,
-                        # easiest solution is just to insert after it is found.
-                        self._insert_dummy_sequence_if_needed(locus[0], variantreformatted)
-                        if variantreformatted not in variantsset:
-                            self._isolates_ad_psql_tbl.insert_designation_by_isolatename(
-                                (locus[0], self._isolatename, variantreformatted))
-                            variantsset.add(variantreformatted)
-        elif self._scheme == 'hsp65':
+        elif self._scheme == 'hsp65' or self._scheme == 'ncbi_16s':
             if len(self._json_report_dict[self._scheme]['loci']) != 0:
-                species_set = set()
-                with TblEavFields(self._species) as isolates_eavf_psql_tbl, TblEavBoolean(self._species) as isolates_eavb_psql_tbl:
-                    for locus in self._json_report_dict[self._scheme]['loci']:
-                        hit = '_'.join(['hsp65', locus['Species'].strip('"').replace(' ', '_').replace('.', '')])
-                        if hit not in species_set:
-                            if not (isolates_eavf_psql_tbl.exists_in_eav_field((hit, 'hsp65'))):
-                                isolates_eavf_psql_tbl.insert_boolean_field((hit,'hsp65'))
-                            isolates_eavb_psql_tbl.insert_eav_isolate((self._isolatename, hit, 't'))
-                            species_set.add(hit)
-        elif self._scheme == 'ncbi_16s':
-            # ncbi 16s contains duplicate species
-            """
-            looks like this in json: 
-            [{"DB_cluster": "Cluster_24", "Locus": "NR_114860.1", "% Identity": "95.50", 
-              "HSP/Locus length": "999/1077", "Contig": "NODE_353_length_1859_cov_4.154734", 
-              "Position in contig": "862..1859", 
-              "Species": "Mycobacterium peregrinum strain ATCC 14467 16S ribosomal RNA gene, partial sequence", 
-              "Accession": "NR_114860.1"}]
-            """
-            speciesandstrainhits = set()
-            if len(self._json_report_dict[self._scheme]['loci']) != 0:
-                for hit in self._json_report_dict[self._scheme]['loci']:
-                    speciesname = '_'.join([hit['Species'].split(' ')[0], hit['Species'].split(' ')[1]])
-                    if speciesname not in speciesandstrainhits:
-                        speciesandstrainhits.add(speciesname)
-                    strainname = '_'.join(
-                        [hit['Species'].split(' ')[0], hit['Species'].split(' ')[1], hit['Species'].split(' ')[2],
-                         hit['Species'].split(' ')[3]])
-                    if strainname not in speciesandstrainhits:
-                        speciesandstrainhits.add(strainname)
-            with TblEavBoolean(self._species) as isolates_eavb_psql_tbl:
-                for hit in speciesandstrainhits:
-                    hit_formatted = '_'.join(['ncbi16s', hit])
-                    # check whether already exists in eav
-                    with TblEavFields(self._species) as isolates_eavf_psql_tbl:
-                        eav_exists = isolates_eavf_psql_tbl.select_count_16s((hit_formatted,))
-                        if eav_exists[0][0] == 0:
-                            isolates_eavf_psql_tbl.insert_fields_16s((hit_formatted,))
-                    isolates_eavb_psql_tbl.insert_eav_isolate((self._isolatename, hit_formatted, 't'))
+                self._insert_analysis_results(self.__get_isolate_id(), self._scheme, self._schemedict[self._scheme])
+        elif self._scheme in ['amr_detection', 'snpit']:
+            self._insert_analysis_results(self.__get_isolate_id(), self._scheme, self._schemedict[self._scheme])
+        elif self._scheme == '51_snp':
+            snp_section = self._json_report_dict[self._scheme]
+            keys_to_rename = [key for key in list(snp_section.keys()) if key.startswith('51SNP-')]
+            for old_key in keys_to_rename:
+                new_key = old_key.replace('51SNP-', '')
+                snp_section[new_key] = snp_section.pop(old_key)
+            self._insert_analysis_results(self.__get_isolate_id(), self._scheme, self._schemedict[self._scheme])
+        elif self._scheme == 'snplineage':
+            snp_lineages = self._json_report_dict[self._scheme]['snp_lineages']
+            self._json_report_dict[self._scheme]['detected_lineage'] = snp_lineages.split(', ')[-1]
+            self._insert_analysis_results(self.__get_isolate_id(), self._scheme, self._schemedict[self._scheme])
 
     def __process_irregular_typing_scheme_neisseria_specific(self) -> None:
         """
