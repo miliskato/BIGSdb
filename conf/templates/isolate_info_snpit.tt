@@ -1,27 +1,10 @@
 [% # Template file for outputting formatted snpit analysis results in the isolate information page. %]
 [% IF snpit %]
+
+<div class="indented-hera">
 <h3>snpit</h3>
 
 <div class="scrollable">
-<style>
-    table.nice {
-        text-align: center;
-        border-collapse: separate;
-    }
-    table.nice th, table.nice td {
-        padding: 2px 6px; /* Adds padding inside cells (top/bottom, left/right) */
-    }
-    table.nice td:first-child {
-        max-width: 50ch;
-        overflow-wrap: anywhere;
-    }
-    table.nice tr:nth-child(n+3) {
-        background: #E4EFF3;
-    }
-    table.nice tr:nth-child(2n+3) {
-        background: #C1E6F3;
-    }
-</style>
 
 <table class="data nice">
     <tr>
@@ -41,5 +24,6 @@
         <td>[% snpit.results.snpit_percent_matched %]</td>
      </tr>
 </table>
+</div>
 </div>
 [% END %]
