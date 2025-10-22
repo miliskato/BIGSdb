@@ -1,0 +1,11 @@
+[% # Template file for outputting formatted gMATS analysis results in the isolate information page. %]
+[% IF gMATS %]
+<div class="indented-hera">
+<h3>gMATS</h3>
+
+<div class="scrollable">
+    <strong style="color: #404080;">gMATS status:</strong> [% gMATS.results.gmats_status %]
+</div>
+</div>
+<br>
+[% END %]

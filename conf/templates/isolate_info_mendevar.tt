@@ -1,0 +1,20 @@
+[% # Template file for outputting formatted MenDeVAR analysis results in the isolate information page. %]
+[% IF MenDeVAR %]
+<div class="indented-hera">
+<h3>MenDeVAR indexes</h3>
+
+<div class="scrollable">
+  [% IF MenDeVAR.results.mendevar_bexsero_status %]
+    <strong style="color: #404080;">Bexsero status:</strong> [% MenDeVAR.results.mendevar_bexsero_status %]
+  [% END %]
+  [% IF MenDeVAR.results.mendevar_bexsero_status && MenDeVAR.results.mendevar_trumenba_status %]
+    <br>
+    <br>
+  [% END %]
+  [% IF MenDeVAR.results.mendevar_trumenba_status %]
+    <strong style="color: #404080;">Trumenba status:</strong> [% MenDeVAR.results.mendevar_trumenba_status %]
+  [% END %]
+</div>
+</div>
+<br>
+[% END %]

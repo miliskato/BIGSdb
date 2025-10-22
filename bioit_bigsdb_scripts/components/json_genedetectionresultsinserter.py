@@ -60,9 +60,6 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                 if self._json_report_dict[scheme]['lrefinder_genes'][0].get('Gene') == 'Unknown':
                     continue
                 list_of_hits = self._json_report_dict['lrefinder']['lrefinder_genes']
-            #elif scheme.endswith('vfdb_core') or scheme.endswith('virulencefinder'):
-                # TODO adapt -> what to do with the reportlink?
-            #    continue
             else:
                 list_of_hits = self._json_report_dict[scheme]['loci'] # also for virulencefinder and vfdb-core
 

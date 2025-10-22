@@ -32,3 +32,5 @@ table.nice td:first-child { max-width:50ch; overflow-wrap:anywhere }
 [% INCLUDE isolate_info_spoligotyping.tt %]
 [% INCLUDE isolate_info_snplineage.tt %]
 [% INCLUDE isolate_info_amr_detection.tt %]
+[% INCLUDE isolate_info_gmats.tt %]
+[% INCLUDE isolate_info_mendevar.tt %]

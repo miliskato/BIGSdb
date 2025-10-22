@@ -529,8 +529,12 @@ species_json:
         schemename_bigsdb: serogroup_capsule
       gmats:
         type: irregular
+        schemename_bigsdb: gMATS
+        schemename_html: gmats
       mendevar:
         type: irregular
+        schemename_bigsdb: MenDeVAR
+        schemename_html: mendevar
       rmlst_identification:
         type: irregular
         schemename_bigsdb: rMLST

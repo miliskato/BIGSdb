@@ -165,17 +165,12 @@ class JsonTypingResultsInserter(JsonSuperClass):
                 self._insert_dummy_sequence_if_needed(f'{scheme}_{gene}', '1')
                 self._isolates_ad_psql_tbl.insert_designation_by_isolatename((f'{scheme}_{gene}', self._isolatename, '1'))
         elif self._scheme == 'gmats' and self._json_report_dict['gmats']['gmats_status'] != "":
-            with TblEavText(self._species) as isolates_eav_psql_tbl:
-                clean_gmat_status = self._json_report_dict['gmats']['gmats_status'].replace('_', ' ')
-                isolates_eav_psql_tbl.insert_eav_isolate((self._isolatename, 'gMATS status', clean_gmat_status))
+            self._insert_analysis_results(self.__get_isolate_id(), self._scheme, self._schemedict[self._scheme])
         elif self._scheme == 'mendevar':
             bexsero_status = self._json_report_dict['mendevar'].get('mendevar_bexsero_status')
             trumenba_status = self._json_report_dict['mendevar'].get('mendevar_trumenba_status')
-            with TblEavText(self._species) as isolates_eav_psql_tbl:
-                if bexsero_status:
-                    isolates_eav_psql_tbl.insert_eav_isolate((self._isolatename, 'MenDeVar Bexsero status', bexsero_status.replace('_', ' ')))
-                if trumenba_status:
-                    isolates_eav_psql_tbl.insert_eav_isolate((self._isolatename, 'MenDeVar Trumenba status', trumenba_status.replace('_', ' ')))
+            if bexsero_status or trumenba_status:
+                self._insert_analysis_results(self.__get_isolate_id(), self._scheme, self._schemedict[self._scheme])
 
     def __process_irregular_typing_scheme_salmonella_specific(self) -> None:
         """
