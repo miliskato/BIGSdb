@@ -1138,7 +1138,18 @@ sub _get_analysis {
 	foreach my $module (@$analysis) {
 		$data->{ $module->{'name'} } = {
 			datestamp => $module->{'datestamp'},
-			results   => decode_json( $module->{'results'} )
+            results => do {
+                my $r = {};
+                if ( defined $module->{'results'} && length $module->{'results'} ) {
+                    eval { $r = decode_json( $module->{'results'} ) };
+                    if ( my $err = $@ ) {
+                        $logger->error("Failed to decode JSON in `analysis_results.results` for module '$module->{name}': $err")
+                          if defined $logger;
+                        $r = {};
+                    }
+                }
+                $r;
+            }
 		};
 	}
 	my $template = Template->new(
