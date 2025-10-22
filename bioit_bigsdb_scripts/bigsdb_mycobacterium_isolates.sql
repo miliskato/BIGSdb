@@ -162,8 +162,6 @@ INSERT INTO analysis_fields(analysis_name, field_name, analysis_display_name, fi
 INSERT INTO analysis_fields(analysis_name, field_name, analysis_display_name, field_description, json_path, data_type, curator, datestamp) VALUES ('rMLST', 'sublineage', 'rMLST', 'Sublineage according to rMLST', '$.rmlst_sublineage', 'text', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
 
 --clustering
-INSERT INTO eav_fields(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('cgMLST_differences_0-5', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
-INSERT INTO eav_fields(field, value_format, description, no_curate, no_submissions, datestamp, curator) VALUES('cgMLST_differences_0-12', 'text', '', 't', 't', (SELECT CURRENT_DATE), 1) ON CONFLICT DO NOTHING;
 INSERT INTO classification_schemes(id, scheme_id, name, description, inclusion_threshold, use_relative_threshold, seqdef_cscheme_id, display_order, status, curator, datestamp) VALUES(1, (SELECT id FROM schemes WHERE name = 'cgMLST'), 'cgMLST_5_diffs_clustering', 'cgMLST profiles clustering at the threshold of 5 allelic differences', 5, false, 1, 1, 'experimental', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
 INSERT INTO classification_schemes(id, scheme_id, name, description, inclusion_threshold, use_relative_threshold, seqdef_cscheme_id, display_order, status, curator, datestamp) VALUES(2, (SELECT id FROM schemes WHERE name = 'cgMLST'), 'cgMLST_12_diffs_clustering', 'cgMLST profiles clustering at the threshold of 12 allelic differences', 12, false, 2, 2, 'experimental', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
 
