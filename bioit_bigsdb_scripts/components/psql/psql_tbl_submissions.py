@@ -10,6 +10,7 @@ QualityValues = Union[QualityLiteral, str]
 ResequencingLiteral = Literal['yes', 'no']
 ResequencingValues = Union[ResequencingLiteral, str]
 
+
 class TblSubmissions(DatabaseConnection):
     """
     submissions table in the isolates database
@@ -52,6 +53,14 @@ class TblSubmissions(DatabaseConnection):
         """
         self.execute_query(PsqlQueries.ISO_UPD_STATUS_TB_SUB_VAR_ID, param)
 
+    def set_submission_status(self, param: Tuple[str, str]) -> None:
+        """
+        Updates the status of a specified submission with the provided value.
+        :param param: status value and submission id
+        :return: None
+        """
+        self.execute_query(PsqlQueries.ISO_UPD_OUTCOME_TB_SUB_VAR_ID, param)
+
     def get_submission_id_from_bigs_upload(self) -> List[Tuple[str]]:
         """
         Select submission ids submitted through bigsDB interface with status closed
@@ -59,12 +68,18 @@ class TblSubmissions(DatabaseConnection):
         """
         return self.execute(PsqlQueries.ISO_SEL_ID_TB_SUB_VAR_STATUS)
 
-    def get_submission_ids_for_validated_warningqcs(self) -> List[Tuple[str]]:
+    def get_submission_ids_batch_validated(self) -> List[Tuple[str]]:
         """
-        Select submission ids for warningqc where status is closed and outcome is good
+        Select submission ids for genomic results that were positively validated using the batch validation system
         :return: List of corresponding submissions ids
         """
-        return self.execute(PsqlQueries.ISO_SEL_SUBID_TB_SUB_VAR_)
+        return self.execute(PsqlQueries.ISO_SEL_SUBID_OUT_GOOD_TB_SUB_VAR_)
+
+    def close_batch_rejected_submissions(self) -> None:
+        """
+        Set the status of submissions rejected by batch to "closed"
+        """
+        self.execute(PsqlQueries.ISO_UPD_STATUS_TB_SUB_VAR_)
 
     def get_submission_ids_for_specific_status_and_quality(self, param: Tuple[str, str]) -> List[Tuple[str]]:
         """
@@ -79,7 +94,7 @@ class TblSubmissions(DatabaseConnection):
         This function will set outcome of all submitted warningqcs to "good" and turn status from "pending" to "closed"
         :return: None
         """
-        return self.execute(PsqlQueries.ISO_UPD_STATUS_OUTCOME_TB_SUB_VAR_)
+        self.execute(PsqlQueries.ISO_UPD_STATUS_OUTCOME_TB_SUB_VAR_)
 
     def validate_submission(self, param: Tuple[str]) -> None:
         """
