@@ -38,4 +38,5 @@
   <strong style="color: #404080;">Detected lineage:</strong> [% SNP_lineage.results.detected_lineage %]
 </div>
 </div>
+<br>
 [% END %]

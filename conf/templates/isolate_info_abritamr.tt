@@ -1,8 +1,9 @@
 [% # Template file for outputting formatted AMRFinder analysis in the isolate information page. %]
 [% IF AbritAMR %]
-<h3>AbritAMR</h3>
 
 <div class="indented-hera">
+<h3>AbritAMR</h3>
+
 <div class="scrollable">
 
 <table class="data nice">
@@ -104,4 +105,5 @@
 </table>
 </div>
 </div>
+<br>
 [% END %]
