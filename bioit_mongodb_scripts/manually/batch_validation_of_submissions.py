@@ -31,36 +31,39 @@ class BatchValidationToMongo:
     This class handles validation/insertion in mongoDB of warningqcs already pushed in BIGSdb submissions table.
     """
 
-    def __init__(self, species: str, accept_all: bool) -> None:
+    def __init__(self, species: str) -> None:
         """
         Initialises the class and runs the main function
         :param species: commonly used bioit species name.
-        :param accept_all: yes/no: if "yes", all warningqcs still pending for validation in BIGSdb will be accepted.
         :return: None
         """
         self._species = species
-        self._accept_all = accept_all
 
         try:
-            self._validate_pending_submission_for_warningqc()
+            self._validate_pending_submission_after_batch_validation()
         except Exception as exceptionmessage:
             send_email(f"{exceptionmessage}\n{traceback.format_exc()}",
                        f"{Path(__file__).name} fail on host {socket.gethostname()}")
             raise Exception(f"{exceptionmessage}\n{traceback.format_exc()}")
 
-    def _validate_pending_submission_for_warningqc(self) -> None:
+    def _validate_pending_submission_after_batch_validation(self) -> None:
         """
-        Method to validate either all the isolates with a warning quality pending for validation in BIGSdb submission
-        table, or only those with status and outcome already set to "good" and "closed" by another process.
+        Method to handle submissions that were validated/rejected by batch in BIGSdb.
+        The rejected submissions will be closed and the accepted ones will be processed for insertion in BIGSdb.
         :return: None
         """
         with TblSubmissions(species=self._species) as isolates_submissions_psql_tbl:
-            if self._accept_all:
-                isolates_submissions_psql_tbl.validate_pending_warningqcs()
-            submission_ids = list(isolates_submissions_psql_tbl.get_submission_ids_for_validated_warningqcs())
 
-        for sub_id in submission_ids:
-            SampleValidationToMongo(self._species, sub_id=int(sub_id[0]))
+            isolates_submissions_psql_tbl.close_batch_rejected_submissions()
+            accepted_submission_ids = list(isolates_submissions_psql_tbl.get_submission_ids_batch_validated())
+
+            for sub_id in accepted_submission_ids:
+                isolates_submissions_psql_tbl.set_submission_status(('closed', sub_id[0]))
+                try:
+                    SampleValidationToMongo(self._species, sub_id=int(sub_id[0]))
+                except Exception as e:
+                    logging.error(f"Error processing submission ID {sub_id[0]}: {e}")
+                    isolates_submissions_psql_tbl.set_submission_status(('failed_insertion', sub_id[0]))
 
 
 if __name__ == '__main__':
@@ -74,4 +77,4 @@ if __name__ == '__main__':
     args = parse_arguments(list(bigsdb_config_data['species_json']))
 
     # run main
-    BatchValidationToMongo(args.species, args.accept_all)
+    BatchValidationToMongo(args.species)

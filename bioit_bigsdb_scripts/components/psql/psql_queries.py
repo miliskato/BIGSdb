@@ -395,6 +395,8 @@ class PsqlQueries:
         WHERE submissions.status='closed' and isolate_submission_isolates.field='isolate_id' and submissions.id=%s;"""
     ISO_UPD_STATUS_TB_SUB_VAR_ID: Final[str] = """
         UPDATE submissions SET status='validation_sent_to_bioit_platform' WHERE id=%s;"""
+    ISO_UPD_OUTCOME_TB_SUB_VAR_ID: Final[str] = """
+        UPDATE submissions SET status = %s WHERE id=%s;"""
     ISO_INS__TB_SUB_VAR_QUAL_RESEQ: Final[str] = """
         INSERT INTO submissions(id, 
         type, submitter, date_submitted, 
@@ -404,13 +406,15 @@ class PsqlQueries:
         (SELECT CURRENT_DATE), 'pending', true, %s, %s);"""
     ISO_SEL_ID_TB_SUB_VAR_STATUS: Final[str] = """
         SELECT id FROM submissions WHERE outcome = 'good' AND status = 'closed' AND id LIKE 'BIGSdb_%';"""
-    ISO_SEL_SUBID_TB_SUB_VAR_: Final[str] = """
-        SELECT id FROM submissions WHERE outcome = 'good' AND status = 'closed' AND quality = 'warning' AND resequencing = 'no';"""
+    ISO_SEL_SUBID_OUT_GOOD_TB_SUB_VAR_: Final[str] = """
+        SELECT id FROM submissions WHERE outcome = 'good' AND status = 'batch_validated' AND resequencing = 'no';"""
     ISO_SEL_ID_TB_SUB_VAR_STATUS_QUALITY: Final[str] = """
         SELECT id FROM submissions WHERE status = %s AND quality = %s;"""
     ISO_UPD_STATUS_OUTCOME_TB_SUB_VAR_: Final[str] = """
-        UPDATE submissions SET (status, outcome) = ('closed', 'good') WHERE ( quality = 'warning' AND resequencing = 'no' AND OUTCOME IS NULL);"""
+        UPDATE submissions SET (status, outcome) = ('closed', 'good') WHERE ( resequencing = 'no' AND OUTCOME IS NULL);"""
     ISO_UPD_STATUS_OUTCOME_TB_SUB_VAR_SUBID: Final[str] = """
         UPDATE submissions SET (status, outcome, curator) = ('closed', 'good', 1) WHERE id = %s;"""
+    ISO_UPD_STATUS_TB_SUB_VAR_: Final[str] = """
+        UPDATE submissions SET status = 'closed' WHERE ( outcome = 'bad' AND status = 'batch_validated' AND resequencing = 'no');"""
     ISO_INSERT_GENERIC_LAB_METADATA_TEMPLATE: Final[str] = "UPDATE isolates SET {} WHERE isolate=%s;"
 
