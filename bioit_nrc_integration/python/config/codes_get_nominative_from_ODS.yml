@@ -119,7 +119,7 @@ schema:
         - listeria
       translation: pregnancy_outcome
       code_list: CD_PREGY_OUTCM_codes
-#    CD_SUSPC_VEH:  # in main script
+#    CD_SUSPC_VEH:
 #      required:
 #        - listeria
 #      translation:

@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added:
 - Warning reasons to the submissions page
 
+### Changed:
+- Removed suspected vehicle fields Listeria
+
 ## [4.3.0]
 ### Added:
 - Added task in ANSIBLE to remove the first version of the bigsdb-insertion.service (if present on the VM)
