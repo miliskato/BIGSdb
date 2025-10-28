@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added:
 - Warning reasons to the submissions page
 
+### Changed:
+- ONT contamination thresholds for Salmonella
+
+### Fixed:
+- ONT global coverage thresholds
+
 ## [4.3.0]
 ### Added:
 - Added task in ANSIBLE to remove the first version of the bigsdb-insertion.service (if present on the VM)
