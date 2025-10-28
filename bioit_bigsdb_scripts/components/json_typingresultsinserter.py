@@ -92,6 +92,8 @@ class JsonTypingResultsInserter(JsonSuperClass):
             self.__process_irregular_typing_scheme_neisseria_specific()
         elif self._species == 'salmonella':
             self.__process_irregular_typing_scheme_salmonella_specific()
+        elif self._species == 'influenza':
+            self.__process_irregular_typing_scheme_influenza_specific()
 
     def _process_rmlst_identification(self) -> None:
         """
@@ -235,3 +237,26 @@ class JsonTypingResultsInserter(JsonSuperClass):
                 if entry != '-':
                     self._insert_dummy_sequence_if_needed(field, entry)
                     self._isolates_ad_psql_tbl.insert_designation_by_isolatename((field, self._isolatename, entry))
+
+    def __process_irregular_typing_scheme_influenza_specific(self) -> None:
+        """
+        Processes and inserts Influenza results.
+        :return: None
+        """
+        if self._scheme == 'ref_selection':
+            if 'ref_selection' in self._json_report_dict:
+                self._insert_analysis_results(self.__get_isolate_id(), self._scheme, self._schemedict[self._scheme])
+        elif self._scheme == 'nextclade':
+            if 'nextclade' in self._json_report_dict:
+                if self._json_report_dict['nextclade']['nextclade_detected_subtype'] == 'YAM':
+                    nextclade_section = self._json_report_dict[self._scheme]
+                    keys_to_rename = [key for key in list(nextclade_section.keys()) if key not in ['nextclade_detected_subtype', 'nextclade_tool_version']]
+                    for old_key in keys_to_rename:
+                        new_key = old_key.replace('nextclade_', 'nextclade_ha_')
+                        nextclade_section[new_key] = nextclade_section.pop(old_key)
+                self._insert_analysis_results(self.__get_isolate_id(), self._scheme, self._schemedict[self._scheme])
+        elif self._scheme == 'antivirals':
+            if 'antivirals' in self._json_report_dict:
+                antiviral_mutations = self._json_report_dict['antivirals'].get('antivirals_mutations')
+                if antiviral_mutations:
+                    self._insert_analysis_results(self.__get_isolate_id(), self._scheme, self._schemedict[self._scheme])

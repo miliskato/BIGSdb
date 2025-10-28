@@ -3,7 +3,7 @@ from typing import Any, Dict
 from psycopg.types.json import Json
 
 from bioit_mongodb_scripts.model.json_model import JsonReportDict
-from bioit_mongodb_scripts.util.python_utility_functions import normalize_keys
+from bioit_mongodb_scripts.util.python_utility_functions import normalize_keys, sanitize_json_values
 from .psql import TblAlleleDesignations, TblClientDbaseLoci, TblLoci, TblSchemeMembers, TblSequences, TblAnalysisResults
 from ..utils.url_helper import UrlHelper
 
@@ -108,7 +108,8 @@ class JsonSuperClass:
         report_url = UrlHelper.report_for_isolate(self._species, isolate_id, anchor=scheme_config['schemename_html'])
         analysis_dict = self._json_report_dict.get(scheme)
         analysis_dict_normalized = normalize_keys(analysis_dict)
-        analysis_dict_normalized['report_link'] = report_url
+        analysis_dict_sanitized = sanitize_json_values(analysis_dict_normalized)
+        analysis_dict_sanitized['report_link'] = report_url
         with TblAnalysisResults(self._species) as isolates_ana_res_psql_tbl:
             isolates_ana_res_psql_tbl.insert_analysis_results_isolate_name((
-                scheme_config['schemename_bigsdb'], self._isolatename, Json(analysis_dict_normalized)))
+                scheme_config['schemename_bigsdb'], self._isolatename, Json(analysis_dict_sanitized)))

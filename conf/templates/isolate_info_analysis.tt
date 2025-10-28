@@ -13,6 +13,9 @@ table.nice td:first-child { max-width:50ch; overflow-wrap:anywhere }
 .indented-hera h3 { margin-left: 3em; }
 .indented-hera h4 { margin-left: 3.5em; }
 .indented-hera div{ margin-left: 4em; }
+
+.indented-hera-2 h3 { margin-left: 3em; }
+.indented-hera-2 h4 { margin-left: 3.5em; }
 </style>
 
 [% INCLUDE isolate_info_rmlst_species.tt %]
@@ -35,3 +38,6 @@ table.nice td:first-child { max-width:50ch; overflow-wrap:anywhere }
 [% INCLUDE isolate_info_amr_detection.tt %]
 [% INCLUDE isolate_info_gmats.tt %]
 [% INCLUDE isolate_info_mendevar.tt %]
+[% INCLUDE isolate_info_ref_selection.tt %]
+[% INCLUDE isolate_info_nextclade.tt %]
+[% INCLUDE isolate_info_antiviral_resistance.tt %]

@@ -596,7 +596,19 @@ species_json:
         schemename_bigsdb: AMRFinder
         schemename_html: amrfinder
   influenza:
-    typing_schemes: null
+    typing_schemes:
+      nextclade:
+        type: irregular
+        schemename_bigsdb: Nextclade
+        schemename_html: nextclade
+      ref_selection:
+        type: irregular
+        schemename_bigsdb: Reference_selection
+        schemename_html: ref_selection
+      antivirals:
+        type: irregular
+        schemename_bigsdb: Antivirals
+        schemename_html: antiviral
     genedetection_schemes: null
 
 lab_metadata:
