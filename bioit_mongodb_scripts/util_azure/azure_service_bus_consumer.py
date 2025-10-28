@@ -3,13 +3,14 @@ import logging
 import signal
 import socket
 from logging import handlers
-from typing import Any, Union
+from typing import Union
 
 from azure.servicebus import ServiceBusClient, ServiceBusReceivedMessage
 from pymongo.errors import ConnectionFailure, OperationFailure
 from tenacity import RetryCallState, retry, wait_exponential
 
 from bioit_bigsdb_scripts.components.psql import TblFailedInsertions
+from bioit_mongodb_scripts.helpers.services_helpers import Cancellation, handle_shutdown
 from bioit_mongodb_scripts.mongo_to_bigs import MongoToBigs
 from bioit_mongodb_scripts.rejected_isolate import RejectedIsolate
 from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
@@ -38,25 +39,6 @@ def parse_arguments() -> argparse.Namespace:
     argument_parser.add_argument('--species', required=True, type=str, choices=MongoConfigProvider.get_currently_supported_species())
     argument_parser.add_argument('--uploader_mail_address', required=True, type=str)
     return argument_parser.parse_args()
-
-
-class Cancellation:
-    """
-    Class to define the cancellation token
-    """
-
-    def __init__(self):
-        """
-        initializes the token to false
-        """
-        self.cancelled = False
-
-    def cancel(self) -> None:
-        """
-        Turns the cancellation token to True
-        :return: None
-        """
-        self.cancelled = True
 
 
 class MessageConsumerDataInserter(AzureServiceBus):
@@ -260,16 +242,6 @@ def config_log_handlers(species: str) -> None:
     formatter = logging.Formatter('%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
     handler.setFormatter(formatter)
     logger.addHandler(handler)
-
-
-def handle_shutdown(signum: int, frame: Any) -> None:
-    """
-    Handler to act on cancel_token when the signal is received.
-    :param signum: int corresponding usually to either SIGINT or SIGTERM
-    :param frame: current stack frame
-    :return: None
-    """
-    cancel_token.cancel()
 
 
 def handling_retry_outcome(retry_state: RetryCallState) -> None:

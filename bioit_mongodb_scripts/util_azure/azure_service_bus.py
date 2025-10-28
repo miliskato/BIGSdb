@@ -1,6 +1,7 @@
 from azure.servicebus import ServiceBusClient, ServiceBusMessage
 
 from .azure_service_bus_message import AzureServiceBusMessage
+from .azure_service_bus_submission_message import AzureServiceBusSubmissionMessage
 from ..util.mongo_config_provider import MongoConfigProvider
 
 
@@ -19,6 +20,7 @@ class AzureServiceBus:
         self._connection_string_asb = mongo_config_provider.asb_connection_string
         self._dtap = mongo_config_provider.dtap
         self._queue_name = f"{species}_{self._dtap}"
+        self._submissions_queue_name = f"{self._queue_name}_submissions"
         self._mongo_config_provider = mongo_config_provider
 
     def send_message_to_queue(self, message: AzureServiceBusMessage) -> None:
@@ -30,4 +32,14 @@ class AzureServiceBus:
         """
         with ServiceBusClient.from_connection_string(conn_str=self._connection_string_asb, logging_enable=True) as service_bus_client:
             with service_bus_client.get_queue_sender(queue_name=self._queue_name) as sender:
+                sender.send_messages(ServiceBusMessage(message.to_json()))
+
+    def send_message_to_submission_queue(self, message: AzureServiceBusSubmissionMessage) -> None:
+        """"
+        Function to send a message to the submission queues in the Azure service bus.
+        :param message: message to send to queue
+        :return: None
+        """
+        with ServiceBusClient.from_connection_string(conn_str=self._connection_string_asb, logging_enable=True) as service_bus_client:
+            with service_bus_client.get_queue_sender(queue_name=self._submissions_queue_name) as sender:
                 sender.send_messages(ServiceBusMessage(message.to_json()))

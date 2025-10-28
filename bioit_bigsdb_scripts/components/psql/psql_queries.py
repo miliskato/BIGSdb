@@ -187,6 +187,8 @@ class PsqlQueries:
         INSERT INTO failed_insertions(message_id, pseudo_id, timestamp, comment) VALUES(%s, %s, (SELECT NOW()::TIMESTAMP), 'Insertion started');"""
     ISO_UPD_COM_TB_FAILINS_VAR_MSGID: Final[str] = """
         UPDATE failed_insertions set comment = %s WHERE message_id = %s;"""
+    ISO_INS__TB_FAILINS_VAR_MSGID_COMMENT: Final[str] = """
+        INSERT INTO failed_insertions(message_id, pseudo_id, timestamp, comment) VALUES(%s, 'not relevant', (SELECT NOW()::TIMESTAMP), %s);"""
     ISO_DEL__TB_FAILINS_VAR_MSGID: Final[str] = """
         DELETE FROM failed_insertions WHERE message_id = %s;"""
 

@@ -33,6 +33,14 @@ class TblFailedInsertions(DatabaseConnection):
         """
         self.execute_query(PsqlQueries.ISO_UPD_COM_TB_FAILINS_VAR_MSGID, param)
 
+    def insert_batch_submission_failure(self, param: Tuple[str, str]):
+        """
+        to insert info about exception happening while sending message to the Azure Service Bus following batch insertion
+        :param param: message_id, comment (exception info)
+        :return: None
+        """
+        self.execute_query(PsqlQueries.ISO_INS__TB_FAILINS_VAR_MSGID_COMMENT, param)
+
     def delete_message_id(self, param: Tuple[str]) -> None:
         """
         deletes entry for this message id

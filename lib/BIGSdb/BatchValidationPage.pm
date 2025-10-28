@@ -506,6 +506,12 @@ sub _validate_submission {
                 'UPDATE submissions SET (status,datestamp,curator,outcome)=(?,?,?,?) WHERE id=?',
                 undef, 'batch_validated', 'now', $curator_id, $outcome, $submission_id
             );
+            my $species = $self->{instance};
+            $species =~ s/^bigsdb_//;
+            $species =~ s/_isolates$//;
+            open(BASH, "|-", "bash");
+            print BASH "/home/bigsdb/BIGSdb/3.12PythonVenv/bin/python3.12 /home/bigsdb/BIGSdb/bioit_mongodb_scripts/util_azure/azure_submission_notifier.py --species $species \n";
+            close(BASH);
         }
     };
     if ($@) {
