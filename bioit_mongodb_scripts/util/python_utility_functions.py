@@ -1,5 +1,6 @@
 import inspect
 import logging
+import os
 import smtplib
 import socket
 import sys
@@ -96,7 +97,7 @@ def _merge_nested_dicts(target_dict: Union[MongoRecordDict, Dict], merging_dict:
     return target_dict
 
 
-def access_value_in_dict_using_list_as_dictpath(dict_path: List, search_dict: Dict[str, Any]) -> Optional[str]:
+def access_value_in_dict_using_list_as_dictpath(dict_path: List, search_dict: Dict[str, Any]) -> Optional[Union[str, list[Any]]]:
     """
     Given a dictionary path as a list of ordered subkeys, gets the value of this dictionary path from the given search
     dictionary.
@@ -112,7 +113,7 @@ def access_value_in_dict_using_list_as_dictpath(dict_path: List, search_dict: Di
     return current
 
 
-def execute_command(command_str: str, path: Path) -> None:
+def execute_command(command_str: str, path: Path = Path(os.getcwd())) -> None:
     """
     Executes a bash command.
     :param command_str: Bash command

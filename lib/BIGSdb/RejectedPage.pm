@@ -198,11 +198,7 @@ sub _get_rejected_isolates_for_curation {
 	my $table_buffer;
 	my $td = 1;
 	foreach my $rejected_isolate (@$rejected_isolates) {
-	    # Split rejection reasons into an array (assuming they are comma-separated)
-        my @rejection_reasons = split /,/, $rejected_isolate->{'rejection_reasons'};
-        my $rejection_buffer = join '<br>', @rejection_reasons;
-
-        my $archive_button = q();
+	    my $archive_button = q();
 
         if ($status eq 'pending') {
             $archive_button = $self->_print_close_rejected_isolate_fieldset($rejected_isolate->{'id'});
@@ -213,7 +209,7 @@ sub _get_rejected_isolates_for_curation {
                          . qq(<td>$rejected_isolate->{'isolate'}</td>)
                          . qq(<td>$rejected_isolate->{'insertion_date'}</td>);
         $table_buffer .= qq(<td>$rejected_isolate->{'archival_date'}</td>) if $status eq 'archived';
-        $table_buffer .= qq(<td>$rejection_buffer</td>)
+        $table_buffer .= qq(<td>$rejected_isolate->{'rejection_reasons'}</td>)
                          . qq(<td>$rejected_isolate->{'insertion_type'}</td>);
         $table_buffer .= qq(<td>$rejected_isolate->{'report_link'}</td>) if $status eq 'pending';
         $table_buffer .= qq(<td>$archive_button</td>) if $status eq 'pending';  # Archive button for pending only
