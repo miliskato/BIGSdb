@@ -1,7 +1,7 @@
 -- migrate:up
 ALTER TABLE isolates
     DROP COLUMN assembly,
-    ADD COLUMN consensus_sequence,
+    ADD COLUMN consensus_sequence text,
     DROP COLUMN coverage_assembly,
     DROP COLUMN coverage_reference,
     DROP COLUMN positions_covered_1x_assembly,
@@ -9,9 +9,9 @@ ALTER TABLE isolates
 
 -- migrate:down
 ALTER TABLE isolates
-    ADD COLUMN assembly,
+    ADD COLUMN assembly text,
     DROP COLUMN consensus_sequence,
-    ADD COLUMN coverage_assembly,
-    ADD COLUMN coverage_reference,
-    ADD COLUMN positions_covered_1x_assembly,
-    ADD COLUMN positions_covered_1x_reference;
+    ADD COLUMN coverage_assembly text,
+    ADD COLUMN coverage_reference text,
+    ADD COLUMN positions_covered_1x_assembly text,
+    ADD COLUMN positions_covered_1x_reference text;
