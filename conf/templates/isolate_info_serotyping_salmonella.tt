@@ -18,6 +18,7 @@
     </tr>
 </table>
 </div>
+<br>
 [% END %]
 
 [% IF SeqSero2 %]
@@ -56,4 +57,5 @@
 </table>
 </div>
 </div>
+<br>
 [% END %]
