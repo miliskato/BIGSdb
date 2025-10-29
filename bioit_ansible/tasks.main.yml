@@ -1065,11 +1065,50 @@
         path: /var/log/bigsdb_insertions_service
         state: directory
         mode: "u=rwx,g=rwx,o=rwx"
-        owner: bigsdb
+        owner: www-data
 
     - name: Touch log file for bigsdb_insertion service
       ansible.builtin.file:
         path: "/var/log/bigsdb_insertions_service/bigsdb_insertions_{{ species }}.log"
+        state: touch
+        mode: "u=rwx,g=rwx,o=rwx"
+        owner: www-data
+
+    - name: activate the service
+      ansible.builtin.systemd:
+        daemon-reload: true
+        state: restarted
+        enabled: true
+        name: "bigsdb-insertion-{{ species }}.service"
+
+- name: create service for bigsdb_batch_validation
+  block:
+    - name: add systemd service to manage submission after batch validation
+      ansible.builtin.copy:
+        src: "{{ bioit_bigs_home }}/bigsdb-validation.service"
+        dest: '/etc/systemd/system/bigsdb-validation-{{ species }}.service'
+        owner: root
+        group: root
+        remote_src: yes
+        mode: "u=rwx,g=rwx,o=rx"
+
+    - name: replace species in bigsdb-validation service
+      ansible.builtin.replace:
+        path: '/etc/systemd/system/bigsdb-validation-{{ species }}.service'
+        regexp: 'to_be_replaced_by_ansible'
+        replace: "{{ species }}"
+
+
+    - name: Create subfolder in /var/log where bigsdb user is allowed to write
+      ansible.builtin.file:
+        path: /var/log/bigsdb_batch_validation
+        state: directory
+        mode: "u=rwx,g=rwx,o=rwx"
+        owner: bigsdb
+
+    - name: Touch log file for bigsdb_insertion service
+      ansible.builtin.file:
+        path: "/var/log/bigsdb_batch_validation/bigsdb_batch_validation_{species}.log"
         state: touch
         mode: "u=rwx,g=rwx,o=rwx"
         owner: bigsdb
@@ -1079,7 +1118,10 @@
         daemon-reload: true
         state: restarted
         enabled: true
-        name: "bigsdb-insertion-{{ species }}.service"
+        name: "bigsdb-validation-{{ species }}.service"
+
+
+
 
 - name: create sftp users that can access the /output_reports
   block:
