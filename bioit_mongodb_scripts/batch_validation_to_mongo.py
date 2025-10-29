@@ -47,7 +47,6 @@ class BatchValidationToMongo(AzureServiceBus):
         """
         super().__init__(mongo_config_provider, species)
         self._species = species
-        self._submissions_sb_queue = f'{self._queue_name}_submissions'
         self._ct = ct
 
     def execute(self) -> None:
@@ -55,6 +54,7 @@ class BatchValidationToMongo(AzureServiceBus):
         checks for messages in the submission queue of the azure service bus and process them.
         :return: None
         """
+        global mail_sent
         while not self._ct.cancelled:
             with ServiceBusClient.from_connection_string(conn_str=self._connection_string_asb,
                                                          logging_enable=True) as service_bus_client:
@@ -157,15 +157,11 @@ if __name__ == '__main__':
 
     logging.basicConfig(level=logging.ERROR, stream=sys.stdout)
 
-    # Read the global config
-    bigsdb_config_data = get_bigsdb_config_data()
-
-    # Parse arguments
-    args = parse_arguments(list(bigsdb_config_data['species_json']))
-    config_log_handlers(args.species)
     mongo_config_provider = MongoConfigProvider()
+    args = parse_arguments(mongo_config_provider.get_currently_supported_species())
+    config_log_handlers(args.species)
 
     try:
-        run_application(cancel_token, args.species, mongo_config_provider, args.uploader_mail_address)
+        run_application(cancel_token, args.species, mongo_config_provider)
     except (SystemExit, KeyboardInterrupt):
         pass

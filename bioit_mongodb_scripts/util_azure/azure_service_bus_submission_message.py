@@ -1,5 +1,4 @@
 import json
-from datetime import datetime
 
 
 class AzureServiceBusSubmissionMessage:
@@ -13,7 +12,6 @@ class AzureServiceBusSubmissionMessage:
         :param species: the species for which a submission was processed by batch
         """
         self.species = species
-        self.time = f'{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}'
 
     def to_json(self) -> str:
         """

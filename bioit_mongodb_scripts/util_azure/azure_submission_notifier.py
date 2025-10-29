@@ -1,6 +1,11 @@
 import argparse
 import socket
+import sys
 import traceback
+from pathlib import Path
+
+PYTHONPATH = Path(__file__).resolve().parent.parent.parent
+sys.path.append(str(PYTHONPATH))
 
 from bioit_bigsdb_scripts.components.psql import TblFailedInsertions
 from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
