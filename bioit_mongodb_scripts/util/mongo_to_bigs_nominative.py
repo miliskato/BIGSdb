@@ -14,6 +14,7 @@ from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.python_utility_functions import send_email
 
+logger = logging.getLogger(__name__)
 
 def parse_arguments() -> argparse.Namespace:
     """
@@ -39,8 +40,6 @@ class MongoToBigsNominative:
         :param dont_send_email: do not send emails, only log
         :return: None
         """
-        # Configure stdout logging
-        logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
         self._species = species
         self._dont_send_email = dont_send_email
@@ -53,6 +52,7 @@ class MongoToBigsNominative:
         try:
             self._mongo_to_bigs_nominative()
         except Exception as exceptionmessage:
+            logger.error(f"Fail on host {socket.gethostname()}: {exceptionmessage}\n{traceback.format_exc()}")
             send_email(f"{exceptionmessage}\n{traceback.format_exc()}", dont_send_email=self._dont_send_email)
             raise Exception(f"{Path(__file__).name} fail on host {socket.gethostname()}: {exceptionmessage}\n{traceback.format_exc()}")
 

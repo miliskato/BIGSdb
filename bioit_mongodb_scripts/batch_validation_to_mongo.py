@@ -1,6 +1,5 @@
 import argparse
 import logging
-import signal
 import socket
 import sys
 import traceback
@@ -11,17 +10,16 @@ from typing import List
 from azure.servicebus import ServiceBusClient
 from tenacity import RetryCallState, retry, wait_exponential
 
-from bioit_mongodb_scripts.helpers.services_helpers import Cancellation, handle_shutdown
+from bioit_mongodb_scripts.helpers.services_helpers import Cancellation
 from bioit_bigsdb_scripts.components.psql import TblSubmissions
 from bioit_bigsdb_scripts.sample_validation_to_mongo import SampleValidationToMongo
-from bioit_mongodb_scripts.util.python_utility_functions import get_bigsdb_config_data, send_email
+from bioit_mongodb_scripts.util.python_utility_functions import send_email
 from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 from bioit_mongodb_scripts.util_azure.azure_service_bus import AzureServiceBus
 from bioit_mongodb_scripts.util_azure.azure_service_bus_submission_message import AzureServiceBusSubmissionMessage
 
 mail_sent = False
-logger = logging.getLogger('bigsdb_batch_validation')
-logger.setLevel(logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
@@ -76,6 +74,7 @@ class BatchValidationToMongo(AzureServiceBus):
                             self._validate_pending_submission_after_batch_validation()
                             receiver.complete_message(msg)
                         except Exception as exceptionmessage:
+                            logger.error(f"Fail on host {socket.gethostname()}: {exceptionmessage}\n{traceback.format_exc()}")
                             send_email(f"{exceptionmessage}\n{traceback.format_exc()}",
                                        f"{Path(__file__).name} fail on host {socket.gethostname()}")
                             raise Exception(f"{exceptionmessage}\n{traceback.format_exc()}")
@@ -150,10 +149,6 @@ def run_application(ct: Cancellation, species: str, mongo_config_provider: Mongo
 if __name__ == '__main__':
 
     cancel_token = Cancellation()
-
-    # signal handler will be executed when a SIGINT/SIGTERM signal is received
-    signal.signal(signal.SIGINT, handle_shutdown)
-    signal.signal(signal.SIGTERM, handle_shutdown)
 
     logging.basicConfig(level=logging.ERROR, stream=sys.stdout)
 

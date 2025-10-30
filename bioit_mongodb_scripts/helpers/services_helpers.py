@@ -1,6 +1,7 @@
+import signal
 import logging
-from logging import Logger, handlers
-from typing import Any, Optional
+from logging import handlers
+from typing import Any
 
 
 class Cancellation:
@@ -14,6 +15,10 @@ class Cancellation:
         """
         self.cancelled = False
 
+        # signal handler will be executed when a SIGINT/SIGTERM signal is received
+        signal.signal(signal.SIGINT, self.handle_shutdown)
+        signal.signal(signal.SIGTERM, self.handle_shutdown)
+
     def cancel(self) -> None:
         """
         Turns the cancellation token to True
@@ -21,29 +26,14 @@ class Cancellation:
         """
         self.cancelled = True
 
-
-_cancel_token: Optional[Cancellation] = None
-
-
-def register_cancellation_token(ct: Cancellation) -> None:
-    """
-    Registers the cancellation token to be used in the signal handler
-    :param ct: Cancellation token to register
-    :return: None
-    """
-    global _cancel_token
-    _cancel_token = ct
-
-
-def handle_shutdown(signum: int, frame: Any) -> None:
-    """
-    Handler to act on cancel_token when the signal is received.
-    :param signum: int corresponding usually to either SIGINT or SIGTERM
-    :param frame: current stack frame
-    :return: None
-    """
-    if _cancel_token is not None:
-        _cancel_token.cancel()
+    def handle_shutdown(self, signum: int, frame: Any) -> None:
+        """
+        Handler to act on cancel_token when the signal is received.
+        :param signum: int corresponding usually to either SIGINT or SIGTERM
+        :param frame: current stack frame
+        :return: None
+        """
+        self.cancel()
 
 # def config_log_handlers(species: str, log_name: str) -> None:
 #  logger = logging.getLogger(log_name)
@@ -52,3 +42,17 @@ def handle_shutdown(signum: int, frame: Any) -> None:
 #  formatter = logging.Formatter('%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 #  handler.setFormatter(formatter)
 #  logger.addHandler(handler)
+
+
+def config_log_handlers(species: str) -> None:
+    """
+    configure handlers to get logs rotated once by day
+    :param species: the species used in ANSIBLE playbook
+    :return: None
+    """
+    root = logging.getLogger()
+    root.setLevel(logging.INFO)
+    handler = handlers.TimedRotatingFileHandler(f'/var/log/NRC_platform/{species}.log', when="D", interval=1, backupCount=14)
+    formatter = logging.Formatter('%(asctime)s %(levelname)-8s %(name)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+    handler.setFormatter(formatter)
+    root.addHandler(handler)

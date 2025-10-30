@@ -1,8 +1,7 @@
 import argparse
 import logging
-import signal
+
 import socket
-from logging import handlers
 from typing import Union
 
 from azure.servicebus import ServiceBusClient, ServiceBusReceivedMessage
@@ -10,7 +9,7 @@ from pymongo.errors import ConnectionFailure, OperationFailure
 from tenacity import RetryCallState, retry, wait_exponential
 
 from bioit_bigsdb_scripts.components.psql import TblFailedInsertions
-from bioit_mongodb_scripts.helpers.services_helpers import Cancellation, handle_shutdown
+from bioit_mongodb_scripts.helpers.services_helpers import Cancellation, config_log_handlers
 from bioit_mongodb_scripts.mongo_to_bigs import MongoToBigs
 from bioit_mongodb_scripts.rejected_isolate import RejectedIsolate
 from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
@@ -26,9 +25,7 @@ from bioit_mongodb_scripts.util_azure.azure_service_bus_message import AzureServ
 
 mail_sent = False
 # Configure stdout logging
-logger = logging.getLogger('bigsdb_insertion')
-logger.setLevel(logging.INFO)
-
+logger = logging.getLogger(__name__)
 
 def parse_arguments() -> argparse.Namespace:
     """
@@ -232,18 +229,6 @@ class MessageConsumerDataInserter(AzureServiceBus):
         return isolate_id
 
 
-def config_log_handlers(species: str) -> None:
-    """
-    configure handlers to get logs rotated once by day
-    :param species: the species used in ANSIBLE playbook
-    :return: None
-    """
-    handler = handlers.TimedRotatingFileHandler(f'/var/log/bigsdb_insertions_service/bigsdb_insertions_{species}.log', when="D", interval=1, backupCount=14)
-    formatter = logging.Formatter('%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-
-
 def handling_retry_outcome(retry_state: RetryCallState) -> None:
     """
     Function that will write the errors in the log and also send an email if it fails for the first time
@@ -276,11 +261,6 @@ def run_application(ct: Cancellation, species: str, mongo_config_provider: Mongo
 if __name__ == '__main__':
 
     cancel_token = Cancellation()
-
-    # signal handler will be executed when a SIGINT/SIGTERM signal is received
-    signal.signal(signal.SIGINT, handle_shutdown)
-    signal.signal(signal.SIGTERM, handle_shutdown)
-
     args = parse_arguments()
     config_log_handlers(args.species)
     mongo_config_provider = MongoConfigProvider()

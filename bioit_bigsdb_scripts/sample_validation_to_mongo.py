@@ -29,6 +29,7 @@ from bioit_mongodb_scripts.model.json_model import MongoRecordDict
 from bioit_mongodb_scripts.util.python_utility_functions import get_bigsdb_config_data, send_email
 from bioit_mongodb_scripts.util.mongo_quickdraw import get_pseudo_id
 
+logger = logging.getLogger(__name__)
 
 def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     """
@@ -70,6 +71,7 @@ class SampleValidationToMongo:
         try:
             self._sample_validation_to_mongo()
         except Exception as exceptionmessage:
+            logger.error(f"Error: {exceptionmessage}\n{traceback.format_exc()}")
             send_email(f"{exceptionmessage}\n{traceback.format_exc()}",
                        f"{Path(__file__).name} fail on host {socket.gethostname()}")
             raise Exception(f"{exceptionmessage}\n{traceback.format_exc()}")
