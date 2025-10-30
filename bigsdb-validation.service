@@ -3,7 +3,7 @@ Description=Service to target the insertion of genomic indicators workflow after
 After=network.target remote-fs.target nss-lookup.target
 
 [Service]
-User=bigsdb
+User=www-data
 WorkingDirectory=/home/bigsdb/BIGSdb/
 Environment="PYTHONPATH=/home/bigsdb/BIGSdb/"
 ExecStart=/home/bigsdb/BIGSdb/3.12PythonVenv/bin/python3 /home/bigsdb/BIGSdb/bioit_mongodb_scripts/batch_validation_to_mongo.py --species to_be_replaced_by_ansible

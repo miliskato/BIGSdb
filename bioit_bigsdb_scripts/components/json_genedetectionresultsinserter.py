@@ -10,6 +10,8 @@ from ..inserters.context.gene_detection_context_builder_factory import GeneDetec
 from ..utils.html_tbl_templates import HtmlAmrTableBuilder, HtmlLocusTableBuilder, HtmlReportBuilder, LreFinderGenesTableBuilder, LreFinderMutationsTableBuilder
 from ..utils.url_helper import UrlHelper
 
+logger = logging.getLogger(__name__)
+
 
 class JsonGeneDetectionResultsInserter(JsonSuperClass):
     """
@@ -45,7 +47,7 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
 
         for scheme in self._genedetectiondict:
             if scheme not in self._json_report_dict:
-                logging.warning(f"scheme {scheme} not present in json file")
+                logger.warning(f"scheme {scheme} not present in json file")
                 continue
 
             scheme_config = self._genedetectiondict[scheme]
@@ -147,4 +149,4 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                     isolates_eavt_psql_tbl.insert_eav_isolate((self._isolatename, schemename_bigsdb, html))
         with TblHistory(self._species) as isolates_history_psql_tbl:
             isolates_history_psql_tbl.insert_history_isolate((self._isolatename, 'Gene detection results inserted'))
-        logging.info(f'Gene detection insertion for {self._isolatename} is done')
+        logger.info(f'Gene detection insertion for {self._isolatename} is done')

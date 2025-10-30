@@ -35,13 +35,10 @@ class Cancellation:
         """
         self.cancel()
 
-# def config_log_handlers(species: str, log_name: str) -> None:
-#  logger = logging.getLogger(log_name)
-#  logger.setLevel(logging.INFO)
-#  handler = handlers.TimedRotatingFileHandler(f'/var/log/{log_name}_service/{log_name}_{species}.log', when="D", interval=1, backupCount=14)
-#  formatter = logging.Formatter('%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
-#  handler.setFormatter(formatter)
-#  logger.addHandler(handler)
+
+class DropUamqpInfo(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        return not (record.name.startswith("azure.servicebus._pyamqp") and record.levelno < logging.WARNING)
 
 
 def config_log_handlers(species: str) -> None:
@@ -55,4 +52,7 @@ def config_log_handlers(species: str) -> None:
     handler = handlers.TimedRotatingFileHandler(f'/var/log/NRC_platform/{species}.log', when="D", interval=1, backupCount=14)
     formatter = logging.Formatter('%(asctime)s %(levelname)-8s %(name)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
     handler.setFormatter(formatter)
+    handler.addFilter(DropUamqpInfo())
     root.addHandler(handler)
+
+

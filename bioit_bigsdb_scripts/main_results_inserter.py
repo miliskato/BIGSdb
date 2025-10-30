@@ -17,6 +17,7 @@ from bioit_bigsdb_scripts.components.psql import TblAlleleDesignations, TblEavFl
 from bioit_mongodb_scripts.model.json_model import JsonReportDict, ResultType
 from bioit_mongodb_scripts.util.python_utility_functions import get_bigsdb_config_data, send_email
 
+logger = logging.getLogger(__name__)
 
 class MainResultsInserter:
     """
@@ -84,7 +85,7 @@ class MainResultsInserter:
                                   self._report_access).insert_typing_results()
         JsonGeneDetectionResultsInserter(self._isolatename, self._species, self._json_report, self._bigsdb_config_data,
                                          self._report_access).insert_genedetection_results()
-        logging.info('Finished inserting results')
+        logger.info('Finished inserting results')
 
     def _handle_reanalysis_and_reseq(self) -> None:
         """
