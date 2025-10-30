@@ -3,14 +3,13 @@ import logging
 import socket
 import sys
 import traceback
-from logging import handlers
 from pathlib import Path
 from typing import List
 
 from azure.servicebus import ServiceBusClient
 from tenacity import RetryCallState, retry, wait_exponential
 
-from bioit_mongodb_scripts.helpers.services_helpers import Cancellation
+from bioit_mongodb_scripts.helpers.services_helpers import Cancellation, config_log_handlers
 from bioit_bigsdb_scripts.components.psql import TblSubmissions
 from bioit_bigsdb_scripts.sample_validation_to_mongo import SampleValidationToMongo
 from bioit_mongodb_scripts.util.python_utility_functions import send_email
@@ -103,18 +102,6 @@ class BatchValidationToMongo(AzureServiceBus):
                 except Exception as e:
                     isolates_submissions_psql_tbl.set_submission_status(('failed_insertion', sub_id[0]))
                     raise Exception(f"Error processing submission ID {sub_id[0]}: {e}")
-
-
-def config_log_handlers(species: str) -> None:
-    """
-    configure handlers to get logs rotated once by day
-    :param species: the species used in ANSIBLE playbook
-    :return: None
-    """
-    handler = handlers.TimedRotatingFileHandler(f'/var/log/bigsdb_batch_validation/bigsdb_batch_validation_{species}.log', when="D", interval=1, backupCount=14)
-    formatter = logging.Formatter('%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
 
 
 def handling_retry_outcome(retry_state: RetryCallState) -> None:
