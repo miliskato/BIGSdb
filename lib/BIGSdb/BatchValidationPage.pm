@@ -291,32 +291,36 @@ sub _delete_old_submissions {
 	return;
 }
 
-sub _get_submissions_by_status {
-	my ( $self, $status, $options ) = @_;
-	$options = {} if ref $options ne 'HASH';
-	my $user_info = $self->{'datastore'}->get_user_info_from_username( $self->{'username'} );
-	my ( $qry, $get_all, @args );
-	if ( $options->{'get_all'} ) {
-		$qry     = 'SELECT * FROM submissions WHERE status=? AND (dataset IS NULL OR dataset = ?) ORDER BY id';
-		$get_all = 1;
-		push @args, ( $status, $self->{'instance'} );
-	} else {
-		$qry =
-		  'SELECT * FROM submissions WHERE (submitter,status)=(?,?) AND (dataset IS NULL OR dataset = ?) ORDER BY id';
-		$get_all = 0;
-		push @args, ( $user_info->{'id'}, $status, $self->{'instance'} );
+sub _get_submissions_by_status_with_isolate_id {
+		my ( $self, $status, $options ) = @_;
+		$options = {} if ref $options ne 'HASH';
+		my $user_info = $self->{'datastore'}->get_user_info_from_username( $self->{'username'} );
+		my ( $qry, $get_all, @args );
+		if ( $options->{'get_all'} ) {
+			$qry     = 'SELECT s.*, COALESCE(i.value, \'\') AS isolate_id FROM submissions s '
+			         . 'LEFT JOIN isolate_submission_isolates i ON s.id = i.submission_id AND i.field = ? '
+			         . 'WHERE s.status=? AND (s.dataset IS NULL OR s.dataset = ?) ORDER BY s.id';
+			$get_all = 1;
+			push @args, ( 'isolate_id', $status, $self->{'instance'} );
+		} else {
+			$qry =
+			  'SELECT s.*, COALESCE(i.value, \'\') AS isolate_id FROM submissions s '
+			  . 'LEFT JOIN isolate_submission_isolates i ON s.id = i.submission_id AND i.field = ? '
+			  . 'WHERE (s.submitter,s.status)=(?,?) AND (s.dataset IS NULL OR s.dataset = ?) ORDER BY s.id';
+			$get_all = 0;
+			push @args, ( 'isolate_id', $user_info->{'id'}, $status, $self->{'instance'} );
+		}
+		my $submissions =
+		  $self->{'datastore'}->run_query( $qry, \@args,
+			{ fetch => 'all_arrayref', slice => {}, cache => "SubmitPage::get_submissions_by_status$get_all" } );
+		return $submissions;
 	}
-	my $submissions =
-	  $self->{'datastore'}->run_query( $qry, \@args,
-		{ fetch => 'all_arrayref', slice => {}, cache => "SubmitPage::get_submissions_by_status$get_all" } );
-	return $submissions;
-}
 
-sub _get_submissions {
+sub _get_submissions_with_isolate_ids {
 	my ( $self, $submission_ids ) = @_;
 	return [] if !$submission_ids || ref $submission_ids ne 'ARRAY' || !@$submission_ids;
 	my $placeholders = join( ',', ('?') x @$submission_ids );
-	my $qry = "SELECT * FROM submissions WHERE id IN ($placeholders) AND (dataset IS NULL OR dataset = ?) ORDER BY id";
+	my $qry = "SELECT s.*, COALESCE(i.value, '') AS isolate_id FROM submissions s LEFT JOIN isolate_submission_isolates i ON s.id = i.submission_id AND i.field = 'isolate_id' WHERE s.id IN ($placeholders) AND (s.dataset IS NULL OR s.dataset = ?) ORDER BY s.id";
 	my @args = ( @$submission_ids, $self->{'instance'} );
 
 	my $submissions =
@@ -327,7 +331,7 @@ sub _get_submissions {
 
 sub _print_started_submissions {
 	my ($self) = @_;
-	my $incomplete = $self->_get_submissions_by_status('started');
+	my $incomplete = $self->_get_submissions_by_status_with_isolate_id('started');
 	if (@$incomplete) {
 		say q(<div class="box" id="resultspanel"><div class="scrollable">);
 		say q(<h2>Submission in process</h2>);
@@ -368,7 +372,7 @@ sub _print_started_submissions {
 sub _get_own_submissions {
 	my ( $self, $status, $options ) = @_;
 	$options = {} if ref $options ne 'HASH';
-	my $submissions = $self->_get_submissions_by_status( $status, { get_all => 0 } );
+	my $submissions = $self->_get_submissions_by_status_with_isolate_id( $status, { get_all => 0 } );
 	my $buffer;
 	my $embargo = $self->{'datastore'}->get_embargo_attributes;
 	if (@$submissions) {
@@ -527,7 +531,7 @@ sub _get_isolate_submissions_for_curation {
 	my ( $self, $options ) = @_;
     my $status = $options->{'status'} // 'pending';
 	# return q() if !$self->can_modify_table('isolates'); # disable this so that all curators, regardless of their rights can validate new isolates, mk 23/10/18
-	my $submissions = $self->_get_submissions_by_status( $status, { get_all => 1 } );
+	my $submissions = $self->_get_submissions_by_status_with_isolate_id( $status, { get_all => 1 } );
 	my $embargo = $self->{'datastore'}->get_embargo_attributes;
 	# Get isolate curate message if it exists
 	my $isolate_curate_message = "$self->{'dbase_config_dir'}/$self->{'instance'}/isolate_curate.html";
@@ -560,7 +564,7 @@ sub _get_isolate_for_curation_review {
     my $q     = $self->{'cgi'};
 
     my @selected_submissions = $q->param('selected_submissions[]');
-    my $submissions = $self->_get_submissions(\@selected_submissions );
+    my $submissions = $self->_get_submissions_with_isolate_ids(\@selected_submissions );
 	my $embargo = $self->{'datastore'}->get_embargo_attributes;
 
 	# Get isolate curate message if it exists

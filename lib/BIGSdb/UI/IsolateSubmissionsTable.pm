@@ -7,7 +7,7 @@ use 5.010;
 use BIGSdb::Constants qw(:design);
 use Log::Log4perl qw(get_logger);
 
-#my $logger = get_logger('BIGSdb.Page');
+my $logger = get_logger('BIGSdb.Page');
 
 sub new {
     my ($class, $args) = @_;
@@ -26,6 +26,7 @@ sub render_table {
     my $show_outcome = $args{show_outcome} // 0;
 
     return q() if !@$submissions;
+    $logger->error("Submissions data: " . Dumper($submissions));
 
     my $buffer = q();
     my $td = 1;
@@ -44,6 +45,7 @@ sub render_table {
         $buffer .= qq(<input type="$input_type" name="selected_submissions[]" value="$submission->{'id'}" />);
         $buffer .= qq(<a href="$system->{'script_name'}?db=$instance&amp;page=submit&amp;submission_id=$submission->{'id'}&amp;curate=1">$submission->{'id'}</a>);
         $buffer .= qq(</td>);
+        $buffer .= qq(<td>$submission->{'isolate_id'}</td>);
         $buffer .= qq(<td>$submission->{'date_submitted'}</td>);
         $buffer .= qq(<td>$submission->{'datestamp'}</td>);
         $buffer .= qq(<td>$submitter_string</td>);
@@ -108,7 +110,7 @@ sub render_complete_form {
     $return_buffer .= q(<button type="button" id="isolateSubmissionsForm_checkWarning" onclick="toggleCheckboxesByQuality('isolateSubmissionsForm', 'warning')" data-checked="false">Check Warning Quality</button> );
 
     # Start table
-    $return_buffer .= q(<table class="resultstable"><tr><th>Submission id</th>);
+    $return_buffer .= q(<table class="resultstable"><tr><th>Submission id</th><th>Isolate ID</th>);
     $return_buffer .= q(<th>Submitted</th><th>Updated</th><th>Submitter</th><th>Isolates</th><th>Quality</th>);
     $return_buffer .= q(<th>Embargo requested (months)</th>) if $system->{'dbtype'} eq 'isolates' && $embargo->{'embargo_enabled'};
     $return_buffer .= qq(</tr>\n);
@@ -125,7 +127,7 @@ sub render_complete_form {
     $return_buffer .= q(<option value="rejected">Rejected</option>);
     $return_buffer .= q(</select>);
     $return_buffer .= q(<input type="submit" value="Update" onclick="return validateAndSubmit()">);
-    $return_buffer .= q(<button type="submit" name="batch_submit" value="1" onclick="return prepareBatchSubmit()">Batch Submit</button>) if $show_outcome;
+    $return_buffer .= q(<button type="submit" name="batch_submit" value="1">Batch Submit</button>) if $show_outcome;
     $return_buffer .= q(</div>);
     $return_buffer .= q(</form>);
     $return_buffer .= qq(</div>\n);
@@ -161,7 +163,7 @@ sub render_review_form {
     $return_buffer .= qq(<input type="hidden" name="outcome" value="$outcome">);
 
     # Start table
-    $return_buffer .= q(<table class="resultstable"><tr><th>Submission id</th>);
+    $return_buffer .= q(<table class="resultstable"><tr><th>Submission id</th><th>Isolate ID</th>);
     $return_buffer .= q(<th>Submitted</th><th>Updated</th><th>Submitter</th><th>Isolates</th><th>Quality</th>);
     $return_buffer .= q(<th>Embargo requested (months)</th>) if $system->{'dbtype'} eq 'isolates' && $embargo->{'embargo_enabled'};
     $return_buffer .= q(<th>Outcome</th>);
