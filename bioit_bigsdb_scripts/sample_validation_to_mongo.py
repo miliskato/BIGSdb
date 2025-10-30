@@ -31,6 +31,7 @@ from bioit_mongodb_scripts.util.mongo_quickdraw import get_pseudo_id
 
 logger = logging.getLogger(__name__)
 
+
 def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     """
     Parses the command line arguments.
