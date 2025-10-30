@@ -87,15 +87,14 @@ class BatchValidationToMongo(AzureServiceBus):
     def _validate_pending_submission_after_batch_validation(self) -> None:
         """
         Method to handle submissions that were validated/rejected by batch in BIGSdb.
-        The rejected submissions will be closed and the accepted ones will be processed for insertion in BIGSdb.
+        The validated submissions (good or bad) will be processed for insertion in BIGSdb.
         :return: None
         """
         with TblSubmissions(species=self._species) as isolates_submissions_psql_tbl:
 
-            isolates_submissions_psql_tbl.close_batch_rejected_submissions()
-            accepted_submission_ids = list(isolates_submissions_psql_tbl.get_submission_ids_batch_validated())
+            validated_submission_ids = list(isolates_submissions_psql_tbl.get_submission_ids_batch_validated())
 
-            for sub_id in accepted_submission_ids:
+            for sub_id in validated_submission_ids:
                 isolates_submissions_psql_tbl.set_submission_status(('closed', sub_id[0]))
                 try:
                     SampleValidationToMongo(self._species, sub_id=int(sub_id[0]))
