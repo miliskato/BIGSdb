@@ -10,16 +10,17 @@ class ParseClinLabJsonListeria(ParseClinLabJson):
     TARGET_SPECIES = 'listeria'
 
     def __init__(self, data_unprocessed: dict[str, Any], filetype: Literal['CLIN', 'LAB'], species: str,
-                 translation_codes: dict[str, Any]) -> None:
+                 translation_codes: dict[str, Any], dtap: Literal['dev', 'test', 'acc', 'prod']) -> None:
         """
         Initializes this class by initializing the super class
         :param data_unprocessed: original unprocessed data
         :param filetype: CLIN or LAB
         :param species: commonly used bioit species name: either genus or specific like stec
         :param translation_codes: translation codes from the nominative ODS configuration file
+        :param dtap: current DTAP environment
         :return: None
         """
-        super().__init__(data_unprocessed, filetype, species, translation_codes)
+        super().__init__(data_unprocessed, filetype, species, translation_codes, dtap)
 
     def _execute_pathogen_specific_code(self) -> None:
         """
@@ -30,8 +31,9 @@ class ParseClinLabJsonListeria(ParseClinLabJson):
             pass
         elif self._filetype == 'CLIN':
             self._parse_repeat_fields('TX_TTL_PERNAT_REPEAT', 'CD_PERNAT', 'CD_PERNAT_codes', 'perinatal')
-            self._parse_repeat_fields('TX_SUSPC_VEH_REPEAT', 'CD_SUSPC_VEH', 'CD_SUSPC_VEH_codes', 'suspected_vehicle')
+            self._parse_repeat_fields('TX_SUSPC_VEH_REPEAT', 'CD_SUSPC_VEH', 'CD_SUSPC_VEH_codes', 'suspected_vehicle',
+                                      mandatory=False)
             self._parse_repeat_fields('TX_TTL_SYMP_ADLT_REPEAT', 'CD_PROB_NAM_ADLT', 'CD_PROB_NAM_codes',
-                                        'symptom_adult', other='TX_PROB_NAM_ADLT_OTH')
+                                      'symptom_adult', other='TX_PROB_NAM_ADLT_OTH')
             self._parse_repeat_fields('TX_TTL_SYMP_CHLD_REPEAT', 'CD_PROB_NAM_CHLD', 'CD_PROB_NAM_codes',
-                                        'symptom_child', other='TX_PROB_NAM_CHLD_OTH')
+                                      'symptom_child', other='TX_PROB_NAM_CHLD_OTH')

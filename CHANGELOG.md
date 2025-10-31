@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [4.3.1]
 ### Added:
+- Warning reasons to the submissions page
 - Batch validation of the submitted isolates in BIGSdb (good and warnings)
 - Integration of the genomic output DCD for Neisseria
 

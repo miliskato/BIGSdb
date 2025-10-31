@@ -11,7 +11,6 @@ sys.path.append(str(PYTHONPATH))
 from bioit_mongodb_scripts.mainmongo import MainMongo
 from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
-from bioit_nrc_integration.python.config import SFTP_CREDENTIALS_HD
 from bioit_nrc_integration.python.error_checker_for_main_sender_to_HD import ErrorCheckerForMainSenderToHD
 from bioit_nrc_integration.python.get_nominative_from_ODS import GetNominativeFromOds
 from bioit_nrc_integration.python.main_sender_to_HD import MainSenderToHD
