@@ -51,6 +51,7 @@ sub render_table {
         $buffer .= qq(<td>$submitter_string</td>);
         $buffer .= qq(<td>$isolate_count</td>);
         $buffer .= qq(<td class="quality">$submission->{'quality'}</td>);
+        $buffer .= qq(<td class="quality">$submission->{'warning_reasons'}</td>);
 
         if ($system->{'dbtype'} eq 'isolates' && $embargo->{'embargo_enabled'}) {
             my $embargo_months = $submission->{'embargo'} // '-';
@@ -83,6 +84,7 @@ sub render_complete_form {
         ($_->{'type'} eq 'genomes' && $args{can_modify_sequence_bin})
     } @$submissions;
 
+    $logger->error("Filtered submissions: " . Dumper(\@filtered_submissions));
     return q() if !@filtered_submissions;
 
     my $return_buffer = q();
@@ -111,7 +113,7 @@ sub render_complete_form {
 
     # Start table
     $return_buffer .= q(<table class="resultstable"><tr><th>Submission id</th><th>Isolate ID</th>);
-    $return_buffer .= q(<th>Submitted</th><th>Updated</th><th>Submitter</th><th>Isolates</th><th>Quality</th>);
+    $return_buffer .= q(<th>Submitted</th><th>Updated</th><th>Submitter</th><th>Isolates</th><th>Quality</th><th>Warning reasons</th>);
     $return_buffer .= q(<th>Embargo requested (months)</th>) if $system->{'dbtype'} eq 'isolates' && $embargo->{'embargo_enabled'};
     $return_buffer .= qq(</tr>\n);
 
@@ -164,7 +166,7 @@ sub render_review_form {
 
     # Start table
     $return_buffer .= q(<table class="resultstable"><tr><th>Submission id</th><th>Isolate ID</th>);
-    $return_buffer .= q(<th>Submitted</th><th>Updated</th><th>Submitter</th><th>Isolates</th><th>Quality</th>);
+    $return_buffer .= q(<th>Submitted</th><th>Updated</th><th>Submitter</th><th>Isolates</th><th>Quality</th><th>Warning reasons</th>);
     $return_buffer .= q(<th>Embargo requested (months)</th>) if $system->{'dbtype'} eq 'isolates' && $embargo->{'embargo_enabled'};
     $return_buffer .= q(<th>Outcome</th>);
     $return_buffer .= qq(</tr>\n);
