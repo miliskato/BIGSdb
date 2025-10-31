@@ -100,7 +100,7 @@ class BatchValidationToMongo(AzureServiceBus):
                     SampleValidationToMongo(self._species, sub_id=int(sub_id[0]))
                 except Exception as e:
                     isolates_submissions_psql_tbl.set_submission_status(('failed_insertion', sub_id[0]))
-                    raise Exception(f"Error processing submission ID {sub_id[0]}: {e}")
+                    raise Exception(f'Error processing submission ID {sub_id[0]}: {e}')
 
 
 def handling_retry_outcome(retry_state: RetryCallState) -> None:
