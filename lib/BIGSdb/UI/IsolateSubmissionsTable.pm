@@ -26,7 +26,6 @@ sub render_table {
     my $show_outcome = $args{show_outcome} // 0;
 
     return q() if !@$submissions;
-    $logger->error("Submissions data: " . Dumper($submissions));
 
     my $buffer = q();
     my $td = 1;
@@ -84,7 +83,6 @@ sub render_complete_form {
         ($_->{'type'} eq 'genomes' && $args{can_modify_sequence_bin})
     } @$submissions;
 
-    $logger->error("Filtered submissions: " . Dumper(\@filtered_submissions));
     return q() if !@filtered_submissions;
 
     my $return_buffer = q();
