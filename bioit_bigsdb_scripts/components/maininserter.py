@@ -97,7 +97,8 @@ class MainInserter(JsonSuperClass):
                     (str(context.isolate_id), str(context.isolate_id), pipeline, self._isolatename))
                 self.__update_coverage_info()
             else:
-                ref_selection_database = self._json_report_dict['ref_selection'].get('ref_selection_database')
+                ref_selection = self._json_report_dict.get("ref_selection")
+                ref_selection_database = self._json_report_dict['ref_selection'].get('ref_selection_database') if ref_selection else None
                 self.isolates_psql_tbl.update_isolate_html_consensus_pipeline_db(
                     (str(context.isolate_id), str(context.isolate_id), pipeline, ref_selection_database,
                      self._isolatename)
