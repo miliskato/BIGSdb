@@ -97,8 +97,11 @@ class MainInserter(JsonSuperClass):
                     (str(context.isolate_id), str(context.isolate_id), pipeline, self._isolatename))
                 self.__update_coverage_info()
             else:
-                self.isolates_psql_tbl.update_isolate_html_consensus_pipeline(
-                    (str(context.isolate_id), str(context.isolate_id), pipeline, self._isolatename))
+                ref_selection_database = self._json_report_dict['ref_selection'].get('ref_selection_database')
+                self.isolates_psql_tbl.update_isolate_html_consensus_pipeline_db(
+                    (str(context.isolate_id), str(context.isolate_id), pipeline, ref_selection_database,
+                     self._isolatename)
+                )
             if 'changed_version' in self._json_report_dict:
                 self.isolates_psql_tbl.update_mongo_results_version((self._json_report_dict['changed_version'], str(context.isolate_id)))
             if 'validation' in self._json_report_dict:
