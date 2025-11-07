@@ -4,7 +4,7 @@ import socket
 import sys
 import traceback
 from pathlib import Path
-from typing import List
+from typing import List, Tuple
 
 from azure.servicebus import ServiceBusClient
 from tenacity import RetryCallState, retry, wait_exponential
@@ -90,17 +90,23 @@ class BatchValidationToMongo(AzureServiceBus):
         The validated submissions (good or bad) will be processed for insertion in BIGSdb.
         :return: None
         """
-        with TblSubmissions(species=self._species) as isolates_submissions_psql_tbl:
+        validated_submission_ids = get_submission_ids_to_process(self._species)
 
-            validated_submission_ids = list(isolates_submissions_psql_tbl.get_submission_ids_batch_validated())
+        for sub_id in validated_submission_ids:
+            try:
+                SampleValidationToMongo(self._species, sub_id=int(sub_id[0]), batch_validated=True)
+            except Exception as e:
+                raise Exception(f"Error processing submission ID {sub_id[0]}: {e}")
 
-            for sub_id in validated_submission_ids:
-                isolates_submissions_psql_tbl.set_submission_status(('closed', sub_id[0]))
-                try:
-                    SampleValidationToMongo(self._species, sub_id=int(sub_id[0]))
-                except Exception as e:
-                    isolates_submissions_psql_tbl.set_submission_status(('failed_insertion', sub_id[0]))
-                    raise Exception(f"Error processing submission ID {sub_id[0]}: {e}")
+
+def get_submission_ids_to_process(species: str) -> List[Tuple[str]]:
+    """
+    Function to get submission ids that were batch validated in BIGSdb
+    :param species: the species name
+    :return: list of submission ids
+    """
+    with TblSubmissions(species=species) as isolates_submissions_psql_tbl:
+        return list(isolates_submissions_psql_tbl.get_submission_ids_batch_validated())
 
 
 def handling_retry_outcome(retry_state: RetryCallState) -> None:

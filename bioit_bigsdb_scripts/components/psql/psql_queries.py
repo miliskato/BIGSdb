@@ -397,8 +397,10 @@ class PsqlQueries:
         WHERE submissions.status='closed' and isolate_submission_isolates.field='isolate_id' and submissions.id=%s;"""
     ISO_UPD_STATUS_TB_SUB_VAR_ID: Final[str] = """
         UPDATE submissions SET status='validation_sent_to_bioit_platform' WHERE id=%s;"""
-    ISO_UPD_OUTCOME_TB_SUB_VAR_ID: Final[str] = """
-        UPDATE submissions SET status = %s WHERE id=%s;"""
+    ISO_UPD_STATUS_TB_SUB_VAR_ID_STATUS_BATCH: Final[str] = """
+        UPDATE submissions SET status = %s WHERE id=%s AND status = 'batch_validated';"""
+    ISO_UPD_STATUS_FAILED_VAL_TB_SUB_VAR_ID: Final[str] = """
+        UPDATE submissions SET status = 'failed_validation' WHERE id=%s;"""
     ISO_INS__TB_SUB_VAR_QUAL_RESEQ: Final[str] = """
         INSERT INTO submissions(id, 
         type, submitter, date_submitted, 

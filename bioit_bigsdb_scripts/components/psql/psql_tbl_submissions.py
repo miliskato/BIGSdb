@@ -53,13 +53,21 @@ class TblSubmissions(DatabaseConnection):
         """
         self.execute_query(PsqlQueries.ISO_UPD_STATUS_TB_SUB_VAR_ID, param)
 
-    def set_submission_status(self, param: Tuple[str, str]) -> None:
+    def update_status_for_batch_validated(self, param: Tuple[str, str]) -> None:
         """
         Updates the status of a specified submission with the provided value.
         :param param: status value and submission id
         :return: None
         """
-        self.execute_query(PsqlQueries.ISO_UPD_OUTCOME_TB_SUB_VAR_ID, param)
+        self.execute_query(PsqlQueries.ISO_UPD_STATUS_TB_SUB_VAR_ID_STATUS_BATCH, param)
+
+    def update_status_to_failed_validation(self, param: Tuple[str]) -> None:
+        """
+        Updates the status of a specified submission with the provided value.
+        :param param: submission id
+        :return: None
+        """
+        self.execute_query(PsqlQueries.ISO_UPD_STATUS_FAILED_VAL_TB_SUB_VAR_ID, param)
 
     def get_submission_id_from_bigs_upload(self) -> List[Tuple[str]]:
         """
