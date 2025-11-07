@@ -1,5 +1,6 @@
 import signal
 import logging
+from concurrent_log_handler import ConcurrentRotatingFileHandler
 from logging import handlers
 from typing import Any
 
@@ -49,7 +50,13 @@ def config_log_handlers(species: str) -> None:
     """
     root = logging.getLogger()
     root.setLevel(logging.INFO)
-    handler = handlers.TimedRotatingFileHandler(f'/var/log/NRC_platform/{species}.log', when="D", interval=1, backupCount=14)
+    handler = ConcurrentRotatingFileHandler(
+        name=f'/var/log/NRC_platform/{species}.log',
+        when="D",
+        interval=1,
+        backupCount=14,
+        owner=('www-data','www-data'),
+        chmod=0o660)
     formatter = logging.Formatter('%(asctime)s %(levelname)-8s %(name)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
     handler.setFormatter(formatter)
     handler.addFilter(DropUamqpInfo())

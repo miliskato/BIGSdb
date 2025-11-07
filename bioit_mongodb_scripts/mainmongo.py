@@ -192,6 +192,7 @@ class MainMongo:
         """
 
         # If statement for results_type
+        logger.debug(f"running mainmongo for sample {self._technical_id} with results_type {self._results_type} and species {self._species}")
         if self._results_type == "new_isolate":
             new_json_report = JsonReportDict.from_json(self._jsonfilepath)
 
@@ -212,10 +213,18 @@ class MainMongo:
                 else:
                     self.__process_json_report(new_json_report)
         elif self._results_type == 'goodqc_validated':
-            sample_doc = MongoRecordDict(self._isolates_goodqc_collection.find_one({"_id": self._technical_id}))
+            doc = self._isolates_goodqc_collection.find_one({"_id": self._technical_id})
+            if doc is None:
+                raise MongoMissingValueIsolateCollectionError(
+                    f"This goodqc validated technical id ({self._technical_id}) is not present in the isolates_goodqc collections for {self._species} ")
+            sample_doc = MongoRecordDict(doc)
             self.__process_mongo_record(sample_doc)
         elif self._results_type == 'warningqc_validated':
-            sample_doc = MongoRecordDict(self._isolates_warningqc_collection.find_one({"_id": self._technical_id}))
+            doc = self._isolates_warningqc_collection.find_one({"_id": self._technical_id})
+            if doc is None:
+                raise MongoMissingValueIsolateCollectionError(
+                    f"This warningqc validated technical id ({self._technical_id}) is not present in the isolates_warningqc collections for {self._species} ")
+            sample_doc = MongoRecordDict(doc)
             self.__process_mongo_record(sample_doc)
 
         elif self._results_type == "reanalysis" or self._results_type == 'resequencing_validated':
@@ -421,10 +430,10 @@ class MainMongo:
                          "latest_analysis_date": convert_dmyhms_to_ymd(new_results["results.analysis_date"]),
                          "previous_latest_results_document": self.__write_document(self._old_isolateresults_collection,
                                                                                    MongoRecordDict(dict(deltas_new_old)))}})
-        if not self._disable_asb_and_clustering_for_testing:
-            self._asb_instance.send_message_to_queue(AzureServiceBusMessage(self._technical_id, self._isolates_collection.name))
         # after having updated the isolates collection, check for changes for HD ODS to respect the order of execution.
         self.__check_if_any_results_for_hd_ods_changed(dict(deltas_new_old))
+        if not self._disable_asb_and_clustering_for_testing:
+            self._asb_instance.send_message_to_queue(AzureServiceBusMessage(self._technical_id, self._isolates_collection.name))
         logger.info(f"Wrote new results and linked to isolate {self._technical_id} in {self._species}")
 
     def __check_if_any_results_for_hd_ods_changed(self, deltas_new_old: Dict[str, Any]) -> None:
