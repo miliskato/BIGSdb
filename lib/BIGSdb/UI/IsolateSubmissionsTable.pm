@@ -161,6 +161,7 @@ sub render_review_form {
     $return_buffer .= q(<input type="hidden" name="page" value="batchValidation">);
     $return_buffer .= q(<input type="hidden" name="validate_submission" value="1">);
     $return_buffer .= qq(<input type="hidden" name="outcome" value="$outcome">);
+    $return_buffer .= qq(<input type="hidden" name="touch_postgres" value="1">);
 
     # Start table
     $return_buffer .= q(<table class="resultstable"><tr><th>Submission id</th><th>Isolate ID</th>);

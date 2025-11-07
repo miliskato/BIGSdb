@@ -178,17 +178,14 @@ sub initiate {
 	my $q             = $self->{'cgi'};
 	$self->{$_} = 1 foreach qw (jQuery jQuery.jstree noCache tooltips dropzone allowExpand jQuery.multiselect);
 
-    $logger->error('Showing param stored in line 181: Dumper($q->Vars)='.Dumper($q->Vars));
     #curate defined if the user has clicked on a submission id to curate it
     $self->set_level2_breadcrumbs('Confirm batch validation');
     $self->{'processing'} = 0;
 	if ( $q->param('bulk_status') ) {
         $self->{'processing'} = 1;
-        $logger->error('Already there: line 188');
 	} elsif ($q->param('validate_submission')){
 		$self->set_level2_breadcrumbs('Submission result');
         $self->{'processing'} = 1;
-        $logger->error('Already there: line 192');
 	}
 	return;
 }
@@ -482,7 +479,7 @@ sub print_submissions_for_curation {
     } elsif ( defined($q->param('validate_submission')) ) {
         my @submission_ids = $q->param('selected_submissions[]');
         my $bulk_status = $q->param('outcome');
-        my %outcome = (accepted => 'good', rejected => 'bad', pending => '' );
+        my %outcome = (accepted => 'good', rejected => 'bad');
         my $bulk_outcome = $outcome{ $bulk_status };
 
         $self->_validate_submission($bulk_outcome, @submission_ids);
@@ -501,16 +498,26 @@ sub print_submissions_for_curation {
 
 sub _validate_submission {
     my ($self, $outcome, @submission_ids) = @_;
+    my $q = $self->{'cgi'};
+    my $should_touch_postgres = $q->param('touch_postgres') // '';
     my $curator_id = $self->get_curator_id;
 
     eval {
-        for my $submission_id (@submission_ids) {
-            # Update submission status
-            $self->{'db'}->do(
-                'UPDATE submissions SET (status,datestamp,curator,outcome)=(?,?,?,?) WHERE id=?',
-                undef, 'batch_validated', 'now', $curator_id, $outcome, $submission_id
-            );
-        }
+        if ($should_touch_postgres eq '1') {
+            if (@submission_ids) {
+                    my $count        = scalar @submission_ids;
+                    my $placeholders = join( ',', ('?') x $count );
+                    my $sql = "UPDATE submissions SET (status,datestamp,curator,outcome)=(?,?,?,?) WHERE id IN ($placeholders)";
+                    $self->{'db'}->do( $sql, undef, 'batch_validated', 'now', $curator_id, $outcome, @submission_ids );
+                }
+            }
+            my $species = $self->{instance};
+            $species =~ s/^bigsdb_//;
+            $species =~ s/_isolates$//;
+            open(BASH, "|-", "bash");
+            print BASH "/home/bigsdb/BIGSdb/3.12PythonVenv/bin/python3.12 /home/bigsdb/BIGSdb/bioit_mongodb_scripts/util_azure/azure_submission_notifier.py --species $species \n";
+            close(BASH);
+            $q->delete('touch_postgres');
     };
     if ($@) {
         $logger->error("Batch validation failed: $@");
@@ -518,12 +525,6 @@ sub _validate_submission {
     } else {
         $self->{'db'}->commit;
     }
-    my $species = $self->{instance};
-    $species =~ s/^bigsdb_//;
-    $species =~ s/_isolates$//;
-    open(BASH, "|-", "bash");
-    print BASH "/home/bigsdb/BIGSdb/3.12PythonVenv/bin/python3.12 /home/bigsdb/BIGSdb/bioit_mongodb_scripts/util_azure/azure_submission_notifier.py --species $species \n";
-    close(BASH);
     return;
 }
 
