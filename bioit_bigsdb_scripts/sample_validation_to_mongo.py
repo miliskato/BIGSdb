@@ -6,6 +6,7 @@ if the location of this script is modified, it needs to be modified there as wel
 import argparse
 import datetime
 import logging
+import os
 import re
 import socket
 import sys
@@ -184,6 +185,11 @@ class SampleValidationToMongo:
         json_results['input_files'] = json_results['input_files'].replace(pseudo_id, isolate_id)
         json_results.pop('isolates_id')
         json_results.dump_to_json_file(path)
+
+        try:
+            os.chmod(path, 0o664)
+        except Exception as e:
+            logger.warning(f"chmod failed for {path}: {e}")
 
 
 if __name__ == '__main__':

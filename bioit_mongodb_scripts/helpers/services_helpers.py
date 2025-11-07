@@ -1,8 +1,8 @@
-import signal
 import logging
-from concurrent_log_handler import ConcurrentRotatingFileHandler
-from logging import handlers
+import signal
 from typing import Any
+
+from concurrent_log_handler import ConcurrentTimedRotatingFileHandler
 
 
 class Cancellation:
@@ -50,13 +50,12 @@ def config_log_handlers(species: str) -> None:
     """
     root = logging.getLogger()
     root.setLevel(logging.INFO)
-    handler = ConcurrentRotatingFileHandler(
-        name=f'/var/log/NRC_platform/{species}.log',
+    handler = ConcurrentTimedRotatingFileHandler(
+        filename=f'/var/log/NRC_platform/{species}.log',
         when="D",
         interval=1,
         backupCount=14,
-        owner=('www-data','www-data'),
-        chmod=0o660)
+        chmod=0o777)
     formatter = logging.Formatter('%(asctime)s %(levelname)-8s %(name)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
     handler.setFormatter(formatter)
     handler.addFilter(DropUamqpInfo())
