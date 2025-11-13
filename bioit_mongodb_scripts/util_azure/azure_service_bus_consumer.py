@@ -12,6 +12,7 @@ from tenacity import RetryCallState, retry, wait_exponential
 from bioit_bigsdb_scripts.components.psql import TblFailedInsertions
 from bioit_mongodb_scripts.mongo_to_bigs import MongoToBigs
 from bioit_mongodb_scripts.rejected_isolate import RejectedIsolate
+from bioit_mongodb_scripts.util.host_alerts_to_bigs import HostAlertsToBigs
 from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 from bioit_mongodb_scripts.util.update_bigsdb_clustering_cache_alerts import UpdateBIGSdbClusteringCacheAlerts
 from bioit_mongodb_scripts.update_bigsdb_seqdef import UpdateBIGSdbSeqDef
@@ -222,18 +223,23 @@ class MessageConsumerDataInserter(AzureServiceBus):
         sql-inserted versions of existing isolates with different cgSTs than the previous version.
         :return: None
         """
-        if not self._mongo_config_provider.is_viral(self._species) and len(list_of_new_isolates_for_alerts + list_of_new_versions_for_alerts) > 0:
-            update_bigsdb_clustering_cache_alerts = UpdateBIGSdbClusteringCacheAlerts(self._species,
-                                                                                      list_of_new_isolates_for_alerts,
-                                                                                      list_of_new_versions_for_alerts)
-            update_bigsdb_clustering_cache_alerts.update_clustering_cache_alerts()
+        if len(list_of_new_isolates_for_alerts + list_of_new_versions_for_alerts) > 0:
+            if self._mongo_config_provider.is_viral(self._species):
+                bigsdb_host_alerts = HostAlertsToBigs(
+                    self._species, list_of_new_isolates_for_alerts, list_of_new_versions_for_alerts)
+                bigsdb_host_alerts.evaluate_alerts_for_hosts()
+            else:
+                update_bigsdb_clustering_cache_alerts = UpdateBIGSdbClusteringCacheAlerts(self._species,
+                                                                                          list_of_new_isolates_for_alerts,
+                                                                                          list_of_new_versions_for_alerts)
+                update_bigsdb_clustering_cache_alerts.update_clustering_cache_alerts()
         MongoToBigsNominative(self._species, self._mongo_config_provider, dont_send_email=True)
 
     def _get_isolate_id(self, species: str, pseudo_id: str) -> str:
         """
-        tries to return the isolate_id based on the pseudo_id found in message
-        :param species: the species name
-
+        Tries to return the isolate_id based on the pseudo_id found in the message.
+        :param species: The species name
+        :return: the isolate_id
         """
         mongo_init_local = MongoInitialisation(species, self._mongo_config_provider.get_local_connection_string(species), self._mongo_config_provider.dtap)
         try:

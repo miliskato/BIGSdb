@@ -31,6 +31,10 @@ class PsqlQueries:
         (SELECT CAST(id AS TEXT) FROM isolates WHERE isolate=%s) and method = %s;"""
     ISO_UPD_VAL_TB_ALDE_VAR_ALID_FIELD: Final[str] = """
         UPDATE alert_details SET value = %s WHERE alert_id = %s AND field = %s;"""
+    ISO_SEL_HOSTS_TB_ALDE_VAR_ISOLATE: Final[str] = """
+        SELECT value FROM alert_details WHERE field = 'non-human hosts' AND 
+        alert_id = (SELECT alert_id FROM alert_details WHERE field = 'isolate_id' AND 
+        value = (SELECT CAST(id AS TEXT) FROM isolates WHERE isolate = %s));"""
 
     # TBL alerts
     ISO_INS__TB_AL_VAR_TYPE_METH: Final[str] = """
@@ -42,6 +46,8 @@ class PsqlQueries:
         (SELECT CURRENT_DATE), 'pending', true);"""
     ISO_UPD_TYPE_STATUS_TB_ALDE_VAR_ALID: Final[str] = """
         UPDATE alerts SET type = 'alert' AND status = 'pending' WHERE alert_id = %s;"""
+    ISO_UPD_STATUS_TB_ALDE_VAR_ALID: Final[str] = """
+        UPDATE alerts SET status = 'pending' WHERE alert_id = %s;"""
 
     # TBL allele designations
     ISO_DEL__TB_AD_VAR_LOCUS: Final[str] = """DELETE FROM allele_designations WHERE locus LIKE %s;"""

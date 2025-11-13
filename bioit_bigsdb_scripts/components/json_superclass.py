@@ -113,3 +113,33 @@ class JsonSuperClass:
         with TblAnalysisResults(self._species) as isolates_ana_res_psql_tbl:
             isolates_ana_res_psql_tbl.insert_analysis_results_isolate_name((
                 scheme_config['schemename_bigsdb'], self._isolatename, Json(analysis_dict_sanitized)))
+
+    def extract_strains_from_ref_selection(self) -> list[str]:
+        """
+        Extracts the strains from the reference selection section in the document.
+        :return: List of the strains
+        """
+        ref_selection = self._json_report_dict.get('ref_selection')
+        strains = []
+        if ref_selection:
+            for key, item in ref_selection.items():
+                if item == '-' or key == 'ref_selection_database':
+                    continue
+                strain = item['metadata'].get('Strain')
+                strains.append(strain)
+        return strains
+
+    def extract_hosts_from_ref_selection(self) -> list[str]:
+        """
+        Extracts the hosts from the strains.
+        :return: List of the hosts
+        """
+        strains = self.extract_strains_from_ref_selection()
+        hosts = []
+        for strain in strains:
+            parts = strain.split('/')
+            if len(parts) > 4:
+                hosts.append(parts[1])
+            else:
+                hosts.append('human')
+        return hosts

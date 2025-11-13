@@ -22,6 +22,7 @@
 
     [% FOREACH key IN Reference_selection.results.keys %]
         [% NEXT IF key == 'report_link' %]
+        [% NEXT IF key == 'ref_selection_database' %]
         [% NEXT IF Reference_selection.results.$key == '-' %]
         <tr>
             <td>[% key.split('_').last %]</td>

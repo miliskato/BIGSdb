@@ -13,9 +13,10 @@ sys.path.append(str(PYTHONPATH))
 
 from bioit_bigsdb_scripts.components.psql.databaseconnection import DatabaseConnection
 from bioit_bigsdb_scripts.components.psql import TblIsolates, TblMappingTable, \
-    TblSchemeMembers, TblTempIsolatesSchemeFields
+    TblSchemeMembers, TblTempIsolatesSchemeFields, TblAlertDetails
 from bioit_bigsdb_scripts.components.psql.psql_queries import PsqlQueries
 from bioit_bigsdb_scripts.main_results_inserter import MainResultsInserter
+from bioit_bigsdb_scripts.components.json_superclass import JsonSuperClass
 from bioit_mongodb_scripts.model.json_model import MongoRecordDict, ResultType
 from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
@@ -178,7 +179,7 @@ class MongoToBigs:
         Function to append isolate_id, cgST, and date_of_isolation to a list that will be used to re-compute BIGSdb alerts
         :param document: Mongo record from isolate collection
         :param isolate_id: isolate id (as found in BIGSdb)
-        :param results_type: one of the following string: 'new_isolate', 'goodqc', 'warningqc','resequencing',
+        :param results_type: one of the following string: 'new_isolate', 'goodqc', 'warningqc', 'resequencing',
         'reanalysis'
         :param cgst_changed: boolean whether the cgST changed
         :return: None
@@ -223,6 +224,7 @@ class MongoToBigs:
             results_type, new_document_version, _ = self.__get_results_type(document, isolate_id)
             if not new_document_version:
                 continue
+            self.__add_isolate_hosts_to_alert_list(document, isolate_id, results_type)
             if document.get('validation'):
                 # copy validation metadata to results section in order to be able to insert them into BIGSdb
                 document['results']['validation'] = document['validation']
@@ -391,6 +393,44 @@ class MongoToBigs:
         except Exception:
             raise Exception(
                 f"{Path(__file__).name}: Could not remove flag file {flagfilepath} on host {socket.gethostname()}. Traceback: {traceback.format_exc()}")
+
+    def __add_isolate_hosts_to_alert_list(self, document: MongoRecordDict, isolate_name: str, results_type: str) -> None:
+        """
+        Adds the isolate name, the hosts, and isolation date to a list that will be used to compute the BIGSdb alerts.
+        :param document: Mongo report document
+        :param isolate_name: Isolate name
+        :param results_type: One of the following: 'new_isolate', 'resequencing', 'reanalysis'
+        :return: None
+        """
+        json_class = JsonSuperClass(isolate_name, self._species, document.get_json_results(), self._bigsdb_config_data)
+        hosts = json_class.extract_hosts_from_ref_selection()
+
+        if results_type == 'new_isolate':
+            self._list_of_new_isolates_for_alerts.append(
+                {'isolate_name': isolate_name, 'hosts': hosts,
+                 'isolation_date': document['technical_metadata']['data']['IsolationDate']})
+
+        elif results_type == 'resequencing': # reference selection isn't executed again for the reanalysis
+            # TODO to be checked when resequencing is completely implemented
+            hosts_old = self.__select_old_non_human_hosts(isolate_name)
+            hosts_old.append('human')
+            missing_hosts = [host for host in hosts if host.lower() not in hosts_old]
+            if missing_hosts:
+                self._list_of_new_versions_for_alerts.append(
+                    {'isolate_name': isolate_name, 'hosts': hosts,
+                     'isolation_date': document['technical_metadata']['data']['IsolationDate']})
+
+    def __select_old_non_human_hosts(self, isolate_name: str) -> list[str]:
+        """
+        Selects the non-human hosts for the previously inserted isolate.
+        :param isolate_name: Isolate name
+        :return: List of hosts for the isolate
+        """
+        with TblAlertDetails(self._species) as isolates_alertsdet_psql_tbl:
+            hosts_old_list = isolates_alertsdet_psql_tbl.select_hosts_for_isolate_name((isolate_name,))
+        hosts_old_string = hosts_old_list[0][0] if hosts_old_list else None
+        hosts_old = hosts_old_string.split(', ') if hosts_old_string else []
+        return hosts_old
 
 
 if __name__ == '__main__':
