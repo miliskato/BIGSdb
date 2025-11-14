@@ -34,6 +34,18 @@ class UrlHelper:
         return UrlHelper._create(UrlHelper.SCIENSANO_PAGE, species, query, anchor)
 
     @staticmethod
+    def file_from_report_for_isolate(species: str, isolate_id: str, file: str) -> str:
+        """
+        Encodes url to get the file from the report of an isolate already present in BIGSdb.
+        :param species: Species of interest
+        :param isolate_id: Isolate id
+        :param file: File (path as string)
+        :return: The url used to get the file
+        """
+        query = {'id': isolate_id, 'get_zip': 'no', 'get_file': file}
+        return UrlHelper._create(UrlHelper.SCIENSANO_PAGE, species, query)
+
+    @staticmethod
     def report_for_validation(species: str, pseudo_id: str, submit_date: str, validation_type: str, getzip: bool = False) -> str:
         """
         encodes url to get the report waiting for validation

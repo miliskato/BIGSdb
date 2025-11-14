@@ -609,6 +609,8 @@ species_json:
         type: irregular
         schemename_bigsdb: Antivirals
         schemename_html: antiviral
+      krona:
+        schemename_bigsdb: Krona
     genedetection_schemes: null
 
 lab_metadata:

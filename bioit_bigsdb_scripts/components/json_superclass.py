@@ -97,19 +97,21 @@ class JsonSuperClass:
                 isolates_schememembers_psql_tbl.insert_scheme_member(
                     (scheme, locus))
 
-    def _insert_analysis_results(self, isolate_id: str, scheme, scheme_config: dict[str, str]) -> None:
+    def _insert_analysis_results(self, isolate_id: str, scheme, scheme_config: dict[str, str], include_url: bool = True) -> None:
         """
         Insert the analysis results of a specific assay into the analysis_results table.
         :param isolate_id: isolate id
         :param scheme: scheme for which the results should be inserted
         :param scheme_config: dictionary containing the config of the scheme
+        :param include_url: whether to include the report link in the analysis results
         :return: None
         """
-        report_url = UrlHelper.report_for_isolate(self._species, isolate_id, anchor=scheme_config['schemename_html'])
         analysis_dict = self._json_report_dict.get(scheme)
         analysis_dict_normalized = normalize_keys(analysis_dict)
         analysis_dict_sanitized = sanitize_json_values(analysis_dict_normalized)
-        analysis_dict_sanitized['report_link'] = report_url
+        if include_url:
+            report_url = UrlHelper.report_for_isolate(self._species, isolate_id, anchor=scheme_config['schemename_html'])
+            analysis_dict_sanitized['report_link'] = report_url
         with TblAnalysisResults(self._species) as isolates_ana_res_psql_tbl:
             isolates_ana_res_psql_tbl.insert_analysis_results_isolate_name((
                 scheme_config['schemename_bigsdb'], self._isolatename, Json(analysis_dict_sanitized)))
