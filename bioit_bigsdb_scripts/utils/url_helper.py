@@ -18,6 +18,9 @@ class UrlHelper:
         """
         query['page'] = page
         query['db'] = f"bigsdb_{species}_isolates"
+        if query.get('get_file'):
+            value = query.pop('get_file')
+            query['get_file'] = value
 
         return UrlHelper.BASE_URL + urllib.parse.urlencode(query) + (f"#{anchor}" if anchor is not None else '')
 

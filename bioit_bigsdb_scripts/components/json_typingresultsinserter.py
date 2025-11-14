@@ -125,7 +125,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
         mongo_config_provider = MongoConfigProvider()
         dtap = mongo_config_provider.dtap
         file = f'/{dtap}/{self._species}/{self._isolatename}/contamination_check/krona_report.html'
-        report_url = UrlHelper.file_from_report_for_isolate(self._species, self._isolatename, file)
+        report_url = UrlHelper.file_from_report_for_isolate(self._species, self.__get_isolate_id(), file)
         self._json_report_dict['krona'] = {'krona_report_url': report_url}
         self._insert_analysis_results(self.__get_isolate_id(), 'krona', self._schemedict[self._scheme], False)
 
