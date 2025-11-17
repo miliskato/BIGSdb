@@ -1,15 +1,30 @@
 [% # Template file for outputting formatted Krona analysis results in the isolate information page. %]
 [% IF Krona %]
 
-<div class="indented-hera">
-<h3>Krona visualization of kraken2 results</h3>
-    <iframe
-        src=[% Krona.results.krona_report_url %]
-        style="border: none;"
-        width="800"
-        height="500"
-        >
-    </iframe>
+<style>
+.krona-iframe-container {
+    position: relative;
+    width: 100%;
+    padding-bottom: 100%; /* (height/width = 1) */
+    overflow: hidden;
+}
+.krona-iframe-container iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+</style>
+
+<div class="indented-hera" style="width: 75%;">
+    <h3>Krona visualization of Kraken results</h3>
+    <div class="krona-iframe-container">
+        <iframe
+            src=[% Krona.results.krona_report_url %]
+            style="border: none;"
+            >
+        </iframe>
+    </div>
 </div>
-<br>
 [% END %]

@@ -12,8 +12,7 @@ table.nice td:first-child { max-width:50ch; overflow-wrap:anywhere }
 
 .indented-hera h3 { margin-left: 3em; }
 .indented-hera h4 { margin-left: 3.5em; }
-.indented-hera div{ margin-left: 4em; }
-.indented-hera iframe { margin-left: 4em; }
+.indented-hera div { margin-left: 4em; }
 
 .indented-hera-2 h3 { margin-left: 3em; }
 .indented-hera-2 h4 { margin-left: 3.5em; }

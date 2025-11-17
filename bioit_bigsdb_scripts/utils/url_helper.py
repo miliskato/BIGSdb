@@ -45,7 +45,7 @@ class UrlHelper:
         :param file: File (path as string)
         :return: The url used to get the file
         """
-        query = {'id': isolate_id, 'get_zip': 'no', 'get_file': file}
+        query = {'id': isolate_id, 'get_file': file}
         return UrlHelper._create(UrlHelper.SCIENSANO_PAGE, species, query)
 
     @staticmethod
