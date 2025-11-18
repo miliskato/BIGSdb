@@ -163,7 +163,7 @@ class MainResultsInserter:
         if isolate_cgst is None:
             return
         with TblAnalysisResults(self._species) as isolates_ana_res_psql_tbl:
-            js_link_of_the_cgst = isolates_ana_res_psql_tbl.extract_results_filtered_on_name((isolate_cgst,))[0][0]
+            js_link_of_the_cgst = isolates_ana_res_psql_tbl.extract_results_filtered_on_name((isolate_cgst,))
             if js_link_of_the_cgst is not None:
                 isolates_ana_res_psql_tbl.insert_analysis_results_isolate_name(('cgST_clustering_on_allelic_dist', self._isolatename, Jsonb(js_link_of_the_cgst)))
 

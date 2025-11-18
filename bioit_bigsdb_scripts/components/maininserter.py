@@ -6,7 +6,8 @@ from typing import Any, Dict
 from bioit_mongodb_scripts.model.json_model import JsonReportDict
 from .json_superclass import JsonSuperClass
 from .psql import TblEavBoolean, TblEavFields, TblEavInt, TblEavText, TblEavTextHidden, TblHistory, TblIsolates
-from ..utils.html_tbl_templates import HtmlAntiviralAssociationsTableBuilder, HtmlAntiviralMutationsTableBuilder, HtmlRefSelectionTableBuilder, HtmlReportBuilder, HtmlSnpLineageTableBuilder
+from ..utils.html_tbl_templates import HtmlAntiviralAssociationsTableBuilder, HtmlAntiviralMutationsTableBuilder, HtmlRefSelectionTableBuilder, HtmlReportBuilder, \
+    HtmlSnpLineageTableBuilder
 from ..utils.url_helper import UrlHelper
 
 
@@ -116,9 +117,6 @@ class MainInserter(JsonSuperClass):
                                                        str(context.isolate_id)))
             logging.info('Metadata insertion successful')
 
-
-
-
     def __insert_species_specific_metadata(self, context: MainInserterContext) -> None:
         """
         Insert species specific metadata
@@ -154,7 +152,8 @@ class MainInserter(JsonSuperClass):
                 self._isolates_eavt_psql_tbl.insert_eav_id((context.isolate_id, 'Serogroup_capsule', self._json_report_dict['serogroup']['serogroup_capsule']))
         elif self._species == 'influenza':
             if 'nextclade' in self._json_report_dict:
-                self._isolates_eavt_psql_tbl.insert_eav_id_viral_species((context.isolate_id, 'influenza_subtype', self._json_report_dict['nextclade'].get('nextclade_detected_subtype')))
+                self._isolates_eavt_psql_tbl.insert_eav_id_viral_species(
+                    (context.isolate_id, 'influenza_subtype', self._json_report_dict['nextclade'].get('nextclade_detected_subtype')))
                 self._isolates_eavt_psql_tbl.insert_eav_id_viral_species((context.isolate_id, 'nextclade_clade', self._json_report_dict['nextclade'].get('nextclade_clade')))
             if 'antivirals' in self._json_report_dict:
                 antiviral_mutations = self._json_report_dict['antivirals'].get('antivirals_mutations')

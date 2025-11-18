@@ -417,9 +417,9 @@ class PsqlQueries:
     ISO_INSERT_GENERIC_LAB_METADATA_TEMPLATE: Final[str] = "UPDATE isolates SET {} WHERE isolate=%s;"
 
     # TBL analysis results
-    ISO_INS__TB_ANA_RES_VAR_NAM_ISO_RES: Final[str] = """
+    ISO_INS__TB_ANA_RES_VAR_NAME_ISO_RES: Final[str] = """
     INSERT INTO analysis_results(name, isolate_id, datestamp, results) VALUES (%s, (SELECT id FROM isolates WHERE isolate=%s), (SELECT CURRENT_DATE), %s);"""
-    ISO_INS__TB_ANA_RES_VAR_NAM_ISO_ID_RES: Final[str] = """
+    ISO_INS__TB_ANA_RES_VAR_NAME_ID_RES: Final[str] = """
     INSERT INTO analysis_results(name, isolate_id, datestamp, results) VALUES (%s, %s, (SELECT CURRENT_DATE), %s);"""
     ISO_DEL__TB_ANA_RES_VAR_ISO: Final[str] = """
     DELETE FROM analysis_results WHERE isolate_id=(SELECT id FROM isolates WHERE isolate=%s);"""
@@ -427,7 +427,7 @@ class PsqlQueries:
     SELECT EXISTS(SELECT 1 FROM analysis_results WHERE name = %s AND isolate_id = %s);"""
     ISO_SEL_EXISTS_TB_ANA_RES_VAR_NAME: Final[str] = """
     SELECT EXISTS(SELECT 1 FROM analysis_results WHERE name = %s);"""
-    ISO_UPDATE_TB_ANA_RES_VAR_RES_NAME_ISO_ID: Final[str] = """
+    ISO_UPDATE_TB_ANA_RES_VAR_RES_NAME_ID: Final[str] = """
     UPDATE analysis_results SET results=%s, datestamp=(SELECT CURRENT_DATE) WHERE name=%s AND isolate_id=%s;"""
     ISO_SEL_RES_TB_ANA_RES_VAR_RES: Final[str] = """
-    SELECT results FROM analysis_results WHERE EXISTS (SELECT 1 FROM jsonb_each_text(results) AS kv WHERE kv.value ~ %s);"""
+    SELECT results FROM analysis_results WHERE EXISTS (SELECT 1 FROM jsonb_each_text(results) AS kv WHERE kv.value ~ %s) AND name = 'cgST_clustering_on_allelic_dist';"""

@@ -4,7 +4,7 @@ import sys
 import traceback
 from datetime import date
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Optional, Union
 
 import numpy as np
 from psycopg.types.json import Jsonb
@@ -93,7 +93,7 @@ class NewClusteringInfoToBigs:
         # this always needs to be found because the new temporary alleles runs before the new clustering info runs
         return query['last_update_date']
 
-    def _get_new_st(self) -> List[Dict[str, Any]]:
+    def _get_new_st(self) -> list[dict[str, Any]]:
         """
         Retrieve the new sequence types from the MongoDB sequence types collection which have been added since the
         last update of clustering.
@@ -103,7 +103,7 @@ class NewClusteringInfoToBigs:
             self._st_collection.find({'$and': [{'bigsdb_status': 'pending'}, {'select_for_bigsdb_insertion': True}]},
                                      sort=[('cgST', 1)]))
 
-    def _get_st_headers(self) -> Dict[str, Any]:
+    def _get_st_headers(self) -> dict[str, Any]:
         """
         Retrieve the sequence types headers from the sequence type collection from MongoDB
         :return: The document (dict) containing the allele names as a list under the 'headers' key.
@@ -111,7 +111,7 @@ class NewClusteringInfoToBigs:
         """
         return self._headers_collection.find_one({'type': 'cgmlst_headers'})
 
-    def _get_new_cluster_membership(self) -> List[Dict[str, Any]]:
+    def _get_new_cluster_membership(self) -> list[dict[str, Any]]:
         """
         Retrieve the cluster memberships that have been added or modified between the last clustering update and last
         update of temporary alleles
@@ -126,7 +126,7 @@ class NewClusteringInfoToBigs:
         :return: None.
         """
         with TblProfiles(self._species) as seqdef_profiles_psql_tbl:
-            listoftuples: List[Tuple[int]] = seqdef_profiles_psql_tbl.select_profile(('cgMLST',))
+            listoftuples: list[tuple[int]] = seqdef_profiles_psql_tbl.select_profile(('cgMLST',))
             primary_fields = [int(x[0]) for x in listoftuples] if listoftuples else []
             with TblProfileMembers(self._species) as seqdef_profilemembers_psql_tbl, \
                     TblProfileFields(self._species) as seqdef_profilefields_psql_table:
@@ -235,7 +235,7 @@ class NewClusteringInfoToBigs:
             assay_name = f'cgST_with_max_{max_allelic_distance}_allelic_dist'
 
             # get all cgsts in mongodb:
-            cgsts_per_isolate: List[Dict[str, Union[str, Dict[str, Optional[int]]]]] = \
+            cgsts_per_isolate: list[dict[str, Union[str, dict[str, Optional[int]]]]] = \
                 list(self._isolates_collection.find({}, {"results.cgST": 1, "_id": 1}))
             # check if field is possibly new by checking if there are any values for the field yet,
             # this feature is needed because fields can be added at different points in time and
@@ -271,7 +271,7 @@ class NewClusteringInfoToBigs:
 
     def __update_naive_clustering_values_for_one_cgst(
             self, cgst: int, distance_matrix: np.ndarray, max_allelic_distance: int,
-            cgsts_per_isolate: List[Dict[str, Union[str, Dict[str, Optional[int]]]]], assay_name: str) -> None:
+            cgsts_per_isolate: list[dict[str, Union[str, dict[str, Optional[int]]]]], assay_name: str) -> None:
         """
         Modularization function which updates the naive clustering in implementation in bigsdb for one specific cgST.
         :param cgst: cgST for which to update
@@ -308,15 +308,15 @@ class NewClusteringInfoToBigs:
                 json_layout = {}
                 for item in results:
                     json_layout.update(item)
-                value_already_found_in_postgres = isolates_ana_res_psql_tbl.is_field_already_set_for_this_isolate(('cgST_clustering_on_allelic_dist', isolate_id))[0][0]
+                value_already_found_in_postgres = isolates_ana_res_psql_tbl.is_field_already_set_for_this_isolate(('cgST_clustering_on_allelic_dist', int(isolate_id)))[0][0]
                 if value_already_found_in_postgres:
-                    isolates_ana_res_psql_tbl.update_analysis_results_isolate_id((Jsonb(json_layout), isolate_id, 'cgST_clustering_on_allelic_dist'))
+                    isolates_ana_res_psql_tbl.update_analysis_results_isolate_id((Jsonb(json_layout), 'cgST_clustering_on_allelic_dist', int(isolate_id)))
                 else:
                     # For new fields and for affected isolates that did not have the field yet
-                    isolates_ana_res_psql_tbl.insert_analysis_results_isolate_id(('cgST_clustering_on_allelic_dist', isolate_id, Jsonb(json_layout)))
+                    isolates_ana_res_psql_tbl.insert_analysis_results_isolate_id(('cgST_clustering_on_allelic_dist', int(isolate_id), Jsonb(json_layout)))
 
     @staticmethod
-    def __convert_results_dict(dict_to_convert: dict[int, list[dict[str, str]]]) -> Dict[str, List[Dict[str, str]]]:
+    def __convert_results_dict(dict_to_convert: dict[int, list[dict[str, str]]]) -> dict[str, list[dict[str, str]]]:
         """
         Converts a dict of the form:
         {'thresholdA': [{id_1: valA1}, {id_2: valA2}], 'thresholdB': [{id_1: valB1}, {id_2: valB2}]}
@@ -332,7 +332,7 @@ class NewClusteringInfoToBigs:
         return output
 
     @staticmethod
-    def generate_html_js_cgstquery(cgsts: List[int], cgmlst_bigsdb_scheme_id: int, assay_name: str, species: str) -> str:
+    def generate_html_js_cgstquery(cgsts: list[int], cgmlst_bigsdb_scheme_id: int, assay_name: str, species: str) -> str:
         """
         Generates the html element containing the javascript function to query the cgST's clustered together in BIGSdb interface
         :param cgsts: the cgST's that should be included in the html query

@@ -8,7 +8,7 @@ from bioit_mongodb_scripts.config import CLUSTERING_CONFIG
 
 class MongoClusteringConfigProvider:
     """
-    Class to facilitate access to the tresholds used for the clustering.
+    Class to facilitate access to the thresholds used for the clustering.
     """
     __CURRENTLY_SUPPORTED_SPECIES = ["enterococcus_faecalis",
                                      "enterococcus_faecium",
@@ -21,7 +21,7 @@ class MongoClusteringConfigProvider:
 
     def __init__(self, species: str):
         """
-        :param alternate_dtap: optional dtap if need to overwrite the config
+        :param species: species for which to get the clustering thresholds (must be one of the supported species).
         :return: None
         """
         self._species = species
