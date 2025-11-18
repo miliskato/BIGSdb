@@ -56,6 +56,10 @@ class ParseClinLabJsonInfluenza(ParseClinLabJson):
                 case_type = 'ILI'
             elif 'IS' in internal_reference_sample_id:
                 case_type = 'SARI'
+            elif 'IW' in internal_reference_sample_id:
+                case_type = 'WZC'
+            elif 'IZ' in internal_reference_sample_id:
+                case_type = 'IZ'
 
         self._data_translated['case_type'] = case_type
 
@@ -86,12 +90,16 @@ class ParseClinLabJsonInfluenza(ParseClinLabJson):
         ha = self.__get_type_part(self.HA_TESTS)
         na = self.__get_type_part(self.NA_TESTS)
         b = self.__get_type_part(self.B_TESTS)
-        if ha:
+        if ha and na:
             self._data_translated['FluA_SubtypeHAPCR'] = ha
-            self._data_translated['Flu_subtype_or_lineagePCR'] = ha + na
-        elif na:
             self._data_translated['FluA_SubtypeNAPCR'] = na
             self._data_translated['Flu_subtype_or_lineagePCR'] = ha + na
+        elif ha:
+            self._data_translated['FluA_SubtypeHAPCR'] = ha
+            self._data_translated['Flu_subtype_or_lineagePCR'] = ha
+        elif na:
+            self._data_translated['FluA_SubtypeNAPCR'] = na
+            self._data_translated['Flu_subtype_or_lineagePCR'] = na
         elif b:
             self._data_translated['Flu_subtype_or_lineagePCR'] = b
 
