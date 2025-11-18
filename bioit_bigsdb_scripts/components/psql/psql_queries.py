@@ -416,10 +416,10 @@ class PsqlQueries:
     ISO_INS__TB_SUB_VAR_QUAL_RESEQ: Final[str] = """
         INSERT INTO submissions(id, 
         type, submitter, date_submitted, 
-        datestamp, status, email, quality, resequencing) 
+        datestamp, status, email, quality, resequencing, warning_reasons) 
         VALUES ((SELECT CASE WHEN (SELECT MAX(id::int) FROM submissions WHERE id ~ '^[0-9]+$') IS NULL THEN 1 ELSE (SELECT(SELECT MAX(id::int) FROM submissions WHERE id ~ '^[0-9]+$')+1) END), 
         'isolates', 1, (SELECT CURRENT_DATE), 
-        (SELECT CURRENT_DATE), 'pending', true, %s, %s);"""
+        (SELECT CURRENT_DATE), 'pending', true, %s, %s, %s);"""
     ISO_SEL_ID_TB_SUB_VAR_STATUS: Final[str] = """
         SELECT id FROM submissions WHERE outcome = 'good' AND status = 'closed' AND id LIKE 'BIGSdb_%';"""
     ISO_SEL_SUBID_TB_SUB_VAR_: Final[str] = """

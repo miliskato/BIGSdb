@@ -100,7 +100,8 @@ class SampleToValidationBigs:
         with TblSubmissions(self._species) as isolates_sub_psql_tbl, \
                 TblIsolateSubmissionIsolates(self._species) as isolates_isosubiso_psql_tbl, \
                 TblIsolateSubmissionFieldOrder(self._species) as isolates_isosubfo_psql_tbl:
-            isolates_sub_psql_tbl.insert_submission((self._quality, self._resequencing))
+            warning_reasons = self._get_warning_reasons(sample_doc)
+            isolates_sub_psql_tbl.insert_submission((self._quality, self._resequencing, warning_reasons))
             report_url = UrlHelper.report_for_validation(self._species, sample_doc['_id'],
                                                          sample_doc['latest_analysis_date'],
                                                          self._validation_type)
@@ -111,9 +112,24 @@ class SampleToValidationBigs:
             isolates_isosubiso_psql_tbl.insert_validation_metadata(('validation_type', self._validation_type))
             isolates_isosubiso_psql_tbl.insert_validation_metadata(('quality', self._quality))
             isolates_isosubiso_psql_tbl.insert_validation_metadata(('resequencing', self._resequencing))
+            isolates_isosubiso_psql_tbl.insert_validation_metadata(('warning_reasons', warning_reasons))
             # The indexes below are necessary, if they are not inserted the values above are not visible
             isolates_isosubfo_psql_tbl.insert_validation_indexes(('html_report', 1))
             isolates_isosubfo_psql_tbl.insert_validation_indexes(('isolate_id', 2))
             isolates_isosubfo_psql_tbl.insert_validation_indexes(('validation_type', 3))
             isolates_isosubfo_psql_tbl.insert_validation_indexes(('quality', 4))
             isolates_isosubfo_psql_tbl.insert_validation_indexes(('resequencing', 5))
+            isolates_isosubfo_psql_tbl.insert_validation_indexes(('warning_reasons', 6))
+
+    @staticmethod
+    def _get_warning_reasons(sample_doc: MongoRecordDict) -> str:
+        """
+        Returns the warning reasons of a sample.
+        :param sample_doc: mongo db document of the isolate
+        :return: str, warning reasons
+        """
+        warning_reasons = 'NA'
+        if sample_doc.get('warning_reasons'):
+            warning_reasons = '<br>'.join(
+                qc_metric['reason'] for qc_metric in sample_doc['warning_reasons'].values())
+        return warning_reasons

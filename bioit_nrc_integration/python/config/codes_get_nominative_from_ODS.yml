@@ -7,8 +7,8 @@ pathogens:
   HDBP0333_INFL_LAB: influenza
   HDBP0337_???_CLIN: mycobacterium # todo
   HDBP0337_???_LAB: mycobacterium # todo
-  HDBP0339_???_CLIN: neisseria # todo
-  HDBP0339_???_LAB: neisseria # todo
+  HDBP0339_MENI_CLIN: neisseria
+  HDBP0339_MENI_LAB: neisseria
 
 schema:
   LAB:
@@ -85,7 +85,6 @@ schema:
     CD_EPILINK:
       required:
         - salmonella
-        - listeria
       translation: epi_link
       code_list: CD_EPILINK_codes
     CD_TPE:
@@ -99,10 +98,14 @@ schema:
       translation: outcome
       code_list: CD_OUTCM_codes
     CD_OUTC:
+      required: False
+      allowed:
+        - neisseria
       translation: evolution
       code_list: CD_OUTCM_codes
     CD_TRANSM_ZOONSS:
-      required:
+      required: False
+      allowed:
         - listeria
       translation: mode_of_transmission
       code_list: CD_TRANSM_ZOONSS_codes
@@ -270,9 +273,10 @@ code_lists:
     385432009: Not applicable
     74964007: Other
     261665006: 'Unknown'
-    1: Exposure to a common source/grouped case
+    EL0002: Exposure to a common source
     230102009: Contaminated food intake
     102430008: Exposure to polluted drinking water
+    1: Grouped case
     2: Imported case
     3: Special resistance
     4: Treatment
@@ -316,10 +320,10 @@ code_lists:
     74964007: Other
     261665006: 'Unknown'
   CD_PERNAT_codes:
-    1: Isolate strain mother
-    2: Isolate strain fetus
-    3: Isolate strain newborn
-    4: Unknown perinatal info
+    IS0001: Isolate strain mother
+    IS0002: Isolate strain fetus
+    IS0003: Isolate strain newborn
+    IS0004: Unknown perinatal info
     385432009: Not applicable
   CD_PROB_NAM_PREGY_codes:
     367494004: Premature birth of newborn
@@ -352,9 +356,9 @@ code_lists:
     226967004: turkey_meat_and_products_thereof
     388618001: cats
     388074005: bats
-    1: other_pets
-    2: captive_wild_animals_in_zoo
-    3: other_wild_animals
+    SU0001: other_pets
+    SU0002: captive_wild_animals_in_zoo
+    SU0003: other_wild_animals
     261665006: 'Unknown'
   MEDICATION_FLU_codes:
     MD0020: Baloxavir
@@ -406,11 +410,11 @@ code_lists:
       value_field: 'CD_LAB_TEST_RSLT_QL'
       code_list: 'serovar_codes'
       translation: 'malditof_identification'
-    - CD_LAB_TEST_CODE: 'TC0004'
+    - CD_LAB_TEST_CODE: 'TC0053'
       value_field: 'CD_LAB_TEST_RSLT_QL'
       code_list: 'serovar_codes'
       translation: 'serotype_pheno'
-    - CD_LAB_TEST_CODE: 'TC0002'
+    - CD_LAB_TEST_CODE: 'TC0051'
       value_field: 'CD_LAB_TEST_RSLT_QL'
       code_list: 'serovar_codes'
       translation: 'serogroup_pheno'
@@ -418,11 +422,11 @@ code_lists:
       value_field: 'CD_LAB_TEST_RSLT_QL'
       code_list: 'serovar_codes'
       translation: 'identification_culture'
-    - CD_LAB_TEST_CODE: 'TC0001'
+    - CD_LAB_TEST_CODE: 'TC0050'
       value_field: 'CD_LAB_TEST_RSLT_QL'
       code_list: 'serovar_codes'
       translation: 'identification_pcr'
-    - CD_LAB_TEST_CODE: 'TC0003'
+    - CD_LAB_TEST_CODE: 'TC0052'
       value_field: 'CD_LAB_TEST_RSLT_QL'
       code_list: 'serovar_codes'
       translation: 'identification_malditof'
@@ -624,8 +628,8 @@ code_lists:
       translation: 'serogroup_pcr'
   labtest_codes:
     1306577009: Susceptible
-    1306581009: Intermediate
-    1306583007: Resistant
+    1306583007: Intermediate
+    1306581009: Resistant
     QL0001: 'Unknown'
     QL0002: Not interpretable
   labtest_codes_influenza:
@@ -5482,34 +5486,35 @@ code_lists:
     4341000146107: 'Zygosaccharomyces rouxii'
     4321000146101: 'Zygotorulaspora florentina'
     # below fields of listeria dcd
+    QL0035: Not defined
     #36094007: Listeria monocytogenes
-    # QL0002: No Listeria monocytogenes  # in salmonella this is 'not interpretable'
+    QL0037: No Listeria monocytogenes
     260385009: Negative
     419984006: Inconclusive
-    QL0003: Listeria monocytogenes serogroup IIa
-    QL0004: Listeria monocytogenes serogroup IIb
-    QL0005: Listeria monocytogenes serogroup IIc
-    QL0006: Listeria monocytogenes serogroup IVa
-    QL0007: Listeria monocytogenes serogroup IVb
-    QL0008: Listeria monocytogenes serogroup L
+    QL0038: Listeria monocytogenes serogroup IIa
+    QL0039: Listeria monocytogenes serogroup IIb
+    QL0040: Listeria monocytogenes serogroup IIc
+    QL0041: Listeria monocytogenes serogroup IVa
+    QL0042: Listeria monocytogenes serogroup IVb
+    QL0043: Listeria monocytogenes serogroup L
     385432009: Not applicable
-    QL0009: Listeria monocytogenes serotype 1/2a
-    QL0010: Listeria monocytogenes serotype 1/2b
-    QL0011: Listeria monocytogenes serotype 1/2c
-    QL0012: Listeria monocytogenes serotype 3a
-    QL0013: Listeria monocytogenes serotype 3b
-    QL0014: Listeria monocytogenes serotype 3c
-    QL0015: Listeria monocytogenes serotype 4a
-    QL0016: Listeria monocytogenes serotype 4ab
-    QL0017: Listeria monocytogenes serotype 4b
-    QL0018: Listeria monocytogenes serotype 4c
-    QL0019: Listeria monocytogenes serotype 4d
-    QL0020: Listeria monocytogenes serotype 4e
-    QL0021: Listeria monocytogenes serotype 4f
-    QL0022: Listeria monocytogenes serotype 4g
-    QL0023: Listeria monocytogenes serotype 4h
-    QL0024: Listeria monocytogenes serotype 5
-    QL0025: Listeria monocytogenes serotype 6a
-    QL0026: Listeria monocytogenes serotype 6b
-    QL0027: Listeria monocytogenes serotype 7
-    QL0028: Autoagglutinable
+    QL0044: Listeria monocytogenes serotype 1/2a
+    QL0045: Listeria monocytogenes serotype 1/2b
+    QL0046: Listeria monocytogenes serotype 1/2c
+    QL0047: Listeria monocytogenes serotype 3a
+    QL0048: Listeria monocytogenes serotype 3b
+    QL0049: Listeria monocytogenes serotype 3c
+    QL0050: Listeria monocytogenes serotype 4a
+    QL0051: Listeria monocytogenes serotype 4ab
+    QL0052: Listeria monocytogenes serotype 4b
+    QL0053: Listeria monocytogenes serotype 4c
+    QL0054: Listeria monocytogenes serotype 4d
+    QL0055: Listeria monocytogenes serotype 4e
+    QL0056: Listeria monocytogenes serotype 4f
+    QL0057: Listeria monocytogenes serotype 4g
+    QL0058: Listeria monocytogenes serotype 4h
+    QL0059: Listeria monocytogenes serotype 5
+    QL0060: Listeria monocytogenes serotype 6a
+    QL0061: Listeria monocytogenes serotype 6b
+    QL0062: Listeria monocytogenes serotype 7
+    QL0063: Autoagglutinable
