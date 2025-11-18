@@ -49,7 +49,7 @@ schema:
     TX_INT_ID:
       required: False
       allowed: influenza
-      translation: internal_lims_id
+      translation: internal_LIMS_id
   CLIN:
     TX_LAB_SAMPLE_VAL:  # needed for link with WGS meta
       required: True
