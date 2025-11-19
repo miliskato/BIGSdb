@@ -1,14 +1,13 @@
 from psycopg.types.json import Jsonb
 
+from factories.main_results_factory.data_typing.serotyping_results import SerotypingData
 from factories.main_results_factory.utils.json_maker_summary_results import JsonMakerSummaryResults
 from factories.main_results_factory.builders.summary_results_builder import SummaryResultsBuilder
-from factories.main_results_factory.data_typing.sequence_typing_results import SequenceTypingData
 from bioit_mongodb_scripts.model.json_model import JsonReportDict
 from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 
 
 class GenericSummaryResultsBuilder(SummaryResultsBuilder):
-
 
     def accept(self, species: str) -> bool:
         """
@@ -25,13 +24,8 @@ class GenericSummaryResultsBuilder(SummaryResultsBuilder):
         :return: Jsonb object to be inserted in the analysis_results table
         """
 
-        results = json_report
-        cgst = results.get('cgST')
-        st = results['mlst'].get('mlst-ST')
-        rst = results['rmlst'].get('rmlst-rST')
-        st_data = SequenceTypingData(cgst, st, rst)
-
-        sg_data = results.get('serogroup')
+        st_data = self.extract_sequence_typing_data(json_report)
+        sg_data = SerotypingData(json_report.get('serogroup'))
 
         json_maker = JsonMakerSummaryResults(st_data, sg_data)
 

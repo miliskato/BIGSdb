@@ -21,8 +21,9 @@ class JsonMakerSummaryResults:
 
     def get_json_for_sequence_typing(self, additional_data: ListeriaSequenceTypingData | NeisseriaSequenceTypingData | None = None) -> dict:
         """
-        additional_data: optional ListeriaSequenceTypingData or NeisseriaSequenceTypingData object containing species-specific ST fields
-        :return: dict containing the ST fields
+        Creates the json structured dict that will contain the sequence typing results
+        :param additional_data: optional ListeriaSequenceTypingData or NeisseriaSequenceTypingData object containing species-specific ST fields
+        :return: dict containing the sequence typing results
         """
         json_dict = dataclasses.asdict(self.sequence_typing_data)
         if additional_data:
@@ -31,7 +32,8 @@ class JsonMakerSummaryResults:
 
     def get_json_for_serotyping(self, additional_data: NeisseriaSerotypingData | None = None ) -> Optional[dict]:
         """
-        serotype_data: dictionary containing serotyping results
+        Creates the json structured dict that will contain the serotyping results
+        :param additional_data: dictionary containing serotyping results
         :return: dict containing the serotyping results
         """
         if self.serotyping_data is None:
@@ -41,11 +43,12 @@ class JsonMakerSummaryResults:
             json_dict.update(dataclasses.asdict(additional_data))
         return json_dict
 
-    def create_binary_json(self, additional_sequencing_data: ListeriaSequenceTypingData | NeisseriaSequenceTypingData | None = None, additional_serotyping_data: NeisseriaSerotypingData | None = None) -> Jsonb:
+    def create_binary_json(self, additional_sequencing_data: ListeriaSequenceTypingData | NeisseriaSequenceTypingData | None = None,
+                           additional_serotyping_data: NeisseriaSerotypingData | None = None) -> Jsonb:
         """
-        Create the final json object containing all the sequencing results
-        :param additional_sequencing_data: optional dictionary containing additional species specific sequencing results to be added to the json
-        :param additional_serotyping_data: optional dictionary containing additional species specific serotyping results to be added to the json
+        Creates the final json object containing all the sequencing results
+        :param additional_sequencing_data: optional dictionary containing additional species-specific sequencing results to be added to the json
+        :param additional_serotyping_data: optional dictionary containing additional species-specific serotyping results to be added to the json
         :return: Jsonb object containing all the sequencing results
         """
         st_results = self.get_json_for_sequence_typing(additional_sequencing_data)

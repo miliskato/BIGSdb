@@ -3,6 +3,7 @@ from typing import Optional
 
 from psycopg.types.json import Jsonb
 from bioit_mongodb_scripts.model.json_model import JsonReportDict
+from factories.main_results_factory.data_typing.sequence_typing_results import SequenceTypingData
 
 
 class SummaryResultsBuilder(ABC):
@@ -28,3 +29,15 @@ class SummaryResultsBuilder(ABC):
         """
         pass
 
+    @staticmethod
+    def extract_sequence_typing_data(json_report: JsonReportDict) -> SequenceTypingData:
+        """
+        Helper to extract common sequence typing fields and return a SequenceTypingData.
+        :param json_report: JsonReportDict object containing the results from the WGS analysis
+        :return: SequenceTypingData object
+        """
+        results = json_report
+        cgst = results.get('cgST')
+        st = results['mlst'].get('mlst-ST')
+        rst = results['rmlst'].get('rmlst-rST')
+        return SequenceTypingData(cgst, st, rst)

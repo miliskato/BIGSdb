@@ -13,7 +13,7 @@ from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 class SummaryResultsBuilderFactory:
     """
     Factory class to create the json results summary based on the species.
-    It can handle the builders specified in the constructor.""
+    It can handle the builders specified in the constructor.
     """
 
     def __init__(self):

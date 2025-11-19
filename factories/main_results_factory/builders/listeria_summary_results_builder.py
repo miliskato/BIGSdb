@@ -28,18 +28,15 @@ class ListeriaSummaryResultsBuilder(SummaryResultsBuilder):
         :return: Jsonb object to be inserted in the analysis_results table
         """
 
-        results = json_report
-        cgst = results.get('cgST')
-        mlst_results = results.get('mlst')
-        st = mlst_results.get('mlst-ST')
-        rst = results['rmlst'].get('rmlst-rST')
-        st_data = SequenceTypingData(cgst, st, rst)
+        st_data = self.extract_sequence_typing_data(json_report)
+        mlst_cc = json_report['mlst'].get('mlst-CC')
+        mlst_lineage = json_report['mlst'].get('mlst-Lineage')
 
-        listeria_st_data = ListeriaSequenceTypingData(mlst_results.get('mlst-CC'), mlst_results.get('mlst-Lineage'))
+        listeria_st_add_data = ListeriaSequenceTypingData(mlst_cc, mlst_lineage)
 
-        sg_results = results.get('pcr_serogroup')
-        sg_data = SerotypingData(sg_results.get('pcr_serogroup-serogroup'))
+        sg_results = json_report['pcr_serogroup'].get('pcr_serogroup-serogroup')
+        sg_data = SerotypingData(sg_results)
 
         json_maker = JsonMakerSummaryResults(st_data, sg_data)
 
-        return json_maker.create_binary_json(additional_sequencing_data=listeria_st_data)
+        return json_maker.create_binary_json(additional_sequencing_data=listeria_st_add_data)

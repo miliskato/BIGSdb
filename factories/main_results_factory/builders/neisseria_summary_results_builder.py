@@ -28,21 +28,16 @@ class NeisseriaSummaryResultsBuilder(SummaryResultsBuilder):
         :return: Jsonb object to be inserted in the analysis_results table
         """
 
-        results = json_report
-        cgst = results.get('cgST')
-        st = results['mlst'].get('mlst-ST')
-        rst = results['rmlst'].get('rmlst-rST')
-        st_data = SequenceTypingData(cgst, st, rst)
+        st_data = self.extract_sequence_typing_data(json_report)
+        pora_vr1 = json_report['pora']['loci'][0].get('Allele')
+        pora_vr2 = json_report['pora']['loci'][1].get('Allele')
+        porb = json_report['porb']['loci'][0].get('Allele')
+        neisseria_st_add_data = NeisseriaSequenceTypingData(pora_vr1, pora_vr2, porb)
 
-        pora_vr1 = results['pora']['loci'][0]
-        pora_vr2 = results['pora']['loci'][1]
-        porb = results['porb']['loci'][0]
-        neisseria_st_add_data = NeisseriaSequenceTypingData(pora_vr1.get('Allele'), pora_vr2.get('Allele'), porb.get('Allele'))
-
-        sg_results = results.get('serogroup')
+        sg_results = json_report.get('serogroup')
         sg_data = SerotypingData(sg_results['serogroup_legacy'])
         neisseria_sg_add_data = NeisseriaSerotypingData(sg_results['serogroup_capsule'])
 
         json_maker = JsonMakerSummaryResults(st_data, sg_data)
 
-        return json_maker.create_binary_json(neisseria_st_add_data,neisseria_sg_add_data)
+        return json_maker.create_binary_json(neisseria_st_add_data, neisseria_sg_add_data)

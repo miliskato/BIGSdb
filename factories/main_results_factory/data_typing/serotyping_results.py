@@ -10,7 +10,7 @@ class SerotypingData:
 @dataclass
 class NeisseriaSerotypingData:
     """
-    This class initializes the lists of values for addition serogroup fields for Neisseria
+    This class initializes the lists of values for additional serogroup fields for Neisseria
     """
     capsule_serogroup: str
 
