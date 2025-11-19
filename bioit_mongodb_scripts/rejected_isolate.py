@@ -81,7 +81,7 @@ class RejectedIsolate:
             rejection_reasons = self._rejected_isolate_document['rejection_reasons']['manual']
             report_link = 'unavailable'
         else:
-            rejection_reasons = ', '.join(
+            rejection_reasons = '<br>'.join(
                 qc_metric['reason'] for qc_metric in self._rejected_isolate_document['rejection_reasons'].values())
             rejected_isolate_id = str(rejected_isolates_psql_tbl.select_last_rejected_isolate_id() + 1)
             report_url = UrlHelper.report_for_validation_rejected_isolate_id(

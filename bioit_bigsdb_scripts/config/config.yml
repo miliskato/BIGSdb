@@ -1,6 +1,6 @@
 mail:
   from: BIGSdb internal HERA
-  to: Michael or Ann-Stephan
+  to: Kato or Ann-Stephan
   host: bioit-mailhog.darwinproject.be:1025
 
 failsafe:
