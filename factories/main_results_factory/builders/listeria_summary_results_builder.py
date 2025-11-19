@@ -4,7 +4,7 @@ from psycopg.types.json import Jsonb
 
 from factories.main_results_factory.utils.json_maker_summary_results import JsonMakerSummaryResults
 from factories.main_results_factory.builders.summary_results_builder import SummaryResultsBuilder
-from factories.main_results_factory.data_typing.sequence_typing_results import ListeriaSequenceTypingData, SequenceTypingData
+from factories.main_results_factory.data_typing.sequence_typing_results import ListeriaSequenceTypingData
 from factories.main_results_factory.data_typing.serotyping_results import SerotypingData
 from bioit_mongodb_scripts.model.json_model import JsonReportDict
 
