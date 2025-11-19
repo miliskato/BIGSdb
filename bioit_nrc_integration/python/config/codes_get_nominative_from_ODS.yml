@@ -81,6 +81,9 @@ schema:
     CD_EPILINK:
       required:
         - salmonella
+      allowed:
+        - salmonella
+        - listeria
       translation: epi_link
       code_list: CD_EPILINK_codes
     CD_TPE:
