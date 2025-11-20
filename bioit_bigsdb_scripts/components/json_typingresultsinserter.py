@@ -32,6 +32,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
         self._scheme = None
         self._locusset = set()  # locusset serves as to not insert duplicates (creates error in sql),
         # for Listeria e.g. prs and prfA are included in two self._schemes
+        self._isolate_id = self.__get_isolate_id()
 
     def insert_typing_results(self) -> None:
         """
@@ -101,7 +102,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
         :return: None
         """
         if 'rmlst' in self._json_report_dict:
-            self._insert_analysis_results(self.__get_isolate_id(), 'rmlst', self._schemedict[self._scheme])
+            self._insert_analysis_results(self._isolate_id, 'rmlst', self._schemedict[self._scheme])
 
     def _process_mob_suite(self) -> None:
         """
@@ -111,7 +112,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
         plasmid_list = self._json_report_dict['mob_suite'].get('mob_suite_overview')
         if not plasmid_list:
             return
-        self._insert_analysis_results(self.__get_isolate_id(), 'mob_suite', self._schemedict[self._scheme])
+        self._insert_analysis_results(self._isolate_id, 'mob_suite', self._schemedict[self._scheme])
 
     def __get_isolate_id(self) -> str:
         """
@@ -120,7 +121,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
         """
         with TblIsolates(self._species) as isolates_tbl:
             bigsdb_id = isolates_tbl.select_id_for_isolate((self._isolatename,))
-        return str(bigsdb_id[0][0])
+        return bigsdb_id
 
     def __process_irregular_typing_scheme_mycobacterium_specific(self) -> None:
         """
@@ -131,7 +132,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
             for index, allele_id in enumerate(self._json_report_dict[self._scheme]['spoligotype_binary'], 1):
                 locus = ''.join(['Spacer', str(index).zfill(2)])
                 self._isolates_ad_psql_tbl.insert_designation_by_isolatename((locus, self._isolatename, str(allele_id)))
-            self._insert_analysis_results(self.__get_isolate_id(), self._scheme, self._schemedict[self._scheme])
+            self._insert_analysis_results(self._isolate_id, self._scheme, self._schemedict[self._scheme])
         elif self._scheme == 'csb_rd':
             for record in ['csb_detected', 'RD1_detected', 'RD9_detected']:
                 locus = record.rstrip(
@@ -140,20 +141,20 @@ class JsonTypingResultsInserter(JsonSuperClass):
                 self._isolates_ad_psql_tbl.insert_designation_by_isolatename((locus, self._isolatename, allele_id))
         elif self._scheme == 'hsp65' or self._scheme == 'ncbi_16s':
             if len(self._json_report_dict[self._scheme]['loci']) != 0:
-                self._insert_analysis_results(self.__get_isolate_id(), self._scheme, self._schemedict[self._scheme])
+                self._insert_analysis_results(self._isolate_id, self._scheme, self._schemedict[self._scheme])
         elif self._scheme in ['amr_detection', 'snpit']:
-            self._insert_analysis_results(self.__get_isolate_id(), self._scheme, self._schemedict[self._scheme])
+            self._insert_analysis_results(self._isolate_id, self._scheme, self._schemedict[self._scheme])
         elif self._scheme == '51_snp':
             snp_section = self._json_report_dict[self._scheme]
             keys_to_rename = [key for key in list(snp_section.keys()) if key.startswith('51SNP-')]
             for old_key in keys_to_rename:
                 new_key = old_key.replace('51SNP-', '')
                 snp_section[new_key] = snp_section.pop(old_key)
-            self._insert_analysis_results(self.__get_isolate_id(), self._scheme, self._schemedict[self._scheme])
+            self._insert_analysis_results(self._isolate_id, self._scheme, self._schemedict[self._scheme])
         elif self._scheme == 'snplineage':
             snp_lineages = self._json_report_dict[self._scheme]['snp_lineages']
             self._json_report_dict[self._scheme]['detected_lineage'] = snp_lineages.split(', ')[-1]
-            self._insert_analysis_results(self.__get_isolate_id(), self._scheme, self._schemedict[self._scheme])
+            self._insert_analysis_results(self._isolate_id, self._scheme, self._schemedict[self._scheme])
 
     def __process_irregular_typing_scheme_neisseria_specific(self) -> None:
         """
@@ -167,12 +168,12 @@ class JsonTypingResultsInserter(JsonSuperClass):
                 self._insert_dummy_sequence_if_needed(f'{scheme}_{gene}', '1')
                 self._isolates_ad_psql_tbl.insert_designation_by_isolatename((f'{scheme}_{gene}', self._isolatename, '1'))
         elif self._scheme == 'gmats' and self._json_report_dict['gmats']['gmats_status'] != "":
-            self._insert_analysis_results(self.__get_isolate_id(), self._scheme, self._schemedict[self._scheme])
+            self._insert_analysis_results(self._isolate_id, self._scheme, self._schemedict[self._scheme])
         elif self._scheme == 'mendevar':
             bexsero_status = self._json_report_dict['mendevar'].get('mendevar_bexsero_status')
             trumenba_status = self._json_report_dict['mendevar'].get('mendevar_trumenba_status')
             if bexsero_status or trumenba_status:
-                self._insert_analysis_results(self.__get_isolate_id(), self._scheme, self._schemedict[self._scheme])
+                self._insert_analysis_results(self._isolate_id, self._scheme, self._schemedict[self._scheme])
 
     def __process_irregular_typing_scheme_salmonella_specific(self) -> None:
         """
@@ -180,13 +181,13 @@ class JsonTypingResultsInserter(JsonSuperClass):
         :return: None
         """
         if self._scheme == 'mykrobe':
-            self._insert_analysis_results(self.__get_isolate_id(), self._scheme, self._schemedict[self._scheme])
+            self._insert_analysis_results(self._isolate_id, self._scheme, self._schemedict[self._scheme])
 
         elif self._scheme == 'sistr':
             serotyping_insert = self._json_report_dict[self._scheme]['sistr_serotype_antigenic_formula']
             if serotyping_insert != '-':
                 self.___salmonella_insert_antigens_into_db(serotyping_insert)
-            self._insert_analysis_results(self.__get_isolate_id(), self._scheme, self._schemedict[self._scheme])
+            self._insert_analysis_results(self._isolate_id, self._scheme, self._schemedict[self._scheme])
 
         elif self._scheme == 'seqsero2':
             for mode in ['kmer', 'kmerread', 'allele']:
@@ -194,7 +195,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
                     f'{self._scheme}_{mode}_Predicted_antigenic_profile')
                 if serotyping_insert:
                     self.___salmonella_insert_antigens_into_db(serotyping_insert, mode)
-            self._insert_analysis_results(self.__get_isolate_id(), self._scheme, self._schemedict[self._scheme])
+            self._insert_analysis_results(self._isolate_id, self._scheme, self._schemedict[self._scheme])
 
         elif self._scheme == 'spifinder':
             for mode in ['fastq', 'fasta']:
@@ -213,7 +214,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
                             inserted_alleledesignations_list.add(spifinder_entry)
 
         elif self._scheme == 'abritamr':
-            self._insert_analysis_results(self.__get_isolate_id(), self._scheme, self._schemedict[self._scheme])
+            self._insert_analysis_results(self._isolate_id, self._scheme, self._schemedict[self._scheme])
 
     def ___salmonella_insert_antigens_into_db(self, raw_formula: str,
                                               mode: Optional[ModeValue] = None) -> None:
@@ -245,7 +246,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
         """
         if self._scheme == 'ref_selection':
             if 'ref_selection' in self._json_report_dict:
-                self._insert_analysis_results(self.__get_isolate_id(), self._scheme, self._schemedict[self._scheme])
+                self._insert_analysis_results(self._isolate_id, self._scheme, self._schemedict[self._scheme])
         elif self._scheme == 'nextclade':
             if 'nextclade' in self._json_report_dict:
                 if self._json_report_dict['nextclade']['nextclade_detected_subtype'] == 'YAM':
@@ -254,9 +255,9 @@ class JsonTypingResultsInserter(JsonSuperClass):
                     for old_key in keys_to_rename:
                         new_key = old_key.replace('nextclade_', 'nextclade_ha_')
                         nextclade_section[new_key] = nextclade_section.pop(old_key)
-                self._insert_analysis_results(self.__get_isolate_id(), self._scheme, self._schemedict[self._scheme])
+                self._insert_analysis_results(self._isolate_id, self._scheme, self._schemedict[self._scheme])
         elif self._scheme == 'antivirals':
             if 'antivirals' in self._json_report_dict:
                 antiviral_mutations = self._json_report_dict['antivirals'].get('antivirals_mutations')
                 if antiviral_mutations:
-                    self._insert_analysis_results(self.__get_isolate_id(), self._scheme, self._schemedict[self._scheme])
+                    self._insert_analysis_results(self._isolate_id, self._scheme, self._schemedict[self._scheme])

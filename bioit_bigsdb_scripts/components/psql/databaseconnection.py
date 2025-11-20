@@ -4,6 +4,7 @@ from types import TracebackType
 from typing import Any, List, Optional, Tuple, Union, Literal, Type
 
 import psycopg
+from psycopg.types.json import Jsonb
 
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
@@ -42,8 +43,8 @@ class DatabaseConnection:
         except Exception:
             raise RuntimeError(f"Could not connect to {species}'s databases")
 
-    def execute_query(self, query: str, params: Union[Tuple[Union[str, int, Tuple[str]]], List[Union[str, int]], Tuple[str, str, float]]) \
-            -> Optional[List[Optional[Tuple[Any]]]]:
+    def execute_query(self, query: str, params: Union[tuple[Union[str, int, tuple[str]]], list[Union[str, int]], tuple[str, str, float], tuple[str, str, Jsonb],
+            tuple[str, str, str, str], tuple[str, str], tuple[str, str, str, str, str]]) -> Optional[List[Optional[Tuple[Any]]]]:
         """
         Executes a sql query using psycopg sanitization
         :param query: sql query to be used

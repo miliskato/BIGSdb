@@ -166,6 +166,7 @@ def normalize_keys(data: Any) -> Any:
     else:
         return data
 
+
 def sanitize_json_values(data: Any) -> Any:
     """
     Recursively replace NaN with None to ensure valid JSON for PostgreSQL.

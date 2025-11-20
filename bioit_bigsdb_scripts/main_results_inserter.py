@@ -120,31 +120,32 @@ class MainResultsInserter:
         """
         # In case of an actual reanalysis, the MainResultsInserter handles the assembly transfer between
         # isolates and we do not want to scp the assembly from Azure
-        if not self._results_type == 'reanalysis':
-            fasta_path_remote = self._fasta_path
-            temp_dir = self._mongo_config_provider.temp_dir
-            with tempfile.NamedTemporaryFile(dir=temp_dir, mode="w") as temp_fasta:
-                temp_fasta_path = Path(temp_dir) / temp_fasta.name
-                scp_command = f"scp -o StrictHostKeyChecking=no -i /home/bigsdb/.ssh/.id_rsa_reportsapi bigsdb@{self._mongo_config_provider.azure_reportsapi_ip}:{fasta_path_remote} {str(temp_fasta_path)}"
-                scp_cmd = Command(scp_command)
-                scp_cmd.run(Path(temp_dir))
-                if scp_cmd.returncode != 0:
-                    raise Exception(
-                        f"scp command to copy fasta from Azure to onsite failed: {scp_cmd.stderr}\nscp command: {scp_command}")
+        if self._results_type == 'reanalysis':
+            return
+        fasta_path_remote = self._fasta_path
+        temp_dir = self._mongo_config_provider.temp_dir
+        with tempfile.NamedTemporaryFile(dir=temp_dir, mode="w") as temp_fasta:
+            temp_fasta_path = Path(temp_dir) / temp_fasta.name
+            scp_command = f"scp -o StrictHostKeyChecking=no -i /home/bigsdb/.ssh/.id_rsa_reportsapi bigsdb@{self._mongo_config_provider.azure_reportsapi_ip}:{fasta_path_remote} {str(temp_fasta_path)}"
+            scp_cmd = Command(scp_command)
+            scp_cmd.run(Path(temp_dir))
+            if scp_cmd.returncode != 0:
+                raise Exception(
+                    f"scp command to copy fasta from Azure to onsite failed: {scp_cmd.stderr}\nscp command: {scp_command}")
 
-                insert_assembly(self._isolatename, self._species, temp_fasta_path, self._results_type)
-                logging.info(f"Inserted assembly for isolate {self._isolatename} into bigsdb")
+            insert_assembly(self._isolatename, self._species, temp_fasta_path, self._results_type)
+            logging.info(f"Inserted assembly for isolate {self._isolatename} into bigsdb")
 
-                # The resequencing is for now disable as also commented in sample_to_validation_bigs.py
-                # if document.get_validation_type() == 'resequencing': #is it the place to check that isolation date are different, I don't think so
-                #     last_two_validation_dates = self._isolates_psql_tbl.select_validationdate_for_isolate(
-                #         (isolate_id,))
-                #     # select to check that the previous version's validation date is different from the current
-                #     if last_two_validation_dates[0][0] != last_two_validation_dates[1][0]:
-                #         # revert the changes done in maininserter that move the assembly to the newest version
-                #         with TblSequenceBin(self._species) as isolates_seqbin_psql_tbl:
-                #             isolates_seqbin_psql_tbl.revert_sequencebin_newversion([isolate_id])
-                #         with TblSeqBinStats(self._species) as isolates_seqbinstats_psql_tbl:
-                #             isolates_seqbinstats_psql_tbl.revert_seqbinstats_newversion([isolate_id])
-                #         insert_assembly(isolate_id, self._species, temp_fasta_path, results_type)
-                #     logging.info(f"Wrote new results version for {isolate_id} to bigsdb")
+            # The resequencing is for now disable as also commented in sample_to_validation_bigs.py
+            # if document.get_validation_type() == 'resequencing': #is it the place to check that isolation date are different, I don't think so
+            #     last_two_validation_dates = self._isolates_psql_tbl.select_validationdate_for_isolate(
+            #         (isolate_id,))
+            #     # select to check that the previous version's validation date is different from the current
+            #     if last_two_validation_dates[0][0] != last_two_validation_dates[1][0]:
+            #         # revert the changes done in maininserter that move the assembly to the newest version
+            #         with TblSequenceBin(self._species) as isolates_seqbin_psql_tbl:
+            #             isolates_seqbin_psql_tbl.revert_sequencebin_newversion([isolate_id])
+            #         with TblSeqBinStats(self._species) as isolates_seqbinstats_psql_tbl:
+            #             isolates_seqbinstats_psql_tbl.revert_seqbinstats_newversion([isolate_id])
+            #         insert_assembly(isolate_id, self._species, temp_fasta_path, results_type)
+            #     logging.info(f"Wrote new results version for {isolate_id} to bigsdb")

@@ -76,8 +76,7 @@ class MainInserter(JsonSuperClass):
         Method which is used to return the MainInserterContext object. By essence, private, as this one cannot be used outside the context of the class.
         """
         with TblIsolates(self._species) as isolates_psql_tbl:
-            isolate_tuple = isolates_psql_tbl.select_id_for_isolate((self._isolatename,))
-            isolate_id = str(isolate_tuple[0][0])
+            isolate_id = isolates_psql_tbl.select_id_for_isolate((self._isolatename,))
         return MainInserterContext(isolate_id, UrlHelper.report_for_isolate(self._species, isolate_id))
 
     def __insert_main_metadata(self) -> None:
@@ -93,12 +92,10 @@ class MainInserter(JsonSuperClass):
 
             pipeline = f'{self._json_report_dict.get("pipeline_name")} {self._json_report_dict.get("pipeline_version")} - {self._json_report_dict.get("input_type")}'
             if not self._viral_species:
-                self.isolates_psql_tbl.update_isolate_html_assembly_pipeline(
-                    (str(context.isolate_id), str(context.isolate_id), pipeline, self._isolatename))
+                self.isolates_psql_tbl.update_isolate_html_assembly_pipeline((str(context.isolate_id), str(context.isolate_id), pipeline, self._isolatename))
                 self.__update_coverage_info()
             else:
-                self.isolates_psql_tbl.update_isolate_html_consensus_pipeline(
-                    (str(context.isolate_id), str(context.isolate_id), pipeline, self._isolatename))
+                self.isolates_psql_tbl.update_isolate_html_consensus_pipeline((str(context.isolate_id), str(context.isolate_id), pipeline, self._isolatename))
             if 'changed_version' in self._json_report_dict:
                 self.isolates_psql_tbl.update_mongo_results_version((self._json_report_dict['changed_version'], str(context.isolate_id)))
             if 'validation' in self._json_report_dict:
@@ -112,11 +109,12 @@ class MainInserter(JsonSuperClass):
         Updates the coverage info for an isolate.
         :return: None
         """
-        if self._json_report_dict['input_type'] != 'fasta':
-            coverage_assembly = self._json_report_dict['quast'].get('assembly_avg_coverage', '-')
-            coverage_reference = self._json_report_dict['quast'].get('assembly_avg_coverage_ref', '-')
-            positions_covered_1x_assembly = self._json_report_dict['quast'].get('assembly_positions_covered_1x', '-')
-            positions_covered_1x_reference = self._json_report_dict['quast'].get('assembly_positions_covered_1x_ref', '-')
-            self.isolates_psql_tbl.update_coverage_info((coverage_assembly, coverage_reference,
-                                                         positions_covered_1x_assembly, positions_covered_1x_reference,
-                                                         self._isolatename))
+        if self._json_report_dict['input_type'] == 'fasta':
+            return
+        coverage_assembly = self._json_report_dict['quast'].get('assembly_avg_coverage', '-')
+        coverage_reference = self._json_report_dict['quast'].get('assembly_avg_coverage_ref', '-')
+        positions_covered_1x_assembly = self._json_report_dict['quast'].get('assembly_positions_covered_1x', '-')
+        positions_covered_1x_reference = self._json_report_dict['quast'].get('assembly_positions_covered_1x_ref', '-')
+        self.isolates_psql_tbl.update_coverage_info((coverage_assembly, coverage_reference,
+                                                     positions_covered_1x_assembly, positions_covered_1x_reference,
+                                                     self._isolatename))

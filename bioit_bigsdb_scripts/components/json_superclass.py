@@ -1,6 +1,6 @@
 from typing import Any, Dict
 
-from psycopg.types.json import Json
+from psycopg.types.json import Jsonb
 
 from bioit_mongodb_scripts.model.json_model import JsonReportDict
 from bioit_mongodb_scripts.util.python_utility_functions import normalize_keys, sanitize_json_values
@@ -112,4 +112,4 @@ class JsonSuperClass:
         analysis_dict_sanitized['report_link'] = report_url
         with TblAnalysisResults(self._species) as isolates_ana_res_psql_tbl:
             isolates_ana_res_psql_tbl.insert_analysis_results_isolate_name((
-                scheme_config['schemename_bigsdb'], self._isolatename, Json(analysis_dict_sanitized)))
+                scheme_config['schemename_bigsdb'], self._isolatename, Jsonb(analysis_dict_sanitized)))

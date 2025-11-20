@@ -64,7 +64,7 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                 list_of_hits = self._json_report_dict[scheme]['loci'] # also for virulencefinder and vfdb-core
 
             if len(list_of_hits) != 0:
-                self._insert_analysis_results(str(isolate_id[0][0]), scheme, scheme_config)
+                self._insert_analysis_results(isolate_id, scheme, scheme_config)
 
         with TblHistory(self._species) as isolates_history_psql_tbl:
             isolates_history_psql_tbl.insert_history_isolate((self._isolatename, 'Gene detection results inserted'))
