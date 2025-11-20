@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+### Added:
+- Table which summarizes the main sequencing/serotyping results on the isolate page for bacterial species.
+
+### Changed
+- JS links on the isolate page (to get a prefilled query returning all isolates of the cluster attributed to the current isolate) will be projected in 
+  the analysis section of BIGSdb instead of being stored as an eav field. 
+
+### Fixed:
+- Missing JS links to get cluster information for new isolates inserted in BIGSdb when their cgST was already present in the distance matrix (cgST already known).
+
 ## [4.3.0]
 ### Added:
 - Added task in ANSIBLE to remove the first version of the bigsdb-insertion.service (if present on the VM)
@@ -95,10 +106,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed:
 - Added mic_resistances fields again in both sql and db xml. They were accidentally removed from sql previously. Also added serogroup_pheno field 
-  in neisseria again which was also accidentally removed during splitting up of all sql columns in isolates database by pathogen.
-
-## [3.0.0] 
-### Added:
+  in neisseria again which was also accidentally removed during iolyç
+- Added:
 - rMLST scheme
 - ResFinder4
 - AMRFinder
