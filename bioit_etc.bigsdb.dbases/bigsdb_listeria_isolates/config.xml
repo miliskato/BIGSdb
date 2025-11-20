@@ -108,27 +108,4 @@
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="perinatal_not_applicable">perinatal_not_applicable</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="pregnancy_symptom">pregnancy_symptom</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="pregnancy_outcome">pregnancy_outcome</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="suspected_vehicle_canned_food_products">suspected_vehicle_canned_food_products</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="suspected_vehicle_drinks">suspected_vehicle_drinks</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="suspected_vehicle_drinking_water">suspected_vehicle_drinking_water</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="suspected_vehicle_vegetable_and_products_thereof">suspected_vehicle_vegetable_and_products_thereof</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="suspected_vehicle_starchy_food">suspected_vehicle_starchy_food</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="suspected_vehicle_nuts_and_seeds">suspected_vehicle_nuts_and_seeds</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="suspected_vehicle_candy_chocolate_candy_and_sugar_candy">suspected_vehicle_candy_chocolate_candy_and_sugar_candy</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="suspected_vehicle_mammalian_milk_based_food">suspected_vehicle_mammalian_milk_based_food</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="suspected_vehicle_cheese">suspected_vehicle_cheese</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="suspected_vehicle_eggs_edible_and_products_thereof">suspected_vehicle_eggs_edible_and_products_thereof</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="suspected_vehicle_seafood_and_products_thereof">suspected_vehicle_seafood_and_products_thereof</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="suspected_vehicle_beef_and_products_thereof">suspected_vehicle_beef_and_products_thereof</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="suspected_vehicle_pork_and_products_thereof">suspected_vehicle_pork_and_products_thereof</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="suspected_vehicle_lamb_meat_and_products_thereof">suspected_vehicle_lamb_meat_and_products_thereof</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="suspected_vehicle_chicken_meat_and_products_thereof">suspected_vehicle_chicken_meat_and_products_thereof</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="suspected_vehicle_poultry_and_products_thereof">suspected_vehicle_poultry_and_products_thereof</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="suspected_vehicle_turkey_meat_and_products_thereof">suspected_vehicle_turkey_meat_and_products_thereof</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="suspected_vehicle_cats">suspected_vehicle_cats</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="suspected_vehicle_bats">suspected_vehicle_bats</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="suspected_vehicle_other_pets">suspected_vehicle_other_pets</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="suspected_vehicle_captive_wild_animals_in_zoo">suspected_vehicle_captive_wild_animals_in_zoo</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="suspected_vehicle_other_wild_animals">suspected_vehicle_other_wild_animals</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="suspected_vehicle_unknown">suspected_vehicle_unknown</field>
 </db>
