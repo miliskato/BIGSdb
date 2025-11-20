@@ -74,6 +74,7 @@ class MainInserter(JsonSuperClass):
     def __create_context(self) -> MainInserterContext:
         """
         Method which is used to return the MainInserterContext object. By essence, private, as this one cannot be used outside the context of the class.
+        :return: A MainInserterContext object containing the isolate_id and the report url
         """
         with TblIsolates(self._species) as isolates_psql_tbl:
             isolate_tuple = isolates_psql_tbl.select_id_for_isolate((self._isolatename,))
