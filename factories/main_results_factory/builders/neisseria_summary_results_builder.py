@@ -21,10 +21,11 @@ class NeisseriaSummaryResultsBuilder(SummaryResultsBuilder):
         """
         return species == self.SPECIES_NAME
 
-    def build_json(self, json_report: JsonReportDict) -> Optional[Jsonb]:
+    def build_json(self, json_report: JsonReportDict, species: str) -> Optional[Jsonb]:
         """
         Builds the json to be inserted in the analysis_results table
         :param json_report: JsonReportDict object containing the results from the WGS analysis
+        :param species: name of the species currently processed
         :return: Jsonb object to be inserted in the analysis_results table
         """
 
@@ -38,6 +39,6 @@ class NeisseriaSummaryResultsBuilder(SummaryResultsBuilder):
         sg_data = SerotypingData(sg_results['serogroup_legacy'])
         neisseria_sg_add_data = NeisseriaSerotypingData(sg_results['serogroup_capsule'])
 
-        json_maker = JsonMakerSummaryResults(st_data, sg_data)
+        json_maker = JsonMakerSummaryResults(species, st_data, sg_data)
 
         return json_maker.create_binary_json(neisseria_st_add_data, neisseria_sg_add_data)

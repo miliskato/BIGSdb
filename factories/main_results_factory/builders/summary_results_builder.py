@@ -21,10 +21,11 @@ class SummaryResultsBuilder(ABC):
         pass
 
     @abstractmethod
-    def build_json(self, json_report: JsonReportDict) -> Optional[Jsonb]:
+    def build_json(self, json_report: JsonReportDict, species: str) -> Optional[Jsonb]:
         """
         Based on the species, builds the json to be inserted in the analysis_results table
         :param json_report: JsonReportDict object containing the results from the WGS analysis
+        :param species: name of the species currently processed
         :return: Jsonb object to be inserted in the analysis_results table
         """
         pass

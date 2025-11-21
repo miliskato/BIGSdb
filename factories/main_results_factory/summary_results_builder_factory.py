@@ -33,7 +33,7 @@ class SummaryResultsBuilderFactory:
         """
         for results_builder in self.summary_results_builders:
             if results_builder.accept(species):
-                return results_builder.build_json(json_report)
+                return results_builder.build_json(json_report, species)
             elif MongoConfigProvider.is_viral(species):
                 return None
         raise Exception("Results builder not found for species {}".format(species))

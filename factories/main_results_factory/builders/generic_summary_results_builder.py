@@ -17,16 +17,17 @@ class GenericSummaryResultsBuilder(SummaryResultsBuilder):
         """
         return MongoConfigProvider.is_viral(species) is False
 
-    def build_json(self, json_report: JsonReportDict) -> Jsonb:
+    def build_json(self, json_report: JsonReportDict, species: str) -> Jsonb:
         """
         Builds the json to be inserted in the analysis_results table
         :param json_report: JsonReportDict object containing the results from the WGS analysis
+        :param species: name of the species currently processed
         :return: Jsonb object to be inserted in the analysis_results table
         """
 
         st_data = self.extract_sequence_typing_data(json_report)
         sg_data = SerotypingData(json_report.get('serogroup'))
 
-        json_maker = JsonMakerSummaryResults(st_data, sg_data)
+        json_maker = JsonMakerSummaryResults(species, st_data, sg_data)
 
         return json_maker.create_binary_json()
