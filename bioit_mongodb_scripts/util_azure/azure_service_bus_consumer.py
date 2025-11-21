@@ -223,17 +223,15 @@ class MessageConsumerDataInserter(AzureServiceBus):
         sql-inserted versions of existing isolates with different cgSTs than the previous version.
         :return: None
         """
-        if len(list_of_new_isolates_for_alerts + list_of_new_versions_for_alerts) > 0:
-            if self._mongo_config_provider.is_viral(self._species):
-                bigsdb_host_alerts = HostAlertsToBigs(
-                    self._species, list_of_new_isolates_for_alerts, list_of_new_versions_for_alerts)
-                bigsdb_host_alerts.evaluate_alerts_for_hosts()
-            else:
-                update_bigsdb_clustering_cache_alerts = UpdateBIGSdbClusteringCacheAlerts(self._species,
-                                                                                          list_of_new_isolates_for_alerts,
-                                                                                          list_of_new_versions_for_alerts)
-                update_bigsdb_clustering_cache_alerts.update_clustering_cache_alerts()
         MongoToBigsNominative(self._species, self._mongo_config_provider, dont_send_email=True)
+        if len(list_of_new_isolates_for_alerts + list_of_new_versions_for_alerts) == 0:
+            return
+        if self._mongo_config_provider.is_viral(self._species):
+            bigsdb_host_alerts = HostAlertsToBigs(self._species, list_of_new_isolates_for_alerts, list_of_new_versions_for_alerts)
+            bigsdb_host_alerts.evaluate_alerts_for_hosts()
+        else:
+            update_bigsdb_clustering_cache_alerts = UpdateBIGSdbClusteringCacheAlerts(self._species, list_of_new_isolates_for_alerts, list_of_new_versions_for_alerts)
+            update_bigsdb_clustering_cache_alerts.update_clustering_cache_alerts()
 
     def _get_isolate_id(self, species: str, pseudo_id: str) -> str:
         """

@@ -6,8 +6,7 @@ from typing import Any, Dict
 
 from bioit_mongodb_scripts.model.json_model import JsonReportDict
 from .json_superclass import JsonSuperClass
-from .psql import TblEavBoolean, TblEavFields, TblEavInt, TblEavText, TblHistory, TblIsolates
-from ..utils.html_tbl_templates import HtmlAntiviralAssociationsTableBuilder, HtmlAntiviralMutationsTableBuilder, HtmlRefSelectionTableBuilder, HtmlReportBuilder, HtmlSnpLineageTableBuilder
+from .psql import TblHistory, TblIsolates
 from ..utils.url_helper import UrlHelper
 
 
@@ -88,9 +87,7 @@ class MainInserter(JsonSuperClass):
 
         context = self.__create_context()
 
-        with TblEavText(self._species) as self._isolates_eavt_psql_tbl, \
-                TblIsolates(self._species) as self.isolates_psql_tbl, TblEavInt(self._species) as self._isolates_eavi_psql_tbl:
-
+        with TblIsolates(self._species) as self.isolates_psql_tbl:
             pipeline = f'{self._json_report_dict.get("pipeline_name")} {self._json_report_dict.get("pipeline_version")} - {self._json_report_dict.get("input_type")}'
             if not self._viral_species:
                 self.isolates_psql_tbl.update_isolate_html_assembly_pipeline(
@@ -98,7 +95,7 @@ class MainInserter(JsonSuperClass):
                 self.__update_coverage_info()
             else:
                 ref_selection = self._json_report_dict.get("ref_selection")
-                ref_selection_database = self._json_report_dict['ref_selection'].get('ref_selection_database') if ref_selection else None
+                ref_selection_database = ref_selection.get('ref_selection_database') if ref_selection else None
                 self.isolates_psql_tbl.update_isolate_html_consensus_pipeline_db(
                     (str(context.isolate_id), str(context.isolate_id), pipeline, ref_selection_database,
                      self._isolatename)

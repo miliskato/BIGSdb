@@ -131,17 +131,19 @@ class JsonSuperClass:
                 strains.append(strain)
         return strains
 
-    def extract_hosts_from_ref_selection(self) -> list[str]:
+    def extract_non_human_hosts_from_ref_selection(self) -> set[str]:
         """
-        Extracts the hosts from the strains.
-        :return: List of the hosts
+        Extracts the non-human hosts from the strains.
+        :return: Set of the non-human hosts
         """
         strains = self.extract_strains_from_ref_selection()
         hosts = []
+        non_human = False
         for strain in strains:
             parts = strain.split('/')
-            if len(parts) > 4:
-                hosts.append(parts[1])
-            else:
-                hosts.append('human')
-        return hosts
+            if len(parts) > 4 and parts[1].lower() != 'human':
+                hosts.append(parts[1].lower())
+                non_human = True
+        if not non_human:
+            return set()
+        return set(hosts)

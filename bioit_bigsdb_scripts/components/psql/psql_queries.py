@@ -48,6 +48,8 @@ class PsqlQueries:
         UPDATE alerts SET type = 'alert' AND status = 'pending' WHERE alert_id = %s;"""
     ISO_UPD_STATUS_TB_ALDE_VAR_ALID: Final[str] = """
         UPDATE alerts SET status = 'pending' WHERE alert_id = %s;"""
+    ISO_DEL__TB_AL_VAR_ID: Final[str] = """
+        DELETE FROM alerts WHERE id = (SELECT alert_id FROM alert_details WHERE field = 'isolate_id' AND value = %s);"""
 
     # TBL allele designations
     ISO_DEL__TB_AD_VAR_LOCUS: Final[str] = """DELETE FROM allele_designations WHERE locus LIKE %s;"""

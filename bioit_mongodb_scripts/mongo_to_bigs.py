@@ -78,8 +78,6 @@ class MongoToBigs:
         mongo_init_local = MongoInitialisation(self._species, self._mongo_config_provider.get_local_connection_string(self._species), self._mongo_config_provider.dtap)
         self._mappingtable_collection = mongo_init_local.initialise_mapping_table_collection()
         self._nominative_labtest_clinical_metadata_collection = mongo_init_local.initialise_nominative_labtest_clinical_metadata_collection()
-        # Open Bigsdb isolates table
-        #self._isolates_psql_tbl = TblIsolates(self._species)
 
         if not self._mongo_config_provider.is_viral(self._species):
             # Prepare cgmlst cache updater command
@@ -305,7 +303,7 @@ class MongoToBigs:
 
         return results_type, different_version, cgst_changed
 
-    def ___check_if_reanalysis_different(self, document: MongoRecordDict, isolate_id: str) -> (bool, bool):
+    def ___check_if_reanalysis_different(self, document: MongoRecordDict, isolate_id: str) -> tuple[bool, bool]:
         """
         Checks if the reanalysis is different or not, outside this function: continues the for loop,
         it is called in, to the next sample if not different
@@ -338,7 +336,6 @@ class MongoToBigs:
                     cgst_query_result[0][0] is not None and int(cgst_query_result[0][0]) != new_results.get('cgST')):
                 cgst_changed = True
         return different_version, cgst_changed
-
 
     def ___make_flagfilepath(self, isolate: str) -> Path:
         """
@@ -396,40 +393,39 @@ class MongoToBigs:
 
     def __add_isolate_hosts_to_alert_list(self, document: MongoRecordDict, isolate_name: str, results_type: str) -> None:
         """
-        Adds the isolate name, the hosts, and isolation date to a list that will be used to compute the BIGSdb alerts.
+        When the reference sequence(s) of an isolate contain(s) non-human hosts, the isolate name, the non-human hosts, and isolation date are added to a list that will be used
+        to compute the BIGSdb alerts.
         :param document: Mongo report document
         :param isolate_name: Isolate name
         :param results_type: One of the following: 'new_isolate', 'resequencing', 'reanalysis'
         :return: None
         """
         json_class = JsonSuperClass(isolate_name, self._species, document.get_json_results(), self._bigsdb_config_data)
-        hosts = json_class.extract_hosts_from_ref_selection()
+        non_human_hosts = json_class.extract_non_human_hosts_from_ref_selection()
 
-        if results_type == 'new_isolate':
+        if results_type == 'resequencing':  # reference selection isn't executed again for the reanalysis
+            # TODO to be checked when resequencing is completely implemented
+            non_human_hosts_old = self.__select_old_non_human_hosts(isolate_name)
+            missing_non_human_hosts_between_isolate_versions = non_human_hosts ^ non_human_hosts_old
+            if missing_non_human_hosts_between_isolate_versions:
+                self._list_of_new_versions_for_alerts.append(
+                    {'isolate_name': isolate_name, 'non_human_hosts': non_human_hosts,
+                     'isolation_date': document['technical_metadata']['data']['IsolationDate']})
+        elif non_human_hosts and results_type == 'new_isolate':
             self._list_of_new_isolates_for_alerts.append(
-                {'isolate_name': isolate_name, 'hosts': hosts,
+                {'isolate_name': isolate_name, 'non_human_hosts': non_human_hosts,
                  'isolation_date': document['technical_metadata']['data']['IsolationDate']})
 
-        elif results_type == 'resequencing': # reference selection isn't executed again for the reanalysis
-            # TODO to be checked when resequencing is completely implemented
-            hosts_old = self.__select_old_non_human_hosts(isolate_name)
-            hosts_old.append('human')
-            missing_hosts = [host for host in hosts if host.lower() not in hosts_old]
-            if missing_hosts:
-                self._list_of_new_versions_for_alerts.append(
-                    {'isolate_name': isolate_name, 'hosts': hosts,
-                     'isolation_date': document['technical_metadata']['data']['IsolationDate']})
-
-    def __select_old_non_human_hosts(self, isolate_name: str) -> list[str]:
+    def __select_old_non_human_hosts(self, isolate_name: str) -> set[str]:
         """
         Selects the non-human hosts for the previously inserted isolate.
         :param isolate_name: Isolate name
-        :return: List of hosts for the isolate
+        :return: Set of non-human hosts for the isolate
         """
         with TblAlertDetails(self._species) as isolates_alertsdet_psql_tbl:
             hosts_old_list = isolates_alertsdet_psql_tbl.select_hosts_for_isolate_name((isolate_name,))
         hosts_old_string = hosts_old_list[0][0] if hosts_old_list else None
-        hosts_old = hosts_old_string.split(', ') if hosts_old_string else []
+        hosts_old = set(hosts_old_string.split(', ')) if hosts_old_string else set()
         return hosts_old
 
 
