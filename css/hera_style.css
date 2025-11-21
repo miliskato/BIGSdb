@@ -21,3 +21,23 @@
 button.hera {
     margin-right: 10px;
 }
+
+button.herasubmit {
+    margin-right: 10px;
+    cursor: pointer;
+    padding: 10px 20px;
+    border: 0;
+    background: #2F9FDB;
+    border-radius: 4px;
+    font-family: 'pt_sansbold';
+    font-size: 20px;
+    line-height: 130%;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #FFFFFF;
+}
+
+
+button.herasubmit:hover {
+    background: #8D5196;
+}
