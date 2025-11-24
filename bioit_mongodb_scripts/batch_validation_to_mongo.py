@@ -15,7 +15,7 @@ from bioit_bigsdb_scripts.sample_validation_to_mongo import SampleValidationToMo
 from bioit_mongodb_scripts.util.python_utility_functions import send_email
 from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 from bioit_mongodb_scripts.util_azure.azure_service_bus import AzureServiceBus
-from bioit_mongodb_scripts.util_azure.azure_service_bus_submission_message import AzureServiceBusSubmissionMessage
+from bioit_mongodb_scripts.util_azure.azure_service_bus_specific_messages import AzureServiceBusSubmissionMessage
 
 mail_sent = False
 logger = logging.getLogger(__name__)
@@ -33,7 +33,7 @@ def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
 
 class BatchValidationToMongo(AzureServiceBus):
     """
-    This class handles validation/insertion in mongoDB of warningqcs already pushed in BIGSdb submissions table.
+    This class handles validation/insertion in mongoDB of isolates already pushed in BIGSdb submissions table.
     """
 
     def __init__(self, ct: Cancellation, species: str, mongo_config_provider: MongoConfigProvider) -> None:

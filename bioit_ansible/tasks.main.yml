@@ -1083,7 +1083,7 @@
 
 - name: create service for bigsdb_batch_validation
   block:
-    - name: add systemd service to manage submission after batch validation
+    - name: add systemd service to manage submissions after batch validation
       ansible.builtin.copy:
         src: "{{ bioit_bigs_home }}/bigsdb-validation.service"
         dest: '/etc/systemd/system/bigsdb-validation-{{ species }}.service'
@@ -1104,7 +1104,6 @@
         state: restarted
         enabled: true
         name: "bigsdb-validation-{{ species }}.service"
-
 
 - name: create sftp users that can access the /output_reports
   block:

@@ -51,7 +51,7 @@ class SampleValidationToMongo:
     This class is used to send validation metadata from Bigsdb to MongoDB and move samples
     from the goodqc, resequencing or warningqc collection to the isolates collection.
     """
-    def __init__(self, species: str, sub_id: int, batch_validated=False) -> None:
+    def __init__(self, species: str, sub_id: int, batch_validated: bool = False) -> None:
         """
         Initialises the class and runs the main function.
         See also argparse function for variables and their requiredness.

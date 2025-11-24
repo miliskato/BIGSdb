@@ -11,7 +11,7 @@ from bioit_bigsdb_scripts.components.psql import TblFailedInsertions
 from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 from bioit_mongodb_scripts.util.python_utility_functions import send_email
 from bioit_mongodb_scripts.util_azure.azure_service_bus import AzureServiceBus
-from bioit_mongodb_scripts.util_azure.azure_service_bus_submission_message import AzureServiceBusSubmissionMessage
+from bioit_mongodb_scripts.util_azure.azure_service_bus_specific_messages import AzureServiceBusSubmissionMessage
 
 
 def parse_arguments(specieslist: list[str]) -> argparse.Namespace:

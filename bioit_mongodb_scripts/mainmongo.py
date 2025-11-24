@@ -24,7 +24,7 @@ sys.path.append(str(PYTHONPATH))
 from bioit_mongodb_scripts.config import CLUSTERING_CONFIG
 from bioit_nrc_integration.python.config import CODES_GENOMIC_ODS
 from bioit_mongodb_scripts.model.json_model import JsonReportDict, MongoRecordDict
-from bioit_mongodb_scripts.util_azure.azure_service_bus_message import AzureServiceBusMessage
+from bioit_mongodb_scripts.util_azure.azure_service_bus_specific_messages import AzureServiceBusMessage
 from bioit_mongodb_scripts.util_azure.azure_service_bus import AzureServiceBus
 from bioit_mongodb_scripts.util.error import *
 from bioit_mongodb_scripts.util.check_coreqc_metrics import CheckCoreQCMetrics

@@ -38,7 +38,16 @@ class Cancellation:
 
 
 class DropUamqpInfo(logging.Filter):
+    """
+    Logging filter that drops verbose uAMQP/pyamqp records to reduce noisy information coming from the azure.servicebus
+    package while preserving warnings and errors.
+    """
     def filter(self, record: logging.LogRecord) -> bool:
+        """
+        Filters out log records from the azure.servicebus logger that are below WARNING level.
+        :param record: the `logging.LogRecord` to evaluate
+        :return: `True` to allow the record through, `False` to drop it
+        """
         return not (record.name.startswith("azure.servicebus._pyamqp") and record.levelno < logging.WARNING)
 
 
@@ -60,5 +69,3 @@ def config_log_handlers(species: str) -> None:
     handler.setFormatter(formatter)
     handler.addFilter(DropUamqpInfo())
     root.addHandler(handler)
-
-

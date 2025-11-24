@@ -1,7 +1,6 @@
 from azure.servicebus import ServiceBusClient, ServiceBusMessage
 
-from .azure_service_bus_message import AzureServiceBusMessage
-from .azure_service_bus_submission_message import AzureServiceBusSubmissionMessage
+from .azure_service_bus_specific_messages import AzureServiceBusMessage, AzureServiceBusSubmissionMessage
 from ..util.mongo_config_provider import MongoConfigProvider
 
 
@@ -35,7 +34,7 @@ class AzureServiceBus:
                 sender.send_messages(ServiceBusMessage(message.to_json()))
 
     def send_message_to_submission_queue(self, message: AzureServiceBusSubmissionMessage) -> None:
-        """"
+        """
         Function to send a message to the submission queues in the Azure service bus.
         :param message: message to send to queue
         :return: None

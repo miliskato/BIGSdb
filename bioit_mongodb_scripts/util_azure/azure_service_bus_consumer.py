@@ -21,11 +21,12 @@ from bioit_mongodb_scripts.util.mongo_to_bigs_nominative import MongoToBigsNomin
 from bioit_mongodb_scripts.util.python_utility_functions import send_email
 from bioit_mongodb_scripts.util.sample_to_validation_bigs import SampleToValidationBigs
 from bioit_mongodb_scripts.util_azure.azure_service_bus import AzureServiceBus
-from bioit_mongodb_scripts.util_azure.azure_service_bus_message import AzureServiceBusMessage
+from bioit_mongodb_scripts.util_azure.azure_service_bus_specific_messages import AzureServiceBusMessage
 
 mail_sent = False
 # Configure stdout logging
 logger = logging.getLogger(__name__)
+
 
 def parse_arguments() -> argparse.Namespace:
     """
