@@ -256,7 +256,7 @@ class PsqlQueries:
         SELECT mongo_results_version FROM isolates WHERE isolate=%s;"""
     ISO_UPD_TB_ISO_VAR_COVASSEM_COVREF_POSASSEM_POSREF_ISO: Final[str] = """
         UPDATE isolates SET 
-        (coverage_assembly, coverage_reference, positions_covered_1x_assembly, positions_covered_1x_reference) = 
+        (coverage_assembly, coverage_reference, positions_covered_1x_asm, positions_covered_1x_ref) = 
         (%s, %s, %s, %s) WHERE isolate=%s; """
 
     # TBL isolate submission field order
