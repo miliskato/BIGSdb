@@ -20,7 +20,7 @@ package BIGSdb::BatchValidationPage;
 use strict;
 use warnings;
 use 5.010;
-use parent qw(BIGSdb::TreeViewPage BIGSdb::CurateProfileAddPage);
+use parent qw(BIGSdb::TreeViewPage BIGSdb::CurateProfileAddPage BIGSdb::SubmitPage);
 use Log::Log4perl qw(get_logger);
 my $logger = get_logger('BIGSdb.Submissions');
 use Data::Dumper;
@@ -217,7 +217,8 @@ sub print_content {
 	my $submissions_to_show = $self->_any_pending_submissions_to_show;
 	$self->_delete_old_submissions;
 
-	if ($submissions_to_show) {
+    my $disk_full = $self ->_check_storage_report_dir_for_batch_validation;
+	if ($submissions_to_show && !$disk_full) {
 		say q(<div class="box resultstable">);
 		$self->print_submissions_for_curation;
 		say q(</div>);

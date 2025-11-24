@@ -273,8 +273,14 @@ sub print_content {
 		say q(<div class="box resultstable">);
 		$self->_print_pending_submissions;
 		$self->print_submissions_for_curation;
-        my $validation_page_url = '/cgi-bin/bigsdb/bigsdb.pl?page=batchValidation&db='.$q->param('db');
-        say qq(<div><a href = '$validation_page_url' class="small_submit"> Batch validation </a></div>);
+        my $curation_buffer = $self->print_submissions_for_curation({ get_only => 1 });
+        if ($curation_buffer) {
+            my $disk_full = $self->_check_storage_report_dir_for_batch_validation;
+            if (!$disk_full){
+                my $validation_page_url = '/cgi-bin/bigsdb/bigsdb.pl?page=batchValidation&db=' . $q->param('db');
+                say qq(<div><a href = '$validation_page_url' class="small_submit"> Batch validation </a></div>);
+            }
+        }
 		$self->_print_closed_submissions;
 		$self->print_navigation_bar( { closed_submissions => $closed_buffer ? 1 : 0 } );
 		say q(</div>);
@@ -3672,6 +3678,24 @@ sub _check_storage_report_dir {
         say q(<p class="warning" style="padding: 10px 0 10px 10px;">More than 90% of the disk is used. Remove JSON reports from the /output_reports directory before accepting/rejecting other isolates.);
     } elsif ($usage_percentage > 80) {
         say q(<p class="warning" style="padding: 10px 0 10px 10px;">More than 80% of the disk is used. Remove JSON reports from the /output_reports directory before accepting/rejecting other isolates.);
+    }
+    return $disk_full;
+}
+
+sub _check_storage_report_dir_for_batch_validation {
+    my ($self) = @_;
+    my $usage_percentage = $self->_get_storage_report_dir;
+    my $disk_full = 0;
+    if ($usage_percentage >= 90) {
+        say q(<p class="warning" style="padding: 10px 0 10px 10px;">More than 90% of the disk is used. The batch validation system won't be accessible until some JSON reports
+        are removed from the /output_reports directory.);
+        $disk_full = 1;
+    } elsif ($usage_percentage > 80) {
+        say q(<p class="warning" style="padding: 10px 0 10px 10px;">More than 80% of the disk is used. Remove JSON reports from the /output_reports directory before
+        accepting/rejecting more isolates by batch.);
+    } elsif ($usage_percentage > 70) {
+        say q(<p class="warning" style="padding: 10px 0 10px 10px;">More than 70% of the disk is used. Remove JSON reports from the /output_reports directory before
+        accepting/rejecting more isolates by batch.);
     }
     return $disk_full;
 }
