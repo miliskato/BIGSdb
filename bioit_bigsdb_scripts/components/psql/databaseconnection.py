@@ -42,7 +42,7 @@ class DatabaseConnection:
         except Exception:
             raise RuntimeError(f"Could not connect to {species}'s databases")
 
-    def execute_query(self, query: str, params: Union[Tuple[Union[str, int, Tuple[str]]], List[Union[str, int]], Tuple[str, str, float]]) \
+    def execute_query(self, query: str, params: Any) \
             -> Optional[List[Optional[Tuple[Any]]]]:
         """
         Executes a sql query using psycopg sanitization
@@ -58,7 +58,7 @@ class DatabaseConnection:
             if query.strip().startswith('SELECT'):
                 return cur.fetchall()
 
-    def execute_query_client_cursor(self, query: str, params: Union[Tuple[Union[str, int, Tuple[str]]], List[Union[str, int]], Tuple[str, str, float]]) \
+    def execute_query_client_cursor(self, query: str, params: Any) \
             -> Optional[List[Optional[Tuple[Any]]]]:
         """
         Executes a sql query using the ClientCursor which merges the query on the client side and sends the query and

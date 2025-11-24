@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added:
 - Warning reasons to the submissions page
 - Alert system for Influenza based on the hosts of the reference sequence (reference selection)
-- Reference database for Influenza
+- Reference database for Influenza to the galaxy report section of the isolate page
 - Krona report to the Analysis section of the isolate page
 - InternalReferenceSampleID field to the nominative metadata for Influenza
 
