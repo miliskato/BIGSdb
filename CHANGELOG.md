@@ -5,9 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [4.3.1]
+## [Unreleased]
 ### Added:
 - Warning reasons to the submissions page
+- Analysis fields for different assays (and removal of eav fields)
+- Pipeline version and input type to the isolates table
+- Coverage on assembly and on reference to the isolates table for bacterial pathogens
+- Closest reference used by Nextclade for Influenza
+
+### Changed:
+- Assay results stored in the eav table are now stored in the analysis_results table or the isolates table
+- Various plugins to support analysis fields
+- Length of Isoniazid, Rifampicin, Ethambutol and Pyrazinamid in the config.xml of Mycobacterium
+
+### Fixed:
+- Assignment of nextclade clade result for Influenza
 
 ## [4.3.0]
 ### Added:
