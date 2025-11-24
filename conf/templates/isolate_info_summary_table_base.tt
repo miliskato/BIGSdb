@@ -65,14 +65,14 @@ table.main_results td { padding:4px 6px; background:#C1E6F3; }
         display_names = {};
         species = summary.results.species;
         IF species == 'neisseria';
-            display_names = { 'serogroup' => 'serogroup legacy', 'capsule_serogroup' => 'capsule serogroup' };
+            display_names = { 'serogroup' => 'serogroup legacy', 'capsule_serogroup' => 'serogroup capsule' };
         END;
     %]
 
     <table class="main_results" style="width: [% sg_table_width %]%;">
         <tr align="center">
             [% FOREACH sg_key = summary.results.sg_results.keys.sort %]
-            <th>[% display_names.$sg_key || sg_key %]</th>
+                <th>[% display_names.$sg_key || sg_key %]</th>
             [% END %]
         </tr>
         <tr align="center">
