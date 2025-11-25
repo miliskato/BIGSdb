@@ -5,6 +5,7 @@ from psycopg.types.json import Jsonb
 from bioit_mongodb_scripts.model.json_model import JsonReportDict
 from bioit_mongodb_scripts.util.python_utility_functions import normalize_keys, sanitize_json_values
 from .psql import TblAlleleDesignations, TblClientDbaseLoci, TblLoci, TblSchemeMembers, TblSequences, TblAnalysisResults
+from factories.main_results_factory.summary_results_builder_factory import SummaryResultsBuilderFactory
 from ..utils.url_helper import UrlHelper
 
 
@@ -113,3 +114,14 @@ class JsonSuperClass:
         with TblAnalysisResults(self._species) as isolates_ana_res_psql_tbl:
             isolates_ana_res_psql_tbl.insert_analysis_results_isolate_name((
                 scheme_config['schemename_bigsdb'], self._isolatename, Jsonb(analysis_dict_sanitized)))
+
+    def _insert_summary_results_in_analysis(self) -> None:
+        """
+        Insert the summary results into the analysis_results table.
+        :return: None
+        """
+        summary = SummaryResultsBuilderFactory()
+        json_summary = summary.build_json_report(self._species, self._json_report_dict)
+        if json_summary:
+            with TblAnalysisResults(self._species) as isolates_ana_res_psql_tbl:
+                isolates_ana_res_psql_tbl.insert_analysis_results_isolate_name(('summary', self._isolatename, json_summary))

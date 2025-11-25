@@ -3,7 +3,6 @@ import datetime
 import logging
 import socket
 from typing import Any, Dict
-
 from bioit_mongodb_scripts.model.json_model import JsonReportDict
 from .json_superclass import JsonSuperClass
 from .psql import TblEavBoolean, TblEavFields, TblEavInt, TblEavText, TblHistory, TblIsolates
@@ -74,6 +73,7 @@ class MainInserter(JsonSuperClass):
     def __create_context(self) -> MainInserterContext:
         """
         Method which is used to return the MainInserterContext object. By essence, private, as this one cannot be used outside the context of the class.
+        :return: A MainInserterContext object containing the isolate_id and the report url
         """
         with TblIsolates(self._species) as isolates_psql_tbl:
             isolate_id = isolates_psql_tbl.select_id_for_isolate((self._isolatename,))

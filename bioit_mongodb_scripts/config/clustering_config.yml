@@ -5,4 +5,3 @@ clustering_thresholds_listeria: [4, 7]  # threshold ECDC 4= 'core cluster', 7= '
 clustering_thresholds_mycobacterium: [5, 12]
 clustering_thresholds_neisseria: [4, 7]
 clustering_thresholds_salmonella: [5, 10]
-clustering_thresholds_stec: [5]

@@ -823,6 +823,7 @@ sub _get_stylesheets {
 	my $version = '20250318';
 	my @filenames;
 	push @filenames, q(dropzone.css)                                          if $self->{'dropzone'};
+    push @filenames, q(hera_style.css);
 	push @filenames, q(billboard.min.css)                                     if $self->{'billboard'};
 	push @filenames, q(pivot.min.css)                                         if $self->{'pivot'};
 	push @filenames, qw(jquery.multiselect.css jquery.multiselect.filter.css) if $self->{'jQuery.multiselect'};

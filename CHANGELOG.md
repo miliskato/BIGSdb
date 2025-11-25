@@ -7,18 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added:
+- Table which summarizes the main sequencing/serotyping results on the isolate page for bacterial species
 - Warning reasons to the submissions page
 - Analysis fields for different assays (and removal of eav fields)
 - Pipeline version and input type to the isolates table
 - Coverage on assembly and on reference to the isolates table for bacterial pathogens
 - Closest reference used by Nextclade for Influenza
 
-### Changed:
+### Changed
+- JS links on the isolate page (to get a prefilled query returning all isolates of the cluster attributed to the current isolate) will be projected in 
+  the analysis section of BIGSdb instead of being stored as an eav field. 
 - Assay results stored in the eav table are now stored in the analysis_results table or the isolates table
 - Various plugins to support analysis fields
 - Length of Isoniazid, Rifampicin, Ethambutol and Pyrazinamid in the config.xml of Mycobacterium
 
 ### Fixed:
+- Missing JS links to get cluster information for new isolates inserted in BIGSdb when their cgST was already present in the distance matrix (cgST already known)
 - Assignment of nextclade clade result for Influenza
 
 ## [4.3.0]

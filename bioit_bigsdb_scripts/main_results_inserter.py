@@ -6,6 +6,7 @@ import traceback
 from pathlib import Path
 
 from pymongo.collection import Collection
+from psycopg.types.json import Jsonb
 
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
@@ -92,6 +93,7 @@ class MainResultsInserter:
                                   self._report_access).insert_typing_results()
         JsonGeneDetectionResultsInserter(self._isolatename, self._species, self._json_report, self._bigsdb_config_data,
                                          self._report_access).insert_genedetection_results()
+        self._insert_clustering_results(self._json_report)
         logging.info('Finished inserting results')
 
     def _handle_reanalysis_and_reseq(self) -> None:
@@ -136,16 +138,31 @@ class MainResultsInserter:
             insert_assembly(self._isolatename, self._species, temp_fasta_path, self._results_type)
             logging.info(f"Inserted assembly for isolate {self._isolatename} into bigsdb")
 
-            # The resequencing is for now disable as also commented in sample_to_validation_bigs.py
-            # if document.get_validation_type() == 'resequencing': #is it the place to check that isolation date are different, I don't think so
-            #     last_two_validation_dates = self._isolates_psql_tbl.select_validationdate_for_isolate(
-            #         (isolate_id,))
-            #     # select to check that the previous version's validation date is different from the current
-            #     if last_two_validation_dates[0][0] != last_two_validation_dates[1][0]:
-            #         # revert the changes done in maininserter that move the assembly to the newest version
-            #         with TblSequenceBin(self._species) as isolates_seqbin_psql_tbl:
-            #             isolates_seqbin_psql_tbl.revert_sequencebin_newversion([isolate_id])
-            #         with TblSeqBinStats(self._species) as isolates_seqbinstats_psql_tbl:
-            #             isolates_seqbinstats_psql_tbl.revert_seqbinstats_newversion([isolate_id])
-            #         insert_assembly(isolate_id, self._species, temp_fasta_path, results_type)
-            #     logging.info(f"Wrote new results version for {isolate_id} to bigsdb")
+                # The resequencing is for now disable as also commented in sample_to_validation_bigs.py
+                # if document.get_validation_type() == 'resequencing': #is it the place to check that isolation date are different, I don't think so
+                #     last_two_validation_dates = self._isolates_psql_tbl.select_validationdate_for_isolate(
+                #         (isolate_id,))
+                #     # select to check that the previous version's validation date is different from the current
+                #     if last_two_validation_dates[0][0] != last_two_validation_dates[1][0]:
+                #         # revert the changes done in maininserter that move the assembly to the newest version
+                #         with TblSequenceBin(self._species) as isolates_seqbin_psql_tbl:
+                #             isolates_seqbin_psql_tbl.revert_sequencebin_newversion([isolate_id])
+                #         with TblSeqBinStats(self._species) as isolates_seqbinstats_psql_tbl:
+                #             isolates_seqbinstats_psql_tbl.revert_seqbinstats_newversion([isolate_id])
+                #         insert_assembly(isolate_id, self._species, temp_fasta_path, results_type)
+                #     logging.info(f"Wrote new results version for {isolate_id} to bigsdb")
+
+    def _insert_clustering_results(self, json_report: JsonReportDict) -> None:
+        """
+        Inserts the cgST clustering javascript link for the isolate into the analysis_results table
+        :param json_report: json report dict
+        :return: None
+        """
+        isolate_cgst = json_report.get('cgST')
+        if isolate_cgst is None:
+            return
+        with TblAnalysisResults(self._species) as isolates_ana_res_psql_tbl:
+            js_link_of_the_cgst = isolates_ana_res_psql_tbl.extract_results_filtered_on_name((isolate_cgst,))
+            if js_link_of_the_cgst is not None:
+                isolates_ana_res_psql_tbl.insert_analysis_results_isolate_name(('cgST_clustering_on_allelic_dist', self._isolatename, Jsonb(js_link_of_the_cgst)))
+

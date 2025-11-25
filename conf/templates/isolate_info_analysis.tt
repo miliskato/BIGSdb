@@ -28,6 +28,8 @@ table.nice td:first-child { max-width:50ch; overflow-wrap:anywhere }
 [% INCLUDE isolate_info_rmlst_identification.tt %]
 [% INCLUDE isolate_info_mykrobe.tt %]
 [% INCLUDE isolate_info_virulence_detection.tt %]
+[% INCLUDE isolate_info_summary_table_base.tt %]
+[% INCLUDE isolate_info_clusters.tt %]
 [% INCLUDE isolate_info_plasmid_finder_gram_positive.tt %]
 [% INCLUDE isolate_info_ncbi16s.tt %]
 [% INCLUDE isolate_info_snpit.tt %]
