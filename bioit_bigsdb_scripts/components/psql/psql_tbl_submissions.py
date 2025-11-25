@@ -81,7 +81,7 @@ class TblSubmissions(DatabaseConnection):
         Select submission ids for genomic results that were validated (positively or not) using the batch validation system
         :return: List of corresponding submissions ids
         """
-        return self.execute(PsqlQueries.ISO_SEL_ID_TB_SUB_VAR_STATUS_RESEQ)
+        return self.execute(PsqlQueries.ISO_SEL_ID_BATCH_VALIDATED_TB_SUB)
 
     def get_submission_ids_for_specific_status_and_quality(self, param: Tuple[str, str]) -> List[Tuple[str]]:
         """

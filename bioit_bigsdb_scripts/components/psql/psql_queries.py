@@ -410,7 +410,7 @@ class PsqlQueries:
         (SELECT CURRENT_DATE), 'pending', true, %s, %s, %s);"""
     ISO_SEL_ID_TB_SUB_VAR_STATUS: Final[str] = """
         SELECT id FROM submissions WHERE outcome = 'good' AND status = 'closed' AND id LIKE 'BIGSdb_%';"""
-    ISO_SEL_ID_TB_SUB_VAR_STATUS_RESEQ: Final[str] = """
+    ISO_SEL_ID_BATCH_VALIDATED_TB_SUB: Final[str] = """
         SELECT id FROM submissions WHERE status = 'batch_validated' AND resequencing = 'no';"""
     ISO_SEL_ID_TB_SUB_VAR_STATUS_QUALITY: Final[str] = """
         SELECT id FROM submissions WHERE status = %s AND quality = %s;"""
