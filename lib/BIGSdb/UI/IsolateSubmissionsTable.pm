@@ -105,9 +105,9 @@ sub render_complete_form {
     $return_buffer .= q(<input type="hidden" name="page" value="batchValidation">);
 
     # Add control buttons
-    $return_buffer .= q(<button type="button" id="isolateSubmissionsForm_checkAll" onclick="toggleCheckboxes('isolateSubmissionsForm')" data-checked="false">Check All</button> );
-    $return_buffer .= q(<button type="button" id="isolateSubmissionsForm_checkGood" onclick="toggleCheckboxesByQuality('isolateSubmissionsForm', 'good')" data-checked="false">Check Good Quality</button> );
-    $return_buffer .= q(<button type="button" id="isolateSubmissionsForm_checkWarning" onclick="toggleCheckboxesByQuality('isolateSubmissionsForm', 'warning')" data-checked="false">Check Warning Quality</button> );
+    $return_buffer .= q(<button type="button" class="herasubmit small" id="isolateSubmissionsForm_checkAll" onclick="toggleCheckboxes('isolateSubmissionsForm')" data-checked="false">Check All</button> );
+    $return_buffer .= q(<button type="button" class="herasubmit small" id="isolateSubmissionsForm_checkGood" onclick="toggleCheckboxesByQuality('isolateSubmissionsForm', 'good') " data-checked="false">Check Good Quality</button> );
+    $return_buffer .= q(<button type="button" class="herasubmit small" id="isolateSubmissionsForm_checkWarning" onclick="toggleCheckboxesByQuality('isolateSubmissionsForm', 'warning')" data-checked="false">Check Warning Quality</button> );
 
     # Start table
     $return_buffer .= q(<table class="resultstable"><tr><th>Submission id</th><th>Isolate ID</th>);
@@ -126,8 +126,8 @@ sub render_complete_form {
     $return_buffer .= q(<option value="accepted">Accepted</option>);
     $return_buffer .= q(<option value="rejected">Rejected</option>);
     $return_buffer .= q(</select>);
-    $return_buffer .= q(<input type="submit" value="Update" onclick="return validateAndSubmit()">);
-    $return_buffer .= q(<button type="submit" name="batch_submit" value="1">Batch Submit</button>) if $show_outcome;
+    $return_buffer .= q(<input type="submit" class="herasubmit" value="Update" onclick="return validateAndSubmit()">);
+    $return_buffer .= q(<button type="submit" class="herasubmit" name="batch_submit" value="1">Batch Submit</button>) if $show_outcome;
     $return_buffer .= q(</div>);
     $return_buffer .= q(</form>);
     $return_buffer .= qq(</div>\n);
@@ -177,11 +177,9 @@ sub render_review_form {
     $return_buffer .= q(</table>);
     $return_buffer .= q(<div style="margin-top: 10px;">);
 
-    $return_buffer .= qq(<div class="hera_error" >By clicking <strong>Confirm</strong>, you accept/reject the insertion of the isolate(s) listed in this table. Please note that
-    this action cannot be undone.</div>);
-    $return_buffer .= qq(<button type="button" class="herasubmit" id='herasubmit' onclick="window.location.href='$system->{script_name}?db=$db&amp;
-    page=batchValidation'">Cancel</button>);
-    $return_buffer .= q(<button type="submit" class='herasubmit' id='herasubmit'>Confirm</button>);
+    $return_buffer .= qq(<div class="hera_error" >By clicking <strong>Confirm</strong>, you accept/reject the insertion of the isolate(s) listed in this table. Please note that this action cannot be undone.</div>);
+    $return_buffer .= qq(<button type="button" class="herasubmit" onclick="window.location.href='$system->{script_name}?db=$db&amp;page=batchValidation'">Cancel</button>);
+    $return_buffer .= q(<button type="submit" class="herasubmit" >Confirm</button>);
 
     $return_buffer .= q(</div>);
     $return_buffer .= q(</form>);
