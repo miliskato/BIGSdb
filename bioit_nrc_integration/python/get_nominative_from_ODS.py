@@ -151,7 +151,8 @@ class GetNominativeFromOds:
                         data_unprocessed = contents['data']
 
                         # Parse data_unprocessed
-                        parser_instance = selected_parser(data_unprocessed, filetype, species, self._translation_codes)
+                        parser_instance = selected_parser(data_unprocessed, filetype, species, self._translation_codes,
+                                                          self._mongo_config_provider)
                         data_translated = parser_instance.run()
 
                     except Exception as exceptionmessage:

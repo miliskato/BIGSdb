@@ -6,6 +6,7 @@ if the location of this script is modified, it needs to be modified there as wel
 import argparse
 import datetime
 import logging
+import os
 import re
 import socket
 import sys
@@ -29,6 +30,8 @@ from bioit_mongodb_scripts.model.json_model import MongoRecordDict
 from bioit_mongodb_scripts.util.python_utility_functions import get_bigsdb_config_data, send_email
 from bioit_mongodb_scripts.util.mongo_quickdraw import get_pseudo_id
 
+logger = logging.getLogger(__name__)
+
 
 def parse_arguments(specieslist: List[str]) -> argparse.Namespace:
     """
@@ -48,17 +51,19 @@ class SampleValidationToMongo:
     This class is used to send validation metadata from Bigsdb to MongoDB and move samples
     from the goodqc, resequencing or warningqc collection to the isolates collection.
     """
-    def __init__(self, species: str, sub_id: int) -> None:
+    def __init__(self, species: str, sub_id: int, batch_validated: bool = False) -> None:
         """
         Initialises the class and runs the main function.
         See also argparse function for variables and their requiredness.
         :param species: commonly used bioit species name: either genus or specific like stec
         :param sub_id: id of the submission in the submissions table
+        :param batch_validated: if True, the submissions status should be turned from 'batch_validated' to 'closed'
         :return: None
         """
         # Input parameters
         self._sub_id = sub_id
         self._species = species
+        self._batch_validated = batch_validated
         self._mongo_config_provider = MongoConfigProvider()
 
         # Open collections
@@ -70,6 +75,9 @@ class SampleValidationToMongo:
         try:
             self._sample_validation_to_mongo()
         except Exception as exceptionmessage:
+            with TblSubmissions(species=self._species) as isolates_submissions_psql_tbl:
+                isolates_submissions_psql_tbl.update_status_to_failed_validation((str(sub_id),))
+            logger.error(f"Error: {exceptionmessage}\n{traceback.format_exc()}")
             send_email(f"{exceptionmessage}\n{traceback.format_exc()}",
                        f"{Path(__file__).name} fail on host {socket.gethostname()}")
             raise Exception(f"{exceptionmessage}\n{traceback.format_exc()}")
@@ -88,31 +96,33 @@ class SampleValidationToMongo:
         """
         # Connect to db and create cursor
         with TblSubmissions(self._species) as self._isolates_submissions_psql_tbl:
+            if self._batch_validated:
+                self._isolates_submissions_psql_tbl.update_status_for_batch_validated(('closed', str(self._sub_id)))
             query: List[Tuple[Any]] = self._isolates_submissions_psql_tbl.select_closed_submission((str(self._sub_id),))
-            if query:
-                # retrieve id of the isolate and curator id from BIGSdb
-                isolatename: str = query[0][1]
-                outcome: str = query[0][2]
-                curator_mailadress: str = query[0][3]
-                quality: str = query[0][4]
-                resequencing: Literal['yes', 'no'] = query[0][5]
-                results_type = self.__get_results_type(quality, resequencing)  # goodqc_validated, warningqc_validated or resequencing_validated
-                pseudo_id = get_pseudo_id(self._species, isolatename)
-                # GO into MongoDB so type in Mongo might be either warningqc or resequencing
-                validation_dict = {
-                    'outcome': outcome,
-                    'curator': curator_mailadress,
-                    'type': results_type.split('_')[0],
-                    'date': datetime.datetime.now(datetime.timezone.utc).strftime('%d/%m/%Y - %X')
-                }
-                if outcome == 'good' and (results_type == 'goodqc_validated' or results_type == 'warningqc_validated' or results_type == 'resequencing_validated'):
-                    MainMongo(pseudo_id, self._species, results_type, subvaldict=validation_dict, connection_string=self._mongo_config_provider.get_azure_connection_string(self._species))
-                    self.__export_json_results(self._isolates_collection, isolatename, pseudo_id, 'accepted')
-                else:
-                    collection = self._isolates_resequencing_collection if resequencing == 'yes' else \
-                        self._isolates_warningqc_collection if quality == 'warning' else self._isolates_goodqc_collection
-                    self.__export_json_results(collection, isolatename, pseudo_id, 'rejected')
-                    self.__remove_id_from_document_to_be_unique_again_if_bad(collection, pseudo_id, validation_dict)
+        if query:
+            # retrieve id of the isolate and curator id from BIGSdb
+            isolatename: str = query[0][1]
+            outcome: str = query[0][2]
+            curator_mailadress: str = query[0][3]
+            quality: str = query[0][4]
+            resequencing: Literal['yes', 'no'] = query[0][5]
+            results_type = self.__get_results_type(quality, resequencing)  # goodqc_validated, warningqc_validated or resequencing_validated
+            pseudo_id = get_pseudo_id(self._species, isolatename)
+            # GO into MongoDB so type in Mongo might be either warningqc or resequencing
+            validation_dict = {
+                'outcome': outcome,
+                'curator': curator_mailadress,
+                'type': results_type.split('_')[0],
+                'date': datetime.datetime.now(datetime.timezone.utc).strftime('%d/%m/%Y - %X')
+            }
+            if outcome == 'good' and (results_type == 'goodqc_validated' or results_type == 'warningqc_validated' or results_type == 'resequencing_validated'):
+                MainMongo(pseudo_id, self._species, results_type, subvaldict=validation_dict, connection_string=self._mongo_config_provider.get_azure_connection_string(self._species))
+                self.__export_json_results(self._isolates_collection, isolatename, pseudo_id, 'accepted')
+            else:
+                collection = self._isolates_resequencing_collection if resequencing == 'yes' else \
+                    self._isolates_warningqc_collection if quality == 'warning' else self._isolates_goodqc_collection
+                self.__export_json_results(collection, isolatename, pseudo_id, 'rejected')
+                self.__remove_id_from_document_to_be_unique_again_if_bad(collection, pseudo_id, validation_dict)
 
     @staticmethod
     def __get_results_type(quality: str, resequencing: Literal['yes', 'no']) -> str:
@@ -175,6 +185,11 @@ class SampleValidationToMongo:
         json_results['input_files'] = json_results['input_files'].replace(pseudo_id, isolate_id)
         json_results.pop('isolates_id')
         json_results.dump_to_json_file(path)
+
+        try:
+            os.chmod(path, 0o664)
+        except Exception as e:
+            logger.warning(f"chmod failed for {path}: {e}")
 
 
 if __name__ == '__main__':

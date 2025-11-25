@@ -19,16 +19,17 @@ class ParseClinLabJsonInfluenza(ParseClinLabJson):
     B_TESTS = {'74785-7': 'VIC', '74786-5': 'YAM'}
 
     def __init__(self, data_unprocessed: dict[str, Any], filetype: Literal['CLIN', 'LAB'], species: str,
-                 translation_codes: dict[str, Any]) -> None:
+                 translation_codes: dict[str, Any], dtap: Literal['dev', 'test', 'acc', 'prod']) -> None:
         """
         Initializes this class by initializing the super class
         :param data_unprocessed: original unprocessed data
         :param filetype: CLIN or LAB
         :param species: commonly used bioit species name: either genus or specific like stec
         :param translation_codes: translation codes from the nominative ODS configuration file
+        :param dtap: current DTAP environment
         :return: None
         """
-        super().__init__(data_unprocessed, filetype, species, translation_codes)
+        super().__init__(data_unprocessed, filetype, species, translation_codes, dtap)
 
     def _execute_pathogen_specific_code(self) -> None:
         """

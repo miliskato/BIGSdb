@@ -9,7 +9,7 @@ sys.path.append(str(PYTHONPATH))
 from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util_azure.azure_service_bus import AzureServiceBus
-from bioit_mongodb_scripts.util_azure.azure_service_bus_message import AzureServiceBusMessage
+from bioit_mongodb_scripts.util_azure.azure_service_bus_specific_messages import AzureServiceBusMessage
 
 
 def parse_arguments() -> argparse.Namespace:

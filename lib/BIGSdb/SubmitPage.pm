@@ -273,8 +273,14 @@ sub print_content {
 		say q(<div class="box resultstable">);
 		$self->_print_pending_submissions;
 		$self->print_submissions_for_curation;
-        my $validation_page_url = '/cgi-bin/bigsdb/bigsdb.pl?page=batchValidation&db='.$q->param('db');
-        say qq(<div><a href = '$validation_page_url' class="small_submit"> Batch validation </a></div>);
+        my $curation_buffer = $self->print_submissions_for_curation({ get_only => 1 });
+        if ($curation_buffer) {
+            my $disk_full = $self->_check_storage_report_dir_for_batch_validation;
+            if (!$disk_full){
+                my $validation_page_url = '/cgi-bin/bigsdb/bigsdb.pl?page=batchValidation&db=' . $q->param('db');
+                say qq(<div><a href = '$validation_page_url' class="small_submit"> Batch validation </a></div>);
+            }
+        }
 		$self->_print_closed_submissions;
 		$self->print_navigation_bar( { closed_submissions => $closed_buffer ? 1 : 0 } );
 		say q(</div>);
@@ -804,7 +810,7 @@ sub _get_isolate_submissions_for_curation {
 			qq(<tr class="td$td"><td><a href="$self->{'system'}->{'script_name'}?db=$self->{'instance'}&amp;)
 		  . qq(page=submit&amp;submission_id=$submission->{'id'}&amp;curate=1">$submission->{'id'}</a></td>)
 		  . qq(<td>$submission->{'date_submitted'}</td><td>$submission->{'datestamp'}</td><td>$submitter_string</td>)
-		  . qq(<td>$isolate_count</td><td>$submission->{'quality'}</td>);
+		  . qq(<td>$isolate_count</td><td>$submission->{'quality'}</td><td>$submission->{'warning_reasons'}</td>);
 		if ( $self->{'system'}->{'dbtype'} eq 'isolates' && $embargo->{'embargo_enabled'} ) {
 			my $embargo_months = $submission->{'embargo'} // '-';
 			$buffer .= qq(<td>$embargo_months</td>);
@@ -828,7 +834,8 @@ sub _get_isolate_submissions_for_curation {
 			  if -e $isolate_curate_message;
 		}
 		$return_buffer .= q(<div class="scrollable"><table class="resultstable"><tr><th>Submission id</th>)
-		  . q(<th>Submitted</th><th>Updated</th><th>Submitter</th><th>Isolates</th><th>Quality</th>);
+		  . q(<th>Submitted</th><th>Updated</th><th>Submitter</th><th>Isolates</th><th>Quality</th>)
+		  . q(<th>Warning reasons</th>);
 		$return_buffer .= q(<th>Embargo requested (months)</th>)
 		  if $self->{'system'}->{'dbtype'} eq 'isolates' && $embargo->{'embargo_enabled'};
 		$return_buffer .= q(<th>Outcome</th>) if $status eq 'closed';
@@ -3671,6 +3678,24 @@ sub _check_storage_report_dir {
         say q(<p class="warning" style="padding: 10px 0 10px 10px;">More than 90% of the disk is used. Remove JSON reports from the /output_reports directory before accepting/rejecting other isolates.);
     } elsif ($usage_percentage > 80) {
         say q(<p class="warning" style="padding: 10px 0 10px 10px;">More than 80% of the disk is used. Remove JSON reports from the /output_reports directory before accepting/rejecting other isolates.);
+    }
+    return $disk_full;
+}
+
+sub _check_storage_report_dir_for_batch_validation {
+    my ($self) = @_;
+    my $usage_percentage = $self->_get_storage_report_dir;
+    my $disk_full = 0;
+    if ($usage_percentage >= 90) {
+        say q(<p class="warning" style="padding: 10px 0 10px 10px;">More than 90% of the disk is used. The batch validation system won't be accessible until some JSON reports
+        are removed from the /output_reports directory.);
+        $disk_full = 1;
+    } elsif ($usage_percentage > 80) {
+        say q(<p class="warning" style="padding: 10px 0 10px 10px;">More than 80% of the disk is used. Remove JSON reports from the /output_reports directory before
+        accepting/rejecting more isolates by batch.);
+    } elsif ($usage_percentage > 70) {
+        say q(<p class="warning" style="padding: 10px 0 10px 10px;">More than 70% of the disk is used. Remove JSON reports from the /output_reports directory before
+        accepting/rejecting more isolates by batch.);
     }
     return $disk_full;
 }

@@ -24,7 +24,7 @@ class TblSubmissions(DatabaseConnection):
         self._db_type = 'isolates'
         super().__init__(species, self._db_type)
 
-    def insert_submission(self, param: Tuple[QualityValues, ResequencingValues]) -> None:
+    def insert_submission(self, param: Tuple[QualityValues, ResequencingValues, str]) -> None:
         """
         Inserts a new submission for a given quality (good or warning) and if it is a resequencing or not.
         :param param: variables to feed to the PSQL query, which also sanitizes these variables,
@@ -53,13 +53,21 @@ class TblSubmissions(DatabaseConnection):
         """
         self.execute_query(PsqlQueries.ISO_UPD_STATUS_TB_SUB_VAR_ID, param)
 
-    def set_submission_status(self, param: Tuple[str, str]) -> None:
+    def update_status_for_batch_validated(self, param: Tuple[str, str]) -> None:
         """
-        Updates the status of a specified submission with the provided value.
-        :param param: status value and submission id
+        Updates the status from 'batch_validated' to the value passed to the function for the specified submission.
+        :param param: new status value and submission id
         :return: None
         """
-        self.execute_query(PsqlQueries.ISO_UPD_OUTCOME_TB_SUB_VAR_ID, param)
+        self.execute_query(PsqlQueries.ISO_UPD_STATUS_TB_SUB_VAR_STATUS_ID, param)
+
+    def update_status_to_failed_validation(self, param: Tuple[str]) -> None:
+        """
+        Updates the status of a specified submission with the provided value.
+        :param param: submission id
+        :return: None
+        """
+        self.execute_query(PsqlQueries.ISO_UPD_STATUS_FAILED_VAL_TB_SUB_VAR_ID, param)
 
     def get_submission_id_from_bigs_upload(self) -> List[Tuple[str]]:
         """
@@ -70,16 +78,10 @@ class TblSubmissions(DatabaseConnection):
 
     def get_submission_ids_batch_validated(self) -> List[Tuple[str]]:
         """
-        Select submission ids for genomic results that were positively validated using the batch validation system
+        Select submission ids for genomic results that were validated (positively or not) using the batch validation system
         :return: List of corresponding submissions ids
         """
-        return self.execute(PsqlQueries.ISO_SEL_SUBID_OUT_GOOD_TB_SUB_VAR_)
-
-    def close_batch_rejected_submissions(self) -> None:
-        """
-        Set the status of submissions rejected by batch to "closed"
-        """
-        self.execute(PsqlQueries.ISO_UPD_STATUS_TB_SUB_VAR_)
+        return self.execute(PsqlQueries.ISO_SEL_ID_TB_SUB_VAR_STATUS_RESEQ)
 
     def get_submission_ids_for_specific_status_and_quality(self, param: Tuple[str, str]) -> List[Tuple[str]]:
         """

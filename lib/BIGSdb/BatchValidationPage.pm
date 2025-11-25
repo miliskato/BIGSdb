@@ -20,7 +20,7 @@ package BIGSdb::BatchValidationPage;
 use strict;
 use warnings;
 use 5.010;
-use parent qw(BIGSdb::TreeViewPage BIGSdb::CurateProfileAddPage);
+use parent qw(BIGSdb::TreeViewPage BIGSdb::CurateProfileAddPage BIGSdb::SubmitPage);
 use Log::Log4perl qw(get_logger);
 my $logger = get_logger('BIGSdb.Submissions');
 use Data::Dumper;
@@ -178,17 +178,14 @@ sub initiate {
 	my $q             = $self->{'cgi'};
 	$self->{$_} = 1 foreach qw (jQuery jQuery.jstree noCache tooltips dropzone allowExpand jQuery.multiselect);
 
-    $logger->error('Showing param stored in line 181: Dumper($q->Vars)='.Dumper($q->Vars));
     #curate defined if the user has clicked on a submission id to curate it
     $self->set_level2_breadcrumbs('Confirm batch validation');
     $self->{'processing'} = 0;
 	if ( $q->param('bulk_status') ) {
         $self->{'processing'} = 1;
-        $logger->error('Already there: line 188');
 	} elsif ($q->param('validate_submission')){
 		$self->set_level2_breadcrumbs('Submission result');
         $self->{'processing'} = 1;
-        $logger->error('Already there: line 192');
 	}
 	return;
 }
@@ -220,7 +217,8 @@ sub print_content {
 	my $submissions_to_show = $self->_any_pending_submissions_to_show;
 	$self->_delete_old_submissions;
 
-	if ($submissions_to_show) {
+    my $disk_full = $self->_check_storage_report_dir_for_batch_validation;
+	if ($submissions_to_show && !$disk_full) {
 		say q(<div class="box resultstable">);
 		$self->print_submissions_for_curation;
 		say q(</div>);
@@ -291,32 +289,36 @@ sub _delete_old_submissions {
 	return;
 }
 
-sub _get_submissions_by_status {
-	my ( $self, $status, $options ) = @_;
-	$options = {} if ref $options ne 'HASH';
-	my $user_info = $self->{'datastore'}->get_user_info_from_username( $self->{'username'} );
-	my ( $qry, $get_all, @args );
-	if ( $options->{'get_all'} ) {
-		$qry     = 'SELECT * FROM submissions WHERE status=? AND (dataset IS NULL OR dataset = ?) ORDER BY id';
-		$get_all = 1;
-		push @args, ( $status, $self->{'instance'} );
-	} else {
-		$qry =
-		  'SELECT * FROM submissions WHERE (submitter,status)=(?,?) AND (dataset IS NULL OR dataset = ?) ORDER BY id';
-		$get_all = 0;
-		push @args, ( $user_info->{'id'}, $status, $self->{'instance'} );
+sub _get_submissions_by_status_with_isolate_id {
+		my ( $self, $status, $options ) = @_;
+		$options = {} if ref $options ne 'HASH';
+		my $user_info = $self->{'datastore'}->get_user_info_from_username( $self->{'username'} );
+		my ( $qry, $get_all, @args );
+		if ( $options->{'get_all'} ) {
+			$qry     = 'SELECT s.*, COALESCE(i.value, \'\') AS isolate_id FROM submissions s '
+			         . 'LEFT JOIN isolate_submission_isolates i ON s.id = i.submission_id AND i.field = ? '
+			         . 'WHERE s.status=? AND (s.dataset IS NULL OR s.dataset = ?) ORDER BY s.id';
+			$get_all = 1;
+			push @args, ( 'isolate_id', $status, $self->{'instance'} );
+		} else {
+			$qry =
+			  'SELECT s.*, COALESCE(i.value, \'\') AS isolate_id FROM submissions s '
+			  . 'LEFT JOIN isolate_submission_isolates i ON s.id = i.submission_id AND i.field = ? '
+			  . 'WHERE (s.submitter,s.status)=(?,?) AND (s.dataset IS NULL OR s.dataset = ?) ORDER BY s.id';
+			$get_all = 0;
+			push @args, ( 'isolate_id', $user_info->{'id'}, $status, $self->{'instance'} );
+		}
+		my $submissions =
+		  $self->{'datastore'}->run_query( $qry, \@args,
+			{ fetch => 'all_arrayref', slice => {}, cache => "SubmitPage::get_submissions_by_status$get_all" } );
+		return $submissions;
 	}
-	my $submissions =
-	  $self->{'datastore'}->run_query( $qry, \@args,
-		{ fetch => 'all_arrayref', slice => {}, cache => "SubmitPage::get_submissions_by_status$get_all" } );
-	return $submissions;
-}
 
-sub _get_submissions {
+sub _get_submissions_with_isolate_ids {
 	my ( $self, $submission_ids ) = @_;
 	return [] if !$submission_ids || ref $submission_ids ne 'ARRAY' || !@$submission_ids;
 	my $placeholders = join( ',', ('?') x @$submission_ids );
-	my $qry = "SELECT * FROM submissions WHERE id IN ($placeholders) AND (dataset IS NULL OR dataset = ?) ORDER BY id";
+	my $qry = "SELECT s.*, COALESCE(i.value, '') AS isolate_id FROM submissions s LEFT JOIN isolate_submission_isolates i ON s.id = i.submission_id AND i.field = 'isolate_id' WHERE s.id IN ($placeholders) AND (s.dataset IS NULL OR s.dataset = ?) ORDER BY s.id";
 	my @args = ( @$submission_ids, $self->{'instance'} );
 
 	my $submissions =
@@ -327,7 +329,7 @@ sub _get_submissions {
 
 sub _print_started_submissions {
 	my ($self) = @_;
-	my $incomplete = $self->_get_submissions_by_status('started');
+	my $incomplete = $self->_get_submissions_by_status_with_isolate_id('started');
 	if (@$incomplete) {
 		say q(<div class="box" id="resultspanel"><div class="scrollable">);
 		say q(<h2>Submission in process</h2>);
@@ -368,7 +370,7 @@ sub _print_started_submissions {
 sub _get_own_submissions {
 	my ( $self, $status, $options ) = @_;
 	$options = {} if ref $options ne 'HASH';
-	my $submissions = $self->_get_submissions_by_status( $status, { get_all => 0 } );
+	my $submissions = $self->_get_submissions_by_status_with_isolate_id( $status, { get_all => 0 } );
 	my $buffer;
 	my $embargo = $self->{'datastore'}->get_embargo_attributes;
 	if (@$submissions) {
@@ -478,7 +480,7 @@ sub print_submissions_for_curation {
     } elsif ( defined($q->param('validate_submission')) ) {
         my @submission_ids = $q->param('selected_submissions[]');
         my $bulk_status = $q->param('outcome');
-        my %outcome = (accepted => 'good', rejected => 'bad', pending => '' );
+        my %outcome = (accepted => 'good', rejected => 'bad');
         my $bulk_outcome = $outcome{ $bulk_status };
 
         $self->_validate_submission($bulk_outcome, @submission_ids);
@@ -497,16 +499,26 @@ sub print_submissions_for_curation {
 
 sub _validate_submission {
     my ($self, $outcome, @submission_ids) = @_;
+    my $q = $self->{'cgi'};
+    my $should_touch_postgres = $q->param('touch_postgres') // '';
     my $curator_id = $self->get_curator_id;
 
     eval {
-        for my $submission_id (@submission_ids) {
-            # Update submission status
-            $self->{'db'}->do(
-                'UPDATE submissions SET (status,datestamp,curator,outcome)=(?,?,?,?) WHERE id=?',
-                undef, 'batch_validated', 'now', $curator_id, $outcome, $submission_id
-            );
-        }
+        if ($should_touch_postgres eq '1') {
+            if (@submission_ids) {
+                    my $count        = scalar @submission_ids;
+                    my $placeholders = join( ',', ('?') x $count );
+                    my $sql = "UPDATE submissions SET (status,datestamp,curator,outcome)=(?,?,?,?) WHERE id IN ($placeholders)";
+                    $self->{'db'}->do( $sql, undef, 'batch_validated', 'now', $curator_id, $outcome, @submission_ids );
+                }
+            }
+            my $species = $self->{instance};
+            $species =~ s/^bigsdb_//;
+            $species =~ s/_isolates$//;
+            open(BASH, "|-", "bash");
+            print BASH "/home/bigsdb/BIGSdb/3.12PythonVenv/bin/python3.12 /home/bigsdb/BIGSdb/bioit_mongodb_scripts/util_azure/azure_submission_notifier.py --species $species \n";
+            close(BASH);
+            $q->delete('touch_postgres');
     };
     if ($@) {
         $logger->error("Batch validation failed: $@");
@@ -521,7 +533,7 @@ sub _get_isolate_submissions_for_curation {
 	my ( $self, $options ) = @_;
     my $status = $options->{'status'} // 'pending';
 	# return q() if !$self->can_modify_table('isolates'); # disable this so that all curators, regardless of their rights can validate new isolates, mk 23/10/18
-	my $submissions = $self->_get_submissions_by_status( $status, { get_all => 1 } );
+	my $submissions = $self->_get_submissions_by_status_with_isolate_id( $status, { get_all => 1 } );
 	my $embargo = $self->{'datastore'}->get_embargo_attributes;
 	# Get isolate curate message if it exists
 	my $isolate_curate_message = "$self->{'dbase_config_dir'}/$self->{'instance'}/isolate_curate.html";
@@ -554,7 +566,7 @@ sub _get_isolate_for_curation_review {
     my $q     = $self->{'cgi'};
 
     my @selected_submissions = $q->param('selected_submissions[]');
-    my $submissions = $self->_get_submissions(\@selected_submissions );
+    my $submissions = $self->_get_submissions_with_isolate_ids(\@selected_submissions );
 	my $embargo = $self->{'datastore'}->get_embargo_attributes;
 
 	# Get isolate curate message if it exists

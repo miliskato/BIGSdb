@@ -44,11 +44,13 @@ sub render_table {
         $buffer .= qq(<input type="$input_type" name="selected_submissions[]" value="$submission->{'id'}" />);
         $buffer .= qq(<a href="$system->{'script_name'}?db=$instance&amp;page=submit&amp;submission_id=$submission->{'id'}&amp;curate=1">$submission->{'id'}</a>);
         $buffer .= qq(</td>);
+        $buffer .= qq(<td>$submission->{'isolate_id'}</td>);
         $buffer .= qq(<td>$submission->{'date_submitted'}</td>);
         $buffer .= qq(<td>$submission->{'datestamp'}</td>);
         $buffer .= qq(<td>$submitter_string</td>);
         $buffer .= qq(<td>$isolate_count</td>);
         $buffer .= qq(<td class="quality">$submission->{'quality'}</td>);
+        $buffer .= qq(<td class="quality">$submission->{'warning_reasons'}</td>);
 
         if ($system->{'dbtype'} eq 'isolates' && $embargo->{'embargo_enabled'}) {
             my $embargo_months = $submission->{'embargo'} // '-';
@@ -103,13 +105,13 @@ sub render_complete_form {
     $return_buffer .= q(<input type="hidden" name="page" value="batchValidation">);
 
     # Add control buttons
-    $return_buffer .= q(<button type="button" id="isolateSubmissionsForm_checkAll" onclick="toggleCheckboxes('isolateSubmissionsForm')" data-checked="false">Check All</button> );
-    $return_buffer .= q(<button type="button" id="isolateSubmissionsForm_checkGood" onclick="toggleCheckboxesByQuality('isolateSubmissionsForm', 'good')" data-checked="false">Check Good Quality</button> );
-    $return_buffer .= q(<button type="button" id="isolateSubmissionsForm_checkWarning" onclick="toggleCheckboxesByQuality('isolateSubmissionsForm', 'warning')" data-checked="false">Check Warning Quality</button> );
+    $return_buffer .= q(<button type="button" class="herasubmit small" id="isolateSubmissionsForm_checkAll" onclick="toggleCheckboxes('isolateSubmissionsForm')" data-checked="false">Check All</button> );
+    $return_buffer .= q(<button type="button" class="herasubmit small" id="isolateSubmissionsForm_checkGood" onclick="toggleCheckboxesByQuality('isolateSubmissionsForm', 'good') " data-checked="false">Check Good Quality</button> );
+    $return_buffer .= q(<button type="button" class="herasubmit small" id="isolateSubmissionsForm_checkWarning" onclick="toggleCheckboxesByQuality('isolateSubmissionsForm', 'warning')" data-checked="false">Check Warning Quality</button> );
 
     # Start table
-    $return_buffer .= q(<table class="resultstable"><tr><th>Submission id</th>);
-    $return_buffer .= q(<th>Submitted</th><th>Updated</th><th>Submitter</th><th>Isolates</th><th>Quality</th>);
+    $return_buffer .= q(<table class="resultstable"><tr><th>Submission id</th><th>Isolate ID</th>);
+    $return_buffer .= q(<th>Submitted</th><th>Updated</th><th>Submitter</th><th>Isolates</th><th>Quality</th><th>Warning reasons</th>);
     $return_buffer .= q(<th>Embargo requested (months)</th>) if $system->{'dbtype'} eq 'isolates' && $embargo->{'embargo_enabled'};
     $return_buffer .= qq(</tr>\n);
 
@@ -124,8 +126,8 @@ sub render_complete_form {
     $return_buffer .= q(<option value="accepted">Accepted</option>);
     $return_buffer .= q(<option value="rejected">Rejected</option>);
     $return_buffer .= q(</select>);
-    $return_buffer .= q(<input type="submit" value="Update" onclick="return validateAndSubmit()">);
-    $return_buffer .= q(<button type="submit" name="batch_submit" value="1" onclick="return prepareBatchSubmit()">Batch Submit</button>) if $show_outcome;
+    $return_buffer .= q(<input type="submit" class="herasubmit" value="Update" onclick="return validateAndSubmit()">);
+    $return_buffer .= q(<button type="submit" class="herasubmit" name="batch_submit" value="1">Batch Submit</button>) if $show_outcome;
     $return_buffer .= q(</div>);
     $return_buffer .= q(</form>);
     $return_buffer .= qq(</div>\n);
@@ -159,10 +161,11 @@ sub render_review_form {
     $return_buffer .= q(<input type="hidden" name="page" value="batchValidation">);
     $return_buffer .= q(<input type="hidden" name="validate_submission" value="1">);
     $return_buffer .= qq(<input type="hidden" name="outcome" value="$outcome">);
+    $return_buffer .= qq(<input type="hidden" name="touch_postgres" value="1">);
 
     # Start table
-    $return_buffer .= q(<table class="resultstable"><tr><th>Submission id</th>);
-    $return_buffer .= q(<th>Submitted</th><th>Updated</th><th>Submitter</th><th>Isolates</th><th>Quality</th>);
+    $return_buffer .= q(<table class="resultstable"><tr><th>Submission id</th><th>Isolate ID</th>);
+    $return_buffer .= q(<th>Submitted</th><th>Updated</th><th>Submitter</th><th>Isolates</th><th>Quality</th><th>Warning reasons</th>);
     $return_buffer .= q(<th>Embargo requested (months)</th>) if $system->{'dbtype'} eq 'isolates' && $embargo->{'embargo_enabled'};
     $return_buffer .= q(<th>Outcome</th>);
     $return_buffer .= qq(</tr>\n);
@@ -174,9 +177,9 @@ sub render_review_form {
     $return_buffer .= q(</table>);
     $return_buffer .= q(<div style="margin-top: 10px;">);
 
-    $return_buffer .= qq(<div class="hera_error" >By clicking <strong>Confirm</strong>, you validate/cancel the insertion of the isolate(s) listed in the table. Please note that this action cannot be undone.</div>);
-    $return_buffer .= qq(<button type="button" class="hera" onclick="window.location.href='$system->{script_name}?db=$db&amp;page=batchValidation'">Cancel</button>);
-    $return_buffer .= q(<button type="submit">Confirm</button>);
+    $return_buffer .= qq(<div class="hera_error" >By clicking <strong>Confirm</strong>, you accept/reject the insertion of the isolate(s) listed in this table. Please note that this action cannot be undone.</div>);
+    $return_buffer .= qq(<button type="button" class="herasubmit" onclick="window.location.href='$system->{script_name}?db=$db&amp;page=batchValidation'">Cancel</button>);
+    $return_buffer .= q(<button type="submit" class="herasubmit" >Confirm</button>);
 
     $return_buffer .= q(</div>);
     $return_buffer .= q(</form>);

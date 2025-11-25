@@ -27,7 +27,7 @@ function toggleCheckboxesByQuality(formId, quality) {
     for (let i = 0; i < rows.length; i++) {
         const row = rows[i];
         const checkbox = row.querySelector('input[type="checkbox"]');
-        const qualityCell = row.querySelector('td:nth-child(6)'); // Quality is in the 6th column
+        const qualityCell = row.querySelector('td:nth-child(7)'); // Quality is in the 7th column
 
         if (checkbox && qualityCell && qualityCell.textContent.trim().toLowerCase() === quality.toLowerCase()) {
             checkbox.checked = isChecked;

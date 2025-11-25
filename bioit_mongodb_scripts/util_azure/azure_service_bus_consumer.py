@@ -1,15 +1,15 @@
 import argparse
 import logging
-import signal
+
 import socket
-from logging import handlers
-from typing import Any, Union
+from typing import Union
 
 from azure.servicebus import ServiceBusClient, ServiceBusReceivedMessage
 from pymongo.errors import ConnectionFailure, OperationFailure
 from tenacity import RetryCallState, retry, wait_exponential
 
 from bioit_bigsdb_scripts.components.psql import TblFailedInsertions
+from bioit_mongodb_scripts.helpers.services_helpers import Cancellation, config_log_handlers
 from bioit_mongodb_scripts.mongo_to_bigs import MongoToBigs
 from bioit_mongodb_scripts.rejected_isolate import RejectedIsolate
 from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
@@ -21,12 +21,11 @@ from bioit_mongodb_scripts.util.mongo_to_bigs_nominative import MongoToBigsNomin
 from bioit_mongodb_scripts.util.python_utility_functions import send_email
 from bioit_mongodb_scripts.util.sample_to_validation_bigs import SampleToValidationBigs
 from bioit_mongodb_scripts.util_azure.azure_service_bus import AzureServiceBus
-from bioit_mongodb_scripts.util_azure.azure_service_bus_message import AzureServiceBusMessage
+from bioit_mongodb_scripts.util_azure.azure_service_bus_specific_messages import AzureServiceBusMessage
 
 mail_sent = False
 # Configure stdout logging
-logger = logging.getLogger('bigsdb_insertion')
-logger.setLevel(logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -38,25 +37,6 @@ def parse_arguments() -> argparse.Namespace:
     argument_parser.add_argument('--species', required=True, type=str, choices=MongoConfigProvider.get_currently_supported_species())
     argument_parser.add_argument('--uploader_mail_address', required=True, type=str)
     return argument_parser.parse_args()
-
-
-class Cancellation:
-    """
-    Class to define the cancellation token
-    """
-
-    def __init__(self):
-        """
-        initializes the token to false
-        """
-        self.cancelled = False
-
-    def cancel(self) -> None:
-        """
-        Turns the cancellation token to True
-        :return: None
-        """
-        self.cancelled = True
 
 
 class MessageConsumerDataInserter(AzureServiceBus):
@@ -86,6 +66,7 @@ class MessageConsumerDataInserter(AzureServiceBus):
         """
         global mail_sent
         while not self._ct.cancelled:
+            logger.debug('Insertion service: wainting for message in the azure_service_bus_consumer loop')
             with ServiceBusClient.from_connection_string(conn_str=self._connection_string_asb,
                                                          logging_enable=True) as service_bus_client:
                 with service_bus_client.get_queue_receiver(queue_name=self._queue_name) as receiver:
@@ -250,28 +231,6 @@ class MessageConsumerDataInserter(AzureServiceBus):
         return isolate_id
 
 
-def config_log_handlers(species: str) -> None:
-    """
-    configure handlers to get logs rotated once by day
-    :param species: the species used in ANSIBLE playbook
-    :return: None
-    """
-    handler = handlers.TimedRotatingFileHandler(f'/var/log/bigsdb_insertions_service/bigsdb_insertions_{species}.log', when="D", interval=1, backupCount=14)
-    formatter = logging.Formatter('%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-
-
-def handle_shutdown(signum: int, frame: Any) -> None:
-    """
-    Handler to act on cancel_token when the signal is received.
-    :param signum: int corresponding usually to either SIGINT or SIGTERM
-    :param frame: current stack frame
-    :return: None
-    """
-    cancel_token.cancel()
-
-
 def handling_retry_outcome(retry_state: RetryCallState) -> None:
     """
     Function that will write the errors in the log and also send an email if it fails for the first time
@@ -304,11 +263,6 @@ def run_application(ct: Cancellation, species: str, mongo_config_provider: Mongo
 if __name__ == '__main__':
 
     cancel_token = Cancellation()
-
-    # signal handler will be executed when a SIGINT/SIGTERM signal is received
-    signal.signal(signal.SIGINT, handle_shutdown)
-    signal.signal(signal.SIGTERM, handle_shutdown)
-
     args = parse_arguments()
     config_log_handlers(args.species)
     mongo_config_provider = MongoConfigProvider()

@@ -14,6 +14,8 @@ certifi==2025.1.31
     # via requests
 charset-normalizer==3.4.1
     # via requests
+concurrent-log-handler==0.9.28
+    # via -r requirements.in
 dnspython==2.7.0
     # via pymongo
 et-xmlfile==2.0.0
@@ -35,11 +37,13 @@ openpyxl==3.1.5
     # via -r requirements.in
 pandas==2.2.3
     # via -r requirements.in
+portalocker==3.2.0
+    # via concurrent-log-handler
 psutil==7.0.0
     # via -r requirements.in
-psycopg[binary]==3.2.9
+psycopg[binary]==3.2.12
     # via -r requirements.in
-psycopg-binary==3.2.9
+psycopg-binary==3.2.12
     # via psycopg
 pymongo==4.11.2
     # via -r requirements.in
@@ -65,6 +69,7 @@ typing-extensions==4.12.2
     # via
     #   azure-core
     #   azure-servicebus
+    #   psycopg
 tzdata==2025.1
     # via pandas
 urllib3==2.3.0

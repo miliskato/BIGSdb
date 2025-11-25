@@ -187,6 +187,8 @@ class PsqlQueries:
         INSERT INTO failed_insertions(message_id, pseudo_id, timestamp, comment) VALUES(%s, %s, (SELECT NOW()::TIMESTAMP), 'Insertion started');"""
     ISO_UPD_COM_TB_FAILINS_VAR_MSGID: Final[str] = """
         UPDATE failed_insertions set comment = %s WHERE message_id = %s;"""
+    ISO_INS__TB_FAILINS_VAR_MSGID_COMMENT: Final[str] = """
+        INSERT INTO failed_insertions(message_id, pseudo_id, timestamp, comment) VALUES(%s, 'not relevant', (SELECT NOW()::TIMESTAMP), %s);"""
     ISO_DEL__TB_FAILINS_VAR_MSGID: Final[str] = """
         DELETE FROM failed_insertions WHERE message_id = %s;"""
 
@@ -400,19 +402,21 @@ class PsqlQueries:
         WHERE submissions.status='closed' and isolate_submission_isolates.field='isolate_id' and submissions.id=%s;"""
     ISO_UPD_STATUS_TB_SUB_VAR_ID: Final[str] = """
         UPDATE submissions SET status='validation_sent_to_bioit_platform' WHERE id=%s;"""
-    ISO_UPD_OUTCOME_TB_SUB_VAR_ID: Final[str] = """
-        UPDATE submissions SET status = %s WHERE id=%s;"""
+    ISO_UPD_STATUS_TB_SUB_VAR_STATUS_ID: Final[str] = """
+        UPDATE submissions SET status = %s WHERE id=%s AND status = 'batch_validated';"""
+    ISO_UPD_STATUS_FAILED_VAL_TB_SUB_VAR_ID: Final[str] = """
+        UPDATE submissions SET status = 'failed_validation' WHERE id=%s;"""
     ISO_INS__TB_SUB_VAR_QUAL_RESEQ: Final[str] = """
         INSERT INTO submissions(id, 
         type, submitter, date_submitted, 
-        datestamp, status, email, quality, resequencing) 
+        datestamp, status, email, quality, resequencing, warning_reasons) 
         VALUES ((SELECT CASE WHEN (SELECT MAX(id::int) FROM submissions WHERE id ~ '^[0-9]+$') IS NULL THEN 1 ELSE (SELECT(SELECT MAX(id::int) FROM submissions WHERE id ~ '^[0-9]+$')+1) END), 
         'isolates', 1, (SELECT CURRENT_DATE), 
-        (SELECT CURRENT_DATE), 'pending', true, %s, %s);"""
+        (SELECT CURRENT_DATE), 'pending', true, %s, %s, %s);"""
     ISO_SEL_ID_TB_SUB_VAR_STATUS: Final[str] = """
         SELECT id FROM submissions WHERE outcome = 'good' AND status = 'closed' AND id LIKE 'BIGSdb_%';"""
-    ISO_SEL_SUBID_OUT_GOOD_TB_SUB_VAR_: Final[str] = """
-        SELECT id FROM submissions WHERE outcome = 'good' AND status = 'batch_validated' AND resequencing = 'no';"""
+    ISO_SEL_ID_TB_SUB_VAR_STATUS_RESEQ: Final[str] = """
+        SELECT id FROM submissions WHERE status = 'batch_validated' AND resequencing = 'no';"""
     ISO_SEL_ID_TB_SUB_VAR_STATUS_QUALITY: Final[str] = """
         SELECT id FROM submissions WHERE status = %s AND quality = %s;"""
     ISO_UPD_STATUS_OUTCOME_TB_SUB_VAR_: Final[str] = """

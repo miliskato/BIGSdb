@@ -2,6 +2,8 @@ import logging
 import subprocess
 from pathlib import Path
 
+logger = logging.getLogger(__name__)
+
 
 class Command(object):
     """
@@ -69,7 +71,7 @@ class Command(object):
         :return: None
         """
         if disable_logging is False:
-            logging.info(f'Executing command: {self.command}')
+            logger.info(f'Executing command: {self.command}')
         if self.command is None:
             raise ValueError("Invalid command 'None'")
         self._procedure = subprocess.run(
@@ -86,8 +88,8 @@ class Command(object):
             self._stderr = ''
         self._return_code = self._procedure.returncode
         if disable_logging is False:
-            logging.debug(f'stdout: {self._stdout}')
-            logging.debug(f'stderr: {self._stderr}')
+            logger.debug(f'stdout: {self._stdout}')
+            logger.debug(f'stderr: {self._stderr}')
 
     def run_command(self, folder: Path, stderr_handle=subprocess.PIPE) -> None:
         """

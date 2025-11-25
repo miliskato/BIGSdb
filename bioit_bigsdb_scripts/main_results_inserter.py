@@ -22,6 +22,7 @@ from bioit_bigsdb_scripts.insert_assembly import insert_assembly
 from bioit_mongodb_scripts.util.command.command import Command
 from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 
+logger = logging.getLogger(__name__)
 
 class MainResultsInserter:
     """
@@ -94,7 +95,7 @@ class MainResultsInserter:
         JsonGeneDetectionResultsInserter(self._isolatename, self._species, self._json_report, self._bigsdb_config_data,
                                          self._report_access).insert_genedetection_results()
         self._insert_clustering_results(self._json_report)
-        logging.info('Finished inserting results')
+        logger.info('Finished inserting results')
 
     def _handle_reanalysis_and_reseq(self) -> None:
         """
