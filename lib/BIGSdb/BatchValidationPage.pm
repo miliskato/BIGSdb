@@ -217,7 +217,7 @@ sub print_content {
 	my $submissions_to_show = $self->_any_pending_submissions_to_show;
 	$self->_delete_old_submissions;
 
-    my $disk_full = $self ->_check_storage_report_dir_for_batch_validation;
+    my $disk_full = $self->_check_storage_report_dir_for_batch_validation;
 	if ($submissions_to_show && !$disk_full) {
 		say q(<div class="box resultstable">);
 		$self->print_submissions_for_curation;
