@@ -62,7 +62,6 @@ class JsonTypingResultsInserter(JsonSuperClass):
             self._insert_summary_results_in_analysis()
             logging.info('Typing summary results insertion succesful')
 
-
     def _process_regular_typing_scheme(self) -> None:
         """
         Processes regular typing scheme results

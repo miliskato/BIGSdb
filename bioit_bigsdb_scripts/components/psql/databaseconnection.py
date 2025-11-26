@@ -1,11 +1,9 @@
 import sys
 from pathlib import Path
 from types import TracebackType
-from typing import Any, List, Optional, Tuple, Union, Literal, Type
+from typing import Any, Literal, Type, Union
 
 import psycopg
-
-from psycopg.types.json import Jsonb
 
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 from bioit_bigsdb_scripts.utils.literal_helper import validate_literal
