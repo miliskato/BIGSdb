@@ -127,7 +127,7 @@ class TblIsolates(DatabaseConnection):
         """
         Selects the id of the isolate.
         :param param: Isolate name
-        :return: natural number
+        :return: Isolate id as string
         """
         return str(self.execute_query(PsqlQueries.ISO_SEL_ID_TB_ISO_VAR_ISO, param)[0][0])
 
