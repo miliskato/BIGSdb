@@ -69,7 +69,7 @@ class HostAlertsToBigs:
             isolates_alertsdet_psql_tbl.insert_alert_metadata(('non-human hosts', ", ".join(sorted(non_human_hosts))))
             isolates_alertsdet_psql_tbl.insert_alert_metadata(('isolation date', isolate['isolation_date']))
             isolates_alertsdet_psql_tbl.insert_alert_metadata(('method', 'hosts of reference sequence'))
-            isolates_alertsdet_psql_tbl.insert_alert_metadata(('isolate_id', str(isolate_id)))
+            isolates_alertsdet_psql_tbl.insert_alert_metadata(('isolate_id', isolate_id))
 
         with TblAlertDetailsFieldOrder(self._species) as isolates_alertsdetfo_psql_tbl:
             isolates_alertsdetfo_psql_tbl.insert_alert_details_indices(('trigger', 1))
@@ -102,16 +102,16 @@ class HostAlertsToBigs:
         """
         isolate_id = self.__get_isolate_id(isolate['isolate_name'], self._species)
         with TblAlerts(self._species) as alerts_psql_tbl:
-            alerts_psql_tbl.delete_alert((str(isolate_id),))
+            alerts_psql_tbl.delete_alert((isolate_id,))
 
     @staticmethod
-    def __get_isolate_id(isolate_name: str, species: str) -> int:
+    def __get_isolate_id(isolate_name: str, species: str) -> str:
         """
         Returns the isolate id for a given isolate name and species.
         :param isolate_name: Isolate name
         :param species: Species
-        :return: Isolate id
+        :return: Isolate id as string
         """
         with TblIsolates(species) as isolates_psql_tbl:
             isolate_id = isolates_psql_tbl.select_id_for_isolate((isolate_name,))
-        return isolate_id[0][0]
+        return isolate_id
