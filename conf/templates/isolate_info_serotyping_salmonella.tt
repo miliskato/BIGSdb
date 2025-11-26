@@ -2,6 +2,7 @@
 
 [% IF SISTR %]
 <div class="indented-hera">
+<div class="indented-hera">
 <h3>SISTR</h3>
 <div class="scrollable">
 <table class="data nice">

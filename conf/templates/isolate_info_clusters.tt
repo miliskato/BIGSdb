@@ -1,6 +1,7 @@
 [% # Template file for outputting formatted clustering differences in the isolate information page. %]
 [% IF cgST_clustering_on_allelic_dist %]
 
+<div class="indented-hera">
 <style>
 table.main_results { text-align:center; border-collapse:separate; margin-bottom:0.75em }
 table.main_results th { background:#2f4f6f; color:#fff; padding:4px 6px; font-weight:600 }
@@ -19,4 +20,5 @@ table.main_results td { padding:4px 6px; background:#C1E6F3; border-top: 2px sol
     </tr>
 	[% END %]
 </table>
+</div>
 [% END %]

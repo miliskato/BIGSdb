@@ -1,8 +1,5 @@
 [% IF summary %]
 
-<h3>Sequence typing & species identification</h3>
-<div class="scrollable">
-
 [%
 # Define the display order and mapping for the first three keys
 first_keys = [ 'st', 'cgst', 'rst' ];
@@ -32,10 +29,13 @@ END;
 %]
 
 <style>
+table.main_results { margin-left: 4em; }
 table.main_results { text-align:center; border-collapse:separate; margin-bottom:0.75em }
 table.main_results th { background:#2f4f6f; color:#fff; padding:4px 6px; font-weight:600 }
 table.main_results td { padding:4px 6px; background:#C1E6F3; }
 </style>
+<br>
+<h3 style="margin-left: 3em;">Sequence typing & species identification</h3>
 
 <table class="table main_results" style="width: [% table_width %]%;">
     <tr>
@@ -82,4 +82,5 @@ table.main_results td { padding:4px 6px; background:#C1E6F3; }
         </tr>
     </table>
 [% END %]
+<br>
 [% END %]

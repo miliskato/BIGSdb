@@ -1,6 +1,7 @@
 [% # Template file for outputting formatted AMRFinder analysis in the isolate information page. %]
 [% IF MOB_suite %]
 <div class="indented-hera">
+<div class="indented-hera">
 <h3>MOB-suite</h3>
 
 <div class="scrollable">

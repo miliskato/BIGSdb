@@ -438,6 +438,8 @@ class PsqlQueries:
         UPDATE submissions SET (status, outcome) = ('closed', 'good') WHERE ( resequencing = 'no' AND OUTCOME IS NULL);"""
     ISO_UPD_STATUS_OUTCOME_TB_SUB_VAR_SUBID: Final[str] = """
         UPDATE submissions SET (status, outcome, curator) = ('closed', 'good', 1) WHERE id = %s;"""
+    ISO_UPD_STATUS_TB_SUB_VAR_: Final[str] = """
+        UPDATE submissions SET status = 'closed' WHERE ( outcome = 'bad' AND status = 'batch_validated' AND resequencing = 'no');"""
     ISO_INSERT_GENERIC_LAB_METADATA_TEMPLATE: Final[str] = "UPDATE isolates SET {} WHERE isolate=%s;"
 
     # TBL analysis results
@@ -446,7 +448,7 @@ class PsqlQueries:
     ISO_INS__TB_ANA_RES_VAR_NAME_ID_RES: Final[str] = """
     INSERT INTO analysis_results(name, isolate_id, datestamp, results) VALUES (%s, %s, (SELECT CURRENT_DATE), %s);"""
     ISO_DEL__TB_ANA_RES_VAR_ISO: Final[str] = """
-    DELETE FROM analysis_results WHERE isolate_id=(SELECT id FROM isolates WHERE isolate=%s);"""
+    DELETE FROM analysis_results WHERE isolate_id=(SELECT id FROM isolates WHERE isolate = %s);"""
     ISO_SEL_EXISTS_TB_ANA_RES_VAR_NAME_ISO: Final[str] = """
     SELECT EXISTS(SELECT 1 FROM analysis_results WHERE name = %s AND isolate_id = %s);"""
     ISO_SEL_EXISTS_TB_ANA_RES_VAR_NAME: Final[str] = """

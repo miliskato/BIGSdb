@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reference database for Influenza to the galaxy report section of the isolate page
 - Krona report to the Analysis section of the isolate page
 - InternalReferenceSampleID field to the nominative metadata for Influenza
+- Service to improve the batch validation of submitted isolates in BIGSdb
 
 ### Changed:
 - ONT contamination thresholds for Salmonella
@@ -31,12 +32,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Various plugins (Microreact, FieldBreakdown, TwoFieldBreakdown, Combinations) to support analysis fields
 - Length of Isoniazid, Rifampicin, Ethambutol and Pyrazinamid in the config.xml of Mycobacterium
 - Order nominative metadata Influenza
+- Results of the pipeline assays for Enterococcus spp. are removed from the eav-like postgres tables and are moved to the "analysis_results" table
 
 ### Fixed:
 - ONT global coverage thresholds
 - Missing JS links to get cluster information for new isolates inserted in BIGSdb when their cgST was already present in the distance matrix (cgST already known)
 - Assignment of nextclade clade result for Influenza
 - Assigning FluA_SubtypeNAPCR when NA lab test info is present
+- Cache issue for the dashboard of BIGSdb and Apache2 error when loading the analysis results on the isolate page
 
 ### Removed:
 - Suspected vehicle fields Listeria

@@ -1,0 +1,13 @@
+[% # Template file for outputting formatted BacMet results %]
+[% IF BacMet %]
+<br>
+<div class="indented-hera">
+<h3>BacMet results</h3>
+
+<div class="scrollable">
+  <strong style="color: #404080;">BacMet genes:</strong> [% BacMet.results.bacmet_genes %]
+</div>
+<br>
+</div>
+
+[% END %]

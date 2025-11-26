@@ -8,6 +8,7 @@ class TblIsolates(DatabaseConnection):
     """
     isolates table in the isolates database
     """
+
     def __init__(self, species: str) -> None:
         """
         Initialises this class by opening a database connection.

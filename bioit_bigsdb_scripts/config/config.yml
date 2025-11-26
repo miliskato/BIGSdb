@@ -87,7 +87,7 @@ species:
         schemename_html: amrfinder
       lrefinder:
         metadatafile: /db/pipelines/enterococcus/LRE-Finder/20200812/elmDB/elm.name
-        schemename_bigsdb: LRE-Finder
+        schemename_bigsdb: LRE_Finder
         schemename_html: lre-finder
   enterococcus_faecium:
     typing_schemes:
@@ -138,7 +138,7 @@ species:
         schemename_html: amrfinder
       lrefinder:
         metadatafile: /db/pipelines/enterococcus/LRE-Finder/20200812/elmDB/elm.name
-        schemename_bigsdb: LRE-Finder
+        schemename_bigsdb: LRE_Finder
         schemename_html: lre-finder
   listeria:
     typing_schemes:
@@ -344,6 +344,10 @@ species_json:
         type: irregular
         schemename_bigsdb: rMLST
         schemename_html: rmlst
+      bacmet_results:
+        type: irregular
+        schemename_bigsdb: BacMet
+        schemename_html: bacmet
     genedetection_schemes:
       resfinder4:
         metadatafile: /db/resfinder4/resfinder/phenotypes.txt
@@ -367,7 +371,7 @@ species_json:
         schemename_html: amrfinder
       lrefinder:
         metadatafile: /db/pipelines/enterococcus/LRE-Finder/20200812/elmDB/elm.name
-        schemename_bigsdb: LRE-Finder
+        schemename_bigsdb: LRE_Finder
         schemename_html: lre-finder
   enterococcus_faecium:
     typing_schemes:
@@ -387,6 +391,10 @@ species_json:
         type: irregular
         schemename_bigsdb: rMLST
         schemename_html: rmlst
+      bacmet_results:
+        type: irregular
+        schemename_bigsdb: BacMet
+        schemename_html: bacmet
     genedetection_schemes:
       resfinder4:
         metadatafile: /db/resfinder4/resfinder/phenotypes.txt
@@ -410,7 +418,7 @@ species_json:
         schemename_html: amrfinder
       lrefinder:
         metadatafile: /db/pipelines/enterococcus/LRE-Finder/20200812/elmDB/elm.name
-        schemename_bigsdb: LRE-Finder
+        schemename_bigsdb: LRE_Finder
         schemename_html: lre-finder
   listeria:
     typing_schemes:

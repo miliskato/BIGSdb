@@ -23,6 +23,7 @@ from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 
 logger = logging.getLogger(__name__)
 
+
 class MainResultsInserter:
     """
     Class to insert the isolate and associated genomic indicator/metadata into BIGSdb databases
