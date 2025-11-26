@@ -62,3 +62,44 @@ input.herasubmit.small:hover,
 .herasubmit.small:hover {
     background: #8D5196;
 }
+
+.hera_html_table_nice table.nice {
+    text-align: center;
+    border-collapse: separate;
+    margin-bottom: 0.75em;
+}
+.hera_html_table_nice table.nice th {
+    background: #2f4f6f;
+    color: #fff;
+    padding: 4px 6px;
+    font-weight: 600;
+}
+.hera_html_table_nice table.nice td {
+    padding: 4px 6px;
+}
+.hera_html_table_nice table.nice tr:nth-child(n+3) {
+    background: #E4EFF3;
+}
+.hera_html_table_nice table.nice tr:nth-child(2n+3) {
+    background: #C1E6F3;
+}
+.hera_html_table_nice table.nice td:first-child {
+    max-width: 50ch;
+    overflow-wrap: anywhere;
+}
+
+.summary_table table.main_results {
+    text-align: center;
+    border-collapse: separate;
+    margin-bottom: 0.75em;
+}
+.summary_table table.main_results th {
+    background: #2f4f6f;
+    color: #fff;
+    padding: 4px 6px;
+    font-weight: 600;
+}
+.summary_table table.main_results td {
+    padding: 4px 6px;
+    background: #C1E6F3;
+}

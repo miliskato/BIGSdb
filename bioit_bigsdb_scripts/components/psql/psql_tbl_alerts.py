@@ -32,3 +32,19 @@ class TblAlerts(DatabaseConnection):
         :return: None
         """
         self.execute_query(PsqlQueries.ISO_UPD_TYPE_STATUS_TB_ALDE_VAR_ALID, param)
+
+    def update_status_to_pending(self, param: tuple[str]) -> None:
+        """
+        Updates a given alert's status to 'pending'.
+        :param param: alert_id as str
+        :return: None
+        """
+        self.execute_query(PsqlQueries.ISO_UPD_STATUS_TB_ALDE_VAR_ALID, param)
+
+    def delete_alert(self, param: tuple[str]) -> None:
+        """
+        Deletes an alert based on the isolate id in the alerts details table.
+        :param param: Isolate id as str
+        :return: None
+        """
+        self.execute_query(PsqlQueries.ISO_DEL__TB_AL_VAR_ID, param)

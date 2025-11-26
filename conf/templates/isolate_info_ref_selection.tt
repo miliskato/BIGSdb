@@ -1,0 +1,40 @@
+[% # Template file for outputting formatted reference selection (Influenza) analysis results in the isolate information page. %]
+[% IF Reference_selection %]
+
+<div class="indented-hera">
+<h3>Reference selection</h3>
+
+<div class="scrollable">
+
+<table class="data nice">
+    <tr>
+        <th>Segment</th>
+        <th>Reference genome</th>
+        <th>Estimated coverage</th>
+        <th>Matching hashes</th>
+        <th>Strain</th>
+        <th>Type</th>
+    </tr>
+
+    <tr>
+        <td colspan="6"><a href="[% Reference_selection.results.report_link %]" target="_blank">Full report</a></td>
+    </tr>
+
+    [% FOREACH key IN Reference_selection.results.keys %]
+        [% NEXT IF key == 'report_link' %]
+        [% NEXT IF key == 'ref_selection_database' %]
+        [% NEXT IF Reference_selection.results.$key == '-' %]
+        <tr>
+            <td>[% key.split('_').last %]</td>
+            <td>[% Reference_selection.results.$key.ref_id_fmt %]</td>
+            <td>[% Reference_selection.results.$key.median_mult %]</td>
+            <td>[% Reference_selection.results.$key.hashes %]</td>
+            <td>[% Reference_selection.results.$key.metadata.Strain %]</td>
+            <td>[% Reference_selection.results.$key.metadata.Type %]</td>
+        </tr>
+    [% END %]
+</table>
+</div>
+</div>
+<br>
+[% END %]

@@ -14,8 +14,8 @@
  all_plugins="yes"
  microreact_year_field="sampling_date"
  tblastx_tagging="yes"
- eav_groups="Gene detection|fas fa-search,galaxy report|fas fa-file-medical-alt,Nextclade|fas fa-light fa-viruses,Antiviral resistances|fas fa-pills,Reference selection |fas fa-dna"
- field_groups="Curation history|fas fa-history,nominative metadata|fas fa-search"
+ eav_groups=""
+ field_groups="Curation history|fas fa-history,Nominative metadata|fas fa-search,Galaxy report|fas fa-file-medical-alt"
  user_projects="yes"
  submissions="yes"
  genome_submissions="no"
@@ -24,6 +24,7 @@
 </system>
 <field type="int" required="yes" length="5" maindisplay="yes" comments="primary key">id</field>
 <field type="text" required="yes" length="40" maindisplay="yes" comments="isolate name">isolate</field>
+<field type="text" required="no" length="40" maindisplay="no" comments="internal reference sample id">internal_LIMS_id</field>
 <field type="int" required="yes" length="4" maindisplay="no" group ="Curation history" comments="sender unique name, link to users">sender</field>
 <field type="int" required="yes" length="4" maindisplay="no" group ="Curation history" comments="curator who entered data,link to users">curator</field>
 <field type="date" required="no" length="10" maindisplay="no" group ="Curation history" comments="latest analysis date">latest_analysis_date</field>
@@ -32,58 +33,62 @@
 <field type="text" required="no" length="20" maindisplay="no" group ="Curation history" comments="validation type">validation_type</field>
 <field type="text" required="no" length="40" maindisplay="no" group ="Curation history" comments="curator that validated this sample">validation_curator</field>
 <field type="date" required="no" length="10" maindisplay="no" group ="Curation history" comments="date of curation">validation_date</field>
-<field type="text" required="no" length="100" maindisplay="no" group ="nominative metadata" comments="client name">client_name</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="client zip">client_zip</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="client region">client_region</field>
-<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="internal code for the client">client_code</field>
-<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="Type A or B">flu_type</field>
-<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="Subtyping HA gene">fluA_subtypeHAPCR</field>
-<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="Subtyping HA gene">fluA_subtypeNAPCR</field>
-<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="Subtyping or lineage PCR">flu_subtype_or_lineagePCR</field>
-<field type="date" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="reception date">reception_date</field>
-<field type="date" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="isolation date">isolation_date</field>
-<field type="text" required="no" length="20" maindisplay="no" group ="nominative metadata" comments="origine">origine</field>
-<field type="text" required="no" length="100" maindisplay="no" group ="nominative metadata" comments="patient ID">patient_id</field>
-<field type="date" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="patient birth date">patient_birth_date</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" geography_point_lookup="yes" comments="patient zip">patient_zip</field>
-<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="province">province</field>
-<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="region">region</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="patient sex">patient_sex</field>
-<field type="int" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="patient age">patient_age</field>
-<field type="text" required="no" length="30" maindisplay="no" group ="nominative metadata" comments="patient age group">patient_age_group</field>
-<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="sample specimen">specimen</field>
-<field type="int" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">sampling_week</field>
-<field type="date" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">sampling_date</field>
-<field type="int" required="no" length="2" maindisplay="no" group ="nominative metadata" comments="">sampling_day</field>
-<field type="int" required="no" length="2" maindisplay="no" group ="nominative metadata" comments="">sampling_month</field>
-<field type="int" required="no" length="4" maindisplay="no" group ="nominative metadata" comments="">sampling_year</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="hospitalisation">hospitalisation</field> ## todo ask
-<field type="date" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="hospital admission date">admission_date</field>
-<field type="int" required="no" length="2" maindisplay="no" group ="nominative metadata" comments="">admission_day</field>
-<field type="int" required="no" length="2" maindisplay="no" group ="nominative metadata" comments="">admission_month</field>
-<field type="int" required="no" length="4" maindisplay="no" group ="nominative metadata" comments="">admission_year</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="recently stay abroad">recently_stayed_abroad</field>
-<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="country 1">country_1</field>
-<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="country 2">country_2</field>
-<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="">symptoms_start_date</field>
-<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="">antiviral_treatment</field>
-<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="antiviral name">antiviral_treatment_type</field>
-<field type="date" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">antiviral_treatment_date</field>
-<field type="int" required="no" length="2" maindisplay="no" group ="nominative metadata" comments="">antiviral_treatment_day</field> 
-<field type="int" required="no" length="2" maindisplay="no" group ="nominative metadata" comments="">antiviral_treatment_month</field> 
-<field type="int" required="no" length="4" maindisplay="no" group ="nominative metadata" comments="">antiviral_treatment_year</field> 
-<field type="text" required="no" length="60" maindisplay="no" group ="nominative metadata" comments="">seasonal_vaccination</field>
-<field type="date" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">vaccination_date</field>
-<field type="int" required="no" length="2" maindisplay="no" group ="nominative metadata" comments="">vaccination_day</field>
-<field type="int" required="no" length="2" maindisplay="no" group ="nominative metadata" comments="">vaccination_month</field>
-<field type="int" required="no" length="4" maindisplay="no" group ="nominative metadata" comments="">vaccination_year</field>
-<field type="text" required="no" length="20" maindisplay="no" group ="nominative metadata" comments="resistance to Oseltamivir">R_Oseltamivir</field>
-<field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="EC50 OS value">EC50_OS</field>
-<field type="text" required="no" length="20" maindisplay="no" group ="nominative metadata" comments="resistance to Zanamivir">R_Zanamivir</field>
-<field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="EC50 ZA value">EC50_ZA</field>
-<field type="text" required="no" length="60" maindisplay="no" group ="nominative metadata" comments="">GISAID_NGS</field>
-<field type="text" required="no" length="60" maindisplay="no" group ="nominative metadata" comments="case Type">case_type</field>
-<field type="text" required="no" length="100" maindisplay="no" group ="nominative metadata" comments="name from GISAID submission">official_name</field>
-<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="outcome">outcome</field>
-<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="country">country</field>
+<field type="text" required="no" length="50" maindisplay="no" group ="Nominative metadata" comments="Type A or B">flu_type</field>
+<field type="text" required="no" length="50" maindisplay="no" group ="Nominative metadata" comments="Subtyping or lineage PCR">flu_subtype_or_lineagePCR</field>
+<field type="text" required="no" length="50" maindisplay="no" group ="Nominative metadata" comments="Subtyping HA gene">fluA_subtypeHAPCR</field>
+<field type="text" required="no" length="50" maindisplay="no" group ="Nominative metadata" comments="Subtyping HA gene">fluA_subtypeNAPCR</field>
+<field type="text" required="no" length="60" maindisplay="no" group ="Nominative metadata" comments="case type">case_type</field>
+<field type="text" required="no" length="60" maindisplay="no" group ="Nominative metadata" comments="">GISAID_NGS</field>
+<field type="text" required="no" length="100" maindisplay="no" group ="Nominative metadata" comments="name from GISAID submission">official_name</field>
+<field type="text" required="no" length="100" maindisplay="no" group ="Nominative metadata" comments="client name">client_name</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="client zip">client_zip</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="client region">client_region</field>
+<field type="text" required="no" length="50" maindisplay="no" group ="Nominative metadata" comments="internal code for the client">client_code</field>
+<field type="date" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="reception date">reception_date</field>
+<field type="date" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="isolation date">isolation_date</field>
+<field type="text" required="no" length="20" maindisplay="no" group ="Nominative metadata" comments="origine">origine</field>
+<field type="text" required="no" length="100" maindisplay="no" group ="Nominative metadata" comments="patient ID">patient_id</field>
+<field type="date" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="patient birth date">patient_birth_date</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" geography_point_lookup="yes" comments="patient zip">patient_zip</field>
+<field type="text" required="no" length="50" maindisplay="no" group ="Nominative metadata" comments="province">province</field>
+<field type="text" required="no" length="50" maindisplay="no" group ="Nominative metadata" comments="region">region</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="patient sex">patient_sex</field>
+<field type="int" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="patient age">patient_age</field>
+<field type="text" required="no" length="30" maindisplay="no" group ="Nominative metadata" comments="patient age group">patient_age_group</field>
+<field type="text" required="no" length="50" maindisplay="no" group ="Nominative metadata" comments="sample specimen">specimen</field>
+<field type="int" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="">sampling_week</field>
+<field type="date" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="">sampling_date</field>
+<field type="int" required="no" length="2" maindisplay="no" group ="Nominative metadata" comments="">sampling_day</field>
+<field type="int" required="no" length="2" maindisplay="no" group ="Nominative metadata" comments="">sampling_month</field>
+<field type="int" required="no" length="4" maindisplay="no" group ="Nominative metadata" comments="">sampling_year</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="hospitalisation">hospitalisation</field> ## todo ask
+<field type="date" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="hospital admission date">admission_date</field>
+<field type="int" required="no" length="2" maindisplay="no" group ="Nominative metadata" comments="">admission_day</field>
+<field type="int" required="no" length="2" maindisplay="no" group ="Nominative metadata" comments="">admission_month</field>
+<field type="int" required="no" length="4" maindisplay="no" group ="Nominative metadata" comments="">admission_year</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="recently stay abroad">recently_stayed_abroad</field>
+<field type="text" required="no" length="50" maindisplay="no" group ="Nominative metadata" comments="country 1">country_1</field>
+<field type="text" required="no" length="50" maindisplay="no" group ="Nominative metadata" comments="country 2">country_2</field>
+<field type="text" required="no" length="50" maindisplay="no" group ="Nominative metadata" comments="">symptoms_start_date</field>
+<field type="text" required="no" length="50" maindisplay="no" group ="Nominative metadata" comments="">antiviral_treatment</field>
+<field type="text" required="no" length="50" maindisplay="no" group ="Nominative metadata" comments="antiviral name">antiviral_treatment_type</field>
+<field type="date" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="">antiviral_treatment_date</field>
+<field type="int" required="no" length="2" maindisplay="no" group ="Nominative metadata" comments="">antiviral_treatment_day</field>
+<field type="int" required="no" length="2" maindisplay="no" group ="Nominative metadata" comments="">antiviral_treatment_month</field>
+<field type="int" required="no" length="4" maindisplay="no" group ="Nominative metadata" comments="">antiviral_treatment_year</field>
+<field type="text" required="no" length="60" maindisplay="no" group ="Nominative metadata" comments="">seasonal_vaccination</field>
+<field type="date" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="">vaccination_date</field>
+<field type="int" required="no" length="2" maindisplay="no" group ="Nominative metadata" comments="">vaccination_day</field>
+<field type="int" required="no" length="2" maindisplay="no" group ="Nominative metadata" comments="">vaccination_month</field>
+<field type="int" required="no" length="4" maindisplay="no" group ="Nominative metadata" comments="">vaccination_year</field>
+<field type="text" required="no" length="20" maindisplay="no" group ="Nominative metadata" comments="resistance to Oseltamivir">R_Oseltamivir</field>
+<field type="float" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="EC50 OS value">EC50_OS</field>
+<field type="text" required="no" length="20" maindisplay="no" group ="Nominative metadata" comments="resistance to Zanamivir">R_Zanamivir</field>
+<field type="float" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="EC50 ZA value">EC50_ZA</field>
+<field type="text" required="no" length="50" maindisplay="no" group ="Nominative metadata" comments="outcome">outcome</field>
+<field type="text" required="no" length="50" maindisplay="no" group ="Nominative metadata" comments="country">country</field>
+<field type="text" required="no" length="200" maindisplay="no" group="Galaxy report" query="no" no_submissions="yes" web="html_to_be_replaced_by_ansible" comments="galaxy html report">html</field>
+<field type="text" required="no" length="200" maindisplay="no" group="Galaxy report" query="no" no_submissions="yes" web="assembly_to_be_replaced_by_ansible" comments="consensus sequence">consensus_sequence</field>
+<field type="text" required="no" length="30" maindisplay="no" group="Galaxy report" query="no" no_submissions="yes" comments="pipeline">pipeline</field>
+<field type="text" required="no" length="30" maindisplay="no" group="Galaxy report" query="no" no_submissions="yes" comments="reference database">reference_database</field>
 </db>

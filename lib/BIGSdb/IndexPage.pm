@@ -653,6 +653,7 @@ sub _print_submissions_menu_item {
 
 sub _print_rejections_menu_item {
 	my ($self) = @_;
+	return if ( $self->{'system'}->{'submissions'} // '' ) ne 'yes';
 	my $set_id = $self->get_set_id // 0;
 	my $set_string =
 	  ( $self->{'system'}->{'sets'} // '' ) eq 'yes' ? qq(&amp;choose_set=1&amp;sets_list=$set_id) : q();

@@ -17,15 +17,6 @@ class TblEavText(DatabaseConnection):
         self._db_type = 'isolates'
         super().__init__(species, self._db_type)
 
-    def delete_eav(self, param: Tuple[str, str]) -> None:
-        """
-        Delete metadata value from eav text where isolate id is certain value and metadata field is certain value
-        :param param: variables to feed to the PSQL query, which also sanitizes these variables,
-        necessary parameters visible in the PSQL query name and query
-        :return: None
-        """
-        self.execute_query(PsqlQueries.ISO_DEL__TB_EAVT_VAR_ID_FIELD, param)
-
     def delete_all_eav_of_isolate(self, param: Tuple[str]) -> None:
         """
         Delete all eav field for a specific isolate id
@@ -41,25 +32,6 @@ class TblEavText(DatabaseConnection):
         necessary parameters visible in the PSQL query name and query
         :return: None
         """
-        self.execute_query(PsqlQueries.ISO_INS__TB_EAVT_VAR_ID_FIELD_VAL, param)
-
-    def insert_eav_isolate(self, param: Tuple[str, str, str]) -> None:
-        """
-        Inserts metadata value where isolatename is certain value and metadata field is certain value
-        :param param: variables to feed to the PSQL query, which also sanitizes these variables,
-        necessary parameters visible in the PSQL query name and query
-        :return: None
-        """
-        self.execute_query(PsqlQueries.ISO_INS__TB_EAVT_VAR_ISO_FIELD_VAL, param)
-
-    def insert_eav_id_viral_species(self, param: Tuple[str, str, Optional[str]]) -> None:
-        """
-        Inserts metadata in eav_text table for the selected isolate, or insert "NA" if no value was found for this metadata.
-        :param param: isolate id, name of the metadata ("field" in the SQL table), value of the metadata ("value" in the SQL table).
-        :return: None
-        """
-        if not param[2]:
-            param = (param[0], param[1], 'NA')
         self.execute_query(PsqlQueries.ISO_INS__TB_EAVT_VAR_ID_FIELD_VAL, param)
 
     def update_eav_id(self, param: Tuple[str, str, str]) -> None:

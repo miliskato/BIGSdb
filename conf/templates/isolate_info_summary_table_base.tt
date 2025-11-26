@@ -1,0 +1,85 @@
+[% IF summary %]
+
+<h3>Sequence typing & species identification</h3>
+<div class="scrollable">
+
+[%
+# Define the display order and mapping for the first three keys
+first_keys = [ 'st', 'cgst', 'rst' ];
+display_names = { 'st' => 'ST', 'cgst' => 'cgST', 'rst' => 'rST' };
+
+# Get all keys from st_results
+all_keys = summary.results.st_results.keys;
+
+# Find remaining keys not in the first three
+remaining_keys = [];
+FOREACH k IN all_keys;
+    IF NOT first_keys.grep('^' _ k _ '$').size;
+        remaining_keys.push(k);
+    END;
+END;
+remaining_keys = remaining_keys.sort;
+
+# Final ordered list of keys
+ordered_keys = first_keys.merge(remaining_keys);
+
+# Calculate dynamic table width based on number of columns
+col_count = ordered_keys.size;
+table_width = (col_count * 10);
+IF table_width > 90;
+    table_width = 90;
+END;
+%]
+
+<style>
+table.main_results { text-align:center; border-collapse:separate; margin-bottom:0.75em }
+table.main_results th { background:#2f4f6f; color:#fff; padding:4px 6px; font-weight:600 }
+table.main_results td { padding:4px 6px; background:#C1E6F3; }
+</style>
+
+<table class="table main_results" style="width: [% table_width %]%;">
+    <tr>
+        [% FOREACH key = ordered_keys %]
+            <th>[% display_names.$key || key %]</th>
+        [% END %]
+    </tr>
+    <tr>
+        [% FOREACH key = ordered_keys %]
+            <td>[% summary.results.st_results.$key.defined ? summary.results.st_results.$key : 'N/A' %]</td>
+        [% END %]
+    </tr>
+</table>
+
+
+[% IF summary.results.sg_results %]
+    [%
+        sg_col_count = summary.results.sg_results.keys.size;
+        sg_table_width = (sg_col_count * 10);
+        IF sg_table_width < 20;
+            sg_table_width = 20;
+        END;
+        IF sg_table_width > 90;
+            sg_table_width = 90;
+        END;
+
+        display_names = {};
+        species = summary.results.species;
+        IF species == 'neisseria';
+            display_names = { 'serogroup' => 'serogroup legacy', 'capsule_serogroup' => 'serogroup capsule' };
+        END;
+    %]
+
+    <table class="main_results" style="width: [% sg_table_width %]%;">
+        <tr align="center">
+            [% FOREACH sg_key = summary.results.sg_results.keys.sort %]
+                <th>[% display_names.$sg_key || sg_key %]</th>
+            [% END %]
+        </tr>
+        <tr align="center">
+            [% FOREACH sg_key = summary.results.sg_results.keys.sort %]
+                <td>[% summary.results.sg_results.$sg_key.defined ? summary.results.sg_results.$sg_key : 'N/A' %]</td>
+            [% END %]
+        </tr>
+    </table>
+[% END %]
+[% END %]

@@ -80,8 +80,7 @@ class TblIsolates(DatabaseConnection):
         :return: None or list of tuple of isolates.id, isolates.isolate, isolates.isolation_date (as datetime date), cgst
         """
         param_arranged_for_psql = (param[0], param[0], param[0], param[1], param[2], param[3])
-        return self.execute_query_client_cursor(PsqlQueries.ISO_SEL_ID_ISO_DATE_CGST_TB_ISO_VAR_SCHID_SCHID_SCHID_CGSTS_DATE1_DATE2,
-                                  param_arranged_for_psql)
+        return self.execute_query_client_cursor(PsqlQueries.ISO_SEL_ID_ISO_DATE_CGST_TB_ISO_VAR_SCHID_SCHID_SCHID_CGSTS_DATE1_DATE2, param_arranged_for_psql)
 
     def select_isolates_by_cgsts(self, param: Tuple[int, list[str, ...]]) -> List[Optional[Tuple[Any]]]:
         """
@@ -115,7 +114,6 @@ class TblIsolates(DatabaseConnection):
         return self.execute_query_client_cursor(
             PsqlQueries.ISO_SEL_ID_ISO_DATE_CGST_CLGR_TB_ISO_VAR_CSCHID_SCHID_SCHID_CSCHID_CSCHID_CSCHID_CSCHID_CGST, param_arranged_for_psql)
 
-
     def select_latestanalysisdate_for_isolate(self, param: Tuple[str]) -> List[Optional[Tuple[Any]]]:
         """
         Selects the latest analysis date for a given isolate
@@ -125,13 +123,13 @@ class TblIsolates(DatabaseConnection):
         """
         return self.execute_query(PsqlQueries.ISO_SEL_ANADATE_TB_ISO_VAR_ISO, param)
 
-    def select_id_for_isolate(self, param: Tuple[str]) -> List[Tuple[Optional[int]]]:
+    def select_id_for_isolate(self, param: tuple[str]) -> str:
         """
-        Selects the id of the latest isolate version
-        :param param: variables to feed to the PSQL query: isolate name
-        :return: natural number
+        Selects the id of the isolate.
+        :param param: Isolate name
+        :return: Isolate id as string
         """
-        return self.execute_query(PsqlQueries.ISO_SEL_ID_TB_ISO_VAR_ISO, param)
+        return str(self.execute_query(PsqlQueries.ISO_SEL_ID_TB_ISO_VAR_ISO, param)[0][0])
 
     def select_validationdate_for_isolate(self, param: Tuple[str]) -> Optional[List[Tuple[Any]]]:
         """
@@ -176,3 +174,48 @@ class TblIsolates(DatabaseConnection):
         :return: None
         """
         self.execute_query(query, param)
+
+    def update_isolate_html_assembly_pipeline(self, param: tuple[str, str, str, str]) -> None:
+        """
+        Updates the html, assembly and pipeline fields in the isolates table.
+        :param param: Html value, assembly value, pipeline info and the isolate name.
+        The html and assembly value will in practice be the isolate id as these fields will use the web attribute in the config.xml.
+        The [?] included in the URL (defined by the web attribute) will be substituted for the actual field value.
+        :return: None
+        """
+        self.execute_query(PsqlQueries.ISO_UPD_TB_ISO_VAR_HTML_ASSEM_PIPE_ISO, param)
+
+    def update_isolate_html_consensus_pipeline_db(self, param: tuple[str, str, str, str, str]) -> None:
+        """
+        Updates the html, consensus sequence, pipeline and reference database fields in the isolates table.
+        :param param: Html value, consensus sequence value, pipeline info, reference database and the isolate name.
+        The html and consensus sequence value will in practice be the isolate id as these fields will use the web attribute in the config.xml.
+        The [?] included in the URL (defined by the web attribute) will be substituted for the actual field value.
+        :return: None
+        """
+        self.execute_query(PsqlQueries.ISO_UPD_TB_ISO_VAR_HTML_CONS_PIPE_DB_ISO, param)
+
+    def update_mongo_results_version(self, param: tuple[str, str]) -> None:
+        """
+        Updates the mongo results version of an isolate.
+        :param param: Variables to feed to the PSQL query, mongo results version and isolate id
+        :return: None
+        """
+        self.execute_query(PsqlQueries.ISO_UPD_TB_ISO_VAR_MONGO_ID, param)
+
+    def select_mongo_results_version(self, param: tuple[str]) -> list[Optional[tuple[str]]]:
+        """
+        Selects the mongo results version of an isolate.
+        :param param: Variables to feed to the PSQL query, isolate name
+        :return: mongo results version
+        """
+        return self.execute_query(PsqlQueries.ISO_SEL_MONGO_TB_ISO_VAR_ISO, param)
+
+    def update_coverage_info(self, param: tuple[str, str, str, str, str]) -> None:
+        """
+        Updates the coverage on the assembly, reference and the positions covered > 1x for assembly and reference.
+        :param param: Variables to feed to the PSQL query, coverage on assembly, coverage on reference,
+        positions covered > 1x for assembly and reference and the isolate name.
+        :return: None
+        """
+        self.execute_query(PsqlQueries.ISO_UPD_TB_ISO_VAR_COVASSEM_COVREF_POSASSEM_POSREF_ISO, param)

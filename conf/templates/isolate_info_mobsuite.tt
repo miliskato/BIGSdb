@@ -1,0 +1,38 @@
+[% # Template file for outputting formatted AMRFinder analysis in the isolate information page. %]
+[% IF MOB_suite %]
+<div class="indented-hera">
+<h3>MOB-suite</h3>
+
+<div class="scrollable">
+
+<table class="data nice">
+    <tr>
+        <th>id</th>
+        <th>num. contigs</th>
+        <th>size</th>
+        <th>GC content</th>
+        <th>predicted mobility</th>
+        <th>rep type(s)</th>
+        <th>relaxase types</th>
+    </tr>
+
+    <tr>
+        <td colspan="7"><a href="[% MOB_suite.results.report_link %]" target="_blank">Full report</a></td>
+    </tr>
+
+    [% FOREACH item IN MOB_suite.results.mob_suite_overview %]
+    <tr>
+        <td>[% item.id %]</td>
+        <td>[% item.num_contigs %]</td>
+        <td>[% item.size %]</td>
+        <td>[% item.gc %]</td>
+        <td>[% item.predicted_mobility %]</td>
+        <td>[% item.rep_types %]</td>
+        <td>[% item.relaxase_types %]</td>
+     </tr>
+    [% END %]
+</table>
+</div>
+</div>
+<br>
+[% END %]

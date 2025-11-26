@@ -14,8 +14,8 @@
  all_plugins="yes"
  microreact_year_field="isolation_date"
  tblastx_tagging="yes"
- eav_groups="Gene detection|fas fa-search,galaxy report|fas fa-file-medical-alt,rMLST identification|fas fa-bacteria,51SNP assay|fas fa-angle-right,AMR detection|fas fa-angle-right,spoligotyping|fas fa-angle-right,snpit|fas fa-angle-right,hsp65|fas fa-angle-right,SNP lineage|fas fa-angle-right,NCBI 16S|fas fa-angle-right"
- field_groups="Curation history|fas fa-history,nominative metadata|fas fa-search"
+ eav_groups=""
+ field_groups="Curation history|fas fa-history,Nominative metadata|fas fa-search,Galaxy report|fas fa-file-medical-alt,Coverage|fas fa-dna"
  user_projects="yes"
  submissions="yes"
  genome_submissions="no"
@@ -32,25 +32,32 @@
 <field type="text" required="no" length="20" maindisplay="no" group ="Curation history" comments="validation type">validation_type</field>
 <field type="text" required="no" length="40" maindisplay="no" group ="Curation history" comments="curator that validated this sample">validation_curator</field>
 <field type="date" required="no" length="10" maindisplay="no" group ="Curation history" comments="date of curation">validation_date</field>
-<field type="text" required="no" length="100" maindisplay="no" group ="nominative metadata" comments="client name">client_name</field>
-<field type="text" required="no" length="100" maindisplay="no" group ="nominative metadata" comments="Health Professional LastName">physician_name</field>
-<field type="text" required="no" length="60" maindisplay="no" group ="nominative metadata" comments="patient firstname">patient_first_name</field>
-<field type="text" required="no" length="60" maindisplay="no" group ="nominative metadata" comments="patient last_name">patient_last_name</field>
-<field type="date" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="patient birthdate">patient_birth_date</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="patient zip code">patient_zip</field>
-<field type="date" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="isolation date">isolation_date</field>
-<field type="date" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="sampling date">sampling_date</field>
-<field type="date" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="received date">reception_date</field>
-<field type="text" required="no" length="100" maindisplay="no" group ="nominative metadata" comments="species detected">identification_BK</field>
-<field type="text" required="no" length="100" maindisplay="no" group ="nominative metadata" comments="species detected">identification_NTM</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="Antibiogram BK - Isoniazid [0.1 µg/ml]">isoniazid_0_1ug</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="Antibiogram BK - Rifampicin [1 µg/ml]">rifampicin_1ug</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="Antibiogram BK - Ethambutol [5 µg/ml]">ethambutol_5ug</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="Antibiogram BK - Pyrazinamid [100µg/ml]">pyrazinamid_100ug</field>
-<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="country">country</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="hospitalisation">hospitalisation</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="under_treatment">under_treatment</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="tuberculosis_antecedents">tuberculosis_antecedents</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="tuberculosis_site">tuberculosis_site</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="tuberculosis_suspicion">tuberculosis_suspicion</field>
+<field type="text" required="no" length="100" maindisplay="no" group ="Nominative metadata" comments="client name">client_name</field>
+<field type="text" required="no" length="100" maindisplay="no" group ="Nominative metadata" comments="Health Professional LastName">physician_name</field>
+<field type="text" required="no" length="60" maindisplay="no" group ="Nominative metadata" comments="patient firstname">patient_first_name</field>
+<field type="text" required="no" length="60" maindisplay="no" group ="Nominative metadata" comments="patient last_name">patient_last_name</field>
+<field type="date" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="patient birthdate">patient_birth_date</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="patient zip code">patient_zip</field>
+<field type="date" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="isolation date">isolation_date</field>
+<field type="date" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="sampling date">sampling_date</field>
+<field type="date" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="received date">reception_date</field>
+<field type="text" required="no" length="100" maindisplay="no" group ="Nominative metadata" comments="species detected">identification_BK</field>
+<field type="text" required="no" length="100" maindisplay="no" group ="Nominative metadata" comments="species detected">identification_NTM</field>
+<field type="text" required="no" length="30" maindisplay="no" group ="Nominative metadata" comments="Antibiogram BK - Isoniazid [0.1 µg/ml]">isoniazid_0_1ug</field>
+<field type="text" required="no" length="30" maindisplay="no" group ="Nominative metadata" comments="Antibiogram BK - Rifampicin [1 µg/ml]">rifampicin_1ug</field>
+<field type="text" required="no" length="30" maindisplay="no" group ="Nominative metadata" comments="Antibiogram BK - Ethambutol [5 µg/ml]">ethambutol_5ug</field>
+<field type="text" required="no" length="30" maindisplay="no" group ="Nominative metadata" comments="Antibiogram BK - Pyrazinamid [100µg/ml]">pyrazinamid_100ug</field>
+<field type="text" required="no" length="50" maindisplay="no" group ="Nominative metadata" comments="country">country</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="hospitalisation">hospitalisation</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="under_treatment">under_treatment</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="tuberculosis_antecedents">tuberculosis_antecedents</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="tuberculosis_site">tuberculosis_site</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="tuberculosis_suspicion">tuberculosis_suspicion</field>
+<field type="text" required="no" length="200" maindisplay="no" group="Galaxy report" query="no" no_submissions="yes" web="html_to_be_replaced_by_ansible" comments="galaxy_html_report">html</field>
+<field type="text" required="no" length="200" maindisplay="no" group="Galaxy report" query="no" no_submissions="yes" web="assembly_to_be_replaced_by_ansible" comments="assembly">assembly</field>
+<field type="text" required="no" length="30" maindisplay="no" group="Galaxy report" query="no" no_submissions="yes" comments="pipeline">pipeline</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Coverage" no_submissions="yes" comments="average coverage depth on assembly">coverage_assembly</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Coverage" no_submissions="yes" comments="average coverage depth on reference">coverage_reference</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Coverage" no_submissions="yes" comments="positions covered >1x assembly ">positions_covered_1x_asm</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Coverage" no_submissions="yes" comments="positions covered >1x reference">positions_covered_1x_ref</field>
 </db>

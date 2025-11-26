@@ -8,15 +8,15 @@ import numpy as np
 from pymongo.collection import Collection
 from pymongo.write_concern import WriteConcern
 
+from bioit_mongodb_scripts.util.mongo_clustering_config_provider import MongoClusteringConfigProvider
+
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
-from bioit_mongodb_scripts.config import CLUSTERING_CONFIG
 from bioit_mongodb_scripts.util.cgmlst_profile import cgMLSTProfile
 from bioit_mongodb_scripts.util.distance_and_cluster_computer import DistanceAndClusterComputer
 from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
-from bioit_mongodb_scripts.util.python_utility_functions import load_config
 
 
 class MongoCustomClustering:
@@ -115,8 +115,8 @@ class MongoCustomClustering:
         missing_alleles = self._cgmlst_profile.cgmlst.count(0)
         proportion_of_missing_alleles = missing_alleles / len(self._cgmlst_profile.cgmlst)
         logging.info(f"Proportion of missing allele is {proportion_of_missing_alleles}")
-        clustering_config = load_config(CLUSTERING_CONFIG)
-        if proportion_of_missing_alleles > clustering_config["allowed_missing_data_proportion"]:
+        allowed_missing_proportion = MongoClusteringConfigProvider(self._species).get_allowed_proportion_of_missing_alleles()
+        if proportion_of_missing_alleles > allowed_missing_proportion:
             return False
         else:
             return True
@@ -163,7 +163,7 @@ class MongoCustomClustering:
             # cluster thresholds can have been added to the config, or it could have been a full calculation.
             distance_cluster.init_clustering_and_cluster_membership(set(cluster_thresholds_not_in_db))
 
-        if self._initialize_cluster_index is True:
+        if self._initialize_cluster_index:
             self._cluster_membership_collection.create_index([("threshold", 1), ("clustering_membership", 1)])
 
     def __compute_and_save_distance_matrix_for_last_st(self, distance_cluster: DistanceAndClusterComputer) -> None:
@@ -172,7 +172,7 @@ class MongoCustomClustering:
         :param distance_cluster: DistanceAndClusterComputer object
         :return: None
         """
-        distance_matrix: np.array = np.load(str(self._naive_clustering_distance_matrix_file))
+        distance_matrix: np.ndarray = np.load(str(self._naive_clustering_distance_matrix_file))
         hd_np_array = distance_cluster.compute_hamming_distances('last_st')
         # fix the lower triangle to be symmetric
         hd_np_array = np.concatenate([hd_np_array[:, :distance_matrix.shape[0]],

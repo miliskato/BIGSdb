@@ -31,6 +31,10 @@ class PsqlQueries:
         (SELECT CAST(id AS TEXT) FROM isolates WHERE isolate=%s) and method = %s;"""
     ISO_UPD_VAL_TB_ALDE_VAR_ALID_FIELD: Final[str] = """
         UPDATE alert_details SET value = %s WHERE alert_id = %s AND field = %s;"""
+    ISO_SEL_HOSTS_TB_ALDE_VAR_ISOLATE: Final[str] = """
+        SELECT value FROM alert_details WHERE field = 'non-human hosts' AND 
+        alert_id = (SELECT alert_id FROM alert_details WHERE field = 'isolate_id' AND 
+        value = (SELECT CAST(id AS TEXT) FROM isolates WHERE isolate = %s));"""
 
     # TBL alerts
     ISO_INS__TB_AL_VAR_TYPE_METH: Final[str] = """
@@ -42,6 +46,10 @@ class PsqlQueries:
         (SELECT CURRENT_DATE), 'pending', true);"""
     ISO_UPD_TYPE_STATUS_TB_ALDE_VAR_ALID: Final[str] = """
         UPDATE alerts SET type = 'alert' AND status = 'pending' WHERE alert_id = %s;"""
+    ISO_UPD_STATUS_TB_ALDE_VAR_ALID: Final[str] = """
+        UPDATE alerts SET status = 'pending' WHERE alert_id = %s;"""
+    ISO_DEL__TB_AL_VAR_ID: Final[str] = """
+        DELETE FROM alerts WHERE id = (SELECT alert_id FROM alert_details WHERE field = 'isolate_id' AND value = %s);"""
 
     # TBL allele designations
     ISO_DEL__TB_AD_VAR_LOCUS: Final[str] = """DELETE FROM allele_designations WHERE locus LIKE %s;"""
@@ -246,8 +254,20 @@ class PsqlQueries:
         validation_curator = %s, 
         validation_date = %s
         WHERE id=%s;"""
+    ISO_UPD_TB_ISO_VAR_MONGO_ID: Final[str] = """
+        UPDATE isolates SET mongo_results_version = %s WHERE id=%s;"""
     ISO_SEL_ISOLATE_ID: Final[str] = """
         SELECT isolate FROM isolates;"""
+    ISO_UPD_TB_ISO_VAR_HTML_ASSEM_PIPE_ISO: Final[str] = """
+        UPDATE isolates SET (html, assembly, pipeline) = (%s, %s, %s) WHERE isolate=%s;"""
+    ISO_UPD_TB_ISO_VAR_HTML_CONS_PIPE_DB_ISO: Final[str] = """
+        UPDATE isolates SET (html, consensus_sequence, pipeline, reference_database) = (%s, %s, %s, %s) WHERE isolate=%s;"""
+    ISO_SEL_MONGO_TB_ISO_VAR_ISO: Final[str] = """
+        SELECT mongo_results_version FROM isolates WHERE isolate=%s;"""
+    ISO_UPD_TB_ISO_VAR_COVASSEM_COVREF_POSASSEM_POSREF_ISO: Final[str] = """
+        UPDATE isolates SET 
+        (coverage_assembly, coverage_reference, positions_covered_1x_asm, positions_covered_1x_ref) = 
+        (%s, %s, %s, %s) WHERE isolate=%s; """
 
     # TBL isolate submission field order
     ISO_INS__TB_ISOSUBFO_VAR_FIELD_INDEX: Final[str] = """
@@ -420,3 +440,18 @@ class PsqlQueries:
         UPDATE submissions SET (status, outcome, curator) = ('closed', 'good', 1) WHERE id = %s;"""
     ISO_INSERT_GENERIC_LAB_METADATA_TEMPLATE: Final[str] = "UPDATE isolates SET {} WHERE isolate=%s;"
 
+    # TBL analysis results
+    ISO_INS__TB_ANA_RES_VAR_NAME_ISO_RES: Final[str] = """
+    INSERT INTO analysis_results(name, isolate_id, datestamp, results) VALUES (%s, (SELECT id FROM isolates WHERE isolate=%s), (SELECT CURRENT_DATE), %s);"""
+    ISO_INS__TB_ANA_RES_VAR_NAME_ID_RES: Final[str] = """
+    INSERT INTO analysis_results(name, isolate_id, datestamp, results) VALUES (%s, %s, (SELECT CURRENT_DATE), %s);"""
+    ISO_DEL__TB_ANA_RES_VAR_ISO: Final[str] = """
+    DELETE FROM analysis_results WHERE isolate_id=(SELECT id FROM isolates WHERE isolate=%s);"""
+    ISO_SEL_EXISTS_TB_ANA_RES_VAR_NAME_ISO: Final[str] = """
+    SELECT EXISTS(SELECT 1 FROM analysis_results WHERE name = %s AND isolate_id = %s);"""
+    ISO_SEL_EXISTS_TB_ANA_RES_VAR_NAME: Final[str] = """
+    SELECT EXISTS(SELECT 1 FROM analysis_results WHERE name = %s);"""
+    ISO_UPDATE_TB_ANA_RES_VAR_RES_NAME_ID: Final[str] = """
+    UPDATE analysis_results SET results=%s, datestamp=(SELECT CURRENT_DATE) WHERE name=%s AND isolate_id=%s;"""
+    ISO_SEL_RES_TB_ANA_RES_VAR_RES: Final[str] = """
+    SELECT results FROM analysis_results WHERE EXISTS (SELECT 1 FROM jsonb_each_text(results) AS kv WHERE kv.value ~ %s) AND name = 'cgST_clustering_on_allelic_dist';"""

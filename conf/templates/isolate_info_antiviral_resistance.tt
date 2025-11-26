@@ -1,0 +1,55 @@
+[% # Template file for outputting formatted antiviral resistance analysis results in the isolate information page. %]
+[% IF Antivirals %]
+
+<div class="indented-hera">
+<h3>Antiviral resistance</h3>
+
+<h4>Detected mutations</h4>
+<div class="scrollable">
+<table class="data nice">
+    <tr>
+        <th>Subtype</th>
+        <th>Segment</th>
+        <th>Category</th>
+        <th>Mutation</th>
+    </tr>
+
+    <tr>
+        <td colspan="4"><a href="[% Antivirals.results.report_link %]" target="_blank">Full report</a></td>
+    </tr>
+
+    [% FOREACH mutation IN Antivirals.results.antivirals_mutations %]
+    <tr>
+        <td>[% mutation.subtype %]</td>
+        <td>[% mutation.segment %]</td>
+        <td>[% mutation.type %]</td>
+        <td>[% mutation.mutation %]</td>
+     </tr>
+    [% END %]
+</table>
+</div>
+</div>
+
+<div class="indented-hera">
+<h4>Subsequent associations</h4>
+<div class="scrollable">
+<table class="data nice">
+    <tr>
+        <th>Category</th>
+        <th>Key</th>
+        <th>Antiviral</th>
+        <th>Resistance</th>
+    </tr>
+    [% FOREACH association IN Antivirals.results.antivirals_associations %]
+    <tr>
+        <td>[% association.category %]</td>
+        <td>[% association.key %]</td>
+        <td>[% association.antiviral %]</td>
+        <td>[% association.resistance %]</td>
+    </tr>
+    [% END %]
+</table>
+</div>
+</div>
+<br>
+[% END %]

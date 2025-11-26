@@ -1,0 +1,39 @@
+[% # Template file for outputting formatted rMLST taxonomic identification in the isolate information page. %]
+[% IF rMLST %]
+<div class="indented-hera">
+<h3>rMLST identification</h3>
+
+<div class="scrollable">
+
+
+<table class="data nice">
+    <tr>
+        <th>% matched</th>
+        <th>Genus</th>
+        <th>Species</th>
+        <th>Subspecies</th>
+        <th>Lineage</th>
+        <th>Sublineage</th>
+        <th>Other designation</th>
+        <th>Notes</th>
+    </tr>
+
+    <tr>
+        <td colspan="8"><a href="[% rMLST.results.report_link %]" target="_blank">Full report</a></td>
+    </tr>
+
+    <tr>
+        <td>[% rMLST.results.rmlst_percent_detected | format('%0.2f') %]</td>
+        <td>[% rMLST.results.rmlst_genus %]</td>
+        <td>[% rMLST.results.rmlst_species %]</td>
+        <td>[% rMLST.results.rmlst_subspecies %]</td>
+        <td>[% rMLST.results.rmlst_lineage %]</td>
+        <td>[% rMLST.results.rmlst_sublineage %]</td>
+        <td>[% rMLST.results.rmlst_other_designation %]</td>
+        <td>[% rMLST.results.rmlst_notes %]</td>
+    </tr>
+</table>
+</div>
+</div>
+<br>
+[% END %]

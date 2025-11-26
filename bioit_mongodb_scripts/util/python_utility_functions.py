@@ -1,6 +1,7 @@
 import inspect
 import logging
 import os
+import math
 import smtplib
 import socket
 import sys
@@ -146,3 +147,37 @@ def get_bigsdb_config_data() -> Dict[str, Union[str, List[Any], Dict[str, Union[
     with open(BIGSDB_CONFIG, encoding='utf-8') as handle:
         bigsdb_config_data = yaml.safe_load(handle)
     return bigsdb_config_data
+
+
+def normalize_keys(data: Any) -> Any:
+    """
+    Normalizes the keys of a dictionary that the keys don't contain spaces or the % symbol.
+    :param data: Data structure to normalize
+    :return: Normalized data structure
+    """
+    if isinstance(data, dict):
+        new_dict = {}
+        for key, value in data.items():
+            new_key = key.replace(" ", "_").replace("%", "percent").replace("(", "").replace(")", "").replace("-", "_")
+            new_dict[new_key] = normalize_keys(value)
+        return new_dict
+    elif isinstance(data, list):
+        return [normalize_keys(item) for item in data]
+    else:
+        return data
+
+
+def sanitize_json_values(data: Any) -> Any:
+    """
+    Recursively replace NaN with None to ensure valid JSON for PostgreSQL.
+    :param data: Data structure to sanitize
+    :return: Sanitized data structure
+    """
+    if isinstance(data, dict):
+        return {key: sanitize_json_values(value) for key, value in data.items()}
+    elif isinstance(data, list):
+        return [sanitize_json_values(item) for item in data]
+    elif isinstance(data, float):
+        if math.isnan(data):
+            return None
+    return data

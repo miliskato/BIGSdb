@@ -21,7 +21,6 @@ from pymongo.write_concern import WriteConcern
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
-from bioit_mongodb_scripts.config import CLUSTERING_CONFIG
 from bioit_nrc_integration.python.config import CODES_GENOMIC_ODS
 from bioit_mongodb_scripts.model.json_model import JsonReportDict, MongoRecordDict
 from bioit_mongodb_scripts.util_azure.azure_service_bus_specific_messages import AzureServiceBusMessage
@@ -34,7 +33,8 @@ from bioit_mongodb_scripts.util.mongo_custom_clustering import MongoCustomCluste
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.mongo_insertion import insert_document_into_rejected_collection
 from bioit_mongodb_scripts.util.mongo_querying import Mongoquerying
-from bioit_mongodb_scripts.util.python_utility_functions import access_value_in_dict_using_list_as_dictpath, convert_dmyhms_to_ymd, send_email, load_config
+from bioit_mongodb_scripts.util.python_utility_functions import access_value_in_dict_using_list_as_dictpath, convert_dmyhms_to_ymd, send_email
+from bioit_mongodb_scripts.util.mongo_clustering_config_provider import MongoClusteringConfigProvider
 
 logger = logging.getLogger(__name__)
 
@@ -411,7 +411,7 @@ class MainMongo:
         new_results["results.isolates_id"] = self._technical_id
         new_results["results.results_version"] = current_results["results_version"] + 1
         new_results["results.pipeline_hash"] = self._pipeline_hash
-        if any_result_changed_new_old is True:
+        if any_result_changed_new_old:
             new_results["results.changed_version"] = current_results["changed_version"] + 1
             logger.info(f"Writing new changed results and linked to isolate {self._technical_id} in {self._species}")
         else:
@@ -816,9 +816,8 @@ class MainMongo:
                                                   self._species, self._naive_clustering_distance_matrix_file,
                                                   self._mongo_config_provider)
         logger.info(f"Running the clustering for the isolate {self._technical_id}")
-        sp_thresholds = f"clustering_thresholds_{self._species}"
-        clustering_config = load_config(CLUSTERING_CONFIG)
-        sequence_type = custom_clustering.run_custom_clustering(clustering_config[sp_thresholds])
+        sp_thresholds = MongoClusteringConfigProvider(self._species).get_clustering_thresholds()
+        sequence_type = custom_clustering.run_custom_clustering(sp_thresholds)
         json_report["cgST"] = sequence_type
 
     @staticmethod

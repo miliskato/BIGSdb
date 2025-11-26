@@ -1,0 +1,22 @@
+[% # Template file for outputting formatted clustering differences in the isolate information page. %]
+[% IF cgST_clustering_on_allelic_dist %]
+
+<style>
+table.main_results { text-align:center; border-collapse:separate; margin-bottom:0.75em }
+table.main_results th { background:#2f4f6f; color:#fff; padding:4px 6px; font-weight:600 }
+table.main_results td { padding:4px 6px; background:#C1E6F3; border-top: 2px solid #bbb; }
+</style>
+
+<h3>cgST clusters based on allelic distance</h3>
+<table class="table main_results" style="width: 20%;">
+    <tr>
+        <th>allelic distance</th>
+        <th>clustered isolates</th>
+    [% FOREACH link IN cgST_clustering_on_allelic_dist.results.keys %]
+    <tr>
+        <td>[% link %]</td>
+        <td>[% cgST_clustering_on_allelic_dist.results.$link %]</td>
+    </tr>
+	[% END %]
+</table>
+[% END %]

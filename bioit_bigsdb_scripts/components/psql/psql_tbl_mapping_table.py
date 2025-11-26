@@ -8,6 +8,7 @@ class TblMappingTable(DatabaseConnection):
     """
     mapping table in the isolates database
     """
+
     def __init__(self, species: str) -> None:
         """
         Initialises this class by opening a database connection.
@@ -25,14 +26,14 @@ class TblMappingTable(DatabaseConnection):
         """
         return self.execute_query(PsqlQueries.ISO_SEL_PSEUDOID_TB_MT_VAR_ISO, param)
 
-    def select_isolate_id_for_pseudo_id(self, param: Tuple[str]) -> List[Tuple[Optional[int]]]:
+    def select_isolate_id_for_pseudo_id(self, param: Tuple[str]) -> str | None:
         """
         Selects the isolate_id for a given pseudo_id
-        :param param: variables to feed to the PSQL query, which also sanitizes these variables,
-        necessary parameters visible in the PSQL query name and query, in this case the pseudo_id.
-        :return: isolate_id as str
+        :param param: variables to feed to the PSQL query, in this case the pseudo_id.
+        :return: isolate_id as str or None if no equivalence in the mapping table
         """
-        return self.execute_query(PsqlQueries.ISO_SEL_ID_TB_MT_VAR_PSEUDOID, param)
+        result = self.execute_query(PsqlQueries.ISO_SEL_ID_TB_MT_VAR_PSEUDOID, param)
+        return str(result[0][0]) if len(result) > 0 else None
 
     def insert_mapping_for_isolate(self, param: Tuple[str, str]) -> None:
         """

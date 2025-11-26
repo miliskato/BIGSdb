@@ -1,0 +1,32 @@
+[% # Template file for outputting formatted 51SNP analysis results in the isolate information page. %]
+[% IF ${'51SNP'} %]
+
+<div class="indented-hera">
+<h3>51 SNP-based</h3>
+
+<div class="scrollable">
+
+<table class="data nice">
+    <tr>
+        <th>gyrB group</th>
+        <th>gyrB species</th>
+        <th>Genetic group</th>
+        <th>SCG</th>
+        <th>ST associated with SG</th>
+    </tr>
+
+    <tr>
+        <td colspan="5"><a href="[% ${'51SNP'}.results.report_link %]" target="_blank">Full report</a></td>
+    </tr>
+    <tr>
+        <td>[% ${'51SNP'}.results.gyrB_group %]</td>
+        <td>[% ${'51SNP'}.results.gyrB_species %]</td>
+        <td>[% ${'51SNP'}.results.genetic_group %]</td>
+        <td>[% ${'51SNP'}.results.scg %]</td>
+        <td>[% ${'51SNP'}.results.st %]</td>
+     </tr>
+</table>
+</div>
+</div>
+<br>
+[% END %]

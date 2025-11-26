@@ -1,0 +1,52 @@
+[% # Template file for outputting formatted ResFinder4 analysis in the isolate information page. %]
+
+[% IF ResFinder4 %]
+<div class="indented-hera">
+<h3>ResFinder4</h3>
+<h4>ResFinder4 - Overview</h4>
+<div class="scrollable">
+<table class="data nice">
+    <tr>
+        <th>AMR</th>
+        <th>Resistance gene</th>
+        <th>%Identity</th>
+        <th>%Coverage</th>
+    </tr>
+
+    <tr>
+        <td colspan="4"><a href="[% ResFinder4.results.report_link %]" target="_blank">Full report</a></td>
+    </tr>
+
+    [% FOREACH hit IN ResFinder4.results.resfinder4_genes_hits %]
+    <tr>
+        <td>[% hit.Phenotype %]</td>
+        <td>[% hit.Resistance_gene %]</td>
+        <td>[% hit.Identity | format('%0.2f') %]</td>
+        <td>[% hit.Coverage | format('%0.2f') %]</td>
+     </tr>
+    [% END %]
+</table>
+</div>
+</div>
+
+[% IF ResFinder4.results.resfinder4_mutations AND ResFinder4.results.resfinder4_mutations != '-' %]
+<div class="indented-hera">
+<h4>ResFinder4 - Mutations</h4>
+<div class="scrollable">
+<table class="data nice">
+    <tr>
+        <th>Mutation</th>
+        <th>Resistance</th>
+    </tr>
+    [% FOREACH mutation IN ResFinder4.results.resfinder4_mutations.keys %]
+    <tr>
+        <td>[% mutation %]</td>
+        <td>[% ResFinder4.results.resfinder4_mutations.$mutation.join(', ') %]</td>
+    </tr>
+    [% END %]
+</table>
+</div>
+</div>
+[% END %]
+<br>
+[% END %]

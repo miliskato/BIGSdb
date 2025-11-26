@@ -5,23 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [4.3.1]
+## [Unreleased]
 ### Added:
+- Table which summarizes the main sequencing/serotyping results on the isolate page for bacterial species
 - Warning reasons to the submissions page
 - Batch validation of the submitted isolates in BIGSdb (good and warning)
 - Integration of the genomic output DCD for Neisseria
-
-### Changed:
-- "Unknown" value is now accepted as a valid value for the submission of clinical/laboratory metadata
-- Sorting of the submissions by their id now follows the logical order for integers
-- Adapt the insertion of the metadata from ODS for Listeria to the new format of the DCD (v1.0.1-draft1)
+- Analysis fields for different assays
+- Pipeline version and input type to the postgresql isolates table
+- Coverage on assembly and on reference to the isolates table for bacterial pathogens
+- Closest reference used by Nextclade for Influenza
+- Alert system for Influenza based on the hosts of the reference sequence (reference selection)
+- Reference database for Influenza to the galaxy report section of the isolate page
+- Krona report to the Analysis section of the isolate page
+- InternalReferenceSampleID field to the nominative metadata for Influenza
 
 ### Changed:
 - ONT contamination thresholds for Salmonella
-- Removed suspected vehicle fields Listeria
+- "Unknown" value is now accepted as a valid value for the submission of clinical/laboratory metadata
+- Sorting of the submissions by their id now follows the logical order for integers
+- Adapt the insertion of the metadata from ODS for Listeria to the new format of the DCD (v1.0.1-draft1)
+- JS links on the isolate page (to get a prefilled query returning all isolates of the cluster attributed to the current isolate) will be projected in 
+  the analysis section of BIGSdb instead of being stored as an eav field. 
+- Assay results stored in the eav table are now stored in the analysis_results table or the isolates table
+- Various plugins (Microreact, FieldBreakdown, TwoFieldBreakdown, Combinations) to support analysis fields
+- Length of Isoniazid, Rifampicin, Ethambutol and Pyrazinamid in the config.xml of Mycobacterium
+- Order nominative metadata Influenza
 
 ### Fixed:
 - ONT global coverage thresholds
+- Missing JS links to get cluster information for new isolates inserted in BIGSdb when their cgST was already present in the distance matrix (cgST already known)
+- Assignment of nextclade clade result for Influenza
+- Assigning FluA_SubtypeNAPCR when NA lab test info is present
+
+### Removed:
+- Suspected vehicle fields Listeria
+- Eav fields (except for Enterococcus)
 
 ## [4.3.0]
 ### Added:

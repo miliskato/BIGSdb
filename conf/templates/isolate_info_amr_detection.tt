@@ -1,0 +1,60 @@
+[% # Template file for outputting formatted AMR detection analysis results in the isolate information page. %]
+[% IF AMR_detection and AMR_detection.results.amr_type != 'NONE' %]
+[% SET antibiotic_names = {
+    'INH' => 'Isoniazid',
+    'RIF' => 'Rifampicin',
+    'LEV' => 'Levofloxacin',
+    'MXF' => 'Moxifloxacin',
+    'AMI' => 'Amikacin',
+    'CAP' => 'Capreomycin',
+    'KAN' => 'Kanamycin',
+    'STM' => 'Streptomycin',
+    'ETH' => 'Ethionamide',
+    'PZA' => 'Pyrazinamide',
+    'BDQ' => 'Bedaquiline',
+    'CFZ' => 'Clofazimine',
+    'DLM' => 'Delamanid',
+    'EMB' => 'Ethambutol',
+    'LZD' => 'Linezolid',
+    'DCS' => 'D-cycloserine',
+    'EFF' => 'Multidrug efflux',
+    'PAS' => 'Para-aminosalicylic acid',
+    'PRT' => 'Pretomanid',
+    'RBT' => 'Rifabutin'
+} %]
+[% SET antibiotics = ['INH', 'RIF', 'LEV', 'MXF', 'AMI', 'CAP', 'KAN', 'STM', 'ETH', 'PZA', 'BDQ', 'CFZ', 'DLM', 'EMB', 'LZD', 'DCS', 'EFF', 'PAS', 'PRT', 'RBT'] %]
+
+<div class="indented-hera">
+<h3>AMR detection</h3>
+
+<div class="scrollable">
+
+<table class="data nice">
+    <tr>
+        <th>Antibiotic</th>
+        <th>Predicted phenotype</th>
+        <th>Associated with R</th>
+        <th>Associated with R (int.)</th>
+    </tr>
+
+    <tr>
+        <td colspan="4"><a href="[% AMR_detection.results.report_link %]" target="_blank">Full report</a></td>
+    </tr>
+
+    [% FOREACH antibiotic IN antibiotics %]
+        [% SET assoc_r = AMR_detection.results.item("amr_mutations_${antibiotic}_Associated_with_R") %]
+        [% SET assoc_r_int = AMR_detection.results.item("amr_mutations_${antibiotic}_Associated_with_R_int.") %]
+        [% IF assoc_r != '-' OR assoc_r_int != '-' %]
+    <tr>
+        <td>[% antibiotic_names.$antibiotic %]</td>
+        <td>[% AMR_detection.results.item("amr_pheno_${antibiotic}") %]</td>
+        <td>[% assoc_r %]</td>
+        <td>[% assoc_r_int %]</td>
+     </tr>
+        [% END %]
+    [% END %]
+</table>
+</div>
+</div>
+<br>
+[% END %]

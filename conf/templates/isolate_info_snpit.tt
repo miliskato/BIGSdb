@@ -1,0 +1,30 @@
+[% # Template file for outputting formatted snpit analysis results in the isolate information page. %]
+[% IF snpit %]
+
+<div class="indented-hera">
+<h3>snpit</h3>
+
+<div class="scrollable">
+
+<table class="data nice">
+    <tr>
+        <th>Species</th>
+        <th>Lineage</th>
+        <th>Sublineage</th>
+        <th>Percent match</th>
+    </tr>
+
+    <tr>
+        <td colspan="4"><a href="[% snpit.results.report_link %]" target="_blank">Full report</a></td>
+    </tr>
+    <tr>
+        <td>[% snpit.results.snpit_species %]</td>
+        <td>[% snpit.results.snpit_lineage %]</td>
+        <td>[% snpit.results.snpit_sublineage %]</td>
+        <td>[% snpit.results.snpit_percent_matched %]</td>
+     </tr>
+</table>
+</div>
+</div>
+<br>
+[% END %]

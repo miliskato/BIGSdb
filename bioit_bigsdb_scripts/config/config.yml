@@ -71,7 +71,7 @@ species:
         schemename_html: resfinder4
       enterococcus_faecalis_virulencefinder:
         metadatafile: /db/gene_detection/VirulenceFinder-Enterococcus/mapping_full.json
-        schemename_bigsdb: VirulenceFinder_Enterococcus
+        schemename_bigsdb: VirulenceFinder
         schemename_html: virulencefinder
       enterococcus_faecalis_vfdbcore:
         metadatafile: /db/gene_detection/VFDB_core/mapping_full.json
@@ -122,7 +122,7 @@ species:
         schemename_html: resfinder4
       enterococcus_faecium_virulencefinder:
         metadatafile: /db/gene_detection/VirulenceFinder-Enterococcus/mapping_full.json
-        schemename_bigsdb: VirulenceFinder_Enterococcus
+        schemename_bigsdb: VirulenceFinder
         schemename_html: virulencefinder
       enterococcus_faecium_vfdbcore:
         metadatafile: /db/gene_detection/VFDB_core/mapping_full.json
@@ -182,7 +182,7 @@ species:
         schemename_html: resfinder4
       listeria_virulencefinder:
         metadatafile: /db/gene_detection/VirulenceFinder-Listeria/mapping_full.json
-        schemename_bigsdb: VirulenceFinder_Listeria
+        schemename_bigsdb: VirulenceFinder
         schemename_html: virulencefinder
       listeria_vfdbcore:
         metadatafile: /db/gene_detection/VFDB_core/mapping_full.json
@@ -338,8 +338,12 @@ species_json:
         type: regular
       mob_suite_detection:
         type: irregular
+        schemename_bigsdb: MOB_suite
+        schemename_html: mob-suite
       rmlst_identification:
         type: irregular
+        schemename_bigsdb: rMLST
+        schemename_html: rmlst
     genedetection_schemes:
       resfinder4:
         metadatafile: /db/resfinder4/resfinder/phenotypes.txt
@@ -347,7 +351,7 @@ species_json:
         schemename_html: resfinder4
       virulencefinder:
         metadatafile: /db/gene_detection/VirulenceFinder-Enterococcus/mapping_full.json
-        schemename_bigsdb: VirulenceFinder_Enterococcus
+        schemename_bigsdb: VirulenceFinder
         schemename_html: virulencefinder
       vfdb_core:
         metadatafile: /db/gene_detection/VFDB_core/mapping_full.json
@@ -377,8 +381,12 @@ species_json:
         type: regular
       mob_suite_detection:
         type: irregular
+        schemename_bigsdb: MOB_suite
+        schemename_html: mob-suite
       rmlst_identification:
         type: irregular
+        schemename_bigsdb: rMLST
+        schemename_html: rmlst
     genedetection_schemes:
       resfinder4:
         metadatafile: /db/resfinder4/resfinder/phenotypes.txt
@@ -386,7 +394,7 @@ species_json:
         schemename_html: resfinder4
       virulencefinder:
         metadatafile: /db/gene_detection/VirulenceFinder-Enterococcus/mapping_full.json
-        schemename_bigsdb: VirulenceFinder_Enterococcus
+        schemename_bigsdb: VirulenceFinder
         schemename_html: virulencefinder
       vfdb_core:
         metadatafile: /db/gene_detection/VFDB_core/mapping_full.json
@@ -422,8 +430,12 @@ species_json:
         type: regular
       mob_suite_detection:
         type: irregular
+        schemename_bigsdb: MOB_suite
+        schemename_html: mob-suite
       rmlst_identification:
         type: irregular
+        schemename_bigsdb: rMLST
+        schemename_html: rmlst
     genedetection_schemes:
       resfinder4:
         metadatafile: /db/resfinder4/resfinder/phenotypes.txt
@@ -431,7 +443,7 @@ species_json:
         schemename_html: resfinder4
       virulencefinder:
         metadatafile: /db/gene_detection/VirulenceFinder-Listeria/mapping_full.json
-        schemename_bigsdb: VirulenceFinder_Listeria
+        schemename_bigsdb: VirulenceFinder
         schemename_html: virulencefinder
       vfdb_core:
         metadatafile: /db/gene_detection/VFDB_core/mapping_full.json
@@ -455,20 +467,38 @@ species_json:
         type: regular
       spoligotyping:
         type: irregular
-      51SNP:
+        schemename_bigsdb: Spoligotype
+        schemename_html: spoligotype
+      51_snp:
         type: irregular
+        schemename_bigsdb: 51SNP
+        schemename_html: 51snp
       csb_rd:
         type: irregular
       amr_detection:
         type: irregular
+        schemename_bigsdb: AMR_detection
+        schemename_html: amr-detection
       hsp65:
         type: irregular
-      snp_lineage:
+        schemename_bigsdb: hsp65
+        schemename_html: hsp65
+      snplineage:
         type: irregular
+        schemename_bigsdb: SNP_lineage
+        schemename_html: snp-lineage
       ncbi_16s:
         type: irregular
+        schemename_bigsdb: NCBI_16S
+        schemename_html: ncbi-16s
       rmlst_identification:
         type: irregular
+        schemename_bigsdb: rMLST
+        schemename_html: rmlst
+      snpit:
+        type: irregular
+        schemename_bigsdb: snpit
+        schemename_html: snpit
     genedetection_schemes: null
   neisseria:
     typing_schemes:
@@ -499,10 +529,16 @@ species_json:
         schemename_bigsdb: serogroup_capsule
       gmats:
         type: irregular
+        schemename_bigsdb: gMATS
+        schemename_html: gmats
       mendevar:
         type: irregular
+        schemename_bigsdb: MenDeVAR
+        schemename_html: mendevar
       rmlst_identification:
         type: irregular
+        schemename_bigsdb: rMLST
+        schemename_html: rmlst
     genedetection_schemes:
       resfinder4:
         metadatafile: /db/resfinder4/resfinder/phenotypes.txt
@@ -522,20 +558,30 @@ species_json:
         type: regular
       mykrobe:
         type: irregular
+        schemename_bigsdb: Mykrobe
+        schemename_html: mykrobe
       sistr:
         type: irregular
+        schemename_bigsdb: SISTR
+        schemename_html: sistr
       seqsero2:
         type: irregular
+        schemename_bigsdb: SeqSero2
+        schemename_html: seqsero2
       spifinder:
         type: irregular
       abritamr:
         type: irregular
-      resfinder4_mutations:
-        type: irregular
+        schemename_bigsdb: AbritAMR
+        schemename_html: abritamr
       mob_suite_detection:
         type: irregular
+        schemename_bigsdb: MOB_suite
+        schemename_html: mob-suite
       rmlst_identification:
         type: irregular
+        schemename_bigsdb: rMLST
+        schemename_html: rmlst
     genedetection_schemes:
       resfinder4:
         metadatafile: /db/resfinder4/resfinder/phenotypes.txt
@@ -550,7 +596,21 @@ species_json:
         schemename_bigsdb: AMRFinder
         schemename_html: amrfinder
   influenza:
-    typing_schemes: null
+    typing_schemes:
+      nextclade:
+        type: irregular
+        schemename_bigsdb: Nextclade
+        schemename_html: nextclade
+      ref_selection:
+        type: irregular
+        schemename_bigsdb: Reference_selection
+        schemename_html: ref_selection
+      antivirals:
+        type: irregular
+        schemename_bigsdb: Antivirals
+        schemename_html: antiviral
+      krona:
+        schemename_bigsdb: Krona
     genedetection_schemes: null
 
 lab_metadata:
