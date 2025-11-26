@@ -29,7 +29,7 @@ class JsonMakerSummaryResults:
             json_dict.update(dataclasses.asdict(additional_data))
         return json_dict
 
-    def get_json_for_serotyping(self, additional_data: NeisseriaSerotypingData | None = None ) -> Optional[dict]:
+    def get_json_for_serotyping(self, additional_data: NeisseriaSerotypingData | None = None) -> Optional[dict]:
         """
         serotype_data: dictionary containing serotyping results
         :return: dict containing the serotyping results

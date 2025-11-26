@@ -8,6 +8,7 @@ class TblIsolates(DatabaseConnection):
     """
     isolates table in the isolates database
     """
+
     def __init__(self, species: str) -> None:
         """
         Initialises this class by opening a database connection.
@@ -81,7 +82,7 @@ class TblIsolates(DatabaseConnection):
         """
         param_arranged_for_psql = (param[0], param[0], param[0], param[1], param[2], param[3])
         return self.execute_query_client_cursor(PsqlQueries.ISO_SEL_ID_ISO_DATE_CGST_TB_ISO_VAR_SCHID_SCHID_SCHID_CGSTS_DATE1_DATE2,
-                                  param_arranged_for_psql)
+                                                param_arranged_for_psql)
 
     def select_isolates_by_cgsts(self, param: Tuple[int, list[str, ...]]) -> List[Optional[Tuple[Any]]]:
         """
@@ -114,7 +115,6 @@ class TblIsolates(DatabaseConnection):
         param_arranged_for_psql = (param[0], param[1], param[1], param[0], param[0], param[0], param[0], param[2])
         return self.execute_query_client_cursor(
             PsqlQueries.ISO_SEL_ID_ISO_DATE_CGST_CLGR_TB_ISO_VAR_CSCHID_SCHID_SCHID_CSCHID_CSCHID_CSCHID_CSCHID_CGST, param_arranged_for_psql)
-
 
     def select_latestanalysisdate_for_isolate(self, param: Tuple[str]) -> List[Optional[Tuple[Any]]]:
         """

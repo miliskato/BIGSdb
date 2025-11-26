@@ -27,4 +27,3 @@ class SummaryResultsBuilder(ABC):
         :return: Jsonb object to be inserted in the analysis_results table
         """
         pass
-

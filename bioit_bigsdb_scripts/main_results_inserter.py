@@ -24,6 +24,7 @@ from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 
 logger = logging.getLogger(__name__)
 
+
 class MainResultsInserter:
     """
     Class to insert the isolate and associated genomic indicator/metadata into BIGSdb databases
@@ -167,4 +168,3 @@ class MainResultsInserter:
             js_link_of_the_cgst = isolates_ana_res_psql_tbl.extract_results_filtered_on_name((isolate_cgst,))
             if js_link_of_the_cgst is not None:
                 isolates_ana_res_psql_tbl.insert_analysis_results_isolate_name(('cgST_clustering_on_allelic_dist', self._isolatename, Jsonb(js_link_of_the_cgst)))
-

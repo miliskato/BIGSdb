@@ -45,4 +45,4 @@ class NeisseriaSummaryResultsBuilder(SummaryResultsBuilder):
 
         json_maker = JsonMakerSummaryResults(st_data, sg_data)
 
-        return json_maker.create_binary_json(neisseria_st_add_data,neisseria_sg_add_data)
+        return json_maker.create_binary_json(neisseria_st_add_data, neisseria_sg_add_data)

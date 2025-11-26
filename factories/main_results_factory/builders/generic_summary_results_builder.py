@@ -9,7 +9,6 @@ from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 
 class GenericSummaryResultsBuilder(SummaryResultsBuilder):
 
-
     def accept(self, species: str) -> bool:
         """
         Accept or reject the species

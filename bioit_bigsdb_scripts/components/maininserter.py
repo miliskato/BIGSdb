@@ -195,4 +195,3 @@ class MainInserter(JsonSuperClass):
                     ref_selection_table_builder.add_segment(segment, value['ref_id_fmt'], value['median_mult'], value['hashes'], metadata['Strain'], metadata['Type'])
                 html = ref_selection_table_builder.build()
                 self._isolates_eavt_psql_tbl.insert_eav_id_viral_species((context.isolate_id, 'reference_selection', html))
-

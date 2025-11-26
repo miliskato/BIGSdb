@@ -21,7 +21,6 @@ class MongoClusteringConfigProvider:
 
     def __init__(self, species: str):
         """
-        :param alternate_dtap: optional dtap if need to overwrite the config
         :return: None
         """
         self._species = species
@@ -67,4 +66,3 @@ class MongoClusteringConfigProvider:
         :return: float with the allowed proportion of missing alleles
         """
         return float(self._mongo_clustering_config['allowed_missing_data_proportion'])
-

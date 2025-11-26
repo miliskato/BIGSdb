@@ -1,13 +1,12 @@
 import logging
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional, Tuple, Union
+from typing import Any, Dict, Literal, Optional, Union
 
 from bioit_mongodb_scripts.model.json_model import JsonReportDict
 from .json_superclass import JsonSuperClass
-from .psql import TblAlleleDesignations, TblEavBoolean, TblEavFields, TblEavFloat, TblEavText, TblHistory, TblIsolates, TblSchemeMembers
+from .psql import TblAlleleDesignations, TblEavBoolean, TblEavFields, TblEavText, TblHistory, TblIsolates, TblSchemeMembers
 from ..utils.literal_helper import validate_literal
-from ..utils.url_helper import UrlHelper
 
 ModeLiteral = Literal['kmer', 'kmerread', 'allele']
 ModeValue = Union[ModeLiteral, str]
@@ -64,7 +63,6 @@ class JsonTypingResultsInserter(JsonSuperClass):
             logging.info('Typing results insertion succesful')
             self._insert_summary_results_in_analysis()
             logging.info('Typing summary results insertion succesful')
-
 
     def _process_regular_typing_scheme(self) -> None:
         """
@@ -199,7 +197,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
                         hit = '_'.join(['hsp65', locus['Species'].strip('"').replace(' ', '_').replace('.', '')])
                         if hit not in species_set:
                             if not (isolates_eavf_psql_tbl.exists_in_eav_field((hit, 'hsp65'))):
-                                isolates_eavf_psql_tbl.insert_boolean_field((hit,'hsp65'))
+                                isolates_eavf_psql_tbl.insert_boolean_field((hit, 'hsp65'))
                             isolates_eavb_psql_tbl.insert_eav_isolate((self._isolatename, hit, 't'))
                             species_set.add(hit)
         elif self._scheme == 'ncbi_16s':
@@ -281,7 +279,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
 
         elif self._scheme == 'spifinder':
             for mode in ['fastq', 'fasta']:
-                hits: List = self._json_report_dict['spifinder'].get(f'{self._scheme}_{mode}')
+                hits: list = self._json_report_dict['spifinder'].get(f'{self._scheme}_{mode}')
                 if hits == 'n/a':
                     continue
                 if hits and len(hits) != 0:
@@ -308,7 +306,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
         """
         if mode is not None:
             validate_literal(mode, ModeLiteral)
-        raw_formula_splitted: List = raw_formula.split(':')
+        raw_formula_splitted: list = raw_formula.split(':')
         antigensdict = {"O_antigen": raw_formula_splitted[0].split(','),
                         "H1_antigen": raw_formula_splitted[1].split(','),
                         "H2_antigen": raw_formula_splitted[2].split(',')}

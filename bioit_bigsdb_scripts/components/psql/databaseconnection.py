@@ -1,12 +1,10 @@
 import sys
 from pathlib import Path
 from types import TracebackType
-from typing import Any, List, Optional, Tuple, Union, Literal, Type
+from typing import Any, Literal, Optional, Type, Union
 
 import psycopg
 from psycopg.types.json import Json, Jsonb
-
-from bioit_bigsdb_scripts.utils.literal_helper import validate_literal
 
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
@@ -51,8 +49,8 @@ class DatabaseConnection:
         except Exception:
             raise RuntimeError(f"Could not connect to {species}'s databases")
 
-    def execute_query(self, query: str, params: Union[Tuple[Union[str, int, Tuple[str]]], List[Union[str, int]], Tuple[str, str, float], Tuple[str, str, str], Tuple[str, str], tuple[str, str, Json | Jsonb]]) \
-            -> Optional[List[Optional[Tuple[Any]]]]:
+    def execute_query(self, query: str, params: Union[tuple[Union[str, int, tuple[str]]], list[Union[str, int]], tuple[str, str, float], tuple[str, str, str], tuple[str, str], tuple[str, str, Json | Jsonb]]) \
+            -> Optional[list[Optional[tuple[Any]]]]:
         """
         Executes a sql query using psycopg sanitization
         :param query: sql query to be used
@@ -67,8 +65,8 @@ class DatabaseConnection:
             if query.strip().startswith('SELECT'):
                 return cur.fetchall()
 
-    def execute_query_client_cursor(self, query: str, params: Union[Tuple[Union[str, int, Tuple[str]]], List[Union[str, int]], Tuple[str, str, float]]) \
-            -> Optional[List[Optional[Tuple[Any]]]]:
+    def execute_query_client_cursor(self, query: str, params: Union[tuple[Union[str, int, tuple[str]]], list[Union[str, int]], tuple[str, str, float]]) \
+            -> Optional[list[Optional[tuple[Any]]]]:
         """
         Executes a sql query using the ClientCursor which merges the query on the client side and sends the query and
         the parameters merged together to the server.
@@ -81,7 +79,7 @@ class DatabaseConnection:
             if query.strip().startswith('SELECT'):
                 return cur.fetchall()
 
-    def execute(self, query: str) -> Optional[List[Optional[Tuple[Any]]]]:
+    def execute(self, query: str) -> Optional[list[Optional[tuple[Any]]]]:
         """
         Executes a sql query using psycopg sanitization
         :param query: sql query to be used
