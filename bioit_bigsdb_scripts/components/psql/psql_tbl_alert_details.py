@@ -40,3 +40,11 @@ class TblAlertDetails(DatabaseConnection):
         :return: None
         """
         return self.execute_query(PsqlQueries.ISO_UPD_VAL_TB_ALDE_VAR_ALID_FIELD, param)
+
+    def select_hosts_for_isolate_name(self, param: Tuple[str]) -> list[Optional[tuple[str]]]:
+        """
+        Select the non-human hosts for a given isolate name.
+        :param param: Isolate name
+        :return: Empty list or list of a tuple containing the non-human hosts
+        """
+        return self.execute_query(PsqlQueries.ISO_SEL_HOSTS_TB_ALDE_VAR_ISOLATE, param)

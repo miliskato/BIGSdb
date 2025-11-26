@@ -31,6 +31,10 @@ class PsqlQueries:
         (SELECT CAST(id AS TEXT) FROM isolates WHERE isolate=%s) and method = %s;"""
     ISO_UPD_VAL_TB_ALDE_VAR_ALID_FIELD: Final[str] = """
         UPDATE alert_details SET value = %s WHERE alert_id = %s AND field = %s;"""
+    ISO_SEL_HOSTS_TB_ALDE_VAR_ISOLATE: Final[str] = """
+        SELECT value FROM alert_details WHERE field = 'non-human hosts' AND 
+        alert_id = (SELECT alert_id FROM alert_details WHERE field = 'isolate_id' AND 
+        value = (SELECT CAST(id AS TEXT) FROM isolates WHERE isolate = %s));"""
 
     # TBL alerts
     ISO_INS__TB_AL_VAR_TYPE_METH: Final[str] = """
@@ -42,6 +46,10 @@ class PsqlQueries:
         (SELECT CURRENT_DATE), 'pending', true);"""
     ISO_UPD_TYPE_STATUS_TB_ALDE_VAR_ALID: Final[str] = """
         UPDATE alerts SET type = 'alert' AND status = 'pending' WHERE alert_id = %s;"""
+    ISO_UPD_STATUS_TB_ALDE_VAR_ALID: Final[str] = """
+        UPDATE alerts SET status = 'pending' WHERE alert_id = %s;"""
+    ISO_DEL__TB_AL_VAR_ID: Final[str] = """
+        DELETE FROM alerts WHERE id = (SELECT alert_id FROM alert_details WHERE field = 'isolate_id' AND value = %s);"""
 
     # TBL allele designations
     ISO_DEL__TB_AD_VAR_LOCUS: Final[str] = """DELETE FROM allele_designations WHERE locus LIKE %s;"""
@@ -250,8 +258,8 @@ class PsqlQueries:
         SELECT isolate FROM isolates;"""
     ISO_UPD_TB_ISO_VAR_HTML_ASSEM_PIPE_ISO: Final[str] = """
         UPDATE isolates SET (html, assembly, pipeline) = (%s, %s, %s) WHERE isolate=%s;"""
-    ISO_UPD_TB_ISO_VAR_HTML_CONS_PIPE_ISO: Final[str] = """
-        UPDATE isolates SET (html, consensus_sequence, pipeline) = (%s, %s, %s) WHERE isolate=%s;"""
+    ISO_UPD_TB_ISO_VAR_HTML_CONS_PIPE_DB_ISO: Final[str] = """
+        UPDATE isolates SET (html, consensus_sequence, pipeline, reference_database) = (%s, %s, %s, %s) WHERE isolate=%s;"""
     ISO_SEL_MONGO_TB_ISO_VAR_ISO: Final[str] = """
         SELECT mongo_results_version FROM isolates WHERE isolate=%s;"""
     ISO_UPD_TB_ISO_VAR_COVASSEM_COVREF_POSASSEM_POSREF_ISO: Final[str] = """

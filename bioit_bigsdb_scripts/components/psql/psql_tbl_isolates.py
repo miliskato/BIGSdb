@@ -185,15 +185,15 @@ class TblIsolates(DatabaseConnection):
         """
         self.execute_query(PsqlQueries.ISO_UPD_TB_ISO_VAR_HTML_ASSEM_PIPE_ISO, param)
 
-    def update_isolate_html_consensus_pipeline(self, param: tuple[str, str, str, str]) -> None:
+    def update_isolate_html_consensus_pipeline_db(self, param: tuple[str, str, str, str, str]) -> None:
         """
-        Updates the html, consensus sequence and pipeline fields in the isolates table.
-        :param param: Html value, consensus sequence value, pipeline info and the isolate name.
+        Updates the html, consensus sequence, pipeline and reference database fields in the isolates table.
+        :param param: Html value, consensus sequence value, pipeline info, reference database and the isolate name.
         The html and consensus sequence value will in practice be the isolate id as these fields will use the web attribute in the config.xml.
         The [?] included in the URL (defined by the web attribute) will be substituted for the actual field value.
         :return: None
         """
-        self.execute_query(PsqlQueries.ISO_UPD_TB_ISO_VAR_HTML_CONS_PIPE_ISO, param)
+        self.execute_query(PsqlQueries.ISO_UPD_TB_ISO_VAR_HTML_CONS_PIPE_DB_ISO, param)
 
     def update_mongo_results_version(self, param: tuple[str, str]) -> None:
         """

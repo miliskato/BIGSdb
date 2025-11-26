@@ -6,9 +6,9 @@ from typing import Any, Literal, Type, Union
 import psycopg
 
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
-from bioit_bigsdb_scripts.utils.literal_helper import validate_literal
 sys.path.append(str(PYTHONPATH))
 
+from bioit_bigsdb_scripts.utils.literal_helper import validate_literal
 from bioit_mongodb_scripts.util.python_utility_functions import get_bigsdb_config_data
 
 DbLiteral = Literal['seqdef', 'isolates', 'jobs']
