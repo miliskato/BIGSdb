@@ -27,6 +27,8 @@ from bioit_mongodb_scripts.util.new_temporary_alleles_to_bigs import NewTemporar
 from bioit_mongodb_scripts.util.command.command import Command
 from bioit_mongodb_scripts.util.mongo_quickdraw import get_pseudo_id
 
+logger = logging.getLogger(__name__)
+
 
 def parse_arguments() -> argparse.Namespace:
     """
@@ -53,9 +55,6 @@ class MongoToBigs:
         :param single_sample_id: name of a single sample if only this sample should be synced
         :return: None
         """
-        # Configure stdout logging
-        logging.basicConfig(level=logging.WARNING, stream=sys.stdout)
-
         self._species = species
         self._single_sample_id = single_sample_id
         self._uploader_mail_address = uploader_mail_address
@@ -325,7 +324,7 @@ class MongoToBigs:
         new_results = document.get_json_results()
         if new_results['changed_version'] == int(mongo_results_changed_version_bigs):
             # results are same so do nothing
-            logging.info(f"results_version might be different, but changed_version same in mongodb and bigsdb for "
+            logger.info(f"results_version might be different, but changed_version same in mongodb and bigsdb for "
                          f"{isolate_id}")
         else:
             different_version = True
@@ -363,7 +362,7 @@ class MongoToBigs:
                         f"scp command to copy fasta from Azure to onsite failed: {scp_cmd.stderr}\nscp command: {scp_command}")
 
                 insert_assembly(isolate_id, self._species, temp_fasta_path, results_type)
-                logging.info(f"Inserted assembly for isolate {isolate_id} into bigsdb")
+                logger.info(f"Inserted assembly for isolate {isolate_id} into bigsdb")
 
                 # The resequencing is for now disable as also commented in sample_to_validation_bigs.py
                 # if document.get_validation_type() == 'resequencing': #is it the place to check that isolation date are different, I don't think so
@@ -377,7 +376,7 @@ class MongoToBigs:
                 #         with TblSeqBinStats(self._species) as isolates_seqbinstats_psql_tbl:
                 #             isolates_seqbinstats_psql_tbl.revert_seqbinstats_newversion([isolate_id])
                 #         insert_assembly(isolate_id, self._species, temp_fasta_path, results_type)
-                #     logging.info(f"Wrote new results version for {isolate_id} to bigsdb")
+                #     logger.info(f"Wrote new results version for {isolate_id} to bigsdb")
 
     def ___make_flagfilepath(self, isolate: str) -> Path:
         """
@@ -406,7 +405,7 @@ class MongoToBigs:
             flagfilepath = self.___make_flagfilepath(isolate)
             if flagfilepath.is_file() and not (
                     results_type in ['reanalysis', 'resequencing']):
-                logging.warning(
+                logger.warning(
                     f"fail safe mechanism detects that the bigsdb insertion for sample {isolate} was started but did not finish. Removing {isolate} from Bigsdb to be able to restart inserting.")
                 isolates_psql_tbl.delete_isolate([isolate])
                 self._nominative_labtest_clinical_metadata_collection.update_one({'_id': isolate},
@@ -415,7 +414,7 @@ class MongoToBigs:
             else:
                 flagfilepath.touch()
                 flagfilepath.chmod(0o755)
-                logging.info(f"flagfilepath {flagfilepath}")
+                logger.info(f"flagfilepath {flagfilepath}")
         except Exception:
             raise Exception(
                 f"{Path(__file__).name}: bigsdb upload fail safe mechanism fail on host {socket.gethostname()}. Traceback: {traceback.format_exc()}")

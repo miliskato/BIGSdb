@@ -1624,6 +1624,7 @@ sub _check_isolate_optional {    ## no critic (ProhibitUnusedPrivateSubroutines)
 	return
 	  if ( $thisfield->{'required'} // q() ) ne 'no' || ( $thisfield->{'optlist'} // q() ) eq 'yes';
 	my %null_terms = map { lc($_) => 1 } NULL_TERMS;
+    delete $null_terms{'unknown'};
 	if ( ( $thisfield->{'multiple'} // q() ) eq 'yes' && !ref $value ) {
 		$value = [ split /;/x, $value ];
 		s/^\s+|\s+$//gx foreach @$value;

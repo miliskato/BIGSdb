@@ -1,4 +1,5 @@
 biopython
+concurrent-log-handler
 fastcluster
 numpy
 openpyxl

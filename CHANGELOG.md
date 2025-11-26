@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [4.3.1]
 ### Added:
 - Warning reasons to the submissions page
+- Batch validation of the submitted isolates in BIGSdb (good and warning)
+- Integration of the genomic output DCD for Neisseria
+
+### Changed:
+- "Unknown" value is now accepted as a valid value for the submission of clinical/laboratory metadata
+- Sorting of the submissions by their id now follows the logical order for integers
+- Adapt the insertion of the metadata from ODS for Listeria to the new format of the DCD (v1.0.1-draft1)
 
 ### Changed:
 - ONT contamination thresholds for Salmonella

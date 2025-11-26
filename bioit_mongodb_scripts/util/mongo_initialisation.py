@@ -27,6 +27,8 @@ MongoCollectionNames = Literal[
 ]
 MongoCollectionName = Union[str, MongoCollectionNames]  # workaround to avoid pycharm warnings - coupled with validate_literal
 
+logger = logging.getLogger(__name__)
+
 
 class MongoInitialisation:
     """
@@ -54,8 +56,10 @@ class MongoInitialisation:
         try:
             self.client = MongoClient(self.connection_string)
         except Exception:
+            logger.error(f"Could not connect to {self.connection_string}")
             raise RuntimeError(f"Could not connect to {self.connection_string}")
         if self._dtap not in ['dev', 'test', 'acc', 'prod']:
+            logger.error(f"dtap value {self._dtap} is not valid, must be one of dev, test, acc, prod")
             raise NameError(f"replace dtap value in bioit_mongodb_scripts/config/config.yml or use alternate_dtap")
         return self.client['_'.join([species, self._dtap])]  # e.g. listeria_dev
 
@@ -72,7 +76,7 @@ class MongoInitialisation:
 
         validate_literal(collection, MongoCollectionNames)
         opened_collection = opened_database[str(collection)]
-        logging.debug(f"opened collection {collection}")
+        logger.debug(f"opened collection {collection}")
         return opened_collection
 
     def initialise_collections(self) -> (Collection, Collection, Collection, Collection, Collection):
