@@ -4,7 +4,6 @@
 <div class="indented-hera">
 <h3>ResFinder4</h3>
 <h4>ResFinder4 - Overview</h4>
-<h4>ResFinder4 - Overview</h4>
 <div class="scrollable">
 <table class="data nice">
     <tr>
@@ -24,8 +23,6 @@
         <td>[% hit.Resistance_gene %]</td>
         <td>[% hit.Identity | format('%0.2f') %]</td>
         <td>[% hit.Coverage | format('%0.2f') %]</td>
-        <td>[% hit.Identity | format('%0.2f') %]</td>
-        <td>[% hit.Coverage | format('%0.2f') %]</td>
      </tr>
     [% END %]
 </table>
@@ -33,8 +30,6 @@
 </div>
 
 [% IF ResFinder4.results.resfinder4_mutations AND ResFinder4.results.resfinder4_mutations != '-' %]
-<div class="indented-hera">
-<h4>ResFinder4 - Mutations</h4>
 <div class="indented-hera">
 <h4>ResFinder4 - Mutations</h4>
 <div class="scrollable">

@@ -1,7 +1,6 @@
 [% # Template file for outputting formatted Mykrobe results in the isolate information page. %]
 [% IF Mykrobe %]
 <div class="indented-hera">
-<div class="indented-hera">
 <h3>Mykrobe</h3>
 
 <div class="scrollable">

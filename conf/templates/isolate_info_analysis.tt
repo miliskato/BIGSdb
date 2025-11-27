@@ -3,7 +3,6 @@
 
 <style>
 
-
 table.nice { text-align:center; border-collapse:separate; margin-bottom:0.75em }
 table.nice th { background:#2f4f6f; color:#fff; padding:4px 6px; font-weight:600 }
 table.nice td { padding:4px 6px }
@@ -13,7 +12,7 @@ table.nice td:first-child { max-width:50ch; overflow-wrap:anywhere }
 
 .indented-hera h3 { margin-left: 3em; }
 .indented-hera h4 { margin-left: 3.5em; }
-.indented-hera div { margin-left: 4em; }
+.indented-hera div{ margin-left: 4em; }
 
 .indented-hera-2 h3 { margin-left: 3em; }
 .indented-hera-2 h4 { margin-left: 3.5em; }
