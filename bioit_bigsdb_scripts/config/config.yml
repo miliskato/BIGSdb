@@ -348,6 +348,8 @@ species_json:
         type: irregular
         schemename_bigsdb: BacMet
         schemename_html: bacmet
+      krona:
+        schemename_bigsdb: Krona
     genedetection_schemes:
       resfinder4:
         metadatafile: /db/resfinder4/resfinder/phenotypes.txt
@@ -395,6 +397,8 @@ species_json:
         type: irregular
         schemename_bigsdb: BacMet
         schemename_html: bacmet
+      krona:
+        schemename_bigsdb: Krona
     genedetection_schemes:
       resfinder4:
         metadatafile: /db/resfinder4/resfinder/phenotypes.txt
@@ -444,6 +448,8 @@ species_json:
         type: irregular
         schemename_bigsdb: rMLST
         schemename_html: rmlst
+      krona:
+        schemename_bigsdb: Krona
     genedetection_schemes:
       resfinder4:
         metadatafile: /db/resfinder4/resfinder/phenotypes.txt
@@ -507,6 +513,8 @@ species_json:
         type: irregular
         schemename_bigsdb: snpit
         schemename_html: snpit
+      krona:
+        schemename_bigsdb: Krona
     genedetection_schemes: null
   neisseria:
     typing_schemes:
@@ -547,6 +555,8 @@ species_json:
         type: irregular
         schemename_bigsdb: rMLST
         schemename_html: rmlst
+      krona:
+        schemename_bigsdb: Krona
     genedetection_schemes:
       resfinder4:
         metadatafile: /db/resfinder4/resfinder/phenotypes.txt
@@ -590,6 +600,8 @@ species_json:
         type: irregular
         schemename_bigsdb: rMLST
         schemename_html: rmlst
+      krona:
+        schemename_bigsdb: Krona
     genedetection_schemes:
       resfinder4:
         metadatafile: /db/resfinder4/resfinder/phenotypes.txt
