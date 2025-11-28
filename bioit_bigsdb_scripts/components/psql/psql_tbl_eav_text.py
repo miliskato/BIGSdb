@@ -1,4 +1,4 @@
-from typing import List, Optional, Tuple
+from typing import List, Tuple
 
 from .databaseconnection import DatabaseConnection
 from .psql_queries import PsqlQueries

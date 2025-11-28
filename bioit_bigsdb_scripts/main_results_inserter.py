@@ -78,8 +78,8 @@ class MainResultsInserter:
         Main function, inserts isolate and its results into BIGSdb.
         :return: None
         """
-        # fail safe mechanism is initated before inserting the isolate
-        # fail safe mechanism uses a flagfile to lock the isolate insertion and checks whether the previous insertion of the isolate succeeded.
+        # fail-safe mechanism is initated before inserting the isolate
+        # fail-safe mechanism uses a flagfile to lock the isolate insertion and checks whether the previous insertion of the isolate succeeded.
 
         maininserter = MainInserter(self._isolatename, self._species, self._json_report, self._bigsdb_config_data,
                                     self._report_access, self._vcf_path, self._viral_species)

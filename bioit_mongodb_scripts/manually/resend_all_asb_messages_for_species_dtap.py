@@ -1,7 +1,6 @@
 import argparse
 import sys
 from pathlib import Path
-from typing import List
 
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))

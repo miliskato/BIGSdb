@@ -7,6 +7,7 @@ from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 from .json_superclass import JsonSuperClass
 from .psql import TblAlleleDesignations, TblEavText, TblHistory, TblIsolates
 from ..utils.literal_helper import validate_literal
+from ..utils.url_helper import UrlHelper
 
 ModeLiteral = Literal['kmer', 'kmerread', 'allele']
 ModeValue = Union[ModeLiteral, str]
