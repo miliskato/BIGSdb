@@ -5,7 +5,7 @@ from typing import Any, Dict, Literal, Optional, Union
 from bioit_mongodb_scripts.model.json_model import JsonReportDict
 from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 from .json_superclass import JsonSuperClass
-from .psql import TblAlleleDesignations, TblEavText, TblHistory, TblIsolates
+from .psql import TblAlleleDesignations, TblHistory, TblIsolates
 from ..utils.literal_helper import validate_literal
 from ..utils.url_helper import UrlHelper
 
@@ -41,8 +41,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
         Inserts typing results into bigsdb from json
         :return: None
         """
-        with TblAlleleDesignations(self._species) as self._isolates_ad_psql_tbl, TblEavText(
-                self._species) as self._isolates_eavt_psql_tbl:
+        with TblAlleleDesignations(self._species) as self._isolates_ad_psql_tbl:
             if self._schemedict is None:
                 return
             for scheme in self._schemedict:
