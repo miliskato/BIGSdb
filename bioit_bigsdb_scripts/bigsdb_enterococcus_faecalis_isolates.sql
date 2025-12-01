@@ -15,6 +15,28 @@ INSERT INTO scheme_fields(scheme_id, field, type, description, field_order, drop
 INSERT INTO scheme_fields(scheme_id, field, type, description, field_order, dropdown, primary_key, curator, datestamp, isolate_display, main_display, query_field) VALUES(1, 'clonal_complex', 'text', 'Clonal Complex', 2, 'f', 'f', 1, (SELECT CURRENT_DATE), 't', 't', 't') ON CONFLICT DO NOTHING;
 INSERT INTO scheme_fields(scheme_id, field, type, description, field_order, dropdown, primary_key, curator, datestamp, isolate_display, main_display, query_field) VALUES(2, 'cgST', 'integer', 'Sequence Type (cgMLST)', 1, 'f', 't', 1, (SELECT CURRENT_DATE), 't', 't', 't') ON CONFLICT DO NOTHING;
 INSERT INTO scheme_fields(scheme_id, field, type, description, field_order, dropdown, primary_key, curator, datestamp, isolate_display, main_display, query_field) VALUES((SELECT id FROM schemes WHERE name='rMLST'), 'rST', 'integer', 'Sequence Type for rMLST', 1, 'f', 't', 1, (SELECT CURRENT_DATE), 't', 't', 't') ON CONFLICT DO NOTHING;
+
+--rMLST identification
+INSERT INTO analysis_fields(analysis_name, field_name, analysis_display_name, field_description, json_path, data_type, curator, datestamp) VALUES('rMLST', 'genus', 'rMLST', 'Genus according to rMLST', '$.rmlst_genus', 'text', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+INSERT INTO analysis_fields(analysis_name, field_name, analysis_display_name, field_description, json_path, data_type, curator, datestamp) VALUES('rMLST', 'species', 'rMLST', 'Species according to rMLST', '$.rmlst_species', 'text', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+INSERT INTO analysis_fields(analysis_name, field_name, analysis_display_name, field_description, json_path, data_type, curator, datestamp) VALUES('rMLST', 'subspecies', 'rMLST', 'Subspecies according to rMLST', '$.rmlst_subspecies', 'text', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+INSERT INTO analysis_fields(analysis_name, field_name, analysis_display_name, field_description, json_path, data_type, curator, datestamp) VALUES('rMLST', 'lineage', 'rMLST', 'Lineage according to rMLST', '$.rmlst_lineage', 'text', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+INSERT INTO analysis_fields(analysis_name, field_name, analysis_display_name, field_description, json_path, data_type, curator, datestamp) VALUES('rMLST', 'sublineage', 'rMLST', 'Sublineage according to rMLST', '$.rmlst_sublineage', 'text', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+
+--AMRFinder
+INSERT INTO analysis_fields(analysis_name, field_name, analysis_display_name, field_description, json_path, data_type, curator, datestamp) VALUES('AMRFinder', 'AMR', 'AMRFinder', 'Subclass of hit of the AMRFinder assay', '$.amr_genes_hits[*].Subclass', 'text', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+INSERT INTO analysis_fields(analysis_name, field_name, analysis_display_name, field_description, json_path, data_type, curator, datestamp) VALUES('AMRFinder', 'resistance gene', 'AMRFinder', 'Element symbol of hit of the AMRFinder assay', '$.amr_genes_hits[*].Element_symbol', 'text', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+
+--ResFinder4
+INSERT INTO analysis_fields(analysis_name, field_name, analysis_display_name, field_description, json_path, data_type, curator, datestamp) VALUES('ResFinder4', 'AMR', 'ResFinder4', 'Phenotype of hit of the ResFinder4 assay', '$.resfinder4_genes_hits[*].Phenotype', 'text', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+INSERT INTO analysis_fields(analysis_name, field_name, analysis_display_name, field_description, json_path, data_type, curator, datestamp) VALUES('ResFinder4', 'resistance gene', 'ResFinder4', 'Resistance gene of hit of the ResFinder4 assay', '$.resfinder4_genes_hits[*].Resistance_gene', 'text', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+
+--PlasmidFinder_grampositive
+INSERT INTO analysis_fields(analysis_name, field_name, analysis_display_name, field_description, json_path, data_type, curator, datestamp) VALUES('PlasmidFinder_grampositive', 'locus', 'PlasmidFinder - Gram positive', 'Locus detected by the PlasmidFinder assay', '$.loci[*].Locus', 'text', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+
+--MOB_suite
+INSERT INTO analysis_fields(analysis_name, field_name, analysis_display_name, field_description, json_path, data_type, curator, datestamp) VALUES('MOB_suite', 'id', 'MOB-suite', 'Id detected by the MOB-suite assay', '$.mob_suite_overview[*].id', 'text', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+
 --insert classification_schemes for clustering
 INSERT INTO classification_schemes(id, scheme_id, name, description, inclusion_threshold, use_relative_threshold, seqdef_cscheme_id, display_order, status, curator, datestamp) VALUES(1, (SELECT id FROM schemes WHERE name = 'cgMLST'), 'cgMLST_15_diffs_clustering', 'cgMLST profiles clustering at the threshold of 15 allelic differences', 15, false, 1, 1, 'experimental', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
 INSERT INTO classification_schemes(id, scheme_id, name, description, inclusion_threshold, use_relative_threshold, seqdef_cscheme_id, display_order, status, curator, datestamp) VALUES(2, (SELECT id FROM schemes WHERE name = 'cgMLST'), 'cgMLST_20_diffs_clustering', 'cgMLST profiles clustering at the threshold of 20 allelic differences', 20, false, 2, 2, 'experimental', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
