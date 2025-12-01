@@ -80,6 +80,24 @@ sub print_page_content {
 	my $isolate_id   = $q->param('id');
 	my $get_zip  = $q->param('get_zip');
 	my $get_file = $q->param('get_file');
+
+    # Display loading message for file download
+    my $download_started = $q->param('download_started');
+	if ( ( defined $get_file && $get_file ne '' ) && !$download_started ) {
+        print $q->header( -type => 'text/html', -charset => 'UTF-8' );
+		my $template_path = '/var/www/html/loading.html';
+		if (open(my $fh, '<', $template_path)) {
+			local $/;
+			print <$fh>;
+			close $fh;
+		} else {
+			# Fallback minimal loading if file is missing
+			print "<html><body><p>Loading...</p><script>window.location.href += '&download_started=1';</script></body></html>";
+			$logger->warn("Could not find loading template at $template_path");
+		}
+		return;
+	}
+
 	my $content_type = 'text/html';
 	my $rejected_isolate_id = $q->param('rejected_isolate_id');
 
