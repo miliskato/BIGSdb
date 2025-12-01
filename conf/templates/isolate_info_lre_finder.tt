@@ -1,7 +1,6 @@
 [% # Template file for outputting formatted LRE-Finder analysis in the isolate information page. %]
 
 [% IF LRE_Finder %]
-<br>
 <div class="indented-hera">
 <h3>LRE-Finder</h3>
 
@@ -15,7 +14,7 @@
     </tr>
 
     <tr>
-        <td colspan="4"><a href="[% LRE_Finder.results.report_link %]" target="_blank">Full report</a></td>
+        <td colspan="3"><a href="[% LRE_Finder.results.report_link %]" target="_blank">Full report</a></td>
     </tr>
 
     [% FOREACH hit IN LRE_Finder.results.lrefinder_genes %]

@@ -129,17 +129,17 @@ class JsonTypingResultsInserter(JsonSuperClass):
         mongo_config_provider = MongoConfigProvider()
         dtap = mongo_config_provider.dtap
         file = f'/{dtap}/{self._species}/{self._isolatename}/contamination_check/krona_report.html'
-        report_url = UrlHelper.file_from_report_for_isolate(self._species, self.__get_isolate_id(), file)
+        report_url = UrlHelper.file_from_report_for_isolate(self._species, self._isolate_id, file)
         self._json_report_dict['krona'] = {'krona_report_url': report_url}
-        self._insert_analysis_results(self.__get_isolate_id(), 'krona', self._schemedict[self._scheme], False)
+        self._insert_analysis_results(self._isolate_id, 'krona', self._schemedict[self._scheme], False)
 
     def _process_bacmet(self) -> None:
         """
-        Insert MOB-Suite results into the analysis_results table of BIGSdb.
+        Insert BacMet results into the analysis_results table of BIGSdb.
         :return: None
         """
         if 'bacmet' in self._json_report_dict and self._json_report_dict['bacmet']['bacmet_genes'] != '':
-            self._insert_analysis_results(self.__get_isolate_id(), 'bacmet', self._schemedict[self._scheme])
+            self._insert_analysis_results(self._isolate_id, 'bacmet', self._schemedict[self._scheme])
 
     def __get_isolate_id(self) -> str:
         """

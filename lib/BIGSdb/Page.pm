@@ -671,9 +671,9 @@ sub print_page_content {
 	#commented out to always disable caching but leave the code here in case we want to re-enable it later
     #$header_options{'-expires'} = '+1h'              if !$self->{'noCache'};
     #if ( $self->{'noCache'} ) {
-        $header_options{'-cache_control'} = 'no-cache';
-        $header_options{'-pragma'}        = 'no-cache';
-        $header_options{'-expires'}      = 'now';
+    $header_options{'-cache_control'} = 'no-cache';
+    $header_options{'-pragma'}        = 'no-cache';
+    $header_options{'-expires'}      = 'now';
     #}
 
 	if ( $self->{'type'} ne 'xhtml' ) {

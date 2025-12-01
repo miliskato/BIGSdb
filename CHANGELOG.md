@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added:
 - Table which summarizes the main sequencing/serotyping results on the isolate page for bacterial species
 - Warning reasons to the submissions page
-- Batch validation of the submitted isolates in BIGSdb (good and warning)
+- Batch validation of the submitted isolates in BIGSdb (good and warning) + associated service in system.d
 - Integration of the genomic output DCD for Neisseria
 - Analysis fields for different assays
 - Pipeline version and input type to the postgresql isolates table
@@ -19,7 +19,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reference database for Influenza to the galaxy report section of the isolate page
 - Krona report to the Analysis section of the isolate page
 - InternalReferenceSampleID field to the nominative metadata for Influenza
-- Service to improve the batch validation of submitted isolates in BIGSdb
 
 ### Changed:
 - ONT contamination thresholds for Salmonella

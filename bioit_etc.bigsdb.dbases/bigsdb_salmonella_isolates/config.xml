@@ -16,7 +16,6 @@
  tblastx_tagging="yes"
  eav_groups=""
  field_groups="Curation history|fas fa-history,Nominative metadata|fas fa-search,Galaxy report|fas fa-file-medical-alt,Coverage|fas fa-dna"
- field_groups="Curation history|fas fa-history,Nominative metadata|fas fa-search,Galaxy report|fas fa-file-medical-alt,Coverage|fas fa-dna"
  user_projects="yes"
  submissions="yes"
  genome_submissions="no"
@@ -103,8 +102,6 @@
 <field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="serovar_agglutination">serovar_agglutination</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="serovar_agglutination_formula">serovar_agglutination_formula</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="malditof_identification">malditof_identification</field>
-<field type="text" required="no" length="200" maindisplay="no" group="Galaxy report" query="no" no_submissions="yes" web="html_to_be_replaced_by_ansible" comments="galaxy_html_report">html</field>
-<field type="text" required="no" length="200" maindisplay="no" group="Galaxy report" query="no" no_submissions="yes" web="assembly_to_be_replaced_by_ansible" comments="assembly">assembly</field>
 <field type="text" required="no" length="200" maindisplay="no" group="Galaxy report" query="no" no_submissions="yes" web="html_to_be_replaced_by_ansible" comments="galaxy_html_report">html</field>
 <field type="text" required="no" length="200" maindisplay="no" group="Galaxy report" query="no" no_submissions="yes" web="assembly_to_be_replaced_by_ansible" comments="assembly">assembly</field>
 <field type="text" required="no" length="30" maindisplay="no" group="Galaxy report" query="no" no_submissions="yes" comments="pipeline">pipeline</field>
