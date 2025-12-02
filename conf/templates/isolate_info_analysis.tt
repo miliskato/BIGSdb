@@ -34,7 +34,6 @@ table.nice td:first-child { max-width:50ch; overflow-wrap:anywhere }
 [% INCLUDE isolate_info_plasmid_finder_gram_positive.tt %]
 [% INCLUDE isolate_info_lre_finder.tt %]
 [% INCLUDE isolate_info_clusters.tt %]
-[% INCLUDE isolate_info_plasmid_finder_gram_positive.tt %]
 [% INCLUDE isolate_info_ncbi16s.tt %]
 [% INCLUDE isolate_info_snpit.tt %]
 [% INCLUDE isolate_info_hsp65.tt %]

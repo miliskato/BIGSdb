@@ -14,7 +14,7 @@
  all_plugins="yes"
  microreact_year_field="isolation_date"
  tblastx_tagging="yes"
- field_groups="Curation history|fas fa-history,nominative metadata|fas fa-search,Galaxy report|fas fa-file-medical-alt"
+ field_groups="Curation history|fas fa-history,Nominative metadata|fas fa-search,Galaxy report|fas fa-file-medical-alt,Coverage|fas fa-dna"
  user_projects="yes"
  submissions="yes"
  genome_submissions="no"
