@@ -37,6 +37,13 @@ INSERT INTO analysis_fields(analysis_name, field_name, analysis_display_name, fi
 --MOB_suite
 INSERT INTO analysis_fields(analysis_name, field_name, analysis_display_name, field_description, json_path, data_type, curator, datestamp) VALUES('MOB_suite', 'id', 'MOB-suite', 'Id detected by the MOB-suite assay', '$.mob_suite_overview[*].id', 'text', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
 
+--BacMet
+INSERT INTO analysis_fields(analysis_name, field_name, analysis_display_name, field_description, json_path, data_type, curator, datestamp) VALUES('BacMet', 'BacMet genes', 'BacMet', 'Resistance genes detected by BacMet', '$.bacmet_genes', 'text', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+
+--LRE_Finder
+INSERT INTO analysis_fields(analysis_name, field_name, analysis_display_name, field_description, json_path, data_type, curator, datestamp) VALUES('LRE_Finder', 'mutation','LRE Finder', 'mutation detected by LRE Finder', '$.lrefinder_mutations[*].Position_in_reference', 'text', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+INSERT INTO analysis_fields(analysis_name, field_name, analysis_display_name, field_description, json_path, data_type, curator, datestamp) VALUES('LRE_Finder', 'predicted phenotype','LRE Finder', 'Predicted sensitivity to linezolid', '$.lrefinder_mutations[*].Predicted_phenotype', 'text', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING;
+
 --insert classification_schemes for clustering
 INSERT INTO classification_schemes(id, scheme_id, name, description, inclusion_threshold, use_relative_threshold, seqdef_cscheme_id, display_order, status, curator, datestamp) VALUES(1, (SELECT id FROM schemes WHERE name = 'cgMLST'), 'cgMLST_15_diffs_clustering', 'cgMLST profiles clustering at the threshold of 15 allelic differences', 15, false, 1, 1, 'experimental', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
 INSERT INTO classification_schemes(id, scheme_id, name, description, inclusion_threshold, use_relative_threshold, seqdef_cscheme_id, display_order, status, curator, datestamp) VALUES(2, (SELECT id FROM schemes WHERE name = 'cgMLST'), 'cgMLST_20_diffs_clustering', 'cgMLST profiles clustering at the threshold of 20 allelic differences', 20, false, 2, 2, 'experimental', 1, (SELECT CURRENT_DATE)) ON CONFLICT DO NOTHING ;
