@@ -24,7 +24,7 @@ ALTER TABLE isolates
     DROP COLUMN suspected_vehicle_other_wild_animals,
     DROP COLUMN suspected_vehicle_unknown;
 
- -- migrate:down
+-- migrate:down
 ALTER TABLE isolates
     ADD COLUMN suspected_vehicle_canned_food_products text,
     ADD COLUMN suspected_vehicle_drinks text,
