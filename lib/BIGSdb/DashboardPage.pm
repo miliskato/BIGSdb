@@ -20,13 +20,13 @@ package BIGSdb::DashboardPage;
 use strict;
 use warnings;
 use 5.010;
-use parent qw(BIGSdb::IndexPage);
+use parent            qw(BIGSdb::IndexPage);
 use BIGSdb::Constants qw(:design :interface :limits :dashboard COUNTRIES LOCUS_PATTERN);
 use Try::Tiny;
 use List::Util qw( min max );
 use JSON;
-use POSIX qw(ceil);
-use TOML qw(from_toml);
+use POSIX    qw(ceil);
+use TOML     qw(from_toml);
 use Storable qw(dclone);
 use Data::Dumper;
 use Log::Log4perl qw(get_logger);
@@ -99,6 +99,7 @@ sub print_content {
 	$self->print_general_announcement;
 	my $additional_message = $self->get_date_restriction_message;
 	$additional_message .= $self->get_embargo_message;
+
 	if ( $options->{'banner_text'} ) {
 		say q(<div class="box banner">);
 		say $self->_format_banner( $options->{'banner_text'} );
@@ -252,7 +253,7 @@ sub _print_visualisation_type_controls {
 			-style => 'width:14em',
 			-value => ref $element->{'specific_values'}
 			? qq(@{$element->{'specific_values'}})
-			: $element->{'specific_values'},
+			: q(),
 			-placeholder => 'One value per line...',
 		);
 	}
@@ -361,9 +362,9 @@ sub _get_field_type {
 		return 'text';
 	}
 	if ( $element->{'field'} =~ /^af_(.+)___(.+)/x ) {
-	    my ( $analysis_name, $field_name ) = ( $1, $2 );
-	    my $att = $self->{'datastore'}->get_analysis_field( $analysis_name, $field_name );
-	    return $att->{'data_type'};
+		my ( $analysis_name, $field_name ) = ( $1, $2 );
+		my $att = $self->{'datastore'}->get_analysis_field( $analysis_name, $field_name );
+		return $att->{'data_type'};
 	}
 	return;
 }
@@ -949,10 +950,10 @@ sub get_display_field {
 		$display_field = 'annotation (provenance)';
 	}
 	if ( $field =~ /^af_(.+)___(.+)/x ) {
-	    my ( $analysis_name, $field_name ) = ( $1, $2 );
-	    my $att = $self->{'datastore'}->get_analysis_field( $analysis_name, $field_name );
-	    my $analysis = $att->{'analysis_display_name'} || $att->{'analysis_name'};
-	    $display_field = "$field_name ($analysis)";
+		my ( $analysis_name, $field_name ) = ( $1, $2 );
+		my $att      = $self->{'datastore'}->get_analysis_field( $analysis_name, $field_name );
+		my $analysis = $att->{'analysis_display_name'} || $att->{'analysis_name'};
+		$display_field = "$field_name ($analysis)";
 	}
 	return $display_field;
 }
@@ -1044,11 +1045,11 @@ sub get_list_attribute_data {
 		$field_type = "geography_point_$2";
 		$data_type  = 'float';
 	} elsif ( $attribute =~ /^af_(.+)___(.+)/x ) {
-	    my $analysis   = $1;
-	    my $field_name = $2;
-	    $field      = $attribute;
-	    $field_type = 'analysis_field';
-	    my $field_info = $self->{'datastore'}->get_analysis_field($analysis, $field_name);
+		my $analysis   = $1;
+		my $field_name = $2;
+		$field      = $attribute;
+		$field_type = 'analysis_field';
+		my $field_info = $self->{'datastore'}->get_analysis_field( $analysis, $field_name );
 		return if !$field_info;
 		$data_type = $field_info->{'data_type'};
 	}
@@ -1231,6 +1232,9 @@ sub _read_default_dashboard_toml {
 			"$self->{'config_dir'}/dashboard.toml"
 		  );
 	}
+	if ( !defined $self->{'dashboard_type'} ) {
+		$logger->error("$self->{'instance'}: Dashboard_type not set.");
+	}
 	push @possible_files,
 	  (
 		"$self->{'dbase_config_dir'}/$self->{'instance'}/dashboard_$self->{'dashboard_type'}.toml",
@@ -1391,8 +1395,8 @@ sub _field_exists {
 		return $self->{'datastore'}->scheme_exists($1);
 	}
 	if ( $field =~ /^af_(.+)___(.+)/x ) {
-	    my ($analysis_name, $field_name) = ($1, $2);
-	    return $self->{'datastore'}->is_analysis_field( $analysis_name, $field_name );
+		my ( $analysis_name, $field_name ) = ( $1, $2 );
+		return $self->{'datastore'}->is_analysis_field( $analysis_name, $field_name );
 	}
 	return;
 }
@@ -1739,6 +1743,7 @@ sub _get_multiselect_field_subtitle {
 	my ( $self, $element ) = @_;
 	local $" = q(, );
 	my $value_count = ref $element->{'specific_values'} ? @{ $element->{'specific_values'} } : 0;
+	$element->{'specific_values'} = [] if !$value_count;
 	my $title =
 	  $value_count <= ( $element->{'width'} // 1 ) * 2
 	  ? qq(@{$element->{'specific_values'}})
@@ -1769,7 +1774,7 @@ sub _get_specific_field_value_counts {
 		$data = $self->_get_provenance_annotation_status_field_counts($element);
 	}
 	if ( $element->{'field'} =~ /^af_(.+)___(.+)/x ) {
-	    $data = $self->_get_analysis_field_counts($element);
+		$data = $self->_get_analysis_field_counts($element);
 	}
 	return $data;
 }
@@ -1983,39 +1988,40 @@ sub _get_provenance_annotation_status_field_counts {
 }
 
 sub _get_analysis_field_counts {
-    my ( $self, $element ) = @_;
-    if ( $element->{'field'} =~ /^af_(.+)___(.+)/x ) {
-        my ( $analysis_name, $field_name ) = ( $1, $2 );
-        my $att         = $self->{'datastore'}->get_analysis_field($analysis_name, $field_name);
-        my $type        = $att->{'data_type'};
-        my $values      = $self->_filter_list( $type, $element->{'specific_values'} );
-	    my $temp_table  = $self->{'datastore'}->create_temp_list_table_from_array( $type, $values );
-	    my $view        = $self->{'system'}->{'view'};
-        my $qry          = "SELECT COUNT(*) FROM analysis_results_cache t JOIN analysis_fields af "
-        . "ON (af.analysis_name,af.json_path) = (t.analysis_name,t.json_path) "
-        . "RIGHT JOIN $view v ON t.isolate_id = v.id AND (t.analysis_name,af.field_name) = (?,?) WHERE ";
+	my ( $self, $element ) = @_;
+	if ( $element->{'field'} =~ /^af_(.+)___(.+)/x ) {
+		my ( $analysis_name, $field_name ) = ( $1, $2 );
+		my $att        = $self->{'datastore'}->get_analysis_field( $analysis_name, $field_name );
+		my $type       = $att->{'data_type'};
+		my $values     = $self->_filter_list( $type, $element->{'specific_values'} );
+		my $temp_table = $self->{'datastore'}->create_temp_list_table_from_array( $type, $values );
+		my $view       = $self->{'system'}->{'view'};
+		my $qry =
+			'SELECT COUNT(*) FROM analysis_results_cache t JOIN analysis_fields af '
+		  . 'ON (af.analysis_name,af.json_path) = (t.analysis_name,t.json_path) '
+		  . "RIGHT JOIN $view v ON t.isolate_id = v.id AND (t.analysis_name,af.field_name) = (?,?) WHERE ";
 
-        if ( $type eq 'text' ) {
-            $qry .= "UPPER(t.value) IN (SELECT UPPER(value) FROM $temp_table)";
-        } else {
-            $qry .= "t.value IN (SELECT value FROM $temp_table)";
-        }
-        my $filters = $self->_get_filters;
-        local $" = ' AND ';
-        $qry .= " AND @$filters" if @$filters;
-        my $count = $self->{'datastore'}->run_query( $qry, [ $analysis_name, $field_name ] );
-        my $data  = { count => $count };
-        if ( $element->{'change_duration'} && $count > 0 ) {
-            my %allowed = map { $_ => 1 } qw(week month year);
-            if ( $allowed{ $element->{'change_duration'} } ) {
-                $data->{'change_duration'} = $element->{'change_duration'};
-                $qry .= " AND v.date_entered <= now()-interval '1 $element->{'change_duration'}'";
-                my $past_count = $self->{'datastore'}->run_query( $qry, [ $analysis_name, $field_name ] );
-                $data->{'increase'} = $count - ( $past_count // 0 );
-            }
-        }
-        return $data;
-    }
+		if ( $type eq 'text' ) {
+			$qry .= "UPPER(t.value) IN (SELECT UPPER(value) FROM $temp_table)";
+		} else {
+			$qry .= "t.value IN (SELECT value FROM $temp_table)";
+		}
+		my $filters = $self->_get_filters;
+		local $" = ' AND ';
+		$qry .= " AND @$filters" if @$filters;
+		my $count = $self->{'datastore'}->run_query( $qry, [ $analysis_name, $field_name ] );
+		my $data  = { count => $count };
+		if ( $element->{'change_duration'} && $count > 0 ) {
+			my %allowed = map { $_ => 1 } qw(week month year);
+			if ( $allowed{ $element->{'change_duration'} } ) {
+				$data->{'change_duration'} = $element->{'change_duration'};
+				$qry .= " AND v.date_entered <= now()-interval '1 $element->{'change_duration'}'";
+				my $past_count = $self->{'datastore'}->run_query( $qry, [ $analysis_name, $field_name ] );
+				$data->{'increase'} = $count - ( $past_count // 0 );
+			}
+		}
+		return $data;
+	}
 }
 
 sub _get_field_breakdown_values {
@@ -2044,9 +2050,9 @@ sub _get_field_breakdown_values {
 		return $self->_get_provenance_annotation_status_field_counts;
 	}
 	if ( $element->{'field'} =~ /^af_(.+)___(.+)/x ) {
-	    my $analysis_name = $1;
-	    my $field_name    = $2;
-	    return $self->_get_analysis_field_breakdown_values( $analysis_name, $field_name );
+		my $analysis_name = $1;
+		my $field_name    = $2;
+		return $self->_get_analysis_field_breakdown_values( $analysis_name, $field_name );
 	}
 	return [];
 }
@@ -2255,22 +2261,19 @@ sub _get_scheme_annotation_values {
 }
 
 sub _get_analysis_field_breakdown_values {
-    my ( $self, $analysis_name, $field_name ) = @_;
-    my $att = $self->{'datastore'}->get_analysis_field( $analysis_name, $field_name );
-    my $filters = $self->_get_filters;
-    local $" = ' AND ';
-    my $filter_clause = @$filters ? "WHERE @$filters" : q();
-    my $qry =
-        "WITH matching_values AS "
-      . "(SELECT arc.isolate_id, arc.value FROM analysis_results_cache arc "
-      . "JOIN analysis_fields af ON (af.analysis_name,af.json_path) = (arc.analysis_name,arc.json_path) "
-      . "WHERE (af.analysis_name,af.field_name) = (?,?)),isolates_values AS "
-      . "(SELECT v.id AS isolates_id, array_agg(mv.value) AS label FROM $self->{'view'} v "
-      . "LEFT JOIN matching_values mv ON v.id=mv.isolate_id "
-      . "$filter_clause "
-      . "GROUP BY v.id) "
-      . "SELECT label, COUNT(*) AS value FROM isolates_values";
-	$qry .= ' GROUP BY label ORDER BY ';
+	my ( $self, $analysis_name, $field_name ) = @_;
+	my $att     = $self->{'datastore'}->get_analysis_field( $analysis_name, $field_name );
+	my $filters = $self->_get_filters;
+	local $" = ' AND ';
+	my $filter_clause = @$filters ? " WHERE @$filters" : q();
+	my $qry =
+		'WITH matching_values AS (SELECT arc.isolate_id, arc.value FROM analysis_results_cache arc '
+	  . 'JOIN analysis_fields af ON (af.analysis_name,af.json_path) = (arc.analysis_name,arc.json_path) '
+	  . 'WHERE (af.analysis_name,af.field_name) = (?,?)),isolates_values AS '
+	  . "(SELECT v.id AS isolates_id, array_agg(mv.value) AS label FROM $self->{'view'} v "
+	  . "LEFT JOIN matching_values mv ON v.id=mv.isolate_id $filter_clause GROUP BY v.id) "
+	  . 'SELECT label, COUNT(*) AS value FROM isolates_values GROUP BY label ORDER BY ';
+
 	if (   $att->{'data_type'} eq 'integer'
 		|| $att->{'data_type'} eq 'date'
 		|| $att->{'data_type'} eq 'float' )
@@ -2280,21 +2283,23 @@ sub _get_analysis_field_breakdown_values {
 		$qry .= 'value DESC';
 	}
 	my $values =
-	    $self->{'datastore'}->run_query( $qry, [ $analysis_name, $field_name ], { fetch => 'all_arrayref', slice => {} } );
+	  $self->{'datastore'}
+	  ->run_query( $qry, [ $analysis_name, $field_name ], { fetch => 'all_arrayref', slice => {} } );
 	my $new_values = [];
-    foreach my $value (@$values) {
-        my $label = $value->{'label'};
-        if (!@$label || !grep { defined $_ } @$label) {
-            $label = ['No value'];
-        }
-        local $" = q(; );
-        my $new_label = @$label ? "@$label" : 'No value';
-		push @$new_values, {
-            label => $new_label,
-            value => $value->{'value'}
-        };
-    }
-    return $new_values;
+	foreach my $value (@$values) {
+		my $label = $value->{'label'};
+		if ( !@$label || !grep { defined $_ } @$label ) {
+			$label = ['No value'];
+		}
+		local $" = q(; );
+		my $new_label = @$label ? "@$label" : 'No value';
+		push @$new_values,
+		  {
+			label => $new_label,
+			value => $value->{'value'}
+		  };
+	}
+	return $new_values;
 }
 
 sub _rewrite_user_field_values {
@@ -2782,7 +2787,6 @@ sub _get_field_breakdown_cumulative_content {
 		let values = [$value_string];
 		let days_span = Math.round(( Date.parse("$dataset->{'labels'}->[-1]") - Date.parse("$dataset->{'labels'}->[0]") ) / 86400000);
 		let ms_span = 1000*60*60*24*days_span; 
-		console.log(ms_span);
 		bb.generate({
 			data: {
 				x: "x",
@@ -3846,10 +3850,11 @@ sub _get_field_breakdown_map_content {
 	my $top_margin = $element->{'height'} == 1 && $element->{'width'} == 1 ? '-10px' : '-10px';
 	my $json       = JSON->new->allow_nonref;
 	my $dataset    = $json->encode($data);
+	my $js_dir     = $self->{'config'}->{'relative_js_dir'} // '/javascript';
 	my $geo_file =
 	  $element->{'field'} eq 'f_country'
-	  ? '/javascript/topojson/countries.json'
-	  : '/javascript/topojson/continents.json';
+	  ? "$js_dir/topojson/countries.json"
+	  : "$js_dir/topojson/continents.json";
 	my $freq_key          = $element->{'field'} eq 'f_country' ? 'iso3' : 'name';
 	my $palettes          = $self->_get_map_palettes;
 	my $dashboard_palette = $self->_get_palette_name;
@@ -4133,15 +4138,15 @@ sub _get_query_url {
 	if ( $element->{'field'} eq 'as_provenance' ) {
 		$url .= "&amp;annotation_status_field1=provenance&amp;annotation_status_value1=$value";
 	}
-    if ($element->{'field'} =~ /^af_(.+)/x) {
-        my $url_field = $1;
-        my $i = 1;
-        my @parts = split(/;%20/, $value);
-        foreach my $part (@parts) {
-            $url .= "&amp;analysis_field$i=$url_field&amp;analysis_value$i=$part";
-            $i++;
-        }
-    }
+	if ( $element->{'field'} =~ /^af_(.+)/x ) {
+		my $url_field = $1;
+		my $i         = 1;
+		my @parts     = split( /;%20/x, $value );
+		foreach my $part (@parts) {
+			$url .= "&amp;analysis_field$i=$url_field&amp;analysis_value$i=$part";
+			$i++;
+		}
+	}
 	if ( $self->{'prefs'}->{'include_old_versions'} ) {
 		$url .= '&amp;include_old=on';
 	}
@@ -4681,12 +4686,12 @@ sub _print_dashboard_management_fieldset {
 	}
 	say q(</li></ul>);
 	say q(</form>);
-	if (!$self->{'username'}){
+	if ( !$self->{'username'} ) {
 		say q(</fieldset>);
 		return;
 	}
 	my $user_info = $self->{'datastore'}->get_user_info_from_username( $self->{'username'} );
-	if ($user_info->{'status'} ne 'curator' && $user_info->{'status'} ne 'admin'){
+	if ( $user_info->{'status'} ne 'curator' && $user_info->{'status'} ne 'admin' ) {
 		say q(</fieldset>);
 		return;
 	}
@@ -4825,7 +4830,7 @@ sub print_field_selector {
 	$labels->{'sp_genomes'}     = 'genome count';
 	$labels->{'sp_seqbin_size'} = 'sequence bin size';
 	my @eav_groups = split /,/x, ( $self->{'system'}->{'eav_groups'} // q() );
-	push @group_list, @eav_groups if @eav_groups;
+	push @group_list, @eav_groups       if @eav_groups;
 	push @group_list, 'Analysis fields' if defined $group_members->{'Analysis fields'};
 	push @group_list, ( 'Loci', 'Schemes', 'Annotation status' );
 
