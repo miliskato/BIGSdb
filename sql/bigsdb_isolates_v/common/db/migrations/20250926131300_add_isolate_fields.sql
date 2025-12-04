@@ -10,6 +10,7 @@ ALTER TABLE isolates
     ADD COLUMN positions_covered_1x_ref text;
 
 DROP TABLE eav_text_hidden;
+DROP TABLE eav_fields_hidden;
 
 -- migrate:down
 ALTER TABLE isolates

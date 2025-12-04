@@ -14,7 +14,7 @@ sys.path.append(str(PYTHONPATH))
 from bioit_bigsdb_scripts.components.maininserter import MainInserter
 from bioit_bigsdb_scripts.components.json_typingresultsinserter import JsonTypingResultsInserter
 from bioit_bigsdb_scripts.components.json_genedetectionresultsinserter import JsonGeneDetectionResultsInserter
-from bioit_bigsdb_scripts.components.psql import TblAlleleDesignations, TblEavText, TblAnalysisResults
+from bioit_bigsdb_scripts.components.psql import TblAlleleDesignations, TblAnalysisResults
 from bioit_mongodb_scripts.model.json_model import JsonReportDict, ResultType
 from bioit_mongodb_scripts.util.python_utility_functions import get_bigsdb_config_data, send_email
 from bioit_bigsdb_scripts.insert_assembly import insert_assembly
@@ -22,6 +22,7 @@ from bioit_mongodb_scripts.util.command.command import Command
 from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 
 logger = logging.getLogger(__name__)
+
 
 class MainResultsInserter:
     """
@@ -77,8 +78,8 @@ class MainResultsInserter:
         Main function, inserts isolate and its results into BIGSdb.
         :return: None
         """
-        # fail safe mechanism is initated before inserting the isolate
-        # fail safe mechanism uses a flagfile to lock the isolate insertion and checks whether the previous insertion of the isolate succeeded.
+        # fail-safe mechanism is initated before inserting the isolate
+        # fail-safe mechanism uses a flagfile to lock the isolate insertion and checks whether the previous insertion of the isolate succeeded.
 
         maininserter = MainInserter(self._isolatename, self._species, self._json_report, self._bigsdb_config_data,
                                     self._report_access, self._vcf_path, self._viral_species)
@@ -103,10 +104,8 @@ class MainResultsInserter:
         :return: None
         """
         if self._results_type == 'reanalysis' or self._results_type == 'resequencing':
-            with (TblAlleleDesignations(self._species) as isolates_ad_psql_tbl, TblEavText(self._species) as isolates_eavt_psql_tbl,
-                  TblAnalysisResults(self._species) as isolates_ana_res_psql_tbl):
+            with (TblAlleleDesignations(self._species) as isolates_ad_psql_tbl, TblAnalysisResults(self._species) as isolates_ana_res_psql_tbl):
                 isolates_ad_psql_tbl.delete_all_designations_of_isolate((self._isolatename,))
-                isolates_eavt_psql_tbl.delete_all_eav_of_isolate((self._isolatename,))
                 isolates_ana_res_psql_tbl.delete_analysis_results_isolate_name((self._isolatename,))
             self._nominative_labtest_clinical_metadata_collection.update_one({'_id': self._isolatename},
                                                                              {'$set': {'inserted_into_bigsdb': False}})

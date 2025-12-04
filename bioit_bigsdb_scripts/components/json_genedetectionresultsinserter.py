@@ -25,7 +25,7 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
         :param report_access: report dir from mongo
         :return: None
         """
-        self._report_access = Path(report_access) # TODO check if still used
+        self._report_access = Path(report_access)  # TODO check if still used
 
         super().__init__(isolatename, species, json_report_dict, config_data)
 
@@ -63,7 +63,7 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                     continue
                 list_of_hits = self._json_report_dict['lrefinder']['lrefinder_genes']
             else:
-                list_of_hits = self._json_report_dict[scheme]['loci'] # also for virulencefinder and vfdb-core
+                list_of_hits = self._json_report_dict[scheme]['loci']  # also for virulencefinder and vfdb-core
 
             if len(list_of_hits) != 0:
                 self._insert_analysis_results(isolate_id, scheme, scheme_config)

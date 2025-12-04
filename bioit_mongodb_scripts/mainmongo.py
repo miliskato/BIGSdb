@@ -272,7 +272,7 @@ class MainMongo:
                 if not self._disable_asb_and_clustering_for_testing:
                     self._asb_instance.send_message_to_queue(AzureServiceBusMessage(self._technical_id, isolates_rejected_coreqc_collection.name))
                 logger.info(f"Sample {self._technical_id} failed one or more core QC checks. It was added to the "
-                             f"isolates_rejected_coreqc collection.")
+                            f"isolates_rejected_coreqc collection.")
                 # exit gracefully
                 sys.exit()
 
@@ -312,7 +312,8 @@ class MainMongo:
             mongo_records['warning_reasons'] = warning_reasons
             self.__write_document(self._isolates_warningqc_collection, mongo_records)
             logger.info(
-                f"New isolate {self._technical_id} failed quality control for one or more checks. It's results were written to the 'isolates_warningqc' collection in the {self._species} database")
+                f"New isolate {self._technical_id} failed quality control for one or more checks. It's results were written to the 'isolates_warningqc' collection in the"
+                f" {self._species} database")
 
     def __new_resequencing_arrival(self, new_json_report: JsonReportDict, document_original: MongoRecordDict,
                                    collection_in: Collection) -> None:
@@ -335,16 +336,20 @@ class MainMongo:
 
             if collection_in == self._isolates_warningqc_collection:
                 send_email(
-                    f"WARNING: a resequencing for sample {self._technical_id} was submitted to the isolates_resequencing while the sample is present in the isolates_warningqc collection and has not yet been validated, validate the warning qc in bigs before trying to reupload this resequencing.",
+                    f"WARNING: a resequencing for sample {self._technical_id} was submitted to the isolates_resequencing while the sample is present in the isolates_warningqc "
+                    f"collection and has not yet been validated, validate the warning qc in bigs before trying to reupload this resequencing.",
                     dont_send_email=self._dont_send_email)
                 raise MongoResequencingNoIsolateError(
-                    f"WARNING: a resequencing for sample {self._technical_id} was submitted to the isolates_resequencing while the sample is present in the isolates_warningqc collection and has not yet been validated, validate the warning qc in bigs before trying to reupload this resequencing.")
+                    f"WARNING: a resequencing for sample {self._technical_id} was submitted to the isolates_resequencing while the sample is present in the isolates_warningqc "
+                    f"collection and has not yet been validated, validate the warning qc in bigs before trying to reupload this resequencing.")
             if collection_in == self._isolates_goodqc_collection:
                 send_email(
-                    f"WARNING: a resequencing for sample {self._technical_id} was submitted to the isolates_resequencing while the sample is present in the isolates_goodqc collection and has not yet been validated, validate the good qc in bigs before trying to reupload this resequencing.",
+                    f"WARNING: a resequencing for sample {self._technical_id} was submitted to the isolates_resequencing while the sample is present in the isolates_goodqc "
+                    f"collection and has not yet been validated, validate the good qc in bigs before trying to reupload this resequencing.",
                     dont_send_email=self._dont_send_email)
                 raise MongoResequencingNoIsolateError(
-                    f"WARNING: a resequencing for sample {self._technical_id} was submitted to the isolates_resequencing while the sample is present in the isolates_goodqc collection and has not yet been validated, validate the good qc in bigs before trying to reupload this resequencing.")
+                    f"WARNING: a resequencing for sample {self._technical_id} was submitted to the isolates_resequencing while the sample is present in the isolates_goodqc "
+                    f"collection and has not yet been validated, validate the good qc in bigs before trying to reupload this resequencing.")
 
             previous_resequencings = list(
                 self._isolates_resequencing_collection.find({'results.isolates_id': self._technical_id},
@@ -357,7 +362,9 @@ class MainMongo:
                     f"on host {socket.gethostname()}, validate the original resequencing in bigs before uploading new resequencings.",
                     dont_send_email=self._dont_send_email)
                 raise MongoTooManyResequencingsError(
-                    f"WARNING: a resequencing for sample {self._technical_id} was submitted to the isolates_resequencing while one or more resequencings were already present: '{previous_resequencings}' in {self._isolates_resequencing_collection.database.name} on host {socket.gethostname()}, validate the original resequencing in bigs before uploading new resequencings.")
+                    f"WARNING: a resequencing for sample {self._technical_id} was submitted to the isolates_resequencing while one or more resequencings were already present: "
+                    f"'{previous_resequencings}' in {self._isolates_resequencing_collection.database.name} on host {socket.gethostname()}, validate the original resequencing in "
+                    f"bigs before uploading new resequencings.")
             else:
                 new_json_report["isolates_id"] = self._technical_id
                 new_isolate = self.__initialize_mongo_record(new_json_report)
@@ -586,7 +593,7 @@ class MainMongo:
     @staticmethod
     def __prepend_string_dot_to_dict_keys(input_dictionary: JsonReportDict, prepending: str = 'results') -> Dict[str, Union[str, object]]:
         """
-        This function is designed to update only results that have been reanalyzed; by using dot notation in the dicts only the relevant assays/metadata are updated upon reanalysis.
+        This function is designed to update only results that have been reanalyzed; by using dot notation in the dicts only the relevant assays/metadata are updated upon reanalysis
         The function can of course serve other purposes
         Dot notation documentation: https://www.mongodb.com/docs/manual/core/document/#dot-notation
         :param input_dictionary: input dictionary that needs all of its upper keys prepended with the prepending string

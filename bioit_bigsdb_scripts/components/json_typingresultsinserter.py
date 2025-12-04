@@ -1,11 +1,11 @@
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Any, Dict, Literal, Optional, Union
 
 from bioit_mongodb_scripts.model.json_model import JsonReportDict
 from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 from .json_superclass import JsonSuperClass
-from .psql import TblAlleleDesignations, TblEavText, TblHistory, TblIsolates
+from .psql import TblAlleleDesignations, TblHistory, TblIsolates
 from ..utils.literal_helper import validate_literal
 from ..utils.url_helper import UrlHelper
 
@@ -41,8 +41,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
         Inserts typing results into bigsdb from json
         :return: None
         """
-        with TblAlleleDesignations(self._species) as self._isolates_ad_psql_tbl, TblEavText(
-                self._species) as self._isolates_eavt_psql_tbl:
+        with TblAlleleDesignations(self._species) as self._isolates_ad_psql_tbl:
             if self._schemedict is None:
                 return
             for scheme in self._schemedict:
@@ -56,6 +55,8 @@ class JsonTypingResultsInserter(JsonSuperClass):
                     self._process_rmlst_identification()
                 elif self._scheme == 'mob_suite_detection':
                     self._process_mob_suite()
+                elif self._scheme == 'bacmet_results':
+                    self._process_bacmet()
                 elif self._scheme == 'krona':
                     self._process_krona()
                 else:
@@ -128,9 +129,17 @@ class JsonTypingResultsInserter(JsonSuperClass):
         mongo_config_provider = MongoConfigProvider()
         dtap = mongo_config_provider.dtap
         file = f'/{dtap}/{self._species}/{self._isolatename}/contamination_check/krona_report.html'
-        report_url = UrlHelper.file_from_report_for_isolate(self._species, self.__get_isolate_id(), file)
+        report_url = UrlHelper.file_from_report_for_isolate(self._species, self._isolate_id, file)
         self._json_report_dict['krona'] = {'krona_report_url': report_url}
-        self._insert_analysis_results(self.__get_isolate_id(), 'krona', self._schemedict[self._scheme], False)
+        self._insert_analysis_results(self._isolate_id, 'krona', self._schemedict[self._scheme], False)
+
+    def _process_bacmet(self) -> None:
+        """
+        Insert BacMet results into the analysis_results table of BIGSdb.
+        :return: None
+        """
+        if 'bacmet' in self._json_report_dict and self._json_report_dict['bacmet']['bacmet_genes'] != '':
+            self._insert_analysis_results(self._isolate_id, 'bacmet', self._schemedict[self._scheme])
 
     def __get_isolate_id(self) -> str:
         """
@@ -217,7 +226,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
 
         elif self._scheme == 'spifinder':
             for mode in ['fastq', 'fasta']:
-                hits: List = self._json_report_dict['spifinder'].get(f'{self._scheme}_{mode}')
+                hits: list = self._json_report_dict['spifinder'].get(f'{self._scheme}_{mode}')
                 if hits == 'n/a':
                     continue
                 if hits and len(hits) != 0:
@@ -244,7 +253,7 @@ class JsonTypingResultsInserter(JsonSuperClass):
         """
         if mode is not None:
             validate_literal(mode, ModeLiteral)
-        raw_formula_splitted: List = raw_formula.split(':')
+        raw_formula_splitted: list = raw_formula.split(':')
         antigensdict = {"O_antigen": raw_formula_splitted[0].split(','),
                         "H1_antigen": raw_formula_splitted[1].split(','),
                         "H2_antigen": raw_formula_splitted[2].split(',')}

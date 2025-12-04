@@ -124,71 +124,8 @@ class PsqlQueries:
         INSERT INTO client_dbase_loci(client_dbase_id, locus, curator, datestamp) 
         VALUES(1, %s, 1, (SELECT CURRENT_DATE));"""
 
-    # TBL extended attribute values fields
-    ISO_INS__TB_EAVF_VAR_FIELD: Final[str] = """
-        INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) 
-        VALUES(%s, 'boolean', 'NCBI 16S', '', 't', 't', (SELECT CURRENT_DATE), 1);"""
-    ISO_INS__TB_EAVF_VAR_FIELD_CAT: Final[str] = """
-        INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) 
-        VALUES(%s, 'text', %s, '', 't', 't', (SELECT CURRENT_DATE), 1);"""
-    ISO_INS__TB_EAVF_VAR_BOOL_FIELD_VAL: Final[str]= """
-        INSERT INTO eav_fields(field, value_format, category, description, no_curate, no_submissions, datestamp, curator) 
-        VALUES(%s, 'boolean', %s, '', 't', 't', (SELECT CURRENT_DATE), 1);"""
-    ISO_SEL_COUNT_TB_EAVF_VAR_FIELD: Final[str] = """
-        SELECT COUNT(*) FROM eav_fields WHERE category='NCBI 16S' AND field=%s;"""
-    ISO_SEL_FIELD_TB_EAVF_VAR_: Final[str] = """SELECT field FROM eav_fields WHERE category='AMR detection';"""
-    ISO_SEL_FIELD_TB_EAVF_VAR_CAT: Final[str] = """SELECT field FROM eav_fields WHERE category=%s;"""
-    ISO_SEL_FIELD_TB_EAVF_VAR_FIELD: Final[str] = """SELECT field FROM eav_fields WHERE field LIKE %s;"""
-    ISO_SEL_COUNT_TB_EAVF_VAR_FIELD_CAT: Final[str] = """SELECT count(*) FROM eav_fields WHERE field=%s AND category=%s ;"""
-
-    # TBL extended attribute values bool
-    ISO_DEL__TB_EAVB_VAR_ISO: Final[str] = """
-        DELETE FROM eav_boolean where isolate_id=(SELECT id FROM isolates WHERE isolate=%s);"""
-    ISO_INS__TB_EAVB_VAR_ID_FIELD_VAL: Final[str] = """
-        INSERT INTO eav_boolean(isolate_id, field, value) VALUES(%s, %s, %s);"""
-    ISO_INS__TB_EAVB_VAR_ISO_FIELD_VAL: Final[str] = """
-        INSERT INTO eav_boolean(isolate_id, field, value) 
-        VALUES((SELECT id FROM isolates WHERE isolate=%s), %s, %s);"""
-
-    # TBL extended attribute values float
-    ISO_DEL__TB_EAVFL_VAR_ISO: Final[str] = """
-        DELETE FROM eav_float WHERE isolate_id=(SELECT id FROM isolates WHERE isolate=%s);"""
-    ISO_INS__TB_EAVFL_VAR_ISO_FIELD_VAL: Final[str] = """
-        INSERT INTO eav_float(isolate_id, field, value) 
-        VALUES((SELECT id FROM isolates WHERE isolate=%s), %s, %s);"""
-
-    # TBL extended attribute values int
-    ISO_DEL__TB_EAVI_VAR_ISO: Final[str] = """
-        DELETE FROM eav_int where isolate_id=(SELECT id FROM isolates WHERE isolate=%s);"""
-    ISO_INS__TB_EAVI_VAR_ID_FIELD_VAL: Final[str] = """
-        INSERT INTO eav_int(isolate_id, field, value) VALUES(%s, %s, %s);"""
     # TBL extended attribute values text
-    ISO_DEL__TB_EAVT_VAR_ISO: Final[str] = """DELETE FROM eav_text WHERE isolate_id=(SELECT id FROM isolates WHERE isolate=%s);"""
-    ISO_DEL__TB_EAVT_VAR_ID_FIELD: Final[str] = """DELETE FROM eav_text WHERE isolate_id=%s AND field=%s;"""
     ISO_DEL__TB_TPISOSCHFIELD_VAR_SCHID_ISO: Final[str] = """DELETE FROM temp_isolates_scheme_fields_%s WHERE id=(SELECT id FROM isolates WHERE isolate=%s);"""
-    ISO_INS__TB_EAVT_VAR_ID_FIELD_VAL: Final[str] = """
-        INSERT INTO eav_text(isolate_id, field, value) VALUES(%s, %s, %s);"""
-    ISO_INS__TB_EAVT_VAR_ISO_FIELD_VAL: Final[str] = """
-        INSERT INTO eav_text(isolate_id, field, value) 
-        VALUES((SELECT id FROM isolates WHERE isolate=%s), %s, %s);"""
-    ISO_UPD_VAL_TB_EAVT_VAR_ID_FIELD: Final[str] = """
-        UPDATE eav_text SET value = %s WHERE isolate_id=%s AND field=%s;"""
-    ISO_SEL_COUNT_TB_EAVT_VAR_ID_FIELD: Final[str] = """
-        SELECT COUNT(*) FROM eav_text WHERE isolate_id=%s AND field=%s;"""
-    ISO_SEL_COUNT_TB_EAVT_VAR_FIELD: Final[str] = """
-        SELECT COUNT(*) FROM eav_text WHERE field=%s;"""
-    # TBL extended attribute values text hidden
-    ISO_INS__TB_EAVTH_VAR_ISO_FIELD_VAL: Final[str] = """
-        INSERT INTO eav_text_hidden(isolate_id, field, value) 
-        VALUES((SELECT id FROM isolates WHERE isolate=%s), %s, %s);"""
-    ISO_DEL__TB_EAVTH_VAR_ISO: Final[str] = """
-        DELETE FROM eav_text_hidden WHERE isolate_id=(SELECT id FROM isolates WHERE isolate=%s);"""
-    ISO_SEL_ID_VAL_ISO_TB_EAVTH_VAR_FIELD: Final[str] = """
-        SELECT eav_text_hidden.isolate_id, eav_text_hidden.value, isolates.isolate FROM eav_text_hidden 
-        LEFT JOIN isolates ON isolates.id = eav_text_hidden.isolate_id WHERE eav_text_hidden.field = %s;"""
-    ISO_SEL_VERSION_TB_EAVTH_VAR_ISO: Final[str] = """
-        SELECT value FROM eav_text_hidden WHERE field='mongo_results_version' AND 
-        isolate_id=(SELECT id FROM isolates WHERE isolate=%s);"""
 
     # TBL failed_insertions
     ISO_INS__TB_FAILINS_VAR_MSGID_PSEUDOID: Final[str] = """
@@ -202,11 +139,9 @@ class PsqlQueries:
 
     # TBL history
     ISO_INS__TB_HIST_VAR_ID_MESS: Final[str] = """
-        INSERT INTO history(isolate_id, timestamp, action, curator) 
-        VALUES(%s, (SELECT NOW()::TIMESTAMP), %s, 1);"""
+        INSERT INTO history(isolate_id, timestamp, action, curator) VALUES(%s, (SELECT NOW()::TIMESTAMP), %s, 1);"""
     ISO_INS__TB_HIST_VAR_ISO_MESS: Final[str] = """
-        INSERT INTO history(isolate_id, timestamp, action, curator) 
-        VALUES((SELECT id FROM isolates WHERE isolate=%s),(SELECT NOW()::TIMESTAMP), %s, 1);"""
+        INSERT INTO history(isolate_id, timestamp, action, curator) VALUES((SELECT id FROM isolates WHERE isolate=%s),(SELECT NOW()::TIMESTAMP), %s, 1);"""
 
     # TBL isolates
     ISO_DEL__TB_ISO_VAR_ISO_ISO: Final[str] = """
@@ -446,7 +381,7 @@ class PsqlQueries:
     ISO_INS__TB_ANA_RES_VAR_NAME_ID_RES: Final[str] = """
     INSERT INTO analysis_results(name, isolate_id, datestamp, results) VALUES (%s, %s, (SELECT CURRENT_DATE), %s);"""
     ISO_DEL__TB_ANA_RES_VAR_ISO: Final[str] = """
-    DELETE FROM analysis_results WHERE isolate_id=(SELECT id FROM isolates WHERE isolate=%s);"""
+    DELETE FROM analysis_results WHERE isolate_id=(SELECT id FROM isolates WHERE isolate = %s);"""
     ISO_SEL_EXISTS_TB_ANA_RES_VAR_NAME_ISO: Final[str] = """
     SELECT EXISTS(SELECT 1 FROM analysis_results WHERE name = %s AND isolate_id = %s);"""
     ISO_SEL_EXISTS_TB_ANA_RES_VAR_NAME: Final[str] = """

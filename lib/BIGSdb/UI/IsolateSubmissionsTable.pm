@@ -7,8 +7,6 @@ use 5.010;
 use BIGSdb::Constants qw(:design);
 use Log::Log4perl qw(get_logger);
 
-my $logger = get_logger('BIGSdb.Page');
-
 sub new {
     my ($class, $args) = @_;
     return bless $args // {}, $class;

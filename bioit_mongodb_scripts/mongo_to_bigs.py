@@ -283,8 +283,7 @@ class MongoToBigs:
         # if argument "new_isolate" is passed to main_results_inserter and it finds the flag,
         # it will remove the isolate and the flag, and then recreate the flag and start insertion again.
         if_sample_failed = sample_presence[0][0] == 1 and (
-                    Path(self._bigsdb_config_data['failsafe']['flag_dir']) / '.'.join(
-                     [isolate_id, self._bigsdb_config_data['failsafe']['flag_append']])).is_file()
+                Path(self._bigsdb_config_data['failsafe']['flag_dir']) / '.'.join([isolate_id, self._bigsdb_config_data['failsafe']['flag_append']])).is_file()
 
         different_version = True
         cgst_changed = True
@@ -321,7 +320,7 @@ class MongoToBigs:
         if new_results['changed_version'] == int(mongo_results_changed_version_bigs):
             # results are same so do nothing
             logger.info(f"results_version might be different, but changed_version same in mongodb and bigsdb for "
-                         f"{isolate_id}")
+                        f"{isolate_id}")
         else:
             different_version = True
             # skip cgst check for virus
@@ -363,7 +362,8 @@ class MongoToBigs:
             if flagfilepath.is_file() and not (
                     results_type in ['reanalysis', 'resequencing']):
                 logger.warning(
-                    f"fail safe mechanism detects that the bigsdb insertion for sample {isolate} was started but did not finish. Removing {isolate} from Bigsdb to be able to restart inserting.")
+                    f"fail safe mechanism detects that the bigsdb insertion for sample {isolate} was started but did not finish. Removing {isolate} from Bigsdb to be able to "
+                    f"restart inserting.")
                 with TblIsolates(self._species) as isolates_psql_tbl:
                     isolates_psql_tbl.delete_isolate([isolate])
                 self._nominative_labtest_clinical_metadata_collection.update_one({'_id': isolate},

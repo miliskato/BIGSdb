@@ -668,7 +668,14 @@ sub print_page_content {
 	}
 	my %header_options;
 	$header_options{'-cookie'}  = $self->{'cookies'} if $self->{'cookies'};
-	$header_options{'-expires'} = '+1h'              if !$self->{'noCache'};
+	#commented out to always disable caching but leave the code here in case we want to re-enable it later
+    #$header_options{'-expires'} = '+1h'              if !$self->{'noCache'};
+    #if ( $self->{'noCache'} ) {
+    $header_options{'-cache_control'} = 'no-cache';
+    $header_options{'-pragma'}        = 'no-cache';
+    $header_options{'-expires'}      = 'now';
+    #}
+
 	if ( $self->{'type'} ne 'xhtml' ) {
 		my %mime_type = (
 			embl      => 'chemical/x-embl-dl-nucleotide',
