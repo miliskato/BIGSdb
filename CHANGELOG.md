@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Length of Isoniazid, Rifampicin, Ethambutol and Pyrazinamid in the config.xml of Mycobacterium
 - Order nominative metadata Influenza
 - Results of the pipeline assays for Enterococcus spp. are removed from the eav-like postgres tables and are moved to the "analysis_results" table
+- DashboardPage, DataExplorerPage and IsolateQueryPage to include the analysis fields
 
 ### Fixed:
 - ONT global coverage thresholds
