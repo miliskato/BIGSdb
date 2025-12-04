@@ -9,6 +9,8 @@ from bioit_bigsdb_scripts.components.psql import TblIsolates, TblAlerts, TblAler
     TblClassificationSchemes
 from bioit_mongodb_scripts.util.python_utility_functions import get_bigsdb_config_data
 
+logger = logging.getLogger(__name__)
+
 
 class AlertsToBigs:
     """
@@ -71,7 +73,7 @@ class AlertsToBigs:
                         isolates_clsch_psql_tbl.select_cgschemeid_by_threshold(
                             (self._bigsdb_config_data['alerts'][self._species][threshold_key],))[0][0]
 
-        logging.info(f'Computing warnings/alerts from {investigation_method} for isolates just inserted into bigsdb')
+        logger.info(f'Computing warnings/alerts from {investigation_method} for isolates just inserted into bigsdb')
         self.__evaluate_warning_and_alert_for_new_versions(investigation_method)
         self.__evaluate_warning_and_alert_for_new_isolates(investigation_method)
         
@@ -127,7 +129,7 @@ class AlertsToBigs:
                     if subject_isolate_tuple is None:
                         exceptionmessage = f"While evaluating alerts, the tuple for the subject isolate " \
                                            f"{isolate['isolate_name']} was not found in the output of the sql query"
-                        logging.error(exceptionmessage)
+                        logger.error(exceptionmessage)
                         raise Exception(exceptionmessage)
                     # Assess whether number of cases threshold was surpassed
                     if len(queried_isolates) >= self._bigsdb_config_data['alerts'][self._species]['number_of_cases']:
@@ -179,7 +181,7 @@ class AlertsToBigs:
                                     sliding_windows_by_weight.append((isolates_weight, window_start, window_end))
                             if len(sliding_windows_by_weight) == 0:
                                 # No sliding windows meeting the threshold were found
-                                logging.info(f"no sliding windows meeting the threshold criteria were found for isolate {isolate['isolate_name']} for {threshold_key}")
+                                logger.info(f"no sliding windows meeting the threshold criteria were found for isolate {isolate['isolate_name']} for {threshold_key}")
                                 continue
                             # sort the sliding windows so that the weights and dates are sorted in descending order
                             sliding_windows_by_weight.sort(reverse=True)

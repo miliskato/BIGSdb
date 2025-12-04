@@ -14,8 +14,7 @@
  all_plugins="yes"
  microreact_year_field="isolation_date"
  tblastx_tagging="yes"
- eav_groups="Gene detection|fas fa-search,rMLST identification|fas fa-bacteria,ResFinder4 mutations|fas fa-pills,ResFinder4|fas fa-pills,MOB-Suite|fas fa-circle-notch,LRE-Finder|fas fa-pills, BacMet|fa-solid fa-pump-medical,galaxy report|fas fa-file-medical-alt,Antibiotic resistance|fas fa-angle-right,AbritAMR|fas fa-pills,Serotyping|fas fa-bacteria,Mykrobe|fas fa-pills,SPIFinder|fas fa-angle-right"
- field_groups="Curation history|fas fa-history,nominative metadata|fas fa-search"
+ field_groups="Curation history|fas fa-history,Nominative metadata|fas fa-search,Galaxy report|fas fa-file-medical-alt,Coverage|fas fa-dna"
  user_projects="yes"
  submissions="yes"
  genome_submissions="no"
@@ -24,40 +23,45 @@
 </system>
 <field type="int" required="yes" length="5" maindisplay="yes" comments="primary key">id</field>
 <field type="text" required="yes" length="40" maindisplay="yes" comments="isolate name">isolate</field>
-<field type="int" required="yes" length="4" maindisplay="no" group ="Curation history" comments="sender unique name, link to users">sender</field>
-<field type="int" required="yes" length="4" maindisplay="no" group ="Curation history" comments="curator who entered data,link to users">curator</field>
-<field type="date" required="no" length="10" maindisplay="no" group ="Curation history" comments="latest analysis date">latest_analysis_date</field>
-<field type="date" required="no" length="10" maindisplay="no" group ="Curation history" comments="date first entered">date_entered</field>
-<field type="date" required="no" length="10" maindisplay="no" group ="Curation history" comments="date last modified">datestamp</field>
-<field type="text" required="no" length="40" maindisplay="no" group ="Curation history" comments="uploader through Galaxy">uploader</field>
-<field type="text" required="no" length="20" maindisplay="no" group ="Curation history" comments="validation type">validation_type</field>
-<field type="text" required="no" length="40" maindisplay="no" group ="Curation history" comments="curator that validated this sample">validation_curator</field>
-<field type="date" required="no" length="10" maindisplay="no" group ="Curation history" comments="date of curation">validation_date</field>
-<field type="date" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="isolation date">isolation_date</field>
-<field type="text" required="no" length="60" maindisplay="no" group ="nominative metadata" comments="PatientIdentificationNumber_Value">patient_id</field>
-<field type="date" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="patient birth date">patient_birth_date</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" geography_point_lookup="yes" comments="Patient_AddressInformation_Postcode">patient_zip</field> # found
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="patient sex">patient_sex</field>
-<field type="text" required="no" length="60" maindisplay="no" group ="nominative metadata" comments="">symptom_otitis</field>
-<field type="text" required="no" length="60" maindisplay="no" group ="nominative metadata" comments="">symptom_pharyngitis</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">symptom_septicemia</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">symptom_osteomyelitis</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">symptom_myositis</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">symptom_wound_infection</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">symptom_pneumonia</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">symptom_monoarthritis</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">symptom_cellulitis</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">symptom_puerperale_sepsis</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">symptom_meningitis</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">symptom_polyarthritis</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">symptom_urine</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">symptom_peritonitis</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">symptom_endocarditis</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">symptom_fasciitis</field>
-<field type="text" required="no" length="100" maindisplay="no" group ="nominative metadata" comments="">symptom_other</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">symptom_unknown</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">symptom_screening</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="unit of hospitalisation" optlist="yes">hospital_unit
+<field type="int" required="yes" length="4" maindisplay="no" group ="Curation history" no_submissions="yes" comments="sender unique name, link to users">sender</field>
+<field type="int" required="yes" length="4" maindisplay="no" group ="Curation history" no_submissions="yes" comments="curator who entered data,link to users">curator</field>
+<field type="date" required="no" length="10" maindisplay="no" group ="Curation history" no_submissions="yes" comments="latest analysis date">latest_analysis_date</field>
+<field type="date" required="no" length="10" maindisplay="no" group ="Curation history" no_submissions="yes" comments="date first entered">date_entered</field>
+<field type="date" required="no" length="10" maindisplay="no" group ="Curation history" no_submissions="yes" comments="date last modified">datestamp</field>
+<field type="text" required="no" length="40" maindisplay="no" group ="Curation history" no_submissions="yes" comments="uploader through Galaxy">uploader</field>
+<field type="text" required="no" length="20" maindisplay="no" group ="Curation history" no_submissions="yes" comments="validation type">validation_type</field>
+<field type="text" required="no" length="40" maindisplay="no" group ="Curation history" no_submissions="yes" comments="curator that validated this sample">validation_curator</field>
+<field type="date" required="no" length="10" maindisplay="no" group ="Curation history" no_submissions="yes" comments="date of curation">validation_date</field>
+<field type="date" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="isolation date">isolation_date</field>
+<field type="text" required="no" length="60" maindisplay="no" group ="Nominative metadata" comments="PatientIdentificationNumber_Value">patient_id</field>
+<field type="date" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="patient birth date">patient_birth_date</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" geography_point_lookup="yes" comments="Patient_AddressInformation_Postcode">patient_zip</field> # found
+<field type="text" required="no" length="3" maindisplay="no" group ="Nominative metadata" comments="patient sex" optlist="yes">patient_sex
+  <optlist>
+    <option>F</option>
+    <option>M</option>
+  </optlist>
+</field>
+<field type="text" required="no" length="60" maindisplay="no" group ="Nominative metadata" comments="">symptom_otitis</field>
+<field type="text" required="no" length="60" maindisplay="no" group ="Nominative metadata" comments="">symptom_pharyngitis</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="">symptom_septicemia</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="">symptom_osteomyelitis</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="">symptom_myositis</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="">symptom_wound_infection</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="">symptom_pneumonia</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="">symptom_monoarthritis</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="">symptom_cellulitis</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="">symptom_puerperale_sepsis</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="">symptom_meningitis</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="">symptom_polyarthritis</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="">symptom_urine</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="">symptom_peritonitis</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="">symptom_endocarditis</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="">symptom_fasciitis</field>
+<field type="text" required="no" length="100" maindisplay="no" group ="Nominative metadata" comments="">symptom_other</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="">symptom_unknown</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="">symptom_screening</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="unit of hospitalisation" optlist="yes">hospital_unit
   <optlist>
     <option>PEDSICU</option>
     <option>ICU</option>
@@ -78,9 +82,9 @@
     <option>ONCOL</option>
   </optlist>
 </field>
-<field type="text" required="no" length="100" maindisplay="no" group ="nominative metadata" comments="">institution</field>
-<field type="text" required="no" length="60" maindisplay="no" group ="nominative metadata" comments="">lab_name_code</field>
-<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="specimen" optlist="yes">specimen
+<field type="text" required="no" length="100" maindisplay="no" group ="Nominative metadata" comments="">institution</field>
+<field type="text" required="no" length="60" maindisplay="no" group ="Nominative metadata" comments="">lab_name_code</field>
+<field type="text" required="no" length="50" maindisplay="no" group ="Nominative metadata" comments="specimen" optlist="yes">specimen
   <optlist>
     <option>BLOOD</option>
     <option>CSF</option>
@@ -101,7 +105,7 @@
     <option>NA</option>
   </optlist>
 </field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="" optlist="yes">lin_gen
+<field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="" optlist="yes">lin_gen
   <optlist>
     <option>CRF</option>
     <option>CRFB</option>
@@ -115,8 +119,8 @@
     <option>NA</option>
   </optlist>
 </field>
-<field type="text" required="no" length="5" maindisplay="no" group ="nominative metadata" comments="case linked to outbreak investigation">outbreak</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="Pathogen defined by NRC" optlist="yes">pathogen
+<field type="text" required="no" length="5" maindisplay="no" group ="Nominative metadata" comments="case linked to outbreak investigation">outbreak</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="Pathogen defined by NRC" optlist="yes">pathogen
   <optlist>
     <option>ENCFAE</option>
     <option>ENCFAI</option>
@@ -131,7 +135,7 @@
     <option>ENCAVI</option>
   </optlist>
 </field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="patient hospitalised or not" optlist="yes">patient_type
+<field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="patient hospitalised or not" optlist="yes">patient_type
   <optlist>
     <option>INPAT</option>
     <option>O</option>
@@ -139,33 +143,33 @@
     <option>UNK</option>
   </optlist>
 </field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">mic_amo_sign</field>
-<field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">mic_amo</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">mic_amo_I</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">mic_dap_sign</field>
-<field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">mic_dap</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">mic_dap_I</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">mic_era_sign</field>
-<field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">mic_era</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">mic_era_I</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">mic_gen_sign</field>
-<field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">mic_gen</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">mic_gen_I</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">mic_lin_sign</field>
-<field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">mic_lin</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">mic_lin_I</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">mic_tec_sign</field>
-<field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">mic_tec</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">mic_tec_I</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">mic_tig_sign</field>
-<field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">mic_tig</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">mic_tig_I</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">mic_van_sign</field>
-<field type="float" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">mic_van</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="">mic_van_I</field>
-<field type="text" required="no" length="50" maindisplay="no" group ="nominative metadata" comments="MIC resistances">mic_resistances</field>
-<field type="text" required="no" length="100" maindisplay="no" group ="nominative metadata" comments="Disease to report">subject</field>
-<field type="text" required="no" length="10" maindisplay="no" group ="nominative metadata" comments="" optlist="yes">vangenes
+<field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="">mic_amo_sign</field>
+<field type="float" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="">mic_amo</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="">mic_amo_I</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="">mic_dap_sign</field>
+<field type="float" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="">mic_dap</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="">mic_dap_I</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="">mic_era_sign</field>
+<field type="float" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="">mic_era</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="">mic_era_I</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="">mic_gen_sign</field>
+<field type="float" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="">mic_gen</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="">mic_gen_I</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="">mic_lin_sign</field>
+<field type="float" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="">mic_lin</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="">mic_lin_I</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="">mic_tec_sign</field>
+<field type="float" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="">mic_tec</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="">mic_tec_I</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="">mic_tig_sign</field>
+<field type="float" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="">mic_tig</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="">mic_tig_I</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="">mic_van_sign</field>
+<field type="float" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="">mic_van</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="">mic_van_I</field>
+<field type="text" required="no" length="50" maindisplay="no" group ="Nominative metadata" comments="MIC resistances">mic_resistances</field>
+<field type="text" required="no" length="100" maindisplay="no" group ="Nominative metadata" comments="Disease to report">subject</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="" optlist="yes">vangenes
   <optlist>
     <option>VANA</option>
     <option>VANB</option>
@@ -181,4 +185,12 @@
     <option>VANAB</option>
   </optlist>
 </field>
+<field type="text" required="no" length="200" maindisplay="no" group="Galaxy report" query="no" no_submissions="yes" web="html_to_be_replaced_by_ansible" comments="galaxy_html_report">html</field>
+<field type="text" required="no" length="200" maindisplay="no" group="Galaxy report" query="no" no_submissions="yes" web="assembly_to_be_replaced_by_ansible" comments="assembly">assembly</field>
+<field type="text" required="no" length="30" maindisplay="no" group="Galaxy report" query="no" no_submissions="yes" comments="pipeline">pipeline</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Coverage" no_submissions="yes" comments="average coverage depth on assembly">coverage_assembly</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Coverage" no_submissions="yes" comments="average coverage depth on reference">coverage_reference</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Coverage" no_submissions="yes" comments="positions covered >1x assembly ">positions_covered_1x_asm</field>
+<field type="text" required="no" length="10" maindisplay="no" group ="Coverage" no_submissions="yes" comments="positions covered >1x reference">positions_covered_1x_ref</field>
+<field type="text" required="no" length="50" maindisplay="no" group ="Nominative metadata" comments="country">country</field>
 </db>

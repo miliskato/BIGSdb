@@ -1,15 +1,18 @@
 import sys
 from pathlib import Path
 from types import TracebackType
-from typing import Any, List, Optional, Tuple, Union, Literal, Type
+from typing import Any, Literal, Type, Union
 
 import psycopg
-from psycopg.types.json import Jsonb
 
 PYTHONPATH = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PYTHONPATH))
 
+from bioit_bigsdb_scripts.utils.literal_helper import validate_literal
 from bioit_mongodb_scripts.util.python_utility_functions import get_bigsdb_config_data
+
+DbLiteral = Literal['seqdef', 'isolates', 'jobs']
+DbValue = Union[DbLiteral, str]
 
 
 class DatabaseConnection:
@@ -17,7 +20,8 @@ class DatabaseConnection:
     Class containing function to open database connections to BIGSdb. To be used with a context manager, which
     automatically closes the connection and commits or rolls back
     """
-    def __init__(self, species: str, db_type: Literal['seqdef', 'isolates', 'jobs'], autocommit: bool = True) -> None:
+
+    def __init__(self, species: str, db_type: DbValue, autocommit: bool = True) -> None:
         """
         Initialises a database connection.
         :param species: commonly used bioit species name: either genus or specific like stec
@@ -25,6 +29,7 @@ class DatabaseConnection:
         :param autocommit: if True every operation is committed immediately after execution
         :return: None
         """
+        validate_literal(db_type, DbLiteral)
         self._db_type = db_type
         # Read the global config
         bigsdb_config_data = get_bigsdb_config_data()
@@ -43,8 +48,7 @@ class DatabaseConnection:
         except Exception:
             raise RuntimeError(f"Could not connect to {species}'s databases")
 
-    def execute_query(self, query: str, params: Union[tuple[Union[str, int, tuple[str]]], list[Union[str, int]], tuple[str, str, float], tuple[str, str, Jsonb],
-            tuple[str, str, str, str], tuple[str, str], tuple[str, str, str, str, str]]) -> Optional[List[Optional[Tuple[Any]]]]:
+    def execute_query(self, query: str, params: Any) -> Any:
         """
         Executes a sql query using psycopg sanitization
         :param query: sql query to be used
@@ -59,8 +63,7 @@ class DatabaseConnection:
             if query.strip().startswith('SELECT'):
                 return cur.fetchall()
 
-    def execute_query_client_cursor(self, query: str, params: Union[Tuple[Union[str, int, Tuple[str]]], List[Union[str, int]], Tuple[str, str, float]]) \
-            -> Optional[List[Optional[Tuple[Any]]]]:
+    def execute_query_client_cursor(self, query: str, params: Any) -> Any:
         """
         Executes a sql query using the ClientCursor which merges the query on the client side and sends the query and
         the parameters merged together to the server.
@@ -73,7 +76,7 @@ class DatabaseConnection:
             if query.strip().startswith('SELECT'):
                 return cur.fetchall()
 
-    def execute(self, query: str) -> Optional[List[Optional[Tuple[Any]]]]:
+    def execute(self, query: str) -> Any:
         """
         Executes a sql query using psycopg sanitization
         :param query: sql query to be used

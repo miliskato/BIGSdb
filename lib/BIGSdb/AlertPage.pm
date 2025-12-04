@@ -152,11 +152,19 @@ sub _get_alerts_by_status {
 	my $user_info = $self->{'datastore'}->get_user_info_from_username( $self->{'username'} );
 	my ( $qry, $get_all, @args );
 	if ( $options->{'get_all'} ) {
-		$qry     = "SELECT *, (SELECT value FROM alert_details WHERE field='trigger cgst' AND alert_id=id), (SELECT isolate FROM isolates WHERE id=CAST((SELECT value FROM alert_details WHERE field='isolate_id' AND alert_id=alerts.id) AS INT)) FROM alerts WHERE status=? ORDER BY CAST(id AS INTEGER)";
-		$get_all = 1;
-		push @args, $status;
+	    if ( $options->{'host_alerts'} ) {
+	        $qry     = "SELECT *, (SELECT value FROM alert_details WHERE field='non-human hosts' AND alert_id=id), (SELECT isolate FROM isolates WHERE id=CAST((SELECT value FROM alert_details WHERE field='isolate_id' AND alert_id=alerts.id) AS INT)) FROM alerts WHERE status=? ORDER BY CAST(id AS INTEGER)";
+	    } else {
+            $qry     = "SELECT *, (SELECT value FROM alert_details WHERE field='trigger cgst' AND alert_id=id), (SELECT isolate FROM isolates WHERE id=CAST((SELECT value FROM alert_details WHERE field='isolate_id' AND alert_id=alerts.id) AS INT)) FROM alerts WHERE status=? ORDER BY CAST(id AS INTEGER)";
+        }
+        $get_all = 1;
+        push @args, $status;
 	} else {
-		$qry     = "SELECT *, (SELECT value FROM alert_details WHERE field='trigger cgst' AND alert_id=id), (SELECT isolate FROM isolates WHERE id=CAST((SELECT value FROM alert_details WHERE field='isolate_id' AND alert_id=alerts.id) AS INT)) FROM alerts WHERE (submitter,status)=(?,?) ORDER BY CAST(id AS INTEGER)";
+	    if ( $options->{'host_alerts'} ) {
+	        $qry     = "SELECT *, (SELECT value FROM alert_details WHERE field='non-human hosts' AND alert_id=id), (SELECT isolate FROM isolates WHERE id=CAST((SELECT value FROM alert_details WHERE field='isolate_id' AND alert_id=alerts.id) AS INT)) FROM alerts WHERE (submitter,status)=(?,?) ORDER BY CAST(id AS INTEGER)";
+	    } else {
+		    $qry     = "SELECT *, (SELECT value FROM alert_details WHERE field='trigger cgst' AND alert_id=id), (SELECT isolate FROM isolates WHERE id=CAST((SELECT value FROM alert_details WHERE field='isolate_id' AND alert_id=alerts.id) AS INT)) FROM alerts WHERE (submitter,status)=(?,?) ORDER BY CAST(id AS INTEGER)";
+		}
 		$get_all = 0;
 		push @args, ( $user_info->{'id'}, $status );
 	}
@@ -169,7 +177,8 @@ sub _get_alerts_by_status {
 sub _get_own_alerts {
 	my ( $self, $status, $options ) = @_;
 	$options = {} if ref $options ne 'HASH';
-	my $alerts = $self->_get_alerts_by_status( $status, { get_all => 0 } );
+	my $host_alerts = $self->_evaluate_if_host_alerts();
+	my $alerts = $self->_get_alerts_by_status( $status, { get_all => 0, host_alerts => $host_alerts } );
 	my $buffer;
 	if (@$alerts) {
 		my $td     = 1;
@@ -182,19 +191,28 @@ sub _get_own_alerts {
 			    qq(<tr class="td$td"><td><a href="$url">$alert->{'id'}</a></td>)
 			  . qq(<td>$alert->{'date_submitted'}</td><td>$alert->{'datestamp'}</td>)
 			  . qq(<td>$alert->{'type'}</td>)
-			  . qq(<td>$alert->{'value'}</td><td>$alert->{'isolate'}</td>);  # trigger cgst and isolate
+			  . qq(<td>$alert->{'value'}</td><td>$alert->{'isolate'}</td>);  # trigger cgst / non-human hosts and isolate
 			$table_buffer .= q(</tr>);
 			$td = $td == 1 ? 2 : 1;
 		}
 		if ($table_buffer) {
+		    my $title = $host_alerts ? 'Non-human hosts' : 'cgST';
 			$buffer .= q(<table class="resultstable"><tr><th>Alert id</th><th>Submitted</th><th>Updated</th>)
-			  . q(<th>Type</th><th>cgST</th><th>trigger</th>);
+			  . q(<th>Type</th><th>) . $title . q(</th><th>trigger</th>);
 			$buffer .= q(</tr>);
 			$buffer .= $table_buffer;
 			$buffer .= q(</table>);
 		}
 	}
 	return $buffer;
+}
+
+sub _evaluate_if_host_alerts {
+	my ($self) = @_;
+	my $qry = "SELECT EXISTS (SELECT * FROM alert_details WHERE field='non-human hosts')";
+	my $host_alerts =
+	  $self->{'datastore'}->run_query( $qry );
+	return $host_alerts;
 }
 
 sub _print_pending_alerts {
@@ -228,7 +246,8 @@ sub _get_alerts_for_curation {
 	my ( $self, $options ) = @_;
 	my $status = $options->{'status'} // 'pending';
 	# return q() if !$self->can_modify_table('isolates'); # disable this so that all curators, regardless of their rights can validate new isolates, mk 23/10/18
-	my $alerts = $self->_get_alerts_by_status( $status, { get_all => 1 } );
+	my $host_alerts = $self->_evaluate_if_host_alerts();
+	my $alerts = $self->_get_alerts_by_status( $status, { get_all => 1, host_alerts => $host_alerts } );
 	my $buffer;
 	my $td = 1;
 	foreach my $item (@$alerts) {
@@ -249,6 +268,7 @@ sub _get_alerts_for_curation {
 	}
 	my $return_buffer = q();
 	if ($buffer) {
+	    my $title = $host_alerts ? 'Non-human hosts' : 'cgST';
 		if ( $status eq 'archived' ) {
 			$return_buffer .= q(<h3>Alerts</h3>);
 		} else {
@@ -256,7 +276,7 @@ sub _get_alerts_for_curation {
 			$return_buffer .= qq(<p>Your account is authorized to handle the following alerts:<p>\n);
 		}
 		$return_buffer .= q(<table class="resultstable"><tr><th>Alert id</th><th>Triggered</th>)
-		  . q(<th>Type</th><th>Method</th><th>cgST</th><th>trigger</th>);
+		  . q(<th>Type</th><th>Method</th><th>) . $title . q(</th><th>trigger</th>);
 		$return_buffer .= q(<th>Outcome</th>) if $status eq 'archived';
 		$return_buffer .= qq(</tr>\n);
 		$return_buffer .= $buffer;

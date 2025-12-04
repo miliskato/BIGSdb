@@ -12,23 +12,28 @@ table.nice td:first-child { max-width:50ch; overflow-wrap:anywhere }
 
 .indented-hera h3 { margin-left: 3em; }
 .indented-hera h4 { margin-left: 3.5em; }
-.indented-hera div{ margin-left: 4em; }
+.indented-hera div { margin-left: 4em; }
 
 .indented-hera-2 h3 { margin-left: 3em; }
 .indented-hera-2 h4 { margin-left: 3.5em; }
 </style>
 
+[% INCLUDE isolate_info_summary_table_base.tt %]
+[% INCLUDE isolate_info_krona.tt %]
 [% INCLUDE isolate_info_rmlst_species.tt %]
 [% INCLUDE isolate_info_kleborate.tt %]
 [% INCLUDE isolate_info_amrfinder.tt %]
 [% INCLUDE isolate_info_resfinder4.tt %]
 [% INCLUDE isolate_info_mobsuite.tt %]
 [% INCLUDE isolate_info_abritamr.tt %]
+[% INCLUDE isolate_info_bacmet.tt %]
 [% INCLUDE isolate_info_serotyping_salmonella.tt %]
 [% INCLUDE isolate_info_rmlst_identification.tt %]
 [% INCLUDE isolate_info_mykrobe.tt %]
 [% INCLUDE isolate_info_virulence_detection.tt %]
 [% INCLUDE isolate_info_plasmid_finder_gram_positive.tt %]
+[% INCLUDE isolate_info_lre_finder.tt %]
+[% INCLUDE isolate_info_clusters.tt %]
 [% INCLUDE isolate_info_ncbi16s.tt %]
 [% INCLUDE isolate_info_snpit.tt %]
 [% INCLUDE isolate_info_hsp65.tt %]

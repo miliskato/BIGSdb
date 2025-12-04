@@ -166,6 +166,13 @@ class MongoConfigProvider:
         """
         return self._mongo_global_config['json_reports_dir']
 
+    def get_shared_dtap(self) -> str:
+        """
+        Returns the shared dtap.
+        :return: Shared dtap, either dt or ap
+        """
+        return 'dt' if self.dtap in ['dev', 'test'] else 'ap'
+
     @staticmethod
     def host_is_an_nrc_platform(species: str) -> bool:
         """

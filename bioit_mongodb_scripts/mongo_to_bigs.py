@@ -13,9 +13,10 @@ sys.path.append(str(PYTHONPATH))
 
 from bioit_bigsdb_scripts.components.psql.databaseconnection import DatabaseConnection
 from bioit_bigsdb_scripts.components.psql import TblIsolates, TblMappingTable, \
-    TblSchemeMembers, TblTempIsolatesSchemeFields
+    TblSchemeMembers, TblTempIsolatesSchemeFields, TblAlertDetails
 from bioit_bigsdb_scripts.components.psql.psql_queries import PsqlQueries
 from bioit_bigsdb_scripts.main_results_inserter import MainResultsInserter
+from bioit_bigsdb_scripts.components.json_superclass import JsonSuperClass
 from bioit_mongodb_scripts.model.json_model import MongoRecordDict, ResultType
 from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
@@ -24,6 +25,8 @@ from bioit_mongodb_scripts.util.python_utility_functions import execute_command,
     get_cgmlst_bigsdb_scheme_id, send_email
 from bioit_mongodb_scripts.util.new_temporary_alleles_to_bigs import NewTemporaryAllelesToBigs
 from bioit_mongodb_scripts.util.mongo_quickdraw import get_pseudo_id
+
+logger = logging.getLogger(__name__)
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -51,9 +54,6 @@ class MongoToBigs:
         :param single_sample_id: name of a single sample if only this sample should be synced
         :return: None
         """
-        # Configure stdout logging
-        logging.basicConfig(level=logging.WARNING, stream=sys.stdout)
-
         self._species = species
         self._single_sample_id = single_sample_id
         self._uploader_mail_address = uploader_mail_address
@@ -77,8 +77,6 @@ class MongoToBigs:
         mongo_init_local = MongoInitialisation(self._species, self._mongo_config_provider.get_local_connection_string(self._species), self._mongo_config_provider.dtap)
         self._mappingtable_collection = mongo_init_local.initialise_mapping_table_collection()
         self._nominative_labtest_clinical_metadata_collection = mongo_init_local.initialise_nominative_labtest_clinical_metadata_collection()
-        # Open Bigsdb isolates table
-        #self._isolates_psql_tbl = TblIsolates(self._species)
 
         if not self._mongo_config_provider.is_viral(self._species):
             # Prepare cgmlst cache updater command
@@ -178,7 +176,7 @@ class MongoToBigs:
         Function to append isolate_id, cgST, and date_of_isolation to a list that will be used to re-compute BIGSdb alerts
         :param document: Mongo record from isolate collection
         :param isolate_id: isolate id (as found in BIGSdb)
-        :param results_type: one of the following string: 'new_isolate', 'goodqc', 'warningqc','resequencing',
+        :param results_type: one of the following string: 'new_isolate', 'goodqc', 'warningqc', 'resequencing',
         'reanalysis'
         :param cgst_changed: boolean whether the cgST changed
         :return: None
@@ -223,6 +221,7 @@ class MongoToBigs:
             results_type, new_document_version, _ = self.__get_results_type(document, isolate_id)
             if not new_document_version:
                 continue
+            self.__add_isolate_hosts_to_alert_list(document, isolate_id, results_type)
             if document.get('validation'):
                 # copy validation metadata to results section in order to be able to insert them into BIGSdb
                 document['results']['validation'] = document['validation']
@@ -284,8 +283,7 @@ class MongoToBigs:
         # if argument "new_isolate" is passed to main_results_inserter and it finds the flag,
         # it will remove the isolate and the flag, and then recreate the flag and start insertion again.
         if_sample_failed = sample_presence[0][0] == 1 and (
-                    Path(self._bigsdb_config_data['failsafe']['flag_dir']) / '.'.join(
-                     [isolate_id, self._bigsdb_config_data['failsafe']['flag_append']])).is_file()
+                Path(self._bigsdb_config_data['failsafe']['flag_dir']) / '.'.join([isolate_id, self._bigsdb_config_data['failsafe']['flag_append']])).is_file()
 
         different_version = True
         cgst_changed = True
@@ -303,7 +301,7 @@ class MongoToBigs:
 
         return results_type, different_version, cgst_changed
 
-    def ___check_if_reanalysis_different(self, document: MongoRecordDict, isolate_id: str) -> (bool, bool):
+    def ___check_if_reanalysis_different(self, document: MongoRecordDict, isolate_id: str) -> tuple[bool, bool]:
         """
         Checks if the reanalysis is different or not, outside this function: continues the for loop,
         it is called in, to the next sample if not different
@@ -321,8 +319,8 @@ class MongoToBigs:
         new_results = document.get_json_results()
         if new_results['changed_version'] == int(mongo_results_changed_version_bigs):
             # results are same so do nothing
-            logging.info(f"results_version might be different, but changed_version same in mongodb and bigsdb for "
-                         f"{isolate_id}")
+            logger.info(f"results_version might be different, but changed_version same in mongodb and bigsdb for "
+                        f"{isolate_id}")
         else:
             different_version = True
             # skip cgst check for virus
@@ -336,7 +334,6 @@ class MongoToBigs:
                     cgst_query_result[0][0] is not None and int(cgst_query_result[0][0]) != new_results.get('cgST')):
                 cgst_changed = True
         return different_version, cgst_changed
-
 
     def ___make_flagfilepath(self, isolate: str) -> Path:
         """
@@ -364,8 +361,9 @@ class MongoToBigs:
             flagfilepath = self.___make_flagfilepath(isolate)
             if flagfilepath.is_file() and not (
                     results_type in ['reanalysis', 'resequencing']):
-                logging.warning(
-                    f"fail safe mechanism detects that the bigsdb insertion for sample {isolate} was started but did not finish. Removing {isolate} from Bigsdb to be able to restart inserting.")
+                logger.warning(
+                    f"fail safe mechanism detects that the bigsdb insertion for sample {isolate} was started but did not finish. Removing {isolate} from Bigsdb to be able to "
+                    f"restart inserting.")
                 with TblIsolates(self._species) as isolates_psql_tbl:
                     isolates_psql_tbl.delete_isolate([isolate])
                 self._nominative_labtest_clinical_metadata_collection.update_one({'_id': isolate},
@@ -374,7 +372,7 @@ class MongoToBigs:
             else:
                 flagfilepath.touch()
                 flagfilepath.chmod(0o755)
-                logging.info(f"flagfilepath {flagfilepath}")
+                logger.info(f"flagfilepath {flagfilepath}")
         except Exception:
             raise Exception(
                 f"{Path(__file__).name}: bigsdb upload fail safe mechanism fail on host {socket.gethostname()}. Traceback: {traceback.format_exc()}")
@@ -391,6 +389,43 @@ class MongoToBigs:
         except Exception:
             raise Exception(
                 f"{Path(__file__).name}: Could not remove flag file {flagfilepath} on host {socket.gethostname()}. Traceback: {traceback.format_exc()}")
+
+    def __add_isolate_hosts_to_alert_list(self, document: MongoRecordDict, isolate_name: str, results_type: str) -> None:
+        """
+        When the reference sequence(s) of an isolate contain(s) non-human hosts, the isolate name, the non-human hosts, and isolation date are added to a list that will be used
+        to compute the BIGSdb alerts.
+        :param document: Mongo report document
+        :param isolate_name: Isolate name
+        :param results_type: One of the following: 'new_isolate', 'resequencing', 'reanalysis'
+        :return: None
+        """
+        json_class = JsonSuperClass(isolate_name, self._species, document.get_json_results(), self._bigsdb_config_data)
+        non_human_hosts = json_class.extract_non_human_hosts_from_ref_selection()
+
+        if results_type == 'resequencing':  # reference selection isn't executed again for the reanalysis
+            # TODO to be checked when resequencing is completely implemented
+            non_human_hosts_old = self.__select_old_non_human_hosts(isolate_name)
+            missing_non_human_hosts_between_isolate_versions = non_human_hosts ^ non_human_hosts_old
+            if missing_non_human_hosts_between_isolate_versions:
+                self._list_of_new_versions_for_alerts.append(
+                    {'isolate_name': isolate_name, 'non_human_hosts': non_human_hosts,
+                     'isolation_date': document['technical_metadata']['data']['IsolationDate']})
+        elif non_human_hosts and results_type == 'new_isolate':
+            self._list_of_new_isolates_for_alerts.append(
+                {'isolate_name': isolate_name, 'non_human_hosts': non_human_hosts,
+                 'isolation_date': document['technical_metadata']['data']['IsolationDate']})
+
+    def __select_old_non_human_hosts(self, isolate_name: str) -> set[str]:
+        """
+        Selects the non-human hosts for the previously inserted isolate.
+        :param isolate_name: Isolate name
+        :return: Set of non-human hosts for the isolate
+        """
+        with TblAlertDetails(self._species) as isolates_alertsdet_psql_tbl:
+            hosts_old_list = isolates_alertsdet_psql_tbl.select_hosts_for_isolate_name((isolate_name,))
+        hosts_old_string = hosts_old_list[0][0] if hosts_old_list else None
+        hosts_old = set(hosts_old_string.split(', ')) if hosts_old_string else set()
+        return hosts_old
 
 
 if __name__ == '__main__':

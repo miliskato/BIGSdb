@@ -1,0 +1,105 @@
+.hera_error {
+    margin:12px 0;
+    padding:8px 10px;
+    border:1px solid #c77;
+    background:#ffe9e7;
+    color:#600;
+}
+
+.hera_success {
+    font-size: 1.2em;
+    margin-bottom: 10px;
+    background-color: #ddffdd;
+    border: 1px solid #ccc !important;
+    padding: 16px;
+}
+
+.hera_success h2 {
+    margin-top: 5px;
+}
+
+button.hera {
+    margin-right: 10px;
+}
+
+button.herasubmit,
+input.herasubmit,
+.herasubmit {
+    margin-right: 10px;
+    cursor: pointer;
+    padding: 8px 16px;
+    border: 0;
+    background: #2F9FDB;
+    border-radius: 4px;
+    font-family: 'pt_sansbold', serif;
+    font-size: 16px;
+    line-height: 130%;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #FFFFFF;
+}
+
+button.herasubmit:hover,
+input.herasubmit:hover,
+.herasubmit:hover {
+    background: #8D5196;
+}
+
+button.herasubmit.small,
+input.herasubmit.small,
+.herasubmit.small {
+    margin-right: 4px;
+    padding: 4px 8px;
+    font-size: 15px;
+    line-height: 120%;
+    box-sizing: border-box;
+    text-transform: capitalize;
+    font-family: 'pt_sansbold', serif;
+}
+
+button.herasubmit.small:hover,
+input.herasubmit.small:hover,
+.herasubmit.small:hover {
+    background: #8D5196;
+}
+
+.hera_html_table_nice table.nice {
+    text-align: center;
+    border-collapse: separate;
+    margin-bottom: 0.75em;
+}
+.hera_html_table_nice table.nice th {
+    background: #2f4f6f;
+    color: #fff;
+    padding: 4px 6px;
+    font-weight: 600;
+}
+.hera_html_table_nice table.nice td {
+    padding: 4px 6px;
+}
+.hera_html_table_nice table.nice tr:nth-child(n+3) {
+    background: #E4EFF3;
+}
+.hera_html_table_nice table.nice tr:nth-child(2n+3) {
+    background: #C1E6F3;
+}
+.hera_html_table_nice table.nice td:first-child {
+    max-width: 50ch;
+    overflow-wrap: anywhere;
+}
+
+.summary_table table.main_results {
+    text-align: center;
+    border-collapse: separate;
+    margin-bottom: 0.75em;
+}
+.summary_table table.main_results th {
+    background: #2f4f6f;
+    color: #fff;
+    padding: 4px 6px;
+    font-weight: 600;
+}
+.summary_table table.main_results td {
+    padding: 4px 6px;
+    background: #C1E6F3;
+}

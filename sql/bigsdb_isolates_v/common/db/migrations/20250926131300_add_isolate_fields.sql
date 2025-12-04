@@ -6,10 +6,11 @@ ALTER TABLE isolates
     ADD COLUMN mongo_results_version text,
     ADD COLUMN coverage_assembly text,
     ADD COLUMN coverage_reference text,
-    ADD COLUMN positions_covered_1x_assembly text,
-    ADD COLUMN positions_covered_1x_reference text;
+    ADD COLUMN positions_covered_1x_asm text,
+    ADD COLUMN positions_covered_1x_ref text;
 
 DROP TABLE eav_text_hidden;
+DROP TABLE eav_fields_hidden;
 
 -- migrate:down
 ALTER TABLE isolates
@@ -19,8 +20,8 @@ ALTER TABLE isolates
     DROP COLUMN mongo_results_version,
     DROP COLUMN coverage_assembly,
     DROP COLUMN coverage_reference,
-    DROP COLUMN positions_covered_1x_assembly,
-    DROP COLUMN positions_covered_1x_reference;
+    DROP COLUMN positions_covered_1x_asm,
+    DROP COLUMN positions_covered_1x_ref;
 
 CREATE TABLE eav_fields_hidden AS (SELECT * FROM eav_fields) WITH NO DATA;
 ALTER TABLE eav_fields_hidden ADD PRIMARY KEY(field);

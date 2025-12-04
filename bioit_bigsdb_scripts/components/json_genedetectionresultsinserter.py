@@ -7,6 +7,8 @@ from .json_superclass import JsonSuperClass
 from .psql import TblHistory, TblIsolates
 from ..inserters.context.gene_detection_context_builder_factory import GeneDetectionContextBuilderFactory
 
+logger = logging.getLogger(__name__)
+
 
 class JsonGeneDetectionResultsInserter(JsonSuperClass):
     """
@@ -23,7 +25,7 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
         :param report_access: report dir from mongo
         :return: None
         """
-        self._report_access = Path(report_access) # TODO check if still used
+        self._report_access = Path(report_access)  # TODO check if still used
 
         super().__init__(isolatename, species, json_report_dict, config_data)
 
@@ -45,7 +47,7 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
 
         for scheme in self._genedetectiondict:
             if scheme not in self._json_report_dict:
-                logging.warning(f"scheme {scheme} not present in json file")
+                logger.warning(f"scheme {scheme} not present in json file")
                 continue
 
             scheme_config = self._genedetectiondict[scheme]
@@ -61,11 +63,11 @@ class JsonGeneDetectionResultsInserter(JsonSuperClass):
                     continue
                 list_of_hits = self._json_report_dict['lrefinder']['lrefinder_genes']
             else:
-                list_of_hits = self._json_report_dict[scheme]['loci'] # also for virulencefinder and vfdb-core
+                list_of_hits = self._json_report_dict[scheme]['loci']  # also for virulencefinder and vfdb-core
 
             if len(list_of_hits) != 0:
                 self._insert_analysis_results(isolate_id, scheme, scheme_config)
 
         with TblHistory(self._species) as isolates_history_psql_tbl:
             isolates_history_psql_tbl.insert_history_isolate((self._isolatename, 'Gene detection results inserted'))
-        logging.info(f'Gene detection insertion for {self._isolatename} is done')
+        logger.info(f'Gene detection insertion for {self._isolatename} is done')

@@ -1,0 +1,15 @@
+[% # Template file for outputting formatted BacMet results %]
+[% IF BacMet %]
+<div class="indented-hera-2">
+<h3>BacMet results</h3>
+
+<div class="field_group">
+<dl class="data">
+    <span class="dontsplit">
+    <dt>BacMet genes</dt><dd>[% BacMet.results.bacmet_genes %]</dd>
+    </span>
+</dl>
+</div>
+</div>
+<br>
+[% END %]

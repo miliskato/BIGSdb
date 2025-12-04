@@ -21,10 +21,9 @@ from pymongo.write_concern import WriteConcern
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
 
-from bioit_mongodb_scripts.config import CLUSTERING_CONFIG
 from bioit_nrc_integration.python.config import CODES_GENOMIC_ODS
 from bioit_mongodb_scripts.model.json_model import JsonReportDict, MongoRecordDict
-from bioit_mongodb_scripts.util_azure.azure_service_bus_message import AzureServiceBusMessage
+from bioit_mongodb_scripts.util_azure.azure_service_bus_specific_messages import AzureServiceBusMessage
 from bioit_mongodb_scripts.util_azure.azure_service_bus import AzureServiceBus
 from bioit_mongodb_scripts.util.error import *
 from bioit_mongodb_scripts.util.check_coreqc_metrics import CheckCoreQCMetrics
@@ -34,7 +33,10 @@ from bioit_mongodb_scripts.util.mongo_custom_clustering import MongoCustomCluste
 from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.mongo_insertion import insert_document_into_rejected_collection
 from bioit_mongodb_scripts.util.mongo_querying import Mongoquerying
-from bioit_mongodb_scripts.util.python_utility_functions import access_value_in_dict_using_list_as_dictpath, convert_dmyhms_to_ymd, send_email, load_config
+from bioit_mongodb_scripts.util.python_utility_functions import access_value_in_dict_using_list_as_dictpath, convert_dmyhms_to_ymd, send_email
+from bioit_mongodb_scripts.util.mongo_clustering_config_provider import MongoClusteringConfigProvider
+
+logger = logging.getLogger(__name__)
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -188,10 +190,9 @@ class MainMongo:
         if resequencing_validated; if good outcome, treat as reanalysis. Else update metadata
         :return: None
         """
-        # Configure stdout logging
-        logging.basicConfig(level=logging.WARNING, stream=sys.stdout)
 
         # If statement for results_type
+        logger.debug(f"running mainmongo for sample {self._technical_id} with results_type {self._results_type} and species {self._species}")
         if self._results_type == "new_isolate":
             new_json_report = JsonReportDict.from_json(self._jsonfilepath)
 
@@ -212,10 +213,18 @@ class MainMongo:
                 else:
                     self.__process_json_report(new_json_report)
         elif self._results_type == 'goodqc_validated':
-            sample_doc = MongoRecordDict(self._isolates_goodqc_collection.find_one({"_id": self._technical_id}))
+            doc = self._isolates_goodqc_collection.find_one({"_id": self._technical_id})
+            if doc is None:
+                raise MongoMissingValueIsolateCollectionError(
+                    f"This goodqc validated technical id ({self._technical_id}) is not present in the isolates_goodqc collections for {self._species} ")
+            sample_doc = MongoRecordDict(doc)
             self.__process_mongo_record(sample_doc)
         elif self._results_type == 'warningqc_validated':
-            sample_doc = MongoRecordDict(self._isolates_warningqc_collection.find_one({"_id": self._technical_id}))
+            doc = self._isolates_warningqc_collection.find_one({"_id": self._technical_id})
+            if doc is None:
+                raise MongoMissingValueIsolateCollectionError(
+                    f"This warningqc validated technical id ({self._technical_id}) is not present in the isolates_warningqc collections for {self._species} ")
+            sample_doc = MongoRecordDict(doc)
             self.__process_mongo_record(sample_doc)
 
         elif self._results_type == "reanalysis" or self._results_type == 'resequencing_validated':
@@ -262,8 +271,8 @@ class MainMongo:
                 insert_document_into_rejected_collection(isolates_rejected_coreqc_collection, rejected_document)
                 if not self._disable_asb_and_clustering_for_testing:
                     self._asb_instance.send_message_to_queue(AzureServiceBusMessage(self._technical_id, isolates_rejected_coreqc_collection.name))
-                logging.info(f"Sample {self._technical_id} failed one or more core QC checks. It was added to the "
-                             f"isolates_rejected_coreqc collection.")
+                logger.info(f"Sample {self._technical_id} failed one or more core QC checks. It was added to the "
+                            f"isolates_rejected_coreqc collection.")
                 # exit gracefully
                 sys.exit()
 
@@ -292,18 +301,19 @@ class MainMongo:
                 self._isolates_goodqc_collection.delete_one(
                     {'_id': mongo_records["_id"]}) if self._results_type == 'goodqc_validated' else self._isolates_warningqc_collection.delete_one({'_id': mongo_records["_id"]})
                 self.__write_document(self._isolates_collection, mongo_records)
-                logging.info(f"Wrote new isolate {self._technical_id} and its result to {self._species} database")
+                logger.info(f"Wrote new isolate {self._technical_id} and its result to {self._species} database")
             elif self._results_type == 'new_isolate':
                 mongo_records['submission_status'] = 'pending_for_submission'
                 self.__write_document(self._isolates_goodqc_collection, mongo_records)
-                logging.warning(
+                logger.warning(
                     f"New isolate {self._technical_id} succeeded quality control. It's results were written to the 'isolates_goodqc' collection in the {self._species} database")
         else:
             mongo_records['submission_status'] = 'pending_for_submission'
             mongo_records['warning_reasons'] = warning_reasons
             self.__write_document(self._isolates_warningqc_collection, mongo_records)
-            logging.info(
-                f"New isolate {self._technical_id} failed quality control for one or more checks. It's results were written to the 'isolates_warningqc' collection in the {self._species} database")
+            logger.info(
+                f"New isolate {self._technical_id} failed quality control for one or more checks. It's results were written to the 'isolates_warningqc' collection in the"
+                f" {self._species} database")
 
     def __new_resequencing_arrival(self, new_json_report: JsonReportDict, document_original: MongoRecordDict,
                                    collection_in: Collection) -> None:
@@ -326,16 +336,20 @@ class MainMongo:
 
             if collection_in == self._isolates_warningqc_collection:
                 send_email(
-                    f"WARNING: a resequencing for sample {self._technical_id} was submitted to the isolates_resequencing while the sample is present in the isolates_warningqc collection and has not yet been validated, validate the warning qc in bigs before trying to reupload this resequencing.",
+                    f"WARNING: a resequencing for sample {self._technical_id} was submitted to the isolates_resequencing while the sample is present in the isolates_warningqc "
+                    f"collection and has not yet been validated, validate the warning qc in bigs before trying to reupload this resequencing.",
                     dont_send_email=self._dont_send_email)
                 raise MongoResequencingNoIsolateError(
-                    f"WARNING: a resequencing for sample {self._technical_id} was submitted to the isolates_resequencing while the sample is present in the isolates_warningqc collection and has not yet been validated, validate the warning qc in bigs before trying to reupload this resequencing.")
+                    f"WARNING: a resequencing for sample {self._technical_id} was submitted to the isolates_resequencing while the sample is present in the isolates_warningqc "
+                    f"collection and has not yet been validated, validate the warning qc in bigs before trying to reupload this resequencing.")
             if collection_in == self._isolates_goodqc_collection:
                 send_email(
-                    f"WARNING: a resequencing for sample {self._technical_id} was submitted to the isolates_resequencing while the sample is present in the isolates_goodqc collection and has not yet been validated, validate the good qc in bigs before trying to reupload this resequencing.",
+                    f"WARNING: a resequencing for sample {self._technical_id} was submitted to the isolates_resequencing while the sample is present in the isolates_goodqc "
+                    f"collection and has not yet been validated, validate the good qc in bigs before trying to reupload this resequencing.",
                     dont_send_email=self._dont_send_email)
                 raise MongoResequencingNoIsolateError(
-                    f"WARNING: a resequencing for sample {self._technical_id} was submitted to the isolates_resequencing while the sample is present in the isolates_goodqc collection and has not yet been validated, validate the good qc in bigs before trying to reupload this resequencing.")
+                    f"WARNING: a resequencing for sample {self._technical_id} was submitted to the isolates_resequencing while the sample is present in the isolates_goodqc "
+                    f"collection and has not yet been validated, validate the good qc in bigs before trying to reupload this resequencing.")
 
             previous_resequencings = list(
                 self._isolates_resequencing_collection.find({'results.isolates_id': self._technical_id},
@@ -348,7 +362,9 @@ class MainMongo:
                     f"on host {socket.gethostname()}, validate the original resequencing in bigs before uploading new resequencings.",
                     dont_send_email=self._dont_send_email)
                 raise MongoTooManyResequencingsError(
-                    f"WARNING: a resequencing for sample {self._technical_id} was submitted to the isolates_resequencing while one or more resequencings were already present: '{previous_resequencings}' in {self._isolates_resequencing_collection.database.name} on host {socket.gethostname()}, validate the original resequencing in bigs before uploading new resequencings.")
+                    f"WARNING: a resequencing for sample {self._technical_id} was submitted to the isolates_resequencing while one or more resequencings were already present: "
+                    f"'{previous_resequencings}' in {self._isolates_resequencing_collection.database.name} on host {socket.gethostname()}, validate the original resequencing in "
+                    f"bigs before uploading new resequencings.")
             else:
                 new_json_report["isolates_id"] = self._technical_id
                 new_isolate = self.__initialize_mongo_record(new_json_report)
@@ -402,11 +418,11 @@ class MainMongo:
         new_results["results.isolates_id"] = self._technical_id
         new_results["results.results_version"] = current_results["results_version"] + 1
         new_results["results.pipeline_hash"] = self._pipeline_hash
-        if any_result_changed_new_old is True:
+        if any_result_changed_new_old:
             new_results["results.changed_version"] = current_results["changed_version"] + 1
-            logging.info(f"Writing new changed results and linked to isolate {self._technical_id} in {self._species}")
+            logger.info(f"Writing new changed results and linked to isolate {self._technical_id} in {self._species}")
         else:
-            logging.info(
+            logger.info(
                 f"New results are not different from current results for {self._technical_id} in {self._species}, updating analysis dates and db versions.")
         if self._results_type == 'resequencing_validated':
             self.__update_submission_status_after_validation(new_results)
@@ -421,11 +437,11 @@ class MainMongo:
                          "latest_analysis_date": convert_dmyhms_to_ymd(new_results["results.analysis_date"]),
                          "previous_latest_results_document": self.__write_document(self._old_isolateresults_collection,
                                                                                    MongoRecordDict(dict(deltas_new_old)))}})
-        if not self._disable_asb_and_clustering_for_testing:
-            self._asb_instance.send_message_to_queue(AzureServiceBusMessage(self._technical_id, self._isolates_collection.name))
         # after having updated the isolates collection, check for changes for HD ODS to respect the order of execution.
         self.__check_if_any_results_for_hd_ods_changed(dict(deltas_new_old))
-        logging.info(f"Wrote new results and linked to isolate {self._technical_id} in {self._species}")
+        if not self._disable_asb_and_clustering_for_testing:
+            self._asb_instance.send_message_to_queue(AzureServiceBusMessage(self._technical_id, self._isolates_collection.name))
+        logger.info(f"Wrote new results and linked to isolate {self._technical_id} in {self._species}")
 
     def __check_if_any_results_for_hd_ods_changed(self, deltas_new_old: Dict[str, Any]) -> None:
         """
@@ -472,7 +488,7 @@ class MainMongo:
         if 'isolates' in opened_collection.name and not self._disable_asb_and_clustering_for_testing:
             self._asb_instance.send_message_to_queue(AzureServiceBusMessage(
                 collection_write.inserted_id, opened_collection.name))
-        logging.debug(f"Writing {collection_write.inserted_id} in collection {opened_collection}")
+        logger.debug(f"Writing {collection_write.inserted_id} in collection {opened_collection}")
         return collection_write.inserted_id
 
     def __initialize_mongo_record(self, results: JsonReportDict) -> MongoRecordDict:
@@ -577,7 +593,7 @@ class MainMongo:
     @staticmethod
     def __prepend_string_dot_to_dict_keys(input_dictionary: JsonReportDict, prepending: str = 'results') -> Dict[str, Union[str, object]]:
         """
-        This function is designed to update only results that have been reanalyzed; by using dot notation in the dicts only the relevant assays/metadata are updated upon reanalysis.
+        This function is designed to update only results that have been reanalyzed; by using dot notation in the dicts only the relevant assays/metadata are updated upon reanalysis
         The function can of course serve other purposes
         Dot notation documentation: https://www.mongodb.com/docs/manual/core/document/#dot-notation
         :param input_dictionary: input dictionary that needs all of its upper keys prepended with the prepending string
@@ -625,7 +641,7 @@ class MainMongo:
                 for locus_index, allele_info in enumerate(json_report[typing_scheme]['loci']):
                     # check if allele designation is md5 hash (32 char combination of letters andor numbers)
                     if allele_info.get('Allele (hash)'):
-                        logging.info('new allele detected')
+                        logger.info('new allele detected')
                         existing_document = hashed_ad_collection.with_options(
                             read_concern=ReadConcern(level="majority")).find_one(
                             {"scheme": typing_scheme, "locus": allele_info['Locus'],
@@ -652,12 +668,12 @@ class MainMongo:
                                 hash_old = existing_document["hashed_allele"]
                                 if hash_old == allele_info['Allele']:
                                     already_present = True
-                                    logging.info('hash/temp allele already present')
+                                    logger.info('hash/temp allele already present')
                             if mode == 'new_isolate' or (mode == 'reanalysis' and not already_present):
                                 hashed_ad_collection.with_options(write_concern=WriteConcern(w="majority")).update_one(
                                     {"_id": existing_document['_id']},
                                     {"$inc": {"encountered_count": 1}})
-                                logging.info(f"hashed allele '{allele_info['Allele']}' encounter incremented by one")
+                                logger.info(f"hashed allele '{allele_info['Allele']}' encounter incremented by one")
                             if existing_document['resolved_AD'] == 0:
                                 json_report[typing_scheme]['loci'][locus_index][
                                     'Allele'] = temp_allele  # replace the name of the allele in the results (no hash anymore)
@@ -806,10 +822,9 @@ class MainMongo:
         custom_clustering = MongoCustomClustering(clustering_input[0], clustering_input[1],
                                                   self._species, self._naive_clustering_distance_matrix_file,
                                                   self._mongo_config_provider)
-        logging.info(f"Running the clustering for the isolate {self._technical_id}")
-        sp_thresholds = f"clustering_thresholds_{self._species}"
-        clustering_config = load_config(CLUSTERING_CONFIG)
-        sequence_type = custom_clustering.run_custom_clustering(clustering_config[sp_thresholds])
+        logger.info(f"Running the clustering for the isolate {self._technical_id}")
+        sp_thresholds = MongoClusteringConfigProvider(self._species).get_clustering_thresholds()
+        sequence_type = custom_clustering.run_custom_clustering(sp_thresholds)
         json_report["cgST"] = sequence_type
 
     @staticmethod
@@ -844,6 +859,8 @@ class MainMongo:
 
 
 if __name__ == '__main__':
+    # Configure stdout logger
+    logging.basicConfig(level=logging.WARNING, stream=sys.stdout)
     args = parse_arguments()
     mongo_config_provider = MongoConfigProvider(args.alternate_dtap)
 

@@ -6,6 +6,7 @@ import traceback
 from pathlib import Path
 
 from pymongo.collection import Collection
+from psycopg.types.json import Jsonb
 
 PYTHONPATH = Path(__file__).resolve().parent.parent
 sys.path.append(str(PYTHONPATH))
@@ -13,13 +14,14 @@ sys.path.append(str(PYTHONPATH))
 from bioit_bigsdb_scripts.components.maininserter import MainInserter
 from bioit_bigsdb_scripts.components.json_typingresultsinserter import JsonTypingResultsInserter
 from bioit_bigsdb_scripts.components.json_genedetectionresultsinserter import JsonGeneDetectionResultsInserter
-from bioit_bigsdb_scripts.components.psql import TblAlleleDesignations, TblEavFloat, TblEavText, TblEavBoolean, \
-    TblEavInt, TblAnalysisResults
+from bioit_bigsdb_scripts.components.psql import TblAlleleDesignations, TblAnalysisResults
 from bioit_mongodb_scripts.model.json_model import JsonReportDict, ResultType
 from bioit_mongodb_scripts.util.python_utility_functions import get_bigsdb_config_data, send_email
 from bioit_bigsdb_scripts.insert_assembly import insert_assembly
 from bioit_mongodb_scripts.util.command.command import Command
 from bioit_mongodb_scripts.util.mongo_config_provider import MongoConfigProvider
+
+logger = logging.getLogger(__name__)
 
 
 class MainResultsInserter:
@@ -76,8 +78,8 @@ class MainResultsInserter:
         Main function, inserts isolate and its results into BIGSdb.
         :return: None
         """
-        # fail safe mechanism is initated before inserting the isolate
-        # fail safe mechanism uses a flagfile to lock the isolate insertion and checks whether the previous insertion of the isolate succeeded.
+        # fail-safe mechanism is initated before inserting the isolate
+        # fail-safe mechanism uses a flagfile to lock the isolate insertion and checks whether the previous insertion of the isolate succeeded.
 
         maininserter = MainInserter(self._isolatename, self._species, self._json_report, self._bigsdb_config_data,
                                     self._report_access, self._vcf_path, self._viral_species)
@@ -92,7 +94,8 @@ class MainResultsInserter:
                                   self._report_access).insert_typing_results()
         JsonGeneDetectionResultsInserter(self._isolatename, self._species, self._json_report, self._bigsdb_config_data,
                                          self._report_access).insert_genedetection_results()
-        logging.info('Finished inserting results')
+        self._insert_clustering_results(self._json_report)
+        logger.info('Finished inserting results')
 
     def _handle_reanalysis_and_reseq(self) -> None:
         """
@@ -101,14 +104,8 @@ class MainResultsInserter:
         :return: None
         """
         if self._results_type == 'reanalysis' or self._results_type == 'resequencing':
-            with (TblAlleleDesignations(self._species) as isolates_ad_psql_tbl, TblEavText(self._species) as isolates_eavt_psql_tbl,
-                  TblEavBoolean(self._species) as isolates_eavb_psql_tbl, TblEavInt(self._species) as isolates_eavi_psql_tbl, TblEavFloat(self._species) as isolates_eavfl_psql_tbl,
-                  TblAnalysisResults(self._species) as isolates_ana_res_psql_tbl):
+            with (TblAlleleDesignations(self._species) as isolates_ad_psql_tbl, TblAnalysisResults(self._species) as isolates_ana_res_psql_tbl):
                 isolates_ad_psql_tbl.delete_all_designations_of_isolate((self._isolatename,))
-                isolates_eavt_psql_tbl.delete_all_eav_of_isolate((self._isolatename,))
-                isolates_eavb_psql_tbl.delete_eavbool_for_isolate((self._isolatename,))
-                isolates_eavi_psql_tbl.delete_eav_int_for_isolate((self._isolatename,))
-                isolates_eavfl_psql_tbl.delete_eav_float_for_isolate((self._isolatename,))
                 isolates_ana_res_psql_tbl.delete_analysis_results_isolate_name((self._isolatename,))
             self._nominative_labtest_clinical_metadata_collection.update_one({'_id': self._isolatename},
                                                                              {'$set': {'inserted_into_bigsdb': False}})
@@ -126,7 +123,7 @@ class MainResultsInserter:
         temp_dir = self._mongo_config_provider.temp_dir
         with tempfile.NamedTemporaryFile(dir=temp_dir, mode="w") as temp_fasta:
             temp_fasta_path = Path(temp_dir) / temp_fasta.name
-            scp_command = f"scp -o StrictHostKeyChecking=no -i /home/bigsdb/.ssh/.id_rsa_reportsapi bigsdb@{self._mongo_config_provider.azure_reportsapi_ip}:{fasta_path_remote} {str(temp_fasta_path)}"
+            scp_command = f"scp -o StrictHostKeyChecking=no -i /home/bigsdb/.ssh/.id_rsa_reportsapi bigsdb_{self._mongo_config_provider.get_shared_dtap()}@{self._mongo_config_provider.azure_reportsapi_ip}:{fasta_path_remote} {str(temp_fasta_path)}"
             scp_cmd = Command(scp_command)
             scp_cmd.run(Path(temp_dir))
             if scp_cmd.returncode != 0:
@@ -149,3 +146,17 @@ class MainResultsInserter:
             #             isolates_seqbinstats_psql_tbl.revert_seqbinstats_newversion([isolate_id])
             #         insert_assembly(isolate_id, self._species, temp_fasta_path, results_type)
             #     logging.info(f"Wrote new results version for {isolate_id} to bigsdb")
+
+    def _insert_clustering_results(self, json_report: JsonReportDict) -> None:
+        """
+        Inserts the cgST clustering javascript link for the isolate into the analysis_results table
+        :param json_report: json report dict
+        :return: None
+        """
+        isolate_cgst = json_report.get('cgST')
+        if isolate_cgst is None:
+            return
+        with TblAnalysisResults(self._species) as isolates_ana_res_psql_tbl:
+            js_link_of_the_cgst = isolates_ana_res_psql_tbl.extract_results_filtered_on_name((isolate_cgst,))
+            if js_link_of_the_cgst is not None:
+                isolates_ana_res_psql_tbl.insert_analysis_results_isolate_name(('cgST_clustering_on_allelic_dist', self._isolatename, Jsonb(js_link_of_the_cgst)))
