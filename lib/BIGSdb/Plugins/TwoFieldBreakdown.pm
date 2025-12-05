@@ -1159,8 +1159,15 @@ sub _get_analysis_field_values {
                { fetch => 'col_arrayref', cache => "TwoFieldBreakdown::get_field_value::$field" }
         );
     }
+    my $att = $self->{'datastore'}->get_analysis_field( $analysis_name->{$field}, $clean_fields->{$field} );
+    my $data_type = $att->{'data_type'};
+    my $sort_sub = (
+        ($data_type eq 'integer' || $data_type eq 'float')
+        ? sub { $a <=> $b }
+        : sub { $a cmp $b }
+    );
     local $" = q(; );
-    $values = qq(@$values) // q();
+    $values = @$values ? qq(@{[sort $sort_sub @$values]}) : q();
     return $values;
 }
 

@@ -912,7 +912,7 @@ sub _get_analysis_field_freqs {
       . '(SELECT arc.isolate_id, arc.value FROM analysis_results_cache arc '
       . 'JOIN analysis_fields af ON (af.analysis_name,af.json_path) = (arc.analysis_name,arc.json_path) '
       . 'WHERE (af.analysis_name,af.field_name) = (?,?)),isolates_values AS '
-      . '(SELECT i.value AS isolates_id, array_agg(mv.value) AS label FROM id_list i '
+      . '(SELECT i.value AS isolates_id, array_agg(mv.value ORDER BY mv.value) AS label FROM id_list i '
       . 'LEFT JOIN matching_values mv ON i.value=mv.isolate_id '
       . 'GROUP BY i.value) '
       . 'SELECT label, COUNT(*) AS value FROM isolates_values GROUP BY label';
