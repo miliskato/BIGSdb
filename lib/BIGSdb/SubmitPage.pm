@@ -3732,5 +3732,4 @@ sub _has_numeric_submission_ids_for_curation {
 
     return 0;
 }
-
 1;
