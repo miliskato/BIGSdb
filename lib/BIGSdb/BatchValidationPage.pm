@@ -295,16 +295,20 @@ sub _get_submissions_by_status_with_isolate_id {
 		my $user_info = $self->{'datastore'}->get_user_info_from_username( $self->{'username'} );
 		my ( $qry, $get_all, @args );
 		if ( $options->{'get_all'} ) {
-			$qry     = 'SELECT s.*, COALESCE(i.value, \'\') AS isolate_id FROM submissions s '
-			         . 'LEFT JOIN isolate_submission_isolates i ON s.id = i.submission_id AND i.field = ? '
-			         . 'WHERE s.status=? AND (s.dataset IS NULL OR s.dataset = ?) ORDER BY s.id';
+        $qry     = 'SELECT s.*, COALESCE(i.value, \'\') AS isolate_id FROM submissions s '
+                . 'LEFT JOIN isolate_submission_isolates i ON s.id = i.submission_id AND i.field = ? '
+                . 'WHERE s.status=? AND (s.dataset IS NULL OR s.dataset = ?) '
+                . 'ORDER BY CASE WHEN s.id ~ \'^[0-9]+$\' THEN 0 ELSE 1 END, '
+                . 'CASE WHEN s.id ~ \'^[0-9]+$\' THEN s.id::integer ELSE NULL END, s.id';
 			$get_all = 1;
 			push @args, ( 'isolate_id', $status, $self->{'instance'} );
 		} else {
 			$qry =
 			  'SELECT s.*, COALESCE(i.value, \'\') AS isolate_id FROM submissions s '
 			  . 'LEFT JOIN isolate_submission_isolates i ON s.id = i.submission_id AND i.field = ? '
-			  . 'WHERE (s.submitter,s.status)=(?,?) AND (s.dataset IS NULL OR s.dataset = ?) ORDER BY s.id';
+			  . 'WHERE (s.submitter,s.status)=(?,?) AND (s.dataset IS NULL OR s.dataset = ?) '
+              . 'ORDER BY CASE WHEN s.id ~ \'^[0-9]+$\' THEN 0 ELSE 1 END, '
+              . 'CASE WHEN s.id ~ \'^[0-9]+$\' THEN s.id::integer ELSE NULL END, s.id';
 			$get_all = 0;
 			push @args, ( 'isolate_id', $user_info->{'id'}, $status, $self->{'instance'} );
 		}
