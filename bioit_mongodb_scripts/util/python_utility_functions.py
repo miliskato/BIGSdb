@@ -169,7 +169,7 @@ def normalize_keys(data: Any) -> Any:
 
 def sanitize_json_values(data: Any) -> Any:
     """
-    Recursively replace NaN with None to ensure valid JSON for PostgreSQL.
+    Recursively replace NaN with None and booleans with strings to ensure valid JSON for PostgreSQL.
     :param data: Data structure to sanitize
     :return: Sanitized data structure
     """
@@ -180,4 +180,6 @@ def sanitize_json_values(data: Any) -> Any:
     elif isinstance(data, float):
         if math.isnan(data):
             return None
+    elif isinstance(data, bool):
+        return str(data)
     return data
