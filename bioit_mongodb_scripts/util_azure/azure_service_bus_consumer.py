@@ -243,7 +243,7 @@ def handling_retry_outcome(retry_state: RetryCallState) -> None:
     """
     global mail_sent
     if not mail_sent:
-        send_email(f"{retry_state.outcome.exception()}\nLook at the logs on {socket.gethostname()} (/var/log/bigsdb_insertions_service/bigsdb_insertions_[species].log)",
+        send_email(f"{retry_state.outcome.exception()}\nLook at the logs on {socket.gethostname()} (/var/log/NRC_platform/[species].log)",
                    f'WARNING: azure_service_bus_consumer raised errors on {socket.gethostname()}')
         mail_sent = True
     logger.error("Tentative number %s failed. Message: %s", retry_state.attempt_number, retry_state.outcome.exception())
