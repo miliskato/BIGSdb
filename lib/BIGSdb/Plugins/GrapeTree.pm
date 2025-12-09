@@ -535,8 +535,15 @@ sub generate_metadata_file {
 					[ $field->{'analysis_name'}, $field->{'field_name'}, $record->{'id'} ],
 					{ fetch => 'col_arrayref', cache => 'Grapetree::analysis_field' }
 				);
+		        my $att = $self->{'datastore'}->get_analysis_field( $field->{'analysis_name'}, $field->{'field_name'} );
+                my $data_type = $att->{'data_type'};
+                my $sort_sub = (
+                    ($data_type eq 'integer' || $data_type eq 'float')
+                    ? sub { $a <=> $b }
+                    : sub { $a cmp $b }
+                );
 				local $" = q(; );
-				push @record_values, qq(@$value) // q();
+				push @record_values, @$value ? qq(@{[sort $sort_sub @$value]}) : q();
 			}
 		}
 		foreach my $field (@include_fields) {
