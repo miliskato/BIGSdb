@@ -473,8 +473,8 @@ species_json:
         type: regular
       spoligotyping:
         type: irregular
-        schemename_bigsdb: Spoligotype
-        schemename_html: spoligotype
+        schemename_bigsdb: Spoligotyping
+        schemename_html: spoligotyping
       51_snp:
         type: irregular
         schemename_bigsdb: 51SNP
