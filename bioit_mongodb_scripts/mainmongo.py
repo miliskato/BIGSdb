@@ -418,6 +418,7 @@ class MainMongo:
         new_results["results.isolates_id"] = self._technical_id
         new_results["results.results_version"] = current_results["results_version"] + 1
         new_results["results.pipeline_hash"] = self._pipeline_hash
+        new_results["results.input_type"] = current_results["input_type"]
         if any_result_changed_new_old:
             new_results["results.changed_version"] = current_results["changed_version"] + 1
             logger.info(f"Writing new changed results and linked to isolate {self._technical_id} in {self._species}")
