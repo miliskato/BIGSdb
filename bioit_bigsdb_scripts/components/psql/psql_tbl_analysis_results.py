@@ -75,4 +75,4 @@ class TblAnalysisResults(DatabaseConnection):
         regex_used = r'\[\s*"{}"\s*\]|\[\s*"[^"]*"\s*,\s*"{}"\s*(,\s*"[^"]*"\s*)*\]'.format(cgst_value, cgst_value)
 
         result = self.execute_query(PsqlQueries.ISO_SEL_RES_TB_ANA_RES_VAR_RES, (regex_used,))
-        return str(result[0][0]) if len(result) > 0 else None
+        return result[0][0] if len(result) > 0 else None
