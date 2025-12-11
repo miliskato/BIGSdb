@@ -2270,7 +2270,7 @@ sub _get_analysis_field_breakdown_values {
 		'WITH matching_values AS (SELECT arc.isolate_id, arc.value FROM analysis_results_cache arc '
 	  . 'JOIN analysis_fields af ON (af.analysis_name,af.json_path) = (arc.analysis_name,arc.json_path) '
 	  . 'WHERE (af.analysis_name,af.field_name) = (?,?)),isolates_values AS '
-	  . "(SELECT v.id AS isolates_id, array_agg(mv.value) AS label FROM $self->{'view'} v "
+	  . "(SELECT v.id AS isolates_id, array_agg(mv.value ORDER BY mv.value) AS label FROM $self->{'view'} v "
 	  . "LEFT JOIN matching_values mv ON v.id=mv.isolate_id $filter_clause GROUP BY v.id) "
 	  . 'SELECT label, COUNT(*) AS value FROM isolates_values GROUP BY label ORDER BY ';
 

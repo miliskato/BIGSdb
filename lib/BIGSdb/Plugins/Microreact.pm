@@ -376,8 +376,15 @@ sub _create_tsv_file {
 					[ $field->{'analysis_name'}, $field->{'field_name'}, $record->{'id'} ],
 					{ fetch => 'col_arrayref', cache => 'Microreact::analysis_field' }
 				);
+				my $att = $self->{'datastore'}->get_analysis_field( $field->{'analysis_name'}, $field->{'field_name'} );
+                my $data_type = $att->{'data_type'};
+                my $sort_sub = (
+                    ($data_type eq 'integer' || $data_type eq 'float')
+                    ? sub { $a <=> $b }
+                    : sub { $a cmp $b }
+                );
 				local $" = q(; );
-				push @record_values, qq(@$value) // q();
+				push @record_values, @$value ? qq(@{[sort $sort_sub @$value]}) : q();
 			}
 		}
 		push @record_values, $iso2 if defined $country_field;
