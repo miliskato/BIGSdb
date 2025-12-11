@@ -128,7 +128,7 @@ class AlertsToBigs:
                             break
                     if subject_isolate_tuple is None:
                         exceptionmessage = f"While evaluating alerts, the tuple for the subject isolate " \
-                                           f"{isolate['isolate_name']} was not found in the output of the sql query"
+                                           f"{isolate['isolate_name']} was not found in the output of the sql query using method {investigation_method}"
                         logger.error(exceptionmessage)
                         raise Exception(exceptionmessage)
                     # Assess whether number of cases threshold was surpassed

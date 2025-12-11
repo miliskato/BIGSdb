@@ -274,7 +274,7 @@ sub print_content {
 		$self->_print_pending_submissions;
 		$self->print_submissions_for_curation;
         my $curation_buffer = $self->print_submissions_for_curation({ get_only => 1 });
-        if ($curation_buffer) {
+        if ($curation_buffer  && $self->_has_numeric_submission_ids_for_curation) {
             my $disk_full = $self->_check_storage_report_dir_for_batch_validation;
             if (!$disk_full){
                 my $validation_page_url = '/cgi-bin/bigsdb/bigsdb.pl?page=batchValidation&db=' . $q->param('db');
@@ -3716,5 +3716,20 @@ sub _print_disk_full_warning {
     say q(<fieldset style="float:left;max-width:300px"><legend>Action</legend>);
     say q(<p class="warning" style="padding: 10px 0 10px 10px;">Submissions cannot be closed until some disk space is freed up.);
     say q(</fieldset>);
+}
+
+sub _has_numeric_submission_ids_for_curation {
+    my ($self) = @_;
+
+    # Get the generated curation HTML (same content produced around line ~277)
+    my $curation_buffer = eval { $self->print_submissions_for_curation({ get_only => 1 }) } // '';
+    $logger->error($@) if $@;
+    return 0 unless $curation_buffer;
+
+    # Match "submission_id=<digits>&" (or the HTML-escaped "&amp;").
+    # This ensures only digits appear between "submission_id=" and the ampersand.
+    return 1 if $curation_buffer =~ /submission_id=(\d+)(?:&|&amp;)/;
+
+    return 0;
 }
 1;
