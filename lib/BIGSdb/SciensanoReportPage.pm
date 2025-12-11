@@ -264,9 +264,11 @@ sub print_content {
 	my $dtap = get_dtap();
 
 	my $res_time = 'null';
-		if ($q->param('submit_date')) {
-			$res_time = $q->param('submit_date')
-		}
+    if ($q->param('submit_date')) {
+        $res_time = $q->param('submit_date')
+    } else {
+        $res_time = $self->{'datastore'}->run_query( 'SELECT latest_analysis_date FROM isolates WHERE id=?', $isolate_id );
+    }
 	my $validation_type = 'null';
 		if ($q->param('validation_type')) {
 			$validation_type = $q->param('validation_type');
