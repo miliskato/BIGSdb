@@ -49,6 +49,7 @@
 <field type="text" required="no" length="30" maindisplay="no" group ="Nominative metadata" comments="Antibiogram BK - Pyrazinamid [100µg/ml]">pyrazinamid_100ug</field>
 <field type="text" required="no" length="50" maindisplay="no" group ="Nominative metadata" comments="country">country</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="hospitalisation">hospitalisation</field>
+<field type="text" required="no" length="50" maindisplay="no" group ="Nominative metadata" comments="specimen">specimen</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="under_treatment">under_treatment</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="tuberculosis_antecedents">tuberculosis_antecedents</field>
 <field type="text" required="no" length="10" maindisplay="no" group ="Nominative metadata" comments="tuberculosis_site">tuberculosis_site</field>
