@@ -298,7 +298,7 @@ sub _get_submissions_by_status_with_isolate_id {
             $qry     = 'SELECT s.*, COALESCE(i.value, \'\') AS isolate_id FROM submissions s '
               . 'LEFT JOIN isolate_submission_isolates i ON s.id = i.submission_id AND i.field = ? '
               . 'WHERE s.status=? AND (s.dataset IS NULL OR s.dataset = ?) AND s.id ~ \'^[0-9]+$\' '
-              . 'ORDER BY s.id::integer, s.id';
+              . 'ORDER BY s.id::integer';
 			$get_all = 1;
 			push @args, ( 'isolate_id', $status, $self->{'instance'} );
 		} else {
@@ -306,7 +306,7 @@ sub _get_submissions_by_status_with_isolate_id {
 			  'SELECT s.*, COALESCE(i.value, \'\') AS isolate_id FROM submissions s '
 			  . 'LEFT JOIN isolate_submission_isolates i ON s.id = i.submission_id AND i.field = ? '
 			  . 'WHERE (s.submitter,s.status)=(?,?) AND (s.dataset IS NULL OR s.dataset = ?) AND s.id ~ \'^[0-9]+$\' '
-              . 'ORDER BY s.id::integer, s.id';
+              . 'ORDER BY s.id::integer';
 			$get_all = 0;
 			push @args, ( 'isolate_id', $user_info->{'id'}, $status, $self->{'instance'} );
 		}
