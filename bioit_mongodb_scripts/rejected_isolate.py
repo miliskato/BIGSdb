@@ -75,7 +75,7 @@ class RejectedIsolate:
         :param rejected_isolates_psql_tbl: Connection to the rejected isolates psql table
         :return: insertion date, insertion type, rejection reasons and report link
         """
-        insertion_date = str(self._rejected_isolate_document['creation_date'])
+        insertion_date = str(self._rejected_isolate_document['creation_date'].date().isoformat())
         insertion_type = str(self._rejected_isolate_document['insertion_type'])
         if insertion_type == 'manual':
             rejection_reasons = self._rejected_isolate_document['rejection_reasons']['manual']
