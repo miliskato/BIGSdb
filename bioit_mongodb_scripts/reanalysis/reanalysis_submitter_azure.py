@@ -30,6 +30,7 @@ from bioit_mongodb_scripts.util.mongo_initialisation import MongoInitialisation
 from bioit_mongodb_scripts.util.python_utility_functions import load_config
 
 BATCH_POOL_NAME: Final[str] = 'analysis_pool_jammy'
+BATCH_POOL_NAME_2: Final[str] = 'analysis_pool_jammy_2'
 BATCH_JOB_NAME_PREFIX: Final[str] = 'reanalysis_tasks_jammy_'
 AUTOSCALE_FORMULA = """$TargetLowPriorityNodes = max(0, min(50, $PendingTasks.GetSample(TimeInterval_Minute*5)));\n$NodeDeallocationOption = taskcompletion;"""
 
@@ -92,6 +93,7 @@ class BatchPipelinesReanalysis:
         validate_literal(dtap, DtapLiteral)
         self._mongo_config_provider = MongoConfigProvider(dtap)
         self._dtap = dtap
+        self._pool_name = BATCH_POOL_NAME if self._dtap in ['dev', 'test', 'prod'] or self._species in ['salmonella', 'neisseria'] else BATCH_POOL_NAME_2
 
         # Read the reanalysis config
         self._reanalysis_config = load_config(MONGO_REANALYSIS_CONFIG)
@@ -129,7 +131,7 @@ class BatchPipelinesReanalysis:
         :return: None
         """
         # Create a new pool if none exists
-        logging.info(f"Checking pool {BATCH_POOL_NAME}'s existence")
+        logging.info(f"Checking pool {self._pool_name}'s existence")
         vm_size = self._connection_azure.get_secret_value('BATCH-VM-SIZE')
         node_agent_sku_id = 'batch.node.ubuntu 22.04'
         # listing popular images: az vm image list --output table # https://learn.microsoft.com/en-us/azure/virtual-machines/linux/cli-ps-findimage#list-popular-images
@@ -138,7 +140,7 @@ class BatchPipelinesReanalysis:
         # Create an ImageReference which specifies the image from
         # Azure Compute Gallery to install on the nodes.
         image_ref = batchmodels.ImageReference(
-            virtual_machine_image_id=self._connection_azure.get_secret_value('BATCH-IMAGE')
+            virtual_machine_image_id=self._connection_azure.get_secret_value('BATCH-IMAGE') if self._dtap in ['dev', 'test', 'prod'] or self._species in ['salmonella', 'neisseria'] else self._connection_azure.get_secret_value('BATCH-IMAGE-2')
         )
 
         vm_config = VirtualMachineConfiguration(image_reference=image_ref, node_agent_sku_id=node_agent_sku_id)
@@ -149,14 +151,14 @@ class BatchPipelinesReanalysis:
             subnet_id=self._connection_azure.get_secret_value('BATCH-SUBNET'))
 
         try:
-            self._batch_client.pool.get(BATCH_POOL_NAME)
+            self._batch_client.pool.get(self._pool_name)
         except BatchErrorException as e:
             if e.response.status_code == 404:
-                logging.info(f"Creating pool {BATCH_POOL_NAME}")
+                logging.info(f"Creating pool {self._pool_name}")
                 # https://learn.microsoft.com/en-us/python/api/azure-batch/azure.batch.models.pooladdparameter?view=azure-python
                 try:
                     self._batch_client.pool.add(batch.models.PoolAddParameter(
-                        id=BATCH_POOL_NAME,
+                        id=self._pool_name,
                         virtual_machine_configuration=vm_config,
                         vm_size=vm_size,
                         task_scheduling_policy=scheduling_policy,
@@ -169,7 +171,7 @@ class BatchPipelinesReanalysis:
                     ))
                 except:  # if the pool doesn't exist yet, and multiple samples are submitted at the same time; then a first sample will succeed and the rest will fail
                     logging.info(
-                        f"Pool '{BATCH_POOL_NAME}' was likely created a fraction of time ago; continuing with job creation..")
+                        f"Pool '{self._pool_name}' was likely created a fraction of time ago; continuing with job creation..")
                     pass
 
     def __create_job(self, job_name: str) -> None:
@@ -185,7 +187,7 @@ class BatchPipelinesReanalysis:
                 logging.info(f"Creating job {job_name}")
                 job = batch.models.JobAddParameter(
                     id=job_name,
-                    pool_info=batch.models.PoolInformation(pool_id=BATCH_POOL_NAME),
+                    pool_info=batch.models.PoolInformation(pool_id=self._pool_name),
                     # job preparation task was attempted to be used to shuttle the input files but did not do anything without
                     # even providing an error, just kept on running indefinitely
                     # job_preparation_task=batch.models.JobPreparationTask(command_line=f'/bin/bash; -c "{install_azcopy_cmd}; {copy_command_1};{copy_command_2}"',
@@ -362,7 +364,7 @@ class BatchPipelinesReanalysis:
                 destination=OutputFileDestination(
                     container=OutputFileBlobContainerDestination(
                         container_url=f"https://{input_storage_account_name}.blob.core.windows.net/batch-logs?{self._connection_azure.sas_token_blobstorage_input}",
-                        path=f"{BATCH_POOL_NAME}/{job_name}/{task_name}_stderr.txt"
+                        path=f"{self._pool_name}/{job_name}/{task_name}_stderr.txt"
                     )
                 ),
                 upload_options=OutputFileUploadOptions(
